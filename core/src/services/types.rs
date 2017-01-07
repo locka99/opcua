@@ -101,7 +101,7 @@ pub struct ChannelSecurityToken {
     pub secure_channel_id: UInt32,
     pub token_id: UInt32,
     pub created_at: UtcTime,
-    pub revised_lifetime: Int32,
+    pub revised_lifetime: Duration ,
 }
 
 impl BinaryEncoder<ChannelSecurityToken> for ChannelSecurityToken {
@@ -124,8 +124,16 @@ impl BinaryEncoder<ChannelSecurityToken> for ChannelSecurityToken {
     }
 
     fn decode(stream: &mut Read) -> Result<ChannelSecurityToken> {
-        // This impl should be overridden
-        unimplemented!()
+        let secure_channel_id = UInt32::decode(stream)?;
+        let token_id = UInt32::decode(stream)?;
+        let created_at = UtcTime::decode(stream)?;
+        let revised_lifetime = Duration::decode(stream)?;
+        Ok(ChannelSecurityToken {
+            secure_channel_id: secure_channel_id,
+            token_id: token_id,
+            created_at: created_at,
+            revised_lifetime: revised_lifetime,
+        })
     }
 }
 
@@ -405,23 +413,49 @@ pub struct ResponseHeader {
     pub request_handle: IntegerId,
     pub service_result: StatusCode,
     pub service_diagnostics: DiagnosticInfo,
-    pub string_table: Vec<UAString>,
+    pub string_table: UAString,
     pub additional_header: ExtensionObject,
 }
 
 impl BinaryEncoder<ResponseHeader> for ResponseHeader {
     fn byte_len(&self) -> usize {
-        unimplemented!();
+        let mut size = 0;
+        size += self.timestamp.byte_len();
+        size += self.request_handle.byte_len();
+        size += self.service_result.byte_len();
+        size += self.service_diagnostics.byte_len();
+        size += self.string_table.byte_len();
+        size += self.additional_header.byte_len();
+        size
     }
 
     fn encode(&self, stream: &mut Write) -> Result<usize> {
-        // This impl should be overridden
-        unimplemented!()
+        let mut size = 0;
+        size += self.timestamp.encode(stream)?;
+        size += self.request_handle.encode(stream)?;
+        size += self.service_result.encode(stream)?;
+        size += self.service_diagnostics.encode(stream)?;
+        size += self.string_table.encode(stream)?;
+        size += self.additional_header.encode(stream)?;
+        assert_eq!(size, self.byte_len());
+        Ok(size)
     }
 
     fn decode(stream: &mut Read) -> Result<ResponseHeader> {
-        // This impl should be overridden
-        unimplemented!()
+        let timestamp = UtcTime::decode(stream)?;
+        let request_handle = IntegerId::decode(stream)?;
+        let service_result = StatusCode::decode(stream)?;
+        let service_diagnostics = DiagnosticInfo::decode(stream)?;
+        let string_table = UAString::decode(stream)?;
+        let additional_header = ExtensionObject::decode(stream)?;
+        Ok(ResponseHeader {
+            timestamp: timestamp,
+            request_handle: request_handle,
+            service_result: service_result,
+            service_diagnostics: service_diagnostics,
+            string_table: string_table,
+            additional_header: additional_header,
+        })
     }
 }
 
@@ -437,17 +471,27 @@ pub struct SignedSoftwareCertificate {
 
 impl BinaryEncoder<SignedSoftwareCertificate> for SignedSoftwareCertificate {
     fn byte_len(&self) -> usize {
-        unimplemented!();
+        let mut size = 0;
+        size += self.certificate_data.byte_len();
+        size += self.signature.byte_len();
+        size
     }
 
     fn encode(&self, stream: &mut Write) -> Result<usize> {
-        // This impl should be overridden
-        unimplemented!()
+        let mut size = 0;
+        size += self.certificate_data.encode(stream)?;
+        size += self.signature.encode(stream)?;
+        assert_eq!(size, self.byte_len());
+        Ok(size)
     }
 
     fn decode(stream: &mut Read) -> Result<SignedSoftwareCertificate> {
-        // This impl should be overridden
-        unimplemented!()
+        let certificate_data = ByteString::decode(stream)?;
+        let signature = ByteString::decode(stream)?;
+        Ok(SignedSoftwareCertificate {
+            certificate_data: certificate_data,
+            signature: signature,
+        })
     }
 }
 
@@ -463,16 +507,26 @@ pub struct SignatureData {
 
 impl BinaryEncoder<SignatureData> for SignatureData {
     fn byte_len(&self) -> usize {
-        unimplemented!();
+        let mut size = 0;
+        size += self.algorithm.byte_len();
+        size += self.signature.byte_len();
+        size
     }
 
     fn encode(&self, stream: &mut Write) -> Result<usize> {
-        // This impl should be overridden
-        unimplemented!()
+        let mut size = 0;
+        size += self.algorithm.encode(stream)?;
+        size += self.signature.encode(stream)?;
+        assert_eq!(size, self.byte_len());
+        Ok(size)
     }
 
     fn decode(stream: &mut Read) -> Result<SignatureData> {
-        // This impl should be overridden
-        unimplemented!()
+        let algorithm = ByteString::decode(stream)?;
+        let signature = ByteString::decode(stream)?;
+        Ok(SignatureData {
+            algorithm: algorithm,
+            signature: signature,
+        })
     }
 }

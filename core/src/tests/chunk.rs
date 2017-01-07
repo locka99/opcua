@@ -87,28 +87,29 @@ fn test_open_secure_channel() {
     };
     let new_open_secure_channel_request = serialize_test_and_return(open_secure_channel_request.clone());
     assert_eq!(open_secure_channel_request, new_open_secure_channel_request);
-}
 
-// Encode open secure channel back to itself and compare
-#[test]
-fn test_open_secure_channel() {
-    let _ = Test::setup();
+    // And the response
     let open_secure_channel_response = OpenSecureChannelResponse{
         response_header: ResponseHeader {
             timestamp: DateTime::now(),
-            request_handle: (),
-            service_result: (),
-            service_diagnostics: (),
-            string_table: (),
-            additional_header: (),
+            request_handle: 444,
+            service_result: BAD_PROTOCOL_VERSION_UNSUPPORTED.clone(),
+            service_diagnostics: DiagnosticInfo::new(),
+            string_table: UAString::null_string(),
+            additional_header: ExtensionObject::null(),
         },
-        security_token: (),
-        channel_id: (),
-        token_id: (),
-        created_at: (),
-        revised_lifetime: (),
-        server_nonce: (),
+        security_token: ChannelSecurityToken {
+            secure_channel_id: 1,
+            token_id: 2,
+            created_at: DateTime::now(),
+            revised_lifetime: 777f64,
+        },
+        channel_id: ByteString::from_str("abc"),
+        token_id: ByteString::from_str("xyz"),
+        created_at: DateTime::now(),
+        revised_lifetime: 999.999f64,
+        server_nonce: ByteString::from_str("jhkjdshfkjhsdkfj"),
     };
-    let new_open_secure_channel_request = serialize_test_and_return(open_secure_channel_request.clone());
-    assert_eq!(open_secure_channel_request, new_open_secure_channel_request);
+    let new_open_secure_channel_response = serialize_test_and_return(open_secure_channel_response.clone());
+    assert_eq!(open_secure_channel_response, new_open_secure_channel_response);
 }
