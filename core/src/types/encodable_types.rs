@@ -256,10 +256,10 @@ impl BinaryEncoder<UAString> for UAString {
         let buf_len = read_i32(stream)?;
         // Null string?
         if buf_len == -1 {
-            return Ok(UAString::null_string());
+            return Ok(UAString::null());
         } else if buf_len < -1 {
             error!("String buf length is a negative number {}", buf_len);
-            return Ok(UAString::null_string());
+            return Ok(UAString::null());
             // TODO an explicit errror
         } else if buf_len > MAX_STRING_SIZE {
             error!("String buf length is probably invalid number {}", buf_len);
@@ -286,7 +286,7 @@ impl UAString {
     }
 
     /// Create a null string (not the same as an empty string)
-    pub fn null_string() -> UAString {
+    pub fn null() -> UAString {
         UAString { value: None }
     }
 

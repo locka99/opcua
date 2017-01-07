@@ -124,7 +124,7 @@ impl TcpSession {
         Err(&BAD_COMMUNICATION_ERROR)
     }
 
-    fn process_open_secure_channel(session: &Arc<Mutex<TcpSession>>, chunk: &Chunk, in_stream: &mut Read, out_stream: &mut Write) -> std::result::Result<(), &'static StatusCode> {
+    fn process_open_secure_channel(session: &Arc<Mutex<TcpSession>>, chunk: Chunk, in_stream: &mut Read, out_stream: &mut Write) -> std::result::Result<(), &'static StatusCode> {
         info!("Got secure channel request");
         // Get the actual request
         let chunks = vec![chunk];
@@ -148,23 +148,23 @@ impl TcpSession {
                 request_handle: request.request_header.request_handle,
                 service_result: GOOD.clone(),
                 service_diagnostics: DiagnosticInfo::new(),
-                string_table: Vec::new(),
+                string_table: UAString::null(),
                 additional_header: ExtensionObject::null(),
             },
             security_token: ChannelSecurityToken {
                 secure_channel_id: 0,
                 token_id: 0,
                 created_at: DateTime::now(),
-                revised_lifetime: 0,
+                revised_lifetime: 0f64,
             },
-            channel_id: ByteString::null_string(),
-            token_id: ByteString::null_string(),
+            channel_id: ByteString::null(),
+            token_id: ByteString::null(),
             created_at: now.clone(),
             revised_lifetime: 0f64,
-            server_nonce: ByteString::null_string(),
+            server_nonce: ByteString::null(),
         };
 
-        // TODO send the chunk
+        //chunker.encode()
 
         Ok(())
     }
@@ -179,7 +179,7 @@ impl TcpSession {
 
         let result = match chunk.chunk_header.message_type {
             ChunkMessageType::OpenSecureChannel => {
-                TcpSession::process_open_secure_channel(&session, &chunk, in_stream, out_stream)
+                TcpSession::process_open_secure_channel(&session, chunk, in_stream, out_stream)
             },
             ChunkMessageType::CloseSecureChannel => {
                 Err(&BAD_UNEXPECTED_ERROR)

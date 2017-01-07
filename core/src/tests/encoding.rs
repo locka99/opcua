@@ -82,7 +82,7 @@ fn test_encoding_f64() {
 
 #[test]
 fn test_encoding_string() {
-    serialize_test(UAString::null_string());
+    serialize_test(UAString::null());
     serialize_test(UAString::from_str("ショッピング"));
     serialize_test(UAString::from_str("This is a test"));
     serialize_test(UAString::from_str("This is a test"));

@@ -83,7 +83,7 @@ fn test_open_secure_channel() {
             timestamp: DateTime::now(),
             request_handle: 1,
             return_diagnostics: 0,
-            audit_entry_id: UAString::null_string(),
+            audit_entry_id: UAString::null(),
             timeout_hint: 123456,
             additional_header: ExtensionObject::null(), // from_str(NodeId::new_numeric(0, 222), "this is a header of some sort"),
         },
@@ -103,7 +103,7 @@ fn test_open_secure_channel() {
             request_handle: 444,
             service_result: BAD_PROTOCOL_VERSION_UNSUPPORTED.clone(),
             service_diagnostics: DiagnosticInfo::new(),
-            string_table: UAString::null_string(),
+            string_table: UAString::null(),
             additional_header: ExtensionObject::null(),
         },
         security_token: ChannelSecurityToken {
