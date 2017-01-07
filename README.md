@@ -6,6 +6,10 @@ or visualize.
 
 This is an OPC UA server / client API implemented in Rust. 
 
+# Current progress
+
+Phase 0 - just building the fundamentals
+
 # OPC UA for Rust?
 
 Rust is a natural choice for OPC UA due in part to the complexity of OPC UA itself and the
@@ -77,6 +81,20 @@ empty or holds a byte string or xml element. When the type is serialized it will
 having an encoding byte, length, payload. But in memory we can force the correct type and control what goes
 in and out of the type.
 
+## Rustfmt
+
+All code should be follow the most current Rust RFC coding guidelines. In general that means 
+using an up to date rustfmt for formatting purposes and following standard Rust lint Rules
+for naming conventions.
+
+## Exceptions for OPC UA
+
+OPC UA has some some really long enum types which are broken by underscores. I've tried converting
+these upper snake and they look terrible. I've tried removing underscores and they look terrible.
+So the names and underscores are preserved as-in in generated code even though they generate lint errors. 
+The lint rules are disabled for generated code.
+
+
 # Testing
 
 ## Unit tests
@@ -96,6 +114,13 @@ The plan is for unit tests for at least the following
 * Create session
 * Subscribe to values
 * Encryption (when implemented)
+
+## OPC UA test cases
+
+See this [OPC UA link](http://opcfoundation-onlineapplications.org/ProfileReporting/index.htm) and click
+on the test case links associated with facets.
+
+There are a lot of tests. Any that can be sanely automated or covered by unit / integration tests will be.
 
 ## 3rd party testing
 
@@ -120,7 +145,8 @@ The intention is that the implementation will work its way through OPC UA profil
 
 Profiles are defined in "OPC UA Part 7 - Profiles 1.03 Specification"
 
-This [link](http://opcfoundation-onlineapplications.org/ProfileReporting/index.htm) provides interactive and descriptive information about profiles below.
+This [OPC UA link](http://opcfoundation-onlineapplications.org/ProfileReporting/index.htm) provides interactive and descriptive information about
+profiles and relevant test cases.
 
 ## Phase 0: Types, basic functionality
 
@@ -227,17 +253,3 @@ Client OPC UA is governed by its own core characteristics. These will be impleme
 * Durable subscription client (i.e. ability to reconnect and re-establish group after disconnect)
 
 
-
-## Contributions welcome
-
-# Coding guidelines
-
-All code should be follow the most current Rust RFC coding guidelines. In general that means 
-using an up to date rustfmt for formatting purposes and following standard Rust lint Rules
-for naming conventions.
-
-# Exceptions for OPC UA
-
-OPC UA has some some really long enum types which are broken by underscores. These underscores
-are preserved in generated code even though they generate lint errors. The lint rules
-are disabled for generated code.
