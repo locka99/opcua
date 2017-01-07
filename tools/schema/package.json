@@ -1,0 +1,12 @@
+{
+  "name": "schema",
+  "version": "1.0.0",
+  "description": "",
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "csv-parser": "^1.11.0",
+    "lodash": "^4.17.2",
+    "yargs": "^6.4.0"
+  }
+}

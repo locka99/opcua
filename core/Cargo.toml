@@ -1,0 +1,10 @@
+[package]
+name = "opcua-core"
+version = "0.1.0"
+authors = ["Adam Lock <locka99@gmail.com>"]
+
+[dependencies]
+log = "0.3"
+byteorder = "0.5"
+chrono = "0.2"
+# openssl = "0.9.2"

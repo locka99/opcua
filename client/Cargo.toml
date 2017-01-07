@@ -1,0 +1,9 @@
+[package]
+name = "opcua-client"
+version = "0.1.0"
+authors = ["Adam Lock <locka99@gmail.com>"]
+
+[dependencies]
+
+[dependencies.opcua-core]
+path = "../core"

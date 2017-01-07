@@ -1,0 +1,1 @@
+These scripts use NodeJS. After installing node you must type "npm install" in this dir to download the relevant packages. 

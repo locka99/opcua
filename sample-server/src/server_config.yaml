@@ -1,0 +1,6 @@
+--- # Sample configuration
+id: sample-opcua
+description: Sample OPC UA Server
+host: 127.0.0.1
+port: 1234
+path: /
