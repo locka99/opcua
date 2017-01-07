@@ -47,7 +47,7 @@ impl Server {
                         self.handle_connection(stream, &server_config);
                     }
                     Err(err) => {
-                        warn! ("Got an error on stream {:?}", err);
+                        warn!("Got an error on stream {:?}", err);
                     }
                 }
             }

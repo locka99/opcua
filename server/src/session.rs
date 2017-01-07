@@ -125,7 +125,7 @@ impl TcpSession {
     }
 
     fn process_open_secure_channel(session: &Arc<Mutex<TcpSession>>, chunk: &Chunk, in_stream: &mut Read, out_stream: &mut Write) -> std::result::Result<(), &'static StatusCode> {
-        info! ("Got secure channel request");
+        info!("Got secure channel request");
         // Get the actual request
         let chunks = vec![chunk];
 
@@ -175,7 +175,7 @@ impl TcpSession {
 
         // Process the message
         let chunk = result.unwrap();
-        debug! ("Got a chunk {:?}", chunk);
+        debug!("Got a chunk {:?}", chunk);
 
         let result = match chunk.chunk_header.message_type {
             ChunkMessageType::OpenSecureChannel => {
@@ -330,6 +330,6 @@ fn debug_buffer(buf: &[u8]) {
         for b in buf {
             hex_dump.push_str(format!("{:02x},", b).as_str());
         }
-        debug! ("Bytes: {}", hex_dump);
+        debug!("Bytes: {}", hex_dump);
     }
 }

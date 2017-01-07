@@ -16,6 +16,7 @@ impl BinaryEncoder<SecurityTokenRequestType> for SecurityTokenRequestType {
 
     fn encode(&self, stream: &mut Write) -> Result<usize> {
         // All enums are Int32
+        debug!("Writing security token request type as {}", *self as Int32);
         write_i32(stream, *self as Int32)
     }
 
@@ -23,10 +24,10 @@ impl BinaryEncoder<SecurityTokenRequestType> for SecurityTokenRequestType {
         // All enums are Int32
         let security_token_request_type = read_i32(stream)?;
         Ok(match security_token_request_type {
-            0 => { SecurityTokenRequestType::Issue }
-            1 => { SecurityTokenRequestType::Renew }
+            0 => SecurityTokenRequestType::Issue,
+            1 => SecurityTokenRequestType::Renew,
             _ => {
-                error!("Don't know what security token request type is");
+                error!("Don't know what security token request type {} is", security_token_request_type);
                 SecurityTokenRequestType::Issue
             }
         })
@@ -191,7 +192,7 @@ impl BinaryEncoder<OpenSecureChannelResponse> for OpenSecureChannelResponse {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CloseSecureChannelRequest {
     /// Common request parameters. The authenticationToken is always omitted.
     pub request_header: RequestHeader,
@@ -207,12 +208,18 @@ impl ObjectInfo for CloseSecureChannelRequest {
 
 impl BinaryEncoder<CloseSecureChannelRequest> for CloseSecureChannelRequest {
     fn byte_len(&self) -> usize {
-        unimplemented!();
+        let mut size = 0;
+        size += self.request_header.byte_len();
+        size += self.secure_channel_id.byte_len();
+        size
     }
 
-    fn encode(&self, _: &mut Write) -> Result<usize> {
-        // This impl should be overridden
-        unimplemented!()
+    fn encode(&self, stream: &mut Write) -> Result<usize> {
+        let mut size = 0;
+        size += self.request_header.encode(stream)?;
+        size += self.secure_channel_id.encode(stream)?;
+        assert_eq!(size, self.byte_len());
+        Ok(size)
     }
 
     fn decode(stream: &mut Read) -> Result<CloseSecureChannelRequest> {
@@ -225,7 +232,7 @@ impl BinaryEncoder<CloseSecureChannelRequest> for CloseSecureChannelRequest {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CloseSecureChannelResponse {
     /// Common response parameters
     pub response_header: ResponseHeader,
@@ -239,15 +246,17 @@ impl ObjectInfo for CloseSecureChannelResponse {
 
 impl BinaryEncoder<CloseSecureChannelResponse> for CloseSecureChannelResponse {
     fn byte_len(&self) -> usize {
-        unimplemented!();
+        self.response_header.byte_len()
     }
 
     fn encode(&self, stream: &mut Write) -> Result<usize> {
         Ok(self.response_header.encode(stream)?)
     }
 
-    fn decode(_: &mut Read) -> Result<CloseSecureChannelResponse> {
-        // This impl should be overridden
-        unimplemented!()
+    fn decode(stream: &mut Read) -> Result<CloseSecureChannelResponse> {
+        let response_header = ResponseHeader::decode(stream)?;
+        Ok(CloseSecureChannelResponse {
+            response_header: response_header,
+        })
     }
 }

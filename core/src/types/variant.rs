@@ -299,6 +299,7 @@ impl BinaryEncoder<Variant> for Variant {
                 }
             },
         }
+        assert_eq!(size, self.byte_len());
         Ok(size)
     }
 

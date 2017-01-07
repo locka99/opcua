@@ -12,8 +12,6 @@ pub enum Identifier {
     ByteString(UAString),
 }
 
-// fn read_node_info(stream: &mut Read, support_extended: bool) -> (UInt16, String)
-
 /// An identifier for a node in the address space of an OPC UA Server.
 /// Data type ID 17
 #[derive(PartialEq, Clone, Debug)]
@@ -87,6 +85,7 @@ impl BinaryEncoder<NodeId> for NodeId {
                 size += value.encode(stream)?;
             }
         }
+        assert_eq!(size, self.byte_len());
         Ok(size)
     }
 

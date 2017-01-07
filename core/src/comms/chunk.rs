@@ -226,10 +226,10 @@ impl BinaryEncoder<SecurityHeader> for SecurityHeader {
         let mut size = 0;
         size += write_i32(stream, self.security_policy_uri.len() as Int32)?;
         size += stream.write(self.security_policy_uri.as_bytes())?;
-        size += 4; // sender_certificate
-        size += self.sender_certificate.len();
-        size += 4; // receiver_certificate_thumbprint
-        size += self.receiver_certificate_thumbprint.len();
+        size += write_i32(stream, self.sender_certificate.len() as i32)?;
+        size += stream.write(&self.sender_certificate)?;
+        size += write_i32(stream, self.receiver_certificate_thumbprint.len() as i32)?;
+        size += stream.write(&self.receiver_certificate_thumbprint)?;
         Ok(size)
     }
 
@@ -346,7 +346,7 @@ impl SecurityPolicy {
                 SecurityPolicy::Basic256Sha256
             }
             _ => {
-                error! ("Specified security policy {} is not recognized", uri);
+                error!("Specified security policy {} is not recognized", uri);
                 SecurityPolicy::Unknown
             }
         }
@@ -401,10 +401,10 @@ impl Chunk {
 
     fn debug_stream(stream: &Cursor<&Vec<u8>>, buf: &[u8]) {
         let pos = stream.position() as usize;
-        debug! ("Stream position = {}, bytes = {:02x},{:02x},{:02x},{:02x}", pos, buf[pos], buf[pos + 1], buf[pos + 2], buf[pos + 3]);
+        debug!("Stream position = {}, bytes = {:02x},{:02x},{:02x},{:02x}", pos, buf[pos], buf[pos + 1], buf[pos + 2], buf[pos + 3]);
     }
 
-    pub fn chunk_info(&self, secure_channel_info: Option<&mut SecureChannelInfo>) -> std::result::Result<ChunkInfo, &'static StatusCode> {
+    pub fn chunk_info(&self, _: Option<&mut SecureChannelInfo>) -> std::result::Result<ChunkInfo, &'static StatusCode> {
         let mut chunk_stream = Cursor::new(&self.chunk_body);
 
         // Message::debug_stream(&message_stream, &self.message_body);
@@ -470,12 +470,14 @@ impl Chunker {
     }
 
     pub fn encode(&mut self, request_id: UInt32, secure_channel_info: &mut SecureChannelInfo, message: &SupportedMessage) -> std::result::Result<Vec<Box<Chunk>>, ()> {
+        // TODO multiple chunks
+
         // External values
         let sequence_number = self.last_encoded_sequence_number + 1;
         self.last_encoded_sequence_number = sequence_number;
         let secure_channel_id = secure_channel_info.secure_channel_id;
 
-        // TODO multiple chunks
+        debug!("Creating a chunk for secure channel id {}, sequence id {}", secure_channel_id, sequence_number);
 
         let message_type = message.chunk_message_type();
         let node_id = message.node_id();
@@ -508,10 +510,14 @@ impl Chunker {
         // TODO padding size
         // TODO signature size
 
+        let message_size = (CHUNK_HEADER_SIZE + chunk_body_size) as u32;
+
+        debug!("Creating a chunk with a size of {}", message_size);
+
         let chunk_header = ChunkHeader {
             message_type: message_type,
             is_final: is_final,
-            message_size: (CHUNK_HEADER_SIZE + chunk_body_size) as u32,
+            message_size: message_size,
             secure_channel_id: secure_channel_id,
             is_valid: true,
         };
@@ -519,13 +525,17 @@ impl Chunker {
         let mut stream = Cursor::new(vec![0u8; chunk_body_size]);
         // Write a node id for the first chunk
         if is_first_chunk {
+            debug!("Encoding node id");
             node_id.encode(&mut stream);
         }
         // write security header
+        debug!("Encoding security header");
         security_header.encode(&mut stream);
         // write sequence header
+        debug!("Encoding sequence header");
         sequence_header.encode(&mut stream);
         // write message
+        debug!("Encoding message");
         message.encode(&mut stream);
 
         // TODO write padding
@@ -534,6 +544,7 @@ impl Chunker {
         // TODO write signature
 
         // Now the chunk is made and can be added to the result
+        debug!("Returning chunk");
         let chunk = Box::new(Chunk {
             chunk_header: chunk_header,
             chunk_body: stream.into_inner(),
@@ -575,7 +586,7 @@ impl Chunker {
         // for hours.
         let node_id = NodeId::decode(&mut chunk_body_stream);
         if node_id.is_err() {
-            error! ("The node id could not be read from the stream {:?}", node_id);
+            error!("The node id could not be read from the stream {:?}", node_id);
             return Err(&BAD_UNEXPECTED_ERROR);
         }
         let node_id = node_id.unwrap();
@@ -588,7 +599,7 @@ impl Chunker {
             false
         };
         if !valid_node_id {
-            error! ("The node id read from the stream was accepted in this context {:?}", node_id);
+            error!("The node id read from the stream was accepted in this context {:?}", node_id);
             return Err(&BAD_UNEXPECTED_ERROR);
         }
 

@@ -1,8 +1,8 @@
-use std::fmt::Debug;
-
 use types::*;
 use comms::*;
 use services::*;
+
+use super::*;
 
 struct Test;
 
@@ -13,21 +13,6 @@ impl Test {
     }
 }
 
-fn serialize_test_and_return<T>(value: T) -> T
-    where T: BinaryEncoder<T> + Debug + PartialEq
-{
-    use std::io::Cursor;
-    let mut buf = Cursor::new(vec![0u8; 16384]);
-
-    let result = value.encode(&mut buf);
-    assert!(result.is_ok());
-
-    buf.set_position(0);
-
-    let new_value: T = T::decode(&mut buf).unwrap();
-    assert_eq!(value, new_value);
-    new_value
-}
 
 fn get_sample_data_security_none() -> Vec<u8> {
     return vec![
@@ -60,7 +45,7 @@ fn get_sample_chunk() -> Chunk {
 fn test_read_open_secure_channel() {
     let _ = Test::setup();
 
-    let chunker = Chunker::new();
+    let mut chunker = Chunker::new();
 
     let chunk = get_sample_chunk();
     let chunks = vec![&chunk];
@@ -78,18 +63,52 @@ fn test_read_open_secure_channel() {
     // TODO validate fields of open_secure_channel_request
 }
 
-// Encode the same chunk from a struct to data and back and again and compare
+// Encode open secure channel back to itself and compare
 #[test]
-fn test_reencode_open_secure_channel() {
+fn test_open_secure_channel() {
     let _ = Test::setup();
+    let open_secure_channel_request = OpenSecureChannelRequest {
+        request_header: RequestHeader {
+            authentication_token: SessionAuthenticationToken {
+                token: NodeId::new_numeric(0, 99),
+            },
+            timestamp: DateTime::now(),
+            request_handle: 1,
+            return_diagnostics: 0,
+            audit_entry_id: UAString::null_string(),
+            timeout_hint: 123456,
+            additional_header: ExtensionObject::null(), // from_str(NodeId::new_numeric(0, 222), "this is a header of some sort"),
+        },
+        client_protocol_version: 77,
+        request_type: SecurityTokenRequestType::Renew,
+        security_mode: MessageSecurityMode::SignAndEncrypt,
+        client_nonce: ByteString::null_string(),
+        requested_lifetime: 4664,
+    };
+    let new_open_secure_channel_request = serialize_test_and_return(open_secure_channel_request.clone());
+    assert_eq!(open_secure_channel_request, new_open_secure_channel_request);
+}
 
-    let chunker = Chunker::new();
-
-    let chunk = get_sample_chunk();
-    let chunks = vec![&chunk];
-
-    //let open_secure_channel_request: OpenSecureChannelRequest = chunker.decode_open_secure_channel_request(&chunks).unwrap();
-    //let new_open_secure_channel_request = serialize_test_and_return(open_secure_channel_request.clone());
-
-    //assert_eq!(open_secure_channel_request, new_open_secure_channel_request);
+// Encode open secure channel back to itself and compare
+#[test]
+fn test_open_secure_channel() {
+    let _ = Test::setup();
+    let open_secure_channel_response = OpenSecureChannelResponse{
+        response_header: ResponseHeader {
+            timestamp: DateTime::now(),
+            request_handle: (),
+            service_result: (),
+            service_diagnostics: (),
+            string_table: (),
+            additional_header: (),
+        },
+        security_token: (),
+        channel_id: (),
+        token_id: (),
+        created_at: (),
+        revised_lifetime: (),
+        server_nonce: (),
+    };
+    let new_open_secure_channel_request = serialize_test_and_return(open_secure_channel_request.clone());
+    assert_eq!(open_secure_channel_request, new_open_secure_channel_request);
 }

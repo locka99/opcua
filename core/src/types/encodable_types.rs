@@ -228,6 +228,9 @@ pub struct UAString {
     pub value: Option<String>,
 }
 
+/// Internal sanity limit to string sizes
+const MAX_STRING_SIZE: Int32 = 512 * 1024;
+
 impl BinaryEncoder<UAString> for UAString {
     fn byte_len(&self) -> usize {
         // Length plus the actual length of bytes (if not null)
@@ -244,6 +247,7 @@ impl BinaryEncoder<UAString> for UAString {
             size += write_i32(stream, value.len() as i32)?;
             let buf = value.as_bytes();
             size += stream.write(&buf)?;
+            assert_eq!(size, self.byte_len());
             Ok(size)
         }
     }
@@ -252,8 +256,16 @@ impl BinaryEncoder<UAString> for UAString {
         let buf_len = read_i32(stream)?;
         // Null string?
         if buf_len == -1 {
-            return Ok(UAString { value: None });
+            return Ok(UAString::null_string());
+        } else if buf_len < -1 {
+            error!("String buf length is a negative number {}", buf_len);
+            return Ok(UAString::null_string());
+            // TODO an explicit errror
+        } else if buf_len > MAX_STRING_SIZE {
+            error!("String buf length is probably invalid number {}", buf_len);
+            // TODO an explicit error
         }
+
         // Create the actual UTF8 string
         let mut string_buf: Vec<u8> = Vec::with_capacity(buf_len as usize);
         string_buf.resize(buf_len as usize, 0u8);
@@ -316,7 +328,7 @@ impl BinaryEncoder<Guid> for Guid {
         size += write_u16(stream, self.data2)?;
         size += write_u16(stream, self.data3)?;
         size += stream.write(&self.data4)?;
-        assert_eq!(size, 16);
+        assert_eq!(size, self.byte_len());
         Ok(size)
     }
 
@@ -365,6 +377,7 @@ impl BinaryEncoder<QualifiedName> for QualifiedName {
         let mut size: usize = 0;
         size += self.namespace_index.encode(stream)?;
         size += self.name.encode(stream)?;
+        assert_eq!(size, self.byte_len());
         Ok(size)
     }
 
@@ -428,7 +441,7 @@ impl BinaryEncoder<ExtensionObject> for ExtensionObject {
     fn byte_len(&self) -> usize {
         let mut size = self.node_id.byte_len();
         size += match self.body {
-            ExtensionObjectEncoding::None => 0,
+            ExtensionObjectEncoding::None => 1,
             ExtensionObjectEncoding::ByteString(ref value) => {
                 // Encoding mask + data
                 1 + value.byte_len()
@@ -444,9 +457,10 @@ impl BinaryEncoder<ExtensionObject> for ExtensionObject {
     fn encode(&self, stream: &mut Write) -> Result<usize> {
         let mut size = 0;
         size += self.node_id.encode(stream)?;
-
         match self.body {
-            ExtensionObjectEncoding::None => {},
+            ExtensionObjectEncoding::None => {
+                size += write_u8(stream, 0x0)?;
+            },
             ExtensionObjectEncoding::ByteString(ref value) => {
                 // Encoding mask + data
                 size += write_u8(stream, 0x1)?;
@@ -458,6 +472,7 @@ impl BinaryEncoder<ExtensionObject> for ExtensionObject {
                 size += value.encode(stream)?;
             },
         }
+        assert_eq!(size, self.byte_len());
         Ok(size)
     }
 
@@ -500,6 +515,13 @@ impl ExtensionObject {
         ExtensionObject {
             node_id: NodeId::null(),
             body: ExtensionObjectEncoding::None,
+        }
+    }
+
+    pub fn from_str(node_id: NodeId, value: &str) -> ExtensionObject {
+        ExtensionObject {
+            node_id: node_id,
+            body: ExtensionObjectEncoding::ByteString(ByteString::from_str(value)),
         }
     }
 }
