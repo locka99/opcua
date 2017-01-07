@@ -42,17 +42,17 @@ fn get_sample_chunk() -> Chunk {
 }
 
 #[test]
-fn test_read_open_secure_channel() {
+fn test_chunk_open_secure_channel() {
     let _ = Test::setup();
 
     let mut chunker = Chunker::new();
 
     let chunk = get_sample_chunk();
-    let chunks = vec![&chunk];
+    let chunks = vec![chunk];
 
-    let open_secure_channel_request: OpenSecureChannelRequest = chunker.decode_open_secure_channel_request(&chunks).unwrap();
+    let request = chunker.decode_open_secure_channel_request(&chunks).unwrap();
     {
-        let ref request_header = open_secure_channel_request.request_header;
+        let ref request_header = request.request_header;
         assert_eq!(request_header.timestamp.ticks(), 131279270199860000);
         assert_eq!(request_header.request_handle, 1);
         assert_eq!(request_header.return_diagnostics, 0);
@@ -60,7 +60,15 @@ fn test_read_open_secure_channel() {
         assert_eq!(request_header.timeout_hint, 0);
     }
 
-    // TODO validate fields of open_secure_channel_request
+    // Encode the message up again to chunks, decode and compare to original
+    let secure_channel_info = SecureChannelInfo {
+        security_policy: SecurityPolicy::None,
+        secure_channel_id: 1,
+    } ;
+    let chunks = chunker.encode(1, &secure_channel_info, &SupportedMessage::OpenSecureChannelRequest(request.clone())).unwrap();
+    assert_eq!(chunks.len(), 1);
+    let new_request = chunker.decode_open_secure_channel_request(&chunks).unwrap();
+    assert_eq!(request, new_request);
 }
 
 // Encode open secure channel back to itself and compare

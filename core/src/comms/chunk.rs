@@ -469,7 +469,7 @@ impl Chunker {
         }
     }
 
-    pub fn encode(&mut self, request_id: UInt32, secure_channel_info: &mut SecureChannelInfo, message: &SupportedMessage) -> std::result::Result<Vec<Box<Chunk>>, ()> {
+    pub fn encode(&mut self, request_id: UInt32, secure_channel_info: &SecureChannelInfo, message: &SupportedMessage) -> std::result::Result<Vec<Chunk>, ()> {
         // TODO multiple chunks
 
         // External values
@@ -545,17 +545,17 @@ impl Chunker {
 
         // Now the chunk is made and can be added to the result
         debug!("Returning chunk");
-        let chunk = Box::new(Chunk {
+        let chunk = Chunk {
             chunk_header: chunk_header,
             chunk_body: stream.into_inner(),
-        });
+        };
         let chunks = vec![chunk];
 
         Ok(chunks)
     }
 
     /// This function extracts the message from one or more chunks. The chunks should have been
-    pub fn decode(&mut self, chunks: &Vec<&Chunk>, expected_id: Option<NodeId>) -> std::result::Result<SupportedMessage, &'static StatusCode> {
+    pub fn decode(&mut self, chunks: &Vec<Chunk>, expected_id: Option<NodeId>) -> std::result::Result<SupportedMessage, &'static StatusCode> {
         if chunks.len() != 1 {
             // TODO more than one chunk is not supported
             // Chunk error
@@ -631,7 +631,7 @@ impl Chunker {
         }
     }
 
-    pub fn decode_open_secure_channel_request(&mut self, chunks: &Vec<&Chunk>) -> std::result::Result<OpenSecureChannelRequest, &'static StatusCode> {
+    pub fn decode_open_secure_channel_request(&mut self, chunks: &Vec<Chunk>) -> std::result::Result<OpenSecureChannelRequest, &'static StatusCode> {
         let expected_node_id = NodeId::from_object_id(ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary);
         let result = self.decode(chunks, Some(expected_node_id))?;
         match result {
@@ -644,7 +644,7 @@ impl Chunker {
         }
     }
 
-    pub fn decode_close_secure_channel_request(&mut self, chunks: &Vec<&Chunk>) -> std::result::Result<CloseSecureChannelRequest, &'static StatusCode> {
+    pub fn decode_close_secure_channel_request(&mut self, chunks: &Vec<Chunk>) -> std::result::Result<CloseSecureChannelRequest, &'static StatusCode> {
         let expected_node_id = NodeId::from_object_id(ObjectId::CloseSecureChannelRequest_Encoding_DefaultBinary);
         let result = self.decode(chunks, Some(expected_node_id))?;
         match result {
