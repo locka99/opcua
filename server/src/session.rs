@@ -172,7 +172,6 @@ impl TcpSession {
     pub fn process_message(session: Arc<Mutex<TcpSession>>, in_stream: &mut Read, out_stream: &mut Write) -> std::result::Result<(), &'static StatusCode> {
         let result = Chunk::decode(in_stream);
 
-
         // Process the message
         let chunk = result.unwrap();
         debug!("Got a chunk {:?}", chunk);
