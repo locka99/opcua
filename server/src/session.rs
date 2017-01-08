@@ -43,6 +43,10 @@ pub struct TcpSession {
     pub chunker: Chunker,
     /// Client protocol version set during HELLO
     pub client_protocol_version: UInt32,
+    // Last secure channel id
+    pub last_secure_channel_id: UInt32,
+    // Secure channel info for the session
+    pub secure_channel_info: SecureChannelInfo,
 }
 
 impl TcpSession {
@@ -53,6 +57,11 @@ impl TcpSession {
             session_config: session_config,
             chunker: Chunker::new(),
             client_protocol_version: 0,
+            last_secure_channel_id: 0,
+            secure_channel_info: SecureChannelInfo {
+                security_policy: SecurityPolicy::None,
+                secure_channel_id: 0,
+            },
         }
     }
 
@@ -124,13 +133,37 @@ impl TcpSession {
         Err(&BAD_COMMUNICATION_ERROR)
     }
 
-    fn process_open_secure_channel(session: &Arc<Mutex<TcpSession>>, chunk: Chunk, in_stream: &mut Read, out_stream: &mut Write) -> std::result::Result<(), &'static StatusCode> {
+    fn process_open_secure_channel(session: &Arc<Mutex<TcpSession>>, chunk: Chunk) -> std::result::Result<Vec<Chunk>, &'static StatusCode> {
         info!("Got secure channel request");
         // Get the actual request
         let chunks = vec![chunk];
+        let chunk_info;
 
+        // Get the request
+        let client_protocol_version;
+        let secure_channel_id;
+        let request_id;
         let request: OpenSecureChannelRequest = {
             let mut session = session.lock().unwrap();
+
+            let result = chunks[0].chunk_info(None);
+            if result.is_err() {
+                return Err(result.unwrap_err());
+            }
+            chunk_info = result.unwrap();
+
+            request_id = chunk_info.sequence_header.request_id;
+            client_protocol_version = session.client_protocol_version;
+
+            // Create secure channel info
+            session.last_secure_channel_id += 1;
+            secure_channel_id = session.last_secure_channel_id;
+
+            session.secure_channel_info = SecureChannelInfo {
+                security_policy: SecurityPolicy::None,
+                secure_channel_id: secure_channel_id,
+            };
+
             let result = session.chunker.decode_open_secure_channel_request(&chunks);
             if result.is_err() {
                 return Err(result.unwrap_err());
@@ -138,8 +171,11 @@ impl TcpSession {
             result.unwrap()
         };
 
-        // TODO compare session.client_protocol_version to one in request, must be the
-        // same, else Bad_ProtocolVersionUnsupported
+        // Must compare protocol version to the one from HELLO
+        if request.client_protocol_version != client_protocol_version {
+            return Err(&BAD_PROTOCOL_VERSION_UNSUPPORTED)
+        }
+
 
         let now = DateTime::now();
         let response = OpenSecureChannelResponse {
@@ -152,9 +188,9 @@ impl TcpSession {
                 additional_header: ExtensionObject::null(),
             },
             security_token: ChannelSecurityToken {
-                secure_channel_id: 0,
+                secure_channel_id: secure_channel_id,
                 token_id: 0,
-                created_at: DateTime::now(),
+                created_at: now.clone(),
                 revised_lifetime: 0f64,
             },
             channel_id: ByteString::null(),
@@ -164,9 +200,13 @@ impl TcpSession {
             server_nonce: ByteString::null(),
         };
 
-        //chunker.encode()
-
-        Ok(())
+        {
+            debug!("Sending OpenSecureChannelResponse {:?}", response);
+            let mut session = session.lock().unwrap();
+            let secure_channel_info = session.secure_channel_info.clone();
+            let chunker = &mut session.chunker;
+            chunker.encode(request_id, &secure_channel_info, &SupportedMessage::OpenSecureChannelResponse(response))
+        }
     }
 
     pub fn process_message(session: Arc<Mutex<TcpSession>>, in_stream: &mut Read, out_stream: &mut Write) -> std::result::Result<(), &'static StatusCode> {
@@ -178,7 +218,7 @@ impl TcpSession {
 
         let result = match chunk.chunk_header.message_type {
             ChunkMessageType::OpenSecureChannel => {
-                TcpSession::process_open_secure_channel(&session, chunk, in_stream, out_stream)
+                TcpSession::process_open_secure_channel(&session, chunk)
             },
             ChunkMessageType::CloseSecureChannel => {
                 Err(&BAD_UNEXPECTED_ERROR)
@@ -187,7 +227,16 @@ impl TcpSession {
                 Err(&BAD_UNEXPECTED_ERROR)
             }
         };
-        result
+        // Send out any chunks that form the response
+        if let Ok(chunks) = result {
+            for ref chunk in chunks {
+                debug!("Sending chunk {:?}", chunk);
+                chunk.encode(out_stream);
+            }
+            Ok(())
+        } else {
+            Err(result.unwrap_err())
+        }
     }
 
 

@@ -238,7 +238,7 @@ impl BinaryEncoder<SequenceHeader> for SequenceHeader {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum SecurityPolicy {
     Unknown,
     None,
@@ -288,6 +288,7 @@ impl SecurityPolicy {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct SecureChannelInfo {
     pub security_policy: SecurityPolicy,
     pub secure_channel_id: UInt32,
@@ -313,7 +314,17 @@ impl fmt::Debug for Chunk {
 }
 
 impl Chunk {
+
+    pub fn encode(&self, stream: &mut Write) -> std::result::Result<(), &'static StatusCode> {
+        // TODO this is a stub
+        // TODO impl should be moved to BinaryEncoder
+        let _ = self.chunk_header.encode(stream);
+        let _ = stream.write(&self.chunk_body);
+        Ok(())
+    }
+
     pub fn decode(in_stream: &mut Read) -> std::result::Result<Chunk, &'static StatusCode> {
+        // TODO impl should be moved to BinaryEncoder
         let chunk_header_result = ChunkHeader::decode(in_stream);
         if chunk_header_result.is_err() {
             return Err(&BAD_COMMUNICATION_ERROR);
@@ -353,6 +364,8 @@ impl Chunk {
         if security_policy != SecurityPolicy::None {
             return Err(&BAD_SECURITY_POLICY_REJECTED);
         }
+
+        /// TODO compare policy to secure_channel_info if it's supplied - must match
 
         // Message::debug_stream(&message_stream, &self.message_body);
         let sequence_header_offset = chunk_stream.position();
@@ -404,7 +417,7 @@ impl Chunker {
         }
     }
 
-    pub fn encode(&mut self, request_id: UInt32, secure_channel_info: &SecureChannelInfo, message: &SupportedMessage) -> std::result::Result<Vec<Chunk>, ()> {
+    pub fn encode(&mut self, request_id: UInt32, secure_channel_info: &SecureChannelInfo, message: &SupportedMessage) -> std::result::Result<Vec<Chunk>, &'static StatusCode> {
         // TODO multiple chunks
 
         // External values
