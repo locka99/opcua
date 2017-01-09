@@ -123,7 +123,7 @@ impl BinaryEncoder<NodeId> for NodeId {
                 NodeId::new_byte_string(namespace, value)
             }
             _ => {
-                panic!("Unrecognized node id type");
+                panic!("Unrecognized node id type {:?}", identifier);
             }
         };
 
@@ -145,13 +145,9 @@ impl NodeId {
 
     /// Extracts an ObjectId from a node id, providing the node id holds an object id
     pub fn as_object_id(&self) -> std::result::Result<ObjectId, ()> {
-        if self.namespace == 0 {
-            match self.identifier {
-                Identifier::Numeric(object_id) => ObjectId::from_u64(object_id),
-                _ => Err(())
-            }
-        } else {
-            Err(())
+        match self.identifier {
+            Identifier::Numeric(object_id) if self.namespace == 0 => ObjectId::from_u64(object_id),
+            _ => Err(())
         }
     }
 

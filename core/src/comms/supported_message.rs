@@ -56,16 +56,4 @@ impl SupportedMessage {
             SupportedMessage::CloseSecureChannelResponse(ref value) => value.node_id(),
         }
     }
-
-    pub fn chunk_message_type(&self) -> ChunkMessageType {
-        match *self {
-            SupportedMessage::Invalid(object_id) => {
-                panic!("Unsupported message {:?}", object_id);
-            },
-            SupportedMessage::OpenSecureChannelRequest(_) => ChunkMessageType::OpenSecureChannel,
-            SupportedMessage::OpenSecureChannelResponse(_) => ChunkMessageType::OpenSecureChannel,
-            SupportedMessage::CloseSecureChannelRequest(_) => ChunkMessageType::CloseSecureChannel,
-            SupportedMessage::CloseSecureChannelResponse(_) => ChunkMessageType::OpenSecureChannel,
-        }
-    }
 }

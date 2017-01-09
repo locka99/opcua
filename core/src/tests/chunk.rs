@@ -14,8 +14,8 @@ impl Test {
 }
 
 
-fn get_sample_data_security_none() -> Vec<u8> {
-    return vec![
+fn get_sample_data_security_nonex() -> Vec<u8> {
+    vec![
         0x2f, 0x00, 0x00, 0x00, 0x68, 0x74, 0x74, 0x70, 0x3a, 0x2f, 0x2f, 0x6f, 0x70, 0x63, 0x66,
         0x6f, 0x75, 0x6e, 0x64, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x6f, 0x72, 0x67, 0x2f, 0x55,
         0x41, 0x2f, 0x53, 0x65, 0x63, 0x75, 0x72, 0x69, 0x74, 0x79, 0x50, 0x6f, 0x6c, 0x69, 0x63,
@@ -23,8 +23,13 @@ fn get_sample_data_security_none() -> Vec<u8> {
         0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0xbe, 0x01, 0x00, 0x00, 0x20, 0x9b,
         0xa2, 0xfa, 0xcc, 0x65, 0xd2, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
         0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x40, 0x9c, 0x00, 0x00];
+        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x40, 0x9c, 0x00, 0x00]
 }
+
+fn get_sample_data_security_none() -> Vec<u8> {
+    vec![47, 0, 0, 0, 104, 116, 116, 112, 58, 47, 47, 111, 112, 99, 102, 111, 117, 110, 100, 97, 116, 105, 111, 110, 46, 111, 114, 103, 47, 85, 65, 47, 83, 101, 99, 117, 114, 105, 116, 121, 80, 111, 108, 105, 99, 121, 35, 78, 111, 110, 101, 255, 255, 255, 255, 255, 255, 255, 255, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 190, 1, 0, 0, 208, 130, 196, 162, 147, 106, 210, 1, 1, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 255, 255, 255, 255, 192, 39, 9, 0]
+}
+
 
 fn get_sample_chunk() -> Chunk {
     let sample_data = get_sample_data_security_none();
@@ -64,8 +69,8 @@ fn test_chunk_open_secure_channel() {
     let secure_channel_info = SecureChannelInfo {
         security_policy: SecurityPolicy::None,
         secure_channel_id: 1,
-    } ;
-    let chunks = chunker.encode(1, &secure_channel_info, false, &SupportedMessage::OpenSecureChannelRequest(request.clone())).unwrap();
+    };
+    let chunks = chunker.encode(1, &secure_channel_info, &SupportedMessage::OpenSecureChannelRequest(request.clone())).unwrap();
     assert_eq!(chunks.len(), 1);
     let new_request = chunker.decode_open_secure_channel_request(&chunks).unwrap();
     assert_eq!(request, new_request);
@@ -97,7 +102,7 @@ fn test_open_secure_channel() {
     assert_eq!(open_secure_channel_request, new_open_secure_channel_request);
 
     // And the response
-    let open_secure_channel_response = OpenSecureChannelResponse{
+    let open_secure_channel_response = OpenSecureChannelResponse {
         response_header: ResponseHeader {
             timestamp: DateTime::now(),
             request_handle: 444,
@@ -111,7 +116,7 @@ fn test_open_secure_channel() {
             secure_channel_id: 1,
             token_id: 2,
             created_at: DateTime::now(),
-            revised_lifetime: 777f64,
+            revised_lifetime: 777,
         },
         server_nonce: ByteString::from_str("jhkjdshfkjhsdkfj"),
     };

@@ -376,6 +376,10 @@ impl fmt::Debug for Chunk {
 }
 
 impl Chunk {
+    pub fn has_extension_object_prefix(&self) -> bool {
+        self.chunk_header.message_type == ChunkMessageType::Message
+    }
+
     pub fn encode(&self, stream: &mut Write) -> std::result::Result<(), &'static StatusCode> {
         // TODO this is a stub
         // TODO impl should be moved to BinaryEncoder
@@ -409,12 +413,12 @@ impl Chunk {
         })
     }
 
-    pub fn chunk_info(&self, has_extension_object_prefix: bool, secure_channel_info: Option<&mut SecureChannelInfo>) -> std::result::Result<ChunkInfo, &'static StatusCode> {
+    pub fn chunk_info(&self, is_first_chunk: bool, secure_channel_info: Option<&mut SecureChannelInfo>) -> std::result::Result<ChunkInfo, &'static StatusCode> {
         debug!("chunk_info() - chunk_body = {:?}", self.chunk_body);
 
         let mut chunk_body_stream = Cursor::new(&self.chunk_body);
 
-        let node_id = if has_extension_object_prefix {
+        let node_id = if is_first_chunk && self.has_extension_object_prefix() {
             let node_id_result = NodeId::decode(&mut chunk_body_stream);
             if node_id_result.is_err() {
                 error!("chunk_info() can't decode node_id, {:?}", node_id_result.unwrap_err());
@@ -422,6 +426,7 @@ impl Chunk {
             }
             Some(node_id_result.unwrap())
         } else {
+            debug!("chunk_info() is skipping node_id, is_first_chunk = {:?}, message_type = {:?}", is_first_chunk, self.chunk_header.message_type);
             None
         };
 
@@ -497,7 +502,15 @@ impl Chunker {
         }
     }
 
-    pub fn encode(&mut self, request_id: UInt32, secure_channel_info: &SecureChannelInfo, has_extension_object_prefix: bool, message: &SupportedMessage) -> std::result::Result<Vec<Chunk>, &'static StatusCode> {
+    fn chunk_message_type(message: &SupportedMessage) -> ChunkMessageType {
+        match *message {
+            SupportedMessage::OpenSecureChannelRequest(_) | SupportedMessage::OpenSecureChannelResponse(_) => ChunkMessageType::OpenSecureChannel,
+            SupportedMessage::CloseSecureChannelRequest(_) | SupportedMessage::CloseSecureChannelResponse(_) => ChunkMessageType::CloseSecureChannel,
+            _ => ChunkMessageType::Message
+        }
+    }
+
+    pub fn encode(&mut self, request_id: UInt32, secure_channel_info: &SecureChannelInfo, message: &SupportedMessage) -> std::result::Result<Vec<Chunk>, &'static StatusCode> {
         // TODO multiple chunks
 
         // External values
@@ -507,14 +520,14 @@ impl Chunker {
 
         debug!("Creating a chunk for secure channel id {}, sequence id {}", secure_channel_id, sequence_number);
 
-        let message_type = message.chunk_message_type();
+        let message_type = Chunker::chunk_message_type(message);
         let node_id = message.node_id();
 
         let is_first_chunk = true;
         let is_last_chunk = true;
         let is_final = if is_last_chunk { ChunkType::Final } else { ChunkType::Intermediate };
 
-        // write security header
+        // security header depends on message type
         let security_header = if message_type == ChunkMessageType::OpenSecureChannel {
             SecurityHeader::Asymmetric(AsymmetricSecurityHeader::none())
         } else {
@@ -530,7 +543,7 @@ impl Chunker {
 
         // Calculate the chunk body size
         let mut chunk_body_size = 0;
-        if is_first_chunk && has_extension_object_prefix {
+        if is_first_chunk && message_type == ChunkMessageType::Message {
             // Write a node id
             chunk_body_size += node_id.byte_len();
         }
@@ -555,10 +568,13 @@ impl Chunker {
         };
 
         let mut stream = Cursor::new(vec![0u8; chunk_body_size]);
+
         // Write a node id for the first chunk
-        if is_first_chunk && has_extension_object_prefix {
+        if is_first_chunk && chunk_header.message_type == ChunkMessageType::Message {
             debug!("Encoding node id");
             node_id.encode(&mut stream);
+        } else {
+            debug!("Skipping encoding node id");
         }
         // write security header
         debug!("Encoding security header");
@@ -586,7 +602,7 @@ impl Chunker {
     }
 
     /// This function extracts the message from one or more chunks. The chunks should have been
-    pub fn decode(&mut self, chunks: &Vec<Chunk>, has_extension_object_prefix: bool, expected_node_id: Option<NodeId>) -> std::result::Result<SupportedMessage, &'static StatusCode> {
+    pub fn decode(&mut self, chunks: &Vec<Chunk>, expected_node_id: Option<NodeId>) -> std::result::Result<SupportedMessage, &'static StatusCode> {
         if chunks.len() != 1 {
             // TODO more than one chunk is not supported yet
             error!("Only one chunk is supported");
@@ -595,9 +611,11 @@ impl Chunker {
 
         let chunk = &chunks[0];
 
-        // Note that OpenSecureChannelRequest has extension object prefix
+        let is_server = true; // TODO externalize for client support
+
+        // Note that OpenSecureChannelRequest has no extension object prefix
         let is_first_chunk = true;
-        let chunk_info = chunk.chunk_info(has_extension_object_prefix && is_first_chunk, Option::None)?;
+        let chunk_info = chunk.chunk_info(is_first_chunk, Option::None)?;
         debug!("Chunker::decode chunk_info = {:?}", chunk_info);
 
         // Check the sequence id - should be larger than the last one decoded
@@ -620,56 +638,69 @@ impl Chunker {
         // The extension object prefix is just the node id. A point the spec rather unhelpfully doesn't
         // elaborate on. Probably because people enjoy debugging why the stream pos is out by 1 byte
         // for hours.
-        let node_id = NodeId::decode(&mut chunk_body_stream);
-        if node_id.is_err() {
-            error!("The node id could not be read from the stream {:?}", node_id);
-            return Err(&BAD_UNEXPECTED_ERROR);
-        }
-        let node_id = node_id.unwrap();
-        let valid_node_id = if node_id.namespace != 0 || !node_id.is_numeric() {
-            // Must be ns 0 and numeric
-            false
-        } else if expected_node_id.is_some() {
-            expected_node_id.unwrap() == node_id
-        } else {
-            false
-        };
-        if !valid_node_id {
-            error!("The node id read from the stream was accepted in this context {:?}", node_id);
-            return Err(&BAD_UNEXPECTED_ERROR);
-        }
-
-        // Now the payload. The node id of the prefix allows us to recognize it.
-        if let Ok(object_id) = node_id.as_object_id() {
-            let decoded_message = match object_id {
-                ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary => {
-                    if let Ok(message) = OpenSecureChannelRequest::decode(&mut chunk_body_stream) {
-                        SupportedMessage::OpenSecureChannelRequest(message)
-                    } else {
-                        SupportedMessage::Invalid(object_id)
-                    }
-                },
-                ObjectId::CloseSecureChannelRequest_Encoding_DefaultBinary => {
-                    if let Ok(message) = CloseSecureChannelRequest::decode(&mut chunk_body_stream) {
-                        SupportedMessage::CloseSecureChannelRequest(message)
-                    } else {
-                        SupportedMessage::Invalid(object_id)
-                    }
-                }
-                _ => { SupportedMessage::Invalid(object_id) }
-            };
-            if let SupportedMessage::Invalid(_) = decoded_message {
-                return Err(&BAD_TCP_MESSAGE_TYPE_INVALID);
+        let object_id = if is_first_chunk && chunk.has_extension_object_prefix() {
+            let node_id = NodeId::decode(&mut chunk_body_stream);
+            if node_id.is_err() {
+                error!("The node id could not be read from the stream {:?}", node_id);
+                return Err(&BAD_UNEXPECTED_ERROR);
             }
-            return Ok(decoded_message)
+            let node_id = node_id.unwrap();
+            let valid_node_id = if node_id.namespace != 0 || !node_id.is_numeric() {
+                // Must be ns 0 and numeric
+                false
+            } else if expected_node_id.is_some() {
+                expected_node_id.unwrap() == node_id
+            } else {
+                false
+            };
+            if !valid_node_id {
+                error!("The node id read from the stream was accepted in this context {:?}", node_id);
+                return Err(&BAD_UNEXPECTED_ERROR);
+            }
+            node_id.as_object_id().unwrap()
+        } else if chunk.chunk_header.message_type == ChunkMessageType::OpenSecureChannel {
+            if is_server {
+                ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary
+            } else {
+                ObjectId::OpenSecureChannelResponse_Encoding_DefaultBinary
+            }
+        } else if chunk.chunk_header.message_type == ChunkMessageType::CloseSecureChannel {
+            if is_server {
+                ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary
+            } else {
+                ObjectId::OpenSecureChannelResponse_Encoding_DefaultBinary
+            }
         } else {
             return Err(&BAD_TCP_MESSAGE_TYPE_INVALID);
+        };
+
+        // Now the payload. The node id of the prefix allows us to recognize it.
+        let decoded_message = match object_id {
+            ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary => {
+                if let Ok(message) = OpenSecureChannelRequest::decode(&mut chunk_body_stream) {
+                    SupportedMessage::OpenSecureChannelRequest(message)
+                } else {
+                    SupportedMessage::Invalid(object_id)
+                }
+            },
+            ObjectId::CloseSecureChannelRequest_Encoding_DefaultBinary => {
+                if let Ok(message) = CloseSecureChannelRequest::decode(&mut chunk_body_stream) {
+                    SupportedMessage::CloseSecureChannelRequest(message)
+                } else {
+                    SupportedMessage::Invalid(object_id)
+                }
+            }
+            _ => { SupportedMessage::Invalid(object_id) }
+        };
+        if let SupportedMessage::Invalid(_) = decoded_message {
+            return Err(&BAD_TCP_MESSAGE_TYPE_INVALID);
         }
+        return Ok(decoded_message)
     }
 
     pub fn decode_open_secure_channel_request(&mut self, chunks: &Vec<Chunk>) -> std::result::Result<OpenSecureChannelRequest, &'static StatusCode> {
         let expected_node_id = NodeId::from_object_id(ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary);
-        let result = self.decode(chunks, false, Some(expected_node_id))?;
+        let result = self.decode(chunks, Some(expected_node_id))?;
         match result {
             SupportedMessage::OpenSecureChannelRequest(message) => {
                 Ok(message)
@@ -682,7 +713,7 @@ impl Chunker {
 
     pub fn decode_close_secure_channel_request(&mut self, chunks: &Vec<Chunk>) -> std::result::Result<CloseSecureChannelRequest, &'static StatusCode> {
         let expected_node_id = NodeId::from_object_id(ObjectId::CloseSecureChannelRequest_Encoding_DefaultBinary);
-        let result = self.decode(chunks, false, Some(expected_node_id))?;
+        let result = self.decode(chunks, Some(expected_node_id))?;
         match result {
             SupportedMessage::CloseSecureChannelRequest(message) => {
                 Ok(message)

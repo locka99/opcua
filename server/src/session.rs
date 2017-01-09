@@ -202,8 +202,7 @@ impl TcpSession {
         {
             let bytes_to_write = out_stream.position() as usize;
             let out_buf_slice = &out_stream.get_ref()[0..bytes_to_write];
-            debug!("Writing {} bytes to client", bytes_to_write);
-            //debug_buffer(&out_buf_slice[0..bytes_to_write]);
+            debug!("Writing {:?} bytes to client", out_buf_slice);
             let _ = stream.write(out_buf_slice);
         }
         out_stream.set_position(0);
@@ -309,7 +308,6 @@ impl TcpSession {
             return Err(&BAD_PROTOCOL_VERSION_UNSUPPORTED)
         }
 
-
         let now = DateTime::now();
         let response = OpenSecureChannelResponse {
             response_header: ResponseHeader {
@@ -335,7 +333,7 @@ impl TcpSession {
             let mut session = session.lock().unwrap();
             let secure_channel_info = session.secure_channel_info.clone();
             let chunker = &mut session.chunker;
-            chunker.encode(request_id, &secure_channel_info, true, &SupportedMessage::OpenSecureChannelResponse(response))
+            chunker.encode(request_id, &secure_channel_info, &SupportedMessage::OpenSecureChannelResponse(response))
         }
     }
 

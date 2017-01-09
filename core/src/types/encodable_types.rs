@@ -1,4 +1,4 @@
-use std::io::{Read, Write, Result};
+use std::io::{Read, Write, Result, Error, ErrorKind};
 
 use super::helpers::*;
 use super::status_codes::*;
@@ -253,17 +253,16 @@ impl BinaryEncoder<UAString> for UAString {
     }
 
     fn decode(stream: &mut Read) -> Result<UAString> {
-        let buf_len = read_i32(stream)?;
+        let buf_len = Int32::decode(stream)?;
         // Null string?
         if buf_len == -1 {
             return Ok(UAString::null());
         } else if buf_len < -1 {
             error!("String buf length is a negative number {}", buf_len);
-            return Ok(UAString::null());
-            // TODO an explicit errror
+            return Err(Error::new(ErrorKind::Other, format!("String buf length {} is a negative number", buf_len)));
         } else if buf_len > MAX_STRING_SIZE {
             error!("String buf length is probably invalid number {}", buf_len);
-            // TODO an explicit error
+            return Err(Error::new(ErrorKind::Other, format!("String buf length looks to be excessive {}", buf_len)));
         }
 
         // Create the actual UTF8 string
@@ -578,15 +577,15 @@ impl BinaryEncoder<DiagnosticInfo> for DiagnosticInfo {
             // Write namespace
             size += namespace_uri.byte_len()
         }
-        if let Some(ref localized_text) = self.localized_text {
-            // Write localized text
-            size += localized_text.byte_len()
-        }
         if let Some(ref locale) = self.locale {
             // Write locale
             size += locale.byte_len()
         }
-        if let Some(ref additional_info) = self.additional_info.clone() {
+        if let Some(ref localized_text) = self.localized_text {
+            // Write localized text
+            size += localized_text.byte_len()
+        }
+        if let Some(ref additional_info) = self.additional_info {
             // Write Additional info
             size += additional_info.byte_len()
         }
@@ -610,17 +609,17 @@ impl BinaryEncoder<DiagnosticInfo> for DiagnosticInfo {
         }
         if let Some(ref namespace_uri) = self.namespace_uri {
             // Write namespace
-            size += write_i32(stream, *namespace_uri)?;
-        }
-        if let Some(ref localized_text) = self.localized_text {
-            // Write localized text
-            size += write_i32(stream, *localized_text)?;
+            size += namespace_uri.encode(stream)?;
         }
         if let Some(ref locale) = self.locale {
             // Write locale
-            size += write_i32(stream, *locale)?;
+            size += locale.encode(stream)?;
         }
-        if let Some(ref additional_info) = self.additional_info.clone() {
+        if let Some(ref localized_text) = self.localized_text {
+            // Write localized text
+            size += localized_text.encode(stream)?;
+        }
+        if let Some(ref additional_info) = self.additional_info {
             // Write Additional info
             size += additional_info.encode(stream)?;
         }
@@ -640,19 +639,19 @@ impl BinaryEncoder<DiagnosticInfo> for DiagnosticInfo {
         let mut diagnostic_info = DiagnosticInfo::new();
         if encoding_mask & DiagnosticInfoMask::HAS_SYMBOLIC_ID != 0 {
             // Read symbolic id
-            diagnostic_info.symbolic_id = Some(read_i32(stream)?);
+            diagnostic_info.symbolic_id = Some(Int32::decode(stream)?);
         }
         if encoding_mask & DiagnosticInfoMask::HAS_NAMESPACE != 0 {
             // Read namespace
-            diagnostic_info.namespace_uri = Some(read_i32(stream)?);
-        }
-        if encoding_mask & DiagnosticInfoMask::HAS_LOCALIZED_TEXT != 0 {
-            // Read localized text
-            diagnostic_info.localized_text = Some(read_i32(stream)?);
+            diagnostic_info.namespace_uri = Some(Int32::decode(stream)?);
         }
         if encoding_mask & DiagnosticInfoMask::HAS_LOCALE != 0 {
             // Read locale
-            diagnostic_info.locale = Some(read_i32(stream)?);
+            diagnostic_info.locale = Some(Int32::decode(stream)?);
+        }
+        if encoding_mask & DiagnosticInfoMask::HAS_LOCALIZED_TEXT != 0 {
+            // Read localized text
+            diagnostic_info.localized_text = Some(Int32::decode(stream)?);
         }
         if encoding_mask & DiagnosticInfoMask::HAS_ADDITIONAL_INFO != 0 {
             // Read Additional info
@@ -691,11 +690,11 @@ impl DiagnosticInfo {
         if self.namespace_uri.is_some() {
             encoding_mask |= DiagnosticInfoMask::HAS_NAMESPACE;
         }
-        if self.localized_text.is_some() {
-            encoding_mask |= DiagnosticInfoMask::HAS_LOCALIZED_TEXT;
-        }
         if self.locale.is_some() {
             encoding_mask |= DiagnosticInfoMask::HAS_LOCALE;
+        }
+        if self.localized_text.is_some() {
+            encoding_mask |= DiagnosticInfoMask::HAS_LOCALIZED_TEXT;
         }
         if self.additional_info.is_some() {
             encoding_mask |= DiagnosticInfoMask::HAS_ADDITIONAL_INFO;
