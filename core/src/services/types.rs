@@ -101,7 +101,7 @@ pub struct ChannelSecurityToken {
     pub secure_channel_id: UInt32,
     pub token_id: UInt32,
     pub created_at: UtcTime,
-    pub revised_lifetime: Duration ,
+    pub revised_lifetime: Int32,
 }
 
 impl BinaryEncoder<ChannelSecurityToken> for ChannelSecurityToken {
@@ -127,7 +127,7 @@ impl BinaryEncoder<ChannelSecurityToken> for ChannelSecurityToken {
         let secure_channel_id = UInt32::decode(stream)?;
         let token_id = UInt32::decode(stream)?;
         let created_at = UtcTime::decode(stream)?;
-        let revised_lifetime = Duration::decode(stream)?;
+        let revised_lifetime = Int32::decode(stream)?;
         Ok(ChannelSecurityToken {
             secure_channel_id: secure_channel_id,
             token_id: token_id,

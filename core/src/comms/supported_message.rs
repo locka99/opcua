@@ -65,7 +65,7 @@ impl SupportedMessage {
             SupportedMessage::OpenSecureChannelRequest(_) => ChunkMessageType::OpenSecureChannel,
             SupportedMessage::OpenSecureChannelResponse(_) => ChunkMessageType::OpenSecureChannel,
             SupportedMessage::CloseSecureChannelRequest(_) => ChunkMessageType::CloseSecureChannel,
-            SupportedMessage::CloseSecureChannelResponse(_) => ChunkMessageType::CloseSecureChannel,
+            SupportedMessage::CloseSecureChannelResponse(_) => ChunkMessageType::OpenSecureChannel,
         }
     }
 }

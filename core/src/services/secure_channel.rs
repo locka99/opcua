@@ -117,24 +117,17 @@ impl BinaryEncoder<OpenSecureChannelRequest> for OpenSecureChannelRequest {
     }
 }
 
+/// OpenSecureChannelResponse is afflicted by same differences
+/// between part 4 and 6 as the request
 #[derive(Debug, Clone, PartialEq)]
 pub struct OpenSecureChannelResponse {
     /// Common response parameters
     pub response_header: ResponseHeader,
+    /// Server protocol version
+    pub server_protocol_version: UInt32,
     /// Describes the new SecurityToken issued by the Server. This structure is defined in-line
     /// with the following indented items.
     pub security_token: ChannelSecurityToken,
-    /// A unique identifier for the SecureChannel. This is the identifier that shall be supplied
-    /// whenever the SecureChannel is renewed.
-    pub channel_id: ByteString,
-    /// A unique identifier for a single SecurityToken within the channel. This is the identifier
-    /// that shall be passed with each Message secured with the SecurityToken
-    pub token_id: ByteString,
-    /// The time when the SecurityToken was created.
-    pub created_at: UtcTime,
-    /// The lifetime of the SecurityToken in milliseconds. The UTC expiration time for the token may
-    /// be calculated by adding the lifetime to the createdAt time.
-    pub revised_lifetime: Duration,
     /// A random number that shall not be used in any other request. A new serverNonce shall be
     /// generated for each time a SecureChannel is renewed. This parameter shall have a length equal
     /// to key size used for the symmetric encryption algorithm that is identified by the securityPolicyUri.
@@ -151,11 +144,8 @@ impl BinaryEncoder<OpenSecureChannelResponse> for OpenSecureChannelResponse {
     fn byte_len(&self) -> usize {
         let mut size: usize = 0;
         size += self.response_header.byte_len();
+        size += self.server_protocol_version.byte_len();
         size += self.security_token.byte_len();
-        size += self.channel_id.byte_len();
-        size += self.token_id.byte_len();
-        size += self.created_at.byte_len();
-        size += self.revised_lifetime.byte_len();
         size += self.server_nonce.byte_len();
         size
     }
@@ -163,30 +153,21 @@ impl BinaryEncoder<OpenSecureChannelResponse> for OpenSecureChannelResponse {
     fn encode(&self, stream: &mut Write) -> Result<usize> {
         let mut size: usize = 0;
         size += self.response_header.encode(stream)?;
+        size += self.server_protocol_version.encode(stream)?;
         size += self.security_token.encode(stream)?;
-        size += self.channel_id.encode(stream)?;
-        size += self.token_id.encode(stream)?;
-        size += self.created_at.encode(stream)?;
-        size += self.revised_lifetime.encode(stream)?;
         size += self.server_nonce.encode(stream)?;
         Ok(size)
     }
 
     fn decode(stream: &mut Read) -> Result<OpenSecureChannelResponse> {
         let response_header = ResponseHeader::decode(stream)?;
+        let server_protocol_version = UInt32::decode(stream)?;
         let security_token = ChannelSecurityToken::decode(stream)?;
-        let channel_id = ByteString::decode(stream)?;
-        let token_id = ByteString::decode(stream)?;
-        let created_at = UtcTime::decode(stream)?;
-        let revised_lifetime = Duration::decode(stream)?;
         let server_nonce = ByteString::decode(stream)?;
         Ok(OpenSecureChannelResponse {
             response_header: response_header,
+            server_protocol_version: server_protocol_version,
             security_token: security_token,
-            channel_id: channel_id,
-            token_id: token_id,
-            created_at: created_at,
-            revised_lifetime: revised_lifetime,
             server_nonce: server_nonce,
         })
     }

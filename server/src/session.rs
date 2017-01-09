@@ -1,6 +1,6 @@
 use std;
 use std::net::{TcpStream, Shutdown};
-use std::io::{Read, Write, Cursor};
+use std::io::{Read, Write, Cursor, Error, ErrorKind};
 use std::sync::{Arc, Mutex};
 
 use chrono::{self, UTC};
@@ -65,181 +65,6 @@ impl TcpSession {
         }
     }
 
-    fn write_output(out_stream: &mut Cursor<Vec<u8>>, stream: &mut Write) {
-        if out_stream.position() == 0 {
-            return;
-        }
-        {
-            let bytes_to_write = out_stream.position() as usize;
-            let out_buf_slice = &out_stream.get_ref()[0..bytes_to_write];
-            debug!("Writing {} bytes to client", bytes_to_write);
-            //debug_buffer(&out_buf_slice[0..bytes_to_write]);
-            let _ = stream.write(out_buf_slice);
-        }
-        out_stream.set_position(0);
-    }
-
-    fn process_hello(session: Arc<Mutex<TcpSession>>, in_stream: &mut Read, out_stream: &mut Write) -> std::result::Result<(), &'static StatusCode> {
-        if let Ok(header) = handshake::MessageHeader::decode(in_stream) {
-            let server_protocol_version = 0;
-
-            if !header.is_hello() {
-                return Err(&BAD_COMMUNICATION_ERROR);
-            }
-
-            let mut valid_hello = false;
-            let mut client_protocol_version = 0;
-
-            if let Ok(hello) = handshake::HelloMessage::decode(in_stream) {
-                debug!("Server received HELLO {:?}", hello);
-                if !hello.is_endpoint_url_valid() {
-                    return Err(&BAD_TCP_ENDPOINT_URL_INVALID);
-                }
-                if !hello.is_valid_buffer_sizes() {
-                    return Err(&BAD_COMMUNICATION_ERROR);
-                }
-
-                // Validate protocol version
-                if hello.protocol_version > server_protocol_version {
-                    return Err(&BAD_PROTOCOL_VERSION_UNSUPPORTED);
-                }
-
-                client_protocol_version = hello.protocol_version;
-
-                valid_hello = true;
-            }
-            if valid_hello {
-                let acknowledge_message = handshake::AcknowledgeMessage {
-                    protocol_version: server_protocol_version,
-                    receive_buffer_size: RECEIVE_BUFFER_SIZE as UInt32,
-                    send_buffer_size: SEND_BUFFER_SIZE as UInt32,
-                    max_message_size: MAX_MESSAGE_SIZE as UInt32,
-                    max_chunk_count: MAX_CHUNK_COUNT as UInt32,
-                };
-
-                {
-                    let mut session = session.lock().unwrap();
-                    session.session_state = SessionState::ProcessMessages;
-                    session.client_protocol_version = client_protocol_version;
-                }
-
-                info!("Sending acknowledge -- \n{:?}", acknowledge_message);
-                let _ = handshake::MessageHeader::new_acknowledge(&acknowledge_message).encode(out_stream);
-                acknowledge_message.encode(out_stream);
-
-                return Ok(())
-            }
-        }
-        Err(&BAD_COMMUNICATION_ERROR)
-    }
-
-    fn process_open_secure_channel(session: &Arc<Mutex<TcpSession>>, chunk: Chunk) -> std::result::Result<Vec<Chunk>, &'static StatusCode> {
-        info!("Got secure channel request");
-        // Get the actual request
-        let chunks = vec![chunk];
-        let chunk_info;
-
-        // Get the request
-        let client_protocol_version;
-        let secure_channel_id;
-        let request_id;
-        let request: OpenSecureChannelRequest = {
-            let mut session = session.lock().unwrap();
-
-            let result = chunks[0].chunk_info(None);
-            if result.is_err() {
-                return Err(result.unwrap_err());
-            }
-            chunk_info = result.unwrap();
-
-            request_id = chunk_info.sequence_header.request_id;
-            client_protocol_version = session.client_protocol_version;
-
-            // Create secure channel info
-            session.last_secure_channel_id += 1;
-            secure_channel_id = session.last_secure_channel_id;
-
-            session.secure_channel_info = SecureChannelInfo {
-                security_policy: SecurityPolicy::None,
-                secure_channel_id: secure_channel_id,
-            };
-
-            let result = session.chunker.decode_open_secure_channel_request(&chunks);
-            if result.is_err() {
-                return Err(result.unwrap_err());
-            }
-            result.unwrap()
-        };
-
-        // Must compare protocol version to the one from HELLO
-        if request.client_protocol_version != client_protocol_version {
-            return Err(&BAD_PROTOCOL_VERSION_UNSUPPORTED)
-        }
-
-
-        let now = DateTime::now();
-        let response = OpenSecureChannelResponse {
-            response_header: ResponseHeader {
-                timestamp: now.clone(),
-                request_handle: request.request_header.request_handle,
-                service_result: GOOD.clone(),
-                service_diagnostics: DiagnosticInfo::new(),
-                string_table: UAString::null(),
-                additional_header: ExtensionObject::null(),
-            },
-            security_token: ChannelSecurityToken {
-                secure_channel_id: secure_channel_id,
-                token_id: 0,
-                created_at: now.clone(),
-                revised_lifetime: 0f64,
-            },
-            channel_id: ByteString::null(),
-            token_id: ByteString::null(),
-            created_at: now.clone(),
-            revised_lifetime: 0f64,
-            server_nonce: ByteString::null(),
-        };
-
-        {
-            debug!("Sending OpenSecureChannelResponse {:?}", response);
-            let mut session = session.lock().unwrap();
-            let secure_channel_info = session.secure_channel_info.clone();
-            let chunker = &mut session.chunker;
-            chunker.encode(request_id, &secure_channel_info, &SupportedMessage::OpenSecureChannelResponse(response))
-        }
-    }
-
-    pub fn process_message(session: Arc<Mutex<TcpSession>>, in_stream: &mut Read, out_stream: &mut Write) -> std::result::Result<(), &'static StatusCode> {
-        let result = Chunk::decode(in_stream);
-
-        // Process the message
-        let chunk = result.unwrap();
-        debug!("Got a chunk {:?}", chunk);
-
-        let result = match chunk.chunk_header.message_type {
-            ChunkMessageType::OpenSecureChannel => {
-                TcpSession::process_open_secure_channel(&session, chunk)
-            },
-            ChunkMessageType::CloseSecureChannel => {
-                Err(&BAD_UNEXPECTED_ERROR)
-            },
-            ChunkMessageType::Message => {
-                Err(&BAD_UNEXPECTED_ERROR)
-            }
-        };
-        // Send out any chunks that form the response
-        if let Ok(chunks) = result {
-            for ref chunk in chunks {
-                debug!("Sending chunk {:?}", chunk);
-                chunk.encode(out_stream);
-            }
-            Ok(())
-        } else {
-            Err(result.unwrap_err())
-        }
-    }
-
-
     pub fn run(mut stream: TcpStream, session: Arc<Mutex<TcpSession>>) {
         // ENTRY POINT TO ALL OF OPC
 
@@ -292,15 +117,15 @@ impl TcpSession {
             // Try to read, using timeout as a polling mechanism
             let bytes_read_result = stream.read(&mut in_buf);
             if bytes_read_result.is_err() {
-                debug!("Read error - {:?}", bytes_read_result.unwrap_err());
-                continue;
+                let error = bytes_read_result.unwrap_err();
+                debug!("Read error - kind = {:?}, {:?}", error.kind(), error);
+                break;
             }
 
             let bytes_read = bytes_read_result.unwrap();
             if bytes_read == 0 {
                 continue;
             }
-            // debug_buffer(&in_buf[0..bytes_read]);
 
             if bytes_read < 8 {
                 // Abort since we're fed garbage
@@ -369,6 +194,182 @@ impl TcpSession {
         let session_duration = UTC::now() - session_start_time;
         info!("Session is finished {:?}", session_duration)
     }
+
+    fn write_output(out_stream: &mut Cursor<Vec<u8>>, stream: &mut Write) {
+        if out_stream.position() == 0 {
+            return;
+        }
+        {
+            let bytes_to_write = out_stream.position() as usize;
+            let out_buf_slice = &out_stream.get_ref()[0..bytes_to_write];
+            debug!("Writing {} bytes to client", bytes_to_write);
+            //debug_buffer(&out_buf_slice[0..bytes_to_write]);
+            let _ = stream.write(out_buf_slice);
+        }
+        out_stream.set_position(0);
+    }
+
+    fn process_hello(session: Arc<Mutex<TcpSession>>, in_stream: &mut Read, out_stream: &mut Write) -> std::result::Result<(), &'static StatusCode> {
+        if let Ok(header) = handshake::MessageHeader::decode(in_stream) {
+            let server_protocol_version = 0;
+
+            if !header.is_hello() {
+                debug!("Header is not for a HELLO");
+                return Err(&BAD_COMMUNICATION_ERROR);
+            }
+
+            let mut valid_hello = false;
+            let mut client_protocol_version = 0;
+
+            if let Ok(hello) = handshake::HelloMessage::decode(in_stream) {
+                debug!("Server received HELLO {:?}", hello);
+                if !hello.is_endpoint_url_valid() {
+                    return Err(&BAD_TCP_ENDPOINT_URL_INVALID);
+                }
+                if !hello.is_valid_buffer_sizes() {
+                    debug!("HELLO buffer sizes are invalid");
+                    return Err(&BAD_COMMUNICATION_ERROR);
+                }
+
+                // Validate protocol version
+                if hello.protocol_version > server_protocol_version {
+                    return Err(&BAD_PROTOCOL_VERSION_UNSUPPORTED);
+                }
+
+                client_protocol_version = hello.protocol_version;
+
+                valid_hello = true;
+            }
+            if valid_hello {
+                let acknowledge_message = handshake::AcknowledgeMessage {
+                    protocol_version: server_protocol_version,
+                    receive_buffer_size: RECEIVE_BUFFER_SIZE as UInt32,
+                    send_buffer_size: SEND_BUFFER_SIZE as UInt32,
+                    max_message_size: MAX_MESSAGE_SIZE as UInt32,
+                    max_chunk_count: MAX_CHUNK_COUNT as UInt32,
+                };
+
+                {
+                    let mut session = session.lock().unwrap();
+                    session.session_state = SessionState::ProcessMessages;
+                    session.client_protocol_version = client_protocol_version;
+                }
+
+                info!("Sending acknowledge -- \n{:?}", acknowledge_message);
+                let _ = handshake::MessageHeader::new_acknowledge(&acknowledge_message).encode(out_stream);
+                acknowledge_message.encode(out_stream);
+
+                return Ok(())
+            }
+        }
+        error!("Error processing HELLO");
+        Err(&BAD_COMMUNICATION_ERROR)
+    }
+
+    fn process_open_secure_channel(session: &Arc<Mutex<TcpSession>>, chunk: Chunk) -> std::result::Result<Vec<Chunk>, &'static StatusCode> {
+        info!("Got secure channel request");
+        // Get the actual request
+        let chunks = vec![chunk];
+        let chunk_info;
+
+        // Get the request
+        let client_protocol_version;
+        let secure_channel_id;
+        let request_id;
+        let request: OpenSecureChannelRequest = {
+            let mut session = session.lock().unwrap();
+
+            let result = chunks[0].chunk_info(false, None);
+            if result.is_err() {
+                return Err(result.unwrap_err());
+            }
+            chunk_info = result.unwrap();
+
+            request_id = chunk_info.sequence_header.request_id;
+            client_protocol_version = session.client_protocol_version;
+
+            // Create secure channel info
+            session.last_secure_channel_id += 1;
+            secure_channel_id = session.last_secure_channel_id;
+
+            session.secure_channel_info = SecureChannelInfo {
+                security_policy: SecurityPolicy::None,
+                secure_channel_id: secure_channel_id,
+            };
+
+            let result = session.chunker.decode_open_secure_channel_request(&chunks);
+            if result.is_err() {
+                return Err(result.unwrap_err());
+            }
+            result.unwrap()
+        };
+
+        // Must compare protocol version to the one from HELLO
+        if request.client_protocol_version != client_protocol_version {
+            return Err(&BAD_PROTOCOL_VERSION_UNSUPPORTED)
+        }
+
+
+        let now = DateTime::now();
+        let response = OpenSecureChannelResponse {
+            response_header: ResponseHeader {
+                timestamp: now.clone(),
+                request_handle: request.request_header.request_handle,
+                service_result: GOOD.clone(),
+                service_diagnostics: DiagnosticInfo::new(),
+                string_table: UAString::null(),
+                additional_header: ExtensionObject::null(),
+            },
+            server_protocol_version: 0,
+            security_token: ChannelSecurityToken {
+                secure_channel_id: secure_channel_id,
+                token_id: 0,
+                created_at: now.clone(),
+                revised_lifetime: 0,
+            },
+            server_nonce: ByteString::null(),
+        };
+
+        {
+            debug!("Sending OpenSecureChannelResponse {:?}", response);
+            let mut session = session.lock().unwrap();
+            let secure_channel_info = session.secure_channel_info.clone();
+            let chunker = &mut session.chunker;
+            chunker.encode(request_id, &secure_channel_info, true, &SupportedMessage::OpenSecureChannelResponse(response))
+        }
+    }
+
+    pub fn process_message(session: Arc<Mutex<TcpSession>>, in_stream: &mut Read, out_stream: &mut Write) -> std::result::Result<(), &'static StatusCode> {
+        let result = Chunk::decode(in_stream);
+
+        // Process the message
+        let chunk = result.unwrap();
+        debug!("Got a chunk {:?}", chunk);
+
+        let result = match chunk.chunk_header.message_type {
+            ChunkMessageType::OpenSecureChannel => {
+                TcpSession::process_open_secure_channel(&session, chunk)
+            },
+            ChunkMessageType::CloseSecureChannel => {
+                Err(&BAD_UNEXPECTED_ERROR)
+            },
+            ChunkMessageType::Message => {
+                Err(&BAD_UNEXPECTED_ERROR)
+            }
+        };
+        // Send out any chunks that form the response
+        if let Ok(chunks) = result {
+            debug!("Got some chunks to send {:?}", chunks);
+            for ref chunk in chunks {
+                chunk.encode(out_stream);
+            }
+            Ok(())
+        } else {
+            error!("Got an error instead of chunks {:?}", result);
+            Err(result.unwrap_err())
+        }
+    }
+
 }
 
 fn debug_buffer(buf: &[u8]) {

@@ -65,7 +65,7 @@ fn test_chunk_open_secure_channel() {
         security_policy: SecurityPolicy::None,
         secure_channel_id: 1,
     } ;
-    let chunks = chunker.encode(1, &secure_channel_info, &SupportedMessage::OpenSecureChannelRequest(request.clone())).unwrap();
+    let chunks = chunker.encode(1, &secure_channel_info, false, &SupportedMessage::OpenSecureChannelRequest(request.clone())).unwrap();
     assert_eq!(chunks.len(), 1);
     let new_request = chunker.decode_open_secure_channel_request(&chunks).unwrap();
     assert_eq!(request, new_request);
@@ -90,7 +90,7 @@ fn test_open_secure_channel() {
         client_protocol_version: 77,
         request_type: SecurityTokenRequestType::Renew,
         security_mode: MessageSecurityMode::SignAndEncrypt,
-        client_nonce: ByteString::null_string(),
+        client_nonce: ByteString::null(),
         requested_lifetime: 4664,
     };
     let new_open_secure_channel_request = serialize_test_and_return(open_secure_channel_request.clone());
@@ -106,16 +106,13 @@ fn test_open_secure_channel() {
             string_table: UAString::null(),
             additional_header: ExtensionObject::null(),
         },
+        server_protocol_version: 0,
         security_token: ChannelSecurityToken {
             secure_channel_id: 1,
             token_id: 2,
             created_at: DateTime::now(),
             revised_lifetime: 777f64,
         },
-        channel_id: ByteString::from_str("abc"),
-        token_id: ByteString::from_str("xyz"),
-        created_at: DateTime::now(),
-        revised_lifetime: 999.999f64,
         server_nonce: ByteString::from_str("jhkjdshfkjhsdkfj"),
     };
     let new_open_secure_channel_response = serialize_test_and_return(open_secure_channel_response.clone());
