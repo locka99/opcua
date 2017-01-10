@@ -223,14 +223,119 @@ pub struct ExpandedNodeId {
 
 impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
     fn byte_len(&self) -> usize {
-        unimplemented!();
+        let mut size = self.node_id().byte_len();
+        if !self.namespace_uri.is_null() {
+            size += self.namespace_uri.byte_len();
+        }
+        if self.server_index != 0 {
+            size += self.server_index.byte_len();
+        }
+        size
     }
 
     fn encode(&self, stream: &mut Write) -> Result<usize> {
-        unimplemented!();
+        let mut size: usize = 0;
+
+        let mut data_encoding = 0;
+        if !self.namespace_uri.is_null() {
+            data_encoding |= 0x80;
+        }
+        if self.server_index != 0 {
+            data_encoding |= 0x40;
+        }
+
+        // Type determines the byte code
+        match self.identifier {
+            Identifier::Numeric(ref value) => {
+                if self.namespace == 0 && *value <= 255 {
+                    // node id fits into 2 bytes when the namespace is 0 and the value <= 255
+                    size += write_u8(stream, data_encoding | 0x0)?;
+                    size += write_u8(stream, *value as u8)?;
+                } else if self.namespace <= 255 && *value <= 65535 {
+                    // node id fits into 4 bytes when namespace <= 255 and value <= 65535
+                    size += write_u8(stream, data_encoding | 0x1)?;
+                    size += write_u8(stream, self.namespace as u8)?;
+                    size += write_u16(stream, *value as u16)?;
+                } else {
+                    // full node id
+                    size += write_u8(stream, data_encoding | 0x2)?;
+                    size += write_u16(stream, self.namespace)?;
+                    size += write_u64(stream, *value as u64)?;
+                }
+            },
+            Identifier::String(ref value) => {
+                size += write_u8(stream, data_encoding | 0x3)?;
+                size += write_u16(stream, self.namespace)?;
+                size += value.encode(stream)?;
+            },
+            Identifier::Guid(ref value) => {
+                size += write_u8(stream, data_encoding | 0x4)?;
+                size += write_u16(stream, self.namespace)?;
+                size += value.encode(stream)?;
+            },
+            Identifier::ByteString(ref value) => {
+                size += write_u8(stream, data_encoding | 0x5)?;
+                size += write_u16(stream, self.namespace)?;
+                size += value.encode(stream)?;
+            }
+        }
+        if !self.namespace_uri.is_null() {
+            size += self.namespace_uri.encode(stream)?;
+        }
+        if self.server_index != 0 {
+            size += self.server_index.encode(stream)?;
+        }
+        assert_eq!(size, self.byte_len());
+        Ok(size)
     }
 
     fn decode(stream: &mut Read) -> Result<ExpandedNodeId> {
-        unimplemented!();
+        let data_encoding = read_u8(stream)?;
+        let identifier = data_encoding & 0x0f;
+        let node_id = match identifier {
+            0x0 => {
+                let namespace = 0;
+                let value = read_u8(stream)? as u64;
+                NodeId::new_numeric(namespace, value)
+            },
+            0x1 => {
+                let namespace = read_u8(stream)? as u16;
+                let value = read_u16(stream)? as u64;
+                NodeId::new_numeric(namespace, value)
+            },
+            0x2 => {
+                let namespace = read_u16(stream)?;
+                let value = read_u64(stream)?;
+                NodeId::new_numeric(namespace, value)
+            },
+            0x3 => {
+                let namespace = read_u16(stream)?;
+                let value = UAString::decode(stream)?;
+                NodeId::new_string(namespace, value)
+            },
+            0x4 => {
+                let namespace = read_u16(stream)?;
+                let value = Guid::decode(stream)?;
+                NodeId::new_guid(namespace, value)
+            },
+            0x5 => {
+                let namespace = read_u16(stream)?;
+                let value = ByteString::decode(stream)?;
+                NodeId::new_byte_string(namespace, value)
+            }
+            _ => {
+                panic!("Unrecognized node id type {:?}", identifier);
+            }
+        };
+
+        // Optional stuff
+        let namespace_uri = if data_encoding & 0x80 != 0 { UAString::decode(stream)? } else { UAString::null() };
+        let server_index = if data_encoding & 0x40 != 0 { UInt32::decode(stream)? } else { 0 };
+
+        Ok(ExpandedNodeId {
+            node_id: node_id,
+            namespace_uri: namespace_uri,
+            server_index: server_index,
+        })
     }
 }
