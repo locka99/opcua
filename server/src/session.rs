@@ -1,6 +1,6 @@
 use std;
 use std::net::{TcpStream, Shutdown};
-use std::io::{Read, Write, Cursor, Error, ErrorKind};
+use std::io::{Read, Write, Cursor};
 use std::sync::{Arc, Mutex};
 
 use chrono::{self, UTC};
@@ -132,6 +132,9 @@ impl TcpSession {
                 error!("Got garbage bytes from caller");
                 break;
             } else {
+                debug!("Received bytes:");
+                debug_buffer(&in_buf[0..bytes_read]);
+
                 let mut in_buf_stream = Cursor::new(&in_buf[0..bytes_read]);
                 match session_state {
                     SessionState::WaitingHello => {
@@ -142,12 +145,6 @@ impl TcpSession {
                         }
                     },
                     SessionState::ProcessMessages => {
-                        let mut now_stream = Cursor::new(vec![0u8; 8]);
-                        let now = DateTime::now();
-                        let result = now.encode(&mut now_stream);
-                        debug!("Now ticks = {}", now.ticks());
-                        debug_buffer(now_stream.get_ref());
-
                         debug!("Processing message");
                         let result = TcpSession::process_message(session.clone(), &mut in_buf_stream, &mut out_buf_stream);
                         if result.is_err() {
@@ -176,7 +173,6 @@ impl TcpSession {
             warn!("Sending session terminating error --\n{:?}", session_status_code);
             out_buf_stream.set_position(0);
             let error = handshake::ErrorMessage::from_status_code(&session_status_code);
-            handshake::MessageHeader::new_error(&error).encode(&mut out_buf_stream);
             error.encode(&mut out_buf_stream);
             TcpSession::write_output(&mut out_buf_stream, &mut stream);
         }
@@ -202,67 +198,71 @@ impl TcpSession {
         {
             let bytes_to_write = out_stream.position() as usize;
             let out_buf_slice = &out_stream.get_ref()[0..bytes_to_write];
-            debug!("Writing {:?} bytes to client", out_buf_slice);
+
+            debug!("Writing bytes to client:");
+            debug_buffer(out_buf_slice);
+
             let _ = stream.write(out_buf_slice);
         }
         out_stream.set_position(0);
     }
 
     fn process_hello(session: Arc<Mutex<TcpSession>>, in_stream: &mut Read, out_stream: &mut Write) -> std::result::Result<(), &'static StatusCode> {
-        if let Ok(header) = handshake::MessageHeader::decode(in_stream) {
-            let server_protocol_version = 0;
+        let buffer = handshake::MessageHeader::read_bytes(in_stream);
+        if buffer.is_err() {
+            error!("Error processing HELLO");
+            return Err(&BAD_COMMUNICATION_ERROR);
+        }
+        let buffer = buffer.unwrap();
 
-            if !header.is_hello() {
-                debug!("Header is not for a HELLO");
+        // Now make sure it's a Hello message, not something else
+        if handshake::MessageHeader::message_type(&buffer[0..3]) != handshake::MessageType::Hello {
+            debug!("Header is not for a HELLO");
+            return Err(&BAD_COMMUNICATION_ERROR);
+        }
+
+        let server_protocol_version = 0;
+        let mut valid_hello = false;
+        let mut client_protocol_version = 0;
+
+        let mut message_stream = Cursor::new(buffer);
+        if let Ok(hello) = handshake::HelloMessage::decode(&mut message_stream) {
+            debug!("Server received HELLO {:?}", hello);
+            if !hello.is_endpoint_url_valid() {
+                return Err(&BAD_TCP_ENDPOINT_URL_INVALID);
+            }
+            if !hello.is_valid_buffer_sizes() {
+                debug!("HELLO buffer sizes are invalid");
                 return Err(&BAD_COMMUNICATION_ERROR);
             }
 
-            let mut valid_hello = false;
-            let mut client_protocol_version = 0;
-
-            if let Ok(hello) = handshake::HelloMessage::decode(in_stream) {
-                debug!("Server received HELLO {:?}", hello);
-                if !hello.is_endpoint_url_valid() {
-                    return Err(&BAD_TCP_ENDPOINT_URL_INVALID);
-                }
-                if !hello.is_valid_buffer_sizes() {
-                    debug!("HELLO buffer sizes are invalid");
-                    return Err(&BAD_COMMUNICATION_ERROR);
-                }
-
-                // Validate protocol version
-                if hello.protocol_version > server_protocol_version {
-                    return Err(&BAD_PROTOCOL_VERSION_UNSUPPORTED);
-                }
-
-                client_protocol_version = hello.protocol_version;
-
-                valid_hello = true;
+            // Validate protocol version
+            if hello.protocol_version > server_protocol_version {
+                return Err(&BAD_PROTOCOL_VERSION_UNSUPPORTED);
             }
-            if valid_hello {
-                let acknowledge_message = handshake::AcknowledgeMessage {
-                    protocol_version: server_protocol_version,
-                    receive_buffer_size: RECEIVE_BUFFER_SIZE as UInt32,
-                    send_buffer_size: SEND_BUFFER_SIZE as UInt32,
-                    max_message_size: MAX_MESSAGE_SIZE as UInt32,
-                    max_chunk_count: MAX_CHUNK_COUNT as UInt32,
-                };
 
-                {
-                    let mut session = session.lock().unwrap();
-                    session.session_state = SessionState::ProcessMessages;
-                    session.client_protocol_version = client_protocol_version;
-                }
-
-                info!("Sending acknowledge -- \n{:?}", acknowledge_message);
-                let _ = handshake::MessageHeader::new_acknowledge(&acknowledge_message).encode(out_stream);
-                acknowledge_message.encode(out_stream);
-
-                return Ok(())
-            }
+            client_protocol_version = hello.protocol_version;
         }
-        error!("Error processing HELLO");
-        Err(&BAD_COMMUNICATION_ERROR)
+
+        let mut acknowledge = handshake::AcknowledgeMessage {
+            message_header: handshake::MessageHeader::new(handshake::MessageType::Acknowledge),
+            protocol_version: server_protocol_version,
+            receive_buffer_size: RECEIVE_BUFFER_SIZE as UInt32,
+            send_buffer_size: SEND_BUFFER_SIZE as UInt32,
+            max_message_size: MAX_MESSAGE_SIZE as UInt32,
+            max_chunk_count: MAX_CHUNK_COUNT as UInt32,
+        };
+        acknowledge.message_header.message_size = acknowledge.byte_len() as UInt32;
+
+        {
+            let mut session = session.lock().unwrap();
+            session.session_state = SessionState::ProcessMessages;
+            session.client_protocol_version = client_protocol_version;
+        }
+
+        info!("Sending acknowledge -- \n{:?}", acknowledge);
+        acknowledge.encode(out_stream);
+        Ok(())
     }
 
     fn process_open_secure_channel(session: &Arc<Mutex<TcpSession>>, chunk: Chunk) -> std::result::Result<Vec<Chunk>, &'static StatusCode> {
@@ -367,16 +367,34 @@ impl TcpSession {
             Err(result.unwrap_err())
         }
     }
-
 }
 
 fn debug_buffer(buf: &[u8]) {
     use log::LogLevel::Debug;
     if log_enabled!(Debug) {
-        let mut hex_dump = String::with_capacity(buf.len() * 3);
-        for b in buf {
-            hex_dump.push_str(format!("{:02x},", b).as_str());
+        let mut char_line = String::new();
+        let mut hex_line = String::new();
+
+        let line_len = 32;
+        let len = buf.len();
+        let last_line_padding = ((len / line_len) + 1) * line_len - len;
+
+        hex_line = format!("{:08x}: ", 0);
+        for (i, b) in buf.iter().enumerate() {
+            let value = *b as u8;
+            if i > 0 && i % line_len == 0 {
+                debug!("{} {}", hex_line, char_line);
+                hex_line = format!("{:08x}: ", i);
+                char_line.clear();
+            }
+            hex_line = format!("{} {:02x}", hex_line, value);
+            char_line.push(if value >= 32 && value <= 126 { value as char } else { '.' });
         }
-        debug!("Bytes: {}", hex_dump);
+        if last_line_padding > 0 {
+            for _ in 0..last_line_padding {
+                hex_line.push_str("   ");
+            }
+            debug!("{} {}", hex_line, char_line);
+        }
     }
 }
