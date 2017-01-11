@@ -283,8 +283,8 @@ impl TcpSession {
                 Err(&BAD_UNEXPECTED_ERROR)
             },
             ChunkMessageType::Message => {
-                debug!("Unimplemented - Message");
-                Err(&BAD_UNEXPECTED_ERROR)
+                // TcpSession::process_message
+                Err(&BAD_SERVICE_UNSUPPORTED)
             }
         };
         // Send out any chunks that form the response

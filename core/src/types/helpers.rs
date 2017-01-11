@@ -2,8 +2,6 @@ use std::io::{Read, Write, Result};
 
 use byteorder::{ByteOrder, LittleEndian};
 
-// Helpers for reading and writing numbers.
-
 pub fn write_u8(stream: &mut Write, value: u8) -> Result<usize> {
     let buf: [u8; 1] = [value];
     stream.write(&buf)

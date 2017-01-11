@@ -43,12 +43,21 @@ pub struct ApplicationDescription {
     pub discovery_profile_uri: UAString,
     /// A list of URLs for the discovery Endpoints provided by the application. If the applicationType
     /// is CLIENT_1, this field shall contain an empty list.
-    pub discovery_urls: Vec<UAString>,
+    pub discovery_urls: Option<Vec<UAString>>,
 }
 
 impl BinaryEncoder<ApplicationDescription> for ApplicationDescription {
     fn byte_len(&self) -> usize {
-        unimplemented!();
+        let mut size: usize = 0;
+        size += self.application_uri.byte_len();
+        size += self.product_uri.byte_len();
+        size += self.application_name.byte_len();
+        size += self.application_type.byte_len();
+        size += self.gateway_server_uri.byte_len();
+        size += self.discovery_profile_uri.byte_len();
+        // discovery_urls
+        size += byte_len_array(&self.discovery_urls);
+        size
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
@@ -59,8 +68,7 @@ impl BinaryEncoder<ApplicationDescription> for ApplicationDescription {
         size += self.application_type.encode(stream)?;
         size += self.gateway_server_uri.encode(stream)?;
         size += self.discovery_profile_uri.encode(stream)?;
-        // TODO discovery_urls
-        // size += self.application_uri.encode(stream)?;
+        size += write_array(stream, &self.discovery_urls)?;
         Ok(size)
     }
 
@@ -170,7 +178,7 @@ pub struct EndpointDescription {
     pub server: ApplicationDescription,
     pub server_certificate: ApplicationInstanceCertificate,
     pub security_mode: MessageSecurityMode,
-    pub user_identity_tokens: Vec<UserTokenPolicy>,
+    pub user_identity_tokens: Option<Vec<UserTokenPolicy>>,
     pub transport_profile_uri: UAString,
     pub security_level: Byte
 }

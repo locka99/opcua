@@ -121,7 +121,9 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
     }
 }
 
-impl ChunkHeader {}
+impl ChunkHeader {
+
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChunkInfo {
@@ -692,7 +694,7 @@ impl Chunker {
         };
         if let SupportedMessage::Invalid(_) = decoded_message {
             debug!("Message is unsupported");
-            return Err(&BAD_TCP_MESSAGE_TYPE_INVALID);
+            return Err(&BAD_SERVICE_UNSUPPORTED);
         }
 
         debug!("Returning decoded msg");
