@@ -79,7 +79,7 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result< ChunkHeader> {
+    fn decode<S: Read>(stream: &mut S) -> Result<ChunkHeader> {
         let mut is_valid = true;
 
         let mut message_type_code: [u8; 3] = [0, 0, 0];
@@ -162,7 +162,7 @@ impl BinaryEncoder<SecurityHeader> for SecurityHeader {
         }
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result< SecurityHeader> {
+    fn decode<S: Read>(stream: &mut S) -> Result<SecurityHeader> {
         unimplemented!();
     }
 }
@@ -181,7 +181,7 @@ impl BinaryEncoder<SymmetricSecurityHeader> for SymmetricSecurityHeader {
         Ok(self.token_id.encode(stream)?)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result< SymmetricSecurityHeader> {
+    fn decode<S: Read>(stream: &mut S) -> Result<SymmetricSecurityHeader> {
         let token_id = UInt32::decode(stream)?;
         Ok(SymmetricSecurityHeader {
             token_id: token_id
@@ -219,7 +219,7 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result< AsymmetricSecurityHeader> {
+    fn decode<S: Read>(stream: &mut S) -> Result<AsymmetricSecurityHeader> {
         let mut security_policy_uri = String::new();
         {
             // TODO this can be done by ByteString
@@ -296,7 +296,7 @@ impl BinaryEncoder<SequenceHeader> for SequenceHeader {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result< SequenceHeader> {
+    fn decode<S: Read>(stream: &mut S) -> Result<SequenceHeader> {
         let sequence_number = read_u32(stream)?;
         let request_id = read_u32(stream)?;
         Ok(SequenceHeader {
@@ -372,10 +372,6 @@ pub struct Chunk {
 }
 
 impl Chunk {
-    pub fn has_extension_object_prefix(&self) -> bool {
-        self.chunk_header.message_type == ChunkMessageType::Message
-    }
-
     pub fn encode<S: Write>(&self, stream: &mut S) -> std::result::Result<(), &'static StatusCode> {
         // TODO this is a stub
         // TODO impl should be moved to BinaryEncoder
@@ -417,18 +413,6 @@ impl Chunk {
 
         let mut chunk_body_stream = Cursor::new(&self.chunk_body);
 
-        let node_id = if is_first_chunk && self.has_extension_object_prefix() {
-            let node_id_result = NodeId::decode(&mut chunk_body_stream);
-            if node_id_result.is_err() {
-                error!("chunk_info() can't decode node_id, {:?}", node_id_result.unwrap_err());
-                return Err(&BAD_COMMUNICATION_ERROR)
-            }
-            Some(node_id_result.unwrap())
-        } else {
-            debug!("chunk_info() is skipping node_id, is_first_chunk = {:?}, message_type = {:?}", is_first_chunk, self.chunk_header.message_type);
-            None
-        };
-
         // Read the security header
         let security_header = if self.chunk_header.message_type == ChunkMessageType::OpenSecureChannel {
             let result = AsymmetricSecurityHeader::decode(&mut chunk_body_stream);
@@ -462,6 +446,18 @@ impl Chunk {
         }
         let sequence_header = sequence_header_result.unwrap();
 
+        let node_id = if is_first_chunk {
+            let node_id_result = NodeId::decode(&mut chunk_body_stream);
+            if node_id_result.is_err() {
+                error!("chunk_info() can't decode node_id, {:?}", node_id_result.unwrap_err());
+                return Err(&BAD_COMMUNICATION_ERROR)
+            }
+            Some(node_id_result.unwrap())
+        } else {
+            debug!("chunk_info() is skipping node_id, is_first_chunk = {:?}, message_type = {:?}", is_first_chunk, self.chunk_header.message_type);
+            None
+        };
+
         // Read Body
         let body_offset = chunk_body_stream.position();
 
@@ -474,17 +470,19 @@ impl Chunk {
         // TODO
         let signature_offset = body_offset + body_length;
 
-        let message_info = ChunkInfo {
+        let chunk_info = ChunkInfo {
             node_id: node_id,
             security_header: security_header,
             sequence_header_offset: sequence_header_offset as usize,
             sequence_header: sequence_header,
+
             body_offset: body_offset as usize,
             body_length: body_length as usize,
             signature_offset: signature_offset as usize,
         };
+        debug!("chunk_info() = {:#?}", chunk_info);
 
-        Ok(message_info)
+        Ok(chunk_info)
     }
 }
 
@@ -520,7 +518,6 @@ impl Chunker {
         debug!("Creating a chunk for secure channel id {}, sequence id {}", secure_channel_id, sequence_number);
 
         let message_type = Chunker::chunk_message_type(message);
-        let node_id = message.node_id();
 
         let is_first_chunk = true;
         let is_last_chunk = true;
@@ -540,15 +537,16 @@ impl Chunker {
             request_id: request_id,
         };
 
+        let node_id = message.node_id();
+
         // Calculate the chunk body size
         let mut chunk_body_size = 0;
-        if is_first_chunk && message_type == ChunkMessageType::Message {
+        chunk_body_size += security_header.byte_len();
+        chunk_body_size += sequence_header.byte_len();
+        if is_first_chunk {
             // Write a node id
             chunk_body_size += node_id.byte_len();
         }
-
-        chunk_body_size += security_header.byte_len();
-        chunk_body_size += sequence_header.byte_len();
         chunk_body_size += message.byte_len();
         // TODO encrypted message size
         // TODO padding size
@@ -568,19 +566,19 @@ impl Chunker {
 
         let mut stream = Cursor::new(vec![0u8; chunk_body_size]);
 
-        // Write a node id for the first chunk
-        if is_first_chunk && chunk_header.message_type == ChunkMessageType::Message {
-            debug!("Encoding node id");
-            node_id.encode(&mut stream);
-        } else {
-            debug!("Skipping encoding node id");
-        }
         // write security header
         debug!("Encoding security header");
         security_header.encode(&mut stream);
         // write sequence header
         debug!("Encoding sequence header");
         sequence_header.encode(&mut stream);
+        // Write a node id for the first chunk
+        if is_first_chunk {
+            debug!("Encoding node id");
+            node_id.encode(&mut stream);
+        } else {
+            debug!("Skipping encoding node id");
+        }
         // write message
         debug!("Encoding message");
         message.encode(&mut stream);
@@ -626,6 +624,8 @@ impl Chunker {
         let body_start = chunk_info.body_offset;
         let body_end = body_start + chunk_info.body_length;
         let chunk_body = &chunk.chunk_body[body_start..body_end];
+        debug!("chunk_message_body:");
+        debug_buffer(chunk_body);
 
         // TODO when multiple chunks are supported, probably the easiest way is some
         // kind of cursor that sits on top of the message bodies of each, decrypting the msg if
@@ -640,40 +640,17 @@ impl Chunker {
 
         debug!("Setting object id");
 
-        let object_id = if chunk.chunk_header.message_type == ChunkMessageType::OpenSecureChannel {
-            if is_server {
-                debug!(" as open secure channel request");
-                ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary
-            } else {
-                debug!(" as open secure channel response");
-                ObjectId::OpenSecureChannelResponse_Encoding_DefaultBinary
-            }
-        } else if chunk.chunk_header.message_type == ChunkMessageType::CloseSecureChannel {
-            if is_server {
-                debug!(" as close secure channel request");
-                ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary
-            } else {
-                debug!(" as open secure channel response");
-                ObjectId::OpenSecureChannelResponse_Encoding_DefaultBinary
-            }
-        } else if is_first_chunk && chunk.has_extension_object_prefix() {
-            debug!(" from node_id");
-            let node_id = NodeId::decode(&mut chunk_body_stream);
-            if node_id.is_err() {
-                error!("The node id could not be read from the stream {:?}", node_id);
-                return Err(&BAD_UNEXPECTED_ERROR);
-            }
-            let node_id = node_id.unwrap();
+        let object_id = if let Some(ref node_id) = chunk_info.node_id {
             let valid_node_id = if node_id.namespace != 0 || !node_id.is_numeric() {
                 // Must be ns 0 and numeric
                 false
             } else if expected_node_id.is_some() {
-                expected_node_id.unwrap() == node_id
+                expected_node_id.unwrap() == *node_id
             } else {
                 false
             };
             if !valid_node_id {
-                error!("The node id read from the stream was accepted in this context {:?}", node_id);
+                error!("The node id read from the stream was not accepted in this context {:?}", node_id);
                 return Err(&BAD_UNEXPECTED_ERROR);
             }
             let object_id = node_id.as_object_id();
@@ -695,6 +672,7 @@ impl Chunker {
                 if let Ok(message) = OpenSecureChannelRequest::decode(&mut chunk_body_stream) {
                     SupportedMessage::OpenSecureChannelRequest(message)
                 } else {
+                    error!("Could not decode OpenSecureChannelRequest, pos = {}", chunk_body_stream.position());
                     SupportedMessage::Invalid(object_id)
                 }
             },
@@ -703,6 +681,7 @@ impl Chunker {
                 if let Ok(message) = CloseSecureChannelRequest::decode(&mut chunk_body_stream) {
                     SupportedMessage::CloseSecureChannelRequest(message)
                 } else {
+                    error!("Could not decode CloseSecureChannelRequest, pos = {}", chunk_body_stream.position());
                     SupportedMessage::Invalid(object_id)
                 }
             }

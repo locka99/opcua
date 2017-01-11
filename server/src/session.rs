@@ -361,7 +361,7 @@ impl TcpSession {
                 secure_channel_id: secure_channel_id,
                 token_id: 0,
                 created_at: now.clone(),
-                revised_lifetime: 0,
+                revised_lifetime: request.requested_lifetime,
             },
             server_nonce: ByteString::null(),
         };
