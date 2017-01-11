@@ -1,4 +1,4 @@
-use std::io::{Read, Write, Cursor, Result, Error, ErrorKind};
+use std::io::{Read, Write, Seek, Cursor, Result, Error, ErrorKind};
 
 use opcua_core::types::*;
 
@@ -25,7 +25,7 @@ impl BinaryEncoder<MessageHeader> for MessageHeader {
         8
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         let mut size: usize = 0;
         size += match self.message_type {
             MessageType::Hello => {
@@ -46,7 +46,7 @@ impl BinaryEncoder<MessageHeader> for MessageHeader {
         Ok(size)
     }
 
-    fn decode(stream: &mut Read) -> Result<MessageHeader> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< MessageHeader> {
         let mut message_type: [u8; 4] = [0, 0, 0, 0];
         stream.read_exact(&mut message_type)?;
         let message_size = read_u32(stream)?;
@@ -67,7 +67,7 @@ impl MessageHeader {
 
     /// Reads the bytes of the stream to a buffer. If first 4 bytes are invalid,
     /// code returns an error
-    pub fn read_bytes(stream: &mut Read) -> Result<Vec<u8>> {
+    pub fn read_bytes<S: Read + Seek>(stream: &mut S) -> Result<Vec<u8>> {
         // Read the bytes of the stream into a vector
         let mut header: [u8; 4] = [0u8; 4];
         stream.read_exact(&mut header)?;
@@ -126,12 +126,12 @@ impl BinaryEncoder<HelloMessage> for HelloMessage {
         self.message_header.byte_len() + 20 + self.endpoint_url.byte_len()
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         // TODO client
         unimplemented!();
     }
 
-    fn decode(stream: &mut Read) -> Result<HelloMessage> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< HelloMessage> {
         let message_header = MessageHeader::decode(stream)?;
         let protocol_version = read_u32(stream)?;
         let receive_buffer_size = read_u32(stream)?;
@@ -181,7 +181,7 @@ impl BinaryEncoder<AcknowledgeMessage> for AcknowledgeMessage {
         self.message_header.byte_len() + 20
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         let mut size: usize = 0;
         size += self.message_header.encode(stream)?;
         size += self.protocol_version.encode(stream)?;
@@ -192,7 +192,7 @@ impl BinaryEncoder<AcknowledgeMessage> for AcknowledgeMessage {
         Ok(size)
     }
 
-    fn decode(stream: &mut Read) -> Result<AcknowledgeMessage> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< AcknowledgeMessage> {
         let message_header = MessageHeader::decode(stream)?;
         let protocol_version = UInt32::decode(stream)?;
         let receive_buffer_size = UInt32::decode(stream)?;
@@ -224,7 +224,7 @@ impl BinaryEncoder<ErrorMessage> for ErrorMessage {
         self.message_header.byte_len() + 4 + self.reason.byte_len()
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         let mut size: usize = 0;
         size += self.message_header.encode(stream)?;
         size += self.error.encode(stream)?;
@@ -232,7 +232,7 @@ impl BinaryEncoder<ErrorMessage> for ErrorMessage {
         Ok(size)
     }
 
-    fn decode(stream: &mut Read) -> Result<ErrorMessage> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< ErrorMessage> {
         unimplemented!();
     }
 }

@@ -1,6 +1,6 @@
 use std;
 use std::net::{TcpStream, Shutdown};
-use std::io::{Read, Write, Cursor};
+use std::io::{Read, Write, Seek, Cursor};
 use std::sync::{Arc, Mutex};
 
 use chrono::{self, UTC};
@@ -208,7 +208,7 @@ impl TcpSession {
         out_stream.set_position(0);
     }
 
-    fn process_hello(session: Arc<Mutex<TcpSession>>, in_stream: &mut Read, out_stream: &mut Write) -> std::result::Result<(), &'static StatusCode> {
+    fn process_hello<R: Read + Seek, W: Write + Seek>(session: Arc<Mutex<TcpSession>>, in_stream: &mut R, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
         let buffer = handshake::MessageHeader::read_bytes(in_stream);
         if buffer.is_err() {
             error!("Error processing HELLO");
@@ -267,7 +267,7 @@ impl TcpSession {
         Ok(())
     }
 
-    pub fn process_message(session: Arc<Mutex<TcpSession>>, in_stream: &mut Read, out_stream: &mut Write) -> std::result::Result<(), &'static StatusCode> {
+    pub fn process_message<R: Read + Seek, W: Write + Seek>(session: Arc<Mutex<TcpSession>>, in_stream: &mut R, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
         let result = Chunk::decode(in_stream);
 
         // Process the message
@@ -313,7 +313,7 @@ impl TcpSession {
         let request: OpenSecureChannelRequest = {
             let mut session = session.lock().unwrap();
 
-            let result = chunks[0].chunk_info(false, None);
+            let result = chunks[0].chunk_info(true, None);
             if result.is_err() {
                 return Err(result.unwrap_err());
             }
@@ -333,13 +333,16 @@ impl TcpSession {
 
             let result = session.chunker.decode_open_secure_channel_request(&chunks);
             if result.is_err() {
-                return Err(result.unwrap_err());
+                let error = result.unwrap_err();
+                error!("Could not decode the open secure channel request #{:?}", error);
+                return Err(error);
             }
             result.unwrap()
         };
 
         // Must compare protocol version to the one from HELLO
         if request.client_protocol_version != client_protocol_version {
+            error!("Client sent a different protocol version than it did in the HELLO - {} vs {}", request.client_protocol_version, client_protocol_version);
             return Err(&BAD_PROTOCOL_VERSION_UNSUPPORTED)
         }
 

@@ -1,4 +1,4 @@
-use std::io::{Read, Write, Result};
+use std::io::{Read, Write, Seek, Result};
 
 use super::encodable_types::*;
 use super::date_time::*;
@@ -21,12 +21,12 @@ impl BinaryEncoder<DataValue> for DataValue {
         unimplemented!();
     }
 
-    fn encode(&self, _: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         // This impl should be overridden
         unimplemented!()
     }
 
-    fn decode(_: &mut Read) -> Result<DataValue> {
+    fn decode<S: Read + Seek>(_: &mut S) -> Result<DataValue> {
         // This impl should be overridden
         unimplemented!()
     }

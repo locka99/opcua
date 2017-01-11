@@ -1,4 +1,4 @@
-use std::io::{Read, Write, Result};
+use std::io::{Read, Write, Seek, Result};
 
 use types::*;
 use services::*;
@@ -26,7 +26,7 @@ impl BinaryEncoder<SupportedMessage> for SupportedMessage {
         }
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         match *self {
             SupportedMessage::Invalid(object_id) => {
                 panic!("Unsupported message {:?}", object_id);
@@ -38,7 +38,7 @@ impl BinaryEncoder<SupportedMessage> for SupportedMessage {
         }
     }
 
-    fn decode(stream: &mut Read) -> Result<SupportedMessage> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< SupportedMessage> {
         // THIS WILL NOT DO ANYTHING
         panic!("Cannot decode a stream to a supported message type");
     }

@@ -1,4 +1,4 @@
-use std::io::{Read, Write, Result};
+use std::io::{Read, Write, Seek, Result};
 
 use types::*;
 use super::types::*;
@@ -14,13 +14,13 @@ impl BinaryEncoder<SecurityTokenRequestType> for SecurityTokenRequestType {
         4
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         // All enums are Int32
         debug!("Writing security token request type as {}", *self as Int32);
         write_i32(stream, *self as Int32)
     }
 
-    fn decode(stream: &mut Read) -> Result<SecurityTokenRequestType> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< SecurityTokenRequestType> {
         // All enums are Int32
         let security_token_request_type = read_i32(stream)?;
         Ok(match security_token_request_type {
@@ -88,24 +88,36 @@ impl BinaryEncoder<OpenSecureChannelRequest> for OpenSecureChannelRequest {
         size
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         let mut size = 0;
         size += self.request_header.encode(stream)?;
+        debug!("e OpenSecureChannelRequest::request_header");
         size += self.client_protocol_version.encode(stream)?;
+        debug!("e OpenSecureChannelRequest::client_protocol_version");
         size += self.request_type.encode(stream)?;
+        debug!("e OpenSecureChannelRequest::request_type");
         size += self.security_mode.encode(stream)?;
+        debug!("e OpenSecureChannelRequest::security_mode");
         size += self.client_nonce.encode(stream)?;
+        debug!("e OpenSecureChannelRequest::client_nonce");
         size += self.requested_lifetime.encode(stream)?;
+        debug!("e OpenSecureChannelRequest::requested_lifetime");
         Ok(size)
     }
 
-    fn decode(stream: &mut Read) -> Result<OpenSecureChannelRequest> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< OpenSecureChannelRequest> {
         let request_header = RequestHeader::decode(stream)?;
+        debug!("OpenSecureChannelRequest::request_header");
         let client_protocol_version = UInt32::decode(stream)?;
+        debug!("OpenSecureChannelRequest::client_protocol_version");
         let request_type = SecurityTokenRequestType::decode(stream)?;
+        debug!("OpenSecureChannelRequest::request_type");
         let security_mode = MessageSecurityMode::decode(stream)?;
+        debug!("OpenSecureChannelRequest::security_mode");
         let client_nonce = ByteString::decode(stream)?;
+        debug!("OpenSecureChannelRequest::client_nonce");
         let requested_lifetime = Int32::decode(stream)?;
+        debug!("OpenSecureChannelRequest::requested_lifetime");
         Ok(OpenSecureChannelRequest {
             request_header: request_header,
             client_protocol_version: client_protocol_version,
@@ -150,7 +162,7 @@ impl BinaryEncoder<OpenSecureChannelResponse> for OpenSecureChannelResponse {
         size
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         let mut size: usize = 0;
         size += self.response_header.encode(stream)?;
         size += self.server_protocol_version.encode(stream)?;
@@ -159,7 +171,7 @@ impl BinaryEncoder<OpenSecureChannelResponse> for OpenSecureChannelResponse {
         Ok(size)
     }
 
-    fn decode(stream: &mut Read) -> Result<OpenSecureChannelResponse> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< OpenSecureChannelResponse> {
         let response_header = ResponseHeader::decode(stream)?;
         let server_protocol_version = UInt32::decode(stream)?;
         let security_token = ChannelSecurityToken::decode(stream)?;
@@ -195,7 +207,7 @@ impl BinaryEncoder<CloseSecureChannelRequest> for CloseSecureChannelRequest {
         size
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         let mut size = 0;
         size += self.request_header.encode(stream)?;
         size += self.secure_channel_id.encode(stream)?;
@@ -203,7 +215,7 @@ impl BinaryEncoder<CloseSecureChannelRequest> for CloseSecureChannelRequest {
         Ok(size)
     }
 
-    fn decode(stream: &mut Read) -> Result<CloseSecureChannelRequest> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< CloseSecureChannelRequest> {
         let request_header = RequestHeader::decode(stream)?;
         let secure_channel_id = ByteString::decode(stream)?;
         Ok(CloseSecureChannelRequest {
@@ -230,11 +242,11 @@ impl BinaryEncoder<CloseSecureChannelResponse> for CloseSecureChannelResponse {
         self.response_header.byte_len()
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         Ok(self.response_header.encode(stream)?)
     }
 
-    fn decode(stream: &mut Read) -> Result<CloseSecureChannelResponse> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< CloseSecureChannelResponse> {
         let response_header = ResponseHeader::decode(stream)?;
         Ok(CloseSecureChannelResponse {
             response_header: response_header,

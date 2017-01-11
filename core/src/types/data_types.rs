@@ -1,4 +1,4 @@
-use std::io::{Read, Write, Result};
+use std::io::{Read, Write, Seek, Result};
 
 use super::encodable_types::*;
 use super::helpers::*;
@@ -31,12 +31,12 @@ impl BinaryEncoder<MessageSecurityMode> for MessageSecurityMode {
         4
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         // All enums are Int32
         write_i32(stream, *self as Int32)
     }
 
-    fn decode(stream: &mut Read) -> Result<MessageSecurityMode> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< MessageSecurityMode> {
         // All enums are Int32
         let mode_value = read_i32(stream)?;
         Ok(match mode_value {

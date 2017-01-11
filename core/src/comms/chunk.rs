@@ -1,7 +1,8 @@
 use std;
-use std::io::{Read, Write, Result, Cursor};
+use std::io::{Read, Write, Seek, Result, Cursor};
 use std::fmt;
 
+use debug::*;
 use types::*;
 use services::*;
 use comms::*;
@@ -52,7 +53,7 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
         CHUNK_HEADER_SIZE
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         if !self.is_valid {
             error!("Cannot write an invalid type");
             return Ok(0);
@@ -78,7 +79,7 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
         Ok(size)
     }
 
-    fn decode(stream: &mut Read) -> Result<ChunkHeader> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< ChunkHeader> {
         let mut is_valid = true;
 
         let mut message_type_code: [u8; 3] = [0, 0, 0];
@@ -154,14 +155,14 @@ impl BinaryEncoder<SecurityHeader> for SecurityHeader {
         }
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         match *self {
             SecurityHeader::Asymmetric(ref value) => { value.encode(stream) },
             SecurityHeader::Symmetric(ref value) => { value.encode(stream) },
         }
     }
 
-    fn decode(stream: &mut Read) -> Result<SecurityHeader> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< SecurityHeader> {
         unimplemented!();
     }
 }
@@ -176,11 +177,11 @@ impl BinaryEncoder<SymmetricSecurityHeader> for SymmetricSecurityHeader {
         4
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         Ok(self.token_id.encode(stream)?)
     }
 
-    fn decode(stream: &mut Read) -> Result<SymmetricSecurityHeader> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< SymmetricSecurityHeader> {
         let token_id = UInt32::decode(stream)?;
         Ok(SymmetricSecurityHeader {
             token_id: token_id
@@ -207,7 +208,7 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
         size
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         let mut size = 0;
         size += write_i32(stream, self.security_policy_uri.len() as Int32)?;
         size += stream.write(self.security_policy_uri.as_bytes())?;
@@ -218,12 +219,12 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
         Ok(size)
     }
 
-    fn decode(stream: &mut Read) -> Result<AsymmetricSecurityHeader> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< AsymmetricSecurityHeader> {
         let mut security_policy_uri = String::new();
         {
             // TODO this can be done by ByteString
             let security_policy_uri_length = read_i32(stream)?;
-            debug!("SecurityHeader::security_policy_uri_length = {:?}", security_policy_uri_length);
+            // debug!("SecurityHeader::security_policy_uri_length = {:?}", security_policy_uri_length);
 
             if security_policy_uri_length > 0 {
                 let buf_len = security_policy_uri_length;
@@ -233,31 +234,31 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
                 security_policy_uri = String::from_utf8(buf).unwrap()
             }
         }
-        debug!("SecurityHeader::security_policy_uri = {:?}", security_policy_uri);
+        // debug!("SecurityHeader::security_policy_uri = {:?}", security_policy_uri);
 
         let mut sender_certificate: Vec<u8> = Vec::new();
         {
             let sender_certificate_length = read_i32(stream)?;
-            debug!("SecurityHeader::sender_certificate_length = {:?}", sender_certificate_length);
+            // debug!("SecurityHeader::sender_certificate_length = {:?}", sender_certificate_length);
             if sender_certificate_length > 0 {
                 // TODO validate sender_certificate_length < MaxCertificateSize
                 sender_certificate.resize(sender_certificate_length as usize, 0u8);
                 stream.read_exact(&mut sender_certificate)?;
             }
         }
-        debug!("SecurityHeader::sender_certificate = {:?}", sender_certificate);
+        // debug!("SecurityHeader::sender_certificate = {:?}", sender_certificate);
 
         let mut receiver_certificate_thumbprint: Vec<u8> = Vec::new();
         {
             let receiver_certificate_thumbprint_length = read_i32(stream)?;
-            debug!("SecurityHeader::receiver_certificate_thumbprint_length = {:?}", receiver_certificate_thumbprint_length);
+            // debug!("SecurityHeader::receiver_certificate_thumbprint_length = {:?}", receiver_certificate_thumbprint_length);
             if receiver_certificate_thumbprint_length > 0 {
                 // TODO validate receiver_certificate_thumbprint_length == 20
                 receiver_certificate_thumbprint.resize(receiver_certificate_thumbprint_length as usize, 0u8);
                 stream.read_exact(&mut receiver_certificate_thumbprint)?;
             }
         }
-        debug!("SecurityHeader::receiver_certificate_thumbprint = {:?}", receiver_certificate_thumbprint);
+        // debug!("SecurityHeader::receiver_certificate_thumbprint = {:?}", receiver_certificate_thumbprint);
 
         Ok(AsymmetricSecurityHeader {
             security_policy_uri: security_policy_uri,
@@ -288,14 +289,14 @@ impl BinaryEncoder<SequenceHeader> for SequenceHeader {
         8
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         let mut size: usize = 0;
         size += write_u32(stream, self.sequence_number)?;
         size += write_u32(stream, self.request_id)?;
         Ok(size)
     }
 
-    fn decode(stream: &mut Read) -> Result<SequenceHeader> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< SequenceHeader> {
         let sequence_number = read_u32(stream)?;
         let request_id = read_u32(stream)?;
         Ok(SequenceHeader {
@@ -363,16 +364,11 @@ pub struct SecureChannelInfo {
 
 /// A chunk holds a part or the whole of a message. The chunk may be signed and encrypted. To
 /// extract the message may require one or more chunks.
+#[derive(Debug)]
 pub struct Chunk {
     /// Header for this chunk
     pub chunk_header: ChunkHeader,
     pub chunk_body: Vec<u8>,
-}
-
-impl fmt::Debug for Chunk {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Chunk Header - {:?}\nChunk Body: {:?}", self.chunk_header, self.chunk_body)
-    }
 }
 
 impl Chunk {
@@ -380,7 +376,7 @@ impl Chunk {
         self.chunk_header.message_type == ChunkMessageType::Message
     }
 
-    pub fn encode(&self, stream: &mut Write) -> std::result::Result<(), &'static StatusCode> {
+    pub fn encode<S: Write + Seek>(&self, stream: &mut S) -> std::result::Result<(), &'static StatusCode> {
         // TODO this is a stub
         // TODO impl should be moved to BinaryEncoder
         debug!("Encoding chunk_header");
@@ -390,7 +386,7 @@ impl Chunk {
         Ok(())
     }
 
-    pub fn decode(in_stream: &mut Read) -> std::result::Result<Chunk, &'static StatusCode> {
+    pub fn decode<S: Read + Seek>(in_stream: &mut S) -> std::result::Result<Chunk, &'static StatusCode> {
         // TODO impl should be moved to BinaryEncoder
         let chunk_header_result = ChunkHeader::decode(in_stream);
         if chunk_header_result.is_err() {
@@ -414,7 +410,10 @@ impl Chunk {
     }
 
     pub fn chunk_info(&self, is_first_chunk: bool, secure_channel_info: Option<&mut SecureChannelInfo>) -> std::result::Result<ChunkInfo, &'static StatusCode> {
-        debug!("chunk_info() - chunk_body = {:?}", self.chunk_body);
+        {
+            debug!("chunk_info() - chunk_body:");
+            debug_buffer(&self.chunk_body);
+        }
 
         let mut chunk_body_stream = Cursor::new(&self.chunk_body);
 
@@ -638,7 +637,27 @@ impl Chunker {
         // The extension object prefix is just the node id. A point the spec rather unhelpfully doesn't
         // elaborate on. Probably because people enjoy debugging why the stream pos is out by 1 byte
         // for hours.
-        let object_id = if is_first_chunk && chunk.has_extension_object_prefix() {
+
+        debug!("Setting object id");
+
+        let object_id = if chunk.chunk_header.message_type == ChunkMessageType::OpenSecureChannel {
+            if is_server {
+                debug!(" as open secure channel request");
+                ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary
+            } else {
+                debug!(" as open secure channel response");
+                ObjectId::OpenSecureChannelResponse_Encoding_DefaultBinary
+            }
+        } else if chunk.chunk_header.message_type == ChunkMessageType::CloseSecureChannel {
+            if is_server {
+                debug!(" as close secure channel request");
+                ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary
+            } else {
+                debug!(" as open secure channel response");
+                ObjectId::OpenSecureChannelResponse_Encoding_DefaultBinary
+            }
+        } else if is_first_chunk && chunk.has_extension_object_prefix() {
+            debug!(" from node_id");
             let node_id = NodeId::decode(&mut chunk_body_stream);
             if node_id.is_err() {
                 error!("The node id could not be read from the stream {:?}", node_id);
@@ -665,18 +684,6 @@ impl Chunker {
             let object_id = object_id.unwrap();
             debug!("Decoded node id / object id of {:?}", object_id);
             object_id
-        } else if chunk.chunk_header.message_type == ChunkMessageType::OpenSecureChannel {
-            if is_server {
-                ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary
-            } else {
-                ObjectId::OpenSecureChannelResponse_Encoding_DefaultBinary
-            }
-        } else if chunk.chunk_header.message_type == ChunkMessageType::CloseSecureChannel {
-            if is_server {
-                ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary
-            } else {
-                ObjectId::OpenSecureChannelResponse_Encoding_DefaultBinary
-            }
         } else {
             return Err(&BAD_TCP_MESSAGE_TYPE_INVALID);
         };
@@ -684,6 +691,7 @@ impl Chunker {
         // Now the payload. The node id of the prefix allows us to recognize it.
         let decoded_message = match object_id {
             ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary => {
+                debug!("decoding OpenSecureChannelRequest_Encoding_DefaultBinary");
                 if let Ok(message) = OpenSecureChannelRequest::decode(&mut chunk_body_stream) {
                     SupportedMessage::OpenSecureChannelRequest(message)
                 } else {
@@ -691,17 +699,25 @@ impl Chunker {
                 }
             },
             ObjectId::CloseSecureChannelRequest_Encoding_DefaultBinary => {
+                debug!("decoding CloseSecureChannelRequest_Encoding_DefaultBinary");
                 if let Ok(message) = CloseSecureChannelRequest::decode(&mut chunk_body_stream) {
                     SupportedMessage::CloseSecureChannelRequest(message)
                 } else {
                     SupportedMessage::Invalid(object_id)
                 }
             }
-            _ => { SupportedMessage::Invalid(object_id) }
+            _ => {
+                debug!("decoding unsupported");
+                SupportedMessage::Invalid(object_id)
+            }
         };
         if let SupportedMessage::Invalid(_) = decoded_message {
+            debug!("Message is unsupported");
             return Err(&BAD_TCP_MESSAGE_TYPE_INVALID);
         }
+
+        debug!("Returning decoded msg");
+
         return Ok(decoded_message)
     }
 

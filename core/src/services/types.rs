@@ -1,4 +1,4 @@
-use std::io::{Read, Write, Result};
+use std::io::{Read, Write, Seek, Result};
 
 use types::*;
 
@@ -51,7 +51,7 @@ impl BinaryEncoder<ApplicationDescription> for ApplicationDescription {
         unimplemented!();
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         let mut size: usize = 0;
         size += self.application_uri.encode(stream)?;
         size += self.product_uri.encode(stream)?;
@@ -64,7 +64,7 @@ impl BinaryEncoder<ApplicationDescription> for ApplicationDescription {
         Ok(size)
     }
 
-    fn decode(stream: &mut Read) -> Result<ApplicationDescription> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< ApplicationDescription> {
         // This impl should be overridden
         unimplemented!()
     }
@@ -83,11 +83,11 @@ impl BinaryEncoder<ApplicationInstanceCertificate> for ApplicationInstanceCertif
         self.certificate.byte_len()
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         self.certificate.encode(stream)
     }
 
-    fn decode(stream: &mut Read) -> Result<ApplicationInstanceCertificate> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< ApplicationInstanceCertificate> {
         let certificate = ByteString::decode(stream)?;
         debug!("ApplicationInstanceCertificate::certificate = {:?}", certificate);
         Ok(ApplicationInstanceCertificate {
@@ -114,7 +114,7 @@ impl BinaryEncoder<ChannelSecurityToken> for ChannelSecurityToken {
         size
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         let mut size = 0;
         size += self.secure_channel_id.encode(stream)?;
         size += self.token_id.encode(stream)?;
@@ -124,7 +124,7 @@ impl BinaryEncoder<ChannelSecurityToken> for ChannelSecurityToken {
         Ok(size)
     }
 
-    fn decode(stream: &mut Read) -> Result<ChannelSecurityToken> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< ChannelSecurityToken> {
         let secure_channel_id = UInt32::decode(stream)?;
         let token_id = UInt32::decode(stream)?;
         let created_at = UtcTime::decode(stream)?;
@@ -152,12 +152,12 @@ impl BinaryEncoder<UserTokenPolicy> for UserTokenPolicy {
         unimplemented!();
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         // This impl should be overridden
         unimplemented!()
     }
 
-    fn decode(stream: &mut Read) -> Result<UserTokenPolicy> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< UserTokenPolicy> {
         // This impl should be overridden
         unimplemented!()
     }
@@ -180,12 +180,12 @@ impl BinaryEncoder<EndpointDescription> for EndpointDescription {
         unimplemented!();
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         // This impl should be overridden
         unimplemented!()
     }
 
-    fn decode(stream: &mut Read) -> Result<EndpointDescription> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< EndpointDescription> {
         // This impl should be overridden
         unimplemented!()
     }
@@ -204,12 +204,12 @@ impl BinaryEncoder<ApplicationType> for ApplicationType {
         4
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         // All enums are Int32
         write_i32(stream, *self as Int32)
     }
 
-    fn decode(stream: &mut Read) -> Result<ApplicationType> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< ApplicationType> {
         let value = read_i32(stream)?;
         Ok(match value {
             0 => { ApplicationType::SERVER },
@@ -235,7 +235,7 @@ impl BinaryEncoder<UserIdentityToken> for UserIdentityToken {
         4 + self.token_data.len() + 4 + self.server_nonce.len()
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         let mut size: usize = 0;
         size += write_u32(stream, self.token_data.len() as UInt32)?;
         for b in &self.token_data {
@@ -248,7 +248,7 @@ impl BinaryEncoder<UserIdentityToken> for UserIdentityToken {
         Ok(size)
     }
 
-    fn decode(stream: &mut Read) -> Result<UserIdentityToken> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< UserIdentityToken> {
         let token_data_len = read_u32(stream)?;
         let mut token_data = Vec::with_capacity(token_data_len as usize);
         token_data.resize(token_data_len as usize, 0u8);
@@ -277,11 +277,11 @@ impl BinaryEncoder<SessionAuthenticationToken> for SessionAuthenticationToken {
         self.token.byte_len()
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         Ok(self.token.encode(stream)?)
     }
 
-    fn decode(stream: &mut Read) -> Result<SessionAuthenticationToken> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< SessionAuthenticationToken> {
         let token = NodeId::decode(stream)?;
         Ok(SessionAuthenticationToken {
             token: token,
@@ -376,7 +376,7 @@ impl BinaryEncoder<RequestHeader> for RequestHeader {
         size
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         let mut size: usize = 0;
         size += self.authentication_token.encode(stream)?;
         size += self.timestamp.encode(stream)?;
@@ -388,7 +388,7 @@ impl BinaryEncoder<RequestHeader> for RequestHeader {
         Ok(size)
     }
 
-    fn decode(stream: &mut Read) -> Result<RequestHeader> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< RequestHeader> {
         let authentication_token = SessionAuthenticationToken::decode(stream)?;
         let timestamp = UtcTime::decode(stream)?;
         let request_handle = IntegerId::decode(stream)?;
@@ -431,7 +431,7 @@ impl BinaryEncoder<ResponseHeader> for ResponseHeader {
         size
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         let mut size = 0;
         size += self.timestamp.encode(stream)?;
         size += self.request_handle.encode(stream)?;
@@ -443,7 +443,7 @@ impl BinaryEncoder<ResponseHeader> for ResponseHeader {
         Ok(size)
     }
 
-    fn decode(stream: &mut Read) -> Result<ResponseHeader> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< ResponseHeader> {
         let timestamp = UtcTime::decode(stream)?;
         let request_handle = IntegerId::decode(stream)?;
         let service_result = StatusCode::decode(stream)?;
@@ -479,7 +479,7 @@ impl BinaryEncoder<SignedSoftwareCertificate> for SignedSoftwareCertificate {
         size
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         let mut size = 0;
         size += self.certificate_data.encode(stream)?;
         size += self.signature.encode(stream)?;
@@ -487,7 +487,7 @@ impl BinaryEncoder<SignedSoftwareCertificate> for SignedSoftwareCertificate {
         Ok(size)
     }
 
-    fn decode(stream: &mut Read) -> Result<SignedSoftwareCertificate> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< SignedSoftwareCertificate> {
         let certificate_data = ByteString::decode(stream)?;
         let signature = ByteString::decode(stream)?;
         Ok(SignedSoftwareCertificate {
@@ -515,7 +515,7 @@ impl BinaryEncoder<SignatureData> for SignatureData {
         size
     }
 
-    fn encode(&self, stream: &mut Write) -> Result<usize> {
+    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
         let mut size = 0;
         size += self.algorithm.encode(stream)?;
         size += self.signature.encode(stream)?;
@@ -523,7 +523,7 @@ impl BinaryEncoder<SignatureData> for SignatureData {
         Ok(size)
     }
 
-    fn decode(stream: &mut Read) -> Result<SignatureData> {
+    fn decode<S: Read + Seek>(stream: &mut S) -> Result< SignatureData> {
         let algorithm = ByteString::decode(stream)?;
         let signature = ByteString::decode(stream)?;
         Ok(SignatureData {
