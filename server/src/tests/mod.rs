@@ -52,8 +52,6 @@ pub fn test_hello() {
     assert_eq!(hello.max_message_size, 0);
     assert_eq!(hello.max_chunk_count,0);
     assert_eq!(hello.endpoint_url, UAString::from_str("opc.tcp://127.0.0.1:1234/"));
-
-
 }
 
 #[test]

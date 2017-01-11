@@ -88,8 +88,11 @@ impl MessageHeader {
 
     pub fn message_type(t: &[u8]) -> MessageType {
         println!("Message type input = {:?}", t);
-        if t.len() != 4 || t[3] != b'F' {
-            println!("Message type len != 4 or not F");
+        if t.len() != 4 {
+            println!("Message type len != 4");
+            MessageType::Invalid
+        } else if t[3] != b'F' {
+            println!("Message 4th byte is not F");
             MessageType::Invalid
         } else {
 

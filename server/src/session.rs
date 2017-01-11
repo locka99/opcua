@@ -8,6 +8,7 @@ use chrono::{self, UTC};
 use opcua_core::types::*;
 use opcua_core::comms::*;
 use opcua_core::services::*;
+use opcua_core::debug::*;
 
 use subscription::{Subscription};
 
@@ -216,7 +217,7 @@ impl TcpSession {
         let buffer = buffer.unwrap();
 
         // Now make sure it's a Hello message, not something else
-        if handshake::MessageHeader::message_type(&buffer[0..3]) != handshake::MessageType::Hello {
+        if handshake::MessageHeader::message_type(&buffer[0..4]) != handshake::MessageType::Hello {
             debug!("Header is not for a HELLO");
             return Err(&BAD_COMMUNICATION_ERROR);
         }
@@ -369,32 +370,3 @@ impl TcpSession {
     }
 }
 
-fn debug_buffer(buf: &[u8]) {
-    use log::LogLevel::Debug;
-    if log_enabled!(Debug) {
-        let mut char_line = String::new();
-        let mut hex_line = String::new();
-
-        let line_len = 32;
-        let len = buf.len();
-        let last_line_padding = ((len / line_len) + 1) * line_len - len;
-
-        hex_line = format!("{:08x}: ", 0);
-        for (i, b) in buf.iter().enumerate() {
-            let value = *b as u8;
-            if i > 0 && i % line_len == 0 {
-                debug!("{} {}", hex_line, char_line);
-                hex_line = format!("{:08x}: ", i);
-                char_line.clear();
-            }
-            hex_line = format!("{} {:02x}", hex_line, value);
-            char_line.push(if value >= 32 && value <= 126 { value as char } else { '.' });
-        }
-        if last_line_padding > 0 {
-            for _ in 0..last_line_padding {
-                hex_line.push_str("   ");
-            }
-            debug!("{} {}", hex_line, char_line);
-        }
-    }
-}

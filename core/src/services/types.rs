@@ -120,6 +120,7 @@ impl BinaryEncoder<ChannelSecurityToken> for ChannelSecurityToken {
         size += self.token_id.encode(stream)?;
         size += self.created_at.encode(stream)?;
         size += self.revised_lifetime.encode(stream)?;
+        assert_eq!(size, self.byte_len());
         Ok(size)
     }
 
@@ -204,6 +205,7 @@ impl BinaryEncoder<ApplicationType> for ApplicationType {
     }
 
     fn encode(&self, stream: &mut Write) -> Result<usize> {
+        // All enums are Int32
         write_i32(stream, *self as Int32)
     }
 
@@ -230,7 +232,7 @@ pub struct UserIdentityToken {
 
 impl BinaryEncoder<UserIdentityToken> for UserIdentityToken {
     fn byte_len(&self) -> usize {
-        4 + 4 + self.token_data.len() + self.server_nonce.len()
+        4 + self.token_data.len() + 4 + self.server_nonce.len()
     }
 
     fn encode(&self, stream: &mut Write) -> Result<usize> {

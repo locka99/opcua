@@ -10,7 +10,6 @@ var endpointUrl = "opc.tcp://127.0.0.1:1234/";
 var the_session, the_subscription;
 
 async.series([
-
         // step 1 : connect to
         function (callback) {
             client.connect(endpointUrl, function (err) {
@@ -69,13 +68,10 @@ async.series([
                 }
                 callback(err);
             });
-
-
         },
 
         // step 5: install a subscription and install a monitored item for 10 seconds
         function (callback) {
-
             the_subscription = new opcua.ClientSubscription(the_session, {
                 requestedPublishingInterval: 1000,
                 requestedLifetimeCount: 10,
