@@ -185,12 +185,28 @@ pub struct EndpointDescription {
 
 impl BinaryEncoder<EndpointDescription> for EndpointDescription {
     fn byte_len(&self) -> usize {
-        unimplemented!();
+        let mut size = 0;
+        size += self.endpoint_url.byte_len();
+        size += self.server.byte_len();
+        size += self.server_certificate.byte_len();
+        size += self.security_mode.byte_len();
+        size += byte_len_array(&self.user_identity_tokens);
+        size += self.transport_profile_uri.byte_len();
+        size += self.security_level.byte_len();
+        size
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
-        // This impl should be overridden
-        unimplemented!()
+        let mut size = 0;
+        size += self.endpoint_url.encode(stream)?;
+        size += self.server.encode(stream)?;
+        size += self.server_certificate.encode(stream)?;
+        size += self.security_mode.encode(stream)?;
+        size += write_array(stream, &self.user_identity_tokens)?;
+        size += self.transport_profile_uri.encode(stream)?;
+        size += self.security_level.encode(stream)?;
+        assert_eq!(size, self.byte_len());
+        Ok(size)
     }
 
     fn decode<S: Read>(stream: &mut S) -> Result< EndpointDescription> {

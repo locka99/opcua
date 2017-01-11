@@ -11,6 +11,7 @@ pub enum SupportedMessage {
     OpenSecureChannelResponse(OpenSecureChannelResponse),
     CloseSecureChannelRequest(CloseSecureChannelRequest),
     CloseSecureChannelResponse(CloseSecureChannelResponse),
+    GetEndPointsRequest(GetEndPointsRequest),
 }
 
 impl BinaryEncoder<SupportedMessage> for SupportedMessage {
@@ -23,6 +24,7 @@ impl BinaryEncoder<SupportedMessage> for SupportedMessage {
             SupportedMessage::OpenSecureChannelResponse(ref value) => value.byte_len(),
             SupportedMessage::CloseSecureChannelRequest(ref value) => value.byte_len(),
             SupportedMessage::CloseSecureChannelResponse(ref value) => value.byte_len(),
+            SupportedMessage::GetEndPointsRequest(ref value) => value.byte_len(),
         }
     }
 
@@ -35,6 +37,7 @@ impl BinaryEncoder<SupportedMessage> for SupportedMessage {
             SupportedMessage::OpenSecureChannelResponse(ref value) => value.encode(stream),
             SupportedMessage::CloseSecureChannelRequest(ref value) => value.encode(stream),
             SupportedMessage::CloseSecureChannelResponse(ref value) => value.encode(stream),
+            SupportedMessage::GetEndPointsRequest(ref value) => value.encode(stream),
         }
     }
 
@@ -54,6 +57,7 @@ impl SupportedMessage {
             SupportedMessage::OpenSecureChannelResponse(ref value) => value.node_id(),
             SupportedMessage::CloseSecureChannelRequest(ref value) => value.node_id(),
             SupportedMessage::CloseSecureChannelResponse(ref value) => value.node_id(),
+            SupportedMessage::GetEndPointsRequest(ref value) => value.node_id(),
         }
     }
 }

@@ -3,6 +3,7 @@ use std::io::{Read, Write, Result};
 use types::*;
 use super::types::*;
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct GetEndPointsRequest {
     /// Common request parameters.
     /// The authenticationToken is always omitted. The authenticationToken
@@ -25,22 +26,42 @@ pub struct GetEndPointsRequest {
     pub profile_uris: Option<Vec<UAString>>,
 }
 
+impl ObjectInfo for GetEndPointsRequest {
+    fn object_id(&self) -> ObjectId {
+        ObjectId::GetEndpointsRequest_Encoding_DefaultBinary
+    }
+}
+
 impl BinaryEncoder<GetEndPointsRequest> for GetEndPointsRequest {
     fn byte_len(&self) -> usize {
-        let mut size = self.request_header.byte_len() + self.endpoint_url.byte_len();
-        // For locale ids
+        let mut size = 0;
+        size += self.request_header.byte_len();
+        size += self.endpoint_url.byte_len();
         size += byte_len_array(&self.locale_ids);
-        // For profile_uris
         size += byte_len_array(&self.profile_uris);
         size
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
-        unimplemented!();
+        let mut size = 0;
+        size += self.request_header.encode(stream)?;
+        size += self.endpoint_url.encode(stream)?;
+        size += write_array(stream, &self.locale_ids)?;
+        size += write_array(stream, &self.profile_uris)?;
+        Ok(size)
     }
 
     fn decode<S: Read>(stream: &mut S) -> Result<GetEndPointsRequest> {
-        unimplemented!();
+        let request_header = RequestHeader::decode(stream)?;
+        let endpoint_url = UAString::decode(stream)?;
+        let locale_ids: Option<Vec<UAString>> = read_array(stream)?;
+        let profile_uris: Option<Vec<UAString>> = read_array(stream)?;
+        Ok(GetEndPointsRequest {
+            request_header: request_header,
+            endpoint_url: endpoint_url,
+            locale_ids: locale_ids,
+            profile_uris: profile_uris,
+        })
     }
 }
 
@@ -57,21 +78,23 @@ pub struct GetEndPointsResponse {
 impl BinaryEncoder<GetEndPointsResponse> for GetEndPointsResponse {
     fn byte_len(&self) -> usize {
         let mut size = self.response_header.byte_len();
-        // For locale ids
-        size += 4;
-        if let Some(ref endpoints) = self.endpoints {
-            for endpoint in endpoints.iter() {
-                size += endpoint.byte_len();
-            }
-        }
+        size += byte_len_array(&self.endpoints);
         size
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
-        unimplemented!();
+        let mut size = 0;
+        size += self.response_header.encode(stream)?;
+        size += write_array(stream, &self.endpoints)?;
+        Ok(size)
     }
 
     fn decode<S: Read>(stream: &mut S) -> Result<GetEndPointsResponse> {
-        unimplemented!();
+        let response_header = ResponseHeader::decode(stream)?;
+        let endpoints: Option<Vec<EndpointDescription>> = read_array(stream)?;
+        Ok(GetEndPointsResponse {
+            response_header: response_header,
+            endpoints: endpoints,
+        })
     }
 }

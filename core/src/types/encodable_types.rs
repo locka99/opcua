@@ -22,7 +22,7 @@ pub trait BinaryEncoder<T> {
 
 
 /// Calculates the length in bytes of an array of encoded type
-pub fn byte_len_array<E: BinaryEncoder<T>, T>(values: &Option<Vec<E>>) -> usize {
+pub fn byte_len_array<T: BinaryEncoder<T>>(values: &Option<Vec<T>>) -> usize {
     let mut size = 4;
     if let &Some(ref values) = values {
         for value in values.iter() {
@@ -33,7 +33,7 @@ pub fn byte_len_array<E: BinaryEncoder<T>, T>(values: &Option<Vec<E>>) -> usize 
 }
 
 /// Write an array of the encoded type to stream, preserving distinction between null array and empty array
-pub fn write_array<S: Write, E: BinaryEncoder<T>, T>(stream: &mut S, values: &Option<Vec<E>>) -> Result<usize> {
+pub fn write_array<S: Write, T: BinaryEncoder<T>>(stream: &mut S, values: &Option<Vec<T>>) -> Result<usize> {
     let mut size = 0;
     if let &Some(ref values) = values {
         size += write_i32(stream, values.len() as i32)?;
@@ -47,14 +47,14 @@ pub fn write_array<S: Write, E: BinaryEncoder<T>, T>(stream: &mut S, values: &Op
 }
 
 /// Reads an array of the encoded type from a stream, preserving distinction between null array and empty array
-pub fn read_array<S: Read, E: BinaryEncoder<T>, T>(stream: &mut S) -> Result<Option<Vec<T>>> {
+pub fn read_array<S: Read, T: BinaryEncoder<T>>(stream: &mut S) -> Result<Option<Vec<T>>> {
     let len = read_i32(stream)?;
     if len == -1 {
         Ok(None)
     } else {
         let mut values: Vec<T> = Vec::new();
         for _ in 0..len {
-            values.push(E::decode(stream)?);
+            values.push(T::decode(stream)?);
         }
         Ok(Some(values))
     }
