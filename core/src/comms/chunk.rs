@@ -657,7 +657,14 @@ impl Chunker {
                 error!("The node id read from the stream was accepted in this context {:?}", node_id);
                 return Err(&BAD_UNEXPECTED_ERROR);
             }
-            node_id.as_object_id().unwrap()
+            let object_id = node_id.as_object_id();
+            if object_id.is_err() {
+                error!("The node was not an object id");
+                return Err(&BAD_UNEXPECTED_ERROR);
+            }
+            let object_id = object_id.unwrap();
+            debug!("Decoded node id / object id of {:?}", object_id);
+            object_id
         } else if chunk.chunk_header.message_type == ChunkMessageType::OpenSecureChannel {
             if is_server {
                 ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary

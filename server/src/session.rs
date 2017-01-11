@@ -245,6 +245,7 @@ impl TcpSession {
             client_protocol_version = hello.protocol_version;
         }
 
+        // Send acknowledge
         let mut acknowledge = handshake::AcknowledgeMessage {
             message_header: handshake::MessageHeader::new(handshake::MessageType::Acknowledge),
             protocol_version: server_protocol_version,
@@ -264,6 +265,39 @@ impl TcpSession {
         info!("Sending acknowledge -- \n{:?}", acknowledge);
         acknowledge.encode(out_stream);
         Ok(())
+    }
+
+    pub fn process_message(session: Arc<Mutex<TcpSession>>, in_stream: &mut Read, out_stream: &mut Write) -> std::result::Result<(), &'static StatusCode> {
+        let result = Chunk::decode(in_stream);
+
+        // Process the message
+        let chunk = result.unwrap();
+        debug!("Got a chunk {:?}", chunk);
+
+        let result = match chunk.chunk_header.message_type {
+            ChunkMessageType::OpenSecureChannel => {
+                TcpSession::process_open_secure_channel(&session, chunk)
+            },
+            ChunkMessageType::CloseSecureChannel => {
+                debug!("Unimplemented - CloseSecureChannel");
+                Err(&BAD_UNEXPECTED_ERROR)
+            },
+            ChunkMessageType::Message => {
+                debug!("Unimplemented - Message");
+                Err(&BAD_UNEXPECTED_ERROR)
+            }
+        };
+        // Send out any chunks that form the response
+        if let Ok(chunks) = result {
+            debug!("Got some chunks to send {:?}", chunks);
+            for ref chunk in chunks {
+                chunk.encode(out_stream);
+            }
+            Ok(())
+        } else {
+            error!("Got an error instead of chunks {:?}", result);
+            Err(result.unwrap_err())
+        }
     }
 
     fn process_open_secure_channel(session: &Arc<Mutex<TcpSession>>, chunk: Chunk) -> std::result::Result<Vec<Chunk>, &'static StatusCode> {
@@ -335,37 +369,6 @@ impl TcpSession {
             let secure_channel_info = session.secure_channel_info.clone();
             let chunker = &mut session.chunker;
             chunker.encode(request_id, &secure_channel_info, &SupportedMessage::OpenSecureChannelResponse(response))
-        }
-    }
-
-    pub fn process_message(session: Arc<Mutex<TcpSession>>, in_stream: &mut Read, out_stream: &mut Write) -> std::result::Result<(), &'static StatusCode> {
-        let result = Chunk::decode(in_stream);
-
-        // Process the message
-        let chunk = result.unwrap();
-        debug!("Got a chunk {:?}", chunk);
-
-        let result = match chunk.chunk_header.message_type {
-            ChunkMessageType::OpenSecureChannel => {
-                TcpSession::process_open_secure_channel(&session, chunk)
-            },
-            ChunkMessageType::CloseSecureChannel => {
-                Err(&BAD_UNEXPECTED_ERROR)
-            },
-            ChunkMessageType::Message => {
-                Err(&BAD_UNEXPECTED_ERROR)
-            }
-        };
-        // Send out any chunks that form the response
-        if let Ok(chunks) = result {
-            debug!("Got some chunks to send {:?}", chunks);
-            for ref chunk in chunks {
-                chunk.encode(out_stream);
-            }
-            Ok(())
-        } else {
-            error!("Got an error instead of chunks {:?}", result);
-            Err(result.unwrap_err())
         }
     }
 }

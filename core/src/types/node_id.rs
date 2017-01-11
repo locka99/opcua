@@ -126,8 +126,6 @@ impl BinaryEncoder<NodeId> for NodeId {
                 panic!("Unrecognized node id type {:?}", identifier);
             }
         };
-
-        debug!("decoded node_id = {:?}", node_id);
         Ok(node_id)
     }
 }
