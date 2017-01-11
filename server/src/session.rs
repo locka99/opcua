@@ -1,6 +1,6 @@
 use std;
 use std::net::{TcpStream, Shutdown};
-use std::io::{Read, Write, Seek, Cursor};
+use std::io::{Read, Write, Cursor};
 use std::sync::{Arc, Mutex};
 
 use chrono::{self, UTC};
@@ -208,7 +208,7 @@ impl TcpSession {
         out_stream.set_position(0);
     }
 
-    fn process_hello<R: Read + Seek, W: Write + Seek>(session: Arc<Mutex<TcpSession>>, in_stream: &mut R, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
+    fn process_hello<R: Read, W: Write>(session: Arc<Mutex<TcpSession>>, in_stream: &mut R, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
         let buffer = handshake::MessageHeader::read_bytes(in_stream);
         if buffer.is_err() {
             error!("Error processing HELLO");
@@ -267,7 +267,7 @@ impl TcpSession {
         Ok(())
     }
 
-    pub fn process_message<R: Read + Seek, W: Write + Seek>(session: Arc<Mutex<TcpSession>>, in_stream: &mut R, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
+    pub fn process_message<R: Read, W: Write>(session: Arc<Mutex<TcpSession>>, in_stream: &mut R, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
         let result = Chunk::decode(in_stream);
 
         // Process the message

@@ -1,5 +1,5 @@
 use std;
-use std::io::{Read, Write, Seek, Result, Cursor};
+use std::io::{Read, Write, Result, Cursor};
 use std::fmt;
 
 use debug::*;
@@ -53,7 +53,7 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
         CHUNK_HEADER_SIZE
     }
 
-    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
         if !self.is_valid {
             error!("Cannot write an invalid type");
             return Ok(0);
@@ -79,7 +79,7 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
         Ok(size)
     }
 
-    fn decode<S: Read + Seek>(stream: &mut S) -> Result< ChunkHeader> {
+    fn decode<S: Read>(stream: &mut S) -> Result< ChunkHeader> {
         let mut is_valid = true;
 
         let mut message_type_code: [u8; 3] = [0, 0, 0];
@@ -155,14 +155,14 @@ impl BinaryEncoder<SecurityHeader> for SecurityHeader {
         }
     }
 
-    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
         match *self {
             SecurityHeader::Asymmetric(ref value) => { value.encode(stream) },
             SecurityHeader::Symmetric(ref value) => { value.encode(stream) },
         }
     }
 
-    fn decode<S: Read + Seek>(stream: &mut S) -> Result< SecurityHeader> {
+    fn decode<S: Read>(stream: &mut S) -> Result< SecurityHeader> {
         unimplemented!();
     }
 }
@@ -177,11 +177,11 @@ impl BinaryEncoder<SymmetricSecurityHeader> for SymmetricSecurityHeader {
         4
     }
 
-    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
         Ok(self.token_id.encode(stream)?)
     }
 
-    fn decode<S: Read + Seek>(stream: &mut S) -> Result< SymmetricSecurityHeader> {
+    fn decode<S: Read>(stream: &mut S) -> Result< SymmetricSecurityHeader> {
         let token_id = UInt32::decode(stream)?;
         Ok(SymmetricSecurityHeader {
             token_id: token_id
@@ -208,7 +208,7 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
         size
     }
 
-    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
         let mut size = 0;
         size += write_i32(stream, self.security_policy_uri.len() as Int32)?;
         size += stream.write(self.security_policy_uri.as_bytes())?;
@@ -219,7 +219,7 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
         Ok(size)
     }
 
-    fn decode<S: Read + Seek>(stream: &mut S) -> Result< AsymmetricSecurityHeader> {
+    fn decode<S: Read>(stream: &mut S) -> Result< AsymmetricSecurityHeader> {
         let mut security_policy_uri = String::new();
         {
             // TODO this can be done by ByteString
@@ -289,14 +289,14 @@ impl BinaryEncoder<SequenceHeader> for SequenceHeader {
         8
     }
 
-    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
         let mut size: usize = 0;
         size += write_u32(stream, self.sequence_number)?;
         size += write_u32(stream, self.request_id)?;
         Ok(size)
     }
 
-    fn decode<S: Read + Seek>(stream: &mut S) -> Result< SequenceHeader> {
+    fn decode<S: Read>(stream: &mut S) -> Result< SequenceHeader> {
         let sequence_number = read_u32(stream)?;
         let request_id = read_u32(stream)?;
         Ok(SequenceHeader {
@@ -376,7 +376,7 @@ impl Chunk {
         self.chunk_header.message_type == ChunkMessageType::Message
     }
 
-    pub fn encode<S: Write + Seek>(&self, stream: &mut S) -> std::result::Result<(), &'static StatusCode> {
+    pub fn encode<S: Write>(&self, stream: &mut S) -> std::result::Result<(), &'static StatusCode> {
         // TODO this is a stub
         // TODO impl should be moved to BinaryEncoder
         debug!("Encoding chunk_header");
@@ -386,7 +386,7 @@ impl Chunk {
         Ok(())
     }
 
-    pub fn decode<S: Read + Seek>(in_stream: &mut S) -> std::result::Result<Chunk, &'static StatusCode> {
+    pub fn decode<S: Read>(in_stream: &mut S) -> std::result::Result<Chunk, &'static StatusCode> {
         // TODO impl should be moved to BinaryEncoder
         let chunk_header_result = ChunkHeader::decode(in_stream);
         if chunk_header_result.is_err() {

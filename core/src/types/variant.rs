@@ -1,4 +1,4 @@
-use std::io::{Read, Write, Seek, Result};
+use std::io::{Read, Write, Result};
 
 use super::encodable_types::*;
 use super::data_value::*;
@@ -187,7 +187,7 @@ impl BinaryEncoder<Variant> for Variant {
         size
     }
 
-    fn encode<S: Write + Seek>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
         let mut size: usize = 0;
 
         let encoding_mask = self.get_encoding_mask();
@@ -303,7 +303,7 @@ impl BinaryEncoder<Variant> for Variant {
         Ok(size)
     }
 
-    fn decode<S: Read + Seek>(stream: &mut S) -> Result< Variant> {
+    fn decode<S: Read>(stream: &mut S) -> Result< Variant> {
         let encoding_mask = read_u8(stream)?;
         if encoding_mask == 0 {
             Ok(Variant::new(VariantValue::Empty))
