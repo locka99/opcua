@@ -6,7 +6,7 @@ var settings = require("./settings");
 
 var status_code_csv = `${settings.schema_dir}/NodeIds.csv`;
 
-var rs_out = fs.createWriteStream(`${settings.rs_dir}/types/node_ids.rs`);
+var rs_out = fs.createWriteStream(`${settings.rs_dir}/types/generated/node_ids.rs`);
 
 function write_to_rs(out, message) {
     out.write(message);

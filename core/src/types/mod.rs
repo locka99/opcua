@@ -12,14 +12,17 @@ mod node_ids;
 mod variant;
 mod status_codes;
 mod data_types;
+mod generated;
 
 pub use self::helpers::*;
 pub use self::encodable_types::*;
 pub use self::data_value::*;
 pub use self::date_time::*;
 pub use self::node_id::*;
-pub use self::node_ids::*;
 pub use self::variant::*;
 pub use self::data_types::*;
+
+pub use self::node_ids::*;
 pub use self::status_codes::*;
 
+pub use self::generated::*;

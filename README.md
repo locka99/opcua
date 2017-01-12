@@ -6,6 +6,12 @@ or visualize.
 
 This is an OPC UA server / client API implemented in Rust. 
 
+# License
+
+MPL-2.0
+
+https://opensource.org/licenses/MPL-2.0
+
 # Current progress
 
 Phase 0 - just building the fundamentals
@@ -81,19 +87,31 @@ empty or holds a byte string or xml element. When the type is serialized it will
 having an encoding byte, length, payload. But in memory we can force the correct type and control what goes
 in and out of the type.
 
-## Rustfmt
+## Formatting
 
-All code should be follow the most current Rust RFC coding guidelines. In general that means 
-using an up to date rustfmt for formatting purposes and following standard Rust lint Rules
-for naming conventions.
+All code should be follow the most current Rust RFC coding guidelines for naming conventions, layout
+etc.
 
-## Exceptions for OPC UA
+Code should be formatted with the IntelliJ rust plugin, or with rustfmt.
 
-OPC UA has some some really long enum types which are broken by underscores. I've tried converting
-these upper snake and they look terrible. I've tried removing underscores and they look terrible.
+## Lint exceptions for OPC UA
+
+OPC UA has some some really long PascalCase ids, many of which are further broken up by underscores. I've tried converting the 
+name to upper snake and they look terrible. I've tried removing underscores and they look terrible.
+
 So the names and underscores are preserved as-in in generated code even though they generate lint errors. 
 The lint rules are disabled for generated code.
 
+For example:
+
+```rust
+#[allow(non_camel_case_types)]
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum VariableId {
+    //... thousands of ids, many like this or worse
+    ExclusiveRateOfChangeAlarmType_LimitState_LastTransition_EffectiveTransitionTime = 11474,
+}
+```
 
 # Testing
 
@@ -181,12 +199,17 @@ This phase mostly implements the Core Server Facet which has these main points:
 * Session Services (minimum, single session)
 * View Services (basic)
 
+Internally, the code for TCP and chunking is expected to improve. Preferably the code should use
+non-blocking IO and code that consumes or produces chunks should be able to cope with multiple
+chunks. i.e. chunks are received into a buffer and when the final / final abort chunk arrives, 
+the buffer is processed and cleared.
+
 ### From specification
 
 Table (below) describes the details of the Nano Embedded Device Server Profile. This Profile is a FullFeatured Profile intended for chip level devices with limited resources. This Profile is functionally equivalent to the Core Server Facet and defines the OPC UA TCP binary protocol as the required transport profile.
 Exposing types in the AddressSpace is optional for this Profile except if custom types (i.e. types that are derived from well-known ObjectTypes, VariableTypes, ReferenceType or DataTypes) are used. Exposing all supported types in the AddressSpace is mandatory in some higher level Profiles.
 
-| Group Conformance Unit / Profile Title | Optional 
+| Group | Conformance Unit / Profile Title | Optional 
 | --- | --- | ---
 | *Profile* | Core Server Facet | False
 | *Profile* | UA-TCP UA-SC UA Binary | False
@@ -199,6 +222,11 @@ This is a bump up from the nano server
 
 * Supports 2+ sessions
 * Data change notifications via subscription
+
+Internally, first efforts at writing a client may start here. Clients share most of the same structs as the server as
+well as utility code such as chunking etc. Where the client differs is that where a server deserializes certain messages
+and serializes others, the client does the opposite. So code must serialize and deserialize correctly. In addition
+the client has its own client side state starting with the HELLO, open secure channel, subscription state etc. 
 
 ### From specification
 
@@ -217,6 +245,14 @@ This phase will bring the UA server up to the point that it is probably useful f
 * Security Basic128Rsa15
 * PKI infrastructure
 
+Internally, chunks can be signed and optionally encrypted. This means code that reads data from a
+chunk will have to be decrypted first and any padding / signature removed. Crypto happens on a per-chunk level so
+chunks have to be verified, decrypted and then stitched together to be turned into messages. In addition the open secure 
+channel code needs to cope with crypto, trust / cert failures, reissue tokens and all the other issues that may occur. 
+
+The server / client layout needs a pki/ folder with trusted, rejected subdirs. Rejected certs should
+be saved in the rejected folder so a user may manually drag and drop them to the trusted folder.
+
 ### From specification
 
 Table (below) describes the details of the Embedded UA Server Profile. This Profile is a FullFeatured Profile that is intended for devices with more than 50 MBs of memory and a more powerful processor. This Profile builds upon the Micro Embedded Device Server Profile. The most important additions are: support for security via the Security Policy – Basic128Rsa15 Facet, and support for the Standard DataChange Subscription Server Facet. This Profile also requires that servers expose all OPC-UA types that are used by the Server including their components and their super-types.
@@ -234,7 +270,7 @@ Table (below) describes the details of the Embedded UA Server Profile. This Prof
 
 ## Phase 4 Standard UA Server Profile
 
-TODO - Basically embedded + enchanced data change subscription server facet + X509 user token server facet
+TODO - Basically embedded + enhanced data change subscription server facet + X509 user token server facet
 
 
 # Client - implementation plan
