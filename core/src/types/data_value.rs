@@ -1,9 +1,6 @@
 use std::io::{Read, Write, Result};
 
-use super::encodable_types::*;
-use super::date_time::*;
-use super::variant::*;
-use super::status_codes::*;
+use types::*;
 
 /// Data type ID 23
 #[derive(PartialEq, Debug, Clone)]

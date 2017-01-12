@@ -1,8 +1,6 @@
 use std::io::{Read, Write, Result, Seek, Error, ErrorKind};
 
-use super::helpers::*;
-use super::status_codes::*;
-use super::node_id::*;
+use types::*;
 
 // OPC UA Part 6 - Mappings 1.03 Specification
 

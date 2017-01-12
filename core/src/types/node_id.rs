@@ -1,8 +1,7 @@
 use std;
 use std::io::{Read, Write, Result};
-use super::encodable_types::*;
-use super::helpers::*;
-use super::node_ids::*;
+
+use types::*;
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum Identifier {

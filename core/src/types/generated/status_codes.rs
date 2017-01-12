@@ -2,8 +2,7 @@
 use std;
 use std::io::{Read, Write, Result};
 
-use super::encodable_types::*;
-use super::helpers::*;
+use types::*;
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct StatusCode {
@@ -21,7 +20,7 @@ impl BinaryEncoder<StatusCode> for StatusCode {
         write_u32(stream, self.code)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result< StatusCode> {
+    fn decode<S: Read>(stream: &mut S) -> Result<StatusCode> {
         let code = read_u32(stream)?;
         let status_code = StatusCode::from_u32(code);
         if status_code.is_ok() { Ok(status_code.unwrap().clone()) } else { Ok(BAD_UNEXPECTED_ERROR.clone()) }
@@ -510,8 +509,7 @@ impl StatusCode {
             "BadTooManyArguments" => Ok(&BAD_TOO_MANY_ARGUMENTS),
             "BadSecurityModeInsufficient" => Ok(&BAD_SECURITY_MODE_INSUFFICIENT),
             "BadCertificateChainIncomplete" => Ok(&BAD_CERTIFICATE_CHAIN_INCOMPLETE),
-            _ => Err(())
-        }
+            _ => Err(())        }
     }
 }
 
