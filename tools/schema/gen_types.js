@@ -15,8 +15,9 @@ var rs_out = fs.createWriteStream(`${settings.rs_dir}/types/generated/types.rs`)
 
 var ignored_types =
   [
-    "ExtensionObject", "DataValue", "LocalizedText", "QualifiedName", "DiagnosticInfo", "Variant", "ExpandedNodeId", "NodeId", "ByteStringNodeId",
-    "GuidNodeId", "StringNodeId", "NumericNodeId", "FourByteNodeId", "TwoByteNodeId", "XmlElement", "Union"
+    "ExtensionObject", "DataValue", "LocalizedText", "QualifiedName", "DiagnosticInfo", "Variant",
+    "ExpandedNodeId", "NodeId", "ByteStringNodeId", "GuidNodeId", "StringNodeId", "NumericNodeId",
+    "FourByteNodeId", "TwoByteNodeId", "XmlElement", "Union", "RequestHeader", "ResponseHeader", "ExtensionObject",
   ];
 
 
@@ -27,27 +28,34 @@ use super::types::*;
 
 `);
 
+
+function convertFieldName(name) {
+  // Convert field name to snake case
+  return _.snakeCase(name);
+}
+
 var parser = new xml2js.Parser();
 fs.readFile(types_xml, function (err, data) {
   parser.parseString(data, function (err, result) {
+    var data = {
+      structured_types: []
+    };
+
     var structured_types = result["opc:TypeDictionary"]["opc:StructuredType"];
     _.each(structured_types, function (structured_type) {
 
       var name = structured_type["$"]["Name"];
       // if name in ignored_types, do nothing
-      if (_.includes(ignored_types, name)) {
+      if (!_.includes(ignored_types, name)) {
         var base_type = structured_type["$"]["BaseType"];
 
         // TODO documentation
-        if (_.has(structured_type, "opc:Documentation")) {
-          rs_out.write(`/// ${structured_type["opc:Documentation"]}\n`);
-        }
 
-        rs_out.write(`pub struct ${name} {\n`);
-
+        var fields_to_add = [];
+        var fields_to_hide = [];
         _.each(structured_type["opc:Field"], function (field) {
           // Convert field name to snake case
-          var field_name = _.snakeCase(field["$"]["Name"]);
+          var field_name = convertFieldName(field["$"]["Name"]);
 
           // Strip namespace off the type
           var type = field["$"]["TypeName"].split(":")[1];
@@ -57,12 +65,68 @@ fs.readFile(types_xml, function (err, data) {
             type = "UAString";
           }
 
-          rs_out.write(`    pub ${field_name}: ${type},\n`);
+          // Look for arrays
+          if (_.has(field["$"], "LengthField")) {
+            fields_to_add.push({
+              name: field_name,
+              type: `Option<Vec<${type}>>`,
+              is_array: true,
+            })
+            fields_to_hide.push(convertFieldName(field["$"]["LengthField"]));
+          }
+          else {
+            fields_to_add.push({
+              name: field_name,
+              type: type,
+            })
+          }
         })
 
-        rs_out.write(`}\n\n`);
+        var structured_type = {
+          name: name,
+          fields_to_add: fields_to_add,
+          fields_to_hide: fields_to_hide,
+        }
+        if (_.has(structured_type, "opc:Documentation")) {
+          structured_type.documentation = structured_type["opc:Documentation"];
+        }
+        data.structured_types.push(structured_type)
       }
+
+      output_file(data);
     });
   });
 });
 
+function output_file(data) {
+  // Output structured types
+  _.each(data.structured_types, function (structured_type) {
+    if (_.has(structured_type, "documentation")) {
+      rs_out.write(`/// ${structured_type.documentation}\n`);
+    }
+    rs_out.write(`pub struct ${structured_type.name} {\n`);
+    _.each(structured_type.fields_to_add, function (field) {
+      if (!_.includes(structured_type.fields_to_hide, field.name)) {
+        rs_out.write(`    pub ${field.name}: ${field.type},\n`);
+      }
+    })
+    rs_out.write(`}
+
+impl BinaryEncoder<${structured_type.name}> for ${structured_type.name} {
+    fn byte_len(&self) -> usize {
+        unimplemented!();
+    }
+    
+    fn encode<S: Write>(&self, stream: &mut stream: S) -> Result<usize> {
+        unimplemented!();
+    }
+
+    fn decode<S: Read>(stream: &mut S) -> Result<${structured_type.name}> {
+        unimplemented!();     
+    }
+}
+
+`);
+  });
+
+}
