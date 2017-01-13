@@ -2,10 +2,12 @@ use std::io::{Read, Write, Result};
 
 use types::*;
 
-/// Implemented by objects
-pub trait ObjectInfo {
+/// Implemented by messages
+pub trait MessageInfo {
+    /// The object id associated with the message
     fn object_id(&self) -> ObjectId;
 
+    /// Returns a node id equivalent to the message object id
     fn node_id(&self) -> NodeId {
         NodeId::from_object_id(self.object_id())
     }

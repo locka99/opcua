@@ -2,7 +2,7 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use session::{TcpSession, SessionConfig};
+use tcp_session::{TcpSession, SessionConfig};
 
 use config::{ServerConfig};
 

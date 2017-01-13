@@ -13,14 +13,15 @@ pub mod config {
     include!(concat!(env!("OUT_DIR"), "/config.rs"));
 }
 
+mod handshake;
+mod services;
+
 mod server;
 pub use server::*;
 
-pub mod session;
+pub mod tcp_session;
 pub mod subscription;
 pub mod monitored_item;
-
-mod handshake;
 
 #[cfg(test)]
 mod tests;

@@ -8,9 +8,12 @@ use chrono::{self, UTC};
 use opcua_core::types::*;
 use opcua_core::comms::*;
 use opcua_core::services::*;
+use opcua_core::services::secure_channel::*;
 use opcua_core::debug::*;
 
 use subscription::{Subscription};
+
+use services::discovery::*;
 
 use handshake;
 
@@ -48,6 +51,8 @@ pub struct TcpSession {
     pub last_secure_channel_id: UInt32,
     // Secure channel info for the session
     pub secure_channel_info: SecureChannelInfo,
+
+
 }
 
 impl TcpSession {

@@ -4,8 +4,10 @@ use std::fmt;
 
 use debug::*;
 use types::*;
-use services::*;
 use comms::*;
+
+use services::*;
+use services::secure_channel::*;
 
 const CHUNK_HEADER_SIZE: usize = 12;
 
@@ -121,9 +123,7 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
     }
 }
 
-impl ChunkHeader {
-
-}
+impl ChunkHeader {}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChunkInfo {
@@ -509,7 +509,7 @@ impl Chunker {
         }
     }
 
-    pub fn encode(&mut self, request_id: UInt32, secure_channel_info: &SecureChannelInfo, message: &SupportedMessage) -> std::result::Result<Vec<Chunk>, &'static StatusCode> {
+    pub fn encode(&mut self, request_id: UInt32, secure_channel_info: &SecureChannelInfo, supported_message: &SupportedMessage) -> std::result::Result<Vec<Chunk>, &'static StatusCode> {
         // TODO multiple chunks
 
         // External values
@@ -519,7 +519,7 @@ impl Chunker {
 
         debug!("Creating a chunk for secure channel id {}, sequence id {}", secure_channel_id, sequence_number);
 
-        let message_type = Chunker::chunk_message_type(message);
+        let message_type = Chunker::chunk_message_type(supported_message);
 
         let is_first_chunk = true;
         let is_last_chunk = true;
@@ -539,7 +539,7 @@ impl Chunker {
             request_id: request_id,
         };
 
-        let node_id = message.node_id();
+        let node_id = supported_message.node_id();
 
         // Calculate the chunk body size
         let mut chunk_body_size = 0;
@@ -549,7 +549,7 @@ impl Chunker {
             // Write a node id
             chunk_body_size += node_id.byte_len();
         }
-        chunk_body_size += message.byte_len();
+        chunk_body_size += supported_message.byte_len();
         // TODO encrypted message size
         // TODO padding size
         // TODO signature size
@@ -583,7 +583,7 @@ impl Chunker {
         }
         // write message
         debug!("Encoding message");
-        message.encode(&mut stream);
+        supported_message.encode(&mut stream);
 
         // TODO write padding
         // TODO encrypt

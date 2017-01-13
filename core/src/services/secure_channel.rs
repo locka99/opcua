@@ -70,7 +70,7 @@ pub struct OpenSecureChannelRequest {
     pub requested_lifetime: Int32,
 }
 
-impl ObjectInfo for OpenSecureChannelRequest {
+impl MessageInfo for OpenSecureChannelRequest {
     fn object_id(&self) -> ObjectId {
         ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary
     }
@@ -146,7 +146,7 @@ pub struct OpenSecureChannelResponse {
     pub server_nonce: ByteString,
 }
 
-impl ObjectInfo for OpenSecureChannelResponse {
+impl MessageInfo for OpenSecureChannelResponse {
     fn object_id(&self) -> ObjectId {
         ObjectId::OpenSecureChannelResponse_Encoding_DefaultBinary
     }
@@ -193,7 +193,7 @@ pub struct CloseSecureChannelRequest {
     pub secure_channel_id: ByteString
 }
 
-impl ObjectInfo for CloseSecureChannelRequest {
+impl MessageInfo for CloseSecureChannelRequest {
     fn object_id(&self) -> ObjectId {
         ObjectId::CloseSecureChannelRequest_Encoding_DefaultBinary
     }
@@ -231,7 +231,7 @@ pub struct CloseSecureChannelResponse {
     pub response_header: ResponseHeader,
 }
 
-impl ObjectInfo for CloseSecureChannelResponse {
+impl MessageInfo for CloseSecureChannelResponse {
     fn object_id(&self) -> ObjectId {
         ObjectId::CloseSecureChannelResponse_Encoding_DefaultBinary
     }

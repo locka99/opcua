@@ -2,6 +2,8 @@ use std::io::{Read, Write, Result};
 
 use types::*;
 use services::*;
+use services::secure_channel::*;
+use services::discovery::*;
 use comms::*;
 
 #[derive(Debug, PartialEq)]

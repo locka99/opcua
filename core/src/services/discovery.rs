@@ -26,7 +26,7 @@ pub struct GetEndPointsRequest {
     pub profile_uris: Option<Vec<UAString>>,
 }
 
-impl ObjectInfo for GetEndPointsRequest {
+impl MessageInfo for GetEndPointsRequest {
     fn object_id(&self) -> ObjectId {
         ObjectId::GetEndpointsRequest_Encoding_DefaultBinary
     }
