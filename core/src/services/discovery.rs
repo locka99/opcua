@@ -4,7 +4,7 @@ use types::*;
 use super::types::*;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct GetEndPointsRequest {
+pub struct GetEndpointsRequest {
     /// Common request parameters.
     /// The authenticationToken is always omitted. The authenticationToken
     /// shall be ignored if it is provided.
@@ -26,13 +26,13 @@ pub struct GetEndPointsRequest {
     pub profile_uris: Option<Vec<UAString>>,
 }
 
-impl MessageInfo for GetEndPointsRequest {
+impl MessageInfo for GetEndpointsRequest {
     fn object_id(&self) -> ObjectId {
         ObjectId::GetEndpointsRequest_Encoding_DefaultBinary
     }
 }
 
-impl BinaryEncoder<GetEndPointsRequest> for GetEndPointsRequest {
+impl BinaryEncoder<GetEndpointsRequest> for GetEndpointsRequest {
     fn byte_len(&self) -> usize {
         let mut size = 0;
         size += self.request_header.byte_len();
@@ -51,12 +51,12 @@ impl BinaryEncoder<GetEndPointsRequest> for GetEndPointsRequest {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<GetEndPointsRequest> {
+    fn decode<S: Read>(stream: &mut S) -> Result<GetEndpointsRequest> {
         let request_header = RequestHeader::decode(stream)?;
         let endpoint_url = UAString::decode(stream)?;
         let locale_ids: Option<Vec<UAString>> = read_array(stream)?;
         let profile_uris: Option<Vec<UAString>> = read_array(stream)?;
-        Ok(GetEndPointsRequest {
+        Ok(GetEndpointsRequest {
             request_header: request_header,
             endpoint_url: endpoint_url,
             locale_ids: locale_ids,
@@ -65,7 +65,8 @@ impl BinaryEncoder<GetEndPointsRequest> for GetEndPointsRequest {
     }
 }
 
-pub struct GetEndPointsResponse {
+#[derive(Debug, Clone, PartialEq)]
+pub struct GetEndpointsResponse {
     /// Common response parameters.
     /// The ResponseHeader type is defined in 7.29.
     pub response_header: ResponseHeader,
@@ -75,7 +76,13 @@ pub struct GetEndPointsResponse {
     pub endpoints: Option<Vec<EndpointDescription>>,
 }
 
-impl BinaryEncoder<GetEndPointsResponse> for GetEndPointsResponse {
+impl MessageInfo for GetEndpointsResponse {
+    fn object_id(&self) -> ObjectId {
+        ObjectId::GetEndpointsResponse_Encoding_DefaultBinary
+    }
+}
+
+impl BinaryEncoder<GetEndpointsResponse> for GetEndpointsResponse {
     fn byte_len(&self) -> usize {
         let mut size = self.response_header.byte_len();
         size += byte_len_array(&self.endpoints);
@@ -89,10 +96,10 @@ impl BinaryEncoder<GetEndPointsResponse> for GetEndPointsResponse {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<GetEndPointsResponse> {
+    fn decode<S: Read>(stream: &mut S) -> Result<GetEndpointsResponse> {
         let response_header = ResponseHeader::decode(stream)?;
         let endpoints: Option<Vec<EndpointDescription>> = read_array(stream)?;
-        Ok(GetEndPointsResponse {
+        Ok(GetEndpointsResponse {
             response_header: response_header,
             endpoints: endpoints,
         })

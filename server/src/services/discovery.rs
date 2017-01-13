@@ -6,7 +6,7 @@ use std::result::Result;
 pub struct DiscoveryService {}
 
 impl DiscoveryService {
-    pub fn handle_get_endpoints_request(get_endpoints_request: &GetEndPointsRequest) -> Result<GetEndPointsResponse, &'static StatusCode> {
+    pub fn handle_get_endpoints_request(get_endpoints_request: &GetEndpointsRequest) -> Result<GetEndpointsResponse, &'static StatusCode> {
         Err(&BAD_SERVICE_UNSUPPORTED)
     }
 }
