@@ -64,7 +64,7 @@ fn test_chunk_open_secure_channel() {
     let request = chunker.decode_open_secure_channel_request(&chunks).unwrap();
     {
         let ref request_header = request.request_header;
-        assert_eq!(request_header.timestamp.ticks(), 131279270199860000);
+        assert_eq!(request_header.timestamp.ticks(), 131284521470690000);
         assert_eq!(request_header.request_handle, 1);
         assert_eq!(request_header.return_diagnostics, 0);
         assert_eq!(request_header.audit_entry_id.is_null(), true);

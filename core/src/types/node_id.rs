@@ -88,7 +88,7 @@ impl BinaryEncoder<NodeId> for NodeId {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result< NodeId> {
+    fn decode<S: Read>(stream: &mut S) -> Result<NodeId> {
         let identifier = read_u8(stream)?;
         let node_id = match identifier {
             0x0 => {
@@ -286,7 +286,7 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result< ExpandedNodeId> {
+    fn decode<S: Read>(stream: &mut S) -> Result<ExpandedNodeId> {
         let data_encoding = read_u8(stream)?;
         let identifier = data_encoding & 0x0f;
         let node_id = match identifier {
@@ -334,5 +334,16 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
             namespace_uri: namespace_uri,
             server_index: server_index,
         })
+    }
+}
+
+impl ExpandedNodeId {
+    /// Creates an expanded node id from a node id
+    pub fn new(node_id: &NodeId) -> ExpandedNodeId {
+        ExpandedNodeId {
+            node_id: node_id.clone(),
+            namespace_uri: UAString::null(),
+            server_index: 0,
+        }
     }
 }

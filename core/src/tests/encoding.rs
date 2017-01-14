@@ -210,7 +210,21 @@ fn test_extension_object() {
 
 #[test]
 fn test_expanded_node_id() {
-    unimplemented!();
+    let node_id = ExpandedNodeId::new(&NodeId::new_numeric(200, 2000));
+    serialize_test(node_id);
+
+    let mut node_id = ExpandedNodeId::new(&NodeId::new_numeric(200, 2000));
+    node_id.namespace_uri = UAString::from_str("test");
+    serialize_test(node_id);
+
+    let mut node_id = ExpandedNodeId::new(&NodeId::new_numeric(200, 2000));
+    node_id.server_index = 500;
+    serialize_test(node_id);
+
+    let mut node_id = ExpandedNodeId::new(&NodeId::new_numeric(200, 2000));
+    node_id.namespace_uri = UAString::from_str("test2");
+    node_id.server_index = 50330;
+    serialize_test(node_id);
 }
 
 #[test]
@@ -265,16 +279,20 @@ fn test_variant() {
     serialize_test(v);
     let v = Variant::new(VariantValue::NodeId(NodeId::new_string(99, UAString::from_str("hello everyone"))));
     serialize_test(v);
-
-    // TODO ExpandedNodeId
-
+    // ExpandedNodeId
+    let v = Variant::new(VariantValue::ExpandedNodeId(ExpandedNodeId::new(&NodeId::from_object_id(ObjectId::AddNodesItem_Encoding_DefaultBinary))));
+    serialize_test(v);
     // StatusCode
     let v = Variant::new(VariantValue::StatusCode(BAD_TCP_MESSAGE_TYPE_INVALID.clone()));
     serialize_test(v);
 
     // TODO QualifiedName
     // TODO LocalizedText
-    // TODO ExtensionObject
+
+    // ExtensionObject
+    let v = Variant::new(VariantValue::ExtensionObject(ExtensionObject::null()));
+    serialize_test(v);
+
     // TODO DataValue
 }
 
