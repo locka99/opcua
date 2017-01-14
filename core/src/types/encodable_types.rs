@@ -1,4 +1,4 @@
-use std::io::{Read, Write, Result, Seek, Error, ErrorKind};
+use std::io::{Read, Write, Result, Error, ErrorKind};
 
 use types::*;
 

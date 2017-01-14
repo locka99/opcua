@@ -11,11 +11,8 @@ use opcua_core::services::*;
 use opcua_core::services::secure_channel::*;
 use opcua_core::debug::*;
 
-use subscription::{Subscription};
-
-use services::discovery::*;
-
 use handshake;
+use message_handler::*;
 
 const RECEIVE_BUFFER_SIZE: usize = 32768;
 const SEND_BUFFER_SIZE: usize = 32768;
@@ -38,8 +35,6 @@ pub struct SessionConfig {
 pub struct TcpSession {
     /// The current session state
     pub session_state: SessionState,
-    /// Number of subscriptions open for this session
-    pub subscriptions: Vec<Subscription>,
     //    pub incoming_queue: Ve
     //    pub outgoing_queue: Vec<Box<u8>>,
     pub session_config: SessionConfig,
@@ -51,14 +46,13 @@ pub struct TcpSession {
     pub last_secure_channel_id: UInt32,
     // Secure channel info for the session
     pub secure_channel_info: SecureChannelInfo,
-
-
+    /// Message handler
+    pub message_handler: MessageHandler,
 }
 
 impl TcpSession {
     pub fn new(session_config: SessionConfig) -> TcpSession {
         TcpSession {
-            subscriptions: Vec::new(),
             session_state: SessionState::New,
             session_config: session_config,
             chunker: Chunker::new(),
@@ -68,6 +62,7 @@ impl TcpSession {
                 security_policy: SecurityPolicy::None,
                 secure_channel_id: 0,
             },
+            message_handler: MessageHandler::new(),
         }
     }
 
@@ -92,7 +87,6 @@ impl TcpSession {
         let mut out_buf_stream = Cursor::new(vec![0u8; SEND_BUFFER_SIZE]);
 
         // Format of OPC UA TCP is defined in OPC UA Part 6 Chapter 7
-
         // Basic startup is a HELLO,  OpenSecureChannel, begin
 
         let mut session_status_code = GOOD.clone();
@@ -133,37 +127,31 @@ impl TcpSession {
                 continue;
             }
 
-            if bytes_read < 8 {
-                // Abort since we're fed garbage
-                error!("Got garbage bytes from caller");
-                break;
-            } else {
-                debug!("Received bytes:");
-                debug_buffer(&in_buf[0..bytes_read]);
+            debug!("Received bytes:");
+            debug_buffer(&in_buf[0..bytes_read]);
 
-                let mut in_buf_stream = Cursor::new(&in_buf[0..bytes_read]);
-                match session_state {
-                    SessionState::WaitingHello => {
-                        debug!("Processing HELLO");
-                        let result = TcpSession::process_hello(session.clone(), &mut in_buf_stream, &mut out_buf_stream);
-                        if result.is_err() {
-                            session_status_code = result.unwrap_err().clone();
-                        }
-                    },
-                    SessionState::ProcessMessages => {
-                        debug!("Processing message");
-                        let result = TcpSession::process_message(session.clone(), &mut in_buf_stream, &mut out_buf_stream);
-                        if result.is_err() {
-                            session_status_code = result.unwrap_err().clone();
-                        }
-                    },
-                    _ => {
-                        error!("Unknown sesion state, aborting");
-                        session_status_code = BAD_UNEXPECTED_ERROR.clone();
+            let mut in_buf_stream = Cursor::new(&in_buf[0..bytes_read]);
+            match session_state {
+                SessionState::WaitingHello => {
+                    debug!("Processing HELLO");
+                    let result = TcpSession::process_hello(session.clone(), &mut in_buf_stream, &mut out_buf_stream);
+                    if result.is_err() {
+                        session_status_code = result.unwrap_err().clone();
                     }
-                };
-                last_keep_alive = now.clone();
-            }
+                },
+                SessionState::ProcessMessages => {
+                    debug!("Processing message");
+                    let result = TcpSession::process_message(session.clone(), &mut in_buf_stream, &mut out_buf_stream);
+                    if result.is_err() {
+                        session_status_code = result.unwrap_err().clone();
+                    }
+                },
+                _ => {
+                    error!("Unknown sesion state, aborting");
+                    session_status_code = BAD_UNEXPECTED_ERROR.clone();
+                }
+            };
+            last_keep_alive = now.clone();
 
             // Anything to write?
             TcpSession::write_output(&mut out_buf_stream, &mut stream);
@@ -238,7 +226,7 @@ impl TcpSession {
                 return Err(&BAD_TCP_ENDPOINT_URL_INVALID);
             }
             if !hello.is_valid_buffer_sizes() {
-                debug!("HELLO buffer sizes are invalid");
+                error!("HELLO buffer sizes are invalid");
                 return Err(&BAD_COMMUNICATION_ERROR);
             }
 
@@ -267,7 +255,7 @@ impl TcpSession {
             session.client_protocol_version = client_protocol_version;
         }
 
-        info!("Sending acknowledge -- \n{:?}", acknowledge);
+        info!("Sending acknowledge -- \n{:#?}", acknowledge);
         acknowledge.encode(out_stream);
         Ok(())
     }
@@ -288,6 +276,8 @@ impl TcpSession {
                 Err(&BAD_UNEXPECTED_ERROR)
             },
             ChunkMessageType::Message => {
+                let mut session = session.lock().unwrap();
+                //                    session.message_handler.handle_message()
                 // TcpSession::process_message
                 Err(&BAD_SERVICE_UNSUPPORTED)
             }
@@ -336,13 +326,16 @@ impl TcpSession {
                 secure_channel_id: secure_channel_id,
             };
 
-            let result = session.chunker.decode_open_secure_channel_request(&chunks);
-            if result.is_err() {
-                let error = result.unwrap_err();
-                error!("Could not decode the open secure channel request #{:?}", error);
-                return Err(error);
+            let result = session.chunker.decode(&chunks, Some(NodeId::from_object_id(ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary)))?;
+            match result {
+                SupportedMessage::OpenSecureChannelRequest(message) => {
+                    message
+                },
+                _ => {
+                    error!("message is not an open secure channel request, got {:?}", result);
+                    return Err(&BAD_UNEXPECTED_ERROR);
+                }
             }
-            result.unwrap()
         };
 
         // Must compare protocol version to the one from HELLO

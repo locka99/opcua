@@ -15,8 +15,9 @@ pub mod config {
 
 mod handshake;
 mod services;
-
 mod server;
+mod message_handler;
+
 pub use server::*;
 
 pub mod tcp_session;

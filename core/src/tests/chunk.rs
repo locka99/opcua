@@ -61,9 +61,13 @@ fn test_chunk_open_secure_channel() {
     let chunk = get_sample_chunk();
     let chunks = vec![chunk];
 
-    let request = chunker.decode_open_secure_channel_request(&chunks).unwrap();
+    let request = chunker.decode(&chunks, None).unwrap();
+    let request = match request {
+        SupportedMessage::OpenSecureChannelRequest(request) => request,
+        _ => { panic!("Not a OpenSecureChannelRequest"); }
+    };
     {
-        let ref request_header = request.request_header;
+        let request_header = &request.request_header;
         assert_eq!(request_header.timestamp.ticks(), 131284521470690000);
         assert_eq!(request_header.request_handle, 1);
         assert_eq!(request_header.return_diagnostics, 0);
@@ -78,7 +82,11 @@ fn test_chunk_open_secure_channel() {
     };
     let chunks = chunker.encode(1, &secure_channel_info, &SupportedMessage::OpenSecureChannelRequest(request.clone())).unwrap();
     assert_eq!(chunks.len(), 1);
-    let new_request = chunker.decode_open_secure_channel_request(&chunks).unwrap();
+    let new_request = chunker.decode(&chunks, None).unwrap();
+    let new_request = match new_request {
+        SupportedMessage::OpenSecureChannelRequest(new_request) => new_request,
+        _ => { panic!("Not a OpenSecureChannelRequest"); }
+    };
     assert_eq!(request, new_request);
 }
 

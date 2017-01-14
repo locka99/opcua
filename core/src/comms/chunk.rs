@@ -1,12 +1,10 @@
 use std;
 use std::io::{Read, Write, Result, Cursor};
-use std::fmt;
 
 use debug::*;
 use types::*;
 use comms::*;
 
-use services::*;
 use services::secure_channel::*;
 
 const CHUNK_HEADER_SIZE: usize = 12;
@@ -700,31 +698,5 @@ impl Chunker {
         debug!("Returning decoded msg");
 
         return Ok(decoded_message)
-    }
-
-    pub fn decode_open_secure_channel_request(&mut self, chunks: &Vec<Chunk>) -> std::result::Result<OpenSecureChannelRequest, &'static StatusCode> {
-        let expected_node_id = NodeId::from_object_id(ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary);
-        let result = self.decode(chunks, Some(expected_node_id))?;
-        match result {
-            SupportedMessage::OpenSecureChannelRequest(message) => {
-                Ok(message)
-            },
-            _ => {
-                panic!("Should not have received anything but OpenSecureChannelRequest here");
-            }
-        }
-    }
-
-    pub fn decode_close_secure_channel_request(&mut self, chunks: &Vec<Chunk>) -> std::result::Result<CloseSecureChannelRequest, &'static StatusCode> {
-        let expected_node_id = NodeId::from_object_id(ObjectId::CloseSecureChannelRequest_Encoding_DefaultBinary);
-        let result = self.decode(chunks, Some(expected_node_id))?;
-        match result {
-            SupportedMessage::CloseSecureChannelRequest(message) => {
-                Ok(message)
-            },
-            _ => {
-                panic!("Should not have received anything but CloseSecureChannelRequest here");
-            }
-        }
     }
 }
