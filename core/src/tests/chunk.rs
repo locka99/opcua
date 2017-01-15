@@ -61,6 +61,7 @@ fn test_chunk_open_secure_channel() {
     let chunk = get_sample_chunk();
     let chunks = vec![chunk];
 
+    debug!("Decoding original chunks");
     let request = chunker.decode(&chunks, None).unwrap();
     let request = match request {
         SupportedMessage::OpenSecureChannelRequest(request) => request,
@@ -76,12 +77,15 @@ fn test_chunk_open_secure_channel() {
     }
 
     // Encode the message up again to chunks, decode and compare to original
+    debug!("Encoding back to chunks");
     let secure_channel_info = SecureChannelInfo {
         security_policy: SecurityPolicy::None,
         secure_channel_id: 1,
     };
     let chunks = chunker.encode(1, &secure_channel_info, &SupportedMessage::OpenSecureChannelRequest(request.clone())).unwrap();
     assert_eq!(chunks.len(), 1);
+
+    debug!("Decoding to compare the new version");
     let new_request = chunker.decode(&chunks, None).unwrap();
     let new_request = match new_request {
         SupportedMessage::OpenSecureChannelRequest(new_request) => new_request,

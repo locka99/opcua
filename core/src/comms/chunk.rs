@@ -647,7 +647,7 @@ impl Chunker {
             } else if expected_node_id.is_some() {
                 expected_node_id.unwrap() == *node_id
             } else {
-                false
+                true
             };
             if !valid_node_id {
                 error!("The node id read from the stream was not accepted in this context {:?}", node_id);
