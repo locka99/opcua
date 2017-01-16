@@ -209,6 +209,33 @@ fn test_extension_object() {
 }
 
 #[test]
+fn test_localized_text() {
+    let t = LocalizedText {
+        locale: UAString::null(),
+        text: UAString::null(),
+    };
+    serialize_test(t);
+
+    let t = LocalizedText {
+        locale: UAString::from_str("Hello world"),
+        text: UAString::null(),
+    };
+    serialize_test(t);
+
+    let t = LocalizedText {
+        locale: UAString::null(),
+        text: UAString::from_str("Now is the winter of our discontent"),
+    };
+    serialize_test(t);
+
+    let t = LocalizedText {
+        locale: UAString::from_str("ABCDEFG"),
+        text: UAString::from_str("Now is the winter of our discontent"),
+    };
+    serialize_test(t);
+}
+
+#[test]
 fn test_expanded_node_id() {
     let node_id = ExpandedNodeId::new(&NodeId::new_numeric(200, 2000));
     serialize_test(node_id);
@@ -228,71 +255,87 @@ fn test_expanded_node_id() {
 }
 
 #[test]
+fn test_qualified_name() {
+    let qname = QualifiedName {
+        namespace_index: 100,
+        name: UAString::from_str("this is a qualified name"),
+    };
+    serialize_test(qname);
+}
+
+#[test]
 fn test_variant() {
     // Boolean
-    let v = Variant::new(VariantValue::Boolean(true));
+    let v = Variant::Boolean(true);
     serialize_test(v);
     // SByte
-    let v = Variant::new(VariantValue::SByte(-44));
+    let v = Variant::SByte(-44);
     serialize_test(v);
     // Byte
-    let v = Variant::new(VariantValue::Byte(255));
+    let v = Variant::Byte(255);
     serialize_test(v);
     // Int16
-    let v = Variant::new(VariantValue::Int16(-20000));
+    let v = Variant::Int16(-20000);
     serialize_test(v);
     // UInt16
-    let v = Variant::new(VariantValue::UInt16(55778));
+    let v = Variant::UInt16(55778);
     serialize_test(v);
     // Int32
-    let v = Variant::new(VariantValue::Int32(-9999999));
+    let v = Variant::Int32(-9999999);
     serialize_test(v);
     // UInt32
-    let v = Variant::new(VariantValue::UInt32(24424244));
+    let v = Variant::UInt32(24424244);
     serialize_test(v);
     // Int64
-    let v = Variant::new(VariantValue::Int64(-384747424424244));
+    let v =Variant::Int64(-384747424424244);
     serialize_test(v);
     // UInt64
-    let v = Variant::new(VariantValue::UInt64(9384747424422314244));
+    let v = Variant::UInt64(9384747424422314244);
     serialize_test(v);
     // Float
-    let v = Variant::new(VariantValue::Float(77.33f32));
+    let v = Variant::Float(77.33f32);
     serialize_test(v);
     // Double
-    let v = Variant::new(VariantValue::Double(99.123f64));
+    let v = Variant::Double(99.123f64);
     serialize_test(v);
     // DateTime
-    let v = Variant::new(VariantValue::DateTime(DateTime::now()));
+    let v = Variant::DateTime(DateTime::now());
     serialize_test(v);
     // UAString
-    let v = Variant::new(VariantValue::String(UAString::from_str("Hello Everybody")));
+    let v = Variant::String(UAString::from_str("Hello Everybody"));
     serialize_test(v);
     // ByteString
-    let v = Variant::new(VariantValue::String(ByteString::from_str("Everything or nothing")));
+    let v = Variant::ByteString(ByteString::from_str("Everything or nothing"));
     serialize_test(v);
     // XmlElement
-    let v = Variant::new(VariantValue::String(XmlElement::from_str("The world wonders")));
+    let v = Variant::XmlElement(XmlElement::from_str("The world wonders"));
     serialize_test(v);
     // NodeId(NodeId),
-    let v = Variant::new(VariantValue::NodeId(NodeId::from_object_id(ObjectId::AddNodesItem_Encoding_DefaultBinary)));
+    let v = Variant::NodeId(NodeId::from_object_id(ObjectId::AddNodesItem_Encoding_DefaultBinary));
     serialize_test(v);
-    let v = Variant::new(VariantValue::NodeId(NodeId::new_string(99, UAString::from_str("hello everyone"))));
+    let v = Variant::NodeId(NodeId::new_string(99, UAString::from_str("hello everyone")));
     serialize_test(v);
     // ExpandedNodeId
-    let v = Variant::new(VariantValue::ExpandedNodeId(ExpandedNodeId::new(&NodeId::from_object_id(ObjectId::AddNodesItem_Encoding_DefaultBinary))));
+    let v = Variant::ExpandedNodeId(ExpandedNodeId::new(&NodeId::from_object_id(ObjectId::AddNodesItem_Encoding_DefaultBinary)));
     serialize_test(v);
     // StatusCode
-    let v = Variant::new(VariantValue::StatusCode(BAD_TCP_MESSAGE_TYPE_INVALID.clone()));
+    let v = Variant::StatusCode(BAD_TCP_MESSAGE_TYPE_INVALID.clone());
     serialize_test(v);
-
-    // TODO QualifiedName
-    // TODO LocalizedText
-
+    // QualifiedName
+    let v =  Variant::QualifiedName(QualifiedName {
+        namespace_index: 100,
+        name: UAString::from_str("this is a qualified name"),
+    });
+    serialize_test(v);
+    // LocalizedText
+    let v = Variant::LocalizedText(LocalizedText {
+        locale: UAString::from_str("Hello everyone"),
+        text: UAString::from_str("This text is localized")
+    });
+    serialize_test(v);
     // ExtensionObject
-    let v = Variant::new(VariantValue::ExtensionObject(ExtensionObject::null()));
+    let v = Variant::ExtensionObject(ExtensionObject::null());
     serialize_test(v);
-
     // TODO DataValue
 }
 

@@ -43,7 +43,7 @@ fn get_sample_chunk() -> Chunk {
     Chunk {
         chunk_header: ChunkHeader {
             message_type: ChunkMessageType::OpenSecureChannel,
-            is_final: ChunkType::Final,
+            chunk_type: ChunkType::Final,
             message_size: 12 + sample_data_len,
             secure_channel_id: 1,
             is_valid: true,

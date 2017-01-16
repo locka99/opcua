@@ -9,14 +9,14 @@ use services::secure_channel::*;
 
 const CHUNK_HEADER_SIZE: usize = 12;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ChunkMessageType {
     Message,
     OpenSecureChannel,
     CloseSecureChannel
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ChunkType {
     /// Intermediate chunk
     Intermediate,
@@ -31,7 +31,7 @@ pub struct ChunkHeader {
     /// MSG, OPN, CLO
     pub message_type: ChunkMessageType,
     /// C == intermediate, F = the final chunk, A = the final chunk when aborting
-    pub is_final: ChunkType,
+    pub chunk_type: ChunkType,
     /// The size of the chunk (message) including the header
     pub message_size: UInt32,
     /// Secure channel id
@@ -65,7 +65,7 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
             ChunkMessageType::CloseSecureChannel => { HEADER_CLO }
         };
 
-        let is_final: u8 = match self.is_final {
+        let chunk_type: u8 = match self.chunk_type {
             ChunkType::Intermediate => { CHUNK_INTERMEDIATE }
             ChunkType::Final => { CHUNK_FINAL },
             ChunkType::FinalError => { CHUNK_FINAL_ERROR },
@@ -73,7 +73,7 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
 
         let mut size = 0;
         size += stream.write(&message_type)?;
-        size += write_u8(stream, is_final)?;
+        size += write_u8(stream, chunk_type)?;
         size += write_u32(stream, self.message_size)?;
         size += write_u32(stream, self.secure_channel_id)?;
         Ok(size)
@@ -96,8 +96,8 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
             ChunkMessageType::Message
         };
 
-        let is_final_code = read_u8(stream)?;
-        let is_final = match is_final_code {
+        let chunk_type_code = read_u8(stream)?;
+        let chunk_type = match chunk_type_code {
             CHUNK_FINAL => { ChunkType::Final },
             CHUNK_INTERMEDIATE => { ChunkType::Intermediate },
             CHUNK_FINAL_ERROR => { ChunkType::FinalError },
@@ -113,7 +113,7 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
 
         Ok(ChunkHeader {
             message_type: message_type,
-            is_final: is_final,
+            chunk_type: chunk_type,
             message_size: message_size,
             secure_channel_id: secure_channel_id,
             is_valid: is_valid,
@@ -521,7 +521,7 @@ impl Chunker {
 
         let is_first_chunk = true;
         let is_last_chunk = true;
-        let is_final = if is_last_chunk { ChunkType::Final } else { ChunkType::Intermediate };
+        let chunk_type = if is_last_chunk { ChunkType::Final } else { ChunkType::Intermediate };
 
         // security header depends on message type
         let security_header = if message_type == ChunkMessageType::OpenSecureChannel {
@@ -558,7 +558,7 @@ impl Chunker {
 
         let chunk_header = ChunkHeader {
             message_type: message_type,
-            is_final: is_final,
+            chunk_type: chunk_type,
             message_size: message_size,
             secure_channel_id: secure_channel_id,
             is_valid: true,

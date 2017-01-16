@@ -320,6 +320,16 @@ impl UAString {
         UAString { value: Some(value.to_string()) }
     }
 
+    /// Get the inner value
+    pub fn to_string(&self) -> &str {
+        if self.is_null() {
+            ""
+        }
+        else {
+            self.value.as_ref().unwrap()
+        }
+    }
+
     /// Returns the length of the string or -1 for null
     pub fn len(&self) -> isize {
         if self.value.is_none() { -1 } else { self.value.as_ref().unwrap().len() as isize }
@@ -422,7 +432,7 @@ impl BinaryEncoder<QualifiedName> for QualifiedName {
     }
 
     fn decode<S: Read>(stream: &mut S) -> Result<QualifiedName> {
-        let namespace_index = read_u16(stream)?;
+        let namespace_index = UInt16::decode(stream)?;
         let name = UAString::decode(stream)?;
         Ok(QualifiedName {
             namespace_index: namespace_index,
@@ -435,30 +445,63 @@ impl BinaryEncoder<QualifiedName> for QualifiedName {
 /// Data type ID 21
 #[derive(PartialEq, Debug, Clone)]
 pub struct LocalizedText {
-    /// A bit mask that indicates which fields are present in the stream.
-    /// The mask has the following bits:
-    /// 0x01    Locale
-    /// 0x02    Text
-    pub encoding_mask: Byte,
-    /// The locale. Omitted is null or empty
-    pub locale: Option<UAString>,
-    /// The text in the specified locale. Omitted is null or empty.
-    pub text: Option<UAString>,
+    /// The locale. Omitted from stream if null or empty
+    pub locale: UAString,
+    /// The text in the specified locale. Omitted frmo stream if null or empty.
+    pub text: UAString,
 }
 
 impl BinaryEncoder<LocalizedText> for LocalizedText {
     fn byte_len(&self) -> usize {
-        unimplemented!();
+        let mut size = 1;
+        if self.locale.len() > 0 {
+            size += self.locale.byte_len();
+        }
+        if self.text.len() > 0 {
+            size += self.text.byte_len();
+        }
+        size
     }
 
-    fn encode<S: Write>(&self, _: &mut S) -> Result<usize> {
-        // This impl should be overridden
-        unimplemented!()
+    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+        let mut size = 0;
+        /// A bit mask that indicates which fields are present in the stream.
+        /// The mask has the following bits:
+        /// 0x01    Locale
+        /// 0x02    Text
+        let mut encoding_mask: Byte = 0;
+        if self.locale.len() > 0 {
+            encoding_mask |= 0x1;
+        }
+        if self.text.len() > 0 {
+            encoding_mask |= 0x2;
+        }
+        size += encoding_mask.encode(stream)?;
+        if self.locale.len() > 0 {
+            size += self.locale.encode(stream)?;
+        }
+        if self.text.len() > 0 {
+            size += self.text.encode(stream)?;
+        }
+        Ok(size)
     }
 
-    fn decode<S: Read>(_: &mut S) -> Result<LocalizedText> {
-        // This impl should be overridden
-        unimplemented!()
+    fn decode<S: Read>(stream: &mut S) -> Result<LocalizedText> {
+        let encoding_mask = Byte::decode(stream)?;
+        let locale = if encoding_mask & 0x1 != 0 {
+            UAString::decode(stream)?
+        } else {
+            UAString::null()
+        };
+        let text = if encoding_mask & 0x2 != 0 {
+            UAString::decode(stream)?
+        } else {
+            UAString::null()
+        };
+        Ok(LocalizedText {
+            locale: locale,
+            text: text,
+        })
     }
 }
 
@@ -676,7 +719,7 @@ impl BinaryEncoder<DiagnosticInfo> for DiagnosticInfo {
     }
 
     fn decode<S: Read>(stream: &mut S) -> Result<DiagnosticInfo> {
-        let encoding_mask = read_u8(stream)?;
+        let encoding_mask = Byte::decode(stream)?;
         let mut diagnostic_info = DiagnosticInfo::new();
         if encoding_mask & DiagnosticInfoMask::HAS_SYMBOLIC_ID != 0 {
             // Read symbolic id

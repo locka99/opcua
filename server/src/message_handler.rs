@@ -8,16 +8,28 @@ use services::discovery::*;
 pub struct MessageHandler {
     /// Number of subscriptions open for this session
     pub subscriptions: Vec<Subscription>,
+    /// Discovery service
+    discovery_service: DiscoveryService,
 }
 
 impl MessageHandler {
     pub fn new() -> MessageHandler {
         MessageHandler {
             subscriptions: Vec::new(),
+            discovery_service: DiscoveryService {},
         }
     }
 
-    pub fn handle_message(message: &mut SupportedMessage) -> Result<Vec<SupportedMessage>, &'static StatusCode> {
-        Err(&BAD_REQUEST_NOT_ALLOWED)
+    pub fn handle_message(&self, message: &SupportedMessage) -> Result<SupportedMessage, &'static StatusCode> {
+        let response = match *message {
+            SupportedMessage::GetEndpointsRequest(ref request) => {
+                self.discovery_service.handle_get_endpoints_request(request)?
+            },
+            _ => {
+                debug!("Message handler does not handle this kind of message");
+                return Err(&BAD_SERVICE_UNSUPPORTED);
+            }
+        };
+        Ok(response)
     }
 }
