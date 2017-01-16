@@ -1,4 +1,5 @@
 use std;
+use std::str::{FromStr};
 use std::io::{Read, Write, Result};
 
 use types::*;
@@ -88,7 +89,7 @@ impl BinaryEncoder<NodeId> for NodeId {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<NodeId> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let identifier = read_u8(stream)?;
         let node_id = match identifier {
             0x0 => {
@@ -129,6 +130,24 @@ impl BinaryEncoder<NodeId> for NodeId {
     }
 }
 
+impl FromStr for NodeId {
+    type Err = &'static StatusCode;
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        // Parses a node from a string using the format specified in 5.3.1.10 part 6
+        //
+        // ns=<namespaceindex>;<type>=<value>
+        //
+        // Where type:
+        //   i = NUMERIC
+        //   s = STRING
+        //   g = GUID
+        //   b = OPAQUE (ByteString)
+        //
+        // If namespace == 0, the ns=0; will be omitted
+        Err(&BAD_NODE_ID_INVALID)
+    }
+}
+
 impl NodeId {
     /// Returns a null node id
     pub fn null() -> NodeId {
@@ -146,6 +165,41 @@ impl NodeId {
             Identifier::Numeric(object_id) if self.namespace == 0 => ObjectId::from_u64(object_id),
             _ => Err(())
         }
+    }
+
+    pub fn to_string(&self) -> String {
+        let mut result = String::new();
+        if self.namespace != 0 {
+            result.push_str(&format!("ns={};", self.namespace));
+        }
+        result.push_str(&match self.identifier {
+            Identifier::Numeric(ref value) => {
+                format!("i={}", value)
+            },
+            Identifier::String(ref value) => {
+                if value.is_null() {
+                    "null".to_string()
+                } else {
+                    format!("s={}", value.to_string())
+                }
+            },
+            Identifier::Guid(ref value) => {
+                format!("g={:?}", value)
+            },
+            Identifier::ByteString(ref value) => {
+                if value.is_null() {
+                    "null".to_string()
+                } else {
+                    let value = value.to_string();
+                    let mut encoded = String::new();
+                    for b in value.as_bytes() {
+                        encoded.push_str(&format!("{:02x}", b));
+                    }
+                    format!("b={}", encoded)
+                }
+            }
+        });
+        result
     }
 
     /// Construct a numeric node id
@@ -286,7 +340,7 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<ExpandedNodeId> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let data_encoding = read_u8(stream)?;
         let identifier = data_encoding & 0x0f;
         let node_id = match identifier {
