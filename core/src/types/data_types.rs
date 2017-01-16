@@ -36,7 +36,7 @@ impl BinaryEncoder<MessageSecurityMode> for MessageSecurityMode {
         write_i32(stream, *self as Int32)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result< MessageSecurityMode> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         // All enums are Int32
         let mode_value = read_i32(stream)?;
         Ok(match mode_value {

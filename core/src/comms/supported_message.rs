@@ -35,7 +35,7 @@ macro_rules! supported_messages {
                 }
             }
 
-            fn decode<S: Read>(stream: &mut S) -> Result<SupportedMessage> {
+            fn decode<S: Read>(stream: &mut S) -> Result<Self> {
                 // THIS WILL NOT DO ANYTHING
                 panic!("Cannot decode a stream to a supported message type");
             }

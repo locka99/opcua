@@ -79,7 +79,7 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<ChunkHeader> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let mut is_valid = true;
 
         let mut message_type_code: [u8; 3] = [0, 0, 0];
@@ -162,7 +162,7 @@ impl BinaryEncoder<SecurityHeader> for SecurityHeader {
         }
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<SecurityHeader> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         unimplemented!();
     }
 }
@@ -181,7 +181,7 @@ impl BinaryEncoder<SymmetricSecurityHeader> for SymmetricSecurityHeader {
         Ok(self.token_id.encode(stream)?)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<SymmetricSecurityHeader> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let token_id = UInt32::decode(stream)?;
         Ok(SymmetricSecurityHeader {
             token_id: token_id
@@ -219,7 +219,7 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<AsymmetricSecurityHeader> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let mut security_policy_uri = String::new();
         {
             // TODO this can be done by ByteString
@@ -296,7 +296,7 @@ impl BinaryEncoder<SequenceHeader> for SequenceHeader {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<SequenceHeader> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let sequence_number = read_u32(stream)?;
         let request_id = read_u32(stream)?;
         Ok(SequenceHeader {

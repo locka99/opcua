@@ -156,7 +156,7 @@ impl BinaryEncoder<Variant> for Variant {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Variant> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let encoding_mask = Byte::decode(stream)?;
         if encoding_mask == 0 {
             Ok(Variant::Empty)

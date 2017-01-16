@@ -51,7 +51,7 @@ impl BinaryEncoder<GetEndpointsRequest> for GetEndpointsRequest {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<GetEndpointsRequest> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let request_header = RequestHeader::decode(stream)?;
         let endpoint_url = UAString::decode(stream)?;
         let locale_ids: Option<Vec<UAString>> = read_array(stream)?;
@@ -96,7 +96,7 @@ impl BinaryEncoder<GetEndpointsResponse> for GetEndpointsResponse {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<GetEndpointsResponse> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let response_header = ResponseHeader::decode(stream)?;
         let endpoints: Option<Vec<EndpointDescription>> = read_array(stream)?;
         Ok(GetEndpointsResponse {

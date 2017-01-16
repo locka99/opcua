@@ -20,7 +20,7 @@ impl BinaryEncoder<SecurityTokenRequestType> for SecurityTokenRequestType {
         write_i32(stream, *self as Int32)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result< SecurityTokenRequestType> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         // All enums are Int32
         let security_token_request_type = read_i32(stream)?;
         Ok(match security_token_request_type {
@@ -105,7 +105,7 @@ impl BinaryEncoder<OpenSecureChannelRequest> for OpenSecureChannelRequest {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result< OpenSecureChannelRequest> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let request_header = RequestHeader::decode(stream)?;
         debug!("OpenSecureChannelRequest::request_header");
         let client_protocol_version = UInt32::decode(stream)?;
@@ -171,7 +171,7 @@ impl BinaryEncoder<OpenSecureChannelResponse> for OpenSecureChannelResponse {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result< OpenSecureChannelResponse> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let response_header = ResponseHeader::decode(stream)?;
         let server_protocol_version = UInt32::decode(stream)?;
         let security_token = ChannelSecurityToken::decode(stream)?;
@@ -215,7 +215,7 @@ impl BinaryEncoder<CloseSecureChannelRequest> for CloseSecureChannelRequest {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result< CloseSecureChannelRequest> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let request_header = RequestHeader::decode(stream)?;
         let secure_channel_id = ByteString::decode(stream)?;
         Ok(CloseSecureChannelRequest {
@@ -246,7 +246,7 @@ impl BinaryEncoder<CloseSecureChannelResponse> for CloseSecureChannelResponse {
         Ok(self.response_header.encode(stream)?)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result< CloseSecureChannelResponse> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let response_header = ResponseHeader::decode(stream)?;
         Ok(CloseSecureChannelResponse {
             response_header: response_header,

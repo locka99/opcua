@@ -74,7 +74,7 @@ impl BinaryEncoder<Boolean> for Boolean {
         write_u8(stream, if *self { 1 } else { 0 })
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Boolean> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let value = if read_u8(stream)? == 1 { true } else { false };
         Ok(value)
     }
@@ -93,7 +93,7 @@ impl BinaryEncoder<SByte> for SByte {
         write_u8(stream, *self as u8)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<SByte> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         Ok(read_u8(stream)? as i8)
     }
 }
@@ -111,7 +111,7 @@ impl BinaryEncoder<Byte> for Byte {
         write_u8(stream, *self)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Byte> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         Ok(read_u8(stream)?)
     }
 }
@@ -129,7 +129,7 @@ impl BinaryEncoder<Int16> for Int16 {
         write_i16(stream, *self)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Int16> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         read_i16(stream)
     }
 }
@@ -147,7 +147,7 @@ impl BinaryEncoder<UInt16> for UInt16 {
         write_u16(stream, *self)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<UInt16> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         read_u16(stream)
     }
 }
@@ -165,7 +165,7 @@ impl BinaryEncoder<Int32> for Int32 {
         write_i32(stream, *self)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Int32> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         read_i32(stream)
     }
 }
@@ -183,7 +183,7 @@ impl BinaryEncoder<UInt32> for UInt32 {
         write_u32(stream, *self)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<UInt32> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         read_u32(stream)
     }
 }
@@ -201,7 +201,7 @@ impl BinaryEncoder<Int64> for Int64 {
         write_i64(stream, *self)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Int64> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         read_i64(stream)
     }
 }
@@ -219,7 +219,7 @@ impl BinaryEncoder<UInt64> for UInt64 {
         write_u64(stream, *self)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<UInt64> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         read_u64(stream)
     }
 }
@@ -237,7 +237,7 @@ impl BinaryEncoder<Float> for Float {
         write_f32(stream, *self)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Float> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         read_f32(stream)
     }
 }
@@ -255,7 +255,7 @@ impl BinaryEncoder<Double> for Double {
         write_f64(stream, *self)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Double> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         read_f64(stream)
     }
 }
@@ -293,7 +293,7 @@ impl BinaryEncoder<UAString> for UAString {
         }
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<UAString> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let buf_len = Int32::decode(stream)?;
         // Null string?
         if buf_len == -1 {
@@ -324,8 +324,7 @@ impl UAString {
     pub fn to_string(&self) -> &str {
         if self.is_null() {
             ""
-        }
-        else {
+        } else {
             self.value.as_ref().unwrap()
         }
     }
@@ -382,7 +381,7 @@ impl BinaryEncoder<Guid> for Guid {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Guid> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let data1 = read_u32(stream)?;
         let data2 = read_u16(stream)?;
         let data3 = read_u16(stream)?;
@@ -431,7 +430,7 @@ impl BinaryEncoder<QualifiedName> for QualifiedName {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<QualifiedName> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let namespace_index = UInt16::decode(stream)?;
         let name = UAString::decode(stream)?;
         Ok(QualifiedName {
@@ -486,7 +485,7 @@ impl BinaryEncoder<LocalizedText> for LocalizedText {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<LocalizedText> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let encoding_mask = Byte::decode(stream)?;
         let locale = if encoding_mask & 0x1 != 0 {
             UAString::decode(stream)?
@@ -559,7 +558,7 @@ impl BinaryEncoder<ExtensionObject> for ExtensionObject {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<ExtensionObject> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let node_id = NodeId::decode(stream)?;
         let encoding_type = Byte::decode(stream)?;
         let body = match encoding_type {
@@ -718,7 +717,7 @@ impl BinaryEncoder<DiagnosticInfo> for DiagnosticInfo {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<DiagnosticInfo> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let encoding_mask = Byte::decode(stream)?;
         let mut diagnostic_info = DiagnosticInfo::new();
         if encoding_mask & DiagnosticInfoMask::HAS_SYMBOLIC_ID != 0 {

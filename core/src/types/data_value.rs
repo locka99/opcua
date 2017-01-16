@@ -92,7 +92,7 @@ impl BinaryEncoder<DataValue> for DataValue {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<DataValue> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let encoding_mask = Byte::decode(stream)?;
 
         // Value

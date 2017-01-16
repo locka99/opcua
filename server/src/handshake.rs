@@ -46,7 +46,7 @@ impl BinaryEncoder<MessageHeader> for MessageHeader {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result< MessageHeader> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let mut message_type: [u8; 4] = [0, 0, 0, 0];
         stream.read_exact(&mut message_type)?;
         let message_size = read_u32(stream)?;
@@ -95,7 +95,6 @@ impl MessageHeader {
             println!("Message 4th byte is not F");
             MessageType::Invalid
         } else {
-
             match &t[0..3] {
                 HELLO_MESSAGE => MessageType::Hello,
                 ACKNOWLEDGE_MESSAGE => MessageType::Acknowledge,
@@ -131,7 +130,7 @@ impl BinaryEncoder<HelloMessage> for HelloMessage {
         unimplemented!();
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result< HelloMessage> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let message_header = MessageHeader::decode(stream)?;
         let protocol_version = read_u32(stream)?;
         let receive_buffer_size = read_u32(stream)?;
@@ -192,7 +191,7 @@ impl BinaryEncoder<AcknowledgeMessage> for AcknowledgeMessage {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result< AcknowledgeMessage> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let message_header = MessageHeader::decode(stream)?;
         let protocol_version = UInt32::decode(stream)?;
         let receive_buffer_size = UInt32::decode(stream)?;
@@ -232,7 +231,7 @@ impl BinaryEncoder<ErrorMessage> for ErrorMessage {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result< ErrorMessage> {
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         unimplemented!();
     }
 }
