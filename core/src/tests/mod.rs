@@ -2,6 +2,7 @@ mod encoding;
 mod date_time;
 mod chunk;
 mod services;
+mod parse;
 
 use std::fmt::Debug;
 use std::cmp::PartialEq;

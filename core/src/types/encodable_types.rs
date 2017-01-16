@@ -1,3 +1,4 @@
+use std;
 use std::io::{Read, Write, Result, Error, ErrorKind};
 
 use types::*;
@@ -361,8 +362,7 @@ pub struct Guid {
 
 impl fmt::Debug for Guid {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:08X}-{:04X}-{:04X}-{:02X}{:02X}-{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}",
-               self.data1, self.data2, self.data3, self.data4[0], self.data4[1], self.data4[2], self.data4[3], self.data4[4], self.data4[5], self.data4[6], self.data4[7])
+        write!(f, "{}", self.as_hyphenated_string())
     }
 }
 
@@ -388,6 +388,32 @@ impl BinaryEncoder<Guid> for Guid {
         let mut data4: [u8; 8] = [0; 8];
         stream.read_exact(&mut data4)?;
         Ok(Guid { data1: data1, data2: data2, data3: data3, data4: data4, })
+    }
+}
+
+impl Guid {
+    pub fn parse_str(s: &str) {
+        // lazy_static! {
+        // static ref RE: Regex = Regex::new(r"^([0-9a-f]{8})-([0-9a-f]{4}-([0-9a-f]{4}-([0-9a-f]{12})))$").unwrap();
+        // }
+    }
+
+    pub fn from_fields(data1: u32, data2: u16, data3: u16, data4: &[u8]) -> std::result::Result<Guid, ()> {
+        if data4.len() != 8 {
+            Err(())
+        } else {
+            Ok(Guid {
+                data1: data1,
+                data2: data2,
+                data3: data3,
+                data4: [data4[0], data4[1], data4[2], data4[3], data4[4], data4[5], data4[6], data4[7]],
+            })
+        }
+    }
+
+    pub fn as_hyphenated_string(&self) -> String {
+        format!("{:08X}-{:04X}-{:04X}-{:02X}{:02X}-{:02X}{:02X}{:02X}{:02X}{:02X}{:02X}",
+                self.data1, self.data2, self.data3, self.data4[0], self.data4[1], self.data4[2], self.data4[3], self.data4[4], self.data4[5], self.data4[6], self.data4[7])
     }
 }
 
