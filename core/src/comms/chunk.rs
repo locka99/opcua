@@ -627,11 +627,6 @@ impl Chunker {
         debug!("chunk_message_body:");
         debug_buffer(chunk_body);
 
-        // TODO when multiple chunks are supported, probably the easiest way is some
-        // kind of cursor that sits on top of the message bodies of each, decrypting the msg if
-        // necessary
-        let mut chunk_body_stream = &mut Cursor::new(chunk_body);
-
         // First chunk has an extension object prefix.
         //
         // The extension object prefix is just the node id. A point the spec rather unhelpfully doesn't
@@ -666,37 +661,23 @@ impl Chunker {
         };
 
         // Now the payload. The node id of the prefix allows us to recognize it.
-        let decoded_message = match object_id {
-            ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary => {
-                debug!("decoding OpenSecureChannelRequest_Encoding_DefaultBinary");
-                if let Ok(message) = OpenSecureChannelRequest::decode(&mut chunk_body_stream) {
-                    SupportedMessage::OpenSecureChannelRequest(message)
-                } else {
-                    error!("Could not decode OpenSecureChannelRequest, pos = {}", chunk_body_stream.position());
-                    SupportedMessage::Invalid(object_id)
-                }
-            },
-            ObjectId::CloseSecureChannelRequest_Encoding_DefaultBinary => {
-                debug!("decoding CloseSecureChannelRequest_Encoding_DefaultBinary");
-                if let Ok(message) = CloseSecureChannelRequest::decode(&mut chunk_body_stream) {
-                    SupportedMessage::CloseSecureChannelRequest(message)
-                } else {
-                    error!("Could not decode CloseSecureChannelRequest, pos = {}", chunk_body_stream.position());
-                    SupportedMessage::Invalid(object_id)
-                }
-            }
-            _ => {
-                debug!("decoding unsupported");
-                SupportedMessage::Invalid(object_id)
-            }
-        };
+
+        // TODO when multiple chunks are supported, probably the easiest way is some
+        // kind of cursor that sits on top of the message bodies of each, decrypting the msg if
+        // necessary
+        let mut chunk_body_stream = &mut Cursor::new(chunk_body);
+
+        let decoded_message = SupportedMessage::decode_by_object_id(&mut chunk_body_stream, object_id);
+        if decoded_message.is_err() {
+            return Err(&BAD_SERVICE_UNSUPPORTED)
+        }
+        let decoded_message = decoded_message.unwrap();
         if let SupportedMessage::Invalid(_) = decoded_message {
             debug!("Message is unsupported");
             return Err(&BAD_SERVICE_UNSUPPORTED);
         }
 
-        debug!("Returning decoded msg");
-
+        debug!("Returning decoded msg {:#?}", decoded_message);
         return Ok(decoded_message)
     }
 }

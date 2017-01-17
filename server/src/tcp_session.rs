@@ -216,7 +216,6 @@ impl TcpSession {
         }
 
         let server_protocol_version = 0;
-        let mut valid_hello = false;
         let mut client_protocol_version = 0;
 
         let mut message_stream = Cursor::new(buffer);

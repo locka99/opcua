@@ -35,15 +35,14 @@ macro_rules! supported_messages {
                 }
             }
 
-            fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+            fn decode<S: Read>(stream: &mut S) -> Result<SupportedMessage> {
                 // THIS WILL NOT DO ANYTHING
                 panic!("Cannot decode a stream to a supported message type");
             }
         }
 
         impl SupportedMessage {
-            // Can't do this without concat_idents!()
-            /* pub fn decode_by_object_id<S: Read>(object_id: &ObjectId, stream: &mut S) -> Result {
+            /* // Can't do this without concat_idents!()
                 match *object_id {
                     $( ObjectId::$x_Encoding_DefaultBinary => { $x::decode(s) }, )*
                     _ => {
@@ -61,6 +60,28 @@ macro_rules! supported_messages {
                 }
             }
         }
+    }
+}
+
+impl SupportedMessage {
+    pub fn decode_by_object_id<S: Read>(stream: &mut S, object_id: ObjectId) -> Result<SupportedMessage> {
+        debug!("decoding object_id {:?}", object_id);
+        let decoded_message = match object_id {
+            ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary => {
+                SupportedMessage::OpenSecureChannelRequest(OpenSecureChannelRequest::decode(stream)?)
+            },
+            ObjectId::CloseSecureChannelRequest_Encoding_DefaultBinary => {
+                SupportedMessage::CloseSecureChannelRequest(CloseSecureChannelRequest::decode(stream)?)
+            },
+            ObjectId::GetEndpointsRequest_Encoding_DefaultBinary => {
+                SupportedMessage::GetEndpointsRequest(GetEndpointsRequest::decode(stream)?)
+            },
+            _ => {
+                debug!("decoding unsupported for object id {:?}", object_id);
+                SupportedMessage::Invalid(object_id)
+            }
+        };
+        Ok(decoded_message)
     }
 }
 

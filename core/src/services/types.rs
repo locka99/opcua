@@ -487,6 +487,19 @@ impl BinaryEncoder<ResponseHeader> for ResponseHeader {
     }
 }
 
+impl ResponseHeader {
+    pub fn new(timestamp: &DateTime, request_handle: IntegerId) -> ResponseHeader {
+        ResponseHeader {
+            timestamp: timestamp.clone(),
+            request_handle: request_handle,
+            service_result: GOOD.clone(),
+            service_diagnostics: DiagnosticInfo::new()            ,
+            string_table: UAString::null(),
+            additional_header: ExtensionObject::null(),
+        }
+    }
+}
+
 // SignedSoftwareCertificate_Encoding_DefaultXml = 345,
 // SignedSoftwareCertificate_Encoding_DefaultBinary = 346,
 #[derive(Debug)]
