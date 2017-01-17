@@ -16,7 +16,7 @@ use message_handler::*;
 
 const RECEIVE_BUFFER_SIZE: usize = 32768;
 const SEND_BUFFER_SIZE: usize = 32768;
-const MAX_MESSAGE_SIZE: usize = 16384;
+const MAX_MESSAGE_SIZE: usize = 32768;
 const MAX_CHUNK_COUNT: usize = 1;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -344,14 +344,7 @@ impl TcpSession {
 
         let now = DateTime::now();
         let response = OpenSecureChannelResponse {
-            response_header: ResponseHeader {
-                timestamp: now.clone(),
-                request_handle: request.request_header.request_handle,
-                service_result: GOOD.clone(),
-                service_diagnostics: DiagnosticInfo::new(),
-                string_table: UAString::null(),
-                additional_header: ExtensionObject::null(),
-            },
+            response_header: ResponseHeader::new(&now, request.request_header.request_handle),
             server_protocol_version: 0,
             security_token: ChannelSecurityToken {
                 secure_channel_id: secure_channel_id,
@@ -362,7 +355,7 @@ impl TcpSession {
             server_nonce: ByteString::null(),
         };
 
-        debug!("Sending OpenSecureChannelResponse {:?}", response);
+        debug!("Sending OpenSecureChannelResponse {:#?}", response);
         Ok(response)
     }
 }
