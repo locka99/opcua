@@ -70,8 +70,14 @@ impl SupportedMessage {
             ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary => {
                 SupportedMessage::OpenSecureChannelRequest(OpenSecureChannelRequest::decode(stream)?)
             },
+            ObjectId::OpenSecureChannelResponse_Encoding_DefaultBinary => {
+                SupportedMessage::OpenSecureChannelResponse(OpenSecureChannelResponse::decode(stream)?)
+            },
             ObjectId::CloseSecureChannelRequest_Encoding_DefaultBinary => {
                 SupportedMessage::CloseSecureChannelRequest(CloseSecureChannelRequest::decode(stream)?)
+            },
+            ObjectId::CloseSecureChannelResponse_Encoding_DefaultBinary => {
+                SupportedMessage::CloseSecureChannelResponse(CloseSecureChannelResponse::decode(stream)?)
             },
             ObjectId::GetEndpointsRequest_Encoding_DefaultBinary => {
                 SupportedMessage::GetEndpointsRequest(GetEndpointsRequest::decode(stream)?)

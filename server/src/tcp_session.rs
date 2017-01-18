@@ -169,6 +169,7 @@ impl TcpSession {
             let error = handshake::ErrorMessage::from_status_code(&session_status_code);
             error.encode(&mut out_buf_stream);
             TcpSession::write_output(&mut out_buf_stream, &mut stream);
+            stream.flush();
         }
 
         // Close socket
@@ -279,7 +280,9 @@ impl TcpSession {
         }
 
         let chunk_message_type = chunk.chunk_header.message_type.clone();
-        let message = TcpSession::chunks_to_message(session, &vec![chunk])?;
+
+        let in_chunks = vec![chunk];
+        let message = TcpSession::chunks_to_message(session, &in_chunks)?;
         let response = match chunk_message_type {
             ChunkMessageType::OpenSecureChannel => {
                 SupportedMessage::OpenSecureChannelResponse(TcpSession::process_open_secure_channel(&session, &message)?)
@@ -295,17 +298,19 @@ impl TcpSession {
         };
 
         {
-            let request_id = 1; // TODO FIXME
             let mut session = session.lock().unwrap();
 
-            let secure_channel_info = session.secure_channel_info.clone();
-            let chunks = session.chunker.encode(request_id, &secure_channel_info, &response)?;
+            let mut secure_channel_info = session.secure_channel_info.clone();
+            let chunk_info = in_chunks[0].chunk_info(true, Some(&mut secure_channel_info))?;
+            let request_id = chunk_info.sequence_header.request_id;
+
+            let out_chunks = session.chunker.encode(request_id, &secure_channel_info, &response)?;
             session.secure_channel_info = secure_channel_info;
 
             // Send out any chunks that form the response
-            debug!("Got some chunks to send {:?}", chunks);
-            for chunk in chunks {
-                chunk.encode(out_stream);
+            debug!("Got some chunks to send {:?}", out_chunks);
+            for out_chunk in out_chunks {
+                out_chunk.encode(out_stream);
             }
             Ok(())
         }

@@ -291,14 +291,14 @@ impl BinaryEncoder<SequenceHeader> for SequenceHeader {
 
     fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
         let mut size: usize = 0;
-        size += write_u32(stream, self.sequence_number)?;
-        size += write_u32(stream, self.request_id)?;
+        size += self.sequence_number.encode(stream)?;
+        size += self.request_id.encode(stream)?;
         Ok(size)
     }
 
     fn decode<S: Read>(stream: &mut S) -> Result<Self> {
-        let sequence_number = read_u32(stream)?;
-        let request_id = read_u32(stream)?;
+        let sequence_number = UInt32::decode(stream)?;
+        let request_id = UInt32::decode(stream)?;
         Ok(SequenceHeader {
             sequence_number: sequence_number,
             request_id: request_id,
@@ -375,9 +375,8 @@ impl Chunk {
     pub fn encode<S: Write>(&self, stream: &mut S) -> std::result::Result<(), &'static StatusCode> {
         // TODO this is a stub
         // TODO impl should be moved to BinaryEncoder
-        debug!("Encoding chunk_header");
+
         let _ = self.chunk_header.encode(stream);
-        debug!("Encoding chunk_body");
         let _ = stream.write(&self.chunk_body);
         Ok(())
     }
@@ -487,15 +486,15 @@ impl Chunk {
 }
 
 pub struct Chunker {
-    pub last_encoded_sequence_number: UInt32,
-    pub last_decoded_sequence_number: UInt32,
+    pub last_encoded_sequence_number: Int32,
+    pub last_decoded_sequence_number: Int32,
 }
 
 impl Chunker {
     pub fn new() -> Chunker {
         Chunker {
-            last_encoded_sequence_number: 10,
-            last_decoded_sequence_number: 0,
+            last_encoded_sequence_number: -1,
+            last_decoded_sequence_number: -1,
         }
     }
 
@@ -511,8 +510,8 @@ impl Chunker {
         // TODO multiple chunks
 
         // External values
-        let sequence_number = self.last_encoded_sequence_number + 1;
-        self.last_encoded_sequence_number = sequence_number;
+        let sequence_number = (self.last_encoded_sequence_number + 1) as UInt32;
+        self.last_encoded_sequence_number = sequence_number as Int32;
         let secure_channel_id = secure_channel_info.secure_channel_id;
 
         debug!("Creating a chunk for secure channel id {}, sequence id {}", secure_channel_id, sequence_number);
@@ -567,20 +566,15 @@ impl Chunker {
         let mut stream = Cursor::new(vec![0u8; chunk_body_size]);
 
         // write security header
-        debug!("Encoding security header");
-        security_header.encode(&mut stream);
+        let _ = security_header.encode(&mut stream);
         // write sequence header
-        debug!("Encoding sequence header");
-        sequence_header.encode(&mut stream);
+        let _ = sequence_header.encode(&mut stream);
         // Write a node id for the first chunk
         if is_first_chunk {
-            debug!("Encoding node id");
             node_id.encode(&mut stream);
         } else {
-            debug!("Skipping encoding node id");
         }
         // write message
-        debug!("Encoding message");
         supported_message.encode(&mut stream);
 
         // TODO write padding
@@ -594,7 +588,6 @@ impl Chunker {
             chunk_body: stream.into_inner(),
         };
 
-        debug!("Returning chunk, body = {:?}", chunk.chunk_body);
         Ok(vec![chunk])
     }
 
@@ -616,10 +609,11 @@ impl Chunker {
         debug!("Chunker::decode chunk_info = {:?}", chunk_info);
 
         // Check the sequence id - should be larger than the last one decoded
-        if chunk_info.sequence_header.sequence_number <= self.last_decoded_sequence_number {
+        if chunk_info.sequence_header.sequence_number as Int32 <= self.last_decoded_sequence_number {
+            error!("Chunk has a sequence number of {} which is less than last deoded sequence number of {}", chunk_info.sequence_header.sequence_number, self.last_decoded_sequence_number);
             return Err(&BAD_SEQUENCE_NUMBER_INVALID);
         }
-        self.last_decoded_sequence_number = chunk_info.sequence_header.sequence_number;
+        self.last_decoded_sequence_number = chunk_info.sequence_header.sequence_number as Int32;
 
         let body_start = chunk_info.body_offset;
         let body_end = body_start + chunk_info.body_length;

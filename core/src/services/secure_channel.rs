@@ -16,7 +16,6 @@ impl BinaryEncoder<SecurityTokenRequestType> for SecurityTokenRequestType {
 
     fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
         // All enums are Int32
-        debug!("Writing security token request type as {}", *self as Int32);
         write_i32(stream, *self as Int32)
     }
 
@@ -91,33 +90,21 @@ impl BinaryEncoder<OpenSecureChannelRequest> for OpenSecureChannelRequest {
     fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
         let mut size = 0;
         size += self.request_header.encode(stream)?;
-        debug!("e OpenSecureChannelRequest::request_header");
         size += self.client_protocol_version.encode(stream)?;
-        debug!("e OpenSecureChannelRequest::client_protocol_version");
         size += self.request_type.encode(stream)?;
-        debug!("e OpenSecureChannelRequest::request_type");
         size += self.security_mode.encode(stream)?;
-        debug!("e OpenSecureChannelRequest::security_mode");
         size += self.client_nonce.encode(stream)?;
-        debug!("e OpenSecureChannelRequest::client_nonce");
         size += self.requested_lifetime.encode(stream)?;
-        debug!("e OpenSecureChannelRequest::requested_lifetime");
         Ok(size)
     }
 
     fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let request_header = RequestHeader::decode(stream)?;
-        debug!("OpenSecureChannelRequest::request_header");
         let client_protocol_version = UInt32::decode(stream)?;
-        debug!("OpenSecureChannelRequest::client_protocol_version");
         let request_type = SecurityTokenRequestType::decode(stream)?;
-        debug!("OpenSecureChannelRequest::request_type");
         let security_mode = MessageSecurityMode::decode(stream)?;
-        debug!("OpenSecureChannelRequest::security_mode");
         let client_nonce = ByteString::decode(stream)?;
-        debug!("OpenSecureChannelRequest::client_nonce");
         let requested_lifetime = Int32::decode(stream)?;
-        debug!("OpenSecureChannelRequest::requested_lifetime");
         Ok(OpenSecureChannelRequest {
             request_header: request_header,
             client_protocol_version: client_protocol_version,
