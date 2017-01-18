@@ -71,6 +71,8 @@ fn test_chunk_open_secure_channel() {
     assert_eq!(chunks.len(), 1);
 
     debug!("Decoding to compare the new version");
+    chunker.last_decoded_sequence_number = -1;
+
     let new_request = chunker.decode(&chunks, None).unwrap();
     let new_request = match new_request {
         SupportedMessage::OpenSecureChannelRequest(new_request) => new_request,
