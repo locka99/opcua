@@ -1,5 +1,5 @@
 use std;
-use std::io::{Read, Write, Result, Error, ErrorKind};
+use std::io::{Read, Write, Cursor, Result, Error, ErrorKind};
 
 use types::*;
 
@@ -373,42 +373,113 @@ impl BinaryEncoder<Guid> for Guid {
 
     fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
         let mut size: usize = 0;
-        size += write_u32(stream, self.data1)?;
-        size += write_u16(stream, self.data2)?;
-        size += write_u16(stream, self.data3)?;
-        size += stream.write(&self.data4)?;
-        assert_eq!(size, self.byte_len());
+        let data = [(self.data1 >> 0) as u8,
+            (self.data1 >> 8) as u8,
+            (self.data1 >> 16) as u8,
+            (self.data1 >> 24) as u8,
+            (self.data2 >> 0) as u8,
+            (self.data2 >> 8) as u8,
+            (self.data3 >> 0) as u8,
+            (self.data3 >> 8) as u8,
+            self.data4[0], self.data4[1], self.data4[2], self.data4[3], self.data4[4], self.data4[5], self.data4[6], self.data4[7]
+        ];
+        size += stream.write(&data)?;
         Ok(size)
     }
 
     fn decode<S: Read>(stream: &mut S) -> Result<Self> {
-        let data1 = read_u32(stream)?;
-        let data2 = read_u16(stream)?;
-        let data3 = read_u16(stream)?;
-        let mut data4: [u8; 8] = [0; 8];
-        stream.read_exact(&mut data4)?;
+        let mut data: [u8; 16] = [0u8; 16];
+        stream.read_exact(&mut data)?;
+        let data1: UInt32 = (data[0] as UInt32).wrapping_shl(0) + (data[1] as UInt32).wrapping_shl(8) + (data[2] as UInt32).wrapping_shl(16) + (data[3] as UInt32).wrapping_shl(24);
+        let data2: UInt16 = (data[4] as UInt16).wrapping_shl(0) + (data[5] as UInt16).wrapping_shl(8);
+        let data3: UInt16 = (data[6] as UInt16).wrapping_shl(0) + (data[7] as UInt16).wrapping_shl(8);
+        let data4 = [data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]];
         Ok(Guid { data1: data1, data2: data2, data3: data3, data4: data4, })
     }
 }
 
-impl Guid {
-    pub fn parse_str(s: &str) {
-        // lazy_static! {
-        // static ref RE: Regex = Regex::new(r"^([0-9a-f]{8})-([0-9a-f]{4}-([0-9a-f]{4}-([0-9a-f]{12})))$").unwrap();
-        // }
-    }
+const SIMPLE_LENGTH: usize = 32;
+const HYPHENATED_LENGTH: usize = 36;
 
-    pub fn from_fields(data1: u32, data2: u16, data3: u16, data4: &[u8]) -> std::result::Result<Guid, ()> {
-        if data4.len() != 8 {
-            Err(())
-        } else {
-            Ok(Guid {
-                data1: data1,
-                data2: data2,
-                data3: data3,
-                data4: [data4[0], data4[1], data4[2], data4[3], data4[4], data4[5], data4[6], data4[7]],
-            })
+// Accumulated length of each hyphenated group in hex digits.
+const ACC_GROUP_LENS: [u8; 5] = [8, 12, 16, 20, 32];
+
+impl Guid {
+    pub fn parse_str(input: &str) -> std::result::Result<Guid, ()> {
+        // Adapted from Uuid::parse_str - https://github.com/rust-lang-nursery/uuid/blob/master/src/lib.rs
+        // Main difference is we decode the Guid from the buffer at the end and there are no error
+        // codes
+
+        let len = input.len();
+        if len != SIMPLE_LENGTH && len != HYPHENATED_LENGTH {
+            return Err(());
         }
+
+        let mut digit = 0;
+        let mut group = 0;
+        let mut acc = 0;
+        let mut buffer = [0u8; 16];
+
+        for (i_char, chr) in input.chars().enumerate() {
+            if digit as usize >= SIMPLE_LENGTH && group == 0 {
+                return Err(());
+            }
+            if digit % 2 == 0 {
+                // First digit of the byte.
+                match chr {
+                    // Calculate upper half.
+                    '0' ... '9' => acc = chr as u8 - '0' as u8,
+                    'a' ... 'f' => acc = chr as u8 - 'a' as u8 + 10,
+                    'A' ... 'F' => acc = chr as u8 - 'A' as u8 + 10,
+                    // Found a group delimiter
+                    '-' => {
+                        if ACC_GROUP_LENS[group] != digit {
+                            // Calculate how many digits this group consists of in the input.
+                            let found = if group > 0 {
+                                digit - ACC_GROUP_LENS[group - 1]
+                            } else {
+                                digit
+                            };
+                            return Err(());
+                        }
+                        // Next group, decrement digit, it is incremented again at the bottom.
+                        group += 1;
+                        digit -= 1;
+                    }
+                    _ => return Err(()),
+                }
+            } else {
+                // Second digit of the byte, shift the upper half.
+                acc *= 16;
+                match chr {
+                    '0' ... '9' => acc += chr as u8 - '0' as u8,
+                    'a' ... 'f' => acc += chr as u8 - 'a' as u8 + 10,
+                    'A' ... 'F' => acc += chr as u8 - 'A' as u8 + 10,
+                    '-' => {
+                        // The byte isn't complete yet.
+                        let found = if group > 0 {
+                            digit - ACC_GROUP_LENS[group - 1]
+                        } else {
+                            digit
+                        };
+                        return Err(());
+                    }
+                    _ => return Err(()),
+                }
+                buffer[(digit / 2) as usize] = acc;
+            }
+            digit += 1;
+        }
+
+        // Now check the last group.
+        if group != 0 && group != 4 {
+            return Err(());
+        } else if ACC_GROUP_LENS[4] != digit {
+            return Err(());
+        }
+
+        let mut stream = Cursor::new(&buffer);
+        Ok(Guid::decode(&mut stream).unwrap())
     }
 
     pub fn as_hyphenated_string(&self) -> String {

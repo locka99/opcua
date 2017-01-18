@@ -176,19 +176,21 @@ impl FromStr for NodeId {
         let v = captures.name("v").unwrap();
         let node_id = match t.as_str() {
             "i" => {
-                let parse_result = v.as_str().parse::<UInt64>();
-                if parse_result.is_err() {
+                let number = v.as_str().parse::<UInt64>();
+                if number.is_err() {
                     return Err(&BAD_NODE_ID_INVALID)
                 }
-                NodeId::new_numeric(namespace, parse_result.unwrap())
+                NodeId::new_numeric(namespace, number.unwrap())
             },
             "s" => {
                 NodeId::new_string(namespace, UAString::from_str(v.as_str()))
             },
             "g" => {
-                // NodeId::new_guid(namespace, Guid::from_str(v.as_str()))
-                error!("Guid parsing needs to be implemented");
-                return Err(&BAD_NODE_ID_INVALID);
+                let guid = Guid::parse_str(v.as_str());
+                if guid.is_err() {
+                    return Err(&BAD_NODE_ID_INVALID)
+                }
+                NodeId::new_guid(namespace, guid.unwrap())
             },
             "b" => {
                 // Parse hex back into bytes

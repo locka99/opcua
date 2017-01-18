@@ -44,11 +44,11 @@ fn parse_node_id() {
     assert_eq!(node_id.identifier, Identifier::String(UAString::from_str("No NS this time")));
 
     // Guid
-/*    let node_id = NodeId::from_str("g=09087e75-8e5e-499b-954f-f2a9603db28a");
+    let node_id = NodeId::from_str("g=72962B91-FA75-4ae6-8D28-B404DC7DAF63");
     assert_eq!(node_id.is_ok(), true);
     let node_id = node_id.unwrap();
     assert_eq!(node_id.namespace, 0);
-    assert_eq!(node_id.identifier, Identifier::Guid(Guid::from_fields(0x09087e75, 0x8e5e, 0x499b, &[0x95, 0x4f, 0xf2, 0xa9, 0x60, 0x3d, 0xb2, 0x8a]).unwrap()));
-*/
+    assert_eq!(node_id.identifier, Identifier::Guid(Guid::parse_str("72962B91-FA75-4ae6-8D28-B404DC7DAF63").unwrap()));
+
     // TODO bytestring
 }
