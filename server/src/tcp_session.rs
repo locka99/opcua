@@ -288,11 +288,10 @@ impl TcpSession {
                 SupportedMessage::OpenSecureChannelResponse(TcpSession::process_open_secure_channel(&session, &message)?)
             },
             ChunkMessageType::CloseSecureChannel => {
-                debug!("Unimplemented - CloseSecureChannel");
-                return Err(&BAD_UNEXPECTED_ERROR);
+                SupportedMessage::CloseSecureChannelResponse(TcpSession::process_close_secure_channel(&session, &message)?)
             },
             ChunkMessageType::Message => {
-                let mut session = session.lock().unwrap();
+                let session = session.lock().unwrap();
                 session.message_handler.handle_message(&message)?
             }
         };
@@ -361,6 +360,25 @@ impl TcpSession {
         };
 
         debug!("Sending OpenSecureChannelResponse {:#?}", response);
+        Ok(response)
+    }
+
+    fn process_close_secure_channel(session: &Arc<Mutex<TcpSession>>, message: &SupportedMessage) -> std::result::Result<CloseSecureChannelResponse, &'static StatusCode> {
+        let request = match *message {
+            SupportedMessage::CloseSecureChannelRequest(ref request) => {
+                info!("Got close secure channel request");
+                request
+            },
+            _ => {
+                error!("message is not a close secure channel request, got {:?}", message);
+                return Err(&BAD_UNEXPECTED_ERROR);
+            }
+        };
+
+        let now = DateTime::now();
+        let response = CloseSecureChannelResponse {
+            response_header: ResponseHeader::new(&now, request.request_header.request_handle),
+        };
         Ok(response)
     }
 }

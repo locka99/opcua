@@ -180,6 +180,7 @@ pub struct EndpointDescription {
     pub server: ApplicationDescription,
     pub server_certificate: ApplicationInstanceCertificate,
     pub security_mode: MessageSecurityMode,
+    pub security_policy_uri: UAString,
     pub user_identity_tokens: Option<Vec<UserTokenPolicy>>,
     pub transport_profile_uri: UAString,
     pub security_level: Byte
@@ -192,6 +193,7 @@ impl BinaryEncoder<EndpointDescription> for EndpointDescription {
         size += self.server.byte_len();
         size += self.server_certificate.byte_len();
         size += self.security_mode.byte_len();
+        size += self.security_policy_uri.byte_len();
         size += byte_len_array(&self.user_identity_tokens);
         size += self.transport_profile_uri.byte_len();
         size += self.security_level.byte_len();
@@ -204,6 +206,7 @@ impl BinaryEncoder<EndpointDescription> for EndpointDescription {
         size += self.server.encode(stream)?;
         size += self.server_certificate.encode(stream)?;
         size += self.security_mode.encode(stream)?;
+        size += self.security_policy_uri.encode(stream)?;
         size += write_array(stream, &self.user_identity_tokens)?;
         size += self.transport_profile_uri.encode(stream)?;
         size += self.security_level.encode(stream)?;

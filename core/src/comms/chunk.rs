@@ -663,11 +663,12 @@ impl Chunker {
 
         let decoded_message = SupportedMessage::decode_by_object_id(&mut chunk_body_stream, object_id);
         if decoded_message.is_err() {
+            debug!("Can't decode message {:?}", object_id);
             return Err(&BAD_SERVICE_UNSUPPORTED)
         }
         let decoded_message = decoded_message.unwrap();
         if let SupportedMessage::Invalid(_) = decoded_message {
-            debug!("Message is unsupported");
+            debug!("Message {:?} is unsupported", object_id);
             return Err(&BAD_SERVICE_UNSUPPORTED);
         }
 
