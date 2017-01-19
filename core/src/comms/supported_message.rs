@@ -3,8 +3,6 @@ use std::io::{Read, Write, Result};
 use types::*;
 use services::*;
 use services::secure_channel::*;
-use services::discovery::*;
-use comms::*;
 
 // This macro helps avoid tedious repetition as new messages are added
 
@@ -35,7 +33,7 @@ macro_rules! supported_messages {
                 }
             }
 
-            fn decode<S: Read>(stream: &mut S) -> Result<SupportedMessage> {
+            fn decode<S: Read>(_: &mut S) -> Result<SupportedMessage> {
                 // THIS WILL NOT DO ANYTHING
                 panic!("Cannot decode a stream to a supported message type");
             }

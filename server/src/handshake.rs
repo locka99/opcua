@@ -75,14 +75,25 @@ impl MessageHeader {
             return Err(Error::new(ErrorKind::Other, "Message type is not recognized, cannot read bytes"))
         }
         let message_size = UInt32::decode(stream)?;
+
+        // Write header to stream
         let mut out = Cursor::new(Vec::with_capacity(message_size as usize));
-        out.write(&header);
-        message_size.encode(&mut out);
+        let result = out.write(&header);
+        if result.is_err() {
+            return Err(Error::new(ErrorKind::Other, "Cannot write message header to buffer "));
+        }
+
+        let result = message_size.encode(&mut out);
+        if result.is_err() {
+            return Err(Error::new(ErrorKind::Other, "Cannot write message size to buffer "));
+        }
+
         let pos = out.position() as usize;
         // Read remaining bytes straight into the vec
         let mut result = out.into_inner();
         result.resize(message_size as usize, 0u8);
         stream.read_exact(&mut result[pos..])?;
+
         Ok(result)
     }
 
@@ -122,21 +133,29 @@ pub struct HelloMessage {
 
 impl BinaryEncoder<HelloMessage> for HelloMessage {
     fn byte_len(&self) -> usize {
+        // 5 * u32 = 20
         self.message_header.byte_len() + 20 + self.endpoint_url.byte_len()
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
-        // TODO client
-        unimplemented!();
+        let mut size = 0;
+        size += self.message_header.encode(stream)?;
+        size += self.protocol_version.encode(stream)?;
+        size += self.receive_buffer_size.encode(stream)?;
+        size += self.send_buffer_size.encode(stream)?;
+        size += self.max_message_size.encode(stream)?;
+        size += self.max_chunk_count.encode(stream)?;
+        size += self.endpoint_url.encode(stream)?;
+        Ok(size)
     }
 
     fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let message_header = MessageHeader::decode(stream)?;
-        let protocol_version = read_u32(stream)?;
-        let receive_buffer_size = read_u32(stream)?;
-        let send_buffer_size = read_u32(stream)?;
-        let max_message_size = read_u32(stream)?;
-        let max_chunk_count = read_u32(stream)?;
+        let protocol_version = UInt32::decode(stream)?;
+        let receive_buffer_size = UInt32::decode(stream)?;
+        let send_buffer_size = UInt32::decode(stream)?;
+        let max_message_size = UInt32::decode(stream)?;
+        let max_chunk_count = UInt32::decode(stream)?;
         let endpoint_url = UAString::decode(stream)?;
         Ok(HelloMessage {
             message_header: message_header,

@@ -74,7 +74,7 @@ impl BinaryEncoder<ApplicationDescription> for ApplicationDescription {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+    fn decode<S: Read>(_: &mut S) -> Result<Self> {
         // This impl should be overridden
         unimplemented!()
     }
@@ -162,12 +162,12 @@ impl BinaryEncoder<UserTokenPolicy> for UserTokenPolicy {
         unimplemented!();
     }
 
-    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, _: &mut S) -> Result<usize> {
         // This impl should be overridden
         unimplemented!()
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+    fn decode<S: Read>(_: &mut S) -> Result<Self> {
         // This impl should be overridden
         unimplemented!()
     }
@@ -214,7 +214,7 @@ impl BinaryEncoder<EndpointDescription> for EndpointDescription {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+    fn decode<S: Read>(_: &mut S) -> Result<Self> {
         // This impl should be overridden
         unimplemented!()
     }

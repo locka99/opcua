@@ -3,7 +3,7 @@ use comms::*;
 use services::*;
 use services::secure_channel::*;
 
-use std::io::{Read, Write, Result, Cursor};
+use std::io::{Cursor};
 
 use super::*;
 
@@ -41,13 +41,11 @@ fn sample_secure_channel_request_data_security_none() -> Chunk {
 fn test_chunk_open_secure_channel() {
     let _ = Test::setup();
 
-    let mut chunker = Chunker::new();
-
     let chunk = sample_secure_channel_request_data_security_none();
     let chunks = vec![chunk];
 
     debug!("Decoding original chunks");
-    let request = chunker.decode(&chunks, None).unwrap();
+    let request = Chunker::decode(&chunks, None).unwrap();
     let request = match request {
         SupportedMessage::OpenSecureChannelRequest(request) => request,
         _ => { panic!("Not a OpenSecureChannelRequest"); }
@@ -67,13 +65,11 @@ fn test_chunk_open_secure_channel() {
         security_policy: SecurityPolicy::None,
         secure_channel_id: 1,
     };
-    let chunks = chunker.encode(1, &secure_channel_info, &SupportedMessage::OpenSecureChannelRequest(request.clone())).unwrap();
+    let chunks = Chunker::encode(1, 1, &secure_channel_info, &SupportedMessage::OpenSecureChannelRequest(request.clone())).unwrap();
     assert_eq!(chunks.len(), 1);
 
     debug!("Decoding to compare the new version");
-    chunker.last_decoded_sequence_number = -1;
-
-    let new_request = chunker.decode(&chunks, None).unwrap();
+    let new_request = Chunker::decode(&chunks, None).unwrap();
     let new_request = match new_request {
         SupportedMessage::OpenSecureChannelRequest(new_request) => new_request,
         _ => { panic!("Not a OpenSecureChannelRequest"); }
@@ -99,8 +95,16 @@ fn test_open_secure_channel_response() {
     let mut stream = Cursor::new(chunk);
     let chunk = Chunk::decode(&mut stream).unwrap();
 
-    let mut chunker = Chunker::new();
-    let message = chunker.decode(&vec![chunk], None).unwrap();
+    let message = Chunker::decode(&vec![chunk], None).unwrap();
+    debug!("message = {:#?}", message);
+    let response = match message {
+        SupportedMessage::OpenSecureChannelResponse(response) => response,
+        _ => { panic!("Not a OpenSecureChannelResponse"); }
+    };
+    assert_eq!(response.response_header.request_handle, 0);
+    assert_eq!(response.response_header.service_result, GOOD);
+    assert_eq!(response.response_header.string_table, UAString::null());
+    assert_eq!(response.server_nonce, UAString::null());
 }
 
 // Encode open secure channel back to itself and compare

@@ -38,16 +38,18 @@ pub struct TcpSession {
     //    pub incoming_queue: Ve
     //    pub outgoing_queue: Vec<Box<u8>>,
     pub session_config: SessionConfig,
-    /// Chunker for encoding / decoding stuff
-    pub chunker: Chunker,
+    /// Message handler
+    pub message_handler: MessageHandler,
     /// Client protocol version set during HELLO
     pub client_protocol_version: UInt32,
     // Last secure channel id
     pub last_secure_channel_id: UInt32,
     // Secure channel info for the session
     pub secure_channel_info: SecureChannelInfo,
-    /// Message handler
-    pub message_handler: MessageHandler,
+    /// Last encoded sequence number
+    pub last_encoded_sequence_number: Int32,
+    /// Last decoded sequence number
+    pub last_decoded_sequence_number: Int32,
 }
 
 impl TcpSession {
@@ -55,7 +57,6 @@ impl TcpSession {
         TcpSession {
             session_state: SessionState::New,
             session_config: session_config,
-            chunker: Chunker::new(),
             client_protocol_version: 0,
             last_secure_channel_id: 0,
             secure_channel_info: SecureChannelInfo {
@@ -63,6 +64,8 @@ impl TcpSession {
                 secure_channel_id: 0,
             },
             message_handler: MessageHandler::new(),
+            last_encoded_sequence_number: -1,
+            last_decoded_sequence_number: -1,
         }
     }
 
@@ -80,7 +83,7 @@ impl TcpSession {
         }
 
         // Short timeout makes it work like a polling loop
-        let polling_timeout: std::time::Duration = std::time::Duration::from_millis(50);
+        let polling_timeout: std::time::Duration = std::time::Duration::from_millis(200);
         stream.set_read_timeout(Some(polling_timeout));
 
         let mut in_buf = vec![0u8; RECEIVE_BUFFER_SIZE];
@@ -262,7 +265,18 @@ impl TcpSession {
 
     pub fn chunks_to_message(session: &Arc<Mutex<TcpSession>>, chunks: &Vec<Chunk>) -> std::result::Result<SupportedMessage, &'static StatusCode> {
         let mut session = session.lock().unwrap();
-        session.chunker.decode(&chunks, None)
+
+        let chunk_info = chunks[0].chunk_info(true, Option::None)?;
+        debug!("Chunker::decode chunk_info = {:?}", chunk_info);
+
+        // Check the sequence id - should be larger than the last one decoded
+        if chunk_info.sequence_header.sequence_number as Int32 <= session.last_decoded_sequence_number {
+            error!("Chunk has a sequence number of {} which is less than last deoded sequence number of {}", chunk_info.sequence_header.sequence_number, session.last_decoded_sequence_number);
+            return Err(&BAD_SEQUENCE_NUMBER_INVALID);
+        }
+        session.last_decoded_sequence_number = chunk_info.sequence_header.sequence_number as Int32;
+
+        Chunker::decode(&chunks, None)
     }
 
     pub fn process_chunk<R: Read, W: Write>(session: &Arc<Mutex<TcpSession>>, in_stream: &mut R, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
@@ -303,7 +317,10 @@ impl TcpSession {
             let chunk_info = in_chunks[0].chunk_info(true, Some(&mut secure_channel_info))?;
             let request_id = chunk_info.sequence_header.request_id;
 
-            let out_chunks = session.chunker.encode(request_id, &secure_channel_info, &response)?;
+            let sequence_number = (session.last_encoded_sequence_number + 1) as UInt32;
+            session.last_encoded_sequence_number = sequence_number as Int32;
+
+            let out_chunks = Chunker::encode(sequence_number, request_id, &secure_channel_info, &response)?;
             session.secure_channel_info = secure_channel_info;
 
             // Send out any chunks that form the response

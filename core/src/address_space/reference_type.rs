@@ -8,10 +8,10 @@ pub enum Reference {
 }
 
 pub struct ReferenceType {
-    base_node: BaseNode,
-    symmetric: bool,
-    inverse_name: String,
-    is_abstract: bool,
+    pub base_node: BaseNode,
+    pub symmetric: bool,
+    pub inverse_name: String,
+    pub is_abstract: bool,
 }
 
 node_impl!(ReferenceType, NodeClass::ReferenceType);

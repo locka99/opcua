@@ -420,7 +420,7 @@ impl Guid {
         let mut acc = 0;
         let mut buffer = [0u8; 16];
 
-        for (i_char, chr) in input.chars().enumerate() {
+        for (_, chr) in input.chars().enumerate() {
             if digit as usize >= SIMPLE_LENGTH && group == 0 {
                 return Err(());
             }
@@ -435,11 +435,6 @@ impl Guid {
                     '-' => {
                         if ACC_GROUP_LENS[group] != digit {
                             // Calculate how many digits this group consists of in the input.
-                            let found = if group > 0 {
-                                digit - ACC_GROUP_LENS[group - 1]
-                            } else {
-                                digit
-                            };
                             return Err(());
                         }
                         // Next group, decrement digit, it is incremented again at the bottom.
@@ -457,11 +452,6 @@ impl Guid {
                     'A' ... 'F' => acc += chr as u8 - 'A' as u8 + 10,
                     '-' => {
                         // The byte isn't complete yet.
-                        let found = if group > 0 {
-                            digit - ACC_GROUP_LENS[group - 1]
-                        } else {
-                            digit
-                        };
                         return Err(());
                     }
                     _ => return Err(()),

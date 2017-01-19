@@ -1,6 +1,5 @@
 use types::*;
 use services::*;
-use services::discovery::*;
 
 use super::*;
 
