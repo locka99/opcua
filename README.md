@@ -14,7 +14,9 @@ https://opensource.org/licenses/MPL-2.0
 
 # Current progress
 
-Phase 0 - just building the fundamentals
+Phase 0 
+  - hello, acknowledge, basic chunking, fundamental types, serialization, schema generators are done
+  TODO - sessions, address space browsing, values
 
 # OPC UA for Rust?
 
