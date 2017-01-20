@@ -9,7 +9,7 @@ pub enum Identifier {
     Numeric(UInt64),
     String(UAString),
     Guid(Guid),
-    ByteString(UAString),
+    ByteString(ByteString),
 }
 
 /// An identifier for a node in the address space of an OPC UA Server.
@@ -248,12 +248,8 @@ impl NodeId {
                 if value.is_null() {
                     "null".to_string()
                 } else {
-                    let value = value.to_string();
-                    let mut encoded = String::new();
-                    for b in value.as_bytes() {
-                        encoded.push_str(&format!("{:02x}", b));
-                    }
-                    format!("b={}", encoded)
+                    // Base64 encode bytes
+                    format!("b=implementme", )
                 }
             }
         });

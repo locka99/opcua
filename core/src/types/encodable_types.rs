@@ -311,7 +311,9 @@ impl BinaryEncoder<UAString> for UAString {
         let mut string_buf: Vec<u8> = Vec::with_capacity(buf_len as usize);
         string_buf.resize(buf_len as usize, 0u8);
         stream.read_exact(&mut string_buf)?;
-        Ok(UAString { value: Some(String::from_utf8(string_buf).unwrap()) })
+        Ok(UAString {
+            value: Some(String::from_utf8(string_buf).unwrap())
+        })
     }
 }
 
@@ -479,8 +481,65 @@ impl Guid {
 }
 
 /// A sequence of octets.
-/// Data type ID 15
-pub type ByteString = UAString;
+#[derive(PartialEq, Debug, Clone)]
+pub struct ByteString {
+    pub value: Option<Vec<u8>>,
+}
+
+impl BinaryEncoder<ByteString> for ByteString {
+    fn byte_len(&self) -> usize {
+        // Length plus the actual length of bytes (if not null)
+        4 + if self.value.is_none() { 0 } else { self.value.as_ref().unwrap().len() }
+    }
+
+    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+        // Strings are uncoded as UTF8 chars preceded by an Int32 length. A -1 indicates a null string
+        if self.value.is_none() {
+            write_i32(stream, -1)
+        } else {
+            let mut size: usize = 0;
+            let value = self.value.as_ref().unwrap();
+            size += write_i32(stream, value.len() as i32)?;
+            size += stream.write(value)?;
+            assert_eq!(size, self.byte_len());
+            Ok(size)
+        }
+    }
+
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+        let buf_len = Int32::decode(stream)?;
+        // Null string?
+        if buf_len == -1 {
+            return Ok(ByteString::null());
+        } else if buf_len < -1 {
+            error!("ByteString buf length is a negative number {}", buf_len);
+            return Err(Error::new(ErrorKind::Other, format!("ByteString buf length {} is a negative number", buf_len)));
+        } else if buf_len > MAX_STRING_SIZE {
+            error!("ByteString buf length is probably invalid number {}", buf_len);
+            return Err(Error::new(ErrorKind::Other, format!("ByteString buf length looks to be excessive {}", buf_len)));
+        }
+
+        // Create the actual UTF8 string
+        let mut string_buf: Vec<u8> = Vec::with_capacity(buf_len as usize);
+        string_buf.resize(buf_len as usize, 0u8);
+        stream.read_exact(&mut string_buf)?;
+        Ok(ByteString {
+            value: Some(string_buf)
+        })
+    }
+}
+
+impl ByteString {
+    /// Create a null string (not the same as an empty string)
+    pub fn null() -> ByteString {
+        ByteString { value: None }
+    }
+
+    /// Test if the string is null
+    pub fn is_null(&self) -> bool {
+        self.value.is_none()
+    }
+}
 
 /// An XML element.
 /// Data type ID 16
@@ -513,7 +572,7 @@ impl BinaryEncoder<QualifiedName> for QualifiedName {
         let mut size: usize = 0;
         size += self.namespace_index.encode(stream)?;
         size += self.name.encode(stream)?;
-        assert_eq!(size, self.byte_len());
+        assert_eq! (size, self.byte_len());
         Ok(size)
     }
 
@@ -686,13 +745,6 @@ impl ExtensionObject {
             body: ExtensionObjectEncoding::None,
         }
     }
-
-    pub fn from_str(node_id: NodeId, value: &str) -> ExtensionObject {
-        ExtensionObject {
-            node_id: node_id,
-            body: ExtensionObjectEncoding::ByteString(ByteString::from_str(value)),
-        }
-    }
 }
 
 // Data type ID 23 is in data_value.rs
@@ -715,22 +767,17 @@ mod DiagnosticInfoMask {
 pub struct DiagnosticInfo {
     /// A symbolic name for the status code.
     pub symbolic_id: Option<Int32>,
-
     /// A namespace that qualifies the symbolic id.
     pub namespace_uri: Option<Int32>,
-
     /// The locale used for the localized text.
     pub locale: Option<Int32>,
-
     /// A human readable summary of the status code.
     pub localized_text: Option<Int32>,
-
     /// Detailed application specific diagnostic information.
     pub additional_info: Option<UAString>,
 
     /// A status code provided by an underlying system.
     pub inner_status_code: Option<StatusCode>,
-
     /// Diagnostic info associated with the inner status code.
     pub inner_diagnostic_info: Option<Box<DiagnosticInfo>>,
 }

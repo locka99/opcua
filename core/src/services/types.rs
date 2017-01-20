@@ -449,7 +449,7 @@ impl BinaryEncoder<SignatureData> for SignatureData {
     }
 
     fn decode<S: Read>(stream: &mut S) -> Result<Self> {
-        let algorithm = ByteString::decode(stream)?;
+        let algorithm = UAString::decode(stream)?;
         let signature = ByteString::decode(stream)?;
         Ok(SignatureData {
             algorithm: algorithm,
