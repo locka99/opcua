@@ -2,12 +2,15 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use opcua_core::types::*;
+
 use tcp_session::{TcpSession};
 
 use config::{ServerConfig};
 
 pub struct ServerState {
     pub config: ServerConfig,
+    pub server_certificate: ByteString,
 }
 
 /// The Server represents a running instance of OPC UA. There can be more than one server running
@@ -27,6 +30,7 @@ impl Server {
         Server {
             server_state: Arc::new(Mutex::new(ServerState {
                 config: config.clone(),
+                server_certificate: ByteString::null(),
             })),
             abort: false,
             sessions: Vec::new()

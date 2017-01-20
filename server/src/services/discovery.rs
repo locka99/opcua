@@ -4,6 +4,8 @@ use opcua_core::types::*;
 use opcua_core::services::*;
 use opcua_core::comms::*;
 
+use server::ServerState;
+
 pub struct DiscoveryService {}
 
 impl DiscoveryService {
@@ -11,10 +13,15 @@ impl DiscoveryService {
         DiscoveryService {}
     }
 
-    pub fn handle_get_endpoints_request(&self, request: &GetEndpointsRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn handle_get_endpoints_request(&self, server_state: &mut ServerState, request: &GetEndpointsRequest) -> Result<SupportedMessage, &'static StatusCode> {
         debug!("handle_get_endpoints_request");
 
-        // TODO get from session
+        // server_state.get_endpoints().clone()
+        // TODO get from server state
+
+        let server_certificate = server_state.server_certificate.clone();
+
+
         let endpoint = EndpointDescription {
             endpoint_url: UAString::from_str("opc.tcp://127.0.0.1:1234/xxx"),
             server: ApplicationDescription {
@@ -29,7 +36,7 @@ impl DiscoveryService {
                 discovery_profile_uri: UAString::null(),
                 discovery_urls: None,
             },
-            server_certificate: ByteString::null(),
+            server_certificate: server_certificate,
             security_mode: MessageSecurityMode::None,
             security_policy_uri: SecurityPolicy::None.to_string(),
             user_identity_tokens: None,

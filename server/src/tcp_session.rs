@@ -21,18 +21,28 @@ const MAX_MESSAGE_SIZE: usize = 32768;
 const MAX_CHUNK_COUNT: usize = 1;
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum SessionState {
+pub enum TcpSessionState {
     New,
     WaitingHello,
     ProcessMessages,
     Finished
 }
 
+pub struct OpenSession {
+
+}
+
+pub struct SessionState {
+    open_session: Option<OpenSession>
+
+}
+
 pub struct TcpSession {
     // Server state, address space etc.
     pub server_state: Arc<Mutex<ServerState>>,
+    /// Session state is anything related to this connection
     /// The current session state
-    pub session_state: SessionState,
+    pub tcp_session_state: TcpSessionState,
     /// Message handler
     pub message_handler: MessageHandler,
     /// Client protocol version set during HELLO
@@ -51,7 +61,7 @@ impl TcpSession {
     pub fn new(server_state: &Arc<Mutex<ServerState>>) -> TcpSession {
         TcpSession {
             server_state: server_state.clone(),
-            session_state: SessionState::New,
+            tcp_session_state: TcpSessionState::New,
             client_protocol_version: 0,
             last_secure_channel_id: 0,
             secure_channel_info: SecureChannelInfo {
@@ -59,7 +69,7 @@ impl TcpSession {
                 secure_channel_id: 0,
                 token_id: 0,
             },
-            message_handler: MessageHandler::new(),
+            message_handler: MessageHandler::new(server_state),
             last_sent_sequence_number: 0,
             last_received_sequence_number: 0,
         }
@@ -74,7 +84,7 @@ impl TcpSession {
         // Waiting for hello
         {
             let mut session = session.lock().unwrap();
-            session.session_state = SessionState::WaitingHello;
+            session.tcp_session_state = TcpSessionState::WaitingHello;
         }
 
         // Hello timeout
@@ -106,12 +116,12 @@ impl TcpSession {
         loop {
             let session_state = {
                 let session = session.lock().unwrap();
-                session.session_state.clone()
+                session.tcp_session_state.clone()
             };
 
             // Session waits a configurable time for a hello and terminates if it fails to receive it
             let now = UTC::now();
-            if session_state == SessionState::WaitingHello {
+            if session_state == TcpSessionState::WaitingHello {
                 if now - session_start_time > hello_timeout {
                     error!("Session timed out waiting for hello");
                     session_status_code = BAD_TIMEOUT.clone();
@@ -144,14 +154,14 @@ impl TcpSession {
 
             let mut in_buf_stream = Cursor::new(&in_buf[0..bytes_read]);
             match session_state {
-                SessionState::WaitingHello => {
+                TcpSessionState::WaitingHello => {
                     debug!("Processing HELLO");
                     let result = TcpSession::process_hello(&session, &mut in_buf_stream, &mut out_buf_stream);
                     if result.is_err() {
                         session_status_code = result.unwrap_err().clone();
                     }
                 },
-                SessionState::ProcessMessages => {
+                TcpSessionState::ProcessMessages => {
                     debug!("Processing message");
                     let result = TcpSession::process_chunk(&session, &mut in_buf_stream, &mut out_buf_stream);
                     if result.is_err() {
@@ -189,7 +199,7 @@ impl TcpSession {
         // Session state
         {
             let mut session = session.lock().unwrap();
-            session.session_state = SessionState::Finished;
+            session.tcp_session_state = TcpSessionState::Finished;
         }
 
         let session_duration = UTC::now() - session_start_time;
@@ -276,7 +286,7 @@ impl TcpSession {
 
         {
             let mut session = session.lock().unwrap();
-            session.session_state = SessionState::ProcessMessages;
+            session.tcp_session_state = TcpSessionState::ProcessMessages;
             session.client_protocol_version = client_protocol_version;
         }
 
