@@ -1,7 +1,6 @@
 use types::*;
 use comms::*;
 use services::*;
-use services::secure_channel::*;
 
 use std::io::{Cursor};
 
@@ -44,8 +43,10 @@ fn test_chunk_open_secure_channel() {
     let chunk = sample_secure_channel_request_data_security_none();
     let chunks = vec![chunk];
 
+    let secure_channel_info = SecureChannelInfo::new();
+
     debug!("Decoding original chunks");
-    let request = Chunker::decode(&chunks, None).unwrap();
+    let request = Chunker::decode(&chunks, &secure_channel_info, None).unwrap();
     let request = match request {
         SupportedMessage::OpenSecureChannelRequest(request) => request,
         _ => { panic!("Not a OpenSecureChannelRequest"); }
@@ -61,15 +62,12 @@ fn test_chunk_open_secure_channel() {
 
     // Encode the message up again to chunks, decode and compare to original
     debug!("Encoding back to chunks");
-    let secure_channel_info = SecureChannelInfo {
-        security_policy: SecurityPolicy::None,
-        secure_channel_id: 1,
-    };
+
     let chunks = Chunker::encode(1, 1, &secure_channel_info, &SupportedMessage::OpenSecureChannelRequest(request.clone())).unwrap();
     assert_eq!(chunks.len(), 1);
 
     debug!("Decoding to compare the new version");
-    let new_request = Chunker::decode(&chunks, None).unwrap();
+    let new_request = Chunker::decode(&chunks, &secure_channel_info, None).unwrap();
     let new_request = match new_request {
         SupportedMessage::OpenSecureChannelRequest(new_request) => new_request,
         _ => { panic!("Not a OpenSecureChannelRequest"); }
@@ -92,10 +90,13 @@ fn test_open_secure_channel_response() {
 
     let _ = Test::setup();
 
+    let secure_channel_info = SecureChannelInfo::new();
+
     let mut stream = Cursor::new(chunk);
     let chunk = Chunk::decode(&mut stream).unwrap();
+    let chunks = vec![chunk];
 
-    let message = Chunker::decode(&vec![chunk], None).unwrap();
+    let message = Chunker::decode(&chunks, &secure_channel_info, None).unwrap();
     debug!("message = {:#?}", message);
     let response = match message {
         SupportedMessage::OpenSecureChannelResponse(response) => response,
@@ -103,7 +104,7 @@ fn test_open_secure_channel_response() {
     };
     assert_eq!(response.response_header.request_handle, 0);
     assert_eq!(response.response_header.service_result, GOOD);
-    assert_eq!(response.response_header.string_table, UAString::null());
+    assert_eq!(response.response_header.string_table.is_none(), true);
     assert_eq!(response.server_nonce, UAString::null());
 }
 
@@ -139,12 +140,12 @@ fn test_open_secure_channel() {
             request_handle: 444,
             service_result: BAD_PROTOCOL_VERSION_UNSUPPORTED.clone(),
             service_diagnostics: DiagnosticInfo::new(),
-            string_table: UAString::null(),
+            string_table: None,
             additional_header: ExtensionObject::null(),
         },
         server_protocol_version: 0,
         security_token: ChannelSecurityToken {
-            secure_channel_id: 1,
+            channel_id: 1,
             token_id: 2,
             created_at: DateTime::now(),
             revised_lifetime: 777,

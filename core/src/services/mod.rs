@@ -5,4 +5,6 @@ pub mod session;
 pub mod discovery;
 pub mod subscription;
 pub mod monitored_item;
-pub mod secure_channel;
+
+mod secure_channel;
+pub use self::secure_channel::*;

@@ -2,7 +2,6 @@ use std::io::{Read, Write, Result};
 
 use types::*;
 use services::*;
-use services::secure_channel::*;
 
 // This macro helps avoid tedious repetition as new messages are added
 
@@ -80,6 +79,15 @@ impl SupportedMessage {
             ObjectId::GetEndpointsRequest_Encoding_DefaultBinary => {
                 SupportedMessage::GetEndpointsRequest(GetEndpointsRequest::decode(stream)?)
             },
+            ObjectId::GetEndpointsResponse_Encoding_DefaultBinary => {
+                SupportedMessage::GetEndpointsResponse(GetEndpointsResponse::decode(stream)?)
+            },
+            ObjectId::CreateSessionRequest_Encoding_DefaultBinary => {
+                SupportedMessage::CreateSessionRequest(CreateSessionRequest::decode(stream)?)
+            },
+            ObjectId::CreateSessionResponse_Encoding_DefaultBinary => {
+                SupportedMessage::CreateSessionResponse(CreateSessionResponse::decode(stream)?)
+            },
             _ => {
                 debug!("decoding unsupported for object id {:?}", object_id);
                 SupportedMessage::Invalid(object_id)
@@ -98,5 +106,8 @@ supported_messages![
     CloseSecureChannelResponse,
     // Discovery service
     GetEndpointsRequest,
-    GetEndpointsResponse
+    GetEndpointsResponse,
+    // Session service
+    CreateSessionRequest,
+    CreateSessionResponse
 ];

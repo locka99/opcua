@@ -171,6 +171,7 @@ impl BinaryEncoder<HelloMessage> for HelloMessage {
 
 impl HelloMessage {
     pub fn is_endpoint_url_valid(&self) -> bool {
+        // TODO check server's endpoints
         if let Some(ref endpoint_url) = self.endpoint_url.value {
             if endpoint_url.len() > 4096 { false } else { true }
         } else {
@@ -251,7 +252,14 @@ impl BinaryEncoder<ErrorMessage> for ErrorMessage {
     }
 
     fn decode<S: Read>(stream: &mut S) -> Result<Self> {
-        unimplemented!();
+        let message_header = MessageHeader::decode(stream)?;
+        let error = UInt32::decode(stream)?;
+        let reason = UAString::decode(stream)?;
+        Ok(ErrorMessage {
+            message_header: message_header,
+            error: error,
+            reason: reason,
+        })
     }
 }
 

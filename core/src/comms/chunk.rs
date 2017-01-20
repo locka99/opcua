@@ -3,6 +3,7 @@ use std::io::{Read, Write, Result, Cursor};
 
 use debug::*;
 use types::*;
+use comms::*;
 
 const CHUNK_HEADER_SIZE: usize = 12;
 
@@ -73,13 +74,14 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
         size += write_u8(stream, chunk_type)?;
         size += write_u32(stream, self.message_size)?;
         size += write_u32(stream, self.secure_channel_id)?;
+        assert_eq!(size, self.byte_len());
         Ok(size)
     }
 
     fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let mut is_valid = true;
 
-        let mut message_type_code: [u8; 3] = [0, 0, 0];
+        let mut message_type_code = [0u8; 3];
         stream.read_exact(&mut message_type_code)?;
         let message_type = if message_type_code == HEADER_MSG {
             ChunkMessageType::Message
@@ -188,7 +190,7 @@ impl BinaryEncoder<SymmetricSecurityHeader> for SymmetricSecurityHeader {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AsymmetricSecurityHeader {
-    pub security_policy_uri: String,
+    pub security_policy_uri: UAString,
     pub sender_certificate: Vec<u8>,
     pub receiver_certificate_thumbprint: Vec<u8>,
 }
@@ -196,8 +198,7 @@ pub struct AsymmetricSecurityHeader {
 impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
     fn byte_len(&self) -> usize {
         let mut size = 0;
-        size += 4; // security_policy_uri
-        size += self.security_policy_uri.len();
+        size += self.security_policy_uri.byte_len();
         size += 4; // sender_certificate
         size += self.sender_certificate.len();
         size += 4; // receiver_certificate_thumbprint
@@ -207,31 +208,32 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
 
     fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
         let mut size = 0;
-        size += write_i32(stream, self.security_policy_uri.len() as Int32)?;
-        size += stream.write(self.security_policy_uri.as_bytes())?;
-        size += write_i32(stream, self.sender_certificate.len() as i32)?;
-        size += stream.write(&self.sender_certificate)?;
-        size += write_i32(stream, self.receiver_certificate_thumbprint.len() as i32)?;
-        size += stream.write(&self.receiver_certificate_thumbprint)?;
+        size += self.security_policy_uri.encode(stream)?;
+
+        // The spec says to write 0 or -1 when buf is empty but some clients don't like that one bit
+        if self.sender_certificate.len() > 0 {
+            size += write_i32(stream, self.sender_certificate.len() as i32)?;
+            size += stream.write(&self.sender_certificate)?;
+        }
+        else {
+            size += write_i32(stream, -1)?;
+        }
+
+        // The spec says to write 0 or -1 when buf is empty but some clients don't like that one bit
+        if  self.receiver_certificate_thumbprint.len() > 0 {
+            size += write_i32(stream, self.receiver_certificate_thumbprint.len() as i32)?;
+            size += stream.write(&self.receiver_certificate_thumbprint)?;
+        }
+        else {
+            size += write_i32(stream, -1)?;
+        }
+
+        assert_eq!(size, self.byte_len());
         Ok(size)
     }
 
     fn decode<S: Read>(stream: &mut S) -> Result<Self> {
-        let mut security_policy_uri = String::new();
-        {
-            // TODO this can be done by ByteString
-            let security_policy_uri_length = read_i32(stream)?;
-            // debug!("SecurityHeader::security_policy_uri_length = {:?}", security_policy_uri_length);
-
-            if security_policy_uri_length > 0 {
-                let buf_len = security_policy_uri_length;
-                let mut buf: Vec<u8> = Vec::with_capacity(buf_len as usize);
-                buf.resize(buf_len as usize, 0u8);
-                stream.read_exact(&mut buf)?;
-                security_policy_uri = String::from_utf8(buf).unwrap()
-            }
-        }
-        // debug!("SecurityHeader::security_policy_uri = {:?}", security_policy_uri);
+        let security_policy_uri = UAString::decode(stream)?;
 
         let mut sender_certificate: Vec<u8> = Vec::new();
         {
@@ -243,7 +245,6 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
                 stream.read_exact(&mut sender_certificate)?;
             }
         }
-        // debug!("SecurityHeader::sender_certificate = {:?}", sender_certificate);
 
         let mut receiver_certificate_thumbprint: Vec<u8> = Vec::new();
         {
@@ -255,7 +256,6 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
                 stream.read_exact(&mut receiver_certificate_thumbprint)?;
             }
         }
-        // debug!("SecurityHeader::receiver_certificate_thumbprint = {:?}", receiver_certificate_thumbprint);
 
         Ok(AsymmetricSecurityHeader {
             security_policy_uri: security_policy_uri,
@@ -268,7 +268,7 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
 impl AsymmetricSecurityHeader {
     pub fn none() -> AsymmetricSecurityHeader {
         AsymmetricSecurityHeader {
-            security_policy_uri: SecurityPolicy::None.to_uri().to_string(),
+            security_policy_uri: SecurityPolicy::None.to_string(),
             sender_certificate: Vec::new(),
             receiver_certificate_thumbprint: Vec::new(),
         }
@@ -301,62 +301,6 @@ impl BinaryEncoder<SequenceHeader> for SequenceHeader {
             request_id: request_id,
         })
     }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum SecurityPolicy {
-    Unknown,
-    None,
-    Basic128Rsa15,
-    Basic256,
-    Basic256Sha256,
-}
-
-const SECURITY_POLICY_NONE: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#None";
-const SECURITY_POLICY_BASIC128RSA15: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#Basic128Rsa15";
-const SECURITY_POLICY_BASIC256: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256";
-const SECURITY_POLICY_BASIC256SHA256: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256";
-
-impl SecurityPolicy {
-    pub fn to_uri(&self) -> &'static str {
-        match *self {
-            SecurityPolicy::None => SECURITY_POLICY_NONE,
-            SecurityPolicy::Basic128Rsa15 => SECURITY_POLICY_BASIC128RSA15,
-            SecurityPolicy::Basic256 => SECURITY_POLICY_BASIC256,
-            SecurityPolicy::Basic256Sha256 => SECURITY_POLICY_BASIC256SHA256,
-            _ => {
-                panic!("Shouldn't be turning an unknown policy into a uri");
-            }
-        }
-    }
-
-    pub fn from_uri(uri: &String) -> SecurityPolicy {
-        let uri = uri.as_str();
-        match uri {
-            SECURITY_POLICY_NONE => {
-                SecurityPolicy::None
-            },
-            SECURITY_POLICY_BASIC128RSA15 => {
-                SecurityPolicy::Basic128Rsa15
-            },
-            SECURITY_POLICY_BASIC256 => {
-                SecurityPolicy::Basic256
-            },
-            SECURITY_POLICY_BASIC256SHA256 => {
-                SecurityPolicy::Basic256Sha256
-            }
-            _ => {
-                error!("Specified security policy {} is not recognized", uri);
-                SecurityPolicy::Unknown
-            }
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct SecureChannelInfo {
-    pub security_policy: SecurityPolicy,
-    pub secure_channel_id: UInt32,
 }
 
 /// A chunk holds a part or the whole of a message. The chunk may be signed and encrypted. To
@@ -401,7 +345,7 @@ impl Chunk {
         })
     }
 
-    pub fn chunk_info(&self, is_first_chunk: bool, _: Option<&mut SecureChannelInfo>) -> std::result::Result<ChunkInfo, &'static StatusCode> {
+    pub fn chunk_info(&self, is_first_chunk: bool, _: &SecureChannelInfo) -> std::result::Result<ChunkInfo, &'static StatusCode> {
         {
             debug!("chunk_info() - chunk_body:");
             debug_buffer(&self.chunk_body);
@@ -417,7 +361,14 @@ impl Chunk {
                 return Err(&BAD_COMMUNICATION_ERROR)
             }
             let security_header = result.unwrap();
-            let security_policy = SecurityPolicy::from_uri(&security_header.security_policy_uri);
+
+            let security_policy = if security_header.security_policy_uri.is_null() {
+                SecurityPolicy::None
+            }
+            else {
+                SecurityPolicy::from_uri(&security_header.security_policy_uri.to_string())
+            };
+
             if security_policy != SecurityPolicy::None {
                 error!("Security policy of chunk is unsupported, policy = {:?}", security_header.security_policy_uri);
                 return Err(&BAD_SECURITY_POLICY_REJECTED);
@@ -476,7 +427,6 @@ impl Chunk {
             body_length: body_length as usize,
             signature_offset: signature_offset as usize,
         };
-        debug!("chunk_info() = {:#?}", chunk_info);
 
         Ok(chunk_info)
     }

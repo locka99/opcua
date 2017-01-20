@@ -15,139 +15,6 @@ pub trait MessageInfo {
 
 /// ONLY complex service specific data types go in this file
 
-// ApplicationDescription_Encoding_DefaultXml = 309,
-// ApplicationDescription_Encoding_DefaultBinary = 310,
-#[derive(Debug, Clone, PartialEq)]
-pub struct ApplicationDescription {
-    /// Specifies an application that is available.
-    pub application_uri: ByteString,
-    /// The globally unique identifier for the application instance. This URI is used as ServerUri
-    /// in Services if the application is a Server.
-    pub product_uri: ByteString,
-    /// A localized descriptive name for the application.
-    pub application_name: LocalizedText,
-    /// The type of application. This value is an enumeration with
-    /// one of the following values:
-    /// SERVER_0    The application is a Server.
-    /// CLIENT_1    The application is a Client.
-    /// CLIENTANDSERVER_2 The application is a Client and a Server.
-    /// DISCOVERYSERVER_3 The application is a DiscoveryServer.
-    pub application_type: ApplicationType,
-    /// A URI that identifies the Gateway Server associated with the discoveryUrls. This value is
-    /// not specified if the Server can be accessed directly. This
-    /// field is not used if the applicationType is CLIENT_1.
-    pub gateway_server_uri: UAString,
-    /// A URI that identifies the discovery profile supported by the URLs provided.
-    /// This field is not used if the applicationType is CLIENT_1.
-    /// If this value is not specified then the Endpoints shall
-    /// support the Discovery Services defined in 5.4. Alternate
-    /// discovery profiles are defined in Part 7.
-    pub discovery_profile_uri: UAString,
-    /// A list of URLs for the discovery Endpoints provided by the application. If the applicationType
-    /// is CLIENT_1, this field shall contain an empty list.
-    pub discovery_urls: Option<Vec<UAString>>,
-}
-
-impl BinaryEncoder<ApplicationDescription> for ApplicationDescription {
-    fn byte_len(&self) -> usize {
-        let mut size: usize = 0;
-        size += self.application_uri.byte_len();
-        size += self.product_uri.byte_len();
-        size += self.application_name.byte_len();
-        size += self.application_type.byte_len();
-        size += self.gateway_server_uri.byte_len();
-        size += self.discovery_profile_uri.byte_len();
-        // discovery_urls
-        size += byte_len_array(&self.discovery_urls);
-        size
-    }
-
-    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
-        let mut size: usize = 0;
-        size += self.application_uri.encode(stream)?;
-        size += self.product_uri.encode(stream)?;
-        size += self.application_name.encode(stream)?;
-        size += self.application_type.encode(stream)?;
-        size += self.gateway_server_uri.encode(stream)?;
-        size += self.discovery_profile_uri.encode(stream)?;
-        size += write_array(stream, &self.discovery_urls)?;
-        Ok(size)
-    }
-
-    fn decode<S: Read>(_: &mut S) -> Result<Self> {
-        // This impl should be overridden
-        unimplemented!()
-    }
-}
-
-// ApplicationInstanceCertificate = 311,
-#[derive(Debug, Clone, PartialEq)]
-pub struct ApplicationInstanceCertificate {
-    /// The certificate is currently an opaque blob. Part 4 7.2 says
-    /// the stuff it should contain
-    pub certificate: ByteString,
-}
-
-impl BinaryEncoder<ApplicationInstanceCertificate> for ApplicationInstanceCertificate {
-    fn byte_len(&self) -> usize {
-        self.certificate.byte_len()
-    }
-
-    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
-        self.certificate.encode(stream)
-    }
-
-    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
-        let certificate = ByteString::decode(stream)?;
-        debug!("ApplicationInstanceCertificate::certificate = {:?}", certificate);
-        Ok(ApplicationInstanceCertificate {
-            certificate: certificate,
-        })
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct ChannelSecurityToken {
-    pub secure_channel_id: UInt32,
-    pub token_id: UInt32,
-    pub created_at: UtcTime,
-    pub revised_lifetime: Int32,
-}
-
-impl BinaryEncoder<ChannelSecurityToken> for ChannelSecurityToken {
-    fn byte_len(&self) -> usize {
-        let mut size = 0;
-        size += self.secure_channel_id.byte_len();
-        size += self.token_id.byte_len();
-        size += self.created_at.byte_len();
-        size += self.revised_lifetime.byte_len();
-        size
-    }
-
-    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
-        let mut size = 0;
-        size += self.secure_channel_id.encode(stream)?;
-        size += self.token_id.encode(stream)?;
-        size += self.created_at.encode(stream)?;
-        size += self.revised_lifetime.encode(stream)?;
-        assert_eq!(size, self.byte_len());
-        Ok(size)
-    }
-
-    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
-        let secure_channel_id = UInt32::decode(stream)?;
-        let token_id = UInt32::decode(stream)?;
-        let created_at = UtcTime::decode(stream)?;
-        let revised_lifetime = Int32::decode(stream)?;
-        Ok(ChannelSecurityToken {
-            secure_channel_id: secure_channel_id,
-            token_id: token_id,
-            created_at: created_at,
-            revised_lifetime: revised_lifetime,
-        })
-    }
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct UserTokenPolicy {
     pub policy_id: UAString,
@@ -178,7 +45,7 @@ impl BinaryEncoder<UserTokenPolicy> for UserTokenPolicy {
 pub struct EndpointDescription {
     pub endpoint_url: UAString,
     pub server: ApplicationDescription,
-    pub server_certificate: ApplicationInstanceCertificate,
+    pub server_certificate: ByteString,
     pub security_mode: MessageSecurityMode,
     pub security_policy_uri: UAString,
     pub user_identity_tokens: Option<Vec<UserTokenPolicy>>,
@@ -214,9 +81,25 @@ impl BinaryEncoder<EndpointDescription> for EndpointDescription {
         Ok(size)
     }
 
-    fn decode<S: Read>(_: &mut S) -> Result<Self> {
-        // This impl should be overridden
-        unimplemented!()
+    fn decode<S: Read>(stream: &mut S) -> Result<EndpointDescription> {
+        let endpoint_url = UAString::decode(stream)?;
+        let server = ApplicationDescription::decode(stream)?;
+        let server_certificate = ByteString::decode(stream)?;
+        let security_mode = MessageSecurityMode::decode(stream)?;
+        let security_policy_uri = UAString::decode(stream)?;
+        let user_identity_tokens: Option<Vec<UserTokenPolicy>> = read_array(stream)?;
+        let transport_profile_uri = UAString::decode(stream)?;
+        let security_level = Byte::decode(stream)?;
+        Ok(EndpointDescription {
+            endpoint_url: endpoint_url,
+            server: server,
+            server_certificate: server_certificate,
+            security_mode: security_mode,
+            security_policy_uri: security_policy_uri,
+            user_identity_tokens: user_identity_tokens,
+            transport_profile_uri: transport_profile_uri,
+            security_level: security_level,
+        })
     }
 }
 
@@ -444,7 +327,7 @@ pub struct ResponseHeader {
     pub request_handle: IntegerId,
     pub service_result: StatusCode,
     pub service_diagnostics: DiagnosticInfo,
-    pub string_table: UAString,
+    pub string_table: Option<Vec<UAString>>,
     pub additional_header: ExtensionObject,
 }
 
@@ -455,7 +338,7 @@ impl BinaryEncoder<ResponseHeader> for ResponseHeader {
         size += self.request_handle.byte_len();
         size += self.service_result.byte_len();
         size += self.service_diagnostics.byte_len();
-        size += self.string_table.byte_len();
+        size += byte_len_array(&self.string_table);
         size += self.additional_header.byte_len();
         size
     }
@@ -466,7 +349,7 @@ impl BinaryEncoder<ResponseHeader> for ResponseHeader {
         size += self.request_handle.encode(stream)?;
         size += self.service_result.encode(stream)?;
         size += self.service_diagnostics.encode(stream)?;
-        size += self.string_table.encode(stream)?;
+        size += write_array(stream, &self.string_table)?;
         size += self.additional_header.encode(stream)?;
         assert_eq!(size, self.byte_len());
         Ok(size)
@@ -477,7 +360,7 @@ impl BinaryEncoder<ResponseHeader> for ResponseHeader {
         let request_handle = IntegerId::decode(stream)?;
         let service_result = StatusCode::decode(stream)?;
         let service_diagnostics = DiagnosticInfo::decode(stream)?;
-        let string_table = UAString::decode(stream)?;
+        let string_table:Option<Vec<UAString>> = read_array(stream)?;
         let additional_header = ExtensionObject::decode(stream)?;
         Ok(ResponseHeader {
             timestamp: timestamp,
@@ -497,7 +380,7 @@ impl ResponseHeader {
             request_handle: request_handle,
             service_result: GOOD.clone(),
             service_diagnostics: DiagnosticInfo::new()            ,
-            string_table: UAString::null(),
+            string_table: None,
             additional_header: ExtensionObject::null(),
         }
     }
@@ -505,7 +388,7 @@ impl ResponseHeader {
 
 // SignedSoftwareCertificate_Encoding_DefaultXml = 345,
 // SignedSoftwareCertificate_Encoding_DefaultBinary = 346,
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SignedSoftwareCertificate {
     /// The certificate data serialized as a ByteString.
     pub certificate_data: ByteString,
@@ -540,7 +423,7 @@ impl BinaryEncoder<SignedSoftwareCertificate> for SignedSoftwareCertificate {
 }
 
 // SignatureData = 456,
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SignatureData {
     /// A string containing the URI of the algorithm. The URI string values are defined as part of
     /// the security profiles specified in Part 7.

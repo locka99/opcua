@@ -38,7 +38,7 @@ pub struct CreateSessionRequest {
 
     /// The Application Instance Certificate issued to the Client. If the
     /// securityPolicyUri is None, the Server shall ignore the ApplicationInstanceCertificate.
-    pub client_certificate: ApplicationInstanceCertificate,
+    pub client_certificate: ByteString,
 
     /// Requested maximum number of milliseconds that a Session should remain open
     /// without activity. If the Client fails to issue a Service request within this
@@ -90,7 +90,7 @@ pub struct CreateSessionResponse {
     /// Certificate is the same as the one it used to create the SecureChannel.
     /// If the securityPolicyUri is NONE and none of the UserTokenPolicies requires
     /// encryption, the Client shall ignore the ApplicationInstanceCertificate.
-    pub server_certificate: ApplicationInstanceCertificate,
+    pub server_certificate: ByteString,
 
     /// List of Endpoints that the server supports.
     /// The Server shall return a set of EndpointDescriptions available for

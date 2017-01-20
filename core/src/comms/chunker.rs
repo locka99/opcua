@@ -82,6 +82,7 @@ impl Chunker {
         let _ = sequence_header.encode(&mut stream);
         // Write a node id for the first chunk
         if is_first_chunk {
+            debug!("Encoding node id {:?}", node_id);
             node_id.encode(&mut stream);
         } else {}
         // write message
@@ -102,7 +103,7 @@ impl Chunker {
     }
 
     /// Decodes a series of chunks to create a message
-    pub fn decode(chunks: &Vec<Chunk>, expected_node_id: Option<NodeId>) -> std::result::Result<SupportedMessage, &'static StatusCode> {
+    pub fn decode(chunks: &Vec<Chunk>, secure_channel_info: &SecureChannelInfo, expected_node_id: Option<NodeId>) -> std::result::Result<SupportedMessage, &'static StatusCode> {
         if chunks.len() != 1 {
             // TODO more than one chunk is not supported yet
             // TODO decoding multiple chunks means validating their headers, decrypting them to a buffer and stitching them together
@@ -113,7 +114,7 @@ impl Chunker {
         let chunk = &chunks[0];
 
         let is_first_chunk = true;
-        let chunk_info = chunk.chunk_info(is_first_chunk, Option::None)?;
+        let chunk_info = chunk.chunk_info(is_first_chunk, secure_channel_info)?;
         debug!("Chunker::decode chunk_info = {:?}", chunk_info);
 
         let body_start = chunk_info.body_offset;

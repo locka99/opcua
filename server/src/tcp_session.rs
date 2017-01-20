@@ -1,6 +1,6 @@
 use std;
 use std::net::{TcpStream, Shutdown};
-use std::io::{Read, Write, Cursor};
+use std::io::{Read, Write, Cursor, Error, ErrorKind};
 use std::sync::{Arc, Mutex};
 
 use chrono::{self, UTC};
@@ -8,11 +8,12 @@ use chrono::{self, UTC};
 use opcua_core::types::*;
 use opcua_core::comms::*;
 use opcua_core::services::*;
-use opcua_core::services::secure_channel::*;
 use opcua_core::debug::*;
 
+use server::ServerState;
 use handshake;
 use message_handler::*;
+use config::*;
 
 const RECEIVE_BUFFER_SIZE: usize = 32768;
 const SEND_BUFFER_SIZE: usize = 32768;
@@ -27,17 +28,11 @@ pub enum SessionState {
     Finished
 }
 
-pub struct SessionConfig {
-    /// The hello timeout setting
-    pub hello_timeout: u32,
-}
-
 pub struct TcpSession {
+    // Server state, address space etc.
+    pub server_state: Arc<Mutex<ServerState>>,
     /// The current session state
     pub session_state: SessionState,
-    //    pub incoming_queue: Ve
-    //    pub outgoing_queue: Vec<Box<u8>>,
-    pub session_config: SessionConfig,
     /// Message handler
     pub message_handler: MessageHandler,
     /// Client protocol version set during HELLO
@@ -47,25 +42,26 @@ pub struct TcpSession {
     // Secure channel info for the session
     pub secure_channel_info: SecureChannelInfo,
     /// Last encoded sequence number
-    pub last_encoded_sequence_number: Int32,
+    pub last_sent_sequence_number: UInt32,
     /// Last decoded sequence number
-    pub last_decoded_sequence_number: Int32,
+    pub last_received_sequence_number: UInt32,
 }
 
 impl TcpSession {
-    pub fn new(session_config: SessionConfig) -> TcpSession {
+    pub fn new(server_state: &Arc<Mutex<ServerState>>) -> TcpSession {
         TcpSession {
+            server_state: server_state.clone(),
             session_state: SessionState::New,
-            session_config: session_config,
             client_protocol_version: 0,
             last_secure_channel_id: 0,
             secure_channel_info: SecureChannelInfo {
                 security_policy: SecurityPolicy::None,
                 secure_channel_id: 0,
+                token_id: 0,
             },
             message_handler: MessageHandler::new(),
-            last_encoded_sequence_number: -1,
-            last_decoded_sequence_number: -1,
+            last_sent_sequence_number: 0,
+            last_received_sequence_number: 0,
         }
     }
 
@@ -75,16 +71,26 @@ impl TcpSession {
         let session_start_time = UTC::now();
         info!("Session started {}", session_start_time);
 
-        let hello_timeout;
+        // Waiting for hello
         {
             let mut session = session.lock().unwrap();
             session.session_state = SessionState::WaitingHello;
-            hello_timeout = chrono::Duration::seconds(session.session_config.hello_timeout as i64);
         }
+
+        // Hello timeout
+        let hello_timeout = {
+            let hello_timeout = {
+                let mut session = session.lock().unwrap();
+                let server_state = session.server_state.lock().unwrap();
+                server_state.config.hello_timeout as i64
+            };
+            chrono::Duration::seconds(hello_timeout)
+        };
 
         // Short timeout makes it work like a polling loop
         let polling_timeout: std::time::Duration = std::time::Duration::from_millis(200);
         stream.set_read_timeout(Some(polling_timeout));
+        stream.set_nodelay(true);
 
         let mut in_buf = vec![0u8; RECEIVE_BUFFER_SIZE];
         let mut out_buf_stream = Cursor::new(vec![0u8; SEND_BUFFER_SIZE]);
@@ -121,6 +127,9 @@ impl TcpSession {
             let bytes_read_result = stream.read(&mut in_buf);
             if bytes_read_result.is_err() {
                 let error = bytes_read_result.unwrap_err();
+                if error.kind() == ErrorKind::TimedOut {
+                    continue;
+                }
                 debug!("Read error - kind = {:?}, {:?}", error.kind(), error);
                 break;
             }
@@ -158,7 +167,6 @@ impl TcpSession {
 
             // Anything to write?
             TcpSession::write_output(&mut out_buf_stream, &mut stream);
-
             if !session_status_code.is_good() {
                 error!("Session is aborting due to bad session status {:?}", session_status_code);
                 break;
@@ -172,7 +180,6 @@ impl TcpSession {
             let error = handshake::ErrorMessage::from_status_code(&session_status_code);
             error.encode(&mut out_buf_stream);
             TcpSession::write_output(&mut out_buf_stream, &mut stream);
-            stream.flush();
         }
 
         // Close socket
@@ -189,20 +196,35 @@ impl TcpSession {
         info!("Session is finished {:?}", session_duration)
     }
 
-    fn write_output(out_stream: &mut Cursor<Vec<u8>>, stream: &mut Write) {
-        if out_stream.position() == 0 {
+    fn write_output(buffer_stream: &mut Cursor<Vec<u8>>, stream: &mut Write) {
+        //
+        if buffer_stream.position() == 0 {
             return;
         }
+
+        // Scope to avoid immutable/mutable borrow issues
         {
-            let bytes_to_write = out_stream.position() as usize;
-            let out_buf_slice = &out_stream.get_ref()[0..bytes_to_write];
+            let bytes_to_write = buffer_stream.position() as usize;
+            let buffer_slice = &buffer_stream.get_ref()[0..bytes_to_write];
 
             debug!("Writing bytes to client:");
-            debug_buffer(out_buf_slice);
+            debug_buffer(buffer_slice);
 
-            let _ = stream.write(out_buf_slice);
+            let result = stream.write(buffer_slice);
+            if result.is_err() {
+                error!("Error writing bytes - {:?}", result.unwrap_err());
+            } else {
+                let bytes_written = result.unwrap();
+                if bytes_to_write != bytes_written {
+                    error!("Error writing bytes - bytes_to_write = {}, bytes_written = {}", bytes_to_write, bytes_written);
+                }
+                else {
+                    debug!("Bytes written = {}", bytes_written);
+                }
+            }
+            // let _ = stream.flush();
         }
-        out_stream.set_position(0);
+        buffer_stream.set_position(0);
     }
 
     fn process_hello<R: Read, W: Write>(session: &Arc<Mutex<TcpSession>>, in_stream: &mut R, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
@@ -224,7 +246,7 @@ impl TcpSession {
 
         let mut message_stream = Cursor::new(buffer);
         if let Ok(hello) = handshake::HelloMessage::decode(&mut message_stream) {
-            debug!("Server received HELLO {:?}", hello);
+            debug!("Server received HELLO {:#?}", hello);
             if !hello.is_endpoint_url_valid() {
                 return Err(&BAD_TCP_ENDPOINT_URL_INVALID);
             }
@@ -263,20 +285,30 @@ impl TcpSession {
         Ok(())
     }
 
-    pub fn chunks_to_message(session: &Arc<Mutex<TcpSession>>, chunks: &Vec<Chunk>) -> std::result::Result<SupportedMessage, &'static StatusCode> {
+    pub fn turn_received_chunks_into_message(session: &Arc<Mutex<TcpSession>>, chunks: &Vec<Chunk>) -> std::result::Result<SupportedMessage, &'static StatusCode> {
         let mut session = session.lock().unwrap();
 
-        let chunk_info = chunks[0].chunk_info(true, Option::None)?;
-        debug!("Chunker::decode chunk_info = {:?}", chunk_info);
+        // Validate that all chunks have incrementing sequence numbers and valid chunk types
+        let mut last_sequence_number = session.last_received_sequence_number;
+        let mut first_chunk = true;
+        for chunk in chunks {
+            let chunk_info = chunk.chunk_info(first_chunk, &session.secure_channel_info)?;
+            // Check the sequence id - should be larger than the last one decoded
+            if chunk_info.sequence_header.sequence_number <= last_sequence_number {
+                error!("Chunk has a sequence number of {} which is less than last decoded sequence number of {}", chunk_info.sequence_header.sequence_number, last_sequence_number);
+                return Err(&BAD_SEQUENCE_NUMBER_INVALID);
+            }
+            last_sequence_number = chunk_info.sequence_header.sequence_number;
 
-        // Check the sequence id - should be larger than the last one decoded
-        if chunk_info.sequence_header.sequence_number as Int32 <= session.last_decoded_sequence_number {
-            error!("Chunk has a sequence number of {} which is less than last deoded sequence number of {}", chunk_info.sequence_header.sequence_number, session.last_decoded_sequence_number);
-            return Err(&BAD_SEQUENCE_NUMBER_INVALID);
+            // Validate that the last chunk is final and all previous chunks are intermediate
+            // TODO
+
+            first_chunk = false;
         }
-        session.last_decoded_sequence_number = chunk_info.sequence_header.sequence_number as Int32;
+        session.last_received_sequence_number = last_sequence_number;
 
-        Chunker::decode(&chunks, None)
+        // Now decode
+        Chunker::decode(&chunks, &session.secure_channel_info, None)
     }
 
     pub fn process_chunk<R: Read, W: Write>(session: &Arc<Mutex<TcpSession>>, in_stream: &mut R, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
@@ -296,13 +328,14 @@ impl TcpSession {
         let chunk_message_type = chunk.chunk_header.message_type.clone();
 
         let in_chunks = vec![chunk];
-        let message = TcpSession::chunks_to_message(session, &in_chunks)?;
+        let message = TcpSession::turn_received_chunks_into_message(session, &in_chunks)?;
         let response = match chunk_message_type {
             ChunkMessageType::OpenSecureChannel => {
                 SupportedMessage::OpenSecureChannelResponse(TcpSession::process_open_secure_channel(&session, &message)?)
             },
             ChunkMessageType::CloseSecureChannel => {
-                SupportedMessage::CloseSecureChannelResponse(TcpSession::process_close_secure_channel(&session, &message)?)
+                info!("CloseSecureChannelRequest received, session closing");
+                return Err(&BAD_CONNECTION_CLOSED);
             },
             ChunkMessageType::Message => {
                 let session = session.lock().unwrap();
@@ -310,26 +343,29 @@ impl TcpSession {
             }
         };
 
+        // Send the response
         {
             let mut session = session.lock().unwrap();
 
-            let mut secure_channel_info = session.secure_channel_info.clone();
-            let chunk_info = in_chunks[0].chunk_info(true, Some(&mut secure_channel_info))?;
+            // Get the request id out of the request
+            let chunk_info = in_chunks[0].chunk_info(true, &session.secure_channel_info)?;
             let request_id = chunk_info.sequence_header.request_id;
 
-            let sequence_number = (session.last_encoded_sequence_number + 1) as UInt32;
-            session.last_encoded_sequence_number = sequence_number as Int32;
+            // Prepare some chunks starting from the sequence number + 1
+            debug!("Response to send: {:#?}", response);
 
-            let out_chunks = Chunker::encode(sequence_number, request_id, &secure_channel_info, &response)?;
-            session.secure_channel_info = secure_channel_info;
+            let sequence_number = session.last_sent_sequence_number + 1;
+            let out_chunks = Chunker::encode(sequence_number, request_id, &session.secure_channel_info, &response)?;
+            session.last_sent_sequence_number = sequence_number + out_chunks.len() as UInt32 - 1;
 
             // Send out any chunks that form the response
             debug!("Got some chunks to send {:?}", out_chunks);
             for out_chunk in out_chunks {
                 out_chunk.encode(out_stream);
             }
-            Ok(())
         }
+
+        Ok(())
     }
 
     fn process_open_secure_channel(session: &Arc<Mutex<TcpSession>>, message: &SupportedMessage) -> std::result::Result<OpenSecureChannelResponse, &'static StatusCode> {
@@ -345,6 +381,8 @@ impl TcpSession {
         };
 
         // Process the request
+        let token_id: UInt32 = 1000; // TODO
+
         let secure_channel_id = {
             let mut session = session.lock().unwrap();
             let client_protocol_version = session.client_protocol_version;
@@ -359,6 +397,7 @@ impl TcpSession {
             session.secure_channel_info = SecureChannelInfo {
                 security_policy: SecurityPolicy::None,
                 secure_channel_id: session.last_secure_channel_id,
+                token_id: token_id,
             };
             session.last_secure_channel_id
         };
@@ -368,8 +407,8 @@ impl TcpSession {
             response_header: ResponseHeader::new(&now, request.request_header.request_handle),
             server_protocol_version: 0,
             security_token: ChannelSecurityToken {
-                secure_channel_id: secure_channel_id,
-                token_id: 0,
+                channel_id: secure_channel_id,
+                token_id: token_id,
                 created_at: now.clone(),
                 revised_lifetime: request.requested_lifetime,
             },
@@ -377,25 +416,6 @@ impl TcpSession {
         };
 
         debug!("Sending OpenSecureChannelResponse {:#?}", response);
-        Ok(response)
-    }
-
-    fn process_close_secure_channel(session: &Arc<Mutex<TcpSession>>, message: &SupportedMessage) -> std::result::Result<CloseSecureChannelResponse, &'static StatusCode> {
-        let request = match *message {
-            SupportedMessage::CloseSecureChannelRequest(ref request) => {
-                info!("Got close secure channel request");
-                request
-            },
-            _ => {
-                error!("message is not a close secure channel request, got {:?}", message);
-                return Err(&BAD_UNEXPECTED_ERROR);
-            }
-        };
-
-        let now = DateTime::now();
-        let response = CloseSecureChannelResponse {
-            response_header: ResponseHeader::new(&now, request.request_header.request_handle),
-        };
         Ok(response)
     }
 }

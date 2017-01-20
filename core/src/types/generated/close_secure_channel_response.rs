@@ -6,40 +6,35 @@ use std::io::{Read, Write, Result};
 use types::*;
 use services::*;
 
-/// Gets the endpoints used by the server.
+/// Closes a secure channel.
 #[derive(Debug, Clone, PartialEq)]
-pub struct GetEndpointsResponse {
+pub struct CloseSecureChannelResponse {
     pub response_header: ResponseHeader,
-    pub endpoints: Option<Vec<EndpointDescription>>,
 }
 
-impl MessageInfo for GetEndpointsResponse {
+impl MessageInfo for CloseSecureChannelResponse {
     fn object_id(&self) -> ObjectId {
-        ObjectId::GetEndpointsResponse_Encoding_DefaultBinary
+        ObjectId::CloseSecureChannelResponse_Encoding_DefaultBinary
     }
 }
 
-impl BinaryEncoder<GetEndpointsResponse> for GetEndpointsResponse {
+impl BinaryEncoder<CloseSecureChannelResponse> for CloseSecureChannelResponse {
     fn byte_len(&self) -> usize {
         let mut size = 0;
         size += self.response_header.byte_len();
-        size += byte_len_array(&self.endpoints);
         size
     }
     
     fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
         let mut size = 0;
         size += self.response_header.encode(stream)?;
-        size += write_array(stream, &self.endpoints)?;
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<GetEndpointsResponse> {
+    fn decode<S: Read>(stream: &mut S) -> Result<CloseSecureChannelResponse> {
         let response_header = ResponseHeader::decode(stream)?;
-        let endpoints: Option<Vec<EndpointDescription>> = read_array(stream)?;
-        Ok(GetEndpointsResponse {
+        Ok(CloseSecureChannelResponse {
             response_header: response_header,
-            endpoints: endpoints,
         })
     }
 }

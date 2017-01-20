@@ -2,22 +2,35 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use tcp_session::{TcpSession, SessionConfig};
+use tcp_session::{TcpSession};
 
 use config::{ServerConfig};
+
+pub struct ServerState {
+    pub config: ServerConfig,
+}
 
 /// The Server represents a running instance of OPC UA. There can be more than one server running
 /// at a time providing they do not share the same thread or listen on the same ports.
 pub struct Server {
-    pub config: ServerConfig,
+    /// The server state is everything that all sessions share - address space, configuration etc.
+    pub server_state: Arc<Mutex<ServerState>>,
+    /// List of open sessions
     pub sessions: Vec<Arc<Mutex<TcpSession>>>,
+    /// Flag set to cause server to abort
     abort: bool,
 }
 
 impl Server {
     /// Create a new server instance
     pub fn new(config: ServerConfig) -> Server {
-        Server { config: config, abort: false, sessions: Vec::new() }
+        Server {
+            server_state: Arc::new(Mutex::new(ServerState {
+                config: config.clone(),
+            })),
+            abort: false,
+            sessions: Vec::new()
+        }
     }
 
     /// Create a new server instance using the server default configuration
@@ -32,19 +45,22 @@ impl Server {
 
     /// Runs the server
     pub fn run(&mut self) {
-        let host = self.config.host.clone();
-        let sock_addr = (host.as_str(), self.config.port);
+        let (host, port, endpoint) = {
+            let server_state = self.server_state.lock().unwrap();
+            (server_state.config.host.clone(), server_state.config.port, server_state.config.path.clone())
+        };
+        let sock_addr = (host.as_str(), port);
         let listener = TcpListener::bind(&sock_addr).unwrap();
         loop {
             if self.abort {
                 break;
             }
-            info!("Waiting for Connection on opc.tcp://{}:{}{}", self.config.host, self.config.port, self.config.path);
+            info!("Waiting for Connection on opc.tcp://{}:{}{}", host, port, endpoint);
             for stream in listener.incoming() {
-                let server_config = self.config.clone();
+                info!("Handling new connection {:?}", stream);
                 match stream {
                     Ok(stream) => {
-                        self.handle_connection(stream, &server_config);
+                        self.handle_connection(stream);
                     }
                     Err(err) => {
                         warn!("Got an error on stream {:?}", err);
@@ -55,15 +71,14 @@ impl Server {
     }
 
     /// Handles the incoming request
-    fn handle_connection(&mut self, stream: TcpStream, server_config: &ServerConfig) {
+    fn handle_connection(&mut self, stream: TcpStream) {
+        debug!("Connection thread spawning");
         // Spawn a thread for the connection
-        let session_config = SessionConfig {
-            hello_timeout: server_config.hello_timeout,
-        };
-        let session = Arc::new(Mutex::new(TcpSession::new(session_config)));
+        let session = Arc::new(Mutex::new(TcpSession::new(&self.server_state)));
         self.sessions.push(session.clone());
         thread::spawn(move || {
             TcpSession::run(stream, session);
+            info!("Session thread is terminated");
         });
     }
 }
