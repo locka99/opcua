@@ -1,0 +1,12 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug - sample-server",
+            "type": "gdb",
+            "request": "launch",
+            "target": "./target/debug/opcua-sample-server.exe",
+            "cwd": "${workspaceRoot}"
+        }
+    ]
+}
