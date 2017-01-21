@@ -1,6 +1,7 @@
 mod node_ids;
 mod status_codes;
 
+// This all sucks, must be a better way to do this
 mod application_description;
 pub use self::application_description::*;
 mod channel_security_token;
@@ -17,6 +18,10 @@ mod create_session_request;
 pub use self::create_session_request::*;
 mod create_session_response;
 pub use self::create_session_response::*;
+mod close_session_request;
+pub use self::close_session_request::*;
+mod close_session_response;
+pub use self::close_session_response::*;
 
 mod get_endpoints_request;
 pub use self::get_endpoints_request::*;

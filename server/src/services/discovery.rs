@@ -5,6 +5,7 @@ use opcua_core::services::*;
 use opcua_core::comms::*;
 
 use server::ServerState;
+use tcp_session::SessionState;
 
 pub struct DiscoveryService {}
 
@@ -13,7 +14,7 @@ impl DiscoveryService {
         DiscoveryService {}
     }
 
-    pub fn handle_get_endpoints_request(&self, server_state: &mut ServerState, request: &GetEndpointsRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn handle_get_endpoints_request(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: &GetEndpointsRequest) -> Result<SupportedMessage, &'static StatusCode> {
         debug!("handle_get_endpoints_request");
 
         // server_state.get_endpoints().clone()

@@ -5,17 +5,16 @@ use opcua_core::services::*;
 use opcua_core::comms::*;
 
 use server::ServerState;
+use tcp_session::SessionState;
 
-pub struct SessionService {
-
-}
+pub struct SessionService {}
 
 impl SessionService {
     pub fn new() -> SessionService {
         SessionService {}
     }
 
-    pub fn handle_create_sesion_request(&self, server_state: &mut ServerState, request: &CreateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn handle_create_session_request(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: &CreateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
         debug!("handle_create_sesion_request {:#?}", request);
 
         // TODO these need to be stored in the session
@@ -42,5 +41,13 @@ impl SessionService {
         };
 
         Ok(SupportedMessage::CreateSessionResponse(response))
+    }
+
+    pub fn handle_close_session_request(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: &CloseSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
+        let now = DateTime::now();
+        let response = CloseSessionResponse {
+            response_header: ResponseHeader::new(&now, request.request_header.request_handle),
+        };
+        Ok(SupportedMessage::CloseSessionResponse(response))
     }
 }

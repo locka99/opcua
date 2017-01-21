@@ -28,18 +28,29 @@ pub enum TcpSessionState {
     Finished
 }
 
-pub struct OpenSession {
+/// Session info holds information about a session created by CreateSession service
+pub struct SessionInfo {
 
 }
 
+/// Session state is anything associated with the session at the message / service level
 pub struct SessionState {
-    open_session: Option<OpenSession>
+    session_info: Option<SessionInfo>
+}
 
+impl SessionState {
+    pub fn new() -> SessionState {
+        SessionState {
+            session_info: None,
+        }
+    }
 }
 
 pub struct TcpSession {
     // Server state, address space etc.
     pub server_state: Arc<Mutex<ServerState>>,
+    // Session state - open sessions, tokens etc
+    pub session_state: Arc<Mutex<SessionState>>,
     /// Session state is anything related to this connection
     /// The current session state
     pub tcp_session_state: TcpSessionState,
@@ -59,8 +70,10 @@ pub struct TcpSession {
 
 impl TcpSession {
     pub fn new(server_state: &Arc<Mutex<ServerState>>) -> TcpSession {
+        let session_state = Arc::new(Mutex::new(SessionState::new()));
         TcpSession {
             server_state: server_state.clone(),
+            session_state: session_state.clone(),
             tcp_session_state: TcpSessionState::New,
             client_protocol_version: 0,
             last_secure_channel_id: 0,
@@ -69,7 +82,7 @@ impl TcpSession {
                 secure_channel_id: 0,
                 token_id: 0,
             },
-            message_handler: MessageHandler::new(server_state),
+            message_handler: MessageHandler::new(server_state, &session_state),
             last_sent_sequence_number: 0,
             last_received_sequence_number: 0,
         }
@@ -92,7 +105,7 @@ impl TcpSession {
             let hello_timeout = {
                 let mut session = session.lock().unwrap();
                 let server_state = session.server_state.lock().unwrap();
-                server_state.config.hello_timeout as i64
+                server_state.config.tcp_config.hello_timeout as i64
             };
             chrono::Duration::seconds(hello_timeout)
         };

@@ -88,6 +88,12 @@ impl SupportedMessage {
             ObjectId::CreateSessionResponse_Encoding_DefaultBinary => {
                 SupportedMessage::CreateSessionResponse(CreateSessionResponse::decode(stream)?)
             },
+            ObjectId::CloseSessionRequest_Encoding_DefaultBinary => {
+                SupportedMessage::CloseSessionRequest(CloseSessionRequest::decode(stream)?)
+            },
+            ObjectId::CloseSessionResponse_Encoding_DefaultBinary => {
+                SupportedMessage::CloseSessionResponse(CloseSessionResponse::decode(stream)?)
+            },
             _ => {
                 debug!("decoding unsupported for object id {:?}", object_id);
                 SupportedMessage::Invalid(object_id)
@@ -109,5 +115,7 @@ supported_messages![
     GetEndpointsResponse,
     // Session service
     CreateSessionRequest,
-    CreateSessionResponse
+    CreateSessionResponse,
+    CloseSessionRequest,
+    CloseSessionResponse
 ];

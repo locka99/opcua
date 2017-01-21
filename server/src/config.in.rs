@@ -9,31 +9,65 @@ use std::result::Result;
 use opcua_core::types::MessageSecurityMode;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-pub struct ServerConfig {
-    /// An id for this config
-    pub id: String,
-    /// A description for this config
-    pub description: String,
+pub struct TcpConfig {
+    /// Timeout for hello on a session in seconds
+    pub hello_timeout: u32,
     /// The hostname to supply in the endpoints
     pub host: String,
     /// The port number of the service
     pub port: u16,
-    /// Path on the endpoint
+
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub struct ServerEndpoint {
+    /// Name for the endpoint
+    pub name: String,
+    /// Endpoint path
     pub path: String,
-    /// Timeout for hello on a session in seconds
-    pub hello_timeout: u32,
+    pub security_policy: String,
+    pub security_mode: String,
+    pub user_name: String,
+    pub password: String,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub struct ServerConfig {
+    /// An id for this server
+    pub application_name: String,
+    /// A description for this server
+    pub application_url: String,
+    /// Default endpoint
+    pub default_path: String,
+    /// pki folder, either absolute or relative to executable
+    pub pki_dir: String,
+    /// tcp configuration information
+    pub tcp_config: TcpConfig,
+    /// Endpoints supported by the server
+    pub endpoints: Vec<ServerEndpoint>,
 }
 
 impl ServerConfig {
     /// Returns the default server configuration.
     pub fn default() -> ServerConfig {
         ServerConfig {
-            id: "".to_string(),
-            description: "".to_string(),
-            host: "127.0.0.1".to_string(),
-            port: 1234,
-            path: "/".to_string(),
-            hello_timeout: 120,
+            application_name: "OPC UA".to_string(),
+            application_url: "".to_string(),
+            default_path: "/",
+            pki_dir: "pki",
+            tcp_config: TcpConfig {
+                host: "127.0.0.1".to_string(),
+                port: 1234,
+                hello_timeout: 120,
+            },
+            endpoints: vec![ServerEndpoint {
+                name: "Default",
+                path: "/",
+                security_policy: "None",
+                security_mode: "None",
+                user_name: "",
+                password: "",
+            }],
         }
     }
 

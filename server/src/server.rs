@@ -8,8 +8,12 @@ use tcp_session::{TcpSession};
 
 use config::{ServerConfig};
 
+/// Server state is any state associated with the server as a whole that individual sessions might
+/// be interested in. That includes configuration info, address space etc.
 pub struct ServerState {
+    /// Server configuration
     pub config: ServerConfig,
+    /// Server public certificate read from config location or null if there is none
     pub server_certificate: ByteString,
 }
 
@@ -51,7 +55,7 @@ impl Server {
     pub fn run(&mut self) {
         let (host, port, endpoint) = {
             let server_state = self.server_state.lock().unwrap();
-            (server_state.config.host.clone(), server_state.config.port, server_state.config.path.clone())
+            (server_state.config.tcp_config.host.clone(), server_state.config.tcp_config.port, server_state.config.default_path.clone())
         };
         let sock_addr = (host.as_str(), port);
         let listener = TcpListener::bind(&sock_addr).unwrap();
