@@ -15,13 +15,12 @@ impl DiscoveryService {
     }
 
     pub fn get_endpoints(&self, server_state: &mut ServerState, _: &mut SessionState, request: &GetEndpointsRequest) -> Result<SupportedMessage, &'static StatusCode> {
-        debug!("handle_get_endpoints_request");
+        debug!("get_endpoints");
 
         // server_state.get_endpoints().clone()
         // TODO get from server state
 
         let server_certificate = server_state.server_certificate.clone();
-
 
         let endpoint = EndpointDescription {
             endpoint_url: UAString::from_str("opc.tcp://127.0.0.1:1234/xxx"),

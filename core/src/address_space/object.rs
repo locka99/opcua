@@ -1,4 +1,5 @@
 use address_space::*;
+use services::*;
 use types::*;
 
 pub struct Object {

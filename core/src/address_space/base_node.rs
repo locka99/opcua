@@ -1,22 +1,10 @@
 use types::*;
-
-use super::Reference;
+use services::*;
+use address_space::*;
 
 pub struct Attribute {}
 
 pub struct Property {}
-
-pub enum NodeClass {
-    BaseNode,
-    DataType,
-    Method,
-    Object,
-    ObjectType,
-    ReferenceType,
-    Variable,
-    VariableType,
-    View
-}
 
 /// Implemented by BaseNode and all derived Node types
 pub trait Node {
@@ -26,7 +14,6 @@ pub trait Node {
     fn display_name(&self) -> String;
     fn description(&self) -> String;
 }
-
 
 pub struct BaseNode {
     pub node_id: NodeId,
@@ -43,7 +30,7 @@ pub struct BaseNode {
 impl Node for BaseNode {
     /// Returns the node class
     fn node_class(&self) -> NodeClass {
-        NodeClass::BaseNode
+        NodeClass::Unspecified
     }
     fn node_id(&self) -> NodeId {
         self.node_id.clone()

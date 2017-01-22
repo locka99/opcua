@@ -15,7 +15,7 @@ impl SessionService {
     }
 
     pub fn create_session(&self, _: &mut ServerState, _: &mut SessionState, request: &CreateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
-        debug!("handle_create_sesion_request {:#?}", request);
+        debug!("create_session {:#?}", request);
 
         // TODO validate client certificate
 
@@ -51,7 +51,7 @@ impl SessionService {
     }
 
     pub fn close_session(&self, _: &mut ServerState, _: &mut SessionState, request: &CloseSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
-        debug!("handle_close_session_request {:#?}", request);
+        debug!("close_session {:#?}", request);
         let response = CloseSessionResponse {
             response_header: ResponseHeader::new(&DateTime::now(), request.request_header.request_handle),
         };

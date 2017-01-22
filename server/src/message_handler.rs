@@ -5,6 +5,7 @@ use opcua_core::comms::*;
 
 use services::discovery::*;
 use services::session::*;
+use services::view::*;
 use server::ServerState;
 use tcp_session::SessionState;
 
@@ -18,6 +19,8 @@ pub struct MessageHandler {
     discovery_service: DiscoveryService,
     /// Session service
     session_service: SessionService,
+    /// View service
+    view_service: ViewService,
 }
 
 impl MessageHandler {
@@ -27,6 +30,7 @@ impl MessageHandler {
             session_state: session_state.clone(),
             discovery_service: DiscoveryService::new(),
             session_service: SessionService::new(),
+            view_service: ViewService::new(),
         }
     }
 
@@ -45,7 +49,10 @@ impl MessageHandler {
             },
             SupportedMessage::ActivateSessionRequest(ref request) => {
                 self.session_service.activate_session(&mut server_state, &mut session_state, request)?
-            }
+            },
+            SupportedMessage::BrowseRequest(ref request) => {
+                self.view_service.browse(&mut server_state, &mut session_state, request)?
+            },
             _ => {
                 debug!("Message handler does not handle this kind of message");
                 return Err(&BAD_SERVICE_UNSUPPORTED);

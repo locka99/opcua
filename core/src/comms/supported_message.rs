@@ -100,6 +100,12 @@ impl SupportedMessage {
             ObjectId::ActivateSessionResponse_Encoding_DefaultBinary => {
                 SupportedMessage::ActivateSessionResponse(ActivateSessionResponse::decode(stream)?)
             },
+            ObjectId::BrowseRequest_Encoding_DefaultBinary => {
+                SupportedMessage::BrowseRequest(BrowseRequest::decode(stream)?)
+            },
+            ObjectId::BrowseResponse_Encoding_DefaultBinary => {
+                SupportedMessage::BrowseResponse(BrowseResponse::decode(stream)?)
+            },
             _ => {
                 debug!("decoding unsupported for object id {:?}", object_id);
                 SupportedMessage::Invalid(object_id)
@@ -125,5 +131,8 @@ supported_messages![
     CloseSessionRequest,
     CloseSessionResponse,
     ActivateSessionRequest,
-    ActivateSessionResponse
+    ActivateSessionResponse,
+    // View service
+    BrowseRequest,
+    BrowseResponse
 ];

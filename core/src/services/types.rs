@@ -524,3 +524,79 @@ impl BinaryEncoder<SignatureData> for SignatureData {
         })
     }
 }
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum NodeClass {
+    Unspecified = 0,
+    Object = 1,
+    Variable = 2,
+    Method = 4,
+    ObjectType = 8,
+    VariableType = 16,
+    ReferenceType = 32,
+    DataType = 64,
+    View = 128
+}
+
+impl BinaryEncoder<NodeClass> for NodeClass {
+    fn byte_len(&self) -> usize {
+        4
+    }
+
+    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+        // All enums are Int32
+        write_i32(stream, *self as Int32)
+    }
+
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+        // All enums are Int32
+        let value = read_i32(stream)?;
+        match value {
+            0 => Ok(NodeClass::Unspecified),
+            1 => Ok(NodeClass::Object),
+            2 => Ok(NodeClass::Variable),
+            4 => Ok(NodeClass::Method),
+            8 => Ok(NodeClass::ObjectType),
+            16 => Ok(NodeClass::VariableType),
+            32 => Ok(NodeClass::ReferenceType),
+            64 => Ok(NodeClass::DataType),
+            128 => Ok(NodeClass::View),
+            _ => {
+                error!("Don't know what node class {} is", value);
+                Err(Error::new(ErrorKind::Other, format!("Don't know what node class {} is", value)))
+            }
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum BrowseDirection {
+    Forward = 0,
+    Inverse = 1,
+    Both = 2
+}
+
+impl BinaryEncoder<BrowseDirection> for BrowseDirection {
+    fn byte_len(&self) -> usize {
+        4
+    }
+
+    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+        // All enums are Int32
+        write_i32(stream, *self as Int32)
+    }
+
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+        // All enums are Int32
+        let browse_direction = read_i32(stream)?;
+        match browse_direction {
+            0 => Ok(BrowseDirection::Forward),
+            1 => Ok(BrowseDirection::Inverse),
+            2 => Ok(BrowseDirection::Both),
+            _ => {
+                error!("Don't know what browse direction {} is", browse_direction);
+                Err(Error::new(ErrorKind::Other, format!("Don't know what browse direction {} is", browse_direction)))
+            }
+        }
+    }
+}
