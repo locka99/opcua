@@ -28,9 +28,11 @@ pub enum TcpSessionState {
 }
 
 /// Session info holds information about a session created by CreateSession service
+#[derive(Clone)]
 pub struct SessionInfo {}
 
 /// Session state is anything associated with the session at the message / service level
+#[derive(Clone)]
 pub struct SessionState {
     pub session_info: Option<SessionInfo>
 }
@@ -45,28 +47,28 @@ impl SessionState {
 
 pub struct TcpSession {
     // Server state, address space etc.
-    pub server_state: Arc<Mutex<ServerState>>,
+    pub server_state: ServerState,
     // Session state - open sessions, tokens etc
     pub session_state: Arc<Mutex<SessionState>>,
     /// Session state is anything related to this connection
     /// The current session state
     pub tcp_session_state: TcpSessionState,
     /// Message handler
-    pub message_handler: MessageHandler,
+    message_handler: MessageHandler,
     /// Client protocol version set during HELLO
-    pub client_protocol_version: UInt32,
+    client_protocol_version: UInt32,
     // Last secure channel id
-    pub last_secure_channel_id: UInt32,
+    last_secure_channel_id: UInt32,
     // Secure channel info for the session
-    pub secure_channel_info: SecureChannelInfo,
+    secure_channel_info: SecureChannelInfo,
     /// Last encoded sequence number
-    pub last_sent_sequence_number: UInt32,
+    last_sent_sequence_number: UInt32,
     /// Last decoded sequence number
-    pub last_received_sequence_number: UInt32,
+    last_received_sequence_number: UInt32,
 }
 
 impl TcpSession {
-    pub fn new(server_state: &Arc<Mutex<ServerState>>) -> TcpSession {
+    pub fn new(server_state: &ServerState) -> TcpSession {
         let session_state = Arc::new(Mutex::new(SessionState::new()));
         TcpSession {
             server_state: server_state.clone(),
@@ -79,7 +81,7 @@ impl TcpSession {
                 secure_channel_id: 0,
                 token_id: 0,
             },
-            message_handler: MessageHandler::new(server_state, &session_state),
+            message_handler: MessageHandler::new(&server_state, &session_state),
             last_sent_sequence_number: 0,
             last_received_sequence_number: 0,
         }
@@ -101,8 +103,8 @@ impl TcpSession {
         let hello_timeout = {
             let hello_timeout = {
                 let session = session.lock().unwrap();
-                let server_state = session.server_state.lock().unwrap();
-                server_state.config.tcp_config.hello_timeout as i64
+                let server_config = session.server_state.config.lock().unwrap();
+                server_config.tcp_config.hello_timeout as i64
             };
             chrono::Duration::seconds(hello_timeout)
         };
@@ -353,7 +355,7 @@ impl TcpSession {
                 return Err(&BAD_CONNECTION_CLOSED);
             },
             ChunkMessageType::Message => {
-                let session = session.lock().unwrap();
+                let mut session = session.lock().unwrap();
                 session.message_handler.handle_message(&message)?
             }
         };
