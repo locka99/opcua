@@ -1,4 +1,5 @@
 use std;
+use std::fmt;
 use std::io::{Read, Write, Cursor, Result, Error, ErrorKind};
 
 use types::*;
@@ -265,7 +266,7 @@ impl BinaryEncoder<Double> for Double {
 /// A UA string can hold a null value, so the string value is optional.
 /// When there is no string, the value is treated as null
 /// Data type ID 12
-#[derive(PartialEq, Debug, Clone)]
+#[derive(Eq, PartialEq, Debug, Clone, Hash)]
 pub struct UAString {
     pub value: Option<String>,
 }
@@ -352,9 +353,8 @@ impl UAString {
 
 /// A 16 byte value that can be used as a globally unique identifier.
 /// Data type ID 14
-use std::fmt;
 
-#[derive(PartialEq, Clone)]
+#[derive(Eq, PartialEq, Clone, Hash)]
 pub struct Guid {
     pub data1: UInt32,
     pub data2: UInt16,
@@ -481,7 +481,7 @@ impl Guid {
 }
 
 /// A sequence of octets.
-#[derive(PartialEq, Debug, Clone)]
+#[derive(Eq, PartialEq, Debug, Clone, Hash)]
 pub struct ByteString {
     pub value: Option<Vec<u8>>,
 }

@@ -15,6 +15,7 @@ pub trait Node {
     fn description(&self) -> String;
 }
 
+/// BaseNode is the functionality that all kinds of nodes need
 pub struct BaseNode {
     pub node_id: NodeId,
     pub browse_name: String,
@@ -43,5 +44,20 @@ impl Node for BaseNode {
     }
     fn description(&self) -> String {
         self.description.clone()
+    }
+}
+
+impl BaseNode {
+    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str) -> BaseNode {
+        BaseNode {
+            node_id: node_id.clone(),
+            browse_name: browse_name.to_string(),
+            display_name: display_name.to_string(),
+            description: "".to_string(),
+            write_mask: 0,
+            attributes: vec![],
+            references: vec![],
+            properties: vec![],
+        }
     }
 }

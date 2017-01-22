@@ -24,7 +24,7 @@ impl ViewService {
             }
             Some(vec![])
         } else {
-            None
+            return Err(&BAD_NOTHING_TO_DO);
         };
         let response = BrowseResponse {
             response_header: ResponseHeader::new(&DateTime::now(), request.request_header.request_handle),

@@ -4,7 +4,7 @@ use std::io::{Read, Write, Result};
 
 use types::*;
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Eq, PartialEq, Clone, Debug, Hash)]
 pub enum Identifier {
     Numeric(UInt64),
     String(UAString),
@@ -14,7 +14,7 @@ pub enum Identifier {
 
 /// An identifier for a node in the address space of an OPC UA Server.
 /// Data type ID 17
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Eq, Clone, Debug, Hash)]
 pub struct NodeId {
     /// The index for a namespace
     pub namespace: UInt16,
