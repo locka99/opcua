@@ -1,8 +1,12 @@
-#[macro_use] extern crate log;
-#[macro_use] extern crate lazy_static;
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate lazy_static;
 extern crate byteorder;
 extern crate chrono;
 extern crate regex;
+extern crate rand;
+
 // extern crate openssl;
 
 pub mod types;
@@ -33,9 +37,19 @@ pub fn init_logging() -> Result<(), SetLoggerError> {
     })
 }
 
+pub mod profiles {
+    pub const TRANSPORT_BINARY: &'static str = "http://opcfoundation.org/UA-Profile/Transport/uatcp-uasc-uabinary";
+
+    pub const SECURITY_POLICY_NONE: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#None";
+    pub const SECURITY_POLICY_BASIC128RSA15: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#Basic128Rsa15";
+    pub const SECURITY_POLICY_BASIC256: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256";
+    pub const SECURITY_POLICY_BASIC256SHA256: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256";
+
+    pub const SECURITY_USER_TOKEN_POLICY_ANONYMOUS: &'static str = "http://opcfoundation.org/UA-Profile/Security/UserToken/Anonymous";
+}
+
 pub mod debug {
-    /// Prints out the content of a slice in a form similar to node-opcua
-    /// to aid with debugging.
+    /// Prints out the content of a slice in a form similar to node-opcua to aid with debugging.
     pub fn debug_buffer(buf: &[u8]) {
         use log::LogLevel::Debug;
         // No point doing anything unless debug level is on

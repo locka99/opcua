@@ -62,16 +62,16 @@ pub type UtcTime = DateTime;
 
 #[derive(Debug)]
 pub enum MonitoringMode {
-    DISABLED,
-    SAMPLING,
-    REPORTING
+    Disabled,
+    Sampling,
+    Reporting
 }
 
 #[derive(Debug)]
 pub enum SubscriptionState {
-    CLOSED,
-    CREATING,
-    NORMAL,
-    LATE,
-    KEEPALIVE
+    Closed,
+    Creating,
+    Normal,
+    Late,
+    KeepAlive
 }

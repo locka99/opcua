@@ -1,6 +1,6 @@
 use std;
 use std::net::{TcpStream, Shutdown};
-use std::io::{Read, Write, Cursor, Error, ErrorKind};
+use std::io::{Read, Write, Cursor, ErrorKind};
 use std::sync::{Arc, Mutex};
 
 use chrono::{self, UTC};
@@ -13,7 +13,6 @@ use opcua_core::debug::*;
 use server::ServerState;
 use handshake;
 use message_handler::*;
-use config::*;
 
 const RECEIVE_BUFFER_SIZE: usize = 32768;
 const SEND_BUFFER_SIZE: usize = 32768;
@@ -29,13 +28,11 @@ pub enum TcpSessionState {
 }
 
 /// Session info holds information about a session created by CreateSession service
-pub struct SessionInfo {
-
-}
+pub struct SessionInfo {}
 
 /// Session state is anything associated with the session at the message / service level
 pub struct SessionState {
-    session_info: Option<SessionInfo>
+    pub session_info: Option<SessionInfo>
 }
 
 impl SessionState {
@@ -103,7 +100,7 @@ impl TcpSession {
         // Hello timeout
         let hello_timeout = {
             let hello_timeout = {
-                let mut session = session.lock().unwrap();
+                let session = session.lock().unwrap();
                 let server_state = session.server_state.lock().unwrap();
                 server_state.config.tcp_config.hello_timeout as i64
             };
@@ -112,8 +109,8 @@ impl TcpSession {
 
         // Short timeout makes it work like a polling loop
         let polling_timeout: std::time::Duration = std::time::Duration::from_millis(200);
-        stream.set_read_timeout(Some(polling_timeout));
-        stream.set_nodelay(true);
+        let _ = stream.set_read_timeout(Some(polling_timeout));
+        let _ = stream.set_nodelay(true);
 
         let mut in_buf = vec![0u8; RECEIVE_BUFFER_SIZE];
         let mut out_buf_stream = Cursor::new(vec![0u8; SEND_BUFFER_SIZE]);
@@ -122,9 +119,6 @@ impl TcpSession {
         // Basic startup is a HELLO,  OpenSecureChannel, begin
 
         let mut session_status_code = GOOD.clone();
-
-        let mut keep_alive_timeout: i32 = 0;
-        let mut last_keep_alive = UTC::now();
 
         loop {
             let session_state = {
@@ -140,11 +134,12 @@ impl TcpSession {
                     session_status_code = BAD_TIMEOUT.clone();
                     break;
                 }
-            } else {
-                // Check if the keep alive has been exceeded
-                let keep_alive_duration = now - last_keep_alive;
-                // TODO check if keep_alive_duration exceeds the timeout value
             }
+
+            // TODO this code is incredibly flimsy, assuming an entire chunk is read in one single go
+            // it should change to reading bytes into a buffer, and then analysing a buffer to see if
+            // there is a chunk header with a message size and bytes for the entire message. If there
+            // is the chunk should be extracted and the buffer shifted up.
 
             // Try to read, using timeout as a polling mechanism
             let bytes_read_result = stream.read(&mut in_buf);
@@ -156,7 +151,6 @@ impl TcpSession {
                 debug!("Read error - kind = {:?}, {:?}", error.kind(), error);
                 break;
             }
-
             let bytes_read = bytes_read_result.unwrap();
             if bytes_read == 0 {
                 continue;
@@ -186,7 +180,6 @@ impl TcpSession {
                     session_status_code = BAD_UNEXPECTED_ERROR.clone();
                 }
             };
-            last_keep_alive = now.clone();
 
             // Anything to write?
             TcpSession::write_output(&mut out_buf_stream, &mut stream);
@@ -201,7 +194,7 @@ impl TcpSession {
             warn!("Sending session terminating error --\n{:?}", session_status_code);
             out_buf_stream.set_position(0);
             let error = handshake::ErrorMessage::from_status_code(&session_status_code);
-            error.encode(&mut out_buf_stream);
+            let _ = error.encode(&mut out_buf_stream);
             TcpSession::write_output(&mut out_buf_stream, &mut stream);
         }
 
@@ -240,8 +233,7 @@ impl TcpSession {
                 let bytes_written = result.unwrap();
                 if bytes_to_write != bytes_written {
                     error!("Error writing bytes - bytes_to_write = {}, bytes_written = {}", bytes_to_write, bytes_written);
-                }
-                else {
+                } else {
                     debug!("Bytes written = {}", bytes_written);
                 }
             }
@@ -304,7 +296,7 @@ impl TcpSession {
         }
 
         info!("Sending acknowledge -- \n{:#?}", acknowledge);
-        acknowledge.encode(out_stream);
+        let _ = acknowledge.encode(out_stream);
         Ok(())
     }
 
@@ -384,7 +376,7 @@ impl TcpSession {
             // Send out any chunks that form the response
             debug!("Got some chunks to send {:?}", out_chunks);
             for out_chunk in out_chunks {
-                out_chunk.encode(out_stream);
+                let _ = out_chunk.encode(out_stream);
             }
         }
 

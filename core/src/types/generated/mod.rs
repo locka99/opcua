@@ -22,6 +22,10 @@ mod close_session_request;
 pub use self::close_session_request::*;
 mod close_session_response;
 pub use self::close_session_response::*;
+mod activate_session_request;
+pub use self::activate_session_request::*;
+mod activate_session_response;
+pub use self::activate_session_response::*;
 
 mod get_endpoints_request;
 pub use self::get_endpoints_request::*;

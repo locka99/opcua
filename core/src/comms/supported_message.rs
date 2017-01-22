@@ -94,6 +94,12 @@ impl SupportedMessage {
             ObjectId::CloseSessionResponse_Encoding_DefaultBinary => {
                 SupportedMessage::CloseSessionResponse(CloseSessionResponse::decode(stream)?)
             },
+            ObjectId::ActivateSessionRequest_Encoding_DefaultBinary => {
+                SupportedMessage::ActivateSessionRequest(ActivateSessionRequest::decode(stream)?)
+            },
+            ObjectId::ActivateSessionResponse_Encoding_DefaultBinary => {
+                SupportedMessage::ActivateSessionResponse(ActivateSessionResponse::decode(stream)?)
+            },
             _ => {
                 debug!("decoding unsupported for object id {:?}", object_id);
                 SupportedMessage::Invalid(object_id)
@@ -117,5 +123,7 @@ supported_messages![
     CreateSessionRequest,
     CreateSessionResponse,
     CloseSessionRequest,
-    CloseSessionResponse
+    CloseSessionResponse,
+    ActivateSessionRequest,
+    ActivateSessionResponse
 ];

@@ -53,20 +53,20 @@ impl ServerConfig {
         ServerConfig {
             application_name: "OPC UA".to_string(),
             application_url: "".to_string(),
-            default_path: "/",
-            pki_dir: "pki",
+            default_path: "/".to_string(),
+            pki_dir: "pki".to_string(),
             tcp_config: TcpConfig {
                 host: "127.0.0.1".to_string(),
                 port: 1234,
                 hello_timeout: 120,
             },
             endpoints: vec![ServerEndpoint {
-                name: "Default",
-                path: "/",
-                security_policy: "None",
-                security_mode: "None",
-                user_name: "",
-                password: "",
+                name: "Default".to_string(),
+                path: "/".to_string(),
+                security_policy: "None".to_string(),
+                security_mode: "None".to_string(),
+                user_name: String::new(),
+                password: String::new(),
             }],
         }
     }

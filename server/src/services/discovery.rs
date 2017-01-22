@@ -14,7 +14,7 @@ impl DiscoveryService {
         DiscoveryService {}
     }
 
-    pub fn handle_get_endpoints_request(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: &GetEndpointsRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn get_endpoints(&self, server_state: &mut ServerState, _: &mut SessionState, request: &GetEndpointsRequest) -> Result<SupportedMessage, &'static StatusCode> {
         debug!("handle_get_endpoints_request");
 
         // server_state.get_endpoints().clone()
@@ -32,7 +32,7 @@ impl DiscoveryService {
                     locale: UAString::null(),
                     text: UAString::from_str("Rust OPC UA"),
                 },
-                application_type: ApplicationType::SERVER,
+                application_type: ApplicationType::Server,
                 gateway_server_uri: UAString::null(),
                 discovery_profile_uri: UAString::null(),
                 discovery_urls: None,
@@ -40,7 +40,7 @@ impl DiscoveryService {
             server_certificate: server_certificate,
             security_mode: MessageSecurityMode::None,
             security_policy_uri: SecurityPolicy::None.to_string(),
-            user_identity_tokens: None,
+            user_identity_tokens: Some(vec![UserTokenPolicy::new_anonymous()]),
             transport_profile_uri: UAString::from_str("http://opcfoundation.org/UA-Profile/Transport/uatcp-uasc-uabinary"),
             security_level: 1,
         };

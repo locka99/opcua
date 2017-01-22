@@ -12,5 +12,6 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="Cargo &lt;sample-server&gt;" level="project" />
+    <orderEntry type="library" name="Rust &lt;sample-server&gt;" level="project" />
   </component>
 </module>

@@ -1,6 +1,7 @@
-use std::io::{Read, Write, Result};
+use std::io::{Read, Write, Result, Error, ErrorKind};
 
 use types::*;
+use profiles::*;
 
 /// Implemented by messages
 pub trait MessageInfo {
@@ -14,29 +15,95 @@ pub trait MessageInfo {
 }
 
 /// ONLY complex service specific data types go in this file
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum UserTokenType {
+    Anonymous = 0,
+    Username = 1,
+    Certificate = 2,
+    IssuedToken = 3
+}
+
+impl BinaryEncoder<UserTokenType> for UserTokenType {
+    fn byte_len(&self) -> usize {
+        4
+    }
+
+    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+        // All enums are Int32
+        write_i32(stream, *self as Int32)
+    }
+
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+        // All enums are Int32
+        let user_token_type = read_i32(stream)?;
+        match user_token_type {
+            0 => Ok(UserTokenType::Anonymous),
+            1 => Ok(UserTokenType::Username),
+            2 => Ok(UserTokenType::Certificate),
+            3 => Ok(UserTokenType::IssuedToken),
+            _ => {
+                error!("Don't know what user token type {} is", user_token_type);
+                Err(Error::new(ErrorKind::Other, format!("Don't know what user token type {} is", user_token_type)))
+            }
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UserTokenPolicy {
     pub policy_id: UAString,
-    pub token_type: UserIdentityToken,
+    pub token_type: UserTokenType,
     pub issued_token_type: UAString,
     pub issuer_endpoint_url: UAString,
-    pub security_policy_url: UAString,
+    pub security_policy_uri: UAString,
 }
 
 impl BinaryEncoder<UserTokenPolicy> for UserTokenPolicy {
     fn byte_len(&self) -> usize {
-        unimplemented!();
+        let mut size = 0;
+        size += self.policy_id.byte_len();
+        size += self.token_type.byte_len();
+        size += self.issued_token_type.byte_len();
+        size += self.issuer_endpoint_url.byte_len();
+        size += self.security_policy_uri.byte_len();
+        size
     }
 
-    fn encode<S: Write>(&self, _: &mut S) -> Result<usize> {
-        // This impl should be overridden
-        unimplemented!()
+    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+        let mut size = 0;
+        size += self.policy_id.encode(stream)?;
+        size += self.token_type.encode(stream)?;
+        size += self.issued_token_type.encode(stream)?;
+        size += self.issuer_endpoint_url.encode(stream)?;
+        size += self.security_policy_uri.encode(stream)?;
+        Ok(size)
     }
 
-    fn decode<S: Read>(_: &mut S) -> Result<Self> {
-        // This impl should be overridden
-        unimplemented!()
+    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+        let policy_id = UAString::decode(stream)?;
+        let token_type = UserTokenType::decode(stream)?;
+        let issued_token_type = UAString::decode(stream)?;
+        let issuer_endpoint_url = UAString::decode(stream)?;
+        let security_policy_uri = UAString::decode(stream)?;
+        Ok(UserTokenPolicy {
+            policy_id: policy_id,
+            token_type: token_type,
+            issued_token_type: issued_token_type,
+            issuer_endpoint_url: issuer_endpoint_url,
+            security_policy_uri: security_policy_uri,
+        })
+    }
+}
+
+impl UserTokenPolicy {
+    pub fn new_anonymous() -> UserTokenPolicy {
+        UserTokenPolicy {
+            policy_id: UAString::from_str("AnonymousPolicy"),
+            token_type: UserTokenType::Anonymous,
+            issued_token_type: UAString::from_str(SECURITY_USER_TOKEN_POLICY_ANONYMOUS),
+            issuer_endpoint_url: UAString::null(),
+            security_policy_uri: UAString::null(),
+        }
     }
 }
 
@@ -105,10 +172,10 @@ impl BinaryEncoder<EndpointDescription> for EndpointDescription {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum ApplicationType {
-    SERVER = 0,
-    CLIENT = 1,
-    CLIENTANDSERVER = 2,
-    DISCOVERYSERVER = 3
+    Server = 0,
+    Client = 1,
+    ClientAndServer = 2,
+    DiscoveryServer = 3
 }
 
 impl BinaryEncoder<ApplicationType> for ApplicationType {
@@ -124,13 +191,13 @@ impl BinaryEncoder<ApplicationType> for ApplicationType {
     fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let value = read_i32(stream)?;
         Ok(match value {
-            0 => { ApplicationType::SERVER },
-            1 => { ApplicationType::CLIENT },
-            2 => { ApplicationType::CLIENTANDSERVER },
-            3 => { ApplicationType::DISCOVERYSERVER },
+            0 => { ApplicationType::Server },
+            1 => { ApplicationType::Client },
+            2 => { ApplicationType::ClientAndServer },
+            3 => { ApplicationType::DiscoveryServer },
             _ => {
                 error!("Invalid ApplicationType");
-                ApplicationType::SERVER
+                ApplicationType::Server
             }
         })
     }
@@ -360,7 +427,7 @@ impl BinaryEncoder<ResponseHeader> for ResponseHeader {
         let request_handle = IntegerId::decode(stream)?;
         let service_result = StatusCode::decode(stream)?;
         let service_diagnostics = DiagnosticInfo::decode(stream)?;
-        let string_table:Option<Vec<UAString>> = read_array(stream)?;
+        let string_table: Option<Vec<UAString>> = read_array(stream)?;
         let additional_header = ExtensionObject::decode(stream)?;
         Ok(ResponseHeader {
             timestamp: timestamp,
@@ -379,7 +446,7 @@ impl ResponseHeader {
             timestamp: timestamp.clone(),
             request_handle: request_handle,
             service_result: GOOD.clone(),
-            service_diagnostics: DiagnosticInfo::new()            ,
+            service_diagnostics: DiagnosticInfo::new(),
             string_table: None,
             additional_header: ExtensionObject::null(),
         }

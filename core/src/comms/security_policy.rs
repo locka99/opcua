@@ -1,4 +1,5 @@
 use types::*;
+use profiles::*;
 
 #[derive(Debug, Clone)]
 pub struct SecureChannelInfo {
@@ -25,11 +26,6 @@ pub enum SecurityPolicy {
     Basic256,
     Basic256Sha256,
 }
-
-const SECURITY_POLICY_NONE: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#None";
-const SECURITY_POLICY_BASIC128RSA15: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#Basic128Rsa15";
-const SECURITY_POLICY_BASIC256: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256";
-const SECURITY_POLICY_BASIC256SHA256: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256";
 
 impl SecurityPolicy {
     pub fn to_string(&self) -> UAString {

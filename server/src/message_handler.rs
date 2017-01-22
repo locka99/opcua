@@ -3,7 +3,6 @@ use std::sync::{Arc, Mutex};
 use opcua_core::types::*;
 use opcua_core::comms::*;
 
-use subscription::{Subscription};
 use services::discovery::*;
 use services::session::*;
 use server::ServerState;
@@ -36,13 +35,16 @@ impl MessageHandler {
         let mut session_state = self.session_state.lock().unwrap();
         let response = match *message {
             SupportedMessage::GetEndpointsRequest(ref request) => {
-                self.discovery_service.handle_get_endpoints_request(&mut server_state, &mut session_state, request)?
+                self.discovery_service.get_endpoints(&mut server_state, &mut session_state, request)?
             },
             SupportedMessage::CreateSessionRequest(ref request) => {
-                self.session_service.handle_create_session_request(&mut server_state, &mut session_state, request)?
+                self.session_service.create_session(&mut server_state, &mut session_state, request)?
             },
             SupportedMessage::CloseSessionRequest(ref request) => {
-                self.session_service.handle_close_session_request(&mut server_state, &mut session_state, request)?
+                self.session_service.close_session(&mut server_state, &mut session_state, request)?
+            },
+            SupportedMessage::ActivateSessionRequest(ref request) => {
+                self.session_service.activate_session(&mut server_state, &mut session_state, request)?
             }
             _ => {
                 debug!("Message handler does not handle this kind of message");
