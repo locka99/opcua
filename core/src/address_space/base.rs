@@ -132,6 +132,7 @@ pub trait Node {
     fn description(&self) -> Option<LocalizedText>;
     fn write_mask(&self) -> Option<UInt32>;
     fn user_write_mask(&self) -> Option<UInt32>;
+    fn add_reference(&mut self, reference: Reference);
 }
 
 /// Base is the functionality that all kinds of nodes need. Part 3, diagram B.4
@@ -169,31 +170,37 @@ impl Node for Base {
         find_attribute_optional!(self, WriteMask);
     }
 
+    fn add_reference(&mut self, reference: Reference) {
+        self.references.push(reference);
+    }
+
     fn user_write_mask(&self) -> Option<UInt32> {
         find_attribute_optional!(self, UserWriteMask);
     }
 }
 
 impl Base {
-    pub fn new(node_class: NodeClass, node_id: &NodeId, browse_name: &str, display_name: &str, mut attrs: Vec<Attribute>) -> Base {
+    pub fn new(node_class: NodeClass, node_id: &NodeId, browse_name: &str, display_name: &str, mut attributes: Vec<Attribute>, mut references: Vec<Reference>, mut properties: Vec<Property>) -> Base {
         // Mandatory attributes
-        let mut attributes = vec![
+        let mut base_attributes = vec![
             Attribute::NodeClass(node_class),
             Attribute::NodeId(node_id.clone()),
             Attribute::DisplayName(LocalizedText::new("", display_name)),
             Attribute::BrowseName(QualifiedName::new(0, browse_name))
         ];
         // Optional attributes are only added if the caller supplies the
-        attributes.append(&mut attrs);
+        base_attributes.append(&mut attributes);
 
-        let references = vec![];
+        let mut base_references = vec![];
+        base_references.append(&mut references);
 
-        let properties = vec![];
+        let mut base_properties = vec![];
+        base_properties.append(&mut properties);
 
         Base {
-            attributes: attributes,
-            references: references,
-            properties: properties,
+            attributes: base_attributes,
+            references: base_references,
+            properties: base_properties,
         }
     }
 }

@@ -24,21 +24,21 @@ impl AddressSpace {
         // Construct the Root folder and the top level nodes
 
         let root_node_id = ObjectId::RootFolder.as_node_id();
-        let root_node = Object::new(&root_node_id, "Root", "Root");
-        // HasTypeDefinition - FolderType
+        let mut root_node = Object::new(&root_node_id, "Root", "Root");
 
         let objects_node_id = ObjectId::ObjectsFolder.as_node_id();
         let objects_node = Object::new(&objects_node_id, "Objects", "Objects");
-        // HasTypeDefinition - FolderType
         // Organizes - Top level server
 
         let types_node_id = ObjectId::TypesFolder.as_node_id();
-        let types_node = Object::new(&types_node_id, "Types", "Types");
-        // HasTypeDefinition - FolderType
+        let mut types_node = Object::new(&types_node_id, "Types", "Types");
 
         let views_node_id = ObjectId::ViewsFolder.as_node_id();
-        let views_node = Object::new(&views_node_id, "Views", "Views");
-        // HasTypeDefinition - FolderType
+        let mut views_node = Object::new(&views_node_id, "Views", "Views");
+
+        root_node.add_child(&objects_node_id);
+        root_node.add_child(&types_node_id);
+        root_node.add_child(&views_node_id);
 
         let mut node_map  = HashMap::new();
         node_map.insert(root_node_id, NodeType::Object(root_node));

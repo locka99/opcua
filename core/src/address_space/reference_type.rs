@@ -17,8 +17,10 @@ impl ReferenceType {
         if let Some(inverse_name) = inverse_name {
             attrs.push(Attribute::InverseName(inverse_name));
         }
+        let references = vec![];
+        let properties = vec![];
         ReferenceType {
-            base: Base::new(NodeClass::ReferenceType, node_id, browse_name, display_name, attrs),
+            base: Base::new(NodeClass::ReferenceType, node_id, browse_name, display_name, attrs, references, properties),
         }
     }
 

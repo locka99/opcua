@@ -217,6 +217,11 @@ impl NodeId {
         NodeId::new_numeric(0, id as UInt64)
     }
 
+    /// Makes a NodeId that holds an ObjectTypeId
+    pub fn from_object_type_id(id: ObjectTypeId) -> NodeId {
+        NodeId::new_numeric(0, id as UInt64)
+    }
+
     /// Extracts an ObjectId from a node id, providing the node id holds an object id
     pub fn as_object_id(&self) -> std::result::Result<ObjectId, ()> {
         match self.identifier {

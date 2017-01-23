@@ -43,5 +43,10 @@ impl ObjectId {
     }
 }
 
+impl ObjectTypeId {
+    pub fn as_node_id(&self) -> NodeId {
+        NodeId::from_object_type_id(*self)
+    }
+}
 
 pub use self::status_codes::*;
