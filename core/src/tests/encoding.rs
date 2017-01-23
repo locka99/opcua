@@ -161,7 +161,7 @@ fn test_node_id_4byte_numeric() {
 #[test]
 fn test_node_id_string_5229() {
     // Sample from OPCUA Part 6 - 5.2.2.9
-    let node_id = NodeId::new_string(1, UAString::from_str("Hot水"));
+    let node_id = NodeId::new_string(1, "Hot水");
     assert!(node_id.is_string());
     // NOTE: Example is wrong in 1.0.3, says 'r' instead of 'H'
     let expected_bytes = [0x03, 0x1, 0x0, 0x6, 0x0, 0x0, 0x0, 0x48, 0x6F, 0x74, 0xE6, 0xB0, 0xB4];
@@ -185,7 +185,7 @@ fn test_node_id_guid() {
 
 #[test]
 fn test_node_id_byte_string() {
-    let node_id = NodeId::new_byte_string(30, ByteString::from_str("this is a byte string"));
+    let node_id = NodeId::new_byte_string(30, ByteString::from_bytes(b"this is a byte string"));
     assert!(node_id.is_byte_string());
     serialize_test(node_id);
 }
@@ -197,7 +197,7 @@ fn test_extension_object() {
 
     let eo = ExtensionObject {
         node_id: NodeId::from_object_id(ObjectId::CreateSessionResponse_Encoding_DefaultBinary),
-        body: ExtensionObjectEncoding::ByteString(ByteString::from_str("hello world")),
+        body: ExtensionObjectEncoding::ByteString(ByteString::from_bytes(b"hello world")),
     };
     serialize_test(eo);
 
@@ -305,7 +305,7 @@ fn test_variant() {
     let v = Variant::String(UAString::from_str("Hello Everybody"));
     serialize_test(v);
     // ByteString
-    let v = Variant::ByteString(ByteString::from_str("Everything or nothing"));
+    let v = Variant::ByteString(ByteString::from_bytes(b"Everything or nothing"));
     serialize_test(v);
     // XmlElement
     let v = Variant::XmlElement(XmlElement::from_str("The world wonders"));
@@ -313,7 +313,7 @@ fn test_variant() {
     // NodeId(NodeId),
     let v = Variant::NodeId(NodeId::from_object_id(ObjectId::AddNodesItem_Encoding_DefaultBinary));
     serialize_test(v);
-    let v = Variant::NodeId(NodeId::new_string(99, UAString::from_str("hello everyone")));
+    let v = Variant::NodeId(NodeId::new_string(99, "hello everyone"));
     serialize_test(v);
     // ExpandedNodeId
     let v = Variant::ExpandedNodeId(ExpandedNodeId::new(&NodeId::from_object_id(ObjectId::AddNodesItem_Encoding_DefaultBinary)));

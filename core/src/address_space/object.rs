@@ -1,6 +1,6 @@
-use address_space::*;
 use services::*;
 use types::*;
+use address_space::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Object {
@@ -17,5 +17,9 @@ impl Object {
         Object {
             base: Base::new(NodeClass::Object, node_id, browse_name, display_name, attrs),
         }
+    }
+
+    pub fn event_notifier(&self) -> bool {
+        find_attribute_mandatory!(&self.base, EventNotifier);
     }
 }

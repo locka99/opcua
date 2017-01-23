@@ -325,7 +325,7 @@ impl UAString {
     }
 
     /// Get the inner value
-    pub fn to_string(&self) -> &str {
+    pub fn to_str(&self) -> &str {
         if self.is_null() {
             ""
         } else {
@@ -538,6 +538,10 @@ impl ByteString {
     /// Test if the string is null
     pub fn is_null(&self) -> bool {
         self.value.is_none()
+    }
+
+    pub fn from_bytes(v: &[u8]) -> ByteString {
+        ByteString { value: Some(v.to_vec())}
     }
 }
 

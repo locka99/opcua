@@ -105,7 +105,7 @@ fn test_open_secure_channel_response() {
     assert_eq!(response.response_header.request_handle, 0);
     assert_eq!(response.response_header.service_result, GOOD);
     assert_eq!(response.response_header.string_table.is_none(), true);
-    assert_eq!(response.server_nonce, UAString::null());
+    assert_eq!(response.server_nonce, ByteString::null());
 }
 
 // Encode open secure channel back to itself and compare
@@ -150,7 +150,7 @@ fn test_open_secure_channel() {
             created_at: DateTime::now(),
             revised_lifetime: 777,
         },
-        server_nonce: ByteString::from_str("jhkjdshfkjhsdkfj"),
+        server_nonce: ByteString::null(),
     };
     let new_open_secure_channel_response = serialize_test_and_return(open_secure_channel_response.clone());
     assert_eq!(open_secure_channel_response, new_open_secure_channel_response);

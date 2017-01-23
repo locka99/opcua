@@ -2,13 +2,6 @@ use address_space::*;
 use types::*;
 use services::*;
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum Reference {
-    HasProperty(NodeId),
-    HasComponent(NodeId),
-    HasTypeDefinition(NodeId),
-}
-
 pub struct ReferenceType {
     pub base: Base,
 }
@@ -28,6 +21,16 @@ impl ReferenceType {
             base: Base::new(NodeClass::ReferenceType, node_id, browse_name, display_name, attrs),
         }
     }
-}
 
-// NodeClass::ReferenceType
+    pub fn symmetric(&self) -> bool {
+        find_attribute_mandatory!(&self.base, Symmetric);
+    }
+
+    pub fn is_abstract(&self) -> bool {
+        find_attribute_mandatory!(&self.base, IsAbstract);
+    }
+
+    pub fn inverse_name(&self) -> Option<LocalizedText> {
+        find_attribute_optional!(&self.base, InverseName);
+    }
+}

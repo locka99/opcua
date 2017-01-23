@@ -2,9 +2,6 @@ mod address_space;
 
 pub use self::address_space::*;
 
-mod base;
-
-pub use self::base::*;
 
 /// This is a sanity saving macro that adds Node trait methods to all types that have a base
 /// member.
@@ -22,6 +19,30 @@ macro_rules! node_impl {
         }
     };
 }
+
+#[macro_export]
+macro_rules! find_attribute_mandatory {
+    ( $sel:expr, $attr: ident ) => {
+        for a in $sel.attributes.iter() {
+            if let &Attribute::$attr(ref value) = a { return value.clone(); }
+        }
+        panic!("Mandatory attribute is missing");
+    }
+}
+
+#[macro_export]
+macro_rules! find_attribute_optional {
+    ( $sel:expr, $attr: ident ) => {
+        for a in $sel.attributes.iter() {
+            if let &Attribute::$attr(ref value) = a { return Some(value.clone()); }
+        }
+        return None;
+    }
+}
+
+mod base;
+
+pub use self::base::*;
 
 mod object;
 

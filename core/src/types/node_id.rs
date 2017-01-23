@@ -110,7 +110,7 @@ impl BinaryEncoder<NodeId> for NodeId {
             0x3 => {
                 let namespace = read_u16(stream)?;
                 let value = UAString::decode(stream)?;
-                NodeId::new_string(namespace, value)
+                NodeId::new_string(namespace, value.to_str())
             },
             0x4 => {
                 let namespace = read_u16(stream)?;
@@ -183,7 +183,7 @@ impl FromStr for NodeId {
                 NodeId::new_numeric(namespace, number.unwrap())
             },
             "s" => {
-                NodeId::new_string(namespace, UAString::from_str(v.as_str()))
+                NodeId::new_string(namespace, v.as_str())
             },
             "g" => {
                 let guid = Guid::parse_str(v.as_str());
@@ -238,7 +238,7 @@ impl NodeId {
                 if value.is_null() {
                     "null".to_string()
                 } else {
-                    format!("s={}", value.to_string())
+                    format!("s={}", value.to_str())
                 }
             },
             Identifier::Guid(ref value) => {
@@ -262,8 +262,8 @@ impl NodeId {
     }
 
     /// Construct a string node id
-    pub fn new_string(namespace: UInt16, value: UAString) -> NodeId {
-        NodeId { namespace: namespace, identifier: Identifier::String(value), }
+    pub fn new_string(namespace: UInt16, value: &str) -> NodeId {
+        NodeId { namespace: namespace, identifier: Identifier::String(UAString::from_str(value)), }
     }
 
     /// Construct a guid node id
@@ -416,7 +416,7 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
             0x3 => {
                 let namespace = read_u16(stream)?;
                 let value = UAString::decode(stream)?;
-                NodeId::new_string(namespace, value)
+                NodeId::new_string(namespace, value.to_str())
             },
             0x4 => {
                 let namespace = read_u16(stream)?;

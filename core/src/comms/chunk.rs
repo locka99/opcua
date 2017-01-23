@@ -366,7 +366,7 @@ impl Chunk {
                 SecurityPolicy::None
             }
             else {
-                SecurityPolicy::from_uri(&security_header.security_policy_uri.to_string())
+                SecurityPolicy::from_uri(&security_header.security_policy_uri.to_str())
             };
 
             if security_policy != SecurityPolicy::None {

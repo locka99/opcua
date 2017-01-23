@@ -3,6 +3,7 @@ mod date_time;
 mod chunk;
 mod services;
 mod parse;
+mod address_space;
 
 use std::fmt::Debug;
 use std::cmp::PartialEq;

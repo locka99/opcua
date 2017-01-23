@@ -21,7 +21,7 @@ impl SessionService {
 
         // TODO these need to be stored in the session
         let session_id = NodeId::new_numeric(1, 1234);
-        let authentication_token = NodeId::new_string(1, UAString::from_str("abcdef"));
+        let authentication_token = NodeId::new_string(1, "abcdef");
         let session_timeout = 50000f64;
         let max_request_message_size = 32768;
 
