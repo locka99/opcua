@@ -20,7 +20,7 @@ mod message_handler;
 
 pub use server::*;
 
-pub mod tcp_session;
+pub mod tcp_transport;
 pub mod subscription;
 pub mod monitored_item;
 

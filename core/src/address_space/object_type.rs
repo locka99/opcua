@@ -3,7 +3,9 @@ use types::*;
 use services::*;
 
 pub struct ObjectType {
-    base_node: BaseNode,
+    base: Base,
 }
 
-node_impl!(ObjectType, NodeClass::ObjectType);
+node_impl!(ObjectType);
+
+// NodeClass::ObjectType

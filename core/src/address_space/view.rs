@@ -3,7 +3,9 @@ use types::*;
 use services::*;
 
 pub struct View {
-    base_node: BaseNode,
+    base: Base,
 }
 
-node_impl!(View, NodeClass::View);
+node_impl!(View);
+
+// NodeClass::View

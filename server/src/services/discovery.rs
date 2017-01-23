@@ -5,7 +5,7 @@ use opcua_core::services::*;
 use opcua_core::comms::*;
 
 use server::ServerState;
-use tcp_session::SessionState;
+use tcp_transport::SessionState;
 
 pub struct DiscoveryService {}
 

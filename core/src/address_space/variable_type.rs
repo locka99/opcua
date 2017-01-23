@@ -3,7 +3,9 @@ use types::*;
 use services::*;
 
 pub struct VariableType {
-    pub base_node: BaseNode,
+    pub base: Base,
 }
 
-node_impl!(VariableType, NodeClass::VariableType);
+node_impl!(VariableType);
+
+// NodeClass::VariableType

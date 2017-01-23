@@ -3,7 +3,9 @@ use types::*;
 use services::*;
 
 pub struct Method {
-    base_node: BaseNode,
+    base: Base,
 }
 
-node_impl!(Method, NodeClass::Method);
+node_impl!(Method);
+
+// NodeClass::Method

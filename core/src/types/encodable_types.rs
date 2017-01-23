@@ -586,6 +586,15 @@ impl BinaryEncoder<QualifiedName> for QualifiedName {
     }
 }
 
+impl QualifiedName {
+    pub fn new(namespace_index: UInt16, name: &str) -> QualifiedName {
+        QualifiedName {
+            namespace_index: namespace_index,
+            name: UAString::from_str(name),
+        }
+    }
+}
+
 /// Human readable text with an optional locale identifier
 /// Data type ID 21
 #[derive(PartialEq, Debug, Clone)]
@@ -647,6 +656,15 @@ impl BinaryEncoder<LocalizedText> for LocalizedText {
             locale: locale,
             text: text,
         })
+    }
+}
+
+impl LocalizedText {
+    pub fn new(locale: &str, text: &str) -> LocalizedText {
+        LocalizedText {
+            locale: UAString::from_str(locale),
+            text: UAString::from_str(text),
+        }
     }
 }
 

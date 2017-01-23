@@ -2,32 +2,23 @@ mod address_space;
 
 pub use self::address_space::*;
 
-mod base_node;
+mod base;
 
-pub use self::base_node::*;
+pub use self::base::*;
 
-/// This is a sanity saving macro that adds Node trait methods to all types that have a base_node
-/// member. The BaseNode member implements Node trait and takes care of cloning values etc. so with
-/// the exception of node_class(), this is just a pass-thru onto that impl.
+/// This is a sanity saving macro that adds Node trait methods to all types that have a base
+/// member.
 
 macro_rules! node_impl {
-    ( $node_struct:ty, $node_type: expr ) => {
+    ( $node_struct:ty ) => {
         impl Node for $node_struct {
-            fn node_class(&self) -> NodeClass {
-                $node_type
-            }
-            fn node_id(&self) -> NodeId {
-                self.base_node.node_id()
-            }
-            fn browse_name(&self) -> String {
-                self.base_node.browse_name()
-            }
-            fn display_name(&self) -> String {
-                self.base_node.display_name()
-            }
-            fn description(&self) -> String {
-                self.base_node.description()
-            }
+            fn node_class(&self) -> NodeClass { self.base.node_class() }
+            fn node_id(&self) -> NodeId { self.base.node_id() }
+            fn browse_name(&self) -> QualifiedName { self.base.browse_name() }
+            fn display_name(&self) -> LocalizedText { self.base.display_name() }
+            fn description(&self) -> Option<LocalizedText> { self.base.description() }
+            fn write_mask(&self) -> Option<UInt32> { self.base.write_mask() }
+            fn user_write_mask(&self) -> Option<UInt32> { self.base.user_write_mask() }
         }
     };
 }

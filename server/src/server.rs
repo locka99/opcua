@@ -5,7 +5,7 @@ use std::thread;
 use opcua_core::types::*;
 use opcua_core::address_space::*;
 
-use tcp_session::{TcpSession};
+use tcp_transport::{TcpTransport};
 
 use config::{ServerConfig};
 
@@ -25,9 +25,9 @@ pub struct ServerState {
 /// at a time providing they do not share the same thread or listen on the same ports.
 pub struct Server {
     /// The server state is everything that sessions share - address space, configuration etc.
-    pub server_state: ServerState,
+    pub server_state: Arc<Mutex<ServerState>>,
     /// List of open sessions
-    pub sessions: Vec<Arc<Mutex<TcpSession>>>,
+    pub sessions: Vec<Arc<Mutex<TcpTransport>>>,
     /// Flag set to cause server to abort
     abort: bool,
 }
@@ -36,11 +36,11 @@ impl Server {
     /// Create a new server instance
     pub fn new(config: &ServerConfig) -> Server {
         Server {
-            server_state: ServerState {
+            server_state: Arc::new(Mutex::new(ServerState {
                 config: Arc::new(Mutex::new(config.clone())),
                 server_certificate: ByteString::null(),
                 address_space: Arc::new(Mutex::new(AddressSpace::new()))
-            },
+            })),
             abort: false,
             sessions: Vec::new()
         }
@@ -59,7 +59,8 @@ impl Server {
     /// Runs the server
     pub fn run(&mut self) {
         let (host, port, endpoint) = {
-            let config = self.server_state.config.lock().unwrap();
+            let server_state = self.server_state.lock().unwrap();
+            let config = server_state.config.lock().unwrap();
             (config.tcp_config.host.clone(), config.tcp_config.port, config.default_path.clone())
         };
         let sock_addr = (host.as_str(), port);
@@ -87,10 +88,10 @@ impl Server {
     fn handle_connection(&mut self, stream: TcpStream) {
         debug!("Connection thread spawning");
         // Spawn a thread for the connection
-        let session = Arc::new(Mutex::new(TcpSession::new(&self.server_state)));
+        let session = Arc::new(Mutex::new(TcpTransport::new(&self.server_state)));
         self.sessions.push(session.clone());
         thread::spawn(move || {
-            TcpSession::run(stream, session);
+            session.lock().unwrap().run(stream);
             info!("Session thread is terminated");
         });
     }

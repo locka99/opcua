@@ -1,3 +1,5 @@
+use types::NodeId;
+
 mod node_ids;
 mod status_codes;
 
@@ -34,4 +36,12 @@ use_generated_types! [
 ];
 
 pub use self::node_ids::*;
+
+impl ObjectId {
+    pub fn as_node_id(&self) -> NodeId {
+        NodeId::from_object_id(*self)
+    }
+}
+
+
 pub use self::status_codes::*;

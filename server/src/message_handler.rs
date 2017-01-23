@@ -7,12 +7,12 @@ use services::discovery::*;
 use services::session::*;
 use services::view::*;
 use server::ServerState;
-use tcp_session::SessionState;
+use tcp_transport::SessionState;
 
 /// Processes and dispatches messages for handling
 pub struct MessageHandler {
     /// Server state
-    server_state: ServerState,
+    server_state: Arc<Mutex<ServerState>>,
     /// Session state
     session_state: Arc<Mutex<SessionState>>,
     /// Discovery service
@@ -24,7 +24,7 @@ pub struct MessageHandler {
 }
 
 impl MessageHandler {
-    pub fn new(server_state: &ServerState, session_state: &Arc<Mutex<SessionState>>) -> MessageHandler {
+    pub fn new(server_state: &Arc<Mutex<ServerState>>, session_state: &Arc<Mutex<SessionState>>) -> MessageHandler {
         MessageHandler {
             server_state: server_state.clone(),
             session_state: session_state.clone(),
@@ -35,7 +35,8 @@ impl MessageHandler {
     }
 
     pub fn handle_message(&mut self, message: &SupportedMessage) -> Result<SupportedMessage, &'static StatusCode> {
-        let mut server_state = &mut self.server_state;
+        let mut server_state = self.server_state.lock().unwrap();
+        let mut server_state = &mut server_state;
         let mut session_state = self.session_state.lock().unwrap();
         let mut session_state = &mut session_state;
 
