@@ -138,7 +138,10 @@ pub trait Node {
 /// Base is the functionality that all kinds of nodes need. Part 3, diagram B.4
 #[derive(Debug, Clone, PartialEq)]
 pub struct Base {
+    // TODO number of attributes is fixed per type so it'd be more efficient to hold an array of options
+    // and use an index find each of them. Depends how much they're used really
     pub attributes: Vec<Attribute>,
+
     pub references: Vec<Reference>,
     pub properties: Vec<Property>,
 }

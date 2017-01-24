@@ -10,17 +10,19 @@ node_impl!(ReferenceType);
 
 impl ReferenceType {
     pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, symmetric: bool, is_abstract: bool, inverse_name: Option<LocalizedText>) -> ReferenceType {
-        let mut attrs = vec![
+        // Mandatory
+        let mut attributes = vec![
             Attribute::Symmetric(symmetric),
             Attribute::IsAbstract(is_abstract),
         ];
+        // Optional
         if let Some(inverse_name) = inverse_name {
-            attrs.push(Attribute::InverseName(inverse_name));
+            attributes.push(Attribute::InverseName(inverse_name));
         }
         let references = vec![];
         let properties = vec![];
         ReferenceType {
-            base: Base::new(NodeClass::ReferenceType, node_id, browse_name, display_name, attrs, references, properties),
+            base: Base::new(NodeClass::ReferenceType, node_id, browse_name, display_name, attributes, references, properties),
         }
     }
 

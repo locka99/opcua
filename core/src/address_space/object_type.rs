@@ -8,4 +8,16 @@ pub struct ObjectType {
 
 node_impl!(ObjectType);
 
-// NodeClass::ObjectType
+impl ObjectType {
+    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, is_abstract: bool) -> ObjectType {
+        // Mandatory
+        let attributes = vec![
+            Attribute::IsAbstract(is_abstract),
+        ];
+        let references = vec![];
+        let properties = vec![];
+        ObjectType {
+            base: Base::new(NodeClass::ObjectType, node_id, browse_name, display_name, attributes, references, properties),
+        }
+    }
+}

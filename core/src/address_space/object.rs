@@ -11,15 +11,17 @@ node_impl!(Object);
 
 impl Object {
     pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str) -> Object {
-        let attrs = vec![
+        // Mandatory
+        let attributes = vec![
             Attribute::EventNotifier(false)
         ];
+
         let references = vec![
             Reference::HasTypeDefinition(ObjectTypeId::FolderType.as_node_id()),
         ];
         let properties = vec![];
         Object {
-            base: Base::new(NodeClass::Object, node_id, browse_name, display_name, attrs, references, properties),
+            base: Base::new(NodeClass::Object, node_id, browse_name, display_name, attributes, references, properties),
         }
     }
 

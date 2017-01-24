@@ -8,4 +8,21 @@ pub struct VariableType {
 
 node_impl!(VariableType);
 
-// NodeClass::VariableType
+impl VariableType {
+    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, is_abstract: bool, value_rank: Int32) -> VariableType {
+        // Mandatory
+        let attributes = vec![
+            Attribute::IsAbstract(is_abstract),
+            Attribute::ValueRank(value_rank),
+        ];
+        // Optional
+        // Attribute::Value(value),
+        // Attribute::ArrayDimensions(value),
+
+        let references = vec![];
+        let properties = vec![];
+        VariableType {
+            base: Base::new(NodeClass::VariableType, node_id, browse_name, display_name, attributes, references, properties),
+        }
+    }
+}

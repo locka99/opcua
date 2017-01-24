@@ -1,9 +1,9 @@
-use std::io::{Read, Write, Result};
+use std::io::{Read, Write, Result, Error, ErrorKind};
 
 use types::*;
 
-const ARRAY_BIT: u8 = 1 << 7;
 const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
+const ARRAY_VALUES_BIT: u8 = 1 << 7;
 
 /// Data type ID 24 (super-unwieldy mega holder of anything)
 #[derive(PartialEq, Debug, Clone)]
@@ -56,9 +56,16 @@ pub enum Variant {
     ExtensionObject(ExtensionObject),
     /// DataValue
     DataValue(DataValue),
-    /// A variant can be an array of other kinds, second argument is the dimensions of the
+    /// Single dimension array
+    /// A variant can be an array of other kinds (all of which must be the same type), second argument is the dimensions of the
     /// array which should match the array length, otherwise BAD_DECODING_ERROR
-    Array(Vec<Variant>, Vec<UInt32>),
+    Array(Vec<Variant>),
+    /// Multi dimension array
+    /// A variant can be an array of other kinds (all of which must be the same type), second argument is the dimensions of the
+    /// array which should match the array length, otherwise BAD_DECODING_ERROR
+    /// Higher rank dimensions are serialized first. For example an array with dimensions [2,2,2] is written in this order:
+    /// [0,0,0], [0,0,1], [0,1,0], [0,1,1], [1,0,0], [1,0,1], [1,1,0], [1,1,1]
+    MultiDimensionArray(Vec<Variant>, Vec<Int32>),
 }
 
 impl BinaryEncoder<Variant> for Variant {
@@ -95,16 +102,26 @@ impl BinaryEncoder<Variant> for Variant {
             Variant::ExtensionObject(ref value) => value.byte_len(),
             Variant::DataValue(ref value) => value.byte_len(),
             /// A variant can be an array of other kinds
-            Variant::Array(ref values, ref dimensions) => {
+            Variant::Array(ref values) => {
+                // Array length
                 let mut size = 4;
+                // Values
                 for value in values {
-                    size += value.byte_len();
-                }
-                for d in dimensions {
-                    size += d.byte_len();
+                    size += Variant::byte_len_variant_value(value);
                 }
                 size
             },
+            Variant::MultiDimensionArray(ref values, ref dimensions) => {
+                // Array length
+                let mut size = 4;
+                // Values
+                for value in values {
+                    size += Variant::byte_len_variant_value(value);
+                }
+                // Dimensions (size + num elements)
+                size += 4 + dimensions.len() * 4;
+                size
+            }
         };
         size
     }
@@ -112,6 +129,7 @@ impl BinaryEncoder<Variant> for Variant {
     fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
         let mut size: usize = 0;
 
+        // Encoding mask will include the array bits if applicable for the type
         let encoding_mask = self.get_encoding_mask();
         size += write_u8(stream, encoding_mask)?;
 
@@ -140,17 +158,28 @@ impl BinaryEncoder<Variant> for Variant {
             Variant::LocalizedText(ref value) => value.encode(stream)?,
             Variant::ExtensionObject(ref value) => value.encode(stream)?,
             Variant::DataValue(ref value) => value.encode(stream)?,
-            /// A variant can be an array of other kinds
-            Variant::Array(ref values, ref dimensions) => {
-                let mut size = write_u32(stream, values.len() as u32)?;
+            Variant::Array(ref values) => {
+                let mut size = write_i32(stream, values.len() as i32)?;
                 for value in values {
-                    size += value.encode(stream)?;
-                }
-                for d in dimensions {
-                    size += d.encode(stream)?;
+                    size += Variant::encode_variant_value(stream, value)?;
                 }
                 size
             },
+            Variant::MultiDimensionArray(ref values, ref dimensions) => {
+                // Encode array length
+                let mut size = write_i32(stream, values.len() as i32)?;
+                // Encode values
+                for value in values {
+                    size += Variant::encode_variant_value(stream, value)?;
+                }
+                // Encode dimensions length
+                size += write_i32(stream, dimensions.len() as i32)?;
+                // Encode dimensions
+                for d in dimensions {
+                    size += write_i32(stream, *d)?;
+                }
+                size
+            }
         };
         assert_eq!(size, self.byte_len());
         Ok(size)
@@ -158,64 +187,53 @@ impl BinaryEncoder<Variant> for Variant {
 
     fn decode<S: Read>(stream: &mut S) -> Result<Self> {
         let encoding_mask = Byte::decode(stream)?;
-        if encoding_mask == 0 {
-            Ok(Variant::Empty)
-        } else if encoding_mask & ARRAY_BIT != 0 {
-            // TODO Array of values -
-            if encoding_mask & ARRAY_DIMENSIONS_BIT != 0 {
-                // TODO Array dimensions are encoded
+        let element_encoding_mask = encoding_mask & !(ARRAY_DIMENSIONS_BIT | ARRAY_VALUES_BIT);
+
+        // Read array length
+        let array_length = if encoding_mask & ARRAY_VALUES_BIT != 0 {
+            let array_length = Int32::decode(stream)?;
+            if array_length <= 0 {
+                return Err(Error::new(ErrorKind::Other, format!("Invalid array_length {}", array_length)));
             }
-            debug!("Unimplemented decode of array");
-            Ok(Variant::Empty)
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Boolean) {
-            Ok(Variant::Boolean(Boolean::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::SByte) {
-            Ok(Variant::SByte(SByte::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Byte) {
-            Ok(Variant::Byte(Byte::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Int16) {
-            Ok(Variant::Int16(Int16::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::UInt16) {
-            Ok(Variant::UInt16(UInt16::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Int32) {
-            Ok(Variant::Int32(Int32::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::UInt32) {
-            Ok(Variant::UInt32(UInt32::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Int64) {
-            Ok(Variant::Int64(Int64::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::UInt64) {
-            Ok(Variant::UInt64(UInt64::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Float) {
-            Ok(Variant::Float(Float::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Double) {
-            Ok(Variant::Double(Double::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::String) {
-            Ok(Variant::String(UAString::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::DateTime) {
-            Ok(Variant::DateTime(DateTime::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Guid) {
-            Ok(Variant::Guid(Guid::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::ByteString) {
-            Ok(Variant::ByteString(ByteString::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::XmlElement) {
-            Ok(Variant::XmlElement(XmlElement::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::NodeId) {
-            Ok(Variant::NodeId(NodeId::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::ExpandedNodeId) {
-            Ok(Variant::ExpandedNodeId(ExpandedNodeId::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::StatusCode) {
-            Ok(Variant::StatusCode(StatusCode::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::QualifiedName) {
-            Ok(Variant::QualifiedName(QualifiedName::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::LocalizedText) {
-            Ok(Variant::LocalizedText(LocalizedText::decode(stream)?))
-        } else if encoding_mask == 22 {
-            Ok(Variant::ExtensionObject(ExtensionObject::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::DataValue) {
-            Ok(Variant::DataValue(DataValue::decode(stream)?))
+            array_length
         } else {
-            Ok(Variant::Empty)
-        }
+            -1
+        };
+
+        // Read the value(s). If array length was specified, we assume a single or multi dimension array
+        let result = if array_length > 0 {
+            let mut result: Vec<Variant> = Vec::with_capacity(array_length as usize);
+            for _ in 0..array_length {
+                result.push(Variant::decode_variant_value(stream, element_encoding_mask)?);
+            }
+            if encoding_mask & ARRAY_DIMENSIONS_BIT != 0 {
+                let dimensions: Option<Vec<Int32>> = read_array(stream)?;
+                if dimensions.is_none() {
+                    return Err(Error::new(ErrorKind::Other, "No array dimensions despite the bit flag being set"));
+                }
+                let dimensions = dimensions.unwrap();
+                let mut array_dimensions_length = 1;
+                for d in &dimensions {
+                    if *d <= 0 {
+                        return Err(Error::new(ErrorKind::Other, format!("Invalid array dimension {}", *d)));
+                    }
+                    array_dimensions_length *= *d;
+                }
+                if array_dimensions_length != array_length {
+                    Err(Error::new(ErrorKind::Other, format!("Array dimensions does not match array length {}", array_length)))
+                } else {
+                    Ok(Variant::MultiDimensionArray(result, dimensions))
+                }
+            } else {
+                Ok(Variant::Array(result))
+            }
+        } else if encoding_mask & ARRAY_DIMENSIONS_BIT != 0 {
+            Err(Error::new(ErrorKind::Other, format!("Array dimensions bit specified without any values")))
+        } else {
+            // Read a single variant
+            Variant::decode_variant_value(stream, element_encoding_mask)
+        };
+        result
     }
 }
 
@@ -225,7 +243,131 @@ impl Variant {
         encoding_mask == data_type_id as u8
     }
 
-    pub fn get_encoding_mask(&self) -> u8 {
+    /// Returns the length of just the value, not the encoding flag
+    fn byte_len_variant_value(value: &Variant) -> usize {
+        let size = match value {
+            &Variant::Empty => 0,
+            &Variant::Boolean(ref value) => value.byte_len(),
+            &Variant::SByte(ref value) => value.byte_len(),
+            &Variant::Byte(ref value) => value.byte_len(),
+            &Variant::Int16(ref value) => value.byte_len(),
+            &Variant::UInt16(ref value) => value.byte_len(),
+            &Variant::Int32(ref value) => value.byte_len(),
+            &Variant::UInt32(ref value) => value.byte_len(),
+            &Variant::Int64(ref value) => value.byte_len(),
+            &Variant::UInt64(ref value) => value.byte_len(),
+            &Variant::Float(ref value) => value.byte_len(),
+            &Variant::Double(ref value) => value.byte_len(),
+            &Variant::String(ref value) => value.byte_len(),
+            &Variant::DateTime(ref value) => value.byte_len(),
+            &Variant::Guid(ref value) => value.byte_len(),
+            &Variant::ByteString(ref value) => value.byte_len(),
+            &Variant::XmlElement(ref value) => value.byte_len(),
+            &Variant::NodeId(ref value) => value.byte_len(),
+            &Variant::ExpandedNodeId(ref value) => value.byte_len(),
+            &Variant::StatusCode(ref value) => value.byte_len(),
+            &Variant::QualifiedName(ref value) => value.byte_len(),
+            &Variant::LocalizedText(ref value) => value.byte_len(),
+            &Variant::ExtensionObject(ref value) => value.byte_len(),
+            &Variant::DataValue(ref value) => value.byte_len(),
+            _ => {
+                error!("Cannot compute length of this type (probably nested array)");
+                0
+            }
+        };
+        size
+    }
+
+    /// Encodes just the value, not the encoding flag
+    fn encode_variant_value<S: Write>(stream: &mut S, value: &Variant) -> Result<usize> {
+        let result = match value {
+            &Variant::Empty => 0,
+            &Variant::Boolean(ref value) => value.encode(stream)?,
+            &Variant::SByte(ref value) => value.encode(stream)?,
+            &Variant::Byte(ref value) => value.encode(stream)?,
+            &Variant::Int16(ref value) => value.encode(stream)?,
+            &Variant::UInt16(ref value) => value.encode(stream)?,
+            &Variant::Int32(ref value) => value.encode(stream)?,
+            &Variant::UInt32(ref value) => value.encode(stream)?,
+            &Variant::Int64(ref value) => value.encode(stream)?,
+            &Variant::UInt64(ref value) => value.encode(stream)?,
+            &Variant::Float(ref value) => value.encode(stream)?,
+            &Variant::Double(ref value) => value.encode(stream)?,
+            &Variant::String(ref value) => value.encode(stream)?,
+            &Variant::DateTime(ref value) => value.encode(stream)?,
+            &Variant::Guid(ref value) => value.encode(stream)?,
+            &Variant::ByteString(ref value) => value.encode(stream)?,
+            &Variant::XmlElement(ref value) => value.encode(stream)?,
+            &Variant::NodeId(ref value) => value.encode(stream)?,
+            &Variant::ExpandedNodeId(ref value) => value.encode(stream)?,
+            &Variant::StatusCode(ref value) => value.encode(stream)?,
+            &Variant::QualifiedName(ref value) => value.encode(stream)?,
+            &Variant::LocalizedText(ref value) => value.encode(stream)?,
+            &Variant::ExtensionObject(ref value) => value.encode(stream)?,
+            &Variant::DataValue(ref value) => value.encode(stream)?,
+            _ => { return Err(Error::new(ErrorKind::Other, "Cannot encode this variant value type (probably nested array)")) }
+        };
+        Ok(result)
+    }
+
+    /// Reads just the variant value from the stream
+    fn decode_variant_value<S: Read>(stream: &mut S, encoding_mask: Byte) -> Result<Self> {
+        let result = if encoding_mask == 0 {
+            Variant::Empty
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Boolean) {
+            Variant::Boolean(Boolean::decode(stream)?)
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::SByte) {
+            Variant::SByte(SByte::decode(stream)?)
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Byte) {
+            Variant::Byte(Byte::decode(stream)?)
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Int16) {
+            Variant::Int16(Int16::decode(stream)?)
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::UInt16) {
+            Variant::UInt16(UInt16::decode(stream)?)
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Int32) {
+            Variant::Int32(Int32::decode(stream)?)
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::UInt32) {
+            Variant::UInt32(UInt32::decode(stream)?)
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Int64) {
+            Variant::Int64(Int64::decode(stream)?)
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::UInt64) {
+            Variant::UInt64(UInt64::decode(stream)?)
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Float) {
+            Variant::Float(Float::decode(stream)?)
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Double) {
+            Variant::Double(Double::decode(stream)?)
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::String) {
+            Variant::String(UAString::decode(stream)?)
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::DateTime) {
+            Variant::DateTime(DateTime::decode(stream)?)
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Guid) {
+            Variant::Guid(Guid::decode(stream)?)
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::ByteString) {
+            Variant::ByteString(ByteString::decode(stream)?)
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::XmlElement) {
+            Variant::XmlElement(XmlElement::decode(stream)?)
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::NodeId) {
+            Variant::NodeId(NodeId::decode(stream)?)
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::ExpandedNodeId) {
+            Variant::ExpandedNodeId(ExpandedNodeId::decode(stream)?)
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::StatusCode) {
+            Variant::StatusCode(StatusCode::decode(stream)?)
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::QualifiedName) {
+            Variant::QualifiedName(QualifiedName::decode(stream)?)
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::LocalizedText) {
+            Variant::LocalizedText(LocalizedText::decode(stream)?)
+        } else if encoding_mask == 22 {
+            Variant::ExtensionObject(ExtensionObject::decode(stream)?)
+        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::DataValue) {
+            Variant::DataValue(DataValue::decode(stream)?)
+        } else {
+            Variant::Empty
+        };
+        Ok(result)
+    }
+
+    // Gets the encoding mask to write the variant to disk
+    fn get_encoding_mask(&self) -> u8 {
         let encoding_mask = match *self {
             Variant::Empty => 0,
             Variant::Boolean(_) => DataTypeId::Boolean as u8,
@@ -252,16 +394,24 @@ impl Variant {
             Variant::ExtensionObject(_) => 22, // DataTypeId::ExtensionObject as u8,
             Variant::DataValue(_) => DataTypeId::DataValue as u8,
             /// A variant can be an array of other kinds
-            Variant::Array(ref values, _) => {
+            Variant::Array(ref values) => {
                 let mut encoding_mask = if values.is_empty() {
                     0u8
                 } else {
                     values[0].get_encoding_mask()
                 };
-                encoding_mask |= ARRAY_BIT; // True if the array dimensions field is encoded
-                encoding_mask |= ARRAY_DIMENSIONS_BIT; // True if an array of values is encoded
+                encoding_mask |= ARRAY_VALUES_BIT;
                 encoding_mask
             },
+            Variant::MultiDimensionArray(ref values, _) => {
+                let mut encoding_mask = if values.is_empty() {
+                    0u8
+                } else {
+                    values[0].get_encoding_mask()
+                };
+                encoding_mask |= ARRAY_VALUES_BIT | ARRAY_DIMENSIONS_BIT;
+                encoding_mask
+            }
         };
         encoding_mask
     }

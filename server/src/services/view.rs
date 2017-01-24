@@ -20,8 +20,18 @@ impl ViewService {
             let nodes_to_browse = request.nodes_to_browse.as_ref().unwrap();
             let mut browse_results: Vec<BrowseResult> = Vec::new();
 
+            // TODO Description of the view to browse
+
+            let address_space = server_state.address_space.lock().unwrap();
+
             // Nodes to browse
-            for node in nodes_to_browse {
+            for node_to_browse in nodes_to_browse {
+                let node = address_space.find(&node_to_browse.node_id);
+                if node.is_none() {
+                    continue;
+                }
+                let node = node.unwrap();
+
                 // pub node_id: NodeId,
                 // pub browse_direction: BrowseDirection,
                 // pub reference_type_id: NodeId,

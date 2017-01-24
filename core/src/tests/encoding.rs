@@ -341,13 +341,17 @@ fn test_variant() {
 
 #[test]
 fn test_variant_single_dimension_array() {
-    // Array(Vec<Variant>, Vec<UInt32>),
-    unimplemented!();
+    let values = vec![Variant::Int32(100), Variant::Int32(200), Variant::Int32(300)];
+    let v = Variant::Array(values);
+    serialize_test(v);
 }
 
 #[test]
 fn test_variant_multi_dimension_array() {
-    unimplemented!();
+    let values = vec![Variant::Int32(100), Variant::Int32(200), Variant::Int32(300), Variant::Int32(400), Variant::Int32(500), Variant::Int32(600)];
+    let dimensions = vec![3, 2];
+    let v = Variant::MultiDimensionArray(values, dimensions);
+    serialize_test(v);
 }
 
 #[test]
