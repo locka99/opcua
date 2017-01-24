@@ -5,6 +5,7 @@ use opcua_core::comms::*;
 
 use services::discovery::*;
 use services::session::*;
+use services::subscription::*;
 use services::view::*;
 use server::ServerState;
 use tcp_transport::SessionState;
@@ -19,6 +20,8 @@ pub struct MessageHandler {
     discovery_service: DiscoveryService,
     /// Session service
     session_service: SessionService,
+    /// Subscription service
+    subscription_service: SubscriptionService,
     /// View service
     view_service: ViewService,
 }
@@ -31,6 +34,7 @@ impl MessageHandler {
             discovery_service: DiscoveryService::new(),
             session_service: SessionService::new(),
             view_service: ViewService::new(),
+            subscription_service: SubscriptionService::new(),
         }
     }
 
@@ -40,20 +44,26 @@ impl MessageHandler {
         let mut session_state = self.session_state.lock().unwrap();
         let mut session_state = &mut session_state;
 
-        let response = match *message {
-            SupportedMessage::GetEndpointsRequest(ref request) => {
+        let response = match message {
+            &SupportedMessage::GetEndpointsRequest(ref request) => {
                 self.discovery_service.get_endpoints(server_state, session_state, request)?
             },
-            SupportedMessage::CreateSessionRequest(ref request) => {
+            &SupportedMessage::CreateSessionRequest(ref request) => {
                 self.session_service.create_session(server_state, session_state, request)?
             },
-            SupportedMessage::CloseSessionRequest(ref request) => {
+            &SupportedMessage::CloseSessionRequest(ref request) => {
                 self.session_service.close_session(server_state, session_state, request)?
             },
-            SupportedMessage::ActivateSessionRequest(ref request) => {
+            &SupportedMessage::ActivateSessionRequest(ref request) => {
                 self.session_service.activate_session(server_state, session_state, request)?
             },
-            SupportedMessage::BrowseRequest(ref request) => {
+            &SupportedMessage::CreateSubscriptionRequest(ref request) => {
+                self.subscription_service.create_subscription(server_state, session_state, request)?
+            }
+            &SupportedMessage::PublishRequest(ref request) => {
+                self.subscription_service.publish(server_state, session_state, request)?
+            },
+            &SupportedMessage::BrowseRequest(ref request) => {
                 self.view_service.browse(server_state, session_state, request)?
             },
             _ => {

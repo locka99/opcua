@@ -32,7 +32,13 @@ use_generated_types! [
     browse_result,
     browse_description,
     view_description,
-    reference_description
+    reference_description,
+    create_subscription_request,
+    create_subscription_response,
+    publish_request,
+    publish_response,
+    subscription_acknowledgement,
+    notification_message
 ];
 
 pub use self::node_ids::*;

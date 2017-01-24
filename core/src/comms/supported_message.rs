@@ -106,6 +106,12 @@ impl SupportedMessage {
             ObjectId::BrowseResponse_Encoding_DefaultBinary => {
                 SupportedMessage::BrowseResponse(BrowseResponse::decode(stream)?)
             },
+            ObjectId::CreateSubscriptionRequest_Encoding_DefaultBinary => {
+                SupportedMessage::CreateSubscriptionRequest(CreateSubscriptionRequest::decode(stream)?)
+            },
+            ObjectId::CreateSubscriptionResponse_Encoding_DefaultBinary => {
+                SupportedMessage::CreateSubscriptionResponse(CreateSubscriptionResponse::decode(stream)?)
+            },
             _ => {
                 debug!("decoding unsupported for object id {:?}", object_id);
                 SupportedMessage::Invalid(object_id)
@@ -132,7 +138,12 @@ supported_messages![
     CloseSessionResponse,
     ActivateSessionRequest,
     ActivateSessionResponse,
+    // Subscription service
+    CreateSubscriptionRequest,
+    CreateSubscriptionResponse,
     // View service
     BrowseRequest,
-    BrowseResponse
+    BrowseResponse,
+    PublishRequest,
+    PublishResponse
 ];
