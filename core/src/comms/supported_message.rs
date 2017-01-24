@@ -112,6 +112,12 @@ impl SupportedMessage {
             ObjectId::CreateSubscriptionResponse_Encoding_DefaultBinary => {
                 SupportedMessage::CreateSubscriptionResponse(CreateSubscriptionResponse::decode(stream)?)
             },
+            ObjectId::PublishRequest_Encoding_DefaultBinary => {
+                SupportedMessage::PublishRequest(PublishRequest::decode(stream)?)
+            },
+            ObjectId::PublishResponse_Encoding_DefaultBinary => {
+                SupportedMessage::PublishResponse(PublishResponse::decode(stream)?)
+            },
             _ => {
                 debug!("decoding unsupported for object id {:?}", object_id);
                 SupportedMessage::Invalid(object_id)
