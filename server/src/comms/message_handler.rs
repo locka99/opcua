@@ -3,12 +3,13 @@ use std::sync::{Arc, Mutex};
 use opcua_core::types::*;
 use opcua_core::comms::*;
 
+use types::*;
+use server::ServerState;
+
 use services::discovery::*;
 use services::session::*;
 use services::subscription::*;
 use services::view::*;
-use server::ServerState;
-use tcp_transport::SessionState;
 
 /// Processes and dispatches messages for handling
 pub struct MessageHandler {

@@ -5,7 +5,7 @@ use std::thread;
 use opcua_core::types::*;
 use opcua_core::address_space::*;
 
-use tcp_transport::{TcpTransport};
+use comms::tcp_transport::{TcpTransport};
 
 use config::{ServerConfig};
 

@@ -5,7 +5,7 @@ use std::path::{PathBuf};
 use opcua_core::types::*;
 
 use config::*;
-use handshake::*;
+use comms::handshake::*;
 
 fn make_test_file(filename: &str) -> PathBuf {
     let mut path = std::env::temp_dir();

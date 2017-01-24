@@ -10,9 +10,10 @@ use opcua_core::comms::*;
 use opcua_core::services::*;
 use opcua_core::debug::*;
 
+use types::*;
 use server::ServerState;
-use handshake;
-use message_handler::*;
+use comms::handshake;
+use comms::message_handler::*;
 
 const RECEIVE_BUFFER_SIZE: usize = 32768;
 const SEND_BUFFER_SIZE: usize = 32768;
@@ -25,24 +26,6 @@ pub enum TransportState {
     WaitingHello,
     ProcessMessages,
     Finished
-}
-
-/// Session info holds information about a session created by CreateSession service
-#[derive(Clone)]
-pub struct SessionInfo {}
-
-/// Session state is anything associated with the session at the message / service level
-#[derive(Clone)]
-pub struct SessionState {
-    pub session_info: Option<SessionInfo>
-}
-
-impl SessionState {
-    pub fn new() -> SessionState {
-        SessionState {
-            session_info: None,
-        }
-    }
 }
 
 pub struct TcpTransport {
