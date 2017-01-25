@@ -132,6 +132,7 @@ pub trait Node {
     fn write_mask(&self) -> Option<UInt32>;
     fn user_write_mask(&self) -> Option<UInt32>;
     fn add_reference(&mut self, reference: Reference);
+    fn references(&self) -> &Vec<Reference>;
 }
 
 /// Base is the functionality that all kinds of nodes need. Part 3, diagram B.4
@@ -171,13 +172,19 @@ impl Node for Base {
         find_attribute_optional!(self, WriteMask);
     }
 
+    fn user_write_mask(&self) -> Option<UInt32> {
+        find_attribute_optional!(self, UserWriteMask);
+    }
+
+
     fn add_reference(&mut self, reference: Reference) {
         self.references.push(reference);
     }
 
-    fn user_write_mask(&self) -> Option<UInt32> {
-        find_attribute_optional!(self, UserWriteMask);
+    fn references(&self) -> &Vec<Reference> {
+        &self.references
     }
+
 }
 
 impl Base {
