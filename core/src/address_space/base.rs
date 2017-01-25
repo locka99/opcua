@@ -117,7 +117,6 @@ pub enum Property {
     NodeVersion(UAString),
     ViewVersion(UInt32),
     Icon,
-    // TODO
     NamingRule,
     // TODO
 }
@@ -141,7 +140,6 @@ pub struct Base {
     // TODO number of attributes is fixed per type so it'd be more efficient to hold an array of options
     // and use an index find each of them. Depends how much they're used really
     pub attributes: Vec<Attribute>,
-
     pub references: Vec<Reference>,
     pub properties: Vec<Property>,
 }

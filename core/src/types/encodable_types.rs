@@ -353,7 +353,6 @@ impl UAString {
 
 /// A 16 byte value that can be used as a globally unique identifier.
 /// Data type ID 14
-
 #[derive(Eq, PartialEq, Clone, Hash)]
 pub struct Guid {
     pub data1: UInt32,
@@ -540,8 +539,19 @@ impl ByteString {
         self.value.is_none()
     }
 
+    /// Create a byte string with a number of random characters. Can be used to create a nonce or
+    /// a similar reason.
+    pub fn random(number_of_bytes: usize) -> ByteString {
+        use rand::{self, Rng};
+        let mut rng = rand::thread_rng();
+        let mut bytes = vec![0u8; number_of_bytes];
+        rng.fill_bytes(&mut bytes);
+        ByteString::from_bytes(&bytes)
+    }
+
+    /// Create a byte string from an array of bytes
     pub fn from_bytes(v: &[u8]) -> ByteString {
-        ByteString { value: Some(v.to_vec())}
+        ByteString { value: Some(v.to_vec()) }
     }
 }
 

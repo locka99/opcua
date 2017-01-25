@@ -19,14 +19,23 @@ impl Object {
         let references = vec![
             Reference::HasTypeDefinition(ObjectTypeId::FolderType.as_node_id()),
         ];
+
         let properties = vec![];
         Object {
             base: Base::new(NodeClass::Object, node_id, browse_name, display_name, attributes, references, properties),
         }
     }
 
-    pub fn add_child(&mut self, child_node_id: &NodeId) {
-        self.add_reference(Reference::HasChild(child_node_id.clone()));
+    pub fn add_organizes(&mut self, node_id: &NodeId) {
+        self.add_reference(Reference::Organizes(node_id.clone()));
+    }
+
+    pub fn add_child(&mut self, node_id: &NodeId) {
+        self.add_reference(Reference::HasChild(node_id.clone()));
+    }
+
+    pub fn add_property(&mut self, node_id: &NodeId) {
+        self.add_reference(Reference::HasProperty(node_id.clone()));
     }
 
     pub fn event_notifier(&self) -> bool {

@@ -37,7 +37,7 @@ fn sample_secure_channel_request_data_security_none() -> Chunk {
 }
 
 #[test]
-fn test_chunk_open_secure_channel() {
+fn chunk_open_secure_channel() {
     let _ = Test::setup();
 
     let chunk = sample_secure_channel_request_data_security_none();
@@ -76,7 +76,7 @@ fn test_chunk_open_secure_channel() {
 }
 
 #[test]
-fn test_open_secure_channel_response() {
+fn open_secure_channel_response() {
     let chunk = vec![
         0x4f, 0x50, 0x4e, 0x46, 0x87, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x2f, 0x00, 0x00,
         0x00, 0x68, 0x74, 0x74, 0x70, 0x3a, 0x2f, 0x2f, 0x6f, 0x70, 0x63, 0x66, 0x6f, 0x75, 0x6e,
@@ -110,7 +110,7 @@ fn test_open_secure_channel_response() {
 
 // Encode open secure channel back to itself and compare
 #[test]
-fn test_open_secure_channel() {
+fn open_secure_channel() {
     let _ = Test::setup();
     let open_secure_channel_request = OpenSecureChannelRequest {
         request_header: RequestHeader {

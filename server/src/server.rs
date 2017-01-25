@@ -3,16 +3,28 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use opcua_core::types::*;
+use opcua_core::comms::*;
 use opcua_core::address_space::*;
 
-use comms::tcp_transport::{TcpTransport};
+use comms::tcp_transport::*;
 
 use config::{ServerConfig};
+
+#[derive(Clone)]
+pub struct Endpoint {
+    pub endpoint_url: UAString,
+    pub security_mode: MessageSecurityMode,
+    pub security_policy_uri: UAString,
+}
 
 /// Server state is any state associated with the server as a whole that individual sessions might
 /// be interested in. That includes configuration info, address space etc.
 #[derive(Clone)]
 pub struct ServerState {
+    pub application_uri: UAString,
+    pub product_uri: UAString,
+    pub application_name: LocalizedText,
+    pub endpoints: Vec<Endpoint>,
     /// Server configuration
     pub config: Arc<Mutex<ServerConfig>>,
     /// Server public certificate read from config location or null if there is none
@@ -35,11 +47,27 @@ pub struct Server {
 impl Server {
     /// Create a new server instance
     pub fn new(config: &ServerConfig) -> Server {
+
+        // TODO Set from config
+        let application_uri = UAString::from_str("http://127.0.0.1/");
+        let endpoints = vec![Endpoint {
+            endpoint_url: UAString::from_str("opc.tcp://127.0.0.1:1234/xxx"),
+            security_mode:  MessageSecurityMode::None,
+            security_policy_uri: SecurityPolicy::None.to_string(),
+        }];
+
         Server {
             server_state: Arc::new(Mutex::new(ServerState {
+                application_uri: application_uri,
+                product_uri: UAString::null(),
+                application_name: LocalizedText {
+                    locale: UAString::null(),
+                    text: UAString::from_str("Rust OPC UA"),
+                },
+                endpoints: endpoints,
                 config: Arc::new(Mutex::new(config.clone())),
                 server_certificate: ByteString::null(),
-                address_space: Arc::new(Mutex::new(AddressSpace::new()))
+                address_space: Arc::new(Mutex::new(AddressSpace::new_top_level()))
             })),
             abort: false,
             sessions: Vec::new()

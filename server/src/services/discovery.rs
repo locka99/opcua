@@ -1,5 +1,6 @@
 use std::result::Result;
 
+use opcua_core;
 use opcua_core::types::*;
 use opcua_core::services::*;
 use opcua_core::comms::*;
@@ -17,33 +18,29 @@ impl DiscoveryService {
     pub fn get_endpoints(&self, server_state: &mut ServerState, _: &mut SessionState, request: &GetEndpointsRequest) -> Result<SupportedMessage, &'static StatusCode> {
         debug!("get_endpoints");
 
-        // server_state.get_endpoints().clone()
-        // TODO get from server state
-
         let server_certificate = server_state.server_certificate.clone();
 
-        let endpoint = EndpointDescription {
-            endpoint_url: UAString::from_str("opc.tcp://127.0.0.1:1234/xxx"),
-            server: ApplicationDescription {
-                application_uri: UAString::from_str("http://localhost/"),
-                product_uri: UAString::null(),
-                application_name: LocalizedText {
-                    locale: UAString::null(),
-                    text: UAString::from_str("Rust OPC UA"),
+        let mut endpoints: Vec<EndpointDescription> = Vec::with_capacity(server_state.endpoints.len());
+        for e in &server_state.endpoints {
+            endpoints.push(EndpointDescription {
+                endpoint_url: e.endpoint_url.clone(),
+                server: ApplicationDescription {
+                    application_uri: server_state.application_uri.clone(),
+                    product_uri: server_state.product_uri.clone(),
+                    application_name: server_state.application_name.clone(),
+                    application_type: ApplicationType::Server,
+                    gateway_server_uri: UAString::null(),
+                    discovery_profile_uri: UAString::null(),
+                    discovery_urls: None,
                 },
-                application_type: ApplicationType::Server,
-                gateway_server_uri: UAString::null(),
-                discovery_profile_uri: UAString::null(),
-                discovery_urls: None,
-            },
-            server_certificate: server_certificate,
-            security_mode: MessageSecurityMode::None,
-            security_policy_uri: SecurityPolicy::None.to_string(),
-            user_identity_tokens: Some(vec![UserTokenPolicy::new_anonymous()]),
-            transport_profile_uri: UAString::from_str("http://opcfoundation.org/UA-Profile/Transport/uatcp-uasc-uabinary"),
-            security_level: 1,
-        };
-        let endpoints = vec![endpoint];
+                server_certificate: server_certificate.clone(),
+                security_mode: e.security_mode,
+                security_policy_uri: e.security_policy_uri.clone(),
+                user_identity_tokens: Some(vec![UserTokenPolicy::new_anonymous()]),
+                transport_profile_uri: UAString::from_str(opcua_core::profiles::TRANSPORT_BINARY),
+                security_level: 1,
+            });
+        }
 
         let response = GetEndpointsResponse {
             response_header: ResponseHeader::new(&DateTime::now(), request.request_header.request_handle),

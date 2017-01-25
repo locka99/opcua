@@ -28,7 +28,7 @@ fn ack_data() -> Vec<u8> {
 }
 
 #[test]
-pub fn test_server_config_save() {
+pub fn server_config_save() {
     let path = make_test_file("server_config.yaml");
     let config = ServerConfig::default();
     assert!(config.save(&path).is_ok());
@@ -40,7 +40,7 @@ pub fn test_server_config_save() {
 }
 
 #[test]
-pub fn test_hello() {
+pub fn hello() {
     let mut stream = Cursor::new(hello_data());
     let hello = HelloMessage::decode(&mut stream).unwrap();
     println!("hello = {:?}", hello);
@@ -55,7 +55,7 @@ pub fn test_hello() {
 }
 
 #[test]
-pub fn test_acknowledge() {
+pub fn acknowledge() {
     let mut stream = Cursor::new(ack_data());
     let ack = AcknowledgeMessage::decode(&mut stream).unwrap();
     println!("ack = {:?}", ack);

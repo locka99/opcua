@@ -18,7 +18,7 @@ fn request_header() -> RequestHeader {
 }
 
 #[test]
-fn test_get_endpoints_request() {
+fn get_endpoints_request() {
     let r = GetEndpointsRequest{
         request_header: request_header(),
         endpoint_url: UAString::from_str("opc.tcp://localhost/my_path"),

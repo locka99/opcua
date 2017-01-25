@@ -3,41 +3,41 @@ use types::*;
 use super::*;
 
 #[test]
-fn test_encoding_bool() {
+fn encoding_bool() {
     serialize_test(true);
     serialize_test(false);
 }
 
 #[test]
-fn test_encoding_sbyte() {
+fn encoding_sbyte() {
     serialize_test(0 as SByte);
     serialize_test(100 as SByte);
     serialize_test(-90 as SByte);
 }
 
 #[test]
-fn test_encoding_byte() {
+fn encoding_byte() {
     serialize_test(0 as Byte);
     serialize_test(255 as Byte);
     serialize_test(90 as Byte);
 }
 
 #[test]
-fn test_encoding_int16() {
+fn encoding_int16() {
     serialize_test(0 as Int16);
     serialize_test(-17000 as Int16);
     serialize_test(32000 as Int16);
 }
 
 #[test]
-fn test_encoding_uint16() {
+fn encoding_uint16() {
     serialize_test(0 as UInt16);
     serialize_test(57000 as UInt16);
     serialize_test(32000 as UInt16);
 }
 
 #[test]
-fn test_encoding_int32() {
+fn encoding_int32() {
     serialize_test(0 as Int32);
     serialize_test(-17444000 as Int32);
     serialize_test(32004440 as Int32);
@@ -45,14 +45,14 @@ fn test_encoding_int32() {
 
 
 #[test]
-fn test_encoding_uint32() {
+fn encoding_uint32() {
     serialize_test(0 as UInt32);
     serialize_test(57055500 as UInt32);
     serialize_test(32555000 as UInt32);
 }
 
 #[test]
-fn test_encoding_int64() {
+fn encoding_int64() {
     serialize_test(0 as Int64);
     serialize_test(-17442224000 as Int64);
     serialize_test(32022204440 as Int64);
@@ -60,28 +60,28 @@ fn test_encoding_int64() {
 
 
 #[test]
-fn test_encoding_uint64() {
+fn encoding_uint64() {
     serialize_test(0 as UInt64);
     serialize_test(57054445500 as UInt64);
     serialize_test(34442555000 as UInt64);
 }
 
 #[test]
-fn test_encoding_f32() {
+fn encoding_f32() {
     serialize_test(0 as Float);
     serialize_test(12.4342 as Float);
     serialize_test(5686.222 as Float);
 }
 
 #[test]
-fn test_encoding_f64() {
+fn encoding_f64() {
     serialize_test(0 as Double);
     serialize_test(12.43424324234 as Double);
     serialize_test(5686.222342342 as Double);
 }
 
 #[test]
-fn test_encoding_string() {
+fn encoding_string() {
     serialize_test(UAString::null());
     serialize_test(UAString::from_str("ショッピング"));
     serialize_test(UAString::from_str("This is a test"));
@@ -89,7 +89,7 @@ fn test_encoding_string() {
 }
 
 #[test]
-fn test_encode_string_5224() {
+fn encode_string_5224() {
     // Sample from OPCUA Part 6 - 5.2.2.4
     let expected = [0x06, 0x00, 0x00, 0x00, 0xE6, 0xB0, 0xB4, 0x42, 0x6F, 0x79];
     let input = UAString::from_str("水Boy");
@@ -97,7 +97,7 @@ fn test_encode_string_5224() {
 }
 
 #[test]
-fn test_encoding_datetime() {
+fn encoding_datetime() {
     let mut now = DateTime::now();
     // Round nanos to the nearest tick to test comparison
     now.nano_sec = (now.nano_sec / 100) * 100;
@@ -108,7 +108,7 @@ fn test_encoding_datetime() {
 }
 
 #[test]
-fn test_encoding_guid() {
+fn encoding_guid() {
     let guid = Guid {
         data1: 0xf0001234,
         data2: 0xface,
@@ -122,7 +122,7 @@ fn test_encoding_guid() {
 }
 
 #[test]
-fn test_encode_guid_5226() {
+fn encode_guid_5226() {
     // Sample from OPCUA Part 6 - 5.2.2.6
     let expected_bytes = [0x91, 0x2B, 0x96, 0x72, 0x75, 0xFA, 0xE6, 0x4A, 0x8D, 0x28, 0xB4, 0x04, 0xDC, 0x7D, 0xAF, 0x63];
     let guid = Guid {
@@ -135,7 +135,7 @@ fn test_encode_guid_5226() {
 }
 
 #[test]
-fn test_node_id_2byte_numeric() {
+fn node_id_2byte_numeric() {
     // Sample from OPCUA Part 6 - 5.2.2.9
     let node_id = NodeId::new_numeric(0, 0x72);
     let expected_bytes = [0x0, 0x72];
@@ -145,7 +145,7 @@ fn test_node_id_2byte_numeric() {
 }
 
 #[test]
-fn test_node_id_4byte_numeric() {
+fn node_id_4byte_numeric() {
     // Sample from OPCUA Part 6 - 5.2.2.9
     let node_id = NodeId::new_numeric(5, 1025);
     assert!(node_id.is_numeric());
@@ -159,7 +159,7 @@ fn test_node_id_4byte_numeric() {
 }
 
 #[test]
-fn test_node_id_string_5229() {
+fn node_id_string_5229() {
     // Sample from OPCUA Part 6 - 5.2.2.9
     let node_id = NodeId::new_string(1, "Hot水");
     assert!(node_id.is_string());
@@ -171,7 +171,7 @@ fn test_node_id_string_5229() {
 }
 
 #[test]
-fn test_node_id_guid() {
+fn node_id_guid() {
     let guid = Guid {
         data1: 0x72962B91,
         data2: 0xFA75,
@@ -184,14 +184,14 @@ fn test_node_id_guid() {
 }
 
 #[test]
-fn test_node_id_byte_string() {
+fn node_id_byte_string() {
     let node_id = NodeId::new_byte_string(30, ByteString::from_bytes(b"this is a byte string"));
     assert!(node_id.is_byte_string());
     serialize_test(node_id);
 }
 
 #[test]
-fn test_extension_object() {
+fn extension_object() {
     let eo = ExtensionObject::null();
     serialize_test(eo);
 
@@ -209,7 +209,7 @@ fn test_extension_object() {
 }
 
 #[test]
-fn test_localized_text() {
+fn localized_text() {
     let t = LocalizedText {
         locale: UAString::null(),
         text: UAString::null(),
@@ -236,7 +236,7 @@ fn test_localized_text() {
 }
 
 #[test]
-fn test_expanded_node_id() {
+fn expanded_node_id() {
     let node_id = ExpandedNodeId::new(&NodeId::new_numeric(200, 2000));
     serialize_test(node_id);
 
@@ -255,7 +255,7 @@ fn test_expanded_node_id() {
 }
 
 #[test]
-fn test_qualified_name() {
+fn qualified_name() {
     let qname = QualifiedName {
         namespace_index: 100,
         name: UAString::from_str("this is a qualified name"),
@@ -264,7 +264,7 @@ fn test_qualified_name() {
 }
 
 #[test]
-fn test_variant() {
+fn variant() {
     // Boolean
     let v = Variant::Boolean(true);
     serialize_test(v);
@@ -340,14 +340,14 @@ fn test_variant() {
 }
 
 #[test]
-fn test_variant_single_dimension_array() {
+fn variant_single_dimension_array() {
     let values = vec![Variant::Int32(100), Variant::Int32(200), Variant::Int32(300)];
     let v = Variant::Array(values);
     serialize_test(v);
 }
 
 #[test]
-fn test_variant_multi_dimension_array() {
+fn variant_multi_dimension_array() {
     let values = vec![Variant::Int32(100), Variant::Int32(200), Variant::Int32(300), Variant::Int32(400), Variant::Int32(500), Variant::Int32(600)];
     let dimensions = vec![3, 2];
     let v = Variant::MultiDimensionArray(values, dimensions);
@@ -355,7 +355,7 @@ fn test_variant_multi_dimension_array() {
 }
 
 #[test]
-fn test_diagnostic_info() {
+fn diagnostic_info() {
     let mut d = DiagnosticInfo {
         symbolic_id: None,
         namespace_uri: None,

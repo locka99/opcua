@@ -39,18 +39,23 @@ impl ViewService {
                 // pub node_class_mask: UInt32,
                 // pub result_mask: UInt32,
 
-                let reference = ReferenceDescription {
-                    reference_type_id: NodeId::null(),
-                    is_forward: false,
-                    node_id: ExpandedNodeId::new(&NodeId::null()),
-                    browse_name: QualifiedName::new(0, "todo"),
-                    display_name: LocalizedText::new("", "todo"),
-                    node_class: NodeClass::Object,
-                    type_definition: ExpandedNodeId::new(&NodeId::null()),
-                };
+                let mut references = Vec::new();
+                // Loop of some sort
+                {
+                    let reference = ReferenceDescription {
+                        reference_type_id: NodeId::null(),
+                        is_forward: false,
+                        node_id: ExpandedNodeId::new(&NodeId::null()),
+                        browse_name: QualifiedName::new(0, "todo"),
+                        display_name: LocalizedText::new("", "todo"),
+                        node_class: NodeClass::Object,
+                        type_definition: ExpandedNodeId::new(&NodeId::null()),
+                    };
 
-                // TODO requested_max_references_per_node
-                let references = vec![reference];
+                    // TODO requested_max_references_per_node
+                    references.push(reference);
+                }
+
                 let browse_result = BrowseResult {
                     status_code: GOOD.clone(),
                     continuation_point: ByteString::null(),
