@@ -1,4 +1,4 @@
-use std::io::{Read, Write, Result};
+use std::io::{Read, Write};
 
 use types::*;
 
@@ -13,12 +13,12 @@ impl BinaryEncoder<SecurityTokenRequestType> for SecurityTokenRequestType {
         4
     }
 
-    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         // All enums are Int32
         write_i32(stream, *self as Int32)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         // All enums are Int32
         let security_token_request_type = read_i32(stream)?;
         Ok(match security_token_request_type {

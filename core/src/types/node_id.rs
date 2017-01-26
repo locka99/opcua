@@ -1,6 +1,6 @@
 use std;
 use std::str::{FromStr};
-use std::io::{Read, Write, Result};
+use std::io::{Read, Write};
 
 use types::*;
 
@@ -48,7 +48,7 @@ impl BinaryEncoder<NodeId> for NodeId {
         size
     }
 
-    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size: usize = 0;
         // Type determines the byte code
         match self.identifier {
@@ -89,7 +89,7 @@ impl BinaryEncoder<NodeId> for NodeId {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let identifier = read_u8(stream)?;
         let node_id = match identifier {
             0x0 => {
@@ -343,7 +343,7 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
         size
     }
 
-    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size: usize = 0;
 
         let mut data_encoding = 0;
@@ -399,7 +399,7 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let data_encoding = read_u8(stream)?;
         let identifier = data_encoding & 0x0f;
         let node_id = match identifier {

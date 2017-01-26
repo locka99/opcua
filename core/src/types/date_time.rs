@@ -1,4 +1,4 @@
-use std::io::{Read, Write, Result};
+use std::io::{Read, Write};
 
 use chrono::{self, UTC, Duration, TimeZone, Timelike, Datelike};
 
@@ -41,12 +41,12 @@ impl BinaryEncoder<DateTime> for DateTime {
         8
     }
 
-    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let ticks = self.checked_ticks();
         write_i64(stream, ticks)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let ticks = read_i64(stream)?;
         Ok(DateTime::from_ticks(ticks))
     }

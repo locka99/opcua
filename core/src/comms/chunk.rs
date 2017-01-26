@@ -1,5 +1,5 @@
 use std;
-use std::io::{Read, Write, Result, Cursor};
+use std::io::{Read, Write, Cursor};
 
 use debug::*;
 use types::*;
@@ -51,7 +51,7 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
         CHUNK_HEADER_SIZE
     }
 
-    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         if !self.is_valid {
             error!("Cannot write an invalid type");
             return Ok(0);
@@ -70,7 +70,7 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
         };
 
         let mut size = 0;
-        size += stream.write(&message_type)?;
+        size += process_encode_io_result(stream.write(&message_type))?;
         size += write_u8(stream, chunk_type)?;
         size += write_u32(stream, self.message_size)?;
         size += write_u32(stream, self.secure_channel_id)?;
@@ -78,11 +78,11 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let mut is_valid = true;
 
         let mut message_type_code = [0u8; 3];
-        stream.read_exact(&mut message_type_code)?;
+        process_decode_io_result(stream.read_exact(&mut message_type_code))?;
         let message_type = if message_type_code == HEADER_MSG {
             ChunkMessageType::Message
         } else if message_type_code == HEADER_OPN {
@@ -154,14 +154,14 @@ impl BinaryEncoder<SecurityHeader> for SecurityHeader {
         }
     }
 
-    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         match *self {
             SecurityHeader::Asymmetric(ref value) => { value.encode(stream) },
             SecurityHeader::Symmetric(ref value) => { value.encode(stream) },
         }
     }
 
-    fn decode<S: Read>(_: &mut S) -> Result<Self> {
+    fn decode<S: Read>(_: &mut S) -> EncodingResult<Self> {
         unimplemented!();
     }
 }
@@ -176,11 +176,11 @@ impl BinaryEncoder<SymmetricSecurityHeader> for SymmetricSecurityHeader {
         4
     }
 
-    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         Ok(self.token_id.encode(stream)?)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let token_id = UInt32::decode(stream)?;
         Ok(SymmetricSecurityHeader {
             token_id: token_id
@@ -206,14 +206,14 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
         size
     }
 
-    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.security_policy_uri.encode(stream)?;
 
         // The spec says to write 0 or -1 when buf is empty but some clients don't like that one bit
         if self.sender_certificate.len() > 0 {
             size += write_i32(stream, self.sender_certificate.len() as i32)?;
-            size += stream.write(&self.sender_certificate)?;
+            size += process_encode_io_result(stream.write(&self.sender_certificate))?;
         }
         else {
             size += write_i32(stream, -1)?;
@@ -222,7 +222,7 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
         // The spec says to write 0 or -1 when buf is empty but some clients don't like that one bit
         if  self.receiver_certificate_thumbprint.len() > 0 {
             size += write_i32(stream, self.receiver_certificate_thumbprint.len() as i32)?;
-            size += stream.write(&self.receiver_certificate_thumbprint)?;
+            size += process_encode_io_result(stream.write(&self.receiver_certificate_thumbprint))?;
         }
         else {
             size += write_i32(stream, -1)?;
@@ -232,7 +232,7 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let security_policy_uri = UAString::decode(stream)?;
 
         let mut sender_certificate: Vec<u8> = Vec::new();
@@ -242,7 +242,7 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
             if sender_certificate_length > 0 {
                 // TODO validate sender_certificate_length < MaxCertificateSize
                 sender_certificate.resize(sender_certificate_length as usize, 0u8);
-                stream.read_exact(&mut sender_certificate)?;
+                process_decode_io_result(stream.read_exact(&mut sender_certificate))?;
             }
         }
 
@@ -253,7 +253,7 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
             if receiver_certificate_thumbprint_length > 0 {
                 // TODO validate receiver_certificate_thumbprint_length == 20
                 receiver_certificate_thumbprint.resize(receiver_certificate_thumbprint_length as usize, 0u8);
-                stream.read_exact(&mut receiver_certificate_thumbprint)?;
+                process_decode_io_result(stream.read_exact(&mut receiver_certificate_thumbprint))?;
             }
         }
 
@@ -286,14 +286,14 @@ impl BinaryEncoder<SequenceHeader> for SequenceHeader {
         8
     }
 
-    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size: usize = 0;
         size += self.sequence_number.encode(stream)?;
         size += self.request_id.encode(stream)?;
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let sequence_number = UInt32::decode(stream)?;
         let request_id = UInt32::decode(stream)?;
         Ok(SequenceHeader {

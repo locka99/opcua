@@ -1,4 +1,4 @@
-use std::io::{Read, Write, Result, Error, ErrorKind};
+use std::io::{Read, Write};
 
 use types::*;
 
@@ -126,7 +126,7 @@ impl BinaryEncoder<Variant> for Variant {
         size
     }
 
-    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size: usize = 0;
 
         // Encoding mask will include the array bits if applicable for the type
@@ -185,7 +185,7 @@ impl BinaryEncoder<Variant> for Variant {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let encoding_mask = Byte::decode(stream)?;
         let element_encoding_mask = encoding_mask & !(ARRAY_DIMENSIONS_BIT | ARRAY_VALUES_BIT);
 
@@ -193,7 +193,8 @@ impl BinaryEncoder<Variant> for Variant {
         let array_length = if encoding_mask & ARRAY_VALUES_BIT != 0 {
             let array_length = Int32::decode(stream)?;
             if array_length <= 0 {
-                return Err(Error::new(ErrorKind::Other, format!("Invalid array_length {}", array_length)));
+                debug!("Invalid array_length {}", array_length);
+                return Err(&BAD_DECODING_ERROR);
             }
             array_length
         } else {
@@ -209,18 +210,21 @@ impl BinaryEncoder<Variant> for Variant {
             if encoding_mask & ARRAY_DIMENSIONS_BIT != 0 {
                 let dimensions: Option<Vec<Int32>> = read_array(stream)?;
                 if dimensions.is_none() {
-                    return Err(Error::new(ErrorKind::Other, "No array dimensions despite the bit flag being set"));
+                    debug!("No array dimensions despite the bit flag being set");
+                    return Err(&BAD_DECODING_ERROR);
                 }
                 let dimensions = dimensions.unwrap();
                 let mut array_dimensions_length = 1;
                 for d in &dimensions {
                     if *d <= 0 {
-                        return Err(Error::new(ErrorKind::Other, format!("Invalid array dimension {}", *d)));
+                        debug!("Invalid array dimension {}", *d);
+                        return Err(&BAD_DECODING_ERROR);
                     }
                     array_dimensions_length *= *d;
                 }
                 if array_dimensions_length != array_length {
-                    Err(Error::new(ErrorKind::Other, format!("Array dimensions does not match array length {}", array_length)))
+                    debug!("Array dimensions does not match array length {}", array_length);
+                    Err(&BAD_DECODING_ERROR)
                 } else {
                     Ok(Variant::MultiDimensionArray(result, dimensions))
                 }
@@ -228,7 +232,8 @@ impl BinaryEncoder<Variant> for Variant {
                 Ok(Variant::Array(result))
             }
         } else if encoding_mask & ARRAY_DIMENSIONS_BIT != 0 {
-            Err(Error::new(ErrorKind::Other, format!("Array dimensions bit specified without any values")))
+            debug!("Array dimensions bit specified without any values");
+            Err(&BAD_DECODING_ERROR)
         } else {
             // Read a single variant
             Variant::decode_variant_value(stream, element_encoding_mask)
@@ -279,7 +284,7 @@ impl Variant {
     }
 
     /// Encodes just the value, not the encoding flag
-    fn encode_variant_value<S: Write>(stream: &mut S, value: &Variant) -> Result<usize> {
+    fn encode_variant_value<S: Write>(stream: &mut S, value: &Variant) -> EncodingResult<usize> {
         let result = match value {
             &Variant::Empty => 0,
             &Variant::Boolean(ref value) => value.encode(stream)?,
@@ -305,13 +310,16 @@ impl Variant {
             &Variant::LocalizedText(ref value) => value.encode(stream)?,
             &Variant::ExtensionObject(ref value) => value.encode(stream)?,
             &Variant::DataValue(ref value) => value.encode(stream)?,
-            _ => { return Err(Error::new(ErrorKind::Other, "Cannot encode this variant value type (probably nested array)")) }
+            _ => {
+                debug!("Cannot encode this variant value type (probably nested array)");
+                return Err(&BAD_ENCODING_ERROR)
+            }
         };
         Ok(result)
     }
 
     /// Reads just the variant value from the stream
-    fn decode_variant_value<S: Read>(stream: &mut S, encoding_mask: Byte) -> Result<Self> {
+    fn decode_variant_value<S: Read>(stream: &mut S, encoding_mask: Byte) -> EncodingResult<Self> {
         let result = if encoding_mask == 0 {
             Variant::Empty
         } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Boolean) {

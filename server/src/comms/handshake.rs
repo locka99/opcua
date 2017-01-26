@@ -25,30 +25,31 @@ impl BinaryEncoder<MessageHeader> for MessageHeader {
         8
     }
 
-    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size: usize = 0;
-        size += match self.message_type {
+        let result = match self.message_type {
             MessageType::Hello => {
-                stream.write(HELLO_MESSAGE)?
+                stream.write(HELLO_MESSAGE)
             },
             MessageType::Acknowledge => {
-                stream.write(ACKNOWLEDGE_MESSAGE)?
+                stream.write(ACKNOWLEDGE_MESSAGE)
             }
             MessageType::Error => {
-                stream.write(ERROR_MESSAGE)?
+                stream.write(ERROR_MESSAGE)
             }
             _ => {
                 panic!("Unrecognized type");
             }
         };
+        size += process_encode_io_result(result)?;
         size += write_u8(stream, b'F')?;
         size += write_u32(stream, self.message_size)?;
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let mut message_type: [u8; 4] = [0, 0, 0, 0];
-        stream.read_exact(&mut message_type)?;
+        process_decode_io_result(stream.read_exact(&mut message_type))?;
         let message_size = read_u32(stream)?;
         Ok(MessageHeader {
             message_type: MessageHeader::message_type(&message_type),
@@ -74,7 +75,11 @@ impl MessageHeader {
         if MessageHeader::message_type(&header) == MessageType::Invalid {
             return Err(Error::new(ErrorKind::Other, "Message type is not recognized, cannot read bytes"))
         }
-        let message_size = UInt32::decode(stream)?;
+        let message_size = UInt32::decode(stream);
+        if message_size.is_err() {
+            return Err(Error::new(ErrorKind::Other, "Cannot decode message_size"));
+        }
+        let message_size = message_size.unwrap();
 
         // Write header to stream
         let mut out = Cursor::new(Vec::with_capacity(message_size as usize));
@@ -137,7 +142,7 @@ impl BinaryEncoder<HelloMessage> for HelloMessage {
         self.message_header.byte_len() + 20 + self.endpoint_url.byte_len()
     }
 
-    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.message_header.encode(stream)?;
         size += self.protocol_version.encode(stream)?;
@@ -149,7 +154,7 @@ impl BinaryEncoder<HelloMessage> for HelloMessage {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let message_header = MessageHeader::decode(stream)?;
         let protocol_version = UInt32::decode(stream)?;
         let receive_buffer_size = UInt32::decode(stream)?;
@@ -200,7 +205,7 @@ impl BinaryEncoder<AcknowledgeMessage> for AcknowledgeMessage {
         self.message_header.byte_len() + 20
     }
 
-    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size: usize = 0;
         size += self.message_header.encode(stream)?;
         size += self.protocol_version.encode(stream)?;
@@ -211,7 +216,7 @@ impl BinaryEncoder<AcknowledgeMessage> for AcknowledgeMessage {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let message_header = MessageHeader::decode(stream)?;
         let protocol_version = UInt32::decode(stream)?;
         let receive_buffer_size = UInt32::decode(stream)?;
@@ -243,7 +248,7 @@ impl BinaryEncoder<ErrorMessage> for ErrorMessage {
         self.message_header.byte_len() + 4 + self.reason.byte_len()
     }
 
-    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size: usize = 0;
         size += self.message_header.encode(stream)?;
         size += self.error.encode(stream)?;
@@ -251,7 +256,7 @@ impl BinaryEncoder<ErrorMessage> for ErrorMessage {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let message_header = MessageHeader::decode(stream)?;
         let error = UInt32::decode(stream)?;
         let reason = UAString::decode(stream)?;

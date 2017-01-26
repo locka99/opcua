@@ -1,4 +1,4 @@
-use std::io::{Read, Write, Result};
+use std::io::{Read, Write};
 
 use types::*;
 use services::*;
@@ -23,7 +23,7 @@ macro_rules! supported_messages {
                 }
             }
 
-            fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+            fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
                 match *self {
                     SupportedMessage::Invalid(object_id) => {
                         panic!("Unsupported message {:?}", object_id);
@@ -32,7 +32,7 @@ macro_rules! supported_messages {
                 }
             }
 
-            fn decode<S: Read>(_: &mut S) -> Result<SupportedMessage> {
+            fn decode<S: Read>(_: &mut S) -> EncodingResult<Self> {
                 // THIS WILL NOT DO ANYTHING
                 panic!("Cannot decode a stream to a supported message type");
             }
@@ -61,7 +61,7 @@ macro_rules! supported_messages {
 }
 
 impl SupportedMessage {
-    pub fn decode_by_object_id<S: Read>(stream: &mut S, object_id: ObjectId) -> Result<SupportedMessage> {
+    pub fn decode_by_object_id<S: Read>(stream: &mut S, object_id: ObjectId) -> EncodingResult<Self> {
         debug!("decoding object_id {:?}", object_id);
         let decoded_message = match object_id {
             ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary => {

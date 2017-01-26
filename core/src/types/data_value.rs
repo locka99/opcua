@@ -1,4 +1,4 @@
-use std::io::{Read, Write, Result};
+use std::io::{Read, Write};
 
 use types::*;
 
@@ -65,7 +65,7 @@ impl BinaryEncoder<DataValue> for DataValue {
         size
     }
 
-    fn encode<S: Write>(&self, stream: &mut S) -> Result<usize> {
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
 
         let encoding_mask = self.encoding_mask();
@@ -92,7 +92,7 @@ impl BinaryEncoder<DataValue> for DataValue {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> Result<Self> {
+    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let encoding_mask = Byte::decode(stream)?;
 
         // Value
