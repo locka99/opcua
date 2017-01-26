@@ -1,11 +1,10 @@
 use std::io::{Read, Write};
 
-use chrono::{self, UTC, Duration, TimeZone, Timelike, Datelike};
+use chrono::{self, UTC, TimeZone, Timelike, Datelike};
 
 type ChronoDateTimeUTC = chrono::DateTime<UTC>;
 
-use super::encodable_types::*;
-use super::helpers::*;
+use types::*;
 
 const NANOS_PER_SECOND: i64 = 1_000_000_000;
 const NANOS_PER_TICK: i64 = 100;
@@ -170,10 +169,10 @@ pub fn endtimes_chrono() -> ChronoDateTimeUTC {
 }
 
 /// Turns a duration to ticks
-fn duration_to_ticks(duration: Duration) -> i64 {
+fn duration_to_ticks(duration: chrono::Duration) -> i64 {
     // We can't directly ask for nanos because it will exceed i64,
     // so we have to subtract the total seconds before asking for the nano portion
-    let seconds_part = Duration::seconds(duration.num_seconds());
+    let seconds_part = chrono::Duration::seconds(duration.num_seconds());
     let seconds = seconds_part.num_seconds();
     let nanos = (duration - seconds_part).num_nanoseconds().unwrap();
     // Put it back together in ticks
@@ -181,10 +180,10 @@ fn duration_to_ticks(duration: Duration) -> i64 {
 }
 
 /// Turns ticks to a duration
-fn ticks_to_duration(ticks: i64) -> Duration {
+fn ticks_to_duration(ticks: i64) -> chrono::Duration {
     let secs = ticks / TICKS_PER_SECOND;
     let nanos = (ticks - secs * TICKS_PER_SECOND) * NANOS_PER_TICK;
-    Duration::seconds(secs) + Duration::nanoseconds(nanos)
+    chrono::Duration::seconds(secs) + chrono::Duration::nanoseconds(nanos)
 }
 
 fn max_ticks() -> i64 {

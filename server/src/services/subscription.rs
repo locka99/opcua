@@ -55,6 +55,18 @@ impl SubscriptionService {
 
     pub fn publish(&self, _: &mut ServerState, _: &mut SessionState, request: &PublishRequest) -> Result<SupportedMessage, &'static StatusCode> {
         debug!("publish {:#?}", request);
+/*
+        let response = PublishResponse {
+        response_header: ResponseHeader,
+         subscription_id: UInt32,
+        available_sequence_numbers: Option<Vec<UInt32>>,
+        more_notifications: Boolean,
+        notification_message: NotificationMessage,
+        results: None,
+        diagnostic_infos: None,
+        };
+        Ok(response)
+        */
         Err(&BAD_SERVICE_UNSUPPORTED)
     }
 }

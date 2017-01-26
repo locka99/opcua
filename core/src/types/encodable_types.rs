@@ -6,61 +6,6 @@ use types::*;
 
 // OPC UA Part 6 - Mappings 1.03 Specification
 
-pub type EncodingResult<T> = std::result::Result<T, &'static StatusCode>;
-
-/// OPC UA Binary Encoding interface. Anything that encodes to binary must implement this. The Seek
-/// trait is required so any impl can debug positions in the stream and so forth. What that means
-/// is that data cannot be read from anything which doesn't implement Seek, such as direcly from
-/// a TcpStream. Instead the raw data should be written to a Cursor for example.
-pub trait BinaryEncoder<T> {
-    /// Returns the byte length of the structure. This calculation should be exact and as efficient
-    /// as possible.
-    fn byte_len(&self) -> usize;
-    /// Encodes the instance to the write stream.
-    fn encode<S: Write>(&self, _: &mut S) -> EncodingResult<usize>;
-    /// Decodes an instance from the read stream.
-    fn decode<S: Read>(_: &mut S) -> EncodingResult<T>;
-}
-
-
-/// Calculates the length in bytes of an array of encoded type
-pub fn byte_len_array<T: BinaryEncoder<T>>(values: &Option<Vec<T>>) -> usize {
-    let mut size = 4;
-    if let &Some(ref values) = values {
-        for value in values.iter() {
-            size += value.byte_len();
-        }
-    }
-    size
-}
-
-/// Write an array of the encoded type to stream, preserving distinction between null array and empty array
-pub fn write_array<S: Write, T: BinaryEncoder<T>>(stream: &mut S, values: &Option<Vec<T>>) -> EncodingResult<usize> {
-    let mut size = 0;
-    if let &Some(ref values) = values {
-        size += write_i32(stream, values.len() as i32)?;
-        for value in values.iter() {
-            size += value.encode(stream)?;
-        }
-    } else {
-        size += write_i32(stream, -1)?;
-    }
-    Ok(size)
-}
-
-/// Reads an array of the encoded type from a stream, preserving distinction between null array and empty array
-pub fn read_array<S: Read, T: BinaryEncoder<T>>(stream: &mut S) -> EncodingResult<Option<Vec<T>>> {
-    let len = read_i32(stream)?;
-    if len == -1 {
-        Ok(None)
-    } else {
-        let mut values: Vec<T> = Vec::new();
-        for _ in 0..len {
-            values.push(T::decode(stream)?);
-        }
-        Ok(Some(values))
-    }
-}
 
 // These are standard UA types
 
