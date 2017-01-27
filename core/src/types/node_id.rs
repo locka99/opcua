@@ -166,8 +166,7 @@ impl FromStr for NodeId {
                 return Err(&BAD_NODE_ID_INVALID)
             }
             parse_result.unwrap()
-        }
-        else {
+        } else {
             0
         };
 
@@ -212,6 +211,11 @@ impl NodeId {
         NodeId::new_numeric(0, 0)
     }
 
+    /// Makes a NodeId that holds a DataTypeId
+    pub fn from_data_type_id(id: DataTypeId) -> NodeId {
+        NodeId::new_numeric(0, id as UInt64)
+    }
+
     /// Makes a NodeId that holds an ObjectId
     pub fn from_object_id(id: ObjectId) -> NodeId {
         NodeId::new_numeric(0, id as UInt64)
@@ -219,6 +223,11 @@ impl NodeId {
 
     /// Makes a NodeId that holds an ObjectTypeId
     pub fn from_object_type_id(id: ObjectTypeId) -> NodeId {
+        NodeId::new_numeric(0, id as UInt64)
+    }
+
+    /// Makes a NodeId that holds a ReferenceTypeId
+    pub fn from_reference_type_id(id: ReferenceTypeId) -> NodeId {
         NodeId::new_numeric(0, id as UInt64)
     }
 
@@ -458,5 +467,13 @@ impl ExpandedNodeId {
             namespace_uri: UAString::null(),
             server_index: 0,
         }
+    }
+
+    pub fn null() -> ExpandedNodeId {
+        Self::new(&NodeId::null())
+    }
+
+    pub fn is_null(&self) -> bool {
+        self.node_id.is_null()
     }
 }

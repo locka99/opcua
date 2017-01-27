@@ -11,6 +11,7 @@ pub enum NodeType {
     Variable(Variable),
     VariableType(VariableType),
     View(View),
+    DataType(DataType),
     Method(Method),
 }
 
@@ -23,6 +24,7 @@ impl NodeType {
             &NodeType::Variable(ref value) => value,
             &NodeType::VariableType(ref value) => value,
             &NodeType::View(ref value) => value,
+            &NodeType::DataType(ref value) => value,
             &NodeType::Method(ref value) => value,
         }
     }
@@ -127,5 +129,35 @@ impl AddressSpace {
         } else {
             None
         }
+    }
+
+    pub fn find_references_from(&self, node_id: &NodeId, reference_type_id: &Option<NodeId>) -> Option<Vec<Reference>> {
+        let source_node = self.find(node_id);
+        if source_node.is_none() {
+            None
+        } else {
+            let source_node = source_node.unwrap();
+            let result = if reference_type_id.is_none() {
+                // Add everything
+                source_node.as_node().references().clone()
+            } else {
+                // Filter by type
+                let reference_type_id = reference_type_id.as_ref().unwrap().clone();
+                let mut result = Vec::new();
+                for reference in source_node.as_node().references() {
+                    // TODO this should match on subtypes too
+                    if NodeId::from_reference_type_id(reference.reference_type_id()) == reference_type_id {
+                        result.push(reference.clone());
+                    }
+                }
+                result
+            };
+            Some(result)
+        }
+    }
+
+    pub fn find_references_to(&self, _: &NodeId, _: &Option<NodeId>) -> Option<Vec<Reference>> {
+        // TODO inverse relationship
+        None
     }
 }

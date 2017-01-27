@@ -386,7 +386,7 @@ impl TcpTransport {
 
         let now = DateTime::now();
         let response = OpenSecureChannelResponse {
-            response_header: ResponseHeader::new(&now, request.request_header.request_handle),
+            response_header: ResponseHeader::new(&now, &request.request_header),
             server_protocol_version: 0,
             security_token: ChannelSecurityToken {
                 channel_id: secure_channel_id,

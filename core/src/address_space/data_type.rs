@@ -8,7 +8,6 @@ pub struct DataType {
 
 node_impl!(DataType);
 
-
 impl DataType {
     pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str) -> DataType {
         let attributes = vec![];

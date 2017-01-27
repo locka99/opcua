@@ -35,7 +35,7 @@ impl SessionService {
         };
 
         let response = CreateSessionResponse {
-            response_header: ResponseHeader::new(&DateTime::now(), request.request_header.request_handle),
+            response_header: ResponseHeader::new(&DateTime::now(), &request.request_header),
             session_id: session_id,
             authentication_token: authentication_token,
             revised_session_timeout: session_timeout,
@@ -53,7 +53,7 @@ impl SessionService {
     pub fn close_session(&self, _: &mut ServerState, _: &mut SessionState, request: &CloseSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
         debug!("close_session {:#?}", request);
         let response = CloseSessionResponse {
-            response_header: ResponseHeader::new(&DateTime::now(), request.request_header.request_handle),
+            response_header: ResponseHeader::new(&DateTime::now(), &request.request_header),
         };
         Ok(SupportedMessage::CloseSessionResponse(response))
     }
@@ -66,7 +66,7 @@ impl SessionService {
         let server_nonce = ByteString::null();
 
         let response = ActivateSessionResponse {
-            response_header: ResponseHeader::new(&DateTime::now(), request.request_header.request_handle),
+            response_header: ResponseHeader::new(&DateTime::now(), &request.request_header),
             server_nonce: server_nonce,
             results: None,
             diagnostic_infos: None,

@@ -45,7 +45,7 @@ impl DiscoveryService {
         }
 
         let response = GetEndpointsResponse {
-            response_header: ResponseHeader::new(&DateTime::now(), request.request_header.request_handle),
+            response_header: ResponseHeader::new(&DateTime::now(), &request.request_header),
             endpoints: Some(endpoints),
         };
         Ok(SupportedMessage::GetEndpointsResponse(response))

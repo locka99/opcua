@@ -441,11 +441,15 @@ impl BinaryEncoder<ResponseHeader> for ResponseHeader {
 }
 
 impl ResponseHeader {
-    pub fn new(timestamp: &DateTime, request_handle: IntegerId) -> ResponseHeader {
+    pub fn new(timestamp: &DateTime, request_header: &RequestHeader) -> ResponseHeader {
+        Self::new_service_result(timestamp, request_header, &GOOD)
+    }
+
+    pub fn new_service_result(timestamp: &DateTime, request_header: &RequestHeader, service_result: &StatusCode) -> ResponseHeader {
         ResponseHeader {
             timestamp: timestamp.clone(),
-            request_handle: request_handle,
-            service_result: GOOD.clone(),
+            request_handle: request_header.request_handle,
+            service_result: service_result.clone(),
             service_diagnostics: DiagnosticInfo::new(),
             string_table: None,
             additional_header: ExtensionObject::null(),
@@ -522,6 +526,40 @@ impl BinaryEncoder<SignatureData> for SignatureData {
             algorithm: algorithm,
             signature: signature,
         })
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum TimestampsToReturn {
+    Source = 0,
+    Server = 1,
+    Both = 2,
+    Neither = 3
+}
+
+impl BinaryEncoder<TimestampsToReturn> for TimestampsToReturn {
+    fn byte_len(&self) -> usize {
+        4
+    }
+
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
+        // All enums are Int32
+        write_i32(stream, *self as Int32)
+    }
+
+    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+        // All enums are Int32
+        let value = read_i32(stream)?;
+        match value {
+            0 => Ok(TimestampsToReturn::Source),
+            1 => Ok(TimestampsToReturn::Server),
+            2 => Ok(TimestampsToReturn::Both),
+            4 => Ok(TimestampsToReturn::Neither),
+            _ => {
+                error!("Don't know what TimestampsToReturn value {} is", value);
+                Err(&BAD_TIMESTAMPS_TO_RETURN_INVALID)
+            }
+        }
     }
 }
 

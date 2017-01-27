@@ -554,6 +554,13 @@ impl QualifiedName {
             name: UAString::from_str(name),
         }
     }
+
+    pub fn null() -> QualifiedName {
+        QualifiedName {
+            namespace_index: 0,
+            name: UAString::null(),
+        }
+    }
 }
 
 /// Human readable text with an optional locale identifier
@@ -625,6 +632,13 @@ impl LocalizedText {
         LocalizedText {
             locale: UAString::from_str(locale),
             text: UAString::from_str(text),
+        }
+    }
+
+    pub fn null() -> LocalizedText {
+        LocalizedText {
+            locale: UAString::null(),
+            text: UAString::null(),
         }
     }
 }

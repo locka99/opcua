@@ -44,7 +44,7 @@ impl SubscriptionService {
 
         // Create the response
         let response = CreateSubscriptionResponse {
-            response_header: ResponseHeader::new(&DateTime::now(), request.request_header.request_handle),
+            response_header: ResponseHeader::new(&DateTime::now(), &request.request_header),
             subscription_id: subscription_id,
             revised_publishing_interval: revised_publishing_interval,
             revised_lifetime_count: revised_lifetime_count,
@@ -55,18 +55,29 @@ impl SubscriptionService {
 
     pub fn publish(&self, _: &mut ServerState, _: &mut SessionState, request: &PublishRequest) -> Result<SupportedMessage, &'static StatusCode> {
         debug!("publish {:#?}", request);
-/*
+
+        if request.subscription_acknowledgements.is_some() {
+            // TODO
+            // The list of acknowledgements for one or more Subscriptions. This list may contain
+            // multiple acknowledgements for the same Subscription (multiple entries with the same
+            // subscriptionId). This structure is defined in-line with the following indented items.
+        }
+
+        let now = DateTime::now();
         let response = PublishResponse {
-        response_header: ResponseHeader,
-         subscription_id: UInt32,
-        available_sequence_numbers: Option<Vec<UInt32>>,
-        more_notifications: Boolean,
-        notification_message: NotificationMessage,
-        results: None,
-        diagnostic_infos: None,
+            response_header: ResponseHeader::new(&now, &request.request_header),
+            subscription_id: 0,
+            available_sequence_numbers: None,
+            more_notifications: false,
+            notification_message: NotificationMessage {
+                sequence_number: 0,
+                publish_time: now.clone(),
+                notification_data: None
+            },
+            results: None,
+            diagnostic_infos: None
         };
-        Ok(response)
-        */
-        Err(&BAD_SERVICE_UNSUPPORTED)
+
+        Ok(SupportedMessage::PublishResponse(response))
     }
 }

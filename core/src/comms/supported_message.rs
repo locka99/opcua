@@ -118,6 +118,12 @@ impl SupportedMessage {
             ObjectId::PublishResponse_Encoding_DefaultBinary => {
                 SupportedMessage::PublishResponse(PublishResponse::decode(stream)?)
             },
+            ObjectId::ReadRequest_Encoding_DefaultBinary => {
+                SupportedMessage::ReadRequest(ReadRequest::decode(stream)?)
+            },
+            ObjectId::ReadResponse_Encoding_DefaultBinary => {
+                SupportedMessage::ReadResponse(ReadResponse::decode(stream)?)
+            },
             _ => {
                 debug!("decoding unsupported for object id {:?}", object_id);
                 SupportedMessage::Invalid(object_id)
@@ -151,5 +157,8 @@ supported_messages![
     BrowseRequest,
     BrowseResponse,
     PublishRequest,
-    PublishResponse
+    PublishResponse,
+    // Attribute service
+    ReadRequest,
+    ReadResponse
 ];

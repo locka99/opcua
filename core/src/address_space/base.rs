@@ -112,6 +112,72 @@ pub enum Reference {
     HasCondition(NodeId),
 }
 
+impl Reference {
+    pub fn reference_type_id(&self) -> ReferenceTypeId {
+        match self {
+            &Reference::References(_) => ReferenceTypeId::References,
+            &Reference::NonHierarchicalReferences(_) => ReferenceTypeId::NonHierarchicalReferences,
+            &Reference::HierarchicalReferences(_) => ReferenceTypeId::HierarchicalReferences,
+            &Reference::HasChild(_) => ReferenceTypeId::HasChild,
+            &Reference::Organizes(_) => ReferenceTypeId::Organizes,
+            &Reference::HasEventSource(_) => ReferenceTypeId::HasEventSource,
+            &Reference::HasModellingRule(_) => ReferenceTypeId::HasModellingRule,
+            &Reference::HasEncoding(_) => ReferenceTypeId::HasEncoding,
+            &Reference::HasDescription(_) => ReferenceTypeId::HasDescription,
+            &Reference::HasTypeDefinition(_) => ReferenceTypeId::HasTypeDefinition,
+            &Reference::GeneratesEvent(_) => ReferenceTypeId::GeneratesEvent,
+            &Reference::Aggregates(_) => ReferenceTypeId::Aggregates,
+            &Reference::HasSubtype(_) => ReferenceTypeId::HasSubtype,
+            &Reference::HasProperty(_) => ReferenceTypeId::HasProperty,
+            &Reference::HasComponent(_) => ReferenceTypeId::HasComponent,
+            &Reference::HasNotifier(_) => ReferenceTypeId::HasNotifier,
+            &Reference::HasOrderedComponent(_) => ReferenceTypeId::HasOrderedComponent,
+            &Reference::FromState(_) => ReferenceTypeId::FromState,
+            &Reference::ToState(_) => ReferenceTypeId::ToState,
+            &Reference::HasCause(_) => ReferenceTypeId::HasCause,
+            &Reference::HasEffect(_) => ReferenceTypeId::HasEffect,
+            &Reference::HasHistoricalConfiguration(_) => ReferenceTypeId::HasHistoricalConfiguration,
+            &Reference::HasSubStateMachine(_) => ReferenceTypeId::HasSubStateMachine,
+            &Reference::AlwaysGeneratesEvent(_) => ReferenceTypeId::AlwaysGeneratesEvent,
+            &Reference::HasTrueSubState(_) => ReferenceTypeId::HasTrueSubState,
+            &Reference::HasFalseSubState(_) => ReferenceTypeId::HasFalseSubState,
+            &Reference::HasCondition(_) => ReferenceTypeId::HasCondition,
+        }
+    }
+
+    pub fn node_id(&self) -> &NodeId {
+        match self {
+            &Reference::References(ref node_id) => node_id,
+            &Reference::NonHierarchicalReferences(ref node_id) => node_id,
+            &Reference::HierarchicalReferences(ref node_id) => node_id,
+            &Reference::HasChild(ref node_id) => node_id,
+            &Reference::Organizes(ref node_id) => node_id,
+            &Reference::HasEventSource(ref node_id) => node_id,
+            &Reference::HasModellingRule(ref node_id) => node_id,
+            &Reference::HasEncoding(ref node_id) => node_id,
+            &Reference::HasDescription(ref node_id) => node_id,
+            &Reference::HasTypeDefinition(ref node_id) => node_id,
+            &Reference::GeneratesEvent(ref node_id) => node_id,
+            &Reference::Aggregates(ref node_id) => node_id,
+            &Reference::HasSubtype(ref node_id) => node_id,
+            &Reference::HasProperty(ref node_id) => node_id,
+            &Reference::HasComponent(ref node_id) => node_id,
+            &Reference::HasNotifier(ref node_id) => node_id,
+            &Reference::HasOrderedComponent(ref node_id) => node_id,
+            &Reference::FromState(ref node_id) => node_id,
+            &Reference::ToState(ref node_id) => node_id,
+            &Reference::HasCause(ref node_id) => node_id,
+            &Reference::HasEffect(ref node_id) => node_id,
+            &Reference::HasHistoricalConfiguration(ref node_id) => node_id,
+            &Reference::HasSubStateMachine(ref node_id) => node_id,
+            &Reference::AlwaysGeneratesEvent(ref node_id) => node_id,
+            &Reference::HasTrueSubState(ref node_id) => node_id,
+            &Reference::HasFalseSubState(ref node_id) => node_id,
+            &Reference::HasCondition(ref node_id) => node_id,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Property {
     NodeVersion(UAString),
@@ -176,7 +242,6 @@ impl Node for Base {
         find_attribute_optional!(self, UserWriteMask);
     }
 
-
     fn add_reference(&mut self, reference: Reference) {
         self.references.push(reference);
     }
@@ -184,7 +249,6 @@ impl Node for Base {
     fn references(&self) -> &Vec<Reference> {
         &self.references
     }
-
 }
 
 impl Base {

@@ -38,7 +38,10 @@ use_generated_types! [
     publish_request,
     publish_response,
     subscription_acknowledgement,
-    notification_message
+    notification_message,
+    read_request,
+    read_response,
+    read_value_id
 ];
 
 pub use self::node_ids::*;

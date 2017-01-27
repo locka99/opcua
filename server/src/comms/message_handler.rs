@@ -6,6 +6,7 @@ use opcua_core::comms::*;
 use types::*;
 use server::ServerState;
 
+use services::attribute::*;
 use services::discovery::*;
 use services::session::*;
 use services::subscription::*;
@@ -17,6 +18,8 @@ pub struct MessageHandler {
     server_state: Arc<Mutex<ServerState>>,
     /// Session state
     session_state: Arc<Mutex<SessionState>>,
+    /// Attribute service
+    attribute_service: AttributeService,
     /// Discovery service
     discovery_service: DiscoveryService,
     /// Session service
@@ -32,6 +35,7 @@ impl MessageHandler {
         MessageHandler {
             server_state: server_state.clone(),
             session_state: session_state.clone(),
+            attribute_service: AttributeService::new(),
             discovery_service: DiscoveryService::new(),
             session_service: SessionService::new(),
             view_service: ViewService::new(),
@@ -67,6 +71,9 @@ impl MessageHandler {
             &SupportedMessage::BrowseRequest(ref request) => {
                 self.view_service.browse(server_state, session_state, request)?
             },
+            &SupportedMessage::ReadRequest(ref request) => {
+                self.attribute_service.read(server_state, session_state, request)?
+            }
             _ => {
                 debug!("Message handler does not handle this kind of message");
                 return Err(&BAD_SERVICE_UNSUPPORTED);
