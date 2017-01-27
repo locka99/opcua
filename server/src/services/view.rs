@@ -87,7 +87,6 @@ impl ViewService {
             // TODO test to see if that includes subtupes node_to_browser.include_subtypes
         }
 
-
         let mut reference_descriptions: Vec<ReferenceDescription> = Vec::new();
         if ViewService::node_matches_class_mask(source_node, node_to_browse.node_class_mask) {
             let source_node = source_node.as_node();
@@ -103,14 +102,28 @@ impl ViewService {
                     false
                 }; */
 
+                let target_node_id = match reference {
+                    &Reference::HasChild(ref node_id) => node_id.clone(),
+                    // TODO others
+                    _ => NodeId::null(),
+                };
+                if target_node_id.is_null() {
+                    continue;
+                }
+
+                let target_node = address_space.find(&target_node_id);
+                if target_node.is_none() {
+                    continue;
+                }
+                let target_node = target_node.unwrap().as_node();
 
                 let reference_description = ReferenceDescription {
-                    reference_type_id: NodeId::null(),
-                    is_forward: false,
-                    node_class: NodeClass::Object,
-                    node_id: ExpandedNodeId::new(&NodeId::null()),
-                    browse_name: QualifiedName::new(0, "todo"),
-                    display_name: LocalizedText::new("", "todo"),
+                    reference_type_id: NodeId::null(), // TODO
+                    is_forward: true,
+                    node_class: target_node.node_class(),
+                    node_id: ExpandedNodeId::new(&target_node_id),
+                    browse_name: target_node.browse_name().clone(),
+                    display_name: target_node.display_name().clone(),
                     type_definition: ExpandedNodeId::new(&NodeId::null()),
                 };
 

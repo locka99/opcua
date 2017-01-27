@@ -36,7 +36,9 @@ impl DiscoveryService {
                 server_certificate: server_certificate.clone(),
                 security_mode: e.security_mode,
                 security_policy_uri: e.security_policy_uri.clone(),
-                user_identity_tokens: Some(vec![UserTokenPolicy::new_anonymous()]),
+                user_identity_tokens: Some(vec![
+                    UserTokenPolicy::new_anonymous()]
+                ),
                 transport_profile_uri: UAString::from_str(opcua_core::profiles::TRANSPORT_BINARY),
                 security_level: 1,
             });
