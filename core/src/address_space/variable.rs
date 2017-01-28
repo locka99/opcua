@@ -2,6 +2,7 @@ use address_space::*;
 use types::*;
 use services::*;
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct Variable {
     pub base: Base,
 }

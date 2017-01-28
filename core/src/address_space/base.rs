@@ -1,5 +1,6 @@
 use types::*;
 use services::*;
+use address_space::DataType;
 
 // Attributes as defined in Part 4, Figure B.7
 
@@ -56,28 +57,121 @@ pub const WRITE_MASK_VALUE_FOR_VARIABLE_TYPE: UInt32 = 1 << 21;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Attribute {
-    DisplayName(LocalizedText),
     NodeId(NodeId),
     NodeClass(NodeClass),
-    Description(LocalizedText),
     BrowseName(QualifiedName),
-    UserWriteMask(UInt32),
+    DisplayName(LocalizedText),
+    Description(LocalizedText),
     WriteMask(UInt32),
-    UserAccessLevel(Byte),
-    AccessLevel(Byte),
+    UserWriteMask(UInt32),
     IsAbstract(Boolean),
     Symmetric(Boolean),
     InverseName(LocalizedText),
-    Executable(Boolean),
-    UserExecutable(Boolean),
-    // Value(DataType),
+    ContainsNoLoops(Boolean),
+    EventNotifier(Boolean),
+    Value(DataType),
+    DataType(DataType),
     ValueRank(Int32),
     ArrayDimensions(Vec<Int32>),
-    Historizing(Boolean),
+    AccessLevel(Byte),
+    UserAccessLevel(Byte),
     MinimumSamplingInterval(Int32),
-    EventNotifier(Boolean),
-    ContainsNoLoops(Boolean),
+    Historizing(Boolean),
+    Executable(Boolean),
+    UserExecutable(Boolean),
 }
+
+impl Attribute {
+    pub fn attribute_id(&self) -> AttributeId {
+        match self {
+            &Attribute::NodeId(_) => AttributeId::NodeId,
+            &Attribute::NodeClass(_) => AttributeId::NodeClass,
+            &Attribute::BrowseName(_) => AttributeId::BrowseName,
+            &Attribute::DisplayName(_) => AttributeId::DisplayName,
+            &Attribute::Description(_) => AttributeId::Description,
+            &Attribute::WriteMask(_) => AttributeId::WriteMask,
+            &Attribute::UserWriteMask(_) => AttributeId::UserWriteMask,
+            &Attribute::IsAbstract(_) => AttributeId::IsAbstract,
+            &Attribute::Symmetric(_) => AttributeId::Symmetric,
+            &Attribute::InverseName(_) => AttributeId::InverseName,
+            &Attribute::ContainsNoLoops(_) => AttributeId::ContainsNoLoops,
+            &Attribute::EventNotifier(_) => AttributeId::EventNotifier,
+            &Attribute::Value(_) => AttributeId::Value,
+            &Attribute::DataType(_) => AttributeId::DataType,
+            &Attribute::ValueRank(_) => AttributeId::ValueRank,
+            &Attribute::ArrayDimensions(_) => AttributeId::ArrayDimensions,
+            &Attribute::AccessLevel(_) => AttributeId::AccessLevel,
+            &Attribute::UserAccessLevel(_) => AttributeId::UserAccessLevel,
+            &Attribute::MinimumSamplingInterval(_) => AttributeId::MinimumSamplingInterval,
+            &Attribute::Historizing(_) => AttributeId::Historizing,
+            &Attribute::Executable(_) => AttributeId::Executable,
+            &Attribute::UserExecutable(_) => AttributeId::UserExecutable,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum AttributeId {
+    NodeId = 1,
+    NodeClass = 2,
+    BrowseName = 3,
+    DisplayName = 4,
+    Description = 5,
+    WriteMask = 6,
+    UserWriteMask = 7,
+    IsAbstract = 8,
+    Symmetric = 9,
+    InverseName = 10,
+    ContainsNoLoops = 11,
+    EventNotifier = 12,
+    Value = 13,
+    DataType = 14,
+    ValueRank = 15,
+    ArrayDimensions = 16,
+    AccessLevel = 17,
+    UserAccessLevel = 18,
+    MinimumSamplingInterval = 19,
+    Historizing = 20,
+    Executable = 21,
+    UserExecutable = 22,
+}
+
+impl AttributeId {
+    pub fn from_u32(attribute_id: UInt32) -> Result<AttributeId, ()> {
+        let attribute_id = match attribute_id {
+            1 => AttributeId::NodeId,
+            2 => AttributeId::NodeClass,
+            3 => AttributeId::BrowseName,
+            4 => AttributeId::DisplayName,
+            5 => AttributeId::Description,
+            6 => AttributeId::WriteMask,
+            7 => AttributeId::UserWriteMask,
+            8 => AttributeId::IsAbstract,
+            9 => AttributeId::Symmetric,
+            10 => AttributeId::InverseName,
+            11 => AttributeId::ContainsNoLoops,
+            12 => AttributeId::EventNotifier,
+            13 => AttributeId::Value,
+            14 => AttributeId::DataType,
+            15 => AttributeId::ValueRank,
+            16 => AttributeId::ArrayDimensions,
+            17 => AttributeId::AccessLevel,
+            18 => AttributeId::UserAccessLevel,
+            19 => AttributeId::MinimumSamplingInterval,
+            20 => AttributeId::Historizing,
+            21 => AttributeId::Executable,
+            22 => AttributeId::UserExecutable,
+            _ => {
+                debug!("Invalid attribute id {}", attribute_id);
+                return Err(());
+            }
+        };
+        Ok(attribute_id)
+    }
+}
+
+// This should match size of AttributeId
+const NUM_ATTRIBUTES: usize = 22;
 
 /// The NodeId is the target node. The reference is held in a list by the source node.
 /// The target node does not need to exist.
@@ -199,6 +293,42 @@ pub trait Node {
     fn user_write_mask(&self) -> Option<UInt32>;
     fn add_reference(&mut self, reference: Reference);
     fn references(&self) -> &Vec<Reference>;
+    fn find_attribute(&self, attribute_id: &AttributeId) -> Option<Attribute>;
+}
+
+/// This is a sanity saving macro that adds Node trait methods to all types that have a base
+/// member.
+
+macro_rules! node_impl {
+    ( $node_struct:ty ) => {
+        impl Node for $node_struct {
+            fn node_class(&self) -> NodeClass { self.base.node_class() }
+            fn node_id(&self) -> NodeId { self.base.node_id() }
+            fn browse_name(&self) -> QualifiedName { self.base.browse_name() }
+            fn display_name(&self) -> LocalizedText { self.base.display_name() }
+            fn description(&self) -> Option<LocalizedText> { self.base.description() }
+            fn write_mask(&self) -> Option<UInt32> { self.base.write_mask() }
+            fn user_write_mask(&self) -> Option<UInt32> { self.base.user_write_mask() }
+            fn add_reference(&mut self, reference: Reference) { self.base.add_reference(reference); }
+            fn references(&self) -> &Vec<Reference> { self.base.references() }
+            fn find_attribute(&self, attribute_id: &AttributeId) -> Option<Attribute> { self.base.find_attribute(attribute_id); }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! find_attribute_mandatory {
+    ( $sel:expr, $attr: ident ) => {
+        let attribute_id = AttributeId::$attr;
+        let attribute = $sel.find_attribute(&attribute_id);
+        if attribute.is_some() {
+            let attribute = attribute.unwrap();
+            if let Attribute::$attr(value) = attribute.clone() {
+                return value;
+            }
+        }
+        panic!("Mandatory attribute {:?} is missing", attribute_id);
+    }
 }
 
 /// Base is the functionality that all kinds of nodes need. Part 3, diagram B.4
@@ -206,7 +336,7 @@ pub trait Node {
 pub struct Base {
     // TODO number of attributes is fixed per type so it'd be more efficient to hold an array of options
     // and use an index find each of them. Depends how much they're used really
-    pub attributes: Vec<Attribute>,
+    pub attributes: Vec<Option<Attribute>>,
     pub references: Vec<Reference>,
     pub properties: Vec<Property>,
 }
@@ -215,31 +345,31 @@ pub struct Base {
 impl Node for Base {
     /// Returns the node class
     fn node_class(&self) -> NodeClass {
-        find_attribute_mandatory!(self, NodeClass);
+        find_attribute_value_mandatory!(self, NodeClass);
     }
 
     fn node_id(&self) -> NodeId {
-        find_attribute_mandatory!(self, NodeId);
+        find_attribute_value_mandatory!(self, NodeId);
     }
 
     fn browse_name(&self) -> QualifiedName {
-        find_attribute_mandatory!(self, BrowseName);
+        find_attribute_value_mandatory!(self, BrowseName);
     }
 
     fn display_name(&self) -> LocalizedText {
-        find_attribute_mandatory!(self, DisplayName);
+        find_attribute_value_mandatory!(self, DisplayName);
     }
 
     fn description(&self) -> Option<LocalizedText> {
-        find_attribute_optional!(self, Description);
+        find_attribute_value_optional!(self, Description);
     }
 
     fn write_mask(&self) -> Option<UInt32> {
-        find_attribute_optional!(self, WriteMask);
+        find_attribute_value_optional!(self, WriteMask);
     }
 
     fn user_write_mask(&self) -> Option<UInt32> {
-        find_attribute_optional!(self, UserWriteMask);
+        find_attribute_value_optional!(self, UserWriteMask);
     }
 
     fn add_reference(&mut self, reference: Reference) {
@@ -249,19 +379,30 @@ impl Node for Base {
     fn references(&self) -> &Vec<Reference> {
         &self.references
     }
+
+    fn find_attribute(&self, attribute_id: &AttributeId) -> Option<Attribute> {
+        self.attributes[*attribute_id as usize - 1].clone()
+    }
 }
 
 impl Base {
     pub fn new(node_class: NodeClass, node_id: &NodeId, browse_name: &str, display_name: &str, mut attributes: Vec<Attribute>, mut references: Vec<Reference>, mut properties: Vec<Property>) -> Base {
         // Mandatory attributes
-        let mut base_attributes = vec![
+        let mut attributes_to_add = vec![
             Attribute::NodeClass(node_class),
             Attribute::NodeId(node_id.clone()),
             Attribute::DisplayName(LocalizedText::new("", display_name)),
             Attribute::BrowseName(QualifiedName::new(0, browse_name))
         ];
-        // Optional attributes are only added if the caller supplies the
-        base_attributes.append(&mut attributes);
+        attributes_to_add.append(&mut attributes);
+        let mut attributes: Vec<Option<Attribute>> = Vec::with_capacity(NUM_ATTRIBUTES);
+        for _ in 0..NUM_ATTRIBUTES - 1 {
+            attributes.push(None);
+        }
+        for attribute in attributes_to_add {
+            let attribute_idx = attribute.attribute_id() as usize - 1;
+            attributes[attribute_idx] = Some(attribute);
+        }
 
         let mut base_references = vec![];
         base_references.append(&mut references);
@@ -269,8 +410,9 @@ impl Base {
         let mut base_properties = vec![];
         base_properties.append(&mut properties);
 
+
         Base {
-            attributes: base_attributes,
+            attributes: attributes,
             references: base_references,
             properties: base_properties,
         }

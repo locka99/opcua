@@ -18,27 +18,37 @@ macro_rules! node_impl {
             fn user_write_mask(&self) -> Option<UInt32> { self.base.user_write_mask() }
             fn add_reference(&mut self, reference: Reference) { self.base.add_reference(reference); }
             fn references(&self) -> &Vec<Reference> { self.base.references() }
+            fn find_attribute(&self, attribute_id: &AttributeId) -> Option<Attribute> { self.base.find_attribute(attribute_id) }
         }
     };
 }
 
 #[macro_export]
-macro_rules! find_attribute_mandatory {
-    ( $sel:expr, $attr: ident ) => {
-        for a in $sel.attributes.iter() {
-            if let &Attribute::$attr(ref value) = a { return value.clone(); }
+macro_rules! find_attribute_value_optional {
+ ( $sel:expr, $attr: ident ) => {
+        let attribute_id = AttributeId::$attr;
+        let attribute = $sel.attributes[attribute_id as usize - 1].clone();
+        if attribute.is_some() {
+            if let Attribute::$attr(value) = attribute.unwrap() {
+                return Some(value);
+            }
+            panic!("Cannot unwrap attribute {:?}", attribute_id);
         }
-        panic!("Mandatory attribute is missing");
+        return None;
     }
 }
 
 #[macro_export]
-macro_rules! find_attribute_optional {
+macro_rules! find_attribute_value_mandatory {
     ( $sel:expr, $attr: ident ) => {
-        for a in $sel.attributes.iter() {
-            if let &Attribute::$attr(ref value) = a { return Some(value.clone()); }
+        let attribute_id = AttributeId::$attr;
+        let attribute = $sel.attributes[attribute_id as usize - 1].clone();
+        if attribute.is_some() {
+            if let Attribute::$attr(value) = attribute.unwrap() {
+                return value;
+            }
         }
-        return None;
+        panic!("Mandatory attribute {:?} is missing", attribute_id);
     }
 }
 

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use address_space::*;
 use types::*;
 
-
+#[derive(Debug, Clone, PartialEq)]
 pub enum NodeType {
     Object(Object),
     ObjectType(ObjectType),
@@ -88,7 +88,7 @@ impl AddressSpace {
     }
 
     pub fn root_folder(&self) -> &Object {
-        if let &NodeType::Object(ref node) = self.find(&AddressSpace::root_folder_id()).unwrap() {
+        if let &NodeType::Object(ref node) = self.find_node(&AddressSpace::root_folder_id()).unwrap() {
             node
         } else {
             panic!("There should be a root node!");
@@ -96,7 +96,7 @@ impl AddressSpace {
     }
 
     pub fn objects_folder(&self) -> &Object {
-        if let &NodeType::Object(ref node) = self.find(&AddressSpace::objects_folder_id()).unwrap() {
+        if let &NodeType::Object(ref node) = self.find_node(&AddressSpace::objects_folder_id()).unwrap() {
             node
         } else {
             panic!("There should be an objects node!");
@@ -104,7 +104,7 @@ impl AddressSpace {
     }
 
     pub fn types_folder(&self) -> &Object {
-        if let &NodeType::Object(ref node) = self.find(&AddressSpace::types_folder_id()).unwrap() {
+        if let &NodeType::Object(ref node) = self.find_node(&AddressSpace::types_folder_id()).unwrap() {
             node
         } else {
             panic!("There should be a types node!");
@@ -112,7 +112,7 @@ impl AddressSpace {
     }
 
     pub fn views_folder(&self) -> &Object {
-        if let &NodeType::Object(ref node) = self.find(&AddressSpace::views_folder_id()).unwrap() {
+        if let &NodeType::Object(ref node) = self.find_node(&AddressSpace::views_folder_id()).unwrap() {
             node
         } else {
             panic!("There should be a views node!");
@@ -123,7 +123,7 @@ impl AddressSpace {
         self.node_map.insert(node_id, node_type);
     }
 
-    pub fn find(&self, node_id: &NodeId) -> Option<&NodeType> {
+    pub fn find_node(&self, node_id: &NodeId) -> Option<&NodeType> {
         if self.node_map.contains_key(node_id) {
             self.node_map.get(node_id)
         } else {
@@ -132,7 +132,7 @@ impl AddressSpace {
     }
 
     pub fn find_references_from(&self, node_id: &NodeId, reference_type_id: &Option<NodeId>) -> Option<Vec<Reference>> {
-        let source_node = self.find(node_id);
+        let source_node = self.find_node(node_id);
         if source_node.is_none() {
             None
         } else {

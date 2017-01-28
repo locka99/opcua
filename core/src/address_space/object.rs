@@ -39,6 +39,6 @@ impl Object {
     }
 
     pub fn event_notifier(&self) -> bool {
-        find_attribute_mandatory!(&self.base, EventNotifier);
+        find_attribute_value_mandatory!(&self.base, EventNotifier);
     }
 }

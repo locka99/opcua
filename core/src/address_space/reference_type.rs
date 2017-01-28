@@ -2,6 +2,7 @@ use address_space::*;
 use types::*;
 use services::*;
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct ReferenceType {
     pub base: Base,
 }
@@ -28,14 +29,18 @@ impl ReferenceType {
     }
 
     pub fn symmetric(&self) -> bool {
-        find_attribute_mandatory!(&self.base, Symmetric);
+        find_attribute_value_mandatory!(&self.base, Symmetric);
     }
 
     pub fn is_abstract(&self) -> bool {
-        find_attribute_mandatory!(&self.base, IsAbstract);
+        find_attribute_value_mandatory!(&self.base, IsAbstract);
     }
 
     pub fn inverse_name(&self) -> Option<LocalizedText> {
-        find_attribute_optional!(&self.base, InverseName);
+        if let Some(Attribute::InverseName(text)) = self.find_attribute(&AttributeId::InverseName) {
+            Some(text)
+        } else {
+            None
+        }
     }
 }

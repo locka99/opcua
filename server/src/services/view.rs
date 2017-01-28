@@ -95,7 +95,7 @@ impl ViewService {
     }
 
     fn reference_descriptions(address_space: &AddressSpace, node_to_browse: &BrowseDescription, max_references_per_node: UInt32) -> Result<Vec<ReferenceDescription>, ()> {
-        let source_node = address_space.find(&node_to_browse.node_id);
+        let source_node = address_space.find_node(&node_to_browse.node_id);
         if source_node.is_none() {
             return Err(());
         }
@@ -154,7 +154,7 @@ impl ViewService {
                 if target_node_id.is_null() {
                     continue;
                 }
-                let target_node = address_space.find(&target_node_id);
+                let target_node = address_space.find_node(&target_node_id);
                 if target_node.is_none() {
                     continue;
                 }

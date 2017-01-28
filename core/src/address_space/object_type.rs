@@ -2,6 +2,7 @@ use address_space::*;
 use types::*;
 use services::*;
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct ObjectType {
     base: Base,
 }
