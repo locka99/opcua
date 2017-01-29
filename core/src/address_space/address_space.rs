@@ -72,7 +72,7 @@ impl AddressSpace {
     }
 
     pub fn root_folder_id() -> NodeId {
-        ObjectId::ObjectsFolder.as_node_id()
+        ObjectId::RootFolder.as_node_id()
     }
 
     pub fn objects_folder_id() -> NodeId {

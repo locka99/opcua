@@ -14,6 +14,38 @@ fn address_space() {
 }
 
 #[test]
+fn find_root_folder() {
+    let address_space = AddressSpace::new_top_level();
+    let node_type = address_space.find_node(&NodeId::new_numeric(0, 84));
+    assert!(node_type.is_some());
+
+    let node = node_type.unwrap().as_node();
+    assert_eq!(node.node_id(), NodeId::new_numeric(0, 84));
+    assert_eq!(node.node_id(), NodeId::from_object_id(ObjectId::RootFolder));
+}
+
+#[test]
+fn find_objects_folder() {
+    let address_space = AddressSpace::new_top_level();
+    let node_type = address_space.find_node(&NodeId::from_object_id(ObjectId::ObjectsFolder));
+    assert!(node_type.is_some());
+}
+
+#[test]
+fn find_types_folder() {
+    let address_space = AddressSpace::new_top_level();
+    let node_type = address_space.find_node(&NodeId::from_object_id(ObjectId::TypesFolder));
+    assert!(node_type.is_some());
+}
+
+#[test]
+fn find_views_folder() {
+    let address_space = AddressSpace::new_top_level();
+    let node_type = address_space.find_node(&NodeId::from_object_id(ObjectId::ViewsFolder));
+    assert!(node_type.is_some());
+}
+
+#[test]
 fn object_attributes() {
     let on = NodeId::new_string(1, "o1");
     let o = Object::new(&on, "Browse01", "Display01");
