@@ -381,7 +381,12 @@ impl Node for Base {
     }
 
     fn find_attribute(&self, attribute_id: &AttributeId) -> Option<Attribute> {
-        self.attributes[*attribute_id as usize - 1].clone()
+        let attribute_idx = *attribute_id as usize - 1;
+        if attribute_idx >= self.attributes.len() {
+            warn!("Attribute id {:?} is out of range and invalid", attribute_id);
+            return None;
+        }
+        self.attributes[attribute_idx].clone()
     }
 }
 
@@ -396,7 +401,7 @@ impl Base {
         ];
         attributes_to_add.append(&mut attributes);
         let mut attributes: Vec<Option<Attribute>> = Vec::with_capacity(NUM_ATTRIBUTES);
-        for _ in 0..NUM_ATTRIBUTES - 1 {
+        for _ in 0..NUM_ATTRIBUTES {
             attributes.push(None);
         }
         for attribute in attributes_to_add {

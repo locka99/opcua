@@ -48,6 +48,7 @@ impl AttributeService {
                 let attribute_id = AttributeId::from_u32(node_to_read.attribute_id);
                 if attribute_id.is_err() {
                     error!("Attribute id {} is invalid",node_to_read.attribute_id);
+                    continue;
                 }
                 let attribute_id = attribute_id.unwrap();
                 let attribute = node.as_node().find_attribute(&attribute_id);
