@@ -185,7 +185,7 @@ impl HelloMessage {
     }
 
     pub fn is_valid_buffer_sizes(&self) -> bool {
-        const MIN_BUFFER_SIZE: u32 = 8192; // TODO check specs - 8192 or 8196
+        const MIN_BUFFER_SIZE: u32 = 8196; // Set in part 6 as minimum transport buffer size
         self.receive_buffer_size >= MIN_BUFFER_SIZE && self.send_buffer_size >= MIN_BUFFER_SIZE
     }
 }

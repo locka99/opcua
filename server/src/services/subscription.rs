@@ -9,8 +9,8 @@ use server::ServerState;
 
 pub struct SubscriptionService {}
 
-// TODO a low value on purpose because this should be a server configurable setting, not a const
-const MAX_SUBSCRIPTIONS: usize = 5;
+// TODO this should be a server configurable setting. Its set low to make it more likely to trigger
+const MAX_SUBSCRIPTIONS: usize = 2;
 
 impl SubscriptionService {
     pub fn new() -> SubscriptionService {
