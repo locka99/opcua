@@ -205,10 +205,19 @@ impl FromStr for NodeId {
     }
 }
 
+use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+static NEXT_NODE_ID_NUMERIC: AtomicUsize = ATOMIC_USIZE_INIT;
+
 impl NodeId {
     /// Returns a null node id
     pub fn null() -> NodeId {
         NodeId::new_numeric(0, 0)
+    }
+
+    // Creates a numeric node id with an id incrementing up from 1000
+    pub fn next_numeric() -> NodeId {
+        let result = NodeId::new_numeric(1, NEXT_NODE_ID_NUMERIC.fetch_add(1, Ordering::SeqCst) as u64);
+        result
     }
 
     /// Makes a NodeId that holds a DataTypeId

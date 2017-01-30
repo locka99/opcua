@@ -30,7 +30,7 @@ fn ack_data() -> Vec<u8> {
 #[test]
 pub fn server_config_save() {
     let path = make_test_file("server_config.yaml");
-    let config = ServerConfig::default();
+    let config = ServerConfig::default_anonymous();
     assert!(config.save(&path).is_ok());
     if let Ok(config2) = ServerConfig::load(&path) {
         assert_eq!(config, config2);

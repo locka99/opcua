@@ -144,6 +144,17 @@ impl BinaryEncoder<DataValue> for DataValue {
 }
 
 impl DataValue {
+    pub fn new(now: &DateTime, value: Variant) -> DataValue {
+        DataValue {
+            value: Some(Box::new(value)),
+            status: Some(GOOD.clone()),
+            source_timestamp: Some(now.clone()),
+            source_pico_seconds: Some(0),
+            server_timestamp: Some(now.clone()),
+            server_pico_seconds: Some(0),
+        }
+    }
+
     fn encoding_mask(&self) -> Byte {
         let mut encoding_mask: Byte = 0;
         if self.value.is_some() {

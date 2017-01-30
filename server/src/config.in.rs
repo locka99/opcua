@@ -25,10 +25,15 @@ pub struct ServerEndpoint {
     pub name: String,
     /// Endpoint path
     pub path: String,
+    /// Security policy
     pub security_policy: String,
+    /// Security mode
     pub security_mode: String,
-    pub user_name: String,
-    pub password: String,
+    /// Allow anonymous access (default false)
+    pub anonymous: Option<bool>,
+    /// Allow user name / password access
+    pub user: Option<String>,
+    pub pass: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -36,11 +41,13 @@ pub struct ServerConfig {
     /// An id for this server
     pub application_name: String,
     /// A description for this server
-    pub application_url: String,
-    /// Default endpoint
-    pub default_path: String,
+    pub application_uri: String,
+    /// Product url
+    pub product_uri: String,
     /// pki folder, either absolute or relative to executable
     pub pki_dir: String,
+    /// Flag turns on or off discovery service
+    pub discovery_service: bool,
     /// tcp configuration information
     pub tcp_config: TcpConfig,
     /// Endpoints supported by the server
@@ -48,12 +55,13 @@ pub struct ServerConfig {
 }
 
 impl ServerConfig {
-    /// Returns the default server configuration.
-    pub fn default() -> ServerConfig {
+    /// Returns the default server configuration to run a server with no security and anonymous access enabled
+    pub fn default_anonymous() -> ServerConfig {
         ServerConfig {
-            application_name: "OPC UA".to_string(),
-            application_url: "".to_string(),
-            default_path: "/".to_string(),
+            application_name: "OPC UA Server (Rust)".to_string(),
+            application_uri: "".to_string(),
+            product_uri: "".to_string(),
+            discovery_service: true,
             pki_dir: "pki".to_string(),
             tcp_config: TcpConfig {
                 host: "127.0.0.1".to_string(),
@@ -65,8 +73,9 @@ impl ServerConfig {
                 path: "/".to_string(),
                 security_policy: "None".to_string(),
                 security_mode: "None".to_string(),
-                user_name: String::new(),
-                password: String::new(),
+                anonymous: Some(true),
+                user: None,
+                pass: None,
             }],
         }
     }

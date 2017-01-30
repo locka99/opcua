@@ -44,20 +44,25 @@ impl SecurityPolicy {
         }
     }
 
+    pub fn from_str(str: &str) -> SecurityPolicy {
+        match str {
+            "None" => SecurityPolicy::None,
+            "Basic128Rsa15" => SecurityPolicy::Basic128Rsa15,
+            "Basic256" => SecurityPolicy::Basic256,
+            "Basic256Sha256" => SecurityPolicy::Basic256Sha256,
+            _ => {
+                error!("Specified security policy {} is not recognized", str);
+                SecurityPolicy::Unknown
+            }
+        }
+    }
+
     pub fn from_uri(uri: &str) -> SecurityPolicy {
         match uri {
-            SECURITY_POLICY_NONE => {
-                SecurityPolicy::None
-            },
-            SECURITY_POLICY_BASIC128RSA15 => {
-                SecurityPolicy::Basic128Rsa15
-            },
-            SECURITY_POLICY_BASIC256 => {
-                SecurityPolicy::Basic256
-            },
-            SECURITY_POLICY_BASIC256SHA256 => {
-                SecurityPolicy::Basic256Sha256
-            }
+            SECURITY_POLICY_NONE => SecurityPolicy::None,
+            SECURITY_POLICY_BASIC128RSA15 => SecurityPolicy::Basic128Rsa15,
+            SECURITY_POLICY_BASIC256 => SecurityPolicy::Basic256,
+            SECURITY_POLICY_BASIC256SHA256 => SecurityPolicy::Basic256Sha256,
             _ => {
                 error!("Specified security policy {} is not recognized", uri);
                 SecurityPolicy::Unknown

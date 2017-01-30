@@ -64,16 +64,19 @@ impl SubscriptionService {
         }
 
         let now = DateTime::now();
+
+        let notification_message = NotificationMessage {
+            sequence_number: 0,
+            publish_time: now.clone(),
+            notification_data: None
+        };
+
         let response = PublishResponse {
             response_header: ResponseHeader::new(&now, &request.request_header),
             subscription_id: 0,
             available_sequence_numbers: None,
             more_notifications: false,
-            notification_message: NotificationMessage {
-                sequence_number: 0,
-                publish_time: now.clone(),
-                notification_data: None
-            },
+            notification_message: notification_message,
             results: None,
             diagnostic_infos: None
         };

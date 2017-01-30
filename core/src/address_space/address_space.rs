@@ -33,6 +33,8 @@ impl NodeType {
 
 pub struct AddressSpace {
     pub node_map: HashMap<NodeId, NodeType>,
+    pub references: HashMap<NodeId, Vec<Reference>>,
+    pub inverse_references: HashMap<NodeId, Vec<Reference>>,
 }
 
 impl AddressSpace {
@@ -58,12 +60,14 @@ impl AddressSpace {
 
         let mut address_space = AddressSpace {
             node_map: HashMap::new(),
+            references: HashMap::new(),
+            inverse_references: HashMap::new(),
         };
 
-        address_space.insert(root_node_id, NodeType::Object(root_node));
-        address_space.insert(objects_node_id, NodeType::Object(objects_node));
-        address_space.insert(types_node_id, NodeType::Object(types_node));
-        address_space.insert(views_node_id, NodeType::Object(views_node));
+        address_space.insert(&root_node_id, NodeType::Object(root_node));
+        address_space.insert(&objects_node_id, NodeType::Object(objects_node));
+        address_space.insert(&types_node_id, NodeType::Object(types_node));
+        address_space.insert(&views_node_id, NodeType::Object(views_node));
 
         // TODO
         // add Server (ServerType)
@@ -119,8 +123,8 @@ impl AddressSpace {
         }
     }
 
-    pub fn insert(&mut self, node_id: NodeId, node_type: NodeType) {
-        self.node_map.insert(node_id, node_type);
+    pub fn insert(&mut self, node_id: &NodeId, node_type: NodeType) {
+        self.node_map.insert(node_id.clone(), node_type);
     }
 
     pub fn find_node(&self, node_id: &NodeId) -> Option<&NodeType> {
@@ -128,6 +132,55 @@ impl AddressSpace {
             self.node_map.get(node_id)
         } else {
             None
+        }
+    }
+
+    pub fn find_node_mut(&mut self, node_id: &NodeId) -> Option<&mut NodeType> {
+        if self.node_map.contains_key(node_id) {
+            self.node_map.get_mut(node_id)
+        } else {
+            None
+        }
+    }
+
+    pub fn add_folder(&mut self, browse_name: &str, display_name: &str, parent_node_id: &NodeId) -> Result<&mut Object, ()> {
+        let node_id = NodeId::next_numeric();
+
+        // Add a relationship to the parent
+        {
+            let mut parent = self.find_node_mut(parent_node_id);
+            if parent.is_some() {
+                if let &mut NodeType::Object(ref mut parent) = parent.unwrap() {
+                    parent.add_organizes(&node_id);
+                }
+            }
+        }
+
+        let folder_object = Object::new(&node_id, browse_name, display_name);
+
+        self.insert(&node_id, NodeType::Object(folder_object));
+        let found_node = self.find_node_mut(&node_id);
+        if let &mut NodeType::Object(ref mut node) = found_node.unwrap() {
+            return Ok(node);
+        }
+        panic!("Should have found the folder {} that was just created with id {:?}", display_name, node_id);
+    }
+
+    pub fn add_variable(&mut self, variable: &Variable, parent_node_id: &NodeId) -> Result<(), ()> {
+        let node_id = variable.node_id();
+        if !self.node_map.contains_key(&node_id) {
+            {
+                let mut parent = self.find_node_mut(parent_node_id);
+                if parent.is_some() {
+                    if let &mut NodeType::Object(ref mut parent) = parent.unwrap() {
+                        parent.add_organizes(&node_id);
+                    }
+                }
+            }
+            self.insert(&node_id, NodeType::Variable(variable.clone()));
+            Ok(())
+        } else {
+            Err(())
         }
     }
 

@@ -10,12 +10,16 @@ pub struct Variable {
 node_impl!(Variable);
 
 impl Variable {
-    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, user_access_level: Byte, access_level: Byte, /* value*/ value_rank: Int32, historizing: bool) -> Variable {
+    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, value: &DataValue) -> Variable {
         // Mandatory
+        let historizing = false;
+        let access_level = 0;
+        let user_access_level = 0;
+        let value_rank = 0;
         let attributes = vec![
             Attribute::UserAccessLevel(user_access_level),
             Attribute::AccessLevel(access_level),
-            // Attribute::Value(value),
+            Attribute::Value(value.clone()),
             Attribute::ValueRank(value_rank),
             Attribute::Historizing(historizing),
         ];

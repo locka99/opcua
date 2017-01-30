@@ -37,15 +37,29 @@ impl BinaryEncoder<MessageSecurityMode> for MessageSecurityMode {
         // All enums are Int32
         let mode_value = read_i32(stream)?;
         Ok(match mode_value {
-            0 => { MessageSecurityMode::Invalid },
-            1 => { MessageSecurityMode::None },
-            2 => { MessageSecurityMode::Sign },
-            3 => { MessageSecurityMode::SignAndEncrypt },
+            0 => MessageSecurityMode::Invalid,
+            1 => MessageSecurityMode::None,
+            2 => MessageSecurityMode::Sign,
+            3 => MessageSecurityMode::SignAndEncrypt,
             _ => {
                 error!("Mode value is invalid = {}", mode_value);
                 MessageSecurityMode::Invalid
             }
         })
+    }
+}
+
+impl MessageSecurityMode {
+    pub fn from_str(str: &str) -> MessageSecurityMode {
+        match str {
+            "None" => MessageSecurityMode::None,
+            "Sign" => MessageSecurityMode::Sign,
+            "SignAndEncrypt" => MessageSecurityMode::SignAndEncrypt,
+            _ => {
+                error!("Specified security policy {} is not recognized", str);
+                MessageSecurityMode::Invalid
+            }
+        }
     }
 }
 

@@ -22,8 +22,15 @@ impl DiscoveryService {
 
         let mut endpoints: Vec<EndpointDescription> = Vec::with_capacity(server_state.endpoints.len());
         for e in &server_state.endpoints {
+            let mut user_identity_tokens = Vec::new();
+            if e.anonymous {
+                user_identity_tokens.push(UserTokenPolicy::new_anonymous());
+            }
+            // TODO username / pass
+            // user_identity_tokens.push(UserTokenPolicy::new_user_pass());
+
             endpoints.push(EndpointDescription {
-                endpoint_url: e.endpoint_url.clone(),
+                endpoint_url: UAString::from_str(&e.endpoint_url),
                 server: ApplicationDescription {
                     application_uri: server_state.application_uri.clone(),
                     product_uri: server_state.product_uri.clone(),
@@ -36,9 +43,7 @@ impl DiscoveryService {
                 server_certificate: server_certificate.clone(),
                 security_mode: e.security_mode,
                 security_policy_uri: e.security_policy_uri.clone(),
-                user_identity_tokens: Some(vec![
-                    UserTokenPolicy::new_anonymous()]
-                ),
+                user_identity_tokens: Some(user_identity_tokens),
                 transport_profile_uri: UAString::from_str(opcua_core::profiles::TRANSPORT_BINARY),
                 security_level: 1,
             });

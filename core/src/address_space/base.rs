@@ -69,7 +69,7 @@ pub enum Attribute {
     InverseName(LocalizedText),
     ContainsNoLoops(Boolean),
     EventNotifier(Boolean),
-    Value(DataType),
+    Value(DataValue),
     DataType(DataType),
     ValueRank(Int32),
     ArrayDimensions(Vec<Int32>),
