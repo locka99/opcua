@@ -554,7 +554,7 @@ impl BinaryEncoder<TimestampsToReturn> for TimestampsToReturn {
             0 => Ok(TimestampsToReturn::Source),
             1 => Ok(TimestampsToReturn::Server),
             2 => Ok(TimestampsToReturn::Both),
-            4 => Ok(TimestampsToReturn::Neither),
+            3 => Ok(TimestampsToReturn::Neither),
             _ => {
                 error!("Don't know what TimestampsToReturn value {} is", value);
                 Err(&BAD_TIMESTAMPS_TO_RETURN_INVALID)
@@ -638,3 +638,4 @@ impl BinaryEncoder<BrowseDirection> for BrowseDirection {
         }
     }
 }
+

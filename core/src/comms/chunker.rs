@@ -59,7 +59,7 @@ impl Chunker {
         }
         chunk_body_size += supported_message.byte_len();
         // TODO encrypted message size
-        // TODO padding size
+        // chunk_body_size += 1; // padding size byte when padding
         // TODO signature size
 
         let message_size = (CHUNK_HEADER_SIZE + chunk_body_size) as u32;
@@ -87,6 +87,8 @@ impl Chunker {
         } else {}
         // write message
         supported_message.encode(&mut stream);
+        // write padding byte (0 since there is no padding bytes)
+        // write_u8(&mut stream, 0u8);
 
         // TODO write padding
         // TODO encrypt

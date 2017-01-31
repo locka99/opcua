@@ -35,14 +35,14 @@ impl BinaryEncoder<MessageSecurityMode> for MessageSecurityMode {
 
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         // All enums are Int32
-        let mode_value = read_i32(stream)?;
-        Ok(match mode_value {
+        let value = read_i32(stream)?;
+        Ok(match value {
             0 => MessageSecurityMode::Invalid,
             1 => MessageSecurityMode::None,
             2 => MessageSecurityMode::Sign,
             3 => MessageSecurityMode::SignAndEncrypt,
             _ => {
-                error!("Mode value is invalid = {}", mode_value);
+                error!("Mode value is invalid = {}", value);
                 MessageSecurityMode::Invalid
             }
         })
@@ -71,14 +71,39 @@ pub type Duration = Double;
 /// UtcTime = 294,
 pub type UtcTime = DateTime;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum MonitoringMode {
-    Disabled,
-    Sampling,
-    Reporting
+    Disabled = 0,
+    Sampling = 1,
+    Reporting = 2,
 }
 
-#[derive(Debug)]
+impl BinaryEncoder<MonitoringMode> for MonitoringMode {
+    fn byte_len(&self) -> usize {
+        4
+    }
+
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
+        // All enums are Int32
+        write_i32(stream, *self as Int32)
+    }
+
+    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+        // All enums are Int32
+        let value = read_i32(stream)?;
+        match value {
+            0 => Ok(MonitoringMode::Disabled),
+            1 => Ok(MonitoringMode::Sampling),
+            2 => Ok(MonitoringMode::Reporting),
+            _ => {
+                error!("Don't know what monitoring mode {} is", value);
+                Err(&BAD_MONITORING_MODE_INVALID)
+            }
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum SubscriptionState {
     Closed,
     Creating,

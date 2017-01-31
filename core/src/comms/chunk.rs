@@ -136,8 +136,8 @@ pub struct ChunkInfo {
     pub body_offset: usize,
     /// Length of message body
     pub body_length: usize,
-    /// Byte offset to signature
-    pub signature_offset: usize,
+    /// Byte offset to padding / signature
+    pub padding_offset: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -345,6 +345,10 @@ impl Chunk {
         })
     }
 
+    pub fn is_open_secure_channel(&self) -> bool {
+        self.chunk_header.message_type == ChunkMessageType::OpenSecureChannel
+    }
+
     pub fn chunk_info(&self, is_first_chunk: bool, _: &SecureChannelInfo) -> std::result::Result<ChunkInfo, &'static StatusCode> {
         {
             debug!("chunk_info() - chunk_body:");
@@ -354,7 +358,7 @@ impl Chunk {
         let mut chunk_body_stream = Cursor::new(&self.chunk_body);
 
         // Read the security header
-        let security_header = if self.chunk_header.message_type == ChunkMessageType::OpenSecureChannel {
+        let security_header = if self.is_open_secure_channel() {
             let result = AsymmetricSecurityHeader::decode(&mut chunk_body_stream);
             if result.is_err() {
                 error!("chunk_info() can't decode asymmetric security_header, {:?}", result.unwrap_err());
@@ -414,8 +418,8 @@ impl Chunk {
         // TODO calculate max_body_size based on security policy
         // MaxBodySize = PlainTextBlockSize * Floor((MessageChunkSize –   HeaderSize – SignatureSize - 1)/CipherTextBlockSize) –    SequenceHeaderSize;
 
-        // TODO
-        let signature_offset = body_offset + body_length;
+        // Padding and signature offset
+        let padding_offset = body_offset + body_length;
 
         let chunk_info = ChunkInfo {
             node_id: node_id,
@@ -425,7 +429,7 @@ impl Chunk {
 
             body_offset: body_offset as usize,
             body_length: body_length as usize,
-            signature_offset: signature_offset as usize,
+            padding_offset: padding_offset as usize,
         };
 
         Ok(chunk_info)

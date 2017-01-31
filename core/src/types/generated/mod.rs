@@ -41,7 +41,12 @@ use_generated_types! [
     notification_message,
     read_request,
     read_response,
-    read_value_id
+    read_value_id,
+    create_monitored_items_request,
+    create_monitored_items_response,
+    monitored_item_create_request,
+    monitored_item_create_result,
+    monitoring_parameters
 ];
 
 pub use self::node_ids::*;
