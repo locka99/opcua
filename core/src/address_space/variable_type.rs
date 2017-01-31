@@ -20,10 +20,17 @@ impl VariableType {
         // Attribute::Value(value),
         // Attribute::ArrayDimensions(value),
 
-        let references = vec![];
         let properties = vec![];
         VariableType {
-            base: Base::new(NodeClass::VariableType, node_id, browse_name, display_name, attributes, references, properties),
+            base: Base::new(NodeClass::VariableType, node_id, browse_name, display_name, attributes, properties),
         }
+    }
+
+    pub fn is_abstract(&self) -> Boolean {
+        find_attribute_value_mandatory!(&self.base, IsAbstract);
+    }
+
+    pub fn value_rank(&self) -> Int32 {
+        find_attribute_value_mandatory!(&self.base, ValueRank);
     }
 }

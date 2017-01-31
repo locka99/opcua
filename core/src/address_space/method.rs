@@ -10,17 +10,28 @@ pub struct Method {
 node_impl!(Method);
 
 impl Method {
-    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, is_abstract: bool, executable: bool, user_executable: bool) -> Method {
+    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, is_abstract: Boolean, executable: Boolean, user_executable: Boolean) -> Method {
         // Mandatory
         let attributes = vec![
             Attribute::IsAbstract(is_abstract),
             Attribute::Executable(executable),
             Attribute::UserExecutable(user_executable),
         ];
-        let references = vec![];
         let properties = vec![];
         Method {
-            base: Base::new(NodeClass::Method, node_id, browse_name, display_name, attributes, references, properties),
+            base: Base::new(NodeClass::Method, node_id, browse_name, display_name, attributes, properties),
         }
+    }
+
+    pub fn is_abstract(&self) -> Boolean {
+        find_attribute_value_mandatory!(&self.base, IsAbstract);
+    }
+
+    pub fn executable(&self) -> Boolean {
+        find_attribute_value_mandatory!(&self.base, Executable);
+    }
+
+    pub fn user_executable(&self) -> Boolean {
+        find_attribute_value_mandatory!(&self.base, UserExecutable);
     }
 }

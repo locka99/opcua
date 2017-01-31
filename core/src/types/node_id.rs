@@ -243,7 +243,14 @@ impl NodeId {
     /// Extracts an ObjectId from a node id, providing the node id holds an object id
     pub fn as_object_id(&self) -> std::result::Result<ObjectId, ()> {
         match self.identifier {
-            Identifier::Numeric(object_id) if self.namespace == 0 => ObjectId::from_u64(object_id),
+            Identifier::Numeric(id) if self.namespace == 0 => ObjectId::from_u64(id),
+            _ => Err(())
+        }
+    }
+
+    pub fn as_reference_type_id(&self) -> std::result::Result<ReferenceTypeId, ()> {
+        match self.identifier {
+            Identifier::Numeric(id) if self.namespace == 0 => ReferenceTypeId::from_u64(id),
             _ => Err(())
         }
     }

@@ -40,13 +40,16 @@ pub struct AddressSpace {
 impl AddressSpace {
     pub fn new_top_level() -> AddressSpace {
         // Construct the Root folder and the top level nodes
-
+        let mut address_space = AddressSpace {
+            node_map: HashMap::new(),
+            references: HashMap::new(),
+            inverse_references: HashMap::new(),
+        };
         let root_node_id = AddressSpace::root_folder_id();
-        let mut root_node = Object::new(&root_node_id, "Root", "Root");
+        let root_node = Object::new(&root_node_id, "Root", "Root");
 
         let objects_node_id = AddressSpace::objects_folder_id();
         let objects_node = Object::new(&objects_node_id, "Objects", "Objects");
-        // Organizes - Top level server
 
         let types_node_id = AddressSpace::types_folder_id();
         let types_node = Object::new(&types_node_id, "Types", "Types");
@@ -54,20 +57,14 @@ impl AddressSpace {
         let views_node_id = AddressSpace::views_folder_id();
         let views_node = Object::new(&views_node_id, "Views", "Views");
 
-        root_node.add_organizes(&objects_node_id);
-        root_node.add_organizes(&types_node_id);
-        root_node.add_organizes(&views_node_id);
-
-        let mut address_space = AddressSpace {
-            node_map: HashMap::new(),
-            references: HashMap::new(),
-            inverse_references: HashMap::new(),
-        };
-
         address_space.insert(&root_node_id, NodeType::Object(root_node));
         address_space.insert(&objects_node_id, NodeType::Object(objects_node));
         address_space.insert(&types_node_id, NodeType::Object(types_node));
         address_space.insert(&views_node_id, NodeType::Object(views_node));
+
+        address_space.add_organizes(&root_node_id, &objects_node_id);
+        address_space.add_organizes(&root_node_id, &types_node_id);
+        address_space.add_organizes(&root_node_id, &views_node_id);
 
         // TODO
         // add Server (ServerType)
@@ -143,74 +140,103 @@ impl AddressSpace {
         }
     }
 
-    pub fn add_folder(&mut self, browse_name: &str, display_name: &str, parent_node_id: &NodeId) -> Result<&mut Object, ()> {
+    pub fn add_folder(&mut self, browse_name: &str, display_name: &str, parent_node_id: &NodeId) -> Result<NodeId, ()> {
         let node_id = NodeId::next_numeric();
 
         // Add a relationship to the parent
-        {
-            let mut parent = self.find_node_mut(parent_node_id);
-            if parent.is_some() {
-                if let &mut NodeType::Object(ref mut parent) = parent.unwrap() {
-                    parent.add_organizes(&node_id);
-                }
-            }
-        }
+        self.add_organizes(&parent_node_id, &node_id);
 
         let folder_object = Object::new(&node_id, browse_name, display_name);
-
         self.insert(&node_id, NodeType::Object(folder_object));
-        let found_node = self.find_node_mut(&node_id);
-        if let &mut NodeType::Object(ref mut node) = found_node.unwrap() {
-            return Ok(node);
-        }
-        panic!("Should have found the folder {} that was just created with id {:?}", display_name, node_id);
+        Ok(node_id)
     }
 
-    pub fn add_variable(&mut self, variable: &Variable, parent_node_id: &NodeId) -> Result<(), ()> {
+    pub fn add_variables(&mut self, variables: &Vec<Variable>, parent_node_id: &NodeId) -> Vec<Result<NodeId, ()>> {
+        let mut result = Vec::with_capacity(variables.len());
+        for variable in variables {
+            result.push(self.add_variable(variable, parent_node_id));
+        }
+        result
+    }
+
+    pub fn add_variable(&mut self, variable: &Variable, parent_node_id: &NodeId) -> Result<NodeId, ()> {
         let node_id = variable.node_id();
         if !self.node_map.contains_key(&node_id) {
-            {
-                let mut parent = self.find_node_mut(parent_node_id);
-                if parent.is_some() {
-                    if let &mut NodeType::Object(ref mut parent) = parent.unwrap() {
-                        parent.add_organizes(&node_id);
-                    }
-                }
-            }
+            self.add_organizes(&parent_node_id, &node_id);
             self.insert(&node_id, NodeType::Variable(variable.clone()));
-            Ok(())
+            Ok(node_id)
         } else {
             Err(())
         }
     }
 
-    pub fn find_references_from(&self, node_id: &NodeId, reference_type_id: &Option<NodeId>) -> Option<Vec<Reference>> {
-        let source_node = self.find_node(node_id);
-        if source_node.is_none() {
-            None
+    fn add_reference(reference_map: &mut HashMap<NodeId, Vec<Reference>>, node_id: &NodeId, reference: Reference) {
+        if reference_map.contains_key(node_id) {
+            let mut references = reference_map.get_mut(node_id).unwrap();
+            references.push(reference);
         } else {
-            let source_node = source_node.unwrap();
-            let result = if reference_type_id.is_none() {
-                // Add everything
-                source_node.as_node().references().clone()
-            } else {
-                // Filter by type
-                let reference_type_id = reference_type_id.as_ref().unwrap().clone();
-                let mut result = Vec::new();
-                for reference in source_node.as_node().references() {
-                    // TODO this should match on subtypes too
-                    if NodeId::from_reference_type_id(reference.reference_type_id()) == reference_type_id {
-                        result.push(reference.clone());
-                    }
-                }
-                result
-            };
-            Some(result)
+            reference_map.insert(node_id.clone(), vec![reference]);
         }
     }
 
-    pub fn find_references_to(&self, _: &NodeId, _: &Option<NodeId>) -> Option<Vec<Reference>> {
-        // TODO inverse relationship
-        None
+    fn filter_references_by_type(references: &Vec<Reference>, reference_type_id: Option<ReferenceTypeId>) -> Vec<Reference> {
+        if reference_type_id.is_none() {
+            references.clone()
+        } else {
+            // Filter by type
+            let reference_type_id = reference_type_id.unwrap();
+            let mut result = Vec::new();
+            for reference in references {
+                // TODO this should match on subtypes too
+                if reference.reference_type_id == reference_type_id {
+                    result.push(reference.clone());
+                }
+            }
+            result
+        }
+    }
+
+    fn find_references(reference_map: &HashMap<NodeId, Vec<Reference>>, node_id: &NodeId, reference_type_id: Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
+        let node_references = reference_map.get(node_id);
+        if node_references.is_some() {
+            let node_references = node_references.as_ref().unwrap();
+            let result = AddressSpace::filter_references_by_type(node_references, reference_type_id);
+            if result.len() != 0 {
+                Some(result)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    pub fn find_references_from(&self, node_id_from: &NodeId, reference_type_id: Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
+        AddressSpace::find_references(&self.references, node_id_from, reference_type_id)
+    }
+
+    pub fn find_references_to(&self, node_id_to: &NodeId, reference_type_id: Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
+        AddressSpace::find_references(&self.inverse_references, node_id_to, reference_type_id)
+    }
+
+    fn make_oneway_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) {
+        AddressSpace::add_reference(&mut self.references, node_id_from, Reference::new(reference_type_id, node_id_to));
+    }
+
+    fn make_twoway_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) {
+        AddressSpace::add_reference(&mut self.references, node_id_from, Reference::new(reference_type_id, node_id_to));
+        AddressSpace::add_reference(&mut self.inverse_references, node_id_to, Reference::new(reference_type_id, node_id_from));
+    }
+
+    pub fn add_organizes(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
+        self.make_twoway_reference(node_id_from, node_id_to, ReferenceTypeId::Organizes);
+    }
+
+    pub fn add_child(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
+        self.make_twoway_reference(node_id_from, node_id_to, ReferenceTypeId::HasChild);
+    }
+
+    pub fn add_property(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
+        self.make_twoway_reference(node_id_from, node_id_to, ReferenceTypeId::HasProperty);
     }
 }

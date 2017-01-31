@@ -1,6 +1,5 @@
 use types::*;
 use services::*;
-use address_space::DataType;
 
 // Attributes as defined in Part 4, Figure B.7
 
@@ -70,7 +69,7 @@ pub enum Attribute {
     ContainsNoLoops(Boolean),
     EventNotifier(Boolean),
     Value(DataValue),
-    DataType(DataType),
+    DataType(NodeId),
     ValueRank(Int32),
     ArrayDimensions(Vec<Int32>),
     AccessLevel(Byte),
@@ -176,98 +175,16 @@ const NUM_ATTRIBUTES: usize = 22;
 /// The NodeId is the target node. The reference is held in a list by the source node.
 /// The target node does not need to exist.
 #[derive(Debug, Clone, PartialEq)]
-pub enum Reference {
-    References(NodeId),
-    NonHierarchicalReferences(NodeId),
-    HierarchicalReferences(NodeId),
-    HasChild(NodeId),
-    Organizes(NodeId),
-    HasEventSource(NodeId),
-    HasModellingRule(NodeId),
-    HasEncoding(NodeId),
-    HasDescription(NodeId),
-    HasTypeDefinition(NodeId),
-    GeneratesEvent(NodeId),
-    Aggregates(NodeId),
-    HasSubtype(NodeId),
-    HasProperty(NodeId),
-    HasComponent(NodeId),
-    HasNotifier(NodeId),
-    HasOrderedComponent(NodeId),
-    FromState(NodeId),
-    ToState(NodeId),
-    HasCause(NodeId),
-    HasEffect(NodeId),
-    HasHistoricalConfiguration(NodeId),
-    HasSubStateMachine(NodeId),
-    AlwaysGeneratesEvent(NodeId),
-    HasTrueSubState(NodeId),
-    HasFalseSubState(NodeId),
-    HasCondition(NodeId),
+pub struct Reference {
+    pub reference_type_id: ReferenceTypeId,
+    pub node_id: NodeId,
 }
 
 impl Reference {
-    pub fn reference_type_id(&self) -> ReferenceTypeId {
-        match self {
-            &Reference::References(_) => ReferenceTypeId::References,
-            &Reference::NonHierarchicalReferences(_) => ReferenceTypeId::NonHierarchicalReferences,
-            &Reference::HierarchicalReferences(_) => ReferenceTypeId::HierarchicalReferences,
-            &Reference::HasChild(_) => ReferenceTypeId::HasChild,
-            &Reference::Organizes(_) => ReferenceTypeId::Organizes,
-            &Reference::HasEventSource(_) => ReferenceTypeId::HasEventSource,
-            &Reference::HasModellingRule(_) => ReferenceTypeId::HasModellingRule,
-            &Reference::HasEncoding(_) => ReferenceTypeId::HasEncoding,
-            &Reference::HasDescription(_) => ReferenceTypeId::HasDescription,
-            &Reference::HasTypeDefinition(_) => ReferenceTypeId::HasTypeDefinition,
-            &Reference::GeneratesEvent(_) => ReferenceTypeId::GeneratesEvent,
-            &Reference::Aggregates(_) => ReferenceTypeId::Aggregates,
-            &Reference::HasSubtype(_) => ReferenceTypeId::HasSubtype,
-            &Reference::HasProperty(_) => ReferenceTypeId::HasProperty,
-            &Reference::HasComponent(_) => ReferenceTypeId::HasComponent,
-            &Reference::HasNotifier(_) => ReferenceTypeId::HasNotifier,
-            &Reference::HasOrderedComponent(_) => ReferenceTypeId::HasOrderedComponent,
-            &Reference::FromState(_) => ReferenceTypeId::FromState,
-            &Reference::ToState(_) => ReferenceTypeId::ToState,
-            &Reference::HasCause(_) => ReferenceTypeId::HasCause,
-            &Reference::HasEffect(_) => ReferenceTypeId::HasEffect,
-            &Reference::HasHistoricalConfiguration(_) => ReferenceTypeId::HasHistoricalConfiguration,
-            &Reference::HasSubStateMachine(_) => ReferenceTypeId::HasSubStateMachine,
-            &Reference::AlwaysGeneratesEvent(_) => ReferenceTypeId::AlwaysGeneratesEvent,
-            &Reference::HasTrueSubState(_) => ReferenceTypeId::HasTrueSubState,
-            &Reference::HasFalseSubState(_) => ReferenceTypeId::HasFalseSubState,
-            &Reference::HasCondition(_) => ReferenceTypeId::HasCondition,
-        }
-    }
-
-    pub fn node_id(&self) -> &NodeId {
-        match self {
-            &Reference::References(ref node_id) => node_id,
-            &Reference::NonHierarchicalReferences(ref node_id) => node_id,
-            &Reference::HierarchicalReferences(ref node_id) => node_id,
-            &Reference::HasChild(ref node_id) => node_id,
-            &Reference::Organizes(ref node_id) => node_id,
-            &Reference::HasEventSource(ref node_id) => node_id,
-            &Reference::HasModellingRule(ref node_id) => node_id,
-            &Reference::HasEncoding(ref node_id) => node_id,
-            &Reference::HasDescription(ref node_id) => node_id,
-            &Reference::HasTypeDefinition(ref node_id) => node_id,
-            &Reference::GeneratesEvent(ref node_id) => node_id,
-            &Reference::Aggregates(ref node_id) => node_id,
-            &Reference::HasSubtype(ref node_id) => node_id,
-            &Reference::HasProperty(ref node_id) => node_id,
-            &Reference::HasComponent(ref node_id) => node_id,
-            &Reference::HasNotifier(ref node_id) => node_id,
-            &Reference::HasOrderedComponent(ref node_id) => node_id,
-            &Reference::FromState(ref node_id) => node_id,
-            &Reference::ToState(ref node_id) => node_id,
-            &Reference::HasCause(ref node_id) => node_id,
-            &Reference::HasEffect(ref node_id) => node_id,
-            &Reference::HasHistoricalConfiguration(ref node_id) => node_id,
-            &Reference::HasSubStateMachine(ref node_id) => node_id,
-            &Reference::AlwaysGeneratesEvent(ref node_id) => node_id,
-            &Reference::HasTrueSubState(ref node_id) => node_id,
-            &Reference::HasFalseSubState(ref node_id) => node_id,
-            &Reference::HasCondition(ref node_id) => node_id,
+    pub fn new(reference_type_id: ReferenceTypeId, node_id: &NodeId) -> Reference{
+        Reference {
+            reference_type_id: reference_type_id,
+            node_id: node_id.clone(),
         }
     }
 }
@@ -291,9 +208,7 @@ pub trait Node {
     fn description(&self) -> Option<LocalizedText>;
     fn write_mask(&self) -> Option<UInt32>;
     fn user_write_mask(&self) -> Option<UInt32>;
-    fn add_reference(&mut self, reference: Reference);
-    fn references(&self) -> &Vec<Reference>;
-    fn find_attribute(&self, attribute_id: &AttributeId) -> Option<Attribute>;
+    fn find_attribute(&self, attribute_id: AttributeId) -> Option<Attribute>;
 }
 
 /// This is a sanity saving macro that adds Node trait methods to all types that have a base
@@ -309,9 +224,7 @@ macro_rules! node_impl {
             fn description(&self) -> Option<LocalizedText> { self.base.description() }
             fn write_mask(&self) -> Option<UInt32> { self.base.write_mask() }
             fn user_write_mask(&self) -> Option<UInt32> { self.base.user_write_mask() }
-            fn add_reference(&mut self, reference: Reference) { self.base.add_reference(reference); }
-            fn references(&self) -> &Vec<Reference> { self.base.references() }
-            fn find_attribute(&self, attribute_id: &AttributeId) -> Option<Attribute> { self.base.find_attribute(attribute_id); }
+            fn find_attribute(&self, attribute_id: AttributeId) -> Option<Attribute> { self.base.find_attribute(attribute_id); }
         }
     };
 }
@@ -334,10 +247,9 @@ macro_rules! find_attribute_mandatory {
 /// Base is the functionality that all kinds of nodes need. Part 3, diagram B.4
 #[derive(Debug, Clone, PartialEq)]
 pub struct Base {
-    // TODO number of attributes is fixed per type so it'd be more efficient to hold an array of options
-    // and use an index find each of them. Depends how much they're used really
+    /// Attributes
     pub attributes: Vec<Option<Attribute>>,
-    pub references: Vec<Reference>,
+    /// Properties
     pub properties: Vec<Property>,
 }
 
@@ -372,16 +284,8 @@ impl Node for Base {
         find_attribute_value_optional!(self, UserWriteMask);
     }
 
-    fn add_reference(&mut self, reference: Reference) {
-        self.references.push(reference);
-    }
-
-    fn references(&self) -> &Vec<Reference> {
-        &self.references
-    }
-
-    fn find_attribute(&self, attribute_id: &AttributeId) -> Option<Attribute> {
-        let attribute_idx = *attribute_id as usize - 1;
+    fn find_attribute(&self, attribute_id: AttributeId) -> Option<Attribute> {
+        let attribute_idx = Base::attribute_idx(attribute_id);
         if attribute_idx >= self.attributes.len() {
             warn!("Attribute id {:?} is out of range and invalid", attribute_id);
             return None;
@@ -391,7 +295,7 @@ impl Node for Base {
 }
 
 impl Base {
-    pub fn new(node_class: NodeClass, node_id: &NodeId, browse_name: &str, display_name: &str, mut attributes: Vec<Attribute>, mut references: Vec<Reference>, mut properties: Vec<Property>) -> Base {
+    pub fn new(node_class: NodeClass, node_id: &NodeId, browse_name: &str, display_name: &str, mut attributes: Vec<Attribute>, mut properties: Vec<Property>) -> Base {
         // Mandatory attributes
         let mut attributes_to_add = vec![
             Attribute::NodeClass(node_class),
@@ -409,17 +313,25 @@ impl Base {
             attributes[attribute_idx] = Some(attribute);
         }
 
-        let mut base_references = vec![];
-        base_references.append(&mut references);
-
         let mut base_properties = vec![];
         base_properties.append(&mut properties);
 
 
         Base {
             attributes: attributes,
-            references: base_references,
             properties: base_properties,
         }
+    }
+
+    fn attribute_idx(attribute_id: AttributeId) -> usize {
+        attribute_id as usize - 1
+    }
+
+    pub fn set_attribute(&mut self, attribute_id: AttributeId, attribute: Attribute) {
+        self.attributes[Base::attribute_idx(attribute_id)] = Some(attribute);
+    }
+
+    pub fn unset_attribute(&mut self, attribute_id: AttributeId) {
+        self.attributes[Base::attribute_idx(attribute_id)] = None;
     }
 }

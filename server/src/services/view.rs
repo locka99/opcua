@@ -105,7 +105,13 @@ impl ViewService {
         let reference_type_id = if node_to_browse.reference_type_id.is_null() {
             None
         } else {
-            Some(node_to_browse.reference_type_id.clone())
+            let reference_type_id = node_to_browse.reference_type_id.as_reference_type_id();
+            if reference_type_id.is_ok() {
+                Some(reference_type_id.unwrap())
+            }
+            else {
+                None
+            }
         };
 
         // Fetch the references to / from the given node to browse
@@ -113,7 +119,7 @@ impl ViewService {
         let inverse_ref_idx;
         match node_to_browse.browse_direction {
             BrowseDirection::Forward => {
-                let forward_references = address_space.find_references_from(&node_to_browse.node_id, &reference_type_id);
+                let forward_references = address_space.find_references_from(&node_to_browse.node_id, reference_type_id);
                 if forward_references.is_some() {
                     references.append(&mut forward_references.unwrap());
                 }
@@ -121,18 +127,18 @@ impl ViewService {
             }
             BrowseDirection::Inverse => {
                 inverse_ref_idx = 0;
-                let inverse_references = address_space.find_references_to(&node_to_browse.node_id, &reference_type_id);
+                let inverse_references = address_space.find_references_to(&node_to_browse.node_id, reference_type_id);
                 if inverse_references.is_some() {
                     references.append(&mut inverse_references.unwrap());
                 }
             }
             BrowseDirection::Both => {
-                let forward_references = address_space.find_references_from(&node_to_browse.node_id, &reference_type_id);
+                let forward_references = address_space.find_references_from(&node_to_browse.node_id, reference_type_id);
                 if forward_references.is_some() {
                     references.append(&mut forward_references.unwrap());
                 }
                 inverse_ref_idx = references.len();
-                let inverse_references = address_space.find_references_to(&node_to_browse.node_id, &reference_type_id);
+                let inverse_references = address_space.find_references_to(&node_to_browse.node_id, reference_type_id);
                 if inverse_references.is_some() {
                     references.append(&mut inverse_references.unwrap());
                 }
@@ -145,12 +151,12 @@ impl ViewService {
         let mut reference_descriptions: Vec<ReferenceDescription> = Vec::new();
         if ViewService::node_matches_class_mask(source_node, node_to_browse.node_class_mask) {
             let source_node = source_node.as_node();
-            for (idx, reference) in source_node.references().iter().enumerate() {
+            for (idx, reference) in references.iter().enumerate() {
                 if reference_descriptions.len() > max_references_per_node as usize {
                     break;
                 }
 
-                let target_node_id = reference.node_id().clone();
+                let target_node_id = reference.node_id.clone();
                 if target_node_id.is_null() {
                     continue;
                 }
@@ -163,7 +169,7 @@ impl ViewService {
 
                 // Prepare the values to put into the struct according to the result mask
                 let reference_type_id = if result_mask & RESULT_MASK_REFERENCE_TYPE != 0 {
-                    NodeId::from_reference_type_id(reference.reference_type_id())
+                    NodeId::from_reference_type_id(reference.reference_type_id)
                 } else {
                     NodeId::null()
                 };

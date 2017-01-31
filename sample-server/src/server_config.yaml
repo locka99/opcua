@@ -1,6 +1,19 @@
---- # Sample configuration
-id: sample-opcua
-description: Sample OPC UA Server
-host: 127.0.0.1
-port: 1234
-path: /
+---
+application_name: OPC UA Server (Rust)
+application_uri: ""
+product_uri: ""
+pki_dir: pki
+discovery_service: true
+tcp_config:
+  hello_timeout: 120
+  host: 127.0.0.1
+  port: 1234
+endpoints:
+  -
+    name: Default
+    path: /
+    security_policy: None
+    security_mode: None
+    anonymous: true
+    user: ~
+    pass: ~

@@ -10,7 +10,7 @@ pub struct ReferenceType {
 node_impl!(ReferenceType);
 
 impl ReferenceType {
-    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, inverse_name: Option<LocalizedText>, symmetric: bool, is_abstract: bool) -> ReferenceType {
+    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, inverse_name: Option<LocalizedText>, symmetric: Boolean, is_abstract: Boolean) -> ReferenceType {
         // Mandatory
         let mut attributes = vec![
             Attribute::Symmetric(symmetric),
@@ -20,24 +20,23 @@ impl ReferenceType {
         if let Some(inverse_name) = inverse_name {
             attributes.push(Attribute::InverseName(inverse_name));
         }
-        let references = vec![];
         let properties = vec![];
 
         ReferenceType {
-            base: Base::new(NodeClass::ReferenceType, node_id, browse_name, display_name, attributes, references, properties),
+            base: Base::new(NodeClass::ReferenceType, node_id, browse_name, display_name, attributes, properties),
         }
     }
 
-    pub fn symmetric(&self) -> bool {
+    pub fn symmetric(&self) -> Boolean {
         find_attribute_value_mandatory!(&self.base, Symmetric);
     }
 
-    pub fn is_abstract(&self) -> bool {
+    pub fn is_abstract(&self) -> Boolean {
         find_attribute_value_mandatory!(&self.base, IsAbstract);
     }
 
     pub fn inverse_name(&self) -> Option<LocalizedText> {
-        if let Some(Attribute::InverseName(text)) = self.find_attribute(&AttributeId::InverseName) {
+        if let Some(Attribute::InverseName(text)) = self.find_attribute(AttributeId::InverseName) {
             Some(text)
         } else {
             None

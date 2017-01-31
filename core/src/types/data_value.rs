@@ -143,8 +143,11 @@ impl BinaryEncoder<DataValue> for DataValue {
     }
 }
 
+
+
 impl DataValue {
-    pub fn new(now: &DateTime, value: Variant) -> DataValue {
+    pub fn new(value: Variant) -> DataValue {
+        let now = DateTime::now();
         DataValue {
             value: Some(Box::new(value)),
             status: Some(GOOD.clone()),

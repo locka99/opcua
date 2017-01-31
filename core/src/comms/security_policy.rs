@@ -33,11 +33,11 @@ impl SecurityPolicy {
     }
 
     pub fn to_uri(&self) -> &'static str {
-        match *self {
-            SecurityPolicy::None => SECURITY_POLICY_NONE,
-            SecurityPolicy::Basic128Rsa15 => SECURITY_POLICY_BASIC128RSA15,
-            SecurityPolicy::Basic256 => SECURITY_POLICY_BASIC256,
-            SecurityPolicy::Basic256Sha256 => SECURITY_POLICY_BASIC256SHA256,
+        match self {
+            &SecurityPolicy::None => SECURITY_POLICY_NONE,
+            &SecurityPolicy::Basic128Rsa15 => SECURITY_POLICY_BASIC128RSA15,
+            &SecurityPolicy::Basic256 => SECURITY_POLICY_BASIC256,
+            &SecurityPolicy::Basic256Sha256 => SECURITY_POLICY_BASIC256SHA256,
             _ => {
                 panic!("Shouldn't be turning an unknown policy into a uri");
             }

@@ -16,9 +16,7 @@ macro_rules! node_impl {
             fn description(&self) -> Option<LocalizedText> { self.base.description() }
             fn write_mask(&self) -> Option<UInt32> { self.base.write_mask() }
             fn user_write_mask(&self) -> Option<UInt32> { self.base.user_write_mask() }
-            fn add_reference(&mut self, reference: Reference) { self.base.add_reference(reference); }
-            fn references(&self) -> &Vec<Reference> { self.base.references() }
-            fn find_attribute(&self, attribute_id: &AttributeId) -> Option<Attribute> { self.base.find_attribute(attribute_id) }
+            fn find_attribute(&self, attribute_id: AttributeId) -> Option<Attribute> { self.base.find_attribute(attribute_id) }
         }
     };
 }

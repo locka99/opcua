@@ -14,12 +14,15 @@ fn main() {
         let mut address_space = server_state.address_space.lock().unwrap();
 
         // Create a sample folder
-        let sample_folder = address_space.add_folder("Sample", "Sample", &AddressSpace::objects_folder_id()).unwrap();
+        let sample_folder_id = address_space.add_folder("Sample", "Sample", &AddressSpace::objects_folder_id()).unwrap();
 
         // Add some variables to it
-        let now = DateTime::now();
-        let var1 = Variable::new(&NodeId::new_string(2, "var1"), "v1", "v1", &DataValue::new(&now, Variant::Int32(30)));
-        // address_space.add_variable(&var1, &sample_folder.node_id());
+        let vars = vec![
+            Variable::new(&NodeId::new_string(1, "v1"), "v1", "v1", &DataValue::new(Variant::Int32(30))),
+            Variable::new(&NodeId::new_string(1, "v2"), "v2", "v2", &DataValue::new(Variant::Boolean(true))),
+            Variable::new(&NodeId::new_string(1, "v3"), "v3", "v3", &DataValue::new(Variant::String(UAString::from_str("Hello world"))))
+        ];
+        let _ = address_space.add_variables(&vars, &sample_folder_id);
     }
 
     server.run();

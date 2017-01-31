@@ -51,7 +51,7 @@ impl AttributeService {
                     continue;
                 }
                 let attribute_id = attribute_id.unwrap();
-                let attribute = node.as_node().find_attribute(&attribute_id);
+                let attribute = node.as_node().find_attribute(attribute_id);
 
                 let value = None;
                 let status = None;
