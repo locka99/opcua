@@ -16,7 +16,6 @@ pub struct TcpConfig {
     pub host: String,
     /// The port number of the service
     pub port: u16,
-
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -57,10 +56,13 @@ pub struct ServerConfig {
 impl ServerConfig {
     /// Returns the default server configuration to run a server with no security and anonymous access enabled
     pub fn default_anonymous() -> ServerConfig {
+        let application_name = "OPC UA Server (Rust)".to_string();
+        let application_uri = format!("urn:{}", application_name);
+        let product_uri = format!("urn:{}", application_name);
         ServerConfig {
-            application_name: "OPC UA Server (Rust)".to_string(),
-            application_uri: "".to_string(),
-            product_uri: "".to_string(),
+            application_name: application_name,
+            application_uri: application_uri,
+            product_uri: product_uri,
             discovery_service: true,
             pki_dir: "pki".to_string(),
             tcp_config: TcpConfig {

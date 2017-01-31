@@ -147,7 +147,9 @@ impl AddressSpace {
         self.add_organizes(&parent_node_id, &node_id);
 
         let folder_object = Object::new(&node_id, browse_name, display_name);
+        self.make_twoway_reference(&folder_object.node_id(), &ObjectTypeId::FolderType.as_node_id(), ReferenceTypeId::HasTypeDefinition);
         self.insert(&node_id, NodeType::Object(folder_object));
+
         Ok(node_id)
     }
 
