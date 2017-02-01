@@ -4,7 +4,7 @@ var opcua = require("node-opcua");
 
 // Let's create an instance of OPCUAServer
 var server = new opcua.OPCUAServer({
-    alternateHostname: "127.0.0.1",
+//    alternateHostname: "192.168.0.31",
     securityPolicies: [opcua.SecurityPolicy.None],
     securityModes: [opcua.MessageSecurityMode.NONE],
     port: 1234, // the port of the listening socket of the server

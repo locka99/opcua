@@ -49,124 +49,15 @@ impl BinaryEncoder<UserTokenType> for UserTokenType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct UserTokenPolicy {
-    pub policy_id: UAString,
-    pub token_type: UserTokenType,
-    pub issued_token_type: UAString,
-    pub issuer_endpoint_url: UAString,
-    pub security_policy_uri: UAString,
-}
-
-impl BinaryEncoder<UserTokenPolicy> for UserTokenPolicy {
-    fn byte_len(&self) -> usize {
-        let mut size = 0;
-        size += self.policy_id.byte_len();
-        size += self.token_type.byte_len();
-        size += self.issued_token_type.byte_len();
-        size += self.issuer_endpoint_url.byte_len();
-        size += self.security_policy_uri.byte_len();
-        size
-    }
-
-    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        let mut size = 0;
-        size += self.policy_id.encode(stream)?;
-        size += self.token_type.encode(stream)?;
-        size += self.issued_token_type.encode(stream)?;
-        size += self.issuer_endpoint_url.encode(stream)?;
-        size += self.security_policy_uri.encode(stream)?;
-        Ok(size)
-    }
-
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let policy_id = UAString::decode(stream)?;
-        let token_type = UserTokenType::decode(stream)?;
-        let issued_token_type = UAString::decode(stream)?;
-        let issuer_endpoint_url = UAString::decode(stream)?;
-        let security_policy_uri = UAString::decode(stream)?;
-        Ok(UserTokenPolicy {
-            policy_id: policy_id,
-            token_type: token_type,
-            issued_token_type: issued_token_type,
-            issuer_endpoint_url: issuer_endpoint_url,
-            security_policy_uri: security_policy_uri,
-        })
-    }
-}
-
 impl UserTokenPolicy {
     pub fn new_anonymous() -> UserTokenPolicy {
         UserTokenPolicy {
-            policy_id: UAString::from_str("AnonymousPolicy"),
+            policy_id: UAString::from_str("anonymous"),
             token_type: UserTokenType::Anonymous,
-            issued_token_type: UAString::from_str(SECURITY_USER_TOKEN_POLICY_ANONYMOUS),
+            issued_token_type: UAString::null(),
             issuer_endpoint_url: UAString::null(),
             security_policy_uri: UAString::null(),
         }
-    }
-}
-
-// EndpointDescription = 312,
-#[derive(Debug, Clone, PartialEq)]
-pub struct EndpointDescription {
-    pub endpoint_url: UAString,
-    pub server: ApplicationDescription,
-    pub server_certificate: ByteString,
-    pub security_mode: MessageSecurityMode,
-    pub security_policy_uri: UAString,
-    pub user_identity_tokens: Option<Vec<UserTokenPolicy>>,
-    pub transport_profile_uri: UAString,
-    pub security_level: Byte
-}
-
-impl BinaryEncoder<EndpointDescription> for EndpointDescription {
-    fn byte_len(&self) -> usize {
-        let mut size = 0;
-        size += self.endpoint_url.byte_len();
-        size += self.server.byte_len();
-        size += self.server_certificate.byte_len();
-        size += self.security_mode.byte_len();
-        size += self.security_policy_uri.byte_len();
-        size += byte_len_array(&self.user_identity_tokens);
-        size += self.transport_profile_uri.byte_len();
-        size += self.security_level.byte_len();
-        size
-    }
-
-    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        let mut size = 0;
-        size += self.endpoint_url.encode(stream)?;
-        size += self.server.encode(stream)?;
-        size += self.server_certificate.encode(stream)?;
-        size += self.security_mode.encode(stream)?;
-        size += self.security_policy_uri.encode(stream)?;
-        size += write_array(stream, &self.user_identity_tokens)?;
-        size += self.transport_profile_uri.encode(stream)?;
-        size += self.security_level.encode(stream)?;
-        assert_eq!(size, self.byte_len());
-        Ok(size)
-    }
-
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let endpoint_url = UAString::decode(stream)?;
-        let server = ApplicationDescription::decode(stream)?;
-        let server_certificate = ByteString::decode(stream)?;
-        let security_mode = MessageSecurityMode::decode(stream)?;
-        let security_policy_uri = UAString::decode(stream)?;
-        let user_identity_tokens: Option<Vec<UserTokenPolicy>> = read_array(stream)?;
-        let transport_profile_uri = UAString::decode(stream)?;
-        let security_level = Byte::decode(stream)?;
-        Ok(EndpointDescription {
-            endpoint_url: endpoint_url,
-            server: server,
-            server_certificate: server_certificate,
-            security_mode: security_mode,
-            security_policy_uri: security_policy_uri,
-            user_identity_tokens: user_identity_tokens,
-            transport_profile_uri: transport_profile_uri,
-            security_level: security_level,
-        })
     }
 }
 
@@ -199,48 +90,6 @@ impl BinaryEncoder<ApplicationType> for ApplicationType {
                 error!("Invalid ApplicationType");
                 ApplicationType::Server
             }
-        })
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct UserIdentityToken {
-    pub token_data: Vec<Byte>,
-    pub server_nonce: Vec<Byte>,
-}
-
-impl BinaryEncoder<UserIdentityToken> for UserIdentityToken {
-    fn byte_len(&self) -> usize {
-        4 + self.token_data.len() + 4 + self.server_nonce.len()
-    }
-
-    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        let mut size: usize = 0;
-        size += write_u32(stream, self.token_data.len() as UInt32)?;
-        for b in &self.token_data {
-            size += write_u8(stream, *b)?;
-        }
-        size += write_u32(stream, self.server_nonce.len() as UInt32)?;
-        for b in &self.server_nonce {
-            size += write_u8(stream, *b)?;
-        }
-        Ok(size)
-    }
-
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let token_data_len = read_u32(stream)?;
-        let mut token_data = Vec::with_capacity(token_data_len as usize);
-        token_data.resize(token_data_len as usize, 0u8);
-        process_decode_io_result(stream.read_exact(&mut token_data))?;
-
-        let server_nonce_len = read_u32(stream)?;
-        let mut server_nonce = Vec::with_capacity(server_nonce_len as usize);
-        server_nonce.resize(server_nonce_len as usize, 0u8);
-        process_decode_io_result(stream.read_exact(&mut server_nonce))?;
-
-        Ok(UserIdentityToken {
-            token_data: token_data,
-            server_nonce: server_nonce,
         })
     }
 }
@@ -457,78 +306,6 @@ impl ResponseHeader {
     }
 }
 
-// SignedSoftwareCertificate_Encoding_DefaultXml = 345,
-// SignedSoftwareCertificate_Encoding_DefaultBinary = 346,
-#[derive(Debug, Clone, PartialEq)]
-pub struct SignedSoftwareCertificate {
-    /// The certificate data serialized as a ByteString.
-    pub certificate_data: ByteString,
-    /// The signature for the certificateData
-    pub signature: ByteString,
-}
-
-impl BinaryEncoder<SignedSoftwareCertificate> for SignedSoftwareCertificate {
-    fn byte_len(&self) -> usize {
-        let mut size = 0;
-        size += self.certificate_data.byte_len();
-        size += self.signature.byte_len();
-        size
-    }
-
-    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        let mut size = 0;
-        size += self.certificate_data.encode(stream)?;
-        size += self.signature.encode(stream)?;
-        assert_eq!(size, self.byte_len());
-        Ok(size)
-    }
-
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let certificate_data = ByteString::decode(stream)?;
-        let signature = ByteString::decode(stream)?;
-        Ok(SignedSoftwareCertificate {
-            certificate_data: certificate_data,
-            signature: signature,
-        })
-    }
-}
-
-// SignatureData = 456,
-#[derive(Debug, Clone, PartialEq)]
-pub struct SignatureData {
-    /// A string containing the URI of the algorithm. The URI string values are defined as part of
-    /// the security profiles specified in Part 7.
-    pub algorithm: UAString,
-    /// This is a signature generated with the private key associated with a Certificate.
-    pub signature: ByteString,
-}
-
-impl BinaryEncoder<SignatureData> for SignatureData {
-    fn byte_len(&self) -> usize {
-        let mut size = 0;
-        size += self.algorithm.byte_len();
-        size += self.signature.byte_len();
-        size
-    }
-
-    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        let mut size = 0;
-        size += self.algorithm.encode(stream)?;
-        size += self.signature.encode(stream)?;
-        assert_eq!(size, self.byte_len());
-        Ok(size)
-    }
-
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let algorithm = UAString::decode(stream)?;
-        let signature = ByteString::decode(stream)?;
-        Ok(SignatureData {
-            algorithm: algorithm,
-            signature: signature,
-        })
-    }
-}
-
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum TimestampsToReturn {
     Source = 0,
@@ -626,13 +403,13 @@ impl BinaryEncoder<BrowseDirection> for BrowseDirection {
 
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         // All enums are Int32
-        let browse_direction = read_i32(stream)?;
-        match browse_direction {
+        let value = read_i32(stream)?;
+        match value {
             0 => Ok(BrowseDirection::Forward),
             1 => Ok(BrowseDirection::Inverse),
             2 => Ok(BrowseDirection::Both),
             _ => {
-                error!("Don't know what browse direction {} is", browse_direction);
+                error!("Don't know what browse direction {} is", value);
                 Err(&BAD_BROWSE_DIRECTION_INVALID)
             }
         }

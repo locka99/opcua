@@ -394,7 +394,7 @@ impl TcpTransport {
                 created_at: now.clone(),
                 revised_lifetime: request.requested_lifetime,
             },
-            server_nonce: ByteString::null(),
+            server_nonce: ByteString::from_bytes(&[0u8]),
         };
 
         debug!("Sending OpenSecureChannelResponse {:#?}", response);

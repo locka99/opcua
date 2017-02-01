@@ -56,7 +56,7 @@ pub struct ServerConfig {
 impl ServerConfig {
     /// Returns the default server configuration to run a server with no security and anonymous access enabled
     pub fn default_anonymous() -> ServerConfig {
-        let application_name = "OPC UA Server (Rust)".to_string();
+        let application_name = "OPCUA-Rust".to_string();
         let application_uri = format!("urn:{}", application_name);
         let product_uri = format!("urn:{}", application_name);
         ServerConfig {

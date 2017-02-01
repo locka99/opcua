@@ -14,7 +14,7 @@ impl SessionService {
         SessionService {}
     }
 
-    pub fn create_session(&self, _: &mut ServerState, _: &mut SessionState, request: &CreateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn create_session(&self, server_state: &mut ServerState, _: &mut SessionState, request: &CreateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
         debug!("create_session {:#?}", request);
 
         // TODO validate client certificate
@@ -26,8 +26,8 @@ impl SessionService {
         let max_request_message_size = 32768;
 
         // TODO crypto
-        let server_nonce = ByteString::null();
-        let server_certificate = ByteString::null();
+        let server_nonce = ByteString::from_bytes(&[0u8]);
+        let server_certificate = server_state.server_certificate.clone();
         let server_software_certificates = None;
         let server_signature = SignatureData {
             algorithm: UAString::null(),
@@ -62,8 +62,7 @@ impl SessionService {
         debug!("activate_session {:#?}", request);
 
         // TODO validate user identity token
-
-        let server_nonce = ByteString::null();
+        let server_nonce = ByteString::from_bytes(&[0u8]);
 
         let response = ActivateSessionResponse {
             response_header: ResponseHeader::new(&DateTime::now(), &request.request_header),

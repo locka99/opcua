@@ -80,6 +80,11 @@ impl Server {
             });
         }
 
+        //TODO THIS IS TEMPORARY
+        //let server_certificate_bytes = include_bytes!("server_cert_1024.pem");
+        //let server_certificate = ByteString::from_bytes(server_certificate_bytes);
+        let server_certificate = ByteString::null();
+
         Server {
             server_state: Arc::new(Mutex::new(ServerState {
                 application_uri: application_uri,
@@ -91,7 +96,7 @@ impl Server {
                 base_endpoint: base_endpoint,
                 endpoints: endpoints,
                 config: Arc::new(Mutex::new(config.clone())),
-                server_certificate: ByteString::null(),
+                server_certificate: server_certificate,
                 address_space: Arc::new(Mutex::new(AddressSpace::new_top_level()))
             })),
             abort: false,

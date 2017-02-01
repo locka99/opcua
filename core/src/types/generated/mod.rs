@@ -27,6 +27,7 @@ use_generated_types! [
     activate_session_response,
     get_endpoints_request,
     get_endpoints_response,
+    endpoint_description,
     browse_request,
     browse_response,
     browse_result,
@@ -46,7 +47,12 @@ use_generated_types! [
     create_monitored_items_response,
     monitored_item_create_request,
     monitored_item_create_result,
-    monitoring_parameters
+    monitoring_parameters,
+    user_token_policy,
+    signature_data,
+    signed_software_certificate,
+    anonymous_identity_token,
+    user_name_identity_token
 ];
 
 pub use self::node_ids::*;

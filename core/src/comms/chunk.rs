@@ -191,72 +191,34 @@ impl BinaryEncoder<SymmetricSecurityHeader> for SymmetricSecurityHeader {
 #[derive(Debug, Clone, PartialEq)]
 pub struct AsymmetricSecurityHeader {
     pub security_policy_uri: UAString,
-    pub sender_certificate: Vec<u8>,
-    pub receiver_certificate_thumbprint: Vec<u8>,
+    pub sender_certificate: ByteString,
+    pub receiver_certificate_thumbprint: ByteString,
 }
 
 impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
     fn byte_len(&self) -> usize {
         let mut size = 0;
         size += self.security_policy_uri.byte_len();
-        size += 4; // sender_certificate
-        size += self.sender_certificate.len();
-        size += 4; // receiver_certificate_thumbprint
-        size += self.receiver_certificate_thumbprint.len();
+        size += self.sender_certificate.byte_len();
+        size += self.receiver_certificate_thumbprint.byte_len();
         size
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.security_policy_uri.encode(stream)?;
-
-        // The spec says to write 0 or -1 when buf is empty but some clients don't like that one bit
-        if self.sender_certificate.len() > 0 {
-            size += write_i32(stream, self.sender_certificate.len() as i32)?;
-            size += process_encode_io_result(stream.write(&self.sender_certificate))?;
-        }
-        else {
-            size += write_i32(stream, -1)?;
-        }
-
-        // The spec says to write 0 or -1 when buf is empty but some clients don't like that one bit
-        if  self.receiver_certificate_thumbprint.len() > 0 {
-            size += write_i32(stream, self.receiver_certificate_thumbprint.len() as i32)?;
-            size += process_encode_io_result(stream.write(&self.receiver_certificate_thumbprint))?;
-        }
-        else {
-            size += write_i32(stream, -1)?;
-        }
-
+        size += self.sender_certificate.encode(stream)?;
+        size += self.receiver_certificate_thumbprint.encode(stream)?;
         assert_eq!(size, self.byte_len());
         Ok(size)
     }
 
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let security_policy_uri = UAString::decode(stream)?;
-
-        let mut sender_certificate: Vec<u8> = Vec::new();
-        {
-            let sender_certificate_length = read_i32(stream)?;
-            // debug!("SecurityHeader::sender_certificate_length = {:?}", sender_certificate_length);
-            if sender_certificate_length > 0 {
-                // TODO validate sender_certificate_length < MaxCertificateSize
-                sender_certificate.resize(sender_certificate_length as usize, 0u8);
-                process_decode_io_result(stream.read_exact(&mut sender_certificate))?;
-            }
-        }
-
-        let mut receiver_certificate_thumbprint: Vec<u8> = Vec::new();
-        {
-            let receiver_certificate_thumbprint_length = read_i32(stream)?;
-            // debug!("SecurityHeader::receiver_certificate_thumbprint_length = {:?}", receiver_certificate_thumbprint_length);
-            if receiver_certificate_thumbprint_length > 0 {
-                // TODO validate receiver_certificate_thumbprint_length == 20
-                receiver_certificate_thumbprint.resize(receiver_certificate_thumbprint_length as usize, 0u8);
-                process_decode_io_result(stream.read_exact(&mut receiver_certificate_thumbprint))?;
-            }
-        }
-
+        let sender_certificate = ByteString::decode(stream)?;
+        let receiver_certificate_thumbprint = ByteString::decode(stream)?;
+        // TODO validate sender_certificate_length < MaxCertificateSize
+        // TODO validate receiver_certificate_thumbprint_length == 20
         Ok(AsymmetricSecurityHeader {
             security_policy_uri: security_policy_uri,
             sender_certificate: sender_certificate,
@@ -269,8 +231,8 @@ impl AsymmetricSecurityHeader {
     pub fn none() -> AsymmetricSecurityHeader {
         AsymmetricSecurityHeader {
             security_policy_uri: SecurityPolicy::None.to_string(),
-            sender_certificate: Vec::new(),
-            receiver_certificate_thumbprint: Vec::new(),
+            sender_certificate: ByteString::null(),
+            receiver_certificate_thumbprint: ByteString::null(),
         }
     }
 }
