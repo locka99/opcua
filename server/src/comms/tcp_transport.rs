@@ -163,18 +163,20 @@ impl TcpTransport {
             // Anything to write?
             TcpTransport::write_output(&mut out_buf_stream, &mut stream);
             if !session_status_code.is_good() {
-                error!("Session is aborting due to bad session status {:?}", session_status_code);
                 break;
             }
         }
 
         // As a final act, the session sends a status code to the client if it can
-        if session_status_code != GOOD {
-            warn!("Sending session terminating error --\n{:?}", session_status_code);
+        if session_status_code != GOOD && session_status_code != BAD_CONNECTION_CLOSED {
+            warn!("Sending session terminating error {:?}", session_status_code);
             out_buf_stream.set_position(0);
             let error = handshake::ErrorMessage::from_status_code(&session_status_code);
             let _ = error.encode(&mut out_buf_stream);
             TcpTransport::write_output(&mut out_buf_stream, &mut stream);
+        }
+        else {
+            info!("Session terminating normally, session_status_code = {:?}", session_status_code);
         }
 
         // Close socket
