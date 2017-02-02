@@ -44,14 +44,21 @@ impl ViewService {
             // Nodes to browse
             for node_to_browse in nodes_to_browse {
                 let references = ViewService::reference_descriptions(&address_space, node_to_browse, request.requested_max_references_per_node);
-                if references.is_err() {
-                    continue;
+                let browse_result = if references.is_err() {
+                    BrowseResult {
+                        status_code: references.unwrap_err().clone(),
+                        continuation_point: ByteString::null(),
+                        references: None
+                    }
                 }
-                browse_results.push(BrowseResult {
-                    status_code: GOOD.clone(),
-                    continuation_point: ByteString::null(),
-                    references: Some(references.unwrap())
-                });
+                else {
+                    BrowseResult {
+                        status_code: GOOD.clone(),
+                        continuation_point: ByteString::null(),
+                        references: Some(references.unwrap())
+                    }
+                };
+                browse_results.push(browse_result);
             }
 
             Some(browse_results)
@@ -73,10 +80,10 @@ impl ViewService {
         Ok(SupportedMessage::BrowseResponse(response))
     }
 
-    fn reference_descriptions(address_space: &AddressSpace, node_to_browse: &BrowseDescription, max_references_per_node: UInt32) -> Result<Vec<ReferenceDescription>, ()> {
+    fn reference_descriptions(address_space: &AddressSpace, node_to_browse: &BrowseDescription, max_references_per_node: UInt32) -> Result<Vec<ReferenceDescription>, &'static StatusCode> {
         let source_node = address_space.find_node(&node_to_browse.node_id);
         if source_node.is_none() {
-            return Err(());
+            return Err(&BAD_NODE_ID_UNKNOWN);
         }
         let source_node = source_node.unwrap();
 
