@@ -38,7 +38,7 @@ impl Chunker {
             SecurityHeader::Asymmetric(AsymmetricSecurityHeader::none())
         } else {
             SecurityHeader::Symmetric(SymmetricSecurityHeader {
-                token_id: 0,
+                token_id: secure_channel_info.token_id,
             })
         };
 
