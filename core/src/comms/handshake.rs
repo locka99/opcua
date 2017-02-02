@@ -1,18 +1,18 @@
 use std::io::{Read, Write, Cursor, Result, Error, ErrorKind};
 
-use opcua_core::types::*;
-
-const HELLO_MESSAGE: &'static [u8] = b"HEL";
-const ACKNOWLEDGE_MESSAGE: &'static [u8] = b"ACK";
-const ERROR_MESSAGE: &'static [u8] = b"ERR";
+use comms::*;
+use types::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum MessageType {
     Invalid,
     Hello,
     Acknowledge,
+    Chunk,
     Error
 }
+
+pub const MESSAGE_HEADER_LEN: usize = 8;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MessageHeader {
@@ -22,20 +22,17 @@ pub struct MessageHeader {
 
 impl BinaryEncoder<MessageHeader> for MessageHeader {
     fn byte_len(&self) -> usize {
-        8
+        MESSAGE_HEADER_LEN
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size: usize = 0;
         let result = match self.message_type {
-            MessageType::Hello => {
-                stream.write(HELLO_MESSAGE)
-            },
-            MessageType::Acknowledge => {
-                stream.write(ACKNOWLEDGE_MESSAGE)
-            }
-            MessageType::Error => {
-                stream.write(ERROR_MESSAGE)
+            MessageType::Hello => stream.write(HELLO_MESSAGE),
+            MessageType::Acknowledge => stream.write(ACKNOWLEDGE_MESSAGE),
+            MessageType::Error => stream.write(ERROR_MESSAGE),
+            MessageType::Chunk => {
+                panic!("Don't write chunks to stream with this call, use Chunk and Chunker");
             }
             _ => {
                 panic!("Unrecognized type");
@@ -48,7 +45,7 @@ impl BinaryEncoder<MessageHeader> for MessageHeader {
     }
 
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let mut message_type: [u8; 4] = [0, 0, 0, 0];
+        let mut message_type = [0u8; 4];
         process_decode_io_result(stream.read_exact(&mut message_type))?;
         let message_size = read_u32(stream)?;
         Ok(MessageHeader {
@@ -70,7 +67,7 @@ impl MessageHeader {
     /// code returns an error
     pub fn read_bytes<S: Read>(stream: &mut S) -> Result<Vec<u8>> {
         // Read the bytes of the stream into a vector
-        let mut header: [u8; 4] = [0u8; 4];
+        let mut header = [0u8; 4];
         stream.read_exact(&mut header)?;
         if MessageHeader::message_type(&header) == MessageType::Invalid {
             return Err(Error::new(ErrorKind::Other, "Message type is not recognized, cannot read bytes"))
@@ -115,6 +112,7 @@ impl MessageHeader {
                 HELLO_MESSAGE => MessageType::Hello,
                 ACKNOWLEDGE_MESSAGE => MessageType::Acknowledge,
                 ERROR_MESSAGE => MessageType::Error,
+                CHUNK_MESSAGE | OPEN_SECURE_CHANNEL_MESSAGE | CLOSE_SECURE_CHANNEL_MESSAGE => MessageType::Chunk,
                 _ => {
                     error!("message type doesn't match anything");
                     MessageType::Invalid
@@ -245,7 +243,7 @@ pub struct ErrorMessage {
 
 impl BinaryEncoder<ErrorMessage> for ErrorMessage {
     fn byte_len(&self) -> usize {
-        self.message_header.byte_len() + 4 + self.reason.byte_len()
+        self.message_header.byte_len() + self.error.byte_len() + self.reason.byte_len()
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {

@@ -12,7 +12,6 @@ use opcua_core::debug::*;
 
 use types::*;
 use server::ServerState;
-use comms::handshake;
 use comms::message_handler::*;
 
 const RECEIVE_BUFFER_SIZE: usize = 32768;
@@ -28,6 +27,8 @@ pub enum TransportState {
     Finished
 }
 
+/// This is the thing that handles input and output for the open connection associated with the
+/// session.
 pub struct TcpTransport {
     // Server state, address space etc.
     pub server_state: Arc<Mutex<ServerState>>,
@@ -90,7 +91,7 @@ impl TcpTransport {
         };
 
         // Short timeout makes it work like a polling loop
-        let polling_timeout: std::time::Duration = std::time::Duration::from_millis(200);
+        let polling_timeout: std::time::Duration = std::time::Duration::from_millis(50);
         let _ = stream.set_read_timeout(Some(polling_timeout));
         let _ = stream.set_nodelay(true);
 
@@ -101,6 +102,8 @@ impl TcpTransport {
         // Basic startup is a HELLO,  OpenSecureChannel, begin
 
         let mut session_status_code = GOOD.clone();
+
+        let mut message_buffer = MessageBuffer::new(RECEIVE_BUFFER_SIZE);
 
         loop {
             let transport_state = self.transport_state.clone();
@@ -114,11 +117,6 @@ impl TcpTransport {
                     break;
                 }
             }
-
-            // TODO this code is incredibly flimsy, assuming an entire chunk is read in one single go
-            // it should change to reading bytes into a buffer, and then analysing a buffer to see if
-            // there is a chunk header with a message size and bytes for the entire message. If there
-            // is the chunk should be extracted and the buffer shifted up.
 
             // Try to read, using timeout as a polling mechanism
             let bytes_read_result = stream.read(&mut in_buf);
@@ -135,30 +133,43 @@ impl TcpTransport {
                 continue;
             }
 
-            debug!("Received bytes:");
-            debug_buffer(&in_buf[0..bytes_read]);
+            let result = message_buffer.store_bytes(&in_buf[0..bytes_read]);
+            if result.is_err() {
+                session_status_code = result.unwrap_err().clone();
+                break;
+            }
 
-            let mut in_buf_stream = Cursor::new(&in_buf[0..bytes_read]);
-            match transport_state {
-                TransportState::WaitingHello => {
-                    debug!("Processing HELLO");
-                    let result = self.process_hello(&mut in_buf_stream, &mut out_buf_stream);
-                    if result.is_err() {
-                        session_status_code = result.unwrap_err().clone();
+            let messages = result.unwrap();
+            for message in messages {
+                match transport_state {
+                    TransportState::WaitingHello => {
+                        debug!("Processing HELLO");
+                        if let Message::Hello(hello) = message {
+                            let result = self.process_hello(hello, &mut out_buf_stream);
+                            if result.is_err() {
+                                session_status_code = result.unwrap_err().clone();
+                            }
+                        } else {
+                            session_status_code = BAD_COMMUNICATION_ERROR.clone();
+                        }
+                    },
+                    TransportState::ProcessMessages => {
+                        debug!("Processing message");
+                        if let Message::Chunk(chunk) = message {
+                            let result = self.process_chunk(chunk, &mut out_buf_stream);
+                            if result.is_err() {
+                                session_status_code = result.unwrap_err().clone();
+                            }
+                        } else {
+                            session_status_code = BAD_COMMUNICATION_ERROR.clone();
+                        }
+                    },
+                    _ => {
+                        error!("Unknown sesion state, aborting");
+                        session_status_code = BAD_UNEXPECTED_ERROR.clone();
                     }
-                },
-                TransportState::ProcessMessages => {
-                    debug!("Processing message");
-                    let result = self.process_chunk(&mut in_buf_stream, &mut out_buf_stream);
-                    if result.is_err() {
-                        session_status_code = result.unwrap_err().clone();
-                    }
-                },
-                _ => {
-                    error!("Unknown sesion state, aborting");
-                    session_status_code = BAD_UNEXPECTED_ERROR.clone();
-                }
-            };
+                };
+            }
 
             // Anything to write?
             TcpTransport::write_output(&mut out_buf_stream, &mut stream);
@@ -167,15 +178,14 @@ impl TcpTransport {
             }
         }
 
-        // As a final act, the session sends a status code to the client if it can
-        if session_status_code != GOOD && session_status_code != BAD_CONNECTION_CLOSED {
+        // As a final act, the session sends a status code to the client if one should be sent
+        if session_status_code == GOOD || session_status_code == BAD_CONNECTION_CLOSED {
             warn!("Sending session terminating error {:?}", session_status_code);
             out_buf_stream.set_position(0);
-            let error = handshake::ErrorMessage::from_status_code(&session_status_code);
+            let error = ErrorMessage::from_status_code(&session_status_code);
             let _ = error.encode(&mut out_buf_stream);
             TcpTransport::write_output(&mut out_buf_stream, &mut stream);
-        }
-        else {
+        } else {
             info!("Session terminating normally, session_status_code = {:?}", session_status_code);
         }
 
@@ -220,45 +230,29 @@ impl TcpTransport {
         buffer_stream.set_position(0);
     }
 
-    fn process_hello<R: Read, W: Write>(&mut self, in_stream: &mut R, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
-        let buffer = handshake::MessageHeader::read_bytes(in_stream);
-        if buffer.is_err() {
-            error!("Error processing HELLO");
-            return Err(&BAD_COMMUNICATION_ERROR);
-        }
-        let buffer = buffer.unwrap();
-
-        // Now make sure it's a Hello message, not something else
-        if handshake::MessageHeader::message_type(&buffer[0..4]) != handshake::MessageType::Hello {
-            debug!("Header is not for a HELLO");
-            return Err(&BAD_COMMUNICATION_ERROR);
-        }
-
+    fn process_hello<W: Write>(&mut self, hello: HelloMessage, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
         let server_protocol_version = 0;
-        let mut client_protocol_version = 0;
 
-        let mut message_stream = Cursor::new(buffer);
-        if let Ok(hello) = handshake::HelloMessage::decode(&mut message_stream) {
-            debug!("Server received HELLO {:#?}", hello);
-            if !hello.is_endpoint_url_valid() {
-                return Err(&BAD_TCP_ENDPOINT_URL_INVALID);
-            }
-            if !hello.is_valid_buffer_sizes() {
-                error!("HELLO buffer sizes are invalid");
-                return Err(&BAD_COMMUNICATION_ERROR);
-            }
 
-            // Validate protocol version
-            if hello.protocol_version > server_protocol_version {
-                return Err(&BAD_PROTOCOL_VERSION_UNSUPPORTED);
-            }
-
-            client_protocol_version = hello.protocol_version;
+        debug!("Server received HELLO {:#?}", hello);
+        if !hello.is_endpoint_url_valid() {
+            return Err(&BAD_TCP_ENDPOINT_URL_INVALID);
         }
+        if !hello.is_valid_buffer_sizes() {
+            error!("HELLO buffer sizes are invalid");
+            return Err(&BAD_COMMUNICATION_ERROR);
+        }
+
+        // Validate protocol version
+        if hello.protocol_version > server_protocol_version {
+            return Err(&BAD_PROTOCOL_VERSION_UNSUPPORTED);
+        }
+
+        let client_protocol_version = hello.protocol_version;
 
         // Send acknowledge
-        let mut acknowledge = handshake::AcknowledgeMessage {
-            message_header: handshake::MessageHeader::new(handshake::MessageType::Acknowledge),
+        let mut acknowledge = AcknowledgeMessage {
+            message_header: MessageHeader::new(MessageType::Acknowledge),
             protocol_version: server_protocol_version,
             receive_buffer_size: RECEIVE_BUFFER_SIZE as UInt32,
             send_buffer_size: SEND_BUFFER_SIZE as UInt32,
@@ -300,11 +294,7 @@ impl TcpTransport {
         Chunker::decode(&chunks, &self.secure_channel_info, None)
     }
 
-    pub fn process_chunk<R: Read, W: Write>(&mut self, in_stream: &mut R, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
-        let result = Chunk::decode(in_stream);
-
-        // Process the message
-        let chunk = result.unwrap();
+    pub fn process_chunk<W: Write>(&mut self, chunk: Chunk, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
         debug!("Got a chunk {:?}", chunk);
 
         if chunk.chunk_header.chunk_type == ChunkType::Intermediate {

@@ -5,7 +5,7 @@ use debug::*;
 use types::*;
 use comms::*;
 
-const CHUNK_HEADER_SIZE: usize = 12;
+pub const CHUNK_HEADER_SIZE: usize = 12;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ChunkMessageType {
@@ -38,10 +38,6 @@ pub struct ChunkHeader {
     pub is_valid: bool,
 }
 
-const HEADER_MSG: [u8; 3] = [b'M', b'S', b'G'];
-const HEADER_OPN: [u8; 3] = [b'O', b'P', b'N'];
-const HEADER_CLO: [u8; 3] = [b'C', b'L', b'O'];
-
 const CHUNK_FINAL: u8 = b'F';
 const CHUNK_INTERMEDIATE: u8 = b'C';
 const CHUNK_FINAL_ERROR: u8 = b'A';
@@ -57,10 +53,10 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
             return Ok(0);
         }
 
-        let message_type: [u8; 3] = match self.message_type {
-            ChunkMessageType::Message => { HEADER_MSG },
-            ChunkMessageType::OpenSecureChannel => { HEADER_OPN },
-            ChunkMessageType::CloseSecureChannel => { HEADER_CLO }
+        let message_type = match self.message_type {
+            ChunkMessageType::Message => { CHUNK_MESSAGE },
+            ChunkMessageType::OpenSecureChannel => { OPEN_SECURE_CHANNEL_MESSAGE },
+            ChunkMessageType::CloseSecureChannel => { CLOSE_SECURE_CHANNEL_MESSAGE }
         };
 
         let chunk_type: u8 = match self.chunk_type {
@@ -83,11 +79,11 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
 
         let mut message_type_code = [0u8; 3];
         process_decode_io_result(stream.read_exact(&mut message_type_code))?;
-        let message_type = if message_type_code == HEADER_MSG {
+        let message_type = if message_type_code == CHUNK_MESSAGE {
             ChunkMessageType::Message
-        } else if message_type_code == HEADER_OPN {
+        } else if message_type_code == OPEN_SECURE_CHANNEL_MESSAGE {
             ChunkMessageType::OpenSecureChannel
-        } else if message_type_code == HEADER_CLO {
+        } else if message_type_code == CLOSE_SECURE_CHANNEL_MESSAGE {
             ChunkMessageType::CloseSecureChannel
         } else {
             debug!("Invalid message code");

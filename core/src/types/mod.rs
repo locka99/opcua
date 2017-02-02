@@ -357,7 +357,7 @@ impl BinaryEncoder<Guid> for Guid {
     }
 
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let mut data: [u8; 16] = [0u8; 16];
+        let mut data = [0u8; 16];
         process_decode_io_result(stream.read_exact(&mut data))?;
         let data1: UInt32 = (data[0] as UInt32).wrapping_shl(0) + (data[1] as UInt32).wrapping_shl(8) + (data[2] as UInt32).wrapping_shl(16) + (data[3] as UInt32).wrapping_shl(24);
         let data2: UInt16 = (data[4] as UInt16).wrapping_shl(0) + (data[5] as UInt16).wrapping_shl(8);

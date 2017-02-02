@@ -1,7 +1,6 @@
 use std::io::{Read, Write};
 
 use types::*;
-use profiles::*;
 
 /// Implemented by messages
 pub trait MessageInfo {

@@ -4,6 +4,7 @@ mod chunk;
 mod services;
 mod parse;
 mod address_space;
+mod comms;
 
 use std::fmt::Debug;
 use std::cmp::PartialEq;
