@@ -41,7 +41,7 @@ impl SessionService {
             revised_session_timeout: session_timeout,
             server_nonce: server_nonce,
             server_certificate: server_certificate,
-            server_endpoints: None,
+            server_endpoints: Some(server_state.endpoints()),
             server_software_certificates: server_software_certificates,
             server_signature: server_signature,
             max_request_message_size: max_request_message_size,

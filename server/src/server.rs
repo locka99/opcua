@@ -2,7 +2,9 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use opcua_core;
 use opcua_core::types::*;
+use opcua_core::services::*;
 use opcua_core::comms::*;
 use opcua_core::address_space::*;
 
@@ -39,6 +41,40 @@ pub struct ServerState {
     pub address_space: Arc<Mutex<AddressSpace>>,
 }
 
+impl ServerState {
+    pub fn endpoints(&self) -> Vec<EndpointDescription> {
+        let mut endpoints: Vec<EndpointDescription> = Vec::with_capacity(self.endpoints.len());
+        for e in &self.endpoints {
+            let mut user_identity_tokens = Vec::new();
+            if e.anonymous {
+                user_identity_tokens.push(UserTokenPolicy::new_anonymous());
+            }
+
+            // TODO username / pass
+            // user_identity_tokens.push(UserTokenPolicy::new_user_pass());
+            endpoints.push(EndpointDescription {
+                endpoint_url: UAString::from_str(&e.endpoint_url),
+                server: ApplicationDescription {
+                    application_uri: self.application_uri.clone(),
+                    product_uri: self.product_uri.clone(),
+                    application_name: self.application_name.clone(),
+                    application_type: ApplicationType::Server,
+                    gateway_server_uri: UAString::null(),
+                    discovery_profile_uri: UAString::null(),
+                    discovery_urls: None,
+                },
+                server_certificate: self.server_certificate.clone(),
+                security_mode: e.security_mode,
+                security_policy_uri: e.security_policy_uri.clone(),
+                user_identity_tokens: Some(user_identity_tokens),
+                transport_profile_uri: UAString::from_str(opcua_core::profiles::TRANSPORT_BINARY),
+                security_level: 1,
+            });
+        }
+        endpoints
+    }
+}
+
 /// The Server represents a running instance of OPC UA. There can be more than one server running
 /// at a time providing they do not share the same thread or listen on the same ports.
 pub struct Server {
@@ -65,7 +101,7 @@ impl Server {
             let endpoint_url = format!("{}{}", base_endpoint, e.path);
             let security_mode = MessageSecurityMode::from_str(&e.security_mode);
             let security_policy_uri = SecurityPolicy::from_str(&e.security_policy).to_uri().to_string();
-            let anonymous = if let Some( anonymous) = e.anonymous.as_ref() {
+            let anonymous = if let Some(anonymous) = e.anonymous.as_ref() {
                 *anonymous
             } else {
                 false
