@@ -2,17 +2,14 @@
 name = "opcua-server"
 version = "0.1.0"
 authors = ["Adam Lock <locka99@gmail.com>"]
-build = "build.rs"
-
-[build-dependencies]
-serde_codegen = "0.8"
 
 [dependencies]
 log = "0.3"
 byteorder = "0.5"
 chrono = "0.2"
-serde =  "0.8"
-serde_yaml = "0.5"
+serde = "0.9"
+serde_derive = "0.9"
+serde_yaml = "0.6"
 
 [dependencies.opcua-core]
 path = "../core"

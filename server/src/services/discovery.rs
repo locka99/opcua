@@ -15,7 +15,6 @@ impl DiscoveryService {
     }
 
     pub fn get_endpoints(&self, server_state: &mut ServerState, _: &mut SessionState, request: &GetEndpointsRequest) -> Result<SupportedMessage, &'static StatusCode> {
-        debug!("get_endpoints");
         let response = GetEndpointsResponse {
             response_header: ResponseHeader::new(&DateTime::now(), &request.request_header),
             endpoints: Some(server_state.endpoints()),

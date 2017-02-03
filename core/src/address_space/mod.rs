@@ -1,8 +1,3 @@
-mod address_space;
-
-pub use self::address_space::*;
-
-
 /// This is a sanity saving macro that adds Node trait methods to all types that have a base
 /// member.
 
@@ -25,12 +20,11 @@ macro_rules! node_impl {
 macro_rules! find_attribute_value_optional {
  ( $sel:expr, $attr: ident ) => {
         let attribute_id = AttributeId::$attr;
-        let attribute = $sel.attributes[attribute_id as usize - 1].clone();
+        let ref attribute = $sel.attributes[attribute_id as usize - 1];
         if attribute.is_some() {
-            if let Attribute::$attr(value) = attribute.unwrap() {
-                return Some(value);
+            if let AttributeValue::$attr(ref value) = attribute.as_ref().unwrap().value {
+                return Some(value.clone());
             }
-            panic!("Cannot unwrap attribute {:?}", attribute_id);
         }
         return None;
     }
@@ -40,15 +34,23 @@ macro_rules! find_attribute_value_optional {
 macro_rules! find_attribute_value_mandatory {
     ( $sel:expr, $attr: ident ) => {
         let attribute_id = AttributeId::$attr;
-        let attribute = $sel.attributes[attribute_id as usize - 1].clone();
+        let ref attribute = $sel.attributes[attribute_id as usize - 1];
         if attribute.is_some() {
-            if let Attribute::$attr(value) = attribute.unwrap() {
-                return value;
+            if let AttributeValue::$attr(ref value) = attribute.as_ref().unwrap().value {
+                return value.clone();
             }
         }
         panic!("Mandatory attribute {:?} is missing", attribute_id);
     }
 }
+
+mod attribute;
+
+pub use self::attribute::*;
+
+mod address_space;
+
+pub use self::address_space::*;
 
 mod base;
 

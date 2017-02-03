@@ -18,7 +18,7 @@ const HAS_SERVER_PICOSECONDS: u8 = 0x20;
 /// Data type ID 23
 #[derive(PartialEq, Debug, Clone)]
 pub struct DataValue {
-    /// The value.
+    /// The value. BaseDataType
     /// Not present if the Value bit in the EncodingMask is False.
     pub value: Option<Box<Variant>>,
     /// The status associated with the value.
@@ -30,14 +30,14 @@ pub struct DataValue {
     /// The number of 10 picosecond intervals for the SourceTimestamp.
     /// Not present if the SourcePicoSeconds bit in the EncodingMask is False.
     /// If the source timestamp is missing the picoseconds are ignored.
-    pub source_pico_seconds: Option<Int16>,
+    pub source_picoseconds: Option<Int16>,
     /// The Server timestamp associated with the value.
     /// Not present if the ServerTimestamp bit in the EncodingMask is False.
     pub server_timestamp: Option<DateTime>,
     /// The number of 10 picosecond intervals for the ServerTimestamp.
     /// Not present if the ServerPicoSeconds bit in the EncodingMask is False.
     /// If the Server timestamp is missing the picoseconds are ignored.
-    pub server_pico_seconds: Option<Int16>,
+    pub server_picoseconds: Option<Int16>,
 }
 
 impl BinaryEncoder<DataValue> for DataValue {
@@ -53,13 +53,13 @@ impl BinaryEncoder<DataValue> for DataValue {
         if encoding_mask & HAS_SOURCE_TIMESTAMP != 0 {
             size += self.source_timestamp.as_ref().unwrap().byte_len();
             if encoding_mask & HAS_SOURCE_PICOSECONDS != 0 {
-                size += self.source_pico_seconds.as_ref().unwrap().byte_len();
+                size += self.source_picoseconds.as_ref().unwrap().byte_len();
             }
         }
         if encoding_mask & HAS_SERVER_TIMESTAMP != 0 {
             size += self.server_timestamp.as_ref().unwrap().byte_len();
             if encoding_mask & HAS_SERVER_PICOSECONDS != 0 {
-                size += self.server_pico_seconds.as_ref().unwrap().byte_len();
+                size += self.server_picoseconds.as_ref().unwrap().byte_len();
             }
         }
         size
@@ -80,13 +80,13 @@ impl BinaryEncoder<DataValue> for DataValue {
         if encoding_mask & HAS_SOURCE_TIMESTAMP != 0 {
             size += self.source_timestamp.as_ref().unwrap().encode(stream)?;
             if encoding_mask & HAS_SOURCE_PICOSECONDS != 0 {
-                size += self.source_pico_seconds.as_ref().unwrap().encode(stream)?;
+                size += self.source_picoseconds.as_ref().unwrap().encode(stream)?;
             }
         }
         if encoding_mask & HAS_SERVER_TIMESTAMP != 0 {
             size += self.server_timestamp.as_ref().unwrap().encode(stream)?;
             if encoding_mask & HAS_SERVER_PICOSECONDS != 0 {
-                size += self.server_pico_seconds.as_ref().unwrap().encode(stream)?;
+                size += self.server_picoseconds.as_ref().unwrap().encode(stream)?;
             }
         }
         Ok(size)
@@ -115,7 +115,7 @@ impl BinaryEncoder<DataValue> for DataValue {
         } else {
             None
         };
-        let source_pico_seconds = if encoding_mask & HAS_SOURCE_PICOSECONDS != 0 {
+        let source_picoseconds = if encoding_mask & HAS_SOURCE_PICOSECONDS != 0 {
             Some(Int16::decode(stream)?)
         } else {
             None
@@ -126,7 +126,7 @@ impl BinaryEncoder<DataValue> for DataValue {
         } else {
             None
         };
-        let server_pico_seconds = if encoding_mask & HAS_SERVER_PICOSECONDS != 0 {
+        let server_picoseconds = if encoding_mask & HAS_SERVER_PICOSECONDS != 0 {
             Some(Int16::decode(stream)?)
         } else {
             None
@@ -135,9 +135,9 @@ impl BinaryEncoder<DataValue> for DataValue {
         Ok(DataValue {
             value: value,
             status: status,
-            source_pico_seconds: if source_timestamp.is_some() { source_pico_seconds } else { None },
+            source_picoseconds: if source_timestamp.is_some() { source_picoseconds } else { None },
             source_timestamp: source_timestamp,
-            server_pico_seconds: if server_timestamp.is_some() { server_pico_seconds } else { None },
+            server_picoseconds: if server_timestamp.is_some() { server_picoseconds } else { None },
             server_timestamp: server_timestamp,
         })
     }
@@ -152,9 +152,9 @@ impl DataValue {
             value: Some(Box::new(value)),
             status: Some(GOOD.clone()),
             source_timestamp: Some(now.clone()),
-            source_pico_seconds: Some(0),
+            source_picoseconds: Some(0),
             server_timestamp: Some(now.clone()),
-            server_pico_seconds: Some(0),
+            server_picoseconds: Some(0),
         }
     }
 
@@ -168,13 +168,13 @@ impl DataValue {
         }
         if self.source_timestamp.is_some() {
             encoding_mask |= HAS_SOURCE_TIMESTAMP;
-            if self.source_pico_seconds.is_some() {
+            if self.source_picoseconds.is_some() {
                 encoding_mask |= HAS_SOURCE_PICOSECONDS;
             }
         }
         if self.server_timestamp.is_some() {
             encoding_mask |= HAS_SERVER_TIMESTAMP;
-            if self.server_pico_seconds.is_some() {
+            if self.server_picoseconds.is_some() {
                 encoding_mask |= HAS_SERVER_PICOSECONDS;
             }
         }

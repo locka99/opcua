@@ -13,7 +13,7 @@ impl Object {
     pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str) -> Object {
         // Mandatory
         let attributes = vec![
-            Attribute::EventNotifier(false)
+            AttributeValue::EventNotifier(false)
         ];
 
         //        let references = vec![

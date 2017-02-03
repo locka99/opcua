@@ -13,12 +13,12 @@ impl ReferenceType {
     pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, inverse_name: Option<LocalizedText>, symmetric: Boolean, is_abstract: Boolean) -> ReferenceType {
         // Mandatory
         let mut attributes = vec![
-            Attribute::Symmetric(symmetric),
-            Attribute::IsAbstract(is_abstract),
+            AttributeValue::Symmetric(symmetric),
+            AttributeValue::IsAbstract(is_abstract),
         ];
         // Optional
         if let Some(inverse_name) = inverse_name {
-            attributes.push(Attribute::InverseName(inverse_name));
+            attributes.push(AttributeValue::InverseName(inverse_name));
         }
         let properties = vec![];
 
@@ -36,10 +36,6 @@ impl ReferenceType {
     }
 
     pub fn inverse_name(&self) -> Option<LocalizedText> {
-        if let Some(Attribute::InverseName(text)) = self.find_attribute(AttributeId::InverseName) {
-            Some(text)
-        } else {
-            None
-        }
+        find_attribute_value_optional!(&self.base, InverseName);
     }
 }

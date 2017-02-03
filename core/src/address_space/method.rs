@@ -13,9 +13,9 @@ impl Method {
     pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, is_abstract: Boolean, executable: Boolean, user_executable: Boolean) -> Method {
         // Mandatory
         let attributes = vec![
-            Attribute::IsAbstract(is_abstract),
-            Attribute::Executable(executable),
-            Attribute::UserExecutable(user_executable),
+            AttributeValue::IsAbstract(is_abstract),
+            AttributeValue::Executable(executable),
+            AttributeValue::UserExecutable(user_executable),
         ];
         let properties = vec![];
         Method {

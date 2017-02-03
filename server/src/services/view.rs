@@ -81,11 +81,9 @@ impl ViewService {
     }
 
     fn reference_descriptions(address_space: &AddressSpace, node_to_browse: &BrowseDescription, max_references_per_node: UInt32) -> Result<Vec<ReferenceDescription>, &'static StatusCode> {
-        let source_node = address_space.find_node(&node_to_browse.node_id);
-        if source_node.is_none() {
+        if !address_space.node_exists(&node_to_browse.node_id) {
             return Err(&BAD_NODE_ID_UNKNOWN);
         }
-        let source_node = source_node.unwrap();
 
         // Request may wish to filter by a kind of reference
         let reference_type_id = if node_to_browse.reference_type_id.is_null() {
@@ -100,42 +98,13 @@ impl ViewService {
         };
 
         // Fetch the references to / from the given node to browse
-        let mut references = Vec::new();
-        let inverse_ref_idx;
-        match node_to_browse.browse_direction {
-            BrowseDirection::Forward => {
-                let forward_references = address_space.find_references_from(&node_to_browse.node_id, reference_type_id);
-                if forward_references.is_some() {
-                    references.append(&mut forward_references.unwrap());
-                }
-                inverse_ref_idx = references.len();
-            }
-            BrowseDirection::Inverse => {
-                inverse_ref_idx = 0;
-                let inverse_references = address_space.find_references_to(&node_to_browse.node_id, reference_type_id);
-                if inverse_references.is_some() {
-                    references.append(&mut inverse_references.unwrap());
-                }
-            }
-            BrowseDirection::Both => {
-                let forward_references = address_space.find_references_from(&node_to_browse.node_id, reference_type_id);
-                if forward_references.is_some() {
-                    references.append(&mut forward_references.unwrap());
-                }
-                inverse_ref_idx = references.len();
-                let inverse_references = address_space.find_references_to(&node_to_browse.node_id, reference_type_id);
-                if inverse_references.is_some() {
-                    references.append(&mut inverse_references.unwrap());
-                }
-            }
-        }
+        let (references, inverse_ref_idx) = address_space.find_references_by_direction(&node_to_browse.node_id, node_to_browse.browse_direction, &reference_type_id);
 
         let result_mask = node_to_browse.result_mask;
         let node_class_mask = node_to_browse.node_class_mask;
 
         // Construct descriptions for each reference
         let mut reference_descriptions: Vec<ReferenceDescription> = Vec::new();
-        let source_node = source_node.as_node();
         for (idx, reference) in references.iter().enumerate() {
             if reference_descriptions.len() > max_references_per_node as usize {
                 break;

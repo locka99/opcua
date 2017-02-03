@@ -57,8 +57,11 @@ impl ServerConfig {
     /// Returns the default server configuration to run a server with no security and anonymous access enabled
     pub fn default_anonymous() -> ServerConfig {
         let application_name = "OPCUA-Rust".to_string();
+        let hostname = "127.0.0.1".to_string();
+
         let application_uri = format!("urn:{}", application_name);
         let product_uri = format!("urn:{}", application_name);
+
         ServerConfig {
             application_name: application_name,
             application_uri: application_uri,
@@ -66,7 +69,7 @@ impl ServerConfig {
             discovery_service: true,
             pki_dir: "pki".to_string(),
             tcp_config: TcpConfig {
-                host: "127.0.0.1".to_string(),
+                host: hostname,
                 port: 1234,
                 hello_timeout: 120,
             },

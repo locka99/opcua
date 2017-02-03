@@ -13,8 +13,8 @@ impl VariableType {
     pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, is_abstract: bool, value_rank: Int32) -> VariableType {
         // Mandatory
         let attributes = vec![
-            Attribute::IsAbstract(is_abstract),
-            Attribute::ValueRank(value_rank),
+            AttributeValue::IsAbstract(is_abstract),
+            AttributeValue::ValueRank(value_rank),
         ];
         // Optional
         // Attribute::Value(value),

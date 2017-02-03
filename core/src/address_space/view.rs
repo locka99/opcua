@@ -15,8 +15,8 @@ impl View {
     pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, event_notifier: Boolean, contains_no_loops: Boolean) -> View {
         // Mandatory
         let attributes = vec![
-            Attribute::EventNotifier(event_notifier),
-            Attribute::ContainsNoLoops(contains_no_loops),
+            AttributeValue::EventNotifier(event_notifier),
+            AttributeValue::ContainsNoLoops(contains_no_loops),
         ];
         let properties = vec![];
         View {

@@ -17,11 +17,11 @@ impl Variable {
         let user_access_level = 0;
         let value_rank = -1;
         let attributes = vec![
-            Attribute::UserAccessLevel(user_access_level),
-            Attribute::AccessLevel(access_level),
-            Attribute::Value(value.clone()),
-            Attribute::ValueRank(value_rank),
-            Attribute::Historizing(historizing),
+            AttributeValue::UserAccessLevel(user_access_level),
+            AttributeValue::AccessLevel(access_level),
+            AttributeValue::Value(value.clone()),
+            AttributeValue::ValueRank(value_rank),
+            AttributeValue::Historizing(historizing),
         ];
 
         // Optional
@@ -46,8 +46,9 @@ impl Variable {
         find_attribute_value_mandatory!(&self.base, Value);
     }
 
-    pub fn set_value(&mut self, value: DataValue) {
-        self.base.set_attribute(AttributeId::Value, Attribute::Value(value));
+    /// Sets the variable's value
+    pub fn set_value(&mut self, value: DataValue, server_timestamp: &DateTime, source_timestamp: &DateTime) -> Result<(), ()> {
+        self.base.update_attribute_value(AttributeId::Value, AttributeValue::Value(value), server_timestamp, source_timestamp)
     }
 
     pub fn value_rank(&self) -> Int32 {

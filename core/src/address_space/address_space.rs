@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use address_space::*;
+use services::*;
 use types::*;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -45,26 +46,32 @@ impl AddressSpace {
             references: HashMap::new(),
             inverse_references: HashMap::new(),
         };
+
+        // TODO use add_folder_type() function
         let root_node_id = AddressSpace::root_folder_id();
         let root_node = Object::new(&root_node_id, "Root", "Root");
+        address_space.insert(&root_node_id, NodeType::Object(root_node));
 
         let objects_node_id = AddressSpace::objects_folder_id();
-        let objects_node = Object::new(&objects_node_id, "Objects", "Objects");
+        address_space.add_folder_node_id(&objects_node_id, "Objects", "Objects", &root_node_id);
 
         let types_node_id = AddressSpace::types_folder_id();
-        let types_node = Object::new(&types_node_id, "Types", "Types");
+        address_space.add_folder_node_id(&types_node_id, "Types", "Types", &root_node_id);
+        // DataTypesFolder "DataTypes"
+        //    OPC Binary
+
+        // ReferenceTypesFolder "ReferenceTypes"
+        //    References/
+
+        // Server
+        //   ServerType
+        //   ServerStatus
+        //   ServerCapabilities
+        //   ServerArray
+        //   NamespaceArray
 
         let views_node_id = AddressSpace::views_folder_id();
-        let views_node = Object::new(&views_node_id, "Views", "Views");
-
-        address_space.insert(&root_node_id, NodeType::Object(root_node));
-        address_space.insert(&objects_node_id, NodeType::Object(objects_node));
-        address_space.insert(&types_node_id, NodeType::Object(types_node));
-        address_space.insert(&views_node_id, NodeType::Object(views_node));
-
-        address_space.add_organizes(&root_node_id, &objects_node_id);
-        address_space.add_organizes(&root_node_id, &types_node_id);
-        address_space.add_organizes(&root_node_id, &views_node_id);
+        address_space.add_folder_node_id(&views_node_id, "Views", "Views", &root_node_id);
 
         // TODO
         // add Server (ServerType)
@@ -124,6 +131,10 @@ impl AddressSpace {
         self.node_map.insert(node_id.clone(), node_type);
     }
 
+    pub fn node_exists(&self, node_id: &NodeId) -> bool {
+        self.node_map.contains_key(node_id)
+    }
+
     pub fn find_node(&self, node_id: &NodeId) -> Option<&NodeType> {
         if self.node_map.contains_key(node_id) {
             self.node_map.get(node_id)
@@ -140,17 +151,23 @@ impl AddressSpace {
         }
     }
 
-    pub fn add_folder(&mut self, browse_name: &str, display_name: &str, parent_node_id: &NodeId) -> Result<NodeId, ()> {
-        let node_id = NodeId::next_numeric();
-
+    pub fn add_folder_node_id(&mut self, node_id: &NodeId, browse_name: &str, display_name: &str, parent_node_id: &NodeId) -> bool {
         // Add a relationship to the parent
         self.add_organizes(&parent_node_id, &node_id);
-
         let folder_object = Object::new(&node_id, browse_name, display_name);
         self.make_twoway_reference(&folder_object.node_id(), &ObjectTypeId::FolderType.as_node_id(), ReferenceTypeId::HasTypeDefinition);
         self.insert(&node_id, NodeType::Object(folder_object));
+        // TODO test for failure
+        true
+    }
 
-        Ok(node_id)
+    pub fn add_folder(&mut self, browse_name: &str, display_name: &str, parent_node_id: &NodeId) -> Result<NodeId, ()> {
+        let node_id = NodeId::next_numeric();
+        if self.add_folder_node_id(&node_id, browse_name, display_name, parent_node_id) {
+            Ok(node_id)
+        } else {
+            Err(())
+        }
     }
 
     pub fn add_variables(&mut self, variables: &Vec<Variable>, parent_node_id: &NodeId) -> Vec<Result<NodeId, ()>> {
@@ -181,16 +198,16 @@ impl AddressSpace {
         }
     }
 
-    fn filter_references_by_type(references: &Vec<Reference>, reference_type_id: Option<ReferenceTypeId>) -> Vec<Reference> {
+    fn filter_references_by_type(references: &Vec<Reference>, reference_type_id: &Option<ReferenceTypeId>) -> Vec<Reference> {
         if reference_type_id.is_none() {
             references.clone()
         } else {
             // Filter by type
-            let reference_type_id = reference_type_id.unwrap();
+            let reference_type_id = reference_type_id.as_ref().unwrap();
             let mut result = Vec::new();
             for reference in references {
                 // TODO this should match on subtypes too
-                if reference.reference_type_id == reference_type_id {
+                if reference.reference_type_id == *reference_type_id {
                     result.push(reference.clone());
                 }
             }
@@ -198,32 +215,71 @@ impl AddressSpace {
         }
     }
 
-    fn find_references(reference_map: &HashMap<NodeId, Vec<Reference>>, node_id: &NodeId, reference_type_id: Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
+    /// Find and filter references that refer to the specified node.
+    fn find_references(reference_map: &HashMap<NodeId, Vec<Reference>>, node_id: &NodeId, reference_type_id: &Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
         let node_references = reference_map.get(node_id);
         if node_references.is_some() {
             let node_references = node_references.as_ref().unwrap();
             let result = AddressSpace::filter_references_by_type(node_references, reference_type_id);
-            if result.len() != 0 {
-                Some(result)
-            } else {
+            if result.is_empty() {
                 None
+            } else {
+                Some(result)
             }
         } else {
             None
         }
     }
 
-    pub fn find_references_from(&self, node_id_from: &NodeId, reference_type_id: Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
+    /// Finds forward references from the specified node
+    pub fn find_references_from(&self, node_id_from: &NodeId, reference_type_id: &Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
         AddressSpace::find_references(&self.references, node_id_from, reference_type_id)
     }
 
-    pub fn find_references_to(&self, node_id_to: &NodeId, reference_type_id: Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
+    /// Finds inverse references, it those that point to the specified node
+    pub fn find_references_to(&self, node_id_to: &NodeId, reference_type_id: &Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
         AddressSpace::find_references(&self.inverse_references, node_id_to, reference_type_id)
     }
 
-    fn make_oneway_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) {
-        AddressSpace::add_reference(&mut self.references, node_id_from, Reference::new(reference_type_id, node_id_to));
+    /// Finds references for optionally forwards, inverse or both and return the references. The usize
+    /// represents the index in the collection where the inverse references start (if applicable)
+    pub fn find_references_by_direction(&self, node_id: &NodeId, browse_direction: BrowseDirection, reference_type_id: &Option<ReferenceTypeId>) -> (Vec<Reference>, usize) {
+        let mut references = Vec::new();
+        let inverse_ref_idx: usize;
+        match browse_direction {
+            BrowseDirection::Forward => {
+                let forward_references = self.find_references_from(node_id, reference_type_id);
+                if forward_references.is_some() {
+                    references.append(&mut forward_references.unwrap());
+                }
+                inverse_ref_idx = references.len();
+            }
+            BrowseDirection::Inverse => {
+                inverse_ref_idx = 0;
+                let inverse_references = self.find_references_to(node_id, reference_type_id);
+                if inverse_references.is_some() {
+                    references.append(&mut inverse_references.unwrap());
+                }
+            }
+            BrowseDirection::Both => {
+                let forward_references = self.find_references_from(node_id, reference_type_id);
+                if forward_references.is_some() {
+                    references.append(&mut forward_references.unwrap());
+                }
+                inverse_ref_idx = references.len();
+                let inverse_references = self.find_references_to(node_id, reference_type_id);
+                if inverse_references.is_some() {
+                    references.append(&mut inverse_references.unwrap());
+                }
+            }
+        }
+        (references, inverse_ref_idx)
     }
+
+
+    //    fn make_oneway_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) {
+    //        AddressSpace::add_reference(&mut self.references, node_id_from, Reference::new(reference_type_id, node_id_to));
+    //    }
 
     fn make_twoway_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) {
         AddressSpace::add_reference(&mut self.references, node_id_from, Reference::new(reference_type_id, node_id_to));
