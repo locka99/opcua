@@ -4,7 +4,7 @@ use types::*;
 
 #[test]
 fn address_space() {
-    let address_space = AddressSpace::new_top_level();
+    let address_space = AddressSpace::new();
 
     let root_folder = address_space.root_folder();
     assert_eq!(root_folder.node_class(), NodeClass::Object);
@@ -18,7 +18,7 @@ fn address_space() {
 
 #[test]
 fn find_root_folder() {
-    let address_space = AddressSpace::new_top_level();
+    let address_space = AddressSpace::new();
     let node_type = address_space.find_node(&NodeId::new_numeric(0, 84));
     assert!(node_type.is_some());
 
@@ -29,21 +29,21 @@ fn find_root_folder() {
 
 #[test]
 fn find_objects_folder() {
-    let address_space = AddressSpace::new_top_level();
+    let address_space = AddressSpace::new();
     let node_type = address_space.find_node(&NodeId::from_object_id(ObjectId::ObjectsFolder));
     assert!(node_type.is_some());
 }
 
 #[test]
 fn find_types_folder() {
-    let address_space = AddressSpace::new_top_level();
+    let address_space = AddressSpace::new();
     let node_type = address_space.find_node(&NodeId::from_object_id(ObjectId::TypesFolder));
     assert!(node_type.is_some());
 }
 
 #[test]
 fn find_views_folder() {
-    let address_space = AddressSpace::new_top_level();
+    let address_space = AddressSpace::new();
     let node_type = address_space.find_node(&NodeId::from_object_id(ObjectId::ViewsFolder));
     assert!(node_type.is_some());
 }
@@ -59,7 +59,7 @@ fn object_attributes() {
 }
 
 fn make_sample_address_space() -> AddressSpace {
-    let mut address_space = AddressSpace::new_top_level();
+    let mut address_space = AddressSpace::new();
 
     // Create a sample folder under objects folder
     let sample_folder_id = address_space.add_folder("Sample", "Sample", &AddressSpace::objects_folder_id()).unwrap();

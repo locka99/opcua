@@ -69,4 +69,10 @@ impl ObjectTypeId {
     }
 }
 
+impl VariableId {
+    pub fn as_node_id(&self) -> NodeId {
+        NodeId::from_variable_id(*self)
+    }
+}
+
 pub use self::status_codes::*;

@@ -14,9 +14,14 @@ https://opensource.org/licenses/MPL-2.0
 
 # Current progress
 
-Phase 0 
-  - hello, acknowledge, basic chunking, fundamental types, serialization, schema generators are done
-  TODO - sessions, address space browsing, values
+## Phase 0 
+
+DONE - hello / acknowledge / error messages, server config, tcp listener, session loop, basic chunking (1 chunk only at
+this time), message buffering, binary (de)serialization of fundamental types, open / close secure channel, 
+create / activate session, some request / response handlers such as end point discovery, browse, read, anonymous 
+authentication token, basic address space, standard node types, references, attributes. 
+
+TODO - default server node set, values, user authentication token
 
 # OPC UA for Rust?
 
@@ -27,8 +32,8 @@ fact that Rust is a systems programming language.
 * Implementations in Java, JavaScript etc. would be vulnerable to fluctuating memory consumption, performance issues
 * An implementation in Rust should deliver C/C++ levels of performance without some of the risks
 
-HOWEVER, there are a number of mature OPC UA libraries for other platforms that have had time
-to offer more complete implementation so bugs in logic are still possible and likely.
+HOWEVER, there are a number of mature OPC UA libraries for other platforms. Bugs in logic are possible and likely, 
+certain features are also likely to be unimplemented.
 
 All communication is over TCP, optionally encrypted and defined by a bunch of services that the server
 must / may implement and the client must / may call to connect, subscribe, browse etc. The standard is

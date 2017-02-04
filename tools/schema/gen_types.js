@@ -105,7 +105,9 @@ function generate_structured_type_file(structured_type) {
 
 use std::io::{Read, Write};
 
+#[allow(unused_imports)]
 use types::*;
+#[allow(unused_imports)]
 use services::*;
 
 `;

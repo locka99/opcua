@@ -235,6 +235,11 @@ impl NodeId {
         NodeId::new_numeric(0, id as UInt64)
     }
 
+    /// Makes a NodeId that holds a VariableId
+    pub fn from_variable_id(id: VariableId) -> NodeId {
+        NodeId::new_numeric(0, id as UInt64)
+    }
+
     /// Makes a NodeId that holds a ReferenceTypeId
     pub fn from_reference_type_id(id: ReferenceTypeId) -> NodeId {
         NodeId::new_numeric(0, id as UInt64)

@@ -5,6 +5,10 @@ pub const CHUNK_MESSAGE: &'static [u8] = b"MSG";
 pub const OPEN_SECURE_CHANNEL_MESSAGE: &'static [u8] = b"OPN";
 pub const CLOSE_SECURE_CHANNEL_MESSAGE: &'static [u8] = b"CLO";
 
+pub const CHUNK_FINAL: u8 = b'F';
+pub const CHUNK_INTERMEDIATE: u8 = b'C';
+pub const CHUNK_FINAL_ERROR: u8 = b'A';
+
 mod security_policy;
 mod chunk;
 mod chunker;

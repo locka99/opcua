@@ -100,15 +100,10 @@ impl MessageHeader {
     }
 
     pub fn message_type(t: &[u8]) -> MessageType {
-        println!("Message type input = {:?}", t);
         if t.len() != 4 {
-            println!("Message type len != 4");
-            MessageType::Invalid
-        } else if t[3] != b'F' {
-            println!("Message 4th byte is not F");
             MessageType::Invalid
         } else {
-            match &t[0..3] {
+            let message_type = match &t[0..3] {
                 HELLO_MESSAGE => MessageType::Hello,
                 ACKNOWLEDGE_MESSAGE => MessageType::Acknowledge,
                 ERROR_MESSAGE => MessageType::Error,
@@ -117,6 +112,22 @@ impl MessageHeader {
                     error!("message type doesn't match anything");
                     MessageType::Invalid
                 },
+            };
+
+            // Check the 4th byte which should be F for messages or F, C or A for chunks. If its
+            // not one of those, the message is invalid
+            match t[3] {
+                CHUNK_FINAL => { message_type },
+                CHUNK_INTERMEDIATE | CHUNK_FINAL_ERROR => {
+                    if message_type == MessageType::Chunk {
+                        message_type
+                    } else {
+                        MessageType::Invalid
+                    }
+                },
+                _=> {
+                    MessageType::Invalid
+                }
             }
         }
     }

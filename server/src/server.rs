@@ -26,11 +26,16 @@ pub struct Endpoint {
 /// be interested in. That includes configuration info, address space etc.
 #[derive(Clone)]
 pub struct ServerState {
+    /// The application URI
     pub application_uri: UAString,
+    /// The product URI
     pub product_uri: UAString,
+    /// The application name
     pub application_name: LocalizedText,
     // The protocol, hostname and port formatted as a url, but less the path
     pub base_endpoint: String,
+    /// The list of namespaces
+    pub namespaces: Vec<UAString>,
     // A list of endpoints
     pub endpoints: Vec<Endpoint>,
     /// Server configuration
@@ -93,7 +98,7 @@ impl Server {
         let application_name = config.application_name.clone();
         let application_uri = UAString::from_str(&config.application_uri);
         let product_uri = UAString::from_str(&config.product_uri);
-
+        let namespaces = vec![UAString::from_str("http://opcfoundation.org/UA/"), UAString::from_str(&config.application_uri)];
         let base_endpoint = format!("opc.tcp://{}:{}", config.tcp_config.host, config.tcp_config.port);
 
         let mut endpoints = Vec::new();
@@ -117,21 +122,27 @@ impl Server {
         }
 
         let server_certificate = ByteString::null();
+        let address_space = AddressSpace::new();
+
+        let server_state = ServerState {
+            application_uri: application_uri,
+            product_uri: product_uri,
+            application_name: LocalizedText {
+                locale: UAString::null(),
+                text: UAString::from_str(&application_name),
+            },
+            namespaces: namespaces,
+            base_endpoint: base_endpoint,
+            endpoints: endpoints,
+            config: Arc::new(Mutex::new(config.clone())),
+            server_certificate: server_certificate,
+            address_space: Arc::new(Mutex::new(address_space))
+        };
+
+        // Server::add_server_nodes(&mut address_space, &server_state);
 
         Server {
-            server_state: Arc::new(Mutex::new(ServerState {
-                application_uri: application_uri,
-                product_uri: product_uri,
-                application_name: LocalizedText {
-                    locale: UAString::null(),
-                    text: UAString::from_str(&application_name),
-                },
-                base_endpoint: base_endpoint,
-                endpoints: endpoints,
-                config: Arc::new(Mutex::new(config.clone())),
-                server_certificate: server_certificate,
-                address_space: Arc::new(Mutex::new(AddressSpace::new_top_level()))
-            })),
+            server_state: Arc::new(Mutex::new(server_state)),
             abort: false,
             sessions: Vec::new()
         }
@@ -142,6 +153,27 @@ impl Server {
         Server::new(&ServerConfig::default_anonymous())
     }
 
+    fn add_server_nodes(address_space: &mut AddressSpace, server_state: &::ServerState) {
+        let root_folder_id = AddressSpace::root_folder_id();
+        let server_node_id = NodeId::from_object_id(ObjectId::Server);
+
+        // Server/ (ServerType)
+        address_space.add_organized_node(&server_node_id, "Server", "Server", &root_folder_id, ObjectTypeId::ServerType);
+
+        {
+            let namespace_array_node_id = VariableId::Server_NamespaceArray.as_node_id();
+            // TODO take namespace from server state and make namespace array
+
+            // Server Array list of server uris used by the server
+            // TODO
+            //   NamespaceArray
+            //   ServerArray
+            //   ServerCapabilities/
+            //     MaxBrowseContinuationPoint
+            //   ServerStatus
+            //     State
+        }
+    }
     // Terminates the running server
     pub fn abort(&mut self) {
         self.abort = true;

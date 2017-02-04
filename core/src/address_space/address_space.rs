@@ -39,7 +39,7 @@ pub struct AddressSpace {
 }
 
 impl AddressSpace {
-    pub fn new_top_level() -> AddressSpace {
+    pub fn new() -> AddressSpace {
         // Construct the Root folder and the top level nodes
         let mut address_space = AddressSpace {
             node_map: HashMap::new(),
@@ -47,34 +47,53 @@ impl AddressSpace {
             inverse_references: HashMap::new(),
         };
 
-        // TODO use add_folder_type() function
         let root_node_id = AddressSpace::root_folder_id();
         let root_node = Object::new(&root_node_id, "Root", "Root");
         address_space.insert(&root_node_id, NodeType::Object(root_node));
 
-        let objects_node_id = AddressSpace::objects_folder_id();
-        address_space.add_folder_node_id(&objects_node_id, "Objects", "Objects", &root_node_id);
+        // Things under root
+        {
+            let objects_node_id = AddressSpace::objects_folder_id();
+            let _ = address_space.add_folder_with_id(&objects_node_id, "Objects", "Objects", &root_node_id);
 
-        let types_node_id = AddressSpace::types_folder_id();
-        address_space.add_folder_node_id(&types_node_id, "Types", "Types", &root_node_id);
-        // DataTypesFolder "DataTypes"
-        //    OPC Binary
+            let types_node_id = AddressSpace::types_folder_id();
+            let _ = address_space.add_folder_with_id(&types_node_id, "Types", "Types", &root_node_id);
+            {
+                // DataTypes/
+                //    BaseDataType/
+                //      Boolean
+                //      ...
+                //    OPC Binary/
 
-        // ReferenceTypesFolder "ReferenceTypes"
-        //    References/
+                let datatypes_node_id = ObjectId::DataTypesFolder.as_node_id();
+                let _ = address_space.add_folder_with_id(&datatypes_node_id, "DataTypes", "DataTypes", &types_node_id);
+                {
+                    //
+                }
 
-        // Server
-        //   ServerType
-        //   ServerStatus
-        //   ServerCapabilities
-        //   ServerArray
-        //   NamespaceArray
+                let opcbinary_node_id = ObjectId::OPCBinarySchema_TypeSystem.as_node_id();
+                let opcbinary_node = Object::new(&opcbinary_node_id, "OPC Binary", "OPC Binary");
+                address_space.insert(&opcbinary_node_id, NodeType::Object(opcbinary_node));
+                address_space.add_organizes(&types_node_id, &opcbinary_node_id);
+            }
+            {
+                // ReferenceTypes/
+                //    References/
+                //      HierarchicalReferences
+                //        HasChild
+                //          HasSubtype
+                //        Organizes
+                //      NonHierarchicalReferences
+                //        HasTypeDefinition
 
-        let views_node_id = AddressSpace::views_folder_id();
-        address_space.add_folder_node_id(&views_node_id, "Views", "Views", &root_node_id);
+                let referencetypes_node_id = ObjectId::ReferenceTypesFolder.as_node_id();
+                let _ = address_space.add_folder_with_id(&referencetypes_node_id, "ReferenceTypes", "ReferenceTypes", &types_node_id);
+                {}
+            }
 
-        // TODO
-        // add Server (ServerType)
+            let views_node_id = AddressSpace::views_folder_id();
+            let _ = address_space.add_folder_with_id(&views_node_id, "Views", "Views", &root_node_id);
+        }
 
         address_space
     }
@@ -128,6 +147,9 @@ impl AddressSpace {
     }
 
     pub fn insert(&mut self, node_id: &NodeId, node_type: NodeType) {
+        if self.node_exists(node_id) {
+            panic!("This node already exists");
+        }
         self.node_map.insert(node_id.clone(), node_type);
     }
 
@@ -151,25 +173,32 @@ impl AddressSpace {
         }
     }
 
-    pub fn add_folder_node_id(&mut self, node_id: &NodeId, browse_name: &str, display_name: &str, parent_node_id: &NodeId) -> bool {
-        // Add a relationship to the parent
-        self.add_organizes(&parent_node_id, &node_id);
-        let folder_object = Object::new(&node_id, browse_name, display_name);
-        self.make_twoway_reference(&folder_object.node_id(), &ObjectTypeId::FolderType.as_node_id(), ReferenceTypeId::HasTypeDefinition);
-        self.insert(&node_id, NodeType::Object(folder_object));
-        // TODO test for failure
-        true
-    }
-
-    pub fn add_folder(&mut self, browse_name: &str, display_name: &str, parent_node_id: &NodeId) -> Result<NodeId, ()> {
-        let node_id = NodeId::next_numeric();
-        if self.add_folder_node_id(&node_id, browse_name, display_name, parent_node_id) {
-            Ok(node_id)
-        } else {
+    /// Adds a node as a child (organized by) another node. The type id says what kind of node the object
+    /// should be, e.g. folder node or something else.
+    pub fn add_organized_node(&mut self, node_id: &NodeId, browse_name: &str, display_name: &str, parent_node_id: &NodeId, object_type_id: ObjectTypeId) -> Result<NodeId, ()> {
+        if self.node_exists(&node_id) {
             Err(())
+        } else {
+            // Add a relationship to the parent
+            self.add_organizes(&parent_node_id, &node_id);
+            let folder_object = Object::new(&node_id, browse_name, display_name);
+            self.make_twoway_reference(&folder_object.node_id(), &object_type_id.as_node_id(), ReferenceTypeId::HasTypeDefinition);
+            self.insert(&node_id, NodeType::Object(folder_object));
+            Ok(node_id.clone())
         }
     }
 
+    /// Adds a folder with a specified id
+    pub fn add_folder_with_id(&mut self, node_id: &NodeId, browse_name: &str, display_name: &str, parent_node_id: &NodeId) -> Result<NodeId, ()> {
+        self.add_organized_node(node_id, browse_name, display_name, parent_node_id, ObjectTypeId::FolderType)
+    }
+
+    /// Adds a folder using a generated node id
+    pub fn add_folder(&mut self, browse_name: &str, display_name: &str, parent_node_id: &NodeId) -> Result<NodeId, ()> {
+        self.add_organized_node(&NodeId::next_numeric(), browse_name, display_name, parent_node_id, ObjectTypeId::FolderType)
+    }
+
+    /// Adds a list of varables to the specified parent node
     pub fn add_variables(&mut self, variables: &Vec<Variable>, parent_node_id: &NodeId) -> Vec<Result<NodeId, ()>> {
         let mut result = Vec::with_capacity(variables.len());
         for variable in variables {
@@ -178,6 +207,7 @@ impl AddressSpace {
         result
     }
 
+    /// Adds a single variable under the parent node
     pub fn add_variable(&mut self, variable: &Variable, parent_node_id: &NodeId) -> Result<NodeId, ()> {
         let node_id = variable.node_id();
         if !self.node_map.contains_key(&node_id) {
@@ -189,6 +219,7 @@ impl AddressSpace {
         }
     }
 
+    /// Adds a reference between one node and a target
     fn add_reference(reference_map: &mut HashMap<NodeId, Vec<Reference>>, node_id: &NodeId, reference: Reference) {
         if reference_map.contains_key(node_id) {
             let mut references = reference_map.get_mut(node_id).unwrap();

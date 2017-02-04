@@ -83,10 +83,10 @@ impl Chunker {
         // Write a node id for the first chunk
         if is_first_chunk {
             debug!("Encoding node id {:?}", node_id);
-            node_id.encode(&mut stream);
+            let _ = node_id.encode(&mut stream);
         } else {}
         // write message
-        supported_message.encode(&mut stream);
+        let _ = supported_message.encode(&mut stream);
         // write padding byte (0 since there is no padding bytes)
         // write_u8(&mut stream, 0u8);
 

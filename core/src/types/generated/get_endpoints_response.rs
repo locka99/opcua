@@ -3,7 +3,9 @@
 
 use std::io::{Read, Write};
 
+#[allow(unused_imports)]
 use types::*;
+#[allow(unused_imports)]
 use services::*;
 
 /// Gets the endpoints used by the server.

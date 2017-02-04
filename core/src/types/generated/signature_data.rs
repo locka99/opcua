@@ -3,7 +3,9 @@
 
 use std::io::{Read, Write};
 
+#[allow(unused_imports)]
 use types::*;
+#[allow(unused_imports)]
 use services::*;
 
 /// A digital signature.

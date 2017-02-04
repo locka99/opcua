@@ -167,7 +167,6 @@ impl Base {
     }
 
     pub fn update_attribute_value(&mut self, attribute_id: AttributeId, value: AttributeValue, server_timestamp: &DateTime, source_timestamp: &DateTime) -> Result<(), ()>{
-        let now = DateTime::now();
         let ref mut attribute = self.attributes[Base::attribute_idx(attribute_id)];
         if let &mut Some(ref mut attribute) = attribute {
             attribute.value = value;

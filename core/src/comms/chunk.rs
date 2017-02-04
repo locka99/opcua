@@ -38,9 +38,7 @@ pub struct ChunkHeader {
     pub is_valid: bool,
 }
 
-const CHUNK_FINAL: u8 = b'F';
-const CHUNK_INTERMEDIATE: u8 = b'C';
-const CHUNK_FINAL_ERROR: u8 = b'A';
+
 
 impl BinaryEncoder<ChunkHeader> for ChunkHeader {
     fn byte_len(&self) -> usize {
@@ -295,7 +293,7 @@ impl Chunk {
 
         let buffer_size = chunk_header.message_size as usize - CHUNK_HEADER_SIZE;
         let mut chunk_body = vec![0u8; buffer_size];
-        in_stream.read_exact(&mut chunk_body);
+        let _ = in_stream.read_exact(&mut chunk_body);
 
         Ok(Chunk {
             chunk_header: chunk_header,
