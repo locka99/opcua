@@ -29,8 +29,11 @@ impl NodeType {
             &NodeType::Method(ref value) => value,
         }
     }
-}
 
+    pub fn node_id(&self) -> NodeId {
+        self.as_node().node_id()
+    }
+}
 
 pub struct AddressSpace {
     pub node_map: HashMap<NodeId, NodeType>,
@@ -49,7 +52,7 @@ impl AddressSpace {
 
         let root_node_id = AddressSpace::root_folder_id();
         let root_node = Object::new(&root_node_id, "Root", "Root");
-        address_space.insert(&root_node_id, NodeType::Object(root_node));
+        address_space.insert(NodeType::Object(root_node));
 
         // Things under root
         {
@@ -73,7 +76,7 @@ impl AddressSpace {
 
                 let opcbinary_node_id = ObjectId::OPCBinarySchema_TypeSystem.as_node_id();
                 let opcbinary_node = Object::new(&opcbinary_node_id, "OPC Binary", "OPC Binary");
-                address_space.insert(&opcbinary_node_id, NodeType::Object(opcbinary_node));
+                address_space.insert(NodeType::Object(opcbinary_node));
                 address_space.add_organizes(&types_node_id, &opcbinary_node_id);
             }
             {
@@ -146,11 +149,12 @@ impl AddressSpace {
         }
     }
 
-    pub fn insert(&mut self, node_id: &NodeId, node_type: NodeType) {
-        if self.node_exists(node_id) {
-            panic!("This node already exists");
+    pub fn insert(&mut self, node_type: NodeType) {
+        let node_id = node_type.node_id();
+        if self.node_exists(&node_id) {
+            panic!("This node {:?} already exists", node_id);
         }
-        self.node_map.insert(node_id.clone(), node_type);
+        self.node_map.insert(node_id, node_type);
     }
 
     pub fn node_exists(&self, node_id: &NodeId) -> bool {
@@ -183,7 +187,7 @@ impl AddressSpace {
             self.add_organizes(&parent_node_id, &node_id);
             let folder_object = Object::new(&node_id, browse_name, display_name);
             self.make_twoway_reference(&folder_object.node_id(), &object_type_id.as_node_id(), ReferenceTypeId::HasTypeDefinition);
-            self.insert(&node_id, NodeType::Object(folder_object));
+            self.insert(NodeType::Object(folder_object));
             Ok(node_id.clone())
         }
     }
@@ -212,7 +216,7 @@ impl AddressSpace {
         let node_id = variable.node_id();
         if !self.node_map.contains_key(&node_id) {
             self.add_organizes(&parent_node_id, &node_id);
-            self.insert(&node_id, NodeType::Variable(variable.clone()));
+            self.insert(NodeType::Variable(variable.clone()));
             Ok(node_id)
         } else {
             Err(())
@@ -312,20 +316,27 @@ impl AddressSpace {
     //        AddressSpace::add_reference(&mut self.references, node_id_from, Reference::new(reference_type_id, node_id_to));
     //    }
 
-    fn make_twoway_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) {
+    pub fn make_twoway_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) {
+        if node_id_from == node_id_to {
+            panic!("Node id from == node id to {:?}", node_id_from);
+        }
         AddressSpace::add_reference(&mut self.references, node_id_from, Reference::new(reference_type_id, node_id_to));
         AddressSpace::add_reference(&mut self.inverse_references, node_id_to, Reference::new(reference_type_id, node_id_from));
+    }
+
+    pub fn add_has_component(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
+        self.make_twoway_reference(node_id_from, node_id_to, ReferenceTypeId::HasComponent);
     }
 
     pub fn add_organizes(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
         self.make_twoway_reference(node_id_from, node_id_to, ReferenceTypeId::Organizes);
     }
 
-    pub fn add_child(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
+    pub fn add_has_child(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
         self.make_twoway_reference(node_id_from, node_id_to, ReferenceTypeId::HasChild);
     }
 
-    pub fn add_property(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
+    pub fn add_has_property(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
         self.make_twoway_reference(node_id_from, node_id_to, ReferenceTypeId::HasProperty);
     }
 }

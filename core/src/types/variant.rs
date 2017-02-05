@@ -374,6 +374,14 @@ impl Variant {
         Ok(result)
     }
 
+    pub fn from_str_array(in_values: &[&str]) -> Variant {
+        let mut values = Vec::with_capacity(in_values.len());
+        for v in in_values {
+            values.push(Variant::String(UAString::from_str(v)));
+        }
+        Variant::Array(values)
+    }
+
     // Gets the encoding mask to write the variant to disk
     fn get_encoding_mask(&self) -> u8 {
         let encoding_mask = match self {

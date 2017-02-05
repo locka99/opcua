@@ -139,7 +139,10 @@ impl Server {
             address_space: Arc::new(Mutex::new(address_space))
         };
 
-        // Server::add_server_nodes(&mut address_space, &server_state);
+        {
+            let mut address_space = server_state.address_space.lock().unwrap();
+            Server::add_server_nodes(&mut address_space, &server_state);
+        }
 
         Server {
             server_state: Arc::new(Mutex::new(server_state)),
@@ -155,23 +158,52 @@ impl Server {
 
     fn add_server_nodes(address_space: &mut AddressSpace, server_state: &::ServerState) {
         let root_folder_id = AddressSpace::root_folder_id();
-        let server_node_id = NodeId::from_object_id(ObjectId::Server);
+        let server_id = NodeId::from_object_id(ObjectId::Server);
 
         // Server/ (ServerType)
-        address_space.add_organized_node(&server_node_id, "Server", "Server", &root_folder_id, ObjectTypeId::ServerType);
-
+        let _ = address_space.add_organized_node(&server_id, "Server", "Server", &root_folder_id, ObjectTypeId::ServerType);
         {
-            let namespace_array_node_id = VariableId::Server_NamespaceArray.as_node_id();
-            // TODO take namespace from server state and make namespace array
-
-            // Server Array list of server uris used by the server
-            // TODO
             //   NamespaceArray
+            let namespace_array_id = VariableId::Server_NamespaceArray.as_node_id();
+            let namespace_value = Variant::from_str_array(&vec!["x", "y"]);
+            {
+                address_space.insert(NodeType::Variable(Variable::new(&namespace_array_id, "NamespaceArray", "NamespaceArray", &DataValue::new(namespace_value))));
+                address_space.add_has_component(&server_id, &namespace_array_id);
+            }
+
             //   ServerArray
+            let server_array_id = VariableId::Server_ServerArray.as_node_id();
+            {
+                let server_array_value = Variant::Array(vec![Variant::String(UAString::from_str("serverTODO"))]);
+                address_space.insert(NodeType::Variable(Variable::new(&server_array_id, "ServerArray", "ServerArray", &DataValue::new(server_array_value))));
+                address_space.add_has_component(&server_id, &server_array_id);
+            }
+
             //   ServerCapabilities/
-            //     MaxBrowseContinuationPoint
+            let server_capabilities_id = ObjectId::Server_ServerCapabilities.as_node_id();
+            {
+                address_space.insert(NodeType::Variable(Variable::new(&server_capabilities_id, "ServerCapabilities", "ServerCapabilities", &DataValue::new(Variant::Empty))));
+                address_space.add_has_component(&server_id, &server_capabilities_id);
+                {
+                    //     MaxBrowseContinuationPoint
+//                    let maxbrowse_continuation_points_id = VariableId::Server_ServerCapabilities_MaxBrowseContinuationPoints.as_node_id();
+//                    address_space.insert(NodeType::Variable(Variable::new(&serverstatus_state_id, "ServerStatus", "ServerStatus", &DataValue::new(Variant::UInt32(0)))));
+
+                }
+            }
+
             //   ServerStatus
-            //     State
+            let serverstatus_id = VariableId::Server_ServerStatus.as_node_id();
+            {
+                address_space.insert(NodeType::Variable(Variable::new(&serverstatus_id, "ServerStatus", "ServerStatus", &DataValue::new(Variant::Empty))));
+                address_space.add_has_component(&server_id, &serverstatus_id);
+                {
+                    //     State (Server_ServerStatus_State)
+                    let serverstatus_state_id = VariableId::Server_ServerStatus_State.as_node_id();
+                    address_space.insert(NodeType::Variable(Variable::new(&serverstatus_state_id, "ServerStatus", "ServerStatus", &DataValue::new(Variant::UInt32(0)))));
+                    address_space.add_has_component(&serverstatus_id, &serverstatus_state_id);
+                }
+            }
         }
     }
     // Terminates the running server
