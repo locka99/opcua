@@ -3,13 +3,18 @@ use std::io::{Read, Write};
 use types::*;
 use services::*;
 
-// This macro helps avoid tedious repetition as new messages are added
-
+/// This macro helps avoid tedious repetition as new messages are added
+/// The first form just handles the trailing comma after the last entry to save some pointless
+/// editing when new messages are added to the list.
 macro_rules! supported_messages {
+    [ $( $x:ident, ) * ] => (supported_messages![ $( $x ),* ];);
     [ $( $x:ident ), * ] => {
         #[derive(Debug, PartialEq)]
         pub enum SupportedMessage {
+            /// An invalid request / response of some form
             Invalid(ObjectId),
+            /// A specific do-nothing response, e.g. some messages may not require an instantaneous response
+            DoNothing,
             $( $x($x), )*
         }
 
@@ -19,6 +24,9 @@ macro_rules! supported_messages {
                     &SupportedMessage::Invalid(object_id) => {
                         panic!("Unsupported message {:?}", object_id);
                     },
+                    &SupportedMessage::DoNothing => {
+                        panic!("This message cannot be serialized");
+                    },
                     $( &SupportedMessage::$x(ref value) => value.byte_len(), )*
                 }
             }
@@ -27,6 +35,9 @@ macro_rules! supported_messages {
                 match self {
                     &SupportedMessage::Invalid(object_id) => {
                         panic!("Unsupported message {:?}", object_id);
+                    },
+                    &SupportedMessage::DoNothing => {
+                        panic!("This message cannot be serialized");
                     },
                     $( &SupportedMessage::$x(ref value) => value.encode(stream), )*
                 }
@@ -39,19 +50,13 @@ macro_rules! supported_messages {
         }
 
         impl SupportedMessage {
-            /* // Can't do this without concat_idents!()
-                match *object_id {
-                    $( ObjectId::$x_Encoding_DefaultBinary => { $x::decode(s) }, )*
-                    _ => {
-                        Err(Error::new(ErrorKind::Other, "Message object id is not supported"))
-                    }
-                }
-            } */
-
             pub fn node_id(&self) -> NodeId {
                 match self {
                     &SupportedMessage::Invalid(object_id) => {
                         panic!("Unsupported message {:?}", object_id);
+                    },
+                    &SupportedMessage::DoNothing => {
+                        panic!("This message has no object id");
                     },
                     $( &SupportedMessage::$x(ref value) => value.node_id(), )*
                 }
@@ -160,5 +165,5 @@ supported_messages![
     PublishResponse,
     // Attribute service
     ReadRequest,
-    ReadResponse
+    ReadResponse,
 ];
