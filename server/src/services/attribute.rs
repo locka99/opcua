@@ -33,61 +33,58 @@ impl AttributeService {
             for node_to_read in nodes_to_read {
                 let node = address_space.find_node(&node_to_read.node_id);
 
-                let mut value = None;
-                let mut status = &GOOD;
-                let mut source_timestamp = None;
-                let mut source_picoseconds = None;
-                let mut server_timestamp = None;
-                let mut server_picoseconds = None;
+                let mut result_value = DataValue {
+                    value: None,
+                    status: None,
+                    source_timestamp: None,
+                    source_picoseconds: None,
+                    server_timestamp: None,
+                    server_picoseconds: None,
+                };
 
                 // Node node found
-                if node.is_none() {
-                    warn!("Cannot find node id {:?}", node_to_read.node_id);
-                    status = &BAD_NODE_ID_UNKNOWN;
-                } else {
+                if node.is_some() {
                     let node = node.unwrap();
                     let attribute_id = AttributeId::from_u32(node_to_read.attribute_id);
-                    if attribute_id.is_err() {
-                        error!("Attribute id {} is invalid", node_to_read.attribute_id);
-                        status = &BAD_ATTRIBUTE_ID_INVALID;
-                    } else {
+                    if attribute_id.is_ok() {
                         let attribute_id = attribute_id.unwrap();
                         let attribute = node.as_node().find_attribute(attribute_id);
-                        if attribute.is_none() {
-                            status = &BAD_NOT_READABLE;
-                        } else {
+                        if attribute.is_some() {
                             let attribute = attribute.unwrap();
-                            value = Some(Box::new(attribute.value.to_variant()));
+                            // Result value is clone from the attribute
+                            result_value.value = attribute.value.clone();
+                            result_value.status = attribute.status.clone();
                             match timestamps_to_return {
                                 TimestampsToReturn::Source => {
-                                    source_timestamp = Some(attribute.source_timestamp.clone());
-                                    source_picoseconds = Some(attribute.source_picoseconds.clone());
+                                    result_value.source_timestamp = attribute.source_timestamp.clone();
+                                    result_value.source_picoseconds = attribute.source_picoseconds.clone();
                                 },
                                 TimestampsToReturn::Server => {
-                                    server_timestamp = Some(attribute.server_timestamp.clone());
-                                    server_picoseconds = Some(attribute.server_picoseconds.clone());
+                                    result_value.server_timestamp = attribute.server_timestamp.clone();
+                                    result_value.server_picoseconds = attribute.server_picoseconds.clone();
                                 },
                                 TimestampsToReturn::Both => {
-                                    source_timestamp = Some(attribute.source_timestamp.clone());
-                                    source_picoseconds = Some(attribute.source_picoseconds.clone());
-                                    server_timestamp = Some(attribute.server_timestamp.clone());
-                                    server_picoseconds = Some(attribute.server_picoseconds.clone());
+                                    result_value.source_timestamp = attribute.source_timestamp.clone();
+                                    result_value.source_picoseconds = attribute.source_picoseconds.clone();
+                                    result_value.server_timestamp = attribute.server_timestamp.clone();
+                                    result_value.server_picoseconds = attribute.server_picoseconds.clone();
                                 },
                                 TimestampsToReturn::Neither => {
                                     // Nothing needs to change
                                 },
                             }
+                        } else {
+                            result_value.status = Some(BAD_NOT_READABLE.clone());
                         }
+                    } else {
+                        error!("Attribute id {} is invalid", node_to_read.attribute_id);
+                        result_value.status = Some(BAD_ATTRIBUTE_ID_INVALID.clone());
                     }
+                } else {
+                    warn!("Cannot find node id {:?}", node_to_read.node_id);
+                    result_value.status = Some(BAD_NODE_ID_UNKNOWN.clone());
                 }
-                results.push(DataValue {
-                    value: value,
-                    status: Some(status.clone()),
-                    source_timestamp: source_timestamp,
-                    source_picoseconds: source_picoseconds,
-                    server_timestamp: server_timestamp,
-                    server_picoseconds: server_picoseconds,
-                });
+                results.push(result_value);
             }
             Some(results)
         } else {

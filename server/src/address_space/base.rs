@@ -42,7 +42,7 @@ pub trait Node {
     fn description(&self) -> Option<LocalizedText>;
     fn write_mask(&self) -> Option<UInt32>;
     fn user_write_mask(&self) -> Option<UInt32>;
-    fn find_attribute(&self, attribute_id: AttributeId) -> Option<Attribute>;
+    fn find_attribute(&self, attribute_id: AttributeId) -> Option<DataValue>;
 }
 
 /// This is a sanity saving macro that adds Node trait methods to all types that have a base
@@ -82,7 +82,7 @@ macro_rules! find_attribute_mandatory {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Base {
     /// Attributes
-    pub attributes: Vec<Option<Attribute>>,
+    pub attributes: Vec<Option<DataValue>>,
     /// Properties
     pub properties: Vec<Property>,
 }
@@ -91,34 +91,35 @@ pub struct Base {
 impl Node for Base {
     /// Returns the node class
     fn node_class(&self) -> NodeClass {
-        find_attribute_value_mandatory!(self, NodeClass);
+        let result = find_attribute_value_mandatory!(self, NodeClass, Int32);
+        NodeClass::from_i32(result).unwrap()
     }
 
     fn node_id(&self) -> NodeId {
-        find_attribute_value_mandatory!(self, NodeId);
+        find_attribute_value_mandatory!(self, NodeId, NodeId)
     }
 
     fn browse_name(&self) -> QualifiedName {
-        find_attribute_value_mandatory!(self, BrowseName);
+        find_attribute_value_mandatory!(self, BrowseName, QualifiedName)
     }
 
     fn display_name(&self) -> LocalizedText {
-        find_attribute_value_mandatory!(self, DisplayName);
+        find_attribute_value_mandatory!(self, DisplayName, LocalizedText)
     }
 
     fn description(&self) -> Option<LocalizedText> {
-        find_attribute_value_optional!(self, Description);
+        find_attribute_value_optional!(self, Description, LocalizedText)
     }
 
     fn write_mask(&self) -> Option<UInt32> {
-        find_attribute_value_optional!(self, WriteMask);
+        find_attribute_value_optional!(self, WriteMask, UInt32)
     }
 
     fn user_write_mask(&self) -> Option<UInt32> {
-        find_attribute_value_optional!(self, UserWriteMask);
+        find_attribute_value_optional!(self, UserWriteMask, UInt32)
     }
 
-    fn find_attribute(&self, attribute_id: AttributeId) -> Option<Attribute> {
+    fn find_attribute(&self, attribute_id: AttributeId) -> Option<DataValue> {
         let attribute_idx = Base::attribute_idx(attribute_id);
         if attribute_idx >= self.attributes.len() {
             warn!("Attribute id {:?} is out of range and invalid", attribute_id);
@@ -129,32 +130,32 @@ impl Node for Base {
 }
 
 impl Base {
-    pub fn new(node_class: NodeClass, node_id: &NodeId, browse_name: &str, display_name: &str, mut attributes: Vec<AttributeValue>, mut properties: Vec<Property>) -> Base {
+    pub fn new(node_class: NodeClass, node_id: &NodeId, browse_name: &str, display_name: &str, mut attributes: Vec<(AttributeId, Variant)>, mut properties: Vec<Property>) -> Base {
         // Mandatory attributes
         let mut attributes_to_add = vec![
-            AttributeValue::NodeClass(node_class),
-            AttributeValue::NodeId(node_id.clone()),
-            AttributeValue::DisplayName(LocalizedText::new("", display_name)),
-            AttributeValue::BrowseName(QualifiedName::new(0, browse_name))
+            (AttributeId::NodeClass, Variant::Int32(node_class as Int32)),
+            (AttributeId::NodeId, Variant::NodeId(node_id.clone())),
+            (AttributeId::DisplayName, Variant::LocalizedText(LocalizedText::new("", display_name))),
+            (AttributeId::BrowseName, Variant::QualifiedName(QualifiedName::new(0, browse_name)))
         ];
         attributes_to_add.append(&mut attributes);
 
-        let mut attributes: Vec<Option<Attribute>> = Vec::with_capacity(NUM_ATTRIBUTES);
+        let mut attributes: Vec<Option<DataValue>> = Vec::with_capacity(NUM_ATTRIBUTES);
         for _ in 0..NUM_ATTRIBUTES {
             attributes.push(None);
         }
         // Make attributes from their initial values
         let now = DateTime::now();
         for attribute in attributes_to_add {
-            let attribute_id = attribute.attribute_id();
-            let attribute_idx = attribute.attribute_id() as usize - 1;
-            attributes[attribute_idx] = Some(Attribute {
-                id: attribute_id,
-                value: attribute,
-                server_timestamp: now.clone(),
-                server_picoseconds: 0,
-                source_timestamp: now.clone(),
-                source_picoseconds: 0,
+            let (attribute_id, value) = attribute;
+            let attribute_idx = Base::attribute_idx(attribute_id);
+            attributes[attribute_idx] = Some(DataValue {
+                value: Some(Box::new(value)),
+                status: Some(GOOD.clone()),
+                server_timestamp: Some(now.clone()),
+                server_picoseconds: Some(0),
+                source_timestamp: Some(now.clone()),
+                source_picoseconds: Some(0),
             });
         }
 
@@ -167,24 +168,29 @@ impl Base {
         }
     }
 
-    pub fn set_attribute(&mut self, attribute_id: AttributeId, value: AttributeValue, server_timestamp: &DateTime, source_timestamp: &DateTime) {
-        let attribute_idx = attribute_id as usize - 1;
-        self.attributes[attribute_idx] = Some(Attribute {
-            id: attribute_id,
-            value: value,
-            server_timestamp: server_timestamp.clone(),
-            server_picoseconds: 0,
-            source_timestamp: source_timestamp.clone(),
-            source_picoseconds: 0,
+    pub fn set_attribute(&mut self, attribute_id: AttributeId, value: DataValue) {
+        let attribute_idx = Base::attribute_idx(attribute_id);
+        self.attributes[attribute_idx] = Some(value);
+    }
+
+    pub fn set_attribute_value(&mut self, attribute_id: AttributeId, value: Variant, server_timestamp: &DateTime, source_timestamp: &DateTime) {
+        let attribute_idx = Base::attribute_idx(attribute_id);
+        self.attributes[attribute_idx] = Some(DataValue {
+            value: Some(Box::new(value)),
+            status: Some(GOOD.clone()),
+            server_timestamp: Some(server_timestamp.clone()),
+            server_picoseconds: Some(0),
+            source_timestamp: Some(source_timestamp.clone()),
+            source_picoseconds: Some(0),
         });
     }
 
-    pub fn update_attribute_value(&mut self, attribute_id: AttributeId, value: AttributeValue, server_timestamp: &DateTime, source_timestamp: &DateTime) -> Result<(), ()> {
+    pub fn update_attribute_value(&mut self, attribute_id: AttributeId, value: Variant, server_timestamp: &DateTime, source_timestamp: &DateTime) -> Result<(), ()> {
         let ref mut attribute = self.attributes[Base::attribute_idx(attribute_id)];
         if let &mut Some(ref mut attribute) = attribute {
-            attribute.value = value;
-            attribute.server_timestamp = server_timestamp.clone();
-            attribute.source_timestamp = source_timestamp.clone();
+            attribute.value = Some(Box::new(value));
+            attribute.server_timestamp = Some(server_timestamp.clone());
+            attribute.source_timestamp = Some(source_timestamp.clone());
             Ok(())
         } else {
             Err(())
@@ -192,7 +198,7 @@ impl Base {
     }
 
     #[inline]
-    fn attribute_idx(attribute_id: AttributeId) -> usize {
+    pub fn attribute_idx(attribute_id: AttributeId) -> usize {
         attribute_id as usize - 1
     }
 }

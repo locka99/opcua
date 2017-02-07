@@ -11,7 +11,7 @@ impl ObjectType {
     pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, is_abstract: Boolean) -> ObjectType {
         // Mandatory
         let attributes = vec![
-            AttributeValue::IsAbstract(is_abstract),
+            (AttributeId::IsAbstract, Variant::Boolean(is_abstract)),
         ];
         let properties = vec![];
         ObjectType {
@@ -20,6 +20,6 @@ impl ObjectType {
     }
 
     pub fn is_abstract(&self) -> Boolean {
-        find_attribute_value_mandatory!(&self.base, IsAbstract);
+        find_attribute_value_mandatory!(&self.base, IsAbstract, Boolean)
     }
 }

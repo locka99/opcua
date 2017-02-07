@@ -1,5 +1,4 @@
 use opcua_core::types::*;
-use opcua_core::services::*;
 
 // Attributes as defined in Part 4, Figure B.7
 
@@ -53,94 +52,6 @@ pub const WRITE_MASK_WRITE_MASK: UInt32 = 1 << 20;
 /// since this is handled by the AccessLevel and UserAccessLevel Attributes for the Variable.
 /// For Variables this bit shall be set to 0.
 pub const WRITE_MASK_VALUE_FOR_VARIABLE_TYPE: UInt32 = 1 << 21;
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum AttributeValue {
-    NodeId(NodeId),
-    NodeClass(NodeClass),
-    BrowseName(QualifiedName),
-    DisplayName(LocalizedText),
-    Description(LocalizedText),
-    WriteMask(UInt32),
-    UserWriteMask(UInt32),
-    IsAbstract(Boolean),
-    Symmetric(Boolean),
-    InverseName(LocalizedText),
-    ContainsNoLoops(Boolean),
-    EventNotifier(Boolean),
-    Value(DataValue),
-    DataType(NodeId),
-    ValueRank(Int32),
-    ArrayDimensions(Vec<Int32>),
-    AccessLevel(Byte),
-    UserAccessLevel(Byte),
-    MinimumSamplingInterval(Int32),
-    Historizing(Boolean),
-    Executable(Boolean),
-    UserExecutable(Boolean),
-}
-
-impl AttributeValue {
-    pub fn attribute_id(&self) -> AttributeId {
-        match self {
-            &AttributeValue::NodeId(_) => AttributeId::NodeId,
-            &AttributeValue::NodeClass(_) => AttributeId::NodeClass,
-            &AttributeValue::BrowseName(_) => AttributeId::BrowseName,
-            &AttributeValue::DisplayName(_) => AttributeId::DisplayName,
-            &AttributeValue::Description(_) => AttributeId::Description,
-            &AttributeValue::WriteMask(_) => AttributeId::WriteMask,
-            &AttributeValue::UserWriteMask(_) => AttributeId::UserWriteMask,
-            &AttributeValue::IsAbstract(_) => AttributeId::IsAbstract,
-            &AttributeValue::Symmetric(_) => AttributeId::Symmetric,
-            &AttributeValue::InverseName(_) => AttributeId::InverseName,
-            &AttributeValue::ContainsNoLoops(_) => AttributeId::ContainsNoLoops,
-            &AttributeValue::EventNotifier(_) => AttributeId::EventNotifier,
-            &AttributeValue::Value(_) => AttributeId::Value,
-            &AttributeValue::DataType(_) => AttributeId::DataType,
-            &AttributeValue::ValueRank(_) => AttributeId::ValueRank,
-            &AttributeValue::ArrayDimensions(_) => AttributeId::ArrayDimensions,
-            &AttributeValue::AccessLevel(_) => AttributeId::AccessLevel,
-            &AttributeValue::UserAccessLevel(_) => AttributeId::UserAccessLevel,
-            &AttributeValue::MinimumSamplingInterval(_) => AttributeId::MinimumSamplingInterval,
-            &AttributeValue::Historizing(_) => AttributeId::Historizing,
-            &AttributeValue::Executable(_) => AttributeId::Executable,
-            &AttributeValue::UserExecutable(_) => AttributeId::UserExecutable,
-        }
-    }
-
-    pub fn to_variant(&self) -> Variant {
-        match self {
-            &AttributeValue::NodeId(ref value) => Variant::NodeId(value.clone()),
-            &AttributeValue::NodeClass(ref value) => Variant::Int32(*value as Int32),
-            &AttributeValue::BrowseName(ref value) => Variant::QualifiedName(value.clone()),
-            &AttributeValue::DisplayName(ref value) => Variant::LocalizedText(value.clone()),
-            &AttributeValue::Description(ref value) => Variant::LocalizedText(value.clone()),
-            &AttributeValue::WriteMask(ref value) => Variant::UInt32(*value),
-            &AttributeValue::UserWriteMask(ref value) => Variant::UInt32(*value),
-            &AttributeValue::IsAbstract(ref value) => Variant::Boolean(*value),
-            &AttributeValue::Symmetric(ref value) => Variant::Boolean(*value),
-            &AttributeValue::InverseName(ref value) => Variant::LocalizedText(value.clone()),
-            &AttributeValue::ContainsNoLoops(ref value) => Variant::Boolean(*value),
-            &AttributeValue::EventNotifier(ref value) => Variant::Boolean(*value),
-            &AttributeValue::Value(ref value) => Variant::DataValue(value.clone()),
-            &AttributeValue::DataType(ref value) => Variant::NodeId(value.clone()),
-            &AttributeValue::ValueRank(ref value) => Variant::Int32(*value),
-            &AttributeValue::ArrayDimensions(ref value) => {
-                let mut dimensions = Vec::with_capacity(value.len());
-                for d in value {
-                    dimensions.push(Variant::Int32(*d));
-                }
-                Variant::Array(dimensions)
-            }
-            &AttributeValue::AccessLevel(ref value) => Variant::Byte(*value),
-            &AttributeValue::UserAccessLevel(ref value) => Variant::Byte(*value),
-            &AttributeValue::MinimumSamplingInterval(ref value) => Variant::Int32(*value),
-            &AttributeValue::Historizing(ref value) => Variant::Boolean(*value),
-            &AttributeValue::Executable(ref value) => Variant::Boolean(*value),
-            &AttributeValue::UserExecutable(ref value) => Variant::Boolean(*value),
-        }
-    }
-}
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum AttributeId {
@@ -200,14 +111,4 @@ impl AttributeId {
         };
         Ok(attribute_id)
     }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Attribute {
-    pub id: AttributeId,
-    pub value: AttributeValue,
-    pub server_timestamp: DateTime,
-    pub server_picoseconds: Int16,
-    pub source_timestamp: DateTime,
-    pub source_picoseconds: Int16,
 }

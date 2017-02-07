@@ -1,4 +1,3 @@
-
 /// This is a sanity saving macro that adds Node trait methods to all types that have a base
 /// member.
 
@@ -15,36 +14,44 @@ macro_rules! node_impl {
             fn description(&self) -> Option<LocalizedText> { self.base.description() }
             fn write_mask(&self) -> Option<UInt32> { self.base.write_mask() }
             fn user_write_mask(&self) -> Option<UInt32> { self.base.user_write_mask() }
-            fn find_attribute(&self, attribute_id: AttributeId) -> Option<Attribute> { self.base.find_attribute(attribute_id) }
+            fn find_attribute(&self, attribute_id: AttributeId) -> Option<DataValue> { self.base.find_attribute(attribute_id) }
         }
     };
 }
 
 #[macro_export]
-macro_rules! find_attribute_value_optional {
- ( $sel:expr, $attr: ident ) => {
-        let attribute_id = AttributeId::$attr;
-        let ref attribute = $sel.attributes[attribute_id as usize - 1];
-        if attribute.is_some() {
-            if let AttributeValue::$attr(ref value) = attribute.as_ref().unwrap().value {
-                return Some(value.clone());
+macro_rules! find_attribute_value_mandatory {
+    ( $sel:expr, $attr: ident, $t: ident ) => {
+        {
+            let result = find_attribute_value_optional!($sel, $attr, $t);
+            if result.is_some() {
+                result.unwrap()
+            }
+            else {
+                panic!("Mandatory attribute {:?} is missing", AttributeId::$attr);
             }
         }
-        return None;
     }
 }
 
 #[macro_export]
-macro_rules! find_attribute_value_mandatory {
-    ( $sel:expr, $attr: ident ) => {
-        let attribute_id = AttributeId::$attr;
-        let ref attribute = $sel.attributes[attribute_id as usize - 1];
-        if attribute.is_some() {
-            if let AttributeValue::$attr(ref value) = attribute.as_ref().unwrap().value {
-                return value.clone();
+macro_rules! find_attribute_value_optional {
+    ( $sel:expr, $attr: ident, $ty: ident ) => {
+        {
+            let attribute_id = AttributeId::$attr;
+            let ref attribute = $sel.attributes[attribute_id as usize - 1];
+
+            let mut result = None;
+            if attribute.is_some() {
+                let attribute = attribute.as_ref().unwrap();
+                if attribute.value.is_some() {
+                    if let &Variant::$ty(ref value) = attribute.value.as_ref().unwrap().as_ref() {
+                        result = Some(value.clone());
+                    }
+                }
             }
+            result
         }
-        panic!("Mandatory attribute {:?} is missing", attribute_id);
     }
 }
 

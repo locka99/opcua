@@ -374,6 +374,14 @@ impl Variant {
         Ok(result)
     }
 
+    pub fn from_i32_array(in_values: &[Int32]) -> Variant {
+        let mut values = Vec::with_capacity(in_values.len());
+        for v in in_values {
+            values.push(Variant::Int32(*v));
+        }
+        Variant::Array(values)
+    }
+
     pub fn from_string_array(in_values: &[String]) -> Variant {
         let mut values = Vec::with_capacity(in_values.len());
         for v in in_values {

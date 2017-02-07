@@ -11,7 +11,7 @@ impl Object {
     pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str) -> Object {
         // Mandatory
         let attributes = vec![
-            AttributeValue::EventNotifier(false)
+            (AttributeId::EventNotifier, Variant::Boolean(false))
         ];
 
         //        let references = vec![
@@ -25,7 +25,7 @@ impl Object {
     }
 
     pub fn event_notifier(&self) -> Boolean {
-        find_attribute_value_mandatory!(&self.base, EventNotifier);
+        find_attribute_value_mandatory!(&self.base, EventNotifier, Boolean)
     }
 
 }

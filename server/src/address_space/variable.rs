@@ -13,13 +13,12 @@ impl Variable {
         let historizing = false;
         let access_level = 0;
         let user_access_level = 0;
-        let value_rank = -1;
+        let value_rank = -1; // TODO if value is an array, maybe this and array dimensions should be explicitly set
         let attributes = vec![
-            AttributeValue::UserAccessLevel(user_access_level),
-            AttributeValue::AccessLevel(access_level),
-            AttributeValue::Value(value.clone()),
-            AttributeValue::ValueRank(value_rank),
-            AttributeValue::Historizing(historizing),
+            (AttributeId::UserAccessLevel, Variant::Byte(user_access_level)),
+            (AttributeId::AccessLevel, Variant::Byte(access_level)),
+            (AttributeId::ValueRank, Variant::Int32(value_rank)),
+            (AttributeId::Historizing, Variant::Boolean(historizing)),
         ];
 
         // Optional
@@ -27,42 +26,49 @@ impl Variable {
         // attrs.push(Attribute::ArrayDimensions(1));
 
         let properties = vec![];
-        Variable {
+        let mut result = Variable {
             base: Base::new(NodeClass::Variable, node_id, browse_name, display_name, attributes, properties),
-        }
+        };
+        result.base.set_attribute(AttributeId::Value, value.clone());
+        result
     }
 
     pub fn new_array(node_id: &NodeId, browse_name: &str, display_name: &str, value: &DataValue, dimensions: &[Int32]) -> Variable {
         let mut variable = Variable::new(node_id, browse_name, display_name, value);
         // An array has a value rank equivalent to the number of dimensions and an ArrayDimensions array
         let now = DateTime::now();
-        variable.base.set_attribute(AttributeId::ValueRank, AttributeValue::ValueRank(dimensions.len() as Int32), &now, &now);
-        variable.base.set_attribute(AttributeId::ArrayDimensions, AttributeValue::ArrayDimensions(dimensions.to_vec()), &now, &now);
+        variable.base.set_attribute_value(AttributeId::ValueRank, Variant::Int32(dimensions.len() as Int32), &now, &now);
+        variable.base.set_attribute_value(AttributeId::ArrayDimensions, Variant::from_i32_array(dimensions), &now, &now);
         variable
     }
 
-    pub fn access_level(&self) -> Byte {
-        find_attribute_value_mandatory!(&self.base, AccessLevel);
-    }
-
-    pub fn user_access_level(&self) -> Byte {
-        find_attribute_value_mandatory!(&self.base, UserAccessLevel);
-    }
-
     pub fn value(&self) -> DataValue {
-        find_attribute_value_mandatory!(&self.base, Value);
+        if let &Some(ref attribute) = &self.base.attributes[Base::attribute_idx(AttributeId::Value)] {
+            attribute.clone()
+        } else {
+            panic!("Variable value is missing");
+        }
     }
 
     /// Sets the variable's value
-    pub fn set_value(&mut self, value: DataValue, server_timestamp: &DateTime, source_timestamp: &DateTime) -> Result<(), ()> {
-        self.base.update_attribute_value(AttributeId::Value, AttributeValue::Value(value), server_timestamp, source_timestamp)
+    pub fn set_value(&mut self, value: DataValue)  {
+        // Value is directly set - it's a datavalue
+        self.base.attributes[Base::attribute_idx(AttributeId::Value)] = Some(value);
+    }
+
+    pub fn access_level(&self) -> Byte {
+        find_attribute_value_mandatory!(&self.base, AccessLevel, Byte)
+    }
+
+    pub fn user_access_level(&self) -> Byte {
+        find_attribute_value_mandatory!(&self.base, UserAccessLevel, Byte)
     }
 
     pub fn value_rank(&self) -> Int32 {
-        find_attribute_value_mandatory!(&self.base, ValueRank);
+        find_attribute_value_mandatory!(&self.base, ValueRank, Int32)
     }
 
     pub fn historizing(&self) -> Boolean {
-        find_attribute_value_mandatory!(&self.base, Historizing);
+        find_attribute_value_mandatory!(&self.base, Historizing, Boolean)
     }
 }

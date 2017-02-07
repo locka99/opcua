@@ -11,9 +11,9 @@ impl Method {
     pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, is_abstract: Boolean, executable: Boolean, user_executable: Boolean) -> Method {
         // Mandatory
         let attributes = vec![
-            AttributeValue::IsAbstract(is_abstract),
-            AttributeValue::Executable(executable),
-            AttributeValue::UserExecutable(user_executable),
+            (AttributeId::IsAbstract, Variant::Boolean(is_abstract)),
+            (AttributeId::Executable, Variant::Boolean(executable)),
+            (AttributeId::UserExecutable, Variant::Boolean(user_executable)),
         ];
         let properties = vec![];
         Method {
@@ -22,14 +22,14 @@ impl Method {
     }
 
     pub fn is_abstract(&self) -> Boolean {
-        find_attribute_value_mandatory!(&self.base, IsAbstract);
+        find_attribute_value_mandatory!(&self.base, IsAbstract, Boolean)
     }
 
     pub fn executable(&self) -> Boolean {
-        find_attribute_value_mandatory!(&self.base, Executable);
+        find_attribute_value_mandatory!(&self.base, Executable, Boolean)
     }
 
     pub fn user_executable(&self) -> Boolean {
-        find_attribute_value_mandatory!(&self.base, UserExecutable);
+        find_attribute_value_mandatory!(&self.base, UserExecutable, Boolean)
     }
 }

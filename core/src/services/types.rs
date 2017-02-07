@@ -365,19 +365,30 @@ impl BinaryEncoder<NodeClass> for NodeClass {
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         // All enums are Int32
         let value = read_i32(stream)?;
+        let result = NodeClass::from_i32(value);
+        if result.is_some() {
+            Ok(result.unwrap())
+        } else {
+            error!("Don't know what node class {} is", value);
+            Err(&BAD_NODE_CLASS_INVALID)
+        }
+    }
+}
+
+impl NodeClass {
+    pub fn from_i32(value: Int32) -> Option<NodeClass> {
         match value {
-            0 => Ok(NodeClass::Unspecified),
-            1 => Ok(NodeClass::Object),
-            2 => Ok(NodeClass::Variable),
-            4 => Ok(NodeClass::Method),
-            8 => Ok(NodeClass::ObjectType),
-            16 => Ok(NodeClass::VariableType),
-            32 => Ok(NodeClass::ReferenceType),
-            64 => Ok(NodeClass::DataType),
-            128 => Ok(NodeClass::View),
+            0 => Some(NodeClass::Unspecified),
+            1 => Some(NodeClass::Object),
+            2 => Some(NodeClass::Variable),
+            4 => Some(NodeClass::Method),
+            8 => Some(NodeClass::ObjectType),
+            16 => Some(NodeClass::VariableType),
+            32 => Some(NodeClass::ReferenceType),
+            64 => Some(NodeClass::DataType),
+            128 => Some(NodeClass::View),
             _ => {
-                error!("Don't know what node class {} is", value);
-                Err(&BAD_NODE_CLASS_INVALID)
+                None
             }
         }
     }
