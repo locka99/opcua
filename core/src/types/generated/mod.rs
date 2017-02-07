@@ -12,7 +12,7 @@ macro_rules! use_generated_types {
     }
 }
 
-use_generated_types! [
+use_generated_types![
     application_description,
     channel_security_token,
     open_secure_channel_request,
@@ -60,6 +60,13 @@ pub use self::node_ids::*;
 impl ObjectId {
     pub fn as_node_id(&self) -> NodeId {
         NodeId::from_object_id(*self)
+    }
+}
+
+
+impl DataTypeId {
+    pub fn as_node_id(&self) -> NodeId {
+        NodeId::from_data_type_id(*self)
     }
 }
 

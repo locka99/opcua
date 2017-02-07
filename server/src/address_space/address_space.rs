@@ -345,6 +345,7 @@ impl AddressSpace {
             let server_capabilities_id = ObjectId::Server_ServerCapabilities.as_node_id();
             {
                 self.insert_variable(Variable::new(&server_capabilities_id, "ServerCapabilities", "ServerCapabilities", &DataValue::new(Variant::Empty)));
+
                 self.add_has_component(&server_id, &server_capabilities_id);
                 {
                     //     MaxBrowseContinuationPoint
@@ -357,14 +358,34 @@ impl AddressSpace {
             let serverstatus_id = VariableId::Server_ServerStatus.as_node_id();
             {
                 self.insert_variable(Variable::new(&serverstatus_id, "ServerStatus", "ServerStatus", &DataValue::new(Variant::Empty)));
+                self.make_twoway_reference(&serverstatus_id, &DataTypeId::ServerStatusDataType.as_node_id(), ReferenceTypeId::HasTypeDefinition);
+
                 self.add_has_component(&server_id, &serverstatus_id);
                 {
+                    // State OPC UA Part 5 12.6, Valid states are
+                    //
+                    // Running = 0
+                    // Failed = 1
+                    // No configuration = 2
+                    // Suspended = 3
+                    // Shutdown = 4
+                    // Test = 5
+                    // Communication Fault = 6
+                    // Unknown = 7
                     //     State (Server_ServerStatus_State)
                     let serverstatus_state_id = VariableId::Server_ServerStatus_State.as_node_id();
-                    self.insert_variable(Variable::new(&serverstatus_state_id, "ServerStatus", "ServerStatus", &DataValue::new(Variant::UInt32(0))));
+                    self.insert_variable(Variable::new(&serverstatus_state_id, "State", "State", &DataValue::new(Variant::UInt32(0))));
+                    self.make_twoway_reference(&serverstatus_state_id, &DataTypeId::ServerState.as_node_id(), ReferenceTypeId::HasTypeDefinition);
                     self.add_has_component(&serverstatus_id, &serverstatus_state_id);
                 }
             }
+
+            // ServiceLevel - var
+            // Auditing - var
+            // ServerCapabilities
+            // ServerDiagnostics
+            // VendorServiceInfo
+            // ServerRedundancy
         }
     }
 

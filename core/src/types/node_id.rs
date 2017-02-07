@@ -206,6 +206,7 @@ impl FromStr for NodeId {
 }
 
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+
 static NEXT_NODE_ID_NUMERIC: AtomicUsize = ATOMIC_USIZE_INIT;
 
 impl NodeId {
@@ -293,22 +294,22 @@ impl NodeId {
 
     /// Construct a numeric node id
     pub fn new_numeric(namespace: UInt16, value: UInt64) -> NodeId {
-        NodeId { namespace: namespace, identifier: Identifier::Numeric(value), }
+        NodeId { namespace: namespace, identifier: Identifier::Numeric(value) }
     }
 
     /// Construct a string node id
     pub fn new_string(namespace: UInt16, value: &str) -> NodeId {
-        NodeId { namespace: namespace, identifier: Identifier::String(UAString::from_str(value)), }
+        NodeId { namespace: namespace, identifier: Identifier::String(UAString::from_str(value)) }
     }
 
     /// Construct a guid node id
     pub fn new_guid(namespace: UInt16, value: Guid) -> NodeId {
-        NodeId { namespace: namespace, identifier: Identifier::Guid(value), }
+        NodeId { namespace: namespace, identifier: Identifier::Guid(value) }
     }
 
     /// Construct a bytestring node id
     pub fn new_byte_string(namespace: UInt16, value: ByteString) -> NodeId {
-        NodeId { namespace: namespace, identifier: Identifier::ByteString(value), }
+        NodeId { namespace: namespace, identifier: Identifier::ByteString(value) }
     }
 
     /// Test if the node id is null, i.e. 0 namespace and 0 identifier
