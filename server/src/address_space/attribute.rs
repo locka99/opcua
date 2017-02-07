@@ -1,5 +1,5 @@
-use types::*;
-use services::*;
+use opcua_core::types::*;
+use opcua_core::services::*;
 
 // Attributes as defined in Part 4, Figure B.7
 

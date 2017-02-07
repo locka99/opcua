@@ -1,5 +1,6 @@
-use types::*;
-use services::*;
+use opcua_core::types::*;
+use opcua_core::services::*;
+
 use address_space::*;
 
 // This should match size of AttributeId
@@ -166,15 +167,26 @@ impl Base {
         }
     }
 
-    pub fn update_attribute_value(&mut self, attribute_id: AttributeId, value: AttributeValue, server_timestamp: &DateTime, source_timestamp: &DateTime) -> Result<(), ()>{
+    pub fn set_attribute(&mut self, attribute_id: AttributeId, value: AttributeValue, server_timestamp: &DateTime, source_timestamp: &DateTime) {
+        let attribute_idx = attribute_id as usize - 1;
+        self.attributes[attribute_idx] = Some(Attribute {
+            id: attribute_id,
+            value: value,
+            server_timestamp: server_timestamp.clone(),
+            server_picoseconds: 0,
+            source_timestamp: source_timestamp.clone(),
+            source_picoseconds: 0,
+        });
+    }
+
+    pub fn update_attribute_value(&mut self, attribute_id: AttributeId, value: AttributeValue, server_timestamp: &DateTime, source_timestamp: &DateTime) -> Result<(), ()> {
         let ref mut attribute = self.attributes[Base::attribute_idx(attribute_id)];
         if let &mut Some(ref mut attribute) = attribute {
             attribute.value = value;
             attribute.server_timestamp = server_timestamp.clone();
             attribute.source_timestamp = source_timestamp.clone();
             Ok(())
-        }
-        else {
+        } else {
             Err(())
         }
     }

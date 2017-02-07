@@ -3,6 +3,8 @@ use std::path::{PathBuf};
 
 use config::*;
 
+mod address_space;
+
 fn make_test_file(filename: &str) -> PathBuf {
     let mut path = std::env::temp_dir();
     path.push(filename);

@@ -1,6 +1,7 @@
+use opcua_core::services::*;
+use opcua_core::types::*;
+
 use address_space::*;
-use services::*;
-use types::*;
 
 #[test]
 fn address_space() {

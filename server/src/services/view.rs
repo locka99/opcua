@@ -1,11 +1,11 @@
 use std::result::Result;
 
-use opcua_core::address_space::*;
 use opcua_core::types::*;
 use opcua_core::services::*;
 use opcua_core::comms::*;
 
 use types::*;
+use address_space::*;
 use server::ServerState;
 
 pub struct ViewService {}

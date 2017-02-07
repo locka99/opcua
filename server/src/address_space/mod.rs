@@ -1,8 +1,12 @@
+
 /// This is a sanity saving macro that adds Node trait methods to all types that have a base
 /// member.
 
 macro_rules! node_impl {
     ( $node_struct:ty ) => {
+        use opcua_core::types::*;
+        use opcua_core::services::*;
+
         impl Node for $node_struct {
             fn node_class(&self) -> NodeClass { self.base.node_class() }
             fn node_id(&self) -> NodeId { self.base.node_id() }

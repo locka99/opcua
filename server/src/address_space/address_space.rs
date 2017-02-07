@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
+use opcua_core::services::*;
+use opcua_core::types::*;
+
 use address_space::*;
-use services::*;
-use types::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum NodeType {
@@ -155,6 +156,10 @@ impl AddressSpace {
             panic!("This node {:?} already exists", node_id);
         }
         self.node_map.insert(node_id, node_type);
+    }
+
+    pub fn insert_variable(&mut self, variable: Variable) {
+        self.insert(NodeType::Variable(variable))
     }
 
     pub fn node_exists(&self, node_id: &NodeId) -> bool {
@@ -311,6 +316,57 @@ impl AddressSpace {
         (references, inverse_ref_idx)
     }
 
+    /// Add nodes representing the server. For this, the values in server state are used to populate
+    /// the address. Therefore things like namespaces should be set before calling this.
+    pub fn add_server_nodes(&mut self, server_state: &::ServerState) {
+        let root_folder_id = AddressSpace::root_folder_id();
+        let server_id = NodeId::from_object_id(ObjectId::Server);
+
+        // Server/ (ServerType)
+        let _ = self.add_organized_node(&server_id, "Server", "Server", &root_folder_id, ObjectTypeId::ServerType);
+        {
+            //   NamespaceArray
+            let namespace_array_id = VariableId::Server_NamespaceArray.as_node_id();
+            let namespace_value = Variant::from_string_array(&server_state.namespaces);
+            {
+                self.insert_variable(Variable::new_array(&namespace_array_id, "NamespaceArray", "NamespaceArray", &DataValue::new(namespace_value), &[server_state.namespaces.len() as Int32]));
+                self.add_has_component(&server_id, &namespace_array_id);
+            }
+
+            //   ServerArray
+            let server_array_id = VariableId::Server_ServerArray.as_node_id();
+            {
+                let server_array_value = Variant::from_string_array(&server_state.servers);
+                self.insert_variable(Variable::new_array(&server_array_id, "ServerArray", "ServerArray", &DataValue::new(server_array_value), &[server_state.servers.len() as Int32]));
+                self.add_has_component(&server_id, &server_array_id);
+            }
+
+            //   ServerCapabilities/
+            let server_capabilities_id = ObjectId::Server_ServerCapabilities.as_node_id();
+            {
+                self.insert_variable(Variable::new(&server_capabilities_id, "ServerCapabilities", "ServerCapabilities", &DataValue::new(Variant::Empty)));
+                self.add_has_component(&server_id, &server_capabilities_id);
+                {
+                    //     MaxBrowseContinuationPoint
+                    //                    let maxbrowse_continuation_points_id = VariableId::Server_ServerCapabilities_MaxBrowseContinuationPoints.as_node_id();
+                    //                    self.insert(NodeType::Variable(Variable::new(&serverstatus_state_id, "ServerStatus", "ServerStatus", &DataValue::new(Variant::UInt32(0)))));
+                }
+            }
+
+            //   ServerStatus
+            let serverstatus_id = VariableId::Server_ServerStatus.as_node_id();
+            {
+                self.insert_variable(Variable::new(&serverstatus_id, "ServerStatus", "ServerStatus", &DataValue::new(Variant::Empty)));
+                self.add_has_component(&server_id, &serverstatus_id);
+                {
+                    //     State (Server_ServerStatus_State)
+                    let serverstatus_state_id = VariableId::Server_ServerStatus_State.as_node_id();
+                    self.insert_variable(Variable::new(&serverstatus_state_id, "ServerStatus", "ServerStatus", &DataValue::new(Variant::UInt32(0))));
+                    self.add_has_component(&serverstatus_id, &serverstatus_state_id);
+                }
+            }
+        }
+    }
 
     //    fn make_oneway_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) {
     //        AddressSpace::add_reference(&mut self.references, node_id_from, Reference::new(reference_type_id, node_id_to));

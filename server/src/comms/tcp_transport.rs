@@ -14,9 +14,9 @@ use types::*;
 use server::ServerState;
 use comms::message_handler::*;
 
-const RECEIVE_BUFFER_SIZE: usize = 32768;
-const SEND_BUFFER_SIZE: usize = 32768;
-const MAX_MESSAGE_SIZE: usize = 32768;
+const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;
+const SEND_BUFFER_SIZE: usize = 1024 * 64;
+const MAX_MESSAGE_SIZE: usize = 1024 * 64;
 const MAX_CHUNK_COUNT: usize = 1;
 
 #[derive(Clone, Debug, PartialEq)]

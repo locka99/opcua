@@ -1,6 +1,4 @@
 use address_space::*;
-use types::*;
-use services::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Variable {
@@ -32,6 +30,15 @@ impl Variable {
         Variable {
             base: Base::new(NodeClass::Variable, node_id, browse_name, display_name, attributes, properties),
         }
+    }
+
+    pub fn new_array(node_id: &NodeId, browse_name: &str, display_name: &str, value: &DataValue, dimensions: &[Int32]) -> Variable {
+        let mut variable = Variable::new(node_id, browse_name, display_name, value);
+        // An array has a value rank equivalent to the number of dimensions and an ArrayDimensions array
+        let now = DateTime::now();
+        variable.base.set_attribute(AttributeId::ValueRank, AttributeValue::ValueRank(dimensions.len() as Int32), &now, &now);
+        variable.base.set_attribute(AttributeId::ArrayDimensions, AttributeValue::ArrayDimensions(dimensions.to_vec()), &now, &now);
+        variable
     }
 
     pub fn access_level(&self) -> Byte {

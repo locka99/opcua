@@ -10,12 +10,13 @@ extern crate rand;
 // extern crate openssl;
 
 pub mod types;
-pub mod address_space;
 pub mod comms;
 pub mod services;
 
 use log::*;
 
+/// Simple logger (as the name suggests) is a bare bones implementation of the log::Log trait
+/// that may be used to print debug information out to the console.
 struct SimpleLogger;
 
 impl log::Log for SimpleLogger {
@@ -30,6 +31,7 @@ impl log::Log for SimpleLogger {
     }
 }
 
+/// Initialise OPC UA logging on the executable.
 pub fn init_logging() -> Result<(), SetLoggerError> {
     log::set_logger(|max_log_level| {
         max_log_level.set(LogLevelFilter::Debug);
@@ -37,6 +39,8 @@ pub fn init_logging() -> Result<(), SetLoggerError> {
     })
 }
 
+///Contains constants recognized by OPC UA clients and servers to describe various protocols and
+/// profiles used during communication and encryption.
 pub mod profiles {
     pub const TRANSPORT_BINARY: &'static str = "http://opcfoundation.org/UA-Profile/Transport/uatcp-uasc-uabinary";
 
@@ -48,6 +52,7 @@ pub mod profiles {
     pub const SECURITY_USER_TOKEN_POLICY_ANONYMOUS: &'static str = "http://opcfoundation.org/UA-Profile/Security/UserToken/Anonymous";
 }
 
+/// Contains debugging utility helper functions
 pub mod debug {
     /// Prints out the content of a slice in a form similar to node-opcua to aid with debugging.
     pub fn debug_buffer(buf: &[u8]) {

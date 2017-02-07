@@ -6,7 +6,8 @@ use opcua_core;
 use opcua_core::types::*;
 use opcua_core::services::*;
 use opcua_core::comms::*;
-use opcua_core::address_space::*;
+
+use address_space::*;
 
 use comms::tcp_transport::*;
 
@@ -32,10 +33,14 @@ pub struct ServerState {
     pub product_uri: UAString,
     /// The application name
     pub application_name: LocalizedText,
-    // The protocol, hostname and port formatted as a url, but less the path
+    /// The protocol, hostname and port formatted as a url, but less the path
     pub base_endpoint: String,
+    /// The time the server started
+    pub start_time: DateTime,
     /// The list of namespaces
-    pub namespaces: Vec<UAString>,
+    pub namespaces: Vec<String>,
+    /// The list of servers (by urn)
+    pub servers: Vec<String>,
     // A list of endpoints
     pub endpoints: Vec<Endpoint>,
     /// Server configuration
@@ -98,7 +103,9 @@ impl Server {
         let application_name = config.application_name.clone();
         let application_uri = UAString::from_str(&config.application_uri);
         let product_uri = UAString::from_str(&config.product_uri);
-        let namespaces = vec![UAString::from_str("http://opcfoundation.org/UA/"), UAString::from_str(&config.application_uri)];
+        let namespaces = vec!["http://opcfoundation.org/UA/".to_string(), config.application_uri.clone()];
+        let start_time = DateTime::now();
+        let servers = vec![config.application_uri.clone()];
         let base_endpoint = format!("opc.tcp://{}:{}", config.tcp_config.host, config.tcp_config.port);
 
         let mut endpoints = Vec::new();
@@ -132,7 +139,9 @@ impl Server {
                 text: UAString::from_str(&application_name),
             },
             namespaces: namespaces,
+            servers: servers,
             base_endpoint: base_endpoint,
+            start_time: start_time,
             endpoints: endpoints,
             config: Arc::new(Mutex::new(config.clone())),
             server_certificate: server_certificate,
@@ -141,7 +150,7 @@ impl Server {
 
         {
             let mut address_space = server_state.address_space.lock().unwrap();
-            Server::add_server_nodes(&mut address_space, &server_state);
+            address_space.add_server_nodes(&server_state);
         }
 
         Server {
@@ -156,56 +165,6 @@ impl Server {
         Server::new(&ServerConfig::default_anonymous())
     }
 
-    fn add_server_nodes(address_space: &mut AddressSpace, server_state: &::ServerState) {
-        let root_folder_id = AddressSpace::root_folder_id();
-        let server_id = NodeId::from_object_id(ObjectId::Server);
-
-        // Server/ (ServerType)
-        let _ = address_space.add_organized_node(&server_id, "Server", "Server", &root_folder_id, ObjectTypeId::ServerType);
-        {
-            //   NamespaceArray
-            let namespace_array_id = VariableId::Server_NamespaceArray.as_node_id();
-            let namespace_value = Variant::from_str_array(&vec!["x", "y"]);
-            {
-                address_space.insert(NodeType::Variable(Variable::new(&namespace_array_id, "NamespaceArray", "NamespaceArray", &DataValue::new(namespace_value))));
-                address_space.add_has_component(&server_id, &namespace_array_id);
-            }
-
-            //   ServerArray
-            let server_array_id = VariableId::Server_ServerArray.as_node_id();
-            {
-                let server_array_value = Variant::Array(vec![Variant::String(UAString::from_str("serverTODO"))]);
-                address_space.insert(NodeType::Variable(Variable::new(&server_array_id, "ServerArray", "ServerArray", &DataValue::new(server_array_value))));
-                address_space.add_has_component(&server_id, &server_array_id);
-            }
-
-            //   ServerCapabilities/
-            let server_capabilities_id = ObjectId::Server_ServerCapabilities.as_node_id();
-            {
-                address_space.insert(NodeType::Variable(Variable::new(&server_capabilities_id, "ServerCapabilities", "ServerCapabilities", &DataValue::new(Variant::Empty))));
-                address_space.add_has_component(&server_id, &server_capabilities_id);
-                {
-                    //     MaxBrowseContinuationPoint
-//                    let maxbrowse_continuation_points_id = VariableId::Server_ServerCapabilities_MaxBrowseContinuationPoints.as_node_id();
-//                    address_space.insert(NodeType::Variable(Variable::new(&serverstatus_state_id, "ServerStatus", "ServerStatus", &DataValue::new(Variant::UInt32(0)))));
-
-                }
-            }
-
-            //   ServerStatus
-            let serverstatus_id = VariableId::Server_ServerStatus.as_node_id();
-            {
-                address_space.insert(NodeType::Variable(Variable::new(&serverstatus_id, "ServerStatus", "ServerStatus", &DataValue::new(Variant::Empty))));
-                address_space.add_has_component(&server_id, &serverstatus_id);
-                {
-                    //     State (Server_ServerStatus_State)
-                    let serverstatus_state_id = VariableId::Server_ServerStatus_State.as_node_id();
-                    address_space.insert(NodeType::Variable(Variable::new(&serverstatus_state_id, "ServerStatus", "ServerStatus", &DataValue::new(Variant::UInt32(0)))));
-                    address_space.add_has_component(&serverstatus_id, &serverstatus_state_id);
-                }
-            }
-        }
-    }
     // Terminates the running server
     pub fn abort(&mut self) {
         self.abort = true;

@@ -38,8 +38,6 @@ pub struct ChunkHeader {
     pub is_valid: bool,
 }
 
-
-
 impl BinaryEncoder<ChunkHeader> for ChunkHeader {
     fn byte_len(&self) -> usize {
         CHUNK_HEADER_SIZE
@@ -116,6 +114,8 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
 
 impl ChunkHeader {}
 
+/// Chunk info provides some basic information gleaned from reading the chunk such as offsets into
+/// the chunk and so on.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChunkInfo {
     /// Node id, if present (first chunk only of a MSG)
@@ -134,6 +134,8 @@ pub struct ChunkInfo {
     pub padding_offset: usize,
 }
 
+/// Holds the security header associated with the chunk. Secure channel requests use an asymmetric
+/// security header, regular messages use a symmetric security header.
 #[derive(Debug, Clone, PartialEq)]
 pub enum SecurityHeader {
     Asymmetric(AsymmetricSecurityHeader),

@@ -18,6 +18,8 @@ pub mod types;
 
 pub mod config;
 
+pub mod address_space;
+
 pub use server::*;
 
 #[cfg(test)]

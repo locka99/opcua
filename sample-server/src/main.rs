@@ -1,11 +1,12 @@
 extern crate opcua_core;
 extern crate opcua_server;
 
-use opcua_core::address_space::*;
 use opcua_core::types::*;
 
+use opcua_server::{Server};
+use opcua_server::address_space::*;
+
 fn main() {
-    use opcua_server::{Server};
     let _ = opcua_core::init_logging();
     let mut server = Server::new_default();
 

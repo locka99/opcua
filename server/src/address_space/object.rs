@@ -1,5 +1,3 @@
-use services::*;
-use types::*;
 use address_space::*;
 
 #[derive(Debug, Clone, PartialEq)]
