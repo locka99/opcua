@@ -67,9 +67,9 @@ fn make_sample_address_space() -> AddressSpace {
 
     // Add some variables to our sample folder
     let vars = vec![
-        Variable::new(&NodeId::new_string(1, "v1"), "v1", "v1", &DataValue::new(Variant::Int32(30))),
-        Variable::new(&NodeId::new_numeric(2, 300), "v2", "v2", &DataValue::new(Variant::Boolean(true))),
-        Variable::new(&NodeId::new_string(1, "v3"), "v3", "v3", &DataValue::new(Variant::String(UAString::from_str("Hello world"))))
+        Variable::new(&NodeId::new_string(1, "v1"), "v1", "v1", DataValue::new(Variant::Int32(30))),
+        Variable::new(&NodeId::new_numeric(2, 300), "v2", "v2", DataValue::new(Variant::Boolean(true))),
+        Variable::new(&NodeId::new_string(1, "v3"), "v3", "v3", DataValue::new(Variant::String(UAString::from_str("Hello world"))))
     ];
     let _ = address_space.add_variables(&vars, &sample_folder_id);
     address_space

@@ -16,8 +16,6 @@ impl AttributeService {
     }
 
     pub fn read(&self, server_state: &mut ServerState, _: &mut SessionState, request: &ReadRequest) -> Result<SupportedMessage, &'static StatusCode> {
-        debug!("read request {:#?}", request);
-
         // Read nodes and their attributes
         let timestamps_to_return = request.timestamps_to_return;
         let address_space = server_state.address_space.lock().unwrap();

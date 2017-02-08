@@ -15,8 +15,6 @@ impl SessionService {
     }
 
     pub fn create_session(&self, server_state: &mut ServerState, _: &mut SessionState, request: &CreateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
-        debug!("create_session {:#?}", request);
-
         // TODO validate client certificate
 
         // TODO these need to be stored in the session

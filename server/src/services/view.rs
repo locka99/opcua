@@ -25,7 +25,6 @@ impl ViewService {
     }
 
     pub fn browse(&self, server_state: &mut ServerState, _: &mut SessionState, request: &BrowseRequest) -> Result<SupportedMessage, &'static StatusCode> {
-        debug!("browse {:#?}", request);
         let browse_results = if request.nodes_to_browse.is_some() {
             let nodes_to_browse = request.nodes_to_browse.as_ref().unwrap();
             let mut browse_results: Vec<BrowseResult> = Vec::new();
@@ -81,10 +80,6 @@ impl ViewService {
     }
 
     fn reference_descriptions(address_space: &AddressSpace, node_to_browse: &BrowseDescription, max_references_per_node: UInt32) -> Result<Vec<ReferenceDescription>, &'static StatusCode> {
-        if !address_space.node_exists(&node_to_browse.node_id) {
-            return Err(&BAD_NODE_ID_UNKNOWN);
-        }
-
         // Request may wish to filter by a kind of reference
         let reference_type_id = if node_to_browse.reference_type_id.is_null() {
             None

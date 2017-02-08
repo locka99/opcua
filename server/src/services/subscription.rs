@@ -18,8 +18,6 @@ impl SubscriptionService {
     }
 
     pub fn create_subscription(&self, _: &mut ServerState, session_state: &mut SessionState, request: &CreateSubscriptionRequest) -> Result<SupportedMessage, &'static StatusCode> {
-        debug!("create_subscription {:#?}", request);
-
         if session_state.subscriptions.len() >= MAX_SUBSCRIPTIONS {
             return Err(&BAD_TOO_MANY_SUBSCRIPTIONS);
         }

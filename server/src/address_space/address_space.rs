@@ -50,55 +50,7 @@ impl AddressSpace {
             references: HashMap::new(),
             inverse_references: HashMap::new(),
         };
-
-        let root_node_id = AddressSpace::root_folder_id();
-        let root_node = Object::new(&root_node_id, "Root", "Root");
-        address_space.insert(NodeType::Object(root_node));
-
-        // Things under root
-        {
-            let objects_node_id = AddressSpace::objects_folder_id();
-            let _ = address_space.add_folder_with_id(&objects_node_id, "Objects", "Objects", &root_node_id);
-
-            let types_node_id = AddressSpace::types_folder_id();
-            let _ = address_space.add_folder_with_id(&types_node_id, "Types", "Types", &root_node_id);
-            {
-                // DataTypes/
-                //    BaseDataType/
-                //      Boolean
-                //      ...
-                //    OPC Binary/
-
-                let datatypes_node_id = ObjectId::DataTypesFolder.as_node_id();
-                let _ = address_space.add_folder_with_id(&datatypes_node_id, "DataTypes", "DataTypes", &types_node_id);
-                {
-                    //
-                }
-
-                let opcbinary_node_id = ObjectId::OPCBinarySchema_TypeSystem.as_node_id();
-                let opcbinary_node = Object::new(&opcbinary_node_id, "OPC Binary", "OPC Binary");
-                address_space.insert(NodeType::Object(opcbinary_node));
-                address_space.add_organizes(&types_node_id, &opcbinary_node_id);
-            }
-            {
-                // ReferenceTypes/
-                //    References/
-                //      HierarchicalReferences
-                //        HasChild
-                //          HasSubtype
-                //        Organizes
-                //      NonHierarchicalReferences
-                //        HasTypeDefinition
-
-                let referencetypes_node_id = ObjectId::ReferenceTypesFolder.as_node_id();
-                let _ = address_space.add_folder_with_id(&referencetypes_node_id, "ReferenceTypes", "ReferenceTypes", &types_node_id);
-                {}
-            }
-
-            let views_node_id = AddressSpace::views_folder_id();
-            let _ = address_space.add_folder_with_id(&views_node_id, "Views", "Views", &root_node_id);
-        }
-
+        address_space.add_default_nodes();
         address_space
     }
 
@@ -158,10 +110,6 @@ impl AddressSpace {
         self.node_map.insert(node_id, node_type);
     }
 
-    pub fn insert_variable(&mut self, variable: Variable) {
-        self.insert(NodeType::Variable(variable))
-    }
-
     pub fn node_exists(&self, node_id: &NodeId) -> bool {
         self.node_map.contains_key(node_id)
     }
@@ -191,7 +139,7 @@ impl AddressSpace {
             // Add a relationship to the parent
             self.add_organizes(&parent_node_id, &node_id);
             let folder_object = Object::new(&node_id, browse_name, display_name);
-            self.make_twoway_reference(&folder_object.node_id(), &object_type_id.as_node_id(), ReferenceTypeId::HasTypeDefinition);
+            self.insert_reference(&folder_object.node_id(), &object_type_id.as_node_id(), ReferenceTypeId::HasTypeDefinition);
             self.insert(NodeType::Object(folder_object));
             Ok(node_id.clone())
         }
@@ -316,6 +264,84 @@ impl AddressSpace {
         (references, inverse_ref_idx)
     }
 
+    pub fn add_default_nodes(&mut self) {
+        let root_node_id = AddressSpace::root_folder_id();
+        let root_node = Object::new(&root_node_id, "Root", "Root");
+        self.insert(NodeType::Object(root_node));
+
+        // Things under root
+        {
+            let objects_id = AddressSpace::objects_folder_id();
+            let _ = self.add_folder_with_id(&objects_id, "Objects", "Objects", &root_node_id);
+
+            let types_id = AddressSpace::types_folder_id();
+            let _ = self.add_folder_with_id(&types_id, "Types", "Types", &root_node_id);
+            {
+                // DataTypes/
+                //    BaseDataType/
+                //      Boolean
+                //      ...
+                //    OPC Binary/
+
+                let datatypes_id = ObjectId::DataTypesFolder.as_node_id();
+                let _ = self.add_folder_with_id(&datatypes_id, "DataTypes", "DataTypes", &types_id);
+                {
+                    let basedatatype_id = DataTypeId::BaseDataType.as_node_id();
+                    self.insert(DataType::new_node(&basedatatype_id, "BaseDataType", "BaseDataType", true));
+                    self.add_organizes(&datatypes_id, &basedatatype_id);
+
+                    let types = vec![
+                        (DataTypeId::Boolean, "Boolean"),
+                        (DataTypeId::ByteString, "ByteString"),
+                        (DataTypeId::DataValue, "DataValue"),
+                        (DataTypeId::DateTime, "DateTime"),
+                        (DataTypeId::DiagnosticInfo, "DiagnosticInfo"),
+                        (DataTypeId::Enumeration, "Enumeration"),
+                        (DataTypeId::ExpandedNodeId, "ExpandedNodeId"),
+                        (DataTypeId::Guid, "Guid"),
+                        (DataTypeId::LocalizedText, "LocalizedText"),
+                        (DataTypeId::NodeId, "NodeId"),
+                        (DataTypeId::Number, "Number"),
+                        (DataTypeId::QualifiedName, "QualifiedName"),
+                        (DataTypeId::StatusCode, "StatusCode"),
+                        (DataTypeId::String, "String"),
+                        (DataTypeId::Structure, "Structure"),
+                        (DataTypeId::XmlElement, "XmlElement"),
+                    ];
+                    for t in types {
+                        let (id, name) = t;
+                        let type_id = id.as_node_id();
+                        self.insert(DataType::new_node(&type_id, name, name, false));
+                        self.insert_reference(&basedatatype_id, &type_id, ReferenceTypeId::HasSubtype);
+                    }
+
+                }
+
+                let opcbinary_node_id = ObjectId::OPCBinarySchema_TypeSystem.as_node_id();
+                self.insert(Object::new_node(&opcbinary_node_id, "OPC Binary", "OPC Binary"));
+                self.add_organizes(&types_id, &opcbinary_node_id);
+            }
+            {
+                // ReferenceTypes/
+                //    References/
+                //      HierarchicalReferences
+                //        HasChild
+                //          HasSubtype
+                //        Organizes
+                //      NonHierarchicalReferences
+                //        HasTypeDefinition
+
+                let referencetypes_id = ObjectId::ReferenceTypesFolder.as_node_id();
+                let _ = self.add_folder_with_id(&referencetypes_id, "ReferenceTypes", "ReferenceTypes", &types_id);
+                {}
+            }
+
+            let views_id = AddressSpace::views_folder_id();
+            let _ = self.add_folder_with_id(&views_id, "Views", "Views", &root_node_id);
+        }
+
+    }
+
     /// Add nodes representing the server. For this, the values in server state are used to populate
     /// the address. Therefore things like namespaces should be set before calling this.
     pub fn add_server_nodes(&mut self, server_state: &::ServerState) {
@@ -329,7 +355,7 @@ impl AddressSpace {
             let namespace_array_id = VariableId::Server_NamespaceArray.as_node_id();
             let namespace_value = Variant::from_string_array(&server_state.namespaces);
             {
-                self.insert_variable(Variable::new_array(&namespace_array_id, "NamespaceArray", "NamespaceArray", &DataValue::new(namespace_value), &[server_state.namespaces.len() as Int32]));
+                self.insert(Variable::new_array_node(&namespace_array_id, "NamespaceArray", "NamespaceArray", DataValue::new(namespace_value), &[server_state.namespaces.len() as Int32]));
                 self.add_has_component(&server_id, &namespace_array_id);
             }
 
@@ -337,14 +363,14 @@ impl AddressSpace {
             let server_array_id = VariableId::Server_ServerArray.as_node_id();
             {
                 let server_array_value = Variant::from_string_array(&server_state.servers);
-                self.insert_variable(Variable::new_array(&server_array_id, "ServerArray", "ServerArray", &DataValue::new(server_array_value), &[server_state.servers.len() as Int32]));
+                self.insert(Variable::new_array_node(&server_array_id, "ServerArray", "ServerArray", DataValue::new(server_array_value), &[server_state.servers.len() as Int32]));
                 self.add_has_component(&server_id, &server_array_id);
             }
 
             //   ServerCapabilities/
             let server_capabilities_id = ObjectId::Server_ServerCapabilities.as_node_id();
             {
-                self.insert_variable(Variable::new(&server_capabilities_id, "ServerCapabilities", "ServerCapabilities", &DataValue::new(Variant::Empty)));
+                self.insert(Variable::new_node(&server_capabilities_id, "ServerCapabilities", "ServerCapabilities", DataValue::new(Variant::Empty)));
 
                 self.add_has_component(&server_id, &server_capabilities_id);
                 {
@@ -357,8 +383,8 @@ impl AddressSpace {
             //   ServerStatus
             let serverstatus_id = VariableId::Server_ServerStatus.as_node_id();
             {
-                self.insert_variable(Variable::new(&serverstatus_id, "ServerStatus", "ServerStatus", &DataValue::new(Variant::Empty)));
-                self.make_twoway_reference(&serverstatus_id, &DataTypeId::ServerStatusDataType.as_node_id(), ReferenceTypeId::HasTypeDefinition);
+                self.insert(Variable::new_node(&serverstatus_id, "ServerStatus", "ServerStatus", DataValue::new(Variant::Empty)));
+                self.insert_reference(&serverstatus_id, &DataTypeId::ServerStatusDataType.as_node_id(), ReferenceTypeId::HasTypeDefinition);
 
                 self.add_has_component(&server_id, &serverstatus_id);
                 {
@@ -374,8 +400,8 @@ impl AddressSpace {
                     // Unknown = 7
                     //     State (Server_ServerStatus_State)
                     let serverstatus_state_id = VariableId::Server_ServerStatus_State.as_node_id();
-                    self.insert_variable(Variable::new(&serverstatus_state_id, "State", "State", &DataValue::new(Variant::UInt32(0))));
-                    self.make_twoway_reference(&serverstatus_state_id, &DataTypeId::ServerState.as_node_id(), ReferenceTypeId::HasTypeDefinition);
+                    self.insert(Variable::new_node(&serverstatus_state_id, "State", "State", DataValue::new(Variant::UInt32(0))));
+                    self.insert_reference(&serverstatus_state_id, &DataTypeId::ServerState.as_node_id(), ReferenceTypeId::HasTypeDefinition);
                     self.add_has_component(&serverstatus_id, &serverstatus_state_id);
                 }
             }
@@ -393,7 +419,7 @@ impl AddressSpace {
     //        AddressSpace::add_reference(&mut self.references, node_id_from, Reference::new(reference_type_id, node_id_to));
     //    }
 
-    pub fn make_twoway_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) {
+    pub fn insert_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) {
         if node_id_from == node_id_to {
             panic!("Node id from == node id to {:?}", node_id_from);
         }
@@ -402,18 +428,18 @@ impl AddressSpace {
     }
 
     pub fn add_has_component(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
-        self.make_twoway_reference(node_id_from, node_id_to, ReferenceTypeId::HasComponent);
+        self.insert_reference(node_id_from, node_id_to, ReferenceTypeId::HasComponent);
     }
 
     pub fn add_organizes(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
-        self.make_twoway_reference(node_id_from, node_id_to, ReferenceTypeId::Organizes);
+        self.insert_reference(node_id_from, node_id_to, ReferenceTypeId::Organizes);
     }
 
     pub fn add_has_child(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
-        self.make_twoway_reference(node_id_from, node_id_to, ReferenceTypeId::HasChild);
+        self.insert_reference(node_id_from, node_id_to, ReferenceTypeId::HasChild);
     }
 
     pub fn add_has_property(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
-        self.make_twoway_reference(node_id_from, node_id_to, ReferenceTypeId::HasProperty);
+        self.insert_reference(node_id_from, node_id_to, ReferenceTypeId::HasProperty);
     }
 }

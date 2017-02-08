@@ -8,6 +8,10 @@ pub struct Object {
 node_impl!(Object);
 
 impl Object {
+    pub fn new_node(node_id: &NodeId, browse_name: &str, display_name: &str) -> NodeType {
+        NodeType::Object(Object::new(node_id, browse_name, display_name))
+    }
+
     pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str) -> Object {
         // Mandatory
         let attributes = vec![

@@ -8,7 +8,11 @@ pub struct Variable {
 node_impl!(Variable);
 
 impl Variable {
-    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, value: &DataValue) -> Variable {
+    pub fn new_node(node_id: &NodeId, browse_name: &str, display_name: &str, value: DataValue) -> NodeType {
+        NodeType::Variable(Variable::new(node_id, browse_name, display_name, value))
+    }
+
+    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, value: DataValue) -> Variable {
         // Mandatory
         let historizing = false;
         let access_level = 0;
@@ -29,11 +33,15 @@ impl Variable {
         let mut result = Variable {
             base: Base::new(NodeClass::Variable, node_id, browse_name, display_name, attributes, properties),
         };
-        result.base.set_attribute(AttributeId::Value, value.clone());
+        result.base.set_attribute(AttributeId::Value, value);
         result
     }
 
-    pub fn new_array(node_id: &NodeId, browse_name: &str, display_name: &str, value: &DataValue, dimensions: &[Int32]) -> Variable {
+    pub fn new_array_node(node_id: &NodeId, browse_name: &str, display_name: &str, value: DataValue, dimensions: &[Int32]) -> NodeType {
+        NodeType::Variable(Variable::new_array(node_id, browse_name, display_name, value, dimensions))
+    }
+
+    pub fn new_array(node_id: &NodeId, browse_name: &str, display_name: &str, value: DataValue, dimensions: &[Int32]) -> Variable {
         let mut variable = Variable::new(node_id, browse_name, display_name, value);
         // An array has a value rank equivalent to the number of dimensions and an ArrayDimensions array
         let now = DateTime::now();
