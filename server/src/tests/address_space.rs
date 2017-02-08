@@ -91,6 +91,11 @@ fn find_node_by_id() {
 fn find_references_from() {
     let address_space = make_sample_address_space();
 
+    let references = address_space.find_references_from(&AddressSpace::root_folder_id(), &Some(ReferenceTypeId::Organizes));
+    assert!(references.is_some());
+    let references = references.unwrap();
+    assert_eq!(references.len(), 3);
+
     let references = address_space.find_references_from(&AddressSpace::objects_folder_id(), &Some(ReferenceTypeId::Organizes));
     assert!(references.is_some());
     let references = references.unwrap();
@@ -102,4 +107,14 @@ fn find_references_from() {
 
     let child = address_space.find_node(&child_node_id);
     assert!(child.is_some());
+}
+
+#[test]
+fn find_references_to() {
+    let address_space = make_sample_address_space();
+
+    let references = address_space.find_references_to(&AddressSpace::root_folder_id(), &Some(ReferenceTypeId::Organizes));
+    assert!(references.is_some());
+    let references = references.unwrap();
+    assert_eq!(references.len(), 3);
 }

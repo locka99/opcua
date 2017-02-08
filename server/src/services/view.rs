@@ -80,6 +80,11 @@ impl ViewService {
     }
 
     fn reference_descriptions(address_space: &AddressSpace, node_to_browse: &BrowseDescription, max_references_per_node: UInt32) -> Result<Vec<ReferenceDescription>, &'static StatusCode> {
+        // Node must exist or there will be no references
+        if node_to_browse.node_id.is_null() || !address_space.node_exists(&node_to_browse.node_id) {
+            return Err(&BAD_NODE_ID_UNKNOWN);
+        }
+
         // Request may wish to filter by a kind of reference
         let reference_type_id = if node_to_browse.reference_type_id.is_null() {
             None

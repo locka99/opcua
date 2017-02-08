@@ -132,15 +132,14 @@ impl AddressSpace {
 
     /// Adds a node as a child (organized by) another node. The type id says what kind of node the object
     /// should be, e.g. folder node or something else.
-    pub fn add_organized_node(&mut self, node_id: &NodeId, browse_name: &str, display_name: &str, parent_node_id: &NodeId, object_type_id: ObjectTypeId) -> Result<NodeId, ()> {
+    pub fn add_organized_node(&mut self, node_id: &NodeId, browse_name: &str, display_name: &str, parent_node_id: &NodeId, node_type_id: ObjectTypeId) -> Result<NodeId, ()> {
         if self.node_exists(&node_id) {
             Err(())
         } else {
             // Add a relationship to the parent
             self.add_organizes(&parent_node_id, &node_id);
-            let folder_object = Object::new(&node_id, browse_name, display_name);
-            self.insert_reference(&folder_object.node_id(), &object_type_id.as_node_id(), ReferenceTypeId::HasTypeDefinition);
-            self.insert(NodeType::Object(folder_object));
+            self.insert(Object::new_node(&node_id, browse_name, display_name));
+            self.insert_reference(&node_id, &node_type_id.as_node_id(), ReferenceTypeId::HasTypeDefinition);
             Ok(node_id.clone())
         }
     }
@@ -220,13 +219,13 @@ impl AddressSpace {
     }
 
     /// Finds forward references from the specified node
-    pub fn find_references_from(&self, node_id_from: &NodeId, reference_type_id: &Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
-        AddressSpace::find_references(&self.references, node_id_from, reference_type_id)
+    pub fn find_references_from(&self, node_id: &NodeId, reference_type_id: &Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
+        AddressSpace::find_references(&self.references, node_id, reference_type_id)
     }
 
     /// Finds inverse references, it those that point to the specified node
-    pub fn find_references_to(&self, node_id_to: &NodeId, reference_type_id: &Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
-        AddressSpace::find_references(&self.inverse_references, node_id_to, reference_type_id)
+    pub fn find_references_to(&self, node_id: &NodeId, reference_type_id: &Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
+        AddressSpace::find_references(&self.inverse_references, node_id, reference_type_id)
     }
 
     /// Finds references for optionally forwards, inverse or both and return the references. The usize
@@ -333,7 +332,39 @@ impl AddressSpace {
 
                 let referencetypes_id = ObjectId::ReferenceTypesFolder.as_node_id();
                 let _ = self.add_folder_with_id(&referencetypes_id, "ReferenceTypes", "ReferenceTypes", &types_id);
-                {}
+                {
+                    let references_id = ReferenceTypeId::References.as_node_id();
+                    self.insert(ReferenceType::new_node(&references_id, "References", "References", None, true, false));
+                    {
+                        let hierarchicalreferences_id = ReferenceTypeId::HierarchicalReferences.as_node_id();
+                        self.insert(ReferenceType::new_node(&hierarchicalreferences_id, "HierarchicalReferences", "HierarchicalReferences", None, false, false));
+                        self.insert_reference(&references_id, &hierarchicalreferences_id, ReferenceTypeId::HasSubtype);
+                        {
+                            let has_child_id = ReferenceTypeId::HasChild.as_node_id();
+                            self.insert(ReferenceType::new_node(&has_child_id, "HasChild", "HasChild", None, false, false));
+                            self.insert_reference(&hierarchicalreferences_id, &has_child_id, ReferenceTypeId::HasSubtype);
+                            {
+                                let has_subtype_id = ReferenceTypeId::HasSubtype.as_node_id();
+                                self.insert(ReferenceType::new_node(&has_subtype_id, "HasSubtype", "HasSubtype", None, false, false));
+                                self.insert_reference(&has_child_id, &has_subtype_id, ReferenceTypeId::HasSubtype);
+                            }
+
+                            let organizes_id = ReferenceTypeId::Organizes.as_node_id();
+                            self.insert(ReferenceType::new_node(&organizes_id, "Organizes", "Organizes", None, false, false));
+                            self.insert_reference(&hierarchicalreferences_id, &organizes_id, ReferenceTypeId::HasSubtype);
+                        }
+
+                        let nonhierarchicalreferences_id = ReferenceTypeId::NonHierarchicalReferences.as_node_id();
+                        self.insert(ReferenceType::new_node(&nonhierarchicalreferences_id, "NonHierarchicalReferences", "NonHierarchicalReferences", None, false, false));
+                        self.insert_reference(&references_id, &nonhierarchicalreferences_id, ReferenceTypeId::HasSubtype);
+                        {
+                            let has_type_definition_id = ReferenceTypeId::HasTypeDefinition.as_node_id();
+                            self.insert(ReferenceType::new_node(&has_type_definition_id, "HasTypeDefinition", "HasTypeDefinition", None, false, false));
+                            self.insert_reference(&nonhierarchicalreferences_id, &has_type_definition_id, ReferenceTypeId::HasSubtype);
+                        }
+
+                    }
+                }
             }
 
             let views_id = AddressSpace::views_folder_id();

@@ -8,6 +8,10 @@ pub struct ReferenceType {
 node_impl!(ReferenceType);
 
 impl ReferenceType {
+    pub fn new_node(node_id: &NodeId, browse_name: &str, display_name: &str, inverse_name: Option<LocalizedText>, symmetric: Boolean, is_abstract: Boolean) -> NodeType {
+        NodeType::ReferenceType(ReferenceType::new(node_id, browse_name, display_name, inverse_name, symmetric, is_abstract))
+    }
+
     pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, inverse_name: Option<LocalizedText>, symmetric: Boolean, is_abstract: Boolean) -> ReferenceType {
         // Mandatory
         let mut attributes = vec![

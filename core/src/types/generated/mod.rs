@@ -82,4 +82,10 @@ impl VariableId {
     }
 }
 
+impl ReferenceTypeId {
+    pub fn as_node_id(&self) -> NodeId {
+        NodeId::from_reference_type_id(*self)
+    }
+}
+
 pub use self::status_codes::*;
