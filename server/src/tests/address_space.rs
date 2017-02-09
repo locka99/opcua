@@ -2,6 +2,7 @@ use opcua_core::services::*;
 use opcua_core::types::*;
 
 use address_space::*;
+use super::*;
 
 #[test]
 fn address_space() {
@@ -59,21 +60,6 @@ fn object_attributes() {
     assert_eq!(o.display_name(), LocalizedText::new("", "Display01"));
 }
 
-fn make_sample_address_space() -> AddressSpace {
-    let mut address_space = AddressSpace::new();
-
-    // Create a sample folder under objects folder
-    let sample_folder_id = address_space.add_folder("Sample", "Sample", &AddressSpace::objects_folder_id()).unwrap();
-
-    // Add some variables to our sample folder
-    let vars = vec![
-        Variable::new(&NodeId::new_string(1, "v1"), "v1", "v1", DataValue::new(Variant::Int32(30))),
-        Variable::new(&NodeId::new_numeric(2, 300), "v2", "v2", DataValue::new(Variant::Boolean(true))),
-        Variable::new(&NodeId::new_string(1, "v3"), "v3", "v3", DataValue::new(Variant::String(UAString::from_str("Hello world"))))
-    ];
-    let _ = address_space.add_variables(&vars, &sample_folder_id);
-    address_space
-}
 
 #[test]
 fn find_node_by_id() {
@@ -113,8 +99,12 @@ fn find_references_from() {
 fn find_references_to() {
     let address_space = make_sample_address_space();
 
+    println!("{:#?}", address_space);
     let references = address_space.find_references_to(&AddressSpace::root_folder_id(), &Some(ReferenceTypeId::Organizes));
+    assert!(references.is_none());
+
+    let references = address_space.find_references_to(&AddressSpace::objects_folder_id(), &Some(ReferenceTypeId::Organizes));
     assert!(references.is_some());
     let references = references.unwrap();
-    assert_eq!(references.len(), 3);
+    assert_eq!(references.len(), 1);
 }

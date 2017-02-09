@@ -36,6 +36,7 @@ impl NodeType {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct AddressSpace {
     pub node_map: HashMap<NodeId, NodeType>,
     pub references: HashMap<NodeId, Vec<Reference>>,
@@ -134,11 +135,11 @@ impl AddressSpace {
     /// should be, e.g. folder node or something else.
     pub fn add_organized_node(&mut self, node_id: &NodeId, browse_name: &str, display_name: &str, parent_node_id: &NodeId, node_type_id: ObjectTypeId) -> Result<NodeId, ()> {
         if self.node_exists(&node_id) {
-            Err(())
+            panic!("Node {:?} already exists", node_id);
         } else {
             // Add a relationship to the parent
-            self.add_organizes(&parent_node_id, &node_id);
             self.insert(Object::new_node(&node_id, browse_name, display_name));
+            self.add_organizes(&parent_node_id, &node_id);
             self.insert_reference(&node_id, &node_type_id.as_node_id(), ReferenceTypeId::HasTypeDefinition);
             Ok(node_id.clone())
         }
@@ -313,7 +314,6 @@ impl AddressSpace {
                         self.insert(DataType::new_node(&type_id, name, name, false));
                         self.insert_reference(&basedatatype_id, &type_id, ReferenceTypeId::HasSubtype);
                     }
-
                 }
 
                 let opcbinary_node_id = ObjectId::OPCBinarySchema_TypeSystem.as_node_id();
@@ -362,7 +362,6 @@ impl AddressSpace {
                             self.insert(ReferenceType::new_node(&has_type_definition_id, "HasTypeDefinition", "HasTypeDefinition", None, false, false));
                             self.insert_reference(&nonhierarchicalreferences_id, &has_type_definition_id, ReferenceTypeId::HasSubtype);
                         }
-
                     }
                 }
             }
@@ -370,7 +369,6 @@ impl AddressSpace {
             let views_id = AddressSpace::views_folder_id();
             let _ = self.add_folder_with_id(&views_id, "Views", "Views", &root_node_id);
         }
-
     }
 
     /// Add nodes representing the server. For this, the values in server state are used to populate
@@ -413,31 +411,33 @@ impl AddressSpace {
 
             //   ServerStatus
             let serverstatus_id = VariableId::Server_ServerStatus.as_node_id();
+            self.insert(Variable::new_node(&serverstatus_id, "ServerStatus", "ServerStatus", DataValue::new(Variant::Empty)));
+            self.add_has_component(&server_id, &serverstatus_id);
+            self.insert_reference(&serverstatus_id, &DataTypeId::ServerStatusDataType.as_node_id(), ReferenceTypeId::HasTypeDefinition);
             {
-                self.insert(Variable::new_node(&serverstatus_id, "ServerStatus", "ServerStatus", DataValue::new(Variant::Empty)));
-                self.insert_reference(&serverstatus_id, &DataTypeId::ServerStatusDataType.as_node_id(), ReferenceTypeId::HasTypeDefinition);
-
-                self.add_has_component(&server_id, &serverstatus_id);
-                {
-                    // State OPC UA Part 5 12.6, Valid states are
-                    //
-                    // Running = 0
-                    // Failed = 1
-                    // No configuration = 2
-                    // Suspended = 3
-                    // Shutdown = 4
-                    // Test = 5
-                    // Communication Fault = 6
-                    // Unknown = 7
-                    //     State (Server_ServerStatus_State)
-                    let serverstatus_state_id = VariableId::Server_ServerStatus_State.as_node_id();
-                    self.insert(Variable::new_node(&serverstatus_state_id, "State", "State", DataValue::new(Variant::UInt32(0))));
-                    self.insert_reference(&serverstatus_state_id, &DataTypeId::ServerState.as_node_id(), ReferenceTypeId::HasTypeDefinition);
-                    self.add_has_component(&serverstatus_id, &serverstatus_state_id);
-                }
+                // State OPC UA Part 5 12.6, Valid states are
+                //
+                // Running = 0
+                // Failed = 1
+                // No configuration = 2
+                // Suspended = 3
+                // Shutdown = 4
+                // Test = 5
+                // Communication Fault = 6
+                // Unknown = 7
+                //     State (Server_ServerStatus_State)
+                let serverstatus_state_id = VariableId::Server_ServerStatus_State.as_node_id();
+                self.insert(Variable::new_node(&serverstatus_state_id, "State", "State", DataValue::new(Variant::UInt32(0))));
+                self.insert_reference(&serverstatus_state_id, &DataTypeId::ServerState.as_node_id(), ReferenceTypeId::HasTypeDefinition);
+                self.add_has_component(&serverstatus_id, &serverstatus_state_id);
             }
 
-            // ServiceLevel - var
+            // ServiceLevel - 0-255 worst to best quality of service
+            let servicelevel_id = VariableId::Server_ServiceLevel.as_node_id();
+            self.insert(Variable::new_node(&servicelevel_id, "ServiceLevel", "ServiceLevel", DataValue::new(Variant::Byte(255))));
+            self.insert_reference(&servicelevel_id, &DataTypeId::Byte.as_node_id(), ReferenceTypeId::HasTypeDefinition);
+            self.add_has_component(&servicelevel_id, &namespace_array_id);
+
             // Auditing - var
             // ServerCapabilities
             // ServerDiagnostics
