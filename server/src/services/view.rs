@@ -31,6 +31,7 @@ impl ViewService {
 
             if !request.view.view_id.is_null() {
                 // Views are not supported
+                info!("Browse request ignored because view was specified (views not supported)");
                 return Ok(SupportedMessage::BrowseResponse(BrowseResponse {
                     response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, &BAD_VIEW_ID_UNKNOWN),
                     results: None,
@@ -49,8 +50,7 @@ impl ViewService {
                         continuation_point: ByteString::null(),
                         references: None
                     }
-                }
-                else {
+                } else {
                     BrowseResult {
                         status_code: GOOD.clone(),
                         continuation_point: ByteString::null(),
@@ -98,7 +98,7 @@ impl ViewService {
         };
 
         // Fetch the references to / from the given node to browse
-        let (references, inverse_ref_idx) = address_space.find_references_by_direction(&node_to_browse.node_id, node_to_browse.browse_direction, &reference_type_id);
+        let (references, inverse_ref_idx) = address_space.find_references_by_direction(&node_to_browse.node_id, node_to_browse.browse_direction, reference_type_id);
 
         let result_mask = node_to_browse.result_mask;
         let node_class_mask = node_to_browse.node_class_mask;
@@ -155,11 +155,23 @@ impl ViewService {
                 LocalizedText::null()
             };
             let type_definition = if result_mask & RESULT_MASK_TYPE_DEFINITION != 0 {
-                // TODO
                 // Type definition NodeId of the TargetNode. Type definitions are only available
                 // for the NodeClasses Object and Variable. For all other NodeClasses a null NodeId
                 // shall be returned.
-                ExpandedNodeId::null()
+                match target_node_class {
+                    NodeClass::Object | NodeClass::Variable => {
+                        let type_defs = address_space.find_references_from(&target_node.node_id(), Some(ReferenceTypeId::HasTypeDefinition));
+                        if type_defs.is_some() {
+                            let type_defs = type_defs.unwrap();
+                            ExpandedNodeId::new(&type_defs[0].node_id)
+                        } else {
+                            ExpandedNodeId::null()
+                        }
+                    }
+                    _ => {
+                        ExpandedNodeId::null()
+                    }
+                }
             } else {
                 ExpandedNodeId::null()
             };

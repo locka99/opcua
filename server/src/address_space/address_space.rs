@@ -152,7 +152,7 @@ impl AddressSpace {
 
     /// Adds a folder using a generated node id
     pub fn add_folder(&mut self, browse_name: &str, display_name: &str, parent_node_id: &NodeId) -> Result<NodeId, ()> {
-        self.add_organized_node(&NodeId::next_numeric(), browse_name, display_name, parent_node_id, ObjectTypeId::FolderType)
+        self.add_folder_with_id(&NodeId::next_numeric(), browse_name, display_name, parent_node_id)
     }
 
     /// Adds a list of varables to the specified parent node
@@ -186,16 +186,16 @@ impl AddressSpace {
         }
     }
 
-    fn filter_references_by_type(references: &Vec<Reference>, reference_type_id: &Option<ReferenceTypeId>) -> Vec<Reference> {
+    fn filter_references_by_type(references: &Vec<Reference>, reference_type_id: Option<ReferenceTypeId>) -> Vec<Reference> {
         if reference_type_id.is_none() {
             references.clone()
         } else {
             // Filter by type
-            let reference_type_id = reference_type_id.as_ref().unwrap();
+            let reference_type_id = reference_type_id.unwrap();
             let mut result = Vec::new();
             for reference in references {
                 // TODO this should match on subtypes too
-                if reference.reference_type_id == *reference_type_id {
+                if reference.reference_type_id == reference_type_id {
                     result.push(reference.clone());
                 }
             }
@@ -204,7 +204,7 @@ impl AddressSpace {
     }
 
     /// Find and filter references that refer to the specified node.
-    fn find_references(reference_map: &HashMap<NodeId, Vec<Reference>>, node_id: &NodeId, reference_type_id: &Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
+    fn find_references(reference_map: &HashMap<NodeId, Vec<Reference>>, node_id: &NodeId, reference_type_id: Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
         let node_references = reference_map.get(node_id);
         if node_references.is_some() {
             let node_references = node_references.as_ref().unwrap();
@@ -220,18 +220,18 @@ impl AddressSpace {
     }
 
     /// Finds forward references from the specified node
-    pub fn find_references_from(&self, node_id: &NodeId, reference_type_id: &Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
+    pub fn find_references_from(&self, node_id: &NodeId, reference_type_id: Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
         AddressSpace::find_references(&self.references, node_id, reference_type_id)
     }
 
     /// Finds inverse references, it those that point to the specified node
-    pub fn find_references_to(&self, node_id: &NodeId, reference_type_id: &Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
+    pub fn find_references_to(&self, node_id: &NodeId, reference_type_id: Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
         AddressSpace::find_references(&self.inverse_references, node_id, reference_type_id)
     }
 
     /// Finds references for optionally forwards, inverse or both and return the references. The usize
     /// represents the index in the collection where the inverse references start (if applicable)
-    pub fn find_references_by_direction(&self, node_id: &NodeId, browse_direction: BrowseDirection, reference_type_id: &Option<ReferenceTypeId>) -> (Vec<Reference>, usize) {
+    pub fn find_references_by_direction(&self, node_id: &NodeId, browse_direction: BrowseDirection, reference_type_id: Option<ReferenceTypeId>) -> (Vec<Reference>, usize) {
         let mut references = Vec::new();
         let inverse_ref_idx: usize;
         match browse_direction {
@@ -264,6 +264,15 @@ impl AddressSpace {
         (references, inverse_ref_idx)
     }
 
+    fn add_sub_types(&mut self, parent_node: &NodeId, types: &Vec<(DataTypeId, &str)>) {
+        for t in types {
+            let (id, name) = t;
+            let type_id = id.as_node_id();
+            self.insert(DataType::new_node(&type_id, name, name, false));
+            self.insert_reference(&parent_node, &type_id, ReferenceTypeId::HasSubtype);
+        }
+    }
+
     pub fn add_default_nodes(&mut self) {
         let root_node_id = AddressSpace::root_folder_id();
         let root_node = Object::new(&root_node_id, "Root", "Root");
@@ -290,7 +299,7 @@ impl AddressSpace {
                     self.insert(DataType::new_node(&basedatatype_id, "BaseDataType", "BaseDataType", true));
                     self.add_organizes(&datatypes_id, &basedatatype_id);
 
-                    let types = vec![
+                    self.add_sub_types(&basedatatype_id, &vec![
                         (DataTypeId::Boolean, "Boolean"),
                         (DataTypeId::ByteString, "ByteString"),
                         (DataTypeId::DataValue, "DataValue"),
@@ -307,12 +316,30 @@ impl AddressSpace {
                         (DataTypeId::String, "String"),
                         (DataTypeId::Structure, "Structure"),
                         (DataTypeId::XmlElement, "XmlElement"),
-                    ];
-                    for t in types {
-                        let (id, name) = t;
-                        let type_id = id.as_node_id();
-                        self.insert(DataType::new_node(&type_id, name, name, false));
-                        self.insert_reference(&basedatatype_id, &type_id, ReferenceTypeId::HasSubtype);
+                    ]);
+
+                    let number_id = DataTypeId::Number.as_node_id();
+                    self.add_sub_types(&basedatatype_id, &vec![
+                        (DataTypeId::Double, "Double"),
+                        (DataTypeId::Float, "Float"),
+                        (DataTypeId::Integer, "Integer")
+                    ]);
+
+                    {
+                        let integer_id = DataTypeId::Integer.as_node_id();
+                        self.add_sub_types(&integer_id, &vec![
+                            (DataTypeId::SByte, "SByte"),
+                            (DataTypeId::Int16, "Int16"),
+                            (DataTypeId::Int32, "Int32"),
+                            (DataTypeId::Int64, "Int64"),
+                        ]);
+                        let uinteger_id = DataTypeId::Integer.as_node_id();
+                        self.add_sub_types(&uinteger_id, &vec![
+                            (DataTypeId::Byte, "Byte"),
+                            (DataTypeId::UInt16, "UInt16"),
+                            (DataTypeId::UInt32, "UInt32"),
+                            (DataTypeId::UInt64, "UInt64"),
+                        ]);
                     }
                 }
 

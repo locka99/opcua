@@ -18,7 +18,11 @@ fn make_test_file(filename: &str) -> PathBuf {
 
 fn make_sample_address_space() -> AddressSpace {
     let mut address_space = AddressSpace::new();
+    add_sample_vars_to_address_space(&mut address_space);
+    address_space
+}
 
+fn add_sample_vars_to_address_space(address_space: &mut AddressSpace) {
     // Create a sample folder under objects folder
     let sample_folder_id = address_space.add_folder("Sample", "Sample", &AddressSpace::objects_folder_id()).unwrap();
 
@@ -29,7 +33,6 @@ fn make_sample_address_space() -> AddressSpace {
         Variable::new(&NodeId::new_string(1, "v3"), "v3", "v3", DataValue::new(Variant::String(UAString::from_str("Hello world"))))
     ];
     let _ = address_space.add_variables(&vars, &sample_folder_id);
-    address_space
 }
 
 #[test]
