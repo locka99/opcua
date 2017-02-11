@@ -186,16 +186,26 @@ impl AddressSpace {
         }
     }
 
-    fn filter_references_by_type(references: &Vec<Reference>, reference_type_id: Option<ReferenceTypeId>) -> Vec<Reference> {
-        if reference_type_id.is_none() {
+    fn reference_type_matches(&self, r1: ReferenceTypeId, r2: ReferenceTypeId, match_subtypes: bool) -> bool {
+        if r1 == r2 {
+            true
+        } else if match_subtypes {
+            // TODO somehow work out subtypes, e.g. working back along inverse references
+            false
+        } else {
+            false
+        }
+    }
+
+    fn filter_references_by_type(&self, references: &Vec<Reference>, reference_filter: Option<(ReferenceTypeId, bool)>) -> Vec<Reference> {
+        if reference_filter.is_none() {
             references.clone()
         } else {
             // Filter by type
-            let reference_type_id = reference_type_id.unwrap();
+            let (reference_type_id, include_subtypes) = reference_filter.unwrap();
             let mut result = Vec::new();
             for reference in references {
-                // TODO this should match on subtypes too
-                if reference.reference_type_id == reference_type_id {
+                if self.reference_type_matches(reference_type_id, reference.reference_type_id, include_subtypes) {
                     result.push(reference.clone());
                 }
             }
@@ -204,11 +214,11 @@ impl AddressSpace {
     }
 
     /// Find and filter references that refer to the specified node.
-    fn find_references(reference_map: &HashMap<NodeId, Vec<Reference>>, node_id: &NodeId, reference_type_id: Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
+    fn find_references(&self, reference_map: &HashMap<NodeId, Vec<Reference>>, node_id: &NodeId, reference_filter: Option<(ReferenceTypeId, bool)>) -> Option<Vec<Reference>> {
         let node_references = reference_map.get(node_id);
         if node_references.is_some() {
             let node_references = node_references.as_ref().unwrap();
-            let result = AddressSpace::filter_references_by_type(node_references, reference_type_id);
+            let result = self.filter_references_by_type(node_references, reference_filter);
             if result.is_empty() {
                 None
             } else {
@@ -220,23 +230,23 @@ impl AddressSpace {
     }
 
     /// Finds forward references from the specified node
-    pub fn find_references_from(&self, node_id: &NodeId, reference_type_id: Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
-        AddressSpace::find_references(&self.references, node_id, reference_type_id)
+    pub fn find_references_from(&self, node_id: &NodeId, reference_filter: Option<(ReferenceTypeId, bool)>) -> Option<Vec<Reference>> {
+        self.find_references(&self.references, node_id, reference_filter)
     }
 
     /// Finds inverse references, it those that point to the specified node
-    pub fn find_references_to(&self, node_id: &NodeId, reference_type_id: Option<ReferenceTypeId>) -> Option<Vec<Reference>> {
-        AddressSpace::find_references(&self.inverse_references, node_id, reference_type_id)
+    pub fn find_references_to(&self, node_id: &NodeId, reference_filter: Option<(ReferenceTypeId, bool)>) -> Option<Vec<Reference>> {
+        self.find_references(&self.inverse_references, node_id, reference_filter)
     }
 
     /// Finds references for optionally forwards, inverse or both and return the references. The usize
     /// represents the index in the collection where the inverse references start (if applicable)
-    pub fn find_references_by_direction(&self, node_id: &NodeId, browse_direction: BrowseDirection, reference_type_id: Option<ReferenceTypeId>) -> (Vec<Reference>, usize) {
+    pub fn find_references_by_direction(&self, node_id: &NodeId, browse_direction: BrowseDirection, reference_filter: Option<(ReferenceTypeId, bool)>) -> (Vec<Reference>, usize) {
         let mut references = Vec::new();
         let inverse_ref_idx: usize;
         match browse_direction {
             BrowseDirection::Forward => {
-                let forward_references = self.find_references_from(node_id, reference_type_id);
+                let forward_references = self.find_references_from(node_id, reference_filter);
                 if forward_references.is_some() {
                     references.append(&mut forward_references.unwrap());
                 }
@@ -244,18 +254,18 @@ impl AddressSpace {
             }
             BrowseDirection::Inverse => {
                 inverse_ref_idx = 0;
-                let inverse_references = self.find_references_to(node_id, reference_type_id);
+                let inverse_references = self.find_references_to(node_id, reference_filter);
                 if inverse_references.is_some() {
                     references.append(&mut inverse_references.unwrap());
                 }
             }
             BrowseDirection::Both => {
-                let forward_references = self.find_references_from(node_id, reference_type_id);
+                let forward_references = self.find_references_from(node_id, reference_filter);
                 if forward_references.is_some() {
                     references.append(&mut forward_references.unwrap());
                 }
                 inverse_ref_idx = references.len();
-                let inverse_references = self.find_references_to(node_id, reference_type_id);
+                let inverse_references = self.find_references_to(node_id, reference_filter);
                 if inverse_references.is_some() {
                     references.append(&mut inverse_references.unwrap());
                 }
@@ -266,7 +276,7 @@ impl AddressSpace {
 
     fn add_sub_types(&mut self, parent_node: &NodeId, types: &Vec<(DataTypeId, &str)>) {
         for t in types {
-            let (id, name) = t;
+            let &(ref id, name) = t;
             let type_id = id.as_node_id();
             self.insert(DataType::new_node(&type_id, name, name, false));
             self.insert_reference(&parent_node, &type_id, ReferenceTypeId::HasSubtype);
@@ -319,7 +329,7 @@ impl AddressSpace {
                     ]);
 
                     let number_id = DataTypeId::Number.as_node_id();
-                    self.add_sub_types(&basedatatype_id, &vec![
+                    self.add_sub_types(&number_id, &vec![
                         (DataTypeId::Double, "Double"),
                         (DataTypeId::Float, "Float"),
                         (DataTypeId::Integer, "Integer")

@@ -91,13 +91,14 @@ impl ViewService {
         } else {
             let reference_type_id = node_to_browse.reference_type_id.as_reference_type_id();
             if reference_type_id.is_ok() {
-                Some(reference_type_id.unwrap())
+                Some((reference_type_id.unwrap(), node_to_browse.include_subtypes))
             } else {
                 None
             }
         };
 
         // Fetch the references to / from the given node to browse
+
         let (references, inverse_ref_idx) = address_space.find_references_by_direction(&node_to_browse.node_id, node_to_browse.browse_direction, reference_type_id);
 
         let result_mask = node_to_browse.result_mask;
@@ -160,7 +161,7 @@ impl ViewService {
                 // shall be returned.
                 match target_node_class {
                     NodeClass::Object | NodeClass::Variable => {
-                        let type_defs = address_space.find_references_from(&target_node.node_id(), Some(ReferenceTypeId::HasTypeDefinition));
+                        let type_defs = address_space.find_references_from(&target_node.node_id(), Some((ReferenceTypeId::HasTypeDefinition, false)));
                         if type_defs.is_some() {
                             let type_defs = type_defs.unwrap();
                             ExpandedNodeId::new(&type_defs[0].node_id)
