@@ -234,7 +234,7 @@ impl TcpTransport {
         let server_protocol_version = 0;
 
 
-        debug!("Server received HELLO {:#?}", hello);
+        debug!("Server received HELLO {:?}", hello);
         if !hello.is_endpoint_url_valid() {
             return Err(&BAD_TCP_ENDPOINT_URL_INVALID);
         }
@@ -265,7 +265,7 @@ impl TcpTransport {
         self.transport_state = TransportState::ProcessMessages;
         self.client_protocol_version = client_protocol_version;
 
-        info!("Sending acknowledge -- \n{:#?}", acknowledge);
+        info!("Sending acknowledge {:?}", acknowledge);
         let _ = acknowledge.encode(out_stream);
         Ok(())
     }
@@ -328,7 +328,7 @@ impl TcpTransport {
         let request_id = chunk_info.sequence_header.request_id;
 
         // Prepare some chunks starting from the sequence number + 1
-        debug!("Response to send: {:#?}", response);
+        debug!("Response to send: {:?}", response);
 
         let sequence_number = self.last_sent_sequence_number + 1;
         let out_chunks = Chunker::encode(sequence_number, request_id, &self.secure_channel_info, &response)?;
@@ -389,7 +389,7 @@ impl TcpTransport {
             server_nonce: ByteString::from_bytes(&[0u8]),
         };
 
-        debug!("Sending OpenSecureChannelResponse {:#?}", response);
+        debug!("Sending OpenSecureChannelResponse {:?}", response);
         Ok(response)
     }
 }

@@ -26,27 +26,27 @@ fn find_root_folder() {
 
     let node = node_type.unwrap().as_node();
     assert_eq!(node.node_id(), NodeId::new_numeric(0, 84));
-    assert_eq!(node.node_id(), NodeId::from_object_id(ObjectId::RootFolder));
+    assert_eq!(node.node_id(), ObjectId::RootFolder.as_node_id());
 }
 
 #[test]
 fn find_objects_folder() {
     let address_space = AddressSpace::new();
-    let node_type = address_space.find_node(&NodeId::from_object_id(ObjectId::ObjectsFolder));
+    let node_type = address_space.find_node(&ObjectId::ObjectsFolder.as_node_id());
     assert!(node_type.is_some());
 }
 
 #[test]
 fn find_types_folder() {
     let address_space = AddressSpace::new();
-    let node_type = address_space.find_node(&NodeId::from_object_id(ObjectId::TypesFolder));
+    let node_type = address_space.find_node(&ObjectId::TypesFolder.as_node_id());
     assert!(node_type.is_some());
 }
 
 #[test]
 fn find_views_folder() {
     let address_space = AddressSpace::new();
-    let node_type = address_space.find_node(&NodeId::from_object_id(ObjectId::ViewsFolder));
+    let node_type = address_space.find_node(&ObjectId::ViewsFolder.as_node_id());
     assert!(node_type.is_some());
 }
 

@@ -1,5 +1,3 @@
-use types::NodeId;
-
 mod node_ids;
 mod status_codes;
 
@@ -56,36 +54,5 @@ use_generated_types![
 ];
 
 pub use self::node_ids::*;
-
-impl ObjectId {
-    pub fn as_node_id(&self) -> NodeId {
-        NodeId::from_object_id(*self)
-    }
-}
-
-
-impl DataTypeId {
-    pub fn as_node_id(&self) -> NodeId {
-        NodeId::from_data_type_id(*self)
-    }
-}
-
-impl ObjectTypeId {
-    pub fn as_node_id(&self) -> NodeId {
-        NodeId::from_object_type_id(*self)
-    }
-}
-
-impl VariableId {
-    pub fn as_node_id(&self) -> NodeId {
-        NodeId::from_variable_id(*self)
-    }
-}
-
-impl ReferenceTypeId {
-    pub fn as_node_id(&self) -> NodeId {
-        NodeId::from_reference_type_id(*self)
-    }
-}
 
 pub use self::status_codes::*;

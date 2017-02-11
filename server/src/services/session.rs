@@ -49,7 +49,7 @@ impl SessionService {
     }
 
     pub fn close_session(&self, _: &mut ServerState, _: &mut SessionState, request: &CloseSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
-        debug!("close_session {:#?}", request);
+        debug!("close_session {:?}", request);
         let response = CloseSessionResponse {
             response_header: ResponseHeader::new(&DateTime::now(), &request.request_header),
         };
@@ -57,8 +57,7 @@ impl SessionService {
     }
 
     pub fn activate_session(&self, _: &mut ServerState, _: &mut SessionState, request: &ActivateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
-        debug!("activate_session {:#?}", request);
-
+        debug!("activate_session {:?}", request);
         // TODO validate user identity token
         let server_nonce = ByteString::from_bytes(&[0u8]);
 

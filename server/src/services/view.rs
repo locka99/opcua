@@ -130,7 +130,7 @@ impl ViewService {
 
             // Prepare the values to put into the struct according to the result mask
             let reference_type_id = if result_mask & RESULT_MASK_REFERENCE_TYPE != 0 {
-                NodeId::from_reference_type_id(reference.reference_type_id)
+                reference.reference_type_id.as_node_id()
             } else {
                 NodeId::null()
             };

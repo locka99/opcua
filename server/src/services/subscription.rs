@@ -52,7 +52,7 @@ impl SubscriptionService {
     }
 
     pub fn publish(&self, _: &mut ServerState, _: &mut SessionState, request: &PublishRequest) -> Result<SupportedMessage, &'static StatusCode> {
-        debug!("publish {:#?}", request);
+        debug!("publish {:?}", request);
 
         if request.subscription_acknowledgements.is_some() {
             // TODO

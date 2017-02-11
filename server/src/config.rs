@@ -51,6 +51,12 @@ pub struct ServerConfig {
     pub tcp_config: TcpConfig,
     /// Endpoints supported by the server
     pub endpoints: Vec<ServerEndpoint>,
+    /// Max array length in elements
+    pub max_array_length: u32,
+    /// Max string length in characters
+    pub max_string_length: u32,
+    /// Max bytestring length in bytes
+    pub max_byte_string_length: u32,
 }
 
 impl ServerConfig {
@@ -82,6 +88,9 @@ impl ServerConfig {
                 user: None,
                 pass: None,
             }],
+            max_array_length: 1000,
+            max_string_length: 65536,
+            max_byte_string_length: 65536,
         }
     }
 

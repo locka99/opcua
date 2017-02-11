@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use opcua_core::services::*;
 use opcua_core::types::*;
 
+use ::config::*;
 use address_space::*;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -353,10 +354,14 @@ impl AddressSpace {
                     }
                 }
 
-                let opcbinary_node_id = ObjectId::OPCBinarySchema_TypeSystem.as_node_id();
-                self.insert(Object::new_node(&opcbinary_node_id, "OPC Binary", "OPC Binary"));
-                self.add_organizes(&types_id, &opcbinary_node_id);
+                {
+                    let opcbinary_node_id = ObjectId::OPCBinarySchema_TypeSystem.as_node_id();
+                    self.insert(Object::new_node(&opcbinary_node_id, "OPC Binary", "OPC Binary"));
+                    self.add_organizes(&types_id, &opcbinary_node_id);
+                    self.insert_reference(&opcbinary_node_id, &ObjectTypeId::DataTypeSystemType.as_node_id(), ReferenceTypeId::HasTypeDefinition);
+                }
             }
+
             {
                 // ReferenceTypes/
                 //    References/
@@ -411,8 +416,11 @@ impl AddressSpace {
     /// Add nodes representing the server. For this, the values in server state are used to populate
     /// the address. Therefore things like namespaces should be set before calling this.
     pub fn add_server_nodes(&mut self, server_state: &::ServerState) {
+
+        let server_config = server_state.config.lock().unwrap();
+
         let root_folder_id = AddressSpace::root_folder_id();
-        let server_id = NodeId::from_object_id(ObjectId::Server);
+        let server_id = ObjectId::Server.as_node_id();
 
         // Server/ (ServerType)
         let _ = self.add_organized_node(&server_id, "Server", "Server", &root_folder_id, ObjectTypeId::ServerType);
@@ -437,12 +445,33 @@ impl AddressSpace {
             let server_capabilities_id = ObjectId::Server_ServerCapabilities.as_node_id();
             {
                 self.insert(Variable::new_node(&server_capabilities_id, "ServerCapabilities", "ServerCapabilities", DataValue::new(Variant::Empty)));
-
                 self.add_has_component(&server_id, &server_capabilities_id);
                 {
+                    // type definition property type
                     //     MaxBrowseContinuationPoint
                     //                    let maxbrowse_continuation_points_id = VariableId::Server_ServerCapabilities_MaxBrowseContinuationPoints.as_node_id();
                     //                    self.insert(NodeType::Variable(Variable::new(&serverstatus_state_id, "ServerStatus", "ServerStatus", &DataValue::new(Variant::UInt32(0)))));
+
+                    {
+                        let max_array_len_id = VariableId::Server_ServerCapabilities_MaxArrayLength.as_node_id();
+                        self.insert(Variable::new_node(&max_array_len_id, "MaxArrayLength", "MaxArrayLength", DataValue::new(Variant::UInt32(server_config.max_array_length))));
+                        self.add_has_property(&server_capabilities_id, &max_array_len_id);
+                        self.set_is_property_type(&max_array_len_id);
+                    }
+
+                    {
+                        let max_string_len_id = VariableId::Server_ServerCapabilities_MaxStringLength.as_node_id();
+                        self.insert(Variable::new_node(&max_string_len_id, "MaxStringLength", "MaxStringLength", DataValue::new(Variant::UInt32(server_config.max_string_length))));
+                        self.add_has_property(&server_capabilities_id, &max_string_len_id);
+                        self.set_is_property_type(&max_string_len_id);
+                    }
+
+                    {
+                        let max_byte_string_len_id = VariableId::Server_ServerCapabilities_MaxByteStringLength.as_node_id();
+                        self.insert(Variable::new_node(&max_byte_string_len_id, "MaxByteStringLength", "MaxByteStringLength", DataValue::new(Variant::UInt32(server_config.max_byte_string_length))));
+                        self.add_has_property(&server_capabilities_id, &max_byte_string_len_id);
+                        self.set_is_property_type(&max_byte_string_len_id);
+                    }
                 }
             }
 
@@ -493,6 +522,10 @@ impl AddressSpace {
         }
         AddressSpace::add_reference(&mut self.references, node_id_from, Reference::new(reference_type_id, node_id_to));
         AddressSpace::add_reference(&mut self.inverse_references, node_id_to, Reference::new(reference_type_id, node_id_from));
+    }
+
+    pub fn set_is_property_type(&mut self, node_id: &NodeId) {
+        self.insert_reference(node_id, &VariableTypeId::PropertyType.as_node_id(), ReferenceTypeId::HasTypeDefinition);
     }
 
     pub fn add_has_component(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {

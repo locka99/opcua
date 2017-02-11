@@ -1,7 +1,6 @@
 use std;
 use std::io::{Read, Write, Cursor};
 
-use debug::*;
 use types::*;
 use comms::*;
 
@@ -270,18 +269,25 @@ pub struct Chunk {
     pub chunk_body: Vec<u8>,
 }
 
-impl Chunk {
-    pub fn encode<S: Write>(&self, stream: &mut S) -> std::result::Result<(), &'static StatusCode> {
-        // TODO this is a stub
-        // TODO impl should be moved to BinaryEncoder
-
-        let _ = self.chunk_header.encode(stream);
-        let _ = stream.write(&self.chunk_body);
-        Ok(())
+impl BinaryEncoder<Chunk> for Chunk {
+    fn byte_len(&self) -> usize {
+        let mut size = self.chunk_header.byte_len();
+        size += self.chunk_body.len();
+        size
     }
 
-    pub fn decode<S: Read>(in_stream: &mut S) -> std::result::Result<Chunk, &'static StatusCode> {
-        // TODO impl should be moved to BinaryEncoder
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
+        let mut size = self.chunk_header.encode(stream)?;
+        let result = stream.write(&self.chunk_body);
+        if result.is_err() {
+            Err(&BAD_ENCODING_ERROR)
+        } else {
+            size += self.chunk_body.len();
+            Ok(size)
+        }
+    }
+
+    fn decode<S: Read>(in_stream: &mut S) -> EncodingResult<Self> {
         let chunk_header_result = ChunkHeader::decode(in_stream);
         if chunk_header_result.is_err() {
             error!("Cannot decode chunk header {:?}", chunk_header_result.unwrap_err());
@@ -302,16 +308,18 @@ impl Chunk {
             chunk_body: chunk_body,
         })
     }
+}
 
+impl Chunk {
     pub fn is_open_secure_channel(&self) -> bool {
         self.chunk_header.message_type == ChunkMessageType::OpenSecureChannel
     }
 
     pub fn chunk_info(&self, is_first_chunk: bool, _: &SecureChannelInfo) -> std::result::Result<ChunkInfo, &'static StatusCode> {
-        {
-            debug!("chunk_info() - chunk_body:");
-            debug_buffer(&self.chunk_body);
-        }
+        //        {
+        //            debug!("chunk_info() - chunk_body:");
+        //            debug_buffer(&self.chunk_body);
+        //        }
 
         let mut chunk_body_stream = Cursor::new(&self.chunk_body);
 
@@ -326,8 +334,7 @@ impl Chunk {
 
             let security_policy = if security_header.security_policy_uri.is_null() {
                 SecurityPolicy::None
-            }
-            else {
+            } else {
                 SecurityPolicy::from_uri(&security_header.security_policy_uri.to_str())
             };
 
