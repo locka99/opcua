@@ -25,6 +25,8 @@ impl ViewService {
     }
 
     pub fn browse(&self, server_state: &mut ServerState, _: &mut SessionState, request: &BrowseRequest) -> Result<SupportedMessage, &'static StatusCode> {
+        let service_status = &GOOD;
+
         let browse_results = if request.nodes_to_browse.is_some() {
             let nodes_to_browse = request.nodes_to_browse.as_ref().unwrap();
             let mut browse_results: Vec<BrowseResult> = Vec::new();
@@ -71,7 +73,7 @@ impl ViewService {
         };
 
         let response = BrowseResponse {
-            response_header: ResponseHeader::new_good(&DateTime::now(), &request.request_header),
+            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
             results: browse_results,
             diagnostic_infos: None,
         };

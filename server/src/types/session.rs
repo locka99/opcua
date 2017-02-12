@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use opcua_core::types::*;
 
 use types::*;
@@ -10,7 +12,7 @@ pub struct SessionInfo {}
 #[derive(Clone)]
 pub struct SessionState {
     pub session_info: Option<SessionInfo>,
-    pub subscriptions: Vec<Subscription>,
+    pub subscriptions: HashMap<UInt32, Subscription>,
     pub last_subscription_id: UInt32,
 }
 
@@ -18,7 +20,7 @@ impl SessionState {
     pub fn new() -> SessionState {
         SessionState {
             session_info: None,
-            subscriptions: Vec::new(),
+            subscriptions: HashMap::new(),
             last_subscription_id: 0,
         }
     }

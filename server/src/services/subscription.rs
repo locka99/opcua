@@ -22,6 +22,8 @@ impl SubscriptionService {
             return Err(&BAD_TOO_MANY_SUBSCRIPTIONS);
         }
 
+        let service_status = &GOOD;
+
         let subscription_id = session_state.last_subscription_id + 1;
         // TODO server settings could revise these in some way
         let revised_publishing_interval = request.requested_publishing_interval;
@@ -38,11 +40,11 @@ impl SubscriptionService {
             monitored_items: Vec::new(),
         };
         session_state.last_subscription_id += 1;
-        session_state.subscriptions.push(subscription);
+        session_state.subscriptions.insert(subscription_id, subscription);
 
         // Create the response
         let response = CreateSubscriptionResponse {
-            response_header: ResponseHeader::new_good(&DateTime::now(), &request.request_header),
+            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
             subscription_id: subscription_id,
             revised_publishing_interval: revised_publishing_interval,
             revised_lifetime_count: revised_lifetime_count,
@@ -52,20 +54,27 @@ impl SubscriptionService {
     }
 
     pub fn delete_subscriptions(&self, _: &mut ServerState, session_state: &mut SessionState, request: &DeleteSubscriptionsRequest) -> Result<SupportedMessage, &'static StatusCode> {
-        // TODO
+        let mut service_status = &GOOD;
         let results = if request.subscription_ids.is_some() {
             let subscription_ids = request.subscription_ids.as_ref().unwrap();
             let mut results = Vec::with_capacity(subscription_ids.len());
             for subscription_id in subscription_ids {
-                results.push(GOOD.clone());
+                if session_state.subscriptions.contains_key(subscription_id) {
+                    session_state.subscriptions.remove(subscription_id);
+                    results.push(GOOD.clone());
+                }
+                else {
+                    results.push(BAD_SUBSCRIPTION_ID_INVALID.clone());
+                }
             }
             Some(results)
         } else {
+            service_status = &BAD_NOTHING_TO_DO;
             None
         };
 
         let response = DeleteSubscriptionsResponse {
-            response_header: ResponseHeader::new_good(&DateTime::now(), &request.request_header),
+            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
             results: results,
             diagnostic_infos: None
         };
@@ -73,7 +82,7 @@ impl SubscriptionService {
     }
 
     pub fn publish(&self, _: &mut ServerState, _: &mut SessionState, request: &PublishRequest) -> Result<SupportedMessage, &'static StatusCode> {
-        debug!("publish {:?}", request);
+        let service_status = &GOOD;
 
         if request.subscription_acknowledgements.is_some() {
             // TODO
@@ -91,7 +100,7 @@ impl SubscriptionService {
         };
 
         let response = PublishResponse {
-            response_header: ResponseHeader::new_good(&now, &request.request_header),
+            response_header: ResponseHeader::new_service_result(&now, &request.request_header, service_status),
             subscription_id: 0,
             available_sequence_numbers: None,
             more_notifications: false,

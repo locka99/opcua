@@ -10,6 +10,7 @@ chrono = "0.2"
 serde = "0.9"
 serde_derive = "0.9"
 serde_yaml = "0.6"
+timer = "0.1.6"
 
 [dependencies.opcua-core]
 path = "../core"

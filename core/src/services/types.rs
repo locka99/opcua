@@ -289,10 +289,6 @@ impl BinaryEncoder<ResponseHeader> for ResponseHeader {
 }
 
 impl ResponseHeader {
-    pub fn new_good(timestamp: &DateTime, request_header: &RequestHeader) -> ResponseHeader {
-        Self::new_service_result(timestamp, request_header, &GOOD)
-    }
-
     pub fn new_service_result(timestamp: &DateTime, request_header: &RequestHeader, service_result: &StatusCode) -> ResponseHeader {
         ResponseHeader {
             timestamp: timestamp.clone(),

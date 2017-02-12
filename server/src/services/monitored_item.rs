@@ -14,7 +14,9 @@ impl MonitoredItemService {
         MonitoredItemService {}
     }
 
-    pub fn create_monitored_items(&self, server_state: &mut ServerState, _: &mut SessionState, request: &CreateMonitoredItemsRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn create_monitored_items(&self, _: &mut ServerState, session_state: &mut SessionState, request: &CreateMonitoredItemsRequest) -> Result<SupportedMessage, &'static StatusCode> {
+        let mut service_status = &GOOD;
+
         // pub subscription_id: UInt32,
         // pub timestamps_to_return: TimestampsToReturn,
         // pub items_to_create: Option<Vec<MonitoredItemCreateRequest>>,
@@ -31,9 +33,8 @@ impl MonitoredItemService {
             None
         };
 
-
         let response = CreateMonitoredItemsResponse {
-            response_header: ResponseHeader::new_good(&DateTime::now(), &request.request_header),
+            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
             results: results,
             diagnostic_infos: None
         };

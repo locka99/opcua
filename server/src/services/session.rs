@@ -15,6 +15,8 @@ impl SessionService {
     }
 
     pub fn create_session(&self, server_state: &mut ServerState, _: &mut SessionState, request: &CreateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
+        let service_status = &GOOD;
+
         // TODO validate client certificate
 
         // TODO these need to be stored in the session
@@ -33,7 +35,7 @@ impl SessionService {
         };
 
         let response = CreateSessionResponse {
-            response_header: ResponseHeader::new_good(&DateTime::now(), &request.request_header),
+            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
             session_id: session_id,
             authentication_token: authentication_token,
             revised_session_timeout: session_timeout,
@@ -49,25 +51,25 @@ impl SessionService {
     }
 
     pub fn close_session(&self, _: &mut ServerState, _: &mut SessionState, request: &CloseSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
+        let service_status = &GOOD;
         let response = CloseSessionResponse {
-            response_header: ResponseHeader::new_good(&DateTime::now(), &request.request_header),
+            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
         };
         Ok(SupportedMessage::CloseSessionResponse(response))
     }
 
     pub fn activate_session(&self, _: &mut ServerState, _: &mut SessionState, request: &ActivateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
-
-        let mut status_code = &GOOD;
+        let mut service_status = &GOOD;
 
         // Only anonymous user identity tokens at this time
         if request.user_identity_token.node_id != ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id() {
-            status_code = &BAD_IDENTITY_TOKEN_REJECTED;
+            service_status = &BAD_IDENTITY_TOKEN_REJECTED;
         }
 
 
         let server_nonce = ByteString::random(32);
         let response = ActivateSessionResponse {
-            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, status_code),
+            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
             server_nonce: server_nonce,
             results: None,
             diagnostic_infos: None,

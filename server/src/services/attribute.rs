@@ -16,6 +16,8 @@ impl AttributeService {
     }
 
     pub fn read(&self, server_state: &mut ServerState, _: &mut SessionState, request: &ReadRequest) -> Result<SupportedMessage, &'static StatusCode> {
+        let service_status = &GOOD;
+
         // Read nodes and their attributes
         let timestamps_to_return = request.timestamps_to_return;
         let address_space = server_state.address_space.lock().unwrap();
@@ -91,7 +93,7 @@ impl AttributeService {
         let diagnostic_infos = None;
 
         let response = ReadResponse {
-            response_header: ResponseHeader::new_good(&DateTime::now(), &request.request_header),
+            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
             results: results,
             diagnostic_infos: diagnostic_infos,
         };
