@@ -22,9 +22,8 @@ impl Object {
         //           Reference::HasTypeDefinition(ObjectTypeId::FolderType.as_node_id()),
         //       ];
 
-        let properties = vec![];
         Object {
-            base: Base::new(NodeClass::Object, node_id, browse_name, display_name, attributes, properties),
+            base: Base::new(NodeClass::Object, node_id, browse_name, display_name, attributes),
         }
     }
 

@@ -16,9 +16,8 @@ impl View {
             (AttributeId::EventNotifier, Variant::Boolean(event_notifier)),
             (AttributeId::ContainsNoLoops, Variant::Boolean(contains_no_loops)),
         ];
-        let properties = vec![];
         View {
-            base: Base::new(NodeClass::View, node_id, browse_name, display_name, attributes, properties),
+            base: Base::new(NodeClass::View, node_id, browse_name, display_name, attributes),
         }
     }
 

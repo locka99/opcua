@@ -15,9 +15,8 @@ impl Method {
             (AttributeId::Executable, Variant::Boolean(executable)),
             (AttributeId::UserExecutable, Variant::Boolean(user_executable)),
         ];
-        let properties = vec![];
         Method {
-            base: Base::new(NodeClass::Method, node_id, browse_name, display_name, attributes, properties),
+            base: Base::new(NodeClass::Method, node_id, browse_name, display_name, attributes),
         }
     }
 

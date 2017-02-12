@@ -28,10 +28,8 @@ impl Variable {
         // Optional
         // attrs.push(Attribute::MinimumSamplingInterval(0));
         // attrs.push(Attribute::ArrayDimensions(1));
-
-        let properties = vec![];
         let mut result = Variable {
-            base: Base::new(NodeClass::Variable, node_id, browse_name, display_name, attributes, properties),
+            base: Base::new(NodeClass::Variable, node_id, browse_name, display_name, attributes, ),
         };
         result.base.set_attribute(AttributeId::Value, value);
         result

@@ -22,10 +22,8 @@ impl ReferenceType {
         if let Some(inverse_name) = inverse_name {
             attributes.push((AttributeId::InverseName, Variant::LocalizedText(inverse_name)));
         }
-        let properties = vec![];
-
         ReferenceType {
-            base: Base::new(NodeClass::ReferenceType, node_id, browse_name, display_name, attributes, properties),
+            base: Base::new(NodeClass::ReferenceType, node_id, browse_name, display_name, attributes),
         }
     }
 

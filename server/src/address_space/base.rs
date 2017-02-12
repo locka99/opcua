@@ -23,15 +23,6 @@ impl Reference {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum Property {
-    NodeVersion(UAString),
-    ViewVersion(UInt32),
-    Icon,
-    NamingRule,
-    // TODO
-}
-
 /// Implemented by Base and all derived Node types. Functions that return a result in an Option
 /// do so because the attribute is optional and not necessarily there.
 pub trait Node {
@@ -83,8 +74,6 @@ macro_rules! find_attribute_mandatory {
 pub struct Base {
     /// Attributes
     pub attributes: Vec<Option<DataValue>>,
-    /// Properties
-    pub properties: Vec<Property>,
 }
 
 
@@ -130,7 +119,7 @@ impl Node for Base {
 }
 
 impl Base {
-    pub fn new(node_class: NodeClass, node_id: &NodeId, browse_name: &str, display_name: &str, mut attributes: Vec<(AttributeId, Variant)>, mut properties: Vec<Property>) -> Base {
+    pub fn new(node_class: NodeClass, node_id: &NodeId, browse_name: &str, display_name: &str, mut attributes: Vec<(AttributeId, Variant)>) -> Base {
         // Mandatory attributes
         let mut attributes_to_add = vec![
             (AttributeId::NodeClass, Variant::Int32(node_class as Int32)),
@@ -159,12 +148,8 @@ impl Base {
             });
         }
 
-        let mut base_properties = vec![];
-        base_properties.append(&mut properties);
-
         Base {
             attributes: attributes,
-            properties: base_properties,
         }
     }
 

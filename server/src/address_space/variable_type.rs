@@ -18,9 +18,8 @@ impl VariableType {
         // Attribute::Value(value),
         // Attribute::ArrayDimensions(value),
 
-        let properties = vec![];
         VariableType {
-            base: Base::new(NodeClass::VariableType, node_id, browse_name, display_name, attributes, properties),
+            base: Base::new(NodeClass::VariableType, node_id, browse_name, display_name, attributes),
         }
     }
 

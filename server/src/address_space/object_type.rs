@@ -13,9 +13,8 @@ impl ObjectType {
         let attributes = vec![
             (AttributeId::IsAbstract, Variant::Boolean(is_abstract)),
         ];
-        let properties = vec![];
         ObjectType {
-            base: Base::new(NodeClass::ObjectType, node_id, browse_name, display_name, attributes, properties),
+            base: Base::new(NodeClass::ObjectType, node_id, browse_name, display_name, attributes),
         }
     }
 
