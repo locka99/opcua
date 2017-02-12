@@ -117,6 +117,12 @@ impl SupportedMessage {
             ObjectId::CreateSubscriptionResponse_Encoding_DefaultBinary => {
                 SupportedMessage::CreateSubscriptionResponse(CreateSubscriptionResponse::decode(stream)?)
             },
+            ObjectId::DeleteSubscriptionsRequest_Encoding_DefaultBinary => {
+                SupportedMessage::DeleteSubscriptionsRequest(DeleteSubscriptionsRequest::decode(stream)?)
+            },
+            ObjectId::DeleteSubscriptionsResponse_Encoding_DefaultBinary => {
+                SupportedMessage::DeleteSubscriptionsResponse(DeleteSubscriptionsResponse::decode(stream)?)
+            },
             ObjectId::PublishRequest_Encoding_DefaultBinary => {
                 SupportedMessage::PublishRequest(PublishRequest::decode(stream)?)
             },
@@ -128,6 +134,12 @@ impl SupportedMessage {
             },
             ObjectId::ReadResponse_Encoding_DefaultBinary => {
                 SupportedMessage::ReadResponse(ReadResponse::decode(stream)?)
+            },
+            ObjectId::CreateMonitoredItemsRequest_Encoding_DefaultBinary => {
+                SupportedMessage::CreateMonitoredItemsRequest(CreateMonitoredItemsRequest::decode(stream)?)
+            },
+            ObjectId::CreateMonitoredItemsResponse_Encoding_DefaultBinary => {
+                SupportedMessage::CreateMonitoredItemsResponse(CreateMonitoredItemsResponse::decode(stream)?)
             },
             _ => {
                 debug!("decoding unsupported for object id {:?}", object_id);
@@ -155,9 +167,14 @@ supported_messages![
     CloseSessionResponse,
     ActivateSessionRequest,
     ActivateSessionResponse,
+    // MonitoredItem service
+    CreateMonitoredItemsRequest,
+    CreateMonitoredItemsResponse,
     // Subscription service
     CreateSubscriptionRequest,
     CreateSubscriptionResponse,
+    DeleteSubscriptionsRequest,
+    DeleteSubscriptionsResponse,
     // View service
     BrowseRequest,
     BrowseResponse,

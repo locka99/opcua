@@ -42,13 +42,34 @@ impl SubscriptionService {
 
         // Create the response
         let response = CreateSubscriptionResponse {
-            response_header: ResponseHeader::new(&DateTime::now(), &request.request_header),
+            response_header: ResponseHeader::new_good(&DateTime::now(), &request.request_header),
             subscription_id: subscription_id,
             revised_publishing_interval: revised_publishing_interval,
             revised_lifetime_count: revised_lifetime_count,
             revised_max_keep_alive_count: revised_max_keep_alive_count,
         };
         Ok(SupportedMessage::CreateSubscriptionResponse(response))
+    }
+
+    pub fn delete_subscriptions(&self, _: &mut ServerState, session_state: &mut SessionState, request: &DeleteSubscriptionsRequest) -> Result<SupportedMessage, &'static StatusCode> {
+        // TODO
+        let results = if request.subscription_ids.is_some() {
+            let subscription_ids = request.subscription_ids.as_ref().unwrap();
+            let mut results = Vec::with_capacity(subscription_ids.len());
+            for subscription_id in subscription_ids {
+                results.push(GOOD.clone());
+            }
+            Some(results)
+        } else {
+            None
+        };
+
+        let response = DeleteSubscriptionsResponse {
+            response_header: ResponseHeader::new_good(&DateTime::now(), &request.request_header),
+            results: results,
+            diagnostic_infos: None
+        };
+        Ok(SupportedMessage::DeleteSubscriptionsResponse(response))
     }
 
     pub fn publish(&self, _: &mut ServerState, _: &mut SessionState, request: &PublishRequest) -> Result<SupportedMessage, &'static StatusCode> {
@@ -70,7 +91,7 @@ impl SubscriptionService {
         };
 
         let response = PublishResponse {
-            response_header: ResponseHeader::new(&now, &request.request_header),
+            response_header: ResponseHeader::new_good(&now, &request.request_header),
             subscription_id: 0,
             available_sequence_numbers: None,
             more_notifications: false,

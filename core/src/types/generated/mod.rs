@@ -34,6 +34,8 @@ use_generated_types![
     reference_description,
     create_subscription_request,
     create_subscription_response,
+    delete_subscriptions_request,
+    delete_subscriptions_response,
     publish_request,
     publish_response,
     subscription_acknowledgement,

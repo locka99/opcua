@@ -71,7 +71,7 @@ impl ViewService {
         };
 
         let response = BrowseResponse {
-            response_header: ResponseHeader::new(&DateTime::now(), &request.request_header),
+            response_header: ResponseHeader::new_good(&DateTime::now(), &request.request_header),
             results: browse_results,
             diagnostic_infos: None,
         };

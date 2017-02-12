@@ -8,6 +8,7 @@ use server::ServerState;
 
 use services::attribute::*;
 use services::discovery::*;
+use services::monitored_item::*;
 use services::session::*;
 use services::subscription::*;
 use services::view::*;
@@ -22,6 +23,8 @@ pub struct MessageHandler {
     attribute_service: AttributeService,
     /// Discovery service
     discovery_service: DiscoveryService,
+    /// MonitoredItem service
+    monitored_item_service: MonitoredItemService,
     /// Session service
     session_service: SessionService,
     /// Subscription service
@@ -37,6 +40,7 @@ impl MessageHandler {
             session_state: session_state.clone(),
             attribute_service: AttributeService::new(),
             discovery_service: DiscoveryService::new(),
+            monitored_item_service: MonitoredItemService::new(),
             session_service: SessionService::new(),
             view_service: ViewService::new(),
             subscription_service: SubscriptionService::new(),
@@ -64,6 +68,9 @@ impl MessageHandler {
             },
             &SupportedMessage::CreateSubscriptionRequest(ref request) => {
                 self.subscription_service.create_subscription(server_state, session_state, request)?
+            },
+            &SupportedMessage::DeleteSubscriptionsRequest(ref request) => {
+                self.subscription_service.delete_subscriptions(server_state, session_state, request)?
             }
             &SupportedMessage::PublishRequest(ref request) => {
                 self.subscription_service.publish(server_state, session_state, request)?
@@ -73,7 +80,10 @@ impl MessageHandler {
             },
             &SupportedMessage::ReadRequest(ref request) => {
                 self.attribute_service.read(server_state, session_state, request)?
-            }
+            },
+            &SupportedMessage::CreateMonitoredItemsRequest(ref request) => {
+                self.monitored_item_service.create_monitored_items(server_state, session_state, request)?
+            },
             _ => {
                 debug!("Message handler does not handle this kind of message");
                 return Err(&BAD_SERVICE_UNSUPPORTED);

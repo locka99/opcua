@@ -91,7 +91,7 @@ impl AttributeService {
         let diagnostic_infos = None;
 
         let response = ReadResponse {
-            response_header: ResponseHeader::new(&DateTime::now(), &request.request_header),
+            response_header: ResponseHeader::new_good(&DateTime::now(), &request.request_header),
             results: results,
             diagnostic_infos: diagnostic_infos,
         };

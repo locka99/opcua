@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use opcua_core::services::*;
 use opcua_core::types::*;
 
-use ::config::*;
 use address_space::*;
 
 #[derive(Debug, Clone, PartialEq)]
