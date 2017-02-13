@@ -2,9 +2,20 @@ use opcua_core::types::*;
 
 use types::monitored_item::*;
 
-#[derive(Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum SubscriptionState {
+    Closed,
+    Creating,
+    Normal,
+    Late,
+    KeepAlive
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Subscription {
     pub subscription_id: UInt32,
+    /// State of the subscription
+    pub state: SubscriptionState,
     /// Publishing interval
     pub publishing_interval: Double,
     /// Lifetime count enforced

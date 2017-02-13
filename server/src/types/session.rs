@@ -14,6 +14,7 @@ pub struct SessionState {
     pub session_info: Option<SessionInfo>,
     pub subscriptions: HashMap<UInt32, Subscription>,
     pub last_subscription_id: UInt32,
+    pub publish_request_queue: Vec<PublishRequest>
 }
 
 impl SessionState {
@@ -21,6 +22,7 @@ impl SessionState {
         SessionState {
             session_info: None,
             subscriptions: HashMap::new(),
+            publish_request_queue: Vec::new(),
             last_subscription_id: 0,
         }
     }

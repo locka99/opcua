@@ -1,5 +1,5 @@
 
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MonitoredItem {
 
 }

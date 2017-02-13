@@ -17,6 +17,23 @@ impl SubscriptionService {
         SubscriptionService {}
     }
 
+    pub fn poll(&self, session_state: &mut SessionState) {
+        let publishing_enabled = true;
+        let more_notifications = false;
+
+        for (subscription_id, subscription) in session_state.subscriptions.iter() {
+            match subscription.state {
+                SubscriptionState::Closed => {
+                    // DO NOTHING
+                },
+                SubscriptionState::Creating => {},
+                SubscriptionState::Normal => {},
+                SubscriptionState::KeepAlive => {},
+                SubscriptionState::Late => {},
+            }
+        }
+    }
+
     pub fn create_subscription(&self, _: &mut ServerState, session_state: &mut SessionState, request: &CreateSubscriptionRequest) -> Result<SupportedMessage, &'static StatusCode> {
         if session_state.subscriptions.len() >= MAX_SUBSCRIPTIONS {
             return Err(&BAD_TOO_MANY_SUBSCRIPTIONS);
@@ -33,6 +50,7 @@ impl SubscriptionService {
         // Create a new subscription
         let subscription = Subscription {
             subscription_id: subscription_id,
+            state: SubscriptionState::Creating,
             publishing_interval: revised_publishing_interval,
             lifetime_count: revised_lifetime_count,
             keep_alive_count: revised_max_keep_alive_count,
@@ -62,8 +80,7 @@ impl SubscriptionService {
                 if session_state.subscriptions.contains_key(subscription_id) {
                     session_state.subscriptions.remove(subscription_id);
                     results.push(GOOD.clone());
-                }
-                else {
+                } else {
                     results.push(BAD_SUBSCRIPTION_ID_INVALID.clone());
                 }
             }

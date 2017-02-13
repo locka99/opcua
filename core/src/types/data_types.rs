@@ -103,11 +103,3 @@ impl BinaryEncoder<MonitoringMode> for MonitoringMode {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum SubscriptionState {
-    Closed,
-    Creating,
-    Normal,
-    Late,
-    KeepAlive
-}
