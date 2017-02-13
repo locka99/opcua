@@ -287,6 +287,7 @@ impl AddressSpace {
         let root_node_id = AddressSpace::root_folder_id();
         let root_node = Object::new(&root_node_id, "Root", "Root");
         self.insert(NodeType::Object(root_node));
+        self.insert_reference(&root_node_id, &ObjectTypeId::FolderType.as_node_id(), ReferenceTypeId::HasTypeDefinition);
 
         // Things under root
         {

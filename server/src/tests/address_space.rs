@@ -79,8 +79,19 @@ fn find_references_from() {
 
     let references = address_space.find_references_from(&AddressSpace::root_folder_id(), Some((ReferenceTypeId::Organizes, false)));
     assert!(references.is_some());
-    let references = references.unwrap();
+    let references = references.as_ref().unwrap();
+    for r in references {
+        println!("Filtered type = {:?}, to = {:?}", r.reference_type_id, r.node_id);
+    }
     assert_eq!(references.len(), 3);
+
+    let references = address_space.find_references_from(&AddressSpace::root_folder_id(), None);
+    assert!(references.is_some());
+    let references = references.as_ref().unwrap();
+    for r in references {
+        println!("Unfiltered type = {:?}, to = {:?}", r.reference_type_id, r.node_id);
+    }
+    assert_eq!(references.len(), 4);
 
     let references = address_space.find_references_from(&AddressSpace::objects_folder_id(), Some((ReferenceTypeId::Organizes, false)));
     assert!(references.is_some());
