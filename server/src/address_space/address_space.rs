@@ -186,12 +186,23 @@ impl AddressSpace {
         }
     }
 
-    fn reference_type_matches(&self, r1: ReferenceTypeId, r2: ReferenceTypeId, match_subtypes: bool) -> bool {
+    fn reference_type_matches(&self, r1: ReferenceTypeId, r2: ReferenceTypeId, include_subtypes: bool) -> bool {
         if r1 == r2 {
             true
-        } else if match_subtypes {
-            // TODO somehow work out subtypes, e.g. working back along inverse references
-            false
+        } else if include_subtypes {
+            // THIS IS A HACK
+            if r1 == ReferenceTypeId::HierarchicalReferences {
+                match r2 {
+                    ReferenceTypeId::HierarchicalReferences | ReferenceTypeId::HasChild | ReferenceTypeId::HasSubtype | ReferenceTypeId::Organizes => {
+                        true
+                    },
+                    _ => false
+                }
+            }
+            else {
+                // TODO somehow work out subtypes, e.g. working back along inverse references
+                false
+            }
         } else {
             false
         }

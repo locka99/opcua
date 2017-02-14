@@ -126,7 +126,7 @@ impl ViewService {
             let target_node_class = target_node.node_class();
 
             // Skip target nodes not required by the mask
-            if node_class_mask & (target_node_class as UInt32) == 0 {
+            if node_class_mask != 0 && node_class_mask & (target_node_class as UInt32) == 0 {
                 continue;
             }
 
