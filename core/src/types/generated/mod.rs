@@ -2,6 +2,7 @@ mod node_ids;
 mod status_codes;
 
 macro_rules! use_generated_types {
+    [ $( $x:ident, ) * ] => (use_generated_types![ $( $x ),* ];);
     [ $( $x:ident ), * ] => {
         $(
         mod $x;
@@ -34,6 +35,8 @@ use_generated_types![
     reference_description,
     create_subscription_request,
     create_subscription_response,
+    modify_subscription_request,
+    modify_subscription_response,
     delete_subscriptions_request,
     delete_subscriptions_response,
     publish_request,
@@ -52,7 +55,7 @@ use_generated_types![
     signature_data,
     signed_software_certificate,
     anonymous_identity_token,
-    user_name_identity_token
+    user_name_identity_token,
 ];
 
 pub use self::node_ids::*;

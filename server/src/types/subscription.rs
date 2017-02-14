@@ -14,6 +14,8 @@ pub enum SubscriptionState {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Subscription {
     pub subscription_id: UInt32,
+    /// Flag enabling publishing
+    pub publishing_enabled: Boolean,
     /// State of the subscription
     pub state: SubscriptionState,
     /// Publishing interval

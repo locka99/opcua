@@ -2,6 +2,8 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use rand::{self, Rng};
+
 use opcua_core;
 use opcua_core::types::*;
 use opcua_core::services::*;
@@ -49,6 +51,15 @@ pub struct ServerState {
     pub server_certificate: ByteString,
     /// The address space
     pub address_space: Arc<Mutex<AddressSpace>>,
+    /// The next subscription id - subscriptions are shared across the whole server. Initial value
+    /// is a random u32.
+    pub next_subscription_id: UInt32,
+    /// Maximum number of subscriptions per session, 0 means no limit (danger)
+    pub max_subscriptions: usize,
+    /// Minimum publishing interval
+    pub min_publishing_interval: Duration,
+    /// Maxmimum keep alive count
+    pub max_keep_alive_count: UInt32,
 }
 
 impl ServerState {
@@ -83,6 +94,12 @@ impl ServerState {
         }
         endpoints
     }
+
+    pub fn create_subscription_id(&mut self) -> UInt32 {
+        let result = self.next_subscription_id;
+        self.next_subscription_id += 1;
+        result
+    }
 }
 
 /// The Server represents a running instance of OPC UA. There can be more than one server running
@@ -107,6 +124,7 @@ impl Server {
         let start_time = DateTime::now();
         let servers = vec![config.application_uri.clone()];
         let base_endpoint = format!("opc.tcp://{}:{}", config.tcp_config.host, config.tcp_config.port);
+        let max_subscriptions = 5; // TODO config
 
         let mut endpoints = Vec::new();
         for e in &config.endpoints {
@@ -145,7 +163,12 @@ impl Server {
             endpoints: endpoints,
             config: Arc::new(Mutex::new(config.clone())),
             server_certificate: server_certificate,
-            address_space: Arc::new(Mutex::new(address_space))
+            address_space: Arc::new(Mutex::new(address_space)),
+            next_subscription_id: rand::thread_rng().next_u32(),
+
+            max_subscriptions: max_subscriptions,
+            min_publishing_interval: 0f64,
+            max_keep_alive_count: 10000,
         };
 
         {

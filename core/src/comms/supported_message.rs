@@ -117,6 +117,12 @@ impl SupportedMessage {
             ObjectId::CreateSubscriptionResponse_Encoding_DefaultBinary => {
                 SupportedMessage::CreateSubscriptionResponse(CreateSubscriptionResponse::decode(stream)?)
             },
+            ObjectId::ModifySubscriptionRequest_Encoding_DefaultBinary => {
+                SupportedMessage::ModifySubscriptionRequest(ModifySubscriptionRequest::decode(stream)?)
+            }
+            ObjectId::ModifySubscriptionResponse_Encoding_DefaultBinary => {
+                SupportedMessage::ModifySubscriptionResponse(ModifySubscriptionResponse::decode(stream)?)
+            }
             ObjectId::DeleteSubscriptionsRequest_Encoding_DefaultBinary => {
                 SupportedMessage::DeleteSubscriptionsRequest(DeleteSubscriptionsRequest::decode(stream)?)
             },
@@ -173,6 +179,8 @@ supported_messages![
     // Subscription service
     CreateSubscriptionRequest,
     CreateSubscriptionResponse,
+    ModifySubscriptionRequest,
+    ModifySubscriptionResponse,
     DeleteSubscriptionsRequest,
     DeleteSubscriptionsResponse,
     // View service

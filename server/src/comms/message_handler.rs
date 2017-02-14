@@ -69,6 +69,9 @@ impl MessageHandler {
             &SupportedMessage::CreateSubscriptionRequest(ref request) => {
                 self.subscription_service.create_subscription(server_state, session_state, request)?
             },
+            &SupportedMessage::ModifySubscriptionRequest(ref request) => {
+                self.subscription_service.modify_subscription(server_state, session_state, request)?
+            },
             &SupportedMessage::DeleteSubscriptionsRequest(ref request) => {
                 self.subscription_service.delete_subscriptions(server_state, session_state, request)?
             }

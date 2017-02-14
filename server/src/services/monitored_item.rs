@@ -14,7 +14,7 @@ impl MonitoredItemService {
         MonitoredItemService {}
     }
 
-    pub fn create_monitored_items(&self, _: &mut ServerState, session_state: &mut SessionState, request: &CreateMonitoredItemsRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn create_monitored_items(&self, _: &mut ServerState, _: &mut SessionState, request: &CreateMonitoredItemsRequest) -> Result<SupportedMessage, &'static StatusCode> {
         let service_status = &GOOD;
 
         // pub subscription_id: UInt32,
@@ -24,7 +24,9 @@ impl MonitoredItemService {
         let results = if request.items_to_create.is_some() {
             let items_to_create = request.items_to_create.as_ref().unwrap();
             let results = Vec::with_capacity(items_to_create.len());
-            for item in items_to_create {}
+            for _ in items_to_create {
+                // Process items to create here
+            }
             Some(results)
         } else {
             None
