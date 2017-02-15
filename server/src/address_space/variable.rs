@@ -1,3 +1,5 @@
+use opcua_core::types::{DataTypeId};
+
 use address_space::*;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -8,11 +10,11 @@ pub struct Variable {
 node_impl!(Variable);
 
 impl Variable {
-    pub fn new_node(node_id: &NodeId, browse_name: &str, display_name: &str, value: DataValue) -> NodeType {
-        NodeType::Variable(Variable::new(node_id, browse_name, display_name, value))
+    pub fn new_node(node_id: &NodeId, browse_name: &str, display_name: &str, data_type: &DataTypeId, value: DataValue) -> NodeType {
+        NodeType::Variable(Variable::new(node_id, browse_name, display_name, data_type, value))
     }
 
-    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, value: DataValue) -> Variable {
+    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, data_type: &DataTypeId, value: DataValue) -> Variable {
         // Mandatory
         let historizing = false;
         let access_level = 0;
@@ -21,6 +23,7 @@ impl Variable {
         let attributes = vec![
             (AttributeId::UserAccessLevel, Variant::Byte(user_access_level)),
             (AttributeId::AccessLevel, Variant::Byte(access_level)),
+            (AttributeId::DataType, Variant::NodeId(data_type.as_node_id())),
             (AttributeId::ValueRank, Variant::Int32(value_rank)),
             (AttributeId::Historizing, Variant::Boolean(historizing)),
         ];
@@ -35,12 +38,12 @@ impl Variable {
         result
     }
 
-    pub fn new_array_node(node_id: &NodeId, browse_name: &str, display_name: &str, value: DataValue, dimensions: &[Int32]) -> NodeType {
-        NodeType::Variable(Variable::new_array(node_id, browse_name, display_name, value, dimensions))
+    pub fn new_array_node(node_id: &NodeId, browse_name: &str, display_name: &str, data_type: &DataTypeId, value: DataValue, dimensions: &[Int32]) -> NodeType {
+        NodeType::Variable(Variable::new_array(node_id, browse_name, display_name, data_type, value, dimensions))
     }
 
-    pub fn new_array(node_id: &NodeId, browse_name: &str, display_name: &str, value: DataValue, dimensions: &[Int32]) -> Variable {
-        let mut variable = Variable::new(node_id, browse_name, display_name, value);
+    pub fn new_array(node_id: &NodeId, browse_name: &str, display_name: &str, data_type: &DataTypeId, value: DataValue, dimensions: &[Int32]) -> Variable {
+        let mut variable = Variable::new(node_id, browse_name, display_name, data_type, value);
         // An array has a value rank equivalent to the number of dimensions and an ArrayDimensions array
         let now = DateTime::now();
         variable.base.set_attribute_value(AttributeId::ValueRank, Variant::Int32(dimensions.len() as Int32), &now, &now);

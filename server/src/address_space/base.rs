@@ -125,7 +125,11 @@ impl Base {
             (AttributeId::NodeClass, Variant::Int32(node_class as Int32)),
             (AttributeId::NodeId, Variant::NodeId(node_id.clone())),
             (AttributeId::DisplayName, Variant::LocalizedText(LocalizedText::new("", display_name))),
-            (AttributeId::BrowseName, Variant::QualifiedName(QualifiedName::new(0, browse_name)))
+            (AttributeId::BrowseName, Variant::QualifiedName(QualifiedName::new(0, browse_name))),
+            (AttributeId::Description, Variant::LocalizedText(LocalizedText::new("", ""))),
+            (AttributeId::WriteMask, Variant::UInt32(0)),
+            (AttributeId::UserWriteMask, Variant::UInt32(0)),
+            (AttributeId::Description, Variant::LocalizedText(LocalizedText::new("", ""))),
         ];
         attributes_to_add.append(&mut attributes);
 
