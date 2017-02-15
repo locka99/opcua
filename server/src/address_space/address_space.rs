@@ -186,22 +186,54 @@ impl AddressSpace {
         }
     }
 
+
     fn reference_type_matches(&self, r1: ReferenceTypeId, r2: ReferenceTypeId, include_subtypes: bool) -> bool {
         if r1 == r2 {
             true
         } else if include_subtypes {
-            // THIS IS A HACK
-            if r1 == ReferenceTypeId::HierarchicalReferences {
-                match r2 {
-                    ReferenceTypeId::HierarchicalReferences | ReferenceTypeId::HasChild | ReferenceTypeId::HasSubtype | ReferenceTypeId::Organizes => {
-                        true
-                    },
-                    _ => false
+            // THIS IS AN UGLY HACK. The subtype code should really use walk down the hierchical types in the address space to figure this out
+            match r1 {
+                ReferenceTypeId::HierarchicalReferences => {
+                    match r2 {
+                        ReferenceTypeId::HierarchicalReferences | ReferenceTypeId::HasChild |
+                        ReferenceTypeId::HasSubtype | ReferenceTypeId::Organizes |
+                        ReferenceTypeId::Aggregates | ReferenceTypeId::HasProperty |
+                        ReferenceTypeId::HasComponent | ReferenceTypeId::HasOrderedComponent |
+                        ReferenceTypeId::HasEventSource | ReferenceTypeId::HasNotifier => {
+                            true
+                        },
+                        _ => false
+                    }
+                },
+                ReferenceTypeId::HasChild => {
+                    match r2 {
+                        ReferenceTypeId::Aggregates | ReferenceTypeId::HasComponent |
+                        ReferenceTypeId::HasHistoricalConfiguration | ReferenceTypeId::HasProperty |
+                        ReferenceTypeId::HasOrderedComponent | ReferenceTypeId::HasSubtype => {
+                            true
+                        },
+                        _ => false
+                    }
+                },
+                ReferenceTypeId::Aggregates => {
+                    match r2 {
+                        ReferenceTypeId::HasComponent | ReferenceTypeId::HasHistoricalConfiguration |
+                        ReferenceTypeId::HasProperty | ReferenceTypeId::HasOrderedComponent => {
+                            true
+                        },
+                        _ => false
+                    }
+                },
+                ReferenceTypeId::HasComponent => {
+                    r2 == ReferenceTypeId::HasOrderedComponent
                 }
-            }
-            else {
-                // TODO somehow work out subtypes, e.g. working back along inverse references
-                false
+                ReferenceTypeId::HasEventSource => {
+                    r2 == ReferenceTypeId::HasNotifier
+                },
+                _ => {
+                    // TODO somehow work out subtypes, e.g. working back along inverse references
+                    false
+                }
             }
         } else {
             false
@@ -427,20 +459,19 @@ impl AddressSpace {
     /// Add nodes representing the server. For this, the values in server state are used to populate
     /// the address. Therefore things like namespaces should be set before calling this.
     pub fn add_server_nodes(&mut self, server_state: &::ServerState) {
-
         let server_config = server_state.config.lock().unwrap();
 
-        let root_folder_id = AddressSpace::root_folder_id();
+        let objects_folder_id = AddressSpace::objects_folder_id();
         let server_id = ObjectId::Server.as_node_id();
 
         // Server/ (ServerType)
-        let _ = self.add_organized_node(&server_id, "Server", "Server", &root_folder_id, ObjectTypeId::ServerType);
+        let _ = self.add_organized_node(&server_id, "Server", "Server", &objects_folder_id, ObjectTypeId::ServerType);
         {
             //   NamespaceArray
             let namespace_array_id = VariableId::Server_NamespaceArray.as_node_id();
             let namespace_value = Variant::from_string_array(&server_state.namespaces);
             {
-                self.insert(Variable::new_array_node(&namespace_array_id, "NamespaceArray", "NamespaceArray", DataValue::new(namespace_value), &[server_state.namespaces.len() as Int32]));
+                self.insert(Variable::new_array_node(&namespace_array_id, "NamespaceArray", "NamespaceArray", &DataTypeId::String, DataValue::new(namespace_value), &[server_state.namespaces.len() as Int32]));
                 self.add_has_component(&server_id, &namespace_array_id);
             }
 
@@ -448,15 +479,16 @@ impl AddressSpace {
             let server_array_id = VariableId::Server_ServerArray.as_node_id();
             {
                 let server_array_value = Variant::from_string_array(&server_state.servers);
-                self.insert(Variable::new_array_node(&server_array_id, "ServerArray", "ServerArray", DataValue::new(server_array_value), &[server_state.servers.len() as Int32]));
+                self.insert(Variable::new_array_node(&server_array_id, "ServerArray", "ServerArray", &DataTypeId::String, DataValue::new(server_array_value), &[server_state.servers.len() as Int32]));
                 self.add_has_component(&server_id, &server_array_id);
             }
 
             //   ServerCapabilities/
             let server_capabilities_id = ObjectId::Server_ServerCapabilities.as_node_id();
             {
-                self.insert(Variable::new_node(&server_capabilities_id, "ServerCapabilities", "ServerCapabilities", DataValue::new(Variant::Empty)));
+                self.insert(Object::new_node(&server_capabilities_id, "ServerCapabilities", "ServerCapabilities"));
                 self.add_has_component(&server_id, &server_capabilities_id);
+                self.set_object_type(&server_capabilities_id, &ObjectTypeId::ServerCapabilitiesType);
                 {
                     // type definition property type
                     //     MaxBrowseContinuationPoint
@@ -465,30 +497,30 @@ impl AddressSpace {
 
                     {
                         let max_array_len_id = VariableId::Server_ServerCapabilities_MaxArrayLength.as_node_id();
-                        self.insert(Variable::new_node(&max_array_len_id, "MaxArrayLength", "MaxArrayLength", DataValue::new(Variant::UInt32(server_config.max_array_length))));
+                        self.insert(Variable::new_node(&max_array_len_id, "MaxArrayLength", "MaxArrayLength", &DataTypeId::UInt32, DataValue::new(Variant::UInt32(server_config.max_array_length))));
                         self.add_has_property(&server_capabilities_id, &max_array_len_id);
-                        self.set_is_property_type(&max_array_len_id);
+                        self.set_variable_as_property_type(&max_array_len_id);
                     }
 
                     {
                         let max_string_len_id = VariableId::Server_ServerCapabilities_MaxStringLength.as_node_id();
-                        self.insert(Variable::new_node(&max_string_len_id, "MaxStringLength", "MaxStringLength", DataValue::new(Variant::UInt32(server_config.max_string_length))));
+                        self.insert(Variable::new_node(&max_string_len_id, "MaxStringLength", "MaxStringLength", &DataTypeId::UInt32, DataValue::new(Variant::UInt32(server_config.max_string_length))));
                         self.add_has_property(&server_capabilities_id, &max_string_len_id);
-                        self.set_is_property_type(&max_string_len_id);
+                        self.set_variable_as_property_type(&max_string_len_id);
                     }
 
                     {
                         let max_byte_string_len_id = VariableId::Server_ServerCapabilities_MaxByteStringLength.as_node_id();
-                        self.insert(Variable::new_node(&max_byte_string_len_id, "MaxByteStringLength", "MaxByteStringLength", DataValue::new(Variant::UInt32(server_config.max_byte_string_length))));
+                        self.insert(Variable::new_node(&max_byte_string_len_id, "MaxByteStringLength", "MaxByteStringLength", &DataTypeId::UInt32, DataValue::new(Variant::UInt32(server_config.max_byte_string_length))));
                         self.add_has_property(&server_capabilities_id, &max_byte_string_len_id);
-                        self.set_is_property_type(&max_byte_string_len_id);
+                        self.set_variable_as_property_type(&max_byte_string_len_id);
                     }
                 }
             }
 
             //   ServerStatus
             let serverstatus_id = VariableId::Server_ServerStatus.as_node_id();
-            self.insert(Variable::new_node(&serverstatus_id, "ServerStatus", "ServerStatus", DataValue::new(Variant::Empty)));
+            self.insert(Variable::new_node(&serverstatus_id, "ServerStatus", "ServerStatus", &DataTypeId::ServerStatusDataType, DataValue::new(Variant::Empty)));
             self.add_has_component(&server_id, &serverstatus_id);
             self.insert_reference(&serverstatus_id, &DataTypeId::ServerStatusDataType.as_node_id(), ReferenceTypeId::HasTypeDefinition);
             {
@@ -504,14 +536,14 @@ impl AddressSpace {
                 // Unknown = 7
                 //     State (Server_ServerStatus_State)
                 let serverstatus_state_id = VariableId::Server_ServerStatus_State.as_node_id();
-                self.insert(Variable::new_node(&serverstatus_state_id, "State", "State", DataValue::new(Variant::UInt32(0))));
+                self.insert(Variable::new_node(&serverstatus_state_id, "State", "State", &DataTypeId::UInt32, DataValue::new(Variant::UInt32(0))));
                 self.insert_reference(&serverstatus_state_id, &DataTypeId::ServerState.as_node_id(), ReferenceTypeId::HasTypeDefinition);
                 self.add_has_component(&serverstatus_id, &serverstatus_state_id);
             }
 
             // ServiceLevel - 0-255 worst to best quality of service
             let servicelevel_id = VariableId::Server_ServiceLevel.as_node_id();
-            self.insert(Variable::new_node(&servicelevel_id, "ServiceLevel", "ServiceLevel", DataValue::new(Variant::Byte(255))));
+            self.insert(Variable::new_node(&servicelevel_id, "ServiceLevel", "ServiceLevel", &DataTypeId::Byte, DataValue::new(Variant::Byte(255))));
             self.insert_reference(&servicelevel_id, &DataTypeId::Byte.as_node_id(), ReferenceTypeId::HasTypeDefinition);
             self.add_has_component(&servicelevel_id, &namespace_array_id);
 
@@ -535,8 +567,16 @@ impl AddressSpace {
         AddressSpace::add_reference(&mut self.inverse_references, node_id_to, Reference::new(reference_type_id, node_id_from));
     }
 
-    pub fn set_is_property_type(&mut self, node_id: &NodeId) {
-        self.insert_reference(node_id, &VariableTypeId::PropertyType.as_node_id(), ReferenceTypeId::HasTypeDefinition);
+    pub fn set_object_type(&mut self, node_id: &NodeId, object_type: &ObjectTypeId) {
+        self.insert_reference(node_id, &object_type.as_node_id(), ReferenceTypeId::HasTypeDefinition);
+    }
+
+    pub fn set_variable_type(&mut self, node_id: &NodeId, variable_type: &VariableTypeId) {
+        self.insert_reference(node_id, &variable_type.as_node_id(), ReferenceTypeId::HasTypeDefinition);
+    }
+
+    pub fn set_variable_as_property_type(&mut self, node_id: &NodeId) {
+        self.set_variable_type(node_id, &VariableTypeId::PropertyType);
     }
 
     pub fn add_has_component(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
