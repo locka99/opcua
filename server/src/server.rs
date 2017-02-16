@@ -70,9 +70,11 @@ impl ServerState {
             if e.anonymous {
                 user_identity_tokens.push(UserTokenPolicy::new_anonymous());
             }
-
-            // TODO username / pass
-            // user_identity_tokens.push(UserTokenPolicy::new_user_pass());
+            if let Some(ref user) = e.user {
+                if user.len() > 0 {
+                    user_identity_tokens.push(UserTokenPolicy::new_user_pass());
+                }
+            }
             endpoints.push(EndpointDescription {
                 endpoint_url: UAString::from_str(&e.endpoint_url),
                 server: ApplicationDescription {

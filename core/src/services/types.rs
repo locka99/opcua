@@ -58,6 +58,16 @@ impl UserTokenPolicy {
             security_policy_uri: UAString::null(),
         }
     }
+
+    pub fn new_user_pass() -> UserTokenPolicy {
+        UserTokenPolicy {
+            policy_id: UAString::from_str("userpass"),
+            token_type: UserTokenType::Username,
+            issued_token_type: UAString::null(),
+            issuer_endpoint_url: UAString::null(),
+            security_policy_uri: UAString::null(), // TODO
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
