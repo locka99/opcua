@@ -1,3 +1,4 @@
+use opcua_core::comms::*;
 use opcua_core::types::*;
 use opcua_core::services::*;
 
@@ -60,7 +61,37 @@ fn browse_nodes() {
         let request = make_browse_request(vec![ObjectId::RootFolder.as_node_id()], BrowseDirection::Forward, ReferenceTypeId::Organizes);
         println!("Browse Request = {:#?}", request);
         let result = view.browse(&mut server_state, &mut session_state, &request);
+        assert!(result.is_ok());
+
+        let result = result.unwrap();
         println!("Browse Response = {:#?}", result);
-        assert!(false);
+
+        let result = match result {
+            SupportedMessage::BrowseResponse(result) => result,
+            _ => {
+                panic!("Wrong response")
+            }
+        };
+
+        assert!(result.results.is_some());
+
+        let results = result.results.unwrap();
+        assert_eq!(results.len(), 1);
+
+        assert!(results[0].references.is_some());
+        let references = results[0].references.as_ref().unwrap();
+        assert_eq!(references.len(), 3);
+
+        // Expect to see refs to
+        // Objects/
+        // Types/
+        // Views/
+
+        let r1 = &references[0];
+        assert_eq!(r1.browse_name, QualifiedName::new(0, "Objects"));
+        let r2 = &references[1];
+        assert_eq!(r2.browse_name, QualifiedName::new(0, "Types"));
+        let r3 = &references[2];
+        assert_eq!(r3.browse_name, QualifiedName::new(0, "Views"));
     }
 }
