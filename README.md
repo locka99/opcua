@@ -14,14 +14,25 @@ https://opensource.org/licenses/MPL-2.0
 
 # Current progress
 
+Almost phase 1. Currently you may connect to a sample-server using anonymous authentication, browse its address space and see the current values.
+
+## Phase 1
+
+DONE. discovery service, view / browse service, anonymous authentication
+
+TODO - user password authentication, multi-part chunking, go back over the implementations of some services looking for
+omissions, ensure better service status results, some means of associating variables with a closure getter method for 
+refreshing the value.
+
+NICE TO HAVE - replace hand assembled minimalist node set with generated node set from xml
+
 ## Phase 0 
 
-DONE - hello / acknowledge / error messages, server config, tcp listener, session loop, basic chunking (1 chunk only at
+DONE - internal hello / acknowledge / error messages, server config, tcp listener, session loop, basic chunking (1 chunk only at
 this time), message buffering, binary (de)serialization of fundamental types, open / close secure channel, 
 create / activate session, some request / response handlers such as end point discovery, browse, read, anonymous 
-authentication token, basic address space, standard node types, references, attributes. 
+authentication token, basic address space, standard node types, references, attributes. minimal node set, values
 
-TODO - default server node set, values, user authentication token
 
 # OPC UA for Rust?
 
