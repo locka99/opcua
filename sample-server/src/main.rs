@@ -3,8 +3,7 @@ extern crate opcua_server;
 
 use opcua_core::types::*;
 
-use opcua_server::{Server};
-use opcua_server::address_space::*;
+use opcua_server::prelude::*;
 
 fn main() {
     let _ = opcua_core::init_logging();

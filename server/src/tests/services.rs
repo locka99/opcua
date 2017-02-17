@@ -2,7 +2,7 @@ use opcua_core::comms::*;
 use opcua_core::types::*;
 use opcua_core::services::*;
 
-use ::{Server};
+use server::*;
 use comms::tcp_transport::*;
 use services::view::ViewService;
 

@@ -4,6 +4,7 @@ use opcua_core::services::*;
 use opcua_core::types::*;
 
 use address_space::*;
+use server::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum NodeType {
@@ -458,7 +459,7 @@ impl AddressSpace {
 
     /// Add nodes representing the server. For this, the values in server state are used to populate
     /// the address. Therefore things like namespaces should be set before calling this.
-    pub fn add_server_nodes(&mut self, server_state: &::ServerState) {
+    pub fn add_server_nodes(&mut self, server_state: &ServerState) {
         let server_config = server_state.config.lock().unwrap();
 
         let objects_folder_id = AddressSpace::objects_folder_id();

@@ -15,8 +15,9 @@ extern crate byteorder;
 extern crate opcua_core;
 
 mod services;
-mod server;
 mod comms;
+
+pub mod server;
 
 pub mod types;
 
@@ -24,7 +25,12 @@ pub mod config;
 
 pub mod address_space;
 
-pub use server::*;
+pub mod prelude {
+    pub use server::*;
+    pub use types::*;
+    pub use config::*;
+    pub use address_space::*;
+}
 
 #[cfg(test)]
 mod tests;

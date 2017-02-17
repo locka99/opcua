@@ -1,3 +1,5 @@
+//! The TCP transport implementation for the server handles receiving and sending of chunks,
+//! hello and session creation and dispatching of messages.
 use std;
 use std::net::{TcpStream, Shutdown};
 use std::io::{Read, Write, Cursor, ErrorKind};

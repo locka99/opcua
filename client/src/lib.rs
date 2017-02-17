@@ -1,8 +1,15 @@
+//! The OPC UA client crate provides the functionality necessary for a client to connect to an OPC server,
+//! authenticate itself, send messages, receive responses, get values, browse the address space and
+//! provide callbacks for things to be propagated to the client.
+
 extern crate opcua_core;
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-    }
+mod comms;
+
+pub mod client;
+pub mod session;
+
+pub mod prelude {
+    pub use client::*;
+    pub use session::*;
 }
