@@ -4,6 +4,8 @@ version = "0.1.0"
 authors = ["Adam Lock <locka99@gmail.com>"]
 
 [dependencies]
+url = "1.4.0"
+log = "0.3.6"
 
 [dependencies.opcua-core]
 path = "../core"

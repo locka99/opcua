@@ -12,6 +12,9 @@ pub const CHUNK_FINAL: u8 = b'F';
 pub const CHUNK_INTERMEDIATE: u8 = b'C';
 pub const CHUNK_FINAL_ERROR: u8 = b'A';
 
+/// This is a constraint in the existing implementation for the time being.
+pub const MAX_CHUNK_COUNT: usize = 1;
+
 mod security_policy;
 mod chunk;
 mod chunker;

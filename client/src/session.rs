@@ -2,45 +2,55 @@ use std::result::Result;
 
 use opcua_core::types::*;
 
-pub struct SessionState {}
+use comms::*;
 
-impl SessionState {
-    pub fn new() -> SessionState {
-        SessionState {}
-    }
-}
-
-pub struct Session {
+pub struct SessionState {
     /// The endpoint url
     pub endpoint_url: String,
     /// Session timeout in milliseconds
     pub session_timeout: u32,
+    pub send_buffer_size: usize,
+    pub receive_buffer_size: usize,
+    pub max_message_size: usize,
+
+}
+
+impl SessionState {}
+
+pub struct Session {
     /// Runtime state of the session, reset if disconnected
     pub session_state: SessionState,
-    // application description
-    // user identity token
-    // user security policy
-    // tcp transport
+    /// Transport layer
+    transport: TcpTransport,
 }
 
 impl Session {
     pub fn new(endpoint_url: &str) -> Session {
         Session {
-            endpoint_url: endpoint_url.to_string(),
-            session_timeout: 60 * 1000,
-            session_state: SessionState::new()
+            session_state: SessionState {
+                endpoint_url: endpoint_url.to_string(),
+                session_timeout: 60 * 1000,
+                send_buffer_size: 65536,
+                receive_buffer_size: 65536,
+                max_message_size: 65536,
+            },
+            transport: TcpTransport::new()
         }
     }
 
-    pub fn connect(&mut self) -> Result<(), StatusCode> {
-        // Send hello
+    pub fn connect(&mut self) -> Result<(), &'static StatusCode> {
+        let session_state = &mut self.session_state;
+
+        let _ = self.transport.connect(session_state)?;
+        let _ = self.transport.send_hello(session_state)?;
         // Send create session
         // Send activate session
-        Err(BAD_NOT_IMPLEMENTED.clone())
+
+        Ok(())
     }
 
     pub fn disconnect(&mut self) {
-        // Disconnect
+        self.transport.disconnect();
     }
 
     /// Synchronously browses the nodes specified in the list of browse descriptions

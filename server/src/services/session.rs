@@ -59,7 +59,7 @@ impl SessionService {
         Ok(SupportedMessage::CloseSessionResponse(response))
     }
 
-    pub fn activate_session(&self, server_state: &mut ServerState, _: &mut SessionState, request: &ActivateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn activate_session(&self, _: &mut ServerState, _: &mut SessionState, request: &ActivateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
         let identity_token_id = request.user_identity_token.node_id.clone();
         let service_status = if identity_token_id == ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id() {
             // TODO ensure session allows anonymous id

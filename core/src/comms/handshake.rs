@@ -125,7 +125,7 @@ impl MessageHeader {
                         MessageType::Invalid
                     }
                 },
-                _=> {
+                _ => {
                     MessageType::Invalid
                 }
             }
@@ -184,6 +184,19 @@ impl BinaryEncoder<HelloMessage> for HelloMessage {
 }
 
 impl HelloMessage {
+    /// Creates a HELLO message
+    pub fn new(endpoint_url: &str, send_buffer_size: UInt32, receive_buffer_size: UInt32, max_message_size: UInt32) -> HelloMessage {
+        HelloMessage {
+            message_header: MessageHeader::new(MessageType::Hello),
+            protocol_version: 0,
+            receive_buffer_size: receive_buffer_size,
+            send_buffer_size: send_buffer_size,
+            max_message_size: max_message_size,
+            max_chunk_count: MAX_CHUNK_COUNT as UInt32,
+            endpoint_url: UAString::from_str(endpoint_url),
+        }
+    }
+
     pub fn is_endpoint_url_valid(&self) -> bool {
         // TODO check server's endpoints
         if let Some(ref endpoint_url) = self.endpoint_url.value {

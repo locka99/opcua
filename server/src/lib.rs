@@ -10,8 +10,6 @@ extern crate log;
 extern crate chrono;
 extern crate timer;
 
-extern crate byteorder;
-
 extern crate opcua_core;
 
 mod services;

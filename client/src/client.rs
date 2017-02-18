@@ -8,8 +8,8 @@ use session::*;
 pub struct Client {
     /// The application description supplied by the client to all sessions created by the client
     pub client_description: ApplicationDescription,
-    /// A list of sessions made by the client. They are protect since they will be running on their
-    /// own independent threads.
+    /// A list of sessions made by the client. They are protected since a session may be running on
+    /// an independent thread.
     pub sessions: Vec<Arc<Mutex<Session>>>,
 }
 
@@ -32,9 +32,10 @@ impl Client {
     }
 
     /// Creates a new session from this client.
-    pub fn new_session(&mut self, endpoint_url: &str) -> Arc<Mutex<Session>> {
+    pub fn new_session(&mut self, endpoint_url: &str) -> Result<Arc<Mutex<Session>>, String> {
+        // TODO validate endpoint url, must start opc.tcp://
         let session = Arc::new(Mutex::new(Session::new(endpoint_url)));
         self.sessions.push(session.clone());
-        session
+        Ok(session)
     }
 }
