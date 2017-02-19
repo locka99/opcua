@@ -5,6 +5,7 @@
 #[macro_use]
 extern crate log;
 extern crate url;
+extern crate chrono;
 
 extern crate opcua_core;
 

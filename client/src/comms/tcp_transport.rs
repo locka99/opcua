@@ -1,6 +1,8 @@
 use std::net::{TcpStream};
 use std::result::Result;
 
+use chrono::*;
+
 use opcua_core::comms::*;
 use opcua_core::types::*;
 
@@ -51,7 +53,7 @@ impl TcpTransport {
         self.stream.as_mut().unwrap()
     }
 
-    pub fn send_request(&mut self, request_handle: UInt32, request_timeout: UInt32, request: SupportedMessage) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn send_request(&mut self, sequence_number: UInt32, request_id: UInt32, secure_channel_info: &SecureChannelInfo, request_timeout: UInt32, request: SupportedMessage) -> Result<SupportedMessage, &'static StatusCode> {
         if !self.is_connected() {
             return Err(&BAD_NOT_CONNECTED);
         }
@@ -60,15 +62,35 @@ impl TcpTransport {
         /// we have to deal with that situation too, e.g. queuing them up.
 
         // Turn message to chunks
-        // Send chunks
+        let chunks = Chunker::encode(sequence_number, request_id, secure_channel_info, &request)?;
 
-        // while ! timeout
         // receive chunks
-        // decode response
-        // if response.request_handle == request_handle {
-        //  return Ok()
-        // else
-        //  async_callback(message)
+        let start = DateTime::now().as_chrono();
+
+        // Send chunks
+        let stream = self.stream();
+        for chunk in chunks {
+            chunk.encode(stream)?
+        }
+
+        
+
+        loop {
+            let now = DateTime::now().as_chrono();
+            let elapsed = now - start;
+            if elapsed.num_milliseconds() > request_timeout as i64 {
+                debug!("Time expired waiting for response");
+                break;
+            }
+
+            // decode response
+            stream
+
+            // if response.request_handle == request_handle {
+            //  return Ok()
+            // else
+            //  async_callback(message)
+        }
 
 
         Err(&BAD_NOT_IMPLEMENTED)

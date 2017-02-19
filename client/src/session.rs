@@ -84,7 +84,6 @@ impl Session {
     /// Construct a request header for the session
     fn make_request_header(&mut self) -> RequestHeader {
         let session_state = &mut self.session_state;
-
         let request_header = RequestHeader {
             authentication_token: session_state.authentication_token.clone(),
             timestamp: DateTime::now(),

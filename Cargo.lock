@@ -122,6 +122,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "opcua-client"
 version = "0.1.0"
 dependencies = [
+ "chrono 0.2.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-core 0.1.0",
  "url 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
