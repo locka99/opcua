@@ -8,6 +8,9 @@ pub const CHUNK_MESSAGE: &'static [u8] = b"MSG";
 pub const OPEN_SECURE_CHANNEL_MESSAGE: &'static [u8] = b"OPN";
 pub const CLOSE_SECURE_CHANNEL_MESSAGE: &'static [u8] = b"CLO";
 
+/// The size of a chunk header, used by several places
+pub const CHUNK_HEADER_SIZE: usize = 12;
+
 pub const CHUNK_FINAL: u8 = b'F';
 pub const CHUNK_INTERMEDIATE: u8 = b'C';
 pub const CHUNK_FINAL_ERROR: u8 = b'A';

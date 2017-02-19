@@ -5,8 +5,6 @@ use comms::*;
 use types::*;
 use debug::*;
 
-const CHUNK_HEADER_SIZE: usize = 12;
-
 pub struct Chunker {}
 
 impl Chunker {

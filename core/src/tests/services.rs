@@ -5,9 +5,7 @@ use super::*;
 
 fn request_header() -> RequestHeader {
     RequestHeader {
-        authentication_token: SessionAuthenticationToken {
-            token: NodeId::null(),
-        },
+        authentication_token: NodeId::null(),
         timestamp: DateTime::now(),
         request_handle: 77,
         return_diagnostics: 0,

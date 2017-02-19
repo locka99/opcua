@@ -26,6 +26,7 @@ impl log::Log for SimpleLogger {
 
     fn log(&self, record: &LogRecord) {
         if self.enabled(record.metadata()) {
+            // TODO record.location().module_path() could be used to filter out unwanted noise
             println!("{} - {}", record.level(), record.args());
         }
     }
@@ -85,6 +86,10 @@ pub mod debug {
         }
     }
 }
+
+
+
+
 
 #[cfg(test)]
 mod tests;

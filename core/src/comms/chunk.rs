@@ -4,8 +4,6 @@ use std::io::{Read, Write, Cursor};
 use types::*;
 use comms::*;
 
-pub const CHUNK_HEADER_SIZE: usize = 12;
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum ChunkMessageType {
     Message,

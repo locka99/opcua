@@ -43,9 +43,48 @@ impl TcpTransport {
         Ok(())
     }
 
-    fn process_messages(&mut self) {
-
+    pub fn is_connected(&self) -> bool {
+        self.stream.is_some()
     }
+
+    fn stream(&mut self) -> &mut TcpStream {
+        self.stream.as_mut().unwrap()
+    }
+
+    pub fn send_request(&mut self, request_handle: UInt32, request_timeout: UInt32, request: SupportedMessage) -> Result<SupportedMessage, &'static StatusCode> {
+        if !self.is_connected() {
+            return Err(&BAD_NOT_CONNECTED);
+        }
+        /// This needs to wait for up to the timeout hint in the request header for a response
+        /// with the same request handle to return. Other messages might arrive during that, so somehow
+        /// we have to deal with that situation too, e.g. queuing them up.
+
+        // Turn message to chunks
+        // Send chunks
+
+        // while ! timeout
+        // receive chunks
+        // decode response
+        // if response.request_handle == request_handle {
+        //  return Ok()
+        // else
+        //  async_callback(message)
+
+
+        Err(&BAD_NOT_IMPLEMENTED)
+    }
+
+    pub fn async_send_request(&mut self, request: SupportedMessage) -> Result<(), &'static StatusCode> {
+        if !self.is_connected() {
+            return Err(&BAD_NOT_CONNECTED);
+        }
+
+        // Turn message to chunks
+        // Send chunks
+
+        Err(&BAD_NOT_IMPLEMENTED)
+    }
+
 
     pub fn disconnect(&mut self) {
         if self.stream.is_some() {

@@ -103,35 +103,12 @@ impl BinaryEncoder<ApplicationType> for ApplicationType {
     }
 }
 
-// SessionAuthenticationToken = 388,
-#[derive(Debug, Clone, PartialEq)]
-pub struct SessionAuthenticationToken {
-    pub token: NodeId
-}
-
-impl BinaryEncoder<SessionAuthenticationToken> for SessionAuthenticationToken {
-    fn byte_len(&self) -> usize {
-        self.token.byte_len()
-    }
-
-    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        Ok(self.token.encode(stream)?)
-    }
-
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let token = NodeId::decode(stream)?;
-        Ok(SessionAuthenticationToken {
-            token: token,
-        })
-    }
-}
-
 // RequestHeader = 389,
 #[derive(Debug, Clone, PartialEq)]
 pub struct RequestHeader {
     /// The secret Session identifier used to verify that the request is associated with
     /// the Session. The SessionAuthenticationToken type is defined in 7.31.
-    pub authentication_token: SessionAuthenticationToken,
+    pub authentication_token: NodeId,
     /// The time the Client sent the request. The parameter is only used for diagnostic and logging
     /// purposes in the server.
     pub timestamp: UtcTime,
@@ -226,7 +203,7 @@ impl BinaryEncoder<RequestHeader> for RequestHeader {
     }
 
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let authentication_token = SessionAuthenticationToken::decode(stream)?;
+        let authentication_token = NodeId::decode(stream)?;
         let timestamp = UtcTime::decode(stream)?;
         let request_handle = IntegerId::decode(stream)?;
         let return_diagnostics = UInt32::decode(stream)?;

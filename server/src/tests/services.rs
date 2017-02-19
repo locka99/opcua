@@ -10,9 +10,7 @@ use super::*;
 
 fn make_browse_request(nodes: Vec<NodeId>, browse_direction: BrowseDirection, reference_type: ReferenceTypeId) -> BrowseRequest {
     let request_header = RequestHeader {
-        authentication_token: SessionAuthenticationToken {
-            token: NodeId::new_numeric(0, 99),
-        },
+        authentication_token: NodeId::new_numeric(0, 99),
         timestamp: DateTime::now(),
         request_handle: 1,
         return_diagnostics: 0,

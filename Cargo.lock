@@ -144,6 +144,7 @@ name = "opcua-sample-client"
 version = "0.1.0"
 dependencies = [
  "opcua-client 0.1.0",
+ "opcua-core 0.1.0",
 ]
 
 [[package]]

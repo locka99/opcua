@@ -7,3 +7,6 @@ authors = ["Adam Lock <locka99@gmail.com>"]
 
 [dependencies.opcua-client]
 path = "../client"
+
+[dependencies.opcua-core]
+path = "../core"
