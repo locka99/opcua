@@ -273,24 +273,7 @@ impl TcpTransport {
 
     pub fn turn_received_chunks_into_message(&mut self, chunks: &Vec<Chunk>) -> std::result::Result<SupportedMessage, &'static StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
-        let mut last_sequence_number = self.last_received_sequence_number;
-        let mut first_chunk = true;
-        for chunk in chunks {
-            let chunk_info = chunk.chunk_info(first_chunk, &self.secure_channel_info)?;
-            // Check the sequence id - should be larger than the last one decoded
-            if chunk_info.sequence_header.sequence_number <= last_sequence_number {
-                error!("Chunk has a sequence number of {} which is less than last decoded sequence number of {}", chunk_info.sequence_header.sequence_number, last_sequence_number);
-                return Err(&BAD_SEQUENCE_NUMBER_INVALID);
-            }
-            last_sequence_number = chunk_info.sequence_header.sequence_number;
-
-            // Validate that the last chunk is final and all previous chunks are intermediate
-            // TODO
-
-            first_chunk = false;
-        }
-        self.last_received_sequence_number = last_sequence_number;
-
+        self.last_received_sequence_number = Chunker::validate_chunk_sequences(self.last_received_sequence_number, &self.secure_channel_info, chunks)?;
         // Now decode
         Chunker::decode(&chunks, &self.secure_channel_info, None)
     }

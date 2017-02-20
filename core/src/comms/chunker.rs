@@ -16,6 +16,25 @@ impl Chunker {
         }
     }
 
+    /// Ensure all of the supplied chunks have sequence numbers greater than the input sequence number and the preceding chunk
+    ///
+    /// The function returns the last sequence number in the series for success, or
+    /// BAD_SEQUENCE_NUMBER_INVALID for failure.
+    pub fn validate_chunk_sequences(starting_sequence_number: UInt32, secure_channel_info: &SecureChannelInfo, chunks: &Vec<Chunk>) -> Result<UInt32, &'static StatusCode> {
+        // Validate that all chunks have incrementing sequence numbers and valid chunk types
+        let mut sequence_number = starting_sequence_number;
+        for (i, chunk) in chunks.iter().enumerate() {
+            let chunk_info = chunk.chunk_info(i == 0, secure_channel_info)?;
+            // Check the sequence id - should be larger than the last one decoded
+            if chunk_info.sequence_header.sequence_number <= sequence_number {
+                error!("Chunk has a sequence number of {} which is less than last decoded sequence number of {}", chunk_info.sequence_header.sequence_number, sequence_number);
+                return Err(&BAD_SEQUENCE_NUMBER_INVALID);
+            }
+            sequence_number = chunk_info.sequence_header.sequence_number;
+        }
+        Ok(sequence_number)
+    }
+
     /// Encodes a message using the supplied sequence number and secure channel info and emits the corresponding chunks
     pub fn encode(sequence_number: UInt32, request_id: UInt32, secure_channel_info: &SecureChannelInfo, supported_message: &SupportedMessage) -> std::result::Result<Vec<Chunk>, &'static StatusCode> {
         // TODO multiple chunks
