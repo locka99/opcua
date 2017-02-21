@@ -14,6 +14,7 @@ extern crate opcua_core;
 
 mod services;
 mod comms;
+mod session;
 
 pub mod server;
 

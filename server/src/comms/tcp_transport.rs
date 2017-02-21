@@ -4,6 +4,8 @@ use std;
 use std::net::{TcpStream, Shutdown};
 use std::io::{Read, Write, Cursor, ErrorKind};
 use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{self, Sender, Receiver};
+use std::thread;
 
 use chrono::{self, UTC};
 
@@ -12,8 +14,8 @@ use opcua_core::comms::*;
 use opcua_core::services::*;
 use opcua_core::debug::*;
 
-use types::*;
 use server::ServerState;
+use session::SessionState;
 use comms::message_handler::*;
 
 const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;
@@ -26,6 +28,10 @@ pub enum TransportState {
     WaitingHello,
     ProcessMessages,
     Finished
+}
+
+pub enum TimerEvent {
+    Int(i32),
 }
 
 /// This is the thing that handles input and output for the open connection associated with the
@@ -77,6 +83,8 @@ impl TcpTransport {
 
         let session_start_time = UTC::now();
         info!("Session started {}", session_start_time);
+
+        let timer_rx = self.spawn_timer_thread();
 
         // Waiting for hello
         self.transport_state = TransportState::WaitingHello;
@@ -139,7 +147,6 @@ impl TcpTransport {
                 session_status_code = result.unwrap_err().clone();
                 break;
             }
-
             let messages = result.unwrap();
             for message in messages {
                 match transport_state {
@@ -172,6 +179,12 @@ impl TcpTransport {
                 };
             }
 
+            /// Process timer events
+            let result = timer_rx.try_recv();
+            if result.is_ok() {
+                // TODO something here to do
+            }
+
             // Anything to write?
             TcpTransport::write_output(&mut out_buf_stream, &mut stream);
             if !session_status_code.is_good() {
@@ -199,6 +212,30 @@ impl TcpTransport {
 
         let session_duration = UTC::now() - session_start_time;
         info!("Session is finished {:?}", session_duration)
+    }
+
+    fn spawn_timer_thread(&mut self) -> Receiver<TimerEvent> {
+        let (timer_tx, timer_rx) = mpsc::channel();
+        let timer_thread_data = (self.server_state.clone(), self.session_state.clone());
+        thread::spawn(move || {
+            TcpTransport::timer_thread(timer_tx, timer_thread_data.0.clone(), timer_thread_data.1.clone());
+        });
+        timer_rx
+    }
+
+    fn timer_thread(timer_tx: Sender<TimerEvent>, server_state: Arc<Mutex<ServerState>>, session_state: Arc<Mutex<SessionState>>) {
+        // The timer thread will wake up at intervals and check for keep alives and monitored item
+        // changes. If either occurs, it will send a message to the transport thread to send out
+        // loop {
+        {
+            let session_state = session_state.lock().unwrap();
+            let server_state = server_state.lock().unwrap();
+            let subscriptions = session_state.subscriptions.lock().unwrap();
+            timer_tx.send(TimerEvent::Int(10));
+            // TODO check for work
+            // TODO sleep 10ms
+            info!("Timer thread is quitting");
+        }
     }
 
     fn write_output(buffer_stream: &mut Cursor<Vec<u8>>, stream: &mut Write) {

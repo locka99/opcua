@@ -3,8 +3,8 @@ use std::sync::{Arc, Mutex};
 use opcua_core::types::*;
 use opcua_core::comms::*;
 
-use types::*;
 use server::ServerState;
+use session::SessionState;
 
 use services::attribute::*;
 use services::discovery::*;

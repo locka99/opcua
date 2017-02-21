@@ -6,6 +6,7 @@ use opcua_core::comms::*;
 
 use types::*;
 use server::ServerState;
+use session::SessionState;
 
 pub struct SubscriptionService {}
 
