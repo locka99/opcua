@@ -34,4 +34,19 @@ pub struct Subscription {
 
 
 impl Subscription {
+    pub fn delete_acknowledged_notification_messages() {}
+
+    pub fn enqueue_pushing_request() {}
+
+    pub fn reset_lifetime_counter() {}
+
+    pub fn return_notifications() {}
+
+    pub fn start_publishing_timer() {}
+
+    pub fn dequeue_pubish_request() {}
+
+    pub fn return_keep_alive() {}
+
+    pub fn reset_keep_alive_counter() {}
 }
