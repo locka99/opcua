@@ -5,12 +5,14 @@ authors = ["Adam Lock <locka99@gmail.com>"]
 
 [dependencies]
 log = "0.3"
+time = "0.1"
 chrono = "0.2"
 serde = "0.9"
 serde_derive = "0.9"
 serde_yaml = "0.6"
 timer = "0.1.6"
 rand = "0.3"
+lazy_static = "0.2"
 
 [dependencies.opcua-core]
 path = "../core"

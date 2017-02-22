@@ -111,6 +111,12 @@ impl SupportedMessage {
             ObjectId::BrowseResponse_Encoding_DefaultBinary => {
                 SupportedMessage::BrowseResponse(BrowseResponse::decode(stream)?)
             },
+            ObjectId::BrowseNextRequest_Encoding_DefaultBinary => {
+                SupportedMessage::BrowseNextRequest(BrowseNextRequest::decode(stream)?)
+            },
+            ObjectId::BrowseNextResponse_Encoding_DefaultBinary => {
+                SupportedMessage::BrowseNextResponse(BrowseNextResponse::decode(stream)?)
+            },
             ObjectId::CreateSubscriptionRequest_Encoding_DefaultBinary => {
                 SupportedMessage::CreateSubscriptionRequest(CreateSubscriptionRequest::decode(stream)?)
             },
@@ -176,6 +182,10 @@ supported_messages![
     // MonitoredItem service
     CreateMonitoredItemsRequest,
     CreateMonitoredItemsResponse,
+    ModifyMonitoredItemsRequest,
+    ModifyMonitoredItemsResponse,
+    DeleteMonitoredItemsRequest,
+    DeleteMonitoredItemsResponse,
     // Subscription service
     CreateSubscriptionRequest,
     CreateSubscriptionResponse,
@@ -186,6 +196,8 @@ supported_messages![
     // View service
     BrowseRequest,
     BrowseResponse,
+    BrowseNextRequest,
+    BrowseNextResponse,
     PublishRequest,
     PublishResponse,
     // Attribute service

@@ -81,6 +81,17 @@ impl ViewService {
         Ok(SupportedMessage::BrowseResponse(response))
     }
 
+    pub fn browse_next(&self, _: &mut ServerState, _: &mut SessionState, request: &BrowseNextRequest) -> Result<SupportedMessage, &'static StatusCode> {
+        // BrowseNext does nothing
+        let service_status = &BAD_NOTHING_TO_DO;
+        let response = BrowseNextResponse {
+            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
+            results: None,
+            diagnostic_infos: None,
+        };
+        Ok(SupportedMessage::BrowseNextResponse(response))
+    }
+
     fn reference_descriptions(address_space: &AddressSpace, node_to_browse: &BrowseDescription, max_references_per_node: UInt32) -> Result<Vec<ReferenceDescription>, &'static StatusCode> {
         // Node must exist or there will be no references
         if node_to_browse.node_id.is_null() || !address_space.node_exists(&node_to_browse.node_id) {

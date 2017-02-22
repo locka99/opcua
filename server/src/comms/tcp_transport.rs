@@ -4,10 +4,11 @@ use std;
 use std::net::{TcpStream, Shutdown};
 use std::io::{Read, Write, Cursor, ErrorKind};
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{self, Sender, Receiver};
-use std::thread;
+use std::sync::mpsc::{self, Receiver};
 
-use chrono::{self, UTC};
+use timer;
+use chrono::{UTC};
+use time;
 
 use opcua_core::types::*;
 use opcua_core::comms::*;
@@ -17,10 +18,14 @@ use opcua_core::debug::*;
 use server::ServerState;
 use session::SessionState;
 use comms::message_handler::*;
+use types::Subscription;
 
 const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;
 const SEND_BUFFER_SIZE: usize = 1024 * 64;
 const MAX_MESSAGE_SIZE: usize = 1024 * 64;
+
+// Rate at which subscriptions are serviced
+const SUBSCRIPTION_TIMER_RATE: i64 = 5000;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum TransportState {
@@ -30,8 +35,9 @@ pub enum TransportState {
     Finished
 }
 
-pub enum TimerEvent {
-    Int(i32),
+#[derive(Clone, Debug, PartialEq)]
+pub enum SubscriptionEvent {
+    Dummy(i32),
 }
 
 /// This is the thing that handles input and output for the open connection associated with the
@@ -84,7 +90,7 @@ impl TcpTransport {
         let session_start_time = UTC::now();
         info!("Session started {}", session_start_time);
 
-        let timer_rx = self.spawn_timer_thread();
+        let (subscription_timer, subscription_timer_guard, subscription_timer_rx) = self.start_subscription_timer();
 
         // Waiting for hello
         self.transport_state = TransportState::WaitingHello;
@@ -96,7 +102,7 @@ impl TcpTransport {
                 let server_config = server_state.config.lock().unwrap();
                 server_config.tcp_config.hello_timeout as i64
             };
-            chrono::Duration::seconds(hello_timeout)
+            time::Duration::seconds(hello_timeout)
         };
 
         // Short timeout makes it work like a polling loop
@@ -125,6 +131,13 @@ impl TcpTransport {
                     session_status_code = BAD_TIMEOUT.clone();
                     break;
                 }
+            }
+
+            /// Process subscription timer events
+            let result = subscription_timer_rx.try_recv();
+            if result.is_ok() {
+                // TODO something here to do
+                debug!("Got message from timer {:?}", result);
             }
 
             // Try to read, using timeout as a polling mechanism
@@ -179,18 +192,14 @@ impl TcpTransport {
                 };
             }
 
-            /// Process timer events
-            let result = timer_rx.try_recv();
-            if result.is_ok() {
-                // TODO something here to do
-            }
-
             // Anything to write?
             TcpTransport::write_output(&mut out_buf_stream, &mut stream);
             if !session_status_code.is_good() {
                 break;
             }
         }
+        drop(subscription_timer_guard);
+        drop(subscription_timer);
 
         // As a final act, the session sends a status code to the client if one should be sent
         if session_status_code == GOOD || session_status_code == BAD_CONNECTION_CLOSED {
@@ -214,28 +223,24 @@ impl TcpTransport {
         info!("Session is finished {:?}", session_duration)
     }
 
-    fn spawn_timer_thread(&mut self) -> Receiver<TimerEvent> {
-        let (timer_tx, timer_rx) = mpsc::channel();
-        let timer_thread_data = (self.server_state.clone(), self.session_state.clone());
-        thread::spawn(move || {
-            TcpTransport::timer_thread(timer_tx, timer_thread_data.0.clone(), timer_thread_data.1.clone());
-        });
-        timer_rx
-    }
+    /// Start the subscription timer to service subscriptions
+    fn start_subscription_timer(&mut self) -> (timer::Timer, timer::Guard, Receiver<SubscriptionEvent>) {
+        let (subscription_timer_tx, subscription_timer_rx) = mpsc::channel();
 
-    fn timer_thread(timer_tx: Sender<TimerEvent>, server_state: Arc<Mutex<ServerState>>, session_state: Arc<Mutex<SessionState>>) {
-        // The timer thread will wake up at intervals and check for keep alives and monitored item
-        // changes. If either occurs, it will send a message to the transport thread to send out
-        // loop {
-        {
+        let session_state = self.session_state.clone();
+
+        // Creates a repeating timer that checks subscriptions. The guard is returned to the caller
+        // so it can control the scope of events.
+        let subscription_timer = timer::Timer::new();
+        let subscription_timer_guard = subscription_timer.schedule_repeating(time::Duration::milliseconds(SUBSCRIPTION_TIMER_RATE), move || {
+            // Manage subscriptions
+            debug!("Timer fired");
             let session_state = session_state.lock().unwrap();
-            let server_state = server_state.lock().unwrap();
-            let subscriptions = session_state.subscriptions.lock().unwrap();
-            timer_tx.send(TimerEvent::Int(10));
-            // TODO check for work
-            // TODO sleep 10ms
-            info!("Timer thread is quitting");
-        }
+            let mut subscriptions = session_state.subscriptions.lock().unwrap();
+            Subscription::tick_subscriptions(&mut subscriptions);
+            let _ = subscription_timer_tx.send(SubscriptionEvent::Dummy(10));
+        });
+        (subscription_timer, subscription_timer_guard, subscription_timer_rx)
     }
 
     fn write_output(buffer_stream: &mut Cursor<Vec<u8>>, stream: &mut Write) {
@@ -270,7 +275,6 @@ impl TcpTransport {
 
     fn process_hello<W: Write>(&mut self, hello: HelloMessage, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
         let server_protocol_version = 0;
-
 
         debug!("Server received HELLO {:?}", hello);
         if !hello.is_endpoint_url_valid() {
@@ -414,4 +418,5 @@ impl TcpTransport {
         Ok(response)
     }
 }
+
 

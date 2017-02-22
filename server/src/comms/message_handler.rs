@@ -81,11 +81,20 @@ impl MessageHandler {
             &SupportedMessage::BrowseRequest(ref request) => {
                 self.view_service.browse(server_state, session_state, request)?
             },
+            &SupportedMessage::BrowseNextRequest(ref request) => {
+                self.view_service.browse_next(server_state, session_state, request)?
+            },
             &SupportedMessage::ReadRequest(ref request) => {
                 self.attribute_service.read(server_state, session_state, request)?
             },
             &SupportedMessage::CreateMonitoredItemsRequest(ref request) => {
                 self.monitored_item_service.create_monitored_items(server_state, session_state, request)?
+            },
+            &SupportedMessage::ModifyMonitoredItemsRequest(ref request) => {
+                self.monitored_item_service.modify_monitored_items(server_state, session_state, request)?
+            },
+            &SupportedMessage::DeleteMonitoredItemsRequest(ref request) => {
+                self.monitored_item_service.delete_monitored_items(server_state, session_state, request)?
             },
             _ => {
                 debug!("Message handler does not handle this kind of message");
