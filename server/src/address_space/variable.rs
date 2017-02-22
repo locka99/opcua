@@ -60,7 +60,7 @@ impl Variable {
     }
 
     /// Sets the variable's value
-    pub fn set_value(&mut self, value: DataValue)  {
+    pub fn set_value(&mut self, value: DataValue) {
         // Value is directly set - it's a datavalue
         self.base.attributes[Base::attribute_idx(AttributeId::Value)] = Some(value);
     }

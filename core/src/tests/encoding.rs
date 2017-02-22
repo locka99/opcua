@@ -287,7 +287,7 @@ fn variant() {
     let v = Variant::UInt32(24424244);
     serialize_test(v);
     // Int64
-    let v =Variant::Int64(-384747424424244);
+    let v = Variant::Int64(-384747424424244);
     serialize_test(v);
     // UInt64
     let v = Variant::UInt64(9384747424422314244);
@@ -322,7 +322,7 @@ fn variant() {
     let v = Variant::StatusCode(BAD_TCP_MESSAGE_TYPE_INVALID.clone());
     serialize_test(v);
     // QualifiedName
-    let v =  Variant::QualifiedName(QualifiedName {
+    let v = Variant::QualifiedName(QualifiedName {
         namespace_index: 100,
         name: UAString::from_str("this is a qualified name"),
     });

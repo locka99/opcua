@@ -1,9 +1,4 @@
-
 #[derive(Debug, Clone, PartialEq)]
-pub struct MonitoredItem {
+pub struct MonitoredItem {}
 
-}
-
-impl MonitoredItem {
-
-}
+impl MonitoredItem {}

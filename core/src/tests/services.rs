@@ -17,7 +17,7 @@ fn request_header() -> RequestHeader {
 
 #[test]
 fn get_endpoints_request() {
-    let r = GetEndpointsRequest{
+    let r = GetEndpointsRequest {
         request_header: request_header(),
         endpoint_url: UAString::from_str("opc.tcp://localhost/my_path"),
         locale_ids: Some(vec![UAString::from_str("en-EN")]),

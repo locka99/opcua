@@ -30,5 +30,4 @@ impl Object {
     pub fn event_notifier(&self) -> Boolean {
         find_attribute_value_mandatory!(&self.base, EventNotifier, Boolean)
     }
-
 }
