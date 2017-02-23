@@ -20,6 +20,7 @@ use session::SessionState;
 use comms::message_handler::*;
 use types::{Subscription, SubscriptionEvent};
 
+// TODO these need to go, and use session_state settings
 const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;
 const SEND_BUFFER_SIZE: usize = 1024 * 64;
 const MAX_MESSAGE_SIZE: usize = 1024 * 64;

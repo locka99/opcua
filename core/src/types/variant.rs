@@ -5,7 +5,9 @@ use types::*;
 const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
 const ARRAY_VALUES_BIT: u8 = 1 << 7;
 
-/// Data type ID 24 (super-unwieldy mega holder of anything)
+/// A Variant holds all primitive types, including single and multi dimensional arrays and
+/// data values. Potentially a Variant can recursively hold a Variant so boxes, or vectors are
+/// used for that
 #[derive(PartialEq, Debug, Clone)]
 pub enum Variant {
     /// Empty type has no value

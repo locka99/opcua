@@ -5,9 +5,11 @@ use comms::*;
 use types::*;
 use debug::*;
 
+/// The Chunker is responsible for turning messages to chunks and chunks into messages.
 pub struct Chunker {}
 
 impl Chunker {
+    /// Tests what kind of chunk type is used for the supported message.
     fn chunk_message_type(message: &SupportedMessage) -> ChunkMessageType {
         match *message {
             SupportedMessage::OpenSecureChannelRequest(_) | SupportedMessage::OpenSecureChannelResponse(_) => ChunkMessageType::OpenSecureChannel,
@@ -121,7 +123,8 @@ impl Chunker {
         Ok(vec![chunk])
     }
 
-    /// Decodes a series of chunks to create a message
+    /// Decodes a series of chunks to create a message. The message must be of a `SupportedMessage`
+    /// type otherwise an error will occur.
     pub fn decode(chunks: &Vec<Chunk>, secure_channel_info: &SecureChannelInfo, expected_node_id: Option<NodeId>) -> std::result::Result<SupportedMessage, &'static StatusCode> {
         if chunks.len() != 1 {
             // TODO more than one chunk is not supported yet

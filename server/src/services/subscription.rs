@@ -123,7 +123,7 @@ impl SubscriptionService {
 
         let now = DateTime::now();
 
-        let notification_message = NotificationMessage {
+        let notification_message = - {
             sequence_number: 0,
             publish_time: now.clone(),
             notification_data: None

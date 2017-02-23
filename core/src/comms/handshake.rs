@@ -133,7 +133,7 @@ impl MessageHeader {
     }
 }
 
-
+/// Implementation of the HEL message in OPC UA
 #[derive(Debug, Clone, PartialEq)]
 pub struct HelloMessage {
     pub message_header: MessageHeader,
@@ -184,7 +184,7 @@ impl BinaryEncoder<HelloMessage> for HelloMessage {
 }
 
 impl HelloMessage {
-    /// Creates a HELLO message
+    /// Creates a HEL message
     pub fn new(endpoint_url: &str, send_buffer_size: UInt32, receive_buffer_size: UInt32, max_message_size: UInt32) -> HelloMessage {
         HelloMessage {
             message_header: MessageHeader::new(MessageType::Hello),
@@ -212,6 +212,7 @@ impl HelloMessage {
     }
 }
 
+/// Implementation of the ACK message in OPC UA
 #[derive(Debug, Clone, PartialEq)]
 pub struct AcknowledgeMessage {
     pub message_header: MessageHeader,
@@ -258,6 +259,7 @@ impl BinaryEncoder<AcknowledgeMessage> for AcknowledgeMessage {
 
 impl AcknowledgeMessage {}
 
+/// Implementation of the ERR message in OPC UA
 #[derive(Debug, Clone, PartialEq)]
 pub struct ErrorMessage {
     pub message_header: MessageHeader,

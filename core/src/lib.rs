@@ -55,7 +55,8 @@ pub mod profiles {
 
 /// Contains debugging utility helper functions
 pub mod debug {
-    /// Prints out the content of a slice in a form similar to node-opcua to aid with debugging.
+    /// Prints out the content of a slice in hex and visible char format to aid debugging. Format
+    /// is similar to corresponding functionality in node-opcua
     pub fn debug_buffer(buf: &[u8]) {
         use log::LogLevel::Debug;
         // No point doing anything unless debug level is on

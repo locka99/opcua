@@ -231,9 +231,13 @@ impl BinaryEncoder<Double> for Double {
     }
 }
 
-/// A sequence of Unicode characters.
-/// A UA string can hold a null value, so the string value is optional.
+/// A UTF-8 encoded sequence of Unicode characters.
+///
+/// A string can hold a null value, so the string value is optional.
 /// When there is no string, the value is treated as null
+///
+/// To avoid naming conflict hell, the String type is named UAString.
+///
 /// Data type ID 12
 #[derive(Eq, PartialEq, Debug, Clone, Hash)]
 pub struct UAString {
