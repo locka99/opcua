@@ -87,6 +87,9 @@ impl MessageHandler {
             &SupportedMessage::ReadRequest(ref request) => {
                 self.attribute_service.read(server_state, session_state, request)?
             },
+            &SupportedMessage::WriteRequest(ref request) => {
+                self.attribute_service.write(server_state, session_state, request)?
+            },
             &SupportedMessage::CreateMonitoredItemsRequest(ref request) => {
                 self.monitored_item_service.create_monitored_items(server_state, session_state, request)?
             },

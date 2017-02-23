@@ -18,7 +18,7 @@ use opcua_core::debug::*;
 use server::ServerState;
 use session::SessionState;
 use comms::message_handler::*;
-use types::Subscription;
+use types::{Subscription, SubscriptionEvent};
 
 const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;
 const SEND_BUFFER_SIZE: usize = 1024 * 64;
@@ -33,11 +33,6 @@ pub enum TransportState {
     WaitingHello,
     ProcessMessages,
     Finished
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum SubscriptionEvent {
-    Dummy(i32),
 }
 
 /// This is the thing that handles input and output for the open connection associated with the

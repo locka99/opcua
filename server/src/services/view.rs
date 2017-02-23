@@ -102,9 +102,8 @@ impl ViewService {
         let reference_type_id = if node_to_browse.reference_type_id.is_null() {
             None
         } else {
-            let reference_type_id = node_to_browse.reference_type_id.as_reference_type_id();
-            if reference_type_id.is_ok() {
-                Some((reference_type_id.unwrap(), node_to_browse.include_subtypes))
+            if let Ok(reference_type_id) = node_to_browse.reference_type_id.as_reference_type_id() {
+                Some((reference_type_id, node_to_browse.include_subtypes))
             } else {
                 None
             }
@@ -175,8 +174,7 @@ impl ViewService {
                 match target_node_class {
                     NodeClass::Object | NodeClass::Variable => {
                         let type_defs = address_space.find_references_from(&target_node.node_id(), Some((ReferenceTypeId::HasTypeDefinition, false)));
-                        if type_defs.is_some() {
-                            let type_defs = type_defs.unwrap();
+                        if let Some(type_defs) = type_defs {
                             ExpandedNodeId::new(&type_defs[0].node_id)
                         } else {
                             ExpandedNodeId::null()

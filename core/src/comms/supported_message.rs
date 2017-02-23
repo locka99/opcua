@@ -147,6 +147,12 @@ impl SupportedMessage {
             ObjectId::ReadResponse_Encoding_DefaultBinary => {
                 SupportedMessage::ReadResponse(ReadResponse::decode(stream)?)
             },
+            ObjectId::WriteRequest_Encoding_DefaultBinary => {
+                SupportedMessage::WriteRequest(WriteRequest::decode(stream)?)
+            },
+            ObjectId::WriteResponse_Encoding_DefaultBinary => {
+                SupportedMessage::WriteResponse(WriteResponse::decode(stream)?)
+            },
             ObjectId::CreateMonitoredItemsRequest_Encoding_DefaultBinary => {
                 SupportedMessage::CreateMonitoredItemsRequest(CreateMonitoredItemsRequest::decode(stream)?)
             },
@@ -203,4 +209,6 @@ supported_messages![
     // Attribute service
     ReadRequest,
     ReadResponse,
+    WriteRequest,
+    WriteResponse,
 ];

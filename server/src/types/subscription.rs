@@ -4,6 +4,15 @@ use opcua_core::types::*;
 
 use types::monitored_item::*;
 
+/// Subscription events are passed between the timer thread and the session thread so must
+/// be transferable
+#[derive(Clone, Debug, PartialEq)]
+pub enum SubscriptionEvent {
+    Dummy(i32),
+    Notification,
+}
+
+/// The state of the subscription
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum SubscriptionState {
     Closed,
@@ -44,7 +53,6 @@ pub struct Subscription {
     // Current keep alive counter
     current_keep_alive_counter: UInt32,
 }
-
 
 impl Subscription {
     pub fn new(subscription_id: UInt32, publishing_interval: Double, lifetime_count: UInt32, keep_alive_count: UInt32, priority: Byte) -> Subscription {
