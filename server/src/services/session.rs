@@ -15,7 +15,7 @@ impl SessionService {
         SessionService {}
     }
 
-    pub fn create_session(&self, server_state: &mut ServerState, _: &mut SessionState, request: &CreateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn create_session(&self, server_state: &mut ServerState, _: &mut SessionState, request: CreateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
         let service_status = &GOOD;
 
         // TODO validate client certificate
@@ -51,7 +51,7 @@ impl SessionService {
         Ok(SupportedMessage::CreateSessionResponse(response))
     }
 
-    pub fn close_session(&self, _: &mut ServerState, _: &mut SessionState, request: &CloseSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn close_session(&self, _: &mut ServerState, _: &mut SessionState, request: CloseSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
         let service_status = &GOOD;
         let response = CloseSessionResponse {
             response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
@@ -59,7 +59,7 @@ impl SessionService {
         Ok(SupportedMessage::CloseSessionResponse(response))
     }
 
-    pub fn activate_session(&self, _: &mut ServerState, _: &mut SessionState, request: &ActivateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn activate_session(&self, _: &mut ServerState, _: &mut SessionState, request: ActivateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
         let identity_token_id = request.user_identity_token.node_id.clone();
         let service_status = if identity_token_id == ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id() {
             // TODO ensure session allows anonymous id

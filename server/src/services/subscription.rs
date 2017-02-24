@@ -4,7 +4,7 @@ use opcua_core::types::*;
 use opcua_core::services::*;
 use opcua_core::comms::*;
 
-use types::*;
+use subscriptions::*;
 use server::ServerState;
 use session::SessionState;
 
@@ -16,7 +16,7 @@ impl SubscriptionService {
     }
 
     /// Handles a CreateSubscriptionRequest
-    pub fn create_subscription(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: &CreateSubscriptionRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn create_subscription(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: CreateSubscriptionRequest) -> Result<SupportedMessage, &'static StatusCode> {
         let mut subscriptions = session_state.subscriptions.lock().unwrap();
         let response = if server_state.max_subscriptions > 0 && subscriptions.len() >= server_state.max_subscriptions {
             CreateSubscriptionResponse {
@@ -50,7 +50,7 @@ impl SubscriptionService {
     }
 
     /// Handles a ModifySubscriptionRequest
-    pub fn modify_subscription(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: &ModifySubscriptionRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn modify_subscription(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: ModifySubscriptionRequest) -> Result<SupportedMessage, &'static StatusCode> {
         let mut subscriptions = session_state.subscriptions.lock().unwrap();
         let subscription_id = request.subscription_id;
         let response = if !subscriptions.contains_key(&subscription_id) {
@@ -84,7 +84,7 @@ impl SubscriptionService {
     }
 
     /// Handles a DeleteSubscriptionsRequest
-    pub fn delete_subscriptions(&self, _: &mut ServerState, session_state: &mut SessionState, request: &DeleteSubscriptionsRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn delete_subscriptions(&self, _: &mut ServerState, session_state: &mut SessionState, request: DeleteSubscriptionsRequest) -> Result<SupportedMessage, &'static StatusCode> {
         let (service_status, results) = if request.subscription_ids.is_some() {
             let subscription_ids = request.subscription_ids.as_ref().unwrap();
             let mut results = Vec::with_capacity(subscription_ids.len());
@@ -111,35 +111,25 @@ impl SubscriptionService {
     }
 
     /// Handles a PublishRequest
-    pub fn publish(&self, _: &mut ServerState, _: &mut SessionState, request: &PublishRequest) -> Result<SupportedMessage, &'static StatusCode> {
-        let service_status = &GOOD;
-
-        if request.subscription_acknowledgements.is_some() {
-            // TODO
-            // The list of acknowledgements for one or more Subscriptions. This list may contain
-            // multiple acknowledgements for the same Subscription (multiple entries with the same
-            // subscriptionId). This structure is defined in-line with the following indented items.
+    pub fn publish(&self, _: &mut ServerState, session_state: &mut SessionState, request: PublishRequest) -> Result<SupportedMessage, &'static StatusCode> {
+        if let Err(service_status) = session_state.enqueue_publish_request(request.clone()) {
+            let response = PublishResponse {
+                response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
+                subscription_id: 0,
+                available_sequence_numbers: None,
+                more_notifications: false,
+                notification_message: NotificationMessage {
+                    sequence_number: 0,
+                    publish_time: DateTime::now(),
+                    notification_data: None,
+                },
+                results: None,
+                diagnostic_infos: None
+            };
+            Ok(SupportedMessage::PublishResponse(response))
+        } else {
+            Ok(SupportedMessage::DoNothing)
         }
-
-        let now = DateTime::now();
-
-        let notification_message = - {
-            sequence_number: 0,
-            publish_time: now.clone(),
-            notification_data: None
-        };
-
-        let response = PublishResponse {
-            response_header: ResponseHeader::new_service_result(&now, &request.request_header, service_status),
-            subscription_id: 0,
-            available_sequence_numbers: None,
-            more_notifications: false,
-            notification_message: notification_message,
-            results: None,
-            diagnostic_infos: None
-        };
-
-        Ok(SupportedMessage::PublishResponse(response))
     }
 
     /// This function takes the requested values passed in a create / modify and returns revised

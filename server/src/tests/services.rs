@@ -58,7 +58,7 @@ fn browse_nodes() {
 
         let request = make_browse_request(vec![ObjectId::RootFolder.as_node_id()], BrowseDirection::Forward, ReferenceTypeId::Organizes);
         println!("Browse Request = {:#?}", request);
-        let result = view.browse(&mut server_state, &mut session_state, &request);
+        let result = view.browse(&mut server_state, &mut session_state, request);
         assert!(result.is_ok());
 
         let result = result.unwrap();

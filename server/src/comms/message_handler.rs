@@ -47,60 +47,60 @@ impl MessageHandler {
         }
     }
 
-    pub fn handle_message(&mut self, message: &SupportedMessage) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn handle_message(&mut self, message: SupportedMessage) -> Result<SupportedMessage, &'static StatusCode> {
         let mut server_state = self.server_state.lock().unwrap();
         let mut server_state = &mut server_state;
         let mut session_state = self.session_state.lock().unwrap();
         let mut session_state = &mut session_state;
 
         let response = match message {
-            &SupportedMessage::GetEndpointsRequest(ref request) => {
+            SupportedMessage::GetEndpointsRequest(request) => {
                 self.discovery_service.get_endpoints(server_state, session_state, request)?
             },
-            &SupportedMessage::CreateSessionRequest(ref request) => {
+            SupportedMessage::CreateSessionRequest(request) => {
                 self.session_service.create_session(server_state, session_state, request)?
             },
-            &SupportedMessage::CloseSessionRequest(ref request) => {
+            SupportedMessage::CloseSessionRequest(request) => {
                 self.session_service.close_session(server_state, session_state, request)?
             },
-            &SupportedMessage::ActivateSessionRequest(ref request) => {
+            SupportedMessage::ActivateSessionRequest(request) => {
                 self.session_service.activate_session(server_state, session_state, request)?
             },
-            &SupportedMessage::CreateSubscriptionRequest(ref request) => {
+            SupportedMessage::CreateSubscriptionRequest(request) => {
                 self.subscription_service.create_subscription(server_state, session_state, request)?
             },
-            &SupportedMessage::ModifySubscriptionRequest(ref request) => {
+            SupportedMessage::ModifySubscriptionRequest(request) => {
                 self.subscription_service.modify_subscription(server_state, session_state, request)?
             },
-            &SupportedMessage::DeleteSubscriptionsRequest(ref request) => {
+            SupportedMessage::DeleteSubscriptionsRequest(request) => {
                 self.subscription_service.delete_subscriptions(server_state, session_state, request)?
             }
-            &SupportedMessage::PublishRequest(ref request) => {
+            SupportedMessage::PublishRequest(request) => {
                 self.subscription_service.publish(server_state, session_state, request)?
             },
-            &SupportedMessage::BrowseRequest(ref request) => {
+            SupportedMessage::BrowseRequest(request) => {
                 self.view_service.browse(server_state, session_state, request)?
             },
-            &SupportedMessage::BrowseNextRequest(ref request) => {
+            SupportedMessage::BrowseNextRequest(request) => {
                 self.view_service.browse_next(server_state, session_state, request)?
             },
-            &SupportedMessage::ReadRequest(ref request) => {
+            SupportedMessage::ReadRequest(request) => {
                 self.attribute_service.read(server_state, session_state, request)?
             },
-            &SupportedMessage::WriteRequest(ref request) => {
+            SupportedMessage::WriteRequest(request) => {
                 self.attribute_service.write(server_state, session_state, request)?
             },
-            &SupportedMessage::CreateMonitoredItemsRequest(ref request) => {
+            SupportedMessage::CreateMonitoredItemsRequest(request) => {
                 self.monitored_item_service.create_monitored_items(server_state, session_state, request)?
             },
-            &SupportedMessage::ModifyMonitoredItemsRequest(ref request) => {
+            SupportedMessage::ModifyMonitoredItemsRequest(request) => {
                 self.monitored_item_service.modify_monitored_items(server_state, session_state, request)?
             },
-            &SupportedMessage::DeleteMonitoredItemsRequest(ref request) => {
+            SupportedMessage::DeleteMonitoredItemsRequest(request) => {
                 self.monitored_item_service.delete_monitored_items(server_state, session_state, request)?
             },
             _ => {
-                debug!("Message handler does not handle this kind of message");
+                debug!("Message handler does not handle this kind of message {:?}", message);
                 return Err(&BAD_SERVICE_UNSUPPORTED);
             }
         };

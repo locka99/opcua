@@ -2,14 +2,13 @@ use std::collections::HashMap;
 
 use opcua_core::types::*;
 
-use types::monitored_item::*;
+use subscriptions::monitored_item::*;
 
 /// Subscription events are passed between the timer thread and the session thread so must
 /// be transferable
 #[derive(Clone, Debug, PartialEq)]
 pub enum SubscriptionEvent {
-    Dummy(i32),
-    Notification,
+    NotificationMessage(NotificationMessage),
 }
 
 /// The state of the subscription
@@ -20,13 +19,6 @@ pub enum SubscriptionState {
     Normal,
     Late,
     KeepAlive
-}
-
-pub trait SubscriptionService {
-    fn pending_publish_request_count() -> usize;
-    fn send_notification_message();
-    fn send_keep_alive_response();
-    fn on_close_subscription(Subscription);
 }
 
 #[derive(Debug, Clone, PartialEq)]

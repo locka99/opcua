@@ -14,7 +14,7 @@ impl MonitoredItemService {
         MonitoredItemService {}
     }
 
-    pub fn create_monitored_items(&self, _: &mut ServerState, session_state: &mut SessionState, request: &CreateMonitoredItemsRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn create_monitored_items(&self, _: &mut ServerState, session_state: &mut SessionState, request: CreateMonitoredItemsRequest) -> Result<SupportedMessage, &'static StatusCode> {
         let mut service_status = &GOOD;
 
         // pub timestamps_to_return: TimestampsToReturn,
@@ -42,11 +42,11 @@ impl MonitoredItemService {
         Ok(SupportedMessage::CreateMonitoredItemsResponse(response))
     }
 
-    pub fn modify_monitored_items(&self, _: &mut ServerState, _: &mut SessionState, _: &ModifyMonitoredItemsRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn modify_monitored_items(&self, _: &mut ServerState, _: &mut SessionState, _: ModifyMonitoredItemsRequest) -> Result<SupportedMessage, &'static StatusCode> {
         unimplemented!();
     }
 
-    pub fn delete_monitored_items(&self, _: &mut ServerState, _: &mut SessionState, _: &DeleteMonitoredItemsRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn delete_monitored_items(&self, _: &mut ServerState, _: &mut SessionState, _: DeleteMonitoredItemsRequest) -> Result<SupportedMessage, &'static StatusCode> {
         unimplemented!();
     }
 }

@@ -18,7 +18,7 @@ use opcua_core::debug::*;
 use server::ServerState;
 use session::SessionState;
 use comms::message_handler::*;
-use types::{Subscription, SubscriptionEvent};
+use subscriptions::{Subscription, SubscriptionEvent};
 
 // TODO these need to go, and use session_state settings
 const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;
@@ -234,7 +234,14 @@ impl TcpTransport {
             let session_state = session_state.lock().unwrap();
             let mut subscriptions = session_state.subscriptions.lock().unwrap();
             Subscription::tick_subscriptions(&mut subscriptions);
-            let _ = subscription_timer_tx.send(SubscriptionEvent::Dummy(10));
+
+            // A phony notification message
+            let notification_message = NotificationMessage {
+                sequence_number: 1,
+                publish_time: DateTime::now(),
+                notification_data: None,
+            };
+            let _ = subscription_timer_tx.send(SubscriptionEvent::NotificationMessage(notification_message));
         });
         (subscription_timer, subscription_timer_guard, subscription_timer_rx)
     }
@@ -338,7 +345,7 @@ impl TcpTransport {
                 return Err(&BAD_CONNECTION_CLOSED);
             },
             ChunkMessageType::Message => {
-                self.message_handler.handle_message(&message)?
+                self.message_handler.handle_message(message)?
             }
         };
 

@@ -24,7 +24,7 @@ impl ViewService {
         ViewService {}
     }
 
-    pub fn browse(&self, server_state: &mut ServerState, _: &mut SessionState, request: &BrowseRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn browse(&self, server_state: &mut ServerState, _: &mut SessionState, request: BrowseRequest) -> Result<SupportedMessage, &'static StatusCode> {
         let service_status = &GOOD;
 
         let browse_results = if request.nodes_to_browse.is_some() {
@@ -81,7 +81,7 @@ impl ViewService {
         Ok(SupportedMessage::BrowseResponse(response))
     }
 
-    pub fn browse_next(&self, _: &mut ServerState, _: &mut SessionState, request: &BrowseNextRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn browse_next(&self, _: &mut ServerState, _: &mut SessionState, request: BrowseNextRequest) -> Result<SupportedMessage, &'static StatusCode> {
         // BrowseNext does nothing
         let service_status = &BAD_NOTHING_TO_DO;
         let response = BrowseNextResponse {

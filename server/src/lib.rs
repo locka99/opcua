@@ -21,7 +21,7 @@ mod session;
 
 pub mod server;
 
-pub mod types;
+pub mod subscriptions;
 
 pub mod config;
 
@@ -29,7 +29,7 @@ pub mod address_space;
 
 pub mod prelude {
     pub use server::*;
-    pub use types::*;
+    pub use subscriptions::*;
     pub use config::*;
     pub use address_space::*;
 }
