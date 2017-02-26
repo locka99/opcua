@@ -2,8 +2,6 @@ use std::io::{Read, Write};
 
 use chrono::{self, UTC, TimeZone, Timelike, Datelike};
 
-type ChronoDateTimeUTC = chrono::DateTime<UTC>;
-
 use types::*;
 
 const NANOS_PER_SECOND: i64 = 1_000_000_000;
@@ -112,7 +110,7 @@ impl DateTime {
     }
 
     /// Converts from the equivalent chrono type
-    fn from_chrono(dt: ChronoDateTimeUTC) -> DateTime {
+    pub fn from_chrono(dt: chrono::DateTime<UTC>) -> DateTime {
         DateTime {
             year: dt.year() as UInt16,
             month: dt.month() as UInt16,
@@ -125,7 +123,7 @@ impl DateTime {
     }
 
     /// Returns the equivalent chrono type
-    fn as_chrono(&self) -> ChronoDateTimeUTC {
+    pub fn as_chrono(&self) -> chrono::DateTime<UTC> {
         UTC.ymd(self.year as i32, self.month as u32, self.day as u32)
             .and_hms_nano(self.hour as u32,
                           self.min as u32,
@@ -158,13 +156,13 @@ impl DateTime {
 }
 
 /// The OPC UA epoch - Jan 1 1601 00:00:00
-pub fn epoch_chrono() -> ChronoDateTimeUTC {
+pub fn epoch_chrono() -> chrono::DateTime<UTC> {
     UTC.ymd(MIN_YEAR as i32, 1, 1).and_hms(0, 0, 0)
 }
 
 /// The OPC UA endtimes - Dec 31 9999 23:59:59 i.e. the date after which dates are returned as MAX_INT64 ticks 
 /// Spec doesn't say what happens in the last second before midnight...
-pub fn endtimes_chrono() -> ChronoDateTimeUTC {
+pub fn endtimes_chrono() -> chrono::DateTime<UTC> {
     UTC.ymd(MAX_YEAR as i32, 12, 31).and_hms(23, 59, 59)
 }
 

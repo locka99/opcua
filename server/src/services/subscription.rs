@@ -112,24 +112,9 @@ impl SubscriptionService {
 
     /// Handles a PublishRequest
     pub fn publish(&self, _: &mut ServerState, session_state: &mut SessionState, request: PublishRequest) -> Result<SupportedMessage, &'static StatusCode> {
-        if let Err(service_status) = session_state.enqueue_publish_request(request.clone()) {
-            let response = PublishResponse {
-                response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
-                subscription_id: 0,
-                available_sequence_numbers: None,
-                more_notifications: false,
-                notification_message: NotificationMessage {
-                    sequence_number: 0,
-                    publish_time: DateTime::now(),
-                    notification_data: None,
-                },
-                results: None,
-                diagnostic_infos: None
-            };
-            Ok(SupportedMessage::PublishResponse(response))
-        } else {
-            Ok(SupportedMessage::DoNothing)
-        }
+        // Publish requests are enqueued and handled by a timer thread
+        let _ = session_state.enqueue_publish_request(request.clone());
+        Ok(SupportedMessage::DoNothing)
     }
 
     /// This function takes the requested values passed in a create / modify and returns revised

@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use opcua_core::types::*;
-use opcua_core::comms::*;
 
 use subscriptions::*;
 
@@ -37,30 +36,5 @@ impl SessionState {
             self.publish_request_queue.push(request);
             Ok(())
         }
-    }
-
-    pub fn poll_subscriptions(&self, session_state: &mut SessionState) -> Option<Vec<SupportedMessage>> {
-        let subscriptions = session_state.subscriptions.lock().unwrap();
-        for (_, subscription) in subscriptions.iter() {
-            match subscription.state {
-                SubscriptionState::Closed => {
-                    // DO NOTHING
-                },
-                SubscriptionState::Creating => {
-                    // DO NOTHING
-                },
-                SubscriptionState::Normal => {
-                    // DO NOTHING
-                },
-                SubscriptionState::KeepAlive => {
-                    // DO NOTHING
-                },
-                SubscriptionState::Late => {
-                    // DO NOTHING
-                },
-            }
-        }
-
-        None
     }
 }

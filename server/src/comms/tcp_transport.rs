@@ -315,14 +315,14 @@ impl TcpTransport {
         Ok(())
     }
 
-    pub fn turn_received_chunks_into_message(&mut self, chunks: &Vec<Chunk>) -> std::result::Result<SupportedMessage, &'static StatusCode> {
+    fn turn_received_chunks_into_message(&mut self, chunks: &Vec<Chunk>) -> std::result::Result<SupportedMessage, &'static StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
         self.last_received_sequence_number = Chunker::validate_chunk_sequences(self.last_received_sequence_number, &self.secure_channel_info, chunks)?;
         // Now decode
         Chunker::decode(&chunks, &self.secure_channel_info, None)
     }
 
-    pub fn process_chunk<W: Write>(&mut self, chunk: Chunk, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
+    fn process_chunk<W: Write>(&mut self, chunk: Chunk, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
         debug!("Got a chunk {:?}", chunk);
 
         if chunk.chunk_header.chunk_type == ChunkType::Intermediate {
@@ -349,25 +349,36 @@ impl TcpTransport {
             }
         };
 
-        // Send the response
-
-        // Get the request id out of the request
         let chunk_info = in_chunks[0].chunk_info(true, &self.secure_channel_info)?;
         let request_id = chunk_info.sequence_header.request_id;
+        self.send_response(request_id, response, out_stream)?;
+        Ok(())
+    }
 
+    fn send_response<W: Write>(&mut self, request_id: UInt32, response: SupportedMessage, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
         // Prepare some chunks starting from the sequence number + 1
-        debug!("Response to send: {:?}", response);
+        match response {
+            SupportedMessage::Invalid(object_id) => {
+                panic!("Invalid response with object_id {:?}", object_id);
+            },
+            SupportedMessage::DoNothing => {
+                // DO NOTHING
+            },
+            _ => {
+                // Send the response
+                // Get the request id out of the request
+                debug!("Response to send: {:?}", response);
+                let sequence_number = self.last_sent_sequence_number + 1;
+                let out_chunks = Chunker::encode(sequence_number, request_id, &self.secure_channel_info, &response)?;
+                self.last_sent_sequence_number = sequence_number + out_chunks.len() as UInt32 - 1;
 
-        let sequence_number = self.last_sent_sequence_number + 1;
-        let out_chunks = Chunker::encode(sequence_number, request_id, &self.secure_channel_info, &response)?;
-        self.last_sent_sequence_number = sequence_number + out_chunks.len() as UInt32 - 1;
-
-        // Send out any chunks that form the response
-        debug!("Got some chunks to send {:?}", out_chunks);
-        for out_chunk in out_chunks {
-            let _ = out_chunk.encode(out_stream);
+                // Send out any chunks that form the response
+                debug!("Got some chunks to send {:?}", out_chunks);
+                for out_chunk in out_chunks {
+                    let _ = out_chunk.encode(out_stream);
+                }
+            }
         }
-
         Ok(())
     }
 
