@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use chrono;
+use time;
 
 use opcua_core::types::*;
 
@@ -61,7 +62,7 @@ pub struct SubscriptionStateVariables {
 pub struct Subscription {
     pub subscription_id: UInt32,
     /// Publishing interval
-    pub publishing_interval: Double,
+    pub publishing_interval: Duration,
     /// The max lifetime count (not the current lifetime count)
     pub lifetime_count: UInt32,
     /// Keep alive count enforced
@@ -75,7 +76,7 @@ pub struct Subscription {
     // The last monitored item id
     last_monitored_item_id: UInt32,
     // The time that the subscription interval last fired
-    last_subscription_interval: chrono::DateTime<chrono::UTC>,
+    last_sample_time: chrono::DateTime<chrono::UTC>,
     /// State of the subscription
     state: SubscriptionState,
     /// The current subscription state
@@ -94,7 +95,7 @@ impl Subscription {
             keep_alive_count: keep_alive_count,
 
             last_monitored_item_id: 0,
-            last_subscription_interval: chrono::UTC::now(),
+            last_sample_time: chrono::UTC::now(),
 
             subscription_state_variables: SubscriptionStateVariables {
                 // These are all subscription state variables
@@ -167,14 +168,26 @@ impl Subscription {
         }
     }
 
-    fn update_state_variables(&mut self) {
-
+    fn tick_monitored_items(&mut self, now: &chrono::DateTime<chrono::UTC>, subscription_interval_elapsed: bool) {
+        for (_, monitored_item) in self.monitored_items.iter_mut() {
+            monitored_item.tick(now, subscription_interval_elapsed);
+        }
     }
 
     fn tick(&mut self, now: &chrono::DateTime<chrono::UTC>) {
         debug!("subscription tick {}", self.subscription_id);
 
-        self.update_state_variables();
+        let subscription_interval_elapsed = if self.state == SubscriptionState::Creating {
+            true
+        } else if self.publishing_interval <= 0f64 {
+            true
+        } else {
+            let publishing_interval = time::Duration::milliseconds(self.publishing_interval as i64);
+            let elapsed = *now - self.last_sample_time;
+            elapsed >= publishing_interval
+        };
+
+        self.tick_monitored_items(&now, subscription_interval_elapsed);
 
         match self.state {
             SubscriptionState::Creating => {

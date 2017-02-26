@@ -9,7 +9,7 @@ pub struct MonitoredItem {
     pub item_to_monitor: ReadValueId,
     pub monitoring_mode: MonitoringMode,
     pub client_handle: UInt32,
-    pub sampling_interval: Double,
+    pub sampling_interval: Duration,
     pub filter: ExtensionObject,
     pub discard_oldest: Boolean,
     pub queue_size: usize,
@@ -63,7 +63,7 @@ impl MonitoredItem {
             // Compare sample interval
             let sampling_interval = time::Duration::milliseconds(self.sampling_interval as i64);
             let elapsed = *now - self.last_sample_time;
-            elapsed > sampling_interval
+            elapsed >= sampling_interval
         } else if self.sampling_interval == 0f64 {
             // Fastest possible rate, i.e. tick quantum
             true

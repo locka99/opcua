@@ -65,7 +65,8 @@ impl UserTokenPolicy {
             token_type: UserTokenType::Username,
             issued_token_type: UAString::null(),
             issuer_endpoint_url: UAString::null(),
-            security_policy_uri: UAString::null(), // TODO
+            security_policy_uri: UAString::null(),
+            // TODO
         }
     }
 }
@@ -376,6 +377,95 @@ impl NodeClass {
         }
     }
 }
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum DataChangeTrigger {
+    Status = 0,
+    StatusValue = 1,
+    StatusValueTimestamp = 2,
+}
+
+impl BinaryEncoder<DataChangeTrigger> for DataChangeTrigger {
+    fn byte_len(&self) -> usize {
+        4
+    }
+
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
+        // All enums are Int32
+        write_i32(stream, *self as Int32)
+    }
+
+    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+        // All enums are Int32
+        let value = read_i32(stream)?;
+        match value {
+            0 => Ok(DataChangeTrigger::Status),
+            1 => Ok(DataChangeTrigger::StatusValue),
+            2 => Ok(DataChangeTrigger::StatusValueTimestamp),
+            _ => {
+                error!("Don't know what data change trigger {} is", value);
+                Err(&BAD_UNEXPECTED_ERROR)
+            }
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum FilterOperator {
+    Equals = 0,
+    IsNull = 1,
+    GreaterThan = 2,
+    LessThan = 3,
+    GreaterThanOrEqual = 4,
+    LessThanOrEqual = 5,
+    Like = 6,
+    Not = 7,
+    Between = 8,
+    InList = 9,
+    And = 10,
+    Or = 11,
+    Cast = 12,
+    BitwiseAnd = 16,
+    BitwiseOr = 17,
+}
+
+impl BinaryEncoder<FilterOperator> for FilterOperator {
+    fn byte_len(&self) -> usize {
+        4
+    }
+
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
+        // All enums are Int32
+        write_i32(stream, *self as Int32)
+    }
+
+    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+        // All enums are Int32
+        let value = read_i32(stream)?;
+        match value {
+            0 => Ok(FilterOperator::Equals),
+            1 => Ok(FilterOperator::IsNull),
+            2 => Ok(FilterOperator::GreaterThan),
+            3 => Ok(FilterOperator::LessThan),
+            4 => Ok(FilterOperator::GreaterThanOrEqual),
+            5 => Ok(FilterOperator::LessThanOrEqual),
+            6 => Ok(FilterOperator::Like),
+            7 => Ok(FilterOperator::Not),
+            8 => Ok(FilterOperator::Between),
+            9 => Ok(FilterOperator::InList),
+            10 => Ok(FilterOperator::And),
+            11 => Ok(FilterOperator::Or),
+            12 => Ok(FilterOperator::Cast),
+            16 => Ok(FilterOperator::BitwiseAnd),
+            17 => Ok(FilterOperator::BitwiseOr),
+            _ => {
+                error!("Don't know what filter operator {} is", value);
+                Err(&BAD_FILTER_OPERATOR_INVALID)
+            }
+        }
+    }
+}
+
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum BrowseDirection {
