@@ -9,6 +9,8 @@ use address_space::*;
 
 mod address_space;
 mod services;
+mod subscription;
+mod monitored_item;
 
 fn make_test_file(filename: &str) -> PathBuf {
     let mut path = std::env::temp_dir();

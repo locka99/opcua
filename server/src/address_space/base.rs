@@ -76,7 +76,6 @@ pub struct Base {
     pub attributes: Vec<Option<DataValue>>,
 }
 
-
 impl Node for Base {
     /// Returns the node class
     fn node_class(&self) -> NodeClass {

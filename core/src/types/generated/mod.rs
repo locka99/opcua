@@ -65,6 +65,8 @@ use_generated_types![
     monitored_item_notification,
     data_change_filter,
     data_change_notification,
+    monitoring_filter,
+    monitoring_filter_result,
     event_filter,
     event_filter_result,
     aggregate_filter,
