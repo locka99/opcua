@@ -764,6 +764,16 @@ impl ExtensionObject {
             body: ExtensionObjectEncoding::None,
         }
     }
+
+    pub fn from_encodable<T: BinaryEncoder<T>>(node_id: NodeId, encodable: &T) -> ExtensionObject {
+        // Serialize to extension object
+        let mut stream = Cursor::new(vec![0u8; encodable.byte_len()]);
+        let _ = encodable.encode(&mut stream);
+        ExtensionObject {
+            node_id: node_id,
+            body: ExtensionObjectEncoding::ByteString(ByteString::from_bytes(&stream.into_inner())),
+        }
+    }
 }
 
 // Data type ID 23 is in data_value.rs
@@ -950,6 +960,7 @@ mod date_time;
 mod node_id;
 mod variant;
 mod data_types;
+mod notification_message;
 mod generated;
 
 pub use self::helpers::*;

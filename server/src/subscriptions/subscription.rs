@@ -6,6 +6,7 @@ use time;
 use opcua_core::types::*;
 
 use subscriptions::monitored_item::*;
+use address_space::*;
 
 /// Subscription events are passed between the timer thread and the session thread so must
 /// be transferable
@@ -150,7 +151,7 @@ impl Subscription {
     // modify_monitored_items
     // delete_monitored_items
 
-    pub fn tick_subscriptions(subscriptions: &mut HashMap<UInt32, Subscription>) {
+    pub fn tick_subscriptions(address_space: &AddressSpace, subscriptions: &mut HashMap<UInt32, Subscription>) {
         let mut dead_subscriptions: Vec<u32> = Vec::with_capacity(5);
 
         let now = chrono::UTC::now();
@@ -159,7 +160,7 @@ impl Subscription {
             if subscription.state == SubscriptionState::Closed {
                 dead_subscriptions.push(*subscription_id);
             } else {
-                subscription.tick(&now);
+                subscription.tick(address_space, &now);
             }
         }
         // Remove dead subscriptions
@@ -168,13 +169,13 @@ impl Subscription {
         }
     }
 
-    fn tick_monitored_items(&mut self, now: &chrono::DateTime<chrono::UTC>, subscription_interval_elapsed: bool) {
+    fn tick_monitored_items(&mut self, address_space: &AddressSpace, now: &chrono::DateTime<chrono::UTC>, subscription_interval_elapsed: bool) {
         for (_, monitored_item) in self.monitored_items.iter_mut() {
-            monitored_item.tick(now, subscription_interval_elapsed);
+            monitored_item.tick(address_space, now, subscription_interval_elapsed);
         }
     }
 
-    fn tick(&mut self, now: &chrono::DateTime<chrono::UTC>) {
+    fn tick(&mut self, address_space: &AddressSpace, now: &chrono::DateTime<chrono::UTC>) {
         debug!("subscription tick {}", self.subscription_id);
 
         let subscription_interval_elapsed = if self.state == SubscriptionState::Creating {
@@ -187,7 +188,7 @@ impl Subscription {
             elapsed >= publishing_interval
         };
 
-        self.tick_monitored_items(&now, subscription_interval_elapsed);
+        self.tick_monitored_items(address_space, &now, subscription_interval_elapsed);
 
         match self.state {
             SubscriptionState::Creating => {

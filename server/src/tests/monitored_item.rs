@@ -1,10 +1,18 @@
-use std::io::{Cursor};
-
 use opcua_core::types::*;
 use opcua_core::services::*;
 
 use address_space::*;
 use subscriptions::*;
+
+fn test_var_node_id() -> NodeId {
+    NodeId::new_numeric(1, 1)
+}
+
+fn make_address_space() -> AddressSpace {
+    let mut address_space = AddressSpace::new();
+    address_space.add_variable(&Variable::new(&NodeId::new_numeric(1, 1), "test", "test", &DataTypeId::Boolean, DataValue::new(Variant::Boolean(true))), &AddressSpace::objects_folder_id());
+    address_space
+}
 
 fn make_create_request(sampling_interval: Duration, queue_size: UInt32) -> MonitoredItemCreateRequest {
     // Encode a filter to an extension object
@@ -14,17 +22,11 @@ fn make_create_request(sampling_interval: Duration, queue_size: UInt32) -> Monit
         deadband_value: 0f64,
     };
 
-    let mut cursor = Cursor::new(vec![0u8; data_change_filter.byte_len()]);
-    let _ = data_change_filter.encode(&mut cursor);
-
-    let filter = ExtensionObject {
-        node_id:  ObjectId::DataChangeFilter_Encoding_DefaultBinary.as_node_id(),
-        body: ExtensionObjectEncoding::ByteString(ByteString::from_bytes(&cursor.into_inner())),
-    };
+    let filter = ExtensionObject::from_encodable(ObjectId::DataChangeFilter_Encoding_DefaultBinary.as_node_id(), &data_change_filter);
 
     MonitoredItemCreateRequest {
         item_to_monitor: ReadValueId {
-            node_id: NodeId::new_numeric(1, 1),
+            node_id: test_var_node_id(),
             attribute_id: AttributeId::Value as UInt32,
             index_range: UAString::null(),
             data_encoding: QualifiedName::null(),
@@ -42,7 +44,9 @@ fn make_create_request(sampling_interval: Duration, queue_size: UInt32) -> Monit
 
 #[test]
 fn monitored_item_data_change_filter() {
-    // TODO create an address space
+    // create an address space
+    let address_space = make_address_space();
+
     // TODO create a variable & add to address space
 
     // TODO create request should monitor attribute of variable, e.g. value
@@ -50,7 +54,7 @@ fn monitored_item_data_change_filter() {
     let mut monitored_item = MonitoredItem::new(1, &create_request);
 
     let now = DateTime::now().as_chrono();
-    monitored_item.tick(&now, false);
+    monitored_item.tick(&address_space, &now, false);
 
     // TODO always expect true on first tick
 
@@ -70,13 +74,7 @@ fn monitored_item_data_change_filter() {
 }
 
 #[test]
-fn monitored_item_event_filter() {
-
-
-}
+fn monitored_item_event_filter() {}
 
 #[test]
-fn monitored_aggregate_filter() {
-
-
-}
+fn monitored_aggregate_filter() {}

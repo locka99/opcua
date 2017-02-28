@@ -224,6 +224,7 @@ impl TcpTransport {
         let (subscription_timer_tx, subscription_timer_rx) = mpsc::channel();
 
         let session_state = self.session_state.clone();
+        let server_state = self.server_state.clone();
 
         // Creates a repeating timer that checks subscriptions. The guard is returned to the caller
         // so it can control the scope of events.
@@ -232,8 +233,11 @@ impl TcpTransport {
             // Manage subscriptions
             debug!("Timer fired");
             let session_state = session_state.lock().unwrap();
+            let server_state = server_state.lock().unwrap();
+            let address_space = server_state.address_space.lock().unwrap();
+
             let mut subscriptions = session_state.subscriptions.lock().unwrap();
-            Subscription::tick_subscriptions(&mut subscriptions);
+            Subscription::tick_subscriptions(&address_space, &mut subscriptions);
 
             // A phony notification message
             let notification_message = NotificationMessage {
