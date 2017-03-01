@@ -669,10 +669,14 @@ impl LocalizedText {
     }
 }
 
+/// Enumeration that holds the kinds of encoding that an ExtensionObject data may be encoded with.
 #[derive(PartialEq, Debug, Clone)]
 pub enum ExtensionObjectEncoding {
+    /// For an extension object with nothing encoded with it
     None,
+    /// For an extension object with data encoded in a ByteString
     ByteString(ByteString),
+    /// For an extension object with data encoded in an XML string
     XmlElement(XmlElement),
 }
 
@@ -746,8 +750,7 @@ impl BinaryEncoder<ExtensionObject> for ExtensionObject {
             },
             _ => {
                 error!("Invalid encoding type {} in stream", encoding_type);
-                // TODO Err()
-                ExtensionObjectEncoding::None
+                return Err(&BAD_DECODING_ERROR);
             }
         };
         Ok(ExtensionObject {
@@ -758,6 +761,7 @@ impl BinaryEncoder<ExtensionObject> for ExtensionObject {
 }
 
 impl ExtensionObject {
+    /// Creates a null extension object, i.e. one with no value or payload
     pub fn null() -> ExtensionObject {
         ExtensionObject {
             node_id: NodeId::null(),
@@ -765,7 +769,9 @@ impl ExtensionObject {
         }
     }
 
-    pub fn from_encodable<T: BinaryEncoder<T>>(node_id: NodeId, encodable: &T) -> ExtensionObject {
+    /// Creates an extension object with the specified node id and the encodable object as its payload.
+    /// The body is set to a byte string containing the encoded struct.
+    pub fn from_encodable<T: BinaryEncoder<T>>(node_id: NodeId, encodable: T) -> ExtensionObject {
         // Serialize to extension object
         let mut stream = Cursor::new(vec![0u8; encodable.byte_len()]);
         let _ = encodable.encode(&mut stream);
@@ -773,6 +779,20 @@ impl ExtensionObject {
             node_id: node_id,
             body: ExtensionObjectEncoding::ByteString(ByteString::from_bytes(&stream.into_inner())),
         }
+    }
+
+    /// Decodes the inner content of the extension object and returns it. The node id is ignored
+    /// for decoding. The caller supplies the binary encoder impl that should be used to extract
+    /// the data. Errors result in a decoding error.
+    pub fn decode_inner<T: BinaryEncoder<T>>(&self) -> EncodingResult<T> {
+        if let ExtensionObjectEncoding::ByteString(ref byte_string) = self.body {
+            if let Some(ref value) = byte_string.value {
+                let value = value.clone();
+                let mut stream = Cursor::new(value);
+                return T::decode(&mut stream);
+            }
+        }
+        Err(&BAD_DECODING_ERROR)
     }
 }
 

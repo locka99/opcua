@@ -20,7 +20,7 @@ const HAS_SERVER_PICOSECONDS: u8 = 0x20;
 pub struct DataValue {
     /// The value. BaseDataType
     /// Not present if the Value bit in the EncodingMask is False.
-    pub value: Option<Box<Variant>>,
+    pub value: Option<Variant>,
     /// The status associated with the value.
     /// Not present (set to GOOD) if the StatusCode bit in the EncodingMask is False
     pub status: Option<StatusCode>,
@@ -97,7 +97,7 @@ impl BinaryEncoder<DataValue> for DataValue {
 
         // Value
         let value = if encoding_mask & HAS_VALUE != 0 {
-            Some(Box::new(Variant::decode(stream)?))
+            Some(Variant::decode(stream)?)
         } else {
             None
         };
@@ -148,7 +148,7 @@ impl DataValue {
     pub fn new(value: Variant) -> DataValue {
         let now = DateTime::now();
         DataValue {
-            value: Some(Box::new(value)),
+            value: Some(value),
             status: Some(GOOD.clone()),
             source_timestamp: Some(now.clone()),
             source_picoseconds: Some(0),

@@ -1,7 +1,5 @@
 ///! Helpers for NotificationMessage types
 
-use std::io::{Cursor};
-
 use types::*;
 
 impl NotificationMessage {
@@ -12,8 +10,7 @@ impl NotificationMessage {
         };
 
         // Serialize to extension object
-        let notification_data = ExtensionObject::from_encodable(ObjectId::DataChangeNotification_Encoding_DefaultBinary.as_node_id(), &data_change_notification);
-
+        let notification_data = ExtensionObject::from_encodable(ObjectId::DataChangeNotification_Encoding_DefaultBinary.as_node_id(), data_change_notification);
         NotificationMessage {
             sequence_number: sequence_number,
             publish_time: publish_time,

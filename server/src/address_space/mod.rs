@@ -45,7 +45,7 @@ macro_rules! find_attribute_value_optional {
             if attribute.is_some() {
                 let attribute = attribute.as_ref().unwrap();
                 if attribute.value.is_some() {
-                    if let &Variant::$ty(ref value) = attribute.value.as_ref().unwrap().as_ref() {
+                    if let &Variant::$ty(ref value) = attribute.value.as_ref().unwrap() {
                         result = Some(value.clone());
                     }
                 }

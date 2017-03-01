@@ -142,7 +142,7 @@ impl Base {
             let (attribute_id, value) = attribute;
             let attribute_idx = Base::attribute_idx(attribute_id);
             attributes[attribute_idx] = Some(DataValue {
-                value: Some(Box::new(value)),
+                value: Some(value),
                 status: Some(GOOD.clone()),
                 server_timestamp: Some(now.clone()),
                 server_picoseconds: Some(0),
@@ -164,7 +164,7 @@ impl Base {
     pub fn set_attribute_value(&mut self, attribute_id: AttributeId, value: Variant, server_timestamp: &DateTime, source_timestamp: &DateTime) {
         let attribute_idx = Base::attribute_idx(attribute_id);
         self.attributes[attribute_idx] = Some(DataValue {
-            value: Some(Box::new(value)),
+            value: Some(value),
             status: Some(GOOD.clone()),
             server_timestamp: Some(server_timestamp.clone()),
             server_picoseconds: Some(0),
@@ -176,7 +176,7 @@ impl Base {
     pub fn update_attribute_value(&mut self, attribute_id: AttributeId, value: Variant, server_timestamp: &DateTime, source_timestamp: &DateTime) -> Result<(), ()> {
         let ref mut attribute = self.attributes[Base::attribute_idx(attribute_id)];
         if let &mut Some(ref mut attribute) = attribute {
-            attribute.value = Some(Box::new(value));
+            attribute.value = Some(value);
             attribute.server_timestamp = Some(server_timestamp.clone());
             attribute.source_timestamp = Some(source_timestamp.clone());
             Ok(())

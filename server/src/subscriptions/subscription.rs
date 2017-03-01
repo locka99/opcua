@@ -128,20 +128,36 @@ impl Subscription {
             self.last_monitored_item_id += 1;
             // Process items to create here
             let monitored_item_id = self.last_monitored_item_id;
+
+            // Create a monitored item, if possible
             let monitored_item = MonitoredItem::new(monitored_item_id, item_to_create);
+            let result = if monitored_item.is_ok() {
+                let monitored_item = monitored_item.unwrap();
 
-            // Return the status
-            let result = MonitoredItemCreateResult {
-                status_code: GOOD.clone(),
-                monitored_item_id: monitored_item_id,
-                revised_sampling_interval: monitored_item.sampling_interval,
-                revised_queue_size: monitored_item.queue_size as UInt32,
-                filter_result: ExtensionObject::null(),
-                // TODO
+                // Return the status
+                let result = MonitoredItemCreateResult {
+                    status_code: GOOD.clone(),
+                    monitored_item_id: monitored_item_id,
+                    revised_sampling_interval: monitored_item.sampling_interval,
+                    revised_queue_size: monitored_item.queue_size as UInt32,
+                    filter_result: ExtensionObject::null()
+                };
+
+                // Register the item with the subscription
+                self.monitored_items.insert(monitored_item_id, monitored_item);
+
+                result
+            }
+            else {
+                // Monitored item couldn't be created
+                MonitoredItemCreateResult {
+                    status_code: monitored_item.unwrap_err().clone(),
+                    monitored_item_id: monitored_item_id,
+                    revised_sampling_interval: 0f64,
+                    revised_queue_size: 0,
+                    filter_result: ExtensionObject::null()
+                }
             };
-
-            // Register the item with the subscription
-            self.monitored_items.insert(monitored_item_id, monitored_item);
 
             results.push(result);
         }

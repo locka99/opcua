@@ -56,8 +56,8 @@ pub enum Variant {
     LocalizedText(LocalizedText),
     /// ExtensionObject
     ExtensionObject(ExtensionObject),
-    /// DataValue
-    DataValue(DataValue),
+    /// DataValue (boxed because a DataValue itself holds a Variant)
+    DataValue(Box<DataValue>),
     /// Single dimension array
     /// A variant can be an array of other kinds (all of which must be the same type), second argument is the dimensions of the
     /// array which should match the array length, otherwise BAD_DECODING_ERROR
@@ -369,7 +369,7 @@ impl Variant {
         } else if encoding_mask == 22 {
             Variant::ExtensionObject(ExtensionObject::decode(stream)?)
         } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::DataValue) {
-            Variant::DataValue(DataValue::decode(stream)?)
+            Variant::DataValue(Box::new(DataValue::decode(stream)?))
         } else {
             Variant::Empty
         };

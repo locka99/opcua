@@ -10,19 +10,17 @@ fn test_var_node_id() -> NodeId {
 
 fn make_address_space() -> AddressSpace {
     let mut address_space = AddressSpace::new();
-    address_space.add_variable(&Variable::new(&NodeId::new_numeric(1, 1), "test", "test", &DataTypeId::Boolean, DataValue::new(Variant::Boolean(true))), &AddressSpace::objects_folder_id());
+    address_space.add_variable(&Variable::new(&NodeId::new_numeric(1, 1), "test", "test", &DataTypeId::UInt32, DataValue::new(Variant::UInt32(0))), &AddressSpace::objects_folder_id());
     address_space
 }
 
 fn make_create_request(sampling_interval: Duration, queue_size: UInt32) -> MonitoredItemCreateRequest {
     // Encode a filter to an extension object
-    let data_change_filter = DataChangeFilter {
+    let filter = ExtensionObject::from_encodable(ObjectId::DataChangeFilter_Encoding_DefaultBinary.as_node_id(), DataChangeFilter {
         trigger: DataChangeTrigger::StatusValueTimestamp,
         deadband_type: 0,
         deadband_value: 0f64,
-    };
-
-    let filter = ExtensionObject::from_encodable(ObjectId::DataChangeFilter_Encoding_DefaultBinary.as_node_id(), &data_change_filter);
+    });
 
     MonitoredItemCreateRequest {
         item_to_monitor: ReadValueId {
@@ -45,32 +43,38 @@ fn make_create_request(sampling_interval: Duration, queue_size: UInt32) -> Monit
 #[test]
 fn monitored_item_data_change_filter() {
     // create an address space
-    let address_space = make_address_space();
+    let mut address_space = make_address_space();
 
-    // TODO create a variable & add to address space
-
-    // TODO create request should monitor attribute of variable, e.g. value
-    let create_request = make_create_request(1000f64, 5);
-    let mut monitored_item = MonitoredItem::new(1, &create_request);
+    // Create request should monitor attribute of variable, e.g. value
+    // Sample interval is negative so it will always test on repeated calls
+    let mut monitored_item = MonitoredItem::new(1, &make_create_request(-1f64, 5)).unwrap();
 
     let now = DateTime::now().as_chrono();
-    monitored_item.tick(&address_space, &now, false);
 
-    // TODO always expect true on first tick
+    assert_eq!(monitored_item.notification_queue.len(), 0);
 
-    // TODO always expect false on next tick, with now the same
+    // Expect first call to always succeed
+    assert_eq!(monitored_item.tick(&address_space, &now, true), true);
 
-    // TODO adjust now forward by 1.5s
+    // Expect one item in its queue
+    assert_eq!(monitored_item.notification_queue.len(), 1);
 
-    // TODO expect tick to be false
+    // Expect false on next tick, with the same value
+    assert_eq!(monitored_item.tick(&address_space, &now, true), false);
+    assert_eq!(monitored_item.notification_queue.len(), 1);
 
-    // TODO adjust now forward by 1.5s
+    // adjust variable value
+    if let &mut NodeType::Variable(ref mut node) = address_space.find_node_mut(&test_var_node_id()).unwrap() {
+        let mut value = node.value();
+        value.value = Some(Variant::UInt32(1));
+        node.set_value(value);
+    }
+    else {
+        panic!("Expected a variable, didn't get one!!");
+    }
 
-    // TODO adjust variable value
-
-    // TODO expect tick to be true
-
-    // TODO check notification queue for 1 value
+    assert_eq!(monitored_item.tick(&address_space, &now, true), true);
+    assert_eq!(monitored_item.notification_queue.len(), 2);
 }
 
 #[test]
