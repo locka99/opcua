@@ -30,7 +30,6 @@ pub struct MonitoredItem {
 
 impl MonitoredItem {
     pub fn new(monitored_item_id: UInt32, request: &MonitoredItemCreateRequest) -> Result<MonitoredItem, &'static StatusCode> {
-
         // Check if the filter is supported type
         if request.requested_parameters.filter.node_id != ObjectId::DataChangeFilter_Encoding_DefaultBinary.as_node_id() {
             return Err(&BAD_FILTER_NOT_ALLOWED);
@@ -96,6 +95,9 @@ impl MonitoredItem {
         if !check_value {
             return false;
         }
+
+        self.last_sample_time = now.clone();
+
         if let Some(node) = address_space.find_node(&self.item_to_monitor.node_id) {
             let node = node.as_node();
             let attribute_id = AttributeId::from_u32(self.item_to_monitor.attribute_id);
@@ -104,23 +106,22 @@ impl MonitoredItem {
             }
             let attribute_id = attribute_id.unwrap();
 
+            // Dead band filter is only supported filter
+            let filter = match self.filter {
+                FilterType::DataChangeFilter(ref filter) => filter,
+                // _ => { return false; }
+            };
+
             let data_value = node.find_attribute(attribute_id);
             if let Some(data_value) = data_value {
                 // Test for data change
                 let data_change = if self.last_data_value.is_none() {
                     // There is no previous check so yes it changed
                     true
-                }
-                else {
-                    // Test if the value has changed since the last test
-                    let last_data_value = self.last_data_value.as_ref().unwrap();
-
-
-                    // TODO for numeric types, look at the DataChangeFilter's deadband settings
-
-                    data_value != *last_data_value
+                } else {
+                    // Look at the variant - has it gone from some to none or vice versa
+                    MonitoredItem::compare_data_values(filter, &data_value, self.last_data_value.as_ref().unwrap())
                 };
-
                 if data_change {
                     // Store data value for comparison purposes - perhaps a dirty flag could achieve
                     // this more efficiently
@@ -149,15 +150,38 @@ impl MonitoredItem {
                         self.notification_queue.insert(0, notification_message);
                     }
                 }
-
-                self.last_sample_time = now.clone();
-
                 data_change
             } else {
                 false
             }
         } else {
             false
+        }
+    }
+
+    fn compare_data_values(filter: &DataChangeFilter, dv1: &DataValue, dv2: &DataValue) -> bool {
+        // Get the actual variant values
+        let v1 = &dv1.value;
+        let v2 = &dv2.value;
+
+        if (v1.is_some() && v2.is_none()) ||
+            (v1.is_none() && v2.is_some()) {
+            true
+        } else if v1.is_none() && v2.is_none() {
+            // If it's always none then it hasn't changed
+            false
+        } else {
+            // Otherwise test the filter
+            let v1 = v1.as_ref().unwrap();
+            let v2 = v2.as_ref().unwrap();
+            let result = filter.deadband_compare(v1, v2, None);
+            if let Ok(result) = result {
+                result
+            }
+            else {
+                debug!("Got error comparing values, {:?}", result.unwrap_err());
+                false
+            }
         }
     }
 }

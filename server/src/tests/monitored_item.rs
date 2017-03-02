@@ -41,6 +41,12 @@ fn make_create_request(sampling_interval: Duration, queue_size: UInt32) -> Monit
 }
 
 #[test]
+fn deadband_test() {
+
+}
+
+
+#[test]
 fn monitored_item_data_change_filter() {
     // create an address space
     let mut address_space = make_address_space();

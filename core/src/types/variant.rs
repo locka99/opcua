@@ -392,6 +392,30 @@ impl Variant {
         Variant::Array(values)
     }
 
+    pub fn as_f64(&self) -> Option<f64> {
+        match self {
+            &Variant::SByte(value) => Some(value as f64),
+            &Variant::Byte(value) => Some(value as f64),
+            &Variant::Int16(value) => Some(value as f64),
+            &Variant::UInt16(value) => Some(value as f64),
+            &Variant::Int32(value) => Some(value as f64),
+            &Variant::UInt32(value) => Some(value as f64),
+            &Variant::Int64(value) => {
+                // NOTE: Int64 could overflow
+                Some(value as f64)
+            },
+            &Variant::UInt64(value) => {
+                // NOTE: UInt64 could overflow
+                Some(value as f64)
+            },
+            &Variant::Float(value) => Some(value as f64),
+            &Variant::Double(value) => Some(value),
+            _ => {
+                None
+            }
+        }
+    }
+
     // Gets the encoding mask to write the variant to disk
     fn get_encoding_mask(&self) -> u8 {
         let encoding_mask = match self {

@@ -975,6 +975,55 @@ impl DiagnosticInfo {
     }
 }
 
+impl DataChangeFilter {
+    /// This function
+    pub fn deadband_compare(&self, v1: &Variant, v2: &Variant, range: Option<(f64, f64)>) -> std::result::Result<bool, &'static StatusCode> {
+        // TODO be able to compare arrays of numbers
+
+        if self.deadband_type == 0 {
+            // Straight comparison of values
+            Ok(v1 == v2)
+        } else {
+            // Absolute
+            let v1 = v1.as_f64();
+            let v2 = v2.as_f64();
+            if v1.is_none() || v2.is_none() {
+                return Ok(false)
+            }
+
+            let v1 = v1.unwrap();
+            let v2 = v2.unwrap();
+
+            if self.deadband_value < 0f64 {
+                debug!("Deadvalue is meant to be absolute so negative is invalid");
+                return Err(&BAD_DEADBAND_FILTER_INVALID);
+            }
+
+            if self.deadband_type == 1 {
+                let diff = (v1 - v2).abs();
+                Ok(diff >= self.deadband_value)
+            } else if self.deadband_type == 2 {
+                if range.is_none() {
+                    debug!("Deadband type is set to 2 but there is no specified range");
+                    return Err(&BAD_DEADBAND_FILTER_INVALID)
+                }
+                let (low, high) = range.unwrap();
+                if low >= high {
+                    debug!("Deadband type is set to 2 but high {} <= low {}", high, low);
+                    return Err(&BAD_DEADBAND_FILTER_INVALID)
+                }
+                // Data change if
+                // absolute value of(last cached value - current value) > (deadbandValue / 100.0) * ((high–low) of EURange)))
+                let diff = (v1 - v2).abs();
+                Ok(diff > (self.deadband_value / 100f64) * (high - low))
+            } else {
+                // Type is not recognized
+                return Err(&BAD_DEADBAND_FILTER_INVALID);
+            }
+        }
+    }
+}
+
 mod data_value;
 mod date_time;
 mod node_id;
