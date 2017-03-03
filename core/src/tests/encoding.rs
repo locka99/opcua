@@ -336,7 +336,16 @@ fn variant() {
     // ExtensionObject
     let v = Variant::ExtensionObject(ExtensionObject::null());
     serialize_test(v);
-    // TODO DataValue
+    // DataValue
+    let v = DataValue {
+        value: Some(Variant::Double(1000f64)),
+        status: Some(GOOD_CLAMPED.clone()),
+        source_timestamp: Some(DateTime::now()),
+        source_picoseconds: Some(333),
+        server_timestamp: Some(DateTime::now()),
+        server_picoseconds: Some(666),
+    };
+    serialize_test(v);
 }
 
 #[test]
