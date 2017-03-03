@@ -28,6 +28,9 @@ pub struct MonitoredItem {
     queue_overflow: bool,
 }
 
+const MIN_SAMPLING_INTERVAL_MS: Double = 0.05f64;
+const MAX_QUEUE_SIZE: UInt32 = 10;
+
 impl MonitoredItem {
     pub fn new(monitored_item_id: UInt32, request: &MonitoredItemCreateRequest) -> Result<MonitoredItem, &'static StatusCode> {
         // Check if the filter is supported type
@@ -37,9 +40,15 @@ impl MonitoredItem {
 
         let filter = FilterType::DataChangeFilter(request.requested_parameters.filter.decode_inner::<DataChangeFilter>()?);
 
-        // TODO sampling interval and queue size should be revised
-        let sampling_interval = request.requested_parameters.sampling_interval;
-        let queue_size = if request.requested_parameters.queue_size < 1 { 1 } else { request.requested_parameters.queue_size as usize };
+        // Limite intervals and queue sizes to sane values
+        let mut sampling_interval = request.requested_parameters.sampling_interval;
+        if sampling_interval < MIN_SAMPLING_INTERVAL_MS {
+            sampling_interval = MIN_SAMPLING_INTERVAL_MS;
+        }
+        let mut queue_size = if request.requested_parameters.queue_size < 1 { 1 } else { request.requested_parameters.queue_size as usize };
+        if queue_size > MAX_QUEUE_SIZE {
+            queue_size = MAX_QUEUE_SIZE;
+        }
 
         Ok(MonitoredItem {
             monitored_item_id: monitored_item_id,
