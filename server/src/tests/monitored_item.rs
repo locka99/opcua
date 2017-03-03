@@ -100,6 +100,48 @@ fn data_change_filter_test() {
 
 
 #[test]
+fn data_change_deadband_abs_test() {
+    let mut filter = DataChangeFilter {
+        trigger: DataChangeTrigger::StatusValue,
+        deadband_type: 1, // Abs
+        deadband_value: 1f64,
+    };
+
+    let mut v1 = DataValue {
+        value: Some(Variant::Double(10f64)),
+        status: None,
+        source_timestamp: None,
+        source_picoseconds: None,
+        server_timestamp: None,
+        server_picoseconds: None,
+    };
+
+    let mut v2 = DataValue {
+        value: Some(Variant::Double(10f64)),
+        status: None,
+        source_timestamp: None,
+        source_picoseconds: None,
+        server_timestamp: None,
+        server_picoseconds: None,
+    };
+
+    // Values are the same so deadband should not matter
+    assert_eq!(filter.compare(&v1, &v2, None), true);
+
+    // Adjust by less than deadband
+    v2.value = Some(Variant::Double(10.9f64));
+    assert_eq!(filter.compare(&v1, &v2, None), true);
+
+    // Adjust by equal deadband
+    v2.value = Some(Variant::Double(11f64));
+    assert_eq!(filter.compare(&v1, &v2, None), false);
+
+    // Adjust by equal deadband
+    v2.value = Some(Variant::Double(11.00001f64));
+    assert_eq!(filter.compare(&v1, &v2, None), false);
+}
+
+#[test]
 fn monitored_item_data_change_filter() {
     // create an address space
     let mut address_space = make_address_space();
@@ -134,9 +176,3 @@ fn monitored_item_data_change_filter() {
     assert_eq!(monitored_item.tick(&address_space, &now, true), true);
     assert_eq!(monitored_item.notification_queue.len(), 2);
 }
-
-#[test]
-fn monitored_item_event_filter() {}
-
-#[test]
-fn monitored_aggregate_filter() {}

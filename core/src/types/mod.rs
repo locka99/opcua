@@ -1020,7 +1020,8 @@ impl DataChangeFilter {
 
     /// Compares two values, either a straight value compare or a numeric comparison against the
     /// deadband settings. If deadband is asked for and the values are not convertible into a numeric
-    /// value, the result is false.
+    /// value, the result is false. The value is true if the values are the same within the limits
+    /// set.
     ///
     /// The eu_range is the engineering unit range and represents the range that the value should
     /// typically operate between. It's used for percentage change operations and ignored otherwise.
@@ -1049,10 +1050,9 @@ impl DataChangeFilter {
             if self.deadband_value < 0f64 {
                 return Err(&BAD_DEADBAND_FILTER_INVALID);
             }
-
             if self.deadband_type == 1 {
                 let diff = (v1 - v2).abs();
-                Ok(diff >= self.deadband_value)
+                Ok(diff < self.deadband_value)
             } else if self.deadband_type == 2 {
                 if eu_range.is_none() {
                     return Err(&BAD_DEADBAND_FILTER_INVALID)
@@ -1064,7 +1064,7 @@ impl DataChangeFilter {
                 // Data change if
                 // absolute value of(last cached value - current value) > (deadbandValue / 100.0) * ((high–low) of EURange)))
                 let diff = (v1 - v2).abs();
-                Ok(diff > (self.deadband_value / 100f64) * (high - low))
+                Ok(diff <= (self.deadband_value / 100f64) * (high - low))
             } else {
                 // Type is not recognized
                 return Err(&BAD_DEADBAND_FILTER_INVALID);
