@@ -33,7 +33,7 @@ impl BinaryEncoder<AggregateConfiguration> for AggregateConfiguration {
         size += self.use_sloped_extrapolation.byte_len();
         size
     }
-
+    
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.use_server_capabilities_defaults.encode(stream)?;

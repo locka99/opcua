@@ -21,7 +21,7 @@ impl BinaryEncoder<DataChangeNotification> for DataChangeNotification {
         size += byte_len_array(&self.diagnostic_infos);
         size
     }
-
+    
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += write_array(stream, &self.monitored_items)?;

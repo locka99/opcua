@@ -9,7 +9,8 @@ use types::*;
 use services::*;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct MonitoringFilterResult {}
+pub struct MonitoringFilterResult {
+}
 
 impl MessageInfo for MonitoringFilterResult {
     fn object_id(&self) -> ObjectId {
@@ -22,13 +23,14 @@ impl BinaryEncoder<MonitoringFilterResult> for MonitoringFilterResult {
         let mut size = 0;
         size
     }
-
+    
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         Ok(size)
     }
 
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        Ok(MonitoringFilterResult {})
+        Ok(MonitoringFilterResult {
+        })
     }
 }
