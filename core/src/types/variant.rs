@@ -392,6 +392,19 @@ impl Variant {
         Variant::Array(values)
     }
 
+    /// Tests and returns true if the variant holds a numeric type
+    pub fn is_numeric(&self) -> bool {
+        match self {
+            &Variant::SByte(_) | &Variant::Byte(_) |
+            &Variant::Int16(_) | &Variant::UInt16(_) |
+            &Variant::Int32(_) | &Variant::UInt32(_) |
+            &Variant::Int64(_) | &Variant::UInt64(_) |
+            &Variant::Float(_) | &Variant::Double(_) => true,
+            _ => false
+        }
+    }
+
+    /// Converts the numeric type to a double or returns None
     pub fn as_f64(&self) -> Option<f64> {
         match self {
             &Variant::SByte(value) => Some(value as f64),

@@ -120,7 +120,7 @@ impl MonitoredItem {
                     true
                 } else {
                     // Look at the variant - has it gone from some to none or vice versa
-                    MonitoredItem::compare_data_values(filter, &data_value, self.last_data_value.as_ref().unwrap())
+                    !MonitoredItem::compare_data_values(filter, &data_value, self.last_data_value.as_ref().unwrap())
                 };
                 if data_change {
                     // Store data value for comparison purposes - perhaps a dirty flag could achieve
@@ -159,6 +159,9 @@ impl MonitoredItem {
         }
     }
 
+    /// Use the supplied data change filter to test if the data values are the same or not.
+    /// Sameness is left to the data change filter to decide and depends on the deadband settings.
+    /// If values are the same, the result is true and false otherwise.
     fn compare_data_values(filter: &DataChangeFilter, dv1: &DataValue, dv2: &DataValue) -> bool {
         // Get the actual variant values
         let v1 = &dv1.value;
@@ -166,10 +169,10 @@ impl MonitoredItem {
 
         if (v1.is_some() && v2.is_none()) ||
             (v1.is_none() && v2.is_some()) {
-            true
+            false
         } else if v1.is_none() && v2.is_none() {
             // If it's always none then it hasn't changed
-            false
+            true
         } else {
             // Otherwise test the filter
             let v1 = v1.as_ref().unwrap();
@@ -179,8 +182,7 @@ impl MonitoredItem {
                 result
             }
             else {
-                debug!("Got error comparing values, {:?}", result.unwrap_err());
-                false
+                true
             }
         }
     }

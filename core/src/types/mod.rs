@@ -976,8 +976,15 @@ impl DiagnosticInfo {
 }
 
 impl DataChangeFilter {
-    /// This function
-    pub fn deadband_compare(&self, v1: &Variant, v2: &Variant, range: Option<(f64, f64)>) -> std::result::Result<bool, &'static StatusCode> {
+    /// Compares two values, either a straight value compare or a numeric comparison against the
+    /// deadband settings. If deadband is asked for and the values are not convertible into a numeric
+    /// value, the result is false.
+    ///
+    /// # Errors
+    ///
+    /// BAD_DEADBAND_FILTER_INVALID indicates the deadband settings were invalid, e.g. an invalid
+    /// type, or the args were invalid. A (low, high) range must be supplied for a percentage deadband compare.
+    pub fn deadband_compare(&self, v1: &Variant, v2: &Variant, eu_range: Option<(f64, f64)>) -> std::result::Result<bool, &'static StatusCode> {
         // TODO be able to compare arrays of numbers
 
         if self.deadband_type == 0 {
@@ -995,7 +1002,6 @@ impl DataChangeFilter {
             let v2 = v2.unwrap();
 
             if self.deadband_value < 0f64 {
-                debug!("Deadvalue is meant to be absolute so negative is invalid");
                 return Err(&BAD_DEADBAND_FILTER_INVALID);
             }
 
@@ -1003,18 +1009,18 @@ impl DataChangeFilter {
                 let diff = (v1 - v2).abs();
                 Ok(diff >= self.deadband_value)
             } else if self.deadband_type == 2 {
-                if range.is_none() {
-                    debug!("Deadband type is set to 2 but there is no specified range");
+                debug!("Dead band type == 2");
+                if eu_range.is_none() {
                     return Err(&BAD_DEADBAND_FILTER_INVALID)
                 }
-                let (low, high) = range.unwrap();
+                let (low, high) = eu_range.unwrap();
                 if low >= high {
-                    debug!("Deadband type is set to 2 but high {} <= low {}", high, low);
                     return Err(&BAD_DEADBAND_FILTER_INVALID)
                 }
                 // Data change if
                 // absolute value of(last cached value - current value) > (deadbandValue / 100.0) * ((high–low) of EURange)))
                 let diff = (v1 - v2).abs();
+                debug!("diff = {}", diff);
                 Ok(diff > (self.deadband_value / 100f64) * (high - low))
             } else {
                 // Type is not recognized
