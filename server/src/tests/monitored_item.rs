@@ -41,8 +41,61 @@ fn make_create_request(sampling_interval: Duration, queue_size: UInt32) -> Monit
 }
 
 #[test]
-fn deadband_test() {
+fn data_change_filter_test() {
+    let mut filter = DataChangeFilter {
+        trigger: DataChangeTrigger::Status,
+        deadband_type: 0,
+        deadband_value: 0f64,
+    };
 
+    let mut v1 = DataValue {
+        value: None,
+        status: None,
+        source_timestamp: None,
+        source_picoseconds: None,
+        server_timestamp: None,
+        server_picoseconds: None,
+    };
+
+    let mut v2 = DataValue {
+        value: None,
+        status: None,
+        source_timestamp: None,
+        source_picoseconds: None,
+        server_timestamp: None,
+        server_picoseconds: None,
+    };
+
+    assert_eq!(filter.compare(&v1, &v2, None), true);
+
+    // Change v1 status
+    v1.status = Some(GOOD.clone());
+    assert_eq!(filter.compare(&v1, &v2, None), false);
+
+    // Change v2 status
+    v2.status = Some(GOOD.clone());
+    assert_eq!(filter.compare(&v1, &v2, None), true);
+
+    // Change value - but since trigger is status, this should not matter
+    v1.value = Some(Variant::Boolean(true));
+    assert_eq!(filter.compare(&v1, &v2, None), true);
+
+    // Change trigger to status-value and change should matter
+    filter.trigger = DataChangeTrigger::StatusValue;
+    assert_eq!(filter.compare(&v1, &v2, None), false);
+
+    // Now values are the same
+    v2.value = Some(Variant::Boolean(true));
+    assert_eq!(filter.compare(&v1, &v2, None), true);
+
+    // And for status-value-timestamp
+    filter.trigger = DataChangeTrigger::StatusValueTimestamp;
+    assert_eq!(filter.compare(&v1, &v2, None), true);
+
+    // Change timestamps to differ
+    let now = DateTime::now();
+    v1.server_timestamp = Some(now.clone());
+    assert_eq!(filter.compare(&v1, &v2, None), false);
 }
 
 
@@ -74,8 +127,7 @@ fn monitored_item_data_change_filter() {
         let mut value = node.value();
         value.value = Some(Variant::UInt32(1));
         node.set_value(value);
-    }
-    else {
+    } else {
         panic!("Expected a variable, didn't get one!!");
     }
 

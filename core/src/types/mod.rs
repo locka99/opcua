@@ -8,6 +8,8 @@ use std;
 use std::fmt;
 use std::io::{Read, Write, Cursor};
 
+use services::*;
+
 pub type EncodingResult<T> = std::result::Result<T, &'static StatusCode>;
 
 /// OPC UA Binary Encoding interface. Anything that encodes to binary must implement this. It provides
@@ -976,15 +978,58 @@ impl DiagnosticInfo {
 }
 
 impl DataChangeFilter {
+    /// Compares one data value to another and returns true if they differ, according to their trigger
+    /// type of status, status/value or status/value/timestamp
+    pub fn compare(&self, v1: &DataValue, v2: &DataValue, eu_range: Option<(f64, f64)>) -> bool {
+        match self.trigger {
+            DataChangeTrigger::Status => {
+                v1.status == v2.status
+            },
+            DataChangeTrigger::StatusValue => {
+                v1.status == v2.status &&
+                    self.compare_value_option(&v1.value, &v2.value, eu_range)
+            },
+            DataChangeTrigger::StatusValueTimestamp => {
+                v1.status == v2.status &&
+                    self.compare_value_option(&v1.value, &v2.value, eu_range) &&
+                    v1.server_timestamp == v2.server_timestamp
+            },
+        }
+    }
+
+    pub fn compare_value_option(&self, v1: &Option<Variant>, v2: &Option<Variant>, eu_range: Option<(f64, f64)>) -> bool {
+        // Get the actual variant values
+        if (v1.is_some() && v2.is_none()) ||
+            (v1.is_none() && v2.is_some()) {
+            false
+        } else if v1.is_none() && v2.is_none() {
+            // If it's always none then it hasn't changed
+            true
+        } else {
+            // Otherwise test the filter
+            let v1 = v1.as_ref().unwrap();
+            let v2 = v2.as_ref().unwrap();
+            let result = self.compare_value(v1, v2, eu_range);
+            if let Ok(result) = result {
+                result
+            } else {
+                true
+            }
+        }
+    }
+
     /// Compares two values, either a straight value compare or a numeric comparison against the
     /// deadband settings. If deadband is asked for and the values are not convertible into a numeric
     /// value, the result is false.
+    ///
+    /// The eu_range is the engineering unit range and represents the range that the value should
+    /// typically operate between. It's used for percentage change operations and ignored otherwise.
     ///
     /// # Errors
     ///
     /// BAD_DEADBAND_FILTER_INVALID indicates the deadband settings were invalid, e.g. an invalid
     /// type, or the args were invalid. A (low, high) range must be supplied for a percentage deadband compare.
-    pub fn deadband_compare(&self, v1: &Variant, v2: &Variant, eu_range: Option<(f64, f64)>) -> std::result::Result<bool, &'static StatusCode> {
+    pub fn compare_value(&self, v1: &Variant, v2: &Variant, eu_range: Option<(f64, f64)>) -> std::result::Result<bool, &'static StatusCode> {
         // TODO be able to compare arrays of numbers
 
         if self.deadband_type == 0 {
@@ -1009,7 +1054,6 @@ impl DataChangeFilter {
                 let diff = (v1 - v2).abs();
                 Ok(diff >= self.deadband_value)
             } else if self.deadband_type == 2 {
-                debug!("Dead band type == 2");
                 if eu_range.is_none() {
                     return Err(&BAD_DEADBAND_FILTER_INVALID)
                 }
@@ -1020,7 +1064,6 @@ impl DataChangeFilter {
                 // Data change if
                 // absolute value of(last cached value - current value) > (deadbandValue / 100.0) * ((high–low) of EURange)))
                 let diff = (v1 - v2).abs();
-                debug!("diff = {}", diff);
                 Ok(diff > (self.deadband_value / 100f64) * (high - low))
             } else {
                 // Type is not recognized
