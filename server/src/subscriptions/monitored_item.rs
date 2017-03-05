@@ -29,7 +29,7 @@ pub struct MonitoredItem {
 }
 
 const MIN_SAMPLING_INTERVAL_MS: Double = 0.05f64;
-const MAX_QUEUE_SIZE: UInt32 = 10;
+const MAX_QUEUE_SIZE: usize = 10;
 
 impl MonitoredItem {
     pub fn new(monitored_item_id: UInt32, request: &MonitoredItemCreateRequest) -> Result<MonitoredItem, &'static StatusCode> {

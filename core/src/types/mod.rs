@@ -1051,8 +1051,7 @@ impl DataChangeFilter {
                 return Err(&BAD_DEADBAND_FILTER_INVALID);
             }
             if self.deadband_type == 1 {
-                let diff = (v1 - v2).abs();
-                Ok(diff < self.deadband_value)
+                Ok(DataChangeFilter::abs_compare(v1, v2, self.deadband_value))
             } else if self.deadband_type == 2 {
                 if eu_range.is_none() {
                     return Err(&BAD_DEADBAND_FILTER_INVALID)
@@ -1061,15 +1060,22 @@ impl DataChangeFilter {
                 if low >= high {
                     return Err(&BAD_DEADBAND_FILTER_INVALID)
                 }
-                // Data change if
-                // absolute value of(last cached value - current value) > (deadbandValue / 100.0) * ((high–low) of EURange)))
-                let diff = (v1 - v2).abs();
-                Ok(diff <= (self.deadband_value / 100f64) * (high - low))
+                Ok(DataChangeFilter::pct_compare(v1, v2, low, high, self.deadband_value))
             } else {
                 // Type is not recognized
                 return Err(&BAD_DEADBAND_FILTER_INVALID);
             }
         }
+    }
+
+    fn abs_compare(v1: f64, v2: f64, value: f64) -> bool {
+        let diff = (v1 - v2).abs();
+        diff <= value
+    }
+
+    fn pct_compare(v1: f64, v2: f64, low: f64, high: f64, value: f64) -> bool {
+        let diff = (v1 - v2).abs();
+        diff <= (value / 100f64) * (high - low)
     }
 }
 

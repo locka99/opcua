@@ -147,8 +147,7 @@ impl Subscription {
                 self.monitored_items.insert(monitored_item_id, monitored_item);
 
                 result
-            }
-            else {
+            } else {
                 // Monitored item couldn't be created
                 MonitoredItemCreateResult {
                     status_code: monitored_item.unwrap_err().clone(),
@@ -185,10 +184,14 @@ impl Subscription {
         }
     }
 
-    fn tick_monitored_items(&mut self, address_space: &AddressSpace, now: &chrono::DateTime<chrono::UTC>, subscription_interval_elapsed: bool) {
+    fn tick_monitored_items(&mut self, address_space: &AddressSpace, now: &chrono::DateTime<chrono::UTC>, subscription_interval_elapsed: bool) -> bool {
+        let mut items_changed = false;
         for (_, monitored_item) in self.monitored_items.iter_mut() {
-            monitored_item.tick(address_space, now, subscription_interval_elapsed);
+            if monitored_item.tick(address_space, now, subscription_interval_elapsed) {
+                items_changed = true;
+            }
         }
+        items_changed
     }
 
     fn tick(&mut self, address_space: &AddressSpace, now: &chrono::DateTime<chrono::UTC>) {
@@ -204,7 +207,7 @@ impl Subscription {
             elapsed >= publishing_interval
         };
 
-        self.tick_monitored_items(address_space, &now, subscription_interval_elapsed);
+        let items_changed = self.tick_monitored_items(address_space, &now, subscription_interval_elapsed);
 
         match self.state {
             SubscriptionState::Creating => {
