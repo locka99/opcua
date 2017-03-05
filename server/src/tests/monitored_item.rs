@@ -157,6 +157,9 @@ fn deadband_abs() {
 #[test]
 fn deadband_pct() {
     assert_eq!(DataChangeFilter::pct_compare(100f64, 101f64, 0f64, 100f64, 0f64), false);
+    assert_eq!(DataChangeFilter::pct_compare(100f64, 101f64, 1f64, 100f64, 0f64), true);
+    assert_eq!(DataChangeFilter::pct_compare(100f64, 101.0001f64, 1f64, 100f64, 0f64), true);
+    assert_eq!(DataChangeFilter::pct_compare(101.0001f64, 100f64, 1f64, 100f64, 0f64), true);
 }
 
 #[test]
