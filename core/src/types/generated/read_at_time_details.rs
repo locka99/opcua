@@ -21,7 +21,7 @@ impl BinaryEncoder<ReadAtTimeDetails> for ReadAtTimeDetails {
         size += self.use_simple_bounds.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += write_array(stream, &self.req_times)?;

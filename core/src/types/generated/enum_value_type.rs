@@ -30,7 +30,7 @@ impl BinaryEncoder<EnumValueType> for EnumValueType {
         size += self.description.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.value.encode(stream)?;

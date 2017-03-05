@@ -31,7 +31,7 @@ impl BinaryEncoder<SamplingIntervalDiagnosticsDataType> for SamplingIntervalDiag
         size += self.disabled_monitored_item_count.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.sampling_interval.encode(stream)?;

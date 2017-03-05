@@ -29,7 +29,7 @@ impl BinaryEncoder<QueryDataSet> for QueryDataSet {
         size += byte_len_array(&self.values);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.node_id.encode(stream)?;

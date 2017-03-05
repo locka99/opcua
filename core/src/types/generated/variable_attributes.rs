@@ -44,7 +44,7 @@ impl BinaryEncoder<VariableAttributes> for VariableAttributes {
         size += self.historizing.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.specified_attributes.encode(stream)?;

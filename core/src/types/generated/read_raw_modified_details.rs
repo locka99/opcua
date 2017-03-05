@@ -27,7 +27,7 @@ impl BinaryEncoder<ReadRawModifiedDetails> for ReadRawModifiedDetails {
         size += self.return_bounds.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.is_read_modified.encode(stream)?;

@@ -25,7 +25,7 @@ impl BinaryEncoder<DeleteRawModifiedDetails> for DeleteRawModifiedDetails {
         size += self.end_time.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.node_id.encode(stream)?;

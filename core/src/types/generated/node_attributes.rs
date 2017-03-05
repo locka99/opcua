@@ -34,7 +34,7 @@ impl BinaryEncoder<NodeAttributes> for NodeAttributes {
         size += self.user_write_mask.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.specified_attributes.encode(stream)?;

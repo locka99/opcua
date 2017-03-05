@@ -27,7 +27,7 @@ impl BinaryEncoder<ComplexNumberType> for ComplexNumberType {
         size += self.imaginary.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.real.encode(stream)?;

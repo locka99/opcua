@@ -26,7 +26,7 @@ impl BinaryEncoder<CloseSessionResponse> for CloseSessionResponse {
         size += self.response_header.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.response_header.encode(stream)?;

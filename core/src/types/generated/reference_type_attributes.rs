@@ -34,7 +34,7 @@ impl BinaryEncoder<ReferenceTypeAttributes> for ReferenceTypeAttributes {
         size += self.inverse_name.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.specified_attributes.encode(stream)?;

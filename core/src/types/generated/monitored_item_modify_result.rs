@@ -31,7 +31,7 @@ impl BinaryEncoder<MonitoredItemModifyResult> for MonitoredItemModifyResult {
         size += self.filter_result.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.status_code.encode(stream)?;

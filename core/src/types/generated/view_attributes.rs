@@ -32,7 +32,7 @@ impl BinaryEncoder<ViewAttributes> for ViewAttributes {
         size += self.event_notifier.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.specified_attributes.encode(stream)?;

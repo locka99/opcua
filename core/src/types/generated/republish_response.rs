@@ -27,7 +27,7 @@ impl BinaryEncoder<RepublishResponse> for RepublishResponse {
         size += self.notification_message.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.response_header.encode(stream)?;

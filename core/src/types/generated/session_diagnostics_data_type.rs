@@ -109,7 +109,7 @@ impl BinaryEncoder<SessionDiagnosticsDataType> for SessionDiagnosticsDataType {
         size += self.unregister_nodes_count.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.session_id.encode(stream)?;

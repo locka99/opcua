@@ -25,7 +25,7 @@ impl BinaryEncoder<EndpointUrlListDataType> for EndpointUrlListDataType {
         size += byte_len_array(&self.endpoint_url_list);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += write_array(stream, &self.endpoint_url_list)?;

@@ -38,7 +38,7 @@ impl BinaryEncoder<ApplicationDescription> for ApplicationDescription {
         size += byte_len_array(&self.discovery_urls);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.application_uri.encode(stream)?;

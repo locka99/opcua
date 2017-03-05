@@ -26,7 +26,7 @@ impl BinaryEncoder<CloseSecureChannelRequest> for CloseSecureChannelRequest {
         size += self.request_header.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.request_header.encode(stream)?;

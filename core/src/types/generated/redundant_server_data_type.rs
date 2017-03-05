@@ -29,7 +29,7 @@ impl BinaryEncoder<RedundantServerDataType> for RedundantServerDataType {
         size += self.server_state.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.server_id.encode(stream)?;

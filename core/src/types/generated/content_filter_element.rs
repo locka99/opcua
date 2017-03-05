@@ -27,7 +27,7 @@ impl BinaryEncoder<ContentFilterElement> for ContentFilterElement {
         size += byte_len_array(&self.filter_operands);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.filter_operator.encode(stream)?;

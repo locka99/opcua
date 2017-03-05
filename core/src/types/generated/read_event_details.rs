@@ -25,7 +25,7 @@ impl BinaryEncoder<ReadEventDetails> for ReadEventDetails {
         size += self.filter.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.num_values_per_node.encode(stream)?;

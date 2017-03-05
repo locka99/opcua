@@ -30,7 +30,7 @@ impl BinaryEncoder<BrowseNextRequest> for BrowseNextRequest {
         size += byte_len_array(&self.continuation_points);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.request_header.encode(stream)?;

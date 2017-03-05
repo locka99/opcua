@@ -29,7 +29,7 @@ impl BinaryEncoder<ParsingResult> for ParsingResult {
         size += byte_len_array(&self.data_diagnostic_infos);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.status_code.encode(stream)?;

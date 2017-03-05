@@ -28,7 +28,7 @@ impl BinaryEncoder<RegisterServerRequest> for RegisterServerRequest {
         size += self.server.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.request_header.encode(stream)?;

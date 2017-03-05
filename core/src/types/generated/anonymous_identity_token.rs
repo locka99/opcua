@@ -20,7 +20,7 @@ impl BinaryEncoder<AnonymousIdentityToken> for AnonymousIdentityToken {
         size += self.policy_id.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.policy_id.encode(stream)?;

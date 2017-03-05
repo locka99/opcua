@@ -27,7 +27,7 @@ impl BinaryEncoder<SubscriptionAcknowledgement> for SubscriptionAcknowledgement 
         size += self.sequence_number.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.subscription_id.encode(stream)?;

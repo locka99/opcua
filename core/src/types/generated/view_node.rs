@@ -37,7 +37,7 @@ impl BinaryEncoder<ViewNode> for ViewNode {
         size += self.event_notifier.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.node_id.encode(stream)?;

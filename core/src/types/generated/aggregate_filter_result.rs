@@ -23,7 +23,7 @@ impl BinaryEncoder<AggregateFilterResult> for AggregateFilterResult {
         size += self.revised_aggregate_configuration.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.revised_start_time.encode(stream)?;

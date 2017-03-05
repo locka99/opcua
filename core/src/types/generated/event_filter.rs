@@ -21,7 +21,7 @@ impl BinaryEncoder<EventFilter> for EventFilter {
         size += self.where_clause.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += write_array(stream, &self.select_clauses)?;

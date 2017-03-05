@@ -24,7 +24,7 @@ impl BinaryEncoder<IssuedIdentityToken> for IssuedIdentityToken {
         size += self.encryption_algorithm.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.policy_id.encode(stream)?;

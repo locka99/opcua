@@ -36,7 +36,7 @@ impl BinaryEncoder<ActivateSessionRequest> for ActivateSessionRequest {
         size += self.user_token_signature.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.request_header.encode(stream)?;

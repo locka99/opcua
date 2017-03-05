@@ -27,7 +27,7 @@ impl BinaryEncoder<TransferResult> for TransferResult {
         size += byte_len_array(&self.available_sequence_numbers);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.status_code.encode(stream)?;

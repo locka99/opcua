@@ -38,7 +38,7 @@ impl BinaryEncoder<ReferenceDescription> for ReferenceDescription {
         size += self.type_definition.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.reference_type_id.encode(stream)?;

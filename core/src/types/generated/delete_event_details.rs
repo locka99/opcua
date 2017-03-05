@@ -21,7 +21,7 @@ impl BinaryEncoder<DeleteEventDetails> for DeleteEventDetails {
         size += byte_len_array(&self.event_ids);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.node_id.encode(stream)?;

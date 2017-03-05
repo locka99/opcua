@@ -28,7 +28,7 @@ impl BinaryEncoder<CloseSessionRequest> for CloseSessionRequest {
         size += self.delete_subscriptions.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.request_header.encode(stream)?;

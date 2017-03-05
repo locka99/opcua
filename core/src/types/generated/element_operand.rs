@@ -19,7 +19,7 @@ impl BinaryEncoder<ElementOperand> for ElementOperand {
         size += self.index.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.index.encode(stream)?;

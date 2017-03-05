@@ -27,7 +27,7 @@ impl BinaryEncoder<SemanticChangeStructureDataType> for SemanticChangeStructureD
         size += self.affected_type.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.affected.encode(stream)?;

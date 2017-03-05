@@ -29,7 +29,7 @@ impl BinaryEncoder<ModelChangeStructureDataType> for ModelChangeStructureDataTyp
         size += self.verb.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.affected.encode(stream)?;

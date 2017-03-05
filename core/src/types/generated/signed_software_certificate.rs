@@ -28,7 +28,7 @@ impl BinaryEncoder<SignedSoftwareCertificate> for SignedSoftwareCertificate {
         size += self.signature.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.certificate_data.encode(stream)?;

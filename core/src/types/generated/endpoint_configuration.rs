@@ -41,7 +41,7 @@ impl BinaryEncoder<EndpointConfiguration> for EndpointConfiguration {
         size += self.security_token_lifetime.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.operation_timeout.encode(stream)?;

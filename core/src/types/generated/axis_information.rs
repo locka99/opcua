@@ -33,7 +33,7 @@ impl BinaryEncoder<AxisInformation> for AxisInformation {
         size += byte_len_array(&self.axis_steps);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.engineering_units.encode(stream)?;

@@ -43,7 +43,7 @@ impl BinaryEncoder<ProgramDiagnosticDataType> for ProgramDiagnosticDataType {
         size += self.last_method_return_status.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.create_session_id.encode(stream)?;

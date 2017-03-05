@@ -25,7 +25,7 @@ impl BinaryEncoder<HistoryEvent> for HistoryEvent {
         size += byte_len_array(&self.events);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += write_array(stream, &self.events)?;

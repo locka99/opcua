@@ -33,7 +33,7 @@ impl BinaryEncoder<MonitoringParameters> for MonitoringParameters {
         size += self.discard_oldest.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.client_handle.encode(stream)?;

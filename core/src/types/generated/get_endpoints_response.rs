@@ -28,7 +28,7 @@ impl BinaryEncoder<GetEndpointsResponse> for GetEndpointsResponse {
         size += byte_len_array(&self.endpoints);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.response_header.encode(stream)?;

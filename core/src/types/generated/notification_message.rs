@@ -29,7 +29,7 @@ impl BinaryEncoder<NotificationMessage> for NotificationMessage {
         size += byte_len_array(&self.notification_data);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.sequence_number.encode(stream)?;

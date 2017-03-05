@@ -85,7 +85,7 @@ impl BinaryEncoder<SubscriptionDiagnosticsDataType> for SubscriptionDiagnosticsD
         size += self.event_queue_over_flow_count.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.session_id.encode(stream)?;

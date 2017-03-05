@@ -22,7 +22,7 @@ impl BinaryEncoder<X509IdentityToken> for X509IdentityToken {
         size += self.certificate_data.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.policy_id.encode(stream)?;

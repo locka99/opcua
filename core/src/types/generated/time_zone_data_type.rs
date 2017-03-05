@@ -27,7 +27,7 @@ impl BinaryEncoder<TimeZoneDataType> for TimeZoneDataType {
         size += self.daylight_saving_in_offset.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.offset.encode(stream)?;

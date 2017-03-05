@@ -28,7 +28,7 @@ impl BinaryEncoder<BrowsePath> for BrowsePath {
         size += self.relative_path.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.starting_node.encode(stream)?;

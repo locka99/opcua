@@ -40,7 +40,7 @@ impl BinaryEncoder<EndpointDescription> for EndpointDescription {
         size += self.security_level.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.endpoint_url.encode(stream)?;

@@ -44,7 +44,7 @@ impl BinaryEncoder<CreateSessionResponse> for CreateSessionResponse {
         size += self.max_request_message_size.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.response_header.encode(stream)?;

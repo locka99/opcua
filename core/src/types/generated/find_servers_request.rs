@@ -32,7 +32,7 @@ impl BinaryEncoder<FindServersRequest> for FindServersRequest {
         size += byte_len_array(&self.server_uris);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.request_header.encode(stream)?;

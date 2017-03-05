@@ -27,7 +27,7 @@ impl BinaryEncoder<StatusResult> for StatusResult {
         size += self.diagnostic_info.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.status_code.encode(stream)?;

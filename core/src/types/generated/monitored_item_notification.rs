@@ -27,7 +27,7 @@ impl BinaryEncoder<MonitoredItemNotification> for MonitoredItemNotification {
         size += self.value.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.client_handle.encode(stream)?;

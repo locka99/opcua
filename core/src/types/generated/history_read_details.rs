@@ -23,7 +23,7 @@ impl BinaryEncoder<HistoryReadDetails> for HistoryReadDetails {
         let mut size = 0;
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         Ok(size)

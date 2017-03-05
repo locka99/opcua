@@ -28,7 +28,7 @@ impl BinaryEncoder<AddNodesResult> for AddNodesResult {
         size += self.added_node_id.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.status_code.encode(stream)?;

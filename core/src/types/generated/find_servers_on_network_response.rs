@@ -29,7 +29,7 @@ impl BinaryEncoder<FindServersOnNetworkResponse> for FindServersOnNetworkRespons
         size += byte_len_array(&self.servers);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.response_header.encode(stream)?;

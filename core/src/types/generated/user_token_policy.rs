@@ -34,7 +34,7 @@ impl BinaryEncoder<UserTokenPolicy> for UserTokenPolicy {
         size += self.security_policy_uri.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.policy_id.encode(stream)?;

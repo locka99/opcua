@@ -33,7 +33,7 @@ impl BinaryEncoder<TrustListDataType> for TrustListDataType {
         size += byte_len_array(&self.issuer_crls);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.specified_lists.encode(stream)?;

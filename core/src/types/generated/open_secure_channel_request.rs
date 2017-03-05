@@ -36,7 +36,7 @@ impl BinaryEncoder<OpenSecureChannelRequest> for OpenSecureChannelRequest {
         size += self.requested_lifetime.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.request_header.encode(stream)?;

@@ -31,7 +31,7 @@ impl BinaryEncoder<CreateMonitoredItemsRequest> for CreateMonitoredItemsRequest 
         size += byte_len_array(&self.items_to_create);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.request_header.encode(stream)?;

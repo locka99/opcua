@@ -35,7 +35,7 @@ impl BinaryEncoder<BuildInfo> for BuildInfo {
         size += self.build_date.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.product_uri.encode(stream)?;

@@ -27,7 +27,7 @@ impl BinaryEncoder<XVType> for XVType {
         size += self.value.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.x.encode(stream)?;

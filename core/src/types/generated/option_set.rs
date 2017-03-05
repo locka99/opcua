@@ -28,7 +28,7 @@ impl BinaryEncoder<OptionSet> for OptionSet {
         size += self.valid_bits.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.value.encode(stream)?;

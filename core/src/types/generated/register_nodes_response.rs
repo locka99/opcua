@@ -28,7 +28,7 @@ impl BinaryEncoder<RegisterNodesResponse> for RegisterNodesResponse {
         size += byte_len_array(&self.registered_node_ids);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.response_header.encode(stream)?;

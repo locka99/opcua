@@ -27,7 +27,7 @@ impl BinaryEncoder<HistoryUpdateRequest> for HistoryUpdateRequest {
         size += byte_len_array(&self.history_update_details);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.request_header.encode(stream)?;

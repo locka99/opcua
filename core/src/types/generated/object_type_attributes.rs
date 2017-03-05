@@ -30,7 +30,7 @@ impl BinaryEncoder<ObjectTypeAttributes> for ObjectTypeAttributes {
         size += self.is_abstract.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.specified_attributes.encode(stream)?;

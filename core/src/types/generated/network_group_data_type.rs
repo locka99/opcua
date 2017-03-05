@@ -27,7 +27,7 @@ impl BinaryEncoder<NetworkGroupDataType> for NetworkGroupDataType {
         size += byte_len_array(&self.network_paths);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.server_uri.encode(stream)?;

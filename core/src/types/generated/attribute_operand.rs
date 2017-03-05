@@ -27,7 +27,7 @@ impl BinaryEncoder<AttributeOperand> for AttributeOperand {
         size += self.index_range.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.node_id.encode(stream)?;

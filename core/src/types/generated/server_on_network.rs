@@ -31,7 +31,7 @@ impl BinaryEncoder<ServerOnNetwork> for ServerOnNetwork {
         size += byte_len_array(&self.server_capabilities);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.record_id.encode(stream)?;

@@ -29,7 +29,7 @@ impl BinaryEncoder<TransferSubscriptionsRequest> for TransferSubscriptionsReques
         size += self.send_initial_values.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.request_header.encode(stream)?;

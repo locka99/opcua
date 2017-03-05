@@ -27,7 +27,7 @@ impl BinaryEncoder<CallRequest> for CallRequest {
         size += byte_len_array(&self.methods_to_call);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.request_header.encode(stream)?;

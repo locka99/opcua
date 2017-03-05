@@ -29,7 +29,7 @@ impl BinaryEncoder<ModificationInfo> for ModificationInfo {
         size += self.user_name.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.modification_time.encode(stream)?;

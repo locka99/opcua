@@ -29,7 +29,7 @@ impl BinaryEncoder<NodeTypeDescription> for NodeTypeDescription {
         size += byte_len_array(&self.data_to_return);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.type_definition_node.encode(stream)?;

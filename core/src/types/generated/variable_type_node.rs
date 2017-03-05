@@ -44,7 +44,7 @@ impl BinaryEncoder<VariableTypeNode> for VariableTypeNode {
         size += self.is_abstract.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.node_id.encode(stream)?;

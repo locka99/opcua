@@ -23,7 +23,7 @@ impl BinaryEncoder<DataChangeFilter> for DataChangeFilter {
         size += self.deadband_value.byte_len();
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.trigger.encode(stream)?;

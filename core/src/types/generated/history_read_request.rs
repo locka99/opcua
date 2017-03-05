@@ -33,7 +33,7 @@ impl BinaryEncoder<HistoryReadRequest> for HistoryReadRequest {
         size += byte_len_array(&self.nodes_to_read);
         size
     }
-    
+
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.request_header.encode(stream)?;
