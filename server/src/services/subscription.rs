@@ -34,7 +34,8 @@ impl SubscriptionService {
                 SubscriptionService::revise_subscription_values(server_state, request.requested_publishing_interval, request.requested_max_keep_alive_count, request.requested_lifetime_count);
 
             // Create a new subscription
-            let subscription = Subscription::new(subscription_id, revised_publishing_interval, revised_lifetime_count, revised_max_keep_alive_count, request.priority);
+            let publishing_enabled = request.publishing_enabled;
+            let subscription = Subscription::new(subscription_id, publishing_enabled, revised_publishing_interval, revised_lifetime_count, revised_max_keep_alive_count, request.priority);
             subscriptions.insert(subscription_id, subscription);
 
             // Create the response

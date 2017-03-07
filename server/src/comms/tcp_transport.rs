@@ -237,7 +237,7 @@ impl TcpTransport {
             let address_space = server_state.address_space.lock().unwrap();
 
             let mut subscriptions = session_state.subscriptions.lock().unwrap();
-            Subscription::tick_subscriptions(&address_space, &mut subscriptions);
+            Subscription::tick_subscriptions(&address_space, &session_state.publish_request_queue, &mut subscriptions);
 
             // A phony notification message
             let notification_message = NotificationMessage {

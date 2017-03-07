@@ -1068,12 +1068,12 @@ impl DataChangeFilter {
         }
     }
 
-    fn abs_compare(v1: f64, v2: f64, value: f64) -> bool {
+    pub fn abs_compare(v1: f64, v2: f64, value: f64) -> bool {
         let diff = (v1 - v2).abs();
         diff <= value
     }
 
-    fn pct_compare(v1: f64, v2: f64, low: f64, high: f64, value: f64) -> bool {
+    pub fn pct_compare(v1: f64, v2: f64, low: f64, high: f64, value: f64) -> bool {
         let diff = (v1 - v2).abs();
         diff <= (value / 100f64) * (high - low)
     }
