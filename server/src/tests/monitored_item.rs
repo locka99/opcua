@@ -103,8 +103,8 @@ fn data_change_filter_test() {
 fn data_change_deadband_abs_test() {
     let mut filter = DataChangeFilter {
         trigger: DataChangeTrigger::StatusValue,
+        // Abs compare
         deadband_type: 1,
-        // Abs
         deadband_value: 1f64,
     };
 
@@ -135,9 +135,9 @@ fn data_change_deadband_abs_test() {
 
     // Adjust by equal deadband
     v2.value = Some(Variant::Double(11f64));
-    assert_eq!(filter.compare(&v1, &v2, None), false);
+    assert_eq!(filter.compare(&v1, &v2, None), true);
 
-    // Adjust by equal deadband
+    // Adjust by equal deadband plus a little bit
     v2.value = Some(Variant::Double(11.00001f64));
     assert_eq!(filter.compare(&v1, &v2, None), false);
 }
@@ -157,9 +157,10 @@ fn deadband_abs() {
 #[test]
 fn deadband_pct() {
     assert_eq!(DataChangeFilter::pct_compare(100f64, 101f64, 0f64, 100f64, 0f64), false);
-    assert_eq!(DataChangeFilter::pct_compare(100f64, 101f64, 1f64, 100f64, 0f64), true);
-    assert_eq!(DataChangeFilter::pct_compare(100f64, 101.0001f64, 1f64, 100f64, 0f64), true);
-    assert_eq!(DataChangeFilter::pct_compare(101.0001f64, 100f64, 1f64, 100f64, 0f64), true);
+    assert_eq!(DataChangeFilter::pct_compare(100f64, 101f64, 0f64, 100f64, 1f64), true);
+    assert_eq!(DataChangeFilter::pct_compare(100f64, 101.0001f64, 0f64, 100f64, 1f64), false);
+    assert_eq!(DataChangeFilter::pct_compare(101.0001f64, 100f64, 0f64, 100f64, 1f64), false);
+    assert_eq!(DataChangeFilter::pct_compare(101.0001f64, 100f64, 0f64, 100f64, 1.0002f64), true);
 }
 
 #[test]

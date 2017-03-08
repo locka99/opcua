@@ -1068,14 +1068,22 @@ impl DataChangeFilter {
         }
     }
 
-    pub fn abs_compare(v1: f64, v2: f64, value: f64) -> bool {
+    /// Compares the difference between v1 and v2 to the threshold. The two values are considered equal
+    /// if their difference is less than or equal to the threshold.
+    pub fn abs_compare(v1: f64, v2: f64, threshold_diff: f64) -> bool {
         let diff = (v1 - v2).abs();
-        diff <= value
+        diff <= threshold_diff
     }
 
-    pub fn pct_compare(v1: f64, v2: f64, low: f64, high: f64, value: f64) -> bool {
-        let diff = (v1 - v2).abs();
-        diff <= (value / 100f64) * (high - low)
+    /// Compares the percentage difference between v1 and v2 using the low-high range as the comparison.
+    /// The two values are considered equal if their perentage difference is less than or equal to the
+    /// threshold.
+    pub fn pct_compare(v1: f64, v2: f64, low: f64, high: f64, threshold_pct_change: f64) -> bool {
+        let v1_pct = 100f64 * (v1 - low) / (high - low);
+        let v2_pct = 100f64 * (v2 - low) / (high - low);
+        let pct_change = (v1_pct - v2_pct).abs();
+        // Comparison is equal if the % change of v1 - v2 < the threshold
+        pct_change <= threshold_pct_change
     }
 }
 
