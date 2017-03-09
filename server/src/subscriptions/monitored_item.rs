@@ -83,11 +83,12 @@ impl MonitoredItem {
     /// the subscriptions and controls the rate.
     ///
     /// Function returns true if a notification message was added to the queue
-    pub fn tick(&mut self, address_space: &AddressSpace, now: &chrono::DateTime<chrono::UTC>, subscription_interval_elapsed: bool) -> bool {
+    pub fn tick(&mut self, address_space: &AddressSpace, now: &DateTime, subscription_interval_elapsed: bool) -> bool {
+        let now = now.as_chrono();
         let check_value = if self.sampling_interval > 0f64 {
             // Compare sample interval
             let sampling_interval = time::Duration::milliseconds(self.sampling_interval as i64);
-            let elapsed = *now - self.last_sample_time;
+            let elapsed = now - self.last_sample_time;
             elapsed >= sampling_interval
         } else if self.sampling_interval == 0f64 {
             // Fastest possible rate, i.e. tick quantum

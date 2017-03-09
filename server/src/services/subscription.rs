@@ -68,8 +68,8 @@ impl SubscriptionService {
                 SubscriptionService::revise_subscription_values(server_state, request.requested_publishing_interval, request.requested_max_keep_alive_count, request.requested_lifetime_count);
 
             subscription.publishing_interval = revised_publishing_interval;
-            subscription.keep_alive_count = revised_max_keep_alive_count;
-            subscription.lifetime_count = revised_lifetime_count;
+            subscription.max_keep_alive_count = revised_max_keep_alive_count;
+            subscription.max_lifetime_count = revised_lifetime_count;
             subscription.priority = request.priority;
             // ...max_notifications_per_publish??
 
