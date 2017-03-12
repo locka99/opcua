@@ -10,6 +10,8 @@ use opcua_core::comms::*;
 use subscriptions::monitored_item::*;
 use address_space::*;
 
+type DateTimeUTC = chrono::DateTime<chrono::UTC>;
+
 /// Subscription events are passed between the timer thread and the session thread so must
 /// be transferable
 #[derive(Clone, Debug, PartialEq)]
@@ -42,14 +44,8 @@ pub struct Subscription {
     pub priority: Byte,
     /// Map of monitored items
     pub monitored_items: HashMap<UInt32, MonitoredItem>,
-    // The last monitored item id
-    last_monitored_item_id: UInt32,
-    // The time that the subscription interval last fired
-    last_sample_time: chrono::DateTime<chrono::UTC>,
-    /// The value that records the value of the sequence number used in NotificationMessages.
-    last_sequence_number: UInt32,
     /// State of the subscription
-    state: SubscriptionState,
+    pub state: SubscriptionState,
     /// A boolean value that is set to TRUE only by the CreateNotificationMsg() when there were too
     /// many Notifications for a single NotificationMessage.
     pub more_notifications: bool,
@@ -83,7 +79,18 @@ pub struct Subscription {
     /// that created it. That assignment can only be changed through successful completion of the
     /// TransferSubscriptions Service.
     pub subscription_assigned_to_client: bool,
+    // Outgoing notifications in a map by sequence number
+    pub notifications: HashMap<UInt32, NotificationMessage>,
+    // The last monitored item id
+    last_monitored_item_id: UInt32,
+    // The time that the subscription interval last fired
+    last_sample_time: DateTimeUTC,
+    /// The value that records the value of the sequence number used in NotificationMessages.
+    last_sequence_number: UInt32,
 }
+
+const DEFAULT_MONITORED_ITEM_CAPACITY: usize = 100;
+const DEFAULT_NOTIFICATIONS_CAPACITY: usize = 100;
 
 impl Subscription {
     pub fn new(subscription_id: UInt32, publishing_enabled: bool, publishing_interval: Double, lifetime_count: UInt32, keep_alive_count: UInt32, priority: Byte) -> Subscription {
@@ -91,16 +98,10 @@ impl Subscription {
             subscription_id: subscription_id,
             publishing_interval: publishing_interval,
             priority: priority,
-            monitored_items: HashMap::with_capacity(100),
+            monitored_items: HashMap::with_capacity(DEFAULT_MONITORED_ITEM_CAPACITY),
             max_lifetime_count: lifetime_count,
             max_keep_alive_count: keep_alive_count,
-
-            last_monitored_item_id: 0,
-            last_sample_time: chrono::UTC::now(),
-            last_sequence_number: 0,
-
-            // These are all subscription state variables set to their initial state
-
+            // State variables
             state: SubscriptionState::Creating,
             more_notifications: false,
             late_publish_request: false,
@@ -112,14 +113,14 @@ impl Subscription {
             publishing_req_queued: false,
             requested_message_found: false,
             subscription_assigned_to_client: true,
+            // Outgoing notifications
+            notifications: HashMap::with_capacity(DEFAULT_NOTIFICATIONS_CAPACITY),
+            // Counters for new items
+            last_monitored_item_id: 0,
+            last_sample_time: chrono::UTC::now(),
+            last_sequence_number: 0,
         }
     }
-
-    /// Start the subscription timer that fires on the publishing interval.
-    pub fn start_timer(&mut self) {}
-
-    /// Stops the subscription timer that fires on the publishing interval
-    pub fn stop_timer(&mut self) {}
 
     /// Creates monitored items on the specified subscription, returning the creation results
     pub fn create_monitored_items(&mut self, items_to_create: &[MonitoredItemCreateRequest]) -> Vec<MonitoredItemCreateResult> {
@@ -177,7 +178,7 @@ impl Subscription {
         // TODO remove this
         let mut publish_requests = publish_requests.clone();
 
-        let now = DateTime::now();
+        let now = chrono::UTC::now();
         for (subscription_id, subscription) in subscriptions.iter_mut() {
             // Dead subscriptions will be removed at the end
             if subscription.state == SubscriptionState::Closed {
@@ -203,7 +204,7 @@ impl Subscription {
 
     /// Checks the subscription and monitored items for state change, messages. If the tick does
     /// nothing, the function returns None. Otherwise it returns one or more messages in an Vec.
-    fn tick(&mut self, address_space: &AddressSpace, publish_requests: &mut Vec<PublishRequest>, now: &DateTime) -> Option<SupportedMessage> {
+    fn tick(&mut self, address_space: &AddressSpace, publish_requests: &mut Vec<PublishRequest>, now: &DateTimeUTC) -> Option<SupportedMessage> {
         debug!("subscription tick {}", self.subscription_id);
 
         // Test if the interval has elapsed.
@@ -213,14 +214,14 @@ impl Subscription {
             true
         } else {
             let publishing_interval = time::Duration::milliseconds(self.publishing_interval as i64);
-            let elapsed = now.as_chrono() - self.last_sample_time;
+            let elapsed = *now - self.last_sample_time;
             elapsed >= publishing_interval
         };
 
         // Do a tick on monitored items. Note that monitored items normally update when the interval
         // elapses but they don't have to. So this is called every tick just to catch items with their
         // own intervals.
-        let items_changed = self.tick_monitored_items(address_space, &now, publishing_timer_expired);
+        let items_changed = self.tick_monitored_items(address_space, now, publishing_timer_expired);
 
         // If items have changed or subscription interval elapsed then we may have notifications
         // to send or state to update
@@ -235,7 +236,6 @@ impl Subscription {
         if self.lifetime_counter == 1 {
             debug! ("Subscription {} has expired and will be removed shortly", self.subscription_id);
             self.state = SubscriptionState::Closed;
-            self.stop_timer();
         }
 
         result
@@ -245,7 +245,7 @@ impl Subscription {
     /// Iterate through the monitored items belonging to the subscription, calling tick on each in turn.
     /// The function returns true if any of the monitored items due to the subscription interval
     /// elapsing, or their own interval elapsing.
-    fn tick_monitored_items(&mut self, address_space: &AddressSpace, now: &DateTime, subscription_interval_elapsed: bool) -> bool {
+    fn tick_monitored_items(&mut self, address_space: &AddressSpace, now: &DateTimeUTC, subscription_interval_elapsed: bool) -> bool {
         let mut items_changed = false;
         for (_, monitored_item) in self.monitored_items.iter_mut() {
             if monitored_item.tick(address_space, now, subscription_interval_elapsed) {
@@ -255,19 +255,33 @@ impl Subscription {
         items_changed
     }
 
-    fn update_state(&mut self, publish_requests: &mut Vec<PublishRequest>, now: &DateTime, items_changed: bool, publishing_timer_expired: bool) -> Option<SupportedMessage> {
+    pub fn update_state(&mut self, publish_requests: &mut Vec<PublishRequest>, now: &DateTimeUTC, items_changed: bool, publishing_timer_expired: bool) -> Option<SupportedMessage> {
         // Check if there is a publish request in the queue
-        let receive_publish_request: Option<PublishRequest> = None;
+        let receive_publish_request: Option<PublishRequest> = publish_requests.pop();
 
-        // This is a state engine derived from OPC UA Part 4 Publish service and might look odd.
+        // This is a state engine derived from OPC UA Part 4 Publish service and might look a
+        // little odd for that.
+        //
         // Note in some cases, some of the actions have already happened outside of this function.
         // For example, publish requests are already queued before we come in here and this function
         // uses what its given. Likewise, this function may or may not "send" a message in its return,
         // but it is up to the caller to to send it
 
         match self.state {
-            SubscriptionState::Closed => {},
+            SubscriptionState::Closed => {
+                // State #1
+                // TODO
+                // if receive_create_subscription {
+                // self.state = Subscription::Creating;
+                // }
+                return None;
+            },
             SubscriptionState::Creating => {
+                // State #2
+                // CreateSubscription fails, return negative response
+                // Handled in message handler
+
+                // State #3
                 self.state = SubscriptionState::Normal;
                 self.message_sent = false;
                 return None;
@@ -275,8 +289,9 @@ impl Subscription {
             SubscriptionState::Normal => {
                 if receive_publish_request.is_some() && !self.publishing_enabled || (self.publishing_enabled && !self.more_notifications) {
                     // State #4
-                    self.delete_acked_notification_msgs(receive_publish_request.as_ref().unwrap());
-                    self.enqueue_publishing_request();
+                    let receive_publish_request = receive_publish_request.unwrap();
+                    self.delete_acked_notification_msgs(&receive_publish_request);
+                    publish_requests.push(receive_publish_request); // enqueue_publishing_request
                 } else if receive_publish_request.is_some() && self.publishing_enabled && self.more_notifications {
                     // State #5
                     self.reset_lifetime_counter();
@@ -335,8 +350,9 @@ impl Subscription {
             SubscriptionState::KeepAlive => {
                 if receive_publish_request.is_some() {
                     // State #13
-                    self.delete_acked_notification_msgs(receive_publish_request.as_ref().unwrap());
-                    self.enqueue_publishing_request();
+                    let receive_publish_request = receive_publish_request.unwrap();
+                    self.delete_acked_notification_msgs(&receive_publish_request);
+                    publish_requests.push(receive_publish_request); // enqueue_publishing_request
                 } else if publishing_timer_expired && self.publishing_enabled && self.notifications_available && self.publishing_req_queued {
                     // State #14
                     self.dequeue_publish_request(now, publish_requests);
@@ -385,7 +401,17 @@ impl Subscription {
     }
 
     pub fn delete_acked_notification_msgs(&mut self, request: &PublishRequest) {
-        // TODO iterate through publish request deleting notification messages which were acknowledged
+        if request.subscription_acknowledgements.is_none() {
+            return;
+        }
+        let subscription_acknowledgements = request.subscription_acknowledgements.as_ref().unwrap();
+        for ack in subscription_acknowledgements {
+            if ack.subscription_id != self.subscription_id {
+                continue;
+            }
+            // Clear notification by sequence number
+            let _ = self.notifications.remove(&ack.sequence_number);
+        }
     }
 
     /// De-queue a publishing request in first-in first-out order.
@@ -396,19 +422,21 @@ impl Subscription {
     /// The implementation will dequeue a PublishRequest if there is one and it is valid. If there
     /// is no request then it will return None. If there is a request but it has timed out it will return
     /// a PublishResponse with a timeout service result
-    pub fn dequeue_publish_request(&mut self, now: &DateTime, request_queue: &mut Vec<PublishRequest>) -> Result<PublishRequest, Option<PublishResponse>> {
+    pub fn dequeue_publish_request(&mut self, now: &DateTimeUTC, request_queue: &mut Vec<PublishRequest>) -> Result<PublishRequest, Option<PublishResponse>> {
         if request_queue.is_empty() {
             Err(None)
         } else {
             let request = request_queue.pop().unwrap();
-            let timestamp: chrono::DateTime<chrono::UTC> = request.request_header.timestamp.as_chrono();
+            let timestamp: DateTimeUTC = request.request_header.timestamp.as_chrono();
             let timeout_hint = time::Duration::milliseconds(request.request_header.timeout_hint as i64);
 
             // The request has timed out if the time now exceeds its hint
-            if timestamp + timeout_hint < now.as_chrono() {
+            if timestamp + timeout_hint < *now {
                 self.last_sequence_number += 1;
+
+                let now = DateTime::from_chrono(now);
                 let response = PublishResponse {
-                    response_header: ResponseHeader::new_service_result(now, &request.request_header, &BAD_TIMEOUT),
+                    response_header: ResponseHeader::new_service_result(&now, &request.request_header, &BAD_TIMEOUT),
                     subscription_id: self.subscription_id,
                     available_sequence_numbers: None,
                     more_notifications: false,
@@ -425,11 +453,6 @@ impl Subscription {
                 Ok(request)
             }
         }
-    }
-
-    /// Enqueue the publishing request
-    pub fn enqueue_publishing_request(&mut self) {
-        // This is a no-op because the request is already enqueued
     }
 
     /// Reset the keep-alive counter to the maximum keep-alive count of the Subscription.
@@ -468,14 +491,6 @@ impl Subscription {
         // TODO notification messages
         None
     }
-
-    /// Return the appropriate response setting the parameter values and status codes
-    /// for the value
-    pub fn return_response() -> Option<SupportedMessage> {
-        // TODO probably remove this fn
-        None
-    }
-
 
     //////////////////////////////////////////////
 

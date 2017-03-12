@@ -1,8 +1,4 @@
-use opcua_core::comms::*;
-use opcua_core::types::*;
-use opcua_core::services::*;
-
-use server::*;
+use prelude::*;
 use comms::tcp_transport::*;
 use services::view::ViewService;
 

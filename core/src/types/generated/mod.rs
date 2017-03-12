@@ -41,6 +41,8 @@ use_generated_types![
     modify_subscription_response,
     delete_subscriptions_request,
     delete_subscriptions_response,
+    set_publishing_mode_request,
+    set_publishing_mode_response,
     publish_request,
     publish_response,
     subscription_acknowledgement,

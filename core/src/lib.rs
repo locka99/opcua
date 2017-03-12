@@ -13,6 +13,12 @@ pub mod types;
 pub mod comms;
 pub mod services;
 
+pub mod prelude {
+    pub use types::*;
+    pub use comms::*;
+    pub use services::*;
+}
+
 use log::*;
 
 /// Simple logger (as the name suggests) is a bare bones implementation of the log::Log trait

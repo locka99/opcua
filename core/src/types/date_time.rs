@@ -52,7 +52,7 @@ impl BinaryEncoder<DateTime> for DateTime {
 impl DateTime {
     /// Constructs from the current time
     pub fn now() -> DateTime {
-        DateTime::from_chrono(UTC::now())
+        DateTime::from_chrono(&UTC::now())
     }
 
     /// Constructs from a year, month, day 
@@ -110,7 +110,7 @@ impl DateTime {
     }
 
     /// Converts from the equivalent chrono type
-    pub fn from_chrono(dt: chrono::DateTime<UTC>) -> DateTime {
+    pub fn from_chrono(dt: &chrono::DateTime<UTC>) -> DateTime {
         DateTime {
             year: dt.year() as UInt16,
             month: dt.month() as UInt16,
@@ -133,7 +133,7 @@ impl DateTime {
 
     /// Create a date time in ticks, of 100 nanosecond intervals relative to the UA epoch
     pub fn from_ticks(ticks: i64) -> DateTime {
-        DateTime::from_chrono(epoch_chrono() + ticks_to_duration(ticks))
+        DateTime::from_chrono(&(epoch_chrono() + ticks_to_duration(ticks)))
     }
 
     /// Returns the time in ticks, of 100 nanosecond intervals

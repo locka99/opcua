@@ -111,6 +111,35 @@ impl SubscriptionService {
         Ok(SupportedMessage::DeleteSubscriptionsResponse(response))
     }
 
+    /// Handles a SerPublishingModeRequest
+    pub fn set_publishing_mode(&self, _:&mut ServerState, session_state: &mut SessionState, request: SetPublishingModeRequest) -> Result<SupportedMessage, &'static StatusCode> {
+        let (service_status, results) = if request.subscription_ids.is_none() {
+            (&BAD_NOTHING_TO_DO, None)
+        }
+        else {
+            let publishing_enabled = request.publishing_enabled;
+            let subscription_ids = request.subscription_ids.as_ref().unwrap();
+            let mut results = Vec::with_capacity(subscription_ids.len());
+            let mut subscriptions = session_state.subscriptions.lock().unwrap();
+            for subscription_id in subscription_ids {
+                if subscriptions.contains_key(subscription_id) {
+                    let mut subscription = subscriptions.get_mut(subscription_id).unwrap();
+                    subscription.publishing_enabled = publishing_enabled;
+                    results.push(GOOD.clone());
+                } else {
+                    results.push(BAD_SUBSCRIPTION_ID_INVALID.clone());
+                }
+            }
+            (&GOOD, Some(results))
+        };
+        let response = SetPublishingModeResponse {
+            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
+            results: results,
+            diagnostic_infos: None
+        };
+        Ok(SupportedMessage::SetPublishingModeResponse(response))
+    }
+
     /// Handles a PublishRequest
     pub fn publish(&self, _: &mut ServerState, session_state: &mut SessionState, request: PublishRequest) -> Result<SupportedMessage, &'static StatusCode> {
         // Publish requests are enqueued and handled by a timer thread

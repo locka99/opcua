@@ -28,10 +28,11 @@ pub mod config;
 pub mod address_space;
 
 pub mod prelude {
+    pub use opcua_core::prelude::*;
+    pub use address_space::*;
+    pub use config::*;
     pub use server::*;
     pub use subscriptions::*;
-    pub use config::*;
-    pub use address_space::*;
 }
 
 #[cfg(test)]

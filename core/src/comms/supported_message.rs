@@ -135,6 +135,12 @@ impl SupportedMessage {
             ObjectId::DeleteSubscriptionsResponse_Encoding_DefaultBinary => {
                 SupportedMessage::DeleteSubscriptionsResponse(DeleteSubscriptionsResponse::decode(stream)?)
             },
+            ObjectId::SetPublishingModeRequest_Encoding_DefaultBinary => {
+                SupportedMessage::SetPublishingModeRequest(SetPublishingModeRequest::decode(stream)?)
+            },
+            ObjectId::SetPublishingModeResponse_Encoding_DefaultBinary => {
+                SupportedMessage::SetPublishingModeResponse(SetPublishingModeResponse::decode(stream)?)
+            },
             ObjectId::PublishRequest_Encoding_DefaultBinary => {
                 SupportedMessage::PublishRequest(PublishRequest::decode(stream)?)
             },
@@ -199,6 +205,8 @@ supported_messages![
     ModifySubscriptionResponse,
     DeleteSubscriptionsRequest,
     DeleteSubscriptionsResponse,
+    SetPublishingModeRequest,
+    SetPublishingModeResponse,
     // View service
     BrowseRequest,
     BrowseResponse,

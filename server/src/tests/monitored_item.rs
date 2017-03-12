@@ -1,8 +1,6 @@
-use opcua_core::types::*;
-use opcua_core::services::*;
+use chrono;
 
-use address_space::*;
-use subscriptions::*;
+use prelude::*;
 
 fn test_var_node_id() -> NodeId {
     NodeId::new_numeric(1, 1)
@@ -108,7 +106,7 @@ fn data_change_deadband_abs_test() {
         deadband_value: 1f64,
     };
 
-    let mut v1 = DataValue {
+    let v1 = DataValue {
         value: Some(Variant::Double(10f64)),
         status: None,
         source_timestamp: None,
@@ -172,7 +170,7 @@ fn monitored_item_data_change_filter() {
     // Sample interval is negative so it will always test on repeated calls
     let mut monitored_item = MonitoredItem::new(1, &make_create_request(-1f64, 5)).unwrap();
 
-    let now = DateTime::now();
+    let now = chrono::UTC::now();
 
     assert_eq!(monitored_item.notification_queue.len(), 0);
 

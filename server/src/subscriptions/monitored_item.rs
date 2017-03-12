@@ -7,6 +7,8 @@ use opcua_core::types::*;
 
 use address_space::*;
 
+type DateTimeUTC = chrono::DateTime<chrono::UTC>;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum FilterType {
     DataChangeFilter(DataChangeFilter)
@@ -23,7 +25,7 @@ pub struct MonitoredItem {
     pub discard_oldest: Boolean,
     pub queue_size: usize,
     pub notification_queue: Vec<MonitoredItemNotification>,
-    last_sample_time: chrono::DateTime<chrono::UTC>,
+    last_sample_time: DateTimeUTC,
     last_data_value: Option<DataValue>,
     queue_overflow: bool,
 }
@@ -83,12 +85,11 @@ impl MonitoredItem {
     /// the subscriptions and controls the rate.
     ///
     /// Function returns true if a notification message was added to the queue
-    pub fn tick(&mut self, address_space: &AddressSpace, now: &DateTime, subscription_interval_elapsed: bool) -> bool {
-        let now = now.as_chrono();
+    pub fn tick(&mut self, address_space: &AddressSpace, now: &DateTimeUTC, subscription_interval_elapsed: bool) -> bool {
         let check_value = if self.sampling_interval > 0f64 {
             // Compare sample interval
             let sampling_interval = time::Duration::milliseconds(self.sampling_interval as i64);
-            let elapsed = now - self.last_sample_time;
+            let elapsed = *now - self.last_sample_time;
             elapsed >= sampling_interval
         } else if self.sampling_interval == 0f64 {
             // Fastest possible rate, i.e. tick quantum

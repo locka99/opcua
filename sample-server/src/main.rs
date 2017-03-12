@@ -1,8 +1,6 @@
 extern crate opcua_core;
 extern crate opcua_server;
 
-use opcua_core::types::*;
-
 use opcua_server::prelude::*;
 
 fn main() {
@@ -23,6 +21,9 @@ fn main() {
             Variable::new(&NodeId::new_string(1, "v2"), "v2", "v2", &DataTypeId::Boolean, DataValue::new(Variant::Boolean(true))),
             Variable::new(&NodeId::new_string(1, "v3"), "v3", "v3", &DataTypeId::String, DataValue::new(Variant::String(UAString::from_str("Hello world"))))
         ];
+
+        // TODO set timers to alter the variable values above
+
         let _ = address_space.add_variables(&vars, &sample_folder_id);
     }
 

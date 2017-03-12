@@ -1,40 +1,98 @@
 # Introduction
 
-OPC UA is an industry standard for live monitoring of data. It's intended for on embedded devices, industrial 
+[OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) is an industry standard for live monitoring of data. It's intended for on embedded devices, industrial 
 control, IoT, PCs, mainframes, cars - just about anything that has data that something else wants to monitor
 or visualize.
 
-This is an OPC UA server / client API implemented in Rust. 
+This is an OPC UA server / client API implemented in Rust. To say OPC UA is a big standard is an understatement so the implementation
+will comply with the smallest profiles first until it reaches a usable level of functionality. 
+
+## Current progress
+
+Development is described below in phases. At present, the code server code is in phase 1, i.e. basic functionality
+works with phase 2 work happening to be able to create subscriptions and monitor items.
+
+Client side work is basic at the moment as server is perceived as more useful. However the basics of connecting to a server
+are there and progressing.
 
 # License
 
-MPL-2.0
+The code is licenced under [MPL-2.0](https://opensource.org/licenses/MPL-2.0).
 
-https://opensource.org/licenses/MPL-2.0
+# OPC UA Implementation level
 
-# Current progress
+## Server
 
-Almost phase 1. Currently you may connect to a sample-server using anonymous authentication, browse its address space and see the current values.
+At present you may connect to a sample-server over OPC Binary (TCP) using anonymous authentication, browse its address space 
+and see the current values.
 
-## Phase 1
+### Nodeset
 
-DONE. discovery service, view / browse service, anonymous authentication
+The server implements a basic nodeset to satisfy most clients. It is likely that the nodeset will be generated automatically
+from the .xml schemas in time but it is not at present.
 
-TODO - user password authentication, multi-part chunking, go back over the implementations of some services looking for
-omissions, ensure better service status results, some means of associating variables with a closure getter method for 
-refreshing the value.
+### Supported services
 
-NICE TO HAVE - replace hand assembled minimalist node set with generated node set from xml
+The following services are supported fully, partially (marked with a *) or as a stub / work in progress (marked !). That means a client
+may call them and receive a response. Anything not listed is totally unsupported.
 
-## Phase 0 
+* Discovery service set
+    * GetEndpoints
 
-DONE - internal hello / acknowledge / error messages, server config, tcp listener, session loop, basic chunking (1 chunk only at
-this time), message buffering, binary (de)serialization of fundamental types, open / close secure channel, 
-create / activate session, some request / response handlers such as end point discovery, browse, read, anonymous 
-authentication token, basic address space, standard node types, references, attributes. minimal node set, values
+* Attribute service set
+    * Read
+    * Write
+
+* Session service set
+    * CreateSession
+    * ActivateSession
+    * CloseSession
+    
+* View service set
+    * Browse
+    * BrowseNext (!). Implemented to do nothing
+    
+* MonitoredItem service set
+    * CreateMonitoredItems(+). Data change filter only
+    * ModifyMonitoredItems(+). Data change filter only
+    * DeleteMonitoredItems
+
+* Subscription
+    * CreateSubscription(!)
+    * ModifySubscription(!)
+    * Publish(!)
+    * SetPublishingMode
+
+This corresponds to almost phase 1 below.
+
+### Supported security profiles / authentication
+
+The server only supports the following security mode / profiles:
+
+* None, i.e. no encryption
+
+Encryption will happen later once unencrypted functionality is working.
+
+The server supports the following authentication modes
+
+* Anonymous
+* User / Password (!). Some plumbing, not completed yet
+
+Other forms of authentication will come with encryption.
+
+### Current limitations
+
+Currently the following are not supported
+
+* Diagnostic info. OPC UA allows for you to ask for diagnostics with any request. None is supplied at this time
+* Session resumption. If your client disconnects, all information is discarded.
+
+## Client
+
+Client support is still work in progress. Some work has been done on the client side transport layer but it is not functional yet.
 
 
-# OPC UA for Rust?
+# Rationale - OPC UA for Rust?
 
 Rust is a natural choice for OPC UA due in part to the complexity of OPC UA itself and the
 fact that Rust is a systems programming language.
@@ -43,8 +101,8 @@ fact that Rust is a systems programming language.
 * Implementations in Java, JavaScript etc. would be vulnerable to fluctuating memory consumption, performance issues
 * An implementation in Rust should deliver C/C++ levels of performance without some of the risks
 
-HOWEVER, there are a number of mature OPC UA libraries for other platforms. Bugs in logic are possible and likely, 
-certain features are also likely to be unimplemented.
+HOWEVER, there are a number of mature OPC UA libraries for other platforms. Bugs in logic are likely, and 
+certain features found elsewhere may be implemented.
 
 All communication is over TCP, optionally encrypted and defined by a bunch of services that the server
 must / may implement and the client must / may call to connect, subscribe, browse etc. The standard is

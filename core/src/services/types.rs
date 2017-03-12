@@ -223,6 +223,20 @@ impl BinaryEncoder<RequestHeader> for RequestHeader {
     }
 }
 
+impl RequestHeader {
+    pub fn new(authentication_token: &NodeId, timestamp: &DateTime, request_handle: IntegerId) -> RequestHeader {
+        RequestHeader {
+            authentication_token: authentication_token.clone(),
+            timestamp: timestamp.clone(),
+            request_handle: request_handle,
+            return_diagnostics: 0,
+            audit_entry_id: UAString::null(),
+            timeout_hint: 0,
+            additional_header: ExtensionObject::null(),
+        }
+    }
+}
+
 //ResponseHeader = 392,
 #[derive(Debug, Clone, PartialEq)]
 pub struct ResponseHeader {

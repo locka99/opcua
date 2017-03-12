@@ -74,7 +74,10 @@ impl MessageHandler {
             },
             SupportedMessage::DeleteSubscriptionsRequest(request) => {
                 self.subscription_service.delete_subscriptions(server_state, session_state, request)?
-            }
+            },
+            SupportedMessage::SetPublishingModeRequest(request) => {
+                self.subscription_service.set_publishing_mode(server_state, session_state, request)?
+            },
             SupportedMessage::PublishRequest(request) => {
                 self.subscription_service.publish(server_state, session_state, request)?
             },

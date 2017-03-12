@@ -15,6 +15,7 @@ pub mod client;
 pub mod session;
 
 pub mod prelude {
+    pub use opcua_core::prelude::*;
     pub use client::*;
     pub use session::*;
 }
