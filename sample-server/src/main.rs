@@ -6,10 +6,15 @@ extern crate timer;
 
 use opcua_server::prelude::*;
 
+// This is a sample server for OPC UA. Our sample creates a standard server, adds some variables,
+// creates a timer that updates those variables and then enters a running loop where any client can
+// connect.
+
 fn main() {
+    // This line isn't necessary but it enables logging which tells you what OPC UA is up to.
     let _ = opcua_core::init_logging();
 
-    // Creates the server with the default settings and node set
+    // Creates the OPC UA server with the default settings and node set
     let mut server = Server::new_default();
 
     // Add 3 variables called v1, v3, and v3 to the address space in the server
@@ -38,6 +43,10 @@ fn main() {
     // This code will start a timer to alter variables on an interval. Note the timer and timer_guard
     // control the lifetime of the timer, so we'll do the heavy lifting inside a block and then leave
     // those vars in scope to control when the timer stops.
+    //
+    // Also note that the timer is running on another thread from the server but thanks to the magic
+    // of Rust and atomic reference counting, we can modify the value without risking interfering
+    // with anything else going on.
     let timer = timer::Timer::new();
     let timer_guard = {
         let timer_address_space = {
