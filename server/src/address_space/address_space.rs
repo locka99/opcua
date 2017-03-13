@@ -187,6 +187,23 @@ impl AddressSpace {
         }
     }
 
+    /// This is a convenience method. It sets a value directly on a variable assuming the supplied
+    /// node id exists in the address space and is a Variable node. The response is true if the
+    /// value was set and false otherwise.
+    pub fn set_variable_value(&mut self, node_id: &NodeId, value: Variant) -> bool {
+        let mut node = self.find_node_mut(node_id);
+        if node.is_none() {
+            false
+        } else {
+            if let &mut NodeType::Variable(ref mut variable) = node.unwrap() {
+                variable.set_value_direct(&DateTime::now(), value);
+                true
+            } else {
+                false
+            }
+        }
+    }
+
 
     fn reference_type_matches(&self, r1: ReferenceTypeId, r2: ReferenceTypeId, include_subtypes: bool) -> bool {
         if r1 == r2 {

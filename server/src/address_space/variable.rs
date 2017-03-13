@@ -65,6 +65,17 @@ impl Variable {
         self.base.attributes[Base::attribute_idx(AttributeId::Value)] = Some(value);
     }
 
+    /// Sets the variables value directly, updating the timestamp
+    pub fn set_value_direct(&mut self, now: &DateTime, value: Variant) {
+        let mut data_value = self.value();
+        data_value.server_timestamp = Some(now.clone());
+        data_value.server_picoseconds = Some(0);
+        data_value.source_timestamp = Some(now.clone());
+        data_value.source_picoseconds = Some(0);
+        data_value.value = Some(value);
+        self.set_value(data_value);
+    }
+
     pub fn access_level(&self) -> Byte {
         find_attribute_value_mandatory!(&self.base, AccessLevel, Byte)
     }
