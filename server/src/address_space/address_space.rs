@@ -489,7 +489,7 @@ impl AddressSpace {
             let namespace_array_id = VariableId::Server_NamespaceArray.as_node_id();
             let namespace_value = Variant::from_string_array(&server_state.namespaces);
             {
-                self.insert(Variable::new_array_node(&namespace_array_id, "NamespaceArray", "NamespaceArray", &DataTypeId::String, DataValue::new(namespace_value), &[server_state.namespaces.len() as Int32]));
+                self.insert(Variable::new_array_node(&namespace_array_id, "NamespaceArray", "NamespaceArray", DataTypeId::String, DataValue::new(namespace_value), &[server_state.namespaces.len() as Int32]));
                 self.add_has_component(&server_id, &namespace_array_id);
             }
 
@@ -497,7 +497,7 @@ impl AddressSpace {
             let server_array_id = VariableId::Server_ServerArray.as_node_id();
             {
                 let server_array_value = Variant::from_string_array(&server_state.servers);
-                self.insert(Variable::new_array_node(&server_array_id, "ServerArray", "ServerArray", &DataTypeId::String, DataValue::new(server_array_value), &[server_state.servers.len() as Int32]));
+                self.insert(Variable::new_array_node(&server_array_id, "ServerArray", "ServerArray", DataTypeId::String, DataValue::new(server_array_value), &[server_state.servers.len() as Int32]));
                 self.add_has_component(&server_id, &server_array_id);
             }
 
@@ -515,21 +515,21 @@ impl AddressSpace {
 
                     {
                         let max_array_len_id = VariableId::Server_ServerCapabilities_MaxArrayLength.as_node_id();
-                        self.insert(Variable::new_node(&max_array_len_id, "MaxArrayLength", "MaxArrayLength", &DataTypeId::UInt32, DataValue::new(Variant::UInt32(server_config.max_array_length))));
+                        self.insert(Variable::new_node(&max_array_len_id, "MaxArrayLength", "MaxArrayLength", DataTypeId::UInt32, DataValue::new(Variant::UInt32(server_config.max_array_length))));
                         self.add_has_property(&server_capabilities_id, &max_array_len_id);
                         self.set_variable_as_property_type(&max_array_len_id);
                     }
 
                     {
                         let max_string_len_id = VariableId::Server_ServerCapabilities_MaxStringLength.as_node_id();
-                        self.insert(Variable::new_node(&max_string_len_id, "MaxStringLength", "MaxStringLength", &DataTypeId::UInt32, DataValue::new(Variant::UInt32(server_config.max_string_length))));
+                        self.insert(Variable::new_node(&max_string_len_id, "MaxStringLength", "MaxStringLength", DataTypeId::UInt32, DataValue::new(Variant::UInt32(server_config.max_string_length))));
                         self.add_has_property(&server_capabilities_id, &max_string_len_id);
                         self.set_variable_as_property_type(&max_string_len_id);
                     }
 
                     {
                         let max_byte_string_len_id = VariableId::Server_ServerCapabilities_MaxByteStringLength.as_node_id();
-                        self.insert(Variable::new_node(&max_byte_string_len_id, "MaxByteStringLength", "MaxByteStringLength", &DataTypeId::UInt32, DataValue::new(Variant::UInt32(server_config.max_byte_string_length))));
+                        self.insert(Variable::new_node(&max_byte_string_len_id, "MaxByteStringLength", "MaxByteStringLength", DataTypeId::UInt32, DataValue::new(Variant::UInt32(server_config.max_byte_string_length))));
                         self.add_has_property(&server_capabilities_id, &max_byte_string_len_id);
                         self.set_variable_as_property_type(&max_byte_string_len_id);
                     }
@@ -538,7 +538,7 @@ impl AddressSpace {
 
             //   ServerStatus
             let serverstatus_id = VariableId::Server_ServerStatus.as_node_id();
-            self.insert(Variable::new_node(&serverstatus_id, "ServerStatus", "ServerStatus", &DataTypeId::ServerStatusDataType, DataValue::new(Variant::Empty)));
+            self.insert(Variable::new_node(&serverstatus_id, "ServerStatus", "ServerStatus", DataTypeId::ServerStatusDataType, DataValue::new(Variant::Empty)));
             self.add_has_component(&server_id, &serverstatus_id);
             self.insert_reference(&serverstatus_id, &DataTypeId::ServerStatusDataType.as_node_id(), ReferenceTypeId::HasTypeDefinition);
             {
@@ -554,14 +554,14 @@ impl AddressSpace {
                 // Unknown = 7
                 //     State (Server_ServerStatus_State)
                 let serverstatus_state_id = VariableId::Server_ServerStatus_State.as_node_id();
-                self.insert(Variable::new_node(&serverstatus_state_id, "State", "State", &DataTypeId::UInt32, DataValue::new(Variant::UInt32(0))));
+                self.insert(Variable::new_node(&serverstatus_state_id, "State", "State", DataTypeId::UInt32, DataValue::new(Variant::UInt32(0))));
                 self.insert_reference(&serverstatus_state_id, &DataTypeId::ServerState.as_node_id(), ReferenceTypeId::HasTypeDefinition);
                 self.add_has_component(&serverstatus_id, &serverstatus_state_id);
             }
 
             // ServiceLevel - 0-255 worst to best quality of service
             let servicelevel_id = VariableId::Server_ServiceLevel.as_node_id();
-            self.insert(Variable::new_node(&servicelevel_id, "ServiceLevel", "ServiceLevel", &DataTypeId::Byte, DataValue::new(Variant::Byte(255))));
+            self.insert(Variable::new_node(&servicelevel_id, "ServiceLevel", "ServiceLevel", DataTypeId::Byte, DataValue::new(Variant::Byte(255))));
             self.insert_reference(&servicelevel_id, &DataTypeId::Byte.as_node_id(), ReferenceTypeId::HasTypeDefinition);
             self.add_has_component(&servicelevel_id, &namespace_array_id);
 
