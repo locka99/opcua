@@ -9,7 +9,7 @@ use services::*;
 macro_rules! supported_messages {
     [ $( $x:ident, ) * ] => (supported_messages![ $( $x ),* ];);
     [ $( $x:ident ), * ] => {
-        #[derive(Debug, PartialEq)]
+        #[derive(Debug, PartialEq, Clone)]
         pub enum SupportedMessage {
             /// An invalid request / response of some form
             Invalid(ObjectId),

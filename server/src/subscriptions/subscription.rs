@@ -16,7 +16,7 @@ type DateTimeUTC = chrono::DateTime<chrono::UTC>;
 /// be transferable
 #[derive(Clone, Debug, PartialEq)]
 pub enum SubscriptionEvent {
-    NotificationMessage(NotificationMessage),
+    Messages(Vec<SupportedMessage>),
 }
 
 /// The state of the subscription
@@ -184,9 +184,8 @@ impl Subscription {
             if subscription.state == SubscriptionState::Closed {
                 dead_subscriptions.push(*subscription_id);
             } else {
-                let response = subscription.tick(address_space, &mut publish_requests, &now);
-                if response.is_some() {
-                    result.push(response.unwrap());
+                if let Some(response) = subscription.tick(address_space, &mut publish_requests, &now) {
+                    result.push(response);
                 }
             }
         }

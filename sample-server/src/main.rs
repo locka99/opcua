@@ -18,9 +18,9 @@ fn main() {
     let mut server = Server::new_default();
 
     // Add 3 variables called v1, v3, and v3 to the address space in the server
-    let v1_node = NodeId::new_string(1, "v1");
-    let v2_node = NodeId::new_string(1, "v2");
-    let v3_node = NodeId::new_string(1, "v3");
+    let v1_node = NodeId::new_string(2, "v1");
+    let v2_node = NodeId::new_string(2, "v2");
+    let v3_node = NodeId::new_string(2, "v3");
 
     {
         // Server state is guard locked because all sessions need it

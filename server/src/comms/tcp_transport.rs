@@ -129,11 +129,17 @@ impl TcpTransport {
                 }
             }
 
-            /// Process subscription timer events
-            let result = subscription_timer_rx.try_recv();
-            if result.is_ok() {
-                // TODO something here to do
+            // Process subscription timer events
+            if let Ok(result) = subscription_timer_rx.try_recv() {
                 debug!("Got message from timer {:?}", result);
+                match result {
+                    SubscriptionEvent::Messages(messages) => {
+                        debug!("TODO send messages here");
+                        for m in messages {
+//                            self.send_response(0, m, &mut out_buf_stream)?;
+                        }
+                    }
+                }
             }
 
             // Try to read, using timeout as a polling mechanism
@@ -237,15 +243,9 @@ impl TcpTransport {
             let address_space = server_state.address_space.lock().unwrap();
 
             let mut subscriptions = session_state.subscriptions.lock().unwrap();
-            Subscription::tick_subscriptions(&address_space, &session_state.publish_request_queue, &mut subscriptions);
-
-            // A phony notification message
-            let notification_message = NotificationMessage {
-                sequence_number: 1,
-                publish_time: DateTime::now(),
-                notification_data: None,
-            };
-            let _ = subscription_timer_tx.send(SubscriptionEvent::NotificationMessage(notification_message));
+            if let Some(messages) = Subscription::tick_subscriptions(&address_space, &session_state.publish_request_queue, &mut subscriptions) {
+                let _ = subscription_timer_tx.send(SubscriptionEvent::Messages(messages));
+            }
         });
         (subscription_timer, subscription_timer_guard, subscription_timer_rx)
     }
@@ -355,17 +355,17 @@ impl TcpTransport {
 
         let chunk_info = in_chunks[0].chunk_info(true, &self.secure_channel_info)?;
         let request_id = chunk_info.sequence_header.request_id;
-        self.send_response(request_id, response, out_stream)?;
+        self.send_response(request_id, &response, out_stream)?;
         Ok(())
     }
 
-    fn send_response<W: Write>(&mut self, request_id: UInt32, response: SupportedMessage, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
+    fn send_response<W: Write>(&mut self, request_id: UInt32, response: &SupportedMessage, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
         // Prepare some chunks starting from the sequence number + 1
         match response {
-            SupportedMessage::Invalid(object_id) => {
+            &SupportedMessage::Invalid(object_id) => {
                 panic!("Invalid response with object_id {:?}", object_id);
             },
-            SupportedMessage::DoNothing => {
+            &SupportedMessage::DoNothing => {
                 // DO NOTHING
             },
             _ => {
@@ -373,7 +373,7 @@ impl TcpTransport {
                 // Get the request id out of the request
                 debug!("Response to send: {:?}", response);
                 let sequence_number = self.last_sent_sequence_number + 1;
-                let out_chunks = Chunker::encode(sequence_number, request_id, &self.secure_channel_info, &response)?;
+                let out_chunks = Chunker::encode(sequence_number, request_id, &self.secure_channel_info, response)?;
                 self.last_sent_sequence_number = sequence_number + out_chunks.len() as UInt32 - 1;
 
                 // Send out any chunks that form the response
