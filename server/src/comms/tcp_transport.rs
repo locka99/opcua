@@ -135,8 +135,8 @@ impl TcpTransport {
                 match result {
                     SubscriptionEvent::Messages(messages) => {
                         debug!("TODO send messages here");
-                        for m in messages {
-//                            self.send_response(0, m, &mut out_buf_stream)?;
+                        for message in messages {
+                            let _ = self.send_response(0, &message, &mut out_buf_stream);
                         }
                     }
                 }
