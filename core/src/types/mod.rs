@@ -977,6 +977,14 @@ impl DiagnosticInfo {
     }
 }
 
+pub struct ValueChangeFilter {}
+
+impl ValueChangeFilter {
+    pub fn compare(&self, v1: &DataValue, v2: &DataValue) -> bool {
+        v1.value == v2.value
+    }
+}
+
 impl DataChangeFilter {
     /// Compares one data value to another and returns true if they differ, according to their trigger
     /// type of status, status/value or status/value/timestamp

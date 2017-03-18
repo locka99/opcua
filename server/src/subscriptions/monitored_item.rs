@@ -11,7 +11,8 @@ type DateTimeUTC = chrono::DateTime<chrono::UTC>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum FilterType {
-    DataChangeFilter(DataChangeFilter)
+    None,
+    DataChangeFilter(DataChangeFilter),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -36,11 +37,16 @@ const MAX_QUEUE_SIZE: usize = 10;
 impl MonitoredItem {
     pub fn new(monitored_item_id: UInt32, request: &MonitoredItemCreateRequest) -> Result<MonitoredItem, &'static StatusCode> {
         // Check if the filter is supported type
-        if request.requested_parameters.filter.node_id != ObjectId::DataChangeFilter_Encoding_DefaultBinary.as_node_id() {
+        let filter_type = request.requested_parameters.filter.node_id.clone();
+        let filter = if filter_type.is_null() {
+            // No data filter was passed, so just a dumb value comparison
+            FilterType::None
+        } else if filter_type == ObjectId::DataChangeFilter_Encoding_DefaultBinary.as_node_id() {
+            FilterType::DataChangeFilter(request.requested_parameters.filter.decode_inner::<DataChangeFilter>()?)
+        } else {
+            error!("Requested data filter type is not supported, {:?}", filter_type);
             return Err(&BAD_FILTER_NOT_ALLOWED);
-        }
-
-        let filter = FilterType::DataChangeFilter(request.requested_parameters.filter.decode_inner::<DataChangeFilter>()?);
+        };
 
         // Limite intervals and queue sizes to sane values
         let mut sampling_interval = request.requested_parameters.sampling_interval;
@@ -116,13 +122,6 @@ impl MonitoredItem {
                 return false;
             }
             let attribute_id = attribute_id.unwrap();
-
-            // Dead band filter is only supported filter
-            let filter = match self.filter {
-                FilterType::DataChangeFilter(ref filter) => filter,
-                // _ => { return false; }
-            };
-
             let data_value = node.find_attribute(attribute_id);
             if let Some(data_value) = data_value {
                 // Test for data change
@@ -130,8 +129,16 @@ impl MonitoredItem {
                     // There is no previous check so yes it changed
                     true
                 } else {
-                    // Look at the variant - has it gone from some to none or vice versa
-                    !filter.compare(&data_value, self.last_data_value.as_ref().unwrap(), None)
+                    // Dead band filter is only supported filter
+                    match self.filter {
+                        FilterType::None => {
+                            data_value.value != self.last_data_value.as_ref().unwrap().value
+                        },
+                        FilterType::DataChangeFilter(ref filter) => {
+                            // Use filter to compare values
+                            !filter.compare(&data_value, self.last_data_value.as_ref().unwrap(), None)
+                        }
+                    }
                 };
                 if data_change {
                     // Store data value for comparison purposes - perhaps a dirty flag could achieve
