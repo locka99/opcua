@@ -45,9 +45,11 @@ impl SessionState {
     pub fn expire_stale_publish_requests(&mut self) -> Option<Vec<SupportedMessage>> {
         let now = DateTime::now().as_chrono();
         let mut expired = Vec::with_capacity(self.max_publish_requests);
-        for request in self.publish_request_queue.iter() {
-            let timestamp: DateTimeUTC = request.request_header.timestamp.as_chrono();
-            let timeout_hint = time::Duration::milliseconds(request.request_header.timeout_hint as i64);
+
+        // Strip out publish requests which have expired
+        self.publish_request_queue.retain(|ref r| {
+            let timestamp: DateTimeUTC = r.request_header.timestamp.as_chrono();
+            let timeout_hint = time::Duration::milliseconds(r.request_header.timeout_hint as i64);
             // The request has timed out if the time now exceeds its hint
             if timestamp + timeout_hint < now {
                 let now = DateTime::from_chrono(&now);
@@ -65,8 +67,14 @@ impl SessionState {
                     diagnostic_infos: None
                 };
                 expired.push(SupportedMessage::PublishResponse(response));
+                // Remove
+                false
             }
-        }
+            else {
+                // Keep
+                true
+            }
+        });
         if !expired.is_empty() {
             Some(expired)
         } else {

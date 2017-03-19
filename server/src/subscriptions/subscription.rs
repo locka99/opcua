@@ -336,14 +336,14 @@ impl Subscription {
                     // State #6
                     self.reset_lifetime_counter();
                     self.start_publishing_timer();
-                    self.dequeue_publish_request(now, publish_requests);
+                    self.dequeue_publish_request(publish_requests);
                     self.message_sent = true;
                     return (6, UpdateStateAction::ReturnNotifications);
                 } else if publishing_timer_expired && self.publishing_req_queued && !self.message_sent && (!self.publishing_enabled || (self.publishing_enabled && !self.notifications_available)) {
                     // State #7
                     self.reset_lifetime_counter();
                     self.start_publishing_timer();
-                    self.dequeue_publish_request(now, publish_requests);
+                    self.dequeue_publish_request(publish_requests);
                     self.message_sent = true;
                     return (7, UpdateStateAction::ReturnKeepAlive);
                 } else if publishing_timer_expired && !self.publishing_req_queued && (!self.message_sent || (self.publishing_enabled && self.notifications_available)) {
@@ -389,7 +389,7 @@ impl Subscription {
                     return (13, UpdateStateAction::None);
                 } else if publishing_timer_expired && self.publishing_enabled && self.notifications_available && self.publishing_req_queued {
                     // State #14
-                    self.dequeue_publish_request(now, publish_requests);
+                    self.dequeue_publish_request(publish_requests);
                     self.message_sent = true;
                     self.state = SubscriptionState::Normal;
                     return (14, UpdateStateAction::ReturnNotifications);
@@ -397,7 +397,7 @@ impl Subscription {
                     !self.publishing_enabled || (self.publishing_enabled && self.notifications_available) {
                     // State #15
                     self.start_publishing_timer();
-                    self.dequeue_publish_request(now, publish_requests);
+                    self.dequeue_publish_request(publish_requests);
                     self.reset_keep_alive_counter();
                     return (15, UpdateStateAction::ReturnKeepAlive);
                 } else if publishing_timer_expired && self.keep_alive_counter > 1 && (!self.publishing_enabled || (self.publishing_enabled && !self.notifications_available)) {
@@ -474,7 +474,7 @@ impl Subscription {
     /// The implementation will dequeue a PublishRequest if there is one and it is valid. If there
     /// is no request then it will return None. If there is a request but it has timed out it will return
     /// a PublishResponse with a timeout service result
-    pub fn dequeue_publish_request(&mut self, now: &DateTimeUTC, request_queue: &mut Vec<PublishRequest>) -> Result<PublishRequest, Option<PublishResponse>> {
+    pub fn dequeue_publish_request(&mut self, request_queue: &mut Vec<PublishRequest>) -> Result<PublishRequest, Option<PublishResponse>> {
         if request_queue.is_empty() {
             Err(None)
         } else {
