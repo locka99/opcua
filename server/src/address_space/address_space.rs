@@ -191,7 +191,7 @@ impl AddressSpace {
     /// node id exists in the address space and is a Variable node. The response is true if the
     /// value was set and false otherwise.
     pub fn set_variable_value(&mut self, node_id: &NodeId, value: Variant) -> bool {
-        let mut node = self.find_node_mut(node_id);
+        let node = self.find_node_mut(node_id);
         if node.is_none() {
             false
         } else {

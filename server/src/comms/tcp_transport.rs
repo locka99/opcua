@@ -237,10 +237,16 @@ impl TcpTransport {
         let subscription_timer_guard = subscription_timer.schedule_repeating(time::Duration::milliseconds(SUBSCRIPTION_TIMER_RATE), move || {
             // Manage subscriptions
             debug!("Timer fired");
-            let session_state = session_state.lock().unwrap();
+            let mut session_state = session_state.lock().unwrap();
             let server_state = server_state.lock().unwrap();
             let address_space = server_state.address_space.lock().unwrap();
 
+            // Request queue might contain stale publish requests
+            if let Some(messages) = session_state.expire_stale_publish_requests() {
+                let _ = subscription_timer_tx.send(SubscriptionEvent::Messages(messages));
+            }
+
+            // Process subscriptions
             let mut subscriptions = session_state.subscriptions.lock().unwrap();
             if let Some(messages) = Subscription::tick_subscriptions(&address_space, &session_state.publish_request_queue, &mut subscriptions) {
                 let _ = subscription_timer_tx.send(SubscriptionEvent::Messages(messages));

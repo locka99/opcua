@@ -5,9 +5,8 @@ use time;
 
 use opcua_core::types::*;
 
+use DateTimeUTC;
 use address_space::*;
-
-type DateTimeUTC = chrono::DateTime<chrono::UTC>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum FilterType {

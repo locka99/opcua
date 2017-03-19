@@ -8,7 +8,7 @@ fn test_var_node_id() -> NodeId {
 
 fn make_address_space() -> AddressSpace {
     let mut address_space = AddressSpace::new();
-    address_space.add_variable(&Variable::new(&NodeId::new_numeric(1, 1), "test", "test", DataTypeId::UInt32, DataValue::new(Variant::UInt32(0))), &AddressSpace::objects_folder_id());
+    let _ = address_space.add_variable(&Variable::new(&NodeId::new_numeric(1, 1), "test", "test", DataTypeId::UInt32, DataValue::new(Variant::UInt32(0))), &AddressSpace::objects_folder_id());
     address_space
 }
 
@@ -99,7 +99,7 @@ fn data_change_filter_test() {
 
 #[test]
 fn data_change_deadband_abs_test() {
-    let mut filter = DataChangeFilter {
+    let filter = DataChangeFilter {
         trigger: DataChangeTrigger::StatusValue,
         // Abs compare
         deadband_type: 1,

@@ -15,6 +15,8 @@ extern crate timer;
 
 extern crate opcua_core;
 
+type DateTimeUTC = chrono::DateTime<chrono::UTC>;
+
 mod services;
 mod comms;
 mod session;

@@ -22,10 +22,10 @@ fn update_state_3() {
     let now = chrono::UTC::now();
     let items_changed = false;
     let publishing_timer_expired = false;
-    let (handled_state, notifications) = s.update_state(&mut publish_requests, &now, items_changed, publishing_timer_expired);
+    let (handled_state, action) = s.update_state(&mut publish_requests, &now, items_changed, publishing_timer_expired);
 
     assert_eq!(handled_state, 3);
-    assert!(notifications.is_none());
+    assert_eq!(action, UpdateStateAction::None);
     assert_eq!(s.message_sent, false);
     assert_eq!(s.state, SubscriptionState::Normal);
 }
@@ -60,10 +60,10 @@ fn update_state_4() {
     let now = chrono::UTC::now();
     let items_changed = false;
     let publishing_timer_expired = false;
-    let (handled_state, notifications) = s.update_state(&mut publish_requests, &now, items_changed, publishing_timer_expired);
+    let (handled_state, action) = s.update_state(&mut publish_requests, &now, items_changed, publishing_timer_expired);
 
     assert_eq!(handled_state, 4);
-    assert!(notifications.is_none());
+    assert_eq!(action, UpdateStateAction::None);
     assert_eq!(s.state, SubscriptionState::Normal);
     assert_eq!(publish_requests.len(), 1);
 }
