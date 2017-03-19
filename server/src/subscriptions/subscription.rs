@@ -184,8 +184,19 @@ impl Subscription {
             if subscription.state == SubscriptionState::Closed {
                 dead_subscriptions.push(*subscription_id);
             } else {
-                if let Some(response) = subscription.tick(address_space, &mut publish_requests, &now) {
-                    result.push(response);
+                if let Some(notification_message) = subscription.tick(address_space, &mut publish_requests, &now) {
+                    let publish_response = PublishResponse {
+                        response_header: ResponseHeader::new_notification_response(&DateTime::now()),
+                        subscription_id: *subscription_id,
+                        available_sequence_numbers: None,
+                        // TODO
+                        more_notifications: subscription.more_notifications,
+                        notification_message: notification_message,
+                        results: None,
+                        // TODO
+                        diagnostic_infos: None,
+                    };
+                    result.push(SupportedMessage::PublishResponse(publish_response));
                 }
             }
         }
@@ -203,7 +214,7 @@ impl Subscription {
 
     /// Checks the subscription and monitored items for state change, messages. If the tick does
     /// nothing, the function returns None. Otherwise it returns one or more messages in an Vec.
-    fn tick(&mut self, address_space: &AddressSpace, publish_requests: &mut Vec<PublishRequest>, now: &DateTimeUTC) -> Option<SupportedMessage> {
+    fn tick(&mut self, address_space: &AddressSpace, publish_requests: &mut Vec<PublishRequest>, now: &DateTimeUTC) -> Option<NotificationMessage> {
         debug!("subscription tick {}", self.subscription_id);
 
         // Test if the interval has elapsed.
@@ -257,7 +268,7 @@ impl Subscription {
     // Update the state of the subscription, returning a tuple containing the state that handled
     // the update and optionally any notifications. The publish requests is mutable because
     // a request may be dequeued and potentially requeued according to the handler.
-    pub fn update_state(&mut self, publish_requests: &mut Vec<PublishRequest>, now: &DateTimeUTC, items_changed: bool, publishing_timer_expired: bool) -> (u8, Option<SupportedMessage>) {
+    pub fn update_state(&mut self, publish_requests: &mut Vec<PublishRequest>, now: &DateTimeUTC, items_changed: bool, publishing_timer_expired: bool) -> (u8, Option<NotificationMessage>) {
         // Check if there is a publish request in the queue
         let receive_publish_request: Option<PublishRequest> = publish_requests.pop();
 
@@ -340,10 +351,9 @@ impl Subscription {
                     // State #11
                     self.reset_lifetime_counter();
                     self.delete_acked_notification_msgs(receive_publish_request.as_ref().unwrap());
-                    self.return_keep_alive();
                     self.state = SubscriptionState::KeepAlive;
                     self.message_sent = true;
-                    return (11, None);
+                    return (11, self.return_keep_alive());
                 } else if publishing_timer_expired {
                     // State #12
                     self.start_publishing_timer();
@@ -406,23 +416,39 @@ impl Subscription {
         (0, None)
     }
 
-    pub fn delete_acked_notification_msgs(&mut self, request: &PublishRequest) {
+    /// Deletes the acknowledged notifications, returning a list of status code for each according
+    /// to whether it was found or not.
+    ///
+    /// GOOD - deleted notification
+    /// BAD_SUBSCRIPTION_ID_INVALID - Subscription doesn't exist
+    /// BAD_SEQUENCE_NUMBER_UNKNOWN - Sequence number doesn't exist
+    pub fn delete_acked_notification_msgs(&mut self, request: &PublishRequest) -> Option<Vec<StatusCode>> {
         if request.subscription_acknowledgements.is_none() {
-            return;
-        }
-        let subscription_acknowledgements = request.subscription_acknowledgements.as_ref().unwrap();
-        for ack in subscription_acknowledgements {
-            if ack.subscription_id != self.subscription_id {
-                continue;
+            None
+        } else {
+            let mut results = Vec::new();
+            let subscription_acknowledgements = request.subscription_acknowledgements.as_ref().unwrap();
+            for ack in subscription_acknowledgements {
+                let result = if ack.subscription_id != self.subscription_id {
+                    &BAD_SUBSCRIPTION_ID_INVALID
+                } else {
+                    // Clear notification by sequence number
+                    let removed_notification = self.notifications.remove(&ack.sequence_number);
+                    if removed_notification.is_some() {
+                        &GOOD
+                    } else {
+                        &BAD_SEQUENCE_NUMBER_UNKNOWN
+                    }
+                };
+                results.push(result.clone());
             }
-            // Clear notification by sequence number
-            let _ = self.notifications.remove(&ack.sequence_number);
+            Some(results)
         }
     }
 
     /// De-queue a publishing request in first-in first-out order.
     /// Validate if the publish request is still valid by checking the timeoutHint in the
-    /// RequestHeader. If the request timed out, send a Bad_Timeout service result for the request
+    /// RequestHeader. If the request timed out, send a BAD_TIMEOUT service result for the request
     /// and de-queue another publish request.
     ///
     /// The implementation will dequeue a PublishRequest if there is one and it is valid. If there
@@ -481,7 +507,7 @@ impl Subscription {
 
     /// CreateKeepAliveMsg()
     /// ReturnResponse()
-    pub fn return_keep_alive(&mut self) -> Option<SupportedMessage> {
+    pub fn return_keep_alive(&mut self) -> Option<NotificationMessage> {
         // TODO keep alive message
         None
     }
@@ -493,7 +519,7 @@ impl Subscription {
     ///   DequeuePublishReq()
     ///   Loop through this function again
     /// }
-    pub fn return_notifications(&mut self) -> Option<SupportedMessage> {
+    pub fn return_notifications(&mut self) -> Option<NotificationMessage> {
         // TODO notification messages
         None
     }

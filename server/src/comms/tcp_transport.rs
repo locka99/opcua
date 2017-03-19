@@ -134,7 +134,6 @@ impl TcpTransport {
                 debug!("Got message from timer {:?}", result);
                 match result {
                     SubscriptionEvent::Messages(messages) => {
-                        debug!("TODO send messages here");
                         for message in messages {
                             let _ = self.send_response(0, &message, &mut out_buf_stream);
                         }
