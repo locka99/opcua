@@ -129,7 +129,6 @@ impl MonitoredItem {
                     // There is no previous check so yes it changed
                     true
                 } else {
-                    // Dead band filter is only supported filter
                     match self.filter {
                         FilterType::None => {
                             data_value.value != self.last_data_value.as_ref().unwrap().value
