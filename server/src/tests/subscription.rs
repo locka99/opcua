@@ -32,7 +32,6 @@ fn update_state_3() {
 
 #[test]
 fn update_state_4() {
-
     // Test #4 -
     // Create a subscription in the normal state, and an incoming publish request. Tick on a subscription
     // with no changes and ensure the request is still queued afterwards
@@ -68,3 +67,67 @@ fn update_state_4() {
     assert_eq!(publish_requests.len(), 1);
 }
 
+#[test]
+fn update_state_5() {
+    // x
+}
+
+#[test]
+fn update_state_6() {
+    // x
+}
+
+#[test]
+fn update_state_7() {
+    // x
+}
+
+#[test]
+fn update_state_8() {
+    // x
+}
+
+#[test]
+fn update_state_9() {
+    // x
+}
+
+#[test]
+fn update_state_10() {
+    // x
+}
+
+#[test]
+fn update_state_11() {
+    // x
+}
+
+#[test]
+fn update_state_12() {
+    // x
+}
+
+#[test]
+fn update_state_13() {
+    // x
+}
+
+#[test]
+fn update_state_14() {
+    // x
+}
+
+#[test]
+fn update_state_15() {
+    // x
+}
+
+#[test]
+fn update_state_16() {
+    // x
+}
+
+#[test]
+fn update_state_17() {
+    // x
+}

@@ -9,6 +9,7 @@ use DateTimeUTC;
 use subscriptions::*;
 
 const MAX_PUBLISH_REQUESTS: usize = 10;
+const MAX_REQUEST_TIMEOUT: i64 = 30000;
 
 /// Session info holds information about a session created by CreateSession service
 #[derive(Clone)]
@@ -42,19 +43,24 @@ impl SessionState {
         }
     }
 
-    pub fn expire_stale_publish_requests(&mut self) -> Option<Vec<SupportedMessage>> {
-        let now = DateTime::now().as_chrono();
+    pub fn expire_stale_publish_requests(&mut self, now: &DateTimeUTC) -> Option<Vec<SupportedMessage>> {
         let mut expired = Vec::with_capacity(self.max_publish_requests);
 
         // Strip out publish requests which have expired
         self.publish_request_queue.retain(|ref r| {
             let timestamp: DateTimeUTC = r.request_header.timestamp.as_chrono();
-            let timeout_hint = time::Duration::milliseconds(r.request_header.timeout_hint as i64);
-            // The request has timed out if the time now exceeds its hint
-            if timestamp + timeout_hint < now {
-                let now = DateTime::from_chrono(&now);
+            let timeout = if r.request_header.timeout_hint > 0 && (r.request_header.timeout_hint as i64) < MAX_REQUEST_TIMEOUT {
+                r.request_header.timeout_hint as i64
+            } else {
+                MAX_REQUEST_TIMEOUT
+            };
+            let timeout = time::Duration::milliseconds(timeout);
+
+            // The request has timed out if the timestamp plus hint exceeds the input time
+            if timestamp + timeout >= *now {
+                let now = DateTime::from_chrono(now);
                 let response = PublishResponse {
-                    response_header: ResponseHeader::new_notification_response(&now, &BAD_REQUEST_TIMEOUT),
+                    response_header: ResponseHeader::new_service_result(&now, &r.request_header, &BAD_REQUEST_TIMEOUT),
                     subscription_id: 0,
                     available_sequence_numbers: None,
                     more_notifications: false,
@@ -69,8 +75,7 @@ impl SessionState {
                 expired.push(SupportedMessage::PublishResponse(response));
                 // Remove
                 false
-            }
-            else {
+            } else {
                 // Keep
                 true
             }

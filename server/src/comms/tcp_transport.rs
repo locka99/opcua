@@ -242,7 +242,7 @@ impl TcpTransport {
             let address_space = server_state.address_space.lock().unwrap();
 
             // Request queue might contain stale publish requests
-            if let Some(messages) = session_state.expire_stale_publish_requests() {
+            if let Some(messages) = session_state.expire_stale_publish_requests(&UTC::now()) {
                 let _ = subscription_timer_tx.send(SubscriptionEvent::Messages(messages));
             }
 
