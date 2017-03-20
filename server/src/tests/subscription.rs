@@ -2,9 +2,21 @@ use chrono;
 
 use prelude::*;
 
+const DEFAULT_LIFETIME_COUNT: UInt32 = 300;
+const DEFAULT_KEEPALIVE_COUNT: UInt32 = 100;
+
 fn make_subscription() -> Subscription {
     let subscription_interval = 1000f64;
-    Subscription::new(0, true, subscription_interval, 9, 3, 0)
+    Subscription::new(0, true, subscription_interval, DEFAULT_LIFETIME_COUNT, DEFAULT_KEEPALIVE_COUNT, 0)
+}
+
+fn make_publish_request_queue() -> Vec<PublishRequest> {
+    vec!(
+        PublishRequest {
+            request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+            subscription_acknowledgements: None,
+        }
+    )
 }
 
 #[test]
@@ -37,12 +49,7 @@ fn update_state_4() {
     // with no changes and ensure the request is still queued afterwards
 
     let mut s = make_subscription();
-    let mut publish_requests: Vec<PublishRequest> = vec!(
-        PublishRequest {
-            request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
-            subscription_acknowledgements: None,
-        }
-    );
+    let mut publish_requests = make_publish_request_queue();
 
     s.state = SubscriptionState::Normal;
     s.publishing_enabled = false;
@@ -71,15 +78,33 @@ fn update_state_4() {
 
 #[test]
 fn update_state_5() {
+    // Test #5
+    // Queue a publish request, publishing on, more notifications.
+    // Ensure return notifications action
+
+    let mut s = make_subscription();
+    let mut publish_requests = make_publish_request_queue();
+
     // queue publish request
     // set publish enabled true
     // set more notifications true
 
-    // ensure 5
-    // ensure lifetime counter reset
-    // ensure deleted acknowledged notification msgs
-    // ensure ReturnNotifications  action
-    // ensure message_set == true
+    let now = chrono::UTC::now();
+    let items_changed = false;
+    let publishing_timer_expired = false;
+
+    s.publishing_enabled = true;
+    s.more_notifications = true;
+    s.lifetime_counter = 1;
+
+    let (handled_state, action) = s.update_state(&mut publish_requests, &now, items_changed, publishing_timer_expired);
+
+    assert_eq!(handled_state, 5);
+    assert_eq!(s.lifetime_counter, DEFAULT_LIFETIME_COUNT);
+    assert_eq!(action, UpdateStateAction::ReturnNotifications);
+    assert_eq!(s.state, SubscriptionState::Normal);
+    assert_eq!(s.message_sent, true);
+    // TOD oensure deleted acknowledged notification msgs
 }
 
 #[test]
