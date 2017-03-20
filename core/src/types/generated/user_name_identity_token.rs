@@ -27,6 +27,7 @@ impl BinaryEncoder<UserNameIdentityToken> for UserNameIdentityToken {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.policy_id.encode(stream)?;
@@ -36,6 +37,7 @@ impl BinaryEncoder<UserNameIdentityToken> for UserNameIdentityToken {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let policy_id = UAString::decode(stream)?;
         let user_name = UAString::decode(stream)?;

@@ -20,12 +20,14 @@ impl BinaryEncoder<ElementOperand> for ElementOperand {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.index.encode(stream)?;
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let index = UInt32::decode(stream)?;
         Ok(ElementOperand {

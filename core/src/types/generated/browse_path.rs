@@ -29,6 +29,7 @@ impl BinaryEncoder<BrowsePath> for BrowsePath {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.starting_node.encode(stream)?;
@@ -36,6 +37,7 @@ impl BinaryEncoder<BrowsePath> for BrowsePath {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let starting_node = NodeId::decode(stream)?;
         let relative_path = RelativePath::decode(stream)?;

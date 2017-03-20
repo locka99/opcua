@@ -55,8 +55,11 @@ pub fn read_array<S: Read, T: BinaryEncoder<T>>(stream: &mut S) -> EncodingResul
     let len = read_i32(stream)?;
     if len == -1 {
         Ok(None)
+    } else if len < -1 {
+        error!("Array length is negative value and invalid");
+        Err(&BAD_DECODING_ERROR)
     } else {
-        let mut values: Vec<T> = Vec::new();
+        let mut values: Vec<T> = Vec::with_capacity(len as usize);
         for _ in 0..len {
             values.push(T::decode(stream)?);
         }

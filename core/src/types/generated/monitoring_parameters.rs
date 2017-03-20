@@ -34,6 +34,7 @@ impl BinaryEncoder<MonitoringParameters> for MonitoringParameters {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.client_handle.encode(stream)?;
@@ -44,6 +45,7 @@ impl BinaryEncoder<MonitoringParameters> for MonitoringParameters {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let client_handle = UInt32::decode(stream)?;
         let sampling_interval = Double::decode(stream)?;

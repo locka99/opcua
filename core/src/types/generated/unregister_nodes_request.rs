@@ -29,6 +29,7 @@ impl BinaryEncoder<UnregisterNodesRequest> for UnregisterNodesRequest {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.request_header.encode(stream)?;
@@ -36,6 +37,7 @@ impl BinaryEncoder<UnregisterNodesRequest> for UnregisterNodesRequest {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream)?;
         let nodes_to_unregister: Option<Vec<NodeId>> = read_array(stream)?;

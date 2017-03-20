@@ -28,6 +28,7 @@ impl BinaryEncoder<ReadRawModifiedDetails> for ReadRawModifiedDetails {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.is_read_modified.encode(stream)?;
@@ -38,6 +39,7 @@ impl BinaryEncoder<ReadRawModifiedDetails> for ReadRawModifiedDetails {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let is_read_modified = Boolean::decode(stream)?;
         let start_time = DateTime::decode(stream)?;

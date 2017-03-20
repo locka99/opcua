@@ -30,6 +30,7 @@ impl BinaryEncoder<ModificationInfo> for ModificationInfo {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.modification_time.encode(stream)?;
@@ -38,6 +39,7 @@ impl BinaryEncoder<ModificationInfo> for ModificationInfo {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let modification_time = DateTime::decode(stream)?;
         let update_type = HistoryUpdateType::decode(stream)?;

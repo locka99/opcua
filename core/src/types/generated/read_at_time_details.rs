@@ -22,6 +22,7 @@ impl BinaryEncoder<ReadAtTimeDetails> for ReadAtTimeDetails {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += write_array(stream, &self.req_times)?;
@@ -29,6 +30,7 @@ impl BinaryEncoder<ReadAtTimeDetails> for ReadAtTimeDetails {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let req_times: Option<Vec<DateTime>> = read_array(stream)?;
         let use_simple_bounds = Boolean::decode(stream)?;

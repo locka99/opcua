@@ -28,6 +28,7 @@ impl BinaryEncoder<ContentFilterElement> for ContentFilterElement {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.filter_operator.encode(stream)?;
@@ -35,6 +36,7 @@ impl BinaryEncoder<ContentFilterElement> for ContentFilterElement {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let filter_operator = FilterOperator::decode(stream)?;
         let filter_operands: Option<Vec<ExtensionObject>> = read_array(stream)?;

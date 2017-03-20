@@ -33,6 +33,7 @@ impl BinaryEncoder<ChannelSecurityToken> for ChannelSecurityToken {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.channel_id.encode(stream)?;
@@ -42,6 +43,7 @@ impl BinaryEncoder<ChannelSecurityToken> for ChannelSecurityToken {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let channel_id = UInt32::decode(stream)?;
         let token_id = UInt32::decode(stream)?;

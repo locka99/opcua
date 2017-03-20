@@ -26,6 +26,7 @@ impl BinaryEncoder<ReadEventDetails> for ReadEventDetails {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.num_values_per_node.encode(stream)?;
@@ -35,6 +36,7 @@ impl BinaryEncoder<ReadEventDetails> for ReadEventDetails {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let num_values_per_node = UInt32::decode(stream)?;
         let start_time = DateTime::decode(stream)?;

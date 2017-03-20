@@ -48,6 +48,7 @@ impl BinaryEncoder<ServerDiagnosticsSummaryDataType> for ServerDiagnosticsSummar
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.server_view_count.encode(stream)?;
@@ -65,6 +66,7 @@ impl BinaryEncoder<ServerDiagnosticsSummaryDataType> for ServerDiagnosticsSummar
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let server_view_count = UInt32::decode(stream)?;
         let current_session_count = UInt32::decode(stream)?;

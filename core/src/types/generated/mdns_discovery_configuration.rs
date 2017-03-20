@@ -23,6 +23,7 @@ impl BinaryEncoder<MdnsDiscoveryConfiguration> for MdnsDiscoveryConfiguration {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.mdns_server_name.encode(stream)?;
@@ -30,6 +31,7 @@ impl BinaryEncoder<MdnsDiscoveryConfiguration> for MdnsDiscoveryConfiguration {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let mdns_server_name = UAString::decode(stream)?;
         let server_capabilities: Option<Vec<UAString>> = read_array(stream)?;

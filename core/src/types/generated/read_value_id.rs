@@ -32,6 +32,7 @@ impl BinaryEncoder<ReadValueId> for ReadValueId {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.node_id.encode(stream)?;
@@ -41,6 +42,7 @@ impl BinaryEncoder<ReadValueId> for ReadValueId {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let node_id = NodeId::decode(stream)?;
         let attribute_id = UInt32::decode(stream)?;

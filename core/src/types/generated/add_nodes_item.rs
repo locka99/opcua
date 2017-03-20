@@ -39,6 +39,7 @@ impl BinaryEncoder<AddNodesItem> for AddNodesItem {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.parent_node_id.encode(stream)?;
@@ -51,6 +52,7 @@ impl BinaryEncoder<AddNodesItem> for AddNodesItem {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let parent_node_id = ExpandedNodeId::decode(stream)?;
         let reference_type_id = NodeId::decode(stream)?;

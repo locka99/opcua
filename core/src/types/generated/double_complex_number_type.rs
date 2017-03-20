@@ -28,6 +28,7 @@ impl BinaryEncoder<DoubleComplexNumberType> for DoubleComplexNumberType {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.real.encode(stream)?;
@@ -35,6 +36,7 @@ impl BinaryEncoder<DoubleComplexNumberType> for DoubleComplexNumberType {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let real = Double::decode(stream)?;
         let imaginary = Double::decode(stream)?;

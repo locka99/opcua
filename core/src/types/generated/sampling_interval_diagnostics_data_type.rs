@@ -32,6 +32,7 @@ impl BinaryEncoder<SamplingIntervalDiagnosticsDataType> for SamplingIntervalDiag
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.sampling_interval.encode(stream)?;
@@ -41,6 +42,7 @@ impl BinaryEncoder<SamplingIntervalDiagnosticsDataType> for SamplingIntervalDiag
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let sampling_interval = Double::decode(stream)?;
         let monitored_item_count = UInt32::decode(stream)?;

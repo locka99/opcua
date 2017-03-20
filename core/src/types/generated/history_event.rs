@@ -26,12 +26,14 @@ impl BinaryEncoder<HistoryEvent> for HistoryEvent {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += write_array(stream, &self.events)?;
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let events: Option<Vec<HistoryEventFieldList>> = read_array(stream)?;
         Ok(HistoryEvent {

@@ -28,6 +28,7 @@ impl BinaryEncoder<RepublishResponse> for RepublishResponse {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.response_header.encode(stream)?;
@@ -35,6 +36,7 @@ impl BinaryEncoder<RepublishResponse> for RepublishResponse {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let response_header = ResponseHeader::decode(stream)?;
         let notification_message = NotificationMessage::decode(stream)?;

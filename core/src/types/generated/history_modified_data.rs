@@ -22,6 +22,7 @@ impl BinaryEncoder<HistoryModifiedData> for HistoryModifiedData {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += write_array(stream, &self.data_values)?;
@@ -29,6 +30,7 @@ impl BinaryEncoder<HistoryModifiedData> for HistoryModifiedData {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let data_values: Option<Vec<DataValue>> = read_array(stream)?;
         let modification_infos: Option<Vec<ModificationInfo>> = read_array(stream)?;

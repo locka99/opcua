@@ -26,12 +26,14 @@ impl BinaryEncoder<ContentFilter> for ContentFilter {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += write_array(stream, &self.elements)?;
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let elements: Option<Vec<ContentFilterElement>> = read_array(stream)?;
         Ok(ContentFilter {

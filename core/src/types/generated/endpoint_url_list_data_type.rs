@@ -26,12 +26,14 @@ impl BinaryEncoder<EndpointUrlListDataType> for EndpointUrlListDataType {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += write_array(stream, &self.endpoint_url_list)?;
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let endpoint_url_list: Option<Vec<UAString>> = read_array(stream)?;
         Ok(EndpointUrlListDataType {

@@ -29,6 +29,7 @@ impl BinaryEncoder<OptionSet> for OptionSet {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.value.encode(stream)?;
@@ -36,6 +37,7 @@ impl BinaryEncoder<OptionSet> for OptionSet {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let value = ByteString::decode(stream)?;
         let valid_bits = ByteString::decode(stream)?;

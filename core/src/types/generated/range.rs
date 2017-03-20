@@ -28,6 +28,7 @@ impl BinaryEncoder<Range> for Range {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.low.encode(stream)?;
@@ -35,6 +36,7 @@ impl BinaryEncoder<Range> for Range {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let low = Double::decode(stream)?;
         let high = Double::decode(stream)?;

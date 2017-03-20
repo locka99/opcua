@@ -31,6 +31,7 @@ impl BinaryEncoder<EnumValueType> for EnumValueType {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.value.encode(stream)?;
@@ -39,6 +40,7 @@ impl BinaryEncoder<EnumValueType> for EnumValueType {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let value = Int64::decode(stream)?;
         let display_name = LocalizedText::decode(stream)?;

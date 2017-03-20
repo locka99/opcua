@@ -30,6 +30,7 @@ impl BinaryEncoder<CallMethodRequest> for CallMethodRequest {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.object_id.encode(stream)?;
@@ -38,6 +39,7 @@ impl BinaryEncoder<CallMethodRequest> for CallMethodRequest {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let object_id = NodeId::decode(stream)?;
         let method_id = NodeId::decode(stream)?;

@@ -138,41 +138,56 @@ pub struct ${structured_type.name} {
 
     contents += `impl BinaryEncoder<${structured_type.name}> for ${structured_type.name} {
     fn byte_len(&self) -> usize {
-        let mut size = 0;
 `;
+    if (structured_type.fields_to_add.length > 0) {
+        contents += `        let mut size = 0;\n`;
 
-    _.each(structured_type.fields_to_add, function (field) {
-        if (!_.includes(structured_type.fields_to_hide, field.name)) {
-            if (_.has(field, 'is_array')) {
-                contents += `        size += byte_len_array(&self.${field.name});\n`;
+        _.each(structured_type.fields_to_add, function (field) {
+            if (!_.includes(structured_type.fields_to_hide, field.name)) {
+                if (_.has(field, 'is_array')) {
+                    contents += `        size += byte_len_array(&self.${field.name});\n`;
+                }
+                else {
+                    contents += `        size += self.${field.name}.byte_len();\n`;
+                }
             }
-            else {
-                contents += `        size += self.${field.name}.byte_len();\n`;
-            }
-        }
-    });
+        });
 
-    contents += `        size
+        contents += `        size\n`;
+    }
+    else {
+        contents += `        0\n`;
     }
 
+    contents += `    }
+
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        let mut size = 0;
 `;
 
-    _.each(structured_type.fields_to_add, function (field) {
-        if (!_.includes(structured_type.fields_to_hide, field.name)) {
-            if (_.has(field, 'is_array')) {
-                contents += `        size += write_array(stream, &self.${field.name})?;\n`;
-            }
-            else {
-                contents += `        size += self.${field.name}.encode(stream)?;\n`;
-            }
-        }
-    });
+    if (structured_type.fields_to_add.length > 0) {
+        contents += `        let mut size = 0;\n`;
 
-    contents += `        Ok(size)
+        _.each(structured_type.fields_to_add, function (field) {
+            if (!_.includes(structured_type.fields_to_hide, field.name)) {
+                if (_.has(field, 'is_array')) {
+                    contents += `        size += write_array(stream, &self.${field.name})?;\n`;
+                }
+                else {
+                    contents += `        size += self.${field.name}.encode(stream)?;\n`;
+                }
+            }
+        });
+
+        contents += `        Ok(size)\n`;
+    }
+    else {
+        contents += `        Ok(0)\n`;
     }
 
+    contents += `    }
+
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
 `;
 

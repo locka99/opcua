@@ -32,6 +32,7 @@ impl BinaryEncoder<FindServersOnNetworkRequest> for FindServersOnNetworkRequest 
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.request_header.encode(stream)?;
@@ -41,6 +42,7 @@ impl BinaryEncoder<FindServersOnNetworkRequest> for FindServersOnNetworkRequest 
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream)?;
         let starting_record_id = UInt32::decode(stream)?;

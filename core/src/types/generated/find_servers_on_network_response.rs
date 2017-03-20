@@ -30,6 +30,7 @@ impl BinaryEncoder<FindServersOnNetworkResponse> for FindServersOnNetworkRespons
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.response_header.encode(stream)?;
@@ -38,6 +39,7 @@ impl BinaryEncoder<FindServersOnNetworkResponse> for FindServersOnNetworkRespons
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let response_header = ResponseHeader::decode(stream)?;
         let last_counter_reset_time = DateTime::decode(stream)?;

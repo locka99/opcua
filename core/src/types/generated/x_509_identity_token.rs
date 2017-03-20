@@ -23,6 +23,7 @@ impl BinaryEncoder<X509IdentityToken> for X509IdentityToken {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.policy_id.encode(stream)?;
@@ -30,6 +31,7 @@ impl BinaryEncoder<X509IdentityToken> for X509IdentityToken {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let policy_id = UAString::decode(stream)?;
         let certificate_data = ByteString::decode(stream)?;

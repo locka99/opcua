@@ -26,6 +26,7 @@ impl BinaryEncoder<DeleteRawModifiedDetails> for DeleteRawModifiedDetails {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.node_id.encode(stream)?;
@@ -35,6 +36,7 @@ impl BinaryEncoder<DeleteRawModifiedDetails> for DeleteRawModifiedDetails {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let node_id = NodeId::decode(stream)?;
         let is_delete_modified = Boolean::decode(stream)?;

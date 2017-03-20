@@ -30,6 +30,7 @@ impl BinaryEncoder<Annotation> for Annotation {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.message.encode(stream)?;
@@ -38,6 +39,7 @@ impl BinaryEncoder<Annotation> for Annotation {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let message = UAString::decode(stream)?;
         let user_name = UAString::decode(stream)?;

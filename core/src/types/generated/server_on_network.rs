@@ -32,6 +32,7 @@ impl BinaryEncoder<ServerOnNetwork> for ServerOnNetwork {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.record_id.encode(stream)?;
@@ -41,6 +42,7 @@ impl BinaryEncoder<ServerOnNetwork> for ServerOnNetwork {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let record_id = UInt32::decode(stream)?;
         let server_name = UAString::decode(stream)?;

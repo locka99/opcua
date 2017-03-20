@@ -44,6 +44,7 @@ impl BinaryEncoder<ProgramDiagnosticDataType> for ProgramDiagnosticDataType {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.create_session_id.encode(stream)?;
@@ -59,6 +60,7 @@ impl BinaryEncoder<ProgramDiagnosticDataType> for ProgramDiagnosticDataType {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let create_session_id = NodeId::decode(stream)?;
         let create_client_name = UAString::decode(stream)?;

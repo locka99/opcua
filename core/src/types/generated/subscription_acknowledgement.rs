@@ -28,6 +28,7 @@ impl BinaryEncoder<SubscriptionAcknowledgement> for SubscriptionAcknowledgement 
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.subscription_id.encode(stream)?;
@@ -35,6 +36,7 @@ impl BinaryEncoder<SubscriptionAcknowledgement> for SubscriptionAcknowledgement 
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let subscription_id = UInt32::decode(stream)?;
         let sequence_number = UInt32::decode(stream)?;

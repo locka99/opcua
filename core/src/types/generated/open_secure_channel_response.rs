@@ -33,6 +33,7 @@ impl BinaryEncoder<OpenSecureChannelResponse> for OpenSecureChannelResponse {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.response_header.encode(stream)?;
@@ -42,6 +43,7 @@ impl BinaryEncoder<OpenSecureChannelResponse> for OpenSecureChannelResponse {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let response_header = ResponseHeader::decode(stream)?;
         let server_protocol_version = UInt32::decode(stream)?;

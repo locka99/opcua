@@ -39,6 +39,7 @@ impl BinaryEncoder<ReferenceDescription> for ReferenceDescription {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.reference_type_id.encode(stream)?;
@@ -51,6 +52,7 @@ impl BinaryEncoder<ReferenceDescription> for ReferenceDescription {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let reference_type_id = NodeId::decode(stream)?;
         let is_forward = Boolean::decode(stream)?;

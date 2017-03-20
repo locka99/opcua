@@ -36,6 +36,7 @@ impl BinaryEncoder<QueryFirstResponse> for QueryFirstResponse {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.response_header.encode(stream)?;
@@ -47,6 +48,7 @@ impl BinaryEncoder<QueryFirstResponse> for QueryFirstResponse {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let response_header = ResponseHeader::decode(stream)?;
         let query_data_sets: Option<Vec<QueryDataSet>> = read_array(stream)?;

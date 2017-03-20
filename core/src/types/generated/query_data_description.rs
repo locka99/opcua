@@ -30,6 +30,7 @@ impl BinaryEncoder<QueryDataDescription> for QueryDataDescription {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.relative_path.encode(stream)?;
@@ -38,6 +39,7 @@ impl BinaryEncoder<QueryDataDescription> for QueryDataDescription {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let relative_path = RelativePath::decode(stream)?;
         let attribute_id = UInt32::decode(stream)?;

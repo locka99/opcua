@@ -86,6 +86,7 @@ impl BinaryEncoder<SubscriptionDiagnosticsDataType> for SubscriptionDiagnosticsD
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.session_id.encode(stream)?;
@@ -122,6 +123,7 @@ impl BinaryEncoder<SubscriptionDiagnosticsDataType> for SubscriptionDiagnosticsD
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let session_id = NodeId::decode(stream)?;
         let subscription_id = UInt32::decode(stream)?;

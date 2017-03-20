@@ -31,6 +31,7 @@ impl BinaryEncoder<ObjectAttributes> for ObjectAttributes {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.specified_attributes.encode(stream)?;
@@ -42,6 +43,7 @@ impl BinaryEncoder<ObjectAttributes> for ObjectAttributes {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let specified_attributes = UInt32::decode(stream)?;
         let display_name = LocalizedText::decode(stream)?;

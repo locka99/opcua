@@ -29,6 +29,7 @@ impl BinaryEncoder<BrowsePathTarget> for BrowsePathTarget {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.target_id.encode(stream)?;
@@ -36,6 +37,7 @@ impl BinaryEncoder<BrowsePathTarget> for BrowsePathTarget {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let target_id = ExpandedNodeId::decode(stream)?;
         let remaining_path_index = UInt32::decode(stream)?;

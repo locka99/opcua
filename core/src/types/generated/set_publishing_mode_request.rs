@@ -30,6 +30,7 @@ impl BinaryEncoder<SetPublishingModeRequest> for SetPublishingModeRequest {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.request_header.encode(stream)?;
@@ -38,6 +39,7 @@ impl BinaryEncoder<SetPublishingModeRequest> for SetPublishingModeRequest {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream)?;
         let publishing_enabled = Boolean::decode(stream)?;

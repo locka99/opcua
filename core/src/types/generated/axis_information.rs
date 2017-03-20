@@ -34,6 +34,7 @@ impl BinaryEncoder<AxisInformation> for AxisInformation {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.engineering_units.encode(stream)?;
@@ -44,6 +45,7 @@ impl BinaryEncoder<AxisInformation> for AxisInformation {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let engineering_units = EUInformation::decode(stream)?;
         let eu_range = Range::decode(stream)?;

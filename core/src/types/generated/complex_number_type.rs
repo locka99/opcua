@@ -28,6 +28,7 @@ impl BinaryEncoder<ComplexNumberType> for ComplexNumberType {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.real.encode(stream)?;
@@ -35,6 +36,7 @@ impl BinaryEncoder<ComplexNumberType> for ComplexNumberType {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let real = Float::decode(stream)?;
         let imaginary = Float::decode(stream)?;

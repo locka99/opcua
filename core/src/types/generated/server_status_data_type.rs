@@ -36,6 +36,7 @@ impl BinaryEncoder<ServerStatusDataType> for ServerStatusDataType {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.start_time.encode(stream)?;
@@ -47,6 +48,7 @@ impl BinaryEncoder<ServerStatusDataType> for ServerStatusDataType {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let start_time = DateTime::decode(stream)?;
         let current_time = DateTime::decode(stream)?;

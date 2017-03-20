@@ -42,6 +42,7 @@ impl BinaryEncoder<EndpointConfiguration> for EndpointConfiguration {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.operation_timeout.encode(stream)?;
@@ -56,6 +57,7 @@ impl BinaryEncoder<EndpointConfiguration> for EndpointConfiguration {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let operation_timeout = Int32::decode(stream)?;
         let use_binary_encoding = Boolean::decode(stream)?;

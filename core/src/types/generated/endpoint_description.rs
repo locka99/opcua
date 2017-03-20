@@ -41,6 +41,7 @@ impl BinaryEncoder<EndpointDescription> for EndpointDescription {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.endpoint_url.encode(stream)?;
@@ -54,6 +55,7 @@ impl BinaryEncoder<EndpointDescription> for EndpointDescription {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let endpoint_url = UAString::decode(stream)?;
         let server = ApplicationDescription::decode(stream)?;

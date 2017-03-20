@@ -35,6 +35,7 @@ impl BinaryEncoder<Argument> for Argument {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.name.encode(stream)?;
@@ -45,6 +46,7 @@ impl BinaryEncoder<Argument> for Argument {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let name = UAString::decode(stream)?;
         let data_type = NodeId::decode(stream)?;

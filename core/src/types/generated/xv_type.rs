@@ -28,6 +28,7 @@ impl BinaryEncoder<XVType> for XVType {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.x.encode(stream)?;
@@ -35,6 +36,7 @@ impl BinaryEncoder<XVType> for XVType {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let x = Double::decode(stream)?;
         let value = Float::decode(stream)?;

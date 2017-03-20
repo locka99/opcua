@@ -26,6 +26,7 @@ impl BinaryEncoder<SimpleAttributeOperand> for SimpleAttributeOperand {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.type_definition_id.encode(stream)?;
@@ -35,6 +36,7 @@ impl BinaryEncoder<SimpleAttributeOperand> for SimpleAttributeOperand {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let type_definition_id = NodeId::decode(stream)?;
         let browse_path: Option<Vec<QualifiedName>> = read_array(stream)?;

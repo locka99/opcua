@@ -45,6 +45,7 @@ impl BinaryEncoder<CreateSessionResponse> for CreateSessionResponse {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.response_header.encode(stream)?;
@@ -60,6 +61,7 @@ impl BinaryEncoder<CreateSessionResponse> for CreateSessionResponse {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let response_header = ResponseHeader::decode(stream)?;
         let session_id = NodeId::decode(stream)?;

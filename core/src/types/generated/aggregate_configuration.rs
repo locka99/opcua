@@ -34,6 +34,7 @@ impl BinaryEncoder<AggregateConfiguration> for AggregateConfiguration {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.use_server_capabilities_defaults.encode(stream)?;
@@ -44,6 +45,7 @@ impl BinaryEncoder<AggregateConfiguration> for AggregateConfiguration {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let use_server_capabilities_defaults = Boolean::decode(stream)?;
         let treat_uncertain_as_bad = Boolean::decode(stream)?;

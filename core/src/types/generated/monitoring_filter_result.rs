@@ -20,15 +20,15 @@ impl MessageInfo for MonitoringFilterResult {
 
 impl BinaryEncoder<MonitoringFilterResult> for MonitoringFilterResult {
     fn byte_len(&self) -> usize {
-        let mut size = 0;
-        size
+        0
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        let mut size = 0;
-        Ok(size)
+        Ok(0)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         Ok(MonitoringFilterResult {
         })

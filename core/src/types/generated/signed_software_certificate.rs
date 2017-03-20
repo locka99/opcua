@@ -29,6 +29,7 @@ impl BinaryEncoder<SignedSoftwareCertificate> for SignedSoftwareCertificate {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.certificate_data.encode(stream)?;
@@ -36,6 +37,7 @@ impl BinaryEncoder<SignedSoftwareCertificate> for SignedSoftwareCertificate {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let certificate_data = ByteString::decode(stream)?;
         let signature = ByteString::decode(stream)?;

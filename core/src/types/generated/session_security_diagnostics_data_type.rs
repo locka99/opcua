@@ -42,6 +42,7 @@ impl BinaryEncoder<SessionSecurityDiagnosticsDataType> for SessionSecurityDiagno
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.session_id.encode(stream)?;
@@ -56,6 +57,7 @@ impl BinaryEncoder<SessionSecurityDiagnosticsDataType> for SessionSecurityDiagno
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let session_id = NodeId::decode(stream)?;
         let client_user_id_of_session = UAString::decode(stream)?;

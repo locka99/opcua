@@ -28,6 +28,7 @@ impl BinaryEncoder<ServiceCounterDataType> for ServiceCounterDataType {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.total_count.encode(stream)?;
@@ -35,6 +36,7 @@ impl BinaryEncoder<ServiceCounterDataType> for ServiceCounterDataType {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let total_count = UInt32::decode(stream)?;
         let error_count = UInt32::decode(stream)?;

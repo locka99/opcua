@@ -32,6 +32,7 @@ impl BinaryEncoder<EUInformation> for EUInformation {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.namespace_uri.encode(stream)?;
@@ -41,6 +42,7 @@ impl BinaryEncoder<EUInformation> for EUInformation {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let namespace_uri = UAString::decode(stream)?;
         let unit_id = Int32::decode(stream)?;

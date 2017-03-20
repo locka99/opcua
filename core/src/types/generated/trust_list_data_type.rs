@@ -34,6 +34,7 @@ impl BinaryEncoder<TrustListDataType> for TrustListDataType {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.specified_lists.encode(stream)?;
@@ -44,6 +45,7 @@ impl BinaryEncoder<TrustListDataType> for TrustListDataType {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let specified_lists = UInt32::decode(stream)?;
         let trusted_certificates: Option<Vec<ByteString>> = read_array(stream)?;

@@ -32,6 +32,7 @@ impl BinaryEncoder<MonitoredItemModifyResult> for MonitoredItemModifyResult {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.status_code.encode(stream)?;
@@ -41,6 +42,7 @@ impl BinaryEncoder<MonitoredItemModifyResult> for MonitoredItemModifyResult {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let status_code = StatusCode::decode(stream)?;
         let revised_sampling_interval = Double::decode(stream)?;

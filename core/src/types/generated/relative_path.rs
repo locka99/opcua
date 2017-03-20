@@ -27,12 +27,14 @@ impl BinaryEncoder<RelativePath> for RelativePath {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += write_array(stream, &self.elements)?;
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let elements: Option<Vec<RelativePathElement>> = read_array(stream)?;
         Ok(RelativePath {

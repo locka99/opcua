@@ -24,6 +24,7 @@ impl BinaryEncoder<DataChangeFilter> for DataChangeFilter {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.trigger.encode(stream)?;
@@ -32,6 +33,7 @@ impl BinaryEncoder<DataChangeFilter> for DataChangeFilter {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let trigger = DataChangeTrigger::decode(stream)?;
         let deadband_type = UInt32::decode(stream)?;

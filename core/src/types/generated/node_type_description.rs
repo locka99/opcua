@@ -30,6 +30,7 @@ impl BinaryEncoder<NodeTypeDescription> for NodeTypeDescription {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.type_definition_node.encode(stream)?;
@@ -38,6 +39,7 @@ impl BinaryEncoder<NodeTypeDescription> for NodeTypeDescription {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let type_definition_node = ExpandedNodeId::decode(stream)?;
         let include_sub_types = Boolean::decode(stream)?;

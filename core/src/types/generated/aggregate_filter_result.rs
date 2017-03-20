@@ -24,6 +24,7 @@ impl BinaryEncoder<AggregateFilterResult> for AggregateFilterResult {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.revised_start_time.encode(stream)?;
@@ -32,6 +33,7 @@ impl BinaryEncoder<AggregateFilterResult> for AggregateFilterResult {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let revised_start_time = DateTime::decode(stream)?;
         let revised_processing_interval = Double::decode(stream)?;

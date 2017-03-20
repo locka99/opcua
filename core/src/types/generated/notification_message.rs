@@ -30,6 +30,7 @@ impl BinaryEncoder<NotificationMessage> for NotificationMessage {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.sequence_number.encode(stream)?;
@@ -38,6 +39,7 @@ impl BinaryEncoder<NotificationMessage> for NotificationMessage {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let sequence_number = UInt32::decode(stream)?;
         let publish_time = DateTime::decode(stream)?;

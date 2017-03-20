@@ -31,6 +31,7 @@ impl BinaryEncoder<ViewDescription> for ViewDescription {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.view_id.encode(stream)?;
@@ -39,6 +40,7 @@ impl BinaryEncoder<ViewDescription> for ViewDescription {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let view_id = NodeId::decode(stream)?;
         let timestamp = DateTime::decode(stream)?;

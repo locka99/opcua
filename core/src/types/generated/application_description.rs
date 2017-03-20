@@ -39,6 +39,7 @@ impl BinaryEncoder<ApplicationDescription> for ApplicationDescription {
         size
     }
 
+    #[allow(unused_variables)]
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
         size += self.application_uri.encode(stream)?;
@@ -51,6 +52,7 @@ impl BinaryEncoder<ApplicationDescription> for ApplicationDescription {
         Ok(size)
     }
 
+    #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let application_uri = UAString::decode(stream)?;
         let product_uri = UAString::decode(stream)?;
