@@ -65,26 +65,62 @@ fn update_state_4() {
     assert_eq!(action, UpdateStateAction::None);
     assert_eq!(s.state, SubscriptionState::Normal);
     assert_eq!(publish_requests.len(), 1);
+
+    // TODO repeat with publishing enabled true, more notifications false
 }
 
 #[test]
 fn update_state_5() {
-    // x
+    // queue publish request
+    // set publish enabled true
+    // set more notifications true
+
+    // ensure 5
+    // ensure lifetime counter reset
+    // ensure deleted acknowledged notification msgs
+    // ensure ReturnNotifications  action
+    // ensure message_set == true
 }
 
 #[test]
 fn update_state_6() {
-    // x
+    // set publishing timer expires
+    // set publishing requ queued
+    // set publishing enabled tru
+    // set notifications available true
+
+    // ensure 6
+    // ensure lifetime counter reset
+    // ensure publishing request dequeued
+    // ensure ReturnNotifications action
+    // ensure message_sent true
 }
 
 #[test]
 fn update_state_7() {
-    // x
+    // set timer expires
+    // publishing request queued true
+    // message sent true
+    // publishing enabled false
+
+
+    // ensure 7
+    // ensure lifetime counter
+    // ensure publishing request dequeued
+    // ensure ReturnKeepAlive action
+    // ensure message_sent true
+
+    // Repeat with publishing enabled true and notifications available false
 }
 
 #[test]
 fn update_state_8() {
-    // x
+    // set timer expires
+    // set publishing request queued false
+    // set message_sent false
+
+    // ensure 8
+    // ensure start publishing timer
 }
 
 #[test]
