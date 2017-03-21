@@ -290,7 +290,7 @@ impl Subscription {
     // a request may be dequeued and potentially requeued according to the handler.
     pub fn update_state(&mut self, publish_requests: &mut Vec<PublishRequest>, publishing_timer_expired: bool) -> (u8, UpdateStateAction) {
         // Check if there is a publish request in the queue
-        let receive_publish_request: Option<PublishRequest> = publish_requests.pop();
+        let receive_publish_request = publish_requests.pop();
 
         // This is a state engine derived from OPC UA Part 4 Publish service and might look a
         // little odd for that.
@@ -320,7 +320,7 @@ impl Subscription {
                 return (3, UpdateStateAction::None);
             },
             SubscriptionState::Normal => {
-                if receive_publish_request.is_some() && !self.publishing_enabled || (self.publishing_enabled && !self.more_notifications) {
+                if receive_publish_request.is_some() && (!self.publishing_enabled || (self.publishing_enabled && !self.more_notifications)) {
                     // State #4
                     let receive_publish_request = receive_publish_request.unwrap();
                     self.delete_acked_notification_msgs(&receive_publish_request);
@@ -492,12 +492,12 @@ impl Subscription {
     /// Reset the lifetime counter to the value specified for the life time of the subscription
     /// in the create subscription service
     pub fn reset_lifetime_counter(&mut self) {
+        println!("Setting lifetime_counter to {}", self.max_lifetime_count);
         self.lifetime_counter = self.max_lifetime_count;
     }
 
     /// Start or restart the publishing timer and decrement the LifetimeCounter Variable.
     pub fn start_publishing_timer(&mut self) {
-        self.lifetime_counter -= 1;
     }
 
     /// CreateKeepAliveMsg()

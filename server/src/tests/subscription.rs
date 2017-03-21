@@ -3,9 +3,11 @@ use prelude::*;
 const DEFAULT_LIFETIME_COUNT: UInt32 = 300;
 const DEFAULT_KEEPALIVE_COUNT: UInt32 = 100;
 
-fn make_subscription() -> Subscription {
+fn make_subscription(state: SubscriptionState) -> Subscription {
     let subscription_interval = 1000f64;
-    Subscription::new(0, true, subscription_interval, DEFAULT_LIFETIME_COUNT, DEFAULT_KEEPALIVE_COUNT, 0)
+    let mut result = Subscription::new(0, true, subscription_interval, DEFAULT_LIFETIME_COUNT, DEFAULT_KEEPALIVE_COUNT, 0);
+    result.state = state;
+    result
 }
 
 fn make_publish_request_queue() -> Vec<PublishRequest> {
@@ -19,13 +21,13 @@ fn make_publish_request_queue() -> Vec<PublishRequest> {
 
 #[test]
 fn basic_subscription() {
-    let s = make_subscription();
+    let s =  Subscription::new(0, true, 1000f64, DEFAULT_LIFETIME_COUNT, DEFAULT_KEEPALIVE_COUNT, 0);
     assert!(s.state == SubscriptionState::Creating);
 }
 
 #[test]
 fn update_state_3() {
-    let mut s = make_subscription();
+    let mut s = make_subscription(SubscriptionState::Creating);
     let mut publish_requests: Vec<PublishRequest> = vec!();
 
     // Test #3 - state changes from Creating -> Normal
@@ -44,11 +46,8 @@ fn update_state_4() {
     // Create a subscription in the normal state, and an incoming publish request. Tick on a subscription
     // with no changes and ensure the request is still queued afterwards
 
-    let mut s = make_subscription();
+    let mut s = make_subscription(SubscriptionState::Normal);
     let mut publish_requests = make_publish_request_queue();
-
-    s.state = SubscriptionState::Normal;
-    s.publishing_enabled = false;
 
     // Receive Publish Request
     //    &&
@@ -58,6 +57,8 @@ fn update_state_4() {
     //            (PublishingEnabled == TRUE
     //                && MoreNotifications == FALSE)
     //    )
+
+    s.publishing_enabled = false;
 
     let publishing_timer_expired = false;
     let (handled_state, action) = s.update_state(&mut publish_requests, publishing_timer_expired);
@@ -76,24 +77,23 @@ fn update_state_5() {
     // Queue a publish request, publishing on, more notifications.
     // Ensure return notifications action
 
-    let mut s = make_subscription();
+    let mut s = make_subscription(SubscriptionState::Normal);
     let mut publish_requests = make_publish_request_queue();
 
     // queue publish request
     // set publish enabled true
     // set more notifications true
 
-    let publishing_timer_expired = false;
-
     s.publishing_enabled = true;
     s.more_notifications = true;
     s.lifetime_counter = 1;
 
+    let publishing_timer_expired = false;
     let (handled_state, action) = s.update_state(&mut publish_requests, publishing_timer_expired);
 
     assert_eq!(handled_state, 5);
-    assert_eq!(s.lifetime_counter, DEFAULT_LIFETIME_COUNT);
     assert_eq!(action, UpdateStateAction::ReturnNotifications);
+    assert_eq!(s.lifetime_counter, DEFAULT_LIFETIME_COUNT);
     assert_eq!(s.state, SubscriptionState::Normal);
     assert_eq!(s.message_sent, true);
     // TOD oensure deleted acknowledged notification msgs
@@ -103,14 +103,32 @@ fn update_state_5() {
 fn update_state_6() {
     // set publishing timer expires
     // set publishing requ queued
-    // set publishing enabled tru
+    // set publishing enabled true
     // set notifications available true
 
+    let mut s = make_subscription(SubscriptionState::Normal);
+
+    let mut publish_requests = vec![];
+    s.publishing_enabled = true;
+    s.notifications_available = true;
+    s.lifetime_counter = 3; // Expect this to be reset
+    s.publishing_req_queued = true;
+
+
+    println!("state = {:#?}", s);
+
+    let publishing_timer_expired = true;
+    let (handled_state, action) = s.update_state(&mut publish_requests, publishing_timer_expired);
+
+
+    println!("state after = {:#?}", s);
+
     // ensure 6
-    // ensure lifetime counter reset
-    // ensure publishing request dequeued
-    // ensure ReturnNotifications action
-    // ensure message_sent true
+    assert_eq!(handled_state, 6);
+    assert_eq!(action, UpdateStateAction::ReturnNotifications);
+    assert_eq!(s.lifetime_counter, DEFAULT_LIFETIME_COUNT);
+    assert_eq!(publish_requests.len(), 0);
+    assert_eq!(s.message_sent, true);
 }
 
 #[test]

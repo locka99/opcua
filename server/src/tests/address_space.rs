@@ -108,7 +108,7 @@ fn find_references_from() {
 fn find_references_to() {
     let address_space = make_sample_address_space();
 
-    println!("{:#?}", address_space);
+    //println!("{:#?}", address_space);
     let references = address_space.find_references_to(&AddressSpace::root_folder_id(), Some((ReferenceTypeId::Organizes, false)));
     assert!(references.is_none());
 

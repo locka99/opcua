@@ -97,7 +97,7 @@ fn open_secure_channel_response() {
     let chunks = vec![chunk];
 
     let message = Chunker::decode(&chunks, &secure_channel_info, None).unwrap();
-    debug!("message = {:#?}", message);
+    //debug!("message = {:#?}", message);
     let response = match message {
         SupportedMessage::OpenSecureChannelResponse(response) => response,
         _ => { panic!("Not a OpenSecureChannelResponse"); }
