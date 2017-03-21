@@ -1,5 +1,3 @@
-use chrono;
-
 use prelude::*;
 
 const DEFAULT_LIFETIME_COUNT: UInt32 = 300;
@@ -31,10 +29,8 @@ fn update_state_3() {
     let mut publish_requests: Vec<PublishRequest> = vec!();
 
     // Test #3 - state changes from Creating -> Normal
-    let now = chrono::UTC::now();
-    let items_changed = false;
     let publishing_timer_expired = false;
-    let (handled_state, action) = s.update_state(&mut publish_requests, &now, items_changed, publishing_timer_expired);
+    let (handled_state, action) = s.update_state(&mut publish_requests, publishing_timer_expired);
 
     assert_eq!(handled_state, 3);
     assert_eq!(action, UpdateStateAction::None);
@@ -63,10 +59,8 @@ fn update_state_4() {
     //                && MoreNotifications == FALSE)
     //    )
 
-    let now = chrono::UTC::now();
-    let items_changed = false;
     let publishing_timer_expired = false;
-    let (handled_state, action) = s.update_state(&mut publish_requests, &now, items_changed, publishing_timer_expired);
+    let (handled_state, action) = s.update_state(&mut publish_requests, publishing_timer_expired);
 
     assert_eq!(handled_state, 4);
     assert_eq!(action, UpdateStateAction::None);
@@ -89,15 +83,13 @@ fn update_state_5() {
     // set publish enabled true
     // set more notifications true
 
-    let now = chrono::UTC::now();
-    let items_changed = false;
     let publishing_timer_expired = false;
 
     s.publishing_enabled = true;
     s.more_notifications = true;
     s.lifetime_counter = 1;
 
-    let (handled_state, action) = s.update_state(&mut publish_requests, &now, items_changed, publishing_timer_expired);
+    let (handled_state, action) = s.update_state(&mut publish_requests, publishing_timer_expired);
 
     assert_eq!(handled_state, 5);
     assert_eq!(s.lifetime_counter, DEFAULT_LIFETIME_COUNT);

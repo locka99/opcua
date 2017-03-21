@@ -243,7 +243,7 @@ impl Subscription {
         // If items have changed or subscription interval elapsed then we may have notifications
         // to send or state to update
         let result = if items_changed || publishing_timer_expired {
-            let (_, result) = self.update_state(publish_requests, now, items_changed, publishing_timer_expired);
+            let (_, result) = self.update_state(publish_requests, publishing_timer_expired);
             match result {
                 UpdateStateAction::None => None,
                 UpdateStateAction::ReturnKeepAlive => self.return_keep_alive(),
@@ -288,7 +288,7 @@ impl Subscription {
     // Update the state of the subscription, returning a tuple containing the state that handled
     // the update and optionally any notifications. The publish requests is mutable because
     // a request may be dequeued and potentially requeued according to the handler.
-    pub fn update_state(&mut self, publish_requests: &mut Vec<PublishRequest>, now: &DateTimeUTC, items_changed: bool, publishing_timer_expired: bool) -> (u8, UpdateStateAction) {
+    pub fn update_state(&mut self, publish_requests: &mut Vec<PublishRequest>, publishing_timer_expired: bool) -> (u8, UpdateStateAction) {
         // Check if there is a publish request in the queue
         let receive_publish_request: Option<PublishRequest> = publish_requests.pop();
 
