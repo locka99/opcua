@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeMap};
 
 use chrono;
 use time;
@@ -93,8 +93,9 @@ pub struct Subscription {
     /// that created it. That assignment can only be changed through successful completion of the
     /// TransferSubscriptions Service.
     pub subscription_assigned_to_client: bool,
-    // Outgoing notifications in a map by sequence number
-    pub notifications: HashMap<UInt32, NotificationMessage>,
+    // Outgoing notifications in a map by sequence number. A b-tree is used to ensure ordering is
+    // by sequence number.
+    pub notifications: BTreeMap<UInt32, NotificationMessage>,
     // The last monitored item id
     last_monitored_item_id: UInt32,
     // The time that the subscription interval last fired
@@ -104,7 +105,6 @@ pub struct Subscription {
 }
 
 const DEFAULT_MONITORED_ITEM_CAPACITY: usize = 100;
-const DEFAULT_NOTIFICATIONS_CAPACITY: usize = 100;
 
 impl Subscription {
     pub fn new(subscription_id: UInt32, publishing_enabled: bool, publishing_interval: Double, lifetime_count: UInt32, keep_alive_count: UInt32, priority: Byte) -> Subscription {
@@ -128,7 +128,7 @@ impl Subscription {
             requested_message_found: false,
             subscription_assigned_to_client: true,
             // Outgoing notifications
-            notifications: HashMap::with_capacity(DEFAULT_NOTIFICATIONS_CAPACITY),
+            notifications: BTreeMap::new(),
             // Counters for new items
             last_monitored_item_id: 0,
             last_sample_time: chrono::UTC::now(),
@@ -173,14 +173,35 @@ impl Subscription {
                     filter_result: ExtensionObject::null()
                 }
             };
-
             results.push(result);
         }
         results
     }
 
-    // modify_monitored_items
-    // delete_monitored_items
+    /// Modify the specified monitored items, returning a result for each
+    pub fn modify_monitored_items(&mut self, items_to_modify: &[MonitoredItemModifyRequest]) -> Vec<MonitoredItemModifyResult> {
+        // TODO Implement
+        let mut result = Vec::with_capacity(items_to_modify.len());
+        for item_to_modify in items_to_modify {
+            result.push(MonitoredItemModifyResult {
+                status_code: BAD_MONITORED_ITEM_ID_INVALID.clone(),
+                revised_sampling_interval: 0f64,
+                revised_queue_size: 0,
+                filter_result: ExtensionObject::null(),
+            });
+        }
+        result
+    }
+
+    /// Delete the specified monitored items (by item id), returning a status code for each
+    pub fn delete_monitored_items(&mut self, items_to_delete: &[UInt32]) -> Vec<StatusCode> {
+        // TODO Implement
+        let mut result = Vec::with_capacity(items_to_delete.len());
+        for item_to_delete in items_to_delete {
+            result.push(BAD_MONITORED_ITEM_ID_INVALID.clone());
+        }
+        result
+    }
 
     /// Iterate all subscriptions calling tick on each. Note this could potentially be done to run in parallel
     /// assuming the action to clean dead subscriptions was a join done after all ticks had completed.
@@ -189,7 +210,7 @@ impl Subscription {
 
         let mut result = Vec::new();
 
-        // TODO remove this
+        // TODO remove this, should modify input
         let mut publish_requests = publish_requests.clone();
 
         let mut dequeue_publish_request = false;
@@ -220,8 +241,8 @@ impl Subscription {
                 match publish_request_action {
                     PublishRequestAction::Dequeue => {
                         dequeue_publish_request = true;
-                    },
-                    _ => {},
+                    }
+                    _ => {}
                 }
             }
         }
@@ -350,7 +371,7 @@ impl Subscription {
                 // self.state = Subscription::Creating;
                 // }
                 return (1, UpdateStateAction::None, PublishRequestAction::None);
-            },
+            }
             SubscriptionState::Creating => {
                 // State #2
                 // CreateSubscription fails, return negative response
@@ -360,7 +381,7 @@ impl Subscription {
                 self.state = SubscriptionState::Normal;
                 self.message_sent = false;
                 return (3, UpdateStateAction::None, PublishRequestAction::None);
-            },
+            }
             SubscriptionState::Normal => {
                 if receive_publish_request && (!self.publishing_enabled || (self.publishing_enabled && !self.more_notifications)) {
                     // State #4
@@ -397,7 +418,7 @@ impl Subscription {
                     self.state = SubscriptionState::KeepAlive;
                     return (9, UpdateStateAction::None, PublishRequestAction::None);
                 }
-            },
+            }
             SubscriptionState::Late => {
                 if receive_publish_request && self.publishing_enabled && (self.notifications_available || self.more_notifications) {
                     // State #10
@@ -418,7 +439,7 @@ impl Subscription {
                     self.start_publishing_timer();
                     return (12, UpdateStateAction::None, PublishRequestAction::None);
                 }
-            },
+            }
             SubscriptionState::KeepAlive => {
                 if receive_publish_request {
                     // State #13
@@ -446,7 +467,7 @@ impl Subscription {
                     self.state = SubscriptionState::Late;
                     return (17, UpdateStateAction::None, PublishRequestAction::None);
                 }
-            },
+            }
         }
 
         // Some more state tests that match on more than one state
@@ -526,25 +547,19 @@ impl Subscription {
     }
 
     pub fn return_notifications(&mut self) -> Option<NotificationMessage> {
-
-        let mut more_notifications = false;
-
-        let mut notifications: Vec<ExtensionObject> = Vec::with_capacity(self.notifications.len());
-
-        // TODO iterate monitored items, dequeuing notifications to result
-
-        if notifications.len() > 0 {
-            // CreateNotificationMsg()
-            // ReturnResponse()
+        if self.notifications.len() > 0 {
             // If (MoreNotifications == TRUE) && (PublishingReqQueued == TRUE)
             // {
             //   DequeuePublishReq()
             //   Loop through this function again
             // }
+            let first_key = {
+                *self.notifications.iter().next().unwrap().0
+            };
+            let result = self.notifications.remove(&first_key);
             self.more_notifications = !self.notifications.is_empty();
-            None
-        }
-        else {
+            result
+        } else {
             None
         }
     }
