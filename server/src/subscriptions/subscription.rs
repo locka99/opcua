@@ -36,6 +36,13 @@ pub enum UpdateStateAction {
     ReturnNotifications
 }
 
+/// Describes what to do with the publish request (if any)
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum PublishRequestAction {
+    None,
+    Dequeue
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Subscription {
     pub subscription_id: UInt32,
@@ -185,13 +192,17 @@ impl Subscription {
         // TODO remove this
         let mut publish_requests = publish_requests.clone();
 
+        let mut dequeue_publish_request = false;
+        let publish_request = publish_requests.pop();
+
         let now = chrono::UTC::now();
         for (subscription_id, subscription) in subscriptions.iter_mut() {
             // Dead subscriptions will be removed at the end
             if subscription.state == SubscriptionState::Closed {
                 dead_subscriptions.push(*subscription_id);
             } else {
-                if let Some(notification_message) = subscription.tick(address_space, &mut publish_requests, &now) {
+                let (notification_message, publish_request_action) = subscription.tick(address_space, &publish_request, &now);
+                if let Some(notification_message) = notification_message {
                     let publish_response = PublishResponse {
                         response_header: ResponseHeader::new_notification_response(&DateTime::now(), &GOOD),
                         subscription_id: *subscription_id,
@@ -205,8 +216,20 @@ impl Subscription {
                     };
                     result.push(SupportedMessage::PublishResponse(publish_response));
                 }
+                // Determine if publish request should be dequeued (after processing all subscriptions)
+                match publish_request_action {
+                    PublishRequestAction::Dequeue => {
+                        dequeue_publish_request = true;
+                    },
+                    _ => {},
+                }
             }
         }
+
+        if publish_request.is_some() && !dequeue_publish_request {
+            publish_requests.push(publish_request.unwrap());
+        }
+
         // Remove dead subscriptions
         for subscription_id in dead_subscriptions {
             subscriptions.remove(&subscription_id);
@@ -221,7 +244,7 @@ impl Subscription {
 
     /// Checks the subscription and monitored items for state change, messages. If the tick does
     /// nothing, the function returns None. Otherwise it returns one or more messages in an Vec.
-    fn tick(&mut self, address_space: &AddressSpace, publish_requests: &mut Vec<PublishRequest>, now: &DateTimeUTC) -> Option<NotificationMessage> {
+    fn tick(&mut self, address_space: &AddressSpace, publish_request: &Option<PublishRequest>, now: &DateTimeUTC) -> (Option<NotificationMessage>, PublishRequestAction) {
         debug!("subscription tick {}", self.subscription_id);
 
         // Test if the interval has elapsed.
@@ -243,14 +266,15 @@ impl Subscription {
         // If items have changed or subscription interval elapsed then we may have notifications
         // to send or state to update
         let result = if items_changed || publishing_timer_expired {
-            let (_, result) = self.update_state(publish_requests, publishing_timer_expired);
-            match result {
+            let (_, update_state_action, publish_request_action) = self.update_state(publish_request, publishing_timer_expired);
+            let notifications = match update_state_action {
                 UpdateStateAction::None => None,
                 UpdateStateAction::ReturnKeepAlive => self.return_keep_alive(),
                 UpdateStateAction::ReturnNotifications => self.return_notifications(),
-            }
+            };
+            (notifications, publish_request_action)
         } else {
-            None
+            (None, PublishRequestAction::None)
         };
 
         // Check if the subscription interval has been exceeded since last call
@@ -285,12 +309,30 @@ impl Subscription {
         }
     }
 
-    // Update the state of the subscription, returning a tuple containing the state that handled
-    // the update and optionally any notifications. The publish requests is mutable because
-    // a request may be dequeued and potentially requeued according to the handler.
-    pub fn update_state(&mut self, publish_requests: &mut Vec<PublishRequest>, publishing_timer_expired: bool) -> (u8, UpdateStateAction) {
-        // Check if there is a publish request in the queue
-        let receive_publish_request = publish_requests.pop();
+    // See OPC UA Part 4 5.13.1.2 State Table
+    //
+    // This function implements the main guts of updating the subscription's state according to
+    // some input events and its existing internal state.
+    //
+    // Calls to the function will update the internal state of and return a tuple with any required
+    // actions.
+    //
+    // Note that some state events are handled outside of update_state. e.g. the subscription
+    // is created elsewhere which handles states 1, 2 and 3.
+    //
+    // Inputs:
+    //
+    // * publish_request - an optional publish request. May be used by subscription to remove acknowledged notifications
+    // * publishing_timer_expired - true if state is being updated in response to the subscription timer firing
+    //
+    // Returns in order:
+    //
+    // * State id that handled this call. Useful for debugging which state handler triggered
+    // * Update state action - none, return notifications, return keep alive
+    // * Publishing request action - nothing, dequeue
+    //
+    pub fn update_state(&mut self, publish_request: &Option<PublishRequest>, publishing_timer_expired: bool) -> (u8, UpdateStateAction, PublishRequestAction) {
+        let receive_publish_request = publish_request.is_some();
 
         // This is a state engine derived from OPC UA Part 4 Publish service and might look a
         // little odd for that.
@@ -307,7 +349,7 @@ impl Subscription {
                 // if receive_create_subscription {
                 // self.state = Subscription::Creating;
                 // }
-                return (1, UpdateStateAction::None);
+                return (1, UpdateStateAction::None, PublishRequestAction::None);
             },
             SubscriptionState::Creating => {
                 // State #2
@@ -317,99 +359,92 @@ impl Subscription {
                 // State #3
                 self.state = SubscriptionState::Normal;
                 self.message_sent = false;
-                return (3, UpdateStateAction::None);
+                return (3, UpdateStateAction::None, PublishRequestAction::None);
             },
             SubscriptionState::Normal => {
-                if receive_publish_request.is_some() && (!self.publishing_enabled || (self.publishing_enabled && !self.more_notifications)) {
+                if receive_publish_request && (!self.publishing_enabled || (self.publishing_enabled && !self.more_notifications)) {
                     // State #4
-                    let receive_publish_request = receive_publish_request.unwrap();
-                    self.delete_acked_notification_msgs(&receive_publish_request);
-                    publish_requests.push(receive_publish_request); // enqueue_publishing_request
-                    return (4, UpdateStateAction::None);
-                } else if receive_publish_request.is_some() && self.publishing_enabled && self.more_notifications {
+                    let publish_request = publish_request.as_ref().unwrap();
+                    self.delete_acked_notification_msgs(publish_request);
+                    return (4, UpdateStateAction::None, PublishRequestAction::None);
+                } else if receive_publish_request && self.publishing_enabled && self.more_notifications {
                     // State #5
                     self.reset_lifetime_counter();
-                    self.delete_acked_notification_msgs(receive_publish_request.as_ref().unwrap());
+                    self.delete_acked_notification_msgs(publish_request.as_ref().unwrap());
                     self.message_sent = true;
-                    return (5, UpdateStateAction::ReturnNotifications);
+                    return (5, UpdateStateAction::ReturnNotifications, PublishRequestAction::None);
                 } else if publishing_timer_expired && self.publishing_req_queued && self.publishing_enabled && self.notifications_available {
                     // State #6
                     self.reset_lifetime_counter();
                     self.start_publishing_timer();
-                    self.dequeue_publish_request(publish_requests);
                     self.message_sent = true;
-                    return (6, UpdateStateAction::ReturnNotifications);
+                    return (6, UpdateStateAction::ReturnNotifications, PublishRequestAction::Dequeue);
                 } else if publishing_timer_expired && self.publishing_req_queued && !self.message_sent && (!self.publishing_enabled || (self.publishing_enabled && !self.notifications_available)) {
                     // State #7
                     self.reset_lifetime_counter();
                     self.start_publishing_timer();
-                    self.dequeue_publish_request(publish_requests);
                     self.message_sent = true;
-                    return (7, UpdateStateAction::ReturnKeepAlive);
+                    return (7, UpdateStateAction::ReturnKeepAlive, PublishRequestAction::Dequeue);
                 } else if publishing_timer_expired && !self.publishing_req_queued && (!self.message_sent || (self.publishing_enabled && self.notifications_available)) {
                     // State #8
                     self.start_publishing_timer();
                     self.state = SubscriptionState::Late;
-                    return (8, UpdateStateAction::None);
+                    return (8, UpdateStateAction::None, PublishRequestAction::None);
                 } else if publishing_timer_expired && self.message_sent && (!self.publishing_enabled || (self.publishing_enabled && !self.notifications_available)) {
                     // State #9
                     self.start_publishing_timer();
                     self.reset_keep_alive_counter();
                     self.state = SubscriptionState::KeepAlive;
-                    return (9, UpdateStateAction::None);
+                    return (9, UpdateStateAction::None, PublishRequestAction::None);
                 }
             },
             SubscriptionState::Late => {
-                if receive_publish_request.is_some() && self.publishing_enabled && (self.notifications_available || self.more_notifications) {
+                if receive_publish_request && self.publishing_enabled && (self.notifications_available || self.more_notifications) {
                     // State #10
                     self.reset_lifetime_counter();
-                    self.delete_acked_notification_msgs(receive_publish_request.as_ref().unwrap());
+                    self.delete_acked_notification_msgs(publish_request.as_ref().unwrap());
                     self.state = SubscriptionState::Normal;
                     self.message_sent = true;
-                    return (10, UpdateStateAction::ReturnNotifications);
-                } else if receive_publish_request.is_some() && (!self.publishing_enabled || (self.publishing_enabled && !self.notifications_available && !self.more_notifications)) {
+                    return (10, UpdateStateAction::ReturnNotifications, PublishRequestAction::None);
+                } else if receive_publish_request && (!self.publishing_enabled || (self.publishing_enabled && !self.notifications_available && !self.more_notifications)) {
                     // State #11
                     self.reset_lifetime_counter();
-                    self.delete_acked_notification_msgs(receive_publish_request.as_ref().unwrap());
+                    self.delete_acked_notification_msgs(publish_request.as_ref().unwrap());
                     self.state = SubscriptionState::KeepAlive;
                     self.message_sent = true;
-                    return (11, UpdateStateAction::ReturnKeepAlive);
+                    return (11, UpdateStateAction::ReturnKeepAlive, PublishRequestAction::None);
                 } else if publishing_timer_expired {
                     // State #12
                     self.start_publishing_timer();
-                    return (12, UpdateStateAction::None);
+                    return (12, UpdateStateAction::None, PublishRequestAction::None);
                 }
             },
             SubscriptionState::KeepAlive => {
-                if receive_publish_request.is_some() {
+                if receive_publish_request {
                     // State #13
-                    let receive_publish_request = receive_publish_request.unwrap();
-                    self.delete_acked_notification_msgs(&receive_publish_request);
-                    publish_requests.push(receive_publish_request); // enqueue_publishing_request
-                    return (13, UpdateStateAction::None);
+                    self.delete_acked_notification_msgs(publish_request.as_ref().unwrap());
+                    return (13, UpdateStateAction::None, PublishRequestAction::None);
                 } else if publishing_timer_expired && self.publishing_enabled && self.notifications_available && self.publishing_req_queued {
                     // State #14
-                    self.dequeue_publish_request(publish_requests);
                     self.message_sent = true;
                     self.state = SubscriptionState::Normal;
-                    return (14, UpdateStateAction::ReturnNotifications);
+                    return (14, UpdateStateAction::ReturnNotifications, PublishRequestAction::Dequeue);
                 } else if publishing_timer_expired && self.publishing_req_queued && self.keep_alive_counter == 1 &&
                     !self.publishing_enabled || (self.publishing_enabled && self.notifications_available) {
                     // State #15
                     self.start_publishing_timer();
-                    self.dequeue_publish_request(publish_requests);
                     self.reset_keep_alive_counter();
-                    return (15, UpdateStateAction::ReturnKeepAlive);
+                    return (15, UpdateStateAction::ReturnKeepAlive, PublishRequestAction::Dequeue);
                 } else if publishing_timer_expired && self.keep_alive_counter > 1 && (!self.publishing_enabled || (self.publishing_enabled && !self.notifications_available)) {
                     // State #16
                     self.start_publishing_timer();
                     self.keep_alive_counter -= 1;
-                    return (16, UpdateStateAction::None);
+                    return (16, UpdateStateAction::None, PublishRequestAction::None);
                 } else if publishing_timer_expired && !self.publishing_req_queued && (self.keep_alive_counter == 1 || (self.keep_alive_counter > 1 && self.publishing_enabled && self.notifications_available)) {
                     // State #17
                     self.start_publishing_timer();
                     self.state = SubscriptionState::Late;
-                    return (17, UpdateStateAction::None);
+                    return (17, UpdateStateAction::None, PublishRequestAction::None);
                 }
             },
         }
@@ -433,7 +468,7 @@ impl Subscription {
             }
         }
 
-        (0, UpdateStateAction::None)
+        (0, UpdateStateAction::None, PublishRequestAction::None)
     }
 
     /// Deletes the acknowledged notifications, returning a list of status code for each according
@@ -466,22 +501,6 @@ impl Subscription {
         }
     }
 
-    /// De-queue a publishing request in first-in first-out order.
-    /// Validate if the publish request is still valid by checking the timeoutHint in the
-    /// RequestHeader. If the request timed out, send a BAD_TIMEOUT service result for the request
-    /// and de-queue another publish request.
-    ///
-    /// The implementation will dequeue a PublishRequest if there is one and it is valid. If there
-    /// is no request then it will return None. If there is a request but it has timed out it will return
-    /// a PublishResponse with a timeout service result
-    pub fn dequeue_publish_request(&mut self, request_queue: &mut Vec<PublishRequest>) -> Result<PublishRequest, Option<PublishResponse>> {
-        if request_queue.is_empty() {
-            Err(None)
-        } else {
-            Ok(request_queue.pop().unwrap())
-        }
-    }
-
     /// Reset the keep-alive counter to the maximum keep-alive count of the Subscription.
     /// The maximum keep-alive count is set by the Client when the Subscription is created
     /// and may be modified using the ModifySubscription Service
@@ -497,8 +516,7 @@ impl Subscription {
     }
 
     /// Start or restart the publishing timer and decrement the LifetimeCounter Variable.
-    pub fn start_publishing_timer(&mut self) {
-    }
+    pub fn start_publishing_timer(&mut self) {}
 
     /// CreateKeepAliveMsg()
     /// ReturnResponse()
@@ -508,13 +526,26 @@ impl Subscription {
     }
 
     pub fn return_notifications(&mut self) -> Option<NotificationMessage> {
-        /// CreateNotificationMsg()
-        /// ReturnResponse()
-        /// If (MoreNotifications == TRUE) && (PublishingReqQueued == TRUE)
-        /// {
-        ///   DequeuePublishReq()
-        ///   Loop through this function again
-        /// }
-        None
+
+        let mut more_notifications = false;
+
+        let mut notifications: Vec<ExtensionObject> = Vec::with_capacity(self.notifications.len());
+
+        // TODO iterate monitored items, dequeuing notifications to result
+
+        if notifications.len() > 0 {
+            // CreateNotificationMsg()
+            // ReturnResponse()
+            // If (MoreNotifications == TRUE) && (PublishingReqQueued == TRUE)
+            // {
+            //   DequeuePublishReq()
+            //   Loop through this function again
+            // }
+            self.more_notifications = !self.notifications.is_empty();
+            None
+        }
+        else {
+            None
+        }
     }
 }

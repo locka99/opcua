@@ -10,34 +10,33 @@ fn make_subscription(state: SubscriptionState) -> Subscription {
     result
 }
 
-fn make_publish_request_queue() -> Vec<PublishRequest> {
-    vec!(
-        PublishRequest {
-            request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
-            subscription_acknowledgements: None,
-        }
-    )
+fn make_publish_request() -> PublishRequest {
+    PublishRequest {
+        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+        subscription_acknowledgements: None,
+    }
 }
 
 #[test]
 fn basic_subscription() {
-    let s =  Subscription::new(0, true, 1000f64, DEFAULT_LIFETIME_COUNT, DEFAULT_KEEPALIVE_COUNT, 0);
+    let s = Subscription::new(0, true, 1000f64, DEFAULT_LIFETIME_COUNT, DEFAULT_KEEPALIVE_COUNT, 0);
     assert!(s.state == SubscriptionState::Creating);
 }
 
 #[test]
 fn update_state_3() {
     let mut s = make_subscription(SubscriptionState::Creating);
-    let mut publish_requests: Vec<PublishRequest> = vec!();
+    let publish_request = None;
 
     // Test #3 - state changes from Creating -> Normal
     let publishing_timer_expired = false;
-    let (handled_state, action) = s.update_state(&mut publish_requests, publishing_timer_expired);
+    let (handled_state, update_state_action, publish_request_action) = s.update_state(&publish_request, publishing_timer_expired);
 
     assert_eq!(handled_state, 3);
-    assert_eq!(action, UpdateStateAction::None);
-    assert_eq!(s.message_sent, false);
+    assert_eq!(update_state_action, UpdateStateAction::None);
+    assert_eq!(publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::Normal);
+    assert_eq!(s.message_sent, false);
 }
 
 #[test]
@@ -47,7 +46,7 @@ fn update_state_4() {
     // with no changes and ensure the request is still queued afterwards
 
     let mut s = make_subscription(SubscriptionState::Normal);
-    let mut publish_requests = make_publish_request_queue();
+    let publish_request = Some(make_publish_request());
 
     // Receive Publish Request
     //    &&
@@ -61,12 +60,12 @@ fn update_state_4() {
     s.publishing_enabled = false;
 
     let publishing_timer_expired = false;
-    let (handled_state, action) = s.update_state(&mut publish_requests, publishing_timer_expired);
+    let (handled_state, update_state_action, publish_request_action) = s.update_state(&publish_request, publishing_timer_expired);
 
     assert_eq!(handled_state, 4);
-    assert_eq!(action, UpdateStateAction::None);
+    assert_eq!(update_state_action, UpdateStateAction::None);
+    assert_eq!(publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::Normal);
-    assert_eq!(publish_requests.len(), 1);
 
     // TODO repeat with publishing enabled true, more notifications false
 }
@@ -78,7 +77,9 @@ fn update_state_5() {
     // Ensure return notifications action
 
     let mut s = make_subscription(SubscriptionState::Normal);
-    let mut publish_requests = make_publish_request_queue();
+    let publish_request = Some(make_publish_request());
+
+    // TODO publish request should include some acknowledgements
 
     // queue publish request
     // set publish enabled true
@@ -89,14 +90,16 @@ fn update_state_5() {
     s.lifetime_counter = 1;
 
     let publishing_timer_expired = false;
-    let (handled_state, action) = s.update_state(&mut publish_requests, publishing_timer_expired);
+    let (handled_state, update_state_action, publish_request_action) = s.update_state(&publish_request, publishing_timer_expired);
 
     assert_eq!(handled_state, 5);
-    assert_eq!(action, UpdateStateAction::ReturnNotifications);
-    assert_eq!(s.lifetime_counter, DEFAULT_LIFETIME_COUNT);
+    assert_eq!(update_state_action, UpdateStateAction::ReturnNotifications);
+    assert_eq!(publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::Normal);
+    assert_eq!(s.lifetime_counter, s.max_lifetime_count);
     assert_eq!(s.message_sent, true);
-    // TOD oensure deleted acknowledged notification msgs
+
+    // TODO ensure deleted acknowledged notification msgs
 }
 
 #[test]
@@ -108,26 +111,21 @@ fn update_state_6() {
 
     let mut s = make_subscription(SubscriptionState::Normal);
 
-    let mut publish_requests = vec![];
+    let publish_request = None;
     s.publishing_enabled = true;
     s.notifications_available = true;
     s.lifetime_counter = 3; // Expect this to be reset
     s.publishing_req_queued = true;
 
-
-    println!("state = {:#?}", s);
-
     let publishing_timer_expired = true;
-    let (handled_state, action) = s.update_state(&mut publish_requests, publishing_timer_expired);
-
-
-    println!("state after = {:#?}", s);
+    let (handled_state, update_state_action, publish_request_action) = s.update_state(&publish_request, publishing_timer_expired);
 
     // ensure 6
     assert_eq!(handled_state, 6);
-    assert_eq!(action, UpdateStateAction::ReturnNotifications);
-    assert_eq!(s.lifetime_counter, DEFAULT_LIFETIME_COUNT);
-    assert_eq!(publish_requests.len(), 0);
+    assert_eq!(update_state_action, UpdateStateAction::ReturnNotifications);
+    assert_eq!(publish_request_action, PublishRequestAction::Dequeue);
+    assert_eq!(s.state, SubscriptionState::Normal);
+    assert_eq!(s.lifetime_counter, s.max_lifetime_count);
     assert_eq!(s.message_sent, true);
 }
 
@@ -138,14 +136,24 @@ fn update_state_7() {
     // message sent true
     // publishing enabled false
 
+    let mut s = make_subscription(SubscriptionState::Normal);
 
-    // ensure 7
-    // ensure lifetime counter
-    // ensure publishing request dequeued
-    // ensure ReturnKeepAlive action
-    // ensure message_sent true
+    let publish_request = None;
+    s.publishing_req_queued = true;
+    s.message_sent = false;
+    s.publishing_enabled = true;
 
-    // Repeat with publishing enabled true and notifications available false
+    let publishing_timer_expired = true;
+    let (handled_state, update_state_action, publish_request_action) = s.update_state(&publish_request, publishing_timer_expired);
+
+    assert_eq!(handled_state, 7);
+    assert_eq!(update_state_action, UpdateStateAction::ReturnKeepAlive);
+    assert_eq!(publish_request_action, PublishRequestAction::Dequeue);
+    assert_eq!(s.state, SubscriptionState::Normal);
+    assert_eq!(s.lifetime_counter, s.max_lifetime_count);
+    assert_eq!(s.message_sent, true);
+
+    // TODO Repeat with publishing enabled true and notifications available false
 }
 
 #[test]
@@ -154,51 +162,189 @@ fn update_state_8() {
     // set publishing request queued false
     // set message_sent false
 
-    // ensure 8
+    let mut s = make_subscription(SubscriptionState::Normal);
+
+    let publish_request = None;
+    s.publishing_req_queued = false;
+    s.message_sent = false;
+
+    let publishing_timer_expired = true;
+    let (handled_state, update_state_action, publish_request_action) = s.update_state(&publish_request, publishing_timer_expired);
+
+    assert_eq!(handled_state, 8);
+    assert_eq!(update_state_action, UpdateStateAction::None);
+    assert_eq!(publish_request_action, PublishRequestAction::None);
+    assert_eq!(s.state, SubscriptionState::Late);
     // ensure start publishing timer
 }
 
 #[test]
 fn update_state_9() {
-    // x
+    // set timer expires
+    // set publishing request queued false
+    // set message_sent false
+
+    let mut s = make_subscription(SubscriptionState::Normal);
+
+    let publish_request = None;
+    s.message_sent = true;
+    s.publishing_enabled = false;
+    s.keep_alive_counter = 3;
+
+    let publishing_timer_expired = true;
+    let (handled_state, update_state_action, publish_request_action) = s.update_state(&publish_request, publishing_timer_expired);
+
+    assert_eq!(handled_state, 9);
+    assert_eq!(update_state_action, UpdateStateAction::None);
+    assert_eq!(publish_request_action, PublishRequestAction::None);
+    assert_eq!(s.state, SubscriptionState::KeepAlive);
+    assert_eq!(s.keep_alive_counter, s.max_keep_alive_count);
 }
 
 #[test]
 fn update_state_10() {
-    // x
+    let mut s = make_subscription(SubscriptionState::Late);
+
+    let publish_request = Some(make_publish_request());
+
+    s.publishing_enabled = true;
+    s.notifications_available = true;
+
+    let publishing_timer_expired = true;
+    let (handled_state, update_state_action, publish_request_action) = s.update_state(&publish_request, publishing_timer_expired);
+
+    assert_eq!(handled_state, 10);
+    assert_eq!(update_state_action, UpdateStateAction::ReturnNotifications);
+    assert_eq!(publish_request_action, PublishRequestAction::None);
+    assert_eq!(s.state, SubscriptionState::Normal);
+    assert_eq!(s.message_sent, true);
 }
 
 #[test]
 fn update_state_11() {
-    // x
+    let mut s = make_subscription(SubscriptionState::Late);
+
+    let publish_request = Some(make_publish_request());
+
+    s.publishing_enabled = true;
+    s.notifications_available = false;
+
+    let publishing_timer_expired = true;
+    let (handled_state, update_state_action, publish_request_action) = s.update_state(&publish_request, publishing_timer_expired);
+
+    assert_eq!(handled_state, 11);
+    assert_eq!(update_state_action, UpdateStateAction::ReturnKeepAlive);
+    assert_eq!(publish_request_action, PublishRequestAction::None);
+    assert_eq!(s.state, SubscriptionState::KeepAlive);
+    assert_eq!(s.message_sent, true);
 }
 
 #[test]
 fn update_state_12() {
-    // x
+    let mut s = make_subscription(SubscriptionState::Late);
+
+    let publish_request = None;
+
+    s.publishing_enabled = true;
+    s.notifications_available = false;
+
+    let publishing_timer_expired = true;
+    let (handled_state, update_state_action, publish_request_action) = s.update_state(&publish_request, publishing_timer_expired);
+
+    assert_eq!(handled_state, 12);
+    assert_eq!(update_state_action, UpdateStateAction::None);
+    assert_eq!(publish_request_action, PublishRequestAction::None);
+    assert_eq!(s.state, SubscriptionState::Late);
 }
 
 #[test]
 fn update_state_13() {
-    // x
+    let mut s = make_subscription(SubscriptionState::KeepAlive);
+
+    let publish_request = Some(make_publish_request());
+
+    let publishing_timer_expired = false;
+    let (handled_state, update_state_action, publish_request_action) = s.update_state(&publish_request, publishing_timer_expired);
+
+    assert_eq!(handled_state, 13);
+    assert_eq!(update_state_action, UpdateStateAction::None);
+    assert_eq!(publish_request_action, PublishRequestAction::None);
+    assert_eq!(s.state, SubscriptionState::KeepAlive);
 }
 
 #[test]
 fn update_state_14() {
-    // x
+    let mut s = make_subscription(SubscriptionState::KeepAlive);
+
+    let publish_request = None;
+
+    let publishing_timer_expired = true;
+    s.publishing_enabled = true;
+    s.notifications_available = true;
+    s.publishing_req_queued = true;
+
+    let (handled_state, update_state_action, publish_request_action) = s.update_state(&publish_request, publishing_timer_expired);
+
+    assert_eq!(handled_state, 14);
+    assert_eq!(update_state_action, UpdateStateAction::ReturnNotifications);
+    assert_eq!(publish_request_action, PublishRequestAction::Dequeue);
+    assert_eq!(s.state, SubscriptionState::Normal);
 }
 
 #[test]
 fn update_state_15() {
-    // x
+    let mut s = make_subscription(SubscriptionState::KeepAlive);
+
+    let publish_request = None;
+
+    let publishing_timer_expired = true;
+    s.publishing_req_queued = true;
+    s.keep_alive_counter = 1;
+    s.publishing_enabled = false;
+
+    let (handled_state, update_state_action, publish_request_action) = s.update_state(&publish_request, publishing_timer_expired);
+
+    assert_eq!(handled_state, 15);
+    assert_eq!(update_state_action, UpdateStateAction::ReturnKeepAlive);
+    assert_eq!(publish_request_action, PublishRequestAction::Dequeue);
+    assert_eq!(s.state, SubscriptionState::KeepAlive);
+    assert_eq!(s.keep_alive_counter, s.max_keep_alive_count);
 }
 
 #[test]
 fn update_state_16() {
-    // x
+    let mut s = make_subscription(SubscriptionState::KeepAlive);
+
+    let publish_request = None;
+
+    let publishing_timer_expired = true;
+    s.keep_alive_counter = 5;
+    s.publishing_enabled = false;
+
+    let (handled_state, update_state_action, publish_request_action) = s.update_state(&publish_request, publishing_timer_expired);
+
+    assert_eq!(handled_state, 16);
+    assert_eq!(update_state_action, UpdateStateAction::None);
+    assert_eq!(publish_request_action, PublishRequestAction::None);
+    assert_eq!(s.state, SubscriptionState::KeepAlive);
+    assert_eq!(s.keep_alive_counter, 4);
 }
 
 #[test]
 fn update_state_17() {
-    // x
+    let mut s = make_subscription(SubscriptionState::KeepAlive);
+
+    let publish_request = None;
+
+    let publishing_timer_expired = true;
+    s.publishing_req_queued = false;
+    s.keep_alive_counter = 1;
+
+    let (handled_state, update_state_action, publish_request_action) = s.update_state(&publish_request, publishing_timer_expired);
+
+    assert_eq!(handled_state, 17);
+    assert_eq!(update_state_action, UpdateStateAction::None);
+    assert_eq!(publish_request_action, PublishRequestAction::None);
+    assert_eq!(s.state, SubscriptionState::Late);
+    assert_eq!(s.keep_alive_counter, 1);
 }
