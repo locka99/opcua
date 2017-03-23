@@ -257,10 +257,11 @@ impl Subscription {
                 monitored_item_notifications.push(monitored_item.get_notification_message().unwrap());
             }
         }
-        if !monitored_item_notifications.is_empty() {
+        if monitored_item_notifications.len() > 0 {
             // Create a notification message in the map
             self.last_sequence_number += 1;
             let sequence_number = self.last_sequence_number;
+            debug!("Monitored items, seq nr = {}, nr notifications = {}", sequence_number, monitored_item_notifications.len());
             let notification = NotificationMessage::new_data_change(sequence_number, &DateTime::now(), monitored_item_notifications);
             self.notifications.insert(sequence_number, notification);
             true
@@ -497,6 +498,7 @@ impl Subscription {
             };
             let result = self.notifications.remove(&first_key);
             self.more_notifications = !self.notifications.is_empty();
+            debug!("Returning notifications, more_notifications = {}", self.more_notifications);
             result
         } else {
             None
