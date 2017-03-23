@@ -18,7 +18,7 @@ use opcua_core::debug::*;
 use server::ServerState;
 use session::SessionState;
 use comms::message_handler::*;
-use subscriptions::{Subscription, SubscriptionEvent};
+use subscriptions::{SubscriptionEvent};
 
 // TODO these need to go, and use session_state settings
 const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;
@@ -238,8 +238,6 @@ impl TcpTransport {
             // Manage subscriptions
             debug!("Timer fired");
             let mut session_state = session_state.lock().unwrap();
-            let server_state = server_state.lock().unwrap();
-            let address_space = server_state.address_space.lock().unwrap();
 
             // Request queue might contain stale publish requests
             if let Some(messages) = session_state.expire_stale_publish_requests(&UTC::now()) {
@@ -247,9 +245,12 @@ impl TcpTransport {
             }
 
             // Process subscriptions
-            let mut subscriptions = session_state.subscriptions.lock().unwrap();
-            if let Some(messages) = Subscription::tick_subscriptions(&address_space, &session_state.publish_request_queue, &mut subscriptions) {
-                let _ = subscription_timer_tx.send(SubscriptionEvent::Messages(messages));
+            {
+                let server_state = server_state.lock().unwrap();
+                let address_space = server_state.address_space.lock().unwrap();
+                if let Some(messages) = session_state.tick_subscriptions(&address_space) {
+                    let _ = subscription_timer_tx.send(SubscriptionEvent::Messages(messages));
+                }
             }
         });
         (subscription_timer, subscription_timer_guard, subscription_timer_rx)

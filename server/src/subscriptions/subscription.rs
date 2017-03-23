@@ -4,7 +4,6 @@ use chrono;
 use time;
 
 use opcua_core::types::*;
-use opcua_core::services::*;
 use opcua_core::comms::*;
 
 use DateTimeUTC;
@@ -203,69 +202,9 @@ impl Subscription {
         result
     }
 
-    /// Iterate all subscriptions calling tick on each. Note this could potentially be done to run in parallel
-    /// assuming the action to clean dead subscriptions was a join done after all ticks had completed.
-    pub fn tick_subscriptions(address_space: &AddressSpace, publish_requests: &Vec<PublishRequest>, subscriptions: &mut HashMap<UInt32, Subscription>) -> Option<Vec<SupportedMessage>> {
-        let mut dead_subscriptions: Vec<u32> = Vec::with_capacity(5);
-
-        let mut result = Vec::new();
-
-        // TODO remove this, should modify input
-        let mut publish_requests = publish_requests.clone();
-
-        let mut dequeue_publish_request = false;
-        let publish_request = publish_requests.pop();
-
-        let now = chrono::UTC::now();
-        for (subscription_id, subscription) in subscriptions.iter_mut() {
-            // Dead subscriptions will be removed at the end
-            if subscription.state == SubscriptionState::Closed {
-                dead_subscriptions.push(*subscription_id);
-            } else {
-                let (notification_message, publish_request_action) = subscription.tick(address_space, &publish_request, &now);
-                if let Some(notification_message) = notification_message {
-                    let publish_response = PublishResponse {
-                        response_header: ResponseHeader::new_notification_response(&DateTime::now(), &GOOD),
-                        subscription_id: *subscription_id,
-                        available_sequence_numbers: None,
-                        // TODO
-                        more_notifications: subscription.more_notifications,
-                        notification_message: notification_message,
-                        results: None,
-                        // TODO
-                        diagnostic_infos: None,
-                    };
-                    result.push(SupportedMessage::PublishResponse(publish_response));
-                }
-                // Determine if publish request should be dequeued (after processing all subscriptions)
-                match publish_request_action {
-                    PublishRequestAction::Dequeue => {
-                        dequeue_publish_request = true;
-                    }
-                    _ => {}
-                }
-            }
-        }
-
-        if publish_request.is_some() && !dequeue_publish_request {
-            publish_requests.push(publish_request.unwrap());
-        }
-
-        // Remove dead subscriptions
-        for subscription_id in dead_subscriptions {
-            subscriptions.remove(&subscription_id);
-        }
-
-        if result.is_empty() {
-            None
-        } else {
-            Some(result)
-        }
-    }
-
     /// Checks the subscription and monitored items for state change, messages. If the tick does
     /// nothing, the function returns None. Otherwise it returns one or more messages in an Vec.
-    fn tick(&mut self, address_space: &AddressSpace, publish_request: &Option<PublishRequest>, now: &DateTimeUTC) -> (Option<NotificationMessage>, PublishRequestAction) {
+    pub fn tick(&mut self, address_space: &AddressSpace, publish_request: &Option<PublishRequest>, now: &DateTimeUTC) -> (Option<NotificationMessage>, PublishRequestAction) {
         debug!("subscription tick {}", self.subscription_id);
 
         // Test if the interval has elapsed.
