@@ -54,7 +54,7 @@ pub fn server_config_save() {
 #[test]
 pub fn expired_publish_requests() {
     let now = chrono::UTC::now();
-    let now_plus_30s = now + time::Duration::seconds(30i64);
+    let now_plus_30s = now + time::Duration::seconds(30);
 
     // Create two publish requests timestamped now, one which expires in > 30s, one which expires
     // in > 20s
@@ -63,7 +63,7 @@ pub fn expired_publish_requests() {
         request_header: RequestHeader::new(&NodeId::null(), &now, 1000),
         subscription_acknowledgements: None,
     };
-    pr1.request_header.timeout_hint = 30001;
+    pr1.request_header.timeout_hint = 31000;
 
     let mut pr2 = PublishRequest {
         request_header: RequestHeader::new(&NodeId::null(), &now, 2000),

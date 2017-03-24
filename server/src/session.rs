@@ -62,7 +62,7 @@ impl SessionState {
                 if subscription.state == SubscriptionState::Closed {
                     dead_subscriptions.push(*subscription_id);
                 } else {
-                    let (notification_message, publish_request_action) = subscription.tick(address_space, &publish_request, &now);
+                    let (notification_message, publish_request_action, subscription_ack_results) = subscription.tick(address_space, &publish_request, &now);
                     if let Some(notification_message) = notification_message {
                         let publish_response = PublishResponse {
                             response_header: ResponseHeader::new_notification_response(&DateTime::now(), &GOOD),
@@ -97,12 +97,7 @@ impl SessionState {
             self.publish_request_queue.push(publish_request.unwrap());
         }
 
-
-        if result.is_empty() {
-            None
-        } else {
-            Some(result)
-        }
+        if result.is_empty() { None } else { Some(result) }
     }
 
 
@@ -117,10 +112,12 @@ impl SessionState {
             } else {
                 MAX_REQUEST_TIMEOUT
             };
-            let timeout = time::Duration::milliseconds(timeout);
+            let timeout_d = time::Duration::milliseconds(timeout);
 
             // The request has timed out if the timestamp plus hint exceeds the input time
-            if timestamp + timeout >= *now {
+            let expiration_time = timestamp + timeout_d;
+            if *now >= expiration_time {
+                debug!("Publish request {} has expired - timestamp = {:?}, expiration hint = {}, expiration time = {:?}, time now = {:?}, ", r.request_header.request_handle, timestamp, timeout, expiration_time, now);
                 let now = DateTime::from_chrono(now);
                 let response = PublishResponse {
                     response_header: ResponseHeader::new_service_result(&now, &r.request_header, &BAD_REQUEST_TIMEOUT),

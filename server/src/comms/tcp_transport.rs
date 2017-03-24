@@ -26,7 +26,7 @@ const SEND_BUFFER_SIZE: usize = 1024 * 64;
 const MAX_MESSAGE_SIZE: usize = 1024 * 64;
 
 // Rate at which subscriptions are serviced
-const SUBSCRIPTION_TIMER_RATE: i64 = 5000;
+const SUBSCRIPTION_TIMER_RATE: i64 = 500;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum TransportState {
