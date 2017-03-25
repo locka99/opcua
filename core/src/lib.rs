@@ -6,12 +6,20 @@ extern crate byteorder;
 extern crate chrono;
 extern crate regex;
 extern crate rand;
+#[cfg(feature = "crypto")]
+extern crate openssl;
 
 // extern crate openssl;
 
 pub mod types;
 pub mod comms;
 pub mod services;
+#[cfg(feature = "crypto")]
+pub mod crypto;
+
+pub fn is_crypto_enabled() -> bool {
+    cfg!(feature = "crypto")
+}
 
 pub mod prelude {
     pub use types::*;

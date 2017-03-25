@@ -54,7 +54,7 @@ pub fn server_config_save() {
 #[test]
 pub fn expired_publish_requests() {
     let now = chrono::UTC::now();
-    let now_plus_30s = now + time::Duration::seconds(30);
+    let now_plus_5s = now + time::Duration::seconds(5);
 
     // Create two publish requests timestamped now, one which expires in > 30s, one which expires
     // in > 20s
@@ -63,13 +63,13 @@ pub fn expired_publish_requests() {
         request_header: RequestHeader::new(&NodeId::null(), &now, 1000),
         subscription_acknowledgements: None,
     };
-    pr1.request_header.timeout_hint = 31000;
+    pr1.request_header.timeout_hint = 5001;
 
     let mut pr2 = PublishRequest {
         request_header: RequestHeader::new(&NodeId::null(), &now, 2000),
         subscription_acknowledgements: None,
     };
-    pr2.request_header.timeout_hint = 20000;
+    pr2.request_header.timeout_hint = 3000;
 
     // Create session with publish requests
     let mut session = SessionState {
@@ -80,22 +80,22 @@ pub fn expired_publish_requests() {
     };
 
     // Expire requests, see which expire
-    let expired_responses = session.expire_stale_publish_requests(&now_plus_30s);
+    let expired_responses = session.expire_stale_publish_requests(&now_plus_5s);
     let expired_responses = expired_responses.unwrap();
 
     // The > 30s timeout hint request should be expired and the other should remain
-    assert_eq!(session.publish_request_queue.len(), 1);
-    assert_eq!(session.publish_request_queue[0].request_header.request_handle, 2000);
     assert_eq!(expired_responses.len(), 1);
+    assert_eq!(session.publish_request_queue.len(), 1);
+    assert_eq!(session.publish_request_queue[0].request_header.request_handle, 1000);
 
     if let SupportedMessage::PublishResponse(ref r1) = expired_responses[0] {
-        assert_eq!(r1.response_header.request_handle, 1000);
+        assert_eq!(r1.response_header.request_handle, 2000);
         assert_eq!(r1.response_header.service_result, BAD_REQUEST_TIMEOUT.clone());
     }
     else {
         panic!("Expected PublishResponse");
     }
 
-    let expired_responses = session.expire_stale_publish_requests(&now_plus_30s);
+    let expired_responses = session.expire_stale_publish_requests(&now_plus_5s);
     assert_eq!(expired_responses, None);
 }
