@@ -1,3 +1,5 @@
+
+
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -9,18 +11,18 @@ extern crate rand;
 #[cfg(feature = "crypto")]
 extern crate openssl;
 
-// extern crate openssl;
-
 pub mod types;
 pub mod comms;
 pub mod services;
 #[cfg(feature = "crypto")]
 pub mod crypto;
 
+/// Tests if crypto is enabled, true for yes it is otherwise false
 pub fn is_crypto_enabled() -> bool {
     cfg!(feature = "crypto")
 }
 
+/// The prelude mod contains all the things you typically need to access from a client / server.
 pub mod prelude {
     pub use types::*;
     pub use comms::*;

@@ -11,19 +11,33 @@ extern crate opcua_server;
 use opcua_server::prelude::*;
 
 fn main() {
-    // This line isn't necessary but it enables logging which tells you what OPC UA is up to.
+    // This enables logging. If you don't need logging you can omit it
     let _ = opcua_core::init_logging();
 
-    // Creates the OPC UA server with the default settings and node set
+    // Create an OPC UA server with the default settings and node set
     let mut server = Server::new_default();
 
-    // Add 3 variables called v1, v3, and v3 to the address space in the server
+    // Create the variables and timers that update the values. The fn returns a timer
+    // and timer guard whose scope means timers fire to update
+    let (timer, timer_guard) = setup_variables(&mut server);
+
+    // Now our server can run.
+    server.run();
+
+    // These drops are not necessary but it stops the compiler warning about unused assignments above
+    drop(timer_guard);
+    drop(timer);
+}
+
+fn setup_variables(server: &mut Server) -> (timer::Timer, timer::Guard) {
+    // Add variables to the address space in the server
     let v1_node = NodeId::new_string(2, "v1");
     let v2_node = NodeId::new_string(2, "v2");
     let v3_node = NodeId::new_string(2, "v3");
+    let v4_node = NodeId::new_string(2, "v4");
 
     {
-        // Server state is guard locked because all sessions need it
+        // Server state and its address space are atomic reference counted so we obtain locks
         let server_state = server.server_state.lock().unwrap();
         let mut address_space = server_state.address_space.lock().unwrap();
 
@@ -34,16 +48,11 @@ fn main() {
         let vars = vec![
             Variable::new_i32(&v1_node, "v1", "v1", 0),
             Variable::new_bool(&v2_node, "v2", "v2", false),
-            Variable::new_string(&v3_node, "v3", "v3", "")
+            Variable::new_string(&v3_node, "v3", "v3", ""),
+            Variable::new_double(&v4_node, "v4", "v4", 0f64),
         ];
         let _ = address_space.add_variables(&vars, &sample_folder_id);
     }
-
-
-    // These values will be changed in a timer loop
-    let mut v1_counter: Int32 = 0;
-    let mut v2_flag: Boolean = true;
-    let mut v3_string: String = "Hello world!".to_string();
 
     // Start a timer to alter variables on an interval. Note the timer and timer_guard are the scope
     // that the timer runs for, so we'll set stuff up inside a block and then leave those vars for the
@@ -54,6 +63,12 @@ fn main() {
     // with anything else going on.
     let timer = timer::Timer::new();
     let timer_guard = {
+        // These values will be changed in a timer loop
+        let mut v1_counter: Int32 = 0;
+        let mut v2_flag: Boolean = true;
+        let mut v3_string: String = "Hello world!".to_string();
+        let mut v4_double = 0f64;
+
         // The server has a refcounted address space that we will clone (increment) and hand to
         // to the timer scheduler.
         let address_space = {
@@ -64,16 +79,14 @@ fn main() {
             v1_counter += 1;
             v2_flag = !v2_flag;
             v3_string = format!("Hello World times {}", v1_counter);
+            v4_double = (v1_counter as f64 / 360.0).to_radians().sin();
             let mut address_space = address_space.lock().unwrap();
             let _ = address_space.set_variable_value(&v1_node, Variant::Int32(v1_counter));
             let _ = address_space.set_variable_value(&v2_node, Variant::Boolean(v2_flag));
             let _ = address_space.set_variable_value(&v3_node, Variant::String(UAString::from_str(&v3_string)));
+            let _ = address_space.set_variable_value(&v4_node, Variant::Double(v4_double));
         })
     };
 
-    // Now our server can run
-    server.run();
-
-    // Timer no longer required
-    drop(timer_guard);
+    (timer, timer_guard)
 }

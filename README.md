@@ -1,3 +1,7 @@
+# License
+
+The code is licenced under [MPL-2.0](https://opensource.org/licenses/MPL-2.0).
+
 # Introduction
 
 [OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) is an industry standard for live monitoring of data. It's intended for on embedded devices, industrial 
@@ -7,34 +11,46 @@ or visualize.
 This is an OPC UA server / client API implemented in Rust. To say OPC UA is a big standard is an understatement so the implementation
 will comply with the smallest profiles first until it reaches a usable level of functionality. 
 
-## Current progress
+# A minimalist server
 
-Development is described below in phases. At present, the code server code is in phase 1, i.e. basic functionality
-works with phase 2 work happening to be able to create subscriptions and monitor items.
+The API is designed on the principle of convention by default to minimize the amount of customization you need to make it 
+do something. Here is a minimal server:
 
-Client side work is basic at the moment as server is perceived as more useful. However the basics of connecting to a server
-are there and progressing.
+```rust
+use opcua_server::prelude::*;
 
-# License
+fn main() {
+    Server::new_default().run();
+}
+```
 
-The code is licenced under [MPL-2.0](https://opensource.org/licenses/MPL-2.0).
+Obviously you'll do probably want to do more than this, but refer to the sample-server directory for hints. A server would
+probably want to create elements in the address space, update variables on a timer or listener and things of that nature.
 
-# OPC UA Implementation level
+# Current progress
+
+Development is described in detail further on. Top level status is as follows.
+
+1. Server is nano-profile and striving towards embedded profile
+    1. Anonymous and user/password authentication
+    2. Support for various common services
+    3. Add your own address space variables and nodes.
+    4. A minimal standard address space is implemented.
+2. Client apis are stubs
+
+Read on for more detail.
 
 ## Server
-
-At present you may connect to a sample-server over OPC Binary (TCP) using anonymous authentication, browse its address space 
-and see the current values.
 
 ### Nodeset
 
 The server implements a basic nodeset to satisfy most clients. It is likely that the nodeset will be generated automatically
-from the .xml schemas in time but it is not at present.
+from the .xml schemas in the future. For now it is handwritten.
 
 ### Supported services
 
 The following services are supported fully, partially (marked with a *) or as a stub / work in progress (marked !). That means a client
-may call them and receive a response. Anything not listed is totally unsupported.
+may call them and receive a response. Anything not listed is totally unsupported. Calling an unsupported service will cause a panic that will terminate the session.
 
 * Discovery service set
     * GetEndpoints
@@ -53,32 +69,26 @@ may call them and receive a response. Anything not listed is totally unsupported
     * BrowseNext (!). Implemented to do nothing
     
 * MonitoredItem service set
-    * CreateMonitoredItems(+). Data change filter only
-    * ModifyMonitoredItems(+). Data change filter only
-    * DeleteMonitoredItems
+    * CreateMonitoredItems. Data change filter only
+    * ModifyMonitoredItems(*). Data change filter only
+    * DeleteMonitoredItems(*)
 
 * Subscription
-    * CreateSubscription(!)
-    * ModifySubscription(!)
-    * Publish(!)
+    * CreateSubscription
+    * ModifySubscription
+    * Publish
     * SetPublishingMode
 
 This corresponds to almost phase 1 below.
 
 ### Supported security profiles / authentication
 
-The server only supports the following security mode / profiles:
+The server supports the following security mode / profiles:
 
-* None, i.e. no encryption
+1. None, i.e. no encryption
+2. User/password 
 
 Encryption will happen later once unencrypted functionality is working.
-
-The server supports the following authentication modes
-
-* Anonymous
-* User / Password (!). Some plumbing, not completed yet
-
-Other forms of authentication will come with encryption.
 
 ### Current limitations
 

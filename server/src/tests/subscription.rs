@@ -30,11 +30,11 @@ fn update_state_3() {
 
     // Test #3 - state changes from Creating -> Normal
     let publishing_timer_expired = false;
-    let (handled_state, update_state_action, publish_request_action, _) = s.update_state(&publish_request, publishing_timer_expired);
+    let update_state_result = s.update_state(&publish_request, publishing_timer_expired);
 
-    assert_eq!(handled_state, 3);
-    assert_eq!(update_state_action, UpdateStateAction::None);
-    assert_eq!(publish_request_action, PublishRequestAction::None);
+    assert_eq!(update_state_result.handled_state, 3);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
+    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::Normal);
     assert_eq!(s.message_sent, false);
 }
@@ -60,11 +60,11 @@ fn update_state_4() {
     s.publishing_enabled = false;
 
     let publishing_timer_expired = false;
-    let (handled_state, update_state_action, publish_request_action, _) = s.update_state(&publish_request, publishing_timer_expired);
+    let update_state_result = s.update_state(&publish_request, publishing_timer_expired);
 
-    assert_eq!(handled_state, 4);
-    assert_eq!(update_state_action, UpdateStateAction::None);
-    assert_eq!(publish_request_action, PublishRequestAction::None);
+    assert_eq!(update_state_result.handled_state, 4);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
+    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::Normal);
 
     // TODO repeat with publishing enabled true, more notifications false
@@ -90,11 +90,11 @@ fn update_state_5() {
     s.lifetime_counter = 1;
 
     let publishing_timer_expired = false;
-    let (handled_state, update_state_action, publish_request_action, _) = s.update_state(&publish_request, publishing_timer_expired);
+    let update_state_result = s.update_state(&publish_request, publishing_timer_expired);
 
-    assert_eq!(handled_state, 5);
-    assert_eq!(update_state_action, UpdateStateAction::ReturnNotifications);
-    assert_eq!(publish_request_action, PublishRequestAction::None);
+    assert_eq!(update_state_result.handled_state, 5);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnNotifications);
+    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::Normal);
     assert_eq!(s.lifetime_counter, s.max_lifetime_count);
     assert_eq!(s.message_sent, true);
@@ -118,12 +118,12 @@ fn update_state_6() {
     s.publishing_req_queued = true;
 
     let publishing_timer_expired = true;
-    let (handled_state, update_state_action, publish_request_action, _) = s.update_state(&publish_request, publishing_timer_expired);
+    let update_state_result = s.update_state(&publish_request, publishing_timer_expired);
 
     // ensure 6
-    assert_eq!(handled_state, 6);
-    assert_eq!(update_state_action, UpdateStateAction::ReturnNotifications);
-    assert_eq!(publish_request_action, PublishRequestAction::Dequeue);
+    assert_eq!(update_state_result.handled_state, 6);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnNotifications);
+    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::Dequeue);
     assert_eq!(s.state, SubscriptionState::Normal);
     assert_eq!(s.lifetime_counter, s.max_lifetime_count);
     assert_eq!(s.message_sent, true);
@@ -144,11 +144,11 @@ fn update_state_7() {
     s.publishing_enabled = true;
 
     let publishing_timer_expired = true;
-    let (handled_state, update_state_action, publish_request_action, _) = s.update_state(&publish_request, publishing_timer_expired);
+    let update_state_result = s.update_state(&publish_request, publishing_timer_expired);
 
-    assert_eq!(handled_state, 7);
-    assert_eq!(update_state_action, UpdateStateAction::ReturnKeepAlive);
-    assert_eq!(publish_request_action, PublishRequestAction::Dequeue);
+    assert_eq!(update_state_result.handled_state, 7);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnKeepAlive);
+    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::Dequeue);
     assert_eq!(s.state, SubscriptionState::Normal);
     assert_eq!(s.lifetime_counter, s.max_lifetime_count);
     assert_eq!(s.message_sent, true);
@@ -169,11 +169,11 @@ fn update_state_8() {
     s.message_sent = false;
 
     let publishing_timer_expired = true;
-    let (handled_state, update_state_action, publish_request_action, _) = s.update_state(&publish_request, publishing_timer_expired);
+    let update_state_result = s.update_state(&publish_request, publishing_timer_expired);
 
-    assert_eq!(handled_state, 8);
-    assert_eq!(update_state_action, UpdateStateAction::None);
-    assert_eq!(publish_request_action, PublishRequestAction::None);
+    assert_eq!(update_state_result.handled_state, 8);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
+    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::Late);
     // ensure start publishing timer
 }
@@ -192,11 +192,11 @@ fn update_state_9() {
     s.keep_alive_counter = 3;
 
     let publishing_timer_expired = true;
-    let (handled_state, update_state_action, publish_request_action, _) = s.update_state(&publish_request, publishing_timer_expired);
+    let update_state_result = s.update_state(&publish_request, publishing_timer_expired);
 
-    assert_eq!(handled_state, 9);
-    assert_eq!(update_state_action, UpdateStateAction::None);
-    assert_eq!(publish_request_action, PublishRequestAction::None);
+    assert_eq!(update_state_result.handled_state, 9);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
+    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::KeepAlive);
     assert_eq!(s.keep_alive_counter, s.max_keep_alive_count);
 }
@@ -211,11 +211,11 @@ fn update_state_10() {
     s.notifications_available = true;
 
     let publishing_timer_expired = true;
-    let (handled_state, update_state_action, publish_request_action, _) = s.update_state(&publish_request, publishing_timer_expired);
+    let update_state_result = s.update_state(&publish_request, publishing_timer_expired);
 
-    assert_eq!(handled_state, 10);
-    assert_eq!(update_state_action, UpdateStateAction::ReturnNotifications);
-    assert_eq!(publish_request_action, PublishRequestAction::None);
+    assert_eq!(update_state_result.handled_state, 10);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnNotifications);
+    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::Normal);
     assert_eq!(s.message_sent, true);
 }
@@ -230,11 +230,11 @@ fn update_state_11() {
     s.notifications_available = false;
 
     let publishing_timer_expired = true;
-    let (handled_state, update_state_action, publish_request_action, _) = s.update_state(&publish_request, publishing_timer_expired);
+    let update_state_result = s.update_state(&publish_request, publishing_timer_expired);
 
-    assert_eq!(handled_state, 11);
-    assert_eq!(update_state_action, UpdateStateAction::ReturnKeepAlive);
-    assert_eq!(publish_request_action, PublishRequestAction::None);
+    assert_eq!(update_state_result.handled_state, 11);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnKeepAlive);
+    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::KeepAlive);
     assert_eq!(s.message_sent, true);
 }
@@ -249,11 +249,11 @@ fn update_state_12() {
     s.notifications_available = false;
 
     let publishing_timer_expired = true;
-    let (handled_state, update_state_action, publish_request_action, _) = s.update_state(&publish_request, publishing_timer_expired);
+    let update_state_result = s.update_state(&publish_request, publishing_timer_expired);
 
-    assert_eq!(handled_state, 12);
-    assert_eq!(update_state_action, UpdateStateAction::None);
-    assert_eq!(publish_request_action, PublishRequestAction::None);
+    assert_eq!(update_state_result.handled_state, 12);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
+    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::Late);
 }
 
@@ -264,11 +264,11 @@ fn update_state_13() {
     let publish_request = Some(make_publish_request());
 
     let publishing_timer_expired = false;
-    let (handled_state, update_state_action, publish_request_action, _) = s.update_state(&publish_request, publishing_timer_expired);
+    let update_state_result = s.update_state(&publish_request, publishing_timer_expired);
 
-    assert_eq!(handled_state, 13);
-    assert_eq!(update_state_action, UpdateStateAction::None);
-    assert_eq!(publish_request_action, PublishRequestAction::None);
+    assert_eq!(update_state_result.handled_state, 13);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
+    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::KeepAlive);
 }
 
@@ -283,11 +283,11 @@ fn update_state_14() {
     s.notifications_available = true;
     s.publishing_req_queued = true;
 
-    let (handled_state, update_state_action, publish_request_action, _) = s.update_state(&publish_request, publishing_timer_expired);
+    let update_state_result = s.update_state(&publish_request, publishing_timer_expired);
 
-    assert_eq!(handled_state, 14);
-    assert_eq!(update_state_action, UpdateStateAction::ReturnNotifications);
-    assert_eq!(publish_request_action, PublishRequestAction::Dequeue);
+    assert_eq!(update_state_result.handled_state, 14);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnNotifications);
+    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::Dequeue);
     assert_eq!(s.state, SubscriptionState::Normal);
 }
 
@@ -302,11 +302,11 @@ fn update_state_15() {
     s.keep_alive_counter = 1;
     s.publishing_enabled = false;
 
-    let (handled_state, update_state_action, publish_request_action, _) = s.update_state(&publish_request, publishing_timer_expired);
+    let update_state_result = s.update_state(&publish_request, publishing_timer_expired);
 
-    assert_eq!(handled_state, 15);
-    assert_eq!(update_state_action, UpdateStateAction::ReturnKeepAlive);
-    assert_eq!(publish_request_action, PublishRequestAction::Dequeue);
+    assert_eq!(update_state_result.handled_state, 15);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnKeepAlive);
+    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::Dequeue);
     assert_eq!(s.state, SubscriptionState::KeepAlive);
     assert_eq!(s.keep_alive_counter, s.max_keep_alive_count);
 }
@@ -321,11 +321,11 @@ fn update_state_16() {
     s.keep_alive_counter = 5;
     s.publishing_enabled = false;
 
-    let (handled_state, update_state_action, publish_request_action, _) = s.update_state(&publish_request, publishing_timer_expired);
+    let update_state_result = s.update_state(&publish_request, publishing_timer_expired);
 
-    assert_eq!(handled_state, 16);
-    assert_eq!(update_state_action, UpdateStateAction::None);
-    assert_eq!(publish_request_action, PublishRequestAction::None);
+    assert_eq!(update_state_result.handled_state, 16);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
+    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::KeepAlive);
     assert_eq!(s.keep_alive_counter, 4);
 }
@@ -340,11 +340,11 @@ fn update_state_17() {
     s.publishing_req_queued = false;
     s.keep_alive_counter = 1;
 
-    let (handled_state, update_state_action, publish_request_action, _) = s.update_state(&publish_request, publishing_timer_expired);
+    let update_state_result = s.update_state(&publish_request, publishing_timer_expired);
 
-    assert_eq!(handled_state, 17);
-    assert_eq!(update_state_action, UpdateStateAction::None);
-    assert_eq!(publish_request_action, PublishRequestAction::None);
+    assert_eq!(update_state_result.handled_state, 17);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
+    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::Late);
     assert_eq!(s.keep_alive_counter, 1);
 }
