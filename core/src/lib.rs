@@ -67,6 +67,7 @@ pub mod profiles {
     pub const SECURITY_POLICY_BASIC256SHA256: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256";
 
     pub const SECURITY_USER_TOKEN_POLICY_ANONYMOUS: &'static str = "http://opcfoundation.org/UA-Profile/Security/UserToken/Anonymous";
+    pub const SECURITY_USER_TOKEN_POLICY_USERPASS: &'static str = "http://opcfoundation.org/UA-Profile/ Security/UserToken-Server/UserNamePassword";
 }
 
 /// Contains debugging utility helper functions

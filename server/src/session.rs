@@ -62,27 +62,28 @@ impl SessionState {
                 if subscription.state == SubscriptionState::Closed {
                     dead_subscriptions.push(*subscription_id);
                 } else {
-                    let (notification_message, publish_request_action, subscription_ack_results) = subscription.tick(address_space, &publish_request, &now);
-                    if let Some(notification_message) = notification_message {
-                        let publish_response = PublishResponse {
-                            response_header: ResponseHeader::new_notification_response(&DateTime::now(), &GOOD),
-                            subscription_id: *subscription_id,
-                            available_sequence_numbers: None,
-                            // TODO
-                            more_notifications: subscription.more_notifications,
-                            notification_message: notification_message,
-                            results: None,
-                            // TODO
-                            diagnostic_infos: None,
-                        };
-                        result.push(SupportedMessage::PublishResponse(publish_response));
-                    }
-                    // Determine if publish request should be dequeued (after processing all subscriptions)
-                    match publish_request_action {
-                        PublishRequestAction::Dequeue => {
-                            dequeue_publish_request = true;
+                    let (notification_message, update_state_result) = subscription.tick(address_space, &publish_request, &now);
+                    if let Some(update_state_result) = update_state_result {
+                        if let Some(notification_message) = notification_message {
+                            let publish_response = PublishResponse {
+                                response_header: ResponseHeader::new_notification_response(&DateTime::now(), &GOOD),
+                                subscription_id: *subscription_id,
+                                available_sequence_numbers: None,
+                                // TODO
+                                more_notifications: subscription.more_notifications,
+                                notification_message: notification_message,
+                                results: Some(update_state_result.acknowledge_results),
+                                diagnostic_infos: None,
+                            };
+                            result.push(SupportedMessage::PublishResponse(publish_response));
                         }
-                        _ => {}
+                        // Determine if publish request should be dequeued (after processing all subscriptions)
+                        match update_state_result.publish_request_action {
+                            PublishRequestAction::Dequeue => {
+                                dequeue_publish_request = true;
+                            }
+                            _ => {}
+                        }
                     }
                 }
             }

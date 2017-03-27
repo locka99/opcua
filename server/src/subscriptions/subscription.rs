@@ -222,7 +222,7 @@ impl Subscription {
 
     /// Checks the subscription and monitored items for state change, messages. If the tick does
     /// nothing, the function returns None. Otherwise it returns one or more messages in an Vec.
-    pub fn tick(&mut self, address_space: &AddressSpace, publish_request: &Option<PublishRequest>, now: &DateTimeUTC) -> (Option<NotificationMessage>, PublishRequestAction, Option<Vec<StatusCode>>) {
+    pub fn tick(&mut self, address_space: &AddressSpace, publish_request: &Option<PublishRequest>, now: &DateTimeUTC) -> (Option<NotificationMessage>, Option<UpdateStateResult>) {
         debug!("subscription tick {}", self.subscription_id);
 
         // Test if the interval has elapsed.
@@ -250,9 +250,9 @@ impl Subscription {
                 UpdateStateAction::ReturnKeepAlive => self.return_keep_alive(),
                 UpdateStateAction::ReturnNotifications => self.return_notifications(),
             };
-            (notifications, update_state_result.publish_request_action, Some(update_state_result.acknowledge_results))
+            (notifications, Some(update_state_result))
         } else {
-            (None, PublishRequestAction::None, None)
+            (None, None)
         };
 
         // Check if the subscription interval has been exceeded since last call
