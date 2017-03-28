@@ -43,7 +43,21 @@ impl log::Log for SimpleLogger {
     fn log(&self, record: &LogRecord) {
         if self.enabled(record.metadata()) {
             // TODO record.location().module_path() could be used to filter out unwanted noise
-            println!("{} - {}", record.level(), record.args());
+
+            match record.metadata().level() {
+                LogLevel::Error => {
+                    println!("\x1b[37m\x1b[42m{}\x1b[0m - {}", record.level(), record.args());
+                },
+                LogLevel::Warn => {
+                    println!("\x1b[33m{}\x1b[0m - {}", record.level(), record.args());
+                },
+                LogLevel::Info => {
+                    println!("\x1b[36m{}\x1b[0m - {}", record.level(), record.args());
+                },
+                _ => {
+                    println!("{} - {}", record.level(), record.args());
+                }
+            }
         }
     }
 }
