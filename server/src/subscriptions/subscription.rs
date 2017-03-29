@@ -27,6 +27,7 @@ pub enum SubscriptionState {
     KeepAlive
 }
 
+#[derive(Debug)]
 pub struct UpdateStateResult {
     pub handled_state: u8,
     pub update_state_action: UpdateStateAction,
@@ -250,6 +251,7 @@ impl Subscription {
                 UpdateStateAction::ReturnKeepAlive => self.return_keep_alive(),
                 UpdateStateAction::ReturnNotifications => self.return_notifications(),
             };
+            error!("subscription tick - notifications = {:?}, result = {:?}", notifications, update_state_result);
             (notifications, Some(update_state_result))
         } else {
             (None, None)

@@ -134,9 +134,9 @@ impl TcpTransport {
                 debug!("Got message from timer {:?}", result);
                 match result {
                     SubscriptionEvent::Messages(messages) => {
-                        debug!("Received messages, sending them out");
+                        error!("Received messages, sending them out");
                         for message in messages {
-                            debug!("Message {:#?}", message);
+                            error!("SENDING MESSAGE {:#?}", message);
                             let _ = self.send_response(0, &message, &mut out_buf_stream);
                         }
                     }

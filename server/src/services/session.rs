@@ -72,7 +72,7 @@ impl SessionService {
                     let mut stream = Cursor::new(data);
                     let token = UserNameIdentityToken::decode(&mut stream);
                     if token.is_ok() {
-                        debug!("UserNameIdentityToken = {:#?}", token);
+                        error!("UserNameIdentityToken = {:#?}", token);
                         // TODO validate user / pass / algorithm
                     }
                 }

@@ -75,6 +75,7 @@ impl SessionState {
                                 results: Some(update_state_result.acknowledge_results),
                                 diagnostic_infos: None,
                             };
+                            error!("queuing a publish response {:?}", publish_response);
                             result.push(SupportedMessage::PublishResponse(publish_response));
                         }
                         // Determine if publish request should be dequeued (after processing all subscriptions)

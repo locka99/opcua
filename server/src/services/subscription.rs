@@ -142,8 +142,9 @@ impl SubscriptionService {
 
     /// Handles a PublishRequest
     pub fn publish(&self, _: &mut ServerState, session_state: &mut SessionState, request: PublishRequest) -> Result<SupportedMessage, &'static StatusCode> {
+        error!("RECEIVED A PUBLISHREQUEST {:#?}", request);
         // Publish requests are enqueued and handled by a timer thread
-        let _ = session_state.enqueue_publish_request(request.clone());
+        let _ = session_state.enqueue_publish_request(request);
         Ok(SupportedMessage::DoNothing)
     }
 

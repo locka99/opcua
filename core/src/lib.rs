@@ -46,7 +46,7 @@ impl log::Log for SimpleLogger {
 
             match record.metadata().level() {
                 LogLevel::Error => {
-                    println!("\x1b[37m\x1b[42m{}\x1b[0m - {}", record.level(), record.args());
+                    println!("\x1b[37m\x1b[41m{}\x1b[0m - {}", record.level(), record.args());
                 },
                 LogLevel::Warn => {
                     println!("\x1b[33m{}\x1b[0m - {}", record.level(), record.args());

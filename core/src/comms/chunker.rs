@@ -191,7 +191,7 @@ impl Chunker {
             return Err(&BAD_SERVICE_UNSUPPORTED);
         }
 
-        debug!("Returning decoded msg {:?}", decoded_message);
+        // debug!("Returning decoded msg {:?}", decoded_message);
         return Ok(decoded_message)
     }
 }
