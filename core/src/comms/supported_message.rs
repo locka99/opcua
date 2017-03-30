@@ -15,6 +15,9 @@ macro_rules! supported_messages {
             Invalid(ObjectId),
             /// A specific do-nothing response, e.g. some messages may not require an instantaneous response
             DoNothing,
+            /// A message consisting of multiple messages (in a box)
+            MultipleMessages(Box<Vec<SupportedMessage>>),
+
             $( $x($x), )*
         }
 
@@ -27,6 +30,9 @@ macro_rules! supported_messages {
                     &SupportedMessage::DoNothing => {
                         panic!("This message cannot be serialized");
                     },
+                    &SupportedMessage::MultipleMessages(_) => {
+                        panic!("This message cannot be serialized");
+                    },
                     $( &SupportedMessage::$x(ref value) => value.byte_len(), )*
                 }
             }
@@ -37,6 +43,9 @@ macro_rules! supported_messages {
                         panic!("Unsupported message {:?}", object_id);
                     },
                     &SupportedMessage::DoNothing => {
+                        panic!("This message cannot be serialized");
+                    },
+                    &SupportedMessage::MultipleMessages(_) => {
                         panic!("This message cannot be serialized");
                     },
                     $( &SupportedMessage::$x(ref value) => value.encode(stream), )*
@@ -58,6 +67,9 @@ macro_rules! supported_messages {
                     &SupportedMessage::DoNothing => {
                         panic!("This message has no object id");
                     },
+                    &SupportedMessage::MultipleMessages(_) => {
+                        panic!("This message has no object id");
+                    },
                     $( &SupportedMessage::$x(ref value) => value.node_id(), )*
                 }
             }
@@ -71,58 +83,58 @@ impl SupportedMessage {
         let decoded_message = match object_id {
             ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary => {
                 SupportedMessage::OpenSecureChannelRequest(OpenSecureChannelRequest::decode(stream)?)
-            },
+            }
             ObjectId::OpenSecureChannelResponse_Encoding_DefaultBinary => {
                 SupportedMessage::OpenSecureChannelResponse(OpenSecureChannelResponse::decode(stream)?)
-            },
+            }
             ObjectId::CloseSecureChannelRequest_Encoding_DefaultBinary => {
                 SupportedMessage::CloseSecureChannelRequest(CloseSecureChannelRequest::decode(stream)?)
-            },
+            }
             ObjectId::CloseSecureChannelResponse_Encoding_DefaultBinary => {
                 SupportedMessage::CloseSecureChannelResponse(CloseSecureChannelResponse::decode(stream)?)
-            },
+            }
             ObjectId::GetEndpointsRequest_Encoding_DefaultBinary => {
                 SupportedMessage::GetEndpointsRequest(GetEndpointsRequest::decode(stream)?)
-            },
+            }
             ObjectId::GetEndpointsResponse_Encoding_DefaultBinary => {
                 SupportedMessage::GetEndpointsResponse(GetEndpointsResponse::decode(stream)?)
-            },
+            }
             ObjectId::CreateSessionRequest_Encoding_DefaultBinary => {
                 SupportedMessage::CreateSessionRequest(CreateSessionRequest::decode(stream)?)
-            },
+            }
             ObjectId::CreateSessionResponse_Encoding_DefaultBinary => {
                 SupportedMessage::CreateSessionResponse(CreateSessionResponse::decode(stream)?)
-            },
+            }
             ObjectId::CloseSessionRequest_Encoding_DefaultBinary => {
                 SupportedMessage::CloseSessionRequest(CloseSessionRequest::decode(stream)?)
-            },
+            }
             ObjectId::CloseSessionResponse_Encoding_DefaultBinary => {
                 SupportedMessage::CloseSessionResponse(CloseSessionResponse::decode(stream)?)
-            },
+            }
             ObjectId::ActivateSessionRequest_Encoding_DefaultBinary => {
                 SupportedMessage::ActivateSessionRequest(ActivateSessionRequest::decode(stream)?)
-            },
+            }
             ObjectId::ActivateSessionResponse_Encoding_DefaultBinary => {
                 SupportedMessage::ActivateSessionResponse(ActivateSessionResponse::decode(stream)?)
-            },
+            }
             ObjectId::BrowseRequest_Encoding_DefaultBinary => {
                 SupportedMessage::BrowseRequest(BrowseRequest::decode(stream)?)
-            },
+            }
             ObjectId::BrowseResponse_Encoding_DefaultBinary => {
                 SupportedMessage::BrowseResponse(BrowseResponse::decode(stream)?)
-            },
+            }
             ObjectId::BrowseNextRequest_Encoding_DefaultBinary => {
                 SupportedMessage::BrowseNextRequest(BrowseNextRequest::decode(stream)?)
-            },
+            }
             ObjectId::BrowseNextResponse_Encoding_DefaultBinary => {
                 SupportedMessage::BrowseNextResponse(BrowseNextResponse::decode(stream)?)
-            },
+            }
             ObjectId::CreateSubscriptionRequest_Encoding_DefaultBinary => {
                 SupportedMessage::CreateSubscriptionRequest(CreateSubscriptionRequest::decode(stream)?)
-            },
+            }
             ObjectId::CreateSubscriptionResponse_Encoding_DefaultBinary => {
                 SupportedMessage::CreateSubscriptionResponse(CreateSubscriptionResponse::decode(stream)?)
-            },
+            }
             ObjectId::ModifySubscriptionRequest_Encoding_DefaultBinary => {
                 SupportedMessage::ModifySubscriptionRequest(ModifySubscriptionRequest::decode(stream)?)
             }
@@ -131,40 +143,52 @@ impl SupportedMessage {
             }
             ObjectId::DeleteSubscriptionsRequest_Encoding_DefaultBinary => {
                 SupportedMessage::DeleteSubscriptionsRequest(DeleteSubscriptionsRequest::decode(stream)?)
-            },
+            }
             ObjectId::DeleteSubscriptionsResponse_Encoding_DefaultBinary => {
                 SupportedMessage::DeleteSubscriptionsResponse(DeleteSubscriptionsResponse::decode(stream)?)
-            },
+            }
             ObjectId::SetPublishingModeRequest_Encoding_DefaultBinary => {
                 SupportedMessage::SetPublishingModeRequest(SetPublishingModeRequest::decode(stream)?)
-            },
+            }
             ObjectId::SetPublishingModeResponse_Encoding_DefaultBinary => {
                 SupportedMessage::SetPublishingModeResponse(SetPublishingModeResponse::decode(stream)?)
-            },
+            }
             ObjectId::PublishRequest_Encoding_DefaultBinary => {
                 SupportedMessage::PublishRequest(PublishRequest::decode(stream)?)
-            },
+            }
             ObjectId::PublishResponse_Encoding_DefaultBinary => {
                 SupportedMessage::PublishResponse(PublishResponse::decode(stream)?)
-            },
+            }
             ObjectId::ReadRequest_Encoding_DefaultBinary => {
                 SupportedMessage::ReadRequest(ReadRequest::decode(stream)?)
-            },
+            }
             ObjectId::ReadResponse_Encoding_DefaultBinary => {
                 SupportedMessage::ReadResponse(ReadResponse::decode(stream)?)
-            },
+            }
             ObjectId::WriteRequest_Encoding_DefaultBinary => {
                 SupportedMessage::WriteRequest(WriteRequest::decode(stream)?)
-            },
+            }
             ObjectId::WriteResponse_Encoding_DefaultBinary => {
                 SupportedMessage::WriteResponse(WriteResponse::decode(stream)?)
-            },
+            }
             ObjectId::CreateMonitoredItemsRequest_Encoding_DefaultBinary => {
                 SupportedMessage::CreateMonitoredItemsRequest(CreateMonitoredItemsRequest::decode(stream)?)
-            },
+            }
             ObjectId::CreateMonitoredItemsResponse_Encoding_DefaultBinary => {
                 SupportedMessage::CreateMonitoredItemsResponse(CreateMonitoredItemsResponse::decode(stream)?)
-            },
+            }
+            ObjectId::ModifyMonitoredItemsRequest_Encoding_DefaultBinary => {
+                SupportedMessage::ModifyMonitoredItemsRequest(ModifyMonitoredItemsRequest::decode(stream)?)
+            }
+            ObjectId::ModifyMonitoredItemsResponse_Encoding_DefaultBinary => {
+                SupportedMessage::ModifyMonitoredItemsResponse(ModifyMonitoredItemsResponse::decode(stream)?)
+            }
+            ObjectId::DeleteMonitoredItemsRequest_Encoding_DefaultBinary => {
+                SupportedMessage::DeleteMonitoredItemsRequest(DeleteMonitoredItemsRequest::decode(stream)?)
+            }
+            ObjectId::DeleteMonitoredItemsResponse_Encoding_DefaultBinary => {
+                SupportedMessage::DeleteMonitoredItemsResponse(DeleteMonitoredItemsResponse::decode(stream)?)
+            }
             _ => {
                 debug!("decoding unsupported for object id {:?}", object_id);
                 SupportedMessage::Invalid(object_id)

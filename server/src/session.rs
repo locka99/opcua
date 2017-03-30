@@ -35,22 +35,24 @@ impl SessionState {
         }
     }
 
-    pub fn enqueue_publish_request(&mut self, request: PublishRequest) -> Result<(), &'static StatusCode> {
+    pub fn enqueue_publish_request(&mut self, server_state: &mut ServerState, request: PublishRequest) -> Result<Option<Vec<SupportedMessage>>, &'static StatusCode> {
         if self.publish_request_queue.len() >= self.max_publish_requests {
+            error!("Too man publish requests, throwing it away");
             Err(&BAD_TOO_MANY_PUBLISH_REQUESTS)
         } else {
-            self.publish_request_queue.push(request);
-            Ok(())
+            info!("Sending a tick to subscriptions to deal with the request");
+            let address_space = server_state.address_space.lock().unwrap();
+            Ok(self.tick_subscriptions(Some(request), &address_space))
         }
     }
 
     /// Iterate all subscriptions calling tick on each. Note this could potentially be done to run in parallel
     /// assuming the action to clean dead subscriptions was a join done after all ticks had completed.
-    pub fn tick_subscriptions(&mut self, address_space: &AddressSpace) -> Option<Vec<SupportedMessage>> {
+    pub fn tick_subscriptions(&mut self, publish_request: Option<PublishRequest>, address_space: &AddressSpace) -> Option<Vec<SupportedMessage>> {
         let mut result = Vec::new();
         let now = chrono::UTC::now();
 
-        let publish_request = self.publish_request_queue.pop();
+        let mut enqueue_publish_request = false;
         let mut dequeue_publish_request = false;
 
         {
@@ -80,9 +82,8 @@ impl SessionState {
                         }
                         // Determine if publish request should be dequeued (after processing all subscriptions)
                         match update_state_result.publish_request_action {
-                            PublishRequestAction::Dequeue => {
-                                dequeue_publish_request = true;
-                            }
+                            PublishRequestAction::Enqueue => enqueue_publish_request = true,
+                            PublishRequestAction::Dequeue => dequeue_publish_request = true,
                             _ => {}
                         }
                     }
@@ -95,8 +96,14 @@ impl SessionState {
             }
         }
 
-        if publish_request.is_some() && !dequeue_publish_request {
+        if enqueue_publish_request {
+            if publish_request.is_none() {
+                panic!("Should not have an enqueue response when there was no publish request");
+            }
             self.publish_request_queue.push(publish_request.unwrap());
+        } else if dequeue_publish_request && self.publish_request_queue.len() > 0 {
+            // Remove oldest publish request
+            self.publish_request_queue.remove(0);
         }
 
         if result.is_empty() { None } else { Some(result) }

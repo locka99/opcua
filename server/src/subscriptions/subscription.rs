@@ -58,6 +58,7 @@ pub enum UpdateStateAction {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum PublishRequestAction {
     None,
+    Enqueue,
     Dequeue
 }
 
@@ -227,7 +228,9 @@ impl Subscription {
         debug!("subscription tick {}", self.subscription_id);
 
         // Test if the interval has elapsed.
-        let publishing_timer_expired = if self.state == SubscriptionState::Creating {
+        let publishing_timer_expired = if publish_request.is_some() {
+            false
+        } else if self.state == SubscriptionState::Creating {
             true
         } else if self.publishing_interval <= 0f64 {
             true
@@ -244,7 +247,7 @@ impl Subscription {
 
         // If items have changed or subscription interval elapsed then we may have notifications
         // to send or state to update
-        let result = if items_changed || publishing_timer_expired {
+        let result = if items_changed || publishing_timer_expired || publish_request.is_some() {
             let update_state_result = self.update_state(publish_request, publishing_timer_expired);
             let notifications = match update_state_result.update_state_action {
                 UpdateStateAction::None => None,
@@ -313,10 +316,35 @@ impl Subscription {
     // * Publishing request action - nothing, dequeue
     //
     pub fn update_state(&mut self, publish_request: &Option<PublishRequest>, publishing_timer_expired: bool) -> UpdateStateResult {
+        // This flag is set if a publish request was received that initiated this update state call
         let receive_publish_request = publish_request.is_some();
+
+        // This function is called when a publish request is received OR the timer expired, so getting
+        // both is invalid code somewhere
+        if receive_publish_request && publishing_timer_expired {
+            panic!("Should not be possible for timer to have expired and received publish request at same time")
+        }
 
         // Acknowledgements to requests
         let mut subscription_ack_results: Vec<StatusCode> = Vec::new();
+
+        // Extra state debugging
+        {
+            use log::LogLevel::Debug;
+            if log_enabled!(Debug) {
+                debug!("State inputs:");
+                debug!("  state: {:?}", self.state);
+                debug!("  receive_publish_request: {:?}", receive_publish_request);
+                debug!("  publishing_timer_expired: {}", publishing_timer_expired);
+                debug!("  publishing_req_queued: {}", self.publishing_req_queued);
+                debug!("  publishing_enabled: {}", self.publishing_enabled);
+                debug!("  more_notifications: {}", self.more_notifications);
+                debug!("  notifications_available: {}", self.notifications_available);
+                debug!("  keep_alive_counter: {}", self.keep_alive_counter);
+                debug!("  lifetime_counter: {}", self.lifetime_counter);
+                debug!("  message_sent: {}", self.message_sent);
+            }
+        }
 
         // This is a state engine derived from OPC UA Part 4 Publish service and might look a
         // little odd for that.
@@ -343,59 +371,65 @@ impl Subscription {
                 // State #3
                 self.state = SubscriptionState::Normal;
                 self.message_sent = false;
-                return UpdateStateResult::new(3, UpdateStateAction::None, PublishRequestAction::None, subscription_ack_results);
+                return UpdateStateResult::new(3, UpdateStateAction::ReturnNotifications, PublishRequestAction::None, subscription_ack_results);
             }
             SubscriptionState::Normal => {
-                if receive_publish_request && (!self.publishing_enabled || (self.publishing_enabled && !self.more_notifications)) {
-                    // State #4
-                    self.delete_acked_notification_msgs(publish_request.as_ref().unwrap(), &mut subscription_ack_results);
-                    return UpdateStateResult::new(4, UpdateStateAction::None, PublishRequestAction::None, subscription_ack_results);
-                } else if receive_publish_request && self.publishing_enabled && self.more_notifications {
-                    // State #5
-                    self.reset_lifetime_counter();
-                    self.delete_acked_notification_msgs(publish_request.as_ref().unwrap(), &mut subscription_ack_results);
-                    self.message_sent = true;
-                    return UpdateStateResult::new(5, UpdateStateAction::ReturnNotifications, PublishRequestAction::None, subscription_ack_results);
-                } else if publishing_timer_expired && self.publishing_req_queued && self.publishing_enabled && self.notifications_available {
-                    // State #6
-                    self.reset_lifetime_counter();
-                    self.start_publishing_timer();
-                    self.message_sent = true;
-                    return UpdateStateResult::new(6, UpdateStateAction::ReturnNotifications, PublishRequestAction::Dequeue, subscription_ack_results);
-                } else if publishing_timer_expired && self.publishing_req_queued && !self.message_sent && (!self.publishing_enabled || (self.publishing_enabled && !self.notifications_available)) {
-                    // State #7
-                    self.reset_lifetime_counter();
-                    self.start_publishing_timer();
-                    self.message_sent = true;
-                    return UpdateStateResult::new(7, UpdateStateAction::ReturnKeepAlive, PublishRequestAction::Dequeue, subscription_ack_results);
-                } else if publishing_timer_expired && !self.publishing_req_queued && (!self.message_sent || (self.publishing_enabled && self.notifications_available)) {
-                    // State #8
-                    self.start_publishing_timer();
-                    self.state = SubscriptionState::Late;
-                    return UpdateStateResult::new(8, UpdateStateAction::None, PublishRequestAction::None, subscription_ack_results);
-                } else if publishing_timer_expired && self.message_sent && (!self.publishing_enabled || (self.publishing_enabled && !self.notifications_available)) {
-                    // State #9
-                    self.start_publishing_timer();
-                    self.reset_keep_alive_counter();
-                    self.state = SubscriptionState::KeepAlive;
-                    return UpdateStateResult::new(9, UpdateStateAction::None, PublishRequestAction::None, subscription_ack_results);
+                if receive_publish_request {
+                    if !self.publishing_enabled || (self.publishing_enabled && !self.more_notifications) {
+                        // State #4
+                        self.delete_acked_notification_msgs(publish_request.as_ref().unwrap(), &mut subscription_ack_results);
+                        return UpdateStateResult::new(4, UpdateStateAction::None, PublishRequestAction::None, subscription_ack_results);
+                    } else if self.publishing_enabled && self.more_notifications {
+                        // State #5
+                        self.reset_lifetime_counter();
+                        self.delete_acked_notification_msgs(publish_request.as_ref().unwrap(), &mut subscription_ack_results);
+                        self.message_sent = true;
+                        return UpdateStateResult::new(5, UpdateStateAction::ReturnNotifications, PublishRequestAction::None, subscription_ack_results);
+                    }
+                } else if publishing_timer_expired {
+                    if self.publishing_req_queued && self.publishing_enabled && self.notifications_available {
+                        // State #6
+                        self.reset_lifetime_counter();
+                        self.start_publishing_timer();
+                        self.message_sent = true;
+                        return UpdateStateResult::new(6, UpdateStateAction::ReturnNotifications, PublishRequestAction::Dequeue, subscription_ack_results);
+                    } else if self.publishing_req_queued && !self.message_sent && (!self.publishing_enabled || (self.publishing_enabled && !self.notifications_available)) {
+                        // State #7
+                        self.reset_lifetime_counter();
+                        self.start_publishing_timer();
+                        self.message_sent = true;
+                        return UpdateStateResult::new(7, UpdateStateAction::ReturnKeepAlive, PublishRequestAction::Dequeue, subscription_ack_results);
+                    } else if !self.publishing_req_queued && (!self.message_sent || (self.publishing_enabled && self.notifications_available)) {
+                        // State #8
+                        self.start_publishing_timer();
+                        self.state = SubscriptionState::Late;
+                        return UpdateStateResult::new(8, UpdateStateAction::None, PublishRequestAction::None, subscription_ack_results);
+                    } else if self.message_sent && (!self.publishing_enabled || (self.publishing_enabled && !self.notifications_available)) {
+                        // State #9
+                        self.start_publishing_timer();
+                        self.reset_keep_alive_counter();
+                        self.state = SubscriptionState::KeepAlive;
+                        return UpdateStateResult::new(9, UpdateStateAction::None, PublishRequestAction::None, subscription_ack_results);
+                    }
                 }
             }
             SubscriptionState::Late => {
-                if receive_publish_request && self.publishing_enabled && (self.notifications_available || self.more_notifications) {
-                    // State #10
-                    self.reset_lifetime_counter();
-                    self.delete_acked_notification_msgs(publish_request.as_ref().unwrap(), &mut subscription_ack_results);
-                    self.state = SubscriptionState::Normal;
-                    self.message_sent = true;
-                    return UpdateStateResult::new(10, UpdateStateAction::ReturnNotifications, PublishRequestAction::None, subscription_ack_results);
-                } else if receive_publish_request && (!self.publishing_enabled || (self.publishing_enabled && !self.notifications_available && !self.more_notifications)) {
-                    // State #11
-                    self.reset_lifetime_counter();
-                    self.delete_acked_notification_msgs(publish_request.as_ref().unwrap(), &mut subscription_ack_results);
-                    self.state = SubscriptionState::KeepAlive;
-                    self.message_sent = true;
-                    return UpdateStateResult::new(11, UpdateStateAction::ReturnKeepAlive, PublishRequestAction::None, subscription_ack_results);
+                if receive_publish_request {
+                    if self.publishing_enabled && (self.notifications_available || self.more_notifications) {
+                        // State #10
+                        self.reset_lifetime_counter();
+                        self.delete_acked_notification_msgs(publish_request.as_ref().unwrap(), &mut subscription_ack_results);
+                        self.state = SubscriptionState::Normal;
+                        self.message_sent = true;
+                        return UpdateStateResult::new(10, UpdateStateAction::ReturnNotifications, PublishRequestAction::None, subscription_ack_results);
+                    } else if !self.publishing_enabled || (self.publishing_enabled && !self.notifications_available && !self.more_notifications) {
+                        // State #11
+                        self.reset_lifetime_counter();
+                        self.delete_acked_notification_msgs(publish_request.as_ref().unwrap(), &mut subscription_ack_results);
+                        self.state = SubscriptionState::KeepAlive;
+                        self.message_sent = true;
+                        return UpdateStateResult::new(11, UpdateStateAction::ReturnKeepAlive, PublishRequestAction::None, subscription_ack_results);
+                    }
                 } else if publishing_timer_expired {
                     // State #12
                     self.start_publishing_timer();
@@ -407,27 +441,29 @@ impl Subscription {
                     // State #13
                     self.delete_acked_notification_msgs(publish_request.as_ref().unwrap(), &mut subscription_ack_results);
                     return UpdateStateResult::new(13, UpdateStateAction::None, PublishRequestAction::None, subscription_ack_results);
-                } else if publishing_timer_expired && self.publishing_enabled && self.notifications_available && self.publishing_req_queued {
-                    // State #14
-                    self.message_sent = true;
-                    self.state = SubscriptionState::Normal;
-                    return UpdateStateResult::new(14, UpdateStateAction::ReturnNotifications, PublishRequestAction::Dequeue, subscription_ack_results);
-                } else if publishing_timer_expired && self.publishing_req_queued && self.keep_alive_counter == 1 &&
-                    !self.publishing_enabled || (self.publishing_enabled && self.notifications_available) {
-                    // State #15
-                    self.start_publishing_timer();
-                    self.reset_keep_alive_counter();
-                    return UpdateStateResult::new(15, UpdateStateAction::ReturnKeepAlive, PublishRequestAction::Dequeue, subscription_ack_results);
-                } else if publishing_timer_expired && self.keep_alive_counter > 1 && (!self.publishing_enabled || (self.publishing_enabled && !self.notifications_available)) {
-                    // State #16
-                    self.start_publishing_timer();
-                    self.keep_alive_counter -= 1;
-                    return UpdateStateResult::new(16, UpdateStateAction::None, PublishRequestAction::None, subscription_ack_results);
-                } else if publishing_timer_expired && !self.publishing_req_queued && (self.keep_alive_counter == 1 || (self.keep_alive_counter > 1 && self.publishing_enabled && self.notifications_available)) {
-                    // State #17
-                    self.start_publishing_timer();
-                    self.state = SubscriptionState::Late;
-                    return UpdateStateResult::new(17, UpdateStateAction::None, PublishRequestAction::None, subscription_ack_results);
+                } else if publishing_timer_expired {
+                    if self.publishing_enabled && self.notifications_available && self.publishing_req_queued {
+                        // State #14
+                        self.message_sent = true;
+                        self.state = SubscriptionState::Normal;
+                        return UpdateStateResult::new(14, UpdateStateAction::ReturnNotifications, PublishRequestAction::Dequeue, subscription_ack_results);
+                    } else if self.publishing_req_queued && self.keep_alive_counter == 1 &&
+                        !self.publishing_enabled || (self.publishing_enabled && self.notifications_available) {
+                        // State #15
+                        self.start_publishing_timer();
+                        self.reset_keep_alive_counter();
+                        return UpdateStateResult::new(15, UpdateStateAction::ReturnKeepAlive, PublishRequestAction::Dequeue, subscription_ack_results);
+                    } else if self.keep_alive_counter > 1 && (!self.publishing_enabled || (self.publishing_enabled && !self.notifications_available)) {
+                        // State #16
+                        self.start_publishing_timer();
+                        self.keep_alive_counter -= 1;
+                        return UpdateStateResult::new(16, UpdateStateAction::None, PublishRequestAction::None, subscription_ack_results);
+                    } else if !self.publishing_req_queued && (self.keep_alive_counter == 1 || (self.keep_alive_counter > 1 && self.publishing_enabled && self.notifications_available)) {
+                        // State #17
+                        self.start_publishing_timer();
+                        self.state = SubscriptionState::Late;
+                        return UpdateStateResult::new(17, UpdateStateAction::None, PublishRequestAction::None, subscription_ack_results);
+                    }
                 }
             }
         }

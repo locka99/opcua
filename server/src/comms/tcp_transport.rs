@@ -26,7 +26,7 @@ const SEND_BUFFER_SIZE: usize = 1024 * 64;
 const MAX_MESSAGE_SIZE: usize = 1024 * 64;
 
 // Rate at which subscriptions are serviced
-const SUBSCRIPTION_TIMER_RATE: i64 = 500;
+const SUBSCRIPTION_TIMER_RATE: i64 = 2000;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum TransportState {
@@ -238,7 +238,6 @@ impl TcpTransport {
         let subscription_timer = timer::Timer::new();
         let subscription_timer_guard = subscription_timer.schedule_repeating(time::Duration::milliseconds(SUBSCRIPTION_TIMER_RATE), move || {
             // Manage subscriptions
-            debug!("Timer fired");
             let mut session_state = session_state.lock().unwrap();
 
             // Request queue might contain stale publish requests
@@ -250,7 +249,7 @@ impl TcpTransport {
             {
                 let server_state = server_state.lock().unwrap();
                 let address_space = server_state.address_space.lock().unwrap();
-                if let Some(messages) = session_state.tick_subscriptions(&address_space) {
+                if let Some(messages) = session_state.tick_subscriptions(None, &address_space) {
                     let _ = subscription_timer_tx.send(SubscriptionEvent::Messages(messages));
                 }
             }
@@ -375,6 +374,12 @@ impl TcpTransport {
             },
             &SupportedMessage::DoNothing => {
                 // DO NOTHING
+            },
+            &SupportedMessage::MultipleMessages(ref messages) => {
+                for message in messages.as_ref() {
+                    // Recursion
+                    self.send_response(request_id, message, out_stream);
+                }
             },
             _ => {
                 // Send the response

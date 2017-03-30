@@ -141,11 +141,16 @@ impl SubscriptionService {
     }
 
     /// Handles a PublishRequest
-    pub fn publish(&self, _: &mut ServerState, session_state: &mut SessionState, request: PublishRequest) -> Result<SupportedMessage, &'static StatusCode> {
-        error!("RECEIVED A PUBLISHREQUEST {:#?}", request);
-        // Publish requests are enqueued and handled by a timer thread
-        let _ = session_state.enqueue_publish_request(request);
-        Ok(SupportedMessage::DoNothing)
+    pub fn publish(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: PublishRequest) -> Result<SupportedMessage, &'static StatusCode> {
+        error!("RECEIVED A PUBLISHREQUEST");
+        let message = session_state.enqueue_publish_request(server_state, request)?;
+        if message.is_some() {
+            error!("GOT SOME MESSAGES TO SEND OUT");
+            Ok(SupportedMessage::MultipleMessages(Box::new(message.unwrap())))
+        }
+        else {
+            Ok(SupportedMessage::DoNothing)
+        }
     }
 
     /// This function takes the requested values passed in a create / modify and returns revised

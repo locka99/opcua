@@ -33,7 +33,7 @@ fn update_state_3() {
     let update_state_result = s.update_state(&publish_request, publishing_timer_expired);
 
     assert_eq!(update_state_result.handled_state, 3);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnNotifications);
     assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::Normal);
     assert_eq!(s.message_sent, false);
@@ -210,7 +210,7 @@ fn update_state_10() {
     s.publishing_enabled = true;
     s.notifications_available = true;
 
-    let publishing_timer_expired = true;
+    let publishing_timer_expired = false;
     let update_state_result = s.update_state(&publish_request, publishing_timer_expired);
 
     assert_eq!(update_state_result.handled_state, 10);
@@ -229,7 +229,7 @@ fn update_state_11() {
     s.publishing_enabled = true;
     s.notifications_available = false;
 
-    let publishing_timer_expired = true;
+    let publishing_timer_expired = false;
     let update_state_result = s.update_state(&publish_request, publishing_timer_expired);
 
     assert_eq!(update_state_result.handled_state, 11);
