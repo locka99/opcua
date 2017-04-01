@@ -41,14 +41,15 @@ impl SessionState {
             Err(&BAD_TOO_MANY_PUBLISH_REQUESTS)
         } else {
             info!("Sending a tick to subscriptions to deal with the request");
+            self.publish_request_queue.insert(0, request);
             let address_space = server_state.address_space.lock().unwrap();
-            Ok(self.tick_subscriptions(&address_space))
+            Ok(self.tick_subscriptions(true, &address_space))
         }
     }
 
     /// Iterate all subscriptions calling tick on each. Note this could potentially be done to run in parallel
     /// assuming the action to clean dead subscriptions was a join done after all ticks had completed.
-    pub fn tick_subscriptions(&mut self, address_space: &AddressSpace) -> Option<Vec<SupportedMessage>> {
+    pub fn tick_subscriptions(&mut self, receive_publish_request: bool, address_space: &AddressSpace) -> Option<Vec<SupportedMessage>> {
         let mut result = Vec::new();
         let now = chrono::UTC::now();
 
@@ -64,11 +65,14 @@ impl SessionState {
                     let publishing_req_queued = self.publish_request_queue.len() > 0;
                     let publish_request = self.publish_request_queue.pop();
 
-                    let (notification_message, update_state_result) = subscription.tick(address_space, &publish_request, publishing_req_queued, &now);
+                    let (notification_message, update_state_result) = subscription.tick(address_space, receive_publish_request, &publish_request, publishing_req_queued, &now);
                     if let Some(update_state_result) = update_state_result {
                         if let Some(notification_message) = notification_message {
+                            if publish_request.is_none() {
+                                panic!("Should have a publish request in order to have a response with notifications");
+                            }
                             let publish_response = PublishResponse {
-                                response_header: ResponseHeader::new_notification_response(&DateTime::now(), &GOOD),
+                                response_header: ResponseHeader::new_service_result(&DateTime::now(), &publish_request.as_ref().unwrap().request_header, &GOOD),
                                 subscription_id: *subscription_id,
                                 available_sequence_numbers: None,
                                 // TODO
@@ -82,8 +86,11 @@ impl SessionState {
                         }
                         // Determine if publish request should be dequeued (after processing all subscriptions)
                         match update_state_result.publish_request_action {
-                            PublishRequestAction::Dequeue => {}
+                            PublishRequestAction::Dequeue => {
+                                debug!("PublishRequestAction::Dequeue");
+                            }
                             PublishRequestAction::Enqueue => {
+                                debug!("PublishRequestAction::Enqueue");
                                 if publish_request.is_none() {
                                     panic!("Should not have an enqueue response when there was no publish request");
                                 }
@@ -91,6 +98,7 @@ impl SessionState {
                             }
                             _ => {
                                 if publish_request.is_some() {
+                                    debug!("PublishRequestAction::None (but re-enqueuing publish request)");
                                     self.publish_request_queue.push(publish_request.unwrap());
                                 }
                             }

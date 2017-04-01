@@ -249,7 +249,7 @@ impl TcpTransport {
             {
                 let server_state = server_state.lock().unwrap();
                 let address_space = server_state.address_space.lock().unwrap();
-                if let Some(messages) = session_state.tick_subscriptions(&address_space) {
+                if let Some(messages) = session_state.tick_subscriptions(false, &address_space) {
                     let _ = subscription_timer_tx.send(SubscriptionEvent::Messages(messages));
                 }
             }
@@ -384,13 +384,13 @@ impl TcpTransport {
             _ => {
                 // Send the response
                 // Get the request id out of the request
-                debug!("Response to send: {:?}", response);
+                // debug!("Response to send: {:?}", response);
                 let sequence_number = self.last_sent_sequence_number + 1;
                 let out_chunks = Chunker::encode(sequence_number, request_id, &self.secure_channel_info, response)?;
                 self.last_sent_sequence_number = sequence_number + out_chunks.len() as UInt32 - 1;
 
                 // Send out any chunks that form the response
-                debug!("Got some chunks to send {:?}", out_chunks);
+                // debug!("Got some chunks to send {:?}", out_chunks);
                 for out_chunk in out_chunks {
                     let _ = out_chunk.encode(out_stream);
                 }

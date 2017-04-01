@@ -223,11 +223,11 @@ impl Subscription {
 
     /// Checks the subscription and monitored items for state change, messages. If the tick does
     /// nothing, the function returns None. Otherwise it returns one or more messages in an Vec.
-    pub fn tick(&mut self, address_space: &AddressSpace, publish_request: &Option<PublishRequest>, publishing_req_queued: bool, now: &DateTimeUTC) -> (Option<NotificationMessage>, Option<UpdateStateResult>) {
+    pub fn tick(&mut self, address_space: &AddressSpace, receive_publish_request: bool, publish_request: &Option<PublishRequest>, publishing_req_queued: bool, now: &DateTimeUTC) -> (Option<NotificationMessage>, Option<UpdateStateResult>) {
         debug!("subscription tick {}", self.subscription_id);
 
         // Test if the interval has elapsed.
-        let publishing_timer_expired = if publish_request.is_some() {
+        let publishing_timer_expired = if receive_publish_request {
             false
         } else if self.state == SubscriptionState::Creating {
             true
@@ -249,7 +249,7 @@ impl Subscription {
         // If items have changed or subscription interval elapsed then we may have notifications
         // to send or state to update
         let result = if items_changed || publishing_timer_expired || publish_request.is_some() {
-            let update_state_result = self.update_state(publish_request, publishing_timer_expired);
+            let update_state_result = self.update_state(receive_publish_request, publish_request, publishing_timer_expired);
             let notifications = match update_state_result.update_state_action {
                 UpdateStateAction::None => None,
                 UpdateStateAction::ReturnKeepAlive => self.return_keep_alive(),
@@ -318,10 +318,7 @@ impl Subscription {
     // * Update state action - none, return notifications, return keep alive
     // * Publishing request action - nothing, dequeue
     //
-    pub fn update_state(&mut self, publish_request: &Option<PublishRequest>, publishing_timer_expired: bool) -> UpdateStateResult {
-        // This flag is set if a publish request was received that initiated this update state call
-        let receive_publish_request = publish_request.is_some();
-
+    pub fn update_state(&mut self, receive_publish_request: bool, publish_request: &Option<PublishRequest>, publishing_timer_expired: bool) -> UpdateStateResult {
         // This function is called when a publish request is received OR the timer expired, so getting
         // both is invalid code somewhere
         if receive_publish_request && publishing_timer_expired {
