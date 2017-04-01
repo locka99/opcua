@@ -3,8 +3,7 @@ use std::collections::{HashMap, BTreeMap};
 use chrono;
 use time;
 
-use opcua_core::types::*;
-use opcua_core::comms::*;
+use prelude::*;
 
 use DateTimeUTC;
 use subscriptions::monitored_item::*;
@@ -224,7 +223,7 @@ impl Subscription {
 
     /// Checks the subscription and monitored items for state change, messages. If the tick does
     /// nothing, the function returns None. Otherwise it returns one or more messages in an Vec.
-    pub fn tick(&mut self, address_space: &AddressSpace, publish_request: &Option<PublishRequest>, now: &DateTimeUTC) -> (Option<NotificationMessage>, Option<UpdateStateResult>) {
+    pub fn tick(&mut self, address_space: &AddressSpace, publish_request: &Option<PublishRequest>, publishing_req_queued: bool, now: &DateTimeUTC) -> (Option<NotificationMessage>, Option<UpdateStateResult>) {
         debug!("subscription tick {}", self.subscription_id);
 
         // Test if the interval has elapsed.
@@ -244,6 +243,8 @@ impl Subscription {
         // elapses but they don't have to. So this is called every tick just to catch items with their
         // own intervals.
         let items_changed = self.tick_monitored_items(address_space, now, publishing_timer_expired);
+
+        self.publishing_req_queued = publishing_req_queued;
 
         // If items have changed or subscription interval elapsed then we may have notifications
         // to send or state to update
@@ -280,7 +281,7 @@ impl Subscription {
                 monitored_item_notifications.push(monitored_item.get_notification_message().unwrap());
             }
         }
-        if monitored_item_notifications.len() > 0 {
+        let result = if monitored_item_notifications.len() > 0 {
             // Create a notification message in the map
             self.last_sequence_number += 1;
             let sequence_number = self.last_sequence_number;
@@ -290,7 +291,9 @@ impl Subscription {
             true
         } else {
             false
-        }
+        };
+        self.notifications_available = self.notifications.len() > 0;
+        result
     }
 
     // See OPC UA Part 4 5.13.1.2 State Table
@@ -339,7 +342,7 @@ impl Subscription {
                 debug!("  publishing_req_queued: {}", self.publishing_req_queued);
                 debug!("  publishing_enabled: {}", self.publishing_enabled);
                 debug!("  more_notifications: {}", self.more_notifications);
-                debug!("  notifications_available: {}", self.notifications_available);
+                debug!("  notifications_available: {} (queue size = {})", self.notifications_available, self.notifications.len());
                 debug!("  keep_alive_counter: {}", self.keep_alive_counter);
                 debug!("  lifetime_counter: {}", self.lifetime_counter);
                 debug!("  message_sent: {}", self.message_sent);
@@ -527,7 +530,6 @@ impl Subscription {
     /// Reset the lifetime counter to the value specified for the life time of the subscription
     /// in the create subscription service
     pub fn reset_lifetime_counter(&mut self) {
-        println!("Setting lifetime_counter to {}", self.max_lifetime_count);
         self.lifetime_counter = self.max_lifetime_count;
     }
 
@@ -542,6 +544,7 @@ impl Subscription {
     }
 
     pub fn return_notifications(&mut self) -> Option<NotificationMessage> {
+        debug!("return notifications, len = {}", self.notifications.len());
         if self.notifications.len() > 0 {
             // If (MoreNotifications == TRUE) && (PublishingReqQueued == TRUE)
             // {

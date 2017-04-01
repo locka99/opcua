@@ -76,7 +76,6 @@ pub fn expired_publish_requests() {
         session_info: None,
         subscriptions: Arc::new(Mutex::new(HashMap::new())),
         publish_request_queue: vec![pr1, pr2],
-        max_publish_requests: 5,
     };
 
     // Expire requests, see which expire

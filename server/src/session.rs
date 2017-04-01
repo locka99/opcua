@@ -9,7 +9,8 @@ use prelude::*;
 use DateTimeUTC;
 use subscriptions::*;
 
-const MAX_PUBLISH_REQUESTS: usize = 10;
+const MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE: usize = 100;
+const MAX_PUBLISH_REQUESTS: usize = 200;
 const MAX_REQUEST_TIMEOUT: i64 = 30000;
 
 /// Session info holds information about a session created by CreateSession service
@@ -22,7 +23,6 @@ pub struct SessionState {
     pub session_info: Option<SessionInfo>,
     pub subscriptions: Arc<Mutex<HashMap<UInt32, Subscription>>>,
     pub publish_request_queue: Vec<PublishRequest>,
-    pub max_publish_requests: usize,
 }
 
 impl SessionState {
@@ -30,30 +30,27 @@ impl SessionState {
         SessionState {
             session_info: None,
             subscriptions: Arc::new(Mutex::new(HashMap::new())),
-            publish_request_queue: Vec::with_capacity(MAX_PUBLISH_REQUESTS),
-            max_publish_requests: MAX_PUBLISH_REQUESTS,
+            publish_request_queue: Vec::with_capacity(MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE),
         }
     }
 
     pub fn enqueue_publish_request(&mut self, server_state: &mut ServerState, request: PublishRequest) -> Result<Option<Vec<SupportedMessage>>, &'static StatusCode> {
-        if self.publish_request_queue.len() >= self.max_publish_requests {
-            error!("Too man publish requests, throwing it away");
+        let max_publish_requests = MAX_PUBLISH_REQUESTS;
+        if self.publish_request_queue.len() >= max_publish_requests {
+            error!("Too many publish requests, throwing it away");
             Err(&BAD_TOO_MANY_PUBLISH_REQUESTS)
         } else {
             info!("Sending a tick to subscriptions to deal with the request");
             let address_space = server_state.address_space.lock().unwrap();
-            Ok(self.tick_subscriptions(Some(request), &address_space))
+            Ok(self.tick_subscriptions(&address_space))
         }
     }
 
     /// Iterate all subscriptions calling tick on each. Note this could potentially be done to run in parallel
     /// assuming the action to clean dead subscriptions was a join done after all ticks had completed.
-    pub fn tick_subscriptions(&mut self, publish_request: Option<PublishRequest>, address_space: &AddressSpace) -> Option<Vec<SupportedMessage>> {
+    pub fn tick_subscriptions(&mut self, address_space: &AddressSpace) -> Option<Vec<SupportedMessage>> {
         let mut result = Vec::new();
         let now = chrono::UTC::now();
-
-        let mut enqueue_publish_request = false;
-        let mut dequeue_publish_request = false;
 
         {
             let mut subscriptions = self.subscriptions.lock().unwrap();
@@ -64,7 +61,10 @@ impl SessionState {
                 if subscription.state == SubscriptionState::Closed {
                     dead_subscriptions.push(*subscription_id);
                 } else {
-                    let (notification_message, update_state_result) = subscription.tick(address_space, &publish_request, &now);
+                    let publishing_req_queued = self.publish_request_queue.len() > 0;
+                    let publish_request = self.publish_request_queue.pop();
+
+                    let (notification_message, update_state_result) = subscription.tick(address_space, &publish_request, publishing_req_queued, &now);
                     if let Some(update_state_result) = update_state_result {
                         if let Some(notification_message) = notification_message {
                             let publish_response = PublishResponse {
@@ -82,9 +82,18 @@ impl SessionState {
                         }
                         // Determine if publish request should be dequeued (after processing all subscriptions)
                         match update_state_result.publish_request_action {
-                            PublishRequestAction::Enqueue => enqueue_publish_request = true,
-                            PublishRequestAction::Dequeue => dequeue_publish_request = true,
-                            _ => {}
+                            PublishRequestAction::Dequeue => {}
+                            PublishRequestAction::Enqueue => {
+                                if publish_request.is_none() {
+                                    panic!("Should not have an enqueue response when there was no publish request");
+                                }
+                                self.publish_request_queue.push(publish_request.unwrap());
+                            }
+                            _ => {
+                                if publish_request.is_some() {
+                                    self.publish_request_queue.push(publish_request.unwrap());
+                                }
+                            }
                         }
                     }
                 }
@@ -96,22 +105,12 @@ impl SessionState {
             }
         }
 
-        if enqueue_publish_request {
-            if publish_request.is_none() {
-                panic!("Should not have an enqueue response when there was no publish request");
-            }
-            self.publish_request_queue.push(publish_request.unwrap());
-        } else if dequeue_publish_request && self.publish_request_queue.len() > 0 {
-            // Remove oldest publish request
-            self.publish_request_queue.remove(0);
-        }
-
         if result.is_empty() { None } else { Some(result) }
     }
 
 
     pub fn expire_stale_publish_requests(&mut self, now: &DateTimeUTC) -> Option<Vec<SupportedMessage>> {
-        let mut expired = Vec::with_capacity(self.max_publish_requests);
+        let mut expired = Vec::with_capacity(self.publish_request_queue.len());
 
         // Strip out publish requests which have expired
         self.publish_request_queue.retain(|ref r| {

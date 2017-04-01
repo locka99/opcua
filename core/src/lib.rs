@@ -31,9 +31,13 @@ pub mod prelude {
 
 use log::*;
 
+use std::collections::HashSet;
+
 /// Simple logger (as the name suggests) is a bare bones implementation of the log::Log trait
 /// that may be used to print debug information out to the console.
-struct SimpleLogger;
+struct SimpleLogger {
+    target_map: HashSet<&'static str>,
+}
 
 impl log::Log for SimpleLogger {
     fn enabled(&self, metadata: &LogMetadata) -> bool {
@@ -42,20 +46,22 @@ impl log::Log for SimpleLogger {
 
     fn log(&self, record: &LogRecord) {
         if self.enabled(record.metadata()) {
-            // TODO record.location().module_path() could be used to filter out unwanted noise
+            if !self.target_map.is_empty() && !self.target_map.contains(record.metadata().target()) {
+                return;
+            }
 
             match record.metadata().level() {
                 LogLevel::Error => {
-                    println!("\x1b[37m\x1b[41m{}\x1b[0m - {}", record.level(), record.args());
+                    println!("\x1b[37m\x1b[41m{}\x1b[0m - {} - {}", record.level(), record.metadata().target(), record.args());
                 },
                 LogLevel::Warn => {
-                    println!("\x1b[33m{}\x1b[0m - {}", record.level(), record.args());
+                    println!("\x1b[33m{}\x1b[0m - {} - {}", record.level(), record.metadata().target(), record.args());
                 },
                 LogLevel::Info => {
-                    println!("\x1b[36m{}\x1b[0m - {}", record.level(), record.args());
+                    println!("\x1b[36m{}\x1b[0m - {} - {}", record.level(), record.metadata().target(), record.args());
                 },
                 _ => {
-                    println!("{} - {}", record.level(), record.args());
+                    println!("{} - {} - {}", record.level(), record.metadata().target(), record.args());
                 }
             }
         }
@@ -66,7 +72,9 @@ impl log::Log for SimpleLogger {
 pub fn init_logging() -> Result<(), SetLoggerError> {
     log::set_logger(|max_log_level| {
         max_log_level.set(LogLevelFilter::Debug);
-        Box::new(SimpleLogger)
+        Box::new(SimpleLogger {
+            target_map: HashSet::new(),
+        })
     })
 }
 
@@ -86,6 +94,8 @@ pub mod profiles {
 
 /// Contains debugging utility helper functions
 pub mod debug {
+    pub const SUBSCRIPTION: &'static str = "subscription";
+
     /// Prints out the content of a slice in hex and visible char format to aid debugging. Format
     /// is similar to corresponding functionality in node-opcua
     pub fn debug_buffer(buf: &[u8]) {
@@ -102,7 +112,7 @@ pub mod debug {
             for (i, b) in buf.iter().enumerate() {
                 let value = *b as u8;
                 if i > 0 && i % line_len == 0 {
-                    debug!("{} {}", hex_line, char_line);
+                    debug!(target: "hex", "{} {}", hex_line, char_line);
                     hex_line = format!("{:08x}: ", i);
                     char_line.clear();
                 }
@@ -113,7 +123,7 @@ pub mod debug {
                 for _ in 0..last_line_padding {
                     hex_line.push_str("   ");
                 }
-                debug!("{} {}", hex_line, char_line);
+                debug!(target: "hex", "{} {}", hex_line, char_line);
             }
         }
     }

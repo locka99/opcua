@@ -249,7 +249,7 @@ impl TcpTransport {
             {
                 let server_state = server_state.lock().unwrap();
                 let address_space = server_state.address_space.lock().unwrap();
-                if let Some(messages) = session_state.tick_subscriptions(None, &address_space) {
+                if let Some(messages) = session_state.tick_subscriptions(&address_space) {
                     let _ = subscription_timer_tx.send(SubscriptionEvent::Messages(messages));
                 }
             }
