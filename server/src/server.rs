@@ -53,7 +53,7 @@ pub struct ServerState {
     pub address_space: Arc<Mutex<AddressSpace>>,
     /// The next subscription id - subscriptions are shared across the whole server. Initial value
     /// is a random u32.
-    pub next_subscription_id: UInt32,
+    pub last_subscription_id: UInt32,
     /// Maximum number of subscriptions per session, 0 means no limit (danger)
     pub max_subscriptions: usize,
     /// Minimum publishing interval
@@ -98,9 +98,8 @@ impl ServerState {
     }
 
     pub fn create_subscription_id(&mut self) -> UInt32 {
-        let result = self.next_subscription_id;
-        self.next_subscription_id += 1;
-        result
+        self.last_subscription_id += 1;
+        self.last_subscription_id
     }
 }
 
@@ -166,7 +165,7 @@ impl Server {
             config: Arc::new(Mutex::new(config.clone())),
             server_certificate: server_certificate,
             address_space: Arc::new(Mutex::new(address_space)),
-            next_subscription_id: rand::thread_rng().next_u32(),
+            last_subscription_id: 0,
 
             max_subscriptions: max_subscriptions,
             min_publishing_interval: 0f64,

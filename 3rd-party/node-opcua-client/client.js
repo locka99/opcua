@@ -9,6 +9,8 @@ var endpointUrl = "opc.tcp://127.0.0.1:1234/";
 
 var the_session, the_subscription;
 
+var node_id = "ns=2;s=v1";
+
 async.series([
         // step 1 : connect to
         function (callback) {
@@ -46,7 +48,7 @@ async.series([
 
         // step 4 : read a variable with readVariableValue
         function (callback) {
-            the_session.readVariableValue("ns=1;s=v1", function (err, dataValue) {
+            the_session.readVariableValue(node_id, function (err, dataValue) {
                 if (!err) {
                     console.log(" free mem % = ", dataValue.toString());
                 }
@@ -60,7 +62,7 @@ async.series([
         function (callback) {
             var max_age = 0;
             var nodes_to_read = [
-                {nodeId: "ns=1;s=v1", attributeId: opcua.AttributeIds.Value}
+                {nodeId: node_id, attributeId: opcua.AttributeIds.Value}
             ];
             the_session.read(nodes_to_read, max_age, function (err, nodes_to_read, dataValues) {
                 if (!err) {
@@ -95,7 +97,7 @@ async.series([
 
             // install monitored item
             var monitoredItem = the_subscription.monitor({
-                    nodeId: opcua.resolveNodeId("ns=1;s=v1"),
+                    nodeId: opcua.resolveNodeId(node_id),
                     attributeId: opcua.AttributeIds.Value
                 },
                 {

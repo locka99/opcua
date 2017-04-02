@@ -13,6 +13,16 @@ const MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE: usize = 100;
 const MAX_PUBLISH_REQUESTS: usize = 200;
 const MAX_REQUEST_TIMEOUT: i64 = 30000;
 
+/// The publish request entry preserves the request_id which is part of the chunk layer but clients
+/// are fickle about receiving responses from the same as the request. Normally this is easy because
+/// request and response are synchronous, but publish requests are async, so we preserve the request_id
+/// so that later we can send out responses that have the proper req id
+#[derive(Clone)]
+pub struct PublishRequestEntry {
+    pub request_id: UInt32,
+    pub request: PublishRequest,
+}
+
 /// Session info holds information about a session created by CreateSession service
 #[derive(Clone)]
 pub struct SessionInfo {}
@@ -22,7 +32,7 @@ pub struct SessionInfo {}
 pub struct SessionState {
     pub session_info: Option<SessionInfo>,
     pub subscriptions: Arc<Mutex<HashMap<UInt32, Subscription>>>,
-    pub publish_request_queue: Vec<PublishRequest>,
+    pub publish_request_queue: Vec<PublishRequestEntry>,
 }
 
 impl SessionState {
@@ -34,14 +44,17 @@ impl SessionState {
         }
     }
 
-    pub fn enqueue_publish_request(&mut self, server_state: &mut ServerState, request: PublishRequest) -> Result<Option<Vec<SupportedMessage>>, &'static StatusCode> {
+    pub fn enqueue_publish_request(&mut self, server_state: &mut ServerState, request_id: UInt32, request: PublishRequest) -> Result<Option<Vec<SupportedMessage>>, &'static StatusCode> {
         let max_publish_requests = MAX_PUBLISH_REQUESTS;
         if self.publish_request_queue.len() >= max_publish_requests {
             error!("Too many publish requests, throwing it away");
             Err(&BAD_TOO_MANY_PUBLISH_REQUESTS)
         } else {
             info!("Sending a tick to subscriptions to deal with the request");
-            self.publish_request_queue.insert(0, request);
+            self.publish_request_queue.insert(0, PublishRequestEntry {
+                request_id: request_id,
+                request: request,
+            });
             let address_space = server_state.address_space.lock().unwrap();
             Ok(self.tick_subscriptions(true, &address_space))
         }
@@ -65,22 +78,9 @@ impl SessionState {
                     let publishing_req_queued = self.publish_request_queue.len() > 0;
                     let publish_request = self.publish_request_queue.pop();
 
-                    let (notification_message, update_state_result) = subscription.tick(address_space, receive_publish_request, &publish_request, publishing_req_queued, &now);
+                    let (publish_response, update_state_result) = subscription.tick(address_space, receive_publish_request, &publish_request, publishing_req_queued, &now);
                     if let Some(update_state_result) = update_state_result {
-                        if let Some(notification_message) = notification_message {
-                            if publish_request.is_none() {
-                                panic!("Should have a publish request in order to have a response with notifications");
-                            }
-                            let publish_response = PublishResponse {
-                                response_header: ResponseHeader::new_service_result(&DateTime::now(), &publish_request.as_ref().unwrap().request_header, &GOOD),
-                                subscription_id: *subscription_id,
-                                available_sequence_numbers: None,
-                                // TODO
-                                more_notifications: subscription.more_notifications,
-                                notification_message: notification_message,
-                                results: Some(update_state_result.acknowledge_results),
-                                diagnostic_infos: None,
-                            };
+                        if let Some(publish_response) = publish_response {
                             error!("queuing a publish response {:?}", publish_response);
                             result.push(SupportedMessage::PublishResponse(publish_response));
                         }
@@ -122,9 +122,10 @@ impl SessionState {
 
         // Strip out publish requests which have expired
         self.publish_request_queue.retain(|ref r| {
-            let timestamp: DateTimeUTC = r.request_header.timestamp.as_chrono();
-            let timeout = if r.request_header.timeout_hint > 0 && (r.request_header.timeout_hint as i64) < MAX_REQUEST_TIMEOUT {
-                r.request_header.timeout_hint as i64
+            let request_header = &r.request.request_header;
+            let timestamp: DateTimeUTC =request_header.timestamp.as_chrono();
+            let timeout = if request_header.timeout_hint > 0 && (request_header.timeout_hint as i64) < MAX_REQUEST_TIMEOUT {
+                request_header.timeout_hint as i64
             } else {
                 MAX_REQUEST_TIMEOUT
             };
@@ -133,10 +134,10 @@ impl SessionState {
             // The request has timed out if the timestamp plus hint exceeds the input time
             let expiration_time = timestamp + timeout_d;
             if *now >= expiration_time {
-                debug!("Publish request {} has expired - timestamp = {:?}, expiration hint = {}, expiration time = {:?}, time now = {:?}, ", r.request_header.request_handle, timestamp, timeout, expiration_time, now);
+                debug!("Publish request {} has expired - timestamp = {:?}, expiration hint = {}, expiration time = {:?}, time now = {:?}, ", request_header.request_handle, timestamp, timeout, expiration_time, now);
                 let now = DateTime::from_chrono(now);
-                let response = PublishResponse {
-                    response_header: ResponseHeader::new_service_result(&now, &r.request_header, &BAD_REQUEST_TIMEOUT),
+                let publish_response = PublishResponse {
+                    response_header: ResponseHeader::new_service_result(&now, request_header, &BAD_REQUEST_TIMEOUT),
                     subscription_id: 0,
                     available_sequence_numbers: None,
                     more_notifications: false,
@@ -148,7 +149,7 @@ impl SessionState {
                     results: None,
                     diagnostic_infos: None
                 };
-                expired.push(SupportedMessage::PublishResponse(response));
+                expired.push(SupportedMessage::PublishResponse(publish_response));
                 // Remove
                 false
             } else {

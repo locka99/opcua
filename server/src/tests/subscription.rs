@@ -1,4 +1,5 @@
 use prelude::*;
+use session::PublishRequestEntry;
 
 const DEFAULT_LIFETIME_COUNT: UInt32 = 300;
 const DEFAULT_KEEPALIVE_COUNT: UInt32 = 100;
@@ -10,10 +11,13 @@ fn make_subscription(state: SubscriptionState) -> Subscription {
     result
 }
 
-fn make_publish_request() -> PublishRequest {
-    PublishRequest {
-        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
-        subscription_acknowledgements: None,
+fn make_publish_request() -> PublishRequestEntry {
+    PublishRequestEntry {
+        request_id: 1,
+        request: PublishRequest {
+            request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+            subscription_acknowledgements: None,
+        }
     }
 }
 
@@ -35,7 +39,7 @@ fn update_state_3() {
     let update_state_result = s.update_state(receive_publish_request, &publish_request, publishing_timer_expired);
 
     assert_eq!(update_state_result.handled_state, 3);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnNotifications);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
     assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::Normal);
     assert_eq!(s.message_sent, false);
@@ -132,7 +136,7 @@ fn update_state_6() {
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnNotifications);
     assert_eq!(update_state_result.publish_request_action, PublishRequestAction::Dequeue);
     assert_eq!(s.state, SubscriptionState::Normal);
-    assert_eq!(s.lifetime_counter, s.max_lifetime_count);
+    assert_eq!(s.lifetime_counter, 299);
     assert_eq!(s.message_sent, true);
 }
 
@@ -159,7 +163,7 @@ fn update_state_7() {
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnKeepAlive);
     assert_eq!(update_state_result.publish_request_action, PublishRequestAction::Dequeue);
     assert_eq!(s.state, SubscriptionState::Normal);
-    assert_eq!(s.lifetime_counter, s.max_lifetime_count);
+    assert_eq!(s.lifetime_counter, 299);
     assert_eq!(s.message_sent, true);
 
     // TODO Repeat with publishing enabled true and notifications available false

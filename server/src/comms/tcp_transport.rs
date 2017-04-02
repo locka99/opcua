@@ -137,7 +137,7 @@ impl TcpTransport {
                         error!("Received messages, sending them out");
                         for message in messages {
                             error!("SENDING MESSAGE {:#?}", message);
-                            let _ = self.send_response(0, &message, &mut out_buf_stream);
+                            let _ = self.send_response(1, &message, &mut out_buf_stream);
                         }
                     }
                 }
@@ -346,6 +346,9 @@ impl TcpTransport {
         let chunk_message_type = chunk.chunk_header.message_type.clone();
 
         let in_chunks = vec![chunk];
+        let chunk_info = in_chunks[0].chunk_info(true, &self.secure_channel_info)?;
+        let request_id = chunk_info.sequence_header.request_id;
+
         let message = self.turn_received_chunks_into_message(&in_chunks)?;
         let response = match chunk_message_type {
             ChunkMessageType::OpenSecureChannel => {
@@ -356,12 +359,10 @@ impl TcpTransport {
                 return Err(&BAD_CONNECTION_CLOSED);
             },
             ChunkMessageType::Message => {
-                self.message_handler.handle_message(message)?
+                self.message_handler.handle_message(request_id, message)?
             }
         };
 
-        let chunk_info = in_chunks[0].chunk_info(true, &self.secure_channel_info)?;
-        let request_id = chunk_info.sequence_header.request_id;
         self.send_response(request_id, &response, out_stream)?;
         Ok(())
     }
@@ -377,8 +378,8 @@ impl TcpTransport {
             },
             &SupportedMessage::MultipleMessages(ref messages) => {
                 for message in messages.as_ref() {
-                    // Recursion
-                    self.send_response(request_id, message, out_stream);
+                    // Recursion (until a send fails)
+                    self.send_response(request_id, message, out_stream)?;
                 }
             },
             _ => {

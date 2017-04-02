@@ -59,17 +59,23 @@ pub fn expired_publish_requests() {
     // Create two publish requests timestamped now, one which expires in > 30s, one which expires
     // in > 20s
     let now = DateTime::from_chrono(&now);
-    let mut pr1 = PublishRequest {
-        request_header: RequestHeader::new(&NodeId::null(), &now, 1000),
-        subscription_acknowledgements: None,
+    let mut pr1 = PublishRequestEntry {
+        request_id: 1,
+        request: PublishRequest {
+            request_header: RequestHeader::new(&NodeId::null(), &now, 1000),
+            subscription_acknowledgements: None,
+        }
     };
-    pr1.request_header.timeout_hint = 5001;
+    pr1.request.request_header.timeout_hint = 5001;
 
-    let mut pr2 = PublishRequest {
-        request_header: RequestHeader::new(&NodeId::null(), &now, 2000),
-        subscription_acknowledgements: None,
+    let mut pr2 = PublishRequestEntry {
+        request_id: 2,
+        request: PublishRequest {
+            request_header: RequestHeader::new(&NodeId::null(), &now, 2000),
+            subscription_acknowledgements: None,
+        }
     };
-    pr2.request_header.timeout_hint = 3000;
+    pr2.request.request_header.timeout_hint = 3000;
 
     // Create session with publish requests
     let mut session = SessionState {
@@ -85,7 +91,7 @@ pub fn expired_publish_requests() {
     // The > 30s timeout hint request should be expired and the other should remain
     assert_eq!(expired_responses.len(), 1);
     assert_eq!(session.publish_request_queue.len(), 1);
-    assert_eq!(session.publish_request_queue[0].request_header.request_handle, 1000);
+    assert_eq!(session.publish_request_queue[0].request.request_header.request_handle, 1000);
 
     if let SupportedMessage::PublishResponse(ref r1) = expired_responses[0] {
         assert_eq!(r1.response_header.request_handle, 2000);

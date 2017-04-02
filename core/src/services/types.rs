@@ -301,17 +301,6 @@ impl ResponseHeader {
             additional_header: ExtensionObject::null(),
         }
     }
-
-    pub fn new_notification_response(timestamp: &DateTime, service_result: &StatusCode) -> ResponseHeader {
-        ResponseHeader {
-            timestamp: timestamp.clone(),
-            request_handle: 0,
-            service_result: service_result.clone(),
-            service_diagnostics: DiagnosticInfo::new(),
-            string_table: None,
-            additional_header: ExtensionObject::null(),
-        }
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
