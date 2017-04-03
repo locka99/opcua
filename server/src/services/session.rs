@@ -59,21 +59,21 @@ impl SessionService {
         Ok(SupportedMessage::CloseSessionResponse(response))
     }
 
-    pub fn activate_session(&self, _: &mut ServerState, _: &mut SessionState, request: ActivateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn activate_session(&self, server_state: &mut ServerState, _: &mut SessionState, request: ActivateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
         let identity_token_id = request.user_identity_token.node_id.clone();
         let service_status = if identity_token_id == ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id() {
             // TODO ensure session allows anonymous id
             &GOOD
         } else if identity_token_id == ObjectId::UserNameIdentityToken_Encoding_DefaultBinary.as_node_id() {
             // TODO ensure session allows user id
-            let result = &BAD_IDENTITY_TOKEN_REJECTED;
+            let mut result = &BAD_IDENTITY_TOKEN_REJECTED;
             if let ExtensionObjectEncoding::ByteString(ref data) = request.user_identity_token.body {
                 if let Some(ref data) = data.value {
                     let mut stream = Cursor::new(data);
-                    let token = UserNameIdentityToken::decode(&mut stream);
-                    if token.is_ok() {
-                        error!("UserNameIdentityToken = {:#?}", token);
-                        // TODO validate user / pass / algorithm
+                    if let Ok(token) = UserNameIdentityToken::decode(&mut stream) {
+                        if server_state.validate_username_identity_token(&token) {
+                            result = &GOOD;
+                        }
                     }
                 }
             }

@@ -23,6 +23,12 @@ pub struct PublishRequestEntry {
     pub request: PublishRequest,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct PublishResponseEntry {
+    pub request_id: UInt32,
+    pub response: PublishResponse,
+}
+
 /// Session info holds information about a session created by CreateSession service
 #[derive(Clone)]
 pub struct SessionInfo {}
@@ -44,7 +50,7 @@ impl SessionState {
         }
     }
 
-    pub fn enqueue_publish_request(&mut self, server_state: &mut ServerState, request_id: UInt32, request: PublishRequest) -> Result<Option<Vec<SupportedMessage>>, &'static StatusCode> {
+    pub fn enqueue_publish_request(&mut self, server_state: &mut ServerState, request_id: UInt32, request: PublishRequest) -> Result<Option<Vec<PublishResponseEntry>>, &'static StatusCode> {
         let max_publish_requests = MAX_PUBLISH_REQUESTS;
         if self.publish_request_queue.len() >= max_publish_requests {
             error!("Too many publish requests, throwing it away");
@@ -62,7 +68,7 @@ impl SessionState {
 
     /// Iterate all subscriptions calling tick on each. Note this could potentially be done to run in parallel
     /// assuming the action to clean dead subscriptions was a join done after all ticks had completed.
-    pub fn tick_subscriptions(&mut self, receive_publish_request: bool, address_space: &AddressSpace) -> Option<Vec<SupportedMessage>> {
+    pub fn tick_subscriptions(&mut self, receive_publish_request: bool, address_space: &AddressSpace) -> Option<Vec<PublishResponseEntry>> {
         let mut result = Vec::new();
         let now = chrono::UTC::now();
 
@@ -82,7 +88,7 @@ impl SessionState {
                     if let Some(update_state_result) = update_state_result {
                         if let Some(publish_response) = publish_response {
                             error!("queuing a publish response {:?}", publish_response);
-                            result.push(SupportedMessage::PublishResponse(publish_response));
+                            result.push(publish_response);
                         }
                         // Determine if publish request should be dequeued (after processing all subscriptions)
                         match update_state_result.publish_request_action {
@@ -117,13 +123,13 @@ impl SessionState {
     }
 
 
-    pub fn expire_stale_publish_requests(&mut self, now: &DateTimeUTC) -> Option<Vec<SupportedMessage>> {
+    pub fn expire_stale_publish_requests(&mut self, now: &DateTimeUTC) -> Option<Vec<PublishResponseEntry>> {
         let mut expired = Vec::with_capacity(self.publish_request_queue.len());
 
         // Strip out publish requests which have expired
         self.publish_request_queue.retain(|ref r| {
             let request_header = &r.request.request_header;
-            let timestamp: DateTimeUTC =request_header.timestamp.as_chrono();
+            let timestamp: DateTimeUTC = request_header.timestamp.as_chrono();
             let timeout = if request_header.timeout_hint > 0 && (request_header.timeout_hint as i64) < MAX_REQUEST_TIMEOUT {
                 request_header.timeout_hint as i64
             } else {
@@ -136,20 +142,22 @@ impl SessionState {
             if *now >= expiration_time {
                 debug!("Publish request {} has expired - timestamp = {:?}, expiration hint = {}, expiration time = {:?}, time now = {:?}, ", request_header.request_handle, timestamp, timeout, expiration_time, now);
                 let now = DateTime::from_chrono(now);
-                let publish_response = PublishResponse {
-                    response_header: ResponseHeader::new_service_result(&now, request_header, &BAD_REQUEST_TIMEOUT),
-                    subscription_id: 0,
-                    available_sequence_numbers: None,
-                    more_notifications: false,
-                    notification_message: NotificationMessage {
-                        sequence_number: 0,
-                        publish_time: now.clone(),
-                        notification_data: None
+                expired.push(PublishResponseEntry {
+                    request_id: r.request_id,
+                    response: PublishResponse {
+                        response_header: ResponseHeader::new_service_result(&now, request_header, &BAD_REQUEST_TIMEOUT),
+                        subscription_id: 0,
+                        available_sequence_numbers: None,
+                        more_notifications: false,
+                        notification_message: NotificationMessage {
+                            sequence_number: 0,
+                            publish_time: now.clone(),
+                            notification_data: None
+                        },
+                        results: None,
+                        diagnostic_infos: None
                     },
-                    results: None,
-                    diagnostic_infos: None
-                };
-                expired.push(SupportedMessage::PublishResponse(publish_response));
+                });
                 // Remove
                 false
             } else {

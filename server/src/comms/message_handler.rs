@@ -56,52 +56,55 @@ impl MessageHandler {
         let response = match message {
             SupportedMessage::GetEndpointsRequest(request) => {
                 self.discovery_service.get_endpoints(server_state, session_state, request)?
-            },
+            }
             SupportedMessage::CreateSessionRequest(request) => {
                 self.session_service.create_session(server_state, session_state, request)?
-            },
+            }
             SupportedMessage::CloseSessionRequest(request) => {
                 self.session_service.close_session(server_state, session_state, request)?
-            },
+            }
             SupportedMessage::ActivateSessionRequest(request) => {
                 self.session_service.activate_session(server_state, session_state, request)?
-            },
+            }
             SupportedMessage::CreateSubscriptionRequest(request) => {
                 self.subscription_service.create_subscription(server_state, session_state, request)?
-            },
+            }
             SupportedMessage::ModifySubscriptionRequest(request) => {
                 self.subscription_service.modify_subscription(server_state, session_state, request)?
-            },
+            }
             SupportedMessage::DeleteSubscriptionsRequest(request) => {
                 self.subscription_service.delete_subscriptions(server_state, session_state, request)?
-            },
+            }
             SupportedMessage::SetPublishingModeRequest(request) => {
                 self.subscription_service.set_publishing_mode(server_state, session_state, request)?
-            },
+            }
             SupportedMessage::PublishRequest(request) => {
                 self.subscription_service.publish(server_state, session_state, request_id, request)?
-            },
+            }
+            SupportedMessage::RepublishRequest(request) => {
+                self.subscription_service.republish(server_state, session_state, request)?
+            }
             SupportedMessage::BrowseRequest(request) => {
                 self.view_service.browse(server_state, session_state, request)?
-            },
+            }
             SupportedMessage::BrowseNextRequest(request) => {
                 self.view_service.browse_next(server_state, session_state, request)?
-            },
+            }
             SupportedMessage::ReadRequest(request) => {
                 self.attribute_service.read(server_state, session_state, request)?
-            },
+            }
             SupportedMessage::WriteRequest(request) => {
                 self.attribute_service.write(server_state, session_state, request)?
-            },
+            }
             SupportedMessage::CreateMonitoredItemsRequest(request) => {
                 self.monitored_item_service.create_monitored_items(server_state, session_state, request)?
-            },
+            }
             SupportedMessage::ModifyMonitoredItemsRequest(request) => {
                 self.monitored_item_service.modify_monitored_items(server_state, session_state, request)?
-            },
+            }
             SupportedMessage::DeleteMonitoredItemsRequest(request) => {
                 self.monitored_item_service.delete_monitored_items(server_state, session_state, request)?
-            },
+            }
             _ => {
                 debug!("Message handler does not handle this kind of message {:?}", message);
                 return Err(&BAD_SERVICE_UNSUPPORTED);

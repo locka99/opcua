@@ -23,9 +23,9 @@ pub enum ChunkType {
 
 #[derive(Debug)]
 pub struct ChunkHeader {
-    /// MSG, OPN, CLO
+    /// The kind of chunk - message, open or close
     pub message_type: ChunkMessageType,
-    /// C == intermediate, F = the final chunk, A = the final chunk when aborting
+    /// The chunk type - C == intermediate, F = the final chunk, A = the final chunk when aborting
     pub chunk_type: ChunkType,
     /// The size of the chunk (message) including the header
     pub message_size: UInt32,
@@ -47,15 +47,15 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
         }
 
         let message_type = match self.message_type {
-            ChunkMessageType::Message => { CHUNK_MESSAGE },
-            ChunkMessageType::OpenSecureChannel => { OPEN_SECURE_CHANNEL_MESSAGE },
+            ChunkMessageType::Message => { CHUNK_MESSAGE }
+            ChunkMessageType::OpenSecureChannel => { OPEN_SECURE_CHANNEL_MESSAGE }
             ChunkMessageType::CloseSecureChannel => { CLOSE_SECURE_CHANNEL_MESSAGE }
         };
 
         let chunk_type: u8 = match self.chunk_type {
             ChunkType::Intermediate => { CHUNK_INTERMEDIATE }
-            ChunkType::Final => { CHUNK_FINAL },
-            ChunkType::FinalError => { CHUNK_FINAL_ERROR },
+            ChunkType::Final => { CHUNK_FINAL }
+            ChunkType::FinalError => { CHUNK_FINAL_ERROR }
         };
 
         let mut size = 0;
@@ -86,9 +86,9 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
 
         let chunk_type_code = read_u8(stream)?;
         let chunk_type = match chunk_type_code {
-            CHUNK_FINAL => { ChunkType::Final },
-            CHUNK_INTERMEDIATE => { ChunkType::Intermediate },
-            CHUNK_FINAL_ERROR => { ChunkType::FinalError },
+            CHUNK_FINAL => { ChunkType::Final }
+            CHUNK_INTERMEDIATE => { ChunkType::Intermediate }
+            CHUNK_FINAL_ERROR => { ChunkType::FinalError }
             _ => {
                 debug!("Invalid chunk type");
                 is_valid = false;
@@ -142,15 +142,15 @@ pub enum SecurityHeader {
 impl BinaryEncoder<SecurityHeader> for SecurityHeader {
     fn byte_len(&self) -> usize {
         match self {
-            &SecurityHeader::Asymmetric(ref value) => { value.byte_len() },
-            &SecurityHeader::Symmetric(ref value) => { value.byte_len() },
+            &SecurityHeader::Asymmetric(ref value) => { value.byte_len() }
+            &SecurityHeader::Symmetric(ref value) => { value.byte_len() }
         }
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         match self {
-            &SecurityHeader::Asymmetric(ref value) => { value.encode(stream) },
-            &SecurityHeader::Symmetric(ref value) => { value.encode(stream) },
+            &SecurityHeader::Asymmetric(ref value) => { value.encode(stream) }
+            &SecurityHeader::Symmetric(ref value) => { value.encode(stream) }
         }
     }
 

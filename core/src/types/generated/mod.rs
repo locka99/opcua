@@ -45,6 +45,8 @@ use_generated_types![
     set_publishing_mode_response,
     publish_request,
     publish_response,
+    republish_request,
+    republish_response,
     subscription_acknowledgement,
     notification_message,
     read_request,

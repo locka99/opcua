@@ -92,10 +92,10 @@ impl BinaryEncoder<ApplicationType> for ApplicationType {
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         Ok(match value {
-            0 => { ApplicationType::Server },
-            1 => { ApplicationType::Client },
-            2 => { ApplicationType::ClientAndServer },
-            3 => { ApplicationType::DiscoveryServer },
+            0 => { ApplicationType::Server }
+            1 => { ApplicationType::Client }
+            2 => { ApplicationType::ClientAndServer }
+            3 => { ApplicationType::DiscoveryServer }
             _ => {
                 error!("Invalid ApplicationType");
                 ApplicationType::Server

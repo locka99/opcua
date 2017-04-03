@@ -93,13 +93,9 @@ pub fn expired_publish_requests() {
     assert_eq!(session.publish_request_queue.len(), 1);
     assert_eq!(session.publish_request_queue[0].request.request_header.request_handle, 1000);
 
-    if let SupportedMessage::PublishResponse(ref r1) = expired_responses[0] {
-        assert_eq!(r1.response_header.request_handle, 2000);
-        assert_eq!(r1.response_header.service_result, BAD_REQUEST_TIMEOUT.clone());
-    }
-    else {
-        panic!("Expected PublishResponse");
-    }
+    let r1 = &expired_responses[0];
+    assert_eq!(r1.response.response_header.request_handle, 2000);
+    assert_eq!(r1.response.response_header.service_result, BAD_REQUEST_TIMEOUT.clone());
 
     let expired_responses = session.expire_stale_publish_requests(&now_plus_5s);
     assert_eq!(expired_responses, None);

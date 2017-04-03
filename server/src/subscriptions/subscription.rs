@@ -7,14 +7,14 @@ use prelude::*;
 
 use DateTimeUTC;
 use subscriptions::monitored_item::*;
-use session::PublishRequestEntry;
+use session::{PublishRequestEntry, PublishResponseEntry};
 use address_space::*;
 
 /// Subscription events are passed between the timer thread and the session thread so must
 /// be transferable
 #[derive(Clone, Debug, PartialEq)]
 pub enum SubscriptionEvent {
-    Messages(Vec<SupportedMessage>),
+    PublishResponses(Vec<PublishResponseEntry>),
 }
 
 /// The state of the subscription
@@ -193,7 +193,7 @@ impl Subscription {
     pub fn modify_monitored_items(&mut self, items_to_modify: &[MonitoredItemModifyRequest]) -> Vec<MonitoredItemModifyResult> {
         // TODO Implement
         let mut result = Vec::with_capacity(items_to_modify.len());
-        for item_to_modify in items_to_modify {
+        for _ in items_to_modify {
             result.push(MonitoredItemModifyResult {
                 status_code: BAD_MONITORED_ITEM_ID_INVALID.clone(),
                 revised_sampling_interval: 0f64,
@@ -208,7 +208,7 @@ impl Subscription {
     pub fn delete_monitored_items(&mut self, items_to_delete: &[UInt32]) -> Vec<StatusCode> {
         // TODO Implement
         let mut result = Vec::with_capacity(items_to_delete.len());
-        for item_to_delete in items_to_delete {
+        for _ in items_to_delete {
             result.push(BAD_MONITORED_ITEM_ID_INVALID.clone());
         }
         result
@@ -216,7 +216,7 @@ impl Subscription {
 
     /// Checks the subscription and monitored items for state change, messages. If the tick does
     /// nothing, the function returns None. Otherwise it returns one or more messages in an Vec.
-    pub fn tick(&mut self, address_space: &AddressSpace, receive_publish_request: bool, publish_request: &Option<PublishRequestEntry>, publishing_req_queued: bool, now: &DateTimeUTC) -> (Option<PublishResponse>, Option<UpdateStateResult>) {
+    pub fn tick(&mut self, address_space: &AddressSpace, receive_publish_request: bool, publish_request: &Option<PublishRequestEntry>, publishing_req_queued: bool, now: &DateTimeUTC) -> (Option<PublishResponseEntry>, Option<UpdateStateResult>) {
         debug!("subscription tick {}", self.subscription_id);
 
         // Test if the interval has elapsed.
@@ -500,7 +500,6 @@ impl Subscription {
     pub fn delete_acked_notification_msgs(&mut self, request: &PublishRequestEntry, results: &mut Vec<StatusCode>) {
         let request = &request.request;
         if request.subscription_acknowledgements.is_some() {
-            let mut results = Vec::new();
             let subscription_acknowledgements = request.subscription_acknowledgements.as_ref().unwrap();
             for ack in subscription_acknowledgements {
                 let result = if ack.subscription_id != self.subscription_id {
@@ -539,7 +538,7 @@ impl Subscription {
 
     /// CreateKeepAliveMsg()
     /// ReturnResponse()
-    pub fn return_keep_alive(&mut self, publish_request: &PublishRequestEntry, update_state_result: &UpdateStateResult) -> PublishResponse {
+    pub fn return_keep_alive(&mut self, publish_request: &PublishRequestEntry, update_state_result: &UpdateStateResult) -> PublishResponseEntry {
         let acknowledge_results = if update_state_result.acknowledge_results.len() > 0 {
             Some(update_state_result.acknowledge_results.clone())
         } else {
@@ -561,7 +560,7 @@ impl Subscription {
     }
 
     /// Returns the oldest notifica
-    pub fn return_notifications(&mut self, publish_request: &PublishRequestEntry, update_state_result: &UpdateStateResult) -> PublishResponse {
+    pub fn return_notifications(&mut self, publish_request: &PublishRequestEntry, update_state_result: &UpdateStateResult) -> PublishResponseEntry {
         if self.notifications.is_empty() {
             panic!("Should not be trying to return notifications if there are none");
         }
@@ -604,15 +603,18 @@ impl Subscription {
         }
     }
 
-    fn make_publish_response(&self, publish_request: &PublishRequestEntry, now: &DateTime, notification_message: NotificationMessage, acknowledge_results: Option<Vec<StatusCode>>) -> PublishResponse {
-        PublishResponse {
-            response_header: ResponseHeader::new_service_result(now, &publish_request.request.request_header, &GOOD),
-            subscription_id: self.subscription_id,
-            available_sequence_numbers: self.available_sequence_numbers(),
-            more_notifications: self.more_notifications,
-            notification_message: notification_message,
-            results: acknowledge_results,
-            diagnostic_infos: None,
+    fn make_publish_response(&self, publish_request: &PublishRequestEntry, now: &DateTime, notification_message: NotificationMessage, acknowledge_results: Option<Vec<StatusCode>>) -> PublishResponseEntry {
+        PublishResponseEntry {
+            request_id: publish_request.request_id,
+            response: PublishResponse {
+                response_header: ResponseHeader::new_service_result(now, &publish_request.request.request_header, &GOOD),
+                subscription_id: self.subscription_id,
+                available_sequence_numbers: self.available_sequence_numbers(),
+                more_notifications: self.more_notifications,
+                notification_message: notification_message,
+                results: acknowledge_results,
+                diagnostic_infos: None,
+            }
         }
     }
 }

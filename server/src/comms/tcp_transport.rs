@@ -1,5 +1,6 @@
-//! The TCP transport implementation for the server handles receiving and sending of chunks,
-//! hello and session creation and dispatching of messages.
+//! The TCP transport module handles receiving and sending of binary data in chunks, handshake,
+//! session creation and dispatching of messages via message handler.
+//!
 use std;
 use std::net::{TcpStream, Shutdown};
 use std::io::{Read, Write, Cursor, ErrorKind};
@@ -26,7 +27,7 @@ const SEND_BUFFER_SIZE: usize = 1024 * 64;
 const MAX_MESSAGE_SIZE: usize = 1024 * 64;
 
 // Rate at which subscriptions are serviced
-const SUBSCRIPTION_TIMER_RATE: i64 = 2000;
+const SUBSCRIPTION_TIMER_RATE: i64 = 200;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum TransportState {
@@ -133,11 +134,11 @@ impl TcpTransport {
             if let Ok(result) = subscription_timer_rx.try_recv() {
                 debug!("Got message from timer {:?}", result);
                 match result {
-                    SubscriptionEvent::Messages(messages) => {
+                    SubscriptionEvent::PublishResponses(publish_responses) => {
                         error!("Received messages, sending them out");
-                        for message in messages {
-                            error!("SENDING MESSAGE {:#?}", message);
-                            let _ = self.send_response(1, &message, &mut out_buf_stream);
+                        for publish_response in publish_responses {
+                            error!("SENDING MESSAGE {}, {:#?}", publish_response.request_id, &publish_response.response);
+                            let _ = self.send_response(publish_response.request_id, &SupportedMessage::PublishResponse(publish_response.response), &mut out_buf_stream);
                         }
                     }
                 }
@@ -176,7 +177,7 @@ impl TcpTransport {
                         } else {
                             session_status_code = BAD_COMMUNICATION_ERROR.clone();
                         }
-                    },
+                    }
                     TransportState::ProcessMessages => {
                         debug!("Processing message");
                         if let Message::Chunk(chunk) = message {
@@ -187,7 +188,7 @@ impl TcpTransport {
                         } else {
                             session_status_code = BAD_COMMUNICATION_ERROR.clone();
                         }
-                    },
+                    }
                     _ => {
                         error!("Unknown sesion state, aborting");
                         session_status_code = BAD_UNEXPECTED_ERROR.clone();
@@ -241,16 +242,16 @@ impl TcpTransport {
             let mut session_state = session_state.lock().unwrap();
 
             // Request queue might contain stale publish requests
-            if let Some(messages) = session_state.expire_stale_publish_requests(&UTC::now()) {
-                let _ = subscription_timer_tx.send(SubscriptionEvent::Messages(messages));
+            if let Some(publish_responses) = session_state.expire_stale_publish_requests(&UTC::now()) {
+                let _ = subscription_timer_tx.send(SubscriptionEvent::PublishResponses(publish_responses));
             }
 
             // Process subscriptions
             {
                 let server_state = server_state.lock().unwrap();
                 let address_space = server_state.address_space.lock().unwrap();
-                if let Some(messages) = session_state.tick_subscriptions(false, &address_space) {
-                    let _ = subscription_timer_tx.send(SubscriptionEvent::Messages(messages));
+                if let Some(publish_responses) = session_state.tick_subscriptions(false, &address_space) {
+                    let _ = subscription_timer_tx.send(SubscriptionEvent::PublishResponses(publish_responses));
                 }
             }
         });
@@ -353,11 +354,11 @@ impl TcpTransport {
         let response = match chunk_message_type {
             ChunkMessageType::OpenSecureChannel => {
                 SupportedMessage::OpenSecureChannelResponse(TcpTransport::process_open_secure_channel(self, &message)?)
-            },
+            }
             ChunkMessageType::CloseSecureChannel => {
                 info!("CloseSecureChannelRequest received, session closing");
                 return Err(&BAD_CONNECTION_CLOSED);
-            },
+            }
             ChunkMessageType::Message => {
                 self.message_handler.handle_message(request_id, message)?
             }
@@ -372,16 +373,10 @@ impl TcpTransport {
         match response {
             &SupportedMessage::Invalid(object_id) => {
                 panic!("Invalid response with object_id {:?}", object_id);
-            },
+            }
             &SupportedMessage::DoNothing => {
                 // DO NOTHING
-            },
-            &SupportedMessage::MultipleMessages(ref messages) => {
-                for message in messages.as_ref() {
-                    // Recursion (until a send fails)
-                    self.send_response(request_id, message, out_stream)?;
-                }
-            },
+            }
             _ => {
                 // Send the response
                 // Get the request id out of the request
@@ -405,7 +400,7 @@ impl TcpTransport {
             SupportedMessage::OpenSecureChannelRequest(ref request) => {
                 info!("Got secure channel request");
                 request
-            },
+            }
             _ => {
                 error!("message is not an open secure channel request, got {:?}", message);
                 return Err(&BAD_UNEXPECTED_ERROR);

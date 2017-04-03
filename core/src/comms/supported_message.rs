@@ -1,3 +1,7 @@
+//! This module describes all of the supported messages. i.e those requests and responses
+//! that the implementation explicitly handles. The SupportedMessage type has values for
+//! each of those messages enabling them to be passed around.
+
 use std::io::{Read, Write};
 
 use types::*;
@@ -15,9 +19,6 @@ macro_rules! supported_messages {
             Invalid(ObjectId),
             /// A specific do-nothing response, e.g. some messages may not require an instantaneous response
             DoNothing,
-            /// A message consisting of multiple messages (in a box)
-            MultipleMessages(Box<Vec<SupportedMessage>>),
-
             $( $x($x), )*
         }
 
@@ -30,9 +31,6 @@ macro_rules! supported_messages {
                     &SupportedMessage::DoNothing => {
                         panic!("This message cannot be serialized");
                     },
-                    &SupportedMessage::MultipleMessages(_) => {
-                        panic!("This message cannot be serialized");
-                    },
                     $( &SupportedMessage::$x(ref value) => value.byte_len(), )*
                 }
             }
@@ -43,9 +41,6 @@ macro_rules! supported_messages {
                         panic!("Unsupported message {:?}", object_id);
                     },
                     &SupportedMessage::DoNothing => {
-                        panic!("This message cannot be serialized");
-                    },
-                    &SupportedMessage::MultipleMessages(_) => {
                         panic!("This message cannot be serialized");
                     },
                     $( &SupportedMessage::$x(ref value) => value.encode(stream), )*
@@ -65,9 +60,6 @@ macro_rules! supported_messages {
                         panic!("Unsupported message {:?}", object_id);
                     },
                     &SupportedMessage::DoNothing => {
-                        panic!("This message has no object id");
-                    },
-                    &SupportedMessage::MultipleMessages(_) => {
                         panic!("This message has no object id");
                     },
                     $( &SupportedMessage::$x(ref value) => value.node_id(), )*
@@ -159,6 +151,12 @@ impl SupportedMessage {
             ObjectId::PublishResponse_Encoding_DefaultBinary => {
                 SupportedMessage::PublishResponse(PublishResponse::decode(stream)?)
             }
+            ObjectId::RepublishRequest_Encoding_DefaultBinary => {
+                SupportedMessage::RepublishRequest(RepublishRequest::decode(stream)?)
+            }
+            ObjectId::RepublishResponse_Encoding_DefaultBinary => {
+                SupportedMessage::RepublishResponse(RepublishResponse::decode(stream)?)
+            }
             ObjectId::ReadRequest_Encoding_DefaultBinary => {
                 SupportedMessage::ReadRequest(ReadRequest::decode(stream)?)
             }
@@ -238,6 +236,8 @@ supported_messages![
     BrowseNextResponse,
     PublishRequest,
     PublishResponse,
+    RepublishRequest,
+    RepublishResponse,
     // Attribute service
     ReadRequest,
     ReadResponse,

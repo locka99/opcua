@@ -112,11 +112,10 @@ impl SubscriptionService {
     }
 
     /// Handles a SerPublishingModeRequest
-    pub fn set_publishing_mode(&self, _:&mut ServerState, session_state: &mut SessionState, request: SetPublishingModeRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn set_publishing_mode(&self, _: &mut ServerState, session_state: &mut SessionState, request: SetPublishingModeRequest) -> Result<SupportedMessage, &'static StatusCode> {
         let (service_status, results) = if request.subscription_ids.is_none() {
             (&BAD_NOTHING_TO_DO, None)
-        }
-        else {
+        } else {
             let publishing_enabled = request.publishing_enabled;
             let subscription_ids = request.subscription_ids.as_ref().unwrap();
             let mut results = Vec::with_capacity(subscription_ids.len());
@@ -143,14 +142,32 @@ impl SubscriptionService {
     /// Handles a PublishRequest
     pub fn publish(&self, server_state: &mut ServerState, session_state: &mut SessionState, request_id: UInt32, request: PublishRequest) -> Result<SupportedMessage, &'static StatusCode> {
         error!("RECEIVED A PUBLISHREQUEST {:#?}", request);
-        let message = session_state.enqueue_publish_request(server_state, request_id, request)?;
-        if message.is_some() {
-            error!("GOT SOME MESSAGES TO SEND OUT");
-            Ok(SupportedMessage::MultipleMessages(Box::new(message.unwrap())))
-        }
-        else {
+        let publish_responses = session_state.enqueue_publish_request(server_state, request_id, request)?;
+        if publish_responses.is_some() {
+            let mut publish_responses = publish_responses.unwrap();
+            if publish_responses.len() != 1 {
+                // A request should either get queued, consumed, or rejected resulting in one response at most
+                panic!("Shouldn't receive more than one response to a publish request");
+            }
+            // We assume the publish response request_id is the same as the request here
+            Ok(SupportedMessage::PublishResponse(publish_responses.remove(0).response))
+        } else {
             Ok(SupportedMessage::DoNothing)
         }
+    }
+
+    /// Handles a RepublishRequest
+    pub fn republish(&self, _: &mut ServerState, _: &mut SessionState, request: RepublishRequest) -> Result<SupportedMessage, &'static StatusCode> {
+        // TODO look for the subscription id and sequence number in the sent items and resend it
+        let response = RepublishResponse {
+            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, &BAD_MESSAGE_NOT_AVAILABLE.clone()),
+            notification_message: NotificationMessage {
+                sequence_number: 0,
+                publish_time: DateTime::now(),
+                notification_data: None,
+            }
+        };
+        Ok(SupportedMessage::RepublishResponse(response))
     }
 
     /// This function takes the requested values passed in a create / modify and returns revised

@@ -1,8 +1,9 @@
+//! The server module defines types related to the server, it's current running state
+//! and end point information.
+
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
-
-use rand::{self, Rng};
 
 use opcua_core;
 use opcua_core::types::*;
@@ -100,6 +101,13 @@ impl ServerState {
     pub fn create_subscription_id(&mut self) -> UInt32 {
         self.last_subscription_id += 1;
         self.last_subscription_id
+    }
+
+
+    /// Validate the username identity token
+    pub fn validate_username_identity_token(&self, _: &UserNameIdentityToken) -> bool {
+        // TODO need to check the specified endpoint to the user identity token and validate it
+        false
     }
 }
 
