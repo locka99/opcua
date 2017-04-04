@@ -158,9 +158,7 @@ impl Subscription {
 
             // Create a monitored item, if possible
             let monitored_item = MonitoredItem::new(monitored_item_id, item_to_create);
-            let result = if monitored_item.is_ok() {
-                let monitored_item = monitored_item.unwrap();
-
+            let result = if let Ok(monitored_item) = monitored_item {
                 // Return the status
                 let result = MonitoredItemCreateResult {
                     status_code: GOOD.clone(),
