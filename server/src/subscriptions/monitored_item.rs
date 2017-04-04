@@ -157,17 +157,19 @@ impl MonitoredItem {
                     // NB it would be more efficient but more complex to make the last item of the vec,
                     // the most recent and the first, the least recent.
                     if self.notification_queue.len() == self.queue_size {
+                        debug!("Data change overflow, node {:?}", self.item_to_monitor.node_id);
                         // Overflow behaviour
                         if self.discard_oldest {
-                            // Throw away last item, push the rest up
-                            let _ = self.notification_queue.pop();
-                            self.notification_queue.insert(0, notification_message);
+                            // Throw away oldest item (the one at the start), push the rest up
+                            let _ = self.notification_queue.remove(0);
                         } else {
-                            self.notification_queue[0] = notification_message;
+                            // Replace the last notification
+                            self.notification_queue.pop();
                         }
+                        self.notification_queue.push(notification_message);
                         self.queue_overflow = true;
                     } else {
-                        self.notification_queue.insert(0, notification_message);
+                        self.notification_queue.push(notification_message);
                     }
 
                     debug!("Monitored item state = {:?}", self);
