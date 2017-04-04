@@ -448,8 +448,7 @@ impl Subscription {
                         self.message_sent = true;
                         self.state = SubscriptionState::Normal;
                         return UpdateStateResult::new(14, UpdateStateAction::ReturnNotifications, PublishRequestAction::Dequeue, subscription_ack_results);
-                    } else if self.publishing_req_queued && self.keep_alive_counter == 1 &&
-                        !self.publishing_enabled || (self.publishing_enabled && self.notifications_available) {
+                    } else if self.publishing_req_queued && self.keep_alive_counter == 1 && (!self.publishing_enabled || (self.publishing_enabled && self.notifications_available)) {
                         // State #15
                         self.start_publishing_timer();
                         self.reset_keep_alive_counter();

@@ -81,8 +81,8 @@ impl SessionState {
                 if subscription.state == SubscriptionState::Closed {
                     dead_subscriptions.push(*subscription_id);
                 } else {
-                    let publishing_req_queued = self.publish_request_queue.len() > 0;
                     let publish_request = self.publish_request_queue.pop();
+                    let publishing_req_queued = self.publish_request_queue.len() > 0 || publish_request.is_some();
 
                     let (publish_response, update_state_result) = subscription.tick(address_space, receive_publish_request, &publish_request, publishing_req_queued, &now);
                     if let Some(update_state_result) = update_state_result {
