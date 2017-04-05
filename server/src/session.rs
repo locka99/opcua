@@ -122,7 +122,8 @@ impl SessionState {
         if result.is_empty() { None } else { Some(result) }
     }
 
-
+    /// Iterates through the existing queued publish requests and creates a timeout
+    /// publish response any that have expired.
     pub fn expire_stale_publish_requests(&mut self, now: &DateTimeUTC) -> Option<Vec<PublishResponseEntry>> {
         let mut expired = Vec::with_capacity(self.publish_request_queue.len());
 
