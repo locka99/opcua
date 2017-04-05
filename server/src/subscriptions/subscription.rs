@@ -111,7 +111,7 @@ pub struct Subscription {
     // The last monitored item id
     last_monitored_item_id: UInt32,
     // The time that the subscription interval last fired
-    last_sample_time: DateTimeUTC,
+    last_timer_expired_time: DateTimeUTC,
     /// The value that records the value of the sequence number used in NotificationMessages.
     last_sequence_number: UInt32,
 }
@@ -142,7 +142,7 @@ impl Subscription {
             sent_notifications: BTreeMap::new(),
             // Counters for new items
             last_monitored_item_id: 0,
-            last_sample_time: chrono::UTC::now(),
+            last_timer_expired_time: chrono::UTC::now(),
             last_sequence_number: 0,
         }
     }
@@ -226,8 +226,13 @@ impl Subscription {
             true
         } else {
             let publishing_interval = time::Duration::milliseconds(self.publishing_interval as i64);
-            let elapsed = *now - self.last_sample_time;
-            elapsed >= publishing_interval
+            let elapsed = *now - self.last_timer_expired_time;
+            let timer_expired = elapsed >= publishing_interval;
+            if timer_expired {
+                println!("Subscription elapsed - interval = {:?}, elapsed = {:?}", publishing_interval, elapsed);
+                self.last_timer_expired_time = *now;
+            }
+            timer_expired
         };
 
         // Do a tick on monitored items. Note that monitored items normally update when the interval
