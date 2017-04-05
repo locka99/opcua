@@ -27,7 +27,7 @@ const SEND_BUFFER_SIZE: usize = 1024 * 64;
 const MAX_MESSAGE_SIZE: usize = 1024 * 64;
 
 // Rate at which subscriptions are serviced
-const SUBSCRIPTION_TIMER_RATE: i64 = 200;
+const SUBSCRIPTION_TIMER_RATE: i64 = 100;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum TransportState {
@@ -251,7 +251,10 @@ impl TcpTransport {
                 let server_state = server_state.lock().unwrap();
                 let address_space = server_state.address_space.lock().unwrap();
                 if let Some(publish_responses) = session_state.tick_subscriptions(false, &address_space) {
-                    let _ = subscription_timer_tx.send(SubscriptionEvent::PublishResponses(publish_responses));
+                    let sent = subscription_timer_tx.send(SubscriptionEvent::PublishResponses(publish_responses));
+                    if sent.is_err() {
+                        error!("Can't send publish responses, err = {}", sent.unwrap_err());
+                    }
                 }
             }
         });

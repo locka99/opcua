@@ -90,7 +90,7 @@ impl MonitoredItem {
     /// the subscriptions and controls the rate.
     ///
     /// Function returns true if a notification message was added to the queue
-    pub fn tick(&mut self, address_space: &AddressSpace, now: &DateTimeUTC, subscription_interval_elapsed: bool) -> bool {
+    pub fn tick(&mut self, address_space: &AddressSpace, now: &DateTimeUTC, publishing_timer_expired: bool) -> bool {
         let check_value = if self.sampling_interval > 0f64 {
             // Compare sample interval
             let sampling_interval = time::Duration::milliseconds(self.sampling_interval as i64);
@@ -101,7 +101,7 @@ impl MonitoredItem {
             true
         } else if self.sampling_interval < 0f64 {
             // If the subscription interval elapsed, then this monitored item is evaluated
-            subscription_interval_elapsed
+            publishing_timer_expired
         } else {
             // Always check on the first tick
             self.last_data_value.is_none()
