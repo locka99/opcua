@@ -1,5 +1,3 @@
-
-
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -50,18 +48,22 @@ impl log::Log for SimpleLogger {
                 return;
             }
 
+            use chrono;
+            let now = chrono::UTC::now();
+            let time_fmt = now.format("%Y-%m-%d %H:%M:%S%.3f");
+
             match record.metadata().level() {
                 LogLevel::Error => {
-                    println!("\x1b[37m\x1b[41m{}\x1b[0m - {} - {}", record.level(), record.metadata().target(), record.args());
-                },
+                    println!("{} - \x1b[37m\x1b[41m{}\x1b[0m - {} - {}", time_fmt, record.level(), record.metadata().target(), record.args());
+                }
                 LogLevel::Warn => {
-                    println!("\x1b[33m{}\x1b[0m - {} - {}", record.level(), record.metadata().target(), record.args());
-                },
+                    println!("{} - \x1b[33m{}\x1b[0m - {} - {}", time_fmt, record.level(), record.metadata().target(), record.args());
+                }
                 LogLevel::Info => {
-                    println!("\x1b[36m{}\x1b[0m - {} - {}", record.level(), record.metadata().target(), record.args());
-                },
+                    println!("{} - \x1b[36m{}\x1b[0m - {} - {}", time_fmt, record.level(), record.metadata().target(), record.args());
+                }
                 _ => {
-                    println!("{} - {} - {}", record.level(), record.metadata().target(), record.args());
+                    println!("{} - {} - {} - {}", time_fmt, record.level(), record.metadata().target(), record.args());
                 }
             }
         }
