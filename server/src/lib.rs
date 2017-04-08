@@ -48,7 +48,7 @@ mod constants {
     // Sampling interval in MS used internally to poll subscriptions. The more finegrained this is
     // the more often subscriptions will be checked to see if their subscription interval has elapsed
     // therefore the value should be < min sampling interval
-    pub const SUBSCRIPTION_TIMER_RATE_MS: i64 = 50;
+    pub const SUBSCRIPTION_TIMER_RATE_MS: i64 = 10;
 }
 
 #[cfg(test)]

@@ -44,8 +44,8 @@ fn browse_nodes() {
 
     let view = ViewService::new();
     {
-        let mut session_state = tcp_session.session_state.lock().unwrap();
         let mut server_state = tcp_session.server_state.lock().unwrap();
+        let mut session_state = tcp_session.session_state.lock().unwrap();
 
         {
             let mut address_space = server_state.address_space.lock().unwrap();

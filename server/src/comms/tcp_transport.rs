@@ -236,7 +236,7 @@ impl TcpTransport {
         // so it can control the scope of events.
         let subscription_timer = timer::Timer::new();
         let subscription_timer_guard = subscription_timer.schedule_repeating(time::Duration::milliseconds(constants::SUBSCRIPTION_TIMER_RATE_MS), move || {
-            // Manage subscriptions
+            let server_state = server_state.lock().unwrap();
             let mut session_state = session_state.lock().unwrap();
 
             // Request queue might contain stale publish requests
@@ -246,7 +246,6 @@ impl TcpTransport {
 
             // Process subscriptions
             {
-                let server_state = server_state.lock().unwrap();
                 let address_space = server_state.address_space.lock().unwrap();
                 if let Some(publish_responses) = session_state.tick_subscriptions(false, &address_space) {
                     let sent = subscription_timer_tx.send(SubscriptionEvent::PublishResponses(publish_responses));
