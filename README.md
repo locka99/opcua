@@ -11,7 +11,7 @@ or visualize.
 This is an OPC UA server / client API implemented in Rust. To say OPC UA is a big standard is an understatement so the implementation
 will comply with the smallest profiles first until it reaches a usable level of functionality. 
 
-## Example - A minimal server
+## Minimizing code through convention
 
 The API is designed on the principle of convention by default to minimize the amount of customization you need to make it 
 do something. Here is a minimal server:
@@ -24,19 +24,20 @@ fn main() {
 }
 ```
 
-Obviously you'll do probably want to do more than this, but refer to the sample-server example. A server would
-want to create elements in the address space, update variables on a timer or listener and things of that nature.
+This simple example will use default settings to create and run a server.
+
+Obviously a real world server needs to do more than this. Refer to the sample-server example for something that adds variables to the address space and changes their values on a timer.
 
 # Compliance
 
 ## Server
 
-The server is compliant (more or less) with OPC UA micro profile.
+The server is compliant (more or less) with OPC UA micro profile. Over time compliance will expand out to embedded support and possibly further.
 
 ### Supported services
 
 The following services are supported fully, partially (marked with a *) or as a stub / work in progress (marked !). That means a client
-may call them and receive a response. Anything not listed is totally unsupported. Calling an unsupported service will terminate the session.
+may call them and receive a response. Anything not listed is totally unsupported. Calling an unsupported service will terminate the session. Partial implementations are expected to be implemented over time.
 
 * Discovery service set
     * GetEndpoints
