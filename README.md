@@ -11,6 +11,18 @@ or visualize.
 This is an OPC UA server / client API implemented in Rust. To say OPC UA is a big standard is an understatement so the implementation
 will comply with the smallest profiles first until it reaches a usable level of functionality. 
 
+## Rationale - OPC UA for Rust?
+
+Rust is a natural choice for OPC UA due in part to the complexity of OPC UA itself and where it is likely to run. Rust is a systems programming language so it allows an implementation to run as fast as C or C++ but with greater reliability.
+
+* Implementations in C/C++ would be vulnerable to memory leaks, dangling pointers, complexity in their interface
+* Implementations in Java, JavaScript etc. would be vulnerable to fluctuating memory consumption, performance issues
+* An implementation in Rust should deliver C/C++ levels of performance without some of the risks
+
+HOWEVER, there are a number of mature OPC UA libraries for other platforms. This is a new project so bugs in logic are likely, and certain features found elsewhere may not be implemented.
+
+This implementation will only implement the opc.tcp:// protocol and OPC UA Binary format. It *might* in time, add binary over https. It will **not** implement OPC UA over XML. XML hasn't see much adoption so this is no great impediment.
+
 ## Minimizing code through convention
 
 The API is designed on the principle of convention by default to minimize the amount of customization you need to make it 
@@ -94,29 +106,6 @@ Currently the following are not supported
 ## Client
 
 Client support is still work in progress. Stubs have been created for the client lib, sample-client and some basic functionality.
-
-# Rationale - OPC UA for Rust?
-
-Rust is a natural choice for OPC UA due in part to the complexity of OPC UA itself and the
-fact that Rust is a systems programming language.
-
-* Implementations in C/C++ would be vulnerable to memory leaks, dangling pointers, complexity in their interface
-* Implementations in Java, JavaScript etc. would be vulnerable to fluctuating memory consumption, performance issues
-* An implementation in Rust should deliver C/C++ levels of performance without some of the risks
-
-HOWEVER, there are a number of mature OPC UA libraries for other platforms. Bugs in logic are likely, and 
-certain features found elsewhere may be implemented.
-
-All communication is over TCP, optionally encrypted and defined by a bunch of services that the server
-must / may implement and the client must / may call to connect, subscribe, browse etc. The standard is
-very complex and therefore broken up into profiles. 
-
-This implementation will attempt to work its way from nano server profile (no crypto, limited services),
-up to at least embedded profile.
-
-This implementation will only implement the opc.tcp:// protocol and OPC UA Binary format. It *might*
-add binary over https in time. It will **not** implement XML format. XML hasn't see much adoption so this 
-is no great impediment.
 
 # Coding style
 
