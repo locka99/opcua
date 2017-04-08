@@ -4,12 +4,11 @@ The code is licenced under [MPL-2.0](https://opensource.org/licenses/MPL-2.0).
 
 # Introduction
 
-[OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) is an industry standard for live monitoring of data. It's intended for on embedded devices, industrial 
-control, IoT, PCs, mainframes, cars - just about anything that has data that something else wants to monitor
-or visualize.
+[OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) is an industry standard for live monitoring of data. It's intended for embedded devices, industrial control, IoT, PCs, mainframes, cars - just about anything that has data that something else wants to monitor or visualize.
 
-This is an OPC UA server / client API implemented in Rust. To say OPC UA is a big standard is an understatement so the implementation
-will comply with the smallest profiles first until it reaches a usable level of functionality. 
+This is an OPC UA server / client API implemented in Rust.
+
+OPC UA is a huge standard defined by different profiles. This implementation will comply with the smallest profiles growing outwards until it reaches a usable level of functionality. 
 
 ## Rationale - OPC UA for Rust?
 
@@ -25,8 +24,7 @@ This implementation will only implement the opc.tcp:// protocol and OPC UA Binar
 
 ## Minimizing code through convention
 
-The API is designed on the principle of convention by default to minimize the amount of customization you need to make it 
-do something. Here is a minimal server:
+The API is designed on the principle of convention by default to minimize the amount of customization you need to make it do something. Here is a minimal server:
 
 ```rust
 use opcua_server::prelude::*;
