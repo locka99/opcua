@@ -16,6 +16,7 @@ use opcua_core::comms::*;
 use opcua_core::services::*;
 use opcua_core::debug::*;
 
+use constants;
 use server::ServerState;
 use session::SessionState;
 use comms::message_handler::*;
@@ -25,9 +26,6 @@ use subscriptions::{SubscriptionEvent};
 const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;
 const SEND_BUFFER_SIZE: usize = 1024 * 64;
 const MAX_MESSAGE_SIZE: usize = 1024 * 64;
-
-// Rate at which subscriptions are serviced
-const SUBSCRIPTION_TIMER_RATE: i64 = 100;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum TransportState {
@@ -132,14 +130,14 @@ impl TcpTransport {
 
             // Process subscription timer events
             if let Ok(result) = subscription_timer_rx.try_recv() {
-                debug!("Got message from timer {:?}", result);
                 match result {
                     SubscriptionEvent::PublishResponses(publish_responses) => {
-                        error!("Received messages, sending them out");
+                        debug!("Got {} PublishResponse messages to send", publish_responses.len());
                         for publish_response in publish_responses {
-                            error!("SENDING MESSAGE {}, {:#?}", publish_response.request_id, &publish_response.response);
+                            debug!("<-- Sending a Publish Response{}, {:?}", publish_response.request_id, &publish_response.response);
                             let _ = self.send_response(publish_response.request_id, &SupportedMessage::PublishResponse(publish_response.response), &mut out_buf_stream);
                         }
+                        TcpTransport::write_output(&mut out_buf_stream, &mut stream);
                     }
                 }
             }
@@ -237,7 +235,7 @@ impl TcpTransport {
         // Creates a repeating timer that checks subscriptions. The guard is returned to the caller
         // so it can control the scope of events.
         let subscription_timer = timer::Timer::new();
-        let subscription_timer_guard = subscription_timer.schedule_repeating(time::Duration::milliseconds(SUBSCRIPTION_TIMER_RATE), move || {
+        let subscription_timer_guard = subscription_timer.schedule_repeating(time::Duration::milliseconds(constants::SUBSCRIPTION_TIMER_RATE_MS), move || {
             // Manage subscriptions
             let mut session_state = session_state.lock().unwrap();
 
@@ -272,8 +270,7 @@ impl TcpTransport {
             let bytes_to_write = buffer_stream.position() as usize;
             let buffer_slice = &buffer_stream.get_ref()[0..bytes_to_write];
 
-            debug!("Writing bytes to client:");
-            debug_buffer(buffer_slice);
+            debug_buffer("Writing bytes to client:", buffer_slice);
 
             let result = stream.write(buffer_slice);
             if result.is_err() {

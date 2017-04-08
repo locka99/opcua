@@ -35,5 +35,21 @@ pub mod prelude {
     pub use subscriptions::*;
 }
 
+/// Constants that govern the internal workings of the server impl.
+mod constants {
+    use opcua_core::types::Double;
+
+    /// Minimum sampling interval in seconds allowed by clients on subscriptions or monitored_items
+    pub const MIN_SAMPLING_INTERVAL: Double = 0.05f64;
+    /// Maximum data change queue allowed by clients on monitored items
+    pub const MAX_DATA_CHANGE_QUEUE_SIZE: usize = 10;
+    /// The default size of preallocated vecs of monitored items per subscription
+    pub const DEFAULT_MONITORED_ITEM_CAPACITY: usize = 100;
+    // Sampling interval in MS used internally to poll subscriptions. The more finegrained this is
+    // the more often subscriptions will be checked to see if their subscription interval has elapsed
+    // therefore the value should be < min sampling interval
+    pub const SUBSCRIPTION_TIMER_RATE_MS: i64 = 50;
+}
+
 #[cfg(test)]
 mod tests;

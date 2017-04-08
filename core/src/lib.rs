@@ -100,13 +100,15 @@ pub mod debug {
 
     /// Prints out the content of a slice in hex and visible char format to aid debugging. Format
     /// is similar to corresponding functionality in node-opcua
-    pub fn debug_buffer(buf: &[u8]) {
+    pub fn debug_buffer(message: &str, buf: &[u8]) {
         use log::LogLevel::Debug;
         // No point doing anything unless debug level is on
         if log_enabled!(Debug) {
             let line_len = 32;
             let len = buf.len();
             let last_line_padding = ((len / line_len) + 1) * line_len - len;
+
+            debug!("{}", message);
 
             let mut char_line = String::new();
             let mut hex_line = format!("{:08x}: ", 0);

@@ -5,6 +5,8 @@ use time;
 
 use opcua_core::types::*;
 
+use constants;
+
 use DateTimeUTC;
 use address_space::*;
 
@@ -30,9 +32,6 @@ pub struct MonitoredItem {
     queue_overflow: bool,
 }
 
-const MIN_SAMPLING_INTERVAL_MS: Double = 0.05f64;
-const MAX_QUEUE_SIZE: usize = 10;
-
 impl MonitoredItem {
     pub fn new(monitored_item_id: UInt32, request: &MonitoredItemCreateRequest) -> Result<MonitoredItem, &'static StatusCode> {
         // Check if the filter is supported type
@@ -47,14 +46,14 @@ impl MonitoredItem {
             return Err(&BAD_FILTER_NOT_ALLOWED);
         };
 
-        // Limite intervals and queue sizes to sane values
+        // Limit intervals and queue sizes to sane values
         let mut sampling_interval = request.requested_parameters.sampling_interval;
-        if sampling_interval < MIN_SAMPLING_INTERVAL_MS {
-            sampling_interval = MIN_SAMPLING_INTERVAL_MS;
+        if sampling_interval < constants::MIN_SAMPLING_INTERVAL {
+            sampling_interval = constants::MIN_SAMPLING_INTERVAL;
         }
         let mut queue_size = if request.requested_parameters.queue_size < 1 { 1 } else { request.requested_parameters.queue_size as usize };
-        if queue_size > MAX_QUEUE_SIZE {
-            queue_size = MAX_QUEUE_SIZE;
+        if queue_size > constants::MAX_DATA_CHANGE_QUEUE_SIZE {
+            queue_size = constants::MAX_DATA_CHANGE_QUEUE_SIZE;
         }
 
         Ok(MonitoredItem {

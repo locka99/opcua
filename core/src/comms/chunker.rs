@@ -142,8 +142,7 @@ impl Chunker {
         let body_start = chunk_info.body_offset;
         let body_end = body_start + chunk_info.body_length;
         let chunk_body = &chunk.chunk_body[body_start..body_end];
-        debug!("chunk_message_body:");
-        debug_buffer(chunk_body);
+        debug_buffer("chunk_message_body:", chunk_body);
 
         // First chunk has an extension object prefix.
         //

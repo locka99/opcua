@@ -4,6 +4,7 @@ use chrono;
 use time;
 
 use prelude::*;
+use constants;
 
 use DateTimeUTC;
 use subscriptions::monitored_item::*;
@@ -115,15 +116,13 @@ pub struct Subscription {
     last_sequence_number: UInt32,
 }
 
-const DEFAULT_MONITORED_ITEM_CAPACITY: usize = 100;
-
 impl Subscription {
     pub fn new(subscription_id: UInt32, publishing_enabled: bool, publishing_interval: Double, lifetime_count: UInt32, keep_alive_count: UInt32, priority: Byte) -> Subscription {
         Subscription {
             subscription_id: subscription_id,
             publishing_interval: publishing_interval,
             priority: priority,
-            monitored_items: HashMap::with_capacity(DEFAULT_MONITORED_ITEM_CAPACITY),
+            monitored_items: HashMap::with_capacity(constants::DEFAULT_MONITORED_ITEM_CAPACITY),
             max_lifetime_count: lifetime_count,
             max_keep_alive_count: keep_alive_count,
             // State variables
@@ -215,8 +214,6 @@ impl Subscription {
     /// Checks the subscription and monitored items for state change, messages. If the tick does
     /// nothing, the function returns None. Otherwise it returns one or more messages in an Vec.
     pub fn tick(&mut self, address_space: &AddressSpace, receive_publish_request: bool, publish_request: &Option<PublishRequestEntry>, publishing_req_queued: bool, now: &DateTimeUTC) -> (Option<PublishResponseEntry>, Option<UpdateStateResult>) {
-        debug!("subscription tick {}", self.subscription_id);
-
         // Test if the interval has elapsed.
         let publishing_timer_expired = if receive_publish_request {
             false
@@ -248,13 +245,13 @@ impl Subscription {
         // to send or state to update
         let result = if items_changed || publishing_timer_expired || publish_request.is_some() {
             let update_state_result = self.update_state(receive_publish_request, publish_request, publishing_timer_expired);
-            error!("subscription tick - update_state_result = {:?}", update_state_result);
+            debug!("subscription tick - update_state_result = {:?}", update_state_result);
             let publish_response = match update_state_result.update_state_action {
                 UpdateStateAction::None => None,
                 UpdateStateAction::ReturnKeepAlive => Some(self.return_keep_alive(publish_request.as_ref().unwrap(), &update_state_result)),
                 UpdateStateAction::ReturnNotifications => Some(self.return_notifications(publish_request.as_ref().unwrap(), &update_state_result)),
             };
-            error!("subscription tick - publish_response = {:?}", publish_response);
+            debug!("Subscription tick - publish_response = {:?}", publish_response);
             (publish_response, Some(update_state_result))
         } else {
             (None, None)
@@ -262,7 +259,7 @@ impl Subscription {
 
         // Check if the subscription interval has been exceeded since last call
         if self.lifetime_counter == 1 {
-            debug! ("Subscription {} has expired and will be removed shortly", self.subscription_id);
+            info!("Subscription {} has expired and will be removed shortly", self.subscription_id);
             self.state = SubscriptionState::Closed;
         }
 
@@ -519,7 +516,7 @@ impl Subscription {
                 self.subscription_ack_results.push(result.clone());
             }
             if before_len - remove_count != self.sent_notifications.len() {
-                error!("Notifications removed mismatch!");
+                panic!("Notifications removed mismatch!");
             }
         }
     }
@@ -543,7 +540,6 @@ impl Subscription {
     }
 
 
-
     /// CreateKeepAliveMsg()
     /// ReturnResponse()
     pub fn return_keep_alive(&mut self, publish_request: &PublishRequestEntry, update_state_result: &UpdateStateResult) -> PublishResponseEntry {
@@ -562,7 +558,7 @@ impl Subscription {
         self.make_publish_response(publish_request, &now, notification_message, acknowledge_results)
     }
 
-    /// Returns the oldest notifica
+    /// Returns the oldest notification
     pub fn return_notifications(&mut self, publish_request: &PublishRequestEntry, update_state_result: &UpdateStateResult) -> PublishResponseEntry {
         if self.notifications.is_empty() {
             panic!("Should not be trying to return notifications if there are none");

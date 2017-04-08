@@ -2,11 +2,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug - sample-server",
             "type": "gdb",
             "request": "launch",
-            "target": "./target/debug/opcua-sample-server.exe",
+            "name": "Debug - sample-server",
+            "target": "${workspaceRoot}/target/debug/opcua-sample-server.exe",
             "cwd": "${workspaceRoot}"
         }
-    ]
+    ],
+    "windows": {
+        "miDebuggerPath": "C:\\msys64\\mingw64\\bin\\gdb.exe"
+    }
 }

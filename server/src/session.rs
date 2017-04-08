@@ -87,7 +87,7 @@ impl SessionState {
                     let (publish_response, update_state_result) = subscription.tick(address_space, receive_publish_request, &publish_request, publishing_req_queued, &now);
                     if let Some(update_state_result) = update_state_result {
                         if let Some(publish_response) = publish_response {
-                            error!("queuing a publish response {:?}", publish_response);
+                            debug!("Queuing a publish response {:?}", publish_response);
                             result.push(publish_response);
                         }
                         // Determine if publish request should be dequeued (after processing all subscriptions)
