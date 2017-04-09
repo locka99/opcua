@@ -20,12 +20,11 @@ mod comms;
 mod session;
 
 pub mod server;
-
 pub mod subscriptions;
-
 pub mod config;
-
 pub mod address_space;
+pub mod util;
+
 
 pub mod prelude {
     pub use opcua_core::prelude::*;
@@ -33,6 +32,7 @@ pub mod prelude {
     pub use config::*;
     pub use server::*;
     pub use subscriptions::*;
+    pub use util::*;
 }
 
 /// Constants that govern the internal workings of the server impl.
