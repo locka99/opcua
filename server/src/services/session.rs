@@ -5,8 +5,9 @@ use opcua_core::types::*;
 use opcua_core::services::*;
 use opcua_core::comms::*;
 
+use constants;
 use server::ServerState;
-use session::SessionState;
+use session::{SessionState, SessionInfo};
 
 pub struct SessionService {}
 
@@ -15,16 +16,17 @@ impl SessionService {
         SessionService {}
     }
 
-    pub fn create_session(&self, server_state: &mut ServerState, _: &mut SessionState, request: CreateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn create_session(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: CreateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
         let service_status = &GOOD;
 
         // TODO validate client certificate
 
-        // TODO these need to be stored in the session
-        let session_id = NodeId::new_numeric(1, 1234);
+        // TODO validate endpoint url
+
+        let session_id = session_state.next_session_id();
         let authentication_token = NodeId::new_byte_string(0, ByteString::random(32));
-        let session_timeout = 50000f64;
-        let max_request_message_size = 32768;
+        let session_timeout = constants::SESSION_TIMEOUT;
+        let max_request_message_size = constants::MAX_REQUEST_MESSAGE_SIZE;
 
         // TODO crypto
         let server_nonce = ByteString::random(32);
@@ -34,6 +36,18 @@ impl SessionService {
             algorithm: UAString::null(),
             signature: ByteString::null(),
         };
+
+        if service_status.is_good() {
+            let session_info = SessionInfo {
+                session_id: session_id.clone(),
+                authentication_token: authentication_token.clone(),
+                session_timeout: session_timeout,
+                max_request_message_size: max_request_message_size,
+                max_response_message_size: request.max_response_message_size,
+                endpoint_url: request.endpoint_url.clone()
+            };
+            session_state.session_info = Some(session_info);
+        }
 
         let response = CreateSessionResponse {
             response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
@@ -59,7 +73,11 @@ impl SessionService {
         Ok(SupportedMessage::CloseSessionResponse(response))
     }
 
-    pub fn activate_session(&self, server_state: &mut ServerState, _: &mut SessionState, request: ActivateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn activate_session(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: ActivateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
+
+        // TODO get security from endpoint url
+        let session_info = session_state.session_info.as_ref().unwrap();
+
         let identity_token_id = request.user_identity_token.node_id.clone();
         let service_status = if identity_token_id == ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id() {
             // TODO ensure session allows anonymous id

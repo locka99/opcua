@@ -45,10 +45,15 @@ mod constants {
     pub const MAX_DATA_CHANGE_QUEUE_SIZE: usize = 10;
     /// The default size of preallocated vecs of monitored items per subscription
     pub const DEFAULT_MONITORED_ITEM_CAPACITY: usize = 100;
-    // Sampling interval in MS used internally to poll subscriptions. The more finegrained this is
-    // the more often subscriptions will be checked to see if their subscription interval has elapsed
-    // therefore the value should be < min sampling interval
+    /// Sampling interval in MS used internally to poll subscriptions. The more finegrained this is
+    /// the more often subscriptions will be checked to see if their subscription interval has elapsed
+    /// therefore the value should be < min sampling interval
     pub const SUBSCRIPTION_TIMER_RATE_MS: i64 = 10;
+
+    /// Time in MS that a session will timeout after with inactivity
+    pub const SESSION_TIMEOUT: f64= 50000f64;
+    /// Maximum size in bytes that a request message is allowed to be
+    pub const MAX_REQUEST_MESSAGE_SIZE: u32 = 32768;
 }
 
 #[cfg(test)]

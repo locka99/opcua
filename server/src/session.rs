@@ -31,7 +31,14 @@ pub struct PublishResponseEntry {
 
 /// Session info holds information about a session created by CreateSession service
 #[derive(Clone)]
-pub struct SessionInfo {}
+pub struct SessionInfo {
+    pub session_id: NodeId,
+    pub authentication_token: NodeId,
+    pub session_timeout: Double,
+    pub max_request_message_size: UInt32,
+    pub max_response_message_size: UInt32,
+    pub endpoint_url: UAString,
+}
 
 /// Session state is anything associated with the session at the message / service level
 #[derive(Clone)]
@@ -39,6 +46,7 @@ pub struct SessionState {
     pub session_info: Option<SessionInfo>,
     pub subscriptions: Arc<Mutex<HashMap<UInt32, Subscription>>>,
     pub publish_request_queue: Vec<PublishRequestEntry>,
+    last_session_id: UInt32,
 }
 
 impl SessionState {
@@ -47,7 +55,13 @@ impl SessionState {
             session_info: None,
             subscriptions: Arc::new(Mutex::new(HashMap::new())),
             publish_request_queue: Vec::with_capacity(MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE),
+            last_session_id: 0,
         }
+    }
+
+    pub fn next_session_id(&mut self) -> NodeId {
+        self.last_session_id += 1;
+        NodeId::new_numeric(1, self.last_session_id as u64)
     }
 
     pub fn enqueue_publish_request(&mut self, server_state: &mut ServerState, request_id: UInt32, request: PublishRequest) -> Result<Option<Vec<PublishResponseEntry>>, &'static StatusCode> {

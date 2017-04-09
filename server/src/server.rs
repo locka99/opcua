@@ -67,42 +67,54 @@ impl ServerState {
     pub fn endpoints(&self) -> Vec<EndpointDescription> {
         let mut endpoints: Vec<EndpointDescription> = Vec::with_capacity(self.endpoints.len());
         for e in &self.endpoints {
-            let mut user_identity_tokens = Vec::new();
-            if e.anonymous {
-                user_identity_tokens.push(UserTokenPolicy::new_anonymous());
-            }
-            if let Some(ref user) = e.user {
-                if user.len() > 0 {
-                    user_identity_tokens.push(UserTokenPolicy::new_user_pass());
-                }
-            }
-            endpoints.push(EndpointDescription {
-                endpoint_url: UAString::from_str(&e.endpoint_url),
-                server: ApplicationDescription {
-                    application_uri: self.application_uri.clone(),
-                    product_uri: self.product_uri.clone(),
-                    application_name: self.application_name.clone(),
-                    application_type: ApplicationType::Server,
-                    gateway_server_uri: UAString::null(),
-                    discovery_profile_uri: UAString::null(),
-                    discovery_urls: None,
-                },
-                server_certificate: self.server_certificate.clone(),
-                security_mode: e.security_mode,
-                security_policy_uri: e.security_policy_uri.clone(),
-                user_identity_tokens: Some(user_identity_tokens),
-                transport_profile_uri: UAString::from_str(opcua_core::profiles::TRANSPORT_BINARY),
-                security_level: 1,
-            });
+            endpoints.push(self.new_endpoint_description(e));
         }
         endpoints
+    }
+
+    pub fn find_endpoint(&self, endpoint_url: &str) -> Option<EndpointDescription> {
+        for e in &self.endpoints {
+            if e.endpoint_url == endpoint_url {
+                return Some(self.new_endpoint_description(e));
+            }
+        }
+        None
+    }
+
+    fn new_endpoint_description(&self, endpoint: &Endpoint) -> EndpointDescription {
+        let mut user_identity_tokens = Vec::with_capacity(2);
+        if endpoint.anonymous {
+            user_identity_tokens.push(UserTokenPolicy::new_anonymous());
+        }
+        if let Some(ref user) = endpoint.user {
+            if user.len() > 0 {
+                user_identity_tokens.push(UserTokenPolicy::new_user_pass());
+            }
+        }
+        EndpointDescription {
+            endpoint_url: UAString::from_str(&endpoint.endpoint_url),
+            server: ApplicationDescription {
+                application_uri: self.application_uri.clone(),
+                product_uri: self.product_uri.clone(),
+                application_name: self.application_name.clone(),
+                application_type: ApplicationType::Server,
+                gateway_server_uri: UAString::null(),
+                discovery_profile_uri: UAString::null(),
+                discovery_urls: None,
+            },
+            server_certificate: self.server_certificate.clone(),
+            security_mode: endpoint.security_mode,
+            security_policy_uri: endpoint.security_policy_uri.clone(),
+            user_identity_tokens: Some(user_identity_tokens),
+            transport_profile_uri: UAString::from_str(opcua_core::profiles::TRANSPORT_BINARY),
+            security_level: 1,
+        }
     }
 
     pub fn create_subscription_id(&mut self) -> UInt32 {
         self.last_subscription_id += 1;
         self.last_subscription_id
     }
-
 
     /// Validate the username identity token
     pub fn validate_username_identity_token(&self, _: &UserNameIdentityToken) -> bool {
