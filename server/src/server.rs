@@ -10,7 +10,7 @@ use opcua_core::types::*;
 use opcua_core::services::*;
 use opcua_core::comms::*;
 
-use address_space::*;
+use prelude::*;
 
 use comms::tcp_transport::*;
 
@@ -228,6 +228,25 @@ impl Server {
                 }
             }
         }
+    }
+
+    /// Creates a polling action that happens continuously on an interval. The supplied
+    /// function receives the address space which it can do what it likes with.
+    ///
+    /// This function is be updating values in the address space individually or en masse.
+    /// The returned PollingAction will ensure the function is called for as long as it is
+    /// in scope. Once the action is dropped, the function will no longer be called.
+    pub fn create_address_space_polling_action<F>(&mut self, interval_ms: u32, action: F) -> PollingAction
+        where F: 'static + FnMut(&mut AddressSpace) + Send {
+        let mut action = action;
+        let address_space : Arc<Mutex<AddressSpace>> = {
+            let server_state = self.server_state.lock().unwrap();
+            server_state.address_space.clone()
+        };
+        PollingAction::new(interval_ms, move || {
+            // Call the provided closure with the address space
+            action(&mut address_space.lock().unwrap());
+        })
     }
 
     /// Handles the incoming request

@@ -13,8 +13,7 @@ impl PollingAction {
         where F: 'static + FnMut() + Send
     {
         let timer = timer::Timer::new();
-        let timer_guard =
-            timer.schedule_repeating(time::Duration::milliseconds(interval_ms as i64), action);
+        let timer_guard = timer.schedule_repeating(time::Duration::milliseconds(interval_ms as i64), action);
         PollingAction {
             timer: timer,
             timer_guard: timer_guard,

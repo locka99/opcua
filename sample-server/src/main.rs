@@ -26,8 +26,6 @@ fn main() {
 
 /// Creates some sample variables, and some fast / slow timers to update them
 fn setup_variable_update_actions(server: &mut Server) -> Vec<PollingAction> {
-    let server_state = server.server_state.lock().unwrap();
-
     // These will be the node ids of the variables
     let v1_node = NodeId::new_string(2, "v1");
     let v2_node = NodeId::new_string(2, "v2");
@@ -36,6 +34,7 @@ fn setup_variable_update_actions(server: &mut Server) -> Vec<PollingAction> {
 
     // Create a folder to hold the variables, then add variables.
     {
+        let server_state = server.server_state.lock().unwrap();
         let mut address_space = server_state.address_space.lock().unwrap();
 
         // Create a sample folder under objects folder
@@ -51,44 +50,30 @@ fn setup_variable_update_actions(server: &mut Server) -> Vec<PollingAction> {
         let _ = address_space.add_variables(&vars, &sample_folder_id);
     }
 
-    // Create a couple of PollingAction objects for our variables. Note how each gets their
-    // own cloned reference count to the address space so they can safely modify state.
-
+    // Create a couple of PollingAction objects for our variables.
     let mut actions = Vec::with_capacity(2);
 
     // Fast changes
-    {
-        let address_space = server_state.address_space.clone();
-
-        let mut v1_counter: Int32 = 0;
-        let mut v2_flag: Boolean = true;
-
-        actions.push(PollingAction::new(250, move || {
-            v1_counter += 1;
-            v2_flag = !v2_flag;
-            let mut address_space = address_space.lock().unwrap();
-            let _ = address_space.set_variable_value(&v1_node, Variant::Int32(v1_counter));
-            let _ = address_space.set_variable_value(&v2_node, Variant::Boolean(v2_flag));
-        }));
-    }
+    let mut v1_counter: Int32 = 0;
+    let mut v2_flag: Boolean = true;
+    actions.push(server.create_address_space_polling_action(250, move |address_space: &mut AddressSpace| {
+        v1_counter += 1;
+        v2_flag = !v2_flag;
+        let _ = address_space.set_variable_value(&v1_node, Variant::Int32(v1_counter));
+        let _ = address_space.set_variable_value(&v2_node, Variant::Boolean(v2_flag));
+    }));
 
     // Slow changes
-    {
-        let address_space = server_state.address_space.clone();
-
-        let mut counter: Int32 = 0;
-        let mut v3_string: String = "Hello world!".to_string();
-        let mut v4_double = 0f64;
-
-        actions.push(PollingAction::new(2000, move || {
-            counter += 1;
-            v3_string = format!("Hello World times {}", counter);
-            v4_double = ((counter % 360) as f64).to_radians().sin();
-            let mut address_space = address_space.lock().unwrap();
-            let _ = address_space.set_variable_value(&v3_node, Variant::String(UAString::from_str(&v3_string)));
-            let _ = address_space.set_variable_value(&v4_node, Variant::Double(v4_double));
-        }));
-    }
+    let mut counter: Int32 = 0;
+    let mut v3_string: String = "Hello world!".to_string();
+    let mut v4_double = 0f64;
+    actions.push(server.create_address_space_polling_action(1000, move |address_space: &mut AddressSpace| {
+        counter += 1;
+        v3_string = format!("Hello World times {}", counter);
+        v4_double = ((counter % 360) as f64).to_radians().sin();
+        let _ = address_space.set_variable_value(&v3_node, Variant::String(UAString::from_str(&v3_string)));
+        let _ = address_space.set_variable_value(&v4_node, Variant::Double(v4_double));
+    }));
 
     // Caller must hang onto this result for as long as they want actions to happen. When this
     // value is dropped, the action timers will stop.
