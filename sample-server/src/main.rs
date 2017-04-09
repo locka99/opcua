@@ -50,32 +50,30 @@ fn setup_variable_update_actions(server: &mut Server) -> Vec<PollingAction> {
         let _ = address_space.add_variables(&vars, &sample_folder_id);
     }
 
-    // Create a couple of PollingAction objects for our variables.
-    let mut actions = Vec::with_capacity(2);
-
-    // Fast changes
+    // These variables will be moved into the closures below which make use of them
     let mut v1_counter: Int32 = 0;
     let mut v2_flag: Boolean = true;
-    actions.push(server.create_address_space_polling_action(250, move |address_space: &mut AddressSpace| {
-        v1_counter += 1;
-        v2_flag = !v2_flag;
-        let _ = address_space.set_variable_value(&v1_node, Variant::Int32(v1_counter));
-        let _ = address_space.set_variable_value(&v2_node, Variant::Boolean(v2_flag));
-    }));
-
-    // Slow changes
-    let mut counter: Int32 = 0;
+    let mut slow_counter: Int32 = 0;
     let mut v3_string: String = "Hello world!".to_string();
     let mut v4_double = 0f64;
-    actions.push(server.create_address_space_polling_action(1000, move |address_space: &mut AddressSpace| {
-        counter += 1;
-        v3_string = format!("Hello World times {}", counter);
-        v4_double = ((counter % 360) as f64).to_radians().sin();
-        let _ = address_space.set_variable_value(&v3_node, Variant::String(UAString::from_str(&v3_string)));
-        let _ = address_space.set_variable_value(&v4_node, Variant::Double(v4_double));
-    }));
 
     // Caller must hang onto this result for as long as they want actions to happen. When this
     // value is dropped, the action timers will stop.
-    actions
+    vec![
+        // Fast changes
+        server.create_address_space_polling_action(250, move |address_space: &mut AddressSpace| {
+            v1_counter += 1;
+            v2_flag = !v2_flag;
+            let _ = address_space.set_variable_value(&v1_node, Variant::Int32(v1_counter));
+            let _ = address_space.set_variable_value(&v2_node, Variant::Boolean(v2_flag));
+        }),
+        // Slow changes
+        server.create_address_space_polling_action(1000, move |address_space: &mut AddressSpace| {
+            slow_counter += 1;
+            v3_string = format!("Hello World times {}", slow_counter);
+            v4_double = ((slow_counter % 360) as f64).to_radians().sin();
+            let _ = address_space.set_variable_value(&v3_node, Variant::String(UAString::from_str(&v3_string)));
+            let _ = address_space.set_variable_value(&v4_node, Variant::Double(v4_double));
+        })
+    ]
 }

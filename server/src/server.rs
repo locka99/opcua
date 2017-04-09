@@ -239,7 +239,7 @@ impl Server {
     pub fn create_address_space_polling_action<F>(&mut self, interval_ms: u32, action: F) -> PollingAction
         where F: 'static + FnMut(&mut AddressSpace) + Send {
         let mut action = action;
-        let address_space : Arc<Mutex<AddressSpace>> = {
+        let address_space = {
             let server_state = self.server_state.lock().unwrap();
             server_state.address_space.clone()
         };
