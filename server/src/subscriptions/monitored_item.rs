@@ -196,9 +196,10 @@ impl MonitoredItem {
     /// Takes the requested sampling interval value supplied by client and ensures it is within
     /// the range supported by the server
     fn sanitize_sampling_interval(requested_sampling_interval: Double) -> Double {
-        if requested_sampling_interval < 0 {
-            constants::DEFAULT_SAMPLING_INTERVAL
-        } else if requested_sampling_interval == 0 || requested_sampling_interval < constants::MIN_SAMPLING_INTERVAL {
+        if requested_sampling_interval < 0.0 {
+            // Defaults to the subscription's publishing interval
+            -1.0
+        } else if requested_sampling_interval == 0.0 || requested_sampling_interval < constants::MIN_SAMPLING_INTERVAL {
             constants::MIN_SAMPLING_INTERVAL
         } else {
             requested_sampling_interval
