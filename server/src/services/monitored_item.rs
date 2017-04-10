@@ -45,7 +45,7 @@ impl MonitoredItemService {
     pub fn modify_monitored_items(&self, _: &mut ServerState, session_state: &mut SessionState, request: ModifyMonitoredItemsRequest) -> Result<SupportedMessage, &'static StatusCode> {
         let mut service_status = &GOOD;
         let results = if let Some(ref items_to_modify) = request.items_to_modify {
-            // Find subscription and add items to it
+            // Find subscription and modify items in it
             let mut subscriptions = session_state.subscriptions.lock().unwrap();
             let subscription_id = request.subscription_id;
             if let Some(mut subscription) = subscriptions.get_mut(&subscription_id) {
@@ -71,7 +71,7 @@ impl MonitoredItemService {
     pub fn delete_monitored_items(&self, _: &mut ServerState, session_state: &mut SessionState, request: DeleteMonitoredItemsRequest) -> Result<SupportedMessage, &'static StatusCode> {
         let mut service_status = &GOOD;
         let results = if let Some(ref items_to_delete) = request.monitored_item_ids {
-            // Find subscription and add items to it
+            // Find subscription and delete items from it
             let mut subscriptions = session_state.subscriptions.lock().unwrap();
             let subscription_id = request.subscription_id;
             if let Some(mut subscription) = subscriptions.get_mut(&subscription_id) {

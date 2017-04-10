@@ -166,10 +166,8 @@ impl Subscription {
                     revised_queue_size: monitored_item.queue_size as UInt32,
                     filter_result: ExtensionObject::null()
                 };
-
                 // Register the item with the subscription
                 self.monitored_items.insert(monitored_item_id, monitored_item);
-
                 result
             } else {
                 // Monitored item couldn't be created
@@ -188,14 +186,34 @@ impl Subscription {
 
     /// Modify the specified monitored items, returning a result for each
     pub fn modify_monitored_items(&mut self, items_to_modify: &[MonitoredItemModifyRequest]) -> Vec<MonitoredItemModifyResult> {
-        // TODO Implement
         let mut result = Vec::with_capacity(items_to_modify.len());
-        for _ in items_to_modify {
-            result.push(MonitoredItemModifyResult {
-                status_code: BAD_MONITORED_ITEM_ID_INVALID.clone(),
-                revised_sampling_interval: 0f64,
-                revised_queue_size: 0,
-                filter_result: ExtensionObject::null(),
+        for item_to_modify in items_to_modify {
+            let monitored_item = self.monitored_items.get_mut(&item_to_modify.monitored_item_id);
+            result.push(if let Some(monitored_item) = monitored_item {
+                // Try to change the monitored item according to the modify request
+                let modify_result = monitored_item.modify(item_to_modify);
+                if modify_result.is_ok() {
+                    MonitoredItemModifyResult {
+                        status_code: GOOD.clone(),
+                        revised_sampling_interval: monitored_item.sampling_interval,
+                        revised_queue_size: monitored_item.queue_size as UInt32,
+                        filter_result: ExtensionObject::null(),
+                    }
+                } else {
+                    MonitoredItemModifyResult {
+                        status_code: modify_result.unwrap_err().clone(),
+                        revised_sampling_interval: 0f64,
+                        revised_queue_size: 0,
+                        filter_result: ExtensionObject::null(),
+                    }
+                }
+            } else {
+                MonitoredItemModifyResult {
+                    status_code: BAD_MONITORED_ITEM_ID_INVALID.clone(),
+                    revised_sampling_interval: 0f64,
+                    revised_queue_size: 0,
+                    filter_result: ExtensionObject::null(),
+                }
             });
         }
         result
@@ -203,10 +221,11 @@ impl Subscription {
 
     /// Delete the specified monitored items (by item id), returning a status code for each
     pub fn delete_monitored_items(&mut self, items_to_delete: &[UInt32]) -> Vec<StatusCode> {
-        // TODO Implement
         let mut result = Vec::with_capacity(items_to_delete.len());
-        for _ in items_to_delete {
-            result.push(BAD_MONITORED_ITEM_ID_INVALID.clone());
+        for item_to_delete in items_to_delete {
+            // Remove the item (or report an error with the id)
+            let removed = self.monitored_items.remove(item_to_delete);
+            result.push(if removed.is_some() { GOOD.clone() } else { BAD_MONITORED_ITEM_ID_INVALID.clone() });
         }
         result
     }
@@ -468,16 +487,12 @@ impl Subscription {
         // Some more state tests that match on more than one state
         match self.state {
             SubscriptionState::Normal | SubscriptionState::Late | SubscriptionState::KeepAlive => {
-                // State #18 receive modifysubscription
-                // State #19 receive setpublishingmode
-                // State #20 receive republishrequest
-                // State #21 receive transfersubscriptions
-                // State #22 receive transfersubscriptions
-                // State #23 receive transfersubscriptions
-                // State #24 receive deletesubscriptions
-                // State #25 receive deletesubscriptions
-                // State #26 receive deletesubscriptions
-                // State #27 lifetimecounter == 1
+                if self.lifetime_counter == 1 {
+                    // State #27
+                    // TODO
+                    // delete monitored items
+                    // issue_status_change_notification
+                }
             }
             _ => {
                 // DO NOTHING

@@ -74,7 +74,6 @@ impl SessionService {
     }
 
     pub fn activate_session(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: ActivateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
-
         // TODO get security from endpoint url
         let session_info = session_state.session_info.as_ref().unwrap();
 
