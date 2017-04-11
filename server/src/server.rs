@@ -227,7 +227,18 @@ impl Server {
             if self.abort {
                 break;
             }
-            info!("Waiting for Connection on {}", base_endpoint);
+            {
+                info!("Server supports these endpoints:");
+                let server_state = self.server_state.lock().unwrap();
+                for endpoint in server_state.endpoints.iter() {
+                    info!("Endpoint: {}", endpoint.endpoint_url);
+                    info!("  Anonymous Access: {:?}", endpoint.anonymous);
+                    info!("  User/Password:    {:?}", endpoint.user.is_some());
+                    info!("  Security Policy:  {}", if endpoint.security_policy_uri.is_null() { "" } else { endpoint.security_policy_uri.to_str() });
+                    info!("  Security Mode:    {:?}", endpoint.security_mode);
+                }
+            }
+            info!("Waiting for Connection");
             for stream in listener.incoming() {
                 info!("Handling new connection {:?}", stream);
                 match stream {

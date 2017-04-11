@@ -38,9 +38,6 @@ pub mod prelude {
 /// Constants that govern the internal workings of the server impl.
 mod constants {
     use opcua_core::types::Double;
-
-    /// Default sampling interval in seconds
-    pub const DEFAULT_SAMPLING_INTERVAL: Double = 0.25f64;
     /// Minimum sampling interval in seconds allowed by clients on subscriptions or monitored_items
     pub const MIN_SAMPLING_INTERVAL: Double = 0.05f64;
     /// Default data change queue size

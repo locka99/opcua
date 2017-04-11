@@ -1,7 +1,5 @@
 use std;
-use std::sync::{Arc, Mutex};
 use std::path::{PathBuf};
-use std::collections::{HashMap};
 
 use chrono;
 use time;
@@ -78,11 +76,8 @@ pub fn expired_publish_requests() {
     pr2.request.request_header.timeout_hint = 3000;
 
     // Create session with publish requests
-    let mut session = SessionState {
-        session_info: None,
-        subscriptions: Arc::new(Mutex::new(HashMap::new())),
-        publish_request_queue: vec![pr1, pr2],
-    };
+    let mut session = SessionState::new();
+    session.publish_request_queue = vec![pr1, pr2];
 
     // Expire requests, see which expire
     let expired_responses = session.expire_stale_publish_requests(&now_plus_5s);
