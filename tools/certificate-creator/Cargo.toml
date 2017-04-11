@@ -1,0 +1,7 @@
+[package]
+name = "certificate-creator"
+version = "0.1.0"
+authors = ["Adam Lock <locka99@gmail.com>"]
+
+[dependencies]
+openssl = "0.9.10"
