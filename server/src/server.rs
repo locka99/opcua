@@ -268,8 +268,13 @@ impl Server {
     }
 
     /// Create a new server instance using the server default configuration
-    pub fn new_default() -> Server {
+    pub fn new_default_anonymous() -> Server {
         Server::new(&ServerConfig::default_anonymous())
+    }
+
+    /// Create a new server instance using the server default configuration for user/name password
+    pub fn new_default_user_pass(user: &str, pass: &[u8]) -> Server {
+        Server::new(&ServerConfig::default_user_pass(user, pass))
     }
 
     // Terminates the running server

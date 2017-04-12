@@ -48,6 +48,18 @@ impl ServerEndpoint {
             pass: None,
         }
     }
+
+    pub fn default_user_pass(user: &str, pass: &[u8]) -> ServerEndpoint {
+        ServerEndpoint {
+            name: "Default".to_string(),
+            path: "/".to_string(),
+            security_policy: "None".to_string(),
+            security_mode: "None".to_string(),
+            anonymous: Some(false),
+            user: Some(user.to_string()),
+            pass: Some(String::from_utf8(pass.to_vec()).unwrap()),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -75,8 +87,7 @@ pub struct ServerConfig {
 }
 
 impl ServerConfig {
-    /// Returns the default server configuration to run a server with no security and anonymous access enabled
-    pub fn default_anonymous() -> ServerConfig {
+    pub fn default(endpoints: Vec<ServerEndpoint>) -> ServerConfig {
         let application_name = "OPCUA-Rust".to_string();
         let hostname = "127.0.0.1".to_string();
 
@@ -94,11 +105,20 @@ impl ServerConfig {
                 port: constants::DEFAULT_OPC_UA_SERVER_PORT,
                 hello_timeout: constants::DEFAULT_HELLO_TIMEOUT_SECONDS,
             },
-            endpoints: vec![ServerEndpoint::default_anonymous()],
+            endpoints: endpoints,
             max_array_length: constants::DEFAULT_MAX_ARRAY_LENGTH,
             max_string_length: constants::DEFAULT_MAX_STRING_LENGTH,
             max_byte_string_length: constants::DEFAULT_MAX_BYTE_STRING_LENGTH,
         }
+    }
+
+    /// Returns the default server configuration to run a server with no security and anonymous access enabled
+    pub fn default_anonymous() -> ServerConfig {
+        ServerConfig::default(vec![ServerEndpoint::default_anonymous()])
+    }
+
+    pub fn default_user_pass(user: &str, pass: &[u8]) -> ServerConfig {
+        ServerConfig::default(vec![ServerEndpoint::default_user_pass(user, pass)])
     }
 
     pub fn save(&self, path: &Path) -> Result<(), ()> {

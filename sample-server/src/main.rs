@@ -12,7 +12,7 @@ fn main() {
     let _ = opcua_core::init_logging();
 
     // Create an OPC UA server with the default settings and node set
-    let mut server = Server::new_default();
+    let mut server = Server::new_default_anonymous();
 
     // Add some variables and update timer actions
     let actions = setup_variable_update_actions(&mut server);
