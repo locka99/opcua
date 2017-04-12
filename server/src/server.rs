@@ -23,7 +23,70 @@ pub struct Endpoint {
     pub security_mode: MessageSecurityMode,
     pub anonymous: bool,
     pub user: Option<String>,
-    pub pass: Option<String>,
+    pub pass: Option<Vec<u8>>,
+}
+
+impl Endpoint {
+    /// Compares the identity token to the endpoint and returns GOOD if it authenticates
+    pub fn validate_identity_token(&self, user_identity_token: &ExtensionObject) -> &'static StatusCode {
+        let mut result = &BAD_IDENTITY_TOKEN_REJECTED;
+
+        let identity_token_id = user_identity_token.node_id.clone();
+        if identity_token_id == ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id() {
+            if self.anonymous {
+                result = &GOOD;
+            } else {
+                error!("Authentication error: Client attempted to connect anonymously to endpoint: {}", self.endpoint_url);
+            }
+        } else if identity_token_id == ObjectId::UserNameIdentityToken_Encoding_DefaultBinary.as_node_id() {
+            let user_identity_token = user_identity_token.decode_inner::<UserNameIdentityToken>();
+            if let Ok(user_identity_token) = user_identity_token {
+                self.validate_user_name_identity_token(&user_identity_token);
+            } else {
+                error!("Authentication error: User identity token cannot be decoded");
+            }
+        } else {
+            error!("Authentication error: Unsupported identity token {:?}", identity_token_id);
+        };
+        result
+    }
+
+    fn validate_user_name_identity_token(&self, user_identity_token: &UserNameIdentityToken) -> &'static StatusCode {
+        let mut result = &BAD_IDENTITY_TOKEN_REJECTED;
+        // No comparison will be made unless user and pass are explicitly set to something on
+        // the endpoint and on the user name identity token
+        if self.user.is_some() && self.pass.is_some() {
+            if !user_identity_token.user_name.is_null() && !user_identity_token.password.is_null() {
+                let endpoint_user = self.user.as_ref().unwrap();
+                let endpoint_pass = self.pass.as_ref().unwrap();
+                // Plaintext encryption
+                if user_identity_token.encryption_algorithm.is_null() {
+                    // Password shall be a UTF-8 encoded string
+                    let id_user = user_identity_token.user_name.to_str();
+                    let id_pass = user_identity_token.password.value.as_ref().unwrap();
+                    if endpoint_user == id_user {
+                        if endpoint_pass == id_pass {
+                            result = &GOOD;
+                        } else {
+                            error!("Authentication error: User name {} supplied by client is recognised but password is not", endpoint_user);
+                        }
+                    } else {
+                        error!("Authentication error: User name supplied by client is unrecognised");
+                    }
+                } else {
+                    // TODO See 7.36.3. UserTokenPolicy and SecurityPolicy should be used to provide
+                    // a means to encrypt a password and not send it plain text. Sending a plaintext
+                    // password over unsecured network is a bad thing!!!
+                    error!("Authentication error: Unsupported encryption algorithm {}", user_identity_token.encryption_algorithm.to_str());
+                }
+            } else {
+                error!("Authentication error: User / pass credentials not supplied in token");
+            }
+        } else {
+            error!("Authentication error: User / pass authentication is unsupported by endpoint {}", self.endpoint_url);
+        }
+        result
+    }
 }
 
 /// Server state is any state associated with the server as a whole that individual sessions might
@@ -72,10 +135,10 @@ impl ServerState {
         endpoints
     }
 
-    pub fn find_endpoint(&self, endpoint_url: &str) -> Option<EndpointDescription> {
+    pub fn find_endpoint(&self, endpoint_url: &str) -> Option<Endpoint> {
         for e in &self.endpoints {
             if e.endpoint_url == endpoint_url {
-                return Some(self.new_endpoint_description(e));
+                return Some(e.clone());
             }
         }
         None
@@ -163,7 +226,7 @@ impl Server {
                 security_mode: security_mode,
                 anonymous: anonymous,
                 user: e.user.clone(),
-                pass: e.pass.clone(),
+                pass: if e.pass.is_some() { Some(e.pass.as_ref().unwrap().clone().into_bytes()) } else { None },
             });
         }
 

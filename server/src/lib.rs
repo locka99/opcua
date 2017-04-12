@@ -38,6 +38,24 @@ pub mod prelude {
 /// Constants that govern the internal workings of the server impl.
 mod constants {
     use opcua_core::types::Double;
+
+    // Values used by configuration in the absence of user defined values
+
+    /// The default hello timeout period in seconds
+    pub const DEFAULT_HELLO_TIMEOUT_SECONDS: u32 = 120;
+    /// Maximum number of elements in an array
+    pub const DEFAULT_MAX_ARRAY_LENGTH: u32 = 1000;
+    /// Maximum size of a string in chars
+    pub const DEFAULT_MAX_STRING_LENGTH: u32 = 65536;
+    /// Maximum size of a byte string in bytes
+    pub const DEFAULT_MAX_BYTE_STRING_LENGTH: u32 = 65536;
+    // Default OPC UA server port
+    pub const DEFAULT_OPC_UA_SERVER_PORT: u16 = 1234;
+    // Default, "well known address for TCP discovery server
+    //pub const DEFAULT_OPC_UA_DISCOVERY_SERVER_PORT: u16 = 4840;
+
+    // Internally controlled values
+
     /// Minimum sampling interval in seconds allowed by clients on subscriptions or monitored_items
     pub const MIN_SAMPLING_INTERVAL: Double = 0.05f64;
     /// Default data change queue size
@@ -52,9 +70,8 @@ mod constants {
     /// the more often subscriptions will be checked to see if their subscription interval has elapsed
     /// therefore the value should be < min sampling interval
     pub const SUBSCRIPTION_TIMER_RATE_MS: i64 = 10;
-
     /// Time in MS that a session will timeout after with inactivity
-    pub const SESSION_TIMEOUT: f64= 50000f64;
+    pub const SESSION_TIMEOUT: f64 = 50000f64;
     /// Maximum size in bytes that a request message is allowed to be
     pub const MAX_REQUEST_MESSAGE_SIZE: u32 = 32768;
 }

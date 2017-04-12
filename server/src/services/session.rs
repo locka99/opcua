@@ -1,12 +1,11 @@
 use std::result::Result;
-use std::io::{Cursor};
 
 use opcua_core::types::*;
 use opcua_core::services::*;
 use opcua_core::comms::*;
 
 use constants;
-use server::ServerState;
+use server::{Endpoint, ServerState};
 use session::{SessionState, SessionInfo};
 
 pub struct SessionService {}
@@ -81,13 +80,12 @@ impl SessionService {
     }
 
     pub fn activate_session(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: ActivateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
-        let endpoint_description = SessionService::get_session_endpoint(server_state, session_state);
-        if endpoint_description.is_none() {
+        let endpoint = SessionService::get_session_endpoint(server_state, session_state);
+        if endpoint.is_none() {
             return Err(&BAD_TCP_ENDPOINT_URL_INVALID);
         }
-        let endpoint_description = endpoint_description.unwrap();
-
-        let service_status = SessionService::validate_identity_token(&endpoint_description, &request.user_identity_token);
+        let endpoint = endpoint.unwrap();
+        let service_status = endpoint.validate_identity_token(&request.user_identity_token);
 
         let server_nonce = ByteString::random(32);
         let response = ActivateSessionResponse {
@@ -99,32 +97,7 @@ impl SessionService {
         Ok(SupportedMessage::ActivateSessionResponse(response))
     }
 
-    fn validate_identity_token(endpoint_description: &EndpointDescription, user_identity_token: &ExtensionObject) -> &'static StatusCode {
-        let identity_token_id = user_identity_token.node_id.clone();
-        if identity_token_id == ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id() {
-            // TODO ensure session allows anonymous id
-            &GOOD
-        } else if identity_token_id == ObjectId::UserNameIdentityToken_Encoding_DefaultBinary.as_node_id() {
-            // TODO ensure session allows user id
-            let mut result = &BAD_IDENTITY_TOKEN_REJECTED;
-            if let ExtensionObjectEncoding::ByteString(ref data) = user_identity_token.body {
-                if let Some(ref data) = data.value {
-                    let mut stream = Cursor::new(data);
-                    if let Ok(token) = UserNameIdentityToken::decode(&mut stream) {
-                        //if server_state.validate_username_identity_token(&token) {
-                        //    result = &GOOD;
-                        //}
-                        result = &BAD_IDENTITY_TOKEN_REJECTED;
-                    }
-                }
-            }
-            result
-        } else {
-            &BAD_IDENTITY_TOKEN_REJECTED
-        }
-    }
-
-    fn get_session_endpoint(server_state: &ServerState, session_state: &SessionState) -> Option<EndpointDescription> {
+    fn get_session_endpoint(server_state: &ServerState, session_state: &SessionState) -> Option<Endpoint> {
         // Get security from endpoint url
         let session_info = session_state.session_info.as_ref().unwrap();
         if session_info.endpoint_url.is_null() {

@@ -7,6 +7,7 @@ use std::fs::File;
 use std::result::Result;
 
 use opcua_core::types::MessageSecurityMode;
+use constants;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct TcpConfig {
@@ -33,6 +34,20 @@ pub struct ServerEndpoint {
     /// Allow user name / password access
     pub user: Option<String>,
     pub pass: Option<String>,
+}
+
+impl ServerEndpoint {
+    pub fn default_anonymous() -> ServerEndpoint {
+        ServerEndpoint {
+            name: "Default".to_string(),
+            path: "/".to_string(),
+            security_policy: "None".to_string(),
+            security_mode: "None".to_string(),
+            anonymous: Some(true),
+            user: None,
+            pass: None,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -76,21 +91,13 @@ impl ServerConfig {
             pki_dir: "pki".to_string(),
             tcp_config: TcpConfig {
                 host: hostname,
-                port: 1234,
-                hello_timeout: 120,
+                port: constants::DEFAULT_OPC_UA_SERVER_PORT,
+                hello_timeout: constants::DEFAULT_HELLO_TIMEOUT_SECONDS,
             },
-            endpoints: vec![ServerEndpoint {
-                name: "Default".to_string(),
-                path: "/".to_string(),
-                security_policy: "None".to_string(),
-                security_mode: "None".to_string(),
-                anonymous: Some(true),
-                user: None,
-                pass: None,
-            }],
-            max_array_length: 1000,
-            max_string_length: 65536,
-            max_byte_string_length: 65536,
+            endpoints: vec![ServerEndpoint::default_anonymous()],
+            max_array_length: constants::DEFAULT_MAX_ARRAY_LENGTH,
+            max_string_length: constants::DEFAULT_MAX_STRING_LENGTH,
+            max_byte_string_length: constants::DEFAULT_MAX_BYTE_STRING_LENGTH,
         }
     }
 
@@ -114,6 +121,11 @@ impl ServerConfig {
             }
         }
         Err(())
+    }
+
+    pub fn validate() -> bool {
+        // TODO check that the values in the configuration are sane.
+        true
     }
 
     pub fn message_security_mode() -> MessageSecurityMode {
