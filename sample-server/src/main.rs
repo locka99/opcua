@@ -11,8 +11,8 @@ fn main() {
     // This enables logging. If you don't need logging you can omit it
     let _ = opcua_core::init_logging();
 
-    // Create an OPC UA server with the default settings and node set
-    let mut server = Server::new_default_anonymous();
+    // Create an OPC UA server with the default sample (demo) settings and node set
+    let mut server = Server::new(ServerConfig::default_sample());
 
     // Add some variables and update timer actions
     let actions = setup_variable_update_actions(&mut server);

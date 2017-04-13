@@ -36,29 +36,41 @@ pub struct ServerEndpoint {
     pub pass: Option<String>,
 }
 
+const DEFAULT_ENDPOINT_NAME: &'static str = "Default";
+const DEFAULT_ENDPOINT_PATH: &'static str = "/";
+
+const DEFAULT_SECURITY_POLICY: &'static str = "None";
+const DEFAULT_SECURITY_MODE: &'static str = "None";
+
 impl ServerEndpoint {
-    pub fn default_anonymous() -> ServerEndpoint {
+    pub fn new(name: &str, path: &str, anonymous: bool, user: &str, pass: &[u8], security_policy: &str, security_mode: &str) -> ServerEndpoint {
         ServerEndpoint {
-            name: "Default".to_string(),
-            path: "/".to_string(),
-            security_policy: "None".to_string(),
-            security_mode: "None".to_string(),
-            anonymous: Some(true),
-            user: None,
-            pass: None,
+            name: name.to_string(),
+            path: path.to_string(),
+            anonymous: Some(anonymous),
+            user: if user.is_empty() { None } else { Some(user.to_string()) },
+            pass: if user.is_empty() { None } else { Some(String::from_utf8(pass.to_vec()).unwrap()) },
+            security_policy: security_policy.to_string(),
+            security_mode: security_mode.to_string(),
         }
     }
 
+    pub fn new_default(anonymous: bool, user: &str, pass: &[u8], security_policy: &str, security_mode: &str) -> ServerEndpoint {
+        ServerEndpoint::new(DEFAULT_ENDPOINT_NAME, DEFAULT_ENDPOINT_PATH, anonymous, user, pass, security_policy, security_mode)
+    }
+
+    pub fn default_anonymous() -> ServerEndpoint {
+        ServerEndpoint::new_default(true, "", &[], DEFAULT_SECURITY_POLICY, DEFAULT_SECURITY_MODE)
+    }
+
     pub fn default_user_pass(user: &str, pass: &[u8]) -> ServerEndpoint {
-        ServerEndpoint {
-            name: "Default".to_string(),
-            path: "/".to_string(),
-            security_policy: "None".to_string(),
-            security_mode: "None".to_string(),
-            anonymous: Some(false),
-            user: Some(user.to_string()),
-            pass: Some(String::from_utf8(pass.to_vec()).unwrap()),
-        }
+        ServerEndpoint::new_default(false, user, pass, DEFAULT_SECURITY_POLICY, DEFAULT_SECURITY_MODE)
+    }
+
+    /// Special config that turns on anonymous, user/pass and pki for sample code that wants everything available
+    /// Don't use in production.
+    pub fn default_sample() -> ServerEndpoint {
+        ServerEndpoint::new_default(true, "sample", "sample1".as_bytes(), DEFAULT_SECURITY_POLICY, DEFAULT_SECURITY_MODE)
     }
 }
 
@@ -119,6 +131,10 @@ impl ServerConfig {
 
     pub fn default_user_pass(user: &str, pass: &[u8]) -> ServerConfig {
         ServerConfig::default(vec![ServerEndpoint::default_user_pass(user, pass)])
+    }
+
+    pub fn default_sample() -> ServerConfig {
+        ServerConfig::default(vec![ServerEndpoint::default_sample()])
     }
 
     pub fn save(&self, path: &Path) -> Result<(), ()> {

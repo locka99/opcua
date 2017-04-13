@@ -30,8 +30,8 @@ impl Endpoint {
     /// Compares the identity token to the endpoint and returns GOOD if it authenticates
     pub fn validate_identity_token(&self, user_identity_token: &ExtensionObject) -> &'static StatusCode {
         let mut result = &BAD_IDENTITY_TOKEN_REJECTED;
-
         let identity_token_id = user_identity_token.node_id.clone();
+        debug!("Valdating identity token {:?}", identity_token_id);
         if identity_token_id == ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id() {
             if self.anonymous {
                 result = &GOOD;
@@ -68,7 +68,7 @@ impl Endpoint {
                         if endpoint_pass == id_pass {
                             result = &GOOD;
                         } else {
-                            error!("Authentication error: User name {} supplied by client is recognised but password is not", endpoint_user);
+                            error!("Authentication error: User name {} supplied by client is recognised but password is not {:?} vs {:?}", endpoint_user, id_pass, endpoint_pass);
                         }
                     } else {
                         error!("Authentication error: User name supplied by client is unrecognised");
@@ -199,7 +199,7 @@ pub struct Server {
 
 impl Server {
     /// Create a new server instance
-    pub fn new(config: &ServerConfig) -> Server {
+    pub fn new(config: ServerConfig) -> Server {
         // Set from config
         let application_name = config.application_name.clone();
         let application_uri = UAString::from_str(&config.application_uri);
@@ -269,12 +269,12 @@ impl Server {
 
     /// Create a new server instance using the server default configuration
     pub fn new_default_anonymous() -> Server {
-        Server::new(&ServerConfig::default_anonymous())
+        Server::new(ServerConfig::default_anonymous())
     }
 
     /// Create a new server instance using the server default configuration for user/name password
     pub fn new_default_user_pass(user: &str, pass: &[u8]) -> Server {
-        Server::new(&ServerConfig::default_user_pass(user, pass))
+        Server::new(ServerConfig::default_user_pass(user, pass))
     }
 
     // Terminates the running server
@@ -284,7 +284,7 @@ impl Server {
 
     /// Runs the server
     pub fn run(&mut self) {
-        let (host, port, base_endpoint) = {
+        let (host, port, _) = {
             let server_state = self.server_state.lock().unwrap();
             let config = server_state.config.lock().unwrap();
             (config.tcp_config.host.clone(), config.tcp_config.port, server_state.base_endpoint.clone())
