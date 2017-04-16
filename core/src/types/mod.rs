@@ -698,11 +698,11 @@ impl BinaryEncoder<ExtensionObject> for ExtensionObject {
             ExtensionObjectEncoding::ByteString(ref value) => {
                 // Encoding mask + data
                 1 + value.byte_len()
-            },
+            }
             ExtensionObjectEncoding::XmlElement(ref value) => {
                 // Encoding mask + data
                 1 + value.byte_len()
-            },
+            }
         };
         size
     }
@@ -713,17 +713,17 @@ impl BinaryEncoder<ExtensionObject> for ExtensionObject {
         match self.body {
             ExtensionObjectEncoding::None => {
                 size += write_u8(stream, 0x0)?;
-            },
+            }
             ExtensionObjectEncoding::ByteString(ref value) => {
                 // Encoding mask + data
                 size += write_u8(stream, 0x1)?;
                 size += value.encode(stream)?;
-            },
+            }
             ExtensionObjectEncoding::XmlElement(ref value) => {
                 // Encoding mask + data
                 size += write_u8(stream, 0x2)?;
                 size += value.encode(stream)?;
-            },
+            }
         }
         assert_eq!(size, self.byte_len());
         Ok(size)
@@ -735,21 +735,21 @@ impl BinaryEncoder<ExtensionObject> for ExtensionObject {
         let body = match encoding_type {
             0x0 => {
                 ExtensionObjectEncoding::None
-            },
+            }
             0x1 => {
                 let value = ByteString::decode(stream);
                 if value.is_err() {
                     return Err(value.unwrap_err());
                 }
                 ExtensionObjectEncoding::ByteString(value.unwrap())
-            },
+            }
             0x2 => {
                 let value = XmlElement::decode(stream);
                 if value.is_err() {
                     return Err(value.unwrap_err());
                 }
                 ExtensionObjectEncoding::XmlElement(value.unwrap())
-            },
+            }
             _ => {
                 error!("Invalid encoding type {} in stream", encoding_type);
                 return Err(&BAD_DECODING_ERROR);
@@ -992,16 +992,16 @@ impl DataChangeFilter {
         match self.trigger {
             DataChangeTrigger::Status => {
                 v1.status == v2.status
-            },
+            }
             DataChangeTrigger::StatusValue => {
                 v1.status == v2.status &&
                     self.compare_value_option(&v1.value, &v2.value, eu_range)
-            },
+            }
             DataChangeTrigger::StatusValueTimestamp => {
                 v1.status == v2.status &&
                     self.compare_value_option(&v1.value, &v2.value, eu_range) &&
                     v1.server_timestamp == v2.server_timestamp
-            },
+            }
         }
     }
 
@@ -1092,6 +1092,52 @@ impl DataChangeFilter {
         let pct_change = (v1_pct - v2_pct).abs();
         // Comparison is equal if the % change of v1 - v2 < the threshold
         pct_change <= threshold_pct_change
+    }
+}
+
+impl UserNameIdentityToken {
+    /// Ensures the token is valid
+    pub fn is_valid(&self) -> bool {
+        !self.user_name.is_null() && !self.password.is_null()
+    }
+
+    /// Authenticates the token against the supplied username and password.
+    pub fn authenticate(&self, username: &str, password: &[u8]) -> Result<(), &'static StatusCode> {
+        // No comparison will be made unless user and pass are explicitly set to something in the token
+        // Even if someone has a blank password, client should pass an empty string, not null.
+        let valid = if self.is_valid() {
+            // Plaintext encryption
+            if self.encryption_algorithm.is_null() {
+                // Password shall be a UTF-8 encoded string
+                let id_user = self.user_name.to_str();
+                let id_pass = self.password.value.as_ref().unwrap();
+                if username == id_user {
+                    if password == id_pass.as_slice() {
+                        true
+                    } else {
+                        error!("Authentication error: User name {} supplied by client is recognised but password is not", username);
+                        false
+                    }
+                } else {
+                    error!("Authentication error: User name supplied by client is unrecognised");
+                    false
+                }
+            } else {
+                // TODO See 7.36.3. UserTokenPolicy and SecurityPolicy should be used to provide
+                // a means to encrypt a password and not send it plain text. Sending a plaintext
+                // password over unsecured network is a bad thing!!!
+                error!("Authentication error: Unsupported encryption algorithm {}", self.encryption_algorithm.to_str());
+                false
+            }
+        } else {
+            error!("Authentication error: User / pass credentials not supplied in token");
+            false
+        };
+        if valid {
+            Ok(())
+        } else {
+            Err(&BAD_IDENTITY_TOKEN_REJECTED)
+        }
     }
 }
 

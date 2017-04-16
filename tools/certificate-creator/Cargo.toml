@@ -4,4 +4,17 @@ version = "0.1.0"
 authors = ["Adam Lock <locka99@gmail.com>"]
 
 [dependencies]
-openssl = "0.9.10"
+# OpenSSL is optional due to problems building and installing it on some platforms.
+# A certificate creator without openssl is basically useless!
+openssl = { version = "0.9.9", optional = true }
+
+[features]
+# The default package is no crypto.
+default = []
+
+# Crypto relies on openssl which is a bit of a pain to setup. If you need it, follow the instructions at the link
+# below before enabling the feature, e.g. "cargo build --features crypto"
+#
+# https://github.com/sfackler/rust-openssl
+#
+crypto = ["openssl"]

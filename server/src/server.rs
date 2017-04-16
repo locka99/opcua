@@ -31,7 +31,7 @@ impl Endpoint {
     pub fn validate_identity_token(&self, user_identity_token: &ExtensionObject) -> &'static StatusCode {
         let mut result = &BAD_IDENTITY_TOKEN_REJECTED;
         let identity_token_id = user_identity_token.node_id.clone();
-        debug!("Valdating identity token {:?}", identity_token_id);
+        debug!("Validating identity token {:?}", identity_token_id);
         if identity_token_id == ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id() {
             if self.anonymous {
                 result = &GOOD;
@@ -41,7 +41,7 @@ impl Endpoint {
         } else if identity_token_id == ObjectId::UserNameIdentityToken_Encoding_DefaultBinary.as_node_id() {
             let user_identity_token = user_identity_token.decode_inner::<UserNameIdentityToken>();
             if let Ok(user_identity_token) = user_identity_token {
-                self.validate_user_name_identity_token(&user_identity_token);
+                result = self.validate_user_name_identity_token(&user_identity_token);
             } else {
                 error!("Authentication error: User identity token cannot be decoded");
             }
@@ -52,40 +52,19 @@ impl Endpoint {
     }
 
     fn validate_user_name_identity_token(&self, user_identity_token: &UserNameIdentityToken) -> &'static StatusCode {
-        let mut result = &BAD_IDENTITY_TOKEN_REJECTED;
-        // No comparison will be made unless user and pass are explicitly set to something on
-        // the endpoint and on the user name identity token
+        // No comparison will be made unless user and pass are explicitly set
         if self.user.is_some() && self.pass.is_some() {
-            if !user_identity_token.user_name.is_null() && !user_identity_token.password.is_null() {
-                let endpoint_user = self.user.as_ref().unwrap();
-                let endpoint_pass = self.pass.as_ref().unwrap();
-                // Plaintext encryption
-                if user_identity_token.encryption_algorithm.is_null() {
-                    // Password shall be a UTF-8 encoded string
-                    let id_user = user_identity_token.user_name.to_str();
-                    let id_pass = user_identity_token.password.value.as_ref().unwrap();
-                    if endpoint_user == id_user {
-                        if endpoint_pass == id_pass {
-                            result = &GOOD;
-                        } else {
-                            error!("Authentication error: User name {} supplied by client is recognised but password is not {:?} vs {:?}", endpoint_user, id_pass, endpoint_pass);
-                        }
-                    } else {
-                        error!("Authentication error: User name supplied by client is unrecognised");
-                    }
-                } else {
-                    // TODO See 7.36.3. UserTokenPolicy and SecurityPolicy should be used to provide
-                    // a means to encrypt a password and not send it plain text. Sending a plaintext
-                    // password over unsecured network is a bad thing!!!
-                    error!("Authentication error: Unsupported encryption algorithm {}", user_identity_token.encryption_algorithm.to_str());
-                }
+            let result = user_identity_token.authenticate(self.user.as_ref().unwrap(), self.pass.as_ref().unwrap().as_slice());
+            if result.is_ok() {
+                info!("User identity is validated");
+                &GOOD
             } else {
-                error!("Authentication error: User / pass credentials not supplied in token");
+                result.unwrap_err()
             }
         } else {
             error!("Authentication error: User / pass authentication is unsupported by endpoint {}", self.endpoint_url);
+            &BAD_IDENTITY_TOKEN_REJECTED
         }
-        result
     }
 }
 
