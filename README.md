@@ -105,6 +105,41 @@ Currently the following are not supported
 
 Client support is still work in progress. Stubs have been created for the client lib, sample-client and some basic functionality.
 
+# Building and testing
+
+OPC UA for Rust follows the normal Rust conventions. There is a Cargo.toml per module that you may use to build the module and all dependencies. You may also
+build the entire workspace from the top like so:
+
+```bash
+cd opcua
+cargo build --all
+```
+
+## Sample Server
+
+The sample server creates a handful of variables that you can monitor within the address space.
+
+```bash
+cd opcua/sample-server
+cargo run
+```
+
+The sample server is designed to be super terse and simple to demonstrate how the library uses convention as much as possible
+to allow simple servers to be created with a very small number of lines of code.  
+
+## Enabling crypto
+
+At the moment crypto isn't supported properly so there is an optional feature to enable it:
+
+```
+cargo build --features crypto
+```
+
+This won't do much except add deps on OpenSSL and allow certainly crypt functionality as it is to be tested.
+
+When crypto is implemented, the feature will become the default. Crypto is implemented via OpenSSL and you are advised
+to read [documentation](https://github.com/sfackler/rust-openssl) for that to set up your environment.
+
 # Coding style
 
 Enums, structs, fields, constants etc. will conform to Rust lint rules. i.e. OPC UA uses pascal case for field

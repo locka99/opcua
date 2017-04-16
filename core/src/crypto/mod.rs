@@ -8,3 +8,28 @@
 // TODO
 
 use openssl::*;
+
+
+fn create_key_pair() {
+
+
+}
+
+fn validate_certificate() {
+}
+
+fn decrypt_bytes() {
+
+}
+
+fn verify_signature() {
+
+}
+
+fn encrypt_bytes() {
+
+}
+
+fn sign_bytes() {
+
+}

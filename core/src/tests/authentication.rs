@@ -44,3 +44,13 @@ fn user_name_identity_token_plaintext() {
     let result = id.authenticate("", b"");
     assert!(result.is_ok());
 }
+
+#[test]
+#[cfg(feature = "crypto")]
+fn user_name_identity_token_encrypted() {
+    // Encrypted password test
+    // Test with valid data
+    // Test with invalid data
+    // Test with invalid algorithm
+    panic!("Unimplemented");
+}
