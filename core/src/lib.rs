@@ -25,6 +25,8 @@ pub mod prelude {
     pub use types::*;
     pub use comms::*;
     pub use services::*;
+    #[cfg(feature = "crypto")]
+    pub use crypto::*;
 }
 
 use log::*;

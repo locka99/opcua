@@ -7,8 +7,8 @@
 
 // TODO
 
-use openssl::*;
 
+mod cert_manager;
 
 fn create_key_pair() {
 
