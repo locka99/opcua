@@ -50,6 +50,23 @@ pub fn server_config_save() {
 }
 
 #[test]
+pub fn server_config_invalid() {
+    let mut config = ServerConfig::default_anonymous();
+    assert!(config.is_valid());
+    config.endpoints.clear();
+    assert_eq!(config.is_valid(), false);
+    config = ServerConfig::default_anonymous();
+    config.endpoints[0].anonymous = None;
+    assert_eq!(config.is_valid(), false);
+    config = ServerConfig::default_anonymous();
+    config.endpoints[0].user = Some("hello".to_string());
+    assert_eq!(config.is_valid(), false);
+    config = ServerConfig::default_anonymous();
+    config.endpoints[0].pass = Some("hello".to_string());
+    assert_eq!(config.is_valid(), false);
+}
+
+#[test]
 pub fn expired_publish_requests() {
     let now = chrono::UTC::now();
     let now_plus_5s = now + time::Duration::seconds(5);

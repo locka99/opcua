@@ -39,8 +39,16 @@ pub struct ServerEndpoint {
 const DEFAULT_ENDPOINT_NAME: &'static str = "Default";
 const DEFAULT_ENDPOINT_PATH: &'static str = "/";
 
-const DEFAULT_SECURITY_POLICY: &'static str = "None";
-const DEFAULT_SECURITY_MODE: &'static str = "None";
+const DEFAULT_SECURITY_POLICY: &'static str = SECURITY_POLICY_NONE;
+const SECURITY_POLICY_NONE: &'static str = "None";
+const SECURITY_POLICY_BASIC_128_RSA_15: &'static str = "Basic128Rsa15";
+const SECURITY_POLICY_BASIC_256: &'static str = "Basic256";
+const SECURITY_POLICY_BASIC_256_SHA_256: &'static str = "Basic256Sha256";
+
+const DEFAULT_SECURITY_MODE: &'static str = SECURITY_MODE_NONE;
+const SECURITY_MODE_NONE: &'static str = "None";
+const SECURITY_MODE_SIGN: &'static str = "Sign";
+const SECURITY_MODE_SIGN_AND_ENCRYPT: &'static str = "SignAndEncrypt";
 
 impl ServerEndpoint {
     pub fn new(name: &str, path: &str, anonymous: bool, user: &str, pass: &[u8], security_policy: &str, security_mode: &str) -> ServerEndpoint {
@@ -71,6 +79,43 @@ impl ServerEndpoint {
     /// Don't use in production.
     pub fn default_sample() -> ServerEndpoint {
         ServerEndpoint::new_default(true, "sample", "sample1".as_bytes(), DEFAULT_SECURITY_POLICY, DEFAULT_SECURITY_MODE)
+    }
+
+    pub fn is_valid(&self) -> bool {
+        let mut valid = true;
+        if (self.user.is_some() && self.pass.is_none()) || (self.user.is_none() && self.pass.is_some()) {
+            error!("Endpoint {} is invalid. User / password both need to be set or not set, not just one or the other", self.name);
+            valid = false;
+        }
+
+        match self.security_policy.as_ref() {
+            SECURITY_POLICY_NONE | SECURITY_POLICY_BASIC_128_RSA_15 | SECURITY_POLICY_BASIC_256 | SECURITY_POLICY_BASIC_256_SHA_256 => {}
+            _ => {
+                error!("Endpoint {} is invalid. Security policy \"{}\" is invalid. Valid values are None, Basic128Rsa15, Basic256, Basic256Sha256", self.name, self.security_policy);
+                valid = false;
+            }
+        }
+
+        match self.security_mode.as_ref() {
+            SECURITY_MODE_NONE | SECURITY_MODE_SIGN | SECURITY_MODE_SIGN_AND_ENCRYPT => {}
+            _ => {
+                error!("Endpoint {} is invalid. Security mode \"{}\" is invalid. Valid values are None, Sign, SignAndEncrypt", self.name, self.security_mode);
+                valid = false;
+            }
+        }
+
+        if (&self.security_policy == SECURITY_POLICY_NONE && &self.security_mode != SECURITY_MODE_NONE) ||
+            (&self.security_policy != SECURITY_POLICY_NONE && &self.security_mode == SECURITY_MODE_NONE) {
+            error!("Endpoint {} is invalid. Security policy and security mode must both contain None or neither of them should.", self.name);
+            valid = false;
+        }
+
+        if &self.security_policy == SECURITY_POLICY_NONE && &self.security_mode == SECURITY_MODE_NONE && (self.anonymous.is_none() || !self.anonymous.as_ref().unwrap()) {
+            error!("Endpoint {} is invalid. Security policy and mode allow anonymous connections but anonymous is not set to true", self.name);
+            valid = false;
+        }
+
+        valid
     }
 }
 
@@ -138,10 +183,12 @@ impl ServerConfig {
     }
 
     pub fn save(&self, path: &Path) -> Result<(), ()> {
-        let s = serde_yaml::to_string(&self).unwrap();
-        if let Ok(mut f) = File::create(path) {
-            if f.write_all(s.as_bytes()).is_ok() {
-                return Ok(());
+        if self.is_valid() {
+            let s = serde_yaml::to_string(&self).unwrap();
+            if let Ok(mut f) = File::create(path) {
+                if f.write_all(s.as_bytes()).is_ok() {
+                    return Ok(());
+                }
             }
         }
         Err(())
@@ -159,9 +206,30 @@ impl ServerConfig {
         Err(())
     }
 
-    pub fn validate() -> bool {
-        // TODO check that the values in the configuration are sane.
-        true
+    pub fn is_valid(&self) -> bool {
+        let mut valid = true;
+        if self.endpoints.is_empty() {
+            error!("Server configuration is invalid. It defines no endpoints");
+            valid = false;
+        }
+        for e in self.endpoints.iter() {
+            if !e.is_valid() {
+                valid = false;
+            }
+        }
+        if self.max_array_length == 0 {
+            error!("Server configuration is invalid.  Max array length is invalid");
+            valid = false;
+        }
+        if self.max_string_length == 0 {
+            error!("Server configuration is invalid.  Max string length is invalid");
+            valid = false;
+        }
+        if self.max_byte_string_length == 0 {
+            error!("Server configuration is invalid.  Max byte string length is invalid");
+            valid = false;
+        }
+        valid
     }
 
     pub fn message_security_mode() -> MessageSecurityMode {
