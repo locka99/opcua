@@ -118,6 +118,7 @@ mod node_ids;
 pub use self::node_ids::*;
 mod status_codes;
 pub use self::status_codes::*;
+pub use self::status_codes::StatusCode::*;
 
 // All of the serializable types follow
 `;

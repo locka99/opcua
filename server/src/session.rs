@@ -31,30 +31,39 @@ pub struct PublishResponseEntry {
 
 /// Session info holds information about a session created by CreateSession service
 #[derive(Clone)]
-pub struct SessionInfo {
-    pub session_id: NodeId,
-    pub authentication_token: NodeId,
-    pub session_timeout: Double,
-    pub max_request_message_size: UInt32,
-    pub max_response_message_size: UInt32,
-    pub endpoint_url: UAString,
-}
+pub struct SessionInfo {}
 
 /// Session state is anything associated with the session at the message / service level
 #[derive(Clone)]
 pub struct SessionState {
-    pub session_info: Option<SessionInfo>,
     pub subscriptions: Arc<Mutex<HashMap<UInt32, Subscription>>>,
     pub publish_request_queue: Vec<PublishRequestEntry>,
+
+    pub session_id: NodeId,
+    pub activated: bool,
+    pub authentication_token: NodeId,
+    pub session_timeout: Double,
+    pub user_identity: Option<ExtensionObject>,
+    pub max_request_message_size: UInt32,
+    pub max_response_message_size: UInt32,
+    pub endpoint_url: UAString,
+
     last_session_id: UInt32,
 }
 
 impl SessionState {
     pub fn new() -> SessionState {
         SessionState {
-            session_info: None,
             subscriptions: Arc::new(Mutex::new(HashMap::new())),
             publish_request_queue: Vec::with_capacity(MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE),
+            session_id: NodeId::null(),
+            activated: false,
+            authentication_token: NodeId::null(),
+            session_timeout: 0f64,
+            user_identity: None,
+            max_request_message_size: 0,
+            max_response_message_size: 0,
+            endpoint_url: UAString::null(),
             last_session_id: 0,
         }
     }
@@ -64,11 +73,11 @@ impl SessionState {
         NodeId::new_numeric(1, self.last_session_id as u64)
     }
 
-    pub fn enqueue_publish_request(&mut self, server_state: &mut ServerState, request_id: UInt32, request: PublishRequest) -> Result<Option<Vec<PublishResponseEntry>>, &'static StatusCode> {
+    pub fn enqueue_publish_request(&mut self, server_state: &mut ServerState, request_id: UInt32, request: PublishRequest) -> Result<Option<Vec<PublishResponseEntry>>, StatusCode> {
         let max_publish_requests = MAX_PUBLISH_REQUESTS;
         if self.publish_request_queue.len() >= max_publish_requests {
             error!("Too many publish requests, throwing it away");
-            Err(&BAD_TOO_MANY_PUBLISH_REQUESTS)
+            Err(BAD_TOO_MANY_PUBLISH_REQUESTS)
         } else {
             info!("Sending a tick to subscriptions to deal with the request");
             self.publish_request_queue.insert(0, PublishRequestEntry {
@@ -160,7 +169,7 @@ impl SessionState {
                 expired.push(PublishResponseEntry {
                     request_id: r.request_id,
                     response: PublishResponse {
-                        response_header: ResponseHeader::new_service_result(&now, request_header, &BAD_REQUEST_TIMEOUT),
+                        response_header: ResponseHeader::new_service_result(&now, request_header, BAD_REQUEST_TIMEOUT),
                         subscription_id: 0,
                         available_sequence_numbers: None,
                         more_notifications: false,

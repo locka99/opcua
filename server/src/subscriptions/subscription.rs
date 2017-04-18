@@ -160,7 +160,7 @@ impl Subscription {
             let result = if let Ok(monitored_item) = monitored_item {
                 // Return the status
                 let result = MonitoredItemCreateResult {
-                    status_code: GOOD.clone(),
+                    status_code: GOOD,
                     monitored_item_id: monitored_item_id,
                     revised_sampling_interval: monitored_item.sampling_interval,
                     revised_queue_size: monitored_item.queue_size as UInt32,
@@ -172,7 +172,7 @@ impl Subscription {
             } else {
                 // Monitored item couldn't be created
                 MonitoredItemCreateResult {
-                    status_code: monitored_item.unwrap_err().clone(),
+                    status_code: monitored_item.unwrap_err(),
                     monitored_item_id: monitored_item_id,
                     revised_sampling_interval: 0f64,
                     revised_queue_size: 0,
@@ -194,14 +194,14 @@ impl Subscription {
                 let modify_result = monitored_item.modify(item_to_modify);
                 if modify_result.is_ok() {
                     MonitoredItemModifyResult {
-                        status_code: GOOD.clone(),
+                        status_code: GOOD,
                         revised_sampling_interval: monitored_item.sampling_interval,
                         revised_queue_size: monitored_item.queue_size as UInt32,
                         filter_result: ExtensionObject::null(),
                     }
                 } else {
                     MonitoredItemModifyResult {
-                        status_code: modify_result.unwrap_err().clone(),
+                        status_code: modify_result.unwrap_err(),
                         revised_sampling_interval: 0f64,
                         revised_queue_size: 0,
                         filter_result: ExtensionObject::null(),
@@ -209,7 +209,7 @@ impl Subscription {
                 }
             } else {
                 MonitoredItemModifyResult {
-                    status_code: BAD_MONITORED_ITEM_ID_INVALID.clone(),
+                    status_code: BAD_MONITORED_ITEM_ID_INVALID,
                     revised_sampling_interval: 0f64,
                     revised_queue_size: 0,
                     filter_result: ExtensionObject::null(),
@@ -225,7 +225,7 @@ impl Subscription {
         for item_to_delete in items_to_delete {
             // Remove the item (or report an error with the id)
             let removed = self.monitored_items.remove(item_to_delete);
-            result.push(if removed.is_some() { GOOD.clone() } else { BAD_MONITORED_ITEM_ID_INVALID.clone() });
+            result.push(if removed.is_some() { GOOD } else { BAD_MONITORED_ITEM_ID_INVALID });
         }
         result
     }
@@ -245,7 +245,6 @@ impl Subscription {
             let elapsed = *now - self.last_timer_expired_time;
             let timer_expired = elapsed >= publishing_interval;
             if timer_expired {
-                println!("Subscription elapsed - interval = {:?}, elapsed = {:?}", publishing_interval, elapsed);
                 self.last_timer_expired_time = *now;
             }
             timer_expired
@@ -517,18 +516,18 @@ impl Subscription {
             let mut remove_count: usize = 0;
             for ack in subscription_acknowledgements {
                 let result = if ack.subscription_id != self.subscription_id {
-                    &BAD_SUBSCRIPTION_ID_INVALID
+                    BAD_SUBSCRIPTION_ID_INVALID
                 } else {
                     // Clear notification by sequence number
                     let removed = self.sent_notifications.remove(&ack.sequence_number);
                     if removed.is_some() {
                         remove_count += 1;
-                        &GOOD
+                        GOOD
                     } else {
-                        &BAD_SEQUENCE_NUMBER_UNKNOWN
+                        BAD_SEQUENCE_NUMBER_UNKNOWN
                     }
                 };
-                self.subscription_ack_results.push(result.clone());
+                self.subscription_ack_results.push(result);
             }
             if before_len - remove_count != self.sent_notifications.len() {
                 panic!("Notifications removed mismatch!");
@@ -627,7 +626,7 @@ impl Subscription {
         PublishResponseEntry {
             request_id: publish_request.request_id,
             response: PublishResponse {
-                response_header: ResponseHeader::new_service_result(now, &publish_request.request.request_header, &GOOD),
+                response_header: ResponseHeader::new_service_result(now, &publish_request.request.request_header, GOOD),
                 subscription_id: self.subscription_id,
                 available_sequence_numbers: self.available_sequence_numbers(),
                 more_notifications: self.more_notifications,

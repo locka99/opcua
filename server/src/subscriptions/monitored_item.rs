@@ -17,7 +17,7 @@ pub enum FilterType {
 }
 
 impl FilterType {
-    pub fn from_filter(filter: &ExtensionObject) -> Result<FilterType, &'static StatusCode> {
+    pub fn from_filter(filter: &ExtensionObject) -> Result<FilterType, StatusCode> {
         // Check if the filter is a supported filter type
         let filter_type_id = &filter.node_id;
         if filter_type_id.is_null() {
@@ -27,7 +27,7 @@ impl FilterType {
             Ok(FilterType::DataChangeFilter(filter.decode_inner::<DataChangeFilter>()?))
         } else {
             error!("Requested data filter type is not supported, {:?}", filter_type_id);
-            Err(&BAD_FILTER_NOT_ALLOWED)
+            Err(BAD_FILTER_NOT_ALLOWED)
         }
     }
 }
@@ -49,7 +49,7 @@ pub struct MonitoredItem {
 }
 
 impl MonitoredItem {
-    pub fn new(monitored_item_id: UInt32, request: &MonitoredItemCreateRequest) -> Result<MonitoredItem, &'static StatusCode> {
+    pub fn new(monitored_item_id: UInt32, request: &MonitoredItemCreateRequest) -> Result<MonitoredItem, StatusCode> {
         let filter = FilterType::from_filter(&request.requested_parameters.filter)?;
         let sampling_interval = MonitoredItem::sanitize_sampling_interval(request.requested_parameters.sampling_interval);
         let queue_size = MonitoredItem::sanitize_queue_size(request.requested_parameters.queue_size as usize);
@@ -70,7 +70,7 @@ impl MonitoredItem {
     }
 
     /// Modifies the existing item with the values of the modify request
-    pub fn modify(&mut self, request: &MonitoredItemModifyRequest) -> Result<(), &'static StatusCode> {
+    pub fn modify(&mut self, request: &MonitoredItemModifyRequest) -> Result<(), StatusCode> {
         self.filter = FilterType::from_filter(&request.requested_parameters.filter)?;
         self.sampling_interval = MonitoredItem::sanitize_sampling_interval(request.requested_parameters.sampling_interval);
         self.queue_size = MonitoredItem::sanitize_queue_size(request.requested_parameters.queue_size as usize);

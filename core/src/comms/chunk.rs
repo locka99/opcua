@@ -278,7 +278,7 @@ impl BinaryEncoder<Chunk> for Chunk {
         let mut size = self.chunk_header.encode(stream)?;
         let result = stream.write(&self.chunk_body);
         if result.is_err() {
-            Err(&BAD_ENCODING_ERROR)
+            Err(BAD_ENCODING_ERROR)
         } else {
             size += self.chunk_body.len();
             Ok(size)
@@ -289,12 +289,12 @@ impl BinaryEncoder<Chunk> for Chunk {
         let chunk_header_result = ChunkHeader::decode(in_stream);
         if chunk_header_result.is_err() {
             error!("Cannot decode chunk header {:?}", chunk_header_result.unwrap_err());
-            return Err(&BAD_COMMUNICATION_ERROR);
+            return Err(BAD_COMMUNICATION_ERROR);
         }
 
         let chunk_header = chunk_header_result.unwrap();
         if !chunk_header.is_valid {
-            return Err(&BAD_TCP_MESSAGE_TYPE_INVALID);
+            return Err(BAD_TCP_MESSAGE_TYPE_INVALID);
         }
 
         let buffer_size = chunk_header.message_size as usize - CHUNK_HEADER_SIZE;
@@ -313,7 +313,7 @@ impl Chunk {
         self.chunk_header.message_type == ChunkMessageType::OpenSecureChannel
     }
 
-    pub fn chunk_info(&self, is_first_chunk: bool, _: &SecureChannelInfo) -> std::result::Result<ChunkInfo, &'static StatusCode> {
+    pub fn chunk_info(&self, is_first_chunk: bool, _: &SecureChannelInfo) -> std::result::Result<ChunkInfo, StatusCode> {
         //        {
         //            debug!("chunk_info() - chunk_body:");
         //            debug_buffer(&self.chunk_body);
@@ -326,7 +326,7 @@ impl Chunk {
             let result = AsymmetricSecurityHeader::decode(&mut chunk_body_stream);
             if result.is_err() {
                 error!("chunk_info() can't decode asymmetric security_header, {:?}", result.unwrap_err());
-                return Err(&BAD_COMMUNICATION_ERROR)
+                return Err(BAD_COMMUNICATION_ERROR)
             }
             let security_header = result.unwrap();
 
@@ -338,14 +338,14 @@ impl Chunk {
 
             if security_policy != SecurityPolicy::None {
                 error!("Security policy of chunk is unsupported, policy = {:?}", security_header.security_policy_uri);
-                return Err(&BAD_SECURITY_POLICY_REJECTED);
+                return Err(BAD_SECURITY_POLICY_REJECTED);
             }
             SecurityHeader::Asymmetric(security_header)
         } else {
             let result = SymmetricSecurityHeader::decode(&mut chunk_body_stream);
             if result.is_err() {
                 error!("chunk_info() can't decode symmetric security_header, {:?}", result.unwrap_err());
-                return Err(&BAD_COMMUNICATION_ERROR)
+                return Err(BAD_COMMUNICATION_ERROR)
             }
             SecurityHeader::Symmetric(result.unwrap())
         };
@@ -356,7 +356,7 @@ impl Chunk {
         let sequence_header_result = SequenceHeader::decode(&mut chunk_body_stream);
         if sequence_header_result.is_err() {
             error!("Cannot decode sequence header {:?}", sequence_header_result.unwrap_err());
-            return Err(&BAD_COMMUNICATION_ERROR);
+            return Err(BAD_COMMUNICATION_ERROR);
         }
         let sequence_header = sequence_header_result.unwrap();
 
@@ -364,7 +364,7 @@ impl Chunk {
             let node_id_result = NodeId::decode(&mut chunk_body_stream);
             if node_id_result.is_err() {
                 error!("chunk_info() can't decode node_id, {:?}", node_id_result.unwrap_err());
-                return Err(&BAD_COMMUNICATION_ERROR)
+                return Err(BAD_COMMUNICATION_ERROR)
             }
             Some(node_id_result.unwrap())
         } else {

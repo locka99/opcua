@@ -137,7 +137,7 @@ fn open_secure_channel() {
         response_header: ResponseHeader {
             timestamp: DateTime::now(),
             request_handle: 444,
-            service_result: BAD_PROTOCOL_VERSION_UNSUPPORTED.clone(),
+            service_result: BAD_PROTOCOL_VERSION_UNSUPPORTED,
             service_diagnostics: DiagnosticInfo::new(),
             string_table: None,
             additional_header: ExtensionObject::null(),

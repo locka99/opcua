@@ -90,7 +90,7 @@ pub fn expired_publish_requests() {
 
     let r1 = &expired_responses[0];
     assert_eq!(r1.response.response_header.request_handle, 2000);
-    assert_eq!(r1.response.response_header.service_result, BAD_REQUEST_TIMEOUT.clone());
+    assert_eq!(r1.response.response_header.service_result, BAD_REQUEST_TIMEOUT);
 
     let expired_responses = session.expire_stale_publish_requests(&now_plus_5s);
     assert_eq!(expired_responses, None);

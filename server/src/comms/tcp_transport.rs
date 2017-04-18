@@ -111,7 +111,7 @@ impl TcpTransport {
         // Format of OPC UA TCP is defined in OPC UA Part 6 Chapter 7
         // Basic startup is a HELLO,  OpenSecureChannel, begin
 
-        let mut session_status_code = GOOD.clone();
+        let mut session_status_code = GOOD;
 
         let mut message_buffer = MessageBuffer::new(RECEIVE_BUFFER_SIZE);
 
@@ -123,7 +123,7 @@ impl TcpTransport {
             if transport_state == TransportState::WaitingHello {
                 if now - session_start_time > hello_timeout {
                     error!("Session timed out waiting for hello");
-                    session_status_code = BAD_TIMEOUT.clone();
+                    session_status_code = BAD_TIMEOUT;
                     break;
                 }
             }
@@ -159,7 +159,7 @@ impl TcpTransport {
 
             let result = message_buffer.store_bytes(&in_buf[0..bytes_read]);
             if result.is_err() {
-                session_status_code = result.unwrap_err().clone();
+                session_status_code = result.unwrap_err();
                 break;
             }
             let messages = result.unwrap();
@@ -170,10 +170,10 @@ impl TcpTransport {
                         if let Message::Hello(hello) = message {
                             let result = self.process_hello(hello, &mut out_buf_stream);
                             if result.is_err() {
-                                session_status_code = result.unwrap_err().clone();
+                                session_status_code = result.unwrap_err();
                             }
                         } else {
-                            session_status_code = BAD_COMMUNICATION_ERROR.clone();
+                            session_status_code = BAD_COMMUNICATION_ERROR;
                         }
                     }
                     TransportState::ProcessMessages => {
@@ -181,15 +181,15 @@ impl TcpTransport {
                         if let Message::Chunk(chunk) = message {
                             let result = self.process_chunk(chunk, &mut out_buf_stream);
                             if result.is_err() {
-                                session_status_code = result.unwrap_err().clone();
+                                session_status_code = result.unwrap_err();
                             }
                         } else {
-                            session_status_code = BAD_COMMUNICATION_ERROR.clone();
+                            session_status_code = BAD_COMMUNICATION_ERROR;
                         }
                     }
                     _ => {
                         error!("Unknown sesion state, aborting");
-                        session_status_code = BAD_UNEXPECTED_ERROR.clone();
+                        session_status_code = BAD_UNEXPECTED_ERROR;
                     }
                 };
             }
@@ -207,7 +207,7 @@ impl TcpTransport {
         if session_status_code == GOOD || session_status_code == BAD_CONNECTION_CLOSED {
             warn!("Sending session terminating error {:?}", session_status_code);
             out_buf_stream.set_position(0);
-            let error = ErrorMessage::from_status_code(&session_status_code);
+            let error = ErrorMessage::from_status_code(session_status_code);
             let _ = error.encode(&mut out_buf_stream);
             TcpTransport::write_output(&mut out_buf_stream, &mut stream);
         } else {
@@ -287,21 +287,21 @@ impl TcpTransport {
         buffer_stream.set_position(0);
     }
 
-    fn process_hello<W: Write>(&mut self, hello: HelloMessage, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
+    fn process_hello<W: Write>(&mut self, hello: HelloMessage, out_stream: &mut W) -> std::result::Result<(), StatusCode> {
         let server_protocol_version = 0;
 
         debug!("Server received HELLO {:?}", hello);
         if !hello.is_endpoint_url_valid() {
-            return Err(&BAD_TCP_ENDPOINT_URL_INVALID);
+            return Err(BAD_TCP_ENDPOINT_URL_INVALID);
         }
         if !hello.is_valid_buffer_sizes() {
             error!("HELLO buffer sizes are invalid");
-            return Err(&BAD_COMMUNICATION_ERROR);
+            return Err(BAD_COMMUNICATION_ERROR);
         }
 
         // Validate protocol version
         if hello.protocol_version > server_protocol_version {
-            return Err(&BAD_PROTOCOL_VERSION_UNSUPPORTED);
+            return Err(BAD_PROTOCOL_VERSION_UNSUPPORTED);
         }
 
         let client_protocol_version = hello.protocol_version;
@@ -326,14 +326,14 @@ impl TcpTransport {
         Ok(())
     }
 
-    fn turn_received_chunks_into_message(&mut self, chunks: &Vec<Chunk>) -> std::result::Result<SupportedMessage, &'static StatusCode> {
+    fn turn_received_chunks_into_message(&mut self, chunks: &Vec<Chunk>) -> std::result::Result<SupportedMessage, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
         self.last_received_sequence_number = Chunker::validate_chunk_sequences(self.last_received_sequence_number, &self.secure_channel_info, chunks)?;
         // Now decode
         Chunker::decode(&chunks, &self.secure_channel_info, None)
     }
 
-    fn process_chunk<W: Write>(&mut self, chunk: Chunk, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
+    fn process_chunk<W: Write>(&mut self, chunk: Chunk, out_stream: &mut W) -> std::result::Result<(), StatusCode> {
         debug!("Got a chunk {:?}", chunk);
 
         if chunk.chunk_header.chunk_type == ChunkType::Intermediate {
@@ -356,7 +356,7 @@ impl TcpTransport {
             }
             ChunkMessageType::CloseSecureChannel => {
                 info!("CloseSecureChannelRequest received, session closing");
-                return Err(&BAD_CONNECTION_CLOSED);
+                return Err(BAD_CONNECTION_CLOSED);
             }
             ChunkMessageType::Message => {
                 self.message_handler.handle_message(request_id, message)?
@@ -367,7 +367,7 @@ impl TcpTransport {
         Ok(())
     }
 
-    fn send_response<W: Write>(&mut self, request_id: UInt32, response: &SupportedMessage, out_stream: &mut W) -> std::result::Result<(), &'static StatusCode> {
+    fn send_response<W: Write>(&mut self, request_id: UInt32, response: &SupportedMessage, out_stream: &mut W) -> std::result::Result<(), StatusCode> {
         // Prepare some chunks starting from the sequence number + 1
         match response {
             &SupportedMessage::Invalid(object_id) => {
@@ -394,7 +394,7 @@ impl TcpTransport {
         Ok(())
     }
 
-    fn process_open_secure_channel(&mut self, message: &SupportedMessage) -> std::result::Result<OpenSecureChannelResponse, &'static StatusCode> {
+    fn process_open_secure_channel(&mut self, message: &SupportedMessage) -> std::result::Result<OpenSecureChannelResponse, StatusCode> {
         let request = match *message {
             SupportedMessage::OpenSecureChannelRequest(ref request) => {
                 info!("Got secure channel request");
@@ -402,7 +402,7 @@ impl TcpTransport {
             }
             _ => {
                 error!("message is not an open secure channel request, got {:?}", message);
-                return Err(&BAD_UNEXPECTED_ERROR);
+                return Err(BAD_UNEXPECTED_ERROR);
             }
         };
 
@@ -414,7 +414,7 @@ impl TcpTransport {
             // Must compare protocol version to the one from HELLO
             if request.client_protocol_version != client_protocol_version {
                 error!("Client sent a different protocol version than it did in the HELLO - {} vs {}", request.client_protocol_version, client_protocol_version);
-                return Err(&BAD_PROTOCOL_VERSION_UNSUPPORTED)
+                return Err(BAD_PROTOCOL_VERSION_UNSUPPORTED)
             }
 
             // Create secure channel info
@@ -429,7 +429,7 @@ impl TcpTransport {
 
         let now = DateTime::now();
         let response = OpenSecureChannelResponse {
-            response_header: ResponseHeader::new_service_result(&now, &request.request_header, &GOOD),
+            response_header: ResponseHeader::new_service_result(&now, &request.request_header, GOOD),
             server_protocol_version: 0,
             security_token: ChannelSecurityToken {
                 channel_id: secure_channel_id,

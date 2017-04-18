@@ -42,7 +42,7 @@ impl TcpTransport {
         }
     }
 
-    pub fn connect(&mut self) -> Result<(), &'static StatusCode> {
+    pub fn connect(&mut self) -> Result<(), StatusCode> {
         use url::{Url};
 
         let session_state = self.session_state.lock().unwrap();
@@ -50,11 +50,11 @@ impl TcpTransport {
         // Validate and split out the endpoint we have
         let result = Url::parse(&session_state.endpoint_url);
         if result.is_err() {
-            return Err(&BAD_TCP_ENDPOINT_URL_INVALID);
+            return Err(BAD_TCP_ENDPOINT_URL_INVALID);
         }
         let url = result.unwrap();
         if url.scheme() != "opc.tcp" || !url.has_host() {
-            return Err(&BAD_TCP_ENDPOINT_URL_INVALID);
+            return Err(BAD_TCP_ENDPOINT_URL_INVALID);
         }
 
         debug!("Connecting to {:?}", url);
@@ -64,7 +64,7 @@ impl TcpTransport {
         let stream = TcpStream::connect((host, port));
         if stream.is_err() {
             error!("Could not connect to host {}:{}", host, port);
-            return Err(&BAD_NOT_CONNECTED);
+            return Err(BAD_NOT_CONNECTED);
         }
         self.stream = Some(stream.unwrap());
         Ok(())
@@ -78,14 +78,14 @@ impl TcpTransport {
         self.stream.as_mut().unwrap()
     }
 
-    fn turn_received_chunks_into_message(&mut self, chunks: &Vec<Chunk>) -> Result<SupportedMessage, &'static StatusCode> {
+    fn turn_received_chunks_into_message(&mut self, chunks: &Vec<Chunk>) -> Result<SupportedMessage, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
         self.last_received_sequence_number = Chunker::validate_chunk_sequences(self.last_received_sequence_number, &self.secure_channel_info, chunks)?;
         // Now decode
         Chunker::decode(&chunks, &self.secure_channel_info, None)
     }
 
-    fn process_chunk(&mut self, chunk: Chunk) -> Result<Option<SupportedMessage>, &'static StatusCode> {
+    fn process_chunk(&mut self, chunk: Chunk) -> Result<Option<SupportedMessage>, StatusCode> {
         debug!("Got a chunk {:?}", chunk);
 
         if chunk.chunk_header.chunk_type == ChunkType::Intermediate {
@@ -102,7 +102,7 @@ impl TcpTransport {
         Ok(Some(message))
     }
 
-    fn wait_for_response(&mut self, request_id: UInt32, request_timeout: UInt32) -> Result<SupportedMessage, &'static StatusCode> {
+    fn wait_for_response(&mut self, request_id: UInt32, request_timeout: UInt32) -> Result<SupportedMessage, StatusCode> {
         // This loop terminates when the corresponding response comes back or a timeout occurs
 
         let mut receive_buffer = {
@@ -129,7 +129,7 @@ impl TcpTransport {
                         continue;
                     }
                     debug!("Read error - kind = {:?}, {:?}", error.kind(), error);
-                    return Err(&BAD_TCP_INTERNAL_ERROR);
+                    return Err(BAD_TCP_INTERNAL_ERROR);
                 }
                 bytes_read_result.unwrap()
             };
@@ -149,22 +149,22 @@ impl TcpTransport {
                 } else {
                     // This is not a regular message, so what is happening?
                     error!("Expecting a chunk, got something that was not a chunk {:?}", message);
-                    return Err(&BAD_UNEXPECTED_ERROR);
+                    return Err(BAD_UNEXPECTED_ERROR);
                 }
             }
         }
 
-        Err(&BAD_TIMEOUT)
+        Err(BAD_TIMEOUT)
     }
 
-    pub fn send_request(&mut self, request_id: UInt32, request_timeout: UInt32, request: SupportedMessage) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn send_request(&mut self, request_id: UInt32, request_timeout: UInt32, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
         self.async_send_request(request_id, request)?;
         self.wait_for_response(request_id, request_timeout)
     }
 
-    pub fn async_send_request(&mut self, request_id: UInt32, request: SupportedMessage) -> Result<(), &'static StatusCode> {
+    pub fn async_send_request(&mut self, request_id: UInt32, request: SupportedMessage) -> Result<(), StatusCode> {
         if !self.is_connected() {
-            return Err(&BAD_NOT_CONNECTED);
+            return Err(BAD_NOT_CONNECTED);
         }
 
         /// This needs to wait for up to the timeout hint in the request header for a response
@@ -193,7 +193,7 @@ impl TcpTransport {
         }
     }
 
-    pub fn send_hello(&mut self) -> Result<(), &'static StatusCode> {
+    pub fn send_hello(&mut self) -> Result<(), StatusCode> {
         let session_state = self.session_state.clone();
         let session_state = session_state.lock().unwrap();
 

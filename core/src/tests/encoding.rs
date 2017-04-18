@@ -319,7 +319,7 @@ fn variant() {
     let v = Variant::ExpandedNodeId(ExpandedNodeId::new(&ObjectId::AddNodesItem_Encoding_DefaultBinary.as_node_id()));
     serialize_test(v);
     // StatusCode
-    let v = Variant::StatusCode(BAD_TCP_MESSAGE_TYPE_INVALID.clone());
+    let v = Variant::StatusCode(BAD_TCP_MESSAGE_TYPE_INVALID);
     serialize_test(v);
     // QualifiedName
     let v = Variant::QualifiedName(QualifiedName {
@@ -339,7 +339,7 @@ fn variant() {
     // DataValue
     let v = DataValue {
         value: Some(Variant::Double(1000f64)),
-        status: Some(GOOD_CLAMPED.clone()),
+        status: Some(GOOD_CLAMPED),
         source_timestamp: Some(DateTime::now()),
         source_picoseconds: Some(333),
         server_timestamp: Some(DateTime::now()),
@@ -392,7 +392,7 @@ fn diagnostic_info() {
     d.additional_info = Some(UAString::from_str("Hello world"));
     assert_eq!(d.encoding_mask(), 0x1f);
 
-    d.inner_status_code = Some(BAD_ARGUMENTS_MISSING.clone());
+    d.inner_status_code = Some(BAD_ARGUMENTS_MISSING);
     assert_eq!(d.encoding_mask(), 0x3f);
 
     serialize_test(d.clone());
@@ -403,7 +403,7 @@ fn diagnostic_info() {
         locale: Some(333),
         localized_text: Some(233),
         additional_info: Some(UAString::from_str("Nested diagnostic")),
-        inner_status_code: Some(GOOD.clone()),
+        inner_status_code: Some(GOOD),
         inner_diagnostic_info: None,
     }));
 

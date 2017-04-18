@@ -28,13 +28,13 @@ pub struct Endpoint {
 
 impl Endpoint {
     /// Compares the identity token to the endpoint and returns GOOD if it authenticates
-    pub fn validate_identity_token(&self, user_identity_token: &ExtensionObject) -> &'static StatusCode {
-        let mut result = &BAD_IDENTITY_TOKEN_REJECTED;
+    pub fn validate_identity_token(&self, user_identity_token: &ExtensionObject) -> StatusCode {
+        let mut result = BAD_IDENTITY_TOKEN_REJECTED;
         let identity_token_id = user_identity_token.node_id.clone();
         debug!("Validating identity token {:?}", identity_token_id);
         if identity_token_id == ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id() {
             if self.anonymous {
-                result = &GOOD;
+                result = GOOD;
             } else {
                 error!("Authentication error: Client attempted to connect anonymously to endpoint: {}", self.endpoint_url);
             }
@@ -51,19 +51,19 @@ impl Endpoint {
         result
     }
 
-    fn validate_user_name_identity_token(&self, user_identity_token: &UserNameIdentityToken) -> &'static StatusCode {
+    fn validate_user_name_identity_token(&self, user_identity_token: &UserNameIdentityToken) -> StatusCode {
         // No comparison will be made unless user and pass are explicitly set
         if self.user.is_some() && self.pass.is_some() {
             let result = user_identity_token.authenticate(self.user.as_ref().unwrap(), self.pass.as_ref().unwrap().as_slice());
             if result.is_ok() {
                 info!("User identity is validated");
-                &GOOD
+                GOOD
             } else {
                 result.unwrap_err()
             }
         } else {
             error!("Authentication error: User / pass authentication is unsupported by endpoint {}", self.endpoint_url);
-            &BAD_IDENTITY_TOKEN_REJECTED
+            BAD_IDENTITY_TOKEN_REJECTED
         }
     }
 }

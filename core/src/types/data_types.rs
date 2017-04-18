@@ -97,7 +97,7 @@ impl BinaryEncoder<MonitoringMode> for MonitoringMode {
             2 => Ok(MonitoringMode::Reporting),
             _ => {
                 error!("Don't know what monitoring mode {} is", value);
-                Err(&BAD_MONITORING_MODE_INVALID)
+                Err(BAD_MONITORING_MODE_INVALID)
             }
         }
     }

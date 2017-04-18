@@ -22,7 +22,7 @@ impl Chunker {
     ///
     /// The function returns the last sequence number in the series for success, or
     /// BAD_SEQUENCE_NUMBER_INVALID for failure.
-    pub fn validate_chunk_sequences(starting_sequence_number: UInt32, secure_channel_info: &SecureChannelInfo, chunks: &Vec<Chunk>) -> Result<UInt32, &'static StatusCode> {
+    pub fn validate_chunk_sequences(starting_sequence_number: UInt32, secure_channel_info: &SecureChannelInfo, chunks: &Vec<Chunk>) -> Result<UInt32, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
         let mut sequence_number = starting_sequence_number;
         for (i, chunk) in chunks.iter().enumerate() {
@@ -30,7 +30,7 @@ impl Chunker {
             // Check the sequence id - should be larger than the last one decoded
             if chunk_info.sequence_header.sequence_number <= sequence_number {
                 error!("Chunk has a sequence number of {} which is less than last decoded sequence number of {}", chunk_info.sequence_header.sequence_number, sequence_number);
-                return Err(&BAD_SEQUENCE_NUMBER_INVALID);
+                return Err(BAD_SEQUENCE_NUMBER_INVALID);
             }
             sequence_number = chunk_info.sequence_header.sequence_number;
         }
@@ -38,7 +38,7 @@ impl Chunker {
     }
 
     /// Encodes a message using the supplied sequence number and secure channel info and emits the corresponding chunks
-    pub fn encode(sequence_number: UInt32, request_id: UInt32, secure_channel_info: &SecureChannelInfo, supported_message: &SupportedMessage) -> std::result::Result<Vec<Chunk>, &'static StatusCode> {
+    pub fn encode(sequence_number: UInt32, request_id: UInt32, secure_channel_info: &SecureChannelInfo, supported_message: &SupportedMessage) -> std::result::Result<Vec<Chunk>, StatusCode> {
         // TODO multiple chunks
 
         // External values
@@ -125,12 +125,12 @@ impl Chunker {
 
     /// Decodes a series of chunks to create a message. The message must be of a `SupportedMessage`
     /// type otherwise an error will occur.
-    pub fn decode(chunks: &Vec<Chunk>, secure_channel_info: &SecureChannelInfo, expected_node_id: Option<NodeId>) -> std::result::Result<SupportedMessage, &'static StatusCode> {
+    pub fn decode(chunks: &Vec<Chunk>, secure_channel_info: &SecureChannelInfo, expected_node_id: Option<NodeId>) -> std::result::Result<SupportedMessage, StatusCode> {
         if chunks.len() != 1 {
             // TODO more than one chunk is not supported yet
             // TODO decoding multiple chunks means validating their headers, decrypting them to a buffer and stitching them together
             error!("Only one chunk is supported");
-            return Err(&BAD_UNEXPECTED_ERROR);
+            return Err(BAD_UNEXPECTED_ERROR);
         }
 
         let chunk = &chunks[0];
@@ -161,18 +161,18 @@ impl Chunker {
             };
             if !valid_node_id {
                 error!("The node id read from the stream was not accepted in this context {:?}", node_id);
-                return Err(&BAD_UNEXPECTED_ERROR);
+                return Err(BAD_UNEXPECTED_ERROR);
             }
             let object_id = node_id.as_object_id();
             if object_id.is_err() {
                 error!("The node was not an object id");
-                return Err(&BAD_UNEXPECTED_ERROR);
+                return Err(BAD_UNEXPECTED_ERROR);
             }
             let object_id = object_id.unwrap();
             debug!("Decoded node id / object id of {:?}", object_id);
             object_id
         } else {
-            return Err(&BAD_TCP_MESSAGE_TYPE_INVALID);
+            return Err(BAD_TCP_MESSAGE_TYPE_INVALID);
         };
 
         // Now the payload. The node id of the prefix allows us to recognize it.
@@ -182,12 +182,12 @@ impl Chunker {
         let decoded_message = SupportedMessage::decode_by_object_id(&mut chunk_body_stream, object_id);
         if decoded_message.is_err() {
             debug!("Can't decode message {:?}", object_id);
-            return Err(&BAD_SERVICE_UNSUPPORTED)
+            return Err(BAD_SERVICE_UNSUPPORTED)
         }
         let decoded_message = decoded_message.unwrap();
         if let SupportedMessage::Invalid(_) = decoded_message {
             debug!("Message {:?} is unsupported", object_id);
-            return Err(&BAD_SERVICE_UNSUPPORTED);
+            return Err(BAD_SERVICE_UNSUPPORTED);
         }
 
         // debug!("Returning decoded msg {:?}", decoded_message);

@@ -42,7 +42,7 @@ impl BinaryEncoder<UserTokenType> for UserTokenType {
             3 => Ok(UserTokenType::IssuedToken),
             _ => {
                 error!("Don't know what user token type {} is", user_token_type);
-                Err(&BAD_DECODING_ERROR)
+                Err(BAD_DECODING_ERROR)
             }
         }
     }
@@ -167,11 +167,11 @@ pub struct RequestHeader {
     /// This timeout in milliseconds is used in the Client side Communication Stack to set the
     /// timeout on a per-call base. For a Server this timeout is only a hint and can be
     /// used to cancel long running operations to free resources. If the Server detects a
-    /// timeout, he can cancel the operation by sending the Service result Bad_Timeout.
+    /// timeout, he can cancel the operation by sending the Service result BAD_Timeout.
     /// The Server should wait at minimum the timeout after he received the request before
     /// cancelling the operation. The Server shall check the timeoutHint parameter of a
     /// PublishRequest before processing a PublishResponse. If the request timed out, a
-    /// Bad_Timeout Service result is sent and another PublishRequest is used.  The
+    /// BAD_Timeout Service result is sent and another PublishRequest is used.  The
     /// value of 0 indicates no timeout.
     pub timeout_hint: UInt32,
     /// Reserved for future use. Applications that do not understand the header should ignore it.
@@ -291,11 +291,11 @@ impl BinaryEncoder<ResponseHeader> for ResponseHeader {
 }
 
 impl ResponseHeader {
-    pub fn new_service_result(timestamp: &DateTime, request_header: &RequestHeader, service_result: &StatusCode) -> ResponseHeader {
+    pub fn new_service_result(timestamp: &DateTime, request_header: &RequestHeader, service_result: StatusCode) -> ResponseHeader {
         ResponseHeader {
             timestamp: timestamp.clone(),
             request_handle: request_header.request_handle,
-            service_result: service_result.clone(),
+            service_result: service_result,
             service_diagnostics: DiagnosticInfo::new(),
             string_table: None,
             additional_header: ExtensionObject::null(),
@@ -331,7 +331,7 @@ impl BinaryEncoder<TimestampsToReturn> for TimestampsToReturn {
             3 => Ok(TimestampsToReturn::Neither),
             _ => {
                 error!("Don't know what TimestampsToReturn value {} is", value);
-                Err(&BAD_TIMESTAMPS_TO_RETURN_INVALID)
+                Err(BAD_TIMESTAMPS_TO_RETURN_INVALID)
             }
         }
     }
@@ -368,7 +368,7 @@ impl BinaryEncoder<NodeClass> for NodeClass {
             Ok(result.unwrap())
         } else {
             error!("Don't know what node class {} is", value);
-            Err(&BAD_NODE_CLASS_INVALID)
+            Err(BAD_NODE_CLASS_INVALID)
         }
     }
 }
@@ -418,7 +418,7 @@ impl BinaryEncoder<DataChangeTrigger> for DataChangeTrigger {
             2 => Ok(DataChangeTrigger::StatusValueTimestamp),
             _ => {
                 error!("Don't know what data change trigger {} is", value);
-                Err(&BAD_UNEXPECTED_ERROR)
+                Err(BAD_UNEXPECTED_ERROR)
             }
         }
     }
@@ -474,7 +474,7 @@ impl BinaryEncoder<FilterOperator> for FilterOperator {
             17 => Ok(FilterOperator::BitwiseOr),
             _ => {
                 error!("Don't know what filter operator {} is", value);
-                Err(&BAD_FILTER_OPERATOR_INVALID)
+                Err(BAD_FILTER_OPERATOR_INVALID)
             }
         }
     }
@@ -507,7 +507,7 @@ impl BinaryEncoder<BrowseDirection> for BrowseDirection {
             2 => Ok(BrowseDirection::Both),
             _ => {
                 error!("Don't know what browse direction {} is", value);
-                Err(&BAD_BROWSE_DIRECTION_INVALID)
+                Err(BAD_BROWSE_DIRECTION_INVALID)
             }
         }
     }

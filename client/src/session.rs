@@ -55,7 +55,7 @@ impl Session {
         }
     }
 
-    pub fn connect(&mut self) -> Result<(), &'static StatusCode> {
+    pub fn connect(&mut self) -> Result<(), StatusCode> {
         let _ = self.transport.connect()?;
         let _ = self.transport.send_hello()?;
         // Send create session
@@ -89,7 +89,7 @@ impl Session {
         request_header
     }
 
-    pub fn get_endpoints(&mut self) -> Result<Vec<EndpointDescription>, &'static StatusCode> {
+    pub fn get_endpoints(&mut self) -> Result<Vec<EndpointDescription>, StatusCode> {
         let session_state = self.session_state.clone();
         let session_state = session_state.lock().unwrap();
         let request = GetEndpointsRequest {
@@ -104,9 +104,9 @@ impl Session {
 
         let response = self.transport.send_request(request_handle, request_timeout, SupportedMessage::GetEndpointsRequest(request))?;
         if let SupportedMessage::GetEndpointsResponse(response) = response {
-            Err(&BAD_UNKNOWN_RESPONSE)
+            Err(BAD_UNKNOWN_RESPONSE)
         } else {
-            Err(&BAD_UNKNOWN_RESPONSE)
+            Err(BAD_UNKNOWN_RESPONSE)
         }
     }
 

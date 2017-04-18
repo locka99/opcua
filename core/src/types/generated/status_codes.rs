@@ -6,11 +6,237 @@ use std::io::{Read, Write};
 
 use types::*;
 
-#[derive(PartialEq, Debug, Clone)]
-pub struct StatusCode {
-    pub name: &'static str,
-    pub code: u32,
-    pub description: &'static str,
+#[allow(non_camel_case_types)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub enum StatusCode {
+    GOOD = 0,
+    GOOD_SUBSCRIPTION_TRANSFERRED = 0x002D0000,
+    GOOD_COMPLETES_ASYNCHRONOUSLY = 0x002E0000,
+    GOOD_OVERLOAD = 0x002F0000,
+    GOOD_CLAMPED = 0x00300000,
+    GOOD_LOCAL_OVERRIDE = 0x00960000,
+    GOOD_ENTRY_INSERTED = 0x00A20000,
+    GOOD_ENTRY_REPLACED = 0x00A30000,
+    GOOD_NO_DATA = 0x00A50000,
+    GOOD_MORE_DATA = 0x00A60000,
+    GOOD_COMMUNICATION_EVENT = 0x00A70000,
+    GOOD_SHUTDOWN_EVENT = 0x00A80000,
+    GOOD_CALL_AGAIN = 0x00A90000,
+    GOOD_NON_CRITICAL_TIMEOUT = 0x00AA0000,
+    GOOD_RESULTS_MAY_BE_INCOMPLETE = 0x00BA0000,
+    GOOD_DATA_IGNORED = 0x00D90000,
+    GOOD_EDITED = 0x00DC0000,
+    GOOD_POST_ACTION_FAILED = 0x00DD0000,
+    GOOD_DEPENDENT_VALUE_CHANGED = 0x00E00000,
+    UNCERTAIN_REFERENCE_OUT_OF_SERVER = 0x406C0000,
+    UNCERTAIN_NO_COMMUNICATION_LAST_USABLE_VALUE = 0x408F0000,
+    UNCERTAIN_LAST_USABLE_VALUE = 0x40900000,
+    UNCERTAIN_SUBSTITUTE_VALUE = 0x40910000,
+    UNCERTAIN_INITIAL_VALUE = 0x40920000,
+    UNCERTAIN_SENSOR_NOT_ACCURATE = 0x40930000,
+    UNCERTAIN_ENGINEERING_UNITS_EXCEEDED = 0x40940000,
+    UNCERTAIN_SUB_NORMAL = 0x40950000,
+    UNCERTAIN_DATA_SUB_NORMAL = 0x40A40000,
+    UNCERTAIN_REFERENCE_NOT_DELETED = 0x40BC0000,
+    UNCERTAIN_NOT_ALL_NODES_AVAILABLE = 0x40C00000,
+    UNCERTAIN_DOMINANT_VALUE_CHANGED = 0x40DE0000,
+    UNCERTAIN_DEPENDENT_VALUE_CHANGED = 0x40E20000,
+    BAD_UNEXPECTED_ERROR = 0x80010000,
+    BAD_INTERNAL_ERROR = 0x80020000,
+    BAD_OUT_OF_MEMORY = 0x80030000,
+    BAD_RESOURCE_UNAVAILABLE = 0x80040000,
+    BAD_COMMUNICATION_ERROR = 0x80050000,
+    BAD_ENCODING_ERROR = 0x80060000,
+    BAD_DECODING_ERROR = 0x80070000,
+    BAD_ENCODING_LIMITS_EXCEEDED = 0x80080000,
+    BAD_UNKNOWN_RESPONSE = 0x80090000,
+    BAD_TIMEOUT = 0x800A0000,
+    BAD_SERVICE_UNSUPPORTED = 0x800B0000,
+    BAD_SHUTDOWN = 0x800C0000,
+    BAD_SERVER_NOT_CONNECTED = 0x800D0000,
+    BAD_SERVER_HALTED = 0x800E0000,
+    BAD_NOTHING_TO_DO = 0x800F0000,
+    BAD_TOO_MANY_OPERATIONS = 0x80100000,
+    BAD_DATA_TYPE_ID_UNKNOWN = 0x80110000,
+    BAD_CERTIFICATE_INVALID = 0x80120000,
+    BAD_SECURITY_CHECKS_FAILED = 0x80130000,
+    BAD_CERTIFICATE_TIME_INVALID = 0x80140000,
+    BAD_CERTIFICATE_ISSUER_TIME_INVALID = 0x80150000,
+    BAD_CERTIFICATE_HOST_NAME_INVALID = 0x80160000,
+    BAD_CERTIFICATE_URI_INVALID = 0x80170000,
+    BAD_CERTIFICATE_USE_NOT_ALLOWED = 0x80180000,
+    BAD_CERTIFICATE_ISSUER_USE_NOT_ALLOWED = 0x80190000,
+    BAD_CERTIFICATE_UNTRUSTED = 0x801A0000,
+    BAD_CERTIFICATE_REVOCATION_UNKNOWN = 0x801B0000,
+    BAD_CERTIFICATE_ISSUER_REVOCATION_UNKNOWN = 0x801C0000,
+    BAD_CERTIFICATE_REVOKED = 0x801D0000,
+    BAD_CERTIFICATE_ISSUER_REVOKED = 0x801E0000,
+    BAD_USER_ACCESS_DENIED = 0x801F0000,
+    BAD_IDENTITY_TOKEN_INVALID = 0x80200000,
+    BAD_IDENTITY_TOKEN_REJECTED = 0x80210000,
+    BAD_SECURE_CHANNEL_ID_INVALID = 0x80220000,
+    BAD_INVALID_TIMESTAMP = 0x80230000,
+    BAD_NONCE_INVALID = 0x80240000,
+    BAD_SESSION_ID_INVALID = 0x80250000,
+    BAD_SESSION_CLOSED = 0x80260000,
+    BAD_SESSION_NOT_ACTIVATED = 0x80270000,
+    BAD_SUBSCRIPTION_ID_INVALID = 0x80280000,
+    BAD_REQUEST_HEADER_INVALID = 0x802A0000,
+    BAD_TIMESTAMPS_TO_RETURN_INVALID = 0x802B0000,
+    BAD_REQUEST_CANCELLED_BY_CLIENT = 0x802C0000,
+    BAD_NO_COMMUNICATION = 0x80310000,
+    BAD_WAITING_FOR_INITIAL_DATA = 0x80320000,
+    BAD_NODE_ID_INVALID = 0x80330000,
+    BAD_NODE_ID_UNKNOWN = 0x80340000,
+    BAD_ATTRIBUTE_ID_INVALID = 0x80350000,
+    BAD_INDEX_RANGE_INVALID = 0x80360000,
+    BAD_INDEX_RANGE_NO_DATA = 0x80370000,
+    BAD_DATA_ENCODING_INVALID = 0x80380000,
+    BAD_DATA_ENCODING_UNSUPPORTED = 0x80390000,
+    BAD_NOT_READABLE = 0x803A0000,
+    BAD_NOT_WRITABLE = 0x803B0000,
+    BAD_OUT_OF_RANGE = 0x803C0000,
+    BAD_NOT_SUPPORTED = 0x803D0000,
+    BAD_NOT_FOUND = 0x803E0000,
+    BAD_OBJECT_DELETED = 0x803F0000,
+    BAD_NOT_IMPLEMENTED = 0x80400000,
+    BAD_MONITORING_MODE_INVALID = 0x80410000,
+    BAD_MONITORED_ITEM_ID_INVALID = 0x80420000,
+    BAD_MONITORED_ITEM_FILTER_INVALID = 0x80430000,
+    BAD_MONITORED_ITEM_FILTER_UNSUPPORTED = 0x80440000,
+    BAD_FILTER_NOT_ALLOWED = 0x80450000,
+    BAD_STRUCTURE_MISSING = 0x80460000,
+    BAD_EVENT_FILTER_INVALID = 0x80470000,
+    BAD_CONTENT_FILTER_INVALID = 0x80480000,
+    BAD_FILTER_OPERAND_INVALID = 0x80490000,
+    BAD_CONTINUATION_POINT_INVALID = 0x804A0000,
+    BAD_NO_CONTINUATION_POINTS = 0x804B0000,
+    BAD_REFERENCE_TYPE_ID_INVALID = 0x804C0000,
+    BAD_BROWSE_DIRECTION_INVALID = 0x804D0000,
+    BAD_NODE_NOT_IN_VIEW = 0x804E0000,
+    BAD_SERVER_URI_INVALID = 0x804F0000,
+    BAD_SERVER_NAME_MISSING = 0x80500000,
+    BAD_DISCOVERY_URL_MISSING = 0x80510000,
+    BAD_SEMPAHORE_FILE_MISSING = 0x80520000,
+    BAD_REQUEST_TYPE_INVALID = 0x80530000,
+    BAD_SECURITY_MODE_REJECTED = 0x80540000,
+    BAD_SECURITY_POLICY_REJECTED = 0x80550000,
+    BAD_TOO_MANY_SESSIONS = 0x80560000,
+    BAD_USER_SIGNATURE_INVALID = 0x80570000,
+    BAD_APPLICATION_SIGNATURE_INVALID = 0x80580000,
+    BAD_NO_VALID_CERTIFICATES = 0x80590000,
+    BAD_REQUEST_CANCELLED_BY_REQUEST = 0x805A0000,
+    BAD_PARENT_NODE_ID_INVALID = 0x805B0000,
+    BAD_REFERENCE_NOT_ALLOWED = 0x805C0000,
+    BAD_NODE_ID_REJECTED = 0x805D0000,
+    BAD_NODE_ID_EXISTS = 0x805E0000,
+    BAD_NODE_CLASS_INVALID = 0x805F0000,
+    BAD_BROWSE_NAME_INVALID = 0x80600000,
+    BAD_BROWSE_NAME_DUPLICATED = 0x80610000,
+    BAD_NODE_ATTRIBUTES_INVALID = 0x80620000,
+    BAD_TYPE_DEFINITION_INVALID = 0x80630000,
+    BAD_SOURCE_NODE_ID_INVALID = 0x80640000,
+    BAD_TARGET_NODE_ID_INVALID = 0x80650000,
+    BAD_DUPLICATE_REFERENCE_NOT_ALLOWED = 0x80660000,
+    BAD_INVALID_SELF_REFERENCE = 0x80670000,
+    BAD_REFERENCE_LOCAL_ONLY = 0x80680000,
+    BAD_NO_DELETE_RIGHTS = 0x80690000,
+    BAD_SERVER_INDEX_INVALID = 0x806A0000,
+    BAD_VIEW_ID_UNKNOWN = 0x806B0000,
+    BAD_TOO_MANY_MATCHES = 0x806D0000,
+    BAD_QUERY_TOO_COMPLEX = 0x806E0000,
+    BAD_NO_MATCH = 0x806F0000,
+    BAD_MAX_AGE_INVALID = 0x80700000,
+    BAD_HISTORY_OPERATION_INVALID = 0x80710000,
+    BAD_HISTORY_OPERATION_UNSUPPORTED = 0x80720000,
+    BAD_WRITE_NOT_SUPPORTED = 0x80730000,
+    BAD_TYPE_MISMATCH = 0x80740000,
+    BAD_METHOD_INVALID = 0x80750000,
+    BAD_ARGUMENTS_MISSING = 0x80760000,
+    BAD_TOO_MANY_SUBSCRIPTIONS = 0x80770000,
+    BAD_TOO_MANY_PUBLISH_REQUESTS = 0x80780000,
+    BAD_NO_SUBSCRIPTION = 0x80790000,
+    BAD_SEQUENCE_NUMBER_UNKNOWN = 0x807A0000,
+    BAD_MESSAGE_NOT_AVAILABLE = 0x807B0000,
+    BAD_INSUFFICIENT_CLIENT_PROFILE = 0x807C0000,
+    BAD_TCP_SERVER_TOO_BUSY = 0x807D0000,
+    BAD_TCP_MESSAGE_TYPE_INVALID = 0x807E0000,
+    BAD_TCP_SECURE_CHANNEL_UNKNOWN = 0x807F0000,
+    BAD_TCP_MESSAGE_TOO_LARGE = 0x80800000,
+    BAD_TCP_NOT_ENOUGH_RESOURCES = 0x80810000,
+    BAD_TCP_INTERNAL_ERROR = 0x80820000,
+    BAD_TCP_ENDPOINT_URL_INVALID = 0x80830000,
+    BAD_REQUEST_INTERRUPTED = 0x80840000,
+    BAD_REQUEST_TIMEOUT = 0x80850000,
+    BAD_SECURE_CHANNEL_CLOSED = 0x80860000,
+    BAD_SECURE_CHANNEL_TOKEN_UNKNOWN = 0x80870000,
+    BAD_SEQUENCE_NUMBER_INVALID = 0x80880000,
+    BAD_CONFIGURATION_ERROR = 0x80890000,
+    BAD_NOT_CONNECTED = 0x808A0000,
+    BAD_DEVICE_FAILURE = 0x808B0000,
+    BAD_SENSOR_FAILURE = 0x808C0000,
+    BAD_OUT_OF_SERVICE = 0x808D0000,
+    BAD_DEADBAND_FILTER_INVALID = 0x808E0000,
+    BAD_REFRESH_IN_PROGRESS = 0x80970000,
+    BAD_CONDITION_ALREADY_DISABLED = 0x80980000,
+    BAD_CONDITION_DISABLED = 0x80990000,
+    BAD_EVENT_ID_UNKNOWN = 0x809A0000,
+    BAD_NO_DATA = 0x809B0000,
+    BAD_DATA_LOST = 0x809D0000,
+    BAD_DATA_UNAVAILABLE = 0x809E0000,
+    BAD_ENTRY_EXISTS = 0x809F0000,
+    BAD_NO_ENTRY_EXISTS = 0x80A00000,
+    BAD_TIMESTAMP_NOT_SUPPORTED = 0x80A10000,
+    BAD_INVALID_ARGUMENT = 0x80AB0000,
+    BAD_CONNECTION_REJECTED = 0x80AC0000,
+    BAD_DISCONNECT = 0x80AD0000,
+    BAD_CONNECTION_CLOSED = 0x80AE0000,
+    BAD_INVALID_STATE = 0x80AF0000,
+    BAD_END_OF_STREAM = 0x80B00000,
+    BAD_NO_DATA_AVAILABLE = 0x80B10000,
+    BAD_WAITING_FOR_RESPONSE = 0x80B20000,
+    BAD_OPERATION_ABANDONED = 0x80B30000,
+    BAD_EXPECTED_STREAM_TO_BLOCK = 0x80B40000,
+    BAD_WOULD_BLOCK = 0x80B50000,
+    BAD_SYNTAX_ERROR = 0x80B60000,
+    BAD_MAX_CONNECTIONS_REACHED = 0x80B70000,
+    BAD_REQUEST_TOO_LARGE = 0x80B80000,
+    BAD_RESPONSE_TOO_LARGE = 0x80B90000,
+    BAD_EVENT_NOT_ACKNOWLEDGEABLE = 0x80BB0000,
+    BAD_INVALID_TIMESTAMP_ARGUMENT = 0x80BD0000,
+    BAD_PROTOCOL_VERSION_UNSUPPORTED = 0x80BE0000,
+    BAD_STATE_NOT_ACTIVE = 0x80BF0000,
+    BAD_FILTER_OPERATOR_INVALID = 0x80C10000,
+    BAD_FILTER_OPERATOR_UNSUPPORTED = 0x80C20000,
+    BAD_FILTER_OPERAND_COUNT_MISMATCH = 0x80C30000,
+    BAD_FILTER_ELEMENT_INVALID = 0x80C40000,
+    BAD_FILTER_LITERAL_INVALID = 0x80C50000,
+    BAD_IDENTITY_CHANGE_NOT_SUPPORTED = 0x80C60000,
+    BAD_NOT_TYPE_DEFINITION = 0x80C80000,
+    BAD_VIEW_TIMESTAMP_INVALID = 0x80C90000,
+    BAD_VIEW_PARAMETER_MISMATCH = 0x80CA0000,
+    BAD_VIEW_VERSION_INVALID = 0x80CB0000,
+    BAD_CONDITION_ALREADY_ENABLED = 0x80CC0000,
+    BAD_DIALOG_NOT_ACTIVE = 0x80CD0000,
+    BAD_DIALOG_RESPONSE_INVALID = 0x80CE0000,
+    BAD_CONDITION_BRANCH_ALREADY_ACKED = 0x80CF0000,
+    BAD_CONDITION_BRANCH_ALREADY_CONFIRMED = 0x80D00000,
+    BAD_CONDITION_ALREADY_SHELVED = 0x80D10000,
+    BAD_CONDITION_NOT_SHELVED = 0x80D20000,
+    BAD_SHELVING_TIME_OUT_OF_RANGE = 0x80D30000,
+    BAD_AGGREGATE_LIST_MISMATCH = 0x80D40000,
+    BAD_AGGREGATE_NOT_SUPPORTED = 0x80D50000,
+    BAD_AGGREGATE_INVALID_INPUTS = 0x80D60000,
+    BAD_BOUND_NOT_FOUND = 0x80D70000,
+    BAD_BOUND_NOT_SUPPORTED = 0x80D80000,
+    BAD_AGGREGATE_CONFIGURATION_REJECTED = 0x80DA0000,
+    BAD_TOO_MANY_MONITORED_ITEMS = 0x80DB0000,
+    BAD_DOMINANT_VALUE_CHANGED = 0x80E10000,
+    BAD_DEPENDENT_VALUE_CHANGED = 0x80E30000,
+    BAD_REQUEST_NOT_ALLOWED = 0x80E40000,
+    BAD_TOO_MANY_ARGUMENTS = 0x80E50000,
+    BAD_SECURITY_MODE_INSUFFICIENT = 0x80E60000,
+    BAD_CERTIFICATE_CHAIN_INCOMPLETE = 0x810D0000,
 }
 
 impl BinaryEncoder<StatusCode> for StatusCode {
@@ -19,25 +245,25 @@ impl BinaryEncoder<StatusCode> for StatusCode {
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_u32(stream, self.code)
+        write_u32(stream, *self as u32)
     }
 
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let code = read_u32(stream)?;
         let status_code = StatusCode::from_u32(code);
-        if status_code.is_ok() { Ok(status_code.unwrap().clone()) } else { Ok(BAD_UNEXPECTED_ERROR.clone()) }
+        if status_code.is_ok() { Ok(status_code.unwrap()) } else { Ok(BAD_UNEXPECTED_ERROR) }
     }
 }
 
 impl StatusCode {
     /// Tests if the status code is bad
     pub fn is_bad(&self) -> bool {
-        (self.code & 0x80000000) != 0
+        ((*self as u32) & 0x80000000) != 0
     }
 
     /// Tests if the status code is uncertain
     pub fn is_uncertain(&self) -> bool {
-        (self.code & 0x40000000) != 0
+        ((*self as u32) & 0x40000000) != 0
     }
 
     /// Tests if the status code is good (i.e. not bad or uncertain)
@@ -45,1841 +271,942 @@ impl StatusCode {
         !self.is_bad() && !self.is_uncertain()
     }
 
+    /// Returns the descriptive name for the status code, e.g. to put a meaningful code in a log file
+    pub fn name(&self) -> &'static str {
+        match *self {
+            GOOD => "Good",
+            GOOD_SUBSCRIPTION_TRANSFERRED => "GoodSubscriptionTransferred",
+            GOOD_COMPLETES_ASYNCHRONOUSLY => "GoodCompletesAsynchronously",
+            GOOD_OVERLOAD => "GoodOverload",
+            GOOD_CLAMPED => "GoodClamped",
+            GOOD_LOCAL_OVERRIDE => "GoodLocalOverride",
+            GOOD_ENTRY_INSERTED => "GoodEntryInserted",
+            GOOD_ENTRY_REPLACED => "GoodEntryReplaced",
+            GOOD_NO_DATA => "GoodNoData",
+            GOOD_MORE_DATA => "GoodMoreData",
+            GOOD_COMMUNICATION_EVENT => "GoodCommunicationEvent",
+            GOOD_SHUTDOWN_EVENT => "GoodShutdownEvent",
+            GOOD_CALL_AGAIN => "GoodCallAgain",
+            GOOD_NON_CRITICAL_TIMEOUT => "GoodNonCriticalTimeout",
+            GOOD_RESULTS_MAY_BE_INCOMPLETE => "GoodResultsMayBeIncomplete",
+            GOOD_DATA_IGNORED => "GoodDataIgnored",
+            GOOD_EDITED => "GoodEdited",
+            GOOD_POST_ACTION_FAILED => "GoodPostActionFailed",
+            GOOD_DEPENDENT_VALUE_CHANGED => "GoodDependentValueChanged",
+            UNCERTAIN_REFERENCE_OUT_OF_SERVER => "UncertainReferenceOutOfServer",
+            UNCERTAIN_NO_COMMUNICATION_LAST_USABLE_VALUE => "UncertainNoCommunicationLastUsableValue",
+            UNCERTAIN_LAST_USABLE_VALUE => "UncertainLastUsableValue",
+            UNCERTAIN_SUBSTITUTE_VALUE => "UncertainSubstituteValue",
+            UNCERTAIN_INITIAL_VALUE => "UncertainInitialValue",
+            UNCERTAIN_SENSOR_NOT_ACCURATE => "UncertainSensorNotAccurate",
+            UNCERTAIN_ENGINEERING_UNITS_EXCEEDED => "UncertainEngineeringUnitsExceeded",
+            UNCERTAIN_SUB_NORMAL => "UncertainSubNormal",
+            UNCERTAIN_DATA_SUB_NORMAL => "UncertainDataSubNormal",
+            UNCERTAIN_REFERENCE_NOT_DELETED => "UncertainReferenceNotDeleted",
+            UNCERTAIN_NOT_ALL_NODES_AVAILABLE => "UncertainNotAllNodesAvailable",
+            UNCERTAIN_DOMINANT_VALUE_CHANGED => "UncertainDominantValueChanged",
+            UNCERTAIN_DEPENDENT_VALUE_CHANGED => "UncertainDependentValueChanged",
+            BAD_UNEXPECTED_ERROR => "BadUnexpectedError",
+            BAD_INTERNAL_ERROR => "BadInternalError",
+            BAD_OUT_OF_MEMORY => "BadOutOfMemory",
+            BAD_RESOURCE_UNAVAILABLE => "BadResourceUnavailable",
+            BAD_COMMUNICATION_ERROR => "BadCommunicationError",
+            BAD_ENCODING_ERROR => "BadEncodingError",
+            BAD_DECODING_ERROR => "BadDecodingError",
+            BAD_ENCODING_LIMITS_EXCEEDED => "BadEncodingLimitsExceeded",
+            BAD_UNKNOWN_RESPONSE => "BadUnknownResponse",
+            BAD_TIMEOUT => "BadTimeout",
+            BAD_SERVICE_UNSUPPORTED => "BadServiceUnsupported",
+            BAD_SHUTDOWN => "BadShutdown",
+            BAD_SERVER_NOT_CONNECTED => "BadServerNotConnected",
+            BAD_SERVER_HALTED => "BadServerHalted",
+            BAD_NOTHING_TO_DO => "BadNothingToDo",
+            BAD_TOO_MANY_OPERATIONS => "BadTooManyOperations",
+            BAD_DATA_TYPE_ID_UNKNOWN => "BadDataTypeIdUnknown",
+            BAD_CERTIFICATE_INVALID => "BadCertificateInvalid",
+            BAD_SECURITY_CHECKS_FAILED => "BadSecurityChecksFailed",
+            BAD_CERTIFICATE_TIME_INVALID => "BadCertificateTimeInvalid",
+            BAD_CERTIFICATE_ISSUER_TIME_INVALID => "BadCertificateIssuerTimeInvalid",
+            BAD_CERTIFICATE_HOST_NAME_INVALID => "BadCertificateHostNameInvalid",
+            BAD_CERTIFICATE_URI_INVALID => "BadCertificateUriInvalid",
+            BAD_CERTIFICATE_USE_NOT_ALLOWED => "BadCertificateUseNotAllowed",
+            BAD_CERTIFICATE_ISSUER_USE_NOT_ALLOWED => "BadCertificateIssuerUseNotAllowed",
+            BAD_CERTIFICATE_UNTRUSTED => "BadCertificateUntrusted",
+            BAD_CERTIFICATE_REVOCATION_UNKNOWN => "BadCertificateRevocationUnknown",
+            BAD_CERTIFICATE_ISSUER_REVOCATION_UNKNOWN => "BadCertificateIssuerRevocationUnknown",
+            BAD_CERTIFICATE_REVOKED => "BadCertificateRevoked",
+            BAD_CERTIFICATE_ISSUER_REVOKED => "BadCertificateIssuerRevoked",
+            BAD_USER_ACCESS_DENIED => "BadUserAccessDenied",
+            BAD_IDENTITY_TOKEN_INVALID => "BadIdentityTokenInvalid",
+            BAD_IDENTITY_TOKEN_REJECTED => "BadIdentityTokenRejected",
+            BAD_SECURE_CHANNEL_ID_INVALID => "BadSecureChannelIdInvalid",
+            BAD_INVALID_TIMESTAMP => "BadInvalidTimestamp",
+            BAD_NONCE_INVALID => "BadNonceInvalid",
+            BAD_SESSION_ID_INVALID => "BadSessionIdInvalid",
+            BAD_SESSION_CLOSED => "BadSessionClosed",
+            BAD_SESSION_NOT_ACTIVATED => "BadSessionNotActivated",
+            BAD_SUBSCRIPTION_ID_INVALID => "BadSubscriptionIdInvalid",
+            BAD_REQUEST_HEADER_INVALID => "BadRequestHeaderInvalid",
+            BAD_TIMESTAMPS_TO_RETURN_INVALID => "BadTimestampsToReturnInvalid",
+            BAD_REQUEST_CANCELLED_BY_CLIENT => "BadRequestCancelledByClient",
+            BAD_NO_COMMUNICATION => "BadNoCommunication",
+            BAD_WAITING_FOR_INITIAL_DATA => "BadWaitingForInitialData",
+            BAD_NODE_ID_INVALID => "BadNodeIdInvalid",
+            BAD_NODE_ID_UNKNOWN => "BadNodeIdUnknown",
+            BAD_ATTRIBUTE_ID_INVALID => "BadAttributeIdInvalid",
+            BAD_INDEX_RANGE_INVALID => "BadIndexRangeInvalid",
+            BAD_INDEX_RANGE_NO_DATA => "BadIndexRangeNoData",
+            BAD_DATA_ENCODING_INVALID => "BadDataEncodingInvalid",
+            BAD_DATA_ENCODING_UNSUPPORTED => "BadDataEncodingUnsupported",
+            BAD_NOT_READABLE => "BadNotReadable",
+            BAD_NOT_WRITABLE => "BadNotWritable",
+            BAD_OUT_OF_RANGE => "BadOutOfRange",
+            BAD_NOT_SUPPORTED => "BadNotSupported",
+            BAD_NOT_FOUND => "BadNotFound",
+            BAD_OBJECT_DELETED => "BadObjectDeleted",
+            BAD_NOT_IMPLEMENTED => "BadNotImplemented",
+            BAD_MONITORING_MODE_INVALID => "BadMonitoringModeInvalid",
+            BAD_MONITORED_ITEM_ID_INVALID => "BadMonitoredItemIdInvalid",
+            BAD_MONITORED_ITEM_FILTER_INVALID => "BadMonitoredItemFilterInvalid",
+            BAD_MONITORED_ITEM_FILTER_UNSUPPORTED => "BadMonitoredItemFilterUnsupported",
+            BAD_FILTER_NOT_ALLOWED => "BadFilterNotAllowed",
+            BAD_STRUCTURE_MISSING => "BadStructureMissing",
+            BAD_EVENT_FILTER_INVALID => "BadEventFilterInvalid",
+            BAD_CONTENT_FILTER_INVALID => "BadContentFilterInvalid",
+            BAD_FILTER_OPERAND_INVALID => "BadFilterOperandInvalid",
+            BAD_CONTINUATION_POINT_INVALID => "BadContinuationPointInvalid",
+            BAD_NO_CONTINUATION_POINTS => "BadNoContinuationPoints",
+            BAD_REFERENCE_TYPE_ID_INVALID => "BadReferenceTypeIdInvalid",
+            BAD_BROWSE_DIRECTION_INVALID => "BadBrowseDirectionInvalid",
+            BAD_NODE_NOT_IN_VIEW => "BadNodeNotInView",
+            BAD_SERVER_URI_INVALID => "BadServerUriInvalid",
+            BAD_SERVER_NAME_MISSING => "BadServerNameMissing",
+            BAD_DISCOVERY_URL_MISSING => "BadDiscoveryUrlMissing",
+            BAD_SEMPAHORE_FILE_MISSING => "BadSempahoreFileMissing",
+            BAD_REQUEST_TYPE_INVALID => "BadRequestTypeInvalid",
+            BAD_SECURITY_MODE_REJECTED => "BadSecurityModeRejected",
+            BAD_SECURITY_POLICY_REJECTED => "BadSecurityPolicyRejected",
+            BAD_TOO_MANY_SESSIONS => "BadTooManySessions",
+            BAD_USER_SIGNATURE_INVALID => "BadUserSignatureInvalid",
+            BAD_APPLICATION_SIGNATURE_INVALID => "BadApplicationSignatureInvalid",
+            BAD_NO_VALID_CERTIFICATES => "BadNoValidCertificates",
+            BAD_REQUEST_CANCELLED_BY_REQUEST => "BadRequestCancelledByRequest",
+            BAD_PARENT_NODE_ID_INVALID => "BadParentNodeIdInvalid",
+            BAD_REFERENCE_NOT_ALLOWED => "BadReferenceNotAllowed",
+            BAD_NODE_ID_REJECTED => "BadNodeIdRejected",
+            BAD_NODE_ID_EXISTS => "BadNodeIdExists",
+            BAD_NODE_CLASS_INVALID => "BadNodeClassInvalid",
+            BAD_BROWSE_NAME_INVALID => "BadBrowseNameInvalid",
+            BAD_BROWSE_NAME_DUPLICATED => "BadBrowseNameDuplicated",
+            BAD_NODE_ATTRIBUTES_INVALID => "BadNodeAttributesInvalid",
+            BAD_TYPE_DEFINITION_INVALID => "BadTypeDefinitionInvalid",
+            BAD_SOURCE_NODE_ID_INVALID => "BadSourceNodeIdInvalid",
+            BAD_TARGET_NODE_ID_INVALID => "BadTargetNodeIdInvalid",
+            BAD_DUPLICATE_REFERENCE_NOT_ALLOWED => "BadDuplicateReferenceNotAllowed",
+            BAD_INVALID_SELF_REFERENCE => "BadInvalidSelfReference",
+            BAD_REFERENCE_LOCAL_ONLY => "BadReferenceLocalOnly",
+            BAD_NO_DELETE_RIGHTS => "BadNoDeleteRights",
+            BAD_SERVER_INDEX_INVALID => "BadServerIndexInvalid",
+            BAD_VIEW_ID_UNKNOWN => "BadViewIdUnknown",
+            BAD_TOO_MANY_MATCHES => "BadTooManyMatches",
+            BAD_QUERY_TOO_COMPLEX => "BadQueryTooComplex",
+            BAD_NO_MATCH => "BadNoMatch",
+            BAD_MAX_AGE_INVALID => "BadMaxAgeInvalid",
+            BAD_HISTORY_OPERATION_INVALID => "BadHistoryOperationInvalid",
+            BAD_HISTORY_OPERATION_UNSUPPORTED => "BadHistoryOperationUnsupported",
+            BAD_WRITE_NOT_SUPPORTED => "BadWriteNotSupported",
+            BAD_TYPE_MISMATCH => "BadTypeMismatch",
+            BAD_METHOD_INVALID => "BadMethodInvalid",
+            BAD_ARGUMENTS_MISSING => "BadArgumentsMissing",
+            BAD_TOO_MANY_SUBSCRIPTIONS => "BadTooManySubscriptions",
+            BAD_TOO_MANY_PUBLISH_REQUESTS => "BadTooManyPublishRequests",
+            BAD_NO_SUBSCRIPTION => "BadNoSubscription",
+            BAD_SEQUENCE_NUMBER_UNKNOWN => "BadSequenceNumberUnknown",
+            BAD_MESSAGE_NOT_AVAILABLE => "BadMessageNotAvailable",
+            BAD_INSUFFICIENT_CLIENT_PROFILE => "BadInsufficientClientProfile",
+            BAD_TCP_SERVER_TOO_BUSY => "BadTcpServerTooBusy",
+            BAD_TCP_MESSAGE_TYPE_INVALID => "BadTcpMessageTypeInvalid",
+            BAD_TCP_SECURE_CHANNEL_UNKNOWN => "BadTcpSecureChannelUnknown",
+            BAD_TCP_MESSAGE_TOO_LARGE => "BadTcpMessageTooLarge",
+            BAD_TCP_NOT_ENOUGH_RESOURCES => "BadTcpNotEnoughResources",
+            BAD_TCP_INTERNAL_ERROR => "BadTcpInternalError",
+            BAD_TCP_ENDPOINT_URL_INVALID => "BadTcpEndpointUrlInvalid",
+            BAD_REQUEST_INTERRUPTED => "BadRequestInterrupted",
+            BAD_REQUEST_TIMEOUT => "BadRequestTimeout",
+            BAD_SECURE_CHANNEL_CLOSED => "BadSecureChannelClosed",
+            BAD_SECURE_CHANNEL_TOKEN_UNKNOWN => "BadSecureChannelTokenUnknown",
+            BAD_SEQUENCE_NUMBER_INVALID => "BadSequenceNumberInvalid",
+            BAD_CONFIGURATION_ERROR => "BadConfigurationError",
+            BAD_NOT_CONNECTED => "BadNotConnected",
+            BAD_DEVICE_FAILURE => "BadDeviceFailure",
+            BAD_SENSOR_FAILURE => "BadSensorFailure",
+            BAD_OUT_OF_SERVICE => "BadOutOfService",
+            BAD_DEADBAND_FILTER_INVALID => "BadDeadbandFilterInvalid",
+            BAD_REFRESH_IN_PROGRESS => "BadRefreshInProgress",
+            BAD_CONDITION_ALREADY_DISABLED => "BadConditionAlreadyDisabled",
+            BAD_CONDITION_DISABLED => "BadConditionDisabled",
+            BAD_EVENT_ID_UNKNOWN => "BadEventIdUnknown",
+            BAD_NO_DATA => "BadNoData",
+            BAD_DATA_LOST => "BadDataLost",
+            BAD_DATA_UNAVAILABLE => "BadDataUnavailable",
+            BAD_ENTRY_EXISTS => "BadEntryExists",
+            BAD_NO_ENTRY_EXISTS => "BadNoEntryExists",
+            BAD_TIMESTAMP_NOT_SUPPORTED => "BadTimestampNotSupported",
+            BAD_INVALID_ARGUMENT => "BadInvalidArgument",
+            BAD_CONNECTION_REJECTED => "BadConnectionRejected",
+            BAD_DISCONNECT => "BadDisconnect",
+            BAD_CONNECTION_CLOSED => "BadConnectionClosed",
+            BAD_INVALID_STATE => "BadInvalidState",
+            BAD_END_OF_STREAM => "BadEndOfStream",
+            BAD_NO_DATA_AVAILABLE => "BadNoDataAvailable",
+            BAD_WAITING_FOR_RESPONSE => "BadWaitingForResponse",
+            BAD_OPERATION_ABANDONED => "BadOperationAbandoned",
+            BAD_EXPECTED_STREAM_TO_BLOCK => "BadExpectedStreamToBlock",
+            BAD_WOULD_BLOCK => "BadWouldBlock",
+            BAD_SYNTAX_ERROR => "BadSyntaxError",
+            BAD_MAX_CONNECTIONS_REACHED => "BadMaxConnectionsReached",
+            BAD_REQUEST_TOO_LARGE => "BadRequestTooLarge",
+            BAD_RESPONSE_TOO_LARGE => "BadResponseTooLarge",
+            BAD_EVENT_NOT_ACKNOWLEDGEABLE => "BadEventNotAcknowledgeable",
+            BAD_INVALID_TIMESTAMP_ARGUMENT => "BadInvalidTimestampArgument",
+            BAD_PROTOCOL_VERSION_UNSUPPORTED => "BadProtocolVersionUnsupported",
+            BAD_STATE_NOT_ACTIVE => "BadStateNotActive",
+            BAD_FILTER_OPERATOR_INVALID => "BadFilterOperatorInvalid",
+            BAD_FILTER_OPERATOR_UNSUPPORTED => "BadFilterOperatorUnsupported",
+            BAD_FILTER_OPERAND_COUNT_MISMATCH => "BadFilterOperandCountMismatch",
+            BAD_FILTER_ELEMENT_INVALID => "BadFilterElementInvalid",
+            BAD_FILTER_LITERAL_INVALID => "BadFilterLiteralInvalid",
+            BAD_IDENTITY_CHANGE_NOT_SUPPORTED => "BadIdentityChangeNotSupported",
+            BAD_NOT_TYPE_DEFINITION => "BadNotTypeDefinition",
+            BAD_VIEW_TIMESTAMP_INVALID => "BadViewTimestampInvalid",
+            BAD_VIEW_PARAMETER_MISMATCH => "BadViewParameterMismatch",
+            BAD_VIEW_VERSION_INVALID => "BadViewVersionInvalid",
+            BAD_CONDITION_ALREADY_ENABLED => "BadConditionAlreadyEnabled",
+            BAD_DIALOG_NOT_ACTIVE => "BadDialogNotActive",
+            BAD_DIALOG_RESPONSE_INVALID => "BadDialogResponseInvalid",
+            BAD_CONDITION_BRANCH_ALREADY_ACKED => "BadConditionBranchAlreadyAcked",
+            BAD_CONDITION_BRANCH_ALREADY_CONFIRMED => "BadConditionBranchAlreadyConfirmed",
+            BAD_CONDITION_ALREADY_SHELVED => "BadConditionAlreadyShelved",
+            BAD_CONDITION_NOT_SHELVED => "BadConditionNotShelved",
+            BAD_SHELVING_TIME_OUT_OF_RANGE => "BadShelvingTimeOutOfRange",
+            BAD_AGGREGATE_LIST_MISMATCH => "BadAggregateListMismatch",
+            BAD_AGGREGATE_NOT_SUPPORTED => "BadAggregateNotSupported",
+            BAD_AGGREGATE_INVALID_INPUTS => "BadAggregateInvalidInputs",
+            BAD_BOUND_NOT_FOUND => "BadBoundNotFound",
+            BAD_BOUND_NOT_SUPPORTED => "BadBoundNotSupported",
+            BAD_AGGREGATE_CONFIGURATION_REJECTED => "BadAggregateConfigurationRejected",
+            BAD_TOO_MANY_MONITORED_ITEMS => "BadTooManyMonitoredItems",
+            BAD_DOMINANT_VALUE_CHANGED => "BadDominantValueChanged",
+            BAD_DEPENDENT_VALUE_CHANGED => "BadDependentValueChanged",
+            BAD_REQUEST_NOT_ALLOWED => "BadRequestNotAllowed",
+            BAD_TOO_MANY_ARGUMENTS => "BadTooManyArguments",
+            BAD_SECURITY_MODE_INSUFFICIENT => "BadSecurityModeInsufficient",
+            BAD_CERTIFICATE_CHAIN_INCOMPLETE => "BadCertificateChainIncomplete",
+        }
+    }
+
+    /// Returns the descriptive text for the status code
+    pub fn description(&self) -> &'static str {
+        match *self {
+            GOOD => "Good",
+            GOOD_SUBSCRIPTION_TRANSFERRED => "The subscription was transferred to another session.",
+            GOOD_COMPLETES_ASYNCHRONOUSLY => "The processing will complete asynchronously.",
+            GOOD_OVERLOAD => "Sampling has slowed down due to resource limitations.",
+            GOOD_CLAMPED => "The value written was accepted but was clamped.",
+            GOOD_LOCAL_OVERRIDE => "The value has been overridden.",
+            GOOD_ENTRY_INSERTED => "The data or event was successfully inserted into the historical database.",
+            GOOD_ENTRY_REPLACED => "The data or event field was successfully replaced in the historical database.",
+            GOOD_NO_DATA => "No data exists for the requested time range or event filter.",
+            GOOD_MORE_DATA => "The data or event field was successfully replaced in the historical database.",
+            GOOD_COMMUNICATION_EVENT => "The communication layer has raised an event.",
+            GOOD_SHUTDOWN_EVENT => "The system is shutting down.",
+            GOOD_CALL_AGAIN => "The operation is not finished and needs to be called again.",
+            GOOD_NON_CRITICAL_TIMEOUT => "A non-critical timeout occurred.",
+            GOOD_RESULTS_MAY_BE_INCOMPLETE => "The server should have followed a reference to a node in a remote server but did not. The result set may be incomplete.",
+            GOOD_DATA_IGNORED => "The request pecifies fields which are not valid for the EventType or cannot be saved by the historian.",
+            GOOD_EDITED => "The value does not come from the real source and has been edited by the server.",
+            GOOD_POST_ACTION_FAILED => "There was an error in execution of these post-actions.",
+            GOOD_DEPENDENT_VALUE_CHANGED => "A dependent value has been changed but the change has not been applied to the device.",
+            UNCERTAIN_REFERENCE_OUT_OF_SERVER => "One of the references to follow in the relative path references to a node in the address space in another server.",
+            UNCERTAIN_NO_COMMUNICATION_LAST_USABLE_VALUE => "Communication to the data source has failed. The variable value is the last value that had a good quality.",
+            UNCERTAIN_LAST_USABLE_VALUE => "Whatever was updating this value has stopped doing so.",
+            UNCERTAIN_SUBSTITUTE_VALUE => "The value is an operational value that was manually overwritten.",
+            UNCERTAIN_INITIAL_VALUE => "The value is an initial value for a variable that normally receives its value from another variable.",
+            UNCERTAIN_SENSOR_NOT_ACCURATE => "The value is at one of the sensor limits.",
+            UNCERTAIN_ENGINEERING_UNITS_EXCEEDED => "The value is outside of the range of values defined for this parameter.",
+            UNCERTAIN_SUB_NORMAL => "The value is derived from multiple sources and has less than the required number of Good sources.",
+            UNCERTAIN_DATA_SUB_NORMAL => "The value is derived from multiple values and has less than the required number of Good values.",
+            UNCERTAIN_REFERENCE_NOT_DELETED => "The server was not able to delete all target references.",
+            UNCERTAIN_NOT_ALL_NODES_AVAILABLE => "The list of references may not be complete because the underlying system is not available.",
+            UNCERTAIN_DOMINANT_VALUE_CHANGED => "The related EngineeringUnit has been changed but the Variable Value is still provided based on the previous unit.",
+            UNCERTAIN_DEPENDENT_VALUE_CHANGED => "A dependent value has been changed but the change has not been applied to the device. The quality of the dominant variable is uncertain.",
+            BAD_UNEXPECTED_ERROR => "An unexpected error occurred.",
+            BAD_INTERNAL_ERROR => "An internal error occurred as a result of a programming or configuration error.",
+            BAD_OUT_OF_MEMORY => "Not enough memory to complete the operation.",
+            BAD_RESOURCE_UNAVAILABLE => "An operating system resource is not available.",
+            BAD_COMMUNICATION_ERROR => "A low level communication error occurred.",
+            BAD_ENCODING_ERROR => "Encoding halted because of invalid data in the objects being serialized.",
+            BAD_DECODING_ERROR => "Decoding halted because of invalid data in the stream.",
+            BAD_ENCODING_LIMITS_EXCEEDED => "The message encoding/decoding limits imposed by the stack have been exceeded.",
+            BAD_UNKNOWN_RESPONSE => "An unrecognized response was received from the server.",
+            BAD_TIMEOUT => "The operation timed out.",
+            BAD_SERVICE_UNSUPPORTED => "The server does not support the requested service.",
+            BAD_SHUTDOWN => "The operation was cancelled because the application is shutting down.",
+            BAD_SERVER_NOT_CONNECTED => "The operation could not complete because the client is not connected to the server.",
+            BAD_SERVER_HALTED => "The server has stopped and cannot process any requests.",
+            BAD_NOTHING_TO_DO => "There was nothing to do because the client passed a list of operations with no elements.",
+            BAD_TOO_MANY_OPERATIONS => "The request could not be processed because it specified too many operations.",
+            BAD_DATA_TYPE_ID_UNKNOWN => "The extension object cannot be (de)serialized because the data type id is not recognized.",
+            BAD_CERTIFICATE_INVALID => "The certificate provided as a parameter is not valid.",
+            BAD_SECURITY_CHECKS_FAILED => "An error occurred verifying security.",
+            BAD_CERTIFICATE_TIME_INVALID => "The Certificate has expired or is not yet valid.",
+            BAD_CERTIFICATE_ISSUER_TIME_INVALID => "An Issuer Certificate has expired or is not yet valid.",
+            BAD_CERTIFICATE_HOST_NAME_INVALID => "The HostName used to connect to a Server does not match a HostName in the Certificate.",
+            BAD_CERTIFICATE_URI_INVALID => "The URI specified in the ApplicationDescription does not match the URI in the Certificate.",
+            BAD_CERTIFICATE_USE_NOT_ALLOWED => "The Certificate may not be used for the requested operation.",
+            BAD_CERTIFICATE_ISSUER_USE_NOT_ALLOWED => "The Issuer Certificate may not be used for the requested operation.",
+            BAD_CERTIFICATE_UNTRUSTED => "The Certificate is not trusted.",
+            BAD_CERTIFICATE_REVOCATION_UNKNOWN => "It was not possible to determine if the Certificate has been revoked.",
+            BAD_CERTIFICATE_ISSUER_REVOCATION_UNKNOWN => "It was not possible to determine if the Issuer Certificate has been revoked.",
+            BAD_CERTIFICATE_REVOKED => "The certificate has been revoked.",
+            BAD_CERTIFICATE_ISSUER_REVOKED => "The issuer certificate has been revoked.",
+            BAD_USER_ACCESS_DENIED => "User does not have permission to perform the requested operation.",
+            BAD_IDENTITY_TOKEN_INVALID => "The user identity token is not valid.",
+            BAD_IDENTITY_TOKEN_REJECTED => "The user identity token is valid but the server has rejected it.",
+            BAD_SECURE_CHANNEL_ID_INVALID => "The specified secure channel is no longer valid.",
+            BAD_INVALID_TIMESTAMP => "The timestamp is outside the range allowed by the server.",
+            BAD_NONCE_INVALID => "The nonce does appear to be not a random value or it is not the correct length.",
+            BAD_SESSION_ID_INVALID => "The session id is not valid.",
+            BAD_SESSION_CLOSED => "The session was closed by the client.",
+            BAD_SESSION_NOT_ACTIVATED => "The session cannot be used because ActivateSession has not been called.",
+            BAD_SUBSCRIPTION_ID_INVALID => "The subscription id is not valid.",
+            BAD_REQUEST_HEADER_INVALID => "The header for the request is missing or invalid.",
+            BAD_TIMESTAMPS_TO_RETURN_INVALID => "The timestamps to return parameter is invalid.",
+            BAD_REQUEST_CANCELLED_BY_CLIENT => "The request was cancelled by the client.",
+            BAD_NO_COMMUNICATION => "Communication with the data source is defined",
+            BAD_WAITING_FOR_INITIAL_DATA => "Waiting for the server to obtain values from the underlying data source.",
+            BAD_NODE_ID_INVALID => "The syntax of the node id is not valid.",
+            BAD_NODE_ID_UNKNOWN => "The node id refers to a node that does not exist in the server address space.",
+            BAD_ATTRIBUTE_ID_INVALID => "The attribute is not supported for the specified Node.",
+            BAD_INDEX_RANGE_INVALID => "The syntax of the index range parameter is invalid.",
+            BAD_INDEX_RANGE_NO_DATA => "No data exists within the range of indexes specified.",
+            BAD_DATA_ENCODING_INVALID => "The data encoding is invalid.",
+            BAD_DATA_ENCODING_UNSUPPORTED => "The server does not support the requested data encoding for the node.",
+            BAD_NOT_READABLE => "The access level does not allow reading or subscribing to the Node.",
+            BAD_NOT_WRITABLE => "The access level does not allow writing to the Node.",
+            BAD_OUT_OF_RANGE => "The value was out of range.",
+            BAD_NOT_SUPPORTED => "The requested operation is not supported.",
+            BAD_NOT_FOUND => "A requested item was not found or a search operation ended without success.",
+            BAD_OBJECT_DELETED => "The object cannot be used because it has been deleted.",
+            BAD_NOT_IMPLEMENTED => "Requested operation is not implemented.",
+            BAD_MONITORING_MODE_INVALID => "The monitoring mode is invalid.",
+            BAD_MONITORED_ITEM_ID_INVALID => "The monitoring item id does not refer to a valid monitored item.",
+            BAD_MONITORED_ITEM_FILTER_INVALID => "The monitored item filter parameter is not valid.",
+            BAD_MONITORED_ITEM_FILTER_UNSUPPORTED => "The server does not support the requested monitored item filter.",
+            BAD_FILTER_NOT_ALLOWED => "A monitoring filter cannot be used in combination with the attribute specified.",
+            BAD_STRUCTURE_MISSING => "A mandatory structured parameter was missing or null.",
+            BAD_EVENT_FILTER_INVALID => "The event filter is not valid.",
+            BAD_CONTENT_FILTER_INVALID => "The content filter is not valid.",
+            BAD_FILTER_OPERAND_INVALID => "The operand used in a content filter is not valid.",
+            BAD_CONTINUATION_POINT_INVALID => "The continuation point provide is longer valid.",
+            BAD_NO_CONTINUATION_POINTS => "The operation could not be processed because all continuation points have been allocated.",
+            BAD_REFERENCE_TYPE_ID_INVALID => "The operation could not be processed because all continuation points have been allocated.",
+            BAD_BROWSE_DIRECTION_INVALID => "The browse direction is not valid.",
+            BAD_NODE_NOT_IN_VIEW => "The node is not part of the view.",
+            BAD_SERVER_URI_INVALID => "The ServerUri is not a valid URI.",
+            BAD_SERVER_NAME_MISSING => "No ServerName was specified.",
+            BAD_DISCOVERY_URL_MISSING => "No DiscoveryUrl was specified.",
+            BAD_SEMPAHORE_FILE_MISSING => "The semaphore file specified by the client is not valid.",
+            BAD_REQUEST_TYPE_INVALID => "The security token request type is not valid.",
+            BAD_SECURITY_MODE_REJECTED => "The security mode does not meet the requirements set by the Server.",
+            BAD_SECURITY_POLICY_REJECTED => "The security policy does not meet the requirements set by the Server.",
+            BAD_TOO_MANY_SESSIONS => "The server has reached its maximum number of sessions.",
+            BAD_USER_SIGNATURE_INVALID => "The user token signature is missing or invalid.",
+            BAD_APPLICATION_SIGNATURE_INVALID => "The signature generated with the client certificate is missing or invalid.",
+            BAD_NO_VALID_CERTIFICATES => "The client did not provide at least one software certificate that is valid and meets the profile requirements for the server.",
+            BAD_REQUEST_CANCELLED_BY_REQUEST => "The request was cancelled by the client with the Cancel service.",
+            BAD_PARENT_NODE_ID_INVALID => "The parent node id does not to refer to a valid node.",
+            BAD_REFERENCE_NOT_ALLOWED => "The reference could not be created because it violates constraints imposed by the data model.",
+            BAD_NODE_ID_REJECTED => "The requested node id was reject because it was either invalid or server does not allow node ids to be specified by the client.",
+            BAD_NODE_ID_EXISTS => "The requested node id is already used by another node.",
+            BAD_NODE_CLASS_INVALID => "The node class is not valid.",
+            BAD_BROWSE_NAME_INVALID => "The browse name is invalid.",
+            BAD_BROWSE_NAME_DUPLICATED => "The browse name is not unique among nodes that share the same relationship with the parent.",
+            BAD_NODE_ATTRIBUTES_INVALID => "The node attributes are not valid for the node class.",
+            BAD_TYPE_DEFINITION_INVALID => "The type definition node id does not reference an appropriate type node.",
+            BAD_SOURCE_NODE_ID_INVALID => "The source node id does not reference a valid node.",
+            BAD_TARGET_NODE_ID_INVALID => "The target node id does not reference a valid node.",
+            BAD_DUPLICATE_REFERENCE_NOT_ALLOWED => "The reference type between the nodes is already defined.",
+            BAD_INVALID_SELF_REFERENCE => "The server does not allow this type of self reference on this node.",
+            BAD_REFERENCE_LOCAL_ONLY => "The reference type is not valid for a reference to a remote server.",
+            BAD_NO_DELETE_RIGHTS => "The server will not allow the node to be deleted.",
+            BAD_SERVER_INDEX_INVALID => "The server index is not valid.",
+            BAD_VIEW_ID_UNKNOWN => "The view id does not refer to a valid view node.",
+            BAD_TOO_MANY_MATCHES => "The requested operation has too many matches to return.",
+            BAD_QUERY_TOO_COMPLEX => "The requested operation requires too many resources in the server.",
+            BAD_NO_MATCH => "The requested operation has no match to return.",
+            BAD_MAX_AGE_INVALID => "The max age parameter is invalid.",
+            BAD_HISTORY_OPERATION_INVALID => "The history details parameter is not valid.",
+            BAD_HISTORY_OPERATION_UNSUPPORTED => "The server does not support the requested operation.",
+            BAD_WRITE_NOT_SUPPORTED => "The server not does support writing the combination of value",
+            BAD_TYPE_MISMATCH => "The value supplied for the attribute is not of the same type as the attribute's value.",
+            BAD_METHOD_INVALID => "The method id does not refer to a method for the specified object.",
+            BAD_ARGUMENTS_MISSING => "The client did not specify all of the input arguments for the method.",
+            BAD_TOO_MANY_SUBSCRIPTIONS => "The server has reached its  maximum number of subscriptions.",
+            BAD_TOO_MANY_PUBLISH_REQUESTS => "The server has reached the maximum number of queued publish requests.",
+            BAD_NO_SUBSCRIPTION => "There is no subscription available for this session.",
+            BAD_SEQUENCE_NUMBER_UNKNOWN => "The sequence number is unknown to the server.",
+            BAD_MESSAGE_NOT_AVAILABLE => "The requested notification message is no longer available.",
+            BAD_INSUFFICIENT_CLIENT_PROFILE => "The Client of the current Session does not support one or more Profiles that are necessary for the Subscription.",
+            BAD_TCP_SERVER_TOO_BUSY => "The server cannot process the request because it is too busy.",
+            BAD_TCP_MESSAGE_TYPE_INVALID => "The type of the message specified in the header invalid.",
+            BAD_TCP_SECURE_CHANNEL_UNKNOWN => "The SecureChannelId and/or TokenId are not currently in use.",
+            BAD_TCP_MESSAGE_TOO_LARGE => "The size of the message specified in the header is too large.",
+            BAD_TCP_NOT_ENOUGH_RESOURCES => "There are not enough resources to process the request.",
+            BAD_TCP_INTERNAL_ERROR => "An internal error occurred.",
+            BAD_TCP_ENDPOINT_URL_INVALID => "The Server does not recognize the QueryString specified.",
+            BAD_REQUEST_INTERRUPTED => "The request could not be sent because of a network interruption.",
+            BAD_REQUEST_TIMEOUT => "Timeout occurred while processing the request.",
+            BAD_SECURE_CHANNEL_CLOSED => "The secure channel has been closed.",
+            BAD_SECURE_CHANNEL_TOKEN_UNKNOWN => "The token has expired or is not recognized.",
+            BAD_SEQUENCE_NUMBER_INVALID => "The sequence number is not valid.",
+            BAD_CONFIGURATION_ERROR => "There is a problem with the configuration that affects the usefulness of the value.",
+            BAD_NOT_CONNECTED => "The variable should receive its value from another variable",
+            BAD_DEVICE_FAILURE => "There has been a failure in the device/data source that generates the value that has affected the value.",
+            BAD_SENSOR_FAILURE => "There has been a failure in the sensor from which the value is derived by the device/data source.",
+            BAD_OUT_OF_SERVICE => "The source of the data is not operational.",
+            BAD_DEADBAND_FILTER_INVALID => "The deadband filter is not valid.",
+            BAD_REFRESH_IN_PROGRESS => "This Condition refresh failed",
+            BAD_CONDITION_ALREADY_DISABLED => "This condition has already been disabled.",
+            BAD_CONDITION_DISABLED => "Property not available",
+            BAD_EVENT_ID_UNKNOWN => "The specified event id is not recognized.",
+            BAD_NO_DATA => "No data exists for the requested time range or event filter.",
+            BAD_DATA_LOST => "Data is missing due to collection started/stopped/lost.",
+            BAD_DATA_UNAVAILABLE => "Expected data is unavailable for the requested time range due to an un-mounted volume",
+            BAD_ENTRY_EXISTS => "The data or event was not successfully inserted because a matching entry exists.",
+            BAD_NO_ENTRY_EXISTS => "The data or event was not successfully updated because no matching entry exists.",
+            BAD_TIMESTAMP_NOT_SUPPORTED => "The client requested history using a timestamp format the server does not support (i.e requested ServerTimestamp when server only supports SourceTimestamp).",
+            BAD_INVALID_ARGUMENT => "One or more arguments are invalid.",
+            BAD_CONNECTION_REJECTED => "Could not establish a network connection to remote server.",
+            BAD_DISCONNECT => "The server has disconnected from the client.",
+            BAD_CONNECTION_CLOSED => "The network connection has been closed.",
+            BAD_INVALID_STATE => "The operation cannot be completed because the object is closed",
+            BAD_END_OF_STREAM => "Cannot move beyond end of the stream.",
+            BAD_NO_DATA_AVAILABLE => "No data is currently available for reading from a non-blocking stream.",
+            BAD_WAITING_FOR_RESPONSE => "The asynchronous operation is waiting for a response.",
+            BAD_OPERATION_ABANDONED => "The asynchronous operation was abandoned by the caller.",
+            BAD_EXPECTED_STREAM_TO_BLOCK => "The stream did not return all data requested (possibly because it is a non-blocking stream).",
+            BAD_WOULD_BLOCK => "Non blocking behaviour is required and the operation would block.",
+            BAD_SYNTAX_ERROR => "A value had an invalid syntax.",
+            BAD_MAX_CONNECTIONS_REACHED => "The operation could not be finished because all available connections are in use.",
+            BAD_REQUEST_TOO_LARGE => "The request message size exceeds limits set by the server.",
+            BAD_RESPONSE_TOO_LARGE => "The response message size exceeds limits set by the client.",
+            BAD_EVENT_NOT_ACKNOWLEDGEABLE => "The event cannot be acknowledged.",
+            BAD_INVALID_TIMESTAMP_ARGUMENT => "The defined timestamp to return was invalid.",
+            BAD_PROTOCOL_VERSION_UNSUPPORTED => "The applications do not have compatible protocol versions.",
+            BAD_STATE_NOT_ACTIVE => "The sub-state machine is not currently active.",
+            BAD_FILTER_OPERATOR_INVALID => "An unregognized operator was provided in a filter.",
+            BAD_FILTER_OPERATOR_UNSUPPORTED => "A valid operator was provided",
+            BAD_FILTER_OPERAND_COUNT_MISMATCH => "The number of operands provided for the filter operator was less then expected for the operand provided.",
+            BAD_FILTER_ELEMENT_INVALID => "The referenced element is not a valid element in the content filter.",
+            BAD_FILTER_LITERAL_INVALID => "The referenced literal is not a valid value.",
+            BAD_IDENTITY_CHANGE_NOT_SUPPORTED => "The Server does not support changing the user identity assigned to the session.",
+            BAD_NOT_TYPE_DEFINITION => "The provided Nodeid was not a type definition nodeid.",
+            BAD_VIEW_TIMESTAMP_INVALID => "The view timestamp is not available or not supported.",
+            BAD_VIEW_PARAMETER_MISMATCH => "The view parameters are not consistent with each other.",
+            BAD_VIEW_VERSION_INVALID => "The view version is not available or not supported.",
+            BAD_CONDITION_ALREADY_ENABLED => "This condition has already been enabled.",
+            BAD_DIALOG_NOT_ACTIVE => "The dialog condition is not active.",
+            BAD_DIALOG_RESPONSE_INVALID => "The response is not valid for the dialog.",
+            BAD_CONDITION_BRANCH_ALREADY_ACKED => "The condition branch has already been acknowledged.",
+            BAD_CONDITION_BRANCH_ALREADY_CONFIRMED => "The condition branch has already been confirmed.",
+            BAD_CONDITION_ALREADY_SHELVED => "The condition has already been shelved.",
+            BAD_CONDITION_NOT_SHELVED => "The condition is not currently shelved.",
+            BAD_SHELVING_TIME_OUT_OF_RANGE => "The shelving time not within an acceptable range.",
+            BAD_AGGREGATE_LIST_MISMATCH => "The requested number of Aggregates does not match the requested number of NodeIds.",
+            BAD_AGGREGATE_NOT_SUPPORTED => "The requested Aggregate is not support by the server.",
+            BAD_AGGREGATE_INVALID_INPUTS => "The aggregate value could not be derived due to invalid data inputs.",
+            BAD_BOUND_NOT_FOUND => "No data found to provide upper or lower bound value.",
+            BAD_BOUND_NOT_SUPPORTED => "The server cannot retrieve a bound for the variable.",
+            BAD_AGGREGATE_CONFIGURATION_REJECTED => "The aggregate configuration is not valid for specified node.",
+            BAD_TOO_MANY_MONITORED_ITEMS => "The request could not be processed because there are too many monitored items in the subscription.",
+            BAD_DOMINANT_VALUE_CHANGED => "The related EngineeringUnit has been changed but this change has not been applied to the device. The Variable Value is still dependent on the previous unit but its status is currently Bad.",
+            BAD_DEPENDENT_VALUE_CHANGED => "A dependent value has been changed but the change has not been applied to the device. The quality of the dominant variable is Bad.",
+            BAD_REQUEST_NOT_ALLOWED => "The request was rejected by the server because it did not meet the criteria set by the server.",
+            BAD_TOO_MANY_ARGUMENTS => "Too many arguments were provided.",
+            BAD_SECURITY_MODE_INSUFFICIENT => "The operation is not permitted over the current secure channel.",
+            BAD_CERTIFICATE_CHAIN_INCOMPLETE => "The certificate chain is incomplete.",
+        }
+    }
+
     /// Takes an OPC UA status code as a UInt32 and returns the matching StatusCode, assuming there is one
-    pub fn from_u32(code: u32) -> std::result::Result<&'static StatusCode, ()> {
+    pub fn from_u32(code: u32) -> std::result::Result<StatusCode, ()> {
         match code {
-            0 => Ok(&GOOD),
-            0x002D0000 => Ok(&GOOD_SUBSCRIPTION_TRANSFERRED),
-            0x002E0000 => Ok(&GOOD_COMPLETES_ASYNCHRONOUSLY),
-            0x002F0000 => Ok(&GOOD_OVERLOAD),
-            0x00300000 => Ok(&GOOD_CLAMPED),
-            0x00960000 => Ok(&GOOD_LOCAL_OVERRIDE),
-            0x00A20000 => Ok(&GOOD_ENTRY_INSERTED),
-            0x00A30000 => Ok(&GOOD_ENTRY_REPLACED),
-            0x00A50000 => Ok(&GOOD_NO_DATA),
-            0x00A60000 => Ok(&GOOD_MORE_DATA),
-            0x00A70000 => Ok(&GOOD_COMMUNICATION_EVENT),
-            0x00A80000 => Ok(&GOOD_SHUTDOWN_EVENT),
-            0x00A90000 => Ok(&GOOD_CALL_AGAIN),
-            0x00AA0000 => Ok(&GOOD_NON_CRITICAL_TIMEOUT),
-            0x00BA0000 => Ok(&GOOD_RESULTS_MAY_BE_INCOMPLETE),
-            0x00D90000 => Ok(&GOOD_DATA_IGNORED),
-            0x00DC0000 => Ok(&GOOD_EDITED),
-            0x00DD0000 => Ok(&GOOD_POST_ACTION_FAILED),
-            0x00E00000 => Ok(&GOOD_DEPENDENT_VALUE_CHANGED),
-            0x406C0000 => Ok(&UNCERTAIN_REFERENCE_OUT_OF_SERVER),
-            0x408F0000 => Ok(&UNCERTAIN_NO_COMMUNICATION_LAST_USABLE_VALUE),
-            0x40900000 => Ok(&UNCERTAIN_LAST_USABLE_VALUE),
-            0x40910000 => Ok(&UNCERTAIN_SUBSTITUTE_VALUE),
-            0x40920000 => Ok(&UNCERTAIN_INITIAL_VALUE),
-            0x40930000 => Ok(&UNCERTAIN_SENSOR_NOT_ACCURATE),
-            0x40940000 => Ok(&UNCERTAIN_ENGINEERING_UNITS_EXCEEDED),
-            0x40950000 => Ok(&UNCERTAIN_SUB_NORMAL),
-            0x40A40000 => Ok(&UNCERTAIN_DATA_SUB_NORMAL),
-            0x40BC0000 => Ok(&UNCERTAIN_REFERENCE_NOT_DELETED),
-            0x40C00000 => Ok(&UNCERTAIN_NOT_ALL_NODES_AVAILABLE),
-            0x40DE0000 => Ok(&UNCERTAIN_DOMINANT_VALUE_CHANGED),
-            0x40E20000 => Ok(&UNCERTAIN_DEPENDENT_VALUE_CHANGED),
-            0x80010000 => Ok(&BAD_UNEXPECTED_ERROR),
-            0x80020000 => Ok(&BAD_INTERNAL_ERROR),
-            0x80030000 => Ok(&BAD_OUT_OF_MEMORY),
-            0x80040000 => Ok(&BAD_RESOURCE_UNAVAILABLE),
-            0x80050000 => Ok(&BAD_COMMUNICATION_ERROR),
-            0x80060000 => Ok(&BAD_ENCODING_ERROR),
-            0x80070000 => Ok(&BAD_DECODING_ERROR),
-            0x80080000 => Ok(&BAD_ENCODING_LIMITS_EXCEEDED),
-            0x80090000 => Ok(&BAD_UNKNOWN_RESPONSE),
-            0x800A0000 => Ok(&BAD_TIMEOUT),
-            0x800B0000 => Ok(&BAD_SERVICE_UNSUPPORTED),
-            0x800C0000 => Ok(&BAD_SHUTDOWN),
-            0x800D0000 => Ok(&BAD_SERVER_NOT_CONNECTED),
-            0x800E0000 => Ok(&BAD_SERVER_HALTED),
-            0x800F0000 => Ok(&BAD_NOTHING_TO_DO),
-            0x80100000 => Ok(&BAD_TOO_MANY_OPERATIONS),
-            0x80110000 => Ok(&BAD_DATA_TYPE_ID_UNKNOWN),
-            0x80120000 => Ok(&BAD_CERTIFICATE_INVALID),
-            0x80130000 => Ok(&BAD_SECURITY_CHECKS_FAILED),
-            0x80140000 => Ok(&BAD_CERTIFICATE_TIME_INVALID),
-            0x80150000 => Ok(&BAD_CERTIFICATE_ISSUER_TIME_INVALID),
-            0x80160000 => Ok(&BAD_CERTIFICATE_HOST_NAME_INVALID),
-            0x80170000 => Ok(&BAD_CERTIFICATE_URI_INVALID),
-            0x80180000 => Ok(&BAD_CERTIFICATE_USE_NOT_ALLOWED),
-            0x80190000 => Ok(&BAD_CERTIFICATE_ISSUER_USE_NOT_ALLOWED),
-            0x801A0000 => Ok(&BAD_CERTIFICATE_UNTRUSTED),
-            0x801B0000 => Ok(&BAD_CERTIFICATE_REVOCATION_UNKNOWN),
-            0x801C0000 => Ok(&BAD_CERTIFICATE_ISSUER_REVOCATION_UNKNOWN),
-            0x801D0000 => Ok(&BAD_CERTIFICATE_REVOKED),
-            0x801E0000 => Ok(&BAD_CERTIFICATE_ISSUER_REVOKED),
-            0x801F0000 => Ok(&BAD_USER_ACCESS_DENIED),
-            0x80200000 => Ok(&BAD_IDENTITY_TOKEN_INVALID),
-            0x80210000 => Ok(&BAD_IDENTITY_TOKEN_REJECTED),
-            0x80220000 => Ok(&BAD_SECURE_CHANNEL_ID_INVALID),
-            0x80230000 => Ok(&BAD_INVALID_TIMESTAMP),
-            0x80240000 => Ok(&BAD_NONCE_INVALID),
-            0x80250000 => Ok(&BAD_SESSION_ID_INVALID),
-            0x80260000 => Ok(&BAD_SESSION_CLOSED),
-            0x80270000 => Ok(&BAD_SESSION_NOT_ACTIVATED),
-            0x80280000 => Ok(&BAD_SUBSCRIPTION_ID_INVALID),
-            0x802A0000 => Ok(&BAD_REQUEST_HEADER_INVALID),
-            0x802B0000 => Ok(&BAD_TIMESTAMPS_TO_RETURN_INVALID),
-            0x802C0000 => Ok(&BAD_REQUEST_CANCELLED_BY_CLIENT),
-            0x80310000 => Ok(&BAD_NO_COMMUNICATION),
-            0x80320000 => Ok(&BAD_WAITING_FOR_INITIAL_DATA),
-            0x80330000 => Ok(&BAD_NODE_ID_INVALID),
-            0x80340000 => Ok(&BAD_NODE_ID_UNKNOWN),
-            0x80350000 => Ok(&BAD_ATTRIBUTE_ID_INVALID),
-            0x80360000 => Ok(&BAD_INDEX_RANGE_INVALID),
-            0x80370000 => Ok(&BAD_INDEX_RANGE_NO_DATA),
-            0x80380000 => Ok(&BAD_DATA_ENCODING_INVALID),
-            0x80390000 => Ok(&BAD_DATA_ENCODING_UNSUPPORTED),
-            0x803A0000 => Ok(&BAD_NOT_READABLE),
-            0x803B0000 => Ok(&BAD_NOT_WRITABLE),
-            0x803C0000 => Ok(&BAD_OUT_OF_RANGE),
-            0x803D0000 => Ok(&BAD_NOT_SUPPORTED),
-            0x803E0000 => Ok(&BAD_NOT_FOUND),
-            0x803F0000 => Ok(&BAD_OBJECT_DELETED),
-            0x80400000 => Ok(&BAD_NOT_IMPLEMENTED),
-            0x80410000 => Ok(&BAD_MONITORING_MODE_INVALID),
-            0x80420000 => Ok(&BAD_MONITORED_ITEM_ID_INVALID),
-            0x80430000 => Ok(&BAD_MONITORED_ITEM_FILTER_INVALID),
-            0x80440000 => Ok(&BAD_MONITORED_ITEM_FILTER_UNSUPPORTED),
-            0x80450000 => Ok(&BAD_FILTER_NOT_ALLOWED),
-            0x80460000 => Ok(&BAD_STRUCTURE_MISSING),
-            0x80470000 => Ok(&BAD_EVENT_FILTER_INVALID),
-            0x80480000 => Ok(&BAD_CONTENT_FILTER_INVALID),
-            0x80490000 => Ok(&BAD_FILTER_OPERAND_INVALID),
-            0x804A0000 => Ok(&BAD_CONTINUATION_POINT_INVALID),
-            0x804B0000 => Ok(&BAD_NO_CONTINUATION_POINTS),
-            0x804C0000 => Ok(&BAD_REFERENCE_TYPE_ID_INVALID),
-            0x804D0000 => Ok(&BAD_BROWSE_DIRECTION_INVALID),
-            0x804E0000 => Ok(&BAD_NODE_NOT_IN_VIEW),
-            0x804F0000 => Ok(&BAD_SERVER_URI_INVALID),
-            0x80500000 => Ok(&BAD_SERVER_NAME_MISSING),
-            0x80510000 => Ok(&BAD_DISCOVERY_URL_MISSING),
-            0x80520000 => Ok(&BAD_SEMPAHORE_FILE_MISSING),
-            0x80530000 => Ok(&BAD_REQUEST_TYPE_INVALID),
-            0x80540000 => Ok(&BAD_SECURITY_MODE_REJECTED),
-            0x80550000 => Ok(&BAD_SECURITY_POLICY_REJECTED),
-            0x80560000 => Ok(&BAD_TOO_MANY_SESSIONS),
-            0x80570000 => Ok(&BAD_USER_SIGNATURE_INVALID),
-            0x80580000 => Ok(&BAD_APPLICATION_SIGNATURE_INVALID),
-            0x80590000 => Ok(&BAD_NO_VALID_CERTIFICATES),
-            0x805A0000 => Ok(&BAD_REQUEST_CANCELLED_BY_REQUEST),
-            0x805B0000 => Ok(&BAD_PARENT_NODE_ID_INVALID),
-            0x805C0000 => Ok(&BAD_REFERENCE_NOT_ALLOWED),
-            0x805D0000 => Ok(&BAD_NODE_ID_REJECTED),
-            0x805E0000 => Ok(&BAD_NODE_ID_EXISTS),
-            0x805F0000 => Ok(&BAD_NODE_CLASS_INVALID),
-            0x80600000 => Ok(&BAD_BROWSE_NAME_INVALID),
-            0x80610000 => Ok(&BAD_BROWSE_NAME_DUPLICATED),
-            0x80620000 => Ok(&BAD_NODE_ATTRIBUTES_INVALID),
-            0x80630000 => Ok(&BAD_TYPE_DEFINITION_INVALID),
-            0x80640000 => Ok(&BAD_SOURCE_NODE_ID_INVALID),
-            0x80650000 => Ok(&BAD_TARGET_NODE_ID_INVALID),
-            0x80660000 => Ok(&BAD_DUPLICATE_REFERENCE_NOT_ALLOWED),
-            0x80670000 => Ok(&BAD_INVALID_SELF_REFERENCE),
-            0x80680000 => Ok(&BAD_REFERENCE_LOCAL_ONLY),
-            0x80690000 => Ok(&BAD_NO_DELETE_RIGHTS),
-            0x806A0000 => Ok(&BAD_SERVER_INDEX_INVALID),
-            0x806B0000 => Ok(&BAD_VIEW_ID_UNKNOWN),
-            0x806D0000 => Ok(&BAD_TOO_MANY_MATCHES),
-            0x806E0000 => Ok(&BAD_QUERY_TOO_COMPLEX),
-            0x806F0000 => Ok(&BAD_NO_MATCH),
-            0x80700000 => Ok(&BAD_MAX_AGE_INVALID),
-            0x80710000 => Ok(&BAD_HISTORY_OPERATION_INVALID),
-            0x80720000 => Ok(&BAD_HISTORY_OPERATION_UNSUPPORTED),
-            0x80730000 => Ok(&BAD_WRITE_NOT_SUPPORTED),
-            0x80740000 => Ok(&BAD_TYPE_MISMATCH),
-            0x80750000 => Ok(&BAD_METHOD_INVALID),
-            0x80760000 => Ok(&BAD_ARGUMENTS_MISSING),
-            0x80770000 => Ok(&BAD_TOO_MANY_SUBSCRIPTIONS),
-            0x80780000 => Ok(&BAD_TOO_MANY_PUBLISH_REQUESTS),
-            0x80790000 => Ok(&BAD_NO_SUBSCRIPTION),
-            0x807A0000 => Ok(&BAD_SEQUENCE_NUMBER_UNKNOWN),
-            0x807B0000 => Ok(&BAD_MESSAGE_NOT_AVAILABLE),
-            0x807C0000 => Ok(&BAD_INSUFFICIENT_CLIENT_PROFILE),
-            0x807D0000 => Ok(&BAD_TCP_SERVER_TOO_BUSY),
-            0x807E0000 => Ok(&BAD_TCP_MESSAGE_TYPE_INVALID),
-            0x807F0000 => Ok(&BAD_TCP_SECURE_CHANNEL_UNKNOWN),
-            0x80800000 => Ok(&BAD_TCP_MESSAGE_TOO_LARGE),
-            0x80810000 => Ok(&BAD_TCP_NOT_ENOUGH_RESOURCES),
-            0x80820000 => Ok(&BAD_TCP_INTERNAL_ERROR),
-            0x80830000 => Ok(&BAD_TCP_ENDPOINT_URL_INVALID),
-            0x80840000 => Ok(&BAD_REQUEST_INTERRUPTED),
-            0x80850000 => Ok(&BAD_REQUEST_TIMEOUT),
-            0x80860000 => Ok(&BAD_SECURE_CHANNEL_CLOSED),
-            0x80870000 => Ok(&BAD_SECURE_CHANNEL_TOKEN_UNKNOWN),
-            0x80880000 => Ok(&BAD_SEQUENCE_NUMBER_INVALID),
-            0x80890000 => Ok(&BAD_CONFIGURATION_ERROR),
-            0x808A0000 => Ok(&BAD_NOT_CONNECTED),
-            0x808B0000 => Ok(&BAD_DEVICE_FAILURE),
-            0x808C0000 => Ok(&BAD_SENSOR_FAILURE),
-            0x808D0000 => Ok(&BAD_OUT_OF_SERVICE),
-            0x808E0000 => Ok(&BAD_DEADBAND_FILTER_INVALID),
-            0x80970000 => Ok(&BAD_REFRESH_IN_PROGRESS),
-            0x80980000 => Ok(&BAD_CONDITION_ALREADY_DISABLED),
-            0x80990000 => Ok(&BAD_CONDITION_DISABLED),
-            0x809A0000 => Ok(&BAD_EVENT_ID_UNKNOWN),
-            0x809B0000 => Ok(&BAD_NO_DATA),
-            0x809D0000 => Ok(&BAD_DATA_LOST),
-            0x809E0000 => Ok(&BAD_DATA_UNAVAILABLE),
-            0x809F0000 => Ok(&BAD_ENTRY_EXISTS),
-            0x80A00000 => Ok(&BAD_NO_ENTRY_EXISTS),
-            0x80A10000 => Ok(&BAD_TIMESTAMP_NOT_SUPPORTED),
-            0x80AB0000 => Ok(&BAD_INVALID_ARGUMENT),
-            0x80AC0000 => Ok(&BAD_CONNECTION_REJECTED),
-            0x80AD0000 => Ok(&BAD_DISCONNECT),
-            0x80AE0000 => Ok(&BAD_CONNECTION_CLOSED),
-            0x80AF0000 => Ok(&BAD_INVALID_STATE),
-            0x80B00000 => Ok(&BAD_END_OF_STREAM),
-            0x80B10000 => Ok(&BAD_NO_DATA_AVAILABLE),
-            0x80B20000 => Ok(&BAD_WAITING_FOR_RESPONSE),
-            0x80B30000 => Ok(&BAD_OPERATION_ABANDONED),
-            0x80B40000 => Ok(&BAD_EXPECTED_STREAM_TO_BLOCK),
-            0x80B50000 => Ok(&BAD_WOULD_BLOCK),
-            0x80B60000 => Ok(&BAD_SYNTAX_ERROR),
-            0x80B70000 => Ok(&BAD_MAX_CONNECTIONS_REACHED),
-            0x80B80000 => Ok(&BAD_REQUEST_TOO_LARGE),
-            0x80B90000 => Ok(&BAD_RESPONSE_TOO_LARGE),
-            0x80BB0000 => Ok(&BAD_EVENT_NOT_ACKNOWLEDGEABLE),
-            0x80BD0000 => Ok(&BAD_INVALID_TIMESTAMP_ARGUMENT),
-            0x80BE0000 => Ok(&BAD_PROTOCOL_VERSION_UNSUPPORTED),
-            0x80BF0000 => Ok(&BAD_STATE_NOT_ACTIVE),
-            0x80C10000 => Ok(&BAD_FILTER_OPERATOR_INVALID),
-            0x80C20000 => Ok(&BAD_FILTER_OPERATOR_UNSUPPORTED),
-            0x80C30000 => Ok(&BAD_FILTER_OPERAND_COUNT_MISMATCH),
-            0x80C40000 => Ok(&BAD_FILTER_ELEMENT_INVALID),
-            0x80C50000 => Ok(&BAD_FILTER_LITERAL_INVALID),
-            0x80C60000 => Ok(&BAD_IDENTITY_CHANGE_NOT_SUPPORTED),
-            0x80C80000 => Ok(&BAD_NOT_TYPE_DEFINITION),
-            0x80C90000 => Ok(&BAD_VIEW_TIMESTAMP_INVALID),
-            0x80CA0000 => Ok(&BAD_VIEW_PARAMETER_MISMATCH),
-            0x80CB0000 => Ok(&BAD_VIEW_VERSION_INVALID),
-            0x80CC0000 => Ok(&BAD_CONDITION_ALREADY_ENABLED),
-            0x80CD0000 => Ok(&BAD_DIALOG_NOT_ACTIVE),
-            0x80CE0000 => Ok(&BAD_DIALOG_RESPONSE_INVALID),
-            0x80CF0000 => Ok(&BAD_CONDITION_BRANCH_ALREADY_ACKED),
-            0x80D00000 => Ok(&BAD_CONDITION_BRANCH_ALREADY_CONFIRMED),
-            0x80D10000 => Ok(&BAD_CONDITION_ALREADY_SHELVED),
-            0x80D20000 => Ok(&BAD_CONDITION_NOT_SHELVED),
-            0x80D30000 => Ok(&BAD_SHELVING_TIME_OUT_OF_RANGE),
-            0x80D40000 => Ok(&BAD_AGGREGATE_LIST_MISMATCH),
-            0x80D50000 => Ok(&BAD_AGGREGATE_NOT_SUPPORTED),
-            0x80D60000 => Ok(&BAD_AGGREGATE_INVALID_INPUTS),
-            0x80D70000 => Ok(&BAD_BOUND_NOT_FOUND),
-            0x80D80000 => Ok(&BAD_BOUND_NOT_SUPPORTED),
-            0x80DA0000 => Ok(&BAD_AGGREGATE_CONFIGURATION_REJECTED),
-            0x80DB0000 => Ok(&BAD_TOO_MANY_MONITORED_ITEMS),
-            0x80E10000 => Ok(&BAD_DOMINANT_VALUE_CHANGED),
-            0x80E30000 => Ok(&BAD_DEPENDENT_VALUE_CHANGED),
-            0x80E40000 => Ok(&BAD_REQUEST_NOT_ALLOWED),
-            0x80E50000 => Ok(&BAD_TOO_MANY_ARGUMENTS),
-            0x80E60000 => Ok(&BAD_SECURITY_MODE_INSUFFICIENT),
-            0x810D0000 => Ok(&BAD_CERTIFICATE_CHAIN_INCOMPLETE),
+            0 => Ok(GOOD),
+            0x002D0000 => Ok(GOOD_SUBSCRIPTION_TRANSFERRED),
+            0x002E0000 => Ok(GOOD_COMPLETES_ASYNCHRONOUSLY),
+            0x002F0000 => Ok(GOOD_OVERLOAD),
+            0x00300000 => Ok(GOOD_CLAMPED),
+            0x00960000 => Ok(GOOD_LOCAL_OVERRIDE),
+            0x00A20000 => Ok(GOOD_ENTRY_INSERTED),
+            0x00A30000 => Ok(GOOD_ENTRY_REPLACED),
+            0x00A50000 => Ok(GOOD_NO_DATA),
+            0x00A60000 => Ok(GOOD_MORE_DATA),
+            0x00A70000 => Ok(GOOD_COMMUNICATION_EVENT),
+            0x00A80000 => Ok(GOOD_SHUTDOWN_EVENT),
+            0x00A90000 => Ok(GOOD_CALL_AGAIN),
+            0x00AA0000 => Ok(GOOD_NON_CRITICAL_TIMEOUT),
+            0x00BA0000 => Ok(GOOD_RESULTS_MAY_BE_INCOMPLETE),
+            0x00D90000 => Ok(GOOD_DATA_IGNORED),
+            0x00DC0000 => Ok(GOOD_EDITED),
+            0x00DD0000 => Ok(GOOD_POST_ACTION_FAILED),
+            0x00E00000 => Ok(GOOD_DEPENDENT_VALUE_CHANGED),
+            0x406C0000 => Ok(UNCERTAIN_REFERENCE_OUT_OF_SERVER),
+            0x408F0000 => Ok(UNCERTAIN_NO_COMMUNICATION_LAST_USABLE_VALUE),
+            0x40900000 => Ok(UNCERTAIN_LAST_USABLE_VALUE),
+            0x40910000 => Ok(UNCERTAIN_SUBSTITUTE_VALUE),
+            0x40920000 => Ok(UNCERTAIN_INITIAL_VALUE),
+            0x40930000 => Ok(UNCERTAIN_SENSOR_NOT_ACCURATE),
+            0x40940000 => Ok(UNCERTAIN_ENGINEERING_UNITS_EXCEEDED),
+            0x40950000 => Ok(UNCERTAIN_SUB_NORMAL),
+            0x40A40000 => Ok(UNCERTAIN_DATA_SUB_NORMAL),
+            0x40BC0000 => Ok(UNCERTAIN_REFERENCE_NOT_DELETED),
+            0x40C00000 => Ok(UNCERTAIN_NOT_ALL_NODES_AVAILABLE),
+            0x40DE0000 => Ok(UNCERTAIN_DOMINANT_VALUE_CHANGED),
+            0x40E20000 => Ok(UNCERTAIN_DEPENDENT_VALUE_CHANGED),
+            0x80010000 => Ok(BAD_UNEXPECTED_ERROR),
+            0x80020000 => Ok(BAD_INTERNAL_ERROR),
+            0x80030000 => Ok(BAD_OUT_OF_MEMORY),
+            0x80040000 => Ok(BAD_RESOURCE_UNAVAILABLE),
+            0x80050000 => Ok(BAD_COMMUNICATION_ERROR),
+            0x80060000 => Ok(BAD_ENCODING_ERROR),
+            0x80070000 => Ok(BAD_DECODING_ERROR),
+            0x80080000 => Ok(BAD_ENCODING_LIMITS_EXCEEDED),
+            0x80090000 => Ok(BAD_UNKNOWN_RESPONSE),
+            0x800A0000 => Ok(BAD_TIMEOUT),
+            0x800B0000 => Ok(BAD_SERVICE_UNSUPPORTED),
+            0x800C0000 => Ok(BAD_SHUTDOWN),
+            0x800D0000 => Ok(BAD_SERVER_NOT_CONNECTED),
+            0x800E0000 => Ok(BAD_SERVER_HALTED),
+            0x800F0000 => Ok(BAD_NOTHING_TO_DO),
+            0x80100000 => Ok(BAD_TOO_MANY_OPERATIONS),
+            0x80110000 => Ok(BAD_DATA_TYPE_ID_UNKNOWN),
+            0x80120000 => Ok(BAD_CERTIFICATE_INVALID),
+            0x80130000 => Ok(BAD_SECURITY_CHECKS_FAILED),
+            0x80140000 => Ok(BAD_CERTIFICATE_TIME_INVALID),
+            0x80150000 => Ok(BAD_CERTIFICATE_ISSUER_TIME_INVALID),
+            0x80160000 => Ok(BAD_CERTIFICATE_HOST_NAME_INVALID),
+            0x80170000 => Ok(BAD_CERTIFICATE_URI_INVALID),
+            0x80180000 => Ok(BAD_CERTIFICATE_USE_NOT_ALLOWED),
+            0x80190000 => Ok(BAD_CERTIFICATE_ISSUER_USE_NOT_ALLOWED),
+            0x801A0000 => Ok(BAD_CERTIFICATE_UNTRUSTED),
+            0x801B0000 => Ok(BAD_CERTIFICATE_REVOCATION_UNKNOWN),
+            0x801C0000 => Ok(BAD_CERTIFICATE_ISSUER_REVOCATION_UNKNOWN),
+            0x801D0000 => Ok(BAD_CERTIFICATE_REVOKED),
+            0x801E0000 => Ok(BAD_CERTIFICATE_ISSUER_REVOKED),
+            0x801F0000 => Ok(BAD_USER_ACCESS_DENIED),
+            0x80200000 => Ok(BAD_IDENTITY_TOKEN_INVALID),
+            0x80210000 => Ok(BAD_IDENTITY_TOKEN_REJECTED),
+            0x80220000 => Ok(BAD_SECURE_CHANNEL_ID_INVALID),
+            0x80230000 => Ok(BAD_INVALID_TIMESTAMP),
+            0x80240000 => Ok(BAD_NONCE_INVALID),
+            0x80250000 => Ok(BAD_SESSION_ID_INVALID),
+            0x80260000 => Ok(BAD_SESSION_CLOSED),
+            0x80270000 => Ok(BAD_SESSION_NOT_ACTIVATED),
+            0x80280000 => Ok(BAD_SUBSCRIPTION_ID_INVALID),
+            0x802A0000 => Ok(BAD_REQUEST_HEADER_INVALID),
+            0x802B0000 => Ok(BAD_TIMESTAMPS_TO_RETURN_INVALID),
+            0x802C0000 => Ok(BAD_REQUEST_CANCELLED_BY_CLIENT),
+            0x80310000 => Ok(BAD_NO_COMMUNICATION),
+            0x80320000 => Ok(BAD_WAITING_FOR_INITIAL_DATA),
+            0x80330000 => Ok(BAD_NODE_ID_INVALID),
+            0x80340000 => Ok(BAD_NODE_ID_UNKNOWN),
+            0x80350000 => Ok(BAD_ATTRIBUTE_ID_INVALID),
+            0x80360000 => Ok(BAD_INDEX_RANGE_INVALID),
+            0x80370000 => Ok(BAD_INDEX_RANGE_NO_DATA),
+            0x80380000 => Ok(BAD_DATA_ENCODING_INVALID),
+            0x80390000 => Ok(BAD_DATA_ENCODING_UNSUPPORTED),
+            0x803A0000 => Ok(BAD_NOT_READABLE),
+            0x803B0000 => Ok(BAD_NOT_WRITABLE),
+            0x803C0000 => Ok(BAD_OUT_OF_RANGE),
+            0x803D0000 => Ok(BAD_NOT_SUPPORTED),
+            0x803E0000 => Ok(BAD_NOT_FOUND),
+            0x803F0000 => Ok(BAD_OBJECT_DELETED),
+            0x80400000 => Ok(BAD_NOT_IMPLEMENTED),
+            0x80410000 => Ok(BAD_MONITORING_MODE_INVALID),
+            0x80420000 => Ok(BAD_MONITORED_ITEM_ID_INVALID),
+            0x80430000 => Ok(BAD_MONITORED_ITEM_FILTER_INVALID),
+            0x80440000 => Ok(BAD_MONITORED_ITEM_FILTER_UNSUPPORTED),
+            0x80450000 => Ok(BAD_FILTER_NOT_ALLOWED),
+            0x80460000 => Ok(BAD_STRUCTURE_MISSING),
+            0x80470000 => Ok(BAD_EVENT_FILTER_INVALID),
+            0x80480000 => Ok(BAD_CONTENT_FILTER_INVALID),
+            0x80490000 => Ok(BAD_FILTER_OPERAND_INVALID),
+            0x804A0000 => Ok(BAD_CONTINUATION_POINT_INVALID),
+            0x804B0000 => Ok(BAD_NO_CONTINUATION_POINTS),
+            0x804C0000 => Ok(BAD_REFERENCE_TYPE_ID_INVALID),
+            0x804D0000 => Ok(BAD_BROWSE_DIRECTION_INVALID),
+            0x804E0000 => Ok(BAD_NODE_NOT_IN_VIEW),
+            0x804F0000 => Ok(BAD_SERVER_URI_INVALID),
+            0x80500000 => Ok(BAD_SERVER_NAME_MISSING),
+            0x80510000 => Ok(BAD_DISCOVERY_URL_MISSING),
+            0x80520000 => Ok(BAD_SEMPAHORE_FILE_MISSING),
+            0x80530000 => Ok(BAD_REQUEST_TYPE_INVALID),
+            0x80540000 => Ok(BAD_SECURITY_MODE_REJECTED),
+            0x80550000 => Ok(BAD_SECURITY_POLICY_REJECTED),
+            0x80560000 => Ok(BAD_TOO_MANY_SESSIONS),
+            0x80570000 => Ok(BAD_USER_SIGNATURE_INVALID),
+            0x80580000 => Ok(BAD_APPLICATION_SIGNATURE_INVALID),
+            0x80590000 => Ok(BAD_NO_VALID_CERTIFICATES),
+            0x805A0000 => Ok(BAD_REQUEST_CANCELLED_BY_REQUEST),
+            0x805B0000 => Ok(BAD_PARENT_NODE_ID_INVALID),
+            0x805C0000 => Ok(BAD_REFERENCE_NOT_ALLOWED),
+            0x805D0000 => Ok(BAD_NODE_ID_REJECTED),
+            0x805E0000 => Ok(BAD_NODE_ID_EXISTS),
+            0x805F0000 => Ok(BAD_NODE_CLASS_INVALID),
+            0x80600000 => Ok(BAD_BROWSE_NAME_INVALID),
+            0x80610000 => Ok(BAD_BROWSE_NAME_DUPLICATED),
+            0x80620000 => Ok(BAD_NODE_ATTRIBUTES_INVALID),
+            0x80630000 => Ok(BAD_TYPE_DEFINITION_INVALID),
+            0x80640000 => Ok(BAD_SOURCE_NODE_ID_INVALID),
+            0x80650000 => Ok(BAD_TARGET_NODE_ID_INVALID),
+            0x80660000 => Ok(BAD_DUPLICATE_REFERENCE_NOT_ALLOWED),
+            0x80670000 => Ok(BAD_INVALID_SELF_REFERENCE),
+            0x80680000 => Ok(BAD_REFERENCE_LOCAL_ONLY),
+            0x80690000 => Ok(BAD_NO_DELETE_RIGHTS),
+            0x806A0000 => Ok(BAD_SERVER_INDEX_INVALID),
+            0x806B0000 => Ok(BAD_VIEW_ID_UNKNOWN),
+            0x806D0000 => Ok(BAD_TOO_MANY_MATCHES),
+            0x806E0000 => Ok(BAD_QUERY_TOO_COMPLEX),
+            0x806F0000 => Ok(BAD_NO_MATCH),
+            0x80700000 => Ok(BAD_MAX_AGE_INVALID),
+            0x80710000 => Ok(BAD_HISTORY_OPERATION_INVALID),
+            0x80720000 => Ok(BAD_HISTORY_OPERATION_UNSUPPORTED),
+            0x80730000 => Ok(BAD_WRITE_NOT_SUPPORTED),
+            0x80740000 => Ok(BAD_TYPE_MISMATCH),
+            0x80750000 => Ok(BAD_METHOD_INVALID),
+            0x80760000 => Ok(BAD_ARGUMENTS_MISSING),
+            0x80770000 => Ok(BAD_TOO_MANY_SUBSCRIPTIONS),
+            0x80780000 => Ok(BAD_TOO_MANY_PUBLISH_REQUESTS),
+            0x80790000 => Ok(BAD_NO_SUBSCRIPTION),
+            0x807A0000 => Ok(BAD_SEQUENCE_NUMBER_UNKNOWN),
+            0x807B0000 => Ok(BAD_MESSAGE_NOT_AVAILABLE),
+            0x807C0000 => Ok(BAD_INSUFFICIENT_CLIENT_PROFILE),
+            0x807D0000 => Ok(BAD_TCP_SERVER_TOO_BUSY),
+            0x807E0000 => Ok(BAD_TCP_MESSAGE_TYPE_INVALID),
+            0x807F0000 => Ok(BAD_TCP_SECURE_CHANNEL_UNKNOWN),
+            0x80800000 => Ok(BAD_TCP_MESSAGE_TOO_LARGE),
+            0x80810000 => Ok(BAD_TCP_NOT_ENOUGH_RESOURCES),
+            0x80820000 => Ok(BAD_TCP_INTERNAL_ERROR),
+            0x80830000 => Ok(BAD_TCP_ENDPOINT_URL_INVALID),
+            0x80840000 => Ok(BAD_REQUEST_INTERRUPTED),
+            0x80850000 => Ok(BAD_REQUEST_TIMEOUT),
+            0x80860000 => Ok(BAD_SECURE_CHANNEL_CLOSED),
+            0x80870000 => Ok(BAD_SECURE_CHANNEL_TOKEN_UNKNOWN),
+            0x80880000 => Ok(BAD_SEQUENCE_NUMBER_INVALID),
+            0x80890000 => Ok(BAD_CONFIGURATION_ERROR),
+            0x808A0000 => Ok(BAD_NOT_CONNECTED),
+            0x808B0000 => Ok(BAD_DEVICE_FAILURE),
+            0x808C0000 => Ok(BAD_SENSOR_FAILURE),
+            0x808D0000 => Ok(BAD_OUT_OF_SERVICE),
+            0x808E0000 => Ok(BAD_DEADBAND_FILTER_INVALID),
+            0x80970000 => Ok(BAD_REFRESH_IN_PROGRESS),
+            0x80980000 => Ok(BAD_CONDITION_ALREADY_DISABLED),
+            0x80990000 => Ok(BAD_CONDITION_DISABLED),
+            0x809A0000 => Ok(BAD_EVENT_ID_UNKNOWN),
+            0x809B0000 => Ok(BAD_NO_DATA),
+            0x809D0000 => Ok(BAD_DATA_LOST),
+            0x809E0000 => Ok(BAD_DATA_UNAVAILABLE),
+            0x809F0000 => Ok(BAD_ENTRY_EXISTS),
+            0x80A00000 => Ok(BAD_NO_ENTRY_EXISTS),
+            0x80A10000 => Ok(BAD_TIMESTAMP_NOT_SUPPORTED),
+            0x80AB0000 => Ok(BAD_INVALID_ARGUMENT),
+            0x80AC0000 => Ok(BAD_CONNECTION_REJECTED),
+            0x80AD0000 => Ok(BAD_DISCONNECT),
+            0x80AE0000 => Ok(BAD_CONNECTION_CLOSED),
+            0x80AF0000 => Ok(BAD_INVALID_STATE),
+            0x80B00000 => Ok(BAD_END_OF_STREAM),
+            0x80B10000 => Ok(BAD_NO_DATA_AVAILABLE),
+            0x80B20000 => Ok(BAD_WAITING_FOR_RESPONSE),
+            0x80B30000 => Ok(BAD_OPERATION_ABANDONED),
+            0x80B40000 => Ok(BAD_EXPECTED_STREAM_TO_BLOCK),
+            0x80B50000 => Ok(BAD_WOULD_BLOCK),
+            0x80B60000 => Ok(BAD_SYNTAX_ERROR),
+            0x80B70000 => Ok(BAD_MAX_CONNECTIONS_REACHED),
+            0x80B80000 => Ok(BAD_REQUEST_TOO_LARGE),
+            0x80B90000 => Ok(BAD_RESPONSE_TOO_LARGE),
+            0x80BB0000 => Ok(BAD_EVENT_NOT_ACKNOWLEDGEABLE),
+            0x80BD0000 => Ok(BAD_INVALID_TIMESTAMP_ARGUMENT),
+            0x80BE0000 => Ok(BAD_PROTOCOL_VERSION_UNSUPPORTED),
+            0x80BF0000 => Ok(BAD_STATE_NOT_ACTIVE),
+            0x80C10000 => Ok(BAD_FILTER_OPERATOR_INVALID),
+            0x80C20000 => Ok(BAD_FILTER_OPERATOR_UNSUPPORTED),
+            0x80C30000 => Ok(BAD_FILTER_OPERAND_COUNT_MISMATCH),
+            0x80C40000 => Ok(BAD_FILTER_ELEMENT_INVALID),
+            0x80C50000 => Ok(BAD_FILTER_LITERAL_INVALID),
+            0x80C60000 => Ok(BAD_IDENTITY_CHANGE_NOT_SUPPORTED),
+            0x80C80000 => Ok(BAD_NOT_TYPE_DEFINITION),
+            0x80C90000 => Ok(BAD_VIEW_TIMESTAMP_INVALID),
+            0x80CA0000 => Ok(BAD_VIEW_PARAMETER_MISMATCH),
+            0x80CB0000 => Ok(BAD_VIEW_VERSION_INVALID),
+            0x80CC0000 => Ok(BAD_CONDITION_ALREADY_ENABLED),
+            0x80CD0000 => Ok(BAD_DIALOG_NOT_ACTIVE),
+            0x80CE0000 => Ok(BAD_DIALOG_RESPONSE_INVALID),
+            0x80CF0000 => Ok(BAD_CONDITION_BRANCH_ALREADY_ACKED),
+            0x80D00000 => Ok(BAD_CONDITION_BRANCH_ALREADY_CONFIRMED),
+            0x80D10000 => Ok(BAD_CONDITION_ALREADY_SHELVED),
+            0x80D20000 => Ok(BAD_CONDITION_NOT_SHELVED),
+            0x80D30000 => Ok(BAD_SHELVING_TIME_OUT_OF_RANGE),
+            0x80D40000 => Ok(BAD_AGGREGATE_LIST_MISMATCH),
+            0x80D50000 => Ok(BAD_AGGREGATE_NOT_SUPPORTED),
+            0x80D60000 => Ok(BAD_AGGREGATE_INVALID_INPUTS),
+            0x80D70000 => Ok(BAD_BOUND_NOT_FOUND),
+            0x80D80000 => Ok(BAD_BOUND_NOT_SUPPORTED),
+            0x80DA0000 => Ok(BAD_AGGREGATE_CONFIGURATION_REJECTED),
+            0x80DB0000 => Ok(BAD_TOO_MANY_MONITORED_ITEMS),
+            0x80E10000 => Ok(BAD_DOMINANT_VALUE_CHANGED),
+            0x80E30000 => Ok(BAD_DEPENDENT_VALUE_CHANGED),
+            0x80E40000 => Ok(BAD_REQUEST_NOT_ALLOWED),
+            0x80E50000 => Ok(BAD_TOO_MANY_ARGUMENTS),
+            0x80E60000 => Ok(BAD_SECURITY_MODE_INSUFFICIENT),
+            0x810D0000 => Ok(BAD_CERTIFICATE_CHAIN_INCOMPLETE),
             _ => Err(())
         }
     }
 
     /// Takes an OPC UA status code as a string and returns the matching StatusCode - assuming there is one
-    pub fn from_str(name: &str) -> std::result::Result<&'static StatusCode, ()> {
+    pub fn from_str(name: &str) -> std::result::Result<StatusCode, ()> {
         match name {
-            "Good" => Ok(&GOOD),
-            "GoodSubscriptionTransferred" => Ok(&GOOD_SUBSCRIPTION_TRANSFERRED),
-            "GoodCompletesAsynchronously" => Ok(&GOOD_COMPLETES_ASYNCHRONOUSLY),
-            "GoodOverload" => Ok(&GOOD_OVERLOAD),
-            "GoodClamped" => Ok(&GOOD_CLAMPED),
-            "GoodLocalOverride" => Ok(&GOOD_LOCAL_OVERRIDE),
-            "GoodEntryInserted" => Ok(&GOOD_ENTRY_INSERTED),
-            "GoodEntryReplaced" => Ok(&GOOD_ENTRY_REPLACED),
-            "GoodNoData" => Ok(&GOOD_NO_DATA),
-            "GoodMoreData" => Ok(&GOOD_MORE_DATA),
-            "GoodCommunicationEvent" => Ok(&GOOD_COMMUNICATION_EVENT),
-            "GoodShutdownEvent" => Ok(&GOOD_SHUTDOWN_EVENT),
-            "GoodCallAgain" => Ok(&GOOD_CALL_AGAIN),
-            "GoodNonCriticalTimeout" => Ok(&GOOD_NON_CRITICAL_TIMEOUT),
-            "GoodResultsMayBeIncomplete" => Ok(&GOOD_RESULTS_MAY_BE_INCOMPLETE),
-            "GoodDataIgnored" => Ok(&GOOD_DATA_IGNORED),
-            "GoodEdited" => Ok(&GOOD_EDITED),
-            "GoodPostActionFailed" => Ok(&GOOD_POST_ACTION_FAILED),
-            "GoodDependentValueChanged" => Ok(&GOOD_DEPENDENT_VALUE_CHANGED),
-            "UncertainReferenceOutOfServer" => Ok(&UNCERTAIN_REFERENCE_OUT_OF_SERVER),
-            "UncertainNoCommunicationLastUsableValue" => Ok(&UNCERTAIN_NO_COMMUNICATION_LAST_USABLE_VALUE),
-            "UncertainLastUsableValue" => Ok(&UNCERTAIN_LAST_USABLE_VALUE),
-            "UncertainSubstituteValue" => Ok(&UNCERTAIN_SUBSTITUTE_VALUE),
-            "UncertainInitialValue" => Ok(&UNCERTAIN_INITIAL_VALUE),
-            "UncertainSensorNotAccurate" => Ok(&UNCERTAIN_SENSOR_NOT_ACCURATE),
-            "UncertainEngineeringUnitsExceeded" => Ok(&UNCERTAIN_ENGINEERING_UNITS_EXCEEDED),
-            "UncertainSubNormal" => Ok(&UNCERTAIN_SUB_NORMAL),
-            "UncertainDataSubNormal" => Ok(&UNCERTAIN_DATA_SUB_NORMAL),
-            "UncertainReferenceNotDeleted" => Ok(&UNCERTAIN_REFERENCE_NOT_DELETED),
-            "UncertainNotAllNodesAvailable" => Ok(&UNCERTAIN_NOT_ALL_NODES_AVAILABLE),
-            "UncertainDominantValueChanged" => Ok(&UNCERTAIN_DOMINANT_VALUE_CHANGED),
-            "UncertainDependentValueChanged" => Ok(&UNCERTAIN_DEPENDENT_VALUE_CHANGED),
-            "BadUnexpectedError" => Ok(&BAD_UNEXPECTED_ERROR),
-            "BadInternalError" => Ok(&BAD_INTERNAL_ERROR),
-            "BadOutOfMemory" => Ok(&BAD_OUT_OF_MEMORY),
-            "BadResourceUnavailable" => Ok(&BAD_RESOURCE_UNAVAILABLE),
-            "BadCommunicationError" => Ok(&BAD_COMMUNICATION_ERROR),
-            "BadEncodingError" => Ok(&BAD_ENCODING_ERROR),
-            "BadDecodingError" => Ok(&BAD_DECODING_ERROR),
-            "BadEncodingLimitsExceeded" => Ok(&BAD_ENCODING_LIMITS_EXCEEDED),
-            "BadUnknownResponse" => Ok(&BAD_UNKNOWN_RESPONSE),
-            "BadTimeout" => Ok(&BAD_TIMEOUT),
-            "BadServiceUnsupported" => Ok(&BAD_SERVICE_UNSUPPORTED),
-            "BadShutdown" => Ok(&BAD_SHUTDOWN),
-            "BadServerNotConnected" => Ok(&BAD_SERVER_NOT_CONNECTED),
-            "BadServerHalted" => Ok(&BAD_SERVER_HALTED),
-            "BadNothingToDo" => Ok(&BAD_NOTHING_TO_DO),
-            "BadTooManyOperations" => Ok(&BAD_TOO_MANY_OPERATIONS),
-            "BadDataTypeIdUnknown" => Ok(&BAD_DATA_TYPE_ID_UNKNOWN),
-            "BadCertificateInvalid" => Ok(&BAD_CERTIFICATE_INVALID),
-            "BadSecurityChecksFailed" => Ok(&BAD_SECURITY_CHECKS_FAILED),
-            "BadCertificateTimeInvalid" => Ok(&BAD_CERTIFICATE_TIME_INVALID),
-            "BadCertificateIssuerTimeInvalid" => Ok(&BAD_CERTIFICATE_ISSUER_TIME_INVALID),
-            "BadCertificateHostNameInvalid" => Ok(&BAD_CERTIFICATE_HOST_NAME_INVALID),
-            "BadCertificateUriInvalid" => Ok(&BAD_CERTIFICATE_URI_INVALID),
-            "BadCertificateUseNotAllowed" => Ok(&BAD_CERTIFICATE_USE_NOT_ALLOWED),
-            "BadCertificateIssuerUseNotAllowed" => Ok(&BAD_CERTIFICATE_ISSUER_USE_NOT_ALLOWED),
-            "BadCertificateUntrusted" => Ok(&BAD_CERTIFICATE_UNTRUSTED),
-            "BadCertificateRevocationUnknown" => Ok(&BAD_CERTIFICATE_REVOCATION_UNKNOWN),
-            "BadCertificateIssuerRevocationUnknown" => Ok(&BAD_CERTIFICATE_ISSUER_REVOCATION_UNKNOWN),
-            "BadCertificateRevoked" => Ok(&BAD_CERTIFICATE_REVOKED),
-            "BadCertificateIssuerRevoked" => Ok(&BAD_CERTIFICATE_ISSUER_REVOKED),
-            "BadUserAccessDenied" => Ok(&BAD_USER_ACCESS_DENIED),
-            "BadIdentityTokenInvalid" => Ok(&BAD_IDENTITY_TOKEN_INVALID),
-            "BadIdentityTokenRejected" => Ok(&BAD_IDENTITY_TOKEN_REJECTED),
-            "BadSecureChannelIdInvalid" => Ok(&BAD_SECURE_CHANNEL_ID_INVALID),
-            "BadInvalidTimestamp" => Ok(&BAD_INVALID_TIMESTAMP),
-            "BadNonceInvalid" => Ok(&BAD_NONCE_INVALID),
-            "BadSessionIdInvalid" => Ok(&BAD_SESSION_ID_INVALID),
-            "BadSessionClosed" => Ok(&BAD_SESSION_CLOSED),
-            "BadSessionNotActivated" => Ok(&BAD_SESSION_NOT_ACTIVATED),
-            "BadSubscriptionIdInvalid" => Ok(&BAD_SUBSCRIPTION_ID_INVALID),
-            "BadRequestHeaderInvalid" => Ok(&BAD_REQUEST_HEADER_INVALID),
-            "BadTimestampsToReturnInvalid" => Ok(&BAD_TIMESTAMPS_TO_RETURN_INVALID),
-            "BadRequestCancelledByClient" => Ok(&BAD_REQUEST_CANCELLED_BY_CLIENT),
-            "BadNoCommunication" => Ok(&BAD_NO_COMMUNICATION),
-            "BadWaitingForInitialData" => Ok(&BAD_WAITING_FOR_INITIAL_DATA),
-            "BadNodeIdInvalid" => Ok(&BAD_NODE_ID_INVALID),
-            "BadNodeIdUnknown" => Ok(&BAD_NODE_ID_UNKNOWN),
-            "BadAttributeIdInvalid" => Ok(&BAD_ATTRIBUTE_ID_INVALID),
-            "BadIndexRangeInvalid" => Ok(&BAD_INDEX_RANGE_INVALID),
-            "BadIndexRangeNoData" => Ok(&BAD_INDEX_RANGE_NO_DATA),
-            "BadDataEncodingInvalid" => Ok(&BAD_DATA_ENCODING_INVALID),
-            "BadDataEncodingUnsupported" => Ok(&BAD_DATA_ENCODING_UNSUPPORTED),
-            "BadNotReadable" => Ok(&BAD_NOT_READABLE),
-            "BadNotWritable" => Ok(&BAD_NOT_WRITABLE),
-            "BadOutOfRange" => Ok(&BAD_OUT_OF_RANGE),
-            "BadNotSupported" => Ok(&BAD_NOT_SUPPORTED),
-            "BadNotFound" => Ok(&BAD_NOT_FOUND),
-            "BadObjectDeleted" => Ok(&BAD_OBJECT_DELETED),
-            "BadNotImplemented" => Ok(&BAD_NOT_IMPLEMENTED),
-            "BadMonitoringModeInvalid" => Ok(&BAD_MONITORING_MODE_INVALID),
-            "BadMonitoredItemIdInvalid" => Ok(&BAD_MONITORED_ITEM_ID_INVALID),
-            "BadMonitoredItemFilterInvalid" => Ok(&BAD_MONITORED_ITEM_FILTER_INVALID),
-            "BadMonitoredItemFilterUnsupported" => Ok(&BAD_MONITORED_ITEM_FILTER_UNSUPPORTED),
-            "BadFilterNotAllowed" => Ok(&BAD_FILTER_NOT_ALLOWED),
-            "BadStructureMissing" => Ok(&BAD_STRUCTURE_MISSING),
-            "BadEventFilterInvalid" => Ok(&BAD_EVENT_FILTER_INVALID),
-            "BadContentFilterInvalid" => Ok(&BAD_CONTENT_FILTER_INVALID),
-            "BadFilterOperandInvalid" => Ok(&BAD_FILTER_OPERAND_INVALID),
-            "BadContinuationPointInvalid" => Ok(&BAD_CONTINUATION_POINT_INVALID),
-            "BadNoContinuationPoints" => Ok(&BAD_NO_CONTINUATION_POINTS),
-            "BadReferenceTypeIdInvalid" => Ok(&BAD_REFERENCE_TYPE_ID_INVALID),
-            "BadBrowseDirectionInvalid" => Ok(&BAD_BROWSE_DIRECTION_INVALID),
-            "BadNodeNotInView" => Ok(&BAD_NODE_NOT_IN_VIEW),
-            "BadServerUriInvalid" => Ok(&BAD_SERVER_URI_INVALID),
-            "BadServerNameMissing" => Ok(&BAD_SERVER_NAME_MISSING),
-            "BadDiscoveryUrlMissing" => Ok(&BAD_DISCOVERY_URL_MISSING),
-            "BadSempahoreFileMissing" => Ok(&BAD_SEMPAHORE_FILE_MISSING),
-            "BadRequestTypeInvalid" => Ok(&BAD_REQUEST_TYPE_INVALID),
-            "BadSecurityModeRejected" => Ok(&BAD_SECURITY_MODE_REJECTED),
-            "BadSecurityPolicyRejected" => Ok(&BAD_SECURITY_POLICY_REJECTED),
-            "BadTooManySessions" => Ok(&BAD_TOO_MANY_SESSIONS),
-            "BadUserSignatureInvalid" => Ok(&BAD_USER_SIGNATURE_INVALID),
-            "BadApplicationSignatureInvalid" => Ok(&BAD_APPLICATION_SIGNATURE_INVALID),
-            "BadNoValidCertificates" => Ok(&BAD_NO_VALID_CERTIFICATES),
-            "BadRequestCancelledByRequest" => Ok(&BAD_REQUEST_CANCELLED_BY_REQUEST),
-            "BadParentNodeIdInvalid" => Ok(&BAD_PARENT_NODE_ID_INVALID),
-            "BadReferenceNotAllowed" => Ok(&BAD_REFERENCE_NOT_ALLOWED),
-            "BadNodeIdRejected" => Ok(&BAD_NODE_ID_REJECTED),
-            "BadNodeIdExists" => Ok(&BAD_NODE_ID_EXISTS),
-            "BadNodeClassInvalid" => Ok(&BAD_NODE_CLASS_INVALID),
-            "BadBrowseNameInvalid" => Ok(&BAD_BROWSE_NAME_INVALID),
-            "BadBrowseNameDuplicated" => Ok(&BAD_BROWSE_NAME_DUPLICATED),
-            "BadNodeAttributesInvalid" => Ok(&BAD_NODE_ATTRIBUTES_INVALID),
-            "BadTypeDefinitionInvalid" => Ok(&BAD_TYPE_DEFINITION_INVALID),
-            "BadSourceNodeIdInvalid" => Ok(&BAD_SOURCE_NODE_ID_INVALID),
-            "BadTargetNodeIdInvalid" => Ok(&BAD_TARGET_NODE_ID_INVALID),
-            "BadDuplicateReferenceNotAllowed" => Ok(&BAD_DUPLICATE_REFERENCE_NOT_ALLOWED),
-            "BadInvalidSelfReference" => Ok(&BAD_INVALID_SELF_REFERENCE),
-            "BadReferenceLocalOnly" => Ok(&BAD_REFERENCE_LOCAL_ONLY),
-            "BadNoDeleteRights" => Ok(&BAD_NO_DELETE_RIGHTS),
-            "BadServerIndexInvalid" => Ok(&BAD_SERVER_INDEX_INVALID),
-            "BadViewIdUnknown" => Ok(&BAD_VIEW_ID_UNKNOWN),
-            "BadTooManyMatches" => Ok(&BAD_TOO_MANY_MATCHES),
-            "BadQueryTooComplex" => Ok(&BAD_QUERY_TOO_COMPLEX),
-            "BadNoMatch" => Ok(&BAD_NO_MATCH),
-            "BadMaxAgeInvalid" => Ok(&BAD_MAX_AGE_INVALID),
-            "BadHistoryOperationInvalid" => Ok(&BAD_HISTORY_OPERATION_INVALID),
-            "BadHistoryOperationUnsupported" => Ok(&BAD_HISTORY_OPERATION_UNSUPPORTED),
-            "BadWriteNotSupported" => Ok(&BAD_WRITE_NOT_SUPPORTED),
-            "BadTypeMismatch" => Ok(&BAD_TYPE_MISMATCH),
-            "BadMethodInvalid" => Ok(&BAD_METHOD_INVALID),
-            "BadArgumentsMissing" => Ok(&BAD_ARGUMENTS_MISSING),
-            "BadTooManySubscriptions" => Ok(&BAD_TOO_MANY_SUBSCRIPTIONS),
-            "BadTooManyPublishRequests" => Ok(&BAD_TOO_MANY_PUBLISH_REQUESTS),
-            "BadNoSubscription" => Ok(&BAD_NO_SUBSCRIPTION),
-            "BadSequenceNumberUnknown" => Ok(&BAD_SEQUENCE_NUMBER_UNKNOWN),
-            "BadMessageNotAvailable" => Ok(&BAD_MESSAGE_NOT_AVAILABLE),
-            "BadInsufficientClientProfile" => Ok(&BAD_INSUFFICIENT_CLIENT_PROFILE),
-            "BadTcpServerTooBusy" => Ok(&BAD_TCP_SERVER_TOO_BUSY),
-            "BadTcpMessageTypeInvalid" => Ok(&BAD_TCP_MESSAGE_TYPE_INVALID),
-            "BadTcpSecureChannelUnknown" => Ok(&BAD_TCP_SECURE_CHANNEL_UNKNOWN),
-            "BadTcpMessageTooLarge" => Ok(&BAD_TCP_MESSAGE_TOO_LARGE),
-            "BadTcpNotEnoughResources" => Ok(&BAD_TCP_NOT_ENOUGH_RESOURCES),
-            "BadTcpInternalError" => Ok(&BAD_TCP_INTERNAL_ERROR),
-            "BadTcpEndpointUrlInvalid" => Ok(&BAD_TCP_ENDPOINT_URL_INVALID),
-            "BadRequestInterrupted" => Ok(&BAD_REQUEST_INTERRUPTED),
-            "BadRequestTimeout" => Ok(&BAD_REQUEST_TIMEOUT),
-            "BadSecureChannelClosed" => Ok(&BAD_SECURE_CHANNEL_CLOSED),
-            "BadSecureChannelTokenUnknown" => Ok(&BAD_SECURE_CHANNEL_TOKEN_UNKNOWN),
-            "BadSequenceNumberInvalid" => Ok(&BAD_SEQUENCE_NUMBER_INVALID),
-            "BadConfigurationError" => Ok(&BAD_CONFIGURATION_ERROR),
-            "BadNotConnected" => Ok(&BAD_NOT_CONNECTED),
-            "BadDeviceFailure" => Ok(&BAD_DEVICE_FAILURE),
-            "BadSensorFailure" => Ok(&BAD_SENSOR_FAILURE),
-            "BadOutOfService" => Ok(&BAD_OUT_OF_SERVICE),
-            "BadDeadbandFilterInvalid" => Ok(&BAD_DEADBAND_FILTER_INVALID),
-            "BadRefreshInProgress" => Ok(&BAD_REFRESH_IN_PROGRESS),
-            "BadConditionAlreadyDisabled" => Ok(&BAD_CONDITION_ALREADY_DISABLED),
-            "BadConditionDisabled" => Ok(&BAD_CONDITION_DISABLED),
-            "BadEventIdUnknown" => Ok(&BAD_EVENT_ID_UNKNOWN),
-            "BadNoData" => Ok(&BAD_NO_DATA),
-            "BadDataLost" => Ok(&BAD_DATA_LOST),
-            "BadDataUnavailable" => Ok(&BAD_DATA_UNAVAILABLE),
-            "BadEntryExists" => Ok(&BAD_ENTRY_EXISTS),
-            "BadNoEntryExists" => Ok(&BAD_NO_ENTRY_EXISTS),
-            "BadTimestampNotSupported" => Ok(&BAD_TIMESTAMP_NOT_SUPPORTED),
-            "BadInvalidArgument" => Ok(&BAD_INVALID_ARGUMENT),
-            "BadConnectionRejected" => Ok(&BAD_CONNECTION_REJECTED),
-            "BadDisconnect" => Ok(&BAD_DISCONNECT),
-            "BadConnectionClosed" => Ok(&BAD_CONNECTION_CLOSED),
-            "BadInvalidState" => Ok(&BAD_INVALID_STATE),
-            "BadEndOfStream" => Ok(&BAD_END_OF_STREAM),
-            "BadNoDataAvailable" => Ok(&BAD_NO_DATA_AVAILABLE),
-            "BadWaitingForResponse" => Ok(&BAD_WAITING_FOR_RESPONSE),
-            "BadOperationAbandoned" => Ok(&BAD_OPERATION_ABANDONED),
-            "BadExpectedStreamToBlock" => Ok(&BAD_EXPECTED_STREAM_TO_BLOCK),
-            "BadWouldBlock" => Ok(&BAD_WOULD_BLOCK),
-            "BadSyntaxError" => Ok(&BAD_SYNTAX_ERROR),
-            "BadMaxConnectionsReached" => Ok(&BAD_MAX_CONNECTIONS_REACHED),
-            "BadRequestTooLarge" => Ok(&BAD_REQUEST_TOO_LARGE),
-            "BadResponseTooLarge" => Ok(&BAD_RESPONSE_TOO_LARGE),
-            "BadEventNotAcknowledgeable" => Ok(&BAD_EVENT_NOT_ACKNOWLEDGEABLE),
-            "BadInvalidTimestampArgument" => Ok(&BAD_INVALID_TIMESTAMP_ARGUMENT),
-            "BadProtocolVersionUnsupported" => Ok(&BAD_PROTOCOL_VERSION_UNSUPPORTED),
-            "BadStateNotActive" => Ok(&BAD_STATE_NOT_ACTIVE),
-            "BadFilterOperatorInvalid" => Ok(&BAD_FILTER_OPERATOR_INVALID),
-            "BadFilterOperatorUnsupported" => Ok(&BAD_FILTER_OPERATOR_UNSUPPORTED),
-            "BadFilterOperandCountMismatch" => Ok(&BAD_FILTER_OPERAND_COUNT_MISMATCH),
-            "BadFilterElementInvalid" => Ok(&BAD_FILTER_ELEMENT_INVALID),
-            "BadFilterLiteralInvalid" => Ok(&BAD_FILTER_LITERAL_INVALID),
-            "BadIdentityChangeNotSupported" => Ok(&BAD_IDENTITY_CHANGE_NOT_SUPPORTED),
-            "BadNotTypeDefinition" => Ok(&BAD_NOT_TYPE_DEFINITION),
-            "BadViewTimestampInvalid" => Ok(&BAD_VIEW_TIMESTAMP_INVALID),
-            "BadViewParameterMismatch" => Ok(&BAD_VIEW_PARAMETER_MISMATCH),
-            "BadViewVersionInvalid" => Ok(&BAD_VIEW_VERSION_INVALID),
-            "BadConditionAlreadyEnabled" => Ok(&BAD_CONDITION_ALREADY_ENABLED),
-            "BadDialogNotActive" => Ok(&BAD_DIALOG_NOT_ACTIVE),
-            "BadDialogResponseInvalid" => Ok(&BAD_DIALOG_RESPONSE_INVALID),
-            "BadConditionBranchAlreadyAcked" => Ok(&BAD_CONDITION_BRANCH_ALREADY_ACKED),
-            "BadConditionBranchAlreadyConfirmed" => Ok(&BAD_CONDITION_BRANCH_ALREADY_CONFIRMED),
-            "BadConditionAlreadyShelved" => Ok(&BAD_CONDITION_ALREADY_SHELVED),
-            "BadConditionNotShelved" => Ok(&BAD_CONDITION_NOT_SHELVED),
-            "BadShelvingTimeOutOfRange" => Ok(&BAD_SHELVING_TIME_OUT_OF_RANGE),
-            "BadAggregateListMismatch" => Ok(&BAD_AGGREGATE_LIST_MISMATCH),
-            "BadAggregateNotSupported" => Ok(&BAD_AGGREGATE_NOT_SUPPORTED),
-            "BadAggregateInvalidInputs" => Ok(&BAD_AGGREGATE_INVALID_INPUTS),
-            "BadBoundNotFound" => Ok(&BAD_BOUND_NOT_FOUND),
-            "BadBoundNotSupported" => Ok(&BAD_BOUND_NOT_SUPPORTED),
-            "BadAggregateConfigurationRejected" => Ok(&BAD_AGGREGATE_CONFIGURATION_REJECTED),
-            "BadTooManyMonitoredItems" => Ok(&BAD_TOO_MANY_MONITORED_ITEMS),
-            "BadDominantValueChanged" => Ok(&BAD_DOMINANT_VALUE_CHANGED),
-            "BadDependentValueChanged" => Ok(&BAD_DEPENDENT_VALUE_CHANGED),
-            "BadRequestNotAllowed" => Ok(&BAD_REQUEST_NOT_ALLOWED),
-            "BadTooManyArguments" => Ok(&BAD_TOO_MANY_ARGUMENTS),
-            "BadSecurityModeInsufficient" => Ok(&BAD_SECURITY_MODE_INSUFFICIENT),
-            "BadCertificateChainIncomplete" => Ok(&BAD_CERTIFICATE_CHAIN_INCOMPLETE),
-            _ => Err(())        }
+            "Good" => Ok(GOOD),
+            "GoodSubscriptionTransferred" => Ok(GOOD_SUBSCRIPTION_TRANSFERRED),
+            "GoodCompletesAsynchronously" => Ok(GOOD_COMPLETES_ASYNCHRONOUSLY),
+            "GoodOverload" => Ok(GOOD_OVERLOAD),
+            "GoodClamped" => Ok(GOOD_CLAMPED),
+            "GoodLocalOverride" => Ok(GOOD_LOCAL_OVERRIDE),
+            "GoodEntryInserted" => Ok(GOOD_ENTRY_INSERTED),
+            "GoodEntryReplaced" => Ok(GOOD_ENTRY_REPLACED),
+            "GoodNoData" => Ok(GOOD_NO_DATA),
+            "GoodMoreData" => Ok(GOOD_MORE_DATA),
+            "GoodCommunicationEvent" => Ok(GOOD_COMMUNICATION_EVENT),
+            "GoodShutdownEvent" => Ok(GOOD_SHUTDOWN_EVENT),
+            "GoodCallAgain" => Ok(GOOD_CALL_AGAIN),
+            "GoodNonCriticalTimeout" => Ok(GOOD_NON_CRITICAL_TIMEOUT),
+            "GoodResultsMayBeIncomplete" => Ok(GOOD_RESULTS_MAY_BE_INCOMPLETE),
+            "GoodDataIgnored" => Ok(GOOD_DATA_IGNORED),
+            "GoodEdited" => Ok(GOOD_EDITED),
+            "GoodPostActionFailed" => Ok(GOOD_POST_ACTION_FAILED),
+            "GoodDependentValueChanged" => Ok(GOOD_DEPENDENT_VALUE_CHANGED),
+            "UncertainReferenceOutOfServer" => Ok(UNCERTAIN_REFERENCE_OUT_OF_SERVER),
+            "UncertainNoCommunicationLastUsableValue" => Ok(UNCERTAIN_NO_COMMUNICATION_LAST_USABLE_VALUE),
+            "UncertainLastUsableValue" => Ok(UNCERTAIN_LAST_USABLE_VALUE),
+            "UncertainSubstituteValue" => Ok(UNCERTAIN_SUBSTITUTE_VALUE),
+            "UncertainInitialValue" => Ok(UNCERTAIN_INITIAL_VALUE),
+            "UncertainSensorNotAccurate" => Ok(UNCERTAIN_SENSOR_NOT_ACCURATE),
+            "UncertainEngineeringUnitsExceeded" => Ok(UNCERTAIN_ENGINEERING_UNITS_EXCEEDED),
+            "UncertainSubNormal" => Ok(UNCERTAIN_SUB_NORMAL),
+            "UncertainDataSubNormal" => Ok(UNCERTAIN_DATA_SUB_NORMAL),
+            "UncertainReferenceNotDeleted" => Ok(UNCERTAIN_REFERENCE_NOT_DELETED),
+            "UncertainNotAllNodesAvailable" => Ok(UNCERTAIN_NOT_ALL_NODES_AVAILABLE),
+            "UncertainDominantValueChanged" => Ok(UNCERTAIN_DOMINANT_VALUE_CHANGED),
+            "UncertainDependentValueChanged" => Ok(UNCERTAIN_DEPENDENT_VALUE_CHANGED),
+            "BadUnexpectedError" => Ok(BAD_UNEXPECTED_ERROR),
+            "BadInternalError" => Ok(BAD_INTERNAL_ERROR),
+            "BadOutOfMemory" => Ok(BAD_OUT_OF_MEMORY),
+            "BadResourceUnavailable" => Ok(BAD_RESOURCE_UNAVAILABLE),
+            "BadCommunicationError" => Ok(BAD_COMMUNICATION_ERROR),
+            "BadEncodingError" => Ok(BAD_ENCODING_ERROR),
+            "BadDecodingError" => Ok(BAD_DECODING_ERROR),
+            "BadEncodingLimitsExceeded" => Ok(BAD_ENCODING_LIMITS_EXCEEDED),
+            "BadUnknownResponse" => Ok(BAD_UNKNOWN_RESPONSE),
+            "BadTimeout" => Ok(BAD_TIMEOUT),
+            "BadServiceUnsupported" => Ok(BAD_SERVICE_UNSUPPORTED),
+            "BadShutdown" => Ok(BAD_SHUTDOWN),
+            "BadServerNotConnected" => Ok(BAD_SERVER_NOT_CONNECTED),
+            "BadServerHalted" => Ok(BAD_SERVER_HALTED),
+            "BadNothingToDo" => Ok(BAD_NOTHING_TO_DO),
+            "BadTooManyOperations" => Ok(BAD_TOO_MANY_OPERATIONS),
+            "BadDataTypeIdUnknown" => Ok(BAD_DATA_TYPE_ID_UNKNOWN),
+            "BadCertificateInvalid" => Ok(BAD_CERTIFICATE_INVALID),
+            "BadSecurityChecksFailed" => Ok(BAD_SECURITY_CHECKS_FAILED),
+            "BadCertificateTimeInvalid" => Ok(BAD_CERTIFICATE_TIME_INVALID),
+            "BadCertificateIssuerTimeInvalid" => Ok(BAD_CERTIFICATE_ISSUER_TIME_INVALID),
+            "BadCertificateHostNameInvalid" => Ok(BAD_CERTIFICATE_HOST_NAME_INVALID),
+            "BadCertificateUriInvalid" => Ok(BAD_CERTIFICATE_URI_INVALID),
+            "BadCertificateUseNotAllowed" => Ok(BAD_CERTIFICATE_USE_NOT_ALLOWED),
+            "BadCertificateIssuerUseNotAllowed" => Ok(BAD_CERTIFICATE_ISSUER_USE_NOT_ALLOWED),
+            "BadCertificateUntrusted" => Ok(BAD_CERTIFICATE_UNTRUSTED),
+            "BadCertificateRevocationUnknown" => Ok(BAD_CERTIFICATE_REVOCATION_UNKNOWN),
+            "BadCertificateIssuerRevocationUnknown" => Ok(BAD_CERTIFICATE_ISSUER_REVOCATION_UNKNOWN),
+            "BadCertificateRevoked" => Ok(BAD_CERTIFICATE_REVOKED),
+            "BadCertificateIssuerRevoked" => Ok(BAD_CERTIFICATE_ISSUER_REVOKED),
+            "BadUserAccessDenied" => Ok(BAD_USER_ACCESS_DENIED),
+            "BadIdentityTokenInvalid" => Ok(BAD_IDENTITY_TOKEN_INVALID),
+            "BadIdentityTokenRejected" => Ok(BAD_IDENTITY_TOKEN_REJECTED),
+            "BadSecureChannelIdInvalid" => Ok(BAD_SECURE_CHANNEL_ID_INVALID),
+            "BadInvalidTimestamp" => Ok(BAD_INVALID_TIMESTAMP),
+            "BadNonceInvalid" => Ok(BAD_NONCE_INVALID),
+            "BadSessionIdInvalid" => Ok(BAD_SESSION_ID_INVALID),
+            "BadSessionClosed" => Ok(BAD_SESSION_CLOSED),
+            "BadSessionNotActivated" => Ok(BAD_SESSION_NOT_ACTIVATED),
+            "BadSubscriptionIdInvalid" => Ok(BAD_SUBSCRIPTION_ID_INVALID),
+            "BadRequestHeaderInvalid" => Ok(BAD_REQUEST_HEADER_INVALID),
+            "BadTimestampsToReturnInvalid" => Ok(BAD_TIMESTAMPS_TO_RETURN_INVALID),
+            "BadRequestCancelledByClient" => Ok(BAD_REQUEST_CANCELLED_BY_CLIENT),
+            "BadNoCommunication" => Ok(BAD_NO_COMMUNICATION),
+            "BadWaitingForInitialData" => Ok(BAD_WAITING_FOR_INITIAL_DATA),
+            "BadNodeIdInvalid" => Ok(BAD_NODE_ID_INVALID),
+            "BadNodeIdUnknown" => Ok(BAD_NODE_ID_UNKNOWN),
+            "BadAttributeIdInvalid" => Ok(BAD_ATTRIBUTE_ID_INVALID),
+            "BadIndexRangeInvalid" => Ok(BAD_INDEX_RANGE_INVALID),
+            "BadIndexRangeNoData" => Ok(BAD_INDEX_RANGE_NO_DATA),
+            "BadDataEncodingInvalid" => Ok(BAD_DATA_ENCODING_INVALID),
+            "BadDataEncodingUnsupported" => Ok(BAD_DATA_ENCODING_UNSUPPORTED),
+            "BadNotReadable" => Ok(BAD_NOT_READABLE),
+            "BadNotWritable" => Ok(BAD_NOT_WRITABLE),
+            "BadOutOfRange" => Ok(BAD_OUT_OF_RANGE),
+            "BadNotSupported" => Ok(BAD_NOT_SUPPORTED),
+            "BadNotFound" => Ok(BAD_NOT_FOUND),
+            "BadObjectDeleted" => Ok(BAD_OBJECT_DELETED),
+            "BadNotImplemented" => Ok(BAD_NOT_IMPLEMENTED),
+            "BadMonitoringModeInvalid" => Ok(BAD_MONITORING_MODE_INVALID),
+            "BadMonitoredItemIdInvalid" => Ok(BAD_MONITORED_ITEM_ID_INVALID),
+            "BadMonitoredItemFilterInvalid" => Ok(BAD_MONITORED_ITEM_FILTER_INVALID),
+            "BadMonitoredItemFilterUnsupported" => Ok(BAD_MONITORED_ITEM_FILTER_UNSUPPORTED),
+            "BadFilterNotAllowed" => Ok(BAD_FILTER_NOT_ALLOWED),
+            "BadStructureMissing" => Ok(BAD_STRUCTURE_MISSING),
+            "BadEventFilterInvalid" => Ok(BAD_EVENT_FILTER_INVALID),
+            "BadContentFilterInvalid" => Ok(BAD_CONTENT_FILTER_INVALID),
+            "BadFilterOperandInvalid" => Ok(BAD_FILTER_OPERAND_INVALID),
+            "BadContinuationPointInvalid" => Ok(BAD_CONTINUATION_POINT_INVALID),
+            "BadNoContinuationPoints" => Ok(BAD_NO_CONTINUATION_POINTS),
+            "BadReferenceTypeIdInvalid" => Ok(BAD_REFERENCE_TYPE_ID_INVALID),
+            "BadBrowseDirectionInvalid" => Ok(BAD_BROWSE_DIRECTION_INVALID),
+            "BadNodeNotInView" => Ok(BAD_NODE_NOT_IN_VIEW),
+            "BadServerUriInvalid" => Ok(BAD_SERVER_URI_INVALID),
+            "BadServerNameMissing" => Ok(BAD_SERVER_NAME_MISSING),
+            "BadDiscoveryUrlMissing" => Ok(BAD_DISCOVERY_URL_MISSING),
+            "BadSempahoreFileMissing" => Ok(BAD_SEMPAHORE_FILE_MISSING),
+            "BadRequestTypeInvalid" => Ok(BAD_REQUEST_TYPE_INVALID),
+            "BadSecurityModeRejected" => Ok(BAD_SECURITY_MODE_REJECTED),
+            "BadSecurityPolicyRejected" => Ok(BAD_SECURITY_POLICY_REJECTED),
+            "BadTooManySessions" => Ok(BAD_TOO_MANY_SESSIONS),
+            "BadUserSignatureInvalid" => Ok(BAD_USER_SIGNATURE_INVALID),
+            "BadApplicationSignatureInvalid" => Ok(BAD_APPLICATION_SIGNATURE_INVALID),
+            "BadNoValidCertificates" => Ok(BAD_NO_VALID_CERTIFICATES),
+            "BadRequestCancelledByRequest" => Ok(BAD_REQUEST_CANCELLED_BY_REQUEST),
+            "BadParentNodeIdInvalid" => Ok(BAD_PARENT_NODE_ID_INVALID),
+            "BadReferenceNotAllowed" => Ok(BAD_REFERENCE_NOT_ALLOWED),
+            "BadNodeIdRejected" => Ok(BAD_NODE_ID_REJECTED),
+            "BadNodeIdExists" => Ok(BAD_NODE_ID_EXISTS),
+            "BadNodeClassInvalid" => Ok(BAD_NODE_CLASS_INVALID),
+            "BadBrowseNameInvalid" => Ok(BAD_BROWSE_NAME_INVALID),
+            "BadBrowseNameDuplicated" => Ok(BAD_BROWSE_NAME_DUPLICATED),
+            "BadNodeAttributesInvalid" => Ok(BAD_NODE_ATTRIBUTES_INVALID),
+            "BadTypeDefinitionInvalid" => Ok(BAD_TYPE_DEFINITION_INVALID),
+            "BadSourceNodeIdInvalid" => Ok(BAD_SOURCE_NODE_ID_INVALID),
+            "BadTargetNodeIdInvalid" => Ok(BAD_TARGET_NODE_ID_INVALID),
+            "BadDuplicateReferenceNotAllowed" => Ok(BAD_DUPLICATE_REFERENCE_NOT_ALLOWED),
+            "BadInvalidSelfReference" => Ok(BAD_INVALID_SELF_REFERENCE),
+            "BadReferenceLocalOnly" => Ok(BAD_REFERENCE_LOCAL_ONLY),
+            "BadNoDeleteRights" => Ok(BAD_NO_DELETE_RIGHTS),
+            "BadServerIndexInvalid" => Ok(BAD_SERVER_INDEX_INVALID),
+            "BadViewIdUnknown" => Ok(BAD_VIEW_ID_UNKNOWN),
+            "BadTooManyMatches" => Ok(BAD_TOO_MANY_MATCHES),
+            "BadQueryTooComplex" => Ok(BAD_QUERY_TOO_COMPLEX),
+            "BadNoMatch" => Ok(BAD_NO_MATCH),
+            "BadMaxAgeInvalid" => Ok(BAD_MAX_AGE_INVALID),
+            "BadHistoryOperationInvalid" => Ok(BAD_HISTORY_OPERATION_INVALID),
+            "BadHistoryOperationUnsupported" => Ok(BAD_HISTORY_OPERATION_UNSUPPORTED),
+            "BadWriteNotSupported" => Ok(BAD_WRITE_NOT_SUPPORTED),
+            "BadTypeMismatch" => Ok(BAD_TYPE_MISMATCH),
+            "BadMethodInvalid" => Ok(BAD_METHOD_INVALID),
+            "BadArgumentsMissing" => Ok(BAD_ARGUMENTS_MISSING),
+            "BadTooManySubscriptions" => Ok(BAD_TOO_MANY_SUBSCRIPTIONS),
+            "BadTooManyPublishRequests" => Ok(BAD_TOO_MANY_PUBLISH_REQUESTS),
+            "BadNoSubscription" => Ok(BAD_NO_SUBSCRIPTION),
+            "BadSequenceNumberUnknown" => Ok(BAD_SEQUENCE_NUMBER_UNKNOWN),
+            "BadMessageNotAvailable" => Ok(BAD_MESSAGE_NOT_AVAILABLE),
+            "BadInsufficientClientProfile" => Ok(BAD_INSUFFICIENT_CLIENT_PROFILE),
+            "BadTcpServerTooBusy" => Ok(BAD_TCP_SERVER_TOO_BUSY),
+            "BadTcpMessageTypeInvalid" => Ok(BAD_TCP_MESSAGE_TYPE_INVALID),
+            "BadTcpSecureChannelUnknown" => Ok(BAD_TCP_SECURE_CHANNEL_UNKNOWN),
+            "BadTcpMessageTooLarge" => Ok(BAD_TCP_MESSAGE_TOO_LARGE),
+            "BadTcpNotEnoughResources" => Ok(BAD_TCP_NOT_ENOUGH_RESOURCES),
+            "BadTcpInternalError" => Ok(BAD_TCP_INTERNAL_ERROR),
+            "BadTcpEndpointUrlInvalid" => Ok(BAD_TCP_ENDPOINT_URL_INVALID),
+            "BadRequestInterrupted" => Ok(BAD_REQUEST_INTERRUPTED),
+            "BadRequestTimeout" => Ok(BAD_REQUEST_TIMEOUT),
+            "BadSecureChannelClosed" => Ok(BAD_SECURE_CHANNEL_CLOSED),
+            "BadSecureChannelTokenUnknown" => Ok(BAD_SECURE_CHANNEL_TOKEN_UNKNOWN),
+            "BadSequenceNumberInvalid" => Ok(BAD_SEQUENCE_NUMBER_INVALID),
+            "BadConfigurationError" => Ok(BAD_CONFIGURATION_ERROR),
+            "BadNotConnected" => Ok(BAD_NOT_CONNECTED),
+            "BadDeviceFailure" => Ok(BAD_DEVICE_FAILURE),
+            "BadSensorFailure" => Ok(BAD_SENSOR_FAILURE),
+            "BadOutOfService" => Ok(BAD_OUT_OF_SERVICE),
+            "BadDeadbandFilterInvalid" => Ok(BAD_DEADBAND_FILTER_INVALID),
+            "BadRefreshInProgress" => Ok(BAD_REFRESH_IN_PROGRESS),
+            "BadConditionAlreadyDisabled" => Ok(BAD_CONDITION_ALREADY_DISABLED),
+            "BadConditionDisabled" => Ok(BAD_CONDITION_DISABLED),
+            "BadEventIdUnknown" => Ok(BAD_EVENT_ID_UNKNOWN),
+            "BadNoData" => Ok(BAD_NO_DATA),
+            "BadDataLost" => Ok(BAD_DATA_LOST),
+            "BadDataUnavailable" => Ok(BAD_DATA_UNAVAILABLE),
+            "BadEntryExists" => Ok(BAD_ENTRY_EXISTS),
+            "BadNoEntryExists" => Ok(BAD_NO_ENTRY_EXISTS),
+            "BadTimestampNotSupported" => Ok(BAD_TIMESTAMP_NOT_SUPPORTED),
+            "BadInvalidArgument" => Ok(BAD_INVALID_ARGUMENT),
+            "BadConnectionRejected" => Ok(BAD_CONNECTION_REJECTED),
+            "BadDisconnect" => Ok(BAD_DISCONNECT),
+            "BadConnectionClosed" => Ok(BAD_CONNECTION_CLOSED),
+            "BadInvalidState" => Ok(BAD_INVALID_STATE),
+            "BadEndOfStream" => Ok(BAD_END_OF_STREAM),
+            "BadNoDataAvailable" => Ok(BAD_NO_DATA_AVAILABLE),
+            "BadWaitingForResponse" => Ok(BAD_WAITING_FOR_RESPONSE),
+            "BadOperationAbandoned" => Ok(BAD_OPERATION_ABANDONED),
+            "BadExpectedStreamToBlock" => Ok(BAD_EXPECTED_STREAM_TO_BLOCK),
+            "BadWouldBlock" => Ok(BAD_WOULD_BLOCK),
+            "BadSyntaxError" => Ok(BAD_SYNTAX_ERROR),
+            "BadMaxConnectionsReached" => Ok(BAD_MAX_CONNECTIONS_REACHED),
+            "BadRequestTooLarge" => Ok(BAD_REQUEST_TOO_LARGE),
+            "BadResponseTooLarge" => Ok(BAD_RESPONSE_TOO_LARGE),
+            "BadEventNotAcknowledgeable" => Ok(BAD_EVENT_NOT_ACKNOWLEDGEABLE),
+            "BadInvalidTimestampArgument" => Ok(BAD_INVALID_TIMESTAMP_ARGUMENT),
+            "BadProtocolVersionUnsupported" => Ok(BAD_PROTOCOL_VERSION_UNSUPPORTED),
+            "BadStateNotActive" => Ok(BAD_STATE_NOT_ACTIVE),
+            "BadFilterOperatorInvalid" => Ok(BAD_FILTER_OPERATOR_INVALID),
+            "BadFilterOperatorUnsupported" => Ok(BAD_FILTER_OPERATOR_UNSUPPORTED),
+            "BadFilterOperandCountMismatch" => Ok(BAD_FILTER_OPERAND_COUNT_MISMATCH),
+            "BadFilterElementInvalid" => Ok(BAD_FILTER_ELEMENT_INVALID),
+            "BadFilterLiteralInvalid" => Ok(BAD_FILTER_LITERAL_INVALID),
+            "BadIdentityChangeNotSupported" => Ok(BAD_IDENTITY_CHANGE_NOT_SUPPORTED),
+            "BadNotTypeDefinition" => Ok(BAD_NOT_TYPE_DEFINITION),
+            "BadViewTimestampInvalid" => Ok(BAD_VIEW_TIMESTAMP_INVALID),
+            "BadViewParameterMismatch" => Ok(BAD_VIEW_PARAMETER_MISMATCH),
+            "BadViewVersionInvalid" => Ok(BAD_VIEW_VERSION_INVALID),
+            "BadConditionAlreadyEnabled" => Ok(BAD_CONDITION_ALREADY_ENABLED),
+            "BadDialogNotActive" => Ok(BAD_DIALOG_NOT_ACTIVE),
+            "BadDialogResponseInvalid" => Ok(BAD_DIALOG_RESPONSE_INVALID),
+            "BadConditionBranchAlreadyAcked" => Ok(BAD_CONDITION_BRANCH_ALREADY_ACKED),
+            "BadConditionBranchAlreadyConfirmed" => Ok(BAD_CONDITION_BRANCH_ALREADY_CONFIRMED),
+            "BadConditionAlreadyShelved" => Ok(BAD_CONDITION_ALREADY_SHELVED),
+            "BadConditionNotShelved" => Ok(BAD_CONDITION_NOT_SHELVED),
+            "BadShelvingTimeOutOfRange" => Ok(BAD_SHELVING_TIME_OUT_OF_RANGE),
+            "BadAggregateListMismatch" => Ok(BAD_AGGREGATE_LIST_MISMATCH),
+            "BadAggregateNotSupported" => Ok(BAD_AGGREGATE_NOT_SUPPORTED),
+            "BadAggregateInvalidInputs" => Ok(BAD_AGGREGATE_INVALID_INPUTS),
+            "BadBoundNotFound" => Ok(BAD_BOUND_NOT_FOUND),
+            "BadBoundNotSupported" => Ok(BAD_BOUND_NOT_SUPPORTED),
+            "BadAggregateConfigurationRejected" => Ok(BAD_AGGREGATE_CONFIGURATION_REJECTED),
+            "BadTooManyMonitoredItems" => Ok(BAD_TOO_MANY_MONITORED_ITEMS),
+            "BadDominantValueChanged" => Ok(BAD_DOMINANT_VALUE_CHANGED),
+            "BadDependentValueChanged" => Ok(BAD_DEPENDENT_VALUE_CHANGED),
+            "BadRequestNotAllowed" => Ok(BAD_REQUEST_NOT_ALLOWED),
+            "BadTooManyArguments" => Ok(BAD_TOO_MANY_ARGUMENTS),
+            "BadSecurityModeInsufficient" => Ok(BAD_SECURITY_MODE_INSUFFICIENT),
+            "BadCertificateChainIncomplete" => Ok(BAD_CERTIFICATE_CHAIN_INCOMPLETE),
+            _ => Err(())
+        }
     }
 }
 
-/// Good
-pub static GOOD: StatusCode = StatusCode {
-    name: "Good",
-    code: 0,
-    description: "Good"
-};
-/// The subscription was transferred to another session.
-pub static GOOD_SUBSCRIPTION_TRANSFERRED: StatusCode = StatusCode {
-    name: "GoodSubscriptionTransferred",
-    code: 0x002D0000,
-    description: "The subscription was transferred to another session."
-};
-/// The processing will complete asynchronously.
-pub static GOOD_COMPLETES_ASYNCHRONOUSLY: StatusCode = StatusCode {
-    name: "GoodCompletesAsynchronously",
-    code: 0x002E0000,
-    description: "The processing will complete asynchronously."
-};
-/// Sampling has slowed down due to resource limitations.
-pub static GOOD_OVERLOAD: StatusCode = StatusCode {
-    name: "GoodOverload",
-    code: 0x002F0000,
-    description: "Sampling has slowed down due to resource limitations."
-};
-/// The value written was accepted but was clamped.
-pub static GOOD_CLAMPED: StatusCode = StatusCode {
-    name: "GoodClamped",
-    code: 0x00300000,
-    description: "The value written was accepted but was clamped."
-};
-/// The value has been overridden.
-pub static GOOD_LOCAL_OVERRIDE: StatusCode = StatusCode {
-    name: "GoodLocalOverride",
-    code: 0x00960000,
-    description: "The value has been overridden."
-};
-/// The data or event was successfully inserted into the historical database.
-pub static GOOD_ENTRY_INSERTED: StatusCode = StatusCode {
-    name: "GoodEntryInserted",
-    code: 0x00A20000,
-    description: "The data or event was successfully inserted into the historical database."
-};
-/// The data or event field was successfully replaced in the historical database.
-pub static GOOD_ENTRY_REPLACED: StatusCode = StatusCode {
-    name: "GoodEntryReplaced",
-    code: 0x00A30000,
-    description: "The data or event field was successfully replaced in the historical database."
-};
-/// No data exists for the requested time range or event filter.
-pub static GOOD_NO_DATA: StatusCode = StatusCode {
-    name: "GoodNoData",
-    code: 0x00A50000,
-    description: "No data exists for the requested time range or event filter."
-};
-/// The data or event field was successfully replaced in the historical database.
-pub static GOOD_MORE_DATA: StatusCode = StatusCode {
-    name: "GoodMoreData",
-    code: 0x00A60000,
-    description: "The data or event field was successfully replaced in the historical database."
-};
-/// The communication layer has raised an event.
-pub static GOOD_COMMUNICATION_EVENT: StatusCode = StatusCode {
-    name: "GoodCommunicationEvent",
-    code: 0x00A70000,
-    description: "The communication layer has raised an event."
-};
-/// The system is shutting down.
-pub static GOOD_SHUTDOWN_EVENT: StatusCode = StatusCode {
-    name: "GoodShutdownEvent",
-    code: 0x00A80000,
-    description: "The system is shutting down."
-};
-/// The operation is not finished and needs to be called again.
-pub static GOOD_CALL_AGAIN: StatusCode = StatusCode {
-    name: "GoodCallAgain",
-    code: 0x00A90000,
-    description: "The operation is not finished and needs to be called again."
-};
-/// A non-critical timeout occurred.
-pub static GOOD_NON_CRITICAL_TIMEOUT: StatusCode = StatusCode {
-    name: "GoodNonCriticalTimeout",
-    code: 0x00AA0000,
-    description: "A non-critical timeout occurred."
-};
-/// The server should have followed a reference to a node in a remote server but did not. The result set may be incomplete.
-pub static GOOD_RESULTS_MAY_BE_INCOMPLETE: StatusCode = StatusCode {
-    name: "GoodResultsMayBeIncomplete",
-    code: 0x00BA0000,
-    description: "The server should have followed a reference to a node in a remote server but did not. The result set may be incomplete."
-};
-/// The request pecifies fields which are not valid for the EventType or cannot be saved by the historian.
-pub static GOOD_DATA_IGNORED: StatusCode = StatusCode {
-    name: "GoodDataIgnored",
-    code: 0x00D90000,
-    description: "The request pecifies fields which are not valid for the EventType or cannot be saved by the historian."
-};
-/// The value does not come from the real source and has been edited by the server.
-pub static GOOD_EDITED: StatusCode = StatusCode {
-    name: "GoodEdited",
-    code: 0x00DC0000,
-    description: "The value does not come from the real source and has been edited by the server."
-};
-/// There was an error in execution of these post-actions.
-pub static GOOD_POST_ACTION_FAILED: StatusCode = StatusCode {
-    name: "GoodPostActionFailed",
-    code: 0x00DD0000,
-    description: "There was an error in execution of these post-actions."
-};
-/// A dependent value has been changed but the change has not been applied to the device.
-pub static GOOD_DEPENDENT_VALUE_CHANGED: StatusCode = StatusCode {
-    name: "GoodDependentValueChanged",
-    code: 0x00E00000,
-    description: "A dependent value has been changed but the change has not been applied to the device."
-};
-/// One of the references to follow in the relative path references to a node in the address space in another server.
-pub static UNCERTAIN_REFERENCE_OUT_OF_SERVER: StatusCode = StatusCode {
-    name: "UncertainReferenceOutOfServer",
-    code: 0x406C0000,
-    description: "One of the references to follow in the relative path references to a node in the address space in another server."
-};
-/// Communication to the data source has failed. The variable value is the last value that had a good quality.
-pub static UNCERTAIN_NO_COMMUNICATION_LAST_USABLE_VALUE: StatusCode = StatusCode {
-    name: "UncertainNoCommunicationLastUsableValue",
-    code: 0x408F0000,
-    description: "Communication to the data source has failed. The variable value is the last value that had a good quality."
-};
-/// Whatever was updating this value has stopped doing so.
-pub static UNCERTAIN_LAST_USABLE_VALUE: StatusCode = StatusCode {
-    name: "UncertainLastUsableValue",
-    code: 0x40900000,
-    description: "Whatever was updating this value has stopped doing so."
-};
-/// The value is an operational value that was manually overwritten.
-pub static UNCERTAIN_SUBSTITUTE_VALUE: StatusCode = StatusCode {
-    name: "UncertainSubstituteValue",
-    code: 0x40910000,
-    description: "The value is an operational value that was manually overwritten."
-};
-/// The value is an initial value for a variable that normally receives its value from another variable.
-pub static UNCERTAIN_INITIAL_VALUE: StatusCode = StatusCode {
-    name: "UncertainInitialValue",
-    code: 0x40920000,
-    description: "The value is an initial value for a variable that normally receives its value from another variable."
-};
-/// The value is at one of the sensor limits.
-pub static UNCERTAIN_SENSOR_NOT_ACCURATE: StatusCode = StatusCode {
-    name: "UncertainSensorNotAccurate",
-    code: 0x40930000,
-    description: "The value is at one of the sensor limits."
-};
-/// The value is outside of the range of values defined for this parameter.
-pub static UNCERTAIN_ENGINEERING_UNITS_EXCEEDED: StatusCode = StatusCode {
-    name: "UncertainEngineeringUnitsExceeded",
-    code: 0x40940000,
-    description: "The value is outside of the range of values defined for this parameter."
-};
-/// The value is derived from multiple sources and has less than the required number of Good sources.
-pub static UNCERTAIN_SUB_NORMAL: StatusCode = StatusCode {
-    name: "UncertainSubNormal",
-    code: 0x40950000,
-    description: "The value is derived from multiple sources and has less than the required number of Good sources."
-};
-/// The value is derived from multiple values and has less than the required number of Good values.
-pub static UNCERTAIN_DATA_SUB_NORMAL: StatusCode = StatusCode {
-    name: "UncertainDataSubNormal",
-    code: 0x40A40000,
-    description: "The value is derived from multiple values and has less than the required number of Good values."
-};
-/// The server was not able to delete all target references.
-pub static UNCERTAIN_REFERENCE_NOT_DELETED: StatusCode = StatusCode {
-    name: "UncertainReferenceNotDeleted",
-    code: 0x40BC0000,
-    description: "The server was not able to delete all target references."
-};
-/// The list of references may not be complete because the underlying system is not available.
-pub static UNCERTAIN_NOT_ALL_NODES_AVAILABLE: StatusCode = StatusCode {
-    name: "UncertainNotAllNodesAvailable",
-    code: 0x40C00000,
-    description: "The list of references may not be complete because the underlying system is not available."
-};
-/// The related EngineeringUnit has been changed but the Variable Value is still provided based on the previous unit.
-pub static UNCERTAIN_DOMINANT_VALUE_CHANGED: StatusCode = StatusCode {
-    name: "UncertainDominantValueChanged",
-    code: 0x40DE0000,
-    description: "The related EngineeringUnit has been changed but the Variable Value is still provided based on the previous unit."
-};
-/// A dependent value has been changed but the change has not been applied to the device. The quality of the dominant variable is uncertain.
-pub static UNCERTAIN_DEPENDENT_VALUE_CHANGED: StatusCode = StatusCode {
-    name: "UncertainDependentValueChanged",
-    code: 0x40E20000,
-    description: "A dependent value has been changed but the change has not been applied to the device. The quality of the dominant variable is uncertain."
-};
-/// An unexpected error occurred.
-pub static BAD_UNEXPECTED_ERROR: StatusCode = StatusCode {
-    name: "BadUnexpectedError",
-    code: 0x80010000,
-    description: "An unexpected error occurred."
-};
-/// An internal error occurred as a result of a programming or configuration error.
-pub static BAD_INTERNAL_ERROR: StatusCode = StatusCode {
-    name: "BadInternalError",
-    code: 0x80020000,
-    description: "An internal error occurred as a result of a programming or configuration error."
-};
-/// Not enough memory to complete the operation.
-pub static BAD_OUT_OF_MEMORY: StatusCode = StatusCode {
-    name: "BadOutOfMemory",
-    code: 0x80030000,
-    description: "Not enough memory to complete the operation."
-};
-/// An operating system resource is not available.
-pub static BAD_RESOURCE_UNAVAILABLE: StatusCode = StatusCode {
-    name: "BadResourceUnavailable",
-    code: 0x80040000,
-    description: "An operating system resource is not available."
-};
-/// A low level communication error occurred.
-pub static BAD_COMMUNICATION_ERROR: StatusCode = StatusCode {
-    name: "BadCommunicationError",
-    code: 0x80050000,
-    description: "A low level communication error occurred."
-};
-/// Encoding halted because of invalid data in the objects being serialized.
-pub static BAD_ENCODING_ERROR: StatusCode = StatusCode {
-    name: "BadEncodingError",
-    code: 0x80060000,
-    description: "Encoding halted because of invalid data in the objects being serialized."
-};
-/// Decoding halted because of invalid data in the stream.
-pub static BAD_DECODING_ERROR: StatusCode = StatusCode {
-    name: "BadDecodingError",
-    code: 0x80070000,
-    description: "Decoding halted because of invalid data in the stream."
-};
-/// The message encoding/decoding limits imposed by the stack have been exceeded.
-pub static BAD_ENCODING_LIMITS_EXCEEDED: StatusCode = StatusCode {
-    name: "BadEncodingLimitsExceeded",
-    code: 0x80080000,
-    description: "The message encoding/decoding limits imposed by the stack have been exceeded."
-};
-/// An unrecognized response was received from the server.
-pub static BAD_UNKNOWN_RESPONSE: StatusCode = StatusCode {
-    name: "BadUnknownResponse",
-    code: 0x80090000,
-    description: "An unrecognized response was received from the server."
-};
-/// The operation timed out.
-pub static BAD_TIMEOUT: StatusCode = StatusCode {
-    name: "BadTimeout",
-    code: 0x800A0000,
-    description: "The operation timed out."
-};
-/// The server does not support the requested service.
-pub static BAD_SERVICE_UNSUPPORTED: StatusCode = StatusCode {
-    name: "BadServiceUnsupported",
-    code: 0x800B0000,
-    description: "The server does not support the requested service."
-};
-/// The operation was cancelled because the application is shutting down.
-pub static BAD_SHUTDOWN: StatusCode = StatusCode {
-    name: "BadShutdown",
-    code: 0x800C0000,
-    description: "The operation was cancelled because the application is shutting down."
-};
-/// The operation could not complete because the client is not connected to the server.
-pub static BAD_SERVER_NOT_CONNECTED: StatusCode = StatusCode {
-    name: "BadServerNotConnected",
-    code: 0x800D0000,
-    description: "The operation could not complete because the client is not connected to the server."
-};
-/// The server has stopped and cannot process any requests.
-pub static BAD_SERVER_HALTED: StatusCode = StatusCode {
-    name: "BadServerHalted",
-    code: 0x800E0000,
-    description: "The server has stopped and cannot process any requests."
-};
-/// There was nothing to do because the client passed a list of operations with no elements.
-pub static BAD_NOTHING_TO_DO: StatusCode = StatusCode {
-    name: "BadNothingToDo",
-    code: 0x800F0000,
-    description: "There was nothing to do because the client passed a list of operations with no elements."
-};
-/// The request could not be processed because it specified too many operations.
-pub static BAD_TOO_MANY_OPERATIONS: StatusCode = StatusCode {
-    name: "BadTooManyOperations",
-    code: 0x80100000,
-    description: "The request could not be processed because it specified too many operations."
-};
-/// The extension object cannot be (de)serialized because the data type id is not recognized.
-pub static BAD_DATA_TYPE_ID_UNKNOWN: StatusCode = StatusCode {
-    name: "BadDataTypeIdUnknown",
-    code: 0x80110000,
-    description: "The extension object cannot be (de)serialized because the data type id is not recognized."
-};
-/// The certificate provided as a parameter is not valid.
-pub static BAD_CERTIFICATE_INVALID: StatusCode = StatusCode {
-    name: "BadCertificateInvalid",
-    code: 0x80120000,
-    description: "The certificate provided as a parameter is not valid."
-};
-/// An error occurred verifying security.
-pub static BAD_SECURITY_CHECKS_FAILED: StatusCode = StatusCode {
-    name: "BadSecurityChecksFailed",
-    code: 0x80130000,
-    description: "An error occurred verifying security."
-};
-/// The Certificate has expired or is not yet valid.
-pub static BAD_CERTIFICATE_TIME_INVALID: StatusCode = StatusCode {
-    name: "BadCertificateTimeInvalid",
-    code: 0x80140000,
-    description: "The Certificate has expired or is not yet valid."
-};
-/// An Issuer Certificate has expired or is not yet valid.
-pub static BAD_CERTIFICATE_ISSUER_TIME_INVALID: StatusCode = StatusCode {
-    name: "BadCertificateIssuerTimeInvalid",
-    code: 0x80150000,
-    description: "An Issuer Certificate has expired or is not yet valid."
-};
-/// The HostName used to connect to a Server does not match a HostName in the Certificate.
-pub static BAD_CERTIFICATE_HOST_NAME_INVALID: StatusCode = StatusCode {
-    name: "BadCertificateHostNameInvalid",
-    code: 0x80160000,
-    description: "The HostName used to connect to a Server does not match a HostName in the Certificate."
-};
-/// The URI specified in the ApplicationDescription does not match the URI in the Certificate.
-pub static BAD_CERTIFICATE_URI_INVALID: StatusCode = StatusCode {
-    name: "BadCertificateUriInvalid",
-    code: 0x80170000,
-    description: "The URI specified in the ApplicationDescription does not match the URI in the Certificate."
-};
-/// The Certificate may not be used for the requested operation.
-pub static BAD_CERTIFICATE_USE_NOT_ALLOWED: StatusCode = StatusCode {
-    name: "BadCertificateUseNotAllowed",
-    code: 0x80180000,
-    description: "The Certificate may not be used for the requested operation."
-};
-/// The Issuer Certificate may not be used for the requested operation.
-pub static BAD_CERTIFICATE_ISSUER_USE_NOT_ALLOWED: StatusCode = StatusCode {
-    name: "BadCertificateIssuerUseNotAllowed",
-    code: 0x80190000,
-    description: "The Issuer Certificate may not be used for the requested operation."
-};
-/// The Certificate is not trusted.
-pub static BAD_CERTIFICATE_UNTRUSTED: StatusCode = StatusCode {
-    name: "BadCertificateUntrusted",
-    code: 0x801A0000,
-    description: "The Certificate is not trusted."
-};
-/// It was not possible to determine if the Certificate has been revoked.
-pub static BAD_CERTIFICATE_REVOCATION_UNKNOWN: StatusCode = StatusCode {
-    name: "BadCertificateRevocationUnknown",
-    code: 0x801B0000,
-    description: "It was not possible to determine if the Certificate has been revoked."
-};
-/// It was not possible to determine if the Issuer Certificate has been revoked.
-pub static BAD_CERTIFICATE_ISSUER_REVOCATION_UNKNOWN: StatusCode = StatusCode {
-    name: "BadCertificateIssuerRevocationUnknown",
-    code: 0x801C0000,
-    description: "It was not possible to determine if the Issuer Certificate has been revoked."
-};
-/// The certificate has been revoked.
-pub static BAD_CERTIFICATE_REVOKED: StatusCode = StatusCode {
-    name: "BadCertificateRevoked",
-    code: 0x801D0000,
-    description: "The certificate has been revoked."
-};
-/// The issuer certificate has been revoked.
-pub static BAD_CERTIFICATE_ISSUER_REVOKED: StatusCode = StatusCode {
-    name: "BadCertificateIssuerRevoked",
-    code: 0x801E0000,
-    description: "The issuer certificate has been revoked."
-};
-/// User does not have permission to perform the requested operation.
-pub static BAD_USER_ACCESS_DENIED: StatusCode = StatusCode {
-    name: "BadUserAccessDenied",
-    code: 0x801F0000,
-    description: "User does not have permission to perform the requested operation."
-};
-/// The user identity token is not valid.
-pub static BAD_IDENTITY_TOKEN_INVALID: StatusCode = StatusCode {
-    name: "BadIdentityTokenInvalid",
-    code: 0x80200000,
-    description: "The user identity token is not valid."
-};
-/// The user identity token is valid but the server has rejected it.
-pub static BAD_IDENTITY_TOKEN_REJECTED: StatusCode = StatusCode {
-    name: "BadIdentityTokenRejected",
-    code: 0x80210000,
-    description: "The user identity token is valid but the server has rejected it."
-};
-/// The specified secure channel is no longer valid.
-pub static BAD_SECURE_CHANNEL_ID_INVALID: StatusCode = StatusCode {
-    name: "BadSecureChannelIdInvalid",
-    code: 0x80220000,
-    description: "The specified secure channel is no longer valid."
-};
-/// The timestamp is outside the range allowed by the server.
-pub static BAD_INVALID_TIMESTAMP: StatusCode = StatusCode {
-    name: "BadInvalidTimestamp",
-    code: 0x80230000,
-    description: "The timestamp is outside the range allowed by the server."
-};
-/// The nonce does appear to be not a random value or it is not the correct length.
-pub static BAD_NONCE_INVALID: StatusCode = StatusCode {
-    name: "BadNonceInvalid",
-    code: 0x80240000,
-    description: "The nonce does appear to be not a random value or it is not the correct length."
-};
-/// The session id is not valid.
-pub static BAD_SESSION_ID_INVALID: StatusCode = StatusCode {
-    name: "BadSessionIdInvalid",
-    code: 0x80250000,
-    description: "The session id is not valid."
-};
-/// The session was closed by the client.
-pub static BAD_SESSION_CLOSED: StatusCode = StatusCode {
-    name: "BadSessionClosed",
-    code: 0x80260000,
-    description: "The session was closed by the client."
-};
-/// The session cannot be used because ActivateSession has not been called.
-pub static BAD_SESSION_NOT_ACTIVATED: StatusCode = StatusCode {
-    name: "BadSessionNotActivated",
-    code: 0x80270000,
-    description: "The session cannot be used because ActivateSession has not been called."
-};
-/// The subscription id is not valid.
-pub static BAD_SUBSCRIPTION_ID_INVALID: StatusCode = StatusCode {
-    name: "BadSubscriptionIdInvalid",
-    code: 0x80280000,
-    description: "The subscription id is not valid."
-};
-/// The header for the request is missing or invalid.
-pub static BAD_REQUEST_HEADER_INVALID: StatusCode = StatusCode {
-    name: "BadRequestHeaderInvalid",
-    code: 0x802A0000,
-    description: "The header for the request is missing or invalid."
-};
-/// The timestamps to return parameter is invalid.
-pub static BAD_TIMESTAMPS_TO_RETURN_INVALID: StatusCode = StatusCode {
-    name: "BadTimestampsToReturnInvalid",
-    code: 0x802B0000,
-    description: "The timestamps to return parameter is invalid."
-};
-/// The request was cancelled by the client.
-pub static BAD_REQUEST_CANCELLED_BY_CLIENT: StatusCode = StatusCode {
-    name: "BadRequestCancelledByClient",
-    code: 0x802C0000,
-    description: "The request was cancelled by the client."
-};
-/// Communication with the data source is defined
-pub static BAD_NO_COMMUNICATION: StatusCode = StatusCode {
-    name: "BadNoCommunication",
-    code: 0x80310000,
-    description: "Communication with the data source is defined"
-};
-/// Waiting for the server to obtain values from the underlying data source.
-pub static BAD_WAITING_FOR_INITIAL_DATA: StatusCode = StatusCode {
-    name: "BadWaitingForInitialData",
-    code: 0x80320000,
-    description: "Waiting for the server to obtain values from the underlying data source."
-};
-/// The syntax of the node id is not valid.
-pub static BAD_NODE_ID_INVALID: StatusCode = StatusCode {
-    name: "BadNodeIdInvalid",
-    code: 0x80330000,
-    description: "The syntax of the node id is not valid."
-};
-/// The node id refers to a node that does not exist in the server address space.
-pub static BAD_NODE_ID_UNKNOWN: StatusCode = StatusCode {
-    name: "BadNodeIdUnknown",
-    code: 0x80340000,
-    description: "The node id refers to a node that does not exist in the server address space."
-};
-/// The attribute is not supported for the specified Node.
-pub static BAD_ATTRIBUTE_ID_INVALID: StatusCode = StatusCode {
-    name: "BadAttributeIdInvalid",
-    code: 0x80350000,
-    description: "The attribute is not supported for the specified Node."
-};
-/// The syntax of the index range parameter is invalid.
-pub static BAD_INDEX_RANGE_INVALID: StatusCode = StatusCode {
-    name: "BadIndexRangeInvalid",
-    code: 0x80360000,
-    description: "The syntax of the index range parameter is invalid."
-};
-/// No data exists within the range of indexes specified.
-pub static BAD_INDEX_RANGE_NO_DATA: StatusCode = StatusCode {
-    name: "BadIndexRangeNoData",
-    code: 0x80370000,
-    description: "No data exists within the range of indexes specified."
-};
-/// The data encoding is invalid.
-pub static BAD_DATA_ENCODING_INVALID: StatusCode = StatusCode {
-    name: "BadDataEncodingInvalid",
-    code: 0x80380000,
-    description: "The data encoding is invalid."
-};
-/// The server does not support the requested data encoding for the node.
-pub static BAD_DATA_ENCODING_UNSUPPORTED: StatusCode = StatusCode {
-    name: "BadDataEncodingUnsupported",
-    code: 0x80390000,
-    description: "The server does not support the requested data encoding for the node."
-};
-/// The access level does not allow reading or subscribing to the Node.
-pub static BAD_NOT_READABLE: StatusCode = StatusCode {
-    name: "BadNotReadable",
-    code: 0x803A0000,
-    description: "The access level does not allow reading or subscribing to the Node."
-};
-/// The access level does not allow writing to the Node.
-pub static BAD_NOT_WRITABLE: StatusCode = StatusCode {
-    name: "BadNotWritable",
-    code: 0x803B0000,
-    description: "The access level does not allow writing to the Node."
-};
-/// The value was out of range.
-pub static BAD_OUT_OF_RANGE: StatusCode = StatusCode {
-    name: "BadOutOfRange",
-    code: 0x803C0000,
-    description: "The value was out of range."
-};
-/// The requested operation is not supported.
-pub static BAD_NOT_SUPPORTED: StatusCode = StatusCode {
-    name: "BadNotSupported",
-    code: 0x803D0000,
-    description: "The requested operation is not supported."
-};
-/// A requested item was not found or a search operation ended without success.
-pub static BAD_NOT_FOUND: StatusCode = StatusCode {
-    name: "BadNotFound",
-    code: 0x803E0000,
-    description: "A requested item was not found or a search operation ended without success."
-};
-/// The object cannot be used because it has been deleted.
-pub static BAD_OBJECT_DELETED: StatusCode = StatusCode {
-    name: "BadObjectDeleted",
-    code: 0x803F0000,
-    description: "The object cannot be used because it has been deleted."
-};
-/// Requested operation is not implemented.
-pub static BAD_NOT_IMPLEMENTED: StatusCode = StatusCode {
-    name: "BadNotImplemented",
-    code: 0x80400000,
-    description: "Requested operation is not implemented."
-};
-/// The monitoring mode is invalid.
-pub static BAD_MONITORING_MODE_INVALID: StatusCode = StatusCode {
-    name: "BadMonitoringModeInvalid",
-    code: 0x80410000,
-    description: "The monitoring mode is invalid."
-};
-/// The monitoring item id does not refer to a valid monitored item.
-pub static BAD_MONITORED_ITEM_ID_INVALID: StatusCode = StatusCode {
-    name: "BadMonitoredItemIdInvalid",
-    code: 0x80420000,
-    description: "The monitoring item id does not refer to a valid monitored item."
-};
-/// The monitored item filter parameter is not valid.
-pub static BAD_MONITORED_ITEM_FILTER_INVALID: StatusCode = StatusCode {
-    name: "BadMonitoredItemFilterInvalid",
-    code: 0x80430000,
-    description: "The monitored item filter parameter is not valid."
-};
-/// The server does not support the requested monitored item filter.
-pub static BAD_MONITORED_ITEM_FILTER_UNSUPPORTED: StatusCode = StatusCode {
-    name: "BadMonitoredItemFilterUnsupported",
-    code: 0x80440000,
-    description: "The server does not support the requested monitored item filter."
-};
-/// A monitoring filter cannot be used in combination with the attribute specified.
-pub static BAD_FILTER_NOT_ALLOWED: StatusCode = StatusCode {
-    name: "BadFilterNotAllowed",
-    code: 0x80450000,
-    description: "A monitoring filter cannot be used in combination with the attribute specified."
-};
-/// A mandatory structured parameter was missing or null.
-pub static BAD_STRUCTURE_MISSING: StatusCode = StatusCode {
-    name: "BadStructureMissing",
-    code: 0x80460000,
-    description: "A mandatory structured parameter was missing or null."
-};
-/// The event filter is not valid.
-pub static BAD_EVENT_FILTER_INVALID: StatusCode = StatusCode {
-    name: "BadEventFilterInvalid",
-    code: 0x80470000,
-    description: "The event filter is not valid."
-};
-/// The content filter is not valid.
-pub static BAD_CONTENT_FILTER_INVALID: StatusCode = StatusCode {
-    name: "BadContentFilterInvalid",
-    code: 0x80480000,
-    description: "The content filter is not valid."
-};
-/// The operand used in a content filter is not valid.
-pub static BAD_FILTER_OPERAND_INVALID: StatusCode = StatusCode {
-    name: "BadFilterOperandInvalid",
-    code: 0x80490000,
-    description: "The operand used in a content filter is not valid."
-};
-/// The continuation point provide is longer valid.
-pub static BAD_CONTINUATION_POINT_INVALID: StatusCode = StatusCode {
-    name: "BadContinuationPointInvalid",
-    code: 0x804A0000,
-    description: "The continuation point provide is longer valid."
-};
-/// The operation could not be processed because all continuation points have been allocated.
-pub static BAD_NO_CONTINUATION_POINTS: StatusCode = StatusCode {
-    name: "BadNoContinuationPoints",
-    code: 0x804B0000,
-    description: "The operation could not be processed because all continuation points have been allocated."
-};
-/// The operation could not be processed because all continuation points have been allocated.
-pub static BAD_REFERENCE_TYPE_ID_INVALID: StatusCode = StatusCode {
-    name: "BadReferenceTypeIdInvalid",
-    code: 0x804C0000,
-    description: "The operation could not be processed because all continuation points have been allocated."
-};
-/// The browse direction is not valid.
-pub static BAD_BROWSE_DIRECTION_INVALID: StatusCode = StatusCode {
-    name: "BadBrowseDirectionInvalid",
-    code: 0x804D0000,
-    description: "The browse direction is not valid."
-};
-/// The node is not part of the view.
-pub static BAD_NODE_NOT_IN_VIEW: StatusCode = StatusCode {
-    name: "BadNodeNotInView",
-    code: 0x804E0000,
-    description: "The node is not part of the view."
-};
-/// The ServerUri is not a valid URI.
-pub static BAD_SERVER_URI_INVALID: StatusCode = StatusCode {
-    name: "BadServerUriInvalid",
-    code: 0x804F0000,
-    description: "The ServerUri is not a valid URI."
-};
-/// No ServerName was specified.
-pub static BAD_SERVER_NAME_MISSING: StatusCode = StatusCode {
-    name: "BadServerNameMissing",
-    code: 0x80500000,
-    description: "No ServerName was specified."
-};
-/// No DiscoveryUrl was specified.
-pub static BAD_DISCOVERY_URL_MISSING: StatusCode = StatusCode {
-    name: "BadDiscoveryUrlMissing",
-    code: 0x80510000,
-    description: "No DiscoveryUrl was specified."
-};
-/// The semaphore file specified by the client is not valid.
-pub static BAD_SEMPAHORE_FILE_MISSING: StatusCode = StatusCode {
-    name: "BadSempahoreFileMissing",
-    code: 0x80520000,
-    description: "The semaphore file specified by the client is not valid."
-};
-/// The security token request type is not valid.
-pub static BAD_REQUEST_TYPE_INVALID: StatusCode = StatusCode {
-    name: "BadRequestTypeInvalid",
-    code: 0x80530000,
-    description: "The security token request type is not valid."
-};
-/// The security mode does not meet the requirements set by the Server.
-pub static BAD_SECURITY_MODE_REJECTED: StatusCode = StatusCode {
-    name: "BadSecurityModeRejected",
-    code: 0x80540000,
-    description: "The security mode does not meet the requirements set by the Server."
-};
-/// The security policy does not meet the requirements set by the Server.
-pub static BAD_SECURITY_POLICY_REJECTED: StatusCode = StatusCode {
-    name: "BadSecurityPolicyRejected",
-    code: 0x80550000,
-    description: "The security policy does not meet the requirements set by the Server."
-};
-/// The server has reached its maximum number of sessions.
-pub static BAD_TOO_MANY_SESSIONS: StatusCode = StatusCode {
-    name: "BadTooManySessions",
-    code: 0x80560000,
-    description: "The server has reached its maximum number of sessions."
-};
-/// The user token signature is missing or invalid.
-pub static BAD_USER_SIGNATURE_INVALID: StatusCode = StatusCode {
-    name: "BadUserSignatureInvalid",
-    code: 0x80570000,
-    description: "The user token signature is missing or invalid."
-};
-/// The signature generated with the client certificate is missing or invalid.
-pub static BAD_APPLICATION_SIGNATURE_INVALID: StatusCode = StatusCode {
-    name: "BadApplicationSignatureInvalid",
-    code: 0x80580000,
-    description: "The signature generated with the client certificate is missing or invalid."
-};
-/// The client did not provide at least one software certificate that is valid and meets the profile requirements for the server.
-pub static BAD_NO_VALID_CERTIFICATES: StatusCode = StatusCode {
-    name: "BadNoValidCertificates",
-    code: 0x80590000,
-    description: "The client did not provide at least one software certificate that is valid and meets the profile requirements for the server."
-};
-/// The request was cancelled by the client with the Cancel service.
-pub static BAD_REQUEST_CANCELLED_BY_REQUEST: StatusCode = StatusCode {
-    name: "BadRequestCancelledByRequest",
-    code: 0x805A0000,
-    description: "The request was cancelled by the client with the Cancel service."
-};
-/// The parent node id does not to refer to a valid node.
-pub static BAD_PARENT_NODE_ID_INVALID: StatusCode = StatusCode {
-    name: "BadParentNodeIdInvalid",
-    code: 0x805B0000,
-    description: "The parent node id does not to refer to a valid node."
-};
-/// The reference could not be created because it violates constraints imposed by the data model.
-pub static BAD_REFERENCE_NOT_ALLOWED: StatusCode = StatusCode {
-    name: "BadReferenceNotAllowed",
-    code: 0x805C0000,
-    description: "The reference could not be created because it violates constraints imposed by the data model."
-};
-/// The requested node id was reject because it was either invalid or server does not allow node ids to be specified by the client.
-pub static BAD_NODE_ID_REJECTED: StatusCode = StatusCode {
-    name: "BadNodeIdRejected",
-    code: 0x805D0000,
-    description: "The requested node id was reject because it was either invalid or server does not allow node ids to be specified by the client."
-};
-/// The requested node id is already used by another node.
-pub static BAD_NODE_ID_EXISTS: StatusCode = StatusCode {
-    name: "BadNodeIdExists",
-    code: 0x805E0000,
-    description: "The requested node id is already used by another node."
-};
-/// The node class is not valid.
-pub static BAD_NODE_CLASS_INVALID: StatusCode = StatusCode {
-    name: "BadNodeClassInvalid",
-    code: 0x805F0000,
-    description: "The node class is not valid."
-};
-/// The browse name is invalid.
-pub static BAD_BROWSE_NAME_INVALID: StatusCode = StatusCode {
-    name: "BadBrowseNameInvalid",
-    code: 0x80600000,
-    description: "The browse name is invalid."
-};
-/// The browse name is not unique among nodes that share the same relationship with the parent.
-pub static BAD_BROWSE_NAME_DUPLICATED: StatusCode = StatusCode {
-    name: "BadBrowseNameDuplicated",
-    code: 0x80610000,
-    description: "The browse name is not unique among nodes that share the same relationship with the parent."
-};
-/// The node attributes are not valid for the node class.
-pub static BAD_NODE_ATTRIBUTES_INVALID: StatusCode = StatusCode {
-    name: "BadNodeAttributesInvalid",
-    code: 0x80620000,
-    description: "The node attributes are not valid for the node class."
-};
-/// The type definition node id does not reference an appropriate type node.
-pub static BAD_TYPE_DEFINITION_INVALID: StatusCode = StatusCode {
-    name: "BadTypeDefinitionInvalid",
-    code: 0x80630000,
-    description: "The type definition node id does not reference an appropriate type node."
-};
-/// The source node id does not reference a valid node.
-pub static BAD_SOURCE_NODE_ID_INVALID: StatusCode = StatusCode {
-    name: "BadSourceNodeIdInvalid",
-    code: 0x80640000,
-    description: "The source node id does not reference a valid node."
-};
-/// The target node id does not reference a valid node.
-pub static BAD_TARGET_NODE_ID_INVALID: StatusCode = StatusCode {
-    name: "BadTargetNodeIdInvalid",
-    code: 0x80650000,
-    description: "The target node id does not reference a valid node."
-};
-/// The reference type between the nodes is already defined.
-pub static BAD_DUPLICATE_REFERENCE_NOT_ALLOWED: StatusCode = StatusCode {
-    name: "BadDuplicateReferenceNotAllowed",
-    code: 0x80660000,
-    description: "The reference type between the nodes is already defined."
-};
-/// The server does not allow this type of self reference on this node.
-pub static BAD_INVALID_SELF_REFERENCE: StatusCode = StatusCode {
-    name: "BadInvalidSelfReference",
-    code: 0x80670000,
-    description: "The server does not allow this type of self reference on this node."
-};
-/// The reference type is not valid for a reference to a remote server.
-pub static BAD_REFERENCE_LOCAL_ONLY: StatusCode = StatusCode {
-    name: "BadReferenceLocalOnly",
-    code: 0x80680000,
-    description: "The reference type is not valid for a reference to a remote server."
-};
-/// The server will not allow the node to be deleted.
-pub static BAD_NO_DELETE_RIGHTS: StatusCode = StatusCode {
-    name: "BadNoDeleteRights",
-    code: 0x80690000,
-    description: "The server will not allow the node to be deleted."
-};
-/// The server index is not valid.
-pub static BAD_SERVER_INDEX_INVALID: StatusCode = StatusCode {
-    name: "BadServerIndexInvalid",
-    code: 0x806A0000,
-    description: "The server index is not valid."
-};
-/// The view id does not refer to a valid view node.
-pub static BAD_VIEW_ID_UNKNOWN: StatusCode = StatusCode {
-    name: "BadViewIdUnknown",
-    code: 0x806B0000,
-    description: "The view id does not refer to a valid view node."
-};
-/// The requested operation has too many matches to return.
-pub static BAD_TOO_MANY_MATCHES: StatusCode = StatusCode {
-    name: "BadTooManyMatches",
-    code: 0x806D0000,
-    description: "The requested operation has too many matches to return."
-};
-/// The requested operation requires too many resources in the server.
-pub static BAD_QUERY_TOO_COMPLEX: StatusCode = StatusCode {
-    name: "BadQueryTooComplex",
-    code: 0x806E0000,
-    description: "The requested operation requires too many resources in the server."
-};
-/// The requested operation has no match to return.
-pub static BAD_NO_MATCH: StatusCode = StatusCode {
-    name: "BadNoMatch",
-    code: 0x806F0000,
-    description: "The requested operation has no match to return."
-};
-/// The max age parameter is invalid.
-pub static BAD_MAX_AGE_INVALID: StatusCode = StatusCode {
-    name: "BadMaxAgeInvalid",
-    code: 0x80700000,
-    description: "The max age parameter is invalid."
-};
-/// The history details parameter is not valid.
-pub static BAD_HISTORY_OPERATION_INVALID: StatusCode = StatusCode {
-    name: "BadHistoryOperationInvalid",
-    code: 0x80710000,
-    description: "The history details parameter is not valid."
-};
-/// The server does not support the requested operation.
-pub static BAD_HISTORY_OPERATION_UNSUPPORTED: StatusCode = StatusCode {
-    name: "BadHistoryOperationUnsupported",
-    code: 0x80720000,
-    description: "The server does not support the requested operation."
-};
-/// The server not does support writing the combination of value
-pub static BAD_WRITE_NOT_SUPPORTED: StatusCode = StatusCode {
-    name: "BadWriteNotSupported",
-    code: 0x80730000,
-    description: "The server not does support writing the combination of value"
-};
-/// The value supplied for the attribute is not of the same type as the attribute's value.
-pub static BAD_TYPE_MISMATCH: StatusCode = StatusCode {
-    name: "BadTypeMismatch",
-    code: 0x80740000,
-    description: "The value supplied for the attribute is not of the same type as the attribute's value."
-};
-/// The method id does not refer to a method for the specified object.
-pub static BAD_METHOD_INVALID: StatusCode = StatusCode {
-    name: "BadMethodInvalid",
-    code: 0x80750000,
-    description: "The method id does not refer to a method for the specified object."
-};
-/// The client did not specify all of the input arguments for the method.
-pub static BAD_ARGUMENTS_MISSING: StatusCode = StatusCode {
-    name: "BadArgumentsMissing",
-    code: 0x80760000,
-    description: "The client did not specify all of the input arguments for the method."
-};
-/// The server has reached its  maximum number of subscriptions.
-pub static BAD_TOO_MANY_SUBSCRIPTIONS: StatusCode = StatusCode {
-    name: "BadTooManySubscriptions",
-    code: 0x80770000,
-    description: "The server has reached its  maximum number of subscriptions."
-};
-/// The server has reached the maximum number of queued publish requests.
-pub static BAD_TOO_MANY_PUBLISH_REQUESTS: StatusCode = StatusCode {
-    name: "BadTooManyPublishRequests",
-    code: 0x80780000,
-    description: "The server has reached the maximum number of queued publish requests."
-};
-/// There is no subscription available for this session.
-pub static BAD_NO_SUBSCRIPTION: StatusCode = StatusCode {
-    name: "BadNoSubscription",
-    code: 0x80790000,
-    description: "There is no subscription available for this session."
-};
-/// The sequence number is unknown to the server.
-pub static BAD_SEQUENCE_NUMBER_UNKNOWN: StatusCode = StatusCode {
-    name: "BadSequenceNumberUnknown",
-    code: 0x807A0000,
-    description: "The sequence number is unknown to the server."
-};
-/// The requested notification message is no longer available.
-pub static BAD_MESSAGE_NOT_AVAILABLE: StatusCode = StatusCode {
-    name: "BadMessageNotAvailable",
-    code: 0x807B0000,
-    description: "The requested notification message is no longer available."
-};
-/// The Client of the current Session does not support one or more Profiles that are necessary for the Subscription.
-pub static BAD_INSUFFICIENT_CLIENT_PROFILE: StatusCode = StatusCode {
-    name: "BadInsufficientClientProfile",
-    code: 0x807C0000,
-    description: "The Client of the current Session does not support one or more Profiles that are necessary for the Subscription."
-};
-/// The server cannot process the request because it is too busy.
-pub static BAD_TCP_SERVER_TOO_BUSY: StatusCode = StatusCode {
-    name: "BadTcpServerTooBusy",
-    code: 0x807D0000,
-    description: "The server cannot process the request because it is too busy."
-};
-/// The type of the message specified in the header invalid.
-pub static BAD_TCP_MESSAGE_TYPE_INVALID: StatusCode = StatusCode {
-    name: "BadTcpMessageTypeInvalid",
-    code: 0x807E0000,
-    description: "The type of the message specified in the header invalid."
-};
-/// The SecureChannelId and/or TokenId are not currently in use.
-pub static BAD_TCP_SECURE_CHANNEL_UNKNOWN: StatusCode = StatusCode {
-    name: "BadTcpSecureChannelUnknown",
-    code: 0x807F0000,
-    description: "The SecureChannelId and/or TokenId are not currently in use."
-};
-/// The size of the message specified in the header is too large.
-pub static BAD_TCP_MESSAGE_TOO_LARGE: StatusCode = StatusCode {
-    name: "BadTcpMessageTooLarge",
-    code: 0x80800000,
-    description: "The size of the message specified in the header is too large."
-};
-/// There are not enough resources to process the request.
-pub static BAD_TCP_NOT_ENOUGH_RESOURCES: StatusCode = StatusCode {
-    name: "BadTcpNotEnoughResources",
-    code: 0x80810000,
-    description: "There are not enough resources to process the request."
-};
-/// An internal error occurred.
-pub static BAD_TCP_INTERNAL_ERROR: StatusCode = StatusCode {
-    name: "BadTcpInternalError",
-    code: 0x80820000,
-    description: "An internal error occurred."
-};
-/// The Server does not recognize the QueryString specified.
-pub static BAD_TCP_ENDPOINT_URL_INVALID: StatusCode = StatusCode {
-    name: "BadTcpEndpointUrlInvalid",
-    code: 0x80830000,
-    description: "The Server does not recognize the QueryString specified."
-};
-/// The request could not be sent because of a network interruption.
-pub static BAD_REQUEST_INTERRUPTED: StatusCode = StatusCode {
-    name: "BadRequestInterrupted",
-    code: 0x80840000,
-    description: "The request could not be sent because of a network interruption."
-};
-/// Timeout occurred while processing the request.
-pub static BAD_REQUEST_TIMEOUT: StatusCode = StatusCode {
-    name: "BadRequestTimeout",
-    code: 0x80850000,
-    description: "Timeout occurred while processing the request."
-};
-/// The secure channel has been closed.
-pub static BAD_SECURE_CHANNEL_CLOSED: StatusCode = StatusCode {
-    name: "BadSecureChannelClosed",
-    code: 0x80860000,
-    description: "The secure channel has been closed."
-};
-/// The token has expired or is not recognized.
-pub static BAD_SECURE_CHANNEL_TOKEN_UNKNOWN: StatusCode = StatusCode {
-    name: "BadSecureChannelTokenUnknown",
-    code: 0x80870000,
-    description: "The token has expired or is not recognized."
-};
-/// The sequence number is not valid.
-pub static BAD_SEQUENCE_NUMBER_INVALID: StatusCode = StatusCode {
-    name: "BadSequenceNumberInvalid",
-    code: 0x80880000,
-    description: "The sequence number is not valid."
-};
-/// There is a problem with the configuration that affects the usefulness of the value.
-pub static BAD_CONFIGURATION_ERROR: StatusCode = StatusCode {
-    name: "BadConfigurationError",
-    code: 0x80890000,
-    description: "There is a problem with the configuration that affects the usefulness of the value."
-};
-/// The variable should receive its value from another variable
-pub static BAD_NOT_CONNECTED: StatusCode = StatusCode {
-    name: "BadNotConnected",
-    code: 0x808A0000,
-    description: "The variable should receive its value from another variable"
-};
-/// There has been a failure in the device/data source that generates the value that has affected the value.
-pub static BAD_DEVICE_FAILURE: StatusCode = StatusCode {
-    name: "BadDeviceFailure",
-    code: 0x808B0000,
-    description: "There has been a failure in the device/data source that generates the value that has affected the value."
-};
-/// There has been a failure in the sensor from which the value is derived by the device/data source.
-pub static BAD_SENSOR_FAILURE: StatusCode = StatusCode {
-    name: "BadSensorFailure",
-    code: 0x808C0000,
-    description: "There has been a failure in the sensor from which the value is derived by the device/data source."
-};
-/// The source of the data is not operational.
-pub static BAD_OUT_OF_SERVICE: StatusCode = StatusCode {
-    name: "BadOutOfService",
-    code: 0x808D0000,
-    description: "The source of the data is not operational."
-};
-/// The deadband filter is not valid.
-pub static BAD_DEADBAND_FILTER_INVALID: StatusCode = StatusCode {
-    name: "BadDeadbandFilterInvalid",
-    code: 0x808E0000,
-    description: "The deadband filter is not valid."
-};
-/// This Condition refresh failed
-pub static BAD_REFRESH_IN_PROGRESS: StatusCode = StatusCode {
-    name: "BadRefreshInProgress",
-    code: 0x80970000,
-    description: "This Condition refresh failed"
-};
-/// This condition has already been disabled.
-pub static BAD_CONDITION_ALREADY_DISABLED: StatusCode = StatusCode {
-    name: "BadConditionAlreadyDisabled",
-    code: 0x80980000,
-    description: "This condition has already been disabled."
-};
-/// Property not available
-pub static BAD_CONDITION_DISABLED: StatusCode = StatusCode {
-    name: "BadConditionDisabled",
-    code: 0x80990000,
-    description: "Property not available"
-};
-/// The specified event id is not recognized.
-pub static BAD_EVENT_ID_UNKNOWN: StatusCode = StatusCode {
-    name: "BadEventIdUnknown",
-    code: 0x809A0000,
-    description: "The specified event id is not recognized."
-};
-/// No data exists for the requested time range or event filter.
-pub static BAD_NO_DATA: StatusCode = StatusCode {
-    name: "BadNoData",
-    code: 0x809B0000,
-    description: "No data exists for the requested time range or event filter."
-};
-/// Data is missing due to collection started/stopped/lost.
-pub static BAD_DATA_LOST: StatusCode = StatusCode {
-    name: "BadDataLost",
-    code: 0x809D0000,
-    description: "Data is missing due to collection started/stopped/lost."
-};
-/// Expected data is unavailable for the requested time range due to an un-mounted volume
-pub static BAD_DATA_UNAVAILABLE: StatusCode = StatusCode {
-    name: "BadDataUnavailable",
-    code: 0x809E0000,
-    description: "Expected data is unavailable for the requested time range due to an un-mounted volume"
-};
-/// The data or event was not successfully inserted because a matching entry exists.
-pub static BAD_ENTRY_EXISTS: StatusCode = StatusCode {
-    name: "BadEntryExists",
-    code: 0x809F0000,
-    description: "The data or event was not successfully inserted because a matching entry exists."
-};
-/// The data or event was not successfully updated because no matching entry exists.
-pub static BAD_NO_ENTRY_EXISTS: StatusCode = StatusCode {
-    name: "BadNoEntryExists",
-    code: 0x80A00000,
-    description: "The data or event was not successfully updated because no matching entry exists."
-};
-/// The client requested history using a timestamp format the server does not support (i.e requested ServerTimestamp when server only supports SourceTimestamp).
-pub static BAD_TIMESTAMP_NOT_SUPPORTED: StatusCode = StatusCode {
-    name: "BadTimestampNotSupported",
-    code: 0x80A10000,
-    description: "The client requested history using a timestamp format the server does not support (i.e requested ServerTimestamp when server only supports SourceTimestamp)."
-};
-/// One or more arguments are invalid.
-pub static BAD_INVALID_ARGUMENT: StatusCode = StatusCode {
-    name: "BadInvalidArgument",
-    code: 0x80AB0000,
-    description: "One or more arguments are invalid."
-};
-/// Could not establish a network connection to remote server.
-pub static BAD_CONNECTION_REJECTED: StatusCode = StatusCode {
-    name: "BadConnectionRejected",
-    code: 0x80AC0000,
-    description: "Could not establish a network connection to remote server."
-};
-/// The server has disconnected from the client.
-pub static BAD_DISCONNECT: StatusCode = StatusCode {
-    name: "BadDisconnect",
-    code: 0x80AD0000,
-    description: "The server has disconnected from the client."
-};
-/// The network connection has been closed.
-pub static BAD_CONNECTION_CLOSED: StatusCode = StatusCode {
-    name: "BadConnectionClosed",
-    code: 0x80AE0000,
-    description: "The network connection has been closed."
-};
-/// The operation cannot be completed because the object is closed
-pub static BAD_INVALID_STATE: StatusCode = StatusCode {
-    name: "BadInvalidState",
-    code: 0x80AF0000,
-    description: "The operation cannot be completed because the object is closed"
-};
-/// Cannot move beyond end of the stream.
-pub static BAD_END_OF_STREAM: StatusCode = StatusCode {
-    name: "BadEndOfStream",
-    code: 0x80B00000,
-    description: "Cannot move beyond end of the stream."
-};
-/// No data is currently available for reading from a non-blocking stream.
-pub static BAD_NO_DATA_AVAILABLE: StatusCode = StatusCode {
-    name: "BadNoDataAvailable",
-    code: 0x80B10000,
-    description: "No data is currently available for reading from a non-blocking stream."
-};
-/// The asynchronous operation is waiting for a response.
-pub static BAD_WAITING_FOR_RESPONSE: StatusCode = StatusCode {
-    name: "BadWaitingForResponse",
-    code: 0x80B20000,
-    description: "The asynchronous operation is waiting for a response."
-};
-/// The asynchronous operation was abandoned by the caller.
-pub static BAD_OPERATION_ABANDONED: StatusCode = StatusCode {
-    name: "BadOperationAbandoned",
-    code: 0x80B30000,
-    description: "The asynchronous operation was abandoned by the caller."
-};
-/// The stream did not return all data requested (possibly because it is a non-blocking stream).
-pub static BAD_EXPECTED_STREAM_TO_BLOCK: StatusCode = StatusCode {
-    name: "BadExpectedStreamToBlock",
-    code: 0x80B40000,
-    description: "The stream did not return all data requested (possibly because it is a non-blocking stream)."
-};
-/// Non blocking behaviour is required and the operation would block.
-pub static BAD_WOULD_BLOCK: StatusCode = StatusCode {
-    name: "BadWouldBlock",
-    code: 0x80B50000,
-    description: "Non blocking behaviour is required and the operation would block."
-};
-/// A value had an invalid syntax.
-pub static BAD_SYNTAX_ERROR: StatusCode = StatusCode {
-    name: "BadSyntaxError",
-    code: 0x80B60000,
-    description: "A value had an invalid syntax."
-};
-/// The operation could not be finished because all available connections are in use.
-pub static BAD_MAX_CONNECTIONS_REACHED: StatusCode = StatusCode {
-    name: "BadMaxConnectionsReached",
-    code: 0x80B70000,
-    description: "The operation could not be finished because all available connections are in use."
-};
-/// The request message size exceeds limits set by the server.
-pub static BAD_REQUEST_TOO_LARGE: StatusCode = StatusCode {
-    name: "BadRequestTooLarge",
-    code: 0x80B80000,
-    description: "The request message size exceeds limits set by the server."
-};
-/// The response message size exceeds limits set by the client.
-pub static BAD_RESPONSE_TOO_LARGE: StatusCode = StatusCode {
-    name: "BadResponseTooLarge",
-    code: 0x80B90000,
-    description: "The response message size exceeds limits set by the client."
-};
-/// The event cannot be acknowledged.
-pub static BAD_EVENT_NOT_ACKNOWLEDGEABLE: StatusCode = StatusCode {
-    name: "BadEventNotAcknowledgeable",
-    code: 0x80BB0000,
-    description: "The event cannot be acknowledged."
-};
-/// The defined timestamp to return was invalid.
-pub static BAD_INVALID_TIMESTAMP_ARGUMENT: StatusCode = StatusCode {
-    name: "BadInvalidTimestampArgument",
-    code: 0x80BD0000,
-    description: "The defined timestamp to return was invalid."
-};
-/// The applications do not have compatible protocol versions.
-pub static BAD_PROTOCOL_VERSION_UNSUPPORTED: StatusCode = StatusCode {
-    name: "BadProtocolVersionUnsupported",
-    code: 0x80BE0000,
-    description: "The applications do not have compatible protocol versions."
-};
-/// The sub-state machine is not currently active.
-pub static BAD_STATE_NOT_ACTIVE: StatusCode = StatusCode {
-    name: "BadStateNotActive",
-    code: 0x80BF0000,
-    description: "The sub-state machine is not currently active."
-};
-/// An unregognized operator was provided in a filter.
-pub static BAD_FILTER_OPERATOR_INVALID: StatusCode = StatusCode {
-    name: "BadFilterOperatorInvalid",
-    code: 0x80C10000,
-    description: "An unregognized operator was provided in a filter."
-};
-/// A valid operator was provided
-pub static BAD_FILTER_OPERATOR_UNSUPPORTED: StatusCode = StatusCode {
-    name: "BadFilterOperatorUnsupported",
-    code: 0x80C20000,
-    description: "A valid operator was provided"
-};
-/// The number of operands provided for the filter operator was less then expected for the operand provided.
-pub static BAD_FILTER_OPERAND_COUNT_MISMATCH: StatusCode = StatusCode {
-    name: "BadFilterOperandCountMismatch",
-    code: 0x80C30000,
-    description: "The number of operands provided for the filter operator was less then expected for the operand provided."
-};
-/// The referenced element is not a valid element in the content filter.
-pub static BAD_FILTER_ELEMENT_INVALID: StatusCode = StatusCode {
-    name: "BadFilterElementInvalid",
-    code: 0x80C40000,
-    description: "The referenced element is not a valid element in the content filter."
-};
-/// The referenced literal is not a valid value.
-pub static BAD_FILTER_LITERAL_INVALID: StatusCode = StatusCode {
-    name: "BadFilterLiteralInvalid",
-    code: 0x80C50000,
-    description: "The referenced literal is not a valid value."
-};
-/// The Server does not support changing the user identity assigned to the session.
-pub static BAD_IDENTITY_CHANGE_NOT_SUPPORTED: StatusCode = StatusCode {
-    name: "BadIdentityChangeNotSupported",
-    code: 0x80C60000,
-    description: "The Server does not support changing the user identity assigned to the session."
-};
-/// The provided Nodeid was not a type definition nodeid.
-pub static BAD_NOT_TYPE_DEFINITION: StatusCode = StatusCode {
-    name: "BadNotTypeDefinition",
-    code: 0x80C80000,
-    description: "The provided Nodeid was not a type definition nodeid."
-};
-/// The view timestamp is not available or not supported.
-pub static BAD_VIEW_TIMESTAMP_INVALID: StatusCode = StatusCode {
-    name: "BadViewTimestampInvalid",
-    code: 0x80C90000,
-    description: "The view timestamp is not available or not supported."
-};
-/// The view parameters are not consistent with each other.
-pub static BAD_VIEW_PARAMETER_MISMATCH: StatusCode = StatusCode {
-    name: "BadViewParameterMismatch",
-    code: 0x80CA0000,
-    description: "The view parameters are not consistent with each other."
-};
-/// The view version is not available or not supported.
-pub static BAD_VIEW_VERSION_INVALID: StatusCode = StatusCode {
-    name: "BadViewVersionInvalid",
-    code: 0x80CB0000,
-    description: "The view version is not available or not supported."
-};
-/// This condition has already been enabled.
-pub static BAD_CONDITION_ALREADY_ENABLED: StatusCode = StatusCode {
-    name: "BadConditionAlreadyEnabled",
-    code: 0x80CC0000,
-    description: "This condition has already been enabled."
-};
-/// The dialog condition is not active.
-pub static BAD_DIALOG_NOT_ACTIVE: StatusCode = StatusCode {
-    name: "BadDialogNotActive",
-    code: 0x80CD0000,
-    description: "The dialog condition is not active."
-};
-/// The response is not valid for the dialog.
-pub static BAD_DIALOG_RESPONSE_INVALID: StatusCode = StatusCode {
-    name: "BadDialogResponseInvalid",
-    code: 0x80CE0000,
-    description: "The response is not valid for the dialog."
-};
-/// The condition branch has already been acknowledged.
-pub static BAD_CONDITION_BRANCH_ALREADY_ACKED: StatusCode = StatusCode {
-    name: "BadConditionBranchAlreadyAcked",
-    code: 0x80CF0000,
-    description: "The condition branch has already been acknowledged."
-};
-/// The condition branch has already been confirmed.
-pub static BAD_CONDITION_BRANCH_ALREADY_CONFIRMED: StatusCode = StatusCode {
-    name: "BadConditionBranchAlreadyConfirmed",
-    code: 0x80D00000,
-    description: "The condition branch has already been confirmed."
-};
-/// The condition has already been shelved.
-pub static BAD_CONDITION_ALREADY_SHELVED: StatusCode = StatusCode {
-    name: "BadConditionAlreadyShelved",
-    code: 0x80D10000,
-    description: "The condition has already been shelved."
-};
-/// The condition is not currently shelved.
-pub static BAD_CONDITION_NOT_SHELVED: StatusCode = StatusCode {
-    name: "BadConditionNotShelved",
-    code: 0x80D20000,
-    description: "The condition is not currently shelved."
-};
-/// The shelving time not within an acceptable range.
-pub static BAD_SHELVING_TIME_OUT_OF_RANGE: StatusCode = StatusCode {
-    name: "BadShelvingTimeOutOfRange",
-    code: 0x80D30000,
-    description: "The shelving time not within an acceptable range."
-};
-/// The requested number of Aggregates does not match the requested number of NodeIds.
-pub static BAD_AGGREGATE_LIST_MISMATCH: StatusCode = StatusCode {
-    name: "BadAggregateListMismatch",
-    code: 0x80D40000,
-    description: "The requested number of Aggregates does not match the requested number of NodeIds."
-};
-/// The requested Aggregate is not support by the server.
-pub static BAD_AGGREGATE_NOT_SUPPORTED: StatusCode = StatusCode {
-    name: "BadAggregateNotSupported",
-    code: 0x80D50000,
-    description: "The requested Aggregate is not support by the server."
-};
-/// The aggregate value could not be derived due to invalid data inputs.
-pub static BAD_AGGREGATE_INVALID_INPUTS: StatusCode = StatusCode {
-    name: "BadAggregateInvalidInputs",
-    code: 0x80D60000,
-    description: "The aggregate value could not be derived due to invalid data inputs."
-};
-/// No data found to provide upper or lower bound value.
-pub static BAD_BOUND_NOT_FOUND: StatusCode = StatusCode {
-    name: "BadBoundNotFound",
-    code: 0x80D70000,
-    description: "No data found to provide upper or lower bound value."
-};
-/// The server cannot retrieve a bound for the variable.
-pub static BAD_BOUND_NOT_SUPPORTED: StatusCode = StatusCode {
-    name: "BadBoundNotSupported",
-    code: 0x80D80000,
-    description: "The server cannot retrieve a bound for the variable."
-};
-/// The aggregate configuration is not valid for specified node.
-pub static BAD_AGGREGATE_CONFIGURATION_REJECTED: StatusCode = StatusCode {
-    name: "BadAggregateConfigurationRejected",
-    code: 0x80DA0000,
-    description: "The aggregate configuration is not valid for specified node."
-};
-/// The request could not be processed because there are too many monitored items in the subscription.
-pub static BAD_TOO_MANY_MONITORED_ITEMS: StatusCode = StatusCode {
-    name: "BadTooManyMonitoredItems",
-    code: 0x80DB0000,
-    description: "The request could not be processed because there are too many monitored items in the subscription."
-};
-/// The related EngineeringUnit has been changed but this change has not been applied to the device. The Variable Value is still dependent on the previous unit but its status is currently Bad.
-pub static BAD_DOMINANT_VALUE_CHANGED: StatusCode = StatusCode {
-    name: "BadDominantValueChanged",
-    code: 0x80E10000,
-    description: "The related EngineeringUnit has been changed but this change has not been applied to the device. The Variable Value is still dependent on the previous unit but its status is currently Bad."
-};
-/// A dependent value has been changed but the change has not been applied to the device. The quality of the dominant variable is Bad.
-pub static BAD_DEPENDENT_VALUE_CHANGED: StatusCode = StatusCode {
-    name: "BadDependentValueChanged",
-    code: 0x80E30000,
-    description: "A dependent value has been changed but the change has not been applied to the device. The quality of the dominant variable is Bad."
-};
-/// The request was rejected by the server because it did not meet the criteria set by the server.
-pub static BAD_REQUEST_NOT_ALLOWED: StatusCode = StatusCode {
-    name: "BadRequestNotAllowed",
-    code: 0x80E40000,
-    description: "The request was rejected by the server because it did not meet the criteria set by the server."
-};
-/// Too many arguments were provided.
-pub static BAD_TOO_MANY_ARGUMENTS: StatusCode = StatusCode {
-    name: "BadTooManyArguments",
-    code: 0x80E50000,
-    description: "Too many arguments were provided."
-};
-/// The operation is not permitted over the current secure channel.
-pub static BAD_SECURITY_MODE_INSUFFICIENT: StatusCode = StatusCode {
-    name: "BadSecurityModeInsufficient",
-    code: 0x80E60000,
-    description: "The operation is not permitted over the current secure channel."
-};
-/// The certificate chain is incomplete.
-pub static BAD_CERTIFICATE_CHAIN_INCOMPLETE: StatusCode = StatusCode {
-    name: "BadCertificateChainIncomplete",
-    code: 0x810D0000,
-    description: "The certificate chain is incomplete."
-};

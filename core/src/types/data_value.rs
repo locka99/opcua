@@ -4,7 +4,7 @@ use types::*;
 
 /// False if the Value is Null.
 const HAS_VALUE: u8 = 0x1;
-/// False if the StatusCode is Good.
+/// False if the StatusCode is GOOD.
 const HAS_STATUS: u8 = 0x2;
 /// False if the Source Timestamp is DateTime.MinValue.
 const HAS_SOURCE_TIMESTAMP: u8 = 0x4;
@@ -149,7 +149,7 @@ impl DataValue {
         let now = DateTime::now();
         DataValue {
             value: Some(value),
-            status: Some(GOOD.clone()),
+            status: Some(GOOD),
             source_timestamp: Some(now.clone()),
             source_picoseconds: Some(0),
             server_timestamp: Some(now.clone()),

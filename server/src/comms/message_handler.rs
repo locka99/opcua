@@ -47,7 +47,7 @@ impl MessageHandler {
         }
     }
 
-    pub fn handle_message(&mut self, request_id: UInt32, message: SupportedMessage) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn handle_message(&mut self, request_id: UInt32, message: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
         let mut server_state = self.server_state.lock().unwrap();
         let mut server_state = &mut server_state;
         let mut session_state = self.session_state.lock().unwrap();
@@ -107,7 +107,7 @@ impl MessageHandler {
             }
             _ => {
                 debug!("Message handler does not handle this kind of message {:?}", message);
-                return Err(&BAD_SERVICE_UNSUPPORTED);
+                return Err(BAD_SERVICE_UNSUPPORTED);
             }
         };
         Ok(response)

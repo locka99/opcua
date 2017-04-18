@@ -143,7 +143,7 @@ impl Base {
             let attribute_idx = Base::attribute_idx(attribute_id);
             attributes[attribute_idx] = Some(DataValue {
                 value: Some(value),
-                status: Some(GOOD.clone()),
+                status: Some(GOOD),
                 server_timestamp: Some(now.clone()),
                 server_picoseconds: Some(0),
                 source_timestamp: Some(now.clone()),
@@ -165,7 +165,7 @@ impl Base {
         let attribute_idx = Base::attribute_idx(attribute_id);
         self.attributes[attribute_idx] = Some(DataValue {
             value: Some(value),
-            status: Some(GOOD.clone()),
+            status: Some(GOOD),
             server_timestamp: Some(server_timestamp.clone()),
             server_picoseconds: Some(0),
             source_timestamp: Some(source_timestamp.clone()),

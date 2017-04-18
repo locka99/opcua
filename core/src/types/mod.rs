@@ -10,7 +10,7 @@ use std::io::{Read, Write, Cursor};
 
 use services::*;
 
-pub type EncodingResult<T> = std::result::Result<T, &'static StatusCode>;
+pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
 
 /// OPC UA Binary Encoding interface. Anything that encodes to binary must implement this. It provides
 /// functions to calculate the size in bytes of the struct (for allocating memory), encoding to a stream
@@ -277,10 +277,10 @@ impl BinaryEncoder<UAString> for UAString {
             return Ok(UAString::null());
         } else if buf_len < -1 {
             error!("String buf length is a negative number {}", buf_len);
-            return Err(&BAD_DECODING_ERROR);
+            return Err(BAD_DECODING_ERROR);
         } else if buf_len > MAX_STRING_SIZE {
             error!("String buf length is probably invalid number {}", buf_len);
-            return Err(&BAD_DECODING_ERROR);
+            return Err(BAD_DECODING_ERROR);
         }
 
         // Create the actual UTF8 string
@@ -487,10 +487,10 @@ impl BinaryEncoder<ByteString> for ByteString {
             return Ok(ByteString::null());
         } else if buf_len < -1 {
             error!("ByteString buf length is a negative number {}", buf_len);
-            return Err(&BAD_DECODING_ERROR);
+            return Err(BAD_DECODING_ERROR);
         } else if buf_len > MAX_STRING_SIZE {
             error!("ByteString buf length is probably invalid number {}", buf_len);
-            return Err(&BAD_DECODING_ERROR);
+            return Err(BAD_DECODING_ERROR);
         }
 
         // Create the actual UTF8 string
@@ -752,7 +752,7 @@ impl BinaryEncoder<ExtensionObject> for ExtensionObject {
             }
             _ => {
                 error!("Invalid encoding type {} in stream", encoding_type);
-                return Err(&BAD_DECODING_ERROR);
+                return Err(BAD_DECODING_ERROR);
             }
         };
         Ok(ExtensionObject {
@@ -794,7 +794,7 @@ impl ExtensionObject {
                 return T::decode(&mut stream);
             }
         }
-        Err(&BAD_DECODING_ERROR)
+        Err(BAD_DECODING_ERROR)
     }
 }
 
@@ -893,7 +893,7 @@ impl BinaryEncoder<DiagnosticInfo> for DiagnosticInfo {
         }
         if let Some(ref inner_status_code) = self.inner_status_code {
             // Write inner status code
-            size += inner_status_code.clone().encode(stream)?;
+            size += inner_status_code.encode(stream)?;
         }
         if let Some(ref inner_diagnostic_info) = self.inner_diagnostic_info {
             // Write inner diagnostic info
@@ -1038,7 +1038,7 @@ impl DataChangeFilter {
     ///
     /// BAD_DEADBAND_FILTER_INVALID indicates the deadband settings were invalid, e.g. an invalid
     /// type, or the args were invalid. A (low, high) range must be supplied for a percentage deadband compare.
-    pub fn compare_value(&self, v1: &Variant, v2: &Variant, eu_range: Option<(f64, f64)>) -> std::result::Result<bool, &'static StatusCode> {
+    pub fn compare_value(&self, v1: &Variant, v2: &Variant, eu_range: Option<(f64, f64)>) -> std::result::Result<bool, StatusCode> {
         // TODO be able to compare arrays of numbers
 
         if self.deadband_type == 0 {
@@ -1056,22 +1056,22 @@ impl DataChangeFilter {
             let v2 = v2.unwrap();
 
             if self.deadband_value < 0f64 {
-                return Err(&BAD_DEADBAND_FILTER_INVALID);
+                return Err(BAD_DEADBAND_FILTER_INVALID);
             }
             if self.deadband_type == 1 {
                 Ok(DataChangeFilter::abs_compare(v1, v2, self.deadband_value))
             } else if self.deadband_type == 2 {
                 if eu_range.is_none() {
-                    return Err(&BAD_DEADBAND_FILTER_INVALID)
+                    return Err(BAD_DEADBAND_FILTER_INVALID)
                 }
                 let (low, high) = eu_range.unwrap();
                 if low >= high {
-                    return Err(&BAD_DEADBAND_FILTER_INVALID)
+                    return Err(BAD_DEADBAND_FILTER_INVALID)
                 }
                 Ok(DataChangeFilter::pct_compare(v1, v2, low, high, self.deadband_value))
             } else {
                 // Type is not recognized
-                return Err(&BAD_DEADBAND_FILTER_INVALID);
+                return Err(BAD_DEADBAND_FILTER_INVALID);
             }
         }
     }
@@ -1102,7 +1102,7 @@ impl UserNameIdentityToken {
     }
 
     /// Authenticates the token against the supplied username and password.
-    pub fn authenticate(&self, username: &str, password: &[u8]) -> Result<(), &'static StatusCode> {
+    pub fn authenticate(&self, username: &str, password: &[u8]) -> Result<(), StatusCode> {
         // No comparison will be made unless user and pass are explicitly set to something in the token
         // Even if someone has a blank password, client should pass an empty string, not null.
         let valid = if self.is_valid() {
@@ -1136,7 +1136,7 @@ impl UserNameIdentityToken {
         if valid {
             Ok(())
         } else {
-            Err(&BAD_IDENTITY_TOKEN_REJECTED)
+            Err(BAD_IDENTITY_TOKEN_REJECTED)
         }
     }
 }
@@ -1155,5 +1155,4 @@ pub use self::date_time::*;
 pub use self::node_id::*;
 pub use self::variant::*;
 pub use self::data_types::*;
-
 pub use self::generated::*;

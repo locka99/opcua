@@ -16,11 +16,11 @@ impl SubscriptionService {
     }
 
     /// Handles a CreateSubscriptionRequest
-    pub fn create_subscription(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: CreateSubscriptionRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn create_subscription(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: CreateSubscriptionRequest) -> Result<SupportedMessage, StatusCode> {
         let mut subscriptions = session_state.subscriptions.lock().unwrap();
         let response = if server_state.max_subscriptions > 0 && subscriptions.len() >= server_state.max_subscriptions {
             CreateSubscriptionResponse {
-                response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, &BAD_TOO_MANY_SUBSCRIPTIONS),
+                response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, BAD_TOO_MANY_SUBSCRIPTIONS),
                 subscription_id: 0,
                 revised_publishing_interval: 0f64,
                 revised_lifetime_count: 0,
@@ -40,7 +40,7 @@ impl SubscriptionService {
 
             // Create the response
             CreateSubscriptionResponse {
-                response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, &GOOD),
+                response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, GOOD),
                 subscription_id: subscription_id,
                 revised_publishing_interval: revised_publishing_interval,
                 revised_lifetime_count: revised_lifetime_count,
@@ -51,12 +51,12 @@ impl SubscriptionService {
     }
 
     /// Handles a ModifySubscriptionRequest
-    pub fn modify_subscription(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: ModifySubscriptionRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn modify_subscription(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: ModifySubscriptionRequest) -> Result<SupportedMessage, StatusCode> {
         let mut subscriptions = session_state.subscriptions.lock().unwrap();
         let subscription_id = request.subscription_id;
         let response = if !subscriptions.contains_key(&subscription_id) {
             ModifySubscriptionResponse {
-                response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, &BAD_SUBSCRIPTION_ID_INVALID),
+                response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, BAD_SUBSCRIPTION_ID_INVALID),
                 revised_publishing_interval: 0f64,
                 revised_lifetime_count: 0,
                 revised_max_keep_alive_count: 0,
@@ -74,7 +74,7 @@ impl SubscriptionService {
             // ...max_notifications_per_publish??
 
             ModifySubscriptionResponse {
-                response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, &GOOD),
+                response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, GOOD),
                 revised_publishing_interval: revised_publishing_interval,
                 revised_lifetime_count: revised_lifetime_count,
                 revised_max_keep_alive_count: revised_max_keep_alive_count,
@@ -85,7 +85,7 @@ impl SubscriptionService {
     }
 
     /// Handles a DeleteSubscriptionsRequest
-    pub fn delete_subscriptions(&self, _: &mut ServerState, session_state: &mut SessionState, request: DeleteSubscriptionsRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn delete_subscriptions(&self, _: &mut ServerState, session_state: &mut SessionState, request: DeleteSubscriptionsRequest) -> Result<SupportedMessage, StatusCode> {
         let (service_status, results) = if request.subscription_ids.is_some() {
             let subscription_ids = request.subscription_ids.as_ref().unwrap();
             let mut results = Vec::with_capacity(subscription_ids.len());
@@ -94,14 +94,14 @@ impl SubscriptionService {
             for subscription_id in subscription_ids {
                 if subscriptions.contains_key(subscription_id) {
                     subscriptions.remove(subscription_id);
-                    results.push(GOOD.clone());
+                    results.push(GOOD);
                 } else {
-                    results.push(BAD_SUBSCRIPTION_ID_INVALID.clone());
+                    results.push(BAD_SUBSCRIPTION_ID_INVALID);
                 }
             }
-            (&GOOD, Some(results))
+            (GOOD, Some(results))
         } else {
-            (&BAD_NOTHING_TO_DO, None)
+            (BAD_NOTHING_TO_DO, None)
         };
         let response = DeleteSubscriptionsResponse {
             response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
@@ -112,9 +112,9 @@ impl SubscriptionService {
     }
 
     /// Handles a SerPublishingModeRequest
-    pub fn set_publishing_mode(&self, _: &mut ServerState, session_state: &mut SessionState, request: SetPublishingModeRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn set_publishing_mode(&self, _: &mut ServerState, session_state: &mut SessionState, request: SetPublishingModeRequest) -> Result<SupportedMessage, StatusCode> {
         let (service_status, results) = if request.subscription_ids.is_none() {
-            (&BAD_NOTHING_TO_DO, None)
+            (BAD_NOTHING_TO_DO, None)
         } else {
             let publishing_enabled = request.publishing_enabled;
             let subscription_ids = request.subscription_ids.as_ref().unwrap();
@@ -124,12 +124,12 @@ impl SubscriptionService {
                 if subscriptions.contains_key(subscription_id) {
                     let mut subscription = subscriptions.get_mut(subscription_id).unwrap();
                     subscription.publishing_enabled = publishing_enabled;
-                    results.push(GOOD.clone());
+                    results.push(GOOD);
                 } else {
-                    results.push(BAD_SUBSCRIPTION_ID_INVALID.clone());
+                    results.push(BAD_SUBSCRIPTION_ID_INVALID);
                 }
             }
-            (&GOOD, Some(results))
+            (GOOD, Some(results))
         };
         let response = SetPublishingModeResponse {
             response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
@@ -140,7 +140,7 @@ impl SubscriptionService {
     }
 
     /// Handles a PublishRequest
-    pub fn publish(&self, server_state: &mut ServerState, session_state: &mut SessionState, request_id: UInt32, request: PublishRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn publish(&self, server_state: &mut ServerState, session_state: &mut SessionState, request_id: UInt32, request: PublishRequest) -> Result<SupportedMessage, StatusCode> {
         debug!("--> Receive a PublishRequest {:?}", request);
         let publish_responses = session_state.enqueue_publish_request(server_state, request_id, request)?;
         if publish_responses.is_some() {
@@ -157,10 +157,10 @@ impl SubscriptionService {
     }
 
     /// Handles a RepublishRequest
-    pub fn republish(&self, _: &mut ServerState, _: &mut SessionState, request: RepublishRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn republish(&self, _: &mut ServerState, _: &mut SessionState, request: RepublishRequest) -> Result<SupportedMessage, StatusCode> {
         // TODO look for the subscription id and sequence number in the sent items and resend it
         let response = RepublishResponse {
-            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, &BAD_MESSAGE_NOT_AVAILABLE.clone()),
+            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, BAD_MESSAGE_NOT_AVAILABLE),
             notification_message: NotificationMessage {
                 sequence_number: 0,
                 publish_time: DateTime::now(),

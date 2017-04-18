@@ -9,7 +9,7 @@ use types::*;
 pub fn process_encode_io_result(result: Result<usize>) -> EncodingResult<usize> {
     if result.is_err() {
         debug!("Encoding error - {:?}", result.unwrap_err());
-        Err(&BAD_ENCODING_ERROR)
+        Err(BAD_ENCODING_ERROR)
     } else {
         Ok(result.unwrap())
     }
@@ -19,7 +19,7 @@ pub fn process_encode_io_result(result: Result<usize>) -> EncodingResult<usize> 
 pub fn process_decode_io_result<T>(result: Result<T>) -> EncodingResult<T> where T: Debug {
     if result.is_err() {
         debug!("Decoding error - {:?}", result.unwrap_err());
-        Err(&BAD_DECODING_ERROR)
+        Err(BAD_DECODING_ERROR)
     } else {
         Ok(result.unwrap())
     }
@@ -57,7 +57,7 @@ pub fn read_array<S: Read, T: BinaryEncoder<T>>(stream: &mut S) -> EncodingResul
         Ok(None)
     } else if len < -1 {
         error!("Array length is negative value and invalid");
-        Err(&BAD_DECODING_ERROR)
+        Err(BAD_DECODING_ERROR)
     } else {
         let mut values: Vec<T> = Vec::with_capacity(len as usize);
         for _ in 0..len {

@@ -131,7 +131,7 @@ impl BinaryEncoder<NodeId> for NodeId {
 }
 
 impl FromStr for NodeId {
-    type Err = &'static StatusCode;
+    type Err = StatusCode;
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         use regex::Regex;
 
@@ -153,7 +153,7 @@ impl FromStr for NodeId {
 
         let captures = RE.captures(s);
         if captures.is_none() {
-            return Err(&BAD_NODE_ID_INVALID)
+            return Err(BAD_NODE_ID_INVALID)
         }
         let captures = captures.unwrap();
 
@@ -163,7 +163,7 @@ impl FromStr for NodeId {
         let namespace = if ns.is_some() {
             let parse_result = ns.unwrap().as_str().parse::<UInt16>();
             if parse_result.is_err() {
-                return Err(&BAD_NODE_ID_INVALID)
+                return Err(BAD_NODE_ID_INVALID)
             }
             parse_result.unwrap()
         } else {
@@ -177,7 +177,7 @@ impl FromStr for NodeId {
             "i" => {
                 let number = v.as_str().parse::<UInt64>();
                 if number.is_err() {
-                    return Err(&BAD_NODE_ID_INVALID)
+                    return Err(BAD_NODE_ID_INVALID)
                 }
                 NodeId::new_numeric(namespace, number.unwrap())
             },
@@ -187,7 +187,7 @@ impl FromStr for NodeId {
             "g" => {
                 let guid = Guid::parse_str(v.as_str());
                 if guid.is_err() {
-                    return Err(&BAD_NODE_ID_INVALID)
+                    return Err(BAD_NODE_ID_INVALID)
                 }
                 NodeId::new_guid(namespace, guid.unwrap())
             },
@@ -195,10 +195,10 @@ impl FromStr for NodeId {
                 // Parse hex back into bytes
                 // NodeId::new_bytestring(namespace, ByteString::from_bytes(decoded_v.as_str()))
                 error!("ByteString parsing needs to be implemented");
-                return Err(&BAD_NODE_ID_INVALID);
+                return Err(BAD_NODE_ID_INVALID);
             },
             _ => {
-                return Err(&BAD_NODE_ID_INVALID)
+                return Err(BAD_NODE_ID_INVALID)
             }
         };
         Ok(node_id)

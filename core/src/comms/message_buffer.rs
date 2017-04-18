@@ -26,7 +26,7 @@ impl MessageBuffer {
     }
 
     /// Store bytes and analyse them for chunks. If chunks are pending, the result is true
-    pub fn store_bytes(&mut self, bytes: &[u8]) -> std::result::Result<Vec<Message>, &'static StatusCode> {
+    pub fn store_bytes(&mut self, bytes: &[u8]) -> std::result::Result<Vec<Message>, StatusCode> {
         debug_buffer("Received bytes:", bytes);
 
         self.in_buffer.extend(bytes.iter().cloned());
@@ -54,7 +54,7 @@ impl MessageBuffer {
                 MessageType::Hello => Message::Hello(HelloMessage::decode(&mut message_stream)?),
                 MessageType::Error => Message::Error(ErrorMessage::decode(&mut message_stream)?),
                 MessageType::Chunk => Message::Chunk(Chunk::decode(&mut message_stream)?),
-                _ => { return Err(&BAD_COMMUNICATION_ERROR); }
+                _ => { return Err(BAD_COMMUNICATION_ERROR); }
             };
             messages.push(message);
         }

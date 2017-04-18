@@ -24,8 +24,8 @@ impl ViewService {
         ViewService {}
     }
 
-    pub fn browse(&self, server_state: &mut ServerState, _: &mut SessionState, request: BrowseRequest) -> Result<SupportedMessage, &'static StatusCode> {
-        let service_status = &GOOD;
+    pub fn browse(&self, server_state: &mut ServerState, _: &mut SessionState, request: BrowseRequest) -> Result<SupportedMessage, StatusCode> {
+        let service_status = GOOD;
 
         let browse_results = if request.nodes_to_browse.is_some() {
             let nodes_to_browse = request.nodes_to_browse.as_ref().unwrap();
@@ -35,7 +35,7 @@ impl ViewService {
                 // Views are not supported
                 info!("Browse request ignored because view was specified (views not supported)");
                 return Ok(SupportedMessage::BrowseResponse(BrowseResponse {
-                    response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, &BAD_VIEW_ID_UNKNOWN),
+                    response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, BAD_VIEW_ID_UNKNOWN),
                     results: None,
                     diagnostic_infos: None,
                 }));
@@ -54,7 +54,7 @@ impl ViewService {
                     }
                 } else {
                     BrowseResult {
-                        status_code: GOOD.clone(),
+                        status_code: GOOD,
                         continuation_point: ByteString::null(),
                         references: Some(references.unwrap())
                     }
@@ -66,7 +66,7 @@ impl ViewService {
         } else {
             // Nothing to do
             return Ok(SupportedMessage::BrowseResponse(BrowseResponse {
-                response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, &BAD_NOTHING_TO_DO),
+                response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, BAD_NOTHING_TO_DO),
                 results: None,
                 diagnostic_infos: None,
             }));
@@ -81,9 +81,9 @@ impl ViewService {
         Ok(SupportedMessage::BrowseResponse(response))
     }
 
-    pub fn browse_next(&self, _: &mut ServerState, _: &mut SessionState, request: BrowseNextRequest) -> Result<SupportedMessage, &'static StatusCode> {
+    pub fn browse_next(&self, _: &mut ServerState, _: &mut SessionState, request: BrowseNextRequest) -> Result<SupportedMessage, StatusCode> {
         // BrowseNext does nothing
-        let service_status = &BAD_NOTHING_TO_DO;
+        let service_status = BAD_NOTHING_TO_DO;
         let response = BrowseNextResponse {
             response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
             results: None,
@@ -92,10 +92,10 @@ impl ViewService {
         Ok(SupportedMessage::BrowseNextResponse(response))
     }
 
-    fn reference_descriptions(address_space: &AddressSpace, node_to_browse: &BrowseDescription, max_references_per_node: UInt32) -> Result<Vec<ReferenceDescription>, &'static StatusCode> {
+    fn reference_descriptions(address_space: &AddressSpace, node_to_browse: &BrowseDescription, max_references_per_node: UInt32) -> Result<Vec<ReferenceDescription>, StatusCode> {
         // Node must exist or there will be no references
         if node_to_browse.node_id.is_null() || !address_space.node_exists(&node_to_browse.node_id) {
-            return Err(&BAD_NODE_ID_UNKNOWN);
+            return Err(BAD_NODE_ID_UNKNOWN);
         }
 
         // Request may wish to filter by a kind of reference
