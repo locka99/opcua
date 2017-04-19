@@ -18,6 +18,7 @@ use config::{ServerConfig};
 
 #[derive(Clone)]
 pub struct Endpoint {
+    pub name: String,
     pub endpoint_url: String,
     pub security_policy_uri: UAString,
     pub security_mode: MessageSecurityMode,
@@ -179,6 +180,10 @@ pub struct Server {
 impl Server {
     /// Create a new server instance
     pub fn new(config: ServerConfig) -> Server {
+        if !config.is_valid() {
+            panic!("Cannot create a server using an invalid configuration.");
+        }
+
         // Set from config
         let application_name = config.application_name.clone();
         let application_uri = UAString::from_str(&config.application_uri);
@@ -187,7 +192,8 @@ impl Server {
         let start_time = DateTime::now();
         let servers = vec![config.application_uri.clone()];
         let base_endpoint = format!("opc.tcp://{}:{}", config.tcp_config.host, config.tcp_config.port);
-        let max_subscriptions = 5; // TODO config
+        let max_subscriptions = config.max_subscriptions as usize;
+        // TODO max string, byte string and array lengths
 
         let mut endpoints = Vec::new();
         for e in &config.endpoints {
@@ -200,6 +206,7 @@ impl Server {
                 false
             };
             endpoints.push(Endpoint {
+                name: e.name.clone(),
                 endpoint_url: endpoint_url,
                 security_policy_uri: UAString::from_str(&security_policy_uri),
                 security_mode: security_mode,
@@ -278,7 +285,8 @@ impl Server {
                 info!("Server supports these endpoints:");
                 let server_state = self.server_state.lock().unwrap();
                 for endpoint in server_state.endpoints.iter() {
-                    info!("Endpoint: {}", endpoint.endpoint_url);
+                    info!("Endpoint \"{}\":", endpoint.name);
+                    info!("  Url:              {}", endpoint.endpoint_url);
                     info!("  Anonymous Access: {:?}", endpoint.anonymous);
                     info!("  User/Password:    {:?}", endpoint.user.is_some());
                     info!("  Security Policy:  {}", if endpoint.security_policy_uri.is_null() { "" } else { endpoint.security_policy_uri.to_str() });

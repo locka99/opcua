@@ -92,13 +92,6 @@ fs.readFile(types_xml, function (err, data) {
   });
 });
 
-function write_to_file(file_path, contents) {
-  var buffer = new Buffer(contents);
-  var fd = fs.openSync(file_path, 'w');
-  fs.writeSync(fd, buffer, 0, buffer.length, null);
-  fs.closeSync(fd);
-}
-
 function generate_types(data) {
   // Output structured types
   _.each(data.structured_types, function (structured_type) {
@@ -129,7 +122,7 @@ pub use self::${mod_name}::*;
 `
   });
 
-  write_to_file(file_path, contents);
+  settings.write_to_file(file_path, contents);
 }
 
 function generate_structured_type_file(structured_type) {
@@ -254,5 +247,5 @@ pub struct ${structured_type.name} {
 }
 `;
 
-  write_to_file(file_path, contents);
+  settings.write_to_file(file_path, contents);
 }

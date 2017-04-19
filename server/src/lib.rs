@@ -51,6 +51,8 @@ mod constants {
     pub const DEFAULT_MAX_BYTE_STRING_LENGTH: u32 = 65536;
     // Default OPC UA server port
     pub const DEFAULT_OPC_UA_SERVER_PORT: u16 = 1234;
+    // Default maximum number of subscriptions in a session
+    pub const DEFAULT_MAX_SUBSCRIPTIONS: u32 = 100;
     // Default, "well known address for TCP discovery server
     //pub const DEFAULT_OPC_UA_DISCOVERY_SERVER_PORT: u16 = 4840;
 

@@ -6,7 +6,10 @@ use std::fs::File;
 
 use std::result::Result;
 
+use opcua_core;
 use opcua_core::types::MessageSecurityMode;
+use opcua_core::comms::SecurityPolicy;
+
 use constants;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -39,16 +42,8 @@ pub struct ServerEndpoint {
 const DEFAULT_ENDPOINT_NAME: &'static str = "Default";
 const DEFAULT_ENDPOINT_PATH: &'static str = "/";
 
-const DEFAULT_SECURITY_POLICY: &'static str = SECURITY_POLICY_NONE;
-const SECURITY_POLICY_NONE: &'static str = "None";
-const SECURITY_POLICY_BASIC_128_RSA_15: &'static str = "Basic128Rsa15";
-const SECURITY_POLICY_BASIC_256: &'static str = "Basic256";
-const SECURITY_POLICY_BASIC_256_SHA_256: &'static str = "Basic256Sha256";
-
-const DEFAULT_SECURITY_MODE: &'static str = SECURITY_MODE_NONE;
-const SECURITY_MODE_NONE: &'static str = "None";
-const SECURITY_MODE_SIGN: &'static str = "Sign";
-const SECURITY_MODE_SIGN_AND_ENCRYPT: &'static str = "SignAndEncrypt";
+const DEFAULT_SECURITY_POLICY: &'static str = "None";
+const DEFAULT_SECURITY_MODE: &'static str = "None";
 
 impl ServerEndpoint {
     pub fn new(name: &str, path: &str, anonymous: bool, user: &str, pass: &[u8], security_policy: &str, security_mode: &str) -> ServerEndpoint {
@@ -83,38 +78,31 @@ impl ServerEndpoint {
 
     pub fn is_valid(&self) -> bool {
         let mut valid = true;
+        // Validate the username and password fields
         if (self.user.is_some() && self.pass.is_none()) || (self.user.is_none() && self.pass.is_some()) {
             error!("Endpoint {} is invalid. User / password both need to be set or not set, not just one or the other", self.name);
             valid = false;
         }
-
-        match self.security_policy.as_ref() {
-            SECURITY_POLICY_NONE | SECURITY_POLICY_BASIC_128_RSA_15 | SECURITY_POLICY_BASIC_256 | SECURITY_POLICY_BASIC_256_SHA_256 => {}
-            _ => {
-                error!("Endpoint {} is invalid. Security policy \"{}\" is invalid. Valid values are None, Basic128Rsa15, Basic256, Basic256Sha256", self.name, self.security_policy);
-                valid = false;
-            }
-        }
-
-        match self.security_mode.as_ref() {
-            SECURITY_MODE_NONE | SECURITY_MODE_SIGN | SECURITY_MODE_SIGN_AND_ENCRYPT => {}
-            _ => {
-                error!("Endpoint {} is invalid. Security mode \"{}\" is invalid. Valid values are None, Sign, SignAndEncrypt", self.name, self.security_mode);
-                valid = false;
-            }
-        }
-
-        if (&self.security_policy == SECURITY_POLICY_NONE && &self.security_mode != SECURITY_MODE_NONE) ||
-            (&self.security_policy != SECURITY_POLICY_NONE && &self.security_mode == SECURITY_MODE_NONE) {
-            error!("Endpoint {} is invalid. Security policy and security mode must both contain None or neither of them should.", self.name);
+        // Validate the security policy and mode
+        let security_policy = SecurityPolicy::from_str(&self.security_policy);
+        let security_mode = MessageSecurityMode::from_str(&self.security_mode);
+        if security_policy == SecurityPolicy::Unknown {
+            error!("Endpoint {} is invalid. Security policy \"{}\" is invalid. Valid values are None, Basic128Rsa15, Basic256, Basic256Sha256", self.name, self.security_policy);
             valid = false;
-        }
-
-        if &self.security_policy == SECURITY_POLICY_NONE && &self.security_mode == SECURITY_MODE_NONE && (self.anonymous.is_none() || !self.anonymous.as_ref().unwrap()) {
+        } else if security_mode == MessageSecurityMode::Invalid {
+            error!("Endpoint {} is invalid. Security mode \"{}\" is invalid. Valid values are None, Sign, SignAndEncrypt", self.name, self.security_mode);
+            valid = false;
+        } else if security_policy == SecurityPolicy::None && security_mode == MessageSecurityMode::None && (self.anonymous.is_none() || !self.anonymous.as_ref().unwrap()) {
             error!("Endpoint {} is invalid. Security policy and mode allow anonymous connections but anonymous is not set to true", self.name);
             valid = false;
+        } else if (security_policy == SecurityPolicy::None && security_mode != MessageSecurityMode::None) ||
+            (security_policy != SecurityPolicy::None && security_mode == MessageSecurityMode::None) {
+            error!("Endpoint {} is invalid. Security policy and security mode must both contain None or neither of them should.", self.name);
+            valid = false;
+        } else if !opcua_core::is_crypto_enabled() && security_policy != SecurityPolicy::None && security_mode != MessageSecurityMode::None {
+            error!("Endpoint {} is invalid. Security policy and security mode require encryption but it has been disabled at compile time.", self.name);
+            valid = false;
         }
-
         valid
     }
 }
@@ -135,6 +123,8 @@ pub struct ServerConfig {
     pub tcp_config: TcpConfig,
     /// Endpoints supported by the server
     pub endpoints: Vec<ServerEndpoint>,
+    /// Maximum number of subscriptions in a session
+    pub max_subscriptions: u32,
     /// Max array length in elements
     pub max_array_length: u32,
     /// Max string length in characters
@@ -166,6 +156,7 @@ impl ServerConfig {
             max_array_length: constants::DEFAULT_MAX_ARRAY_LENGTH,
             max_string_length: constants::DEFAULT_MAX_STRING_LENGTH,
             max_byte_string_length: constants::DEFAULT_MAX_BYTE_STRING_LENGTH,
+            max_subscriptions: constants::DEFAULT_MAX_SUBSCRIPTIONS,
         }
     }
 
@@ -230,9 +221,5 @@ impl ServerConfig {
             valid = false;
         }
         valid
-    }
-
-    pub fn message_security_mode() -> MessageSecurityMode {
-        MessageSecurityMode::None
     }
 }
