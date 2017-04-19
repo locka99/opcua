@@ -75,11 +75,57 @@ use prelude::*;
     contents += `pub fn populate_address_space(address_space: &mut AddressSpace) {\n`;
 
     var nodes = ns.data["UANodeSet"];
-    console.log(nodes);
-    _.each(nodes, function (node) {
-        contents += `    // ${node["DisplayName"]}\n`;
-    });
-
+    if (_.has(nodes, "UAObject")) {
+        _.each(nodes["UAObject"], function (value) {
+            contents += `/*\n`;
+            contents += `    UAObject { \n`;
+            contents += `        display_name: "${value["DisplayName"][0]}",\n`
+            if (_.has(value, "Description")) {
+                contents += `        description: "${value["Description"][0]}",\n`;
+            }
+            if (_.has(value, "References") && _.has(value["References"], "Reference")) {
+                contents += `    references: vec![\n`
+                _.each(value["References"]["Reference"], function (reference) {
+                    contents += `    Reference {\n`;
+                    contents += `        x: \n`;
+                    contents += `    }\n`;
+                });
+                contents += `    ],\n`
+            }
+            contents += ` }\n`
+            contents += `*/\n`
+        });
+    }
+    if (_.has(nodes, "UAObjectType")) {
+        _.each(nodes["UAObjectType"], function (value) {
+            contents += `    // UAObjectType: ${value["DisplayName"][0]}\n`;
+        });
+    }
+    if (_.has(nodes, "UADataType")) {
+        _.each(nodes["UADataType"], function (value) {
+            contents += `    // UADataType: ${value["DisplayName"][0]}\n`;
+        });
+    }
+    if (_.has(nodes, "UAReferenceType")) {
+        _.each(nodes["UAReferenceType"], function (value) {
+            contents += `    // UAReferenceType: ${value["DisplayName"][0]}\n`;
+        });
+    }
+    if (_.has(nodes, "UAVariable")) {
+        _.each(nodes["UAVariable"], function (value) {
+            contents += `    // UAVariable: ${value["DisplayName"][0]}\n`;
+        });
+    }
+    if (_.has(nodes, "UAVariableType")) {
+        _.each(nodes["UAVariableType"], function (value) {
+            contents += `    // UAVariableType: ${value["DisplayName"][0]}\n`;
+        });
+    }
+    if (_.has(nodes, "UAMethod")) {
+        _.each(nodes["UAMethod"], function (value) {
+            contents += `    // UAMethod: ${value["DisplayName"][0]}\n`;
+        });
+    }
     // <UAObject NodeId="i=83" BrowseName="ExposesItsArray" SymbolicName="ModellingRule_ExposesItsArray">
     //   <DisplayName>ExposesItsArray</DisplayName>
     //   <Description>Specifies that an instance appears for each element of the containing array variable.</Description>
