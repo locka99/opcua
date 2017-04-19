@@ -6,7 +6,7 @@ var settings = require("./settings");
 
 var status_code_csv = `${settings.schema_dir}/Opc.Ua.StatusCodes.csv`;
 
-var rs_out = fs.createWriteStream(`${settings.rs_dir}/types/generated/status_codes.rs`);
+var rs_out = fs.createWriteStream(`${settings.rs_types_dir}/status_codes.rs`);
 
 var status_codes = [
   {

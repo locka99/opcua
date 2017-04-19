@@ -55,6 +55,10 @@ macro_rules! find_attribute_value_optional {
     }
 }
 
+mod generated;
+
+pub use self::generated::*;
+
 mod attribute;
 
 pub use self::attribute::*;
