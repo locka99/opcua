@@ -8,6 +8,10 @@ pub struct Method {
 node_impl!(Method);
 
 impl Method {
+    pub fn new_node(node_id: &NodeId, browse_name: &str, display_name: &str, is_abstract: Boolean, executable: Boolean, user_executable: Boolean) -> NodeType {
+        NodeType::Method(Method::new(node_id, browse_name, display_name, is_abstract, executable, user_executable))
+    }
+
     pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, is_abstract: Boolean, executable: Boolean, user_executable: Boolean) -> Method {
         // Mandatory
         let attributes = vec![

@@ -157,6 +157,18 @@ impl DataValue {
         }
     }
 
+    pub fn null() -> DataValue {
+        let now = DateTime::now();
+        DataValue {
+            value: None,
+            status: Some(GOOD),
+            source_timestamp: Some(now.clone()),
+            source_picoseconds: Some(0),
+            server_timestamp: Some(now.clone()),
+            server_picoseconds: Some(0),
+        }
+    }
+
     fn encoding_mask(&self) -> Byte {
         let mut encoding_mask: Byte = 0;
         if self.value.is_some() {

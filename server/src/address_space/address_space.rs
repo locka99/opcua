@@ -204,7 +204,6 @@ impl AddressSpace {
         }
     }
 
-
     fn reference_type_matches(&self, r1: ReferenceTypeId, r2: ReferenceTypeId, include_subtypes: bool) -> bool {
         if r1 == r2 {
             true

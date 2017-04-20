@@ -17,11 +17,6 @@ impl Object {
         let attributes = vec![
             (AttributeId::EventNotifier, Variant::Byte(0))
         ];
-
-        //        let references = vec![
-        //           Reference::HasTypeDefinition(ObjectTypeId::FolderType.as_node_id()),
-        //       ];
-
         Object {
             base: Base::new(NodeClass::Object, node_id, browse_name, display_name, attributes),
         }
