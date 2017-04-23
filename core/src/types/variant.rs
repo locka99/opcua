@@ -5,9 +5,14 @@ use types::*;
 const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
 const ARRAY_VALUES_BIT: u8 = 1 << 7;
 
+#[derive(PartialEq, Debug, Clone)]
+pub struct MultiDimensionArray {
+    pub values: Vec<Variant>,
+    pub dimensions: Vec<Int32>
+}
+
 /// A Variant holds all primitive types, including single and multi dimensional arrays and
-/// data values. Potentially a Variant can recursively hold a Variant so boxes, or vectors are
-/// used for that
+/// data values. Boxes are used for more complex types to keep the size of this enum down a bit.
 #[derive(PartialEq, Debug, Clone)]
 pub enum Variant {
     /// Empty type has no value
@@ -40,34 +45,34 @@ pub enum Variant {
     DateTime(DateTime),
     /// Guid
     Guid(Guid),
+    /// StatusCode
+    StatusCode(StatusCode),
     /// ByteString
     ByteString(ByteString),
     /// XmlElement
     XmlElement(XmlElement),
-    /// NodeId
-    NodeId(NodeId),
-    /// ExpandedNodeId
-    ExpandedNodeId(ExpandedNodeId),
-    /// StatusCode
-    StatusCode(StatusCode),
     /// QualifiedName
-    QualifiedName(QualifiedName),
+    QualifiedName(Box<QualifiedName>),
     /// LocalizedText
-    LocalizedText(LocalizedText),
+    LocalizedText(Box<LocalizedText>),
+    /// NodeId
+    NodeId(Box<NodeId>),
+    /// ExpandedNodeId
+    ExpandedNodeId(Box<ExpandedNodeId>),
     /// ExtensionObject
-    ExtensionObject(ExtensionObject),
+    ExtensionObject(Box<ExtensionObject>),
     /// DataValue (boxed because a DataValue itself holds a Variant)
     DataValue(Box<DataValue>),
     /// Single dimension array
     /// A variant can be an array of other kinds (all of which must be the same type), second argument is the dimensions of the
     /// array which should match the array length, otherwise BAD_DECODING_ERROR
-    Array(Vec<Variant>),
+    Array(Box<Vec<Variant>>),
     /// Multi dimension array
     /// A variant can be an array of other kinds (all of which must be the same type), second argument is the dimensions of the
     /// array which should match the array length, otherwise BAD_DECODING_ERROR
     /// Higher rank dimensions are serialized first. For example an array with dimensions [2,2,2] is written in this order:
     /// [0,0,0], [0,0,1], [0,1,0], [0,1,1], [1,0,0], [1,0,1], [1,1,0], [1,1,1]
-    MultiDimensionArray(Vec<Variant>, Vec<Int32>),
+    MultiDimensionArray(Box<MultiDimensionArray>),
 }
 
 impl BinaryEncoder<Variant> for Variant {
@@ -108,20 +113,20 @@ impl BinaryEncoder<Variant> for Variant {
                 // Array length
                 let mut size = 4;
                 // Values
-                for value in values {
+                for value in values.iter() {
                     size += Variant::byte_len_variant_value(value);
                 }
                 size
-            },
-            &Variant::MultiDimensionArray(ref values, ref dimensions) => {
+            }
+            &Variant::MultiDimensionArray(ref mda) => {
                 // Array length
                 let mut size = 4;
                 // Values
-                for value in values {
+                for value in mda.values.iter() {
                     size += Variant::byte_len_variant_value(value);
                 }
                 // Dimensions (size + num elements)
-                size += 4 + dimensions.len() * 4;
+                size += 4 + mda.dimensions.len() * 4;
                 size
             }
         };
@@ -162,22 +167,22 @@ impl BinaryEncoder<Variant> for Variant {
             &Variant::DataValue(ref value) => value.encode(stream)?,
             &Variant::Array(ref values) => {
                 let mut size = write_i32(stream, values.len() as i32)?;
-                for value in values {
+                for value in values.iter() {
                     size += Variant::encode_variant_value(stream, value)?;
                 }
                 size
-            },
-            &Variant::MultiDimensionArray(ref values, ref dimensions) => {
+            }
+            &Variant::MultiDimensionArray(ref mda) => {
                 // Encode array length
-                let mut size = write_i32(stream, values.len() as i32)?;
+                let mut size = write_i32(stream, mda.values.len() as i32)?;
                 // Encode values
-                for value in values {
+                for value in mda.values.iter() {
                     size += Variant::encode_variant_value(stream, value)?;
                 }
                 // Encode dimensions length
-                size += write_i32(stream, dimensions.len() as i32)?;
+                size += write_i32(stream, mda.dimensions.len() as i32)?;
                 // Encode dimensions
-                for d in dimensions {
+                for d in mda.dimensions.iter() {
                     size += write_i32(stream, *d)?;
                 }
                 size
@@ -228,10 +233,10 @@ impl BinaryEncoder<Variant> for Variant {
                     debug!("Array dimensions does not match array length {}", array_length);
                     Err(BAD_DECODING_ERROR)
                 } else {
-                    Ok(Variant::MultiDimensionArray(result, dimensions))
+                    Ok(Variant::new_multi_dimension_array(result, dimensions))
                 }
             } else {
-                Ok(Variant::Array(result))
+                Ok(Variant::Array(Box::new(result)))
             }
         } else if encoding_mask & ARRAY_DIMENSIONS_BIT != 0 {
             debug!("Array dimensions bit specified without any values");
@@ -245,6 +250,26 @@ impl BinaryEncoder<Variant> for Variant {
 }
 
 impl Variant {
+    pub fn new_node_id(node_id: NodeId) -> Variant {
+        Variant::NodeId(Box::new(node_id))
+    }
+
+    pub fn new_expanded_node_id(expanded_node_id: ExpandedNodeId) -> Variant {
+        Variant::ExpandedNodeId(Box::new(expanded_node_id))
+    }
+
+    pub fn new_qualified_name(qualified_name: QualifiedName) -> Variant {
+        Variant::QualifiedName(Box::new(qualified_name))
+    }
+
+    pub fn new_localized_text(localized_text: LocalizedText) -> Variant {
+        Variant::LocalizedText(Box::new(localized_text))
+    }
+
+    pub fn new_extension_object(extension_object: ExtensionObject) -> Variant {
+        Variant::ExtensionObject(Box::new(extension_object))
+    }
+
     /// Test the flag (convenience method)
     pub fn test_encoding_flag(encoding_mask: u8, data_type_id: DataTypeId) -> bool {
         encoding_mask == data_type_id as u8
@@ -357,17 +382,17 @@ impl Variant {
         } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::XmlElement) {
             Variant::XmlElement(XmlElement::decode(stream)?)
         } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::NodeId) {
-            Variant::NodeId(NodeId::decode(stream)?)
+            Variant::new_node_id(NodeId::decode(stream)?)
         } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::ExpandedNodeId) {
-            Variant::ExpandedNodeId(ExpandedNodeId::decode(stream)?)
+            Variant::new_expanded_node_id(ExpandedNodeId::decode(stream)?)
         } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::StatusCode) {
             Variant::StatusCode(StatusCode::decode(stream)?)
         } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::QualifiedName) {
-            Variant::QualifiedName(QualifiedName::decode(stream)?)
+            Variant::new_qualified_name(QualifiedName::decode(stream)?)
         } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::LocalizedText) {
-            Variant::LocalizedText(LocalizedText::decode(stream)?)
+            Variant::new_localized_text(LocalizedText::decode(stream)?)
         } else if encoding_mask == 22 {
-            Variant::ExtensionObject(ExtensionObject::decode(stream)?)
+            Variant::ExtensionObject(Box::new(ExtensionObject::decode(stream)?))
         } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::DataValue) {
             Variant::DataValue(Box::new(DataValue::decode(stream)?))
         } else {
@@ -376,20 +401,24 @@ impl Variant {
         Ok(result)
     }
 
-    pub fn from_i32_array(in_values: &[Int32]) -> Variant {
+    pub fn new_multi_dimension_array(values: Vec<Variant>, dimensions: Vec<Int32>) -> Variant {
+        Variant::MultiDimensionArray(Box::new(MultiDimensionArray { values: values, dimensions: dimensions }))
+    }
+
+    pub fn new_i32_array(in_values: &[Int32]) -> Variant {
         let mut values = Vec::with_capacity(in_values.len());
         for v in in_values {
             values.push(Variant::Int32(*v));
         }
-        Variant::Array(values)
+        Variant::Array(Box::new(values))
     }
 
-    pub fn from_string_array(in_values: &[String]) -> Variant {
+    pub fn new_string_array(in_values: &[String]) -> Variant {
         let mut values = Vec::with_capacity(in_values.len());
         for v in in_values {
             values.push(Variant::String(UAString::from_str(&v)));
         }
-        Variant::Array(values)
+        Variant::Array(Box::new(values))
     }
 
     /// Tests and returns true if the variant holds a numeric type
@@ -416,11 +445,11 @@ impl Variant {
             &Variant::Int64(value) => {
                 // NOTE: Int64 could overflow
                 Some(value as f64)
-            },
+            }
             &Variant::UInt64(value) => {
                 // NOTE: UInt64 could overflow
                 Some(value as f64)
-            },
+            }
             &Variant::Float(value) => Some(value as f64),
             &Variant::Double(value) => Some(value),
             _ => {
@@ -465,12 +494,12 @@ impl Variant {
                 };
                 encoding_mask |= ARRAY_VALUES_BIT;
                 encoding_mask
-            },
-            &Variant::MultiDimensionArray(ref values, _) => {
-                let mut encoding_mask = if values.is_empty() {
+            }
+            &Variant::MultiDimensionArray(ref mda) => {
+                let mut encoding_mask = if mda.values.is_empty() {
                     0u8
                 } else {
-                    values[0].get_encoding_mask()
+                    mda.values[0].get_encoding_mask()
                 };
                 encoding_mask |= ARRAY_VALUES_BIT | ARRAY_DIMENSIONS_BIT;
                 encoding_mask

@@ -21,14 +21,14 @@ macro_rules! node_impl {
 
 #[macro_export]
 macro_rules! find_attribute_value_mandatory {
-    ( $sel:expr, $attr: ident, $t: ident ) => {
+    ( $sel:expr, $attribute_id: ident, $variant_type: ident ) => {
         {
-            let result = find_attribute_value_optional!($sel, $attr, $t);
+            let result = find_attribute_value_optional!($sel, $attribute_id, $variant_type);
             if result.is_some() {
                 result.unwrap()
             }
             else {
-                panic!("Mandatory attribute {:?} is missing", AttributeId::$attr);
+                panic!("Mandatory attribute {:?} is missing", AttributeId::$attribute_id);
             }
         }
     }
@@ -36,16 +36,16 @@ macro_rules! find_attribute_value_mandatory {
 
 #[macro_export]
 macro_rules! find_attribute_value_optional {
-    ( $sel:expr, $attr: ident, $ty: ident ) => {
+    ( $sel:expr, $attribute_id: ident, $variant_type: ident ) => {
         {
-            let attribute_id = AttributeId::$attr;
+            let attribute_id = AttributeId::$attribute_id;
             let ref attribute = $sel.attributes[attribute_id as usize - 1];
 
             let mut result = None;
             if attribute.is_some() {
                 let attribute = attribute.as_ref().unwrap();
                 if attribute.value.is_some() {
-                    if let &Variant::$ty(ref value) = attribute.value.as_ref().unwrap() {
+                    if let &Variant::$variant_type(ref value) = attribute.value.as_ref().unwrap() {
                         result = Some(value.clone());
                     }
                 }
@@ -56,49 +56,27 @@ macro_rules! find_attribute_value_optional {
 }
 
 mod generated;
-
-pub use self::generated::*;
-
 mod attribute;
-
-pub use self::attribute::*;
-
 mod address_space;
-
-pub use self::address_space::*;
-
 mod base;
-
-pub use self::base::*;
-
 mod object;
-
-pub use self::object::*;
-
 mod variable;
-
-pub use self::variable::*;
-
 mod method;
-
-pub use self::method::*;
-
 mod reference_type;
-
-pub use self::reference_type::*;
-
 mod object_type;
-
-pub use self::object_type::*;
-
 mod variable_type;
-
-pub use self::variable_type::*;
-
 mod data_type;
-
-pub use self::data_type::*;
-
 mod view;
 
+pub use self::generated::*;
+pub use self::attribute::*;
+pub use self::address_space::*;
+pub use self::base::*;
+pub use self::object::*;
+pub use self::variable::*;
+pub use self::method::*;
+pub use self::reference_type::*;
+pub use self::object_type::*;
+pub use self::variable_type::*;
+pub use self::data_type::*;
 pub use self::view::*;

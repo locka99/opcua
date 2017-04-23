@@ -265,6 +265,9 @@ fn qualified_name() {
 
 #[test]
 fn variant() {
+    use std::mem;
+    println!("Size of a variant in bytes is {}", mem::size_of::<Variant>());
+
     // Boolean
     let v = Variant::Boolean(true);
     serialize_test(v);
@@ -311,30 +314,30 @@ fn variant() {
     let v = Variant::XmlElement(XmlElement::from_str("The world wonders"));
     serialize_test(v);
     // NodeId(NodeId),
-    let v = Variant::NodeId(ObjectId::AddNodesItem_Encoding_DefaultBinary.as_node_id());
+    let v = Variant::new_node_id(ObjectId::AddNodesItem_Encoding_DefaultBinary.as_node_id());
     serialize_test(v);
-    let v = Variant::NodeId(NodeId::new_string(99, "hello everyone"));
+    let v = Variant::new_node_id(NodeId::new_string(99, "hello everyone"));
     serialize_test(v);
     // ExpandedNodeId
-    let v = Variant::ExpandedNodeId(ExpandedNodeId::new(&ObjectId::AddNodesItem_Encoding_DefaultBinary.as_node_id()));
+    let v = Variant::new_expanded_node_id(ExpandedNodeId::new(&ObjectId::AddNodesItem_Encoding_DefaultBinary.as_node_id()));
     serialize_test(v);
     // StatusCode
     let v = Variant::StatusCode(BAD_TCP_MESSAGE_TYPE_INVALID);
     serialize_test(v);
     // QualifiedName
-    let v = Variant::QualifiedName(QualifiedName {
+    let v = Variant::new_qualified_name(QualifiedName {
         namespace_index: 100,
         name: UAString::from_str("this is a qualified name"),
     });
     serialize_test(v);
     // LocalizedText
-    let v = Variant::LocalizedText(LocalizedText {
+    let v = Variant::new_localized_text(LocalizedText {
         locale: UAString::from_str("Hello everyone"),
         text: UAString::from_str("This text is localized")
     });
     serialize_test(v);
     // ExtensionObject
-    let v = Variant::ExtensionObject(ExtensionObject::null());
+    let v = Variant::ExtensionObject(Box::new(ExtensionObject::null()));
     serialize_test(v);
     // DataValue
     let v = DataValue {
@@ -351,7 +354,7 @@ fn variant() {
 #[test]
 fn variant_single_dimension_array() {
     let values = vec![Variant::Int32(100), Variant::Int32(200), Variant::Int32(300)];
-    let v = Variant::Array(values);
+    let v = Variant::Array(Box::new(values));
     serialize_test(v);
 }
 
@@ -359,7 +362,7 @@ fn variant_single_dimension_array() {
 fn variant_multi_dimension_array() {
     let values = vec![Variant::Int32(100), Variant::Int32(200), Variant::Int32(300), Variant::Int32(400), Variant::Int32(500), Variant::Int32(600)];
     let dimensions = vec![3, 2];
-    let v = Variant::MultiDimensionArray(values, dimensions);
+    let v = Variant::new_multi_dimension_array(values, dimensions);
     serialize_test(v);
 }
 

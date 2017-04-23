@@ -486,7 +486,7 @@ impl AddressSpace {
         {
             //   NamespaceArray
             let namespace_array_id = VariableId::Server_NamespaceArray.as_node_id();
-            let namespace_value = Variant::from_string_array(&server_state.namespaces);
+            let namespace_value = Variant::new_string_array(&server_state.namespaces);
             {
                 self.insert(Variable::new_array_node(&namespace_array_id, "NamespaceArray", "NamespaceArray", DataTypeId::String, DataValue::new(namespace_value), &[server_state.namespaces.len() as Int32]));
                 self.add_has_component(&server_id, &namespace_array_id);
@@ -495,7 +495,7 @@ impl AddressSpace {
             //   ServerArray
             let server_array_id = VariableId::Server_ServerArray.as_node_id();
             {
-                let server_array_value = Variant::from_string_array(&server_state.servers);
+                let server_array_value = Variant::new_string_array(&server_state.servers);
                 self.insert(Variable::new_array_node(&server_array_id, "ServerArray", "ServerArray", DataTypeId::String, DataValue::new(server_array_value), &[server_state.servers.len() as Int32]));
                 self.add_has_component(&server_id, &server_array_id);
             }

@@ -20,7 +20,7 @@ impl ReferenceType {
         ];
         // Optional
         if let Some(inverse_name) = inverse_name {
-            attributes.push((AttributeId::InverseName, Variant::LocalizedText(inverse_name)));
+            attributes.push((AttributeId::InverseName, Variant::new_localized_text(inverse_name)));
         }
         ReferenceType {
             base: Base::new(NodeClass::ReferenceType, node_id, browse_name, display_name, attributes),
@@ -36,6 +36,12 @@ impl ReferenceType {
     }
 
     pub fn inverse_name(&self) -> Option<LocalizedText> {
-        find_attribute_value_optional!(&self.base, InverseName, LocalizedText)
+        let result = find_attribute_value_optional!(&self.base, InverseName, LocalizedText);
+        if result.is_none() {
+            None
+        }
+        else {
+            Some(result.unwrap().as_ref().clone())
+        }
     }
 }

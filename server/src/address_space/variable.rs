@@ -23,7 +23,7 @@ impl Variable {
         // An array has a value rank equivalent to the number of dimensions and an ArrayDimensions array
         let now = DateTime::now();
         variable.base.set_attribute_value(AttributeId::ValueRank, Variant::Int32(dimensions.len() as Int32), &now, &now);
-        variable.base.set_attribute_value(AttributeId::ArrayDimensions, Variant::from_i32_array(dimensions), &now, &now);
+        variable.base.set_attribute_value(AttributeId::ArrayDimensions, Variant::new_i32_array(dimensions), &now, &now);
         variable
     }
 
@@ -85,9 +85,9 @@ impl Variable {
         let attributes = vec![
             (AttributeId::UserAccessLevel, Variant::Byte(user_access_level)),
             (AttributeId::AccessLevel, Variant::Byte(access_level)),
-            (AttributeId::DataType, Variant::NodeId(data_type.as_node_id())),
+            (AttributeId::DataType, Variant::new_node_id(data_type.as_node_id())),
             (AttributeId::ValueRank, Variant::Int32(value_rank)),
-            (AttributeId::Historizing, Variant::Boolean(historizing)),
+            (AttributeId::Historizing, Variant::Boolean(historizing))
         ];
 
         // Optional

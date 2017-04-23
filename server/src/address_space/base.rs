@@ -84,19 +84,28 @@ impl Node for Base {
     }
 
     fn node_id(&self) -> NodeId {
-        find_attribute_value_mandatory!(self, NodeId, NodeId)
+        let result = find_attribute_value_mandatory!(self, NodeId, NodeId);
+        result.as_ref().clone()
     }
 
     fn browse_name(&self) -> QualifiedName {
-        find_attribute_value_mandatory!(self, BrowseName, QualifiedName)
+        let result = find_attribute_value_mandatory!(self, BrowseName, QualifiedName);
+        result.as_ref().clone()
     }
 
     fn display_name(&self) -> LocalizedText {
-        find_attribute_value_mandatory!(self, DisplayName, LocalizedText)
+        let result = find_attribute_value_mandatory!(self, DisplayName, LocalizedText);
+        result.as_ref().clone()
     }
 
     fn description(&self) -> Option<LocalizedText> {
-        find_attribute_value_optional!(self, Description, LocalizedText)
+        let result = find_attribute_value_optional!(self, Description, LocalizedText);
+        if result.is_none() {
+            None
+        }
+        else {
+            Some(result.unwrap().as_ref().clone())
+        }
     }
 
     fn write_mask(&self) -> Option<UInt32> {
@@ -122,13 +131,12 @@ impl Base {
         // Mandatory attributes
         let mut attributes_to_add = vec![
             (AttributeId::NodeClass, Variant::Int32(node_class as Int32)),
-            (AttributeId::NodeId, Variant::NodeId(node_id.clone())),
-            (AttributeId::DisplayName, Variant::LocalizedText(LocalizedText::new("", display_name))),
-            (AttributeId::BrowseName, Variant::QualifiedName(QualifiedName::new(0, browse_name))),
-            (AttributeId::Description, Variant::LocalizedText(LocalizedText::new("", ""))),
+            (AttributeId::NodeId, Variant::new_node_id(node_id.clone())),
+            (AttributeId::DisplayName, Variant::new_localized_text(LocalizedText::new("", display_name))),
+            (AttributeId::BrowseName, Variant::new_qualified_name(QualifiedName::new(0, browse_name))),
+            (AttributeId::Description, Variant::new_localized_text(LocalizedText::new("", ""))),
             (AttributeId::WriteMask, Variant::UInt32(0)),
             (AttributeId::UserWriteMask, Variant::UInt32(0)),
-            (AttributeId::Description, Variant::LocalizedText(LocalizedText::new("", ""))),
         ];
         attributes_to_add.append(&mut attributes);
 
