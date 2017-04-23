@@ -81,19 +81,19 @@ use prelude::*;
     var nodes = ns.data["UANodeSet"];
     if (_.has(nodes, "UAObject")) {
         _.each(nodes["UAObject"], function (value) {
-            contents += insert_node(indent, "Object", value, "Object::new_node(&node_id, browse_name, display_name)");
+            contents += insert_node(indent, "Object", value, "Object::new_node(&node_id, browse_name, display_name, description)");
         });
     }
     if (_.has(nodes, "UAObjectType")) {
         _.each(nodes["UAObjectType"], function (value) {
             var is_abstract = _.has(value["$"], "IsAbstract") && value["$"]["IsAbstract"] === "true";
-            contents += insert_node(indent, "ObjectType", value, `ObjectType::new_node(&node_id, browse_name, display_name, ${is_abstract})`);
+            contents += insert_node(indent, "ObjectType", value, `ObjectType::new_node(&node_id, browse_name, display_name, description, ${is_abstract})`);
         });
     }
     if (_.has(nodes, "UADataType")) {
         _.each(nodes["UADataType"], function (value) {
             var is_abstract = _.has(value["$"], "IsAbstract") && value["$"]["IsAbstract"] === "true";
-            contents += insert_node(indent, "DataType", value, `DataType::new_node(&node_id, browse_name, display_name, ${is_abstract})`);
+            contents += insert_node(indent, "DataType", value, `DataType::new_node(&node_id, browse_name, display_name, description, ${is_abstract})`);
         });
     }
     if (_.has(nodes, "UAReferenceType")) {
@@ -101,7 +101,7 @@ use prelude::*;
             var is_abstract = _.has(value["$"], "IsAbstract") && value["$"]["IsAbstract"] === "true";
             var inverse_name = _.has(value, "InverseName") ? `Some(LocalizedText::new("", "${value["InverseName"][0]}"))` : "None";
             var symmetric = _.has(value["$"], "Symmetric") && value["$"]["Symmetric"] === "true";
-            contents += insert_node(indent, "DataType", value, `ReferenceType::new_node(&node_id, browse_name, display_name, ${inverse_name}, ${symmetric}, ${is_abstract})`);
+            contents += insert_node(indent, "DataType", value, `ReferenceType::new_node(&node_id, browse_name, display_name, description, ${inverse_name}, ${symmetric}, ${is_abstract})`);
         });
     }
     if (_.has(nodes, "UAVariable")) {
@@ -120,14 +120,14 @@ use prelude::*;
                 console.log("UAVariable has no data type???");
             }
             var data_value = "DataValue::null()";
-            contents += insert_node(indent, "Variable", value, `Variable::new_node(&node_id, browse_name, display_name, ${data_type}, ${data_value})`);
+            contents += insert_node(indent, "Variable", value, `Variable::new_node(&node_id, browse_name, display_name, description, ${data_type}, ${data_value})`);
         });
     }
     if (_.has(nodes, "UAVariableType")) {
         _.each(nodes["UAVariableType"], function (value) {
             var is_abstract = _.has(value["$"], "IsAbstract") && value["$"]["IsAbstract"] === "true";
             var value_rank = _.has(value["$"], "ValueRank") ? value["$"]["ValueRank"] : -1;
-            contents += insert_node(indent, "VariableType", value, `VariableType::new_node(&node_id, browse_name, display_name, ${is_abstract}, ${value_rank})`);
+            contents += insert_node(indent, "VariableType", value, `VariableType::new_node(&node_id, browse_name, display_name, description, ${is_abstract}, ${value_rank})`);
         });
     }
     if (_.has(nodes, "UAMethod")) {
@@ -135,7 +135,7 @@ use prelude::*;
             var is_abstract = _.has(value["$"], "IsAbstract") && value["$"]["IsAbstract"] === "true";
             var executable = false; // TODO
             var user_executable = false; // TODO
-            contents += insert_node(indent, "Method", value, `Method::new_node(&node_id, browse_name, display_name, ${is_abstract}, ${executable}, ${user_executable})`);
+            contents += insert_node(indent, "Method", value, `Method::new_node(&node_id, browse_name, display_name, description, ${is_abstract}, ${executable}, ${user_executable})`);
         });
     }
 
@@ -183,20 +183,15 @@ function insert_node(indent, node_type, value, node_ctor) {
 
     contents += `${indent}// ${node_type}\n`;
 
-    var description = _.has(value, "Description") ? value["Description"][0] : "";
-    if (description.length > 0) {
-        contents += `${indent}// ${description}\n`
-    }
-
     var browse_name = _.has(value["$"], "BrowseName") ? value["$"]["BrowseName"] : "";
     contents += `${indent}let browse_name = "${browse_name}";\n`
     var display_name = _.has(value, "DisplayName") ? value["DisplayName"][0] : "";
     contents += `${indent}let display_name = "${display_name}";\n`
+    var description = _.has(value, "Description") ? value["Description"][0] : "";
+    contents += `${indent}let description = "${description}";\n`
+
     contents += `${indent}let node_id = ${node_id_ctor(value["$"]["NodeId"])};\n`;
     contents += `${indent}let node = ${node_ctor};\n`;
-    if (description.length > 0) {
-        contents += `${indent}// node.set_description(LocalizedText::new("", "${description}"));\n`;
-    }
     contents += `${indent}address_space.insert(node);\n`;
 
     // Process references

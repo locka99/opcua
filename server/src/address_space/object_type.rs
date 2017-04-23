@@ -8,17 +8,17 @@ pub struct ObjectType {
 node_impl!(ObjectType);
 
 impl ObjectType {
-    pub fn new_node(node_id: &NodeId, browse_name: &str, display_name: &str, is_abstract: Boolean) -> NodeType {
-        NodeType::ObjectType(ObjectType::new(node_id, browse_name, display_name, is_abstract))
+    pub fn new_node(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, is_abstract: Boolean) -> NodeType {
+        NodeType::ObjectType(ObjectType::new(node_id, browse_name, display_name, description, is_abstract))
     }
 
-    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, is_abstract: Boolean) -> ObjectType {
+    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, is_abstract: Boolean) -> ObjectType {
         // Mandatory
         let attributes = vec![
             (AttributeId::IsAbstract, Variant::Boolean(is_abstract)),
         ];
         ObjectType {
-            base: Base::new(NodeClass::ObjectType, node_id, browse_name, display_name, attributes),
+            base: Base::new(NodeClass::ObjectType, node_id, browse_name, display_name, description, attributes),
         }
     }
 

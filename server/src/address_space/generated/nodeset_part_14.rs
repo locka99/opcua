@@ -12,8 +12,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Object
         let browse_name = "Default XML";
         let display_name = "Default XML";
+        let description = "";
         let node_id = NodeId::new_numeric(0, 14801);
-        let node = Object::new_node(&node_id, browse_name, display_name);
+        let node = Object::new_node(&node_id, browse_name, display_name, description);
         address_space.insert(node);
         address_space.insert_reference(&NodeId::new_numeric(0, 14532), &node_id, ReferenceTypeId::HasEncoding);
         address_space.insert_reference(&node_id, &NodeId::new_numeric(0, 14826), ReferenceTypeId::HasDescription);
@@ -23,8 +24,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Object
         let browse_name = "Default Binary";
         let display_name = "Default Binary";
+        let description = "";
         let node_id = NodeId::new_numeric(0, 14845);
-        let node = Object::new_node(&node_id, browse_name, display_name);
+        let node = Object::new_node(&node_id, browse_name, display_name, description);
         address_space.insert(node);
         address_space.insert_reference(&NodeId::new_numeric(0, 14532), &node_id, ReferenceTypeId::HasEncoding);
         address_space.insert_reference(&node_id, &NodeId::new_numeric(0, 14870), ReferenceTypeId::HasDescription);
@@ -34,8 +36,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // DataType
         let browse_name = "EnumField";
         let display_name = "EnumField";
+        let description = "";
         let node_id = NodeId::new_numeric(0, 14532);
-        let node = DataType::new_node(&node_id, browse_name, display_name, false);
+        let node = DataType::new_node(&node_id, browse_name, display_name, description, false);
         address_space.insert(node);
         address_space.insert_reference(&NodeId::new_numeric(0, 7594), &node_id, ReferenceTypeId::HasSubtype);
     }

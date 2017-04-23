@@ -8,17 +8,17 @@ pub struct Object {
 node_impl!(Object);
 
 impl Object {
-    pub fn new_node(node_id: &NodeId, browse_name: &str, display_name: &str) -> NodeType {
-        NodeType::Object(Object::new(node_id, browse_name, display_name))
+    pub fn new_node(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str) -> NodeType {
+        NodeType::Object(Object::new(node_id, browse_name, display_name, description))
     }
 
-    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str) -> Object {
+    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str) -> Object {
         // Mandatory
         let attributes = vec![
             (AttributeId::EventNotifier, Variant::Byte(0))
         ];
         Object {
-            base: Base::new(NodeClass::Object, node_id, browse_name, display_name, attributes),
+            base: Base::new(NodeClass::Object, node_id, browse_name, display_name, description, attributes),
         }
     }
 

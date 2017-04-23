@@ -139,7 +139,7 @@ impl AddressSpace {
             panic!("Node {:?} already exists", node_id);
         } else {
             // Add a relationship to the parent
-            self.insert(Object::new_node(&node_id, browse_name, display_name));
+            self.insert(Object::new_node(&node_id, browse_name, display_name, ""));
             self.add_organizes(&parent_node_id, &node_id);
             self.insert_reference(&node_id, &node_type_id.as_node_id(), ReferenceTypeId::HasTypeDefinition);
             Ok(node_id.clone())
@@ -338,14 +338,14 @@ impl AddressSpace {
         for t in types {
             let &(ref id, name) = t;
             let type_id = id.as_node_id();
-            self.insert(DataType::new_node(&type_id, name, name, false));
+            self.insert(DataType::new_node(&type_id, name, name, "", false));
             self.insert_reference(&parent_node, &type_id, ReferenceTypeId::HasSubtype);
         }
     }
 
     pub fn add_default_nodes(&mut self) {
         let root_node_id = AddressSpace::root_folder_id();
-        let root_node = Object::new(&root_node_id, "Root", "Root");
+        let root_node = Object::new(&root_node_id, "Root", "Root", "The root of the server address space.");
         self.insert(NodeType::Object(root_node));
         self.insert_reference(&root_node_id, &ObjectTypeId::FolderType.as_node_id(), ReferenceTypeId::HasTypeDefinition);
 
@@ -367,7 +367,7 @@ impl AddressSpace {
                 let _ = self.add_folder_with_id(&datatypes_id, "DataTypes", "DataTypes", &types_id);
                 {
                     let basedatatype_id = DataTypeId::BaseDataType.as_node_id();
-                    self.insert(DataType::new_node(&basedatatype_id, "BaseDataType", "BaseDataType", true));
+                    self.insert(DataType::new_node(&basedatatype_id, "BaseDataType", "BaseDataType", "", true));
                     self.add_organizes(&datatypes_id, &basedatatype_id);
 
                     self.add_sub_types(&basedatatype_id, &vec![
@@ -416,7 +416,7 @@ impl AddressSpace {
 
                 {
                     let opcbinary_node_id = ObjectId::OPCBinarySchema_TypeSystem.as_node_id();
-                    self.insert(Object::new_node(&opcbinary_node_id, "OPC Binary", "OPC Binary"));
+                    self.insert(Object::new_node(&opcbinary_node_id, "OPC Binary", "OPC Binary", ""));
                     self.add_organizes(&types_id, &opcbinary_node_id);
                     self.insert_reference(&opcbinary_node_id, &ObjectTypeId::DataTypeSystemType.as_node_id(), ReferenceTypeId::HasTypeDefinition);
                 }
@@ -436,32 +436,32 @@ impl AddressSpace {
                 let _ = self.add_folder_with_id(&referencetypes_id, "ReferenceTypes", "ReferenceTypes", &types_id);
                 {
                     let references_id = ReferenceTypeId::References.as_node_id();
-                    self.insert(ReferenceType::new_node(&references_id, "References", "References", None, true, false));
+                    self.insert(ReferenceType::new_node(&references_id, "References", "References", "", None, true, false));
                     {
                         let hierarchicalreferences_id = ReferenceTypeId::HierarchicalReferences.as_node_id();
-                        self.insert(ReferenceType::new_node(&hierarchicalreferences_id, "HierarchicalReferences", "HierarchicalReferences", None, false, false));
+                        self.insert(ReferenceType::new_node(&hierarchicalreferences_id, "HierarchicalReferences", "HierarchicalReferences", "", None, false, false));
                         self.insert_reference(&references_id, &hierarchicalreferences_id, ReferenceTypeId::HasSubtype);
                         {
                             let has_child_id = ReferenceTypeId::HasChild.as_node_id();
-                            self.insert(ReferenceType::new_node(&has_child_id, "HasChild", "HasChild", None, false, false));
+                            self.insert(ReferenceType::new_node(&has_child_id, "HasChild", "HasChild", "", None, false, false));
                             self.insert_reference(&hierarchicalreferences_id, &has_child_id, ReferenceTypeId::HasSubtype);
                             {
                                 let has_subtype_id = ReferenceTypeId::HasSubtype.as_node_id();
-                                self.insert(ReferenceType::new_node(&has_subtype_id, "HasSubtype", "HasSubtype", None, false, false));
+                                self.insert(ReferenceType::new_node(&has_subtype_id, "HasSubtype", "HasSubtype", "", None, false, false));
                                 self.insert_reference(&has_child_id, &has_subtype_id, ReferenceTypeId::HasSubtype);
                             }
 
                             let organizes_id = ReferenceTypeId::Organizes.as_node_id();
-                            self.insert(ReferenceType::new_node(&organizes_id, "Organizes", "Organizes", None, false, false));
+                            self.insert(ReferenceType::new_node(&organizes_id, "Organizes", "Organizes", "", None, false, false));
                             self.insert_reference(&hierarchicalreferences_id, &organizes_id, ReferenceTypeId::HasSubtype);
                         }
 
                         let nonhierarchicalreferences_id = ReferenceTypeId::NonHierarchicalReferences.as_node_id();
-                        self.insert(ReferenceType::new_node(&nonhierarchicalreferences_id, "NonHierarchicalReferences", "NonHierarchicalReferences", None, false, false));
+                        self.insert(ReferenceType::new_node(&nonhierarchicalreferences_id, "NonHierarchicalReferences", "NonHierarchicalReferences", "", None, false, false));
                         self.insert_reference(&references_id, &nonhierarchicalreferences_id, ReferenceTypeId::HasSubtype);
                         {
                             let has_type_definition_id = ReferenceTypeId::HasTypeDefinition.as_node_id();
-                            self.insert(ReferenceType::new_node(&has_type_definition_id, "HasTypeDefinition", "HasTypeDefinition", None, false, false));
+                            self.insert(ReferenceType::new_node(&has_type_definition_id, "HasTypeDefinition", "HasTypeDefinition", "", None, false, false));
                             self.insert_reference(&nonhierarchicalreferences_id, &has_type_definition_id, ReferenceTypeId::HasSubtype);
                         }
                     }
@@ -488,7 +488,7 @@ impl AddressSpace {
             let namespace_array_id = VariableId::Server_NamespaceArray.as_node_id();
             let namespace_value = Variant::new_string_array(&server_state.namespaces);
             {
-                self.insert(Variable::new_array_node(&namespace_array_id, "NamespaceArray", "NamespaceArray", DataTypeId::String, DataValue::new(namespace_value), &[server_state.namespaces.len() as Int32]));
+                self.insert(Variable::new_array_node(&namespace_array_id, "NamespaceArray", "NamespaceArray", "", DataTypeId::String, DataValue::new(namespace_value), &[server_state.namespaces.len() as Int32]));
                 self.add_has_component(&server_id, &namespace_array_id);
             }
 
@@ -496,14 +496,14 @@ impl AddressSpace {
             let server_array_id = VariableId::Server_ServerArray.as_node_id();
             {
                 let server_array_value = Variant::new_string_array(&server_state.servers);
-                self.insert(Variable::new_array_node(&server_array_id, "ServerArray", "ServerArray", DataTypeId::String, DataValue::new(server_array_value), &[server_state.servers.len() as Int32]));
+                self.insert(Variable::new_array_node(&server_array_id, "ServerArray", "ServerArray", "", DataTypeId::String, DataValue::new(server_array_value), &[server_state.servers.len() as Int32]));
                 self.add_has_component(&server_id, &server_array_id);
             }
 
             //   ServerCapabilities/
             let server_capabilities_id = ObjectId::Server_ServerCapabilities.as_node_id();
             {
-                self.insert(Object::new_node(&server_capabilities_id, "ServerCapabilities", "ServerCapabilities"));
+                self.insert(Object::new_node(&server_capabilities_id, "ServerCapabilities", "ServerCapabilities", ""));
                 self.add_has_component(&server_id, &server_capabilities_id);
                 self.set_object_type(&server_capabilities_id, &ObjectTypeId::ServerCapabilitiesType);
                 {
@@ -514,21 +514,21 @@ impl AddressSpace {
 
                     {
                         let max_array_len_id = VariableId::Server_ServerCapabilities_MaxArrayLength.as_node_id();
-                        self.insert(Variable::new_node(&max_array_len_id, "MaxArrayLength", "MaxArrayLength", DataTypeId::UInt32, DataValue::new(Variant::UInt32(server_config.max_array_length))));
+                        self.insert(Variable::new_node(&max_array_len_id, "MaxArrayLength", "MaxArrayLength", "", DataTypeId::UInt32, DataValue::new(Variant::UInt32(server_config.max_array_length))));
                         self.add_has_property(&server_capabilities_id, &max_array_len_id);
                         self.set_variable_as_property_type(&max_array_len_id);
                     }
 
                     {
                         let max_string_len_id = VariableId::Server_ServerCapabilities_MaxStringLength.as_node_id();
-                        self.insert(Variable::new_node(&max_string_len_id, "MaxStringLength", "MaxStringLength", DataTypeId::UInt32, DataValue::new(Variant::UInt32(server_config.max_string_length))));
+                        self.insert(Variable::new_node(&max_string_len_id, "MaxStringLength", "MaxStringLength", "", DataTypeId::UInt32, DataValue::new(Variant::UInt32(server_config.max_string_length))));
                         self.add_has_property(&server_capabilities_id, &max_string_len_id);
                         self.set_variable_as_property_type(&max_string_len_id);
                     }
 
                     {
                         let max_byte_string_len_id = VariableId::Server_ServerCapabilities_MaxByteStringLength.as_node_id();
-                        self.insert(Variable::new_node(&max_byte_string_len_id, "MaxByteStringLength", "MaxByteStringLength", DataTypeId::UInt32, DataValue::new(Variant::UInt32(server_config.max_byte_string_length))));
+                        self.insert(Variable::new_node(&max_byte_string_len_id, "MaxByteStringLength", "MaxByteStringLength", "", DataTypeId::UInt32, DataValue::new(Variant::UInt32(server_config.max_byte_string_length))));
                         self.add_has_property(&server_capabilities_id, &max_byte_string_len_id);
                         self.set_variable_as_property_type(&max_byte_string_len_id);
                     }
@@ -537,7 +537,7 @@ impl AddressSpace {
 
             //   ServerStatus
             let serverstatus_id = VariableId::Server_ServerStatus.as_node_id();
-            self.insert(Variable::new_node(&serverstatus_id, "ServerStatus", "ServerStatus", DataTypeId::ServerStatusDataType, DataValue::new(Variant::Empty)));
+            self.insert(Variable::new_node(&serverstatus_id, "ServerStatus", "ServerStatus", "", DataTypeId::ServerStatusDataType, DataValue::new(Variant::Empty)));
             self.add_has_component(&server_id, &serverstatus_id);
             self.insert_reference(&serverstatus_id, &DataTypeId::ServerStatusDataType.as_node_id(), ReferenceTypeId::HasTypeDefinition);
             {
@@ -553,14 +553,14 @@ impl AddressSpace {
                 // Unknown = 7
                 //     State (Server_ServerStatus_State)
                 let serverstatus_state_id = VariableId::Server_ServerStatus_State.as_node_id();
-                self.insert(Variable::new_node(&serverstatus_state_id, "State", "State", DataTypeId::UInt32, DataValue::new(Variant::UInt32(0))));
+                self.insert(Variable::new_node(&serverstatus_state_id, "State", "State", "", DataTypeId::UInt32, DataValue::new(Variant::UInt32(0))));
                 self.insert_reference(&serverstatus_state_id, &DataTypeId::ServerState.as_node_id(), ReferenceTypeId::HasTypeDefinition);
                 self.add_has_component(&serverstatus_id, &serverstatus_state_id);
             }
 
             // ServiceLevel - 0-255 worst to best quality of service
             let servicelevel_id = VariableId::Server_ServiceLevel.as_node_id();
-            self.insert(Variable::new_node(&servicelevel_id, "ServiceLevel", "ServiceLevel", DataTypeId::Byte, DataValue::new(Variant::Byte(255))));
+            self.insert(Variable::new_node(&servicelevel_id, "ServiceLevel", "ServiceLevel", "", DataTypeId::Byte, DataValue::new(Variant::Byte(255))));
             self.insert_reference(&servicelevel_id, &DataTypeId::Byte.as_node_id(), ReferenceTypeId::HasTypeDefinition);
             self.add_has_component(&servicelevel_id, &namespace_array_id);
 
