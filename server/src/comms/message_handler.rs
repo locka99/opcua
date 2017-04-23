@@ -90,6 +90,9 @@ impl MessageHandler {
             SupportedMessage::BrowseNextRequest(request) => {
                 self.view_service.browse_next(server_state, session_state, request)?
             }
+            SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(request) => {
+                self.view_service.translate_browse_paths_to_node_ids(server_state, session_state, request)?
+            }
             SupportedMessage::ReadRequest(request) => {
                 self.attribute_service.read(server_state, session_state, request)?
             }

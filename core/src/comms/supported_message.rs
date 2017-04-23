@@ -169,6 +169,12 @@ impl SupportedMessage {
             ObjectId::WriteResponse_Encoding_DefaultBinary => {
                 SupportedMessage::WriteResponse(WriteResponse::decode(stream)?)
             }
+            ObjectId::TranslateBrowsePathsToNodeIdsRequest_Encoding_DefaultBinary => {
+                SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(TranslateBrowsePathsToNodeIdsRequest::decode(stream)?)
+            }
+            ObjectId::TranslateBrowsePathsToNodeIdsResponse_Encoding_DefaultBinary => {
+                SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(TranslateBrowsePathsToNodeIdsResponse::decode(stream)?)
+            }
             ObjectId::CreateMonitoredItemsRequest_Encoding_DefaultBinary => {
                 SupportedMessage::CreateMonitoredItemsRequest(CreateMonitoredItemsRequest::decode(stream)?)
             }
@@ -238,6 +244,8 @@ supported_messages![
     PublishResponse,
     RepublishRequest,
     RepublishResponse,
+    TranslateBrowsePathsToNodeIdsRequest,
+    TranslateBrowsePathsToNodeIdsResponse,
     // Attribute service
     ReadRequest,
     ReadResponse,

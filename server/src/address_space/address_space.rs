@@ -218,35 +218,35 @@ impl AddressSpace {
                         ReferenceTypeId::HasComponent | ReferenceTypeId::HasOrderedComponent |
                         ReferenceTypeId::HasEventSource | ReferenceTypeId::HasNotifier => {
                             true
-                        },
+                        }
                         _ => false
                     }
-                },
+                }
                 ReferenceTypeId::HasChild => {
                     match r2 {
                         ReferenceTypeId::Aggregates | ReferenceTypeId::HasComponent |
                         ReferenceTypeId::HasHistoricalConfiguration | ReferenceTypeId::HasProperty |
                         ReferenceTypeId::HasOrderedComponent | ReferenceTypeId::HasSubtype => {
                             true
-                        },
+                        }
                         _ => false
                     }
-                },
+                }
                 ReferenceTypeId::Aggregates => {
                     match r2 {
                         ReferenceTypeId::HasComponent | ReferenceTypeId::HasHistoricalConfiguration |
                         ReferenceTypeId::HasProperty | ReferenceTypeId::HasOrderedComponent => {
                             true
-                        },
+                        }
                         _ => false
                     }
-                },
+                }
                 ReferenceTypeId::HasComponent => {
                     r2 == ReferenceTypeId::HasOrderedComponent
                 }
                 ReferenceTypeId::HasEventSource => {
                     r2 == ReferenceTypeId::HasNotifier
-                },
+                }
                 _ => {
                     // TODO somehow work out subtypes, e.g. working back along inverse references
                     false
@@ -334,247 +334,44 @@ impl AddressSpace {
         (references, inverse_ref_idx)
     }
 
-    fn add_sub_types(&mut self, parent_node: &NodeId, types: &Vec<(DataTypeId, &str)>) {
-        for t in types {
-            let &(ref id, name) = t;
-            let type_id = id.as_node_id();
-            self.insert(DataType::new_node(&type_id, name, name, "", false));
-            self.insert_reference(&parent_node, &type_id, ReferenceTypeId::HasSubtype);
-        }
-    }
-
+    /// Adds the standard nodeset to the address space
     pub fn add_default_nodes(&mut self) {
-        let root_node_id = AddressSpace::root_folder_id();
-        let root_node = Object::new(&root_node_id, "Root", "Root", "The root of the server address space.");
-        self.insert(NodeType::Object(root_node));
-        self.insert_reference(&root_node_id, &ObjectTypeId::FolderType.as_node_id(), ReferenceTypeId::HasTypeDefinition);
-
-        // Things under root
-        {
-            let objects_id = AddressSpace::objects_folder_id();
-            let _ = self.add_folder_with_id(&objects_id, "Objects", "Objects", &root_node_id);
-
-            let types_id = AddressSpace::types_folder_id();
-            let _ = self.add_folder_with_id(&types_id, "Types", "Types", &root_node_id);
-            {
-                // DataTypes/
-                //    BaseDataType/
-                //      Boolean
-                //      ...
-                //    OPC Binary/
-
-                let datatypes_id = ObjectId::DataTypesFolder.as_node_id();
-                let _ = self.add_folder_with_id(&datatypes_id, "DataTypes", "DataTypes", &types_id);
-                {
-                    let basedatatype_id = DataTypeId::BaseDataType.as_node_id();
-                    self.insert(DataType::new_node(&basedatatype_id, "BaseDataType", "BaseDataType", "", true));
-                    self.add_organizes(&datatypes_id, &basedatatype_id);
-
-                    self.add_sub_types(&basedatatype_id, &vec![
-                        (DataTypeId::Boolean, "Boolean"),
-                        (DataTypeId::ByteString, "ByteString"),
-                        (DataTypeId::DataValue, "DataValue"),
-                        (DataTypeId::DateTime, "DateTime"),
-                        (DataTypeId::DiagnosticInfo, "DiagnosticInfo"),
-                        (DataTypeId::Enumeration, "Enumeration"),
-                        (DataTypeId::ExpandedNodeId, "ExpandedNodeId"),
-                        (DataTypeId::Guid, "Guid"),
-                        (DataTypeId::LocalizedText, "LocalizedText"),
-                        (DataTypeId::NodeId, "NodeId"),
-                        (DataTypeId::Number, "Number"),
-                        (DataTypeId::QualifiedName, "QualifiedName"),
-                        (DataTypeId::StatusCode, "StatusCode"),
-                        (DataTypeId::String, "String"),
-                        (DataTypeId::Structure, "Structure"),
-                        (DataTypeId::XmlElement, "XmlElement"),
-                    ]);
-
-                    let number_id = DataTypeId::Number.as_node_id();
-                    self.add_sub_types(&number_id, &vec![
-                        (DataTypeId::Double, "Double"),
-                        (DataTypeId::Float, "Float"),
-                        (DataTypeId::Integer, "Integer")
-                    ]);
-
-                    {
-                        let integer_id = DataTypeId::Integer.as_node_id();
-                        self.add_sub_types(&integer_id, &vec![
-                            (DataTypeId::SByte, "SByte"),
-                            (DataTypeId::Int16, "Int16"),
-                            (DataTypeId::Int32, "Int32"),
-                            (DataTypeId::Int64, "Int64"),
-                        ]);
-                        let uinteger_id = DataTypeId::Integer.as_node_id();
-                        self.add_sub_types(&uinteger_id, &vec![
-                            (DataTypeId::Byte, "Byte"),
-                            (DataTypeId::UInt16, "UInt16"),
-                            (DataTypeId::UInt32, "UInt32"),
-                            (DataTypeId::UInt64, "UInt64"),
-                        ]);
-                    }
-                }
-
-                {
-                    let opcbinary_node_id = ObjectId::OPCBinarySchema_TypeSystem.as_node_id();
-                    self.insert(Object::new_node(&opcbinary_node_id, "OPC Binary", "OPC Binary", ""));
-                    self.add_organizes(&types_id, &opcbinary_node_id);
-                    self.insert_reference(&opcbinary_node_id, &ObjectTypeId::DataTypeSystemType.as_node_id(), ReferenceTypeId::HasTypeDefinition);
-                }
-            }
-
-            {
-                // ReferenceTypes/
-                //    References/
-                //      HierarchicalReferences
-                //        HasChild
-                //          HasSubtype
-                //        Organizes
-                //      NonHierarchicalReferences
-                //        HasTypeDefinition
-
-                let referencetypes_id = ObjectId::ReferenceTypesFolder.as_node_id();
-                let _ = self.add_folder_with_id(&referencetypes_id, "ReferenceTypes", "ReferenceTypes", &types_id);
-                {
-                    let references_id = ReferenceTypeId::References.as_node_id();
-                    self.insert(ReferenceType::new_node(&references_id, "References", "References", "", None, true, false));
-                    {
-                        let hierarchicalreferences_id = ReferenceTypeId::HierarchicalReferences.as_node_id();
-                        self.insert(ReferenceType::new_node(&hierarchicalreferences_id, "HierarchicalReferences", "HierarchicalReferences", "", None, false, false));
-                        self.insert_reference(&references_id, &hierarchicalreferences_id, ReferenceTypeId::HasSubtype);
-                        {
-                            let has_child_id = ReferenceTypeId::HasChild.as_node_id();
-                            self.insert(ReferenceType::new_node(&has_child_id, "HasChild", "HasChild", "", None, false, false));
-                            self.insert_reference(&hierarchicalreferences_id, &has_child_id, ReferenceTypeId::HasSubtype);
-                            {
-                                let has_subtype_id = ReferenceTypeId::HasSubtype.as_node_id();
-                                self.insert(ReferenceType::new_node(&has_subtype_id, "HasSubtype", "HasSubtype", "", None, false, false));
-                                self.insert_reference(&has_child_id, &has_subtype_id, ReferenceTypeId::HasSubtype);
-                            }
-
-                            let organizes_id = ReferenceTypeId::Organizes.as_node_id();
-                            self.insert(ReferenceType::new_node(&organizes_id, "Organizes", "Organizes", "", None, false, false));
-                            self.insert_reference(&hierarchicalreferences_id, &organizes_id, ReferenceTypeId::HasSubtype);
-                        }
-
-                        let nonhierarchicalreferences_id = ReferenceTypeId::NonHierarchicalReferences.as_node_id();
-                        self.insert(ReferenceType::new_node(&nonhierarchicalreferences_id, "NonHierarchicalReferences", "NonHierarchicalReferences", "", None, false, false));
-                        self.insert_reference(&references_id, &nonhierarchicalreferences_id, ReferenceTypeId::HasSubtype);
-                        {
-                            let has_type_definition_id = ReferenceTypeId::HasTypeDefinition.as_node_id();
-                            self.insert(ReferenceType::new_node(&has_type_definition_id, "HasTypeDefinition", "HasTypeDefinition", "", None, false, false));
-                            self.insert_reference(&nonhierarchicalreferences_id, &has_type_definition_id, ReferenceTypeId::HasSubtype);
-                        }
-                    }
-                }
-            }
-
-            let views_id = AddressSpace::views_folder_id();
-            let _ = self.add_folder_with_id(&views_id, "Views", "Views", &root_node_id);
-        }
+        super::generated::populate_address_space(self);
     }
 
-    /// Add nodes representing the server. For this, the values in server state are used to populate
-    /// the address. Therefore things like namespaces should be set before calling this.
+    /// Sets values for nodes representing the server.
     pub fn add_server_nodes(&mut self, server_state: &ServerState) {
         let server_config = server_state.config.lock().unwrap();
 
-        let objects_folder_id = AddressSpace::objects_folder_id();
-        let server_id = ObjectId::Server.as_node_id();
-
         // Server/ (ServerType)
-        let _ = self.add_organized_node(&server_id, "Server", "Server", &objects_folder_id, ObjectTypeId::ServerType);
-        {
-            //   NamespaceArray
-            let namespace_array_id = VariableId::Server_NamespaceArray.as_node_id();
-            let namespace_value = Variant::new_string_array(&server_state.namespaces);
-            {
-                self.insert(Variable::new_array_node(&namespace_array_id, "NamespaceArray", "NamespaceArray", "", DataTypeId::String, DataValue::new(namespace_value), &[server_state.namespaces.len() as Int32]));
-                self.add_has_component(&server_id, &namespace_array_id);
-            }
+        self.set_variable_value(&VariableId::Server_NamespaceArray.as_node_id(), Variant::new_string_array(&server_state.namespaces));
+        self.set_variable_value(&VariableId::Server_ServerArray.as_node_id(), Variant::new_string_array(&server_state.servers));
+        self.set_variable_value(&VariableId::Server_ServerCapabilities_MaxArrayLength.as_node_id(), Variant::UInt32(server_config.max_array_length));
+        self.set_variable_value(&VariableId::Server_ServerCapabilities_MaxStringLength.as_node_id(), Variant::UInt32(server_config.max_string_length));
+        self.set_variable_value(&VariableId::Server_ServerCapabilities_MaxByteStringLength.as_node_id(), Variant::UInt32(server_config.max_byte_string_length));
 
-            //   ServerArray
-            let server_array_id = VariableId::Server_ServerArray.as_node_id();
-            {
-                let server_array_value = Variant::new_string_array(&server_state.servers);
-                self.insert(Variable::new_array_node(&server_array_id, "ServerArray", "ServerArray", "", DataTypeId::String, DataValue::new(server_array_value), &[server_state.servers.len() as Int32]));
-                self.add_has_component(&server_id, &server_array_id);
-            }
+        // State OPC UA Part 5 12.6, Valid states are
+        //
+        // Running = 0
+        // Failed = 1
+        // No configuration = 2
+        // Suspended = 3
+        // Shutdown = 4
+        // Test = 5
+        // Communication Fault = 6
+        // Unknown = 7
+        //     State (Server_ServerStatus_State)
+        self.set_variable_value(&VariableId::Server_ServerStatus_State.as_node_id(), Variant::UInt32(0));
 
-            //   ServerCapabilities/
-            let server_capabilities_id = ObjectId::Server_ServerCapabilities.as_node_id();
-            {
-                self.insert(Object::new_node(&server_capabilities_id, "ServerCapabilities", "ServerCapabilities", ""));
-                self.add_has_component(&server_id, &server_capabilities_id);
-                self.set_object_type(&server_capabilities_id, &ObjectTypeId::ServerCapabilitiesType);
-                {
-                    // type definition property type
-                    //     MaxBrowseContinuationPoint
-                    //                    let maxbrowse_continuation_points_id = VariableId::Server_ServerCapabilities_MaxBrowseContinuationPoints.as_node_id();
-                    //                    self.insert(NodeType::Variable(Variable::new(&serverstatus_state_id, "ServerStatus", "ServerStatus", &DataValue::new(Variant::UInt32(0)))));
+        // ServiceLevel - 0-255 worst to best quality of service
+        self.set_variable_value(&VariableId::Server_ServiceLevel.as_node_id(), Variant::Byte(255));
 
-                    {
-                        let max_array_len_id = VariableId::Server_ServerCapabilities_MaxArrayLength.as_node_id();
-                        self.insert(Variable::new_node(&max_array_len_id, "MaxArrayLength", "MaxArrayLength", "", DataTypeId::UInt32, DataValue::new(Variant::UInt32(server_config.max_array_length))));
-                        self.add_has_property(&server_capabilities_id, &max_array_len_id);
-                        self.set_variable_as_property_type(&max_array_len_id);
-                    }
-
-                    {
-                        let max_string_len_id = VariableId::Server_ServerCapabilities_MaxStringLength.as_node_id();
-                        self.insert(Variable::new_node(&max_string_len_id, "MaxStringLength", "MaxStringLength", "", DataTypeId::UInt32, DataValue::new(Variant::UInt32(server_config.max_string_length))));
-                        self.add_has_property(&server_capabilities_id, &max_string_len_id);
-                        self.set_variable_as_property_type(&max_string_len_id);
-                    }
-
-                    {
-                        let max_byte_string_len_id = VariableId::Server_ServerCapabilities_MaxByteStringLength.as_node_id();
-                        self.insert(Variable::new_node(&max_byte_string_len_id, "MaxByteStringLength", "MaxByteStringLength", "", DataTypeId::UInt32, DataValue::new(Variant::UInt32(server_config.max_byte_string_length))));
-                        self.add_has_property(&server_capabilities_id, &max_byte_string_len_id);
-                        self.set_variable_as_property_type(&max_byte_string_len_id);
-                    }
-                }
-            }
-
-            //   ServerStatus
-            let serverstatus_id = VariableId::Server_ServerStatus.as_node_id();
-            self.insert(Variable::new_node(&serverstatus_id, "ServerStatus", "ServerStatus", "", DataTypeId::ServerStatusDataType, DataValue::new(Variant::Empty)));
-            self.add_has_component(&server_id, &serverstatus_id);
-            self.insert_reference(&serverstatus_id, &DataTypeId::ServerStatusDataType.as_node_id(), ReferenceTypeId::HasTypeDefinition);
-            {
-                // State OPC UA Part 5 12.6, Valid states are
-                //
-                // Running = 0
-                // Failed = 1
-                // No configuration = 2
-                // Suspended = 3
-                // Shutdown = 4
-                // Test = 5
-                // Communication Fault = 6
-                // Unknown = 7
-                //     State (Server_ServerStatus_State)
-                let serverstatus_state_id = VariableId::Server_ServerStatus_State.as_node_id();
-                self.insert(Variable::new_node(&serverstatus_state_id, "State", "State", "", DataTypeId::UInt32, DataValue::new(Variant::UInt32(0))));
-                self.insert_reference(&serverstatus_state_id, &DataTypeId::ServerState.as_node_id(), ReferenceTypeId::HasTypeDefinition);
-                self.add_has_component(&serverstatus_id, &serverstatus_state_id);
-            }
-
-            // ServiceLevel - 0-255 worst to best quality of service
-            let servicelevel_id = VariableId::Server_ServiceLevel.as_node_id();
-            self.insert(Variable::new_node(&servicelevel_id, "ServiceLevel", "ServiceLevel", "", DataTypeId::Byte, DataValue::new(Variant::Byte(255))));
-            self.insert_reference(&servicelevel_id, &DataTypeId::Byte.as_node_id(), ReferenceTypeId::HasTypeDefinition);
-            self.add_has_component(&servicelevel_id, &namespace_array_id);
-
-            // Auditing - var
-            // ServerCapabilities
-            // ServerDiagnostics
-            // VendorServiceInfo
-            // ServerRedundancy
-        }
+        // Auditing - var
+        // ServerCapabilities
+        // ServerDiagnostics
+        // VendorServiceInfo
+        // ServerRedundancy
     }
-
-    //    fn make_oneway_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) {
-    //        AddressSpace::add_reference(&mut self.references, node_id_from, Reference::new(reference_type_id, node_id_to));
-    //    }
 
     pub fn insert_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) {
         if node_id_from == node_id_to {

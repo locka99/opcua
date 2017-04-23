@@ -92,6 +92,65 @@ impl ViewService {
         Ok(SupportedMessage::BrowseNextResponse(response))
     }
 
+    pub fn translate_browse_paths_to_node_ids(&self, server_state: &mut ServerState, _: &mut SessionState, request: TranslateBrowsePathsToNodeIdsRequest) -> Result<SupportedMessage, StatusCode> {
+        let (service_status, results) = (BAD_NOTHING_TO_DO, None); /* if request.browse_paths.is_none() {
+            let browse_paths = request.browse_paths.as_ref().unwrap();
+
+            let mut results: Vec<BrowsePathResult> = Vec::with_capacity(browse_paths.len());
+            if browse_paths.is_empty() {
+                (BAD_NOTHING_TO_DO, None)
+            } else {
+                let address_space = server_state.address_space.lock().unwrap();
+                for browse_path in browse_paths.iter() {
+                    let mut current_node = browse_path.starting_node.clone();
+                    let browse_result = if address_space.find_node(&current_node).is_none() {
+                        BrowsePathResult {
+                            status_code: BAD_NODE_ID_UNKNOWN,
+                            targets: None,
+                        }
+                    } else if browse_path.relative_path.elements.is_none() {
+                        BrowsePathResult {
+                            status_code: BAD_NOTHING_TO_DO,
+                            targets: None,
+                        }
+                    } else {
+                        // Starting from the node_id...
+                        // Can we find the first node
+                        let elements = browse_path.relative_path.elements.as_ref().unwrap();
+                        if elements.is_empty() {
+                            BrowsePathResult {
+                                status_code: BAD_NOTHING_TO_DO,
+                                targets: None,
+                            }
+                        } else {
+                            // Traverse the relative path elements
+                            let target_results: Vec<BrowsePathTarget> = Vec::with_capacity(elements.len());
+                            for element in elements.iter() {
+                                //                               target_results.push(BrowsePathResult {
+                                //                                   status_code: (),
+                                //                                    targets: (),
+                                //                                });
+                                current_node = target_node;
+                            }
+                            BrowsePathResult {
+                                status_code: GOOD,
+                                targets: Some(target_results)
+                            }
+                        };
+                        results.push(browse_result);
+                    };
+                }
+                (GOOD, Some(results))
+            }
+        }; */
+        let response = TranslateBrowsePathsToNodeIdsResponse {
+            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
+            results: results,
+            diagnostic_infos: None,
+        };
+        Ok(SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(response))
+    }
+
     fn reference_descriptions(address_space: &AddressSpace, node_to_browse: &BrowseDescription, max_references_per_node: UInt32) -> Result<Vec<ReferenceDescription>, StatusCode> {
         // Node must exist or there will be no references
         if node_to_browse.node_id.is_null() || !address_space.node_exists(&node_to_browse.node_id) {

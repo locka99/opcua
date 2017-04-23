@@ -43,10 +43,10 @@ fn setup_variable_update_actions(server: &mut Server) -> Vec<PollingAction> {
             .unwrap();
 
         // Add some variables to our sample folder. Values will be overwritten by the timer
-        let vars = vec![Variable::new_i32(&v1_node, "v1", "v1", 0),
-                        Variable::new_bool(&v2_node, "v2", "v2", false),
-                        Variable::new_string(&v3_node, "v3", "v3", ""),
-                        Variable::new_double(&v4_node, "v4", "v4", 0f64)];
+        let vars = vec![Variable::new_i32(&v1_node, "v1", "v1", "v1 variable", 0),
+                        Variable::new_bool(&v2_node, "v2", "v2", "v2 variable", false),
+                        Variable::new_string(&v3_node, "v3", "v3", "v3 variable", ""),
+                        Variable::new_double(&v4_node, "v4", "v4", "v4 variable", 0f64)];
         let _ = address_space.add_variables(&vars, &sample_folder_id);
     }
 
