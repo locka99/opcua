@@ -5,6 +5,7 @@ use opcua_core::types::*;
 
 use address_space::*;
 use server::*;
+use constants;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum NodeType {
@@ -340,7 +341,7 @@ impl AddressSpace {
     }
 
     /// Sets values for nodes representing the server.
-    pub fn add_server_nodes(&mut self, server_state: &ServerState) {
+    pub fn update_from_server_state(&mut self, server_state: &ServerState) {
         let server_config = server_state.config.lock().unwrap();
 
         // Server/ (ServerType)
@@ -349,6 +350,10 @@ impl AddressSpace {
         self.set_variable_value(&VariableId::Server_ServerCapabilities_MaxArrayLength.as_node_id(), Variant::UInt32(server_config.max_array_length));
         self.set_variable_value(&VariableId::Server_ServerCapabilities_MaxStringLength.as_node_id(), Variant::UInt32(server_config.max_string_length));
         self.set_variable_value(&VariableId::Server_ServerCapabilities_MaxByteStringLength.as_node_id(), Variant::UInt32(server_config.max_byte_string_length));
+        // TODO max browse continuation points
+        // TODO max history continuation points
+        // TODO max query continuation points
+        self.set_variable_value(&VariableId::Server_ServerCapabilities_MinSupportedSampleRate.as_node_id(), Variant::Double(constants::MIN_SAMPLING_INTERVAL));
 
         // State OPC UA Part 5 12.6, Valid states are
         //
@@ -367,7 +372,6 @@ impl AddressSpace {
         self.set_variable_value(&VariableId::Server_ServiceLevel.as_node_id(), Variant::Byte(255));
 
         // Auditing - var
-        // ServerCapabilities
         // ServerDiagnostics
         // VendorServiceInfo
         // ServerRedundancy

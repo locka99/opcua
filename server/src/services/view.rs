@@ -143,6 +143,9 @@ impl ViewService {
                 (GOOD, Some(results))
             }
         }; */
+
+        debug!("TranslateBrowsePathsToNodeIdsRequest = {:#?}", request);
+
         let response = TranslateBrowsePathsToNodeIdsResponse {
             response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
             results: results,

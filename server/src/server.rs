@@ -243,7 +243,7 @@ impl Server {
 
         {
             let mut address_space = server_state.address_space.lock().unwrap();
-            address_space.add_server_nodes(&server_state);
+            address_space.update_from_server_state(&server_state);
         }
 
         Server {
