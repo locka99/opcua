@@ -186,7 +186,6 @@ impl TcpTransport {
         Ok(())
     }
 
-
     pub fn disconnect(&mut self) {
         if self.stream.is_some() {
             self.stream = None;

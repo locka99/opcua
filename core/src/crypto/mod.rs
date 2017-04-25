@@ -6,18 +6,32 @@
 //! impl will not support encryption, decryption, signing or verification.
 
 // TODO
-
+use std::path::*;
 
 mod cert_manager;
 
-fn create_key_pair() {}
+trait Crypto {
+    // This function specifies the crypto capabilities of the compiled software. The value false
+    // means the software has no crypto capability so calling other functions below is a waste of time
+    // because they are stubs.
+    fn is_crypto_enabled() -> bool;
 
-fn validate_certificate() {}
+    // Creates an asymmetric key/pair
+    fn create_key_pair(public_key_path: &Path, private_key_path: &Path) -> Result<(), ()>;
 
-fn decrypt_bytes() {}
+    // Validates that the certificate is trusted by the server /client
+    fn is_certificate_trusted(public_key_path: &Path);
 
-fn verify_signature() {}
+    // Decrypts bytes of data using the specified key
+    fn decrypt_bytes();
 
-fn encrypt_bytes() {}
+    // Verifies the specified data using the specified key
+    fn verify_signature(data: &[u8], signature: &[u8]);
 
-fn sign_bytes() {}
+    // Encrypts bytes using the specified key
+    fn encrypt_bytes(data: &[u8], key: &[u8]) -> Vec<u8>;
+
+    // Signs bytes using the specified key
+    fn sign_bytes(data: &[u8], key: &[u8]) -> Vec<u8>;
+}
+
