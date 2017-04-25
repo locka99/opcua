@@ -20,7 +20,7 @@ function interested_in_node(node) {
   return (!node.name.endsWith("_DefaultXml") && !node.name.startsWith("OpcUa_XmlSchema_"));
 }
 
-var csv_data = fs.createReadStream(status_code_csv)
+fs.createReadStream(status_code_csv)
   .pipe(csv(['name', 'id', 'type']))
   .on('data', function (data) {
     var node = {

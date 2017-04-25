@@ -184,11 +184,11 @@ function insert_node(indent, node_type, value, node_ctor) {
     contents += `${indent}// ${node_type}\n`;
 
     var browse_name = _.has(value["$"], "BrowseName") ? value["$"]["BrowseName"] : "";
-    contents += `${indent}let browse_name = "${browse_name}";\n`
+    contents += `${indent}let browse_name = "${browse_name}";\n`;
     var display_name = _.has(value, "DisplayName") ? value["DisplayName"][0] : "";
-    contents += `${indent}let display_name = "${display_name}";\n`
+    contents += `${indent}let display_name = "${display_name}";\n`;
     var description = _.has(value, "Description") ? value["Description"][0] : "";
-    contents += `${indent}let description = "${description}";\n`
+    contents += `${indent}let description = "${description}";\n`;
 
     contents += `${indent}let node_id = ${node_id_ctor(value["$"]["NodeId"])};\n`;
     contents += `${indent}let node = ${node_ctor};\n`;
@@ -201,7 +201,7 @@ function insert_node(indent, node_type, value, node_ctor) {
 
     // Organizes
     if (_.has(value["$"], "ParentNodeId")) {
-        var parent_node_id = node_id_ctor(value["$"]["ParentNodeId"])
+        var parent_node_id = node_id_ctor(value["$"]["ParentNodeId"]);
         contents += `${indent}address_space.add_organizes(&${parent_node_id}, &node_id);\n`;
     }
 
@@ -218,7 +218,7 @@ function insert_node(indent, node_type, value, node_ctor) {
 
     // Process InverseName
     indent = indent.substr(0, indent.length - 4);
-    contents += `${indent}}\n`
+    contents += `${indent}}\n`;
 
     return contents;
 }
@@ -228,7 +228,6 @@ function insert_references(indent, references) {
     if (_.has(references, "Reference")) {
         _.each(references["Reference"], function (reference) {
             // Test if the reference is forward or reverse
-            var is_forward = true;
             var reference_type = reference["$"]["ReferenceType"];
             var reference_id = node_id_ctor(reference["_"]);
             var is_forward = !_.has(reference["$"], "IsForward") || reference["$"]["IsForward"] === "true";
