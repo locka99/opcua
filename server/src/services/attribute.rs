@@ -63,20 +63,20 @@ impl AttributeService {
                                     TimestampsToReturn::Source => {
                                         result_value.source_timestamp = attribute.source_timestamp.clone();
                                         result_value.source_picoseconds = attribute.source_picoseconds.clone();
-                                    },
+                                    }
                                     TimestampsToReturn::Server => {
                                         result_value.server_timestamp = attribute.server_timestamp.clone();
                                         result_value.server_picoseconds = attribute.server_picoseconds.clone();
-                                    },
+                                    }
                                     TimestampsToReturn::Both => {
                                         result_value.source_timestamp = attribute.source_timestamp.clone();
                                         result_value.source_picoseconds = attribute.source_picoseconds.clone();
                                         result_value.server_timestamp = attribute.server_timestamp.clone();
                                         result_value.server_picoseconds = attribute.server_picoseconds.clone();
-                                    },
+                                    }
                                     TimestampsToReturn::Neither => {
                                         // Nothing needs to change
-                                    },
+                                    }
                                 }
                             }
                         } else {

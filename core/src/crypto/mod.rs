@@ -10,26 +10,14 @@
 
 mod cert_manager;
 
-fn create_key_pair() {
+fn create_key_pair() {}
 
+fn validate_certificate() {}
 
-}
+fn decrypt_bytes() {}
 
-fn validate_certificate() {
-}
+fn verify_signature() {}
 
-fn decrypt_bytes() {
+fn encrypt_bytes() {}
 
-}
-
-fn verify_signature() {
-
-}
-
-fn encrypt_bytes() {
-
-}
-
-fn sign_bytes() {
-
-}
+fn sign_bytes() {}

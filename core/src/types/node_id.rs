@@ -34,13 +34,13 @@ impl BinaryEncoder<NodeId> for NodeId {
                 } else {
                     11
                 }
-            },
+            }
             Identifier::String(ref value) => {
                 3 + value.byte_len()
-            },
+            }
             Identifier::Guid(ref value) => {
                 3 + value.byte_len()
-            },
+            }
             Identifier::ByteString(ref value) => {
                 3 + value.byte_len()
             }
@@ -68,17 +68,17 @@ impl BinaryEncoder<NodeId> for NodeId {
                     size += write_u16(stream, self.namespace)?;
                     size += write_u64(stream, *value as u64)?;
                 }
-            },
+            }
             Identifier::String(ref value) => {
                 size += write_u8(stream, 0x3)?;
                 size += write_u16(stream, self.namespace)?;
                 size += value.encode(stream)?;
-            },
+            }
             Identifier::Guid(ref value) => {
                 size += write_u8(stream, 0x4)?;
                 size += write_u16(stream, self.namespace)?;
                 size += value.encode(stream)?;
-            },
+            }
             Identifier::ByteString(ref value) => {
                 size += write_u8(stream, 0x5)?;
                 size += write_u16(stream, self.namespace)?;
@@ -96,27 +96,27 @@ impl BinaryEncoder<NodeId> for NodeId {
                 let namespace = 0;
                 let value = read_u8(stream)? as u64;
                 NodeId::new_numeric(namespace, value)
-            },
+            }
             0x1 => {
                 let namespace = read_u8(stream)? as u16;
                 let value = read_u16(stream)? as u64;
                 NodeId::new_numeric(namespace, value)
-            },
+            }
             0x2 => {
                 let namespace = read_u16(stream)?;
                 let value = read_u64(stream)?;
                 NodeId::new_numeric(namespace, value)
-            },
+            }
             0x3 => {
                 let namespace = read_u16(stream)?;
                 let value = UAString::decode(stream)?;
                 NodeId::new_string(namespace, value.to_str())
-            },
+            }
             0x4 => {
                 let namespace = read_u16(stream)?;
                 let value = Guid::decode(stream)?;
                 NodeId::new_guid(namespace, value)
-            },
+            }
             0x5 => {
                 let namespace = read_u16(stream)?;
                 let value = ByteString::decode(stream)?;
@@ -180,23 +180,23 @@ impl FromStr for NodeId {
                     return Err(BAD_NODE_ID_INVALID)
                 }
                 NodeId::new_numeric(namespace, number.unwrap())
-            },
+            }
             "s" => {
                 NodeId::new_string(namespace, v.as_str())
-            },
+            }
             "g" => {
                 let guid = Guid::parse_str(v.as_str());
                 if guid.is_err() {
                     return Err(BAD_NODE_ID_INVALID)
                 }
                 NodeId::new_guid(namespace, guid.unwrap())
-            },
+            }
             "b" => {
                 // Parse hex back into bytes
                 // NodeId::new_bytestring(namespace, ByteString::from_bytes(decoded_v.as_str()))
                 error!("ByteString parsing needs to be implemented");
                 return Err(BAD_NODE_ID_INVALID);
-            },
+            }
             _ => {
                 return Err(BAD_NODE_ID_INVALID)
             }
@@ -244,17 +244,17 @@ impl NodeId {
         result.push_str(&match self.identifier {
             Identifier::Numeric(ref value) => {
                 format!("i={}", value)
-            },
+            }
             Identifier::String(ref value) => {
                 if value.is_null() {
                     "null".to_string()
                 } else {
                     format!("s={}", value.to_str())
                 }
-            },
+            }
             Identifier::Guid(ref value) => {
                 format!("g={:?}", value)
-            },
+            }
             Identifier::ByteString(ref value) => {
                 if value.is_null() {
                     "null".to_string()
@@ -290,7 +290,7 @@ impl NodeId {
     /// Test if the node id is null, i.e. 0 namespace and 0 identifier
     pub fn is_null(&self) -> bool {
         match self.identifier {
-            Identifier::Numeric(id) => { id == 0 && self.namespace == 0 },
+            Identifier::Numeric(id) => { id == 0 && self.namespace == 0 }
             _ => false,
         }
     }
@@ -378,17 +378,17 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
                     size += write_u16(stream, self.node_id.namespace)?;
                     size += write_u64(stream, *value as u64)?;
                 }
-            },
+            }
             Identifier::String(ref value) => {
                 size += write_u8(stream, data_encoding | 0x3)?;
                 size += write_u16(stream, self.node_id.namespace)?;
                 size += value.encode(stream)?;
-            },
+            }
             Identifier::Guid(ref value) => {
                 size += write_u8(stream, data_encoding | 0x4)?;
                 size += write_u16(stream, self.node_id.namespace)?;
                 size += value.encode(stream)?;
-            },
+            }
             Identifier::ByteString(ref value) => {
                 size += write_u8(stream, data_encoding | 0x5)?;
                 size += write_u16(stream, self.node_id.namespace)?;
@@ -413,27 +413,27 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
                 let namespace = 0;
                 let value = read_u8(stream)? as u64;
                 NodeId::new_numeric(namespace, value)
-            },
+            }
             0x1 => {
                 let namespace = read_u8(stream)? as u16;
                 let value = read_u16(stream)? as u64;
                 NodeId::new_numeric(namespace, value)
-            },
+            }
             0x2 => {
                 let namespace = read_u16(stream)?;
                 let value = read_u64(stream)?;
                 NodeId::new_numeric(namespace, value)
-            },
+            }
             0x3 => {
                 let namespace = read_u16(stream)?;
                 let value = UAString::decode(stream)?;
                 NodeId::new_string(namespace, value.to_str())
-            },
+            }
             0x4 => {
                 let namespace = read_u16(stream)?;
                 let value = Guid::decode(stream)?;
                 NodeId::new_guid(namespace, value)
-            },
+            }
             0x5 => {
                 let namespace = read_u16(stream)?;
                 let value = ByteString::decode(stream)?;

@@ -39,8 +39,7 @@ impl ReferenceType {
         let result = find_attribute_value_optional!(&self.base, InverseName, LocalizedText);
         if result.is_none() {
             None
-        }
-        else {
+        } else {
             Some(result.unwrap().as_ref().clone())
         }
     }

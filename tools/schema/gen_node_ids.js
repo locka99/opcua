@@ -17,40 +17,40 @@ use types::*;
 var node_ids = {};
 
 function interested_in_node(node) {
-  return (!node.name.endsWith("_DefaultXml") && !node.name.startsWith("OpcUa_XmlSchema_"));
+    return (!node.name.endsWith("_DefaultXml") && !node.name.startsWith("OpcUa_XmlSchema_"));
 }
 
 fs.createReadStream(status_code_csv)
-  .pipe(csv(['name', 'id', 'type']))
-  .on('data', function (data) {
-    var node = {
-      name: data.name,
-      id: data.id
-    };
-    if (_.has(node_ids, data.type)) {
-      node_ids[data.type].push(node);
-    }
-    else {
-      node_ids[data.type] = [node];
-    }
-  })
-  .on('end', function () {
-    _.each(node_ids, function (value, key) {
-      rs_out.write(
-        `
+    .pipe(csv(['name', 'id', 'type']))
+    .on('data', function (data) {
+        var node = {
+            name: data.name,
+            id: data.id
+        };
+        if (_.has(node_ids, data.type)) {
+            node_ids[data.type].push(node);
+        }
+        else {
+            node_ids[data.type] = [node];
+        }
+    })
+    .on('end', function () {
+        _.each(node_ids, function (value, key) {
+            rs_out.write(
+                `
 #[allow(non_camel_case_types)]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum ${key}Id {
 `);
-      _.each(value, function (node) {
-        // Skip Xml junk
-        if (interested_in_node(node)) {
-          rs_out.write(`    ${node.name} = ${node.id},\n`);
-        }
-      });
-      rs_out.write(`}\n`);
+            _.each(value, function (node) {
+                // Skip Xml junk
+                if (interested_in_node(node)) {
+                    rs_out.write(`    ${node.name} = ${node.id},\n`);
+                }
+            });
+            rs_out.write(`}\n`);
 
-      rs_out.write(`
+            rs_out.write(`
 impl ${key}Id {
     pub fn as_node_id(&self) -> NodeId {
         NodeId::new_numeric(0, *self as UInt64)
@@ -59,19 +59,19 @@ impl ${key}Id {
     pub fn from_u64(value: u64) -> Result<${key}Id, ()> {
         match value {
 `);
-      _.each(value, function (node) {
-        if (interested_in_node(node)) {
-          rs_out.write(`            ${node.id} => Ok(${key}Id::${node.name}),\n`);
-        }
-      });
+            _.each(value, function (node) {
+                if (interested_in_node(node)) {
+                    rs_out.write(`            ${node.id} => Ok(${key}Id::${node.name}),\n`);
+                }
+            });
 
-      rs_out.write(
-        `            _ => Err(())
+            rs_out.write(
+                `            _ => Err(())
         }
     }
 }
 `);
 
+        });
     });
-  });
 

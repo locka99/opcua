@@ -111,20 +111,20 @@ impl MessageHeader {
                 _ => {
                     error!("message type doesn't match anything");
                     MessageType::Invalid
-                },
+                }
             };
 
             // Check the 4th byte which should be F for messages or F, C or A for chunks. If its
             // not one of those, the message is invalid
             match t[3] {
-                CHUNK_FINAL => { message_type },
+                CHUNK_FINAL => { message_type }
                 CHUNK_INTERMEDIATE | CHUNK_FINAL_ERROR => {
                     if message_type == MessageType::Chunk {
                         message_type
                     } else {
                         MessageType::Invalid
                     }
-                },
+                }
                 _ => {
                     MessageType::Invalid
                 }

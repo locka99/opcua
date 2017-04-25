@@ -102,8 +102,7 @@ impl Node for Base {
         let result = find_attribute_value_optional!(self, Description, LocalizedText);
         if result.is_none() {
             None
-        }
-        else {
+        } else {
             Some(result.unwrap().as_ref().clone())
         }
     }
