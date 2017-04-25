@@ -47,7 +47,10 @@ The server is compliant (more or less) with OPC UA micro profile. Over time comp
 ### Supported services
 
 The following services are supported fully, partially (marked with a *) or as a stub / work in progress (marked !). That means a client
-may call them and receive a response. Anything not listed is totally unsupported. Calling an unsupported service will terminate the session. Partial implementations are expected to be implemented over time.
+may call them and receive a response. 
+
+Anything not listed is totally unsupported. Calling an unsupported service will terminate the session. Partial / stub
+implementations are expected to receive more functionality over time.
 
 * Discovery service set
     * GetEndpoints
@@ -60,15 +63,16 @@ may call them and receive a response. Anything not listed is totally unsupported
     * CreateSession
     * ActivateSession
     * CloseSession
-    
+
 * View service set
     * Browse
     * BrowseNext (!). Implemented to do nothing
-    
+    * TranslateBrowsePathsToNodeIds (!). Stub to silence some clients that call it.
+
 * MonitoredItem service set
-    * CreateMonitoredItems. Data change filter only
-    * ModifyMonitoredItems(*). Data change filter only
-    * DeleteMonitoredItems(*)
+    * CreateMonitoredItems. Data change filter including dead band filtering. 
+    * ModifyMonitoredItems
+    * DeleteMonitoredItems
 
 * Subscription
     * CreateSubscription
@@ -89,7 +93,10 @@ The server supports the following security mode / profiles:
 1. Anonymous/None, i.e. no authentication
 2. User/password (plaintext password)
 
-Encryption will happen later once unencrypted functionality is working.
+Not supported:
+
+1. User/password using encrypted password.
+1. Public key authentication, signing and encryption. This will happen later once unencrypted functionality is working.
 
 ### Current limitations
 
@@ -99,7 +106,7 @@ Currently the following are not supported
 * Session resumption. If your client disconnects, all information is discarded.
 * Encryption will come after basically functionality is working in the clear.
 * Chunks are 1 chunk only. 
-* Default nodeset is mostly static
+* Default nodeset is mostly static. Certain fields of server information will contain their default values unless explicitly set.
 
 ## Client
 
@@ -132,10 +139,11 @@ to allow simple servers to be created with a very small number of lines of code.
 At the moment crypto isn't supported properly so there is an optional feature to enable it:
 
 ```
+cd core
 cargo build --features crypto
 ```
 
-This won't do much except add deps on OpenSSL and allow certainly crypt functionality as it is to be tested.
+This won't do much except add deps on OpenSSL and allow certainly crypto functionality as it exists to be tested.
 
 When crypto is implemented, the feature will become the default. Crypto is implemented via OpenSSL and you are advised
 to read [documentation](https://github.com/sfackler/rust-openssl) for that to set up your environment.
@@ -190,8 +198,8 @@ in and out of the type.
 
 ## Formatting
 
-All code should be follow the most current Rust RFC coding guidelines for naming conventions, layout
-etc.
+All code (with the exceptions noted for OPC UA) should be follow the most current Rust RFC coding guidelines for naming
+conventions, layout etc.
 
 Code should be formatted with the IntelliJ rust plugin, or with rustfmt.
 
@@ -212,6 +220,39 @@ pub enum VariableId {
     //... thousands of ids, many like this or worse
     ExclusiveRateOfChangeAlarmType_LimitState_LastTransition_EffectiveTransitionTime = 11474,
 }
+```
+
+### Status codes
+
+Status codes are generated from the schema and are used extensively. Status codes shall conform with the specification,
+i.e. service requests will handle and return expected failure results wherever possible.
+
+To avoid unnecessary code and to make the errors stand out, the values will be `SNAKE_CASE` and the `StatusCode::` enum 
+namespace will not be a necessary prefix. So code may refer to `GOOD`, `BAD_UNEXPECTED_ERROR` etc. without qualification.
+Note: the decision to upper case codes is subject to review because it is inconsistent with node ids above.
+
+The enum will also implement `Copy` so that status codes are copy on assign. 
+
+The enum also provides helpers such as `is_good()`, `is_bad()`, `name()` and `description()` for testing and debugging purposes.
+
+```rust
+#[allow(non_camel_case_types)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub enum StatusCode {
+    GOOD = 0,
+    //...
+    UNCERTAIN_REFERENCE_OUT_OF_SERVER = 0x406C0000,
+    UNCERTAIN_NO_COMMUNICATION_LAST_USABLE_VALUE = 0x408F0000,
+    //...
+    BAD_UNEXPECTED_ERROR = 0x80010000,
+    BAD_INTERNAL_ERROR = 0x80020000,
+    BAD_ENCODING_LIMITS_EXCEEDED = 0x80080000,
+    BAD_UNKNOWN_RESPONSE = 0x80090000,
+    BAD_TIMEOUT = 0x800A0000,
+    //...
+}
+// Everything in StatusCode:: becomes immediately accessible
+pub use self::status_codes::StatusCode::*;
 ```
 
 # Testing
