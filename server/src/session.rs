@@ -33,6 +33,10 @@ pub struct PublishResponseEntry {
 #[derive(Clone)]
 pub struct SessionInfo {}
 
+/// Structure that captures diagnostics information for the session
+#[derive(Clone)]
+pub struct SessionDiagnostics {}
+
 /// Session state is anything associated with the session at the message / service level
 #[derive(Clone)]
 pub struct SessionState {
@@ -47,6 +51,7 @@ pub struct SessionState {
     pub max_request_message_size: UInt32,
     pub max_response_message_size: UInt32,
     pub endpoint_url: UAString,
+    pub diagnostics: SessionDiagnostics,
 
     last_session_id: UInt32,
 }
@@ -64,6 +69,7 @@ impl SessionState {
             max_request_message_size: 0,
             max_response_message_size: 0,
             endpoint_url: UAString::null(),
+            diagnostics: SessionDiagnostics {},
             last_session_id: 0,
         }
     }

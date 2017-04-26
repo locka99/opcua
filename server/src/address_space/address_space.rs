@@ -350,9 +350,9 @@ impl AddressSpace {
         self.set_variable_value(&VariableId::Server_ServerCapabilities_MaxArrayLength.as_node_id(), Variant::UInt32(server_config.max_array_length));
         self.set_variable_value(&VariableId::Server_ServerCapabilities_MaxStringLength.as_node_id(), Variant::UInt32(server_config.max_string_length));
         self.set_variable_value(&VariableId::Server_ServerCapabilities_MaxByteStringLength.as_node_id(), Variant::UInt32(server_config.max_byte_string_length));
-        // TODO max browse continuation points
-        // TODO max history continuation points
-        // TODO max query continuation points
+        self.set_variable_value(&VariableId::Server_ServerCapabilities_MaxBrowseContinuationPoints.as_node_id(), Variant::UInt32(0));
+        self.set_variable_value(&VariableId::Server_ServerCapabilities_MaxHistoryContinuationPoints.as_node_id(), Variant::UInt32(0));
+        self.set_variable_value(&VariableId::Server_ServerCapabilities_MaxQueryContinuationPoints.as_node_id(), Variant::UInt32(0));
         self.set_variable_value(&VariableId::Server_ServerCapabilities_MinSupportedSampleRate.as_node_id(), Variant::Double(constants::MIN_SAMPLING_INTERVAL));
 
         // State OPC UA Part 5 12.6, Valid states are

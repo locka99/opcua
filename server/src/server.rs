@@ -69,6 +69,10 @@ impl Endpoint {
     }
 }
 
+#[derive(Clone)]
+/// Structure that captures diagnostics information for the server
+pub struct ServerDiagnostics {}
+
 /// Server state is any state associated with the server as a whole that individual sessions might
 /// be interested in. That includes configuration info, address space etc.
 #[derive(Clone)]
@@ -104,6 +108,10 @@ pub struct ServerState {
     pub min_publishing_interval: Duration,
     /// Maxmimum keep alive count
     pub max_keep_alive_count: UInt32,
+    /// Sets the abort flag that terminates the associated server
+    pub abort: bool,
+    /// Diagnostic information
+    pub diagnostics: ServerDiagnostics,
 }
 
 impl ServerState {
@@ -173,8 +181,6 @@ pub struct Server {
     pub server_state: Arc<Mutex<ServerState>>,
     /// List of open sessions
     pub sessions: Vec<Arc<Mutex<TcpTransport>>>,
-    /// Flag set to cause server to abort
-    abort: bool,
 }
 
 impl Server {
@@ -239,6 +245,8 @@ impl Server {
             max_subscriptions: max_subscriptions,
             min_publishing_interval: 0f64,
             max_keep_alive_count: 10000,
+            abort: false,
+            diagnostics: ServerDiagnostics {},
         };
 
         {
@@ -248,7 +256,6 @@ impl Server {
 
         Server {
             server_state: Arc::new(Mutex::new(server_state)),
-            abort: false,
             sessions: Vec::new()
         }
     }
@@ -265,7 +272,8 @@ impl Server {
 
     // Terminates the running server
     pub fn abort(&mut self) {
-        self.abort = true;
+        let mut server_state = self.server_state.lock().unwrap();
+        server_state.abort = true;
     }
 
     /// Runs the server
@@ -277,10 +285,8 @@ impl Server {
         };
         let sock_addr = (host.as_str(), port);
         let listener = TcpListener::bind(&sock_addr).unwrap();
+
         loop {
-            if self.abort {
-                break;
-            }
             {
                 info!("Server supports these endpoints:");
                 let server_state = self.server_state.lock().unwrap();
@@ -295,6 +301,13 @@ impl Server {
             }
             info!("Waiting for Connection");
             for stream in listener.incoming() {
+                {
+                    let server_state = self.server_state.lock().unwrap();
+                    if server_state.abort {
+                        info!("Server is aborting");
+                        break;
+                    }
+                }
                 info!("Handling new connection {:?}", stream);
                 match stream {
                     Ok(stream) => {

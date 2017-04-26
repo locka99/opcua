@@ -143,7 +143,6 @@ impl BinaryEncoder<DataValue> for DataValue {
     }
 }
 
-
 impl DataValue {
     pub fn new(value: Variant) -> DataValue {
         let now = DateTime::now();

@@ -196,3 +196,53 @@ fn monitored_item_data_change_filter() {
     assert_eq!(monitored_item.tick(&address_space, &now, true), true);
     assert_eq!(monitored_item.notification_queue.len(), 2);
 }
+
+fn populate_monitored_item(discard_oldest: bool) -> MonitoredItem {
+    let client_handle = 999;
+    let mut monitored_item = MonitoredItem::new(1, &make_create_request(-1f64, 5)).unwrap();
+    monitored_item.discard_oldest = discard_oldest;
+    for i in 0..5 {
+        monitored_item.enqueue_notification_message(MonitoredItemNotification {
+            client_handle: client_handle,
+            value: DataValue::new(Variant::Int32(i as Int32)),
+        });
+        assert!(!monitored_item.queue_overflow);
+    }
+
+    monitored_item.enqueue_notification_message(MonitoredItemNotification {
+        client_handle: client_handle,
+        value: DataValue::new(Variant::Int32(10 as Int32)),
+    });
+    assert!(monitored_item.queue_overflow);
+    monitored_item
+}
+
+fn assert_first_notification_is_i32(monitored_item: &mut MonitoredItem, value: i32) {
+    assert_eq!(monitored_item.get_first_notification_message().unwrap().value.value.unwrap(), Variant::Int32(value));
+}
+
+#[test]
+fn monitored_item_queue_discard_oldest() {
+    // The purpose of this test is to monitor the discard oldest behaviour. Depending on true/false
+    // the oldest or newest item will be overwritten when the queue is full
+
+    // discard_oldest = true
+    {
+        let mut monitored_item = populate_monitored_item(true);
+        assert_first_notification_is_i32(&mut monitored_item, 1);
+        assert_first_notification_is_i32(&mut monitored_item, 2);
+        assert_first_notification_is_i32(&mut monitored_item, 3);
+        assert_first_notification_is_i32(&mut monitored_item, 4);
+        assert_first_notification_is_i32(&mut monitored_item, 10);
+    }
+
+    // discard_oldest = false
+    {
+        let mut monitored_item = populate_monitored_item(false);
+        assert_first_notification_is_i32(&mut monitored_item, 0);
+        assert_first_notification_is_i32(&mut monitored_item, 1);
+        assert_first_notification_is_i32(&mut monitored_item, 2);
+        assert_first_notification_is_i32(&mut monitored_item, 3);
+        assert_first_notification_is_i32(&mut monitored_item, 10);
+    }
+}

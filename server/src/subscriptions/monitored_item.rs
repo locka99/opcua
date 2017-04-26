@@ -43,9 +43,9 @@ pub struct MonitoredItem {
     pub discard_oldest: Boolean,
     pub queue_size: usize,
     pub notification_queue: Vec<MonitoredItemNotification>,
+    pub queue_overflow: bool,
     last_sample_time: DateTimeUTC,
     last_data_value: Option<DataValue>,
-    queue_overflow: bool,
 }
 
 impl MonitoredItem {
@@ -77,17 +77,6 @@ impl MonitoredItem {
         self.client_handle = request.requested_parameters.client_handle;
         self.discard_oldest = request.requested_parameters.discard_oldest;
         Ok(())
-    }
-
-    /// Gets the oldest notification message from the notification queue
-    pub fn get_notification_message(&mut self) -> Option<MonitoredItemNotification> {
-        if self.notification_queue.is_empty() {
-            None
-        } else {
-            // Take first item off the queue
-            self.queue_overflow = false;
-            Some(self.notification_queue.remove(0))
-        }
     }
 
     /// Called repeatedly on the monitored item.
@@ -154,30 +143,12 @@ impl MonitoredItem {
                     // this more efficiently
                     self.last_data_value = Some(data_value.clone());
 
-                    // Data change
-                    let notification_message = MonitoredItemNotification {
-                        client_handle: self.client_handle,
+                    // Enqueue notification message
+                    let client_handle = self.client_handle;
+                    self.enqueue_notification_message(MonitoredItemNotification {
+                        client_handle: client_handle,
                         value: data_value,
-                    };
-
-                    // enqueue notification
-                    // NB it would be more efficient but more complex to make the last item of the vec,
-                    // the most recent and the first, the least recent.
-                    if self.notification_queue.len() == self.queue_size {
-                        debug!("Data change overflow, node {:?}", self.item_to_monitor.node_id);
-                        // Overflow behaviour
-                        if self.discard_oldest {
-                            // Throw away oldest item (the one at the start), push the rest up
-                            let _ = self.notification_queue.remove(0);
-                        } else {
-                            // Replace the last notification
-                            self.notification_queue.pop();
-                        }
-                        self.notification_queue.push(notification_message);
-                        self.queue_overflow = true;
-                    } else {
-                        self.notification_queue.push(notification_message);
-                    }
+                    });
 
                     debug!("Monitored item state = {:?}", self);
                 } else {
@@ -191,6 +162,50 @@ impl MonitoredItem {
             debug!("Can't find item to monitor, node {:?}", self.item_to_monitor.node_id);
             false
         }
+    }
+
+    /// Enqueues a notification message for the monitored item
+    pub fn enqueue_notification_message(&mut self, notification: MonitoredItemNotification) {
+        // test for overflow
+        self.queue_overflow = if self.notification_queue.len() == self.queue_size {
+            debug!("Data change overflow, node {:?}", self.item_to_monitor.node_id);
+            // Overflow behaviour
+            if self.discard_oldest {
+                // Throw away oldest item (the one at the start) to make space at the end
+                let _ = self.notification_queue.remove(0);
+            } else {
+                // Remove the last notification
+                self.notification_queue.pop();
+            }
+            // Overflow only affects queues > 1 element
+            if self.queue_size > 1 { true } else { false }
+        } else {
+            false
+        };
+        // Add to end
+        self.notification_queue.push(notification);
+    }
+
+    /// Gets the oldest notification message from the notification queue
+    pub fn get_first_notification_message(&mut self) -> Option<MonitoredItemNotification> {
+        if self.notification_queue.is_empty() {
+            None
+        } else {
+            // Take first item off the queue
+            self.queue_overflow = false;
+            Some(self.notification_queue.remove(0))
+        }
+    }
+
+    /// Gets the last notification (and discards the remainder to prevent out of sequence events) from
+    /// the notification queue.
+    pub fn get_last_notification_message(&mut self) -> Option<MonitoredItemNotification> {
+        let result = self.notification_queue.pop();
+        if result.is_some() {
+            self.queue_overflow = false;
+            self.notification_queue.clear();
+        }
+        result
     }
 
     /// Takes the requested sampling interval value supplied by client and ensures it is within

@@ -298,7 +298,7 @@ impl Subscription {
         for (_, monitored_item) in self.monitored_items.iter_mut() {
             if monitored_item.tick(address_space, now, publishing_timer_expired) {
                 // Take the monitored item's first notification
-                monitored_item_notifications.push(monitored_item.get_notification_message().unwrap());
+                monitored_item_notifications.push(monitored_item.get_first_notification_message().unwrap());
             }
         }
         let result = if monitored_item_notifications.len() > 0 {

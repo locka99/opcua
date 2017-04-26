@@ -116,6 +116,14 @@ impl TcpTransport {
         let mut message_buffer = MessageBuffer::new(RECEIVE_BUFFER_SIZE);
 
         loop {
+            // Check for abort
+            {
+                let server_state = self.server_state.lock().unwrap();
+                if server_state.abort {
+                    break;
+                }
+            }
+
             let transport_state = self.transport_state.clone();
 
             // Session waits a configurable time for a hello and terminates if it fails to receive it
