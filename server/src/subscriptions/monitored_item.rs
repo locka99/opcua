@@ -108,6 +108,11 @@ impl MonitoredItem {
             return false;
         }
 
+        // Test if monitoring
+        if self.monitoring_mode == MonitoringMode::Disabled {
+            return false;
+        }
+
         self.last_sample_time = now.clone();
 
         if let Some(node) = address_space.find_node(&self.item_to_monitor.node_id) {
@@ -187,7 +192,7 @@ impl MonitoredItem {
     }
 
     /// Gets the oldest notification message from the notification queue
-    pub fn get_first_notification_message(&mut self) -> Option<MonitoredItemNotification> {
+    pub fn remove_first_notification_message(&mut self) -> Option<MonitoredItemNotification> {
         if self.notification_queue.is_empty() {
             None
         } else {
@@ -197,9 +202,20 @@ impl MonitoredItem {
         }
     }
 
+    /// Gets all the notification messages from the queue
+    pub fn remove_all_notification_messages(&mut self) -> Option<Vec<MonitoredItemNotification>> {
+        if self.notification_queue.is_empty() {
+            None
+        } else {
+            // Removes all the queued notifications to the output
+            self.queue_overflow = false;
+            Some(self.notification_queue.drain(..).collect())
+        }
+    }
+
     /// Gets the last notification (and discards the remainder to prevent out of sequence events) from
     /// the notification queue.
-    pub fn get_last_notification_message(&mut self) -> Option<MonitoredItemNotification> {
+    pub fn remove_last_notification_message(&mut self) -> Option<MonitoredItemNotification> {
         let result = self.notification_queue.pop();
         if result.is_some() {
             self.queue_overflow = false;

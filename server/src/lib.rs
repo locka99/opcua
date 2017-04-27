@@ -40,7 +40,6 @@ mod constants {
     use opcua_core::types::Double;
 
     // Values used by configuration in the absence of user defined values
-
     /// The default hello timeout period in seconds
     pub const DEFAULT_HELLO_TIMEOUT_SECONDS: u32 = 120;
     /// Maximum number of elements in an array
@@ -58,12 +57,14 @@ mod constants {
 
     // Internally controlled values
 
+    /// Minimum publishing interval for subscriptions
+    pub const MIN_PUBLISHING_INTERVAL: Double = 0.05f64;
     /// Minimum sampling interval in seconds allowed by clients on subscriptions or monitored_items
     pub const MIN_SAMPLING_INTERVAL: Double = 0.05f64;
     /// Default data change queue size
     pub const DEFAULT_DATA_CHANGE_QUEUE_SIZE: usize = 1;
     /// Minimum data change queue allowed by clients on monitored items
-    pub const MIN_DATA_CHANGE_QUEUE_SIZE: usize = 10;
+    pub const MIN_DATA_CHANGE_QUEUE_SIZE: usize = 1;
     /// Maximum data change queue allowed by clients on monitored items
     pub const MAX_DATA_CHANGE_QUEUE_SIZE: usize = 10;
     /// The default size of preallocated vecs of monitored items per subscription
@@ -76,6 +77,8 @@ mod constants {
     pub const SESSION_TIMEOUT: f64 = 50000f64;
     /// Maximum size in bytes that a request message is allowed to be
     pub const MAX_REQUEST_MESSAGE_SIZE: u32 = 32768;
+    /// Maxmimum keep alive count
+    pub const MAX_KEEP_ALIVE_COUNT: u32 = 30;
 }
 
 #[cfg(test)]

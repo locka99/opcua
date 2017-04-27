@@ -12,8 +12,8 @@ use opcua_core::comms::*;
 
 use prelude::*;
 
+use constants;
 use comms::tcp_transport::*;
-
 use config::{ServerConfig};
 
 #[derive(Clone)]
@@ -72,6 +72,12 @@ impl Endpoint {
 #[derive(Clone)]
 /// Structure that captures diagnostics information for the server
 pub struct ServerDiagnostics {}
+
+impl ServerDiagnostics {
+    pub fn new() -> ServerDiagnostics {
+        ServerDiagnostics {}
+    }
+}
 
 /// Server state is any state associated with the server as a whole that individual sessions might
 /// be interested in. That includes configuration info, address space etc.
@@ -243,10 +249,10 @@ impl Server {
             last_subscription_id: 0,
 
             max_subscriptions: max_subscriptions,
-            min_publishing_interval: 0f64,
-            max_keep_alive_count: 10000,
+            min_publishing_interval: constants::MIN_PUBLISHING_INTERVAL,
+            max_keep_alive_count: constants::MAX_KEEP_ALIVE_COUNT,
             abort: false,
-            diagnostics: ServerDiagnostics {},
+            diagnostics: ServerDiagnostics::new(),
         };
 
         {
@@ -286,27 +292,25 @@ impl Server {
         let sock_addr = (host.as_str(), port);
         let listener = TcpListener::bind(&sock_addr).unwrap();
 
-        loop {
-            {
-                info!("Server supports these endpoints:");
-                let server_state = self.server_state.lock().unwrap();
-                for endpoint in server_state.endpoints.iter() {
-                    info!("Endpoint \"{}\":", endpoint.name);
-                    info!("  Url:              {}", endpoint.endpoint_url);
-                    info!("  Anonymous Access: {:?}", endpoint.anonymous);
-                    info!("  User/Password:    {:?}", endpoint.user.is_some());
-                    info!("  Security Policy:  {}", if endpoint.security_policy_uri.is_null() { "" } else { endpoint.security_policy_uri.to_str() });
-                    info!("  Security Mode:    {:?}", endpoint.security_mode);
-                }
+        {
+            info!("Server supports these endpoints:");
+            let server_state = self.server_state.lock().unwrap();
+            for endpoint in server_state.endpoints.iter() {
+                info!("Endpoint \"{}\":", endpoint.name);
+                info!("  Url:              {}", endpoint.endpoint_url);
+                info!("  Anonymous Access: {:?}", endpoint.anonymous);
+                info!("  User/Password:    {:?}", endpoint.user.is_some());
+                info!("  Security Policy:  {}", if endpoint.security_policy_uri.is_null() { "" } else { endpoint.security_policy_uri.to_str() });
+                info!("  Security Mode:    {:?}", endpoint.security_mode);
             }
-            info!("Waiting for Connection");
+        }
+        info!("Waiting for Connection");
+
+        loop {
             for stream in listener.incoming() {
-                {
-                    let server_state = self.server_state.lock().unwrap();
-                    if server_state.abort {
-                        info!("Server is aborting");
-                        break;
-                    }
+                if self.is_abort() {
+                    info!("Server is aborting");
+                    break;
                 }
                 info!("Handling new connection {:?}", stream);
                 match stream {
@@ -319,6 +323,11 @@ impl Server {
                 }
             }
         }
+    }
+
+    fn is_abort(&mut self) -> bool {
+        let server_state = self.server_state.lock().unwrap();
+        server_state.abort
     }
 
     /// Creates a polling action that happens continuously on an interval. The supplied

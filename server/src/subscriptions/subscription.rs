@@ -104,9 +104,7 @@ pub struct Subscription {
     pub publishing_req_queued: bool,
     // Notifications waiting to be sent in a map by sequence number. A b-tree is used to ensure ordering is
     // by sequence number.
-    pub notifications: BTreeMap<UInt32, NotificationMessage>,
-    // A set of sequence numbers which have been sent but not acknowledged
-    pub sent_notifications: BTreeMap<UInt32, NotificationMessage>,
+    pub retransmission_queue: BTreeMap<UInt32, NotificationMessage>,
     pub subscription_ack_results: Vec<StatusCode>,
     // The last monitored item id
     last_monitored_item_id: UInt32,
@@ -136,8 +134,7 @@ impl Subscription {
             publishing_enabled: publishing_enabled,
             publishing_req_queued: false,
             // Outgoing notifications
-            notifications: BTreeMap::new(),
-            sent_notifications: BTreeMap::new(),
+            retransmission_queue: BTreeMap::new(),
             subscription_ack_results: Vec::new(),
             // Counters for new items
             last_monitored_item_id: 0,
@@ -154,7 +151,6 @@ impl Subscription {
             self.last_monitored_item_id += 1;
             // Process items to create here
             let monitored_item_id = self.last_monitored_item_id;
-
             // Create a monitored item, if possible
             let monitored_item = MonitoredItem::new(monitored_item_id, item_to_create);
             let result = if let Ok(monitored_item) = monitored_item {
@@ -189,10 +185,14 @@ impl Subscription {
         let mut result = Vec::with_capacity(items_to_modify.len());
         for item_to_modify in items_to_modify {
             let monitored_item = self.monitored_items.get_mut(&item_to_modify.monitored_item_id);
-            result.push(if let Some(monitored_item) = monitored_item {
+            if let Some(monitored_item) = monitored_item {
+                // Skip items not being reported
+                if monitored_item.monitoring_mode != MonitoringMode::Reporting {
+                    continue;
+                }
                 // Try to change the monitored item according to the modify request
                 let modify_result = monitored_item.modify(item_to_modify);
-                if modify_result.is_ok() {
+                result.push(if modify_result.is_ok() {
                     MonitoredItemModifyResult {
                         status_code: GOOD,
                         revised_sampling_interval: monitored_item.sampling_interval,
@@ -206,15 +206,16 @@ impl Subscription {
                         revised_queue_size: 0,
                         filter_result: ExtensionObject::null(),
                     }
-                }
+                });
             } else {
-                MonitoredItemModifyResult {
+                // Item does not exist
+                result.push(MonitoredItemModifyResult {
                     status_code: BAD_MONITORED_ITEM_ID_INVALID,
                     revised_sampling_interval: 0f64,
                     revised_queue_size: 0,
                     filter_result: ExtensionObject::null(),
-                }
-            });
+                });
+            }
         }
         result
     }
@@ -256,8 +257,8 @@ impl Subscription {
         let items_changed = self.tick_monitored_items(address_space, now, publishing_timer_expired);
 
         self.publishing_req_queued = publishing_req_queued;
-        self.notifications_available = self.notifications.len() > 0;
-        self.more_notifications = self.notifications.len() > 0;
+        self.notifications_available = self.retransmission_queue.len() > 0;
+        self.more_notifications = self.retransmission_queue.len() > 0;
 
         // If items have changed or subscription interval elapsed then we may have notifications
         // to send or state to update
@@ -298,7 +299,9 @@ impl Subscription {
         for (_, monitored_item) in self.monitored_items.iter_mut() {
             if monitored_item.tick(address_space, now, publishing_timer_expired) {
                 // Take the monitored item's first notification
-                monitored_item_notifications.push(monitored_item.get_first_notification_message().unwrap());
+                if let Some(mut notification_messages) = monitored_item.remove_all_notification_messages() {
+                    monitored_item_notifications.append(&mut notification_messages);
+                }
             }
         }
         let result = if monitored_item_notifications.len() > 0 {
@@ -306,7 +309,7 @@ impl Subscription {
             let sequence_number = self.create_sequence_number();
             debug!("Monitored items, seq nr = {}, nr notifications = {}", sequence_number, monitored_item_notifications.len());
             let notification = NotificationMessage::new_data_change(sequence_number, &DateTime::now(), monitored_item_notifications);
-            self.notifications.insert(sequence_number, notification);
+            self.retransmission_queue.insert(sequence_number, notification);
             true
         } else {
             false
@@ -355,7 +358,7 @@ impl Subscription {
                 debug!("  publishing_req_queued: {}", self.publishing_req_queued);
                 debug!("  publishing_enabled: {}", self.publishing_enabled);
                 debug!("  more_notifications: {}", self.more_notifications);
-                debug!("  notifications_available: {} (queue size = {})", self.notifications_available, self.notifications.len());
+                debug!("  notifications_available: {} (queue size = {})", self.notifications_available, self.retransmission_queue.len());
                 debug!("  keep_alive_counter: {}", self.keep_alive_counter);
                 debug!("  lifetime_counter: {}", self.lifetime_counter);
                 debug!("  message_sent: {}", self.message_sent);
@@ -393,12 +396,10 @@ impl Subscription {
                 if receive_publish_request {
                     if !self.publishing_enabled || (self.publishing_enabled && !self.more_notifications) {
                         // State #4
-                        self.delete_acked_notification_msgs(publish_request.as_ref().unwrap());
                         return UpdateStateResult::new(4, UpdateStateAction::None, PublishRequestAction::None);
                     } else if self.publishing_enabled && self.more_notifications {
                         // State #5
                         self.reset_lifetime_counter();
-                        self.delete_acked_notification_msgs(publish_request.as_ref().unwrap());
                         self.message_sent = true;
                         return UpdateStateResult::new(5, UpdateStateAction::ReturnNotifications, PublishRequestAction::None);
                     }
@@ -434,14 +435,12 @@ impl Subscription {
                     if self.publishing_enabled && (self.notifications_available || self.more_notifications) {
                         // State #10
                         self.reset_lifetime_counter();
-                        self.delete_acked_notification_msgs(publish_request.as_ref().unwrap());
                         self.state = SubscriptionState::Normal;
                         self.message_sent = true;
                         return UpdateStateResult::new(10, UpdateStateAction::ReturnNotifications, PublishRequestAction::None);
                     } else if !self.publishing_enabled || (self.publishing_enabled && !self.notifications_available && !self.more_notifications) {
                         // State #11
                         self.reset_lifetime_counter();
-                        self.delete_acked_notification_msgs(publish_request.as_ref().unwrap());
                         self.state = SubscriptionState::KeepAlive;
                         self.message_sent = true;
                         return UpdateStateResult::new(11, UpdateStateAction::ReturnKeepAlive, PublishRequestAction::None);
@@ -455,7 +454,6 @@ impl Subscription {
             SubscriptionState::KeepAlive => {
                 if receive_publish_request {
                     // State #13
-                    self.delete_acked_notification_msgs(publish_request.as_ref().unwrap());
                     return UpdateStateResult::new(13, UpdateStateAction::None, PublishRequestAction::None);
                 } else if publishing_timer_expired {
                     if self.publishing_enabled && self.notifications_available && self.publishing_req_queued {
@@ -501,37 +499,18 @@ impl Subscription {
         UpdateStateResult::new(0, UpdateStateAction::None, PublishRequestAction::None)
     }
 
-    /// Deletes the acknowledged notifications, returning a list of status code for each according
-    /// to whether it was found or not.
-    ///
-    /// GOOD - deleted notification
-    /// BAD_SUBSCRIPTION_ID_INVALID - Subscription doesn't exist
-    /// BAD_SEQUENCE_NUMBER_UNKNOWN - Sequence number doesn't exist
-    pub fn delete_acked_notification_msgs(&mut self, request: &PublishRequestEntry) {
-        let request = &request.request;
-        if request.subscription_acknowledgements.is_some() {
-            let subscription_acknowledgements = request.subscription_acknowledgements.as_ref().unwrap();
-
-            let before_len = self.sent_notifications.len();
-            let mut remove_count: usize = 0;
-            for ack in subscription_acknowledgements {
-                let result = if ack.subscription_id != self.subscription_id {
-                    BAD_SUBSCRIPTION_ID_INVALID
-                } else {
-                    // Clear notification by sequence number
-                    let removed = self.sent_notifications.remove(&ack.sequence_number);
-                    if removed.is_some() {
-                        remove_count += 1;
-                        GOOD
-                    } else {
-                        BAD_SEQUENCE_NUMBER_UNKNOWN
-                    }
-                };
-                self.subscription_ack_results.push(result);
-            }
-            if before_len - remove_count != self.sent_notifications.len() {
-                panic!("Notifications removed mismatch!");
-            }
+    pub fn delete_acked_notification_msg(&mut self, subscription_acknowledgement: &SubscriptionAcknowledgement) -> StatusCode {
+        if subscription_acknowledgement.subscription_id != self.subscription_id {
+            panic!("Code shouldn't call this for wrong subscription_id");
+        }
+        // Clear notification by sequence number
+        if self.retransmission_queue.remove(&subscription_acknowledgement.sequence_number).is_some() {
+            info!("Removed acknowledged notification {}", subscription_acknowledgement.sequence_number);
+            self.more_notifications = !self.retransmission_queue.is_empty();
+            GOOD
+        } else {
+            error!("Can't find acknowledged notification {}", subscription_acknowledgement.sequence_number);
+            BAD_SEQUENCE_NUMBER_UNKNOWN
         }
     }
 
@@ -553,7 +532,6 @@ impl Subscription {
         self.lifetime_counter -= 1;
     }
 
-
     /// CreateKeepAliveMsg()
     /// ReturnResponse()
     pub fn return_keep_alive(&mut self, publish_request: &PublishRequestEntry, update_state_result: &UpdateStateResult) -> PublishResponseEntry {
@@ -574,41 +552,34 @@ impl Subscription {
 
     /// Returns the oldest notification
     pub fn return_notifications(&mut self, publish_request: &PublishRequestEntry, update_state_result: &UpdateStateResult) -> PublishResponseEntry {
-        if self.notifications.is_empty() {
+        if self.retransmission_queue.is_empty() {
             panic!("Should not be trying to return notifications if there are none");
         }
 
-        debug!("return notifications, len = {}", self.notifications.len());
-
+        debug!("return notifications, len = {}", self.retransmission_queue.len());
         let now = DateTime::now();
 
-        // Remove the first notification in the map, which is the oldest
+        // Find the first notification in the map. The map is ordered so the first item will
+        // be the oldest.
         let sequence_number = {
-            *self.notifications.iter().next().unwrap().0
+            *self.retransmission_queue.iter().next().unwrap().0
         };
-        let notification_message = self.notifications.remove(&sequence_number).unwrap();
-
-        // Update more_notifications state
-        self.more_notifications = !self.notifications.is_empty();
+        let notification_message = self.retransmission_queue.get(&sequence_number).unwrap().clone();
 
         // Make the response
         let acknowledge_results = self.make_acknowledge_results();
-        let publish_response = self.make_publish_response(publish_request, &now, notification_message.clone(), acknowledge_results);
-
-        // Put the notification into the sent list in case it needs to be retransmitted before
-        // acknowledgement
-        self.sent_notifications.insert(sequence_number, notification_message);
+        let publish_response = self.make_publish_response(publish_request, &now, notification_message, acknowledge_results);
 
         publish_response
     }
 
     ///
     fn available_sequence_numbers(&self) -> Option<Vec<UInt32>> {
-        if self.sent_notifications.is_empty() {
+        if self.retransmission_queue.is_empty() {
             None
         } else {
             // Turn our sequence numbers into a vector
-            Some(self.sent_notifications.keys().cloned().collect())
+            Some(self.retransmission_queue.keys().cloned().collect())
         }
     }
 

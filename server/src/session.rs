@@ -37,22 +37,38 @@ pub struct SessionInfo {}
 #[derive(Clone)]
 pub struct SessionDiagnostics {}
 
+impl SessionDiagnostics {
+    pub fn new() -> SessionDiagnostics {
+        SessionDiagnostics {}
+    }
+}
+
 /// Session state is anything associated with the session at the message / service level
 #[derive(Clone)]
 pub struct SessionState {
+    /// Subscriptions associated with the session
     pub subscriptions: Arc<Mutex<HashMap<UInt32, Subscription>>>,
+    /// The publish requeust queue (requests by the client on the session)
     pub publish_request_queue: Vec<PublishRequestEntry>,
-
+    /// The session identifier
     pub session_id: NodeId,
+    /// Indicates if the session has received an ActivateSession
     pub activated: bool,
+    /// Authentication token for the session
     pub authentication_token: NodeId,
+    /// Session timeout
     pub session_timeout: Double,
+    /// User identity token
     pub user_identity: Option<ExtensionObject>,
+    /// Negotiated max request message size
     pub max_request_message_size: UInt32,
+    /// Negotiated max response message size
     pub max_response_message_size: UInt32,
+    /// Endpoint url for this session
     pub endpoint_url: UAString,
+    /// Diagnostics associated with the session
     pub diagnostics: SessionDiagnostics,
-
+    /// Internal value used to create new session ids.
     last_session_id: UInt32,
 }
 
@@ -69,7 +85,7 @@ impl SessionState {
             max_request_message_size: 0,
             max_response_message_size: 0,
             endpoint_url: UAString::null(),
-            diagnostics: SessionDiagnostics {},
+            diagnostics: SessionDiagnostics::new(),
             last_session_id: 0,
         }
     }
@@ -101,6 +117,8 @@ impl SessionState {
         let mut result = Vec::new();
         let now = chrono::UTC::now();
 
+        let mut subscription_acknowledgements: Option<Vec<StatusCode>> = None;
+
         {
             let mut subscriptions = self.subscriptions.lock().unwrap();
             let mut dead_subscriptions: Vec<u32> = Vec::with_capacity(subscriptions.len());
@@ -113,10 +131,11 @@ impl SessionState {
                     let publish_request = self.publish_request_queue.pop();
                     let publishing_req_queued = self.publish_request_queue.len() > 0 || publish_request.is_some();
 
-                    let (publish_response, update_state_result) = subscription.tick(address_space, receive_publish_request, &publish_request, publishing_req_queued, &now);
+                    let (mut publish_response, update_state_result) = subscription.tick(address_space, receive_publish_request, &publish_request, publishing_req_queued, &now);
                     if let Some(update_state_result) = update_state_result {
-                        if let Some(publish_response) = publish_response {
+                        if let Some(mut publish_response) = publish_response {
                             debug!("Queuing a publish response {:?}", publish_response);
+                            publish_response.response.results = self.process_subscription_acknowledgements(publish_request.as_ref().unwrap());
                             result.push(publish_response);
                         }
                         // Determine if publish request should be dequeued (after processing all subscriptions)
@@ -184,7 +203,7 @@ impl SessionState {
                             publish_time: now.clone(),
                             notification_data: None
                         },
-                        results: None,
+                        results: None, // TODO self.process_subscription_acknowledgements(r),
                         diagnostic_infos: None
                     },
                 });
@@ -197,6 +216,39 @@ impl SessionState {
         });
         if !expired.is_empty() {
             Some(expired)
+        } else {
+            None
+        }
+    }
+
+    fn process_subscription_acknowledgements(&self, request: &PublishRequestEntry) -> Option<Vec<StatusCode>> {
+        //
+        /// Deletes the acknowledged notifications, returning a list of status code for each according
+        /// to whether it was found or not.
+        ///
+        /// GOOD - deleted notification
+        /// BAD_SUBSCRIPTION_ID_INVALID - Subscription doesn't exist
+        /// BAD_SEQUENCE_NUMBER_UNKNOWN - Sequence number doesn't exist
+        ///
+        let request = &request.request;
+        if request.subscription_acknowledgements.is_some() {
+            let subscription_acknowledgements = request.subscription_acknowledgements.as_ref().unwrap();
+
+            let mut subscriptions = self.subscriptions.lock().unwrap();
+
+            let mut results: Vec<StatusCode> = Vec::with_capacity(subscription_acknowledgements.len());
+
+            for ack in subscription_acknowledgements {
+                let subscription_id = ack.subscription_id;
+                let subscription = subscriptions.get_mut(&subscription_id);
+                let result = if subscription.is_none() {
+                    BAD_SUBSCRIPTION_ID_INVALID
+                } else {
+                    subscription.unwrap().delete_acked_notification_msg(ack)
+                };
+                results.push(result);
+            }
+            Some(results)
         } else {
             None
         }
