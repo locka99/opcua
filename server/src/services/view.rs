@@ -92,7 +92,7 @@ impl ViewService {
         Ok(SupportedMessage::BrowseNextResponse(response))
     }
 
-    pub fn translate_browse_paths_to_node_ids(&self, server_state: &mut ServerState, _: &mut SessionState, request: TranslateBrowsePathsToNodeIdsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn translate_browse_paths_to_node_ids(&self, _: &mut ServerState, _: &mut SessionState, request: TranslateBrowsePathsToNodeIdsRequest) -> Result<SupportedMessage, StatusCode> {
         let (service_status, results) = (BAD_NOTHING_TO_DO, None); /* if request.browse_paths.is_none() {
             let browse_paths = request.browse_paths.as_ref().unwrap();
 

@@ -105,7 +105,6 @@ pub struct Subscription {
     // Notifications waiting to be sent in a map by sequence number. A b-tree is used to ensure ordering is
     // by sequence number.
     pub retransmission_queue: BTreeMap<UInt32, NotificationMessage>,
-    pub subscription_ack_results: Vec<StatusCode>,
     // The last monitored item id
     last_monitored_item_id: UInt32,
     // The time that the subscription interval last fired
@@ -135,7 +134,6 @@ impl Subscription {
             publishing_req_queued: false,
             // Outgoing notifications
             retransmission_queue: BTreeMap::new(),
-            subscription_ack_results: Vec::new(),
             // Counters for new items
             last_monitored_item_id: 0,
             last_timer_expired_time: chrono::UTC::now(),
@@ -546,8 +544,7 @@ impl Subscription {
         };
 
         // Publish response with no notification message
-        let acknowledge_results = self.make_acknowledge_results();
-        self.make_publish_response(publish_request, &now, notification_message, acknowledge_results)
+        self.make_publish_response(publish_request, &now, notification_message)
     }
 
     /// Returns the oldest notification
@@ -567,13 +564,12 @@ impl Subscription {
         let notification_message = self.retransmission_queue.get(&sequence_number).unwrap().clone();
 
         // Make the response
-        let acknowledge_results = self.make_acknowledge_results();
-        let publish_response = self.make_publish_response(publish_request, &now, notification_message, acknowledge_results);
+        let publish_response = self.make_publish_response(publish_request, &now, notification_message);
 
         publish_response
     }
 
-    ///
+    /// Returns the array of available sequence numbers
     fn available_sequence_numbers(&self) -> Option<Vec<UInt32>> {
         if self.retransmission_queue.is_empty() {
             None
@@ -583,17 +579,7 @@ impl Subscription {
         }
     }
 
-    fn make_acknowledge_results(&mut self) -> Option<Vec<StatusCode>> {
-        if self.subscription_ack_results.len() > 0 {
-            let result = self.subscription_ack_results.clone();
-            self.subscription_ack_results.clear();
-            Some(result)
-        } else {
-            None
-        }
-    }
-
-    fn make_publish_response(&self, publish_request: &PublishRequestEntry, now: &DateTime, notification_message: NotificationMessage, acknowledge_results: Option<Vec<StatusCode>>) -> PublishResponseEntry {
+    fn make_publish_response(&self, publish_request: &PublishRequestEntry, now: &DateTime, notification_message: NotificationMessage) -> PublishResponseEntry {
         PublishResponseEntry {
             request_id: publish_request.request_id,
             response: PublishResponse {
@@ -602,7 +588,7 @@ impl Subscription {
                 available_sequence_numbers: self.available_sequence_numbers(),
                 more_notifications: self.more_notifications,
                 notification_message: notification_message,
-                results: acknowledge_results,
+                results: None,
                 diagnostic_infos: None,
             }
         }

@@ -17,7 +17,7 @@ impl SubscriptionService {
 
     /// Handles a CreateSubscriptionRequest
     pub fn create_subscription(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: CreateSubscriptionRequest) -> Result<SupportedMessage, StatusCode> {
-        let mut subscriptions = session_state.subscriptions.lock().unwrap();
+        let subscriptions = &mut session_state.subscriptions;
         let response = if server_state.max_subscriptions > 0 && subscriptions.len() >= server_state.max_subscriptions {
             CreateSubscriptionResponse {
                 response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, BAD_TOO_MANY_SUBSCRIPTIONS),
@@ -52,7 +52,7 @@ impl SubscriptionService {
 
     /// Handles a ModifySubscriptionRequest
     pub fn modify_subscription(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: ModifySubscriptionRequest) -> Result<SupportedMessage, StatusCode> {
-        let mut subscriptions = session_state.subscriptions.lock().unwrap();
+        let  subscriptions = &mut session_state.subscriptions;
         let subscription_id = request.subscription_id;
         let response = if !subscriptions.contains_key(&subscription_id) {
             ModifySubscriptionResponse {
@@ -90,7 +90,7 @@ impl SubscriptionService {
             let subscription_ids = request.subscription_ids.as_ref().unwrap();
             let mut results = Vec::with_capacity(subscription_ids.len());
 
-            let mut subscriptions = session_state.subscriptions.lock().unwrap();
+            let  subscriptions = &mut session_state.subscriptions;
             for subscription_id in subscription_ids {
                 if subscriptions.contains_key(subscription_id) {
                     subscriptions.remove(subscription_id);
@@ -119,7 +119,7 @@ impl SubscriptionService {
             let publishing_enabled = request.publishing_enabled;
             let subscription_ids = request.subscription_ids.as_ref().unwrap();
             let mut results = Vec::with_capacity(subscription_ids.len());
-            let mut subscriptions = session_state.subscriptions.lock().unwrap();
+            let subscriptions = &mut session_state.subscriptions;
             for subscription_id in subscription_ids {
                 if subscriptions.contains_key(subscription_id) {
                     let mut subscription = subscriptions.get_mut(subscription_id).unwrap();

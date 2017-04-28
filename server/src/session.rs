@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::collections::{HashMap, HashSet};
 
 use time;
 use chrono;
@@ -47,7 +46,7 @@ impl SessionDiagnostics {
 #[derive(Clone)]
 pub struct SessionState {
     /// Subscriptions associated with the session
-    pub subscriptions: Arc<Mutex<HashMap<UInt32, Subscription>>>,
+    pub subscriptions: HashMap<UInt32, Subscription>,
     /// The publish requeust queue (requests by the client on the session)
     pub publish_request_queue: Vec<PublishRequestEntry>,
     /// The session identifier
@@ -75,7 +74,7 @@ pub struct SessionState {
 impl SessionState {
     pub fn new() -> SessionState {
         SessionState {
-            subscriptions: Arc::new(Mutex::new(HashMap::new())),
+            subscriptions: HashMap::new(),
             publish_request_queue: Vec::with_capacity(MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE),
             session_id: NodeId::null(),
             activated: false,
@@ -114,70 +113,73 @@ impl SessionState {
     /// Iterate all subscriptions calling tick on each. Note this could potentially be done to run in parallel
     /// assuming the action to clean dead subscriptions was a join done after all ticks had completed.
     pub fn tick_subscriptions(&mut self, receive_publish_request: bool, address_space: &AddressSpace) -> Option<Vec<PublishResponseEntry>> {
-        let mut result = Vec::new();
         let now = chrono::UTC::now();
 
-        let mut subscription_acknowledgements: Option<Vec<StatusCode>> = None;
+        let mut request_response_results = Vec::with_capacity(self.publish_request_queue.len());
+        let mut dead_subscriptions: Vec<u32> = Vec::with_capacity(self.subscriptions.len());
 
-        {
-            let mut subscriptions = self.subscriptions.lock().unwrap();
-            let mut dead_subscriptions: Vec<u32> = Vec::with_capacity(subscriptions.len());
+        // Iterate through all subscriptions. If there is a publish request it will be used to
+        // acknowledge notifications and the response to return new notifications.
+        for (subscription_id, subscription) in self.subscriptions.iter_mut() {
+            // Dead subscriptions will be removed at the end
+            if subscription.state == SubscriptionState::Closed {
+                dead_subscriptions.push(*subscription_id);
+            } else {
+                let publish_request = self.publish_request_queue.pop();
+                let publishing_req_queued = self.publish_request_queue.len() > 0 || publish_request.is_some();
 
-            for (subscription_id, subscription) in subscriptions.iter_mut() {
-                // Dead subscriptions will be removed at the end
-                if subscription.state == SubscriptionState::Closed {
-                    dead_subscriptions.push(*subscription_id);
-                } else {
-                    let publish_request = self.publish_request_queue.pop();
-                    let publishing_req_queued = self.publish_request_queue.len() > 0 || publish_request.is_some();
-
-                    let (mut publish_response, update_state_result) = subscription.tick(address_space, receive_publish_request, &publish_request, publishing_req_queued, &now);
-                    if let Some(update_state_result) = update_state_result {
-                        if let Some(mut publish_response) = publish_response {
-                            debug!("Queuing a publish response {:?}", publish_response);
-                            publish_response.response.results = self.process_subscription_acknowledgements(publish_request.as_ref().unwrap());
-                            result.push(publish_response);
+                let (publish_response, update_state_result) = subscription.tick(address_space, receive_publish_request, &publish_request, publishing_req_queued, &now);
+                if let Some(update_state_result) = update_state_result {
+                    if let Some(publish_response) = publish_response {
+                        if publish_request.is_none() {
+                            panic!("Should not be publishing a response without a request");
                         }
-                        // Determine if publish request should be dequeued (after processing all subscriptions)
-                        match update_state_result.publish_request_action {
-                            PublishRequestAction::Dequeue => {
-                                debug!("PublishRequestAction::Dequeue");
-                            }
-                            PublishRequestAction::Enqueue => {
-                                debug!("PublishRequestAction::Enqueue");
-                                if publish_request.is_none() {
-                                    panic!("Should not have an enqueue response when there was no publish request");
-                                }
-                                self.publish_request_queue.push(publish_request.unwrap());
-                            }
-                            _ => {
-                                if publish_request.is_some() {
-                                    debug!("PublishRequestAction::None (but re-enqueuing publish request)");
-                                    self.publish_request_queue.push(publish_request.unwrap());
-                                }
-                            }
+                        if update_state_result.publish_request_action != PublishRequestAction::Dequeue {
+                            panic!("State machine is not telling us the thing we expect to hear");
+                        }
+                        debug!("Queuing a publish response {:?}", publish_response);
+                        request_response_results.push((publish_request.unwrap(), publish_response));
+                    } else {
+                        if publish_request.is_some() {
+                            // Put the request back
+                            self.publish_request_queue.push(publish_request.unwrap());
                         }
                     }
                 }
             }
-
-            // Remove dead subscriptions
-            for subscription_id in dead_subscriptions {
-                subscriptions.remove(&subscription_id);
-            }
         }
 
-        if result.is_empty() { None } else { Some(result) }
+        // Remove dead subscriptions
+        for subscription_id in dead_subscriptions {
+            self.subscriptions.remove(&subscription_id);
+        }
+
+        if request_response_results.is_empty() {
+            None
+        } else {
+            let mut results = Vec::with_capacity(request_response_results.len());
+            // Handle acknowledgements
+            for mut rr in request_response_results {
+                rr.1.response.results = self.process_subscription_acknowledgements(&rr.0);
+                results.push(rr.1);
+            }
+            Some(results)
+        }
     }
 
     /// Iterates through the existing queued publish requests and creates a timeout
     /// publish response any that have expired.
     pub fn expire_stale_publish_requests(&mut self, now: &DateTimeUTC) -> Option<Vec<PublishResponseEntry>> {
-        let mut expired = Vec::with_capacity(self.publish_request_queue.len());
+        if self.publish_request_queue.is_empty() {
+            return None;
+        }
 
-        // Strip out publish requests which have expired
-        self.publish_request_queue.retain(|ref r| {
-            let request_header = &r.request.request_header;
+        // Look for publish requests that have expired
+        let mut expired_request_handles = HashSet::with_capacity(self.publish_request_queue.len());
+        let mut expired_requests = Vec::with_capacity(self.publish_request_queue.len());
+
+        for request in self.publish_request_queue.iter() {
+            let request_header = &request.request.request_header;
             let timestamp: DateTimeUTC = request_header.timestamp.as_chrono();
             let timeout = if request_header.timeout_hint > 0 && (request_header.timeout_hint as i64) < MAX_REQUEST_TIMEOUT {
                 request_header.timeout_hint as i64
@@ -185,43 +187,54 @@ impl SessionState {
                 MAX_REQUEST_TIMEOUT
             };
             let timeout_d = time::Duration::milliseconds(timeout);
-
             // The request has timed out if the timestamp plus hint exceeds the input time
             let expiration_time = timestamp + timeout_d;
             if *now >= expiration_time {
                 debug!("Publish request {} has expired - timestamp = {:?}, expiration hint = {}, expiration time = {:?}, time now = {:?}, ", request_header.request_handle, timestamp, timeout, expiration_time, now);
-                let now = DateTime::from_chrono(now);
-                expired.push(PublishResponseEntry {
-                    request_id: r.request_id,
-                    response: PublishResponse {
-                        response_header: ResponseHeader::new_service_result(&now, request_header, BAD_REQUEST_TIMEOUT),
-                        subscription_id: 0,
-                        available_sequence_numbers: None,
-                        more_notifications: false,
-                        notification_message: NotificationMessage {
-                            sequence_number: 0,
-                            publish_time: now.clone(),
-                            notification_data: None
-                        },
-                        results: None, // TODO self.process_subscription_acknowledgements(r),
-                        diagnostic_infos: None
-                    },
-                });
-                // Remove
-                false
-            } else {
-                // Keep
-                true
+                expired_request_handles.insert(request_header.request_handle);
+                expired_requests.push(request.clone());
             }
+        }
+
+        if expired_request_handles.is_empty() {
+            return None;
+        }
+
+        // Remove the expired requests (if any)
+        self.publish_request_queue.retain(|ref r| {
+            !expired_request_handles.contains(&r.request.request_header.request_handle)
         });
-        if !expired.is_empty() {
-            Some(expired)
+
+        // Make publish responses for each expired request
+        let mut publish_responses = Vec::with_capacity(expired_requests.len());
+        for expired_request in expired_requests {
+            let now = DateTime::from_chrono(now);
+            publish_responses.push(PublishResponseEntry {
+                request_id: expired_request.request_id,
+                response: PublishResponse {
+                    response_header: ResponseHeader::new_service_result(&now, &expired_request.request.request_header, BAD_REQUEST_TIMEOUT),
+                    subscription_id: 0,
+                    available_sequence_numbers: None,
+                    more_notifications: false,
+                    notification_message: NotificationMessage {
+                        sequence_number: 0,
+                        publish_time: now.clone(),
+                        notification_data: None
+                    },
+                    results: self.process_subscription_acknowledgements(&expired_request),
+                    diagnostic_infos: None
+                },
+            });
+        }
+        if !publish_responses.is_empty() {
+            Some(publish_responses)
         } else {
             None
         }
     }
 
-    fn process_subscription_acknowledgements(&self, request: &PublishRequestEntry) -> Option<Vec<StatusCode>> {
+    fn process_subscription_acknowledgements(&mut self, request: &PublishRequestEntry) -> Option<Vec<StatusCode>> {
+        info!("Processing subscription acknowledgements");
         //
         /// Deletes the acknowledged notifications, returning a list of status code for each according
         /// to whether it was found or not.
@@ -233,18 +246,14 @@ impl SessionState {
         let request = &request.request;
         if request.subscription_acknowledgements.is_some() {
             let subscription_acknowledgements = request.subscription_acknowledgements.as_ref().unwrap();
-
-            let mut subscriptions = self.subscriptions.lock().unwrap();
-
             let mut results: Vec<StatusCode> = Vec::with_capacity(subscription_acknowledgements.len());
-
-            for ack in subscription_acknowledgements {
-                let subscription_id = ack.subscription_id;
-                let subscription = subscriptions.get_mut(&subscription_id);
+            for subscription_acknowledgement in subscription_acknowledgements {
+                let subscription_id = subscription_acknowledgement.subscription_id;
+                let subscription = self.subscriptions.get_mut(&subscription_id);
                 let result = if subscription.is_none() {
                     BAD_SUBSCRIPTION_ID_INVALID
                 } else {
-                    subscription.unwrap().delete_acked_notification_msg(ack)
+                    subscription.unwrap().delete_acked_notification_msg(subscription_acknowledgement)
                 };
                 results.push(result);
             }
