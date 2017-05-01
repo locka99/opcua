@@ -5,28 +5,36 @@ extern crate openssl;
 fn main() {
     use openssl::ssl::*;
     use openssl::x509::*;
+    use openssl::asn1::*;
 
-    let mut builder: X509Builder = X509Builder::new().unwrap();
+    let common_name = "www.example.com";
+    let organization = "Some organization";
+    let organization_unit = "Unit name";
 
-    /// use openssl::x509::{X509, X509NameBuilder};
+    let country = "US";
+    let state = "CA";
 
-    let mut issuer_name = X509NameBuilder::new().unwrap();
-    // Common name
-    issuer_name.append_entry_by_text("CN", "www.example.com").unwrap();
-    // Organization
-    issuer_name.append_entry_by_text("O", "Some organization").unwrap();
-    // Organization Unit
-    //..
-
-    // Country
-    issuer_name.append_entry_by_text("C", "US").unwrap();
-    // State
-    issuer_name.append_entry_by_text("ST", "CA").unwrap();
-    let issuer_name = issuer_name.build();
-
-    builder.set_issuer_name(&issuer_name);
-
-    let cert = builder.build();
+    let cert = {
+        let mut builder: X509Builder = X509Builder::new().unwrap();
+        let issuer_name = {
+            let mut issuer_name = X509NameBuilder::new().unwrap();
+            // Common name
+            issuer_name.append_entry_by_text("CN", common_name).unwrap();
+            // Organization
+            issuer_name.append_entry_by_text("O", organization).unwrap();
+            // Organization Unit
+            //.. organization_unit
+            // Country
+            issuer_name.append_entry_by_text("C", country).unwrap();
+            // State
+            issuer_name.append_entry_by_text("ST", state).unwrap();
+            issuer_name.build()
+        };
+        builder.set_issuer_name(&issuer_name);
+        builder.set_not_before(&Asn1Time::days_from_now(0).unwrap()).unwrap();
+        builder.set_not_after(&Asn1Time::days_from_now(365).unwrap()).unwrap();
+        builder.build()
+    };
 }
 
 #[cfg(not(feature = "crypto"))]
