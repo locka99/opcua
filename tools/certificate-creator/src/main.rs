@@ -9,7 +9,9 @@ mod creator;
 
 #[derive(Debug)]
 pub struct Args {
+    pub key_size: u32,
     pub pki_path: String,
+    pub overwrite: bool,
     pub common_name: String,
     pub organization: String,
     pub organizational_unit: String,
@@ -18,8 +20,6 @@ pub struct Args {
     pub host_names: Vec<String>,
     pub alt_host_names: Vec<String>,
     pub certificate_duration_days: u32,
-    pub key_size: u32,
-    pub overwrite: bool,
 }
 
 #[cfg(feature = "crypto")]
@@ -28,7 +28,6 @@ fn main() {
     if let Err(_) = creator::run(args) {
         println!("Certificate creation failed, check above for errors");
     }
-
 }
 
 #[cfg(not(feature = "crypto"))]
@@ -44,61 +43,64 @@ fn parse_args() -> Args {
         .author("Adam Lock <locka99@gmail.com>")
         .about(
             r#"Creates a self-signed private key (private/private.pem) and X509 certificate (own/cert.der) for use with OPC UA for Rust.
-The files will be created under the specified under the specified --pki-path value."#)
-        .arg(Arg::with_name("key size")
-            .long("key - size")
+The files will be created under the specified under the specified --pkipath value."#)
+        .arg(Arg::with_name("keysize")
+            .long("keysize")
             .help("Sets the key size(strength)")
             .default_value("2048")
             .takes_value(true)
             .possible_values(&["2048", "4096"])
             .required(false))
-        .arg(Arg::with_name("pki path")
-            .long("pki - path")
+        .arg(Arg::with_name("pkipath")
+            .long("pkipath")
             .help("Path to the OPC UA for Rust pki/ directory")
             .default_value(".")
             .takes_value(true)
             .required(false))
+        .arg(Arg::with_name("overwrite")
+            .long("overwrite")
+            .help("Overwrites existing files"))
         .arg(Arg::with_name("CN")
-            .long("common - name")
+            .long("CN")
             .help("Specifies the Common Name for the cert")
             .default_value("OPC UA Demo Key")
             .takes_value(true))
         .arg(Arg::with_name("O")
-            .long("organization")
+            .long("O")
             .help("Specifies the Organization for the cert")
             .default_value("OPC UA for Rust")
             .takes_value(true))
         .arg(Arg::with_name("OU")
-            .long("organizational - unit")
+            .long("OU")
             .help("Specifies the Organization Unit for the cert")
             .default_value("Certificate Creator")
             .takes_value(true))
         .arg(Arg::with_name("C")
-            .long("country")
+            .long("C")
             .help("Specifies the Country for the cert")
             .default_value("IE")
             .takes_value(true))
         .arg(Arg::with_name("ST")
-            .long("state")
+            .long("ST")
             .help("Specifies the State for the cert")
             .default_value("Dublin")
             .takes_value(true))
-        .arg(Arg::with_name("overwrite")
-            .long("overwrite")
-            .help("Overwrites existing files"))
         .get_matches();
 
-    let pki_path = matches.value_of("pki path").unwrap().to_string();
-    let key_size = value_t_or_exit!(matches, "key size", u32);
+    let pki_path = matches.value_of("pkipath").unwrap().to_string();
+    let key_size = value_t_or_exit!(matches, "keysize", u32);
+    let overwrite = matches.is_present("overwrite");
+
     let common_name = matches.value_of("CN").unwrap().to_string();
     let organization = matches.value_of("O").unwrap().to_string();
     let organizational_unit = matches.value_of("OU").unwrap().to_string();
     let country = matches.value_of("C").unwrap().to_string();
     let state = matches.value_of("ST").unwrap().to_string();
-    let overwrite = matches.is_present("overwrite");
 
     Args {
         pki_path: pki_path,
+        key_size: key_size,
+        overwrite: overwrite,
         common_name: common_name,
         organization: organization,
         organizational_unit: organizational_unit,
@@ -111,7 +113,5 @@ The files will be created under the specified under the specified --pki-path val
             "127.0.0.1".to_string()
         ],
         certificate_duration_days: 365,
-        key_size: key_size,
-        overwrite: overwrite
     }
 }
