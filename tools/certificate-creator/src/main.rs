@@ -17,7 +17,6 @@ pub struct Args {
     pub organizational_unit: String,
     pub country: String,
     pub state: String,
-    pub host_names: Vec<String>,
     pub alt_host_names: Vec<String>,
     pub certificate_duration_days: u32,
 }
@@ -60,6 +59,12 @@ The files will be created under the specified under the specified --pkipath valu
         .arg(Arg::with_name("overwrite")
             .long("overwrite")
             .help("Overwrites existing files"))
+        .arg(Arg::with_name("althostname")
+            .long("althostname")
+            .help("Alternate hostnames / ip addresses. Use this arg as many times as you like.")
+            .takes_value(true)
+            .multiple(true)
+            .required(false))
         .arg(Arg::with_name("CN")
             .long("CN")
             .help("Specifies the Common Name for the cert")
@@ -97,6 +102,27 @@ The files will be created under the specified under the specified --pkipath valu
     let country = matches.value_of("C").unwrap().to_string();
     let state = matches.value_of("ST").unwrap().to_string();
 
+    let alt_host_names = {
+        let mut result = Vec::new();
+
+        let values = matches.values_of("althostname");
+        if let Some(values) = values {
+            for v in values {
+                result.push(v.to_string());
+            }
+        }
+
+        // Get the machine name / ip address
+        if let Ok(machine_name) = std::env::var("COMPUTERNAME") {
+            result.push(machine_name);
+        }
+        if let Ok(machine_name) = std::env::var("NAME") {
+            result.push(machine_name);
+        }
+
+        result
+    };
+
     Args {
         pki_path: pki_path,
         key_size: key_size,
@@ -106,12 +132,7 @@ The files will be created under the specified under the specified --pkipath valu
         organizational_unit: organizational_unit,
         country: country,
         state: state,
-        host_names: vec![
-            "localhost".to_string()
-        ],
-        alt_host_names: vec![
-            "127.0.0.1".to_string()
-        ],
+        alt_host_names: alt_host_names,
         certificate_duration_days: 365,
     }
 }

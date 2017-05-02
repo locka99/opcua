@@ -4,6 +4,7 @@ use std::fs::File;
 use std::io::{Write};
 
 use openssl::x509::*;
+use openssl::x509::extension::*;
 use openssl::rsa::*;
 use openssl::pkey::*;
 use openssl::asn1::*;
@@ -39,25 +40,44 @@ pub fn run(args: super::Args) -> Result<(), ()> {
     // Create an X509 cert (the public part) as a .pem
     let cert = {
         let mut builder: X509Builder = X509Builder::new().unwrap();
-        let issuer_name = {
-            let mut issuer_name = X509NameBuilder::new().unwrap();
-            // Common name
-            issuer_name.append_entry_by_text("CN", &args.common_name).unwrap();
-            // Organization
-            issuer_name.append_entry_by_text("O", &args.organization).unwrap();
-            // Organizational Unit
-            issuer_name.append_entry_by_text("OU", &args.organizational_unit).unwrap();
-            // Country
-            issuer_name.append_entry_by_text("C", &args.country).unwrap();
-            // State
-            issuer_name.append_entry_by_text("ST", &args.state).unwrap();
-            issuer_name.build()
-        };
         let _ = builder.set_version(2);
+        let subject_name = {
+            let mut name = X509NameBuilder::new().unwrap();
+            name.append_entry_by_text("CN", &args.common_name).unwrap();
+            name.build()
+        };
+        let _ = builder.set_subject_name(&subject_name);
+        let issuer_name = {
+            let mut name = X509NameBuilder::new().unwrap();
+            // Common name
+            name.append_entry_by_text("CN", &args.common_name).unwrap();
+            // Organization
+            name.append_entry_by_text("O", &args.organization).unwrap();
+            // Organizational Unit
+            name.append_entry_by_text("OU", &args.organizational_unit).unwrap();
+            // Country
+            name.append_entry_by_text("C", &args.country).unwrap();
+            // State
+            name.append_entry_by_text("ST", &args.state).unwrap();
+            name.build()
+        };
         let _ = builder.set_issuer_name(&issuer_name);
         builder.set_not_before(&Asn1Time::days_from_now(0).unwrap()).unwrap();
         builder.set_not_after(&Asn1Time::days_from_now(args.certificate_duration_days).unwrap()).unwrap();
         builder.set_pubkey(&pkey).unwrap();
+
+        // Alt hostnames
+        if !args.alt_host_names.is_empty() {
+            let subject_alternative_name = {
+                let mut subject_alternative_name = SubjectAlternativeName::new();
+                for alt_host_name in args.alt_host_names.iter() {
+                    subject_alternative_name.dns(alt_host_name);
+                }
+                subject_alternative_name.build(&builder.x509v3_context(None, None)).unwrap()
+            };
+            builder.append_extension(subject_alternative_name).unwrap();
+        }
+
         // Self-sign
         let _ = builder.sign(&pkey, MessageDigest::sha1());
         builder.build()
