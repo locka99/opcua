@@ -1,43 +1,117 @@
+#[macro_use]
+extern crate clap;
+
 #[cfg(feature = "crypto")]
 extern crate openssl;
 
 #[cfg(feature = "crypto")]
+mod creator;
+
+#[derive(Debug)]
+pub struct Args {
+    pub pki_path: String,
+    pub common_name: String,
+    pub organization: String,
+    pub organizational_unit: String,
+    pub country: String,
+    pub state: String,
+    pub host_names: Vec<String>,
+    pub alt_host_names: Vec<String>,
+    pub certificate_duration_days: u32,
+    pub key_size: u32,
+    pub overwrite: bool,
+}
+
+#[cfg(feature = "crypto")]
 fn main() {
-    use openssl::ssl::*;
-    use openssl::x509::*;
-    use openssl::asn1::*;
+    let args = parse_args();
+    if let Err(_) = creator::run(args) {
+        println!("Certificate creation failed, check above for errors");
+    }
 
-    let common_name = "www.example.com";
-    let organization = "Some organization";
-    let organization_unit = "Unit name";
-
-    let country = "US";
-    let state = "CA";
-
-    let cert = {
-        let mut builder: X509Builder = X509Builder::new().unwrap();
-        let issuer_name = {
-            let mut issuer_name = X509NameBuilder::new().unwrap();
-            // Common name
-            issuer_name.append_entry_by_text("CN", common_name).unwrap();
-            // Organization
-            issuer_name.append_entry_by_text("O", organization).unwrap();
-            // Organization Unit
-            //.. organization_unit
-            // Country
-            issuer_name.append_entry_by_text("C", country).unwrap();
-            // State
-            issuer_name.append_entry_by_text("ST", state).unwrap();
-            issuer_name.build()
-        };
-        builder.set_issuer_name(&issuer_name);
-        builder.set_not_before(&Asn1Time::days_from_now(0).unwrap()).unwrap();
-        builder.set_not_after(&Asn1Time::days_from_now(365).unwrap()).unwrap();
-        builder.build()
-    };
 }
 
 #[cfg(not(feature = "crypto"))]
 fn main() {
-    panic!("This tool doesn't work without crypto")
+    let args = parse_args();
+    print!("Args = {:#?}", args);
+    panic!("This tool doesn't do anything without crypto, e.g. \"cargo build --features crypto\"");
+}
+
+fn parse_args() -> Args {
+    use clap::*;
+    let matches = App::new("OPC UA Certificate Creator")
+        .author("Adam Lock <locka99@gmail.com>")
+        .about(
+            r#"Creates a self-signed private key (private/private.pem) and X509 certificate (own/cert.der) for use with OPC UA for Rust.
+The files will be created under the specified under the specified --pki-path value."#)
+        .arg(Arg::with_name("key size")
+            .long("key - size")
+            .help("Sets the key size(strength)")
+            .default_value("2048")
+            .takes_value(true)
+            .possible_values(&["2048", "4096"])
+            .required(false))
+        .arg(Arg::with_name("pki path")
+            .long("pki - path")
+            .help("Path to the OPC UA for Rust pki/ directory")
+            .default_value(".")
+            .takes_value(true)
+            .required(false))
+        .arg(Arg::with_name("CN")
+            .long("common - name")
+            .help("Specifies the Common Name for the cert")
+            .default_value("OPC UA Demo Key")
+            .takes_value(true))
+        .arg(Arg::with_name("O")
+            .long("organization")
+            .help("Specifies the Organization for the cert")
+            .default_value("OPC UA for Rust")
+            .takes_value(true))
+        .arg(Arg::with_name("OU")
+            .long("organizational - unit")
+            .help("Specifies the Organization Unit for the cert")
+            .default_value("Certificate Creator")
+            .takes_value(true))
+        .arg(Arg::with_name("C")
+            .long("country")
+            .help("Specifies the Country for the cert")
+            .default_value("IE")
+            .takes_value(true))
+        .arg(Arg::with_name("ST")
+            .long("state")
+            .help("Specifies the State for the cert")
+            .default_value("Dublin")
+            .takes_value(true))
+        .arg(Arg::with_name("overwrite")
+            .long("overwrite")
+            .help("Overwrites existing files"))
+        .get_matches();
+
+    let pki_path = matches.value_of("pki path").unwrap().to_string();
+    let key_size = value_t_or_exit!(matches, "key size", u32);
+    let common_name = matches.value_of("CN").unwrap().to_string();
+    let organization = matches.value_of("O").unwrap().to_string();
+    let organizational_unit = matches.value_of("OU").unwrap().to_string();
+    let country = matches.value_of("C").unwrap().to_string();
+    let state = matches.value_of("ST").unwrap().to_string();
+    let overwrite = matches.is_present("overwrite");
+
+    Args {
+        pki_path: pki_path,
+        common_name: common_name,
+        organization: organization,
+        organizational_unit: organizational_unit,
+        country: country,
+        state: state,
+        host_names: vec![
+            "localhost".to_string()
+        ],
+        alt_host_names: vec![
+            "127.0.0.1".to_string()
+        ],
+        certificate_duration_days: 365,
+        key_size: key_size,
+        overwrite: overwrite
+    }
 }

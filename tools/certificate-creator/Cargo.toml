@@ -4,8 +4,9 @@ version = "0.1.0"
 authors = ["Adam Lock <locka99@gmail.com>"]
 
 [dependencies]
-# OpenSSL is optional due to problems building and installing it on some platforms.
-# A certificate creator without openssl is basically useless!
+clap = "~2.19.0"
+# OpenSSL is optional due to problems building and installing it on some platforms. If you build/run the binary
+# without enabling crypto, you will enjoy a panic error message for your pains!
 openssl = { version = "0.9.9", optional = true }
 
 [features]
