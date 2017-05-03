@@ -120,10 +120,16 @@ impl Crypto for NullCrypto {
 pub mod cert_manager;
 
 #[cfg(feature = "crypto")]
-pub struct OpenSSLCrypto {}
+pub mod sign_verify;
 
 #[cfg(feature = "crypto")]
-impl Crypto for OpenSSLCrypto {
+pub mod encrypt_decrypt;
+
+#[cfg(feature = "crypto")]
+pub struct RealCrypto {}
+
+#[cfg(feature = "crypto")]
+impl Crypto for RealCrypto {
     fn create_key_pair(args: X509CreateCertArgs) -> Result<(), ()> {
         cert_manager::create_cert(args)
     }
