@@ -11,8 +11,9 @@ rand = "0.3"
 regex = "0.2.1"
 lazy_static = "0.2"
 
-# OpenSSL is optional due to problems building and installing it on some platforms.
-openssl = { version = "0.9.9", optional = true }
+[dependencies.openssl]
+version = "0.9.9"
+optional = true
 
 [features]
 # The default package is no crypto.

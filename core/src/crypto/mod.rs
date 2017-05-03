@@ -5,16 +5,14 @@
 //! The module is an optional component of the stack. If it isn't compiled in, then the OPC UA
 //! impl will not support encryption, decryption, signing or verification.
 
-// TODO
-use std::path::*;
+use std::path::{Path, PathBuf};
 
-mod cert_manager;
-
+pub mod cert_manager;
 
 #[derive(Debug)]
-pub struct X509KeyArgs {
+pub struct X509CreateCertArgs {
     pub key_size: u32,
-    pub pki_path: String,
+    pub pki_path: PathBuf,
     pub overwrite: bool,
     pub common_name: String,
     pub organization: String,
@@ -32,7 +30,7 @@ trait Crypto {
     fn is_crypto_enabled() -> bool;
 
     // Creates an asymmetric key/pair
-    fn create_key_pair(args: &X509KeyArgs) -> Result<(), ()>;
+    fn create_key_pair(args: &X509CreateCertArgs) -> Result<(), ()>;
 
     // Validates that the certificate is trusted by the server /client
     fn is_certificate_trusted(public_key_path: &Path) -> Result<bool, ()>;
@@ -57,7 +55,7 @@ impl Crypto for NullCrypto {
         false
     }
 
-    fn create_key_pair(args: &X509KeyArgs) -> Result<(), ()> {
+    fn create_key_pair(args: &X509CreateCertArgs) -> Result<(), ()> {
         Err(())
     }
 
@@ -89,7 +87,7 @@ impl Crypto for OpenSSLCrypto {
         true
     }
 
-    fn create_key_pair(args: &X509KeyArgs) -> Result<(), ()> {
+    fn create_key_pair(args: &X509CreateCertArgs) -> Result<(), ()> {
         Err(())
     }
 

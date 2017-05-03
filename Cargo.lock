@@ -42,7 +42,8 @@ name = "certificate-creator"
 version = "0.1.0"
 dependencies = [
  "clap 2.19.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "openssl 0.9.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "opcua-core 0.1.0",
 ]
 
 [[package]]
@@ -207,7 +208,6 @@ dependencies = [
 name = "opcua-sample-server"
 version = "0.1.0"
 dependencies = [
- "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-core 0.1.0",
  "opcua-server 0.1.0",
  "time 0.1.36 (registry+https://github.com/rust-lang/crates.io-index)",

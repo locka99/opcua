@@ -5,17 +5,8 @@ authors = ["Adam Lock <locka99@gmail.com>"]
 
 [dependencies]
 clap = "~2.19.0"
-# OpenSSL is optional due to problems building and installing it on some platforms. If you build/run the binary
-# without enabling crypto, you will enjoy a panic error message for your pains!
-openssl = { version = "0.9.9", optional = true }
+log = "0.3.6"
 
-[features]
-# The default package is no crypto.
-default = []
-
-# Crypto relies on openssl which is a bit of a pain to setup. If you need it, follow the instructions at the link
-# below before enabling the feature, e.g. "cargo build --features crypto"
-#
-# https://github.com/sfackler/rust-openssl
-#
-crypto = ["openssl"]
+[dependencies.opcua-core]
+path = "../../core"
+features = ["crypto"]

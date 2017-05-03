@@ -1,42 +1,24 @@
 #[macro_use]
 extern crate clap;
 
-#[cfg(feature = "crypto")]
-extern crate openssl;
+#[macro_use]
+extern crate log;
 
-#[cfg(feature = "crypto")]
-mod creator;
+extern crate opcua_core;
 
-#[derive(Debug)]
-pub struct Args {
-    pub key_size: u32,
-    pub pki_path: String,
-    pub overwrite: bool,
-    pub common_name: String,
-    pub organization: String,
-    pub organizational_unit: String,
-    pub country: String,
-    pub state: String,
-    pub alt_host_names: Vec<String>,
-    pub certificate_duration_days: u32,
-}
+use std::path::{PathBuf};
 
-#[cfg(feature = "crypto")]
+use opcua_core::crypto::*;
+
 fn main() {
-    let args = parse_args();
-    if let Err(_) = creator::run(args) {
+    let _ = opcua_core::init_logging();
+    let args = parse_x509_args();
+    if let Err(_) = cert_manager::create_cert(args) {
         println!("Certificate creation failed, check above for errors");
     }
 }
 
-#[cfg(not(feature = "crypto"))]
-fn main() {
-    let args = parse_args();
-    print!("Args = {:#?}", args);
-    panic!("This tool doesn't do anything without crypto, e.g. \"cargo build --features crypto\"");
-}
-
-fn parse_args() -> Args {
+fn parse_x509_args() -> X509CreateCertArgs {
     use clap::*;
     let matches = App::new("OPC UA Certificate Creator")
         .author("Adam Lock <locka99@gmail.com>")
@@ -123,8 +105,12 @@ The files will be created under the specified under the specified --pkipath valu
         result
     };
 
-    Args {
-        pki_path: pki_path,
+    if alt_host_names.is_empty() {
+        warn!("No alt host names were supplied or could be inferred. Certificate may be useless without at least one.")
+    }
+
+    X509CreateCertArgs {
+        pki_path: PathBuf::from(pki_path),
         key_size: key_size,
         overwrite: overwrite,
         common_name: common_name,
