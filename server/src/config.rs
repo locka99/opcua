@@ -99,7 +99,7 @@ impl ServerEndpoint {
             (security_policy != SecurityPolicy::None && security_mode == MessageSecurityMode::None) {
             error!("Endpoint {} is invalid. Security policy and security mode must both contain None or neither of them should.", self.name);
             valid = false;
-        } else if !opcua_core::is_crypto_enabled() && security_policy != SecurityPolicy::None && security_mode != MessageSecurityMode::None {
+        } else if !opcua_core::crypto::is_crypto_enabled() && security_policy != SecurityPolicy::None && security_mode != MessageSecurityMode::None {
             error!("Endpoint {} is invalid. Security policy and security mode require encryption but it has been disabled at compile time.", self.name);
             valid = false;
         }

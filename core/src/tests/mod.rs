@@ -5,7 +5,6 @@ mod services;
 mod parse;
 mod comms;
 mod authentication;
-#[cfg(feature = "crypto")]
 mod crypto;
 
 use std::fmt::Debug;

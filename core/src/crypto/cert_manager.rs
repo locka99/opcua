@@ -1,5 +1,4 @@
 //! Certificate manager for OPC UA for Rust.
-use std;
 use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::{Write};
@@ -11,15 +10,18 @@ use openssl::pkey::*;
 use openssl::asn1::*;
 use openssl::hash::*;
 
-use prelude::*;
+/// The name that the server/client's certificate is expected to be
+const OWN_CERTIFICATE_NAME: &'static str = "cert.der";
+/// The name that the server/client's private key is expected to be
+const OWN_PRIVATE_KEY_NAME: &'static str = "private.pem";
 
 /// This function will use the supplied arguments to create a public/private key pair and from
 /// those create a private key file and self-signed public cert file.
 pub fn create_cert(args: super::X509CreateCertArgs) -> Result<(), ()> {
     // Public cert goes under own/
-    let public_cert_path = make_path(&args.pki_path, "own", "cert.der")?;
+    let public_cert_path = make_path(&args.pki_path, super::OWN_CERTIFICATE_DIR, OWN_CERTIFICATE_NAME)?;
     // Private key goes under private/
-    let private_key_path = make_path(&args.pki_path, "private", "private.pem")?;
+    let private_key_path = make_path(&args.pki_path, super::OWN_PRIVATE_KEY_DIR, OWN_PRIVATE_KEY_NAME)?;
 
     // Create a keypair
     let pkey = {
@@ -90,26 +92,9 @@ pub fn create_cert(args: super::X509CreateCertArgs) -> Result<(), ()> {
 fn make_path(pki_path: &Path, dir_name: &str, file_name: &str) -> Result<PathBuf, ()> {
     let mut path = PathBuf::from(&pki_path);
     path.push(dir_name);
-    ensure_dir(&path)?;
+    super::ensure_dir(&path)?;
     path.push(file_name);
     Ok(path)
-}
-
-/// Ensure the directory exists, creating it if necessary
-fn ensure_dir(path: &PathBuf) -> Result<(), ()> {
-    if path.exists() {
-        if !path.is_dir() {
-            error!("{} is not a directory ", path.display());
-            return Err(());
-        }
-    } else {
-        let result = std::fs::create_dir_all(path);
-        if result.is_err() {
-            error!("Cannot make directories for {}", path.display());
-            return Err(());
-        }
-    }
-    Ok(())
 }
 
 /// Writes to file or prints an error for the reason why it can't.
