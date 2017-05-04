@@ -1,6 +1,6 @@
 # License
 
-The code is licenced under [MPL-2.0](https://opensource.org/licenses/MPL-2.0).
+The code is licenced under [MPL-2.0](https://opensource.org/licenses/MPL-2.0). Like all open source code, you use this code at your own risk. 
 
 # Introduction
 
@@ -16,15 +16,21 @@ Rust is a natural choice for OPC UA due in part to the complexity of OPC UA itse
 
 * Implementations in C/C++ would be vulnerable to memory leaks, dangling pointers, complexity in their interface
 * Implementations in Java, JavaScript etc. would be vulnerable to fluctuating memory consumption, performance issues
-* An implementation in Rust should deliver C/C++ levels of performance without some of the risks
+* An implementation in Rust should deliver C/C++ levels of performance without many of the risks
 
-HOWEVER, there are a number of mature OPC UA libraries for other platforms. This is a new project so bugs in logic are likely, and certain features found elsewhere may not be implemented.
+HOWEVER, there are a number of mature OPC UA libraries for other platforms. This is a new project so bugs in logic are 
+likely and inevitable. Certain features found elsewhere may not be implemented.
 
-This implementation will only implement the opc.tcp:// protocol and OPC UA Binary format. It *might* in time, add binary over https. It will **not** implement OPC UA over XML. XML hasn't see much adoption so this is no great impediment.
+This implementation will only implement the opc.tcp:// protocol and OPC UA Binary format. It *might* in time, 
+add binary over https. It will **not** implement OPC UA over XML. XML hasn't see much adoption so this is no great 
+impediment.
 
 ## Minimizing code through convention
 
-The API is designed on the principle of convention by default to minimize the amount of customization you need to make it do something. Here is a minimal server:
+The API is designed on the principle of convention by default to minimize the amount of customization you need to make 
+it do something. 
+
+This is all the code you need to write a minimal, functioning server. 
 
 ```rust
 use opcua_server::prelude::*;
@@ -34,15 +40,18 @@ fn main() {
 }
 ```
 
-This simple example will use default settings to create and run a server.
+This server will accept connections, allow you to browse the address space and subscribe to variables. 
 
-Obviously a real world server needs to do more than this. Refer to the sample-server example for something that adds variables to the address space and changes their values on a timer.
+Obviously a real world server needs to do more than this. Refer to the sample-server/ example for something that 
+adds variables to the address space and changes their values on a timer.
 
 # Compliance
 
+The implementation will attempt to comply with the specification and other implementations working out from simpler profiles to more complex. 
+
 ## Server
 
-The server is compliant (more or less) with OPC UA micro profile. Over time compliance will expand out to embedded support and possibly further.
+The server implements (more or less) the OPC UA micro profile. Over time compliance will expand out to embedded support and possibly further.
 
 ### Supported services
 
@@ -83,8 +92,11 @@ implementations are expected to receive more functionality over time.
 
 ### Nodeset
 
-The server implements a basic nodeset to satisfy most clients. It is likely that the nodeset will be generated automatically
-from the .xml schemas in the future. For now it is handwritten.
+The standard OPC UA node set and address space is expressed in XML schemas, broken down by the document parts that 
+define those nodes.
+
+OPC UA for Rust uses a script to generate code to create and populate the standard address space. Most of this 
+data is static however some server state variables will reflect the actual state of the server. 
 
 ### Supported security profiles / authentication
 
@@ -96,7 +108,7 @@ The server supports the following security mode / profiles:
 Not supported:
 
 1. User/password using encrypted password.
-1. Public key authentication, signing and encryption. This will happen later once unencrypted functionality is working.
+2. Public key authentication, signing and encryption. This will happen later once unencrypted functionality is working.
 
 ### Current limitations
 
@@ -136,9 +148,9 @@ to allow simple servers to be created with a very small number of lines of code.
 
 ## Enabling crypto
 
-At the moment crypto isn't supported properly so there is an optional feature to enable it:
+At the moment crypto isn't supported properly so there is an optional feature to enable it for development purposes:
 
-```
+```bash
 cd core
 cargo build --features crypto
 ```
@@ -147,6 +159,47 @@ This won't do much except add deps on OpenSSL and allow certainly crypto functio
 
 When crypto is implemented, the feature will become the default. Crypto is implemented via OpenSSL and you are advised
 to read [documentation](https://github.com/sfackler/rust-openssl) for that to set up your environment.
+
+### Certificate pki structure
+
+When crypto is enabled, the intention is that trusted/rejected certificates will be stored and managed on disk:
+
+```
+pki/
+  own/
+    cert.der - your server/client's public certificate
+  private/
+    key.pem  - your server/client's private key
+  trusted/
+    ...      - contains certs from client/servers you've connected with and you trust
+  rejected/
+    ...      - contains certs from client/servers you've connected with and you don't trust
+```
+
+The idea is that when you first receive an encrypted connnection from an untrusted client the server will write the
+cert to the rejected/ folder and the connection will fail. You, the administrator will explicitly move the cert
+to the trusted/ folder to permit connections from that client in future. They might also have to do admin in their
+client to move the server cert to the client's trusted folder.
+
+More sophisticated trust based off hostnames, signed certs etc. is unlikely in the short term. 
+
+### Certificate creator
+
+The tools/certificate-creator tool will create a public self-signed cert and private key. You need OpenSSL to build the
+tool.
+
+For usage type:
+ 
+```bash
+cd tools\certificate-creator
+cargo run --features crypto -- --help
+```
+
+A minimal usage:
+
+```bash
+cargo run --features crypto --
+```
 
 # Coding style
 
@@ -292,20 +345,20 @@ The best way to test is to build the sample-server and use a 3rd party client to
 
 If you have NodeJS then the easiest 3rd party client to get going with is node-opcua opc-commander client. 
 
-```
+```bash
 npm install -g opcua-commander
 ```
 
 Then build and run the sample server:
 
-```
+```bash
 cd sample-server
 cargo run
 ```
 
 And in another shell
 
-```
+```bash
 opcua-commander -e opc.tcp://localhost:1234
 ```
 
