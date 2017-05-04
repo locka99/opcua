@@ -9,11 +9,12 @@ extern crate opcua_core;
 use std::path::{PathBuf};
 
 use opcua_core::crypto::*;
+use opcua_core::crypto::cert_manager::*;
 
 fn main() {
     let _ = opcua_core::init_logging();
     let args = parse_x509_args();
-    if let Err(_) = cert_manager::create_cert(args) {
+    if let Err(_) = CertificateStore::create_cert(args) {
         println!("Certificate creation failed, check above for errors");
     }
 }
