@@ -29,7 +29,7 @@ pub fn is_crypto_enabled() -> bool {
 
 trait Crypto {
     // Creates an asymmetric key/pair
-    fn create_key_pair(args: X509CreateCertArgs) -> Result<(), ()>;
+    fn create_key_pair(args: X509CreateCertArgs) -> Result<(), String>;
 
     // Validates that the certificate is trusted by the server /client
     fn is_certificate_trusted(public_key_path: &Path) -> Result<bool, ()>;
@@ -52,7 +52,7 @@ pub struct NullCrypto {}
 
 #[cfg(not(feature = "crypto"))]
 impl Crypto for NullCrypto {
-    fn create_key_pair(_: X509CreateCertArgs) -> Result<(), ()> {
+    fn create_key_pair(_: X509CreateCertArgs) -> Result<(), String> {
         panic!("Crypto is disabled");
     }
 
@@ -91,7 +91,7 @@ pub struct RealCrypto {}
 
 #[cfg(feature = "crypto")]
 impl Crypto for RealCrypto {
-    fn create_key_pair(args: X509CreateCertArgs) -> Result<(), ()> {
+    fn create_key_pair(args: X509CreateCertArgs) -> Result<(), String> {
         cert_manager::CertificateStore::create_cert(args)
     }
 

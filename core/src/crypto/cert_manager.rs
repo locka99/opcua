@@ -1,7 +1,7 @@
 //! Certificate manager for OPC UA for Rust.
 use std::path::{Path, PathBuf};
 use std::fs::File;
-use std::io::{Write};
+use std::io::{Write, Read};
 
 use openssl::x509::*;
 use openssl::x509::extension::*;
@@ -28,16 +28,18 @@ const REJECTED_CERTS_DIR: &'static str = "rejected";
 
 pub struct CertificateStore {
     pub pki_path: PathBuf,
+    pub check_issue_time: bool,
+    pub check_expiration_time: bool,
 }
 
 impl CertificateStore {
     /// This function will use the supplied arguments to create a public/private key pair and from
     /// those create a private key file and self-signed public cert file.
-    pub fn create_cert(args: super::X509CreateCertArgs) -> Result<(), ()> {
+    pub fn create_cert(args: super::X509CreateCertArgs) -> Result<(), String> {
         // Public cert goes under own/
-        let public_cert_path = CertificateStore::make_path(&CertificateStore::own_cert_path(&args.pki_path), OWN_CERTIFICATE_NAME)?;
+        let public_cert_path = CertificateStore::make_and_ensure_file_path(&CertificateStore::own_cert_path(&args.pki_path), OWN_CERTIFICATE_NAME)?;
         // Private key goes under private/
-        let private_key_path = CertificateStore::make_path(&CertificateStore::own_private_key_path(&args.pki_path), OWN_PRIVATE_KEY_NAME)?;
+        let private_key_path = CertificateStore::make_and_ensure_file_path(&CertificateStore::own_private_key_path(&args.pki_path), OWN_PRIVATE_KEY_NAME)?;
 
         // Create a keypair
         let pkey = {
@@ -125,29 +127,95 @@ impl CertificateStore {
         result
     }
 
-    pub fn validate_cert(&self, cert: &X509) -> StatusCode {
-        // TODO
-
-        // BAD_CERTIFICATE_UNTRUSTED
-        // BAD_CERTIFICATE_TIME_INVALID
-        // BAD_CERTIFICATE_ISSUE_TIME_INVALID
-        // BAD_CERTIFICATE_USE_NOT_ALLOWED
-        // BAD_CERTIFICATE_ISSUER_USE_NOT_ALLOWED
-        // BAD_CERTIFICATE_REVOCATION_UNKNOWN
-        // BAD_CERTIFICATE_REVOKED
-        // BAD_ISSUER_CERTIFICATE_REVOKED
-        // BAD_CERTIFICATE_UNKNOWN
-
-        let cert_file_name = CertificateStore::cert_file_name(&cert);
-        let mut cert_path = CertificateStore::rejected_certs_path(&self.pki_path);
-        cert_path.push(&cert_file_name);
+    /// This function is to stop collision errors / tampering where someone renames a cert on disk
+    /// to match another cert and somehow bypasses or subverts a check. The disk cert must match
+    /// the memory cert or the test is assumed to fail.
+    fn ensure_cert_and_file_are_the_same(cert: &X509, cert_path: &Path) -> bool {
         if !cert_path.exists() {
-            error!("Path for rejected certificates {} does not exist", cert_path.display());
-            return BAD_UNEXPECTED_ERROR;
+            false
+        } else {
+            let cert2 = CertificateStore::read_cert(cert_path);
+            if cert2.is_err() {
+                // No cert2 to compare to
+                false
+            } else {
+                // Compare the buffers
+                let der = cert.to_der().unwrap();
+                let der2 = cert2.unwrap().to_der().unwrap();
+                der == der2
+            }
+        }
+    }
+
+    /// Validates the certificate according to the strictness set in the CertificateStore itself.
+    /// Validation might include checking the issue time, expiration time, revocation, trust chain
+    /// etc. In the first instance this function will only check if the cert is recognized
+    /// and is already contained in the trusted or rejected folder.
+    pub fn validate_cert(&self, cert: &X509) -> StatusCode {
+        let cert_file_name = CertificateStore::cert_file_name(&cert);
+        debug!("Validating cert with name on disk {}", cert_file_name);
+
+        // Look for the cert in the rejected folder. If it's rejected there is no purpose going
+        // any further
+        {
+            let mut cert_path = CertificateStore::rejected_certs_path(&self.pki_path);
+            if !cert_path.exists() {
+                error!("Path for rejected certificates {} does not exist", cert_path.display());
+                return BAD_UNEXPECTED_ERROR;
+            }
+            cert_path.push(&cert_file_name);
+            if cert_path.exists() {
+                warn!("Certificate {} is untrusted because it resides in the rejected directory", cert_file_name);
+                return BAD_CERTIFICATE_UNTRUSTED;
+            }
         }
 
-        // compare fingerprint in cert from path to one supplied
-        // handle collision
+        // Check the trusted folder. These checks are more strict to ensure the cert is genuinely
+        // trusted
+        {
+            // Check the trusted folder
+            let mut cert_path = CertificateStore::trusted_certs_path(&self.pki_path);
+            if !cert_path.exists() {
+                error!("Path for rejected certificates {} does not exist", cert_path.display());
+                return BAD_UNEXPECTED_ERROR;
+            }
+            cert_path.push(&cert_file_name);
+
+            // Check if cert is in the trusted folder
+            if !cert_path.exists() {
+                // ... trust checks based on ca could be added here to add cert straight to trust folder
+                warn!("Certificate {} is unknown and untrusted so it will be stored in rejected directory", cert_file_name);
+                self.write_rejected_cert(cert);
+                return BAD_CERTIFICATE_UNTRUSTED;
+            }
+
+            // Read the cert from the trusted folder to make sure it matches the one supplied
+            if !CertificateStore::ensure_cert_and_file_are_the_same(cert, &cert_path) {
+                error!("Certificate in memory does not match the one on disk {} so cert will automatically be treated as untrusted", cert_path.display());
+                return BAD_UNEXPECTED_ERROR;
+            }
+
+            // Now inspect the cert to ensure its validity
+
+            // Issuer time
+            if self.check_issue_time {
+                // Test if current time < issue time
+                let not_before = cert.not_before();
+                //... BAD_CERTIFICATE_ISSUE_TIME_INVALID
+            }
+
+            // Expiration time
+            if self.check_expiration_time {
+                // Test if current time > expiration time
+                let not_after = cert.not_after();
+                //... BAD_CERTIFICATE_TIME_INVALID
+            }
+
+            // Other tests that we might do
+            // ... issuer
+            // ... trust (self-signed, ca etc.)
+            // ... revocation
+        }
 
         GOOD
     }
@@ -165,7 +233,7 @@ impl CertificateStore {
     }
 
     /// Creates the PKI directory structure
-    pub fn ensure_pki_directories(&self) -> Result<(), ()> {
+    pub fn ensure_pki_directories(&self) -> Result<(), String> {
         let mut path = self.pki_path.clone();
         let subdirs = [OWN_CERTIFICATE_DIR, OWN_PRIVATE_KEY_DIR, TRUSTED_CERTS_DIR, REJECTED_CERTS_DIR];
         for subdir in subdirs.iter() {
@@ -177,18 +245,16 @@ impl CertificateStore {
     }
 
     /// Ensure the directory exists, creating it if necessary
-    fn ensure_dir(path: &Path) -> Result<(), ()> {
+    fn ensure_dir(path: &Path) -> Result<(), String> {
         use std;
         if path.exists() {
             if !path.is_dir() {
-                error!("{} is not a directory ", path.display());
-                return Err(());
+                return Err(format!("{} is not a directory ", path.display()));
             }
         } else {
             let result = std::fs::create_dir_all(path);
             if result.is_err() {
-                error!("Cannot make directories for {}", path.display());
-                return Err(());
+                return Err(format!("Cannot make directories for {}", path.display()));
             }
         }
         Ok(())
@@ -218,7 +284,8 @@ impl CertificateStore {
         path
     }
 
-    fn write_rejected_cert(&self, cert: &X509) -> Result<(), ()> {
+    /// Write a cert to the rejected directory
+    fn write_rejected_cert(&self, cert: &X509) -> Result<(), String> {
         // Store the cert in the rejected / untrusted folder
         let cert_file_name = CertificateStore::cert_file_name(&cert);
         let mut cert_path = CertificateStore::rejected_certs_path(&self.pki_path);
@@ -226,15 +293,38 @@ impl CertificateStore {
         CertificateStore::write_cert(cert, &cert_path, true)
     }
 
-    fn write_cert(cert: &X509, path: &Path, overwrite: bool) -> Result<(), ()> {
+    /// Writes a cert to the specified directory
+    fn write_cert(cert: &X509, path: &Path, overwrite: bool) -> Result<(), String> {
         let der = cert.to_der().unwrap();
         info!("Writing X509 cert to {}", path.display());
         CertificateStore::write_to_file(&der, &path, overwrite)?;
         Ok(())
     }
 
+    /// Reads an X509 certificate from disk
+    fn read_cert(path: &Path) -> Result<X509, String> {
+        let file = File::open(path);
+        if file.is_err() {
+            return Err(format!("Could not open cert file {}", path.display()));
+        }
+
+        let mut file: File = file.unwrap();
+        let mut cert = Vec::new();
+        let bytes_read = file.read_to_end(&mut cert);
+        if bytes_read.is_err() {
+            return Err(format!("Could not read bytes from cert file {}", path.display()));
+        }
+
+        let cert = X509::from_pem(&cert);
+        if cert.is_err() {
+            return Err(format!("Could not read cert from cert file {}", path.display()));
+        }
+
+        Ok(cert.unwrap())
+    }
+
     /// Makes a path
-    fn make_path(path: &Path, file_name: &str) -> Result<PathBuf, ()> {
+    fn make_and_ensure_file_path(path: &Path, file_name: &str) -> Result<PathBuf, String> {
         let mut path = PathBuf::from(&path);
         CertificateStore::ensure_dir(&path)?;
         path.push(file_name);
@@ -242,23 +332,19 @@ impl CertificateStore {
     }
 
     /// Writes to file or prints an error for the reason why it can't.
-    fn write_to_file(bytes: &[u8], file_path: &Path, overwrite: bool) -> Result<(), ()> {
+    fn write_to_file(bytes: &[u8], file_path: &Path, overwrite: bool) -> Result<(), String> {
         if !overwrite && file_path.exists() {
-            error!("File {} already exists and will not be overwritten. Use --overwrite to disable this safeguard.", file_path.display());
-            return Err(())
+            return Err(format!("File {} already exists and will not be overwritten. Use --overwrite to disable this safeguard.", file_path.display()))
         }
-
         let file = File::create(file_path);
         if file.is_err() {
-            error!("Could not create file {}", file_path.display());
-            return Err(());
+            return Err(format!("Could not create file {}", file_path.display()));
         }
         let mut file = file.unwrap();
 
         let written = file.write(bytes);
         if written.is_err() {
-            error!("Could not write bytes to file {}", file_path.display());
-            return Err(());
+            return Err(format!("Could not write bytes to file {}", file_path.display()));
         }
         Ok(())
     }
