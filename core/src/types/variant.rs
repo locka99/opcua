@@ -1,6 +1,7 @@
 use std::io::{Read, Write};
 
 use types::*;
+use constants;
 
 const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
 const ARRAY_VALUES_BIT: u8 = 1 << 7;
@@ -210,6 +211,11 @@ impl BinaryEncoder<Variant> for Variant {
 
         // Read the value(s). If array length was specified, we assume a single or multi dimension array
         let result = if array_length > 0 {
+            // Array length in total cannot exceed max array length
+            if array_length > constants::MAX_ARRAY_LENGTH {
+                return BAD_ENCODING_LIMITS_EXCEEDED;
+            }
+
             let mut result: Vec<Variant> = Vec::with_capacity(array_length as usize);
             for _ in 0..array_length {
                 result.push(Variant::decode_variant_value(stream, element_encoding_mask)?);

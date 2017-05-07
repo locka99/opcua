@@ -14,12 +14,22 @@ pub mod comms;
 pub mod services;
 pub mod crypto;
 
+pub mod constants {
+    /// Maximum number of elements in an array
+    pub const MAX_ARRAY_LENGTH: u32 = 1000;
+    /// Maximum size of a string in chars
+    pub const MAX_STRING_LENGTH: u32 = 65536;
+    /// Maximum size of a byte string in bytes
+    pub const MAX_BYTE_STRING_LENGTH: u32 = 65536;
+}
+
 /// The prelude mod contains all the things you typically need to access from a client / server.
 pub mod prelude {
     pub use types::*;
     pub use comms::*;
     pub use services::*;
     pub use crypto::*;
+    pub use constants;
 }
 
 use log::*;

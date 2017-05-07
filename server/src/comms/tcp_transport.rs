@@ -53,6 +53,8 @@ pub struct TcpTransport {
     last_secure_channel_id: UInt32,
     // Secure channel info for the session
     secure_channel_info: SecureChannelInfo,
+    /// Last token id number
+    last_token_id: UInt32,
     /// Last encoded sequence number
     last_sent_sequence_number: UInt32,
     /// Last decoded sequence number
@@ -74,6 +76,7 @@ impl TcpTransport {
                 token_id: 0,
             },
             message_handler: MessageHandler::new(&server_state, &session_state),
+            last_token_id: 0,
             last_sent_sequence_number: 0,
             last_received_sequence_number: 0,
         }
@@ -416,7 +419,8 @@ impl TcpTransport {
         };
 
         // Process the request
-        let token_id: UInt32 = 1000; // TODO
+        self.last_token_id += 1;
+        let token_id: UInt32 = last_token_id;
 
         let secure_channel_id = {
             let client_protocol_version = self.client_protocol_version;

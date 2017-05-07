@@ -9,6 +9,7 @@ use std::fmt;
 use std::io::{Read, Write, Cursor};
 
 use services::*;
+use constants;
 
 pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
 
@@ -246,9 +247,6 @@ pub struct UAString {
     pub value: Option<String>,
 }
 
-/// Internal sanity limit to string sizes
-const MAX_STRING_SIZE: Int32 = 512 * 1024;
-
 impl BinaryEncoder<UAString> for UAString {
     fn byte_len(&self) -> usize {
         // Length plus the actual length of bytes (if not null)
@@ -278,9 +276,9 @@ impl BinaryEncoder<UAString> for UAString {
         } else if buf_len < -1 {
             error!("String buf length is a negative number {}", buf_len);
             return Err(BAD_DECODING_ERROR);
-        } else if buf_len > MAX_STRING_SIZE {
-            error!("String buf length is probably invalid number {}", buf_len);
-            return Err(BAD_DECODING_ERROR);
+        } else if buf_len > constants::MAX_STRING_LENGTH {
+            error!("String buf length {} is larger than max string length", buf_len);
+            return Err(BAD_ENCODING_LIMITS_EXCEEDED);
         }
 
         // Create the actual UTF8 string
@@ -488,9 +486,9 @@ impl BinaryEncoder<ByteString> for ByteString {
         } else if buf_len < -1 {
             error!("ByteString buf length is a negative number {}", buf_len);
             return Err(BAD_DECODING_ERROR);
-        } else if buf_len > MAX_STRING_SIZE {
-            error!("ByteString buf length is probably invalid number {}", buf_len);
-            return Err(BAD_DECODING_ERROR);
+        } else if buf_len > constants::MAX_BYTE_STRING_LENGTH {
+            error!("ByteString buf length {} is longer than max byte string length", buf_len);
+            return Err(BAD_ENCODING_LIMITS_EXCEEDED);
         }
 
         // Create the actual UTF8 string

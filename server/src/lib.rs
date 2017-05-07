@@ -36,18 +36,12 @@ pub mod prelude {
 }
 
 /// Constants that govern the internal workings of the server impl.
-mod constants {
+pub mod constants {
     use opcua_core::types::Double;
 
     // Values used by configuration in the absence of user defined values
     /// The default hello timeout period in seconds
     pub const DEFAULT_HELLO_TIMEOUT_SECONDS: u32 = 120;
-    /// Maximum number of elements in an array
-    pub const DEFAULT_MAX_ARRAY_LENGTH: u32 = 1000;
-    /// Maximum size of a string in chars
-    pub const DEFAULT_MAX_STRING_LENGTH: u32 = 65536;
-    /// Maximum size of a byte string in bytes
-    pub const DEFAULT_MAX_BYTE_STRING_LENGTH: u32 = 65536;
     // Default OPC UA server port
     pub const DEFAULT_OPC_UA_SERVER_PORT: u16 = 1234;
     // Default maximum number of subscriptions in a session
