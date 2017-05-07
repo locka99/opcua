@@ -34,16 +34,20 @@ pub fn decrypt_aes(inx: &[u8], out: &mut [u8], nonce: &mut [u8], key: &AesKey) -
 
 #[test]
 fn aes_test() {
+    use rand::{self, Rng};
+
     // Multiple of 16
-    let mut plaintext = b"0123456789012345";
+    let plaintext = b"0123456789012345";
     let mut ciphertext: [u8; 16] = [0; 16];
 
-    use rand::{self, Rng};
     let mut rng = rand::thread_rng();
+
+    // Random key
     let mut key = vec![0u8; 16];
     rng.fill_bytes(&mut key);
 
-    let mut nonce = vec![0u8; 16];
+    // Random nonce(iv). Not obvious why iv should be 2*blocksize
+    let mut nonce = vec![0u8; 32];
     rng.fill_bytes(&mut nonce);
 
     {
