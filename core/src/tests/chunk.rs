@@ -121,7 +121,6 @@ fn open_secure_channel() {
             audit_entry_id: UAString::null(),
             timeout_hint: 123456,
             additional_header: ExtensionObject::null(),
-            // from_str(NodeId::new_numeric(0, 222), "this is a header of some sort"),
         },
         client_protocol_version: 77,
         request_type: SecurityTokenRequestType::Renew,

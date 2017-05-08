@@ -78,8 +78,7 @@ impl DateTime {
                         hour: UInt16,
                         minute: UInt16,
                         second: UInt16,
-                        nanos: UInt32)
-                        -> DateTime {
+                        nanos: UInt32) -> DateTime {
         if month < 1 || month > 12 {
             panic!("Invalid month");
         }
@@ -105,7 +104,7 @@ impl DateTime {
             hour: hour,
             min: minute,
             sec: second,
-            nano_sec: nanos,
+            nano_sec: (nanos / NANOS_PER_TICK as u32) * NANOS_PER_TICK as u32,
         }
     }
 
@@ -118,7 +117,7 @@ impl DateTime {
             hour: dt.hour() as UInt16,
             min: dt.minute() as UInt16,
             sec: dt.second() as UInt16,
-            nano_sec: dt.nanosecond(),
+            nano_sec: (dt.nanosecond() / NANOS_PER_TICK as u32) * NANOS_PER_TICK as u32,
         }
     }
 
