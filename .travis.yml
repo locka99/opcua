@@ -3,10 +3,13 @@ rust:
   - stable
   - nightly
 
+before_install:
+  - export RUST_BACKTRACE=1
+
 matrix:
   allow_failures:
     - rust: nightly
 
 script:
-  - cargo test --package opcua-core
-  - cargo test --package opcua-server
+  - cargo test --package opcua-core -- --nocapture
+  - cargo test --package opcua-server -- --nocapture
