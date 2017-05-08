@@ -212,8 +212,8 @@ impl BinaryEncoder<Variant> for Variant {
         // Read the value(s). If array length was specified, we assume a single or multi dimension array
         let result = if array_length > 0 {
             // Array length in total cannot exceed max array length
-            if array_length > constants::MAX_ARRAY_LENGTH {
-                return BAD_ENCODING_LIMITS_EXCEEDED;
+            if array_length > constants::MAX_ARRAY_LENGTH as i32 {
+                return Err(BAD_ENCODING_LIMITS_EXCEEDED);
             }
 
             let mut result: Vec<Variant> = Vec::with_capacity(array_length as usize);

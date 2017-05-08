@@ -276,7 +276,7 @@ impl BinaryEncoder<UAString> for UAString {
         } else if buf_len < -1 {
             error!("String buf length is a negative number {}", buf_len);
             return Err(BAD_DECODING_ERROR);
-        } else if buf_len > constants::MAX_STRING_LENGTH {
+        } else if buf_len > constants::MAX_STRING_LENGTH as i32 {
             error!("String buf length {} is larger than max string length", buf_len);
             return Err(BAD_ENCODING_LIMITS_EXCEEDED);
         }
@@ -486,7 +486,7 @@ impl BinaryEncoder<ByteString> for ByteString {
         } else if buf_len < -1 {
             error!("ByteString buf length is a negative number {}", buf_len);
             return Err(BAD_DECODING_ERROR);
-        } else if buf_len > constants::MAX_BYTE_STRING_LENGTH {
+        } else if buf_len > constants::MAX_BYTE_STRING_LENGTH as i32 {
             error!("ByteString buf length {} is longer than max byte string length", buf_len);
             return Err(BAD_ENCODING_LIMITS_EXCEEDED);
         }

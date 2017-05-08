@@ -34,10 +34,10 @@ pub struct MessageHandler {
 }
 
 impl MessageHandler {
-    pub fn new(server_state: &Arc<Mutex<ServerState>>, session_state: &Arc<Mutex<SessionState>>) -> MessageHandler {
+    pub fn new(server_state: Arc<Mutex<ServerState>>, session_state: Arc<Mutex<SessionState>>) -> MessageHandler {
         MessageHandler {
-            server_state: server_state.clone(),
-            session_state: session_state.clone(),
+            server_state: server_state,
+            session_state: session_state,
             attribute_service: AttributeService::new(),
             discovery_service: DiscoveryService::new(),
             monitored_item_service: MonitoredItemService::new(),

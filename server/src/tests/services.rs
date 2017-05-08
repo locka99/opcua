@@ -40,7 +40,7 @@ fn make_browse_request(nodes: Vec<NodeId>, browse_direction: BrowseDirection, re
 #[test]
 fn browse_nodes() {
     let server = Server::new(ServerConfig::default_anonymous());
-    let tcp_session = TcpTransport::new(&server.server_state);
+    let tcp_session = TcpTransport::new(server.server_state);
 
     let view = ViewService::new();
     {

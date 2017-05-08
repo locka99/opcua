@@ -353,7 +353,7 @@ impl Server {
     fn handle_connection(&mut self, stream: TcpStream) {
         debug!("Connection thread spawning");
         // Spawn a thread for the connection
-        let session = Arc::new(Mutex::new(TcpTransport::new(&self.server_state)));
+        let session = Arc::new(Mutex::new(TcpTransport::new(self.server_state.clone())));
         self.sessions.push(session.clone());
         thread::spawn(move || {
             session.lock().unwrap().run(stream);

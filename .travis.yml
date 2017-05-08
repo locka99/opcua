@@ -1,0 +1,12 @@
+language: rust
+rust:
+  - stable
+  - nightly
+
+matrix:
+  allow_failures:
+    - rust: nightly
+
+script:
+  - cargo test --package opcua-core
+  - cargo test --package opcua-server

@@ -62,7 +62,7 @@ pub struct TcpTransport {
 }
 
 impl TcpTransport {
-    pub fn new(server_state: &Arc<Mutex<ServerState>>) -> TcpTransport {
+    pub fn new(server_state: Arc<Mutex<ServerState>>) -> TcpTransport {
         let session_state = Arc::new(Mutex::new(SessionState::new()));
         TcpTransport {
             server_state: server_state.clone(),
@@ -75,7 +75,7 @@ impl TcpTransport {
                 secure_channel_id: 0,
                 token_id: 0,
             },
-            message_handler: MessageHandler::new(&server_state, &session_state),
+            message_handler: MessageHandler::new(server_state.clone(), session_state.clone()),
             last_token_id: 0,
             last_sent_sequence_number: 0,
             last_received_sequence_number: 0,
@@ -440,6 +440,20 @@ impl TcpTransport {
             self.last_secure_channel_id
         };
 
+        let server_nonce = if request.client_nonce.value.is_some() {
+            let mut session_state = self.session_state.lock().unwrap();
+            // Store client nonce
+            session_state.client_nonce[..].clone_from_slice(request.client_nonce.value.as_ref().unwrap());
+
+            // Generate random server nonce
+            use rand::{self, Rng};
+            let mut rng = rand::thread_rng();
+            rng.fill_bytes(&mut session_state.server_nonce);
+            ByteString::from_bytes(&session_state.server_nonce)
+        } else {
+            ByteString::from_bytes(&[0u8])
+        };
+
         let now = DateTime::now();
         let response = OpenSecureChannelResponse {
             response_header: ResponseHeader::new_service_result(&now, &request.request_header, GOOD),
@@ -450,7 +464,7 @@ impl TcpTransport {
                 created_at: now.clone(),
                 revised_lifetime: request.requested_lifetime,
             },
-            server_nonce: ByteString::from_bytes(&[0u8]),
+            server_nonce: server_nonce,
         };
 
         debug!("Sending OpenSecureChannelResponse {:?}", response);
