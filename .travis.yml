@@ -1,3 +1,5 @@
+sudo: required
+
 language: rust
 rust:
   - stable
@@ -11,5 +13,5 @@ matrix:
     - rust: nightly
 
 script:
-  - cargo test --package opcua-server -- --nocapture
   - cargo test --package opcua-core -- --nocapture
+  - cargo test --package opcua-server -- --nocapture
