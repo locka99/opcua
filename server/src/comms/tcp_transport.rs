@@ -420,7 +420,7 @@ impl TcpTransport {
 
         // Process the request
         self.last_token_id += 1;
-        let token_id: UInt32 = last_token_id;
+        let token_id: UInt32 = self.last_token_id;
 
         let secure_channel_id = {
             let client_protocol_version = self.client_protocol_version;

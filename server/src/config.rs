@@ -153,9 +153,9 @@ impl ServerConfig {
                 hello_timeout: constants::DEFAULT_HELLO_TIMEOUT_SECONDS,
             },
             endpoints: endpoints,
-            max_array_length: constants::DEFAULT_MAX_ARRAY_LENGTH,
-            max_string_length: constants::DEFAULT_MAX_STRING_LENGTH,
-            max_byte_string_length: constants::DEFAULT_MAX_BYTE_STRING_LENGTH,
+            max_array_length: opcua_core::constants::MAX_ARRAY_LENGTH,
+            max_string_length: opcua_core::constants::MAX_STRING_LENGTH,
+            max_byte_string_length: opcua_core::constants::MAX_BYTE_STRING_LENGTH,
             max_subscriptions: constants::DEFAULT_MAX_SUBSCRIPTIONS,
         }
     }
