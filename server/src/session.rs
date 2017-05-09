@@ -67,10 +67,6 @@ pub struct SessionState {
     pub endpoint_url: UAString,
     /// Diagnostics associated with the session
     pub diagnostics: SessionDiagnostics,
-    /// Server side nonce
-    pub server_nonce: [u8; 32],
-    /// Client side nonce
-    pub client_nonce: [u8; 32],
     /// Internal value used to create new session ids.
     last_session_id: UInt32,
 }
@@ -89,8 +85,6 @@ impl SessionState {
             max_response_message_size: 0,
             endpoint_url: UAString::null(),
             diagnostics: SessionDiagnostics::new(),
-            server_nonce: [0; 32],
-            client_nonce: [0; 32],
             last_session_id: 0,
         }
     }

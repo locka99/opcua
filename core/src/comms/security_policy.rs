@@ -6,6 +6,8 @@ pub struct SecureChannelInfo {
     pub security_policy: SecurityPolicy,
     pub secure_channel_id: UInt32,
     pub token_id: UInt32,
+    pub our_nonce: [u8; 32],
+    pub their_nonce: [u8; 32],
 }
 
 impl SecureChannelInfo {
@@ -14,6 +16,8 @@ impl SecureChannelInfo {
             security_policy: SecurityPolicy::None,
             secure_channel_id: 0,
             token_id: 0,
+            our_nonce: [0; 32],
+            their_nonce: [0; 32],
         }
     }
 }

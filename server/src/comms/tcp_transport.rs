@@ -70,11 +70,7 @@ impl TcpTransport {
             transport_state: TransportState::New,
             client_protocol_version: 0,
             last_secure_channel_id: 0,
-            secure_channel_info: SecureChannelInfo {
-                security_policy: SecurityPolicy::None,
-                secure_channel_id: 0,
-                token_id: 0,
-            },
+            secure_channel_info: SecureChannelInfo::new(),
             message_handler: MessageHandler::new(server_state.clone(), session_state.clone()),
             last_token_id: 0,
             last_sent_sequence_number: 0,
@@ -418,42 +414,30 @@ impl TcpTransport {
             }
         };
 
+        let client_protocol_version = self.client_protocol_version;
+        // Must compare protocol version to the one from HELLO
+        if request.client_protocol_version != client_protocol_version {
+            error!("Client sent a different protocol version than it did in the HELLO - {} vs {}", request.client_protocol_version, client_protocol_version);
+            return Err(BAD_PROTOCOL_VERSION_UNSUPPORTED)
+        }
+
+        // Create secure channel info
+        self.secure_channel_info = SecureChannelInfo::new();
+
         // Process the request
         self.last_token_id += 1;
-        let token_id: UInt32 = self.last_token_id;
+        self.secure_channel_info.token_id = self.last_token_id;
+        self.last_secure_channel_id += 1;
+        self.secure_channel_info.secure_channel_id = self.last_secure_channel_id;
 
-        let secure_channel_id = {
-            let client_protocol_version = self.client_protocol_version;
-            // Must compare protocol version to the one from HELLO
-            if request.client_protocol_version != client_protocol_version {
-                error!("Client sent a different protocol version than it did in the HELLO - {} vs {}", request.client_protocol_version, client_protocol_version);
-                return Err(BAD_PROTOCOL_VERSION_UNSUPPORTED)
-            }
-
-            // Create secure channel info
-            self.last_secure_channel_id += 1;
-            self.secure_channel_info = SecureChannelInfo {
-                security_policy: SecurityPolicy::None,
-                secure_channel_id: self.last_secure_channel_id,
-                token_id: token_id,
-            };
-            self.last_secure_channel_id
-        };
-
-        let (received_valid_nonce, server_nonce) = if request.client_nonce.value.is_some() && request.client_nonce.value.as_ref().unwrap().len() == 32 {
-            let mut session_state = self.session_state.lock().unwrap();
-            // Store client nonce
-            session_state.client_nonce[..].clone_from_slice(request.client_nonce.value.as_ref().unwrap());
+        if request.client_nonce.value.is_some() && request.client_nonce.value.as_ref().unwrap().len() == 32 {
             // Generate random server nonce
             use rand::{self, Rng};
             let mut rng = rand::thread_rng();
-            rng.fill_bytes(&mut session_state.server_nonce);
-            (true, ByteString::from_bytes(&session_state.server_nonce))
-        } else {
-            (false, ByteString::from_bytes(&[0u8]))
-        };
+            self.secure_channel_info.their_nonce[..].clone_from_slice(request.client_nonce.value.as_ref().unwrap());
 
-        if !received_valid_nonce {
+            rng.fill_bytes(&mut self.secure_channel_info.our_nonce);
+        } else {
             debug!("Didn't receive a valid client nonce for this secure channel request so no crypto support");
             // TODO if crypto is enabled, then this is an error
         }
@@ -463,12 +447,12 @@ impl TcpTransport {
             response_header: ResponseHeader::new_service_result(&now, &request.request_header, GOOD),
             server_protocol_version: 0,
             security_token: ChannelSecurityToken {
-                channel_id: secure_channel_id,
-                token_id: token_id,
+                channel_id: self.secure_channel_info.secure_channel_id,
+                token_id: self.secure_channel_info.token_id,
                 created_at: now.clone(),
                 revised_lifetime: request.requested_lifetime,
             },
-            server_nonce: server_nonce,
+            server_nonce: ByteString::from_bytes(&self.secure_channel_info.our_nonce),
         };
 
         debug!("Sending OpenSecureChannelResponse {:?}", response);
