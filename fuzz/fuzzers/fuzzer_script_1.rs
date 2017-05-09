@@ -4,4 +4,5 @@ extern crate opcua_core;
 
 fuzz_target!(|data: &[u8]| {
     // fuzzed code goes here
+    // TODO test chunking behavior here
 });
