@@ -1,6 +1,9 @@
 use types::*;
 use profiles::*;
 
+#[cfg(not(feature = "crypto"))]
+type Cert = u32;
+
 #[derive(Debug, Clone)]
 pub struct SecureChannelInfo {
     pub security_policy: SecurityPolicy,
@@ -8,6 +11,8 @@ pub struct SecureChannelInfo {
     pub token_id: UInt32,
     pub nonce: [u8; 32],
     pub their_nonce: [u8; 32],
+
+    pub their_cert: Cert,
 }
 
 impl SecureChannelInfo {
@@ -18,6 +23,7 @@ impl SecureChannelInfo {
             token_id: 0,
             nonce: [0; 32],
             their_nonce: [0; 32],
+            their_cert: 0
         }
     }
 
