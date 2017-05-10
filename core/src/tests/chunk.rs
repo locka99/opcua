@@ -96,6 +96,10 @@ fn open_secure_channel_response() {
     let chunk = Chunk::decode(&mut stream).unwrap();
     let chunks = vec![chunk];
 
+    let decoded = Chunker::decode(&chunks, &secure_channel_info, None);
+    if decoded.is_err() {
+        panic!("Got error {:?}", decoded.unwrap_err());
+    }
     let message = Chunker::decode(&chunks, &secure_channel_info, None).unwrap();
     //debug!("message = {:#?}", message);
     let response = match message {

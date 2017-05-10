@@ -45,3 +45,16 @@ pub fn acknowledge() {
     assert_eq!(ack.max_message_size, 16777216);
     assert_eq!(ack.max_chunk_count, 65535);
 }
+
+#[test]
+pub fn secure_channel_nonce() {
+    let mut sc = SecureChannelInfo::new();
+    // Nonce which is not 32 bytes long is an error
+    assert!(sc.set_their_nonce(&ByteString::null()).is_err());
+    assert!(sc.set_their_nonce(&ByteString::from_bytes(b"")).is_err());
+    assert!(sc.set_their_nonce(&ByteString::from_bytes(b"1")).is_err());
+    assert!(sc.set_their_nonce(&ByteString::from_bytes(b"0123456789012345678901234567890")).is_err());
+    assert!(sc.set_their_nonce(&ByteString::from_bytes(b"012345678901234567890123456789012")).is_err());
+    // Nonce which is 32 bytes long is good
+    assert!(sc.set_their_nonce(&ByteString::from_bytes(b"01234567890123456789012345678901")).is_ok());
+}

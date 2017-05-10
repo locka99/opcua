@@ -3,6 +3,7 @@ use std::io::{Read, Write, Cursor};
 
 use types::*;
 use comms::*;
+use constants;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ChunkMessageType {
@@ -210,8 +211,20 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
         let security_policy_uri = UAString::decode(stream)?;
         let sender_certificate = ByteString::decode(stream)?;
         let receiver_certificate_thumbprint = ByteString::decode(stream)?;
-        // TODO validate sender_certificate_length < MaxCertificateSize
-        // TODO validate receiver_certificate_thumbprint_length == 20
+
+        // validate sender_certificate_length < MaxCertificateSize
+        if sender_certificate.value.is_some() && sender_certificate.value.as_ref().unwrap().len() >= constants::MAX_CERTIFICATE_LENGTH as usize {
+            error!("Sender certificate exceeds max certificate size");
+            return Err(BAD_DECODING_ERROR);
+        }
+
+        // validate receiver_certificate_thumbprint_length == 20
+        let thumbprint_len = if receiver_certificate_thumbprint.value.is_some() { receiver_certificate_thumbprint.value.as_ref().unwrap().len() } else { 0 };
+        if thumbprint_len > 0 && thumbprint_len != 20 {
+            error!("Receiver certificate thumbprint is not 20 bytes long, {} bytes", receiver_certificate_thumbprint.value.as_ref().unwrap().len());
+            return Err(BAD_DECODING_ERROR);
+        }
+
         Ok(AsymmetricSecurityHeader {
             security_policy_uri: security_policy_uri,
             sender_certificate: sender_certificate,
@@ -313,7 +326,7 @@ impl Chunk {
         self.chunk_header.message_type == ChunkMessageType::OpenSecureChannel
     }
 
-    pub fn chunk_info(&self, is_first_chunk: bool, _: &SecureChannelInfo) -> std::result::Result<ChunkInfo, StatusCode> {
+    pub fn chunk_info(&self, is_first_chunk: bool, secure_channel_info: &SecureChannelInfo) -> std::result::Result<ChunkInfo, StatusCode> {
         //        {
         //            debug!("chunk_info() - chunk_body:");
         //            debug_buffer(&self.chunk_body);
@@ -335,8 +348,7 @@ impl Chunk {
             } else {
                 SecurityPolicy::from_uri(&security_header.security_policy_uri.to_str())
             };
-
-            if security_policy != SecurityPolicy::None {
+            if security_policy == SecurityPolicy::Unknown {
                 error!("Security policy of chunk is unsupported, policy = {:?}", security_header.security_policy_uri);
                 return Err(BAD_SECURITY_POLICY_REJECTED);
             }

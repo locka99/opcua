@@ -6,7 +6,7 @@ pub struct SecureChannelInfo {
     pub security_policy: SecurityPolicy,
     pub secure_channel_id: UInt32,
     pub token_id: UInt32,
-    pub our_nonce: [u8; 32],
+    pub nonce: [u8; 32],
     pub their_nonce: [u8; 32],
 }
 
@@ -16,11 +16,33 @@ impl SecureChannelInfo {
             security_policy: SecurityPolicy::None,
             secure_channel_id: 0,
             token_id: 0,
-            our_nonce: [0; 32],
+            nonce: [0; 32],
             their_nonce: [0; 32],
         }
     }
+
+    pub fn create_random_nonce(&mut self) {
+        use rand::{self, Rng};
+        let mut rng = rand::thread_rng();
+        rng.fill_bytes(&mut self.nonce);
+    }
+
+    pub fn nonce_as_byte_string(&self) -> ByteString {
+        ByteString::from_bytes(&self.nonce)
+    }
+
+    pub fn set_their_nonce(&mut self, their_nonce: &ByteString) -> Result<(), ()> {
+        if their_nonce.value.is_some() && their_nonce.value.as_ref().unwrap().len() == self.their_nonce.len() {
+            self.their_nonce[..].clone_from_slice(their_nonce.value.as_ref().unwrap());
+            Ok(())
+        }
+        else {
+            Err(())
+        }
+    }
 }
+
+
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SecurityPolicy {

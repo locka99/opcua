@@ -172,6 +172,7 @@ impl Chunker {
             debug!("Decoded node id / object id of {:?}", object_id);
             object_id
         } else {
+            debug!("Node id in chunk is unrecognized");
             return Err(BAD_TCP_MESSAGE_TYPE_INVALID);
         };
 

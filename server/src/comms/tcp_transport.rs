@@ -429,14 +429,10 @@ impl TcpTransport {
         self.secure_channel_info.token_id = self.last_token_id;
         self.last_secure_channel_id += 1;
         self.secure_channel_info.secure_channel_id = self.last_secure_channel_id;
+        self.secure_channel_info.security_policy = request.
 
-        if request.client_nonce.value.is_some() && request.client_nonce.value.as_ref().unwrap().len() == 32 {
-            // Generate random server nonce
-            use rand::{self, Rng};
-            let mut rng = rand::thread_rng();
-            self.secure_channel_info.their_nonce[..].clone_from_slice(request.client_nonce.value.as_ref().unwrap());
-
-            rng.fill_bytes(&mut self.secure_channel_info.our_nonce);
+        if self.secure_channel_info.set_their_nonce(&request.client_nonce).is_ok() {
+            self.secure_channel_info.create_random_nonce();
         } else {
             debug!("Didn't receive a valid client nonce for this secure channel request so no crypto support");
             // TODO if crypto is enabled, then this is an error
@@ -452,7 +448,7 @@ impl TcpTransport {
                 created_at: now.clone(),
                 revised_lifetime: request.requested_lifetime,
             },
-            server_nonce: ByteString::from_bytes(&self.secure_channel_info.our_nonce),
+            server_nonce: self.secure_channel_info.nonce_as_byte_string(),
         };
 
         debug!("Sending OpenSecureChannelResponse {:?}", response);

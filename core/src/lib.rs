@@ -21,6 +21,8 @@ pub mod constants {
     pub const MAX_STRING_LENGTH: u32 = 65536;
     /// Maximum size of a byte string in bytes
     pub const MAX_BYTE_STRING_LENGTH: u32 = 65536;
+    /// Maximum size of a certificate to send
+    pub const MAX_CERTIFICATE_LENGTH: u32 = 32768;
 }
 
 /// The prelude mod contains all the things you typically need to access from a client / server.
