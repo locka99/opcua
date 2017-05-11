@@ -1,8 +1,6 @@
 use types::*;
 use profiles::*;
-
-#[cfg(not(feature = "crypto"))]
-type Cert = u32;
+use crypto::types::*;
 
 #[derive(Debug, Clone)]
 pub struct SecureChannelInfo {
@@ -11,8 +9,7 @@ pub struct SecureChannelInfo {
     pub token_id: UInt32,
     pub nonce: [u8; 32],
     pub their_nonce: [u8; 32],
-
-    pub their_cert: Cert,
+    pub their_cert: Option<X509>,
 }
 
 impl SecureChannelInfo {
@@ -23,7 +20,7 @@ impl SecureChannelInfo {
             token_id: 0,
             nonce: [0; 32],
             their_nonce: [0; 32],
-            their_cert: 0
+            their_cert: None
         }
     }
 
@@ -47,8 +44,6 @@ impl SecureChannelInfo {
         }
     }
 }
-
-
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SecurityPolicy {

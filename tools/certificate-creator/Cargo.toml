@@ -9,4 +9,3 @@ log = "0.3.6"
 
 [dependencies.opcua-core]
 path = "../../core"
-features = ["crypto"]

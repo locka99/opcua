@@ -429,7 +429,7 @@ impl TcpTransport {
         self.secure_channel_info.token_id = self.last_token_id;
         self.last_secure_channel_id += 1;
         self.secure_channel_info.secure_channel_id = self.last_secure_channel_id;
-        self.secure_channel_info.security_policy = request.
+        // self.secure_channel_info.security_policy = request.
 
         if self.secure_channel_info.set_their_nonce(&request.client_nonce).is_ok() {
             self.secure_channel_info.create_random_nonce();

@@ -1,2 +1,2 @@
 [workspace]
-members = ["core", "server", "client", "sample-client", "sample-server", "tools/certificate-creator", "fuzz"]
+members = ["core", "server", "client", "sample-client", "sample-server", "tools/certificate-creator"]

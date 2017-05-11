@@ -126,6 +126,33 @@ Client support is still work in progress. Stubs have been created for the client
 
 # Building and testing
 
+## Setup
+
+1. Install latest stable rust, e.g. using rustup
+2. Install gcc and OpenSSL development libs & headers. 
+
+### Windows
+
+You need OpenSSL to build OPC UA. The easiest way is to install the stable-x86_64-pc-windows-gnu Rust toolchain
+and then install [MSYS2 64-bit](http://www.msys2.org/). Read the instructions on the site but you are recommended
+to follow the instructions to update via `pacman -Syuu`.
+
+Once MSYS2 has installed & updated you must bring in the MingW 64-bit compiler toolchain and OpenSSL
+
+```bash
+pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb mingw-w64-x86_64-pkg-config openssl-devel
+```
+
+Now ensure that these ensure both Rust and MinGW64 binaries are on your PATH and you should be ready:
+
+```bash
+set PATH=C:\msys64\mingw64\bin;C:\Users\MyName\.cargo\bin;%PATH%
+```
+
+You can use MSVC or 32-bit GNU but you may run into issues which are not covered by this document.
+
+## Layout
+
 OPC UA for Rust follows the normal Rust conventions. There is a Cargo.toml per module that you may use to build the module and all dependencies. You may also
 build the entire workspace from the top like so:
 
@@ -146,19 +173,11 @@ cargo run
 The sample server is designed to be super terse and simple to demonstrate how the library uses convention as much as possible
 to allow simple servers to be created with a very small number of lines of code.  
 
-## Enabling crypto
+## Crypto
 
-At the moment crypto isn't supported properly so there is an optional feature to enable it for development purposes:
-
-```bash
-cd core
-cargo build --features crypto
-```
-
-This won't do much except add deps on OpenSSL and allow certainly crypto functionality as it exists to be tested.
-
-When crypto is implemented, the feature will become the default. Crypto is implemented via OpenSSL and you are advised
-to read [documentation](https://github.com/sfackler/rust-openssl) for that to set up your environment.
+At the moment crypto isn't implemented fully however OpenSSL is a dependency of opcua and you must be able to build it.
+You are advised to read the OpenSSL [documentation](https://github.com/sfackler/rust-openssl) for that to set up your 
+environment.
 
 ### Certificate pki structure
 
@@ -399,7 +418,7 @@ connection goes down. Client OPC UA is governed by its own core characteristics.
 * Datachange subscriber
 * Durable subscription client (i.e. ability to reconnect and re-establish group after disconnect)
 
-## Expected 3rd party dependencies
+## Major 3rd party dependencies
 
 * log - for logging / auditing
 * OpenSSL - required for crypto
@@ -407,5 +426,4 @@ connection goes down. Client OPC UA is governed by its own core characteristics.
 * byteorder - for serializing values with the proper endian-ness
 * chrono - for high quality time functions
 * time - for some types that chrono still uses, e.g. Duration
-
-
+* random - for random number generation in some places

@@ -6,7 +6,6 @@ extern crate byteorder;
 extern crate chrono;
 extern crate regex;
 extern crate rand;
-#[cfg(feature = "crypto")]
 extern crate openssl;
 
 pub mod types;

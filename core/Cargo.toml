@@ -10,18 +10,4 @@ chrono = "0.2"
 rand = "0.3"
 regex = "0.2.1"
 lazy_static = "0.2"
-
-[dependencies.openssl]
-version = "0.9.9"
-optional = true
-
-[features]
-# The default package is no crypto.
-default = []
-
-# Crypto relies on openssl which is a bit of a pain to setup. If you need it, follow the instructions at the link
-# below before enabling the feature, e.g. "cargo build --features crypto"
-#
-# https://github.com/sfackler/rust-openssl
-#
-crypto = ["openssl"]
+openssl = "0.9.9"

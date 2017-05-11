@@ -1,13 +1,12 @@
 use std::result::Result;
-use std::io::{Cursor};
 
 use opcua_core::types::*;
 use opcua_core::services::*;
 use opcua_core::comms::*;
 
 use constants;
-use server::ServerState;
-use session::{SessionState, SessionInfo};
+use server::{Endpoint, ServerState};
+use session::{SessionState};
 
 pub struct SessionService {}
 
@@ -16,19 +15,20 @@ impl SessionService {
         SessionService {}
     }
 
-    pub fn create_session(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: CreateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
-        let service_status = &GOOD;
-
-        // TODO validate client certificate
+    pub fn create_session(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: CreateSessionRequest) -> Result<SupportedMessage, StatusCode> {
+        // TODO crypto validate client certificate
 
         // Validate the endpoint url
         if request.endpoint_url.is_null() {
-            return Err(&BAD_TCP_ENDPOINT_URL_INVALID);
+            return Err(BAD_TCP_ENDPOINT_URL_INVALID);
+        } else {
+            let endpoint = server_state.find_endpoint(request.endpoint_url.to_str());
+            if endpoint.is_none() {
+                return Err(BAD_TCP_ENDPOINT_URL_INVALID);
+            }
         }
-        let endpoint = server_state.find_endpoint(request.endpoint_url.to_str());
-        if endpoint.is_none() {
-            return Err(&BAD_TCP_ENDPOINT_URL_INVALID);
-        }
+
+        let service_status = GOOD;
 
         let session_id = session_state.next_session_id();
         let authentication_token = NodeId::new_byte_string(0, ByteString::random(32));
@@ -44,17 +44,13 @@ impl SessionService {
             signature: ByteString::null(),
         };
 
-        if service_status.is_good() {
-            let session_info = SessionInfo {
-                session_id: session_id.clone(),
-                authentication_token: authentication_token.clone(),
-                session_timeout: session_timeout,
-                max_request_message_size: max_request_message_size,
-                max_response_message_size: request.max_response_message_size,
-                endpoint_url: request.endpoint_url.clone()
-            };
-            session_state.session_info = Some(session_info);
-        }
+        session_state.session_id = session_id.clone();
+        session_state.authentication_token = authentication_token.clone();
+        session_state.session_timeout = session_timeout;
+        session_state.max_request_message_size = max_request_message_size;
+        session_state.max_response_message_size = request.max_response_message_size;
+        session_state.endpoint_url = request.endpoint_url.clone();
+        session_state.user_identity = None;
 
         let response = CreateSessionResponse {
             response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
@@ -72,66 +68,51 @@ impl SessionService {
         Ok(SupportedMessage::CreateSessionResponse(response))
     }
 
-    pub fn close_session(&self, _: &mut ServerState, _: &mut SessionState, request: CloseSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
-        let service_status = &GOOD;
-        let response = CloseSessionResponse {
-            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
-        };
-        Ok(SupportedMessage::CloseSessionResponse(response))
-    }
+    pub fn activate_session(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: ActivateSessionRequest) -> Result<SupportedMessage, StatusCode> {
+        // TODO crypto see 5.6.3.1 verify the caller is the same caller as create_session by validating
+        // signature supplied by client
 
-    pub fn activate_session(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: ActivateSessionRequest) -> Result<SupportedMessage, &'static StatusCode> {
-        let endpoint_description = SessionService::get_session_endpoint(server_state, session_state);
-        if endpoint_description.is_none() {
-            return Err(&BAD_TCP_ENDPOINT_URL_INVALID);
+        // TODO crypto secure channel verification
+
+        let endpoint = SessionService::get_session_endpoint(server_state, session_state);
+        if endpoint.is_none() {
+            return Err(BAD_TCP_ENDPOINT_URL_INVALID);
         }
-        let endpoint_description = endpoint_description.unwrap();
+        let endpoint = endpoint.unwrap();
+        endpoint.validate_identity_token(&request.user_identity_token);
 
-        let service_status = SessionService::validate_identity_token(&endpoint_description, &request.user_identity_token);
-
+        let service_status = GOOD;
         let server_nonce = ByteString::random(32);
+
+        session_state.activated = true;
+
         let response = ActivateSessionResponse {
             response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
             server_nonce: server_nonce,
             results: None,
             diagnostic_infos: None,
         };
+
         Ok(SupportedMessage::ActivateSessionResponse(response))
     }
 
-    fn validate_identity_token(endpoint_description: &EndpointDescription, user_identity_token: &ExtensionObject) -> &'static StatusCode {
-        let identity_token_id = user_identity_token.node_id.clone();
-        if identity_token_id == ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id() && endpoint_description.{
-            // TODO ensure session allows anonymous id
-            &GOOD
-        } else if identity_token_id == ObjectId::UserNameIdentityToken_Encoding_DefaultBinary.as_node_id() {
-            // TODO ensure session allows user id
-            let mut result = &BAD_IDENTITY_TOKEN_REJECTED;
-            if let ExtensionObjectEncoding::ByteString(ref data) = user_identity_token.body {
-                if let Some(ref data) = data.value {
-                    let mut stream = Cursor::new(data);
-                    if let Ok(token) = UserNameIdentityToken::decode(&mut stream) {
-                        //if server_state.validate_username_identity_token(&token) {
-                        //    result = &GOOD;
-                        //}
-                        result = &BAD_IDENTITY_TOKEN_REJECTED;
-                    }
-                }
-            }
-            result
-        } else {
-            &BAD_IDENTITY_TOKEN_REJECTED
-        }
+    pub fn close_session(&self, _: &mut ServerState, session_state: &mut SessionState, request: CloseSessionRequest) -> Result<SupportedMessage, StatusCode> {
+        let service_status = GOOD;
+        session_state.authentication_token = NodeId::null();
+        session_state.user_identity = None;
+        session_state.activated = false;
+        let response = CloseSessionResponse {
+            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
+        };
+        Ok(SupportedMessage::CloseSessionResponse(response))
     }
 
-    fn get_session_endpoint_description(server_state: &ServerState, session_state: &SessionState) -> Option<EndpointDescription> {
+    fn get_session_endpoint(server_state: &ServerState, session_state: &SessionState) -> Option<Endpoint> {
         // Get security from endpoint url
-        let session_info = session_state.session_info.as_ref().unwrap();
-        if session_info.endpoint_url.is_null() {
+        if session_state.endpoint_url.is_null() {
             None
-        }
-        else {
-            server_state.find_endpoint(session_info.endpoint_url.to_str())
+        } else {
+            server_state.find_endpoint(session_state.endpoint_url.to_str())
         }
     }
 }

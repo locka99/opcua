@@ -22,19 +22,19 @@ pub struct X509CreateCertArgs {
     pub certificate_duration_days: u32,
 }
 
+pub mod types {
+    use openssl;
+    pub type X509 = u8;
+    pub type AesKey = u8;
+}
 
-#[cfg(feature = "crypto")]
 pub mod cert_manager;
-
-#[cfg(feature = "crypto")]
 pub mod sign_verify;
-
-#[cfg(feature = "crypto")]
 pub mod encrypt_decrypt;
 
 /// Tests if crypto is enabled, true for yes it is otherwise false
 pub fn is_crypto_enabled() -> bool {
-    cfg!(feature = "crypto")
+    true
 }
 
 trait Crypto {
@@ -77,10 +77,8 @@ trait Crypto {
 //
 // If a certificate or any certificate in the chain is not signed with a hash that is Sha1 or stronger then the certificate shall be rejected.
 
-#[cfg(feature = "crypto")]
 pub struct Crypto128Rsa15 {}
 
-#[cfg(feature = "crypto")]
 impl Crypto for Crypto128Rsa15 {
     fn is_certificate_trusted(_: &Path) -> Result<bool, ()> {
         unimplemented!();

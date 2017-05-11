@@ -5,15 +5,6 @@ mod services;
 mod parse;
 mod comms;
 mod authentication;
-
-#[test]
-#[cfg(not(feature = "crypto"))]
-fn no_crypto() {
-    use crypto;
-    assert!(!crypto::is_crypto_enabled());
-}
-
-#[cfg(feature = "crypto")]
 mod crypto;
 
 use std::fmt::Debug;

@@ -12,7 +12,6 @@ serde_derive = "0.9"
 serde_yaml = "0.6"
 timer = "0.1.6"
 rand = "0.3"
-lazy_static = "0.2"
 
 [dependencies.opcua-core]
 path = "../core"
