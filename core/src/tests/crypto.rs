@@ -1,12 +1,8 @@
 use crypto;
 use crypto::encrypt_decrypt::*;
+use crypto::cert_manager::*;
 
 use openssl::aes::*;
-
-#[test]
-fn have_crypto() {
-    assert!(crypto::is_crypto_enabled());
-}
 
 #[test]
 fn aes_test() {
@@ -43,3 +39,14 @@ fn aes_test() {
 
     assert_eq!(&plaintext[..], &plaintext2[..]);
 }
+
+#[test]
+fn create_cert() {
+    //    let cert = CertificateStore::create_cert_and_pkey(&args);
+}
+
+#[test]
+fn sign_bytes() {}
+
+#[test]
+fn verify_bytes() {}

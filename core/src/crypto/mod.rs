@@ -7,21 +7,6 @@
 
 use std::path::{Path, PathBuf};
 
-#[derive(Debug)]
-/// Used to create an X509 cert (and private key)
-pub struct X509CreateCertArgs {
-    pub key_size: u32,
-    pub pki_path: PathBuf,
-    pub overwrite: bool,
-    pub common_name: String,
-    pub organization: String,
-    pub organizational_unit: String,
-    pub country: String,
-    pub state: String,
-    pub alt_host_names: Vec<String>,
-    pub certificate_duration_days: u32,
-}
-
 pub mod types {
     use openssl;
     pub type X509 = u8;
@@ -31,11 +16,6 @@ pub mod types {
 pub mod cert_manager;
 pub mod sign_verify;
 pub mod encrypt_decrypt;
-
-/// Tests if crypto is enabled, true for yes it is otherwise false
-pub fn is_crypto_enabled() -> bool {
-    true
-}
 
 trait Crypto {
     // Validates that the certificate is trusted by the server /client

@@ -26,6 +26,21 @@ const TRUSTED_CERTS_DIR: &'static str = "trusted";
 /// The directory holding rejected certificates
 const REJECTED_CERTS_DIR: &'static str = "rejected";
 
+
+#[derive(Debug)]
+/// Used to create an X509 cert (and private key)
+pub struct X509CreateCertArgs {
+    pub key_size: u32,
+    pub overwrite: bool,
+    pub common_name: String,
+    pub organization: String,
+    pub organizational_unit: String,
+    pub country: String,
+    pub state: String,
+    pub alt_host_names: Vec<String>,
+    pub certificate_duration_days: u32,
+}
+
 pub struct CertificateStore {
     pub pki_path: PathBuf,
     pub check_issue_time: bool,
@@ -33,14 +48,8 @@ pub struct CertificateStore {
 }
 
 impl CertificateStore {
-    /// This function will use the supplied arguments to create a public/private key pair and from
-    /// those create a private key file and self-signed public cert file.
-    pub fn create_cert(args: super::X509CreateCertArgs) -> Result<(), String> {
-        // Public cert goes under own/
-        let public_cert_path = CertificateStore::make_and_ensure_file_path(&CertificateStore::own_cert_path(&args.pki_path), OWN_CERTIFICATE_NAME)?;
-        // Private key goes under private/
-        let private_key_path = CertificateStore::make_and_ensure_file_path(&CertificateStore::own_private_key_path(&args.pki_path), OWN_PRIVATE_KEY_NAME)?;
-
+    /// Creates an X509 certificate from the creation args
+    pub fn create_cert_and_pkey(args: &X509CreateCertArgs) -> Result<(X509, PKey), String> {
         // Create a keypair
         let pkey = {
             let rsa = Rsa::generate(args.key_size).unwrap();
@@ -90,8 +99,23 @@ impl CertificateStore {
 
             // Self-sign
             let _ = builder.sign(&pkey, MessageDigest::sha1());
+
             builder.build()
         };
+
+        Ok((cert, pkey))
+    }
+
+    /// This function will use the supplied arguments to create a public/private key pair and from
+    /// those create a private key file and self-signed public cert file.
+    pub fn create_and_store_cert(args: &X509CreateCertArgs, pki_path: &Path) -> Result<(), String> {
+        // Create the cert and corresponding private key
+        let (cert, pkey) = CertificateStore::create_cert_and_pkey(args)?;
+
+        // Public cert goes under own/
+        let public_cert_path = CertificateStore::make_and_ensure_file_path(&CertificateStore::own_cert_path(pki_path), OWN_CERTIFICATE_NAME)?;
+        // Private key goes under private/
+        let private_key_path = CertificateStore::make_and_ensure_file_path(&CertificateStore::own_private_key_path(pki_path), OWN_PRIVATE_KEY_NAME)?;
 
         // Write the public cert
         CertificateStore::write_cert(&cert, &public_cert_path, args.overwrite)?;
