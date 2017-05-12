@@ -4,50 +4,34 @@ The code is licenced under [MPL-2.0](https://opensource.org/licenses/MPL-2.0). L
 
 # Introduction
 
-[OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) is an industry standard for live monitoring of data. It's intended for embedded devices, industrial control, IoT, PCs, mainframes, cars - just about anything that has data that something else wants to monitor or visualize.
+This is an [OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) server / client API implemented in Rust. 
+It is work in progress but is aiming for embedded profile support according to the specification.
 
-This is an OPC UA server / client API implemented in Rust.
-
-OPC UA is a huge standard defined by different profiles. This implementation will comply with the smallest profiles growing outwards until it reaches a usable level of functionality. 
+OPC UA is an industry standard for live monitoring of data. It's intended for embedded devices, industrial control, IoT, 
+PCs, mainframes, cars - just about anything that has data that something else wants to monitor or visualize. It is
+a huge standard defined by compliance to profiles and facets. This implementation will comply with the smallest profiles 
+growing outwards until it reaches a usable level of functionality. 
 
 ## Rationale - OPC UA for Rust?
 
-Rust is a natural choice for OPC UA due in part to the complexity of OPC UA itself and where it is likely to run. Rust is a systems programming language so it allows an implementation to run as fast as C or C++ but with greater reliability.
+Rust is a natural choice for OPC UA.
 
-* Implementations in C/C++ would be vulnerable to memory leaks, dangling pointers, complexity in their interface
-* Implementations in Java, JavaScript etc. would be vulnerable to fluctuating memory consumption, performance issues
-* An implementation in Rust should deliver C/C++ levels of performance without many of the risks
+* Implementations in C/C++ are vulnerable to memory leaks, dangling pointers, complexity in their interface
+* Implementations in Java, JavaScript etc. would suffer from fluctuating memory consumption, performance issues
 
+An implementation in Rust should deliver high levels of performance without many of the risks associated with C/C++.
 HOWEVER, there are a number of mature OPC UA libraries for other platforms. This is a new project so bugs in logic are 
-likely and inevitable. Certain features found elsewhere may not be implemented.
-
-This implementation will only implement the opc.tcp:// protocol and OPC UA Binary format. It *might* in time, 
-add binary over https. It will **not** implement OPC UA over XML. XML hasn't see much adoption so this is no great 
-impediment.
-
-## Minimizing code through convention
-
-The API is designed on the principle of convention by default to minimize the amount of customization you need to make 
-it do something. 
-
-This is all the code you need to write a minimal, functioning server. 
-
-```rust
-use opcua_server::prelude::*;
-
-fn main() {
-    Server::new_default().run();
-}
-```
-
-This server will accept connections, allow you to browse the address space and subscribe to variables. 
-
-Obviously a real world server needs to do more than this. Refer to the sample-server/ example for something that 
-adds variables to the address space and changes their values on a timer.
+likely and inevitable. Certain features found elsewhere may not be implemented or implemented incorrectly.
 
 # Compliance
 
 The implementation will attempt to comply with the specification and other implementations working out from simpler profiles to more complex. 
+
+## OPC UA Binary 
+
+This implementation will only implement the opc.tcp:// protocol and OPC UA Binary format. It *might* in time, 
+add binary over https. It will **not** implement OPC UA over XML. XML hasn't see much adoption so this is no great 
+impediment.
 
 ## Server
 
@@ -204,7 +188,7 @@ More sophisticated trust based off hostnames, signed certs etc. is unlikely in t
 
 ### Certificate creator
 
-The tools/certificate-creator tool will create a public self-signed cert and private key. You need OpenSSL to build the
+The `tools/certificate-creator` tool will create a public self-signed cert and private key. You need OpenSSL to build the
 tool.
 
 For usage type:
@@ -220,10 +204,46 @@ A minimal usage:
 cargo run --features crypto --
 ```
 
-# Coding style
+# Implementation details
 
-Enums, structs, fields, constants etc. will conform to Rust lint rules. i.e. OPC UA uses pascal case for field
-names but the impl will use snake case.
+## Minimizing code through convention
+
+The API is designed on the principle of convention by default to minimize the amount of customization you need to make 
+it do something. 
+
+This is all the code you need to write a minimal, functioning server. 
+
+```rust
+extern crate opcua_server;
+
+use opcua_server::prelude::*;
+
+fn main() {
+    Server::new_default().run();
+}
+```
+
+This server will accept connections, allow you to browse the address space and subscribe to variables. 
+
+Refer to the sample-server/ example for something that adds variables to the address space and changes their values on a timer.
+
+## Type generation from schemas
+
+Scripts will be used to generate Rust source code from schemas for the following:
+
+* Status codes
+* Node Ids (objects, variables, references etc.)
+* Request and Response messages including serialization
+* Address space
+
+Generated code will reside in generated/ modules and pulled in by the rest of the code. Core types like String, 
+ByteString, Variant, DataValue, NodeId, ExtensionObject etc. are handwritten.
+
+## Handling OPC UA names in Rust
+
+All OPC UA enums, structs, fields, constants etc. will conform to Rust lint rules where it makes sense. 
+i.e. OPC UA uses pascal case for field names but the impl will use snake case, for example `requestHeader` is defined 
+as `request_header`.
 
 ```rust
 struct OpenSecureChannelRequest {
@@ -231,7 +251,8 @@ struct OpenSecureChannelRequest {
 }
 ```
 
-If a enum value is called INVALID_0 it will be called Invalid with a value of 0 in the Rust enum.
+The OPC UA type SecurityPolicy value `INVALID_0` will an enum `SecurityPolicy` with a value `Invalid` with a scalar value 
+of 0.
 
 ```rust 
 pub enum SecurityPolicy {
@@ -263,19 +284,9 @@ pub struct ExtensionObject {
 }
 ```
 
-We can see an ExtensionObject has a node id and a body payload. The body is an enumeration which is either
-empty or holds a byte string or xml element. When the type is serialized it will follow the spec,
-having an encoding byte, length, payload. But in memory we can force the correct type and control what goes
-in and out of the type.
+Rust enables the `body` payload to be `None`, `ByteString` or `XmlElement` and this is handled during serialization.
 
-## Formatting
-
-All code (with the exceptions noted for OPC UA) should be follow the most current Rust RFC coding guidelines for naming
-conventions, layout etc.
-
-Code should be formatted with the IntelliJ rust plugin, or with rustfmt.
-
-## Lint exceptions for OPC UA
+### Lint exceptions for OPC UA
 
 OPC UA has some some really long PascalCase ids, many of which are further broken up by underscores. I've tried converting the 
 name to upper snake and they look terrible. I've tried removing underscores and they look terrible.
@@ -296,16 +307,15 @@ pub enum VariableId {
 
 ### Status codes
 
-Status codes are generated from the schema and are used extensively. Status codes shall conform with the specification,
-i.e. service requests will handle and return expected failure results wherever possible.
+Another change from the spec, is status codes. All status codes will be values of a `StatusCode` enum.
+At present, values are represented as `SNAKE_CASE` and the `StatusCode::` enum namespace will not be a necessary prefix. 
 
-To avoid unnecessary code and to make the errors stand out, the values will be `SNAKE_CASE` and the `StatusCode::` enum 
-namespace will not be a necessary prefix. So code may refer to `GOOD`, `BAD_UNEXPECTED_ERROR` etc. without qualification.
+So code will contain values such as `GOOD`, `BAD_UNEXPECTED_ERROR` etc. without qualification.
+
 Note: the decision to upper case codes is subject to review because it is inconsistent with node ids above.
 
-The enum will also implement `Copy` so that status codes are copy on assign. 
-
-The enum also provides helpers such as `is_good()`, `is_bad()`, `name()` and `description()` for testing and debugging purposes.
+The enum will also implement `Copy` so that status codes are copy on assign. The enum also provides helpers such 
+as `is_good()`, `is_bad()`, `name()` and `description()` for testing and debugging purposes.
 
 ```rust
 #[allow(non_camel_case_types)]
@@ -327,6 +337,59 @@ pub enum StatusCode {
 pub use self::status_codes::StatusCode::*;
 ```
 
+## Formatting
+
+All code (with the exceptions noted for OPC UA) should be follow the most current Rust RFC coding guidelines for naming
+conventions, layout etc.
+
+Code should be formatted with the IntelliJ rust plugin, or with rustfmt.
+
+## Implementation plan
+
+### Server
+
+The intention is that the implementation will work its way through OPC UA profiles from nano to embedded to standard to attain a level of functionality acceptable to most consumers of the API.
+
+Profiles are defined in "OPC UA Part 7 - Profiles 1.03 Specification"
+
+This [OPC UA link](http://opcfoundation-onlineapplications.org/ProfileReporting/index.htm) provides interactive and descriptive information about
+profiles and relevant test cases.
+
+* Phase 0: Types, project structure, code generation tools, basic connectivity, binary transport format, services framework
+* Phase 1. This phase mostly implements the Nano Embedded Device Server Profile, which has these main points
+  * SecurityPolicy of None (i.e. no encryption / signing)
+  * Username / Password support (plaintext)
+  * Address space
+  * Discovery Services
+  * Session Services (minimum, single session)
+  * View Services (basic)
+* **Phase 2:** Micro Embedded Device Server Profile. This is a bump up from Nano, supporting 2 or more sessions and data change notifications via a subscription. Internally, first efforts at writing a client may start here. Clients share most of the same structs as the server as well as utility code such as chunking etc. Where the client differs is that where a server deserializes certain messages and serializes others, the client does the opposite. So code must serialize and deserialize correctly. In addition the client has its own client side state starting with the HELLO, open secure channel, subscription state etc. 
+* Phase 3: Phase 3 Embedded UA Server Profile. This phase will bring the UA server up to the point that it is probably useful for most day-to-day functions and most clients. It includes support for Basic1238Rsa15 and PKI infrastructure. Internally, chunks can be signed and optionally encrypted. This means code that reads data from a chunk will have to be decrypted first and any padding / signature removed. Crypto happens on a per-chunk level so chunks have to be verified, decrypted and then stitched together to be turned into messages. In addition the open secure channel code needs to cope with crypto, trust / cert failures, reissue tokens and all the other issues that may occur. 
+* Phase 4 Standard UA Server Profile - Basically embedded + enhanced data change subscription server facet + X509 user token server facet
+
+### Client
+
+Client functionality takes second place to server functionality. Client will not happen until at least a nano server exists.
+
+In some respects implementing the client is HARDER than server since it must maintain state and attempt to reconnect when the 
+connection goes down. Client OPC UA is governed by its own core characteristics. These will be implemented to test the server functionality in general order:
+
+* Base client behaviour facet - 
+* Core client facet (crypto, security policy)
+* Attribute read / write
+* Datachange subscriber
+* Durable subscription client (i.e. ability to reconnect and re-establish group after disconnect)
+
+## Major 3rd party dependencies
+
+* log - for logging / auditing
+* openssl - cryptographic functions for signing, certifications and encryption/decryption
+* serde, server_yaml - for processing config files
+* byteorder - for serializing values with the proper endian-ness
+* chrono - for high quality time functions
+* time - for some types that chrono still uses, e.g. Duration
+* random - for random number generation in some places
+
 # Testing
 
 ## Unit tests
@@ -337,7 +400,7 @@ The plan is for unit tests for at least the following
 * Chunking messages together, handling errors, buffer limits
 * Limit validation on string, array fields which have size limits
 * OpenSecureChannel, CloseSecureChannel request and response
-* Sign and encrypt (when implemented)
+* Sign, verify, encrypt and decrypt (when implemented)
 * Data change filters
 * Subscription state engine
 
@@ -356,7 +419,8 @@ Integration testing shall wait for client and server to be implemented. At that 
 See this [OPC UA link](http://opcfoundation-onlineapplications.org/ProfileReporting/index.htm) and click
 on the test case links associated with facets.
 
-There are a lot of tests. Any that can be sanely automated or covered by unit / integration tests will be. The project will not be a slave to these tests, but it will try to ensure compatibility.
+There are a lot of tests. Any that can be sanely automated or covered by unit / integration tests will be. 
+The project will not be a slave to these tests, but it will try to ensure compatibility.
 
 ## 3rd party testing
 
@@ -381,49 +445,3 @@ And in another shell
 opcua-commander -e opc.tcp://localhost:1234
 ```
 
-# Implementation plan
-
-## Server
-
-The intention is that the implementation will work its way through OPC UA profiles from nano to embedded to standard to attain a level of functionality acceptable to most consumers of the API.
-
-Profiles are defined in "OPC UA Part 7 - Profiles 1.03 Specification"
-
-This [OPC UA link](http://opcfoundation-onlineapplications.org/ProfileReporting/index.htm) provides interactive and descriptive information about
-profiles and relevant test cases.
-
-* Phase 0: Types, basic functionality - This phase focussed on the project structure, dependencies, tools to generate source from schemas,
-basic connectivity, binary transport format, services framework and other foundational work.
-* Phase 1. This phase mostly implements the Nano Embedded Device Server Profile, which has these main points
-  * SecurityPolicy of None (i.e. no encryption / signing)
-  * Username / Password support
-  * Address space
-  * Discovery Services
-  * Session Services (minimum, single session)
-  * View Services (basic)
-* Phase 2: Micro Embedded Device Server Profile. This is a bump up from Nano, supporting 2 or more sessions and data change notifications via a subscription. Internally, first efforts at writing a client may start here. Clients share most of the same structs as the server as well as utility code such as chunking etc. Where the client differs is that where a server deserializes certain messages and serializes others, the client does the opposite. So code must serialize and deserialize correctly. In addition the client has its own client side state starting with the HELLO, open secure channel, subscription state etc. 
-* Phase 3: Phase 3 Embedded UA Server Profile. This phase will bring the UA server up to the point that it is probably useful for most day-to-day functions and most clients. It includes support for Basic1238Rsa15 and PKI infrastructure. Internally, chunks can be signed and optionally encrypted. This means code that reads data from a chunk will have to be decrypted first and any padding / signature removed. Crypto happens on a per-chunk level so chunks have to be verified, decrypted and then stitched together to be turned into messages. In addition the open secure channel code needs to cope with crypto, trust / cert failures, reissue tokens and all the other issues that may occur. 
-* Phase 4 Standard UA Server Profile - Basically embedded + enhanced data change subscription server facet + X509 user token server facet
-
-## Client
-
-Client functionality takes second place to server functionality. Client will not happen until at least a nano server exists.
-
-In some respects implementing the client is HARDER than server since it must maintain state and attempt to reconnect when the 
-connection goes down. Client OPC UA is governed by its own core characteristics. These will be implemented to test the server functionality in general order:
-
-* Base client behaviour facet - 
-* Core client facet (crypto, security policy)
-* Attribute read / write
-* Datachange subscriber
-* Durable subscription client (i.e. ability to reconnect and re-establish group after disconnect)
-
-## Major 3rd party dependencies
-
-* log - for logging / auditing
-* OpenSSL - required for crypto
-* serde, server_yaml - for processing config files
-* byteorder - for serializing values with the proper endian-ness
-* chrono - for high quality time functions
-* time - for some types that chrono still uses, e.g. Duration
-* random - for random number generation in some places
