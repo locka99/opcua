@@ -6,7 +6,7 @@ use opcua_core::comms::*;
 
 use address_space::*;
 use server::ServerState;
-use session::SessionState;
+use session::Session;
 
 pub struct ViewService {}
 
@@ -24,7 +24,7 @@ impl ViewService {
         ViewService {}
     }
 
-    pub fn browse(&self, server_state: &mut ServerState, _: &mut SessionState, request: BrowseRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn browse(&self, server_state: &mut ServerState, _: &mut Session, request: BrowseRequest) -> Result<SupportedMessage, StatusCode> {
         let service_status = GOOD;
 
         let browse_results = if request.nodes_to_browse.is_some() {
@@ -81,7 +81,7 @@ impl ViewService {
         Ok(SupportedMessage::BrowseResponse(response))
     }
 
-    pub fn browse_next(&self, _: &mut ServerState, _: &mut SessionState, request: BrowseNextRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn browse_next(&self, _: &mut ServerState, _: &mut Session, request: BrowseNextRequest) -> Result<SupportedMessage, StatusCode> {
         // BrowseNext does nothing
         let service_status = BAD_NOTHING_TO_DO;
         let response = BrowseNextResponse {
@@ -92,7 +92,7 @@ impl ViewService {
         Ok(SupportedMessage::BrowseNextResponse(response))
     }
 
-    pub fn translate_browse_paths_to_node_ids(&self, _: &mut ServerState, _: &mut SessionState, request: TranslateBrowsePathsToNodeIdsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn translate_browse_paths_to_node_ids(&self, _: &mut ServerState, _: &mut Session, request: TranslateBrowsePathsToNodeIdsRequest) -> Result<SupportedMessage, StatusCode> {
         let (service_status, results) = (BAD_NOTHING_TO_DO, None); /* if request.browse_paths.is_none() {
             let browse_paths = request.browse_paths.as_ref().unwrap();
 

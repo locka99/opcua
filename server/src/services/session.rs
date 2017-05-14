@@ -6,7 +6,7 @@ use opcua_core::comms::*;
 
 use constants;
 use server::{Endpoint, ServerState};
-use session::{SessionState};
+use session::{Session};
 
 pub struct SessionService {}
 
@@ -15,7 +15,7 @@ impl SessionService {
         SessionService {}
     }
 
-    pub fn create_session(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: CreateSessionRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn create_session(&self, server_state: &mut ServerState, session: &mut Session, request: CreateSessionRequest) -> Result<SupportedMessage, StatusCode> {
         // TODO crypto validate client certificate
 
         // Validate the endpoint url
@@ -30,7 +30,7 @@ impl SessionService {
 
         let service_status = GOOD;
 
-        let session_id = session_state.next_session_id();
+        let session_id = session.next_session_id();
         let authentication_token = NodeId::new_byte_string(0, ByteString::random(32));
         let session_timeout = constants::SESSION_TIMEOUT;
         let max_request_message_size = constants::MAX_REQUEST_MESSAGE_SIZE;
@@ -44,13 +44,13 @@ impl SessionService {
             signature: ByteString::null(),
         };
 
-        session_state.session_id = session_id.clone();
-        session_state.authentication_token = authentication_token.clone();
-        session_state.session_timeout = session_timeout;
-        session_state.max_request_message_size = max_request_message_size;
-        session_state.max_response_message_size = request.max_response_message_size;
-        session_state.endpoint_url = request.endpoint_url.clone();
-        session_state.user_identity = None;
+        session.session_id = session_id.clone();
+        session.authentication_token = authentication_token.clone();
+        session.session_timeout = session_timeout;
+        session.max_request_message_size = max_request_message_size;
+        session.max_response_message_size = request.max_response_message_size;
+        session.endpoint_url = request.endpoint_url.clone();
+        session.user_identity = None;
 
         let response = CreateSessionResponse {
             response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
@@ -68,13 +68,13 @@ impl SessionService {
         Ok(SupportedMessage::CreateSessionResponse(response))
     }
 
-    pub fn activate_session(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: ActivateSessionRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn activate_session(&self, server_state: &mut ServerState, session: &mut Session, request: ActivateSessionRequest) -> Result<SupportedMessage, StatusCode> {
         // TODO crypto see 5.6.3.1 verify the caller is the same caller as create_session by validating
         // signature supplied by client
 
         // TODO crypto secure channel verification
 
-        let endpoint = SessionService::get_session_endpoint(server_state, session_state);
+        let endpoint = SessionService::get_session_endpoint(server_state, session);
         if endpoint.is_none() {
             return Err(BAD_TCP_ENDPOINT_URL_INVALID);
         }
@@ -84,7 +84,7 @@ impl SessionService {
         let service_status = GOOD;
         let server_nonce = ByteString::random(32);
 
-        session_state.activated = true;
+        session.activated = true;
 
         let response = ActivateSessionResponse {
             response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
@@ -96,23 +96,23 @@ impl SessionService {
         Ok(SupportedMessage::ActivateSessionResponse(response))
     }
 
-    pub fn close_session(&self, _: &mut ServerState, session_state: &mut SessionState, request: CloseSessionRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn close_session(&self, _: &mut ServerState, session: &mut Session, request: CloseSessionRequest) -> Result<SupportedMessage, StatusCode> {
         let service_status = GOOD;
-        session_state.authentication_token = NodeId::null();
-        session_state.user_identity = None;
-        session_state.activated = false;
+        session.authentication_token = NodeId::null();
+        session.user_identity = None;
+        session.activated = false;
         let response = CloseSessionResponse {
             response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
         };
         Ok(SupportedMessage::CloseSessionResponse(response))
     }
 
-    fn get_session_endpoint(server_state: &ServerState, session_state: &SessionState) -> Option<Endpoint> {
+    fn get_session_endpoint(server_state: &ServerState, session: &Session) -> Option<Endpoint> {
         // Get security from endpoint url
-        if session_state.endpoint_url.is_null() {
+        if session.endpoint_url.is_null() {
             None
         } else {
-            server_state.find_endpoint(session_state.endpoint_url.to_str())
+            server_state.find_endpoint(session.endpoint_url.to_str())
         }
     }
 }

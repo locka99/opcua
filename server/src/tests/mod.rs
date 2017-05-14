@@ -93,7 +93,7 @@ pub fn expired_publish_requests() {
     pr2.request.request_header.timeout_hint = 3000;
 
     // Create session with publish requests
-    let mut session = SessionState::new();
+    let mut session = Session::new();
     session.publish_request_queue = vec![pr1, pr2];
 
     // Expire requests, see which expire

@@ -42,7 +42,7 @@ impl SessionDiagnostics {
 }
 
 /// Session state is anything associated with the session at the message / service level
-pub struct SessionState {
+pub struct Session {
     /// Subscriptions associated with the session
     pub subscriptions: HashMap<UInt32, Subscription>,
     /// The publish requeust queue (requests by the client on the session)
@@ -69,9 +69,9 @@ pub struct SessionState {
     last_session_id: UInt32,
 }
 
-impl SessionState {
-    pub fn new() -> SessionState {
-        SessionState {
+impl Session {
+    pub fn new() -> Session {
+        Session {
             subscriptions: HashMap::new(),
             publish_request_queue: Vec::with_capacity(MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE),
             session_id: NodeId::null(),

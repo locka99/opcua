@@ -5,7 +5,7 @@ use opcua_core::services::*;
 use opcua_core::comms::*;
 
 use server::ServerState;
-use session::SessionState;
+use session::Session;
 
 pub struct DiscoveryService {}
 
@@ -14,7 +14,7 @@ impl DiscoveryService {
         DiscoveryService {}
     }
 
-    pub fn get_endpoints(&self, server_state: &mut ServerState, _: &mut SessionState, request: GetEndpointsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn get_endpoints(&self, server_state: &mut ServerState, _: &mut Session, request: GetEndpointsRequest) -> Result<SupportedMessage, StatusCode> {
         let service_status = GOOD;
         let response = GetEndpointsResponse {
             response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),

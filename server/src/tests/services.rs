@@ -45,7 +45,7 @@ fn browse_nodes() {
     let view = ViewService::new();
     {
         let mut server_state = tcp_session.server_state.lock().unwrap();
-        let mut session_state = tcp_session.session_state.lock().unwrap();
+        let mut session = tcp_session.session.lock().unwrap();
 
         {
             let mut address_space = server_state.address_space.lock().unwrap();
@@ -53,7 +53,7 @@ fn browse_nodes() {
         }
 
         let request = make_browse_request(vec![ObjectId::RootFolder.as_node_id()], BrowseDirection::Forward, ReferenceTypeId::Organizes);
-        let result = view.browse(&mut server_state, &mut session_state, request);
+        let result = view.browse(&mut server_state, &mut session, request);
         assert!(result.is_ok());
 
         let result = result.unwrap();

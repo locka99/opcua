@@ -6,7 +6,7 @@ use opcua_core::comms::*;
 
 use subscriptions::*;
 use server::ServerState;
-use session::SessionState;
+use session::Session;
 
 pub struct SubscriptionService {}
 
@@ -16,8 +16,8 @@ impl SubscriptionService {
     }
 
     /// Handles a CreateSubscriptionRequest
-    pub fn create_subscription(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: CreateSubscriptionRequest) -> Result<SupportedMessage, StatusCode> {
-        let subscriptions = &mut session_state.subscriptions;
+    pub fn create_subscription(&self, server_state: &mut ServerState, session: &mut Session, request: CreateSubscriptionRequest) -> Result<SupportedMessage, StatusCode> {
+        let subscriptions = &mut session.subscriptions;
         let response = if server_state.max_subscriptions > 0 && subscriptions.len() >= server_state.max_subscriptions {
             CreateSubscriptionResponse {
                 response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, BAD_TOO_MANY_SUBSCRIPTIONS),
@@ -51,8 +51,8 @@ impl SubscriptionService {
     }
 
     /// Handles a ModifySubscriptionRequest
-    pub fn modify_subscription(&self, server_state: &mut ServerState, session_state: &mut SessionState, request: ModifySubscriptionRequest) -> Result<SupportedMessage, StatusCode> {
-        let  subscriptions = &mut session_state.subscriptions;
+    pub fn modify_subscription(&self, server_state: &mut ServerState, session: &mut Session, request: ModifySubscriptionRequest) -> Result<SupportedMessage, StatusCode> {
+        let  subscriptions = &mut session.subscriptions;
         let subscription_id = request.subscription_id;
         let response = if !subscriptions.contains_key(&subscription_id) {
             ModifySubscriptionResponse {
@@ -85,12 +85,12 @@ impl SubscriptionService {
     }
 
     /// Handles a DeleteSubscriptionsRequest
-    pub fn delete_subscriptions(&self, _: &mut ServerState, session_state: &mut SessionState, request: DeleteSubscriptionsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn delete_subscriptions(&self, _: &mut ServerState, session: &mut Session, request: DeleteSubscriptionsRequest) -> Result<SupportedMessage, StatusCode> {
         let (service_status, results) = if request.subscription_ids.is_some() {
             let subscription_ids = request.subscription_ids.as_ref().unwrap();
             let mut results = Vec::with_capacity(subscription_ids.len());
 
-            let  subscriptions = &mut session_state.subscriptions;
+            let  subscriptions = &mut session.subscriptions;
             for subscription_id in subscription_ids {
                 if subscriptions.contains_key(subscription_id) {
                     subscriptions.remove(subscription_id);
@@ -112,14 +112,14 @@ impl SubscriptionService {
     }
 
     /// Handles a SerPublishingModeRequest
-    pub fn set_publishing_mode(&self, _: &mut ServerState, session_state: &mut SessionState, request: SetPublishingModeRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn set_publishing_mode(&self, _: &mut ServerState, session: &mut Session, request: SetPublishingModeRequest) -> Result<SupportedMessage, StatusCode> {
         let (service_status, results) = if request.subscription_ids.is_none() {
             (BAD_NOTHING_TO_DO, None)
         } else {
             let publishing_enabled = request.publishing_enabled;
             let subscription_ids = request.subscription_ids.as_ref().unwrap();
             let mut results = Vec::with_capacity(subscription_ids.len());
-            let subscriptions = &mut session_state.subscriptions;
+            let subscriptions = &mut session.subscriptions;
             for subscription_id in subscription_ids {
                 if subscriptions.contains_key(subscription_id) {
                     let mut subscription = subscriptions.get_mut(subscription_id).unwrap();
@@ -140,9 +140,9 @@ impl SubscriptionService {
     }
 
     /// Handles a PublishRequest
-    pub fn publish(&self, server_state: &mut ServerState, session_state: &mut SessionState, request_id: UInt32, request: PublishRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn publish(&self, server_state: &mut ServerState, session: &mut Session, request_id: UInt32, request: PublishRequest) -> Result<SupportedMessage, StatusCode> {
         debug!("--> Receive a PublishRequest {:?}", request);
-        let publish_responses = session_state.enqueue_publish_request(server_state, request_id, request)?;
+        let publish_responses = session.enqueue_publish_request(server_state, request_id, request)?;
         if publish_responses.is_some() {
             let mut publish_responses = publish_responses.unwrap();
             if publish_responses.len() != 1 {
@@ -157,7 +157,7 @@ impl SubscriptionService {
     }
 
     /// Handles a RepublishRequest
-    pub fn republish(&self, _: &mut ServerState, _: &mut SessionState, request: RepublishRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn republish(&self, _: &mut ServerState, _: &mut Session, request: RepublishRequest) -> Result<SupportedMessage, StatusCode> {
         // TODO look for the subscription id and sequence number in the sent items and resend it
         let response = RepublishResponse {
             response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, BAD_MESSAGE_NOT_AVAILABLE),

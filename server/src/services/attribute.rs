@@ -6,7 +6,7 @@ use opcua_core::services::*;
 
 use address_space::*;
 use server::ServerState;
-use session::SessionState;
+use session::Session;
 
 pub struct AttributeService {}
 
@@ -23,7 +23,7 @@ impl AttributeService {
     /// elements or to read ranges of elements of the composite. Servers may make historical
     /// values available to Clients using this Service, although the historical values themselves
     /// are not visible in the AddressSpace.
-    pub fn read(&self, server_state: &mut ServerState, _: &mut SessionState, request: ReadRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn read(&self, server_state: &mut ServerState, _: &mut Session, request: ReadRequest) -> Result<SupportedMessage, StatusCode> {
         let mut service_status = GOOD;
 
         // Read nodes and their attributes
@@ -114,7 +114,7 @@ impl AttributeService {
     /// constructed Attribute values whose elements are indexed, such as an array, this Service
     /// allows Clients to write the entire set of indexed values as a composite, to write individual
     /// elements or to write ranges of elements of the composite.
-    pub fn write(&self, server_state: &mut ServerState, _: &mut SessionState, request: WriteRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn write(&self, server_state: &mut ServerState, _: &mut Session, request: WriteRequest) -> Result<SupportedMessage, StatusCode> {
         let mut service_status = GOOD;
         let results = if let Some(ref nodes_to_write) = request.nodes_to_write {
             let mut results: Vec<StatusCode> = Vec::with_capacity(nodes_to_write.len());

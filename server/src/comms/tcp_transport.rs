@@ -18,11 +18,11 @@ use opcua_core::debug::*;
 
 use constants;
 use server::ServerState;
-use session::SessionState;
+use session::Session;
 use comms::message_handler::*;
 use subscriptions::{SubscriptionEvent};
 
-// TODO these need to go, and use session_state settings
+// TODO these need to go, and use session settings
 const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;
 const SEND_BUFFER_SIZE: usize = 1024 * 64;
 const MAX_MESSAGE_SIZE: usize = 1024 * 64;
@@ -41,7 +41,7 @@ pub struct TcpTransport {
     // Server state, address space etc.
     pub server_state: Arc<Mutex<ServerState>>,
     // Session state - open sessions, tokens etc
-    pub session_state: Arc<Mutex<SessionState>>,
+    pub session: Arc<Mutex<Session>>,
     /// Session state is anything related to this connection
     /// The current session state
     pub transport_state: TransportState,
@@ -63,15 +63,15 @@ pub struct TcpTransport {
 
 impl TcpTransport {
     pub fn new(server_state: Arc<Mutex<ServerState>>) -> TcpTransport {
-        let session_state = Arc::new(Mutex::new(SessionState::new()));
+        let session = Arc::new(Mutex::new(Session::new()));
         TcpTransport {
             server_state: server_state.clone(),
-            session_state: session_state.clone(),
+            session: session.clone(),
             transport_state: TransportState::New,
             client_protocol_version: 0,
             last_secure_channel_id: 0,
             secure_channel_info: SecureChannelInfo::new(),
-            message_handler: MessageHandler::new(server_state.clone(), session_state.clone()),
+            message_handler: MessageHandler::new(server_state.clone(), session.clone()),
             last_token_id: 0,
             last_sent_sequence_number: 0,
             last_received_sequence_number: 0,
@@ -236,7 +236,7 @@ impl TcpTransport {
     fn start_subscription_timer(&mut self) -> (timer::Timer, timer::Guard, Receiver<SubscriptionEvent>) {
         let (subscription_timer_tx, subscription_timer_rx) = mpsc::channel();
 
-        let session_state = self.session_state.clone();
+        let session = self.session.clone();
         let server_state = self.server_state.clone();
 
         // Creates a repeating timer that checks subscriptions. The guard is returned to the caller
@@ -244,17 +244,17 @@ impl TcpTransport {
         let subscription_timer = timer::Timer::new();
         let subscription_timer_guard = subscription_timer.schedule_repeating(time::Duration::milliseconds(constants::SUBSCRIPTION_TIMER_RATE_MS), move || {
             let server_state = server_state.lock().unwrap();
-            let mut session_state = session_state.lock().unwrap();
+            let mut session = session.lock().unwrap();
 
             // Request queue might contain stale publish requests
-            if let Some(publish_responses) = session_state.expire_stale_publish_requests(&UTC::now()) {
+            if let Some(publish_responses) = session.expire_stale_publish_requests(&UTC::now()) {
                 let _ = subscription_timer_tx.send(SubscriptionEvent::PublishResponses(publish_responses));
             }
 
             // Process subscriptions
             {
                 let address_space = server_state.address_space.lock().unwrap();
-                if let Some(publish_responses) = session_state.tick_subscriptions(false, &address_space) {
+                if let Some(publish_responses) = session.tick_subscriptions(false, &address_space) {
                     info!("Sending publish responses to session thread");
                     let sent = subscription_timer_tx.send(SubscriptionEvent::PublishResponses(publish_responses));
                     if sent.is_err() {

@@ -4,7 +4,7 @@ use opcua_core::types::*;
 use opcua_core::comms::*;
 
 use server::ServerState;
-use session::SessionState;
+use session::Session;
 
 use services::attribute::*;
 use services::discovery::*;
@@ -18,7 +18,7 @@ pub struct MessageHandler {
     /// Server state
     server_state: Arc<Mutex<ServerState>>,
     /// Session state
-    session_state: Arc<Mutex<SessionState>>,
+    session: Arc<Mutex<Session>>,
     /// Attribute service
     attribute_service: AttributeService,
     /// Discovery service
@@ -34,10 +34,10 @@ pub struct MessageHandler {
 }
 
 impl MessageHandler {
-    pub fn new(server_state: Arc<Mutex<ServerState>>, session_state: Arc<Mutex<SessionState>>) -> MessageHandler {
+    pub fn new(server_state: Arc<Mutex<ServerState>>, session: Arc<Mutex<Session>>) -> MessageHandler {
         MessageHandler {
             server_state: server_state,
-            session_state: session_state,
+            session: session,
             attribute_service: AttributeService::new(),
             discovery_service: DiscoveryService::new(),
             monitored_item_service: MonitoredItemService::new(),
@@ -50,63 +50,63 @@ impl MessageHandler {
     pub fn handle_message(&mut self, request_id: UInt32, message: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
         let mut server_state = self.server_state.lock().unwrap();
         let mut server_state = &mut server_state;
-        let mut session_state = self.session_state.lock().unwrap();
-        let mut session_state = &mut session_state;
+        let mut session = self.session.lock().unwrap();
+        let mut session = &mut session;
 
         let response = match message {
             SupportedMessage::GetEndpointsRequest(request) => {
-                self.discovery_service.get_endpoints(server_state, session_state, request)?
+                self.discovery_service.get_endpoints(server_state, session, request)?
             }
             SupportedMessage::CreateSessionRequest(request) => {
-                self.session_service.create_session(server_state, session_state, request)?
+                self.session_service.create_session(server_state, session, request)?
             }
             SupportedMessage::CloseSessionRequest(request) => {
-                self.session_service.close_session(server_state, session_state, request)?
+                self.session_service.close_session(server_state, session, request)?
             }
             SupportedMessage::ActivateSessionRequest(request) => {
-                self.session_service.activate_session(server_state, session_state, request)?
+                self.session_service.activate_session(server_state, session, request)?
             }
             SupportedMessage::CreateSubscriptionRequest(request) => {
-                self.subscription_service.create_subscription(server_state, session_state, request)?
+                self.subscription_service.create_subscription(server_state, session, request)?
             }
             SupportedMessage::ModifySubscriptionRequest(request) => {
-                self.subscription_service.modify_subscription(server_state, session_state, request)?
+                self.subscription_service.modify_subscription(server_state, session, request)?
             }
             SupportedMessage::DeleteSubscriptionsRequest(request) => {
-                self.subscription_service.delete_subscriptions(server_state, session_state, request)?
+                self.subscription_service.delete_subscriptions(server_state, session, request)?
             }
             SupportedMessage::SetPublishingModeRequest(request) => {
-                self.subscription_service.set_publishing_mode(server_state, session_state, request)?
+                self.subscription_service.set_publishing_mode(server_state, session, request)?
             }
             SupportedMessage::PublishRequest(request) => {
-                self.subscription_service.publish(server_state, session_state, request_id, request)?
+                self.subscription_service.publish(server_state, session, request_id, request)?
             }
             SupportedMessage::RepublishRequest(request) => {
-                self.subscription_service.republish(server_state, session_state, request)?
+                self.subscription_service.republish(server_state, session, request)?
             }
             SupportedMessage::BrowseRequest(request) => {
-                self.view_service.browse(server_state, session_state, request)?
+                self.view_service.browse(server_state, session, request)?
             }
             SupportedMessage::BrowseNextRequest(request) => {
-                self.view_service.browse_next(server_state, session_state, request)?
+                self.view_service.browse_next(server_state, session, request)?
             }
             SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(request) => {
-                self.view_service.translate_browse_paths_to_node_ids(server_state, session_state, request)?
+                self.view_service.translate_browse_paths_to_node_ids(server_state, session, request)?
             }
             SupportedMessage::ReadRequest(request) => {
-                self.attribute_service.read(server_state, session_state, request)?
+                self.attribute_service.read(server_state, session, request)?
             }
             SupportedMessage::WriteRequest(request) => {
-                self.attribute_service.write(server_state, session_state, request)?
+                self.attribute_service.write(server_state, session, request)?
             }
             SupportedMessage::CreateMonitoredItemsRequest(request) => {
-                self.monitored_item_service.create_monitored_items(server_state, session_state, request)?
+                self.monitored_item_service.create_monitored_items(server_state, session, request)?
             }
             SupportedMessage::ModifyMonitoredItemsRequest(request) => {
-                self.monitored_item_service.modify_monitored_items(server_state, session_state, request)?
+                self.monitored_item_service.modify_monitored_items(server_state, session, request)?
             }
             SupportedMessage::DeleteMonitoredItemsRequest(request) => {
-                self.monitored_item_service.delete_monitored_items(server_state, session_state, request)?
+                self.monitored_item_service.delete_monitored_items(server_state, session, request)?
             }
             _ => {
                 debug!("Message handler does not handle this kind of message {:?}", message);
