@@ -130,18 +130,13 @@ impl Session {
                 if let Some(update_state_result) = update_state_result {
                     if let Some(publish_response) = publish_response {
                         if publish_request.is_none() {
-                            panic!("Should not be publishing a response without a request");
-                        }
-                        if update_state_result.publish_request_action != PublishRequestAction::Dequeue {
-                            panic!("State machine is not telling us the thing we expect to hear");
+                            panic!("Should not be publishing a response without a request, state = {:?}", update_state_result);
                         }
                         debug!("Queuing a publish response {:?}", publish_response);
                         request_response_results.push((publish_request.unwrap(), publish_response));
-                    } else {
-                        if publish_request.is_some() {
-                            // Put the request back
-                            self.publish_request_queue.push(publish_request.unwrap());
-                        }
+                    } else if publish_request.is_some() {
+                        // Put the request back
+                        self.publish_request_queue.push(publish_request.unwrap());
                     }
                 }
             }

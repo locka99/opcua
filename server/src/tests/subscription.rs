@@ -40,7 +40,6 @@ fn update_state_3() {
 
     assert_eq!(update_state_result.handled_state, 3);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
-    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::Normal);
     assert_eq!(s.message_sent, false);
 }
@@ -72,7 +71,6 @@ fn update_state_4() {
 
     assert_eq!(update_state_result.handled_state, 4);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
-    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::Normal);
 
     // TODO repeat with publishing enabled true, more notifications false
@@ -103,7 +101,6 @@ fn update_state_5() {
 
     assert_eq!(update_state_result.handled_state, 5);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnNotifications);
-    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::Normal);
     assert_eq!(s.lifetime_counter, s.max_lifetime_count);
     assert_eq!(s.message_sent, true);
@@ -134,7 +131,6 @@ fn update_state_6() {
     // ensure 6
     assert_eq!(update_state_result.handled_state, 6);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnNotifications);
-    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::Dequeue);
     assert_eq!(s.state, SubscriptionState::Normal);
     assert_eq!(s.lifetime_counter, 299);
     assert_eq!(s.message_sent, true);
@@ -161,7 +157,6 @@ fn update_state_7() {
 
     assert_eq!(update_state_result.handled_state, 7);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnKeepAlive);
-    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::Dequeue);
     assert_eq!(s.state, SubscriptionState::Normal);
     assert_eq!(s.lifetime_counter, 299);
     assert_eq!(s.message_sent, true);
@@ -188,7 +183,6 @@ fn update_state_8() {
 
     assert_eq!(update_state_result.handled_state, 8);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
-    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::Late);
     // ensure start publishing timer
 }
@@ -213,7 +207,6 @@ fn update_state_9() {
 
     assert_eq!(update_state_result.handled_state, 9);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
-    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::KeepAlive);
     assert_eq!(s.keep_alive_counter, s.max_keep_alive_count);
 }
@@ -233,7 +226,6 @@ fn update_state_10() {
 
     assert_eq!(update_state_result.handled_state, 10);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnNotifications);
-    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::Normal);
     assert_eq!(s.message_sent, true);
 }
@@ -253,7 +245,6 @@ fn update_state_11() {
 
     assert_eq!(update_state_result.handled_state, 11);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnKeepAlive);
-    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::KeepAlive);
     assert_eq!(s.message_sent, true);
 }
@@ -273,7 +264,6 @@ fn update_state_12() {
 
     assert_eq!(update_state_result.handled_state, 12);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
-    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::Late);
 }
 
@@ -289,7 +279,6 @@ fn update_state_13() {
 
     assert_eq!(update_state_result.handled_state, 13);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
-    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::KeepAlive);
 }
 
@@ -309,7 +298,6 @@ fn update_state_14() {
 
     assert_eq!(update_state_result.handled_state, 14);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnNotifications);
-    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::Dequeue);
     assert_eq!(s.state, SubscriptionState::Normal);
 }
 
@@ -330,7 +318,6 @@ fn update_state_15() {
 
     assert_eq!(update_state_result.handled_state, 15);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnKeepAlive);
-    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::Dequeue);
     assert_eq!(s.state, SubscriptionState::KeepAlive);
     assert_eq!(s.keep_alive_counter, s.max_keep_alive_count);
 }
@@ -350,7 +337,6 @@ fn update_state_16() {
 
     assert_eq!(update_state_result.handled_state, 16);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
-    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::KeepAlive);
     assert_eq!(s.keep_alive_counter, 4);
 }
@@ -371,7 +357,6 @@ fn update_state_17() {
 
     assert_eq!(update_state_result.handled_state, 17);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
-    assert_eq!(update_state_result.publish_request_action, PublishRequestAction::None);
     assert_eq!(s.state, SubscriptionState::Late);
     assert_eq!(s.keep_alive_counter, 1);
 }
