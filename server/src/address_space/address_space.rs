@@ -355,6 +355,17 @@ impl AddressSpace {
         self.set_variable_value(&VariableId::Server_ServerCapabilities_MaxQueryContinuationPoints.as_node_id(), Variant::UInt32(0));
         self.set_variable_value(&VariableId::Server_ServerCapabilities_MinSupportedSampleRate.as_node_id(), Variant::Double(constants::MIN_SAMPLING_INTERVAL));
 
+        // ServiceLevel - 0-255 worst to best quality of service
+        self.set_variable_value(&VariableId::Server_ServiceLevel.as_node_id(), Variant::Byte(255));
+
+        // Auditing - var
+        // ServerDiagnostics
+        // VendorServiceInfo
+        // ServerRedundancy
+
+        // Server status
+        self.set_variable_value(&VariableId::Server_ServerStatus_StartTime.as_node_id(), Variant::DateTime(DateTime::now()));
+        // TODO Server_ServerStatus_CurrentTime
         // State OPC UA Part 5 12.6, Valid states are
         //
         // Running = 0
@@ -368,13 +379,13 @@ impl AddressSpace {
         //     State (Server_ServerStatus_State)
         self.set_variable_value(&VariableId::Server_ServerStatus_State.as_node_id(), Variant::UInt32(0));
 
-        // ServiceLevel - 0-255 worst to best quality of service
-        self.set_variable_value(&VariableId::Server_ServiceLevel.as_node_id(), Variant::Byte(255));
-
-        // Auditing - var
-        // ServerDiagnostics
-        // VendorServiceInfo
-        // ServerRedundancy
+        // ServerStatus_BuildInfo
+        //    BuildDate
+        //    BuildNumber
+        //    ManufacturerName
+        //    ProductName
+        //    ProductUri
+        //    SoftwareVersion
     }
 
     pub fn insert_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) {
