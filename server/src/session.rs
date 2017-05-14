@@ -2,7 +2,6 @@ use std::collections::{HashMap, HashSet};
 
 use time;
 use chrono;
-
 use prelude::*;
 
 use DateTimeUTC;
@@ -43,7 +42,6 @@ impl SessionDiagnostics {
 }
 
 /// Session state is anything associated with the session at the message / service level
-#[derive(Clone)]
 pub struct SessionState {
     /// Subscriptions associated with the session
     pub subscriptions: HashMap<UInt32, Subscription>,

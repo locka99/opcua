@@ -5,40 +5,18 @@
 //! The module is an optional component of the stack. If it isn't compiled in, then the OPC UA
 //! impl will not support encryption, decryption, signing or verification.
 
-use std::path::{Path, PathBuf};
-
 pub mod types {
-    use openssl;
     pub type X509 = u8;
     pub type AesKey = u8;
 }
 
-pub mod cert_manager;
+pub mod cert_store;
 pub mod sign_verify;
 pub mod encrypt_decrypt;
 
-trait Crypto {
-    // Validates that the certificate is trusted by the server /client
-    fn is_certificate_trusted(public_key_path: &Path) -> Result<bool, ()>;
-
-    // Encrypts bytes using the specified key
-    fn symmetric_encrypt(data: &[u8], key: &[u8]) -> Result<Vec<u8>, ()>;
-
-    // Decrypts bytes of data using the specified key
-    fn symmetric_decrypt(data: &[u8], key: &[u8]) -> Result<Vec<u8>, ()>;
-
-    // Encrypts bytes using the specified key
-    fn asymmetric_encrypt(data: &[u8], key: &[u8]) -> Result<Vec<u8>, ()>;
-
-    // Decrypts bytes of data using the specified key
-    fn asymmetric_decrypt(data: &[u8], key: &[u8]) -> Result<Vec<u8>, ()>;
-
-    // Signs bytes using the specified key
-    fn sign_bytes(data: &[u8], key: &[u8]) -> Result<Vec<u8>, ()>;
-
-    // Verifies the specified data using the specified key
-    fn verify_signature(data: &[u8], signature: &[u8]) -> Result<bool, ()>;
-}
+pub use self::cert_store::*;
+pub use self::sign_verify::*;
+pub use self::encrypt_decrypt::*;
 
 // 128Rsa15
 //
@@ -56,44 +34,6 @@ trait Crypto {
 // -> CertificateSignatureAlgorithm – Sha1
 //
 // If a certificate or any certificate in the chain is not signed with a hash that is Sha1 or stronger then the certificate shall be rejected.
-
-pub struct Crypto128Rsa15 {}
-
-impl Crypto for Crypto128Rsa15 {
-    fn is_certificate_trusted(_: &Path) -> Result<bool, ()> {
-        unimplemented!();
-    }
-
-    // -> SymmetricEncryptionAlgorithm – Aes128 – (http://www.w3.org/2001/04/xmlenc#aes128-cbc).
-    fn symmetric_decrypt(_: &[u8], _: &[u8]) -> Result<Vec<u8>, ()> {
-        unimplemented!();
-    }
-
-    // -> SymmetricEncryptionAlgorithm – Aes128 – (http://www.w3.org/2001/04/xmlenc#aes128-cbc).
-    fn symmetric_encrypt(_: &[u8], _: &[u8]) -> Result<Vec<u8>, ()> {
-        unimplemented!();
-    }
-
-    // Encrypts bytes using the specified key
-    fn asymmetric_encrypt(data: &[u8], key: &[u8]) -> Result<Vec<u8>, ()> {
-        unimplemented!();
-    }
-
-    // Decrypts bytes of data using the specified key
-    fn asymmetric_decrypt(data: &[u8], key: &[u8]) -> Result<Vec<u8>, ()> {
-        unimplemented!();
-    }
-
-    // SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
-    fn verify_signature(_: &[u8], _: &[u8]) -> Result<bool, ()> {
-        unimplemented!();
-    }
-
-    // SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
-    fn sign_bytes(_: &[u8], _: &[u8]) -> Result<Vec<u8>, ()> {
-        unimplemented!();
-    }
-}
 
 // Security Basic 256
 //
@@ -136,5 +76,4 @@ impl Crypto for Crypto128Rsa15 {
 // a second application instance certificate, with a larger keysize. Applications shall support
 // multiple Application Instance Certificates if required by supported Security Polices and use
 // the certificate that is required for a given security endpoint.
-
 

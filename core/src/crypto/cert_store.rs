@@ -29,9 +29,8 @@ const REJECTED_CERTS_DIR: &'static str = "rejected";
 
 #[derive(Debug)]
 /// Used to create an X509 cert (and private key)
-pub struct X509CreateCertArgs {
+pub struct X509Data {
     pub key_size: u32,
-    pub overwrite: bool,
     pub common_name: String,
     pub organization: String,
     pub organizational_unit: String,
@@ -49,7 +48,7 @@ pub struct CertificateStore {
 
 impl CertificateStore {
     /// Creates an X509 certificate from the creation args
-    pub fn create_cert_and_pkey(args: &X509CreateCertArgs) -> Result<(X509, PKey), String> {
+    pub fn create_cert_and_pkey(args: &X509Data) -> Result<(X509, PKey), String> {
         // Create a keypair
         let pkey = {
             let rsa = Rsa::generate(args.key_size).unwrap();
@@ -108,7 +107,7 @@ impl CertificateStore {
 
     /// This function will use the supplied arguments to create a public/private key pair and from
     /// those create a private key file and self-signed public cert file.
-    pub fn create_and_store_cert(args: &X509CreateCertArgs, pki_path: &Path) -> Result<(), String> {
+    pub fn create_and_store_cert(args: &X509Data, overwrite: bool, pki_path: &Path) -> Result<(), String> {
         // Create the cert and corresponding private key
         let (cert, pkey) = CertificateStore::create_cert_and_pkey(args)?;
 
@@ -118,12 +117,12 @@ impl CertificateStore {
         let private_key_path = CertificateStore::make_and_ensure_file_path(&CertificateStore::own_private_key_path(pki_path), OWN_PRIVATE_KEY_NAME)?;
 
         // Write the public cert
-        CertificateStore::write_cert(&cert, &public_cert_path, args.overwrite)?;
+        CertificateStore::write_cert(&cert, &public_cert_path, overwrite)?;
 
         // Write the private key
         let pem = pkey.private_key_to_pem().unwrap();
         info!("Writing private key to {}", private_key_path.display());
-        CertificateStore::write_to_file(&pem, &private_key_path, args.overwrite)?;
+        CertificateStore::write_to_file(&pem, &private_key_path, overwrite)?;
 
         Ok(())
     }
@@ -209,7 +208,7 @@ impl CertificateStore {
             if !cert_path.exists() {
                 // ... trust checks based on ca could be added here to add cert straight to trust folder
                 warn!("Certificate {} is unknown and untrusted so it will be stored in rejected directory", cert_file_name);
-                self.write_rejected_cert(cert);
+                let _ = self.write_rejected_cert(cert);
                 return BAD_CERTIFICATE_UNTRUSTED;
             }
 
