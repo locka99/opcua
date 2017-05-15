@@ -12,7 +12,7 @@ use session::*;
 
 pub struct TcpTransport {
     /// Session state
-    session: Arc<Mutex<Session>>,
+    session_state: Arc<Mutex<SessionState>>,
     /// Currently open stream or none
     stream: Option<TcpStream>,
     /// Message buffer where portions of messages are stored to be built into chunks
@@ -26,14 +26,14 @@ pub struct TcpTransport {
 }
 
 impl TcpTransport {
-    pub fn new(session: Arc<Mutex<Session>>) -> TcpTransport {
+    pub fn new(session_state: Arc<Mutex<SessionState>>) -> TcpTransport {
         let receive_buffer_size = {
-            let session = session.lock().unwrap();
-            session.receive_buffer_size
+            let session_state = session_state.lock().unwrap();
+            session_state.receive_buffer_size
         };
 
         TcpTransport {
-            session: session,
+            session_state: session_state,
             stream: None,
             message_buffer: MessageBuffer::new(receive_buffer_size),
             last_sent_sequence_number: 0,
@@ -45,10 +45,10 @@ impl TcpTransport {
     pub fn connect(&mut self) -> Result<(), StatusCode> {
         use url::{Url};
 
-        let session = self.session.lock().unwrap();
+        let session_state = self.session_state.lock().unwrap();
 
         // Validate and split out the endpoint we have
-        let result = Url::parse(&session.endpoint_url);
+        let result = Url::parse(&session_state.endpoint_url);
         if result.is_err() {
             return Err(BAD_TCP_ENDPOINT_URL_INVALID);
         }
@@ -106,8 +106,8 @@ impl TcpTransport {
         // This loop terminates when the corresponding response comes back or a timeout occurs
 
         let mut receive_buffer = {
-            let session = self.session.lock().unwrap();
-            Box::new(Vec::with_capacity(session.receive_buffer_size))
+            let session_state = self.session_state.lock().unwrap();
+            Box::new(Vec::with_capacity(session_state.receive_buffer_size))
         };
 
         let start = UTC::now();
@@ -193,14 +193,14 @@ impl TcpTransport {
     }
 
     pub fn send_hello(&mut self) -> Result<(), StatusCode> {
-        let session = self.session.clone();
-        let session = session.lock().unwrap();
+        let session_state = self.session_state.clone();
+        let session_state = session_state.lock().unwrap();
 
         let mut stream = self.stream();
-        let hello = HelloMessage::new(&session.endpoint_url,
-                                      session.send_buffer_size as UInt32,
-                                      session.receive_buffer_size as UInt32,
-                                      session.max_message_size as UInt32);
+        let hello = HelloMessage::new(&session_state.endpoint_url,
+                                      session_state.send_buffer_size as UInt32,
+                                      session_state.receive_buffer_size as UInt32,
+                                      session_state.max_message_size as UInt32);
         let _ = hello.encode(stream)?;
 
         // Listen for ACK
