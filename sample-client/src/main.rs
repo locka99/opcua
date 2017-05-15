@@ -30,11 +30,15 @@ fn main() {
 
         // Fetch the values of v1, v2, v3
         // TODO
-        session.browse(); //...
+        let read_nodes = vec![];
+        let results = session.read_nodes(&read_nodes);
 
         // Print the values out
-        // TODO
-        println!("Values of nodes go here");
+        if let Ok(results) = results {
+            println!("Values of nodes go here");
+        } else {
+            println!("Got error reading results = {:?}", results.unwrap_err());
+        }
 
         // Disconnect
         session.disconnect();

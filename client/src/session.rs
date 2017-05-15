@@ -69,8 +69,14 @@ impl Session {
     }
 
     /// Synchronously browses the nodes specified in the list of browse descriptions
-    pub fn browse(&mut self) {
+    pub fn browse(&mut self, nodes_to_browse: &[BrowseDescription]) -> Result<Vec<BrowseResult>, StatusCode> {
         // Send browse_request
+        Err(BAD_NOT_IMPLEMENTED)
+    }
+
+    /// Synchronously Read attributes from one or more nodes on the server
+    pub fn read_nodes(&mut self, nodes_to_read: &[ReadValueId]) -> Result<Vec<DataValue>, StatusCode> {
+        Err(BAD_NOT_IMPLEMENTED)
     }
 
     /// Construct a request header for the session
