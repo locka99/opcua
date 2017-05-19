@@ -1,4 +1,6 @@
-use openssl::aes::*;
+use super::types::*;
+
+use openssl::aes::aes_ige;
 use openssl::symm::Mode;
 
 fn validate_aes_args(inx: &[u8], out: &mut [u8], nonce: &[u8], key: &AesKey) -> Result<(), String> {
@@ -21,13 +23,13 @@ fn validate_aes_args(inx: &[u8], out: &mut [u8], nonce: &[u8], key: &AesKey) -> 
 /// The key can be 128, 160 or 256bits.
 pub fn encrypt_aes(inx: &[u8], out: &mut [u8], nonce: &mut [u8], key: &AesKey) -> Result<(), String> {
     let _ = validate_aes_args(inx, out, nonce, key)?;
-    aes_ige(inx, out, key, nonce, Mode::Encrypt);
+    aes_ige(inx, out, &key.value, nonce, Mode::Encrypt);
     Ok(())
 }
 
 /// Encrypts data using AES. The initialization vector is the nonce generated for the secure channel
 pub fn decrypt_aes(inx: &[u8], out: &mut [u8], nonce: &mut [u8], key: &AesKey) -> Result<(), String> {
     let _ = validate_aes_args(inx, out, nonce, key)?;
-    aes_ige(inx, out, key, nonce, Mode::Decrypt);
+    aes_ige(inx, out, &key.value, nonce, Mode::Decrypt);
     Ok(())
 }

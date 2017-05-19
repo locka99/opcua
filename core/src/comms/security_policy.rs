@@ -2,7 +2,7 @@ use types::*;
 use profiles::*;
 use crypto::types::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct SecureChannelInfo {
     pub security_policy: SecurityPolicy,
     pub secure_channel_id: UInt32,

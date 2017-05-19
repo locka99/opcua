@@ -1,7 +1,5 @@
-use crypto;
+use crypto::types::*;
 use crypto::encrypt_decrypt::*;
-
-use openssl::aes::*;
 
 #[test]
 fn aes_test() {
@@ -20,7 +18,7 @@ fn aes_test() {
     let mut ciphertext: [u8; 32] = [0; 32];
     {
         let mut nonce = nonce.clone();
-        let aes_key = AesKey::new_encrypt(&raw_key).unwrap();
+        let aes_key = AesKey::new_encrypt(&raw_key);
         println!("Plaintext = {}, ciphertext = {}", plaintext.len(), ciphertext.len());
         let r = encrypt_aes(plaintext, &mut ciphertext, &mut nonce, &aes_key);
         println!("result = {:?}", r);
@@ -30,7 +28,7 @@ fn aes_test() {
     let mut plaintext2: [u8; 32] = [0; 32];
     {
         let mut nonce = nonce.clone();
-        let aes_key = AesKey::new_decrypt(&raw_key).unwrap();
+        let aes_key = AesKey::new_decrypt(&raw_key);
         let r = decrypt_aes(&ciphertext, &mut plaintext2, &mut nonce, &aes_key);
         println!("result = {:?}", r);
         assert!(r.is_ok());
