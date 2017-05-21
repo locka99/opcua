@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::{Write, Read};
 
-use openssl::x509::*;
+use openssl::x509;
 use openssl::x509::extension::*;
 use openssl::rsa::*;
 use openssl::pkey::*;
@@ -26,20 +26,6 @@ const TRUSTED_CERTS_DIR: &'static str = "trusted";
 /// The directory holding rejected certificates
 const REJECTED_CERTS_DIR: &'static str = "rejected";
 
-
-#[derive(Debug)]
-/// Used to create an X509 cert (and private key)
-pub struct X509Data {
-    pub key_size: u32,
-    pub common_name: String,
-    pub organization: String,
-    pub organizational_unit: String,
-    pub country: String,
-    pub state: String,
-    pub alt_host_names: Vec<String>,
-    pub certificate_duration_days: u32,
-}
-
 pub struct CertificateStore {
     pub pki_path: PathBuf,
     pub check_issue_time: bool,
@@ -57,16 +43,16 @@ impl CertificateStore {
 
         // Create an X509 cert (the public part) as a .pem
         let cert = {
-            let mut builder: X509Builder = X509Builder::new().unwrap();
+            let mut builder: x509::X509Builder = x509::X509Builder::new().unwrap();
             let _ = builder.set_version(3);
             let subject_name = {
-                let mut name = X509NameBuilder::new().unwrap();
+                let mut name = x509::X509NameBuilder::new().unwrap();
                 name.append_entry_by_text("CN", &args.common_name).unwrap();
                 name.build()
             };
             let _ = builder.set_subject_name(&subject_name);
             let issuer_name = {
-                let mut name = X509NameBuilder::new().unwrap();
+                let mut name = x509::X509NameBuilder::new().unwrap();
                 // Common name
                 name.append_entry_by_text("CN", &args.common_name).unwrap();
                 // Organization
@@ -102,7 +88,7 @@ impl CertificateStore {
             builder.build()
         };
 
-        Ok((cert, pkey))
+        Ok((X509::new(cert), pkey))
     }
 
     /// This function will use the supplied arguments to create a public/private key pair and from
@@ -135,7 +121,7 @@ impl CertificateStore {
     /// The thumbprint might be used by the server / client for look-up purposes.
     pub fn thumbprint(cert: &X509) -> Vec<u8> {
         use openssl::hash::{MessageDigest, hash};
-        let der = cert.to_der().unwrap();
+        let der = cert.value.to_der().unwrap();
         hash(MessageDigest::sha1(), &der).unwrap()
     }
 
@@ -163,8 +149,8 @@ impl CertificateStore {
                 false
             } else {
                 // Compare the buffers
-                let der = cert.to_der().unwrap();
-                let der2 = cert2.unwrap().to_der().unwrap();
+                let der = cert.value.to_der().unwrap();
+                let der2 = cert2.unwrap().value.to_der().unwrap();
                 der == der2
             }
         }
@@ -223,14 +209,14 @@ impl CertificateStore {
             // Issuer time
             if self.check_issue_time {
                 // Test if current time < issue time
-                let not_before = cert.not_before();
+                let not_before = cert.value.not_before();
                 //... BAD_CERTIFICATE_ISSUE_TIME_INVALID
             }
 
             // Expiration time
             if self.check_expiration_time {
                 // Test if current time > expiration time
-                let not_after = cert.not_after();
+                let not_after = cert.value.not_after();
                 //... BAD_CERTIFICATE_TIME_INVALID
             }
 
@@ -318,7 +304,7 @@ impl CertificateStore {
 
     /// Writes a cert to the specified directory
     fn write_cert(cert: &X509, path: &Path, overwrite: bool) -> Result<(), String> {
-        let der = cert.to_der().unwrap();
+        let der = cert.value.to_der().unwrap();
         info!("Writing X509 cert to {}", path.display());
         CertificateStore::write_to_file(&der, &path, overwrite)?;
         Ok(())
@@ -338,12 +324,12 @@ impl CertificateStore {
             return Err(format!("Could not read bytes from cert file {}", path.display()));
         }
 
-        let cert = X509::from_pem(&cert);
+        let cert = x509::X509::from_pem(&cert);
         if cert.is_err() {
             return Err(format!("Could not read cert from cert file {}", path.display()));
         }
 
-        Ok(cert.unwrap())
+        Ok(X509::new(cert.unwrap()))
     }
 
     /// Makes a path
