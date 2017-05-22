@@ -3,12 +3,12 @@
 //! encrypting / decrypting messages and signing messages.
 
 pub mod types;
-pub mod cert_store;
+pub mod certificate_store;
 pub mod sign_verify;
 pub mod encrypt_decrypt;
 
 pub use self::types::*;
-pub use self::cert_store::*;
+pub use self::certificate_store::*;
 pub use self::sign_verify::*;
 pub use self::encrypt_decrypt::*;
 
