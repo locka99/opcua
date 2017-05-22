@@ -5,8 +5,7 @@ use std::io::{Read, ErrorKind};
 
 use chrono::*;
 
-use opcua_core::comms::*;
-use opcua_core::types::*;
+use opcua_core::prelude::*;
 
 use session::*;
 
@@ -157,15 +156,19 @@ impl TcpTransport {
         Err(BAD_TIMEOUT)
     }
 
-    pub fn send_request(&mut self, request_id: UInt32, request_timeout: UInt32, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
-        self.async_send_request(request_id, request)?;
+    pub fn send_request(&mut self, request_header: RequestHeader, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
+        let request_timeout = request_header.timeout_hint;
+        let request_id = self.async_send_request(request_header, request)?;
         self.wait_for_response(request_id, request_timeout)
     }
 
-    pub fn async_send_request(&mut self, request_id: UInt32, request: SupportedMessage) -> Result<(), StatusCode> {
+    pub fn async_send_request(&mut self, request_header: RequestHeader, request: SupportedMessage) -> Result<UInt32, StatusCode> {
         if !self.is_connected() {
             return Err(BAD_NOT_CONNECTED);
         }
+
+        let request_id = request_header.request_id;
+        request.request_header = request_header;
 
         /// This needs to wait for up to the timeout hint in the request header for a response
         /// with the same request handle to return. Other messages might arrive during that, so somehow
@@ -173,6 +176,9 @@ impl TcpTransport {
 
         let sequence_number = self.last_sent_sequence_number;
         self.last_sent_sequence_number += 1;
+
+        let request_id = request_header.request_id;
+        request.request_header = request_header;
 
         // Turn message to chunks
         let chunks = Chunker::encode(sequence_number, request_id, &self.secure_channel_info, &request)?;
@@ -183,7 +189,7 @@ impl TcpTransport {
             let _ = chunk.encode(stream)?;
         }
 
-        Ok(())
+        Ok(request_id)
     }
 
     pub fn disconnect(&mut self) {

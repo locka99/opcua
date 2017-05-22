@@ -74,9 +74,53 @@ impl Session {
         Err(BAD_NOT_IMPLEMENTED)
     }
 
+    pub fn get_endpoints(&mut self) -> Result<Vec<EndpointDescription>, StatusCode> {
+        let session_state = self.session_state.clone();
+        let session_state = session_state.lock().unwrap();
+
+        let request_header = self.make_request_header();
+        let request = GetEndpointsRequest {
+            request_header: request_header.clone(),
+            endpoint_url: UAString::from_str(&session_state.endpoint_url),
+            locale_ids: None,
+            profile_uris: None,
+        };
+        let response = self.transport.send_request(request_header, SupportedMessage::GetEndpointsRequest(request))?;
+        if let SupportedMessage::GetEndpointsResponse(response) = response {
+            // TODO
+            Err(BAD_UNKNOWN_RESPONSE)
+        } else {
+            Err(BAD_UNKNOWN_RESPONSE)
+        }
+    }
+
+    /// Synchronously browses a single node
+    pub fn browse_node(&mut self) {
+        // Send browse request for one node
+    }
+
     /// Synchronously Read attributes from one or more nodes on the server
     pub fn read_nodes(&mut self, nodes_to_read: &[ReadValueId]) -> Result<Vec<DataValue>, StatusCode> {
-        Err(BAD_NOT_IMPLEMENTED)
+
+        let request_header = self.make_request_header();
+        let request = ReadRequest {
+            request_header: request_header.clone(),
+            max_age: 1,
+            timestamps_to_return: None,
+            nodes_to_read: None,
+        };
+        let response = self.transport.send_request(request_header, SupportedMessage::ReadRequest(request))?;
+        if let SupportedMessage::ReadResponse(response) = response {
+            // TODO
+            Err(BAD_NOT_IMPLEMENTED)
+        } else {
+            Err(BAD_NOT_IMPLEMENTED)
+        }
+    }
+
+    /// Synchronously writes values to the server
+    pub fn write_value(&mut self) {
+        // Write to a bunch of values
     }
 
     /// Construct a request header for the session
@@ -93,41 +137,5 @@ impl Session {
         };
         session_state.next_request_handle += 1;
         request_header
-    }
-
-    pub fn get_endpoints(&mut self) -> Result<Vec<EndpointDescription>, StatusCode> {
-        let session_state = self.session_state.clone();
-        let session_state = session_state.lock().unwrap();
-        let request = GetEndpointsRequest {
-            request_header: self.make_request_header(),
-            endpoint_url: UAString::from_str(&session_state.endpoint_url),
-            locale_ids: None,
-            profile_uris: None,
-        };
-
-        let request_handle = request.request_header.request_handle;
-        let request_timeout = request.request_header.timeout_hint;
-
-        let response = self.transport.send_request(request_handle, request_timeout, SupportedMessage::GetEndpointsRequest(request))?;
-        if let SupportedMessage::GetEndpointsResponse(response) = response {
-            Err(BAD_UNKNOWN_RESPONSE)
-        } else {
-            Err(BAD_UNKNOWN_RESPONSE)
-        }
-    }
-
-    /// Synchronously browses a single node
-    pub fn browse_node(&mut self) {
-        // Send browse request for one node
-    }
-
-    /// Synchronously reads values from the server
-    pub fn read(&mut self) {
-        // Read a bunch of values
-    }
-
-    /// Synchronously writes values to the server
-    pub fn write(&mut self) {
-        // Write to a bunch of values
     }
 }

@@ -1,5 +1,6 @@
 use crypto::types::*;
 use crypto::encrypt_decrypt::*;
+use crypto::certificate_store::*;
 
 #[test]
 fn aes_test() {
@@ -39,7 +40,18 @@ fn aes_test() {
 
 #[test]
 fn create_cert() {
-    //    let cert = CertificateStore::create_cert_and_pkey(&args);
+    let args = X509Data {
+        key_size: 2045,
+        common_name: "x".to_string(),
+        organization: "x.org".to_string(),
+        organizational_unit: "x.org ops".to_string(),
+        country: "EN".to_string(),
+        state: "London".to_string(),
+        alt_host_names: vec!["host1".to_string(), "host2".to_string()],
+        certificate_duration_days: 60,
+    };
+    let cert = CertificateStore::create_cert_and_pkey(&args);
+    assert!(cert.is_ok());
 }
 
 #[test]

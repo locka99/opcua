@@ -42,9 +42,6 @@ pub struct ServerEndpoint {
 const DEFAULT_ENDPOINT_NAME: &'static str = "Default";
 const DEFAULT_ENDPOINT_PATH: &'static str = "/";
 
-const DEFAULT_SECURITY_POLICY: &'static str = "None";
-const DEFAULT_SECURITY_MODE: &'static str = "None";
-
 impl ServerEndpoint {
     pub fn new(name: &str, path: &str, anonymous: bool, user: &str, pass: &[u8], security_policy: &str, security_mode: &str) -> ServerEndpoint {
         ServerEndpoint {
@@ -63,17 +60,21 @@ impl ServerEndpoint {
     }
 
     pub fn default_anonymous() -> ServerEndpoint {
-        ServerEndpoint::new_default(true, "", &[], DEFAULT_SECURITY_POLICY, DEFAULT_SECURITY_MODE)
+        ServerEndpoint::new_default(true, "", &[], opcua_core::constants::SECURITY_POLICY_NONE, opcua_core::constants::SECURITY_MODE_NONE)
     }
 
     pub fn default_user_pass(user: &str, pass: &[u8]) -> ServerEndpoint {
-        ServerEndpoint::new_default(false, user, pass, DEFAULT_SECURITY_POLICY, DEFAULT_SECURITY_MODE)
+        ServerEndpoint::new_default(false, user, pass, opcua_core::constants::SECURITY_POLICY_NONE, opcua_core::constants::SECURITY_MODE_NONE)
+    }
+
+    pub fn default_sign_encrypt() -> ServerEndpoint {
+        ServerEndpoint::new_default(false, "", &[], opcua_core::constants::SECURITY_POLICY_BASIC_128_RSA_15, opcua_core::constants::SECURITY_MODE_SIGN_AND_ENCRYPT)
     }
 
     /// Special config that turns on anonymous, user/pass and pki for sample code that wants everything available
     /// Don't use in production.
     pub fn default_sample() -> ServerEndpoint {
-        ServerEndpoint::new_default(true, "sample", "sample1".as_bytes(), DEFAULT_SECURITY_POLICY, DEFAULT_SECURITY_MODE)
+        ServerEndpoint::new_default(true, "sample", "sample1".as_bytes(), opcua_core::constants::SECURITY_POLICY_NONE, opcua_core::constants::SECURITY_MODE_NONE)
     }
 
     pub fn is_valid(&self) -> bool {
@@ -167,6 +168,10 @@ impl ServerConfig {
 
     pub fn default_user_pass(user: &str, pass: &[u8]) -> ServerConfig {
         ServerConfig::default(vec![ServerEndpoint::default_user_pass(user, pass)])
+    }
+
+    pub fn default_secure() -> ServerConfig {
+        ServerConfig::default(vec![ServerEndpoint::default_sign_encrypt()])
     }
 
     pub fn default_sample() -> ServerConfig {

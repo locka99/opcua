@@ -1,5 +1,6 @@
 use types::*;
-use profiles::*;
+use profiles;
+use constants;
 use crypto::types::*;
 
 #[derive(Debug)]
@@ -38,8 +39,7 @@ impl SecureChannelInfo {
         if their_nonce.value.is_some() && their_nonce.value.as_ref().unwrap().len() == self.their_nonce.len() {
             self.their_nonce[..].clone_from_slice(their_nonce.value.as_ref().unwrap());
             Ok(())
-        }
-        else {
+        } else {
             Err(())
         }
     }
@@ -61,37 +61,37 @@ impl SecurityPolicy {
 
     pub fn to_uri(&self) -> &'static str {
         match self {
-            &SecurityPolicy::None => SECURITY_POLICY_NONE,
-            &SecurityPolicy::Basic128Rsa15 => SECURITY_POLICY_BASIC128RSA15,
-            &SecurityPolicy::Basic256 => SECURITY_POLICY_BASIC256,
-            &SecurityPolicy::Basic256Sha256 => SECURITY_POLICY_BASIC256SHA256,
+            &SecurityPolicy::None => profiles::SECURITY_POLICY_NONE,
+            &SecurityPolicy::Basic128Rsa15 => profiles::SECURITY_POLICY_BASIC_128_RSA_15,
+            &SecurityPolicy::Basic256 => profiles::SECURITY_POLICY_BASIC_256,
+            &SecurityPolicy::Basic256Sha256 => profiles::SECURITY_POLICY_BASIC_256_SHA_256,
             _ => {
                 panic!("Shouldn't be turning an unknown policy into a uri");
             }
         }
     }
 
-    pub fn from_str(str: &str) -> SecurityPolicy {
-        match str {
-            "None" => SecurityPolicy::None,
-            "Basic128Rsa15" => SecurityPolicy::Basic128Rsa15,
-            "Basic256" => SecurityPolicy::Basic256,
-            "Basic256Sha256" => SecurityPolicy::Basic256Sha256,
+    pub fn from_uri(uri: &str) -> SecurityPolicy {
+        match uri {
+            profiles::SECURITY_POLICY_NONE => SecurityPolicy::None,
+            profiles::SECURITY_POLICY_BASIC_128_RSA_15 => SecurityPolicy::Basic128Rsa15,
+            profiles::SECURITY_POLICY_BASIC_256 => SecurityPolicy::Basic256,
+            profiles::SECURITY_POLICY_BASIC_256_SHA_256 => SecurityPolicy::Basic256Sha256,
             _ => {
-                error!("Specified security policy {} is not recognized", str);
+                error!("Specified security policy {} is not recognized", uri);
                 SecurityPolicy::Unknown
             }
         }
     }
 
-    pub fn from_uri(uri: &str) -> SecurityPolicy {
-        match uri {
-            SECURITY_POLICY_NONE => SecurityPolicy::None,
-            SECURITY_POLICY_BASIC128RSA15 => SecurityPolicy::Basic128Rsa15,
-            SECURITY_POLICY_BASIC256 => SecurityPolicy::Basic256,
-            SECURITY_POLICY_BASIC256SHA256 => SecurityPolicy::Basic256Sha256,
+    pub fn from_str(str: &str) -> SecurityPolicy {
+        match str {
+            constants::SECURITY_POLICY_NONE => SecurityPolicy::None,
+            constants::SECURITY_POLICY_BASIC_128_RSA_15 => SecurityPolicy::Basic128Rsa15,
+            constants::SECURITY_POLICY_BASIC_256 => SecurityPolicy::Basic256,
+            constants::SECURITY_POLICY_BASIC_256_SHA_256 => SecurityPolicy::Basic256Sha256,
             _ => {
-                error!("Specified security policy {} is not recognized", uri);
+                error!("Specified security policy {} is not recognized", str);
                 SecurityPolicy::Unknown
             }
         }

@@ -1,5 +1,6 @@
 use std::io::{Read, Write};
 
+use constants;
 use types::*;
 
 /// This primitive data type is a UInt32 that identifies an element of an array.
@@ -52,9 +53,9 @@ impl BinaryEncoder<MessageSecurityMode> for MessageSecurityMode {
 impl MessageSecurityMode {
     pub fn from_str(str: &str) -> MessageSecurityMode {
         match str {
-            "None" => MessageSecurityMode::None,
-            "Sign" => MessageSecurityMode::Sign,
-            "SignAndEncrypt" => MessageSecurityMode::SignAndEncrypt,
+            constants::SECURITY_MODE_NONE => MessageSecurityMode::None,
+            constants::SECURITY_MODE_SIGN => MessageSecurityMode::Sign,
+            constants::SECURITY_MODE_SIGN_AND_ENCRYPT => MessageSecurityMode::SignAndEncrypt,
             _ => {
                 error!("Specified security policy {} is not recognized", str);
                 MessageSecurityMode::Invalid
