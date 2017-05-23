@@ -63,6 +63,36 @@ fn create_cert() {
 }
 
 #[test]
+fn ensure_pki_path() {
+    use tempdir::TempDir;
+    let tmp_dir = TempDir::new("pki").unwrap();
+
+    let cert_store = CertificateStore::new(&tmp_dir.path());
+    assert!(cert_store.ensure_pki_path().is_ok());
+
+    let pki = tmp_dir.path().to_owned();
+    for dirname in ["rejected", "trusted", "private", "own"].iter() {
+        let mut subdir = pki.to_path_buf();
+        subdir.push(dirname);
+        assert!(subdir.exists());
+    }
+}
+
+#[test]
+fn create_cert_in_pki() {
+    use tempdir::TempDir;
+    let tmp_dir = TempDir::new("pki").unwrap();
+    let cert_store = CertificateStore::new(&tmp_dir.path());
+    cert_store.ensure_pki_path();
+    // TODO create a cert and verify it and its key can be loaded
+}
+
+// TODO create a cert that fails trust and becomes rejected
+// TODO create a thumbprint file and match to a rejected file on disk
+// TODO create a thumbprint and match to a trusted file on disk, ensuring thumbprints match
+// TODO create a thumbprint and match to a trusted file on disk which is different, ensuring error handling
+
+#[test]
 fn sign_bytes() {
     let (_, pkey) = make_test_cert();
 

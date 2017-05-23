@@ -11,3 +11,6 @@ rand = "0.3"
 regex = "0.2.1"
 lazy_static = "0.2"
 openssl = "0.9.9"
+
+[dev-dependencies]
+tempdir = "0.3"

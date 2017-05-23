@@ -7,6 +7,8 @@ extern crate chrono;
 extern crate regex;
 extern crate rand;
 extern crate openssl;
+#[cfg(test)]
+extern crate tempdir;
 
 pub mod types;
 pub mod comms;

@@ -33,6 +33,14 @@ pub struct CertificateStore {
 }
 
 impl CertificateStore {
+    pub fn new(pki_path: &Path) -> CertificateStore {
+        CertificateStore {
+            pki_path: pki_path.to_path_buf(),
+            check_issue_time: true,
+            check_expiration_time: true
+        }
+    }
+
     /// Creates an X509 certificate from the creation args
     pub fn create_cert_and_pkey(args: &X509Data) -> Result<(X509, PKey), String> {
         // Create a keypair
@@ -255,7 +263,7 @@ impl CertificateStore {
     }
 
     /// Creates the PKI directory structure
-    pub fn ensure_pki_directories(&self) -> Result<(), String> {
+    pub fn ensure_pki_path(&self) -> Result<(), String> {
         let mut path = self.pki_path.clone();
         let subdirs = [OWN_CERTIFICATE_DIR, OWN_PRIVATE_KEY_DIR, TRUSTED_CERTS_DIR, REJECTED_CERTS_DIR];
         for subdir in subdirs.iter() {
