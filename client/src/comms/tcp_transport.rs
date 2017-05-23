@@ -112,7 +112,7 @@ impl TcpTransport {
         let start = UTC::now();
         loop {
             let now = UTC::now();
-            let request_duration = now - start;
+            let request_duration = now.signed_duration_since(start);
             if request_duration.num_milliseconds() > request_timeout as i64 {
                 debug!("Time expired waiting for response");
                 break;

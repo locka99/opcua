@@ -137,7 +137,7 @@ impl DateTime {
 
     /// Returns the time in ticks, of 100 nanosecond intervals
     pub fn ticks(&self) -> i64 {
-        duration_to_ticks(self.as_chrono() - epoch_chrono())
+        duration_to_ticks(self.as_chrono().signed_duration_since(epoch_chrono()))
     }
 
     /// To checked ticks. Function returns 0 or MAX_INT64
@@ -184,5 +184,5 @@ fn ticks_to_duration(ticks: i64) -> chrono::Duration {
 }
 
 fn max_ticks() -> i64 {
-    duration_to_ticks(endtimes_chrono() - epoch_chrono())
+    duration_to_ticks(endtimes_chrono().signed_duration_since(epoch_chrono()))
 }

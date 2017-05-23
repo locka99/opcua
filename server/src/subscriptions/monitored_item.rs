@@ -90,7 +90,7 @@ impl MonitoredItem {
         let check_value = if self.sampling_interval > 0f64 {
             // Compare sample interval
             let sampling_interval = time::Duration::milliseconds(self.sampling_interval as i64);
-            let elapsed = *now - self.last_sample_time;
+            let elapsed = (*now).signed_duration_since(self.last_sample_time);
             elapsed >= sampling_interval
         } else if self.sampling_interval == 0f64 {
             // Fastest possible rate, i.e. tick quantum

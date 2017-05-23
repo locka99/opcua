@@ -38,8 +38,7 @@ fn aes_test() {
     assert_eq!(&plaintext[..], &plaintext2[..]);
 }
 
-#[test]
-fn create_cert() {
+fn make_test_cert() -> (X509, PKey) {
     let args = X509Data {
         key_size: 2045,
         common_name: "x".to_string(),
@@ -51,11 +50,31 @@ fn create_cert() {
         certificate_duration_days: 60,
     };
     let cert = CertificateStore::create_cert_and_pkey(&args);
-    assert!(cert.is_ok());
+    cert.unwrap()
 }
 
 #[test]
-fn sign_bytes() {}
+fn create_cert() {
+    let (x509, pkey) = make_test_cert();
+    let not_before = x509.value.not_before().to_string();
+    println!("Not before = {}", not_before);
+    let not_after = x509.value.not_after().to_string();
+    println!("Not after = {}", not_after);
+}
 
 #[test]
-fn verify_bytes() {}
+fn sign_bytes() {
+    let (_, pkey) = make_test_cert();
+
+    let msg = b"Mary had a little lamb";
+    let msg2 = b"It's fleece was white as snow";
+    let mut signature = pkey.sign_sha1(msg);
+
+    assert_eq!(signature.len(), 256);
+    assert!(pkey.verify_sha1(msg, &signature));
+    assert!(!pkey.verify_sha1(msg2, &signature));
+
+    assert!(!pkey.verify_sha1(msg, &signature[..signature.len() - 1]));
+    signature[0] = !signature[0]; // bitwise not
+    assert!(!pkey.verify_sha1(msg, &signature));
+}

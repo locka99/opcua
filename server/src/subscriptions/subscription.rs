@@ -231,7 +231,7 @@ impl Subscription {
             true
         } else {
             let publishing_interval = time::Duration::milliseconds(self.publishing_interval as i64);
-            let elapsed = *now - self.last_timer_expired_time;
+            let elapsed = (*now).signed_duration_since(self.last_timer_expired_time);
             let timer_expired = elapsed >= publishing_interval;
             if timer_expired {
                 self.last_timer_expired_time = *now;

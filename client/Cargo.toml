@@ -6,7 +6,7 @@ authors = ["Adam Lock <locka99@gmail.com>"]
 [dependencies]
 url = "1.4.0"
 log = "0.3.6"
-chrono = "0.2"
+chrono = "0.3"
 
 [dependencies.opcua-core]
 path = "../core"

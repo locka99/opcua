@@ -5,8 +5,8 @@ use std::io::{Write, Read};
 
 use openssl::x509;
 use openssl::x509::extension::*;
+use openssl::pkey;
 use openssl::rsa::*;
-use openssl::pkey::*;
 use openssl::asn1::*;
 use openssl::hash::*;
 
@@ -38,7 +38,7 @@ impl CertificateStore {
         // Create a keypair
         let pkey = {
             let rsa = Rsa::generate(args.key_size).unwrap();
-            PKey::from_rsa(rsa).unwrap()
+            pkey::PKey::from_rsa(rsa).unwrap()
         };
 
         // Create an X509 cert (the public part) as a .pem
@@ -88,7 +88,7 @@ impl CertificateStore {
             builder.build()
         };
 
-        Ok((X509::new(cert), pkey))
+        Ok((X509::wrap(cert), PKey::wrap(pkey)))
     }
 
     /// This function will use the supplied arguments to create a public/private key pair and from
@@ -106,7 +106,7 @@ impl CertificateStore {
         CertificateStore::write_cert(&cert, &public_cert_path, overwrite)?;
 
         // Write the private key
-        let pem = pkey.private_key_to_pem().unwrap();
+        let pem = pkey.value.private_key_to_pem().unwrap();
         info!("Writing private key to {}", private_key_path.display());
         CertificateStore::write_to_file(&pem, &private_key_path, overwrite)?;
 
@@ -204,20 +204,33 @@ impl CertificateStore {
                 return BAD_UNEXPECTED_ERROR;
             }
 
-            // Now inspect the cert to ensure its validity
+            // Now inspect the cert not before / after values to ensure its validity
+            {
+                use chrono::UTC;
+                let now = UTC::now();
+                // Issuer time
+                if self.check_issue_time {
+                    let not_before = cert.not_before();
+                    if let Ok(not_before) = not_before {
+                        if now.lt(&not_before) {
+                            return BAD_CERTIFICATE_TIME_INVALID;
+                        }
+                    } else {
+                        return BAD_CERTIFICATE_TIME_INVALID;
+                    }
+                }
 
-            // Issuer time
-            if self.check_issue_time {
-                // Test if current time < issue time
-                let not_before = cert.value.not_before();
-                //... BAD_CERTIFICATE_ISSUE_TIME_INVALID
-            }
-
-            // Expiration time
-            if self.check_expiration_time {
-                // Test if current time > expiration time
-                let not_after = cert.value.not_after();
-                //... BAD_CERTIFICATE_TIME_INVALID
+                // Expiration time
+                if self.check_expiration_time {
+                    let not_after = cert.not_after();
+                    if let Ok(not_after) = not_after {
+                        if now.gt(&not_after) {
+                            return BAD_CERTIFICATE_TIME_INVALID;
+                        }
+                    } else {
+                        return BAD_CERTIFICATE_TIME_INVALID;
+                    }
+                }
             }
 
             // Other tests that we might do
@@ -329,7 +342,7 @@ impl CertificateStore {
             return Err(format!("Could not read cert from cert file {}", path.display()));
         }
 
-        Ok(X509::new(cert.unwrap()))
+        Ok(X509::wrap(cert.unwrap()))
     }
 
     /// Makes a path

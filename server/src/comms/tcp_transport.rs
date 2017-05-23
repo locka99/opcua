@@ -128,7 +128,7 @@ impl TcpTransport {
             // Session waits a configurable time for a hello and terminates if it fails to receive it
             let now = UTC::now();
             if transport_state == TransportState::WaitingHello {
-                if now - session_start_time > hello_timeout {
+                if now.signed_duration_since(session_start_time) > hello_timeout {
                     error!("Session timed out waiting for hello");
                     session_status_code = BAD_TIMEOUT;
                     break;
@@ -228,7 +228,7 @@ impl TcpTransport {
         // Session state
         self.transport_state = TransportState::Finished;
 
-        let session_duration = UTC::now() - session_start_time;
+        let session_duration = UTC::now().signed_duration_since(session_start_time);
         info!("Session is finished {:?}", session_duration)
     }
 

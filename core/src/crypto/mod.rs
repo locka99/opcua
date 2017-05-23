@@ -4,12 +4,10 @@
 
 pub mod types;
 pub mod certificate_store;
-pub mod sign_verify;
 pub mod encrypt_decrypt;
 
 pub use self::types::*;
 pub use self::certificate_store::*;
-pub use self::sign_verify::*;
 pub use self::encrypt_decrypt::*;
 
 // 128Rsa15

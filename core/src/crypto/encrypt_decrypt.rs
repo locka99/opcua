@@ -3,7 +3,7 @@ use super::types::*;
 use openssl::aes::aes_ige;
 use openssl::symm::Mode;
 
-fn validate_aes_args(inx: &[u8], out: &mut [u8], nonce: &[u8], key: &AesKey) -> Result<(), String> {
+fn validate_aes_args(inx: &[u8], out: &mut [u8], nonce: &[u8], _: &AesKey) -> Result<(), String> {
     if inx.len() != out.len() {
         Err(format!("In and out buffers have different lengths {} vs {}", inx.len(), out.len()))
     } else if inx.len() % 16 != 0 {
