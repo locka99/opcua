@@ -1,3 +1,5 @@
+use tempdir::TempDir;
+
 use crypto::types::*;
 use crypto::encrypt_decrypt::*;
 use crypto::certificate_store::*;
@@ -55,7 +57,7 @@ fn make_test_cert() -> (X509, PKey) {
 
 #[test]
 fn create_cert() {
-    let (x509, pkey) = make_test_cert();
+    let (x509, _) = make_test_cert();
     let not_before = x509.value.not_before().to_string();
     println!("Not before = {}", not_before);
     let not_after = x509.value.not_after().to_string();
@@ -64,7 +66,6 @@ fn create_cert() {
 
 #[test]
 fn ensure_pki_path() {
-    use tempdir::TempDir;
     let tmp_dir = TempDir::new("pki").unwrap();
 
     let cert_store = CertificateStore::new(&tmp_dir.path());
@@ -79,12 +80,37 @@ fn ensure_pki_path() {
 }
 
 #[test]
-fn create_cert_in_pki() {
-    use tempdir::TempDir;
+fn create_own_cert_in_pki() {
+    let args = X509Data {
+        key_size: 2045,
+        common_name: "x".to_string(),
+        organization: "x.org".to_string(),
+        organizational_unit: "x.org ops".to_string(),
+        country: "EN".to_string(),
+        state: "London".to_string(),
+        alt_host_names: vec!["host1".to_string(), "host2".to_string()],
+        certificate_duration_days: 60,
+    };
+
+    let tmp_dir = TempDir::new("pki").unwrap();
+    let cert_store = CertificateStore::new(&tmp_dir.path());
+    let result = cert_store.create_and_store_cert(&args, false);
+    assert!(result.is_ok());
+
+    // Create again with no overwrite
+    let result = cert_store.create_and_store_cert(&args, false);
+    assert!(result.is_err());
+
+    // Create again with overwrite
+    let result = cert_store.create_and_store_cert(&args, true);
+    assert!(result.is_err());
+}
+
+#[test]
+fn create_rejected_cert_in_pki() {
     let tmp_dir = TempDir::new("pki").unwrap();
     let cert_store = CertificateStore::new(&tmp_dir.path());
     cert_store.ensure_pki_path();
-    // TODO create a cert and verify it and its key can be loaded
 
     let (cert, _) = make_test_cert();
     let result = cert_store.write_rejected_cert(&cert);

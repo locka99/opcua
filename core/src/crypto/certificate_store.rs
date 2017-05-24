@@ -101,14 +101,14 @@ impl CertificateStore {
 
     /// This function will use the supplied arguments to create a public/private key pair and from
     /// those create a private key file and self-signed public cert file.
-    pub fn create_and_store_cert(args: &X509Data, overwrite: bool, pki_path: &Path) -> Result<(), String> {
+    pub fn create_and_store_cert(&self, args: &X509Data, overwrite: bool) -> Result<(X509, PKey), String> {
         // Create the cert and corresponding private key
         let (cert, pkey) = CertificateStore::create_cert_and_pkey(args)?;
 
         // Public cert goes under own/
-        let public_cert_path = CertificateStore::make_and_ensure_file_path(&CertificateStore::own_cert_dir(pki_path), OWN_CERTIFICATE_NAME)?;
+        let public_cert_path = CertificateStore::make_and_ensure_file_path(&self.own_cert_dir(), OWN_CERTIFICATE_NAME)?;
         // Private key goes under private/
-        let private_key_path = CertificateStore::make_and_ensure_file_path(&CertificateStore::private_key_dir(pki_path), OWN_PRIVATE_KEY_NAME)?;
+        let private_key_path = CertificateStore::make_and_ensure_file_path(&self.private_key_dir(), OWN_PRIVATE_KEY_NAME)?;
 
         // Write the public cert
         CertificateStore::write_cert(&cert, &public_cert_path, overwrite)?;
@@ -118,7 +118,7 @@ impl CertificateStore {
         info!("Writing private key to {}", private_key_path.display());
         CertificateStore::write_to_file(&pem, &private_key_path, overwrite)?;
 
-        Ok(())
+        Ok((cert, pkey))
     }
 
     /// OPC UA Part 6 MessageChunk structure
@@ -186,7 +186,7 @@ impl CertificateStore {
         // Look for the cert in the rejected folder. If it's rejected there is no purpose going
         // any further
         {
-            let mut cert_path = CertificateStore::rejected_certs_dir(&self.pki_path);
+            let mut cert_path = self.rejected_certs_dir();
             if !cert_path.exists() {
                 error!("Path for rejected certificates {} does not exist", cert_path.display());
                 return BAD_UNEXPECTED_ERROR;
@@ -202,7 +202,7 @@ impl CertificateStore {
         // trusted
         {
             // Check the trusted folder
-            let mut cert_path = CertificateStore::trusted_certs_dir(&self.pki_path);
+            let mut cert_path = self.trusted_certs_dir();
             if !cert_path.exists() {
                 error!("Path for rejected certificates {} does not exist", cert_path.display());
                 return BAD_UNEXPECTED_ERROR;
@@ -312,29 +312,29 @@ impl CertificateStore {
     }
 
     /// Returns the path to the private key dir
-    pub fn private_key_dir(pki_path: &Path) -> PathBuf {
-        let mut path = PathBuf::from(&pki_path);
+    pub fn private_key_dir(&self) -> PathBuf {
+        let mut path = PathBuf::from(&self.pki_path);
         path.push(OWN_PRIVATE_KEY_DIR);
         path
     }
 
     /// Returns the path to the own certificate dir
-    pub fn own_cert_dir(pki_path: &Path) -> PathBuf {
-        let mut path = PathBuf::from(&pki_path);
+    pub fn own_cert_dir(&self) -> PathBuf {
+        let mut path = PathBuf::from(&self.pki_path);
         path.push(OWN_CERTIFICATE_DIR);
         path
     }
 
     /// Returns the path to the rejected certs dir
-    pub fn rejected_certs_dir(pki_path: &Path) -> PathBuf {
-        let mut path = PathBuf::from(&pki_path);
+    pub fn rejected_certs_dir(&self) -> PathBuf {
+        let mut path = PathBuf::from(&self.pki_path);
         path.push(REJECTED_CERTS_DIR);
         path
     }
 
     /// Returns the path to the trusted certs dir
-    pub fn trusted_certs_dir(pki_path: &Path) -> PathBuf {
-        let mut path = PathBuf::from(&pki_path);
+    pub fn trusted_certs_dir(&self) -> PathBuf {
+        let mut path = PathBuf::from(&self.pki_path);
         path.push(TRUSTED_CERTS_DIR);
         path
     }
@@ -349,7 +349,7 @@ impl CertificateStore {
     pub fn write_rejected_cert(&self, cert: &X509) -> Result<PathBuf, String> {
         // Store the cert in the rejected folder where untrusted certs go
         let cert_file_name = CertificateStore::cert_file_name(&cert);
-        let mut cert_path = CertificateStore::rejected_certs_dir(&self.pki_path);
+        let mut cert_path = self.rejected_certs_dir();
         cert_path.push(&cert_file_name);
         CertificateStore::write_cert(cert, &cert_path, true)?;
         Ok(cert_path)
