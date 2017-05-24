@@ -103,7 +103,7 @@ fn create_own_cert_in_pki() {
 
     // Create again with overwrite
     let result = cert_store.create_and_store_cert(&args, true);
-    assert!(result.is_err());
+    assert!(result.is_ok());
 }
 
 #[test]
@@ -120,7 +120,16 @@ fn create_rejected_cert_in_pki() {
     assert!(path.exists());
 }
 
-// TODO create a cert that fails trust and becomes rejected
+#[test]
+fn test_and_reject_cert() {
+    // TODO create a cert that fails trust and becomes rejected
+}
+
+#[test]
+fn test_and_accept_cert() {
+    // TODO create a cert and write it into the trusted dir test it is accepted
+}
+
 // TODO create a thumbprint file and match to a rejected file on disk
 // TODO create a thumbprint and match to a trusted file on disk, ensuring thumbprints match
 // TODO create a thumbprint and match to a trusted file on disk which is different, ensuring error handling
