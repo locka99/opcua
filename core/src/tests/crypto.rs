@@ -85,6 +85,13 @@ fn create_cert_in_pki() {
     let cert_store = CertificateStore::new(&tmp_dir.path());
     cert_store.ensure_pki_path();
     // TODO create a cert and verify it and its key can be loaded
+
+    let (cert, _) = make_test_cert();
+    let result = cert_store.write_rejected_cert(&cert);
+    assert!(result.is_ok());
+
+    let path = result.unwrap();
+    assert!(path.exists());
 }
 
 // TODO create a cert that fails trust and becomes rejected
@@ -93,7 +100,7 @@ fn create_cert_in_pki() {
 // TODO create a thumbprint and match to a trusted file on disk which is different, ensuring error handling
 
 #[test]
-fn sign_bytes() {
+fn sign_verify_sha1() {
     let (_, pkey) = make_test_cert();
 
     let msg = b"Mary had a little lamb";
@@ -107,4 +114,21 @@ fn sign_bytes() {
     assert!(!pkey.verify_sha1(msg, &signature[..signature.len() - 1]));
     signature[0] = !signature[0]; // bitwise not
     assert!(!pkey.verify_sha1(msg, &signature));
+}
+
+#[test]
+fn sign_verify_sha256() {
+    let (_, pkey) = make_test_cert();
+
+    let msg = b"Mary had a little lamb";
+    let msg2 = b"It's fleece was white as snow";
+    let mut signature = pkey.sign_sha256(msg);
+
+    assert_eq!(signature.len(), 256);
+    assert!(pkey.verify_sha256(msg, &signature));
+    assert!(!pkey.verify_sha256(msg2, &signature));
+
+    assert!(!pkey.verify_sha256(msg, &signature[..signature.len() - 1]));
+    signature[0] = !signature[0]; // bitwise not
+    assert!(!pkey.verify_sha256(msg, &signature));
 }
