@@ -71,12 +71,6 @@ impl ServerEndpoint {
         ServerEndpoint::new_default(false, "", &[], opcua_core::constants::SECURITY_POLICY_BASIC_128_RSA_15, opcua_core::constants::SECURITY_MODE_SIGN_AND_ENCRYPT)
     }
 
-    /// Special config that turns on anonymous, user/pass and pki for sample code that wants everything available
-    /// Don't use in production.
-    pub fn default_sample() -> ServerEndpoint {
-        ServerEndpoint::new_default(true, "sample", "sample1".as_bytes(), opcua_core::constants::SECURITY_POLICY_NONE, opcua_core::constants::SECURITY_MODE_NONE)
-    }
-
     pub fn is_valid(&self) -> bool {
         let mut valid = true;
         // Validate the username and password fields
@@ -93,15 +87,15 @@ impl ServerEndpoint {
         } else if security_mode == MessageSecurityMode::Invalid {
             error!("Endpoint {} is invalid. Security mode \"{}\" is invalid. Valid values are None, Sign, SignAndEncrypt", self.name, self.security_mode);
             valid = false;
-        } else if security_policy == SecurityPolicy::None && security_mode == MessageSecurityMode::None && (self.anonymous.is_none() || !self.anonymous.as_ref().unwrap()) {
-            error!("Endpoint {} is invalid. Security policy and mode allow anonymous connections but anonymous is not set to true", self.name);
-            valid = false;
+//        } else if security_policy == SecurityPolicy::None && security_mode == MessageSecurityMode::None && (self.anonymous.is_none() || !self.anonymous.as_ref().unwrap()) {
+//            error!("Endpoint {} is invalid. Security policy and mode allow anonymous connections but anonymous is not set to true", self.name);
+//            valid = false;
         } else if (security_policy == SecurityPolicy::None && security_mode != MessageSecurityMode::None) ||
             (security_policy != SecurityPolicy::None && security_mode == MessageSecurityMode::None) {
             error!("Endpoint {} is invalid. Security policy and security mode must both contain None or neither of them should.", self.name);
             valid = false;
-        } else if security_policy != SecurityPolicy::None && security_mode != MessageSecurityMode::None {
-            error!("Endpoint {} is invalid. Security policy and security mode require encryption but it has been disabled at compile time.", self.name);
+        } else if security_policy != SecurityPolicy::None && security_mode == MessageSecurityMode::None {
+            error!("Endpoint {} is invalid. Security policy is not none but mode is.", self.name);
             valid = false;
         }
         valid
@@ -174,8 +168,12 @@ impl ServerConfig {
         ServerConfig::default(vec![ServerEndpoint::default_sign_encrypt()])
     }
 
+    /// Sample mode turns on everything including a hard coded user/pass
     pub fn default_sample() -> ServerConfig {
-        ServerConfig::default(vec![ServerEndpoint::default_sample()])
+        ServerConfig::default(vec![
+            ServerEndpoint::default_user_pass("sample", b"sample1"),
+            ServerEndpoint::default_sign_encrypt()
+        ])
     }
 
     pub fn save(&self, path: &Path) -> Result<(), ()> {

@@ -111,7 +111,7 @@ impl CertificateStore {
         let private_key_path = CertificateStore::make_and_ensure_file_path(&self.private_key_dir(), OWN_PRIVATE_KEY_NAME)?;
 
         // Write the public cert
-        CertificateStore::write_cert(&cert, &public_cert_path, overwrite)?;
+        CertificateStore::store_cert(&cert, &public_cert_path, overwrite)?;
 
         // Write the private key
         let pem = pkey.value.private_key_to_pem().unwrap();
@@ -119,18 +119,6 @@ impl CertificateStore {
         CertificateStore::write_to_file(&pem, &private_key_path, overwrite)?;
 
         Ok((cert, pkey))
-    }
-
-    /// OPC UA Part 6 MessageChunk structure
-    ///
-    /// The thumbprint is the SHA1 digest of the DER form of the certificate. The hash is 160 bits
-    /// (20 bytes) in length and is sent in some secure conversation headers.
-    ///
-    /// The thumbprint might be used by the server / client for look-up purposes.
-    pub fn thumbprint(cert: &X509) -> Vec<u8> {
-        use openssl::hash::{MessageDigest, hash};
-        let der = cert.value.to_der().unwrap();
-        hash(MessageDigest::sha1(), &der).unwrap()
     }
 
     /// Validates the cert and if its unknown, writes the value to the rejected folder so it can
@@ -144,7 +132,7 @@ impl CertificateStore {
         let result = self.validate_cert(cert);
         if result == BAD_CERTIFICATE_UNTRUSTED {
             // Store result in rejected folder
-            let _ = self.write_rejected_cert(cert);
+            let _ = self.store_rejected_cert(cert);
         }
         result
     }
@@ -154,14 +142,17 @@ impl CertificateStore {
     /// the memory cert or the test is assumed to fail.
     fn ensure_cert_and_file_are_the_same(cert: &X509, cert_path: &Path) -> bool {
         if !cert_path.exists() {
+            println!("Can't find cert on disk");
             false
         } else {
             let cert2 = CertificateStore::read_cert(cert_path);
             if cert2.is_err() {
+                println!("Can't read cert from disk {:?} - {}", cert_path, cert2.unwrap_err());
                 // No cert2 to compare to
                 false
             } else {
                 // Compare the buffers
+                println!("Comparing cert on disk to memory");
                 let der = cert.value.to_der().unwrap();
                 let der2 = cert2.unwrap().value.to_der().unwrap();
                 der == der2
@@ -213,7 +204,7 @@ impl CertificateStore {
             if !cert_path.exists() {
                 // ... trust checks based on ca could be added here to add cert straight to trust folder
                 warn!("Certificate {} is unknown and untrusted so it will be stored in rejected directory", cert_file_name);
-                let _ = self.write_rejected_cert(cert);
+                let _ = self.store_rejected_cert(cert);
                 return BAD_CERTIFICATE_UNTRUSTED;
             }
 
@@ -262,8 +253,8 @@ impl CertificateStore {
     }
 
     /// Returns a certificate file name from the cert's issuer and thumbprint fields
-    fn cert_file_name(cert: &X509) -> String {
-        let thumbprint = CertificateStore::thumbprint(cert);
+    pub fn cert_file_name(cert: &X509) -> String {
+        let thumbprint = cert.thumbprint();
         // Hex name = 20 bytes = 40 chars in hex + 4 for .der ext
         let mut file_name = String::with_capacity(20 * 2 + 4);
         for b in thumbprint.iter() {
@@ -346,12 +337,12 @@ impl CertificateStore {
     ///
     /// A string description of any failure
     ///
-    pub fn write_rejected_cert(&self, cert: &X509) -> Result<PathBuf, String> {
+    pub fn store_rejected_cert(&self, cert: &X509) -> Result<PathBuf, String> {
         // Store the cert in the rejected folder where untrusted certs go
         let cert_file_name = CertificateStore::cert_file_name(&cert);
         let mut cert_path = self.rejected_certs_dir();
         cert_path.push(&cert_file_name);
-        CertificateStore::write_cert(cert, &cert_path, true)?;
+        CertificateStore::store_cert(cert, &cert_path, true)?;
         Ok(cert_path)
     }
 
@@ -361,13 +352,13 @@ impl CertificateStore {
     ///
     /// A string description of any failure
     ///
-    fn write_cert(cert: &X509, path: &Path, overwrite: bool) -> Result<(), String> {
+    fn store_cert(cert: &X509, path: &Path, overwrite: bool) -> Result<(), String> {
         let der = cert.value.to_der().unwrap();
         info!("Writing X509 cert to {}", path.display());
         CertificateStore::write_to_file(&der, &path, overwrite)
     }
 
-    /// Reads an X509 certificate from disk
+    /// Reads an X509 certificate in .def format from disk
     ///
     /// # Errors
     ///
@@ -386,7 +377,7 @@ impl CertificateStore {
             return Err(format!("Could not read bytes from cert file {}", path.display()));
         }
 
-        let cert = x509::X509::from_pem(&cert);
+        let cert = x509::X509::from_der(&cert);
         if cert.is_err() {
             return Err(format!("Could not read cert from cert file {}", path.display()));
         }

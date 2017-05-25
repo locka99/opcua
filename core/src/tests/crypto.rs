@@ -1,3 +1,6 @@
+use std::fs::File;
+use std::io::{Write};
+
 use tempdir::TempDir;
 
 use crypto::types::*;
@@ -40,6 +43,13 @@ fn aes_test() {
     assert_eq!(&plaintext[..], &plaintext2[..]);
 }
 
+fn make_certificate_store() -> (TempDir, CertificateStore) {
+    let tmp_dir = TempDir::new("pki").unwrap();
+    let cert_store = CertificateStore::new(&tmp_dir.path());
+    assert!(cert_store.ensure_pki_path().is_ok());
+    (tmp_dir, cert_store)
+}
+
 fn make_test_cert() -> (X509, PKey) {
     let args = X509Data {
         key_size: 2045,
@@ -66,17 +76,14 @@ fn create_cert() {
 
 #[test]
 fn ensure_pki_path() {
-    let tmp_dir = TempDir::new("pki").unwrap();
-
-    let cert_store = CertificateStore::new(&tmp_dir.path());
-    assert!(cert_store.ensure_pki_path().is_ok());
-
-    let pki = tmp_dir.path().to_owned();
+    let (tmp_dir, cert_store) = make_certificate_store();
+    let pki = cert_store.pki_path.clone();
     for dirname in ["rejected", "trusted", "private", "own"].iter() {
         let mut subdir = pki.to_path_buf();
         subdir.push(dirname);
         assert!(subdir.exists());
     }
+    drop(tmp_dir);
 }
 
 #[test]
@@ -92,8 +99,7 @@ fn create_own_cert_in_pki() {
         certificate_duration_days: 60,
     };
 
-    let tmp_dir = TempDir::new("pki").unwrap();
-    let cert_store = CertificateStore::new(&tmp_dir.path());
+    let (tmp_dir, cert_store) = make_certificate_store();
     let result = cert_store.create_and_store_cert(&args, false);
     assert!(result.is_ok());
 
@@ -104,35 +110,82 @@ fn create_own_cert_in_pki() {
     // Create again with overwrite
     let result = cert_store.create_and_store_cert(&args, true);
     assert!(result.is_ok());
+    drop(tmp_dir)
 }
 
 #[test]
 fn create_rejected_cert_in_pki() {
-    let tmp_dir = TempDir::new("pki").unwrap();
-    let cert_store = CertificateStore::new(&tmp_dir.path());
-    cert_store.ensure_pki_path();
+    let (tmp_dir, cert_store) = make_certificate_store();
 
     let (cert, _) = make_test_cert();
-    let result = cert_store.write_rejected_cert(&cert);
+    let result = cert_store.store_rejected_cert(&cert);
     assert!(result.is_ok());
 
     let path = result.unwrap();
     assert!(path.exists());
+    drop(tmp_dir);
 }
 
 #[test]
 fn test_and_reject_cert() {
-    // TODO create a cert that fails trust and becomes rejected
+    let (tmp_dir, cert_store) = make_certificate_store();
+
+    // Make an unrecognized cert
+    let (cert, _) = make_test_cert();
+    let result = cert_store.validate_or_reject_cert(&cert);
+    assert!(result.is_bad());
+
+    drop(tmp_dir);
 }
 
 #[test]
-fn test_and_accept_cert() {
-    // TODO create a cert and write it into the trusted dir test it is accepted
+fn test_and_trust_cert() {
+    let (tmp_dir, cert_store) = make_certificate_store();
+
+    // Make a cert, write it to the trusted dir
+    let (cert, _) = make_test_cert();
+
+    // Simulate user/admin copying cert to the trusted folder
+    let der = cert.value.to_der().unwrap();
+    let mut cert_trusted_path = cert_store.trusted_certs_dir();
+    cert_trusted_path.push(CertificateStore::cert_file_name(&cert));
+    {
+        println!("Writing der file to {:?}", cert_trusted_path);
+        let mut file = File::create(cert_trusted_path).unwrap();
+        assert!(file.write(&der).is_ok());
+    }
+
+    // Now validate the cert was stored properly
+    let result = cert_store.validate_or_reject_cert(&cert);
+    assert!(result.is_good());
+
+    drop(tmp_dir);
 }
 
-// TODO create a thumbprint file and match to a rejected file on disk
-// TODO create a thumbprint and match to a trusted file on disk, ensuring thumbprints match
-// TODO create a thumbprint and match to a trusted file on disk which is different, ensuring error handling
+#[test]
+fn test_and_reject_thumbprint_mismatch() {
+    let (tmp_dir, cert_store) = make_certificate_store();
+
+    // Make two certs, write it to the trusted dir
+    let (cert, _) = make_test_cert();
+    let (cert2, _) = make_test_cert();
+
+    // Simulate user/admin copying cert to the trusted folder and renaming it to cert2's name,
+    // e.g. to trick the cert store to trust an untrusted cert
+    let der = cert.value.to_der().unwrap();
+    let mut cert_trusted_path = cert_store.trusted_certs_dir();
+    cert_trusted_path.push(CertificateStore::cert_file_name(&cert2));
+    {
+        let mut file = File::create(cert_trusted_path).unwrap();
+        assert!(file.write(&der).is_ok());
+    }
+
+    // Now validate the cert was rejected because the thumbprint does not match the one on disk
+    let result = cert_store.validate_or_reject_cert(&cert2);
+    assert!(result.is_bad());
+
+    drop(tmp_dir);
+}
 
 #[test]
 fn sign_verify_sha1() {

@@ -8,17 +8,19 @@ extern crate opcua_core;
 
 use std::path::{PathBuf};
 
-use opcua_core::crypto::cert_manager::*;
+use opcua_core::crypto::*;
 
 fn main() {
     let _ = opcua_core::init_logging();
     let (args, overwrite, path) = parse_x509_args();
-    if let Err(_) = CertificateStore::create_and_store_cert(&args, overwrite, &path) {
+
+    let cert_store = CertificateStore::new(&path);
+    if let Err(_) = cert_store.create_and_store_cert(&args, overwrite) {
         println!("Certificate creation failed, check above for errors");
     }
 }
 
-fn parse_x509_args() -> (X509Data, overwrite, PathBuf) {
+fn parse_x509_args() -> (X509Data, bool, PathBuf) {
     use clap::*;
     let matches = App::new("OPC UA Certificate Creator")
         .author("Adam Lock <locka99@gmail.com>")
@@ -109,7 +111,7 @@ The files will be created under the specified under the specified --pkipath valu
         warn!("No alt host names were supplied or could be inferred. Certificate may be useless without at least one.")
     }
 
-    (X509CreateCertArgs {
+    (X509Data {
         key_size: key_size,
         common_name: common_name,
         organization: organization,

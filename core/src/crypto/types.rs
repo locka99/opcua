@@ -81,6 +81,18 @@ impl X509 {
         X509 { value }
     }
 
+    /// OPC UA Part 6 MessageChunk structure
+    ///
+    /// The thumbprint is the SHA1 digest of the DER form of the certificate. The hash is 160 bits
+    /// (20 bytes) in length and is sent in some secure conversation headers.
+    ///
+    /// The thumbprint might be used by the server / client for look-up purposes.
+    pub fn thumbprint(&self) -> Vec<u8> {
+        use openssl::hash::{MessageDigest, hash};
+        let der = self.value.to_der().unwrap();
+        hash(MessageDigest::sha1(), &der).unwrap()
+    }
+
     /// Turn the Asn1 values into useful portable types
     pub fn not_before(&self) -> std::result::Result<DateTime<UTC>, ()> {
         let date = self.value.not_before().to_string();
