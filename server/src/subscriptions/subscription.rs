@@ -327,7 +327,7 @@ impl Subscription {
     // * Update state action - none, return notifications, return keep alive
     // * Publishing request action - nothing, dequeue
     //
-    pub fn update_state(&mut self, receive_publish_request: bool, publish_request: &Option<PublishRequestEntry>, publishing_timer_expired: bool) -> UpdateStateResult {
+    pub fn update_state(&mut self, receive_publish_request: bool, _: &Option<PublishRequestEntry>, publishing_timer_expired: bool) -> UpdateStateResult {
         // This function is called when a publish request is received OR the timer expired, so getting
         // both is invalid code somewhere
         if receive_publish_request && publishing_timer_expired {
@@ -538,7 +538,7 @@ impl Subscription {
     }
 
     /// Returns the oldest notification
-    pub fn return_notifications(&mut self, publish_request: &PublishRequestEntry, update_state_result: &UpdateStateResult) -> PublishResponseEntry {
+    pub fn return_notifications(&mut self, publish_request: &PublishRequestEntry, _: &UpdateStateResult) -> PublishResponseEntry {
         if self.retransmission_queue.is_empty() {
             panic!("Should not be trying to return notifications if there are none");
         }

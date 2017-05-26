@@ -87,15 +87,18 @@ impl ServerEndpoint {
         } else if security_mode == MessageSecurityMode::Invalid {
             error!("Endpoint {} is invalid. Security mode \"{}\" is invalid. Valid values are None, Sign, SignAndEncrypt", self.name, self.security_mode);
             valid = false;
-//        } else if security_policy == SecurityPolicy::None && security_mode == MessageSecurityMode::None && (self.anonymous.is_none() || !self.anonymous.as_ref().unwrap()) {
-//            error!("Endpoint {} is invalid. Security policy and mode allow anonymous connections but anonymous is not set to true", self.name);
-//            valid = false;
+        } else if security_policy == SecurityPolicy::None && security_mode == MessageSecurityMode::None {
+            // None either means anonymous == true and/or user/pass is set
+            if (self.anonymous.is_none() || !self.anonymous.as_ref().unwrap()) & &self.user.is_none() {
+                error! ("Endpoint {} is invalid. Mode requires either anonymous or user/pass connections but anonymous is not set to true", self.name);
+                valid = false;
+            }
         } else if (security_policy == SecurityPolicy::None && security_mode != MessageSecurityMode::None) ||
             (security_policy != SecurityPolicy::None && security_mode == MessageSecurityMode::None) {
-            error!("Endpoint {} is invalid. Security policy and security mode must both contain None or neither of them should.", self.name);
+            error!("Endpoint {} is invalid. Security policy and security mode must both contain None or neither of them should (1).", self.name);
             valid = false;
         } else if security_policy != SecurityPolicy::None && security_mode == MessageSecurityMode::None {
-            error!("Endpoint {} is invalid. Security policy is not none but mode is.", self.name);
+            error!("Endpoint {} is invalid. Security policy and security mode must both contain None or neither of them should (2).", self.name);
             valid = false;
         }
         valid
@@ -203,7 +206,7 @@ impl ServerConfig {
     pub fn is_valid(&self) -> bool {
         let mut valid = true;
         if self.endpoints.is_empty() {
-            error!("Server configuration is invalid. It defines no endpoints");
+            error! ("Server configuration is invalid. It defines no endpoints");
             valid = false;
         }
         for e in self.endpoints.iter() {
@@ -212,15 +215,15 @@ impl ServerConfig {
             }
         }
         if self.max_array_length == 0 {
-            error!("Server configuration is invalid.  Max array length is invalid");
+            error! ("Server configuration is invalid.  Max array length is invalid");
             valid = false;
         }
         if self.max_string_length == 0 {
-            error!("Server configuration is invalid.  Max string length is invalid");
+            error! ("Server configuration is invalid.  Max string length is invalid");
             valid = false;
         }
         if self.max_byte_string_length == 0 {
-            error!("Server configuration is invalid.  Max byte string length is invalid");
+            error! ("Server configuration is invalid.  Max byte string length is invalid");
             valid = false;
         }
         valid
