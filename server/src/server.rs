@@ -131,8 +131,10 @@ impl ServerState {
 
     pub fn find_endpoint(&self, endpoint_url: &str) -> Option<Endpoint> {
         for e in &self.endpoints {
-            if e.endpoint_url == endpoint_url {
-                return Some(e.clone());
+            if let Ok(result) = url_matches_except_host(&e.endpoint_url, endpoint_url) {
+                if result {
+                    return Some(e.clone());
+                }
             }
         }
         None
