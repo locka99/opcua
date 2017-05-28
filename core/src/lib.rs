@@ -7,6 +7,7 @@ extern crate chrono;
 extern crate regex;
 extern crate rand;
 extern crate openssl;
+extern crate url;
 #[cfg(test)]
 extern crate tempdir;
 

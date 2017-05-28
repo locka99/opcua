@@ -1146,6 +1146,7 @@ mod variant;
 mod data_types;
 mod notification_message;
 mod generated;
+mod url;
 
 pub use self::helpers::*;
 pub use self::data_value::*;
@@ -1154,3 +1155,4 @@ pub use self::node_id::*;
 pub use self::variant::*;
 pub use self::data_types::*;
 pub use self::generated::*;
+pub use self::url::*;
