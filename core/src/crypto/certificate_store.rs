@@ -1,6 +1,6 @@
 //! Certificate manager for OPC UA for Rust.
 use std::path::{Path, PathBuf};
-use std::fs::File;
+use std::fs::{File, metadata};
 use std::io::{Write, Read};
 
 use openssl::x509;
@@ -26,6 +26,8 @@ const TRUSTED_CERTS_DIR: &'static str = "trusted";
 /// The directory holding rejected certificates
 const REJECTED_CERTS_DIR: &'static str = "rejected";
 
+/// The certificate store manages the storage of a server/client's own certificate & private key
+/// and the trust / rejection of certificates from the other end.
 pub struct CertificateStore {
     pub pki_path: PathBuf,
     pub check_issue_time: bool,
@@ -33,6 +35,9 @@ pub struct CertificateStore {
 }
 
 impl CertificateStore {
+    /// Sets up the certificate store to the specified PKI directory.
+    /// It is not a good idea to be pointing more than one instance of this struct at the same path
+    /// on disk.
     pub fn new(pki_path: &Path) -> CertificateStore {
         CertificateStore {
             pki_path: pki_path.to_path_buf(),
@@ -97,6 +102,36 @@ impl CertificateStore {
         };
 
         Ok((X509::wrap(cert), PKey::wrap(pkey)))
+    }
+
+    /// Reads a private key from disk
+    pub fn read_pkey(path: &Path) -> Result<PKey, String> {
+        if let Ok(pkey_info) = metadata(path) {
+            if let Ok(mut f) = File::open(&path) {
+                let mut buffer = Vec::with_capacity(pkey_info.len() as usize);
+                let bytes_read = f.read_to_end(&mut buffer);
+                drop(f);
+                if let Ok(pkey) = pkey::PKey::private_key_from_pem(&buffer) {
+                    return Ok(PKey::wrap(pkey));
+                }
+            }
+        }
+        Err(format!("Cannot read pkey from path {:?}", path))
+    }
+
+    /// Reads the store's own certificate and private key
+    pub fn read_own_cert_and_pkey(&self) -> Result<(X509, PKey), String> {
+        let own_cert_path = self.own_cert_path();
+        if let Ok(cert) = CertificateStore::read_cert(&own_cert_path) {
+            let own_private_key_path = self.own_private_key_path();
+            if let Ok(pkey) = CertificateStore::read_pkey(&own_private_key_path) {
+                Ok((cert, pkey))
+            } else {
+                Err(format!("Cannot read pkey from path {:?}", own_private_key_path))
+            }
+        } else {
+            Err(format!("Cannot read cert from path {:?}", own_cert_path))
+        }
     }
 
     /// This function will use the supplied arguments to create a public/private key pair and from
@@ -302,6 +337,18 @@ impl CertificateStore {
         Ok(())
     }
 
+    fn own_cert_path(&self) -> PathBuf {
+        let mut path = self.own_cert_dir();
+        path.push(OWN_CERTIFICATE_NAME);
+        path
+    }
+
+    fn own_private_key_path(&self) -> PathBuf {
+        let mut path = self.private_key_dir();
+        path.push(OWN_PRIVATE_KEY_NAME);
+        path
+    }
+
     /// Returns the path to the private key dir
     pub fn private_key_dir(&self) -> PathBuf {
         let mut path = PathBuf::from(&self.pki_path);
@@ -391,7 +438,6 @@ impl CertificateStore {
     ///
     /// A string description of any failure
     ///
-
     fn make_and_ensure_file_path(path: &Path, file_name: &str) -> Result<PathBuf, String> {
         let mut path = PathBuf::from(&path);
         CertificateStore::ensure_dir(&path)?;

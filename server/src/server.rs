@@ -3,6 +3,7 @@
 
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
+use std::path::{PathBuf};
 use std::thread;
 
 use opcua_core;
@@ -81,7 +82,6 @@ impl ServerDiagnostics {
 
 /// Server state is any state associated with the server as a whole that individual sessions might
 /// be interested in. That includes configuration info, address space etc.
-#[derive(Clone)]
 pub struct ServerState {
     /// The application URI
     pub application_uri: UAString,
@@ -101,8 +101,12 @@ pub struct ServerState {
     pub endpoints: Vec<Endpoint>,
     /// Server configuration
     pub config: Arc<Mutex<ServerConfig>>,
+    /// Certificate store for certs
+    pub certificate_store: Arc<Mutex<CertificateStore>>,
     /// Server public certificate read from config location or null if there is none
-    pub server_certificate: ByteString,
+    pub server_certificate: Option<X509>,
+    /// Server private key pair
+    pub server_pkey: Option<PKey>,
     /// The address space
     pub address_space: Arc<Mutex<AddressSpace>>,
     /// The next subscription id - subscriptions are shared across the whole server. Initial value
@@ -140,6 +144,14 @@ impl ServerState {
         None
     }
 
+    pub fn server_certificate_as_byte_string(&self) -> ByteString {
+        if self.server_certificate.is_some() {
+            self.server_certificate.as_ref().unwrap().as_byte_string()
+        } else {
+            ByteString::null()
+        }
+    }
+
     fn new_endpoint_description(&self, endpoint: &Endpoint) -> EndpointDescription {
         let mut user_identity_tokens = Vec::with_capacity(2);
         if endpoint.anonymous {
@@ -150,6 +162,7 @@ impl ServerState {
                 user_identity_tokens.push(UserTokenPolicy::new_user_pass());
             }
         }
+
         EndpointDescription {
             endpoint_url: UAString::from_str(&endpoint.endpoint_url),
             server: ApplicationDescription {
@@ -161,7 +174,7 @@ impl ServerState {
                 discovery_profile_uri: UAString::null(),
                 discovery_urls: None,
             },
-            server_certificate: self.server_certificate.clone(),
+            server_certificate: self.server_certificate_as_byte_string(),
             security_mode: endpoint.security_mode,
             security_policy_uri: endpoint.security_policy_uri.clone(),
             user_identity_tokens: Some(user_identity_tokens),
@@ -230,7 +243,22 @@ impl Server {
             });
         }
 
-        let server_certificate = ByteString::null();
+        // Security, pki auto create cert
+        let pki_path = PathBuf::from(&config.pki_dir);
+        let certificate_store = CertificateStore::new(&pki_path);
+        let (cert, pkey) = if certificate_store.ensure_pki_path().is_err() {
+            error!("PKI folder cannot be created so server has no certificate");
+            (None, None)
+        } else {
+            if let Ok(result) = certificate_store.read_own_cert_and_pkey() {
+                let (cert, pkey) = result;
+                (Some(cert), Some(pkey))
+            } else {
+                error!("Certification and private key could not be read, check log");
+                (None, None)
+            }
+        };
+
         let address_space = AddressSpace::new();
 
         let server_state = ServerState {
@@ -246,7 +274,9 @@ impl Server {
             start_time: start_time,
             endpoints: endpoints,
             config: Arc::new(Mutex::new(config.clone())),
-            server_certificate: server_certificate,
+            certificate_store: Arc::new(Mutex::new(certificate_store)),
+            server_certificate: cert,
+            server_pkey: pkey,
             address_space: Arc::new(Mutex::new(address_space)),
             last_subscription_id: 0,
 

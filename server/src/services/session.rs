@@ -37,7 +37,7 @@ impl SessionService {
 
         // TODO crypto
         let server_nonce = ByteString::random(32);
-        let server_certificate = server_state.server_certificate.clone();
+        let server_certificate = server_state.server_certificate_as_byte_string();
         let server_software_certificates = None;
         let server_signature = SignatureData {
             algorithm: UAString::null(),

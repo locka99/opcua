@@ -11,6 +11,8 @@ use openssl::hash;
 
 use chrono::{DateTime, UTC, TimeZone};
 
+use types::ByteString;
+
 #[derive(Debug)]
 /// Used to create an X509 cert (and private key)
 pub struct X509Data {
@@ -103,6 +105,12 @@ impl X509 {
     pub fn not_after(&self) -> std::result::Result<DateTime<UTC>, ()> {
         let date = self.value.not_after().to_string();
         parse_asn1_date(&date)
+    }
+
+    /// Returns a ByteString representation of the cert which is DER encoded form of X509v3
+    pub fn as_byte_string(&self) -> ByteString {
+        let der = self.value.to_der().unwrap();
+        ByteString::from_bytes(&der)
     }
 }
 
