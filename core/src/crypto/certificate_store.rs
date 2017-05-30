@@ -1,4 +1,7 @@
-//! Certificate manager for OPC UA for Rust.
+//! The certificate manager for OPC UA for Rust is responsible for storing and retrieving
+//! certificates from disk and for establishing the trustworthiness of those certificates when
+//! establishing connections between the application and the client/server it is communicating with.
+//!
 use std::path::{Path, PathBuf};
 use std::fs::{File, metadata};
 use std::io::{Write, Read};
@@ -12,14 +15,14 @@ use openssl::hash::*;
 
 use prelude::*;
 
-/// The name that the server/client's certificate is expected to be
+/// The name that the server/client's application instance certificate is expected to be
 const OWN_CERTIFICATE_NAME: &'static str = "cert.der";
-/// The name that the server/client's private key is expected to be
+/// The name that the server/client's application instance private key is expected to be
 const OWN_PRIVATE_KEY_NAME: &'static str = "private.pem";
 
-/// The directory holding the server/client's own cert
+/// The directory holding the server/client's application instance cert
 const OWN_CERTIFICATE_DIR: &'static str = "own";
-/// The directory holding the server/client's own private key
+/// The directory holding the server/client's application instance private key
 const OWN_PRIVATE_KEY_DIR: &'static str = "private";
 /// The directory holding trusted certificates
 const TRUSTED_CERTS_DIR: &'static str = "trusted";
@@ -46,15 +49,24 @@ impl CertificateStore {
         }
     }
 
-    /// Creates an X509 certificate from the creation args
+    /// Creates a self-signed X509v3 certificate and public/private key from the supplied creation args.
+    /// The certificate identifies an instance of the application running on a host as well
+    /// as the public key. The PKey holds the corresponding public/private key. Note that if
+    /// the pkey is stored by cert store, then only the private key will be written. The public key
+    /// is only ever stored with the cert.
+    ///
+    /// See Part 6 Table 23 for full set of requirements
+    ///
+    /// In particular, application instance cert requires subjectAltName to specify alternate
+    /// hostnames / ip addresses that the host runs on.
     pub fn create_cert_and_pkey(args: &X509Data) -> Result<(X509, PKey), String> {
-        // Create a keypair
+        // Create a public / private keypair
         let pkey = {
             let rsa = Rsa::generate(args.key_size).unwrap();
             pkey::PKey::from_rsa(rsa).unwrap()
         };
 
-        // Create an X509 cert (the public part) as a .pem
+        // Create an X509 cert (the public part)
         let cert = {
             let mut builder: x509::X509Builder = x509::X509Builder::new().unwrap();
             let _ = builder.set_version(3);
@@ -83,7 +95,7 @@ impl CertificateStore {
             builder.set_not_after(&Asn1Time::days_from_now(args.certificate_duration_days).unwrap()).unwrap();
             builder.set_pubkey(&pkey).unwrap();
 
-            // Alt hostnames
+            // Subject alt names - Alt hostnames, ip addresses for application instance cert
             if !args.alt_host_names.is_empty() {
                 let subject_alternative_name = {
                     let mut subject_alternative_name = SubjectAlternativeName::new();
@@ -104,7 +116,7 @@ impl CertificateStore {
         Ok((X509::wrap(cert), PKey::wrap(pkey)))
     }
 
-    /// Reads a private key from disk
+    /// Reads a private key from a path on disk disk
     pub fn read_pkey(path: &Path) -> Result<PKey, String> {
         if let Ok(pkey_info) = metadata(path) {
             if let Ok(mut f) = File::open(&path) {
@@ -134,9 +146,10 @@ impl CertificateStore {
         }
     }
 
-    /// This function will use the supplied arguments to create a public/private key pair and from
-    /// those create a private key file and self-signed public cert file.
-    pub fn create_and_store_cert(&self, args: &X509Data, overwrite: bool) -> Result<(X509, PKey), String> {
+    /// This function will use the supplied arguments to create an Application Instance Certificate
+    /// consisting of a X509v3 certificate and public/private key pair. The cert (including pubkey)
+    /// and private key will be written to disk under the pki path.
+    pub fn create_and_store_application_instance_cert(&self, args: &X509Data, overwrite: bool) -> Result<(X509, PKey), String> {
         // Create the cert and corresponding private key
         let (cert, pkey) = CertificateStore::create_cert_and_pkey(args)?;
 
@@ -337,40 +350,42 @@ impl CertificateStore {
         Ok(())
     }
 
+    /// Get path to application instance certificate
     fn own_cert_path(&self) -> PathBuf {
         let mut path = self.own_cert_dir();
         path.push(OWN_CERTIFICATE_NAME);
         path
     }
 
+    /// Get path to application instance private key
     fn own_private_key_path(&self) -> PathBuf {
         let mut path = self.private_key_dir();
         path.push(OWN_PRIVATE_KEY_NAME);
         path
     }
 
-    /// Returns the path to the private key dir
+    /// Get the path to the application instance key dir
     pub fn private_key_dir(&self) -> PathBuf {
         let mut path = PathBuf::from(&self.pki_path);
         path.push(OWN_PRIVATE_KEY_DIR);
         path
     }
 
-    /// Returns the path to the own certificate dir
+    /// Get the path to the application instance certificate dir
     pub fn own_cert_dir(&self) -> PathBuf {
         let mut path = PathBuf::from(&self.pki_path);
         path.push(OWN_CERTIFICATE_DIR);
         path
     }
 
-    /// Returns the path to the rejected certs dir
+    /// Get the path to the rejected certs dir
     pub fn rejected_certs_dir(&self) -> PathBuf {
         let mut path = PathBuf::from(&self.pki_path);
         path.push(REJECTED_CERTS_DIR);
         path
     }
 
-    /// Returns the path to the trusted certs dir
+    /// Get the path to the trusted certs dir
     pub fn trusted_certs_dir(&self) -> PathBuf {
         let mut path = PathBuf::from(&self.pki_path);
         path.push(TRUSTED_CERTS_DIR);

@@ -3,6 +3,7 @@ use std::result::Result;
 use opcua_core::types::*;
 use opcua_core::services::*;
 use opcua_core::comms::*;
+use opcua_core::crypto;
 
 use constants;
 use server::{Endpoint, ServerState};
@@ -15,18 +16,59 @@ impl SessionService {
         SessionService {}
     }
 
+    fn create_server_signature(server_state: &ServerState, endpoint: &Endpoint, request: &CreateSessionRequest) -> SignatureData {
+        let (algorithm, signature) = if request.client_certificate.is_null() || request.client_nonce.is_null() {
+            (UAString::null(), ByteString::null())
+        } else {
+            let client_certificate = request.client_certificate.value.as_ref().unwrap();
+            let client_nonce = request.client_nonce.value.as_ref().unwrap();
+
+            // A signature will be produced by concatenating client cert to client nonce and signing
+            // with the server's private key.
+            let mut buffer: Vec<u8> = Vec::with_capacity(client_certificate.len() + client_nonce.len());
+            buffer.extend_from_slice(client_certificate);
+            buffer.extend_from_slice(client_nonce);
+
+            // Sign the bytes and return the algorithm, signature
+            let pkey = server_state.server_pkey.as_ref().unwrap();
+            let security_policy_uri = endpoint.security_policy_uri.value.as_ref().unwrap();
+            match SecurityPolicy::from_uri(security_policy_uri) {
+                SecurityPolicy::Basic128Rsa15 => (
+                    UAString::from_str(crypto::consts::basic128rsa15::ASYMMETRIC_SIGNATURE_ALGORITHM),
+                    ByteString::from_bytes(&pkey.sign_sha1(&buffer))
+                ),
+                SecurityPolicy::Basic256 => (
+                    UAString::from_str(crypto::consts::basic256::ASYMMETRIC_SIGNATURE_ALGORITHM),
+                    ByteString::from_bytes(&pkey.sign_sha1(&buffer))
+                ),
+                SecurityPolicy::Basic256Sha256 => (
+                    UAString::from_str(crypto::consts::basic256sha256::ASYMMETRIC_SIGNATURE_ALGORITHM),
+                    ByteString::from_bytes(&pkey.sign_sha256(&buffer))
+                ),
+                SecurityPolicy::None => (
+                    UAString::null(), ByteString::null()
+                ),
+                _ => {
+                    error!("An unknown security policy uri {} was passed to signing function and rejected", security_policy_uri);
+                    (UAString::null(), ByteString::null())
+                }
+            }
+        };
+        SignatureData { algorithm, signature }
+    }
+
     pub fn create_session(&self, server_state: &mut ServerState, session: &mut Session, request: CreateSessionRequest) -> Result<SupportedMessage, StatusCode> {
         // TODO crypto validate client certificate
 
         // Validate the endpoint url
         if request.endpoint_url.is_null() {
             return Err(BAD_TCP_ENDPOINT_URL_INVALID);
-        } else {
-            let endpoint = server_state.find_endpoint(request.endpoint_url.to_str());
-            if endpoint.is_none() {
-                return Err(BAD_TCP_ENDPOINT_URL_INVALID);
-            }
         }
+        let endpoint = server_state.find_endpoint(request.endpoint_url.to_str());
+        if endpoint.is_none() {
+            return Err(BAD_TCP_ENDPOINT_URL_INVALID);
+        }
+        let endpoint = endpoint.unwrap();
 
         let service_status = GOOD;
 
@@ -35,14 +77,12 @@ impl SessionService {
         let session_timeout = constants::SESSION_TIMEOUT;
         let max_request_message_size = constants::MAX_REQUEST_MESSAGE_SIZE;
 
-        // TODO crypto
+        // Calculate a signature
+        let server_signature = SessionService::create_server_signature(server_state, &endpoint, &request);
+
+        // Crypto
         let server_nonce = ByteString::random(32);
         let server_certificate = server_state.server_certificate_as_byte_string();
-        let server_software_certificates = None;
-        let server_signature = SignatureData {
-            algorithm: UAString::null(),
-            signature: ByteString::null(),
-        };
 
         session.session_id = session_id.clone();
         session.authentication_token = authentication_token.clone();
@@ -60,7 +100,7 @@ impl SessionService {
             server_nonce: server_nonce,
             server_certificate: server_certificate,
             server_endpoints: Some(server_state.endpoints()),
-            server_software_certificates: server_software_certificates,
+            server_software_certificates: None,
             server_signature: server_signature,
             max_request_message_size: max_request_message_size,
         };

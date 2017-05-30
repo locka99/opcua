@@ -100,15 +100,15 @@ fn create_own_cert_in_pki() {
     };
 
     let (tmp_dir, cert_store) = make_certificate_store();
-    let result = cert_store.create_and_store_cert(&args, false);
+    let result = cert_store.create_and_store_application_instance_cert(&args, false);
     assert!(result.is_ok());
 
     // Create again with no overwrite
-    let result = cert_store.create_and_store_cert(&args, false);
+    let result = cert_store.create_and_store_application_instance_cert(&args, false);
     assert!(result.is_err());
 
     // Create again with overwrite
-    let result = cert_store.create_and_store_cert(&args, true);
+    let result = cert_store.create_and_store_application_instance_cert(&args, true);
     assert!(result.is_ok());
     drop(tmp_dir)
 }

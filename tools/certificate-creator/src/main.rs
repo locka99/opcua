@@ -15,7 +15,7 @@ fn main() {
     let (args, overwrite, path) = parse_x509_args();
 
     let cert_store = CertificateStore::new(&path);
-    if let Err(_) = cert_store.create_and_store_cert(&args, overwrite) {
+    if let Err(_) = cert_store.create_and_store_application_instance_cert(&args, overwrite) {
         println!("Certificate creation failed, check above for errors");
     }
 }
@@ -38,6 +38,12 @@ The files will be created under the specified under the specified --pkipath valu
             .long("pkipath")
             .help("Path to the OPC UA for Rust pki/ directory")
             .default_value(".")
+            .takes_value(true)
+            .required(false))
+        .arg(Arg::with_name("duration")
+            .long("duration")
+            .help("The duration of the certificate in days")
+            .default_value("365")
             .takes_value(true)
             .required(false))
         .arg(Arg::with_name("overwrite")
@@ -79,6 +85,7 @@ The files will be created under the specified under the specified --pkipath valu
     let pki_path = matches.value_of("pkipath").unwrap().to_string();
     let key_size = value_t_or_exit!(matches, "keysize", u32);
     let overwrite = matches.is_present("overwrite");
+    let duration = value_t_or_exit!(matches, "duration", u32);
 
     let common_name = matches.value_of("CN").unwrap().to_string();
     let organization = matches.value_of("O").unwrap().to_string();
@@ -107,8 +114,12 @@ The files will be created under the specified under the specified --pkipath valu
         result
     };
 
+    if duration == 0 {
+        warn!("Duration is zero days!?");
+    }
+
     if alt_host_names.is_empty() {
-        warn!("No alt host names were supplied or could be inferred. Certificate may be useless without at least one.")
+        warn!("No alt host names were supplied or could be inferred. Certificate may be useless without at least one.");
     }
 
     (X509Data {
@@ -119,6 +130,6 @@ The files will be created under the specified under the specified --pkipath valu
         country: country,
         state: state,
         alt_host_names: alt_host_names,
-        certificate_duration_days: 365,
+        certificate_duration_days: duration,
     }, overwrite, PathBuf::from(&pki_path))
 }

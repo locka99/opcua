@@ -18,7 +18,6 @@ fn validate_aes_args(inx: &[u8], out: &mut [u8], nonce: &[u8], _: &AesKey) -> Re
     }
 }
 
-
 /// Encrypts data using AES. The initialization vector is the nonce generated for the secure channel.
 /// The key can be 128, 160 or 256bits.
 pub fn encrypt_aes(inx: &[u8], out: &mut [u8], nonce: &mut [u8], key: &AesKey) -> Result<(), String> {

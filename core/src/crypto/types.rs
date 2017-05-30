@@ -1,3 +1,9 @@
+//! Contains semi-opaque wrappers for various OpenSSL types. The Rust bindings for OpenSSL do
+//! not mark types as implementing debug, thread safety etc. so these wrappers do that so the keys/certs
+//! can be contained by structs that have those things.
+//!
+//! The module also contains convenience methods
+
 use std;
 use std::marker::{Send};
 use std::fmt::{Debug, Result, Formatter};
