@@ -82,3 +82,46 @@ pub mod consts {
         // the certificate that is required for a given security endpoint.
     }
 }
+
+use types::{ByteString, UAString, SignatureData};
+use comms::SecurityPolicy;
+
+/// Creates a SignatureData object by signing the supplied certificate and nonce with a pkey
+pub fn create_signature_data(pkey: &PKey, security_policy_uri: &str, certificate: &ByteString, nonce: &ByteString) -> SignatureData {
+    let (algorithm, signature) = if certificate.is_null() || nonce.is_null() {
+        (UAString::null(), ByteString::null())
+    } else {
+        let certificate = certificate.value.as_ref().unwrap();
+        let nonce = nonce.value.as_ref().unwrap();
+
+        // A signature will be produced by concatenating client cert to client nonce and signing
+        // with the server's private key.
+        let mut buffer: Vec<u8> = Vec::with_capacity(certificate.len() + nonce.len());
+        buffer.extend_from_slice(certificate);
+        buffer.extend_from_slice(nonce);
+
+        // Sign the bytes and return the algorithm, signature
+        match SecurityPolicy::from_uri(security_policy_uri) {
+            SecurityPolicy::Basic128Rsa15 => (
+                UAString::from_str(consts::basic128rsa15::ASYMMETRIC_SIGNATURE_ALGORITHM),
+                ByteString::from_bytes(&pkey.sign_sha1(&buffer))
+            ),
+            SecurityPolicy::Basic256 => (
+                UAString::from_str(consts::basic256::ASYMMETRIC_SIGNATURE_ALGORITHM),
+                ByteString::from_bytes(&pkey.sign_sha1(&buffer))
+            ),
+            SecurityPolicy::Basic256Sha256 => (
+                UAString::from_str(consts::basic256sha256::ASYMMETRIC_SIGNATURE_ALGORITHM),
+                ByteString::from_bytes(&pkey.sign_sha256(&buffer))
+            ),
+            SecurityPolicy::None => (
+                UAString::null(), ByteString::null()
+            ),
+            _ => {
+                error!("An unknown security policy uri {} was passed to signing function and rejected", security_policy_uri);
+                (UAString::null(), ByteString::null())
+            }
+        }
+    };
+    SignatureData { algorithm, signature }
+}

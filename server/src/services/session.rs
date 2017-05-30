@@ -16,46 +16,6 @@ impl SessionService {
         SessionService {}
     }
 
-    fn create_server_signature(server_state: &ServerState, endpoint: &Endpoint, request: &CreateSessionRequest) -> SignatureData {
-        let (algorithm, signature) = if request.client_certificate.is_null() || request.client_nonce.is_null() {
-            (UAString::null(), ByteString::null())
-        } else {
-            let client_certificate = request.client_certificate.value.as_ref().unwrap();
-            let client_nonce = request.client_nonce.value.as_ref().unwrap();
-
-            // A signature will be produced by concatenating client cert to client nonce and signing
-            // with the server's private key.
-            let mut buffer: Vec<u8> = Vec::with_capacity(client_certificate.len() + client_nonce.len());
-            buffer.extend_from_slice(client_certificate);
-            buffer.extend_from_slice(client_nonce);
-
-            // Sign the bytes and return the algorithm, signature
-            let pkey = server_state.server_pkey.as_ref().unwrap();
-            let security_policy_uri = endpoint.security_policy_uri.value.as_ref().unwrap();
-            match SecurityPolicy::from_uri(security_policy_uri) {
-                SecurityPolicy::Basic128Rsa15 => (
-                    UAString::from_str(crypto::consts::basic128rsa15::ASYMMETRIC_SIGNATURE_ALGORITHM),
-                    ByteString::from_bytes(&pkey.sign_sha1(&buffer))
-                ),
-                SecurityPolicy::Basic256 => (
-                    UAString::from_str(crypto::consts::basic256::ASYMMETRIC_SIGNATURE_ALGORITHM),
-                    ByteString::from_bytes(&pkey.sign_sha1(&buffer))
-                ),
-                SecurityPolicy::Basic256Sha256 => (
-                    UAString::from_str(crypto::consts::basic256sha256::ASYMMETRIC_SIGNATURE_ALGORITHM),
-                    ByteString::from_bytes(&pkey.sign_sha256(&buffer))
-                ),
-                SecurityPolicy::None => (
-                    UAString::null(), ByteString::null()
-                ),
-                _ => {
-                    error!("An unknown security policy uri {} was passed to signing function and rejected", security_policy_uri);
-                    (UAString::null(), ByteString::null())
-                }
-            }
-        };
-        SignatureData { algorithm, signature }
-    }
 
     pub fn create_session(&self, server_state: &mut ServerState, session: &mut Session, request: CreateSessionRequest) -> Result<SupportedMessage, StatusCode> {
         // TODO crypto validate client certificate
@@ -78,7 +38,9 @@ impl SessionService {
         let max_request_message_size = constants::MAX_REQUEST_MESSAGE_SIZE;
 
         // Calculate a signature
-        let server_signature = SessionService::create_server_signature(server_state, &endpoint, &request);
+        let pkey = server_state.server_pkey.as_ref().unwrap();
+        let security_policy_uri = if endpoint.security_policy_uri.is_null() { "" } else { endpoint.security_policy_uri.value.as_ref().unwrap() };
+        let server_signature = crypto::create_signature_data(pkey, &security_policy_uri, &request.client_certificate, &request.client_nonce);
 
         // Crypto
         let server_nonce = ByteString::random(32);
