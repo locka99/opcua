@@ -69,7 +69,8 @@ impl CertificateStore {
         // Create an X509 cert (the public part)
         let cert = {
             let mut builder: x509::X509Builder = x509::X509Builder::new().unwrap();
-            let _ = builder.set_version(3);
+            // value 2 == version 3 (go figure)
+            let _ = builder.set_version(2);
             let subject_name = {
                 let mut name = x509::X509NameBuilder::new().unwrap();
                 name.append_entry_by_text("CN", &args.common_name).unwrap();
@@ -91,6 +92,19 @@ impl CertificateStore {
                 name.build()
             };
             let _ = builder.set_issuer_name(&issuer_name);
+
+            // For Application Instance Certificate specifies how cert may be used
+            let key_usage = KeyUsage::new().
+                digital_signature().
+                non_repudiation().
+                key_encipherment().
+                data_encipherment().build().unwrap();
+            builder.append_extension(key_usage);
+            let extended_key_usage = ExtendedKeyUsage::new().
+                client_auth().
+                server_auth().build().unwrap();
+            builder.append_extension(extended_key_usage);
+
             builder.set_not_before(&Asn1Time::days_from_now(0).unwrap()).unwrap();
             builder.set_not_after(&Asn1Time::days_from_now(args.certificate_duration_days).unwrap()).unwrap();
             builder.set_pubkey(&pkey).unwrap();
@@ -108,7 +122,7 @@ impl CertificateStore {
             }
 
             // Self-sign
-            let _ = builder.sign(&pkey, MessageDigest::sha1());
+            let _ = builder.sign(&pkey, MessageDigest::sha256());
 
             builder.build()
         };
