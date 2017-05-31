@@ -250,11 +250,12 @@ impl Server {
             error!("PKI folder cannot be created so server has no certificate");
             (None, None)
         } else {
-            if let Ok(result) = certificate_store.read_own_cert_and_pkey() {
+            let result = certificate_store.read_own_cert_and_pkey();
+            if let Ok(result) = result {
                 let (cert, pkey) = result;
                 (Some(cert), Some(pkey))
             } else {
-                error!("Certification and private key could not be read, check log");
+                error!("Certification and private key could not be read - {}", result.unwrap_err());
                 (None, None)
             }
         };

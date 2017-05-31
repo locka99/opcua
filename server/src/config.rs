@@ -1,8 +1,9 @@
 use serde_yaml;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::io::prelude::*;
 use std::fs::File;
+use std::env;
 
 use std::result::Result;
 
@@ -139,12 +140,19 @@ impl ServerConfig {
         let application_uri = format!("urn:{}", application_name);
         let product_uri = format!("urn:{}", application_name);
 
+        let pki_dir = if let Ok(mut pki_dir) = env::current_dir() {
+            pki_dir.push("pki");
+            pki_dir
+        } else {
+            PathBuf::from("./pki")
+        };
+
         ServerConfig {
             application_name: application_name,
             application_uri: application_uri,
             product_uri: product_uri,
             discovery_service: true,
-            pki_dir: "pki".to_string(),
+            pki_dir: pki_dir.into_os_string().into_string().unwrap(),
             tcp_config: TcpConfig {
                 host: hostname,
                 port: constants::DEFAULT_OPC_UA_SERVER_PORT,
