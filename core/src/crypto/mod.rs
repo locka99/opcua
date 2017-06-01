@@ -10,6 +10,9 @@ pub use self::types::*;
 pub use self::certificate_store::*;
 pub use self::encrypt_decrypt::*;
 
+use types::*;
+use comms::SecurityPolicy;
+
 pub mod consts {
     pub mod basic128rsa15
     {
@@ -19,8 +22,10 @@ pub mod consts {
         //
         // -> SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
         // -> SymmetricEncryptionAlgorithm – Aes128 – (http://www.w3.org/2001/04/xmlenc#aes128-cbc).
-        // -> AsymmetricSignatureAlgorithm – RsaSha1 – (http://www.w3.org/2000/09/xmldsig#rsa-sha1).
+
+        /// AsymmetricSignatureAlgorithm – RsaSha1 – (http://www.w3.org/2000/09/xmldsig#rsa-sha1).
         pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &'static str = "http://www.w3.org/2000/09/xmldsig#rsa-sha1";
+
         // -> AsymmetricKeyWrapAlgorithm – KwRsa15 – (http://www.w3.org/2001/04/xmlenc#rsa-1_5).
         // -> AsymmetricEncryptionAlgorithm – Rsa15 – (http://www.w3.org/2001/04/xmlenc#rsa-1_5).
         // -> KeyDerivationAlgorithm – PSha1 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1).
@@ -39,7 +44,8 @@ pub mod consts {
         //
         // -> SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
         // -> SymmetricEncryptionAlgorithm – Aes256 – (http://www.w3.org/2001/04/xmlenc#aes256-cbc).
-        // -> AsymmetricSignatureAlgorithm – RsaSha1 – (http://www.w3.org/2000/09/xmldsig#rsa-sha1).
+
+        /// AsymmetricSignatureAlgorithm – RsaSha1 – (http://www.w3.org/2000/09/xmldsig#rsa-sha1).
         pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &'static str = "http://www.w3.org/2000/09/xmldsig#rsa-sha1";
 
         // -> AsymmetricKeyWrapAlgorithm – KwRsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p).
@@ -64,7 +70,8 @@ pub mod consts {
         //
         // -> SymmetricSignatureAlgorithm – Hmac_Sha256 – (http://www.w3.org/2000/09/xmldsig#hmac-sha256).
         // -> SymmetricEncryptionAlgorithm – Aes256_CBC – (http://www.w3.org/2001/04/xmlenc#aes256-cbc).
-        // -> AsymmetricSignatureAlgorithm – Rsa_Sha256 – (http://www.w3.org/2001/04/xmldsig#rsa-sha256).
+
+        /// AsymmetricSignatureAlgorithm – Rsa_Sha256 – (http://www.w3.org/2001/04/xmldsig#rsa-sha256).
         pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &'static str = "http://www.w3.org/2001/04/xmldsig#rsa-sha256";
 
         // -> AsymmetricKeyWrapAlgorithm – KwRsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p).
@@ -83,36 +90,74 @@ pub mod consts {
     }
 }
 
-use types::{ByteString, UAString, SignatureData};
-use comms::SecurityPolicy;
+fn concat_data_and_nonce(data: &[u8], nonce: &[u8]) -> Vec<u8> {
+    let mut buffer: Vec<u8> = Vec::with_capacity(data.len() + nonce.len());
+    buffer.extend_from_slice(data);
+    buffer.extend_from_slice(nonce);
+    buffer
+}
+
+/// Verifies that cert matches the signed data
+pub fn verify_signature(verifying_cert: &X509, signature_data: &SignatureData, data: &ByteString, nonce: &ByteString) -> StatusCode {
+    if data.is_null() || nonce.is_null() {
+        error!("Data or nonce are null");
+        BAD_UNEXPECTED_ERROR
+    } else if signature_data.algorithm.is_null() {
+        error!("Signature data has no algorithm");
+        BAD_UNEXPECTED_ERROR
+    } else {
+        // Get the pul
+        if let Ok(public_key) = verifying_cert.public_key() {
+            let data = concat_data_and_nonce(data.value.as_ref().unwrap(), nonce.value.as_ref().unwrap());
+            let signature = signature_data.signature.value.as_ref().unwrap();
+
+            let security_policy_uri = signature_data.algorithm.value.as_ref().unwrap();
+            let security_policy = SecurityPolicy::from_uri(security_policy_uri);
+
+            let verified = match security_policy {
+                SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => {
+                    public_key.verify_sha1(&data, signature)
+                }
+                SecurityPolicy::Basic256Sha256 => {
+                    public_key.verify_sha256(&data, signature)
+                }
+                SecurityPolicy::None => {
+                    error!("Cannot verify a signature with no security policy of None");
+                    false
+                }
+                _ => {
+                    error!("An unknown security policy uri {} was passed to signing function and rejected", security_policy_uri);
+                    false
+                }
+            };
+            if verified { GOOD } else { BAD_APPLICATION_SIGNATURE_INVALID }
+        } else {
+            error!("Public key cannot be obtained from cert");
+            BAD_UNEXPECTED_ERROR
+        }
+    }
+}
 
 /// Creates a SignatureData object by signing the supplied certificate and nonce with a pkey
-pub fn create_signature_data(pkey: &PKey, security_policy_uri: &str, certificate: &ByteString, nonce: &ByteString) -> SignatureData {
-    let (algorithm, signature) = if certificate.is_null() || nonce.is_null() {
+pub fn create_signature_data(pkey: &PKey, security_policy_uri: &str, data: &ByteString, nonce: &ByteString) -> SignatureData {
+    let (algorithm, signature) = if data.is_null() || nonce.is_null() {
         (UAString::null(), ByteString::null())
     } else {
-        let certificate = certificate.value.as_ref().unwrap();
-        let nonce = nonce.value.as_ref().unwrap();
-
-        // A signature will be produced by concatenating client cert to client nonce and signing
-        // with the server's private key.
-        let mut buffer: Vec<u8> = Vec::with_capacity(certificate.len() + nonce.len());
-        buffer.extend_from_slice(certificate);
-        buffer.extend_from_slice(nonce);
+        let data = concat_data_and_nonce(data.value.as_ref().unwrap(), nonce.value.as_ref().unwrap());
 
         // Sign the bytes and return the algorithm, signature
         match SecurityPolicy::from_uri(security_policy_uri) {
             SecurityPolicy::Basic128Rsa15 => (
                 UAString::from_str(consts::basic128rsa15::ASYMMETRIC_SIGNATURE_ALGORITHM),
-                ByteString::from_bytes(&pkey.sign_sha1(&buffer))
+                ByteString::from_bytes(&pkey.sign_sha1(&data))
             ),
             SecurityPolicy::Basic256 => (
                 UAString::from_str(consts::basic256::ASYMMETRIC_SIGNATURE_ALGORITHM),
-                ByteString::from_bytes(&pkey.sign_sha1(&buffer))
+                ByteString::from_bytes(&pkey.sign_sha1(&data))
             ),
             SecurityPolicy::Basic256Sha256 => (
                 UAString::from_str(consts::basic256sha256::ASYMMETRIC_SIGNATURE_ALGORITHM),
-                ByteString::from_bytes(&pkey.sign_sha256(&buffer))
+                ByteString::from_bytes(&pkey.sign_sha256(&data))
             ),
             SecurityPolicy::None => (
                 UAString::null(), ByteString::null()

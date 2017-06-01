@@ -89,6 +89,33 @@ impl X509 {
         X509 { value }
     }
 
+    pub fn from_byte_string(data: &ByteString) -> std::result::Result<X509, ()> {
+        if data.is_null() {
+            Err(())
+        } else {
+            if let Ok(cert) = x509::X509::from_der(&data.value.as_ref().unwrap()) {
+                Ok(X509::wrap(cert))
+            } else {
+                Err(())
+            }
+        }
+    }
+
+    /// Returns a ByteString representation of the cert which is DER encoded form of X509v3
+    pub fn as_byte_string(&self) -> ByteString {
+        let der = self.value.to_der().unwrap();
+        ByteString::from_bytes(&der)
+    }
+
+    pub fn public_key(&self) -> std::result::Result<PKey, ()> {
+        if let Ok(pkey) = self.value.public_key() {
+            let pkey = PKey::wrap(pkey);
+            Ok(pkey)
+        } else {
+            Err(())
+        }
+    }
+
     /// OPC UA Part 6 MessageChunk structure
     ///
     /// The thumbprint is the SHA1 digest of the DER form of the certificate. The hash is 160 bits
@@ -111,12 +138,6 @@ impl X509 {
     pub fn not_after(&self) -> std::result::Result<DateTime<UTC>, ()> {
         let date = self.value.not_after().to_string();
         parse_asn1_date(&date)
-    }
-
-    /// Returns a ByteString representation of the cert which is DER encoded form of X509v3
-    pub fn as_byte_string(&self) -> ByteString {
-        let der = self.value.to_der().unwrap();
-        ByteString::from_bytes(&der)
     }
 }
 

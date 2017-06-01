@@ -51,8 +51,14 @@ pub struct Session {
     pub session_id: NodeId,
     /// Indicates if the session has received an ActivateSession
     pub activated: bool,
+    /// Security policy
+    pub security_policy_uri: String,
+    /// Client's certificate
+    pub client_certificate: ByteString,
     /// Authentication token for the session
     pub authentication_token: NodeId,
+    /// Session nonce
+    pub session_nonce: ByteString,
     /// Session timeout
     pub session_timeout: Double,
     /// User identity token
@@ -76,7 +82,10 @@ impl Session {
             publish_request_queue: Vec::with_capacity(MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE),
             session_id: NodeId::null(),
             activated: false,
+            client_certificate: ByteString::null(),
+            security_policy_uri: String::new(),
             authentication_token: NodeId::null(),
+            session_nonce: ByteString::null(),
             session_timeout: 0f64,
             user_identity: None,
             max_request_message_size: 0,

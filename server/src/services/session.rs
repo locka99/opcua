@@ -4,6 +4,7 @@ use opcua_core::types::*;
 use opcua_core::services::*;
 use opcua_core::comms::*;
 use opcua_core::crypto;
+use opcua_core::profiles;
 
 use constants;
 use server::{Endpoint, ServerState};
@@ -16,9 +17,10 @@ impl SessionService {
         SessionService {}
     }
 
-
     pub fn create_session(&self, server_state: &mut ServerState, session: &mut Session, request: CreateSessionRequest) -> Result<SupportedMessage, StatusCode> {
         // TODO crypto validate client certificate
+
+        // dates, trust, uses
 
         // Validate the endpoint url
         if request.endpoint_url.is_null() {
@@ -39,7 +41,7 @@ impl SessionService {
 
         // Calculate a signature
         let pkey = server_state.server_pkey.as_ref().unwrap();
-        let security_policy_uri = if endpoint.security_policy_uri.is_null() { "" } else { endpoint.security_policy_uri.value.as_ref().unwrap() };
+        let security_policy_uri = if endpoint.security_policy_uri.is_null() { profiles::SECURITY_POLICY_NONE } else { endpoint.security_policy_uri.value.as_ref().unwrap() };
         let server_signature = crypto::create_signature_data(pkey, &security_policy_uri, &request.client_certificate, &request.client_nonce);
 
         // Crypto
@@ -52,7 +54,10 @@ impl SessionService {
         session.max_request_message_size = max_request_message_size;
         session.max_response_message_size = request.max_response_message_size;
         session.endpoint_url = request.endpoint_url.clone();
+        session.security_policy_uri = security_policy_uri.to_string();
         session.user_identity = None;
+        session.client_certificate = request.client_certificate.clone();
+        session.session_nonce = server_nonce.clone();
 
         let response = CreateSessionResponse {
             response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
@@ -71,31 +76,41 @@ impl SessionService {
     }
 
     pub fn activate_session(&self, server_state: &mut ServerState, session: &mut Session, request: ActivateSessionRequest) -> Result<SupportedMessage, StatusCode> {
-        // TODO crypto see 5.6.3.1 verify the caller is the same caller as create_session by validating
+        // Crypto see 5.6.3.1 verify the caller is the same caller as create_session by validating
         // signature supplied by client
 
-        // TODO crypto secure channel verification
-
-        let endpoint = SessionService::get_session_endpoint(server_state, session);
-        if endpoint.is_none() {
-            return Err(BAD_TCP_ENDPOINT_URL_INVALID);
-        }
-        let endpoint = endpoint.unwrap();
-        endpoint.validate_identity_token(&request.user_identity_token);
-
-        let service_status = GOOD;
         let server_nonce = ByteString::random(32);
+        let service_status = if SecurityPolicy::from_uri(&session.security_policy_uri) != SecurityPolicy::None {
+            let mut service_status = BAD_UNEXPECTED_ERROR;
+            if server_state.server_certificate.is_some() {
+                if let Ok(client_cert) = crypto::X509::from_byte_string(&session.client_certificate) {
+                    let server_certificate = server_state.server_certificate.as_ref().unwrap().as_byte_string();
+                    service_status = crypto::verify_signature(&client_cert, &request.client_signature, &server_certificate, &session.session_nonce);
+                    // TODO crypto secure channel verification
+                    let endpoint = SessionService::get_session_endpoint(server_state, session);
+                    if endpoint.is_none() {
+                        return Err(BAD_TCP_ENDPOINT_URL_INVALID);
+                    }
 
-        session.activated = true;
+                    let endpoint = endpoint.unwrap();
+                    endpoint.validate_identity_token(&request.user_identity_token);
+                    session.session_nonce = server_nonce.clone();
+                    session.activated = true;
+                    service_status = GOOD
+                }
+            }
+            service_status
+        } else {
+            session.session_nonce = server_nonce.clone();
+            GOOD
+        };
 
-        let response = ActivateSessionResponse {
+        Ok(SupportedMessage::ActivateSessionResponse(ActivateSessionResponse {
             response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
             server_nonce: server_nonce,
             results: None,
             diagnostic_infos: None,
-        };
-
-        Ok(SupportedMessage::ActivateSessionResponse(response))
+        }))
     }
 
     pub fn close_session(&self, _: &mut ServerState, session: &mut Session, request: CloseSessionRequest) -> Result<SupportedMessage, StatusCode> {
