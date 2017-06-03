@@ -203,6 +203,17 @@ impl TcpTransport {
 
             // Anything to write?
             TcpTransport::write_output(&mut out_buf_stream, &mut stream);
+
+            // Some handlers might wish to send their message and terminate, in which case this is
+            // done here.
+            {
+                let session = self.session.lock().unwrap();
+                if session.terminate_session {
+                    session_status_code = BAD_CONNECTION_CLOSED;
+                }
+            }
+
+            // Terminate the session?
             if !session_status_code.is_good() {
                 break;
             }

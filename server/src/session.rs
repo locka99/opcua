@@ -51,6 +51,8 @@ pub struct Session {
     pub session_id: NodeId,
     /// Indicates if the session has received an ActivateSession
     pub activated: bool,
+    /// Flag to indicate session should be terminated
+    pub terminate_session: bool,
     /// Security policy
     pub security_policy_uri: String,
     /// Client's certificate
@@ -82,6 +84,7 @@ impl Session {
             publish_request_queue: Vec::with_capacity(MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE),
             session_id: NodeId::null(),
             activated: false,
+            terminate_session: false,
             client_certificate: ByteString::null(),
             security_policy_uri: String::new(),
             authentication_token: NodeId::null(),

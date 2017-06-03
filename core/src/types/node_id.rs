@@ -110,7 +110,7 @@ impl BinaryEncoder<NodeId> for NodeId {
             0x3 => {
                 let namespace = read_u16(stream)?;
                 let value = UAString::decode(stream)?;
-                NodeId::new_string(namespace, value.to_str())
+                NodeId::new_string(namespace, value.as_ref())
             }
             0x4 => {
                 let namespace = read_u16(stream)?;
@@ -249,7 +249,7 @@ impl NodeId {
                 if value.is_null() {
                     "null".to_string()
                 } else {
-                    format!("s={}", value.to_str())
+                    format!("s={}", value.as_ref())
                 }
             }
             Identifier::Guid(ref value) => {
@@ -427,7 +427,7 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
             0x3 => {
                 let namespace = read_u16(stream)?;
                 let value = UAString::decode(stream)?;
-                NodeId::new_string(namespace, value.to_str())
+                NodeId::new_string(namespace, value.as_ref())
             }
             0x4 => {
                 let namespace = read_u16(stream)?;

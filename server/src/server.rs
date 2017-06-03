@@ -333,7 +333,7 @@ impl Server {
                 info!("  Url:              {}", endpoint.endpoint_url);
                 info!("  Anonymous Access: {:?}", endpoint.anonymous);
                 info!("  User/Password:    {:?}", endpoint.user.is_some());
-                info!("  Security Policy:  {}", if endpoint.security_policy_uri.is_null() { "" } else { endpoint.security_policy_uri.to_str() });
+                info!("  Security Policy:  {}", if endpoint.security_policy_uri.is_null() { "" } else { endpoint.security_policy_uri.as_ref() });
                 info!("  Security Mode:    {:?}", endpoint.security_mode);
             }
         }

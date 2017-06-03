@@ -291,19 +291,16 @@ impl BinaryEncoder<UAString> for UAString {
     }
 }
 
+impl AsRef<str> for UAString {
+    fn as_ref(&self) -> &str {
+        if self.is_null() { "" } else { self.value.as_ref().unwrap() }
+    }
+}
+
 impl UAString {
     /// Create a string from a string slice
     pub fn from_str(value: &str) -> UAString {
         UAString { value: Some(value.to_string()) }
-    }
-
-    /// Get the inner value
-    pub fn to_str(&self) -> &str {
-        if self.is_null() {
-            ""
-        } else {
-            self.value.as_ref().unwrap()
-        }
     }
 
     /// Returns the length of the string or -1 for null
@@ -456,6 +453,12 @@ impl Guid {
 #[derive(Eq, PartialEq, Debug, Clone, Hash)]
 pub struct ByteString {
     pub value: Option<Vec<u8>>,
+}
+
+impl AsRef<[u8]> for ByteString {
+    fn as_ref(&self) -> &[u8] {
+        if self.value.is_none() { &[] } else { self.value.as_ref().unwrap() }
+    }
 }
 
 impl BinaryEncoder<ByteString> for ByteString {
@@ -1107,7 +1110,7 @@ impl UserNameIdentityToken {
             // Plaintext encryption
             if self.encryption_algorithm.is_null() {
                 // Password shall be a UTF-8 encoded string
-                let id_user = self.user_name.to_str();
+                let id_user = self.user_name.as_ref();
                 let id_pass = self.password.value.as_ref().unwrap();
                 if username == id_user {
                     if password == id_pass.as_slice() {
@@ -1124,7 +1127,7 @@ impl UserNameIdentityToken {
                 // TODO See 7.36.3. UserTokenPolicy and SecurityPolicy should be used to provide
                 // a means to encrypt a password and not send it plain text. Sending a plaintext
                 // password over unsecured network is a bad thing!!!
-                error!("Authentication error: Unsupported encryption algorithm {}", self.encryption_algorithm.to_str());
+                error!("Authentication error: Unsupported encryption algorithm {}", self.encryption_algorithm.as_ref());
                 false
             }
         } else {

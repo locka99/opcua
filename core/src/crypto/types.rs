@@ -17,7 +17,8 @@ use openssl::hash;
 
 use chrono::{DateTime, UTC, TimeZone};
 
-use types::ByteString;
+use types::{ByteString, StatusCode};
+use types::StatusCode::*;
 
 #[derive(Debug)]
 /// Used to create an X509 cert (and private key)
@@ -47,42 +48,6 @@ impl Debug for X509 {
 
 /// This allows certs to be transferred between threads
 unsafe impl Send for X509 {}
-
-fn parse_asn1_date(date: &str) -> std::result::Result<DateTime<UTC>, ()> {
-    // Parse ASN1 time format
-    // MMM DD HH:MM:SS YYYY [GMT]
-    let date = if date.ends_with(" GMT") {
-        // Not interested in GMT part, ASN1 is always GMT (i.e. UTC)
-        &date[..date.len() - 4]
-    } else {
-        &date
-    };
-    let result = UTC.datetime_from_str(date, "%b %d %H:%M:%S %Y");
-    if result.is_err() {
-        println!("Error = {:?}", result.unwrap_err());
-        Err(())
-    } else {
-        Ok(result.unwrap())
-    }
-}
-
-#[test]
-fn parse_asn1_date_test() {
-    use chrono::{Datelike, Timelike};
-
-    assert!(parse_asn1_date("").is_err());
-    assert!(parse_asn1_date("Jan 69 00:00:00 1970").is_err());
-    assert!(parse_asn1_date("Feb 21 00:00:00 1970").is_ok());
-    assert!(parse_asn1_date("Feb 21 00:00:00 1970 GMT").is_ok());
-
-    let dt: DateTime<UTC> = parse_asn1_date("Feb 21 12:45:30 1999 GMT").unwrap();
-    assert_eq!(dt.month(), 2);
-    assert_eq!(dt.day(), 21);
-    assert_eq!(dt.hour(), 12);
-    assert_eq!(dt.minute(), 45);
-    assert_eq!(dt.second(), 30);
-    assert_eq!(dt.year(), 1999);
-}
 
 impl X509 {
     pub fn wrap(value: x509::X509) -> X509 {
@@ -116,6 +81,32 @@ impl X509 {
         }
     }
 
+    pub fn is_time_valid(&self, now: &DateTime<UTC>) -> StatusCode {
+        // Issuer time
+        let not_before = self.not_before();
+        if let Ok(not_before) = not_before {
+            if now.lt(&not_before) {
+                return BAD_CERTIFICATE_TIME_INVALID;
+            }
+        } else {
+            // No before time
+            return BAD_CERTIFICATE_INVALID;
+        }
+
+        // Expiration time
+        let not_after = self.not_after();
+        if let Ok(not_after) = not_after {
+            if now.gt(&not_after) {
+                return BAD_CERTIFICATE_TIME_INVALID;
+            }
+        } else {
+            // No after time
+            return BAD_CERTIFICATE_INVALID;
+        }
+
+        GOOD
+    }
+
     /// OPC UA Part 6 MessageChunk structure
     ///
     /// The thumbprint is the SHA1 digest of the DER form of the certificate. The hash is 160 bits
@@ -131,14 +122,50 @@ impl X509 {
     /// Turn the Asn1 values into useful portable types
     pub fn not_before(&self) -> std::result::Result<DateTime<UTC>, ()> {
         let date = self.value.not_before().to_string();
-        parse_asn1_date(&date)
+        Self::parse_asn1_date(&date)
     }
 
     /// Turn the Asn1 values into useful portable types
     pub fn not_after(&self) -> std::result::Result<DateTime<UTC>, ()> {
         let date = self.value.not_after().to_string();
-        parse_asn1_date(&date)
+        Self::parse_asn1_date(&date)
     }
+
+    fn parse_asn1_date(date: &str) -> std::result::Result<DateTime<UTC>, ()> {
+        // Parse ASN1 time format
+        // MMM DD HH:MM:SS YYYY [GMT]
+        let date = if date.ends_with(" GMT") {
+            // Not interested in GMT part, ASN1 is always GMT (i.e. UTC)
+            &date[..date.len() - 4]
+        } else {
+            &date
+        };
+        let result = UTC.datetime_from_str(date, "%b %d %H:%M:%S %Y");
+        if result.is_err() {
+            println!("Error = {:?}", result.unwrap_err());
+            Err(())
+        } else {
+            Ok(result.unwrap())
+        }
+    }
+}
+
+#[test]
+fn parse_asn1_date_test() {
+    use chrono::{Datelike, Timelike};
+
+    assert!(X509::parse_asn1_date("").is_err());
+    assert!(X509::parse_asn1_date("Jan 69 00:00:00 1970").is_err());
+    assert!(X509::parse_asn1_date("Feb 21 00:00:00 1970").is_ok());
+    assert!(X509::parse_asn1_date("Feb 21 00:00:00 1970 GMT").is_ok());
+
+    let dt: DateTime<UTC> = X509::parse_asn1_date("Feb 21 12:45:30 1999 GMT").unwrap();
+    assert_eq!(dt.month(), 2);
+    assert_eq!(dt.day(), 21);
+    assert_eq!(dt.hour(), 12);
+    assert_eq!(dt.minute(), 45);
+    assert_eq!(dt.second(), 30);
+    assert_eq!(dt.year(), 1999);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -127,19 +127,19 @@ fn create_rejected_cert_in_pki() {
 }
 
 #[test]
-fn test_and_reject_cert() {
+fn test_and_reject_application_instance_cert() {
     let (tmp_dir, cert_store) = make_certificate_store();
 
     // Make an unrecognized cert
     let (cert, _) = make_test_cert();
-    let result = cert_store.validate_or_reject_cert(&cert);
+    let result = cert_store.validate_or_reject_application_instance_cert(&cert);
     assert!(result.is_bad());
 
     drop(tmp_dir);
 }
 
 #[test]
-fn test_and_trust_cert() {
+fn test_and_trust_application_instance_cert() {
     let (tmp_dir, cert_store) = make_certificate_store();
 
     // Make a cert, write it to the trusted dir
@@ -156,7 +156,7 @@ fn test_and_trust_cert() {
     }
 
     // Now validate the cert was stored properly
-    let result = cert_store.validate_or_reject_cert(&cert);
+    let result = cert_store.validate_or_reject_application_instance_cert(&cert);
     assert!(result.is_good());
 
     drop(tmp_dir);
@@ -181,7 +181,7 @@ fn test_and_reject_thumbprint_mismatch() {
     }
 
     // Now validate the cert was rejected because the thumbprint does not match the one on disk
-    let result = cert_store.validate_or_reject_cert(&cert2);
+    let result = cert_store.validate_or_reject_application_instance_cert(&cert2);
     assert!(result.is_bad());
 
     drop(tmp_dir);

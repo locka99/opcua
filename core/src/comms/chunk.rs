@@ -346,7 +346,7 @@ impl Chunk {
             let security_policy = if security_header.security_policy_uri.is_null() {
                 SecurityPolicy::None
             } else {
-                SecurityPolicy::from_uri(&security_header.security_policy_uri.to_str())
+                SecurityPolicy::from_uri(&security_header.security_policy_uri.as_ref())
             };
             if security_policy == SecurityPolicy::Unknown {
                 error!("Security policy of chunk is unsupported, policy = {:?}", security_header.security_policy_uri);

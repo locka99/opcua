@@ -33,8 +33,7 @@ const REJECTED_CERTS_DIR: &'static str = "rejected";
 /// and the trust / rejection of certificates from the other end.
 pub struct CertificateStore {
     pub pki_path: PathBuf,
-    pub check_issue_time: bool,
-    pub check_expiration_time: bool,
+    pub check_time: bool,
 }
 
 impl CertificateStore {
@@ -44,8 +43,7 @@ impl CertificateStore {
     pub fn new(pki_path: &Path) -> CertificateStore {
         CertificateStore {
             pki_path: pki_path.to_path_buf(),
-            check_issue_time: true,
-            check_expiration_time: true
+            check_time: true,
         }
     }
 
@@ -68,7 +66,7 @@ impl CertificateStore {
 
         // Create an X509 cert (the public part)
         let cert = {
-            let mut builder: x509::X509Builder = x509::X509Builder::new().unwrap();
+            let mut builder = x509::X509Builder::new().unwrap();
             // value 2 == version 3 (go figure)
             let _ = builder.set_version(2);
             let subject_name = {
@@ -99,11 +97,11 @@ impl CertificateStore {
                 non_repudiation().
                 key_encipherment().
                 data_encipherment().build().unwrap();
-            builder.append_extension(key_usage);
+            let _ = builder.append_extension(key_usage);
             let extended_key_usage = ExtendedKeyUsage::new().
                 client_auth().
                 server_auth().build().unwrap();
-            builder.append_extension(extended_key_usage);
+            let _ = builder.append_extension(extended_key_usage);
 
             builder.set_not_before(&Asn1Time::days_from_now(0).unwrap()).unwrap();
             builder.set_not_after(&Asn1Time::days_from_now(args.certificate_duration_days).unwrap()).unwrap();
@@ -118,7 +116,7 @@ impl CertificateStore {
                     }
                     subject_alternative_name.build(&builder.x509v3_context(None, None)).unwrap()
                 };
-                builder.append_extension(subject_alternative_name).unwrap();
+                let _ = builder.append_extension(subject_alternative_name).unwrap();
             }
 
             // Self-sign
@@ -190,11 +188,18 @@ impl CertificateStore {
     /// A non `GOOD` status code indicates a failure in the cert or in some action required in
     /// order to validate it.
     ///
-    pub fn validate_or_reject_cert(&self, cert: &X509) -> StatusCode {
-        let result = self.validate_cert(cert);
-        if result == BAD_CERTIFICATE_UNTRUSTED {
-            // Store result in rejected folder
-            let _ = self.store_rejected_cert(cert);
+    pub fn validate_or_reject_application_instance_cert(&self, cert: &X509) -> StatusCode {
+        let result = self.validate_application_instance_cert(cert);
+        if result.is_bad() {
+            match result {
+                BAD_UNEXPECTED_ERROR | BAD_SECURITY_CHECKS_FAILED => {
+                    /* DO NOTHING */
+                }
+                _ => {
+                    // Store result in rejected folder
+                    let _ = self.store_rejected_cert(cert);
+                }
+            }
         }
         result
     }
@@ -232,7 +237,7 @@ impl CertificateStore {
     /// A non `GOOD` status code indicates a failure in the cert or in some action required in
     /// order to validate it.
     ///
-    pub fn validate_cert(&self, cert: &X509) -> StatusCode {
+    pub fn validate_application_instance_cert(&self, cert: &X509) -> StatusCode {
         let cert_file_name = CertificateStore::cert_file_name(&cert);
         debug!("Validating cert with name on disk {}", cert_file_name);
 
@@ -247,7 +252,7 @@ impl CertificateStore {
             cert_path.push(&cert_file_name);
             if cert_path.exists() {
                 warn!("Certificate {} is untrusted because it resides in the rejected directory", cert_file_name);
-                return BAD_CERTIFICATE_UNTRUSTED;
+                return BAD_SECURITY_CHECKS_FAILED;
             }
         }
 
@@ -277,31 +282,12 @@ impl CertificateStore {
             }
 
             // Now inspect the cert not before / after values to ensure its validity
-            {
+            if self.check_time {
                 use chrono::UTC;
                 let now = UTC::now();
-                // Issuer time
-                if self.check_issue_time {
-                    let not_before = cert.not_before();
-                    if let Ok(not_before) = not_before {
-                        if now.lt(&not_before) {
-                            return BAD_CERTIFICATE_UNTRUSTED;
-                        }
-                    } else {
-                        return BAD_CERTIFICATE_UNTRUSTED;
-                    }
-                }
-
-                // Expiration time
-                if self.check_expiration_time {
-                    let not_after = cert.not_after();
-                    if let Ok(not_after) = not_after {
-                        if now.gt(&not_after) {
-                            return BAD_CERTIFICATE_UNTRUSTED;
-                        }
-                    } else {
-                        return BAD_CERTIFICATE_UNTRUSTED;
-                    }
+                let time_status_code = cert.is_time_valid(&now);
+                if time_status_code.is_bad() {
+                    return time_status_code;
                 }
             }
 

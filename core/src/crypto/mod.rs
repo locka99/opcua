@@ -108,10 +108,10 @@ pub fn verify_signature(verifying_cert: &X509, signature_data: &SignatureData, d
     } else {
         // Get the pul
         if let Ok(public_key) = verifying_cert.public_key() {
-            let data = concat_data_and_nonce(data.value.as_ref().unwrap(), nonce.value.as_ref().unwrap());
-            let signature = signature_data.signature.value.as_ref().unwrap();
+            let data = concat_data_and_nonce(data.as_ref(), nonce.as_ref());
+            let signature = signature_data.signature.as_ref();
 
-            let security_policy_uri = signature_data.algorithm.value.as_ref().unwrap();
+            let security_policy_uri = signature_data.algorithm.as_ref();
             let security_policy = SecurityPolicy::from_uri(security_policy_uri);
 
             let verified = match security_policy {
@@ -143,7 +143,7 @@ pub fn create_signature_data(pkey: &PKey, security_policy_uri: &str, data: &Byte
     let (algorithm, signature) = if data.is_null() || nonce.is_null() {
         (UAString::null(), ByteString::null())
     } else {
-        let data = concat_data_and_nonce(data.value.as_ref().unwrap(), nonce.value.as_ref().unwrap());
+        let data = concat_data_and_nonce(data.as_ref(), nonce.as_ref());
 
         // Sign the bytes and return the algorithm, signature
         match SecurityPolicy::from_uri(security_policy_uri) {
