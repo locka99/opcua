@@ -13,14 +13,15 @@ use time;
 
 use opcua_core::types::*;
 use opcua_core::comms::*;
-use opcua_core::services::*;
 use opcua_core::debug::*;
 
 use constants;
 use server::ServerState;
 use session::Session;
 use comms::message_handler::*;
+use comms::secure_channel::*;
 use subscriptions::{SubscriptionEvent};
+
 
 // TODO these need to go, and use session settings
 const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;
@@ -47,14 +48,10 @@ pub struct TcpTransport {
     pub transport_state: TransportState,
     /// Message handler
     message_handler: MessageHandler,
+    /// Secure channel handler
+    secure_channel: SecureChannel,
     /// Client protocol version set during HELLO
     client_protocol_version: UInt32,
-    // Last secure channel id
-    last_secure_channel_id: UInt32,
-    // Secure channel info for the session
-    secure_channel_info: SecureChannelInfo,
-    /// Last token id number
-    last_token_id: UInt32,
     /// Last encoded sequence number
     last_sent_sequence_number: UInt32,
     /// Last decoded sequence number
@@ -68,11 +65,9 @@ impl TcpTransport {
             server_state: server_state.clone(),
             session: session.clone(),
             transport_state: TransportState::New,
-            client_protocol_version: 0,
-            last_secure_channel_id: 0,
-            secure_channel_info: SecureChannelInfo::new(),
             message_handler: MessageHandler::new(server_state.clone(), session.clone()),
-            last_token_id: 0,
+            secure_channel: SecureChannel::new(),
+            client_protocol_version: 0,
             last_sent_sequence_number: 0,
             last_received_sequence_number: 0,
         }
@@ -144,7 +139,7 @@ impl TcpTransport {
                             debug!("<-- Sending a Publish Response{}, {:?}", publish_response.request_id, &publish_response.response);
                             let _ = self.send_response(publish_response.request_id, &SupportedMessage::PublishResponse(publish_response.response), &mut out_buf_stream);
                         }
-                        TcpTransport::write_output(&mut out_buf_stream, &mut stream);
+                        Self::write_output(&mut out_buf_stream, &mut stream);
                     }
                 }
             }
@@ -202,7 +197,7 @@ impl TcpTransport {
             }
 
             // Anything to write?
-            TcpTransport::write_output(&mut out_buf_stream, &mut stream);
+            Self::write_output(&mut out_buf_stream, &mut stream);
 
             // Some handlers might wish to send their message and terminate, in which case this is
             // done here.
@@ -227,7 +222,7 @@ impl TcpTransport {
             out_buf_stream.set_position(0);
             let error = ErrorMessage::from_status_code(session_status_code);
             let _ = error.encode(&mut out_buf_stream);
-            TcpTransport::write_output(&mut out_buf_stream, &mut stream);
+            Self::write_output(&mut out_buf_stream, &mut stream);
         } else {
             info!("Session terminating normally, session_status_code = {:?}", session_status_code);
         }
@@ -347,9 +342,9 @@ impl TcpTransport {
 
     fn turn_received_chunks_into_message(&mut self, chunks: &Vec<Chunk>) -> std::result::Result<SupportedMessage, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
-        self.last_received_sequence_number = Chunker::validate_chunk_sequences(self.last_received_sequence_number, &self.secure_channel_info, chunks)?;
+        self.last_received_sequence_number = Chunker::validate_chunk_sequences(self.last_received_sequence_number, &self.secure_channel.secure_channel_info, chunks)?;
         // Now decode
-        Chunker::decode(&chunks, &self.secure_channel_info, None)
+        Chunker::decode(&chunks, &self.secure_channel.secure_channel_info, None)
     }
 
     fn process_chunk<W: Write>(&mut self, chunk: Chunk, out_stream: &mut W) -> std::result::Result<(), StatusCode> {
@@ -365,13 +360,13 @@ impl TcpTransport {
         let chunk_message_type = chunk.chunk_header.message_type.clone();
 
         let in_chunks = vec![chunk];
-        let chunk_info = in_chunks[0].chunk_info(true, &self.secure_channel_info)?;
+        let chunk_info = in_chunks[0].chunk_info(true, &self.secure_channel.secure_channel_info)?;
         let request_id = chunk_info.sequence_header.request_id;
 
         let message = self.turn_received_chunks_into_message(&in_chunks)?;
         let response = match chunk_message_type {
             ChunkMessageType::OpenSecureChannel => {
-                SupportedMessage::OpenSecureChannelResponse(TcpTransport::process_open_secure_channel(self, &message)?)
+                SupportedMessage::OpenSecureChannelResponse(self.secure_channel.process_open_secure_channel(self.client_protocol_version, &message)?)
             }
             ChunkMessageType::CloseSecureChannel => {
                 info!("CloseSecureChannelRequest received, session closing");
@@ -400,7 +395,7 @@ impl TcpTransport {
                 // Get the request id out of the request
                 // debug!("Response to send: {:?}", response);
                 let sequence_number = self.last_sent_sequence_number + 1;
-                let out_chunks = Chunker::encode(sequence_number, request_id, &self.secure_channel_info, response)?;
+                let out_chunks = Chunker::encode(sequence_number, request_id, &self.secure_channel.secure_channel_info, response)?;
                 self.last_sent_sequence_number = sequence_number + out_chunks.len() as UInt32 - 1;
 
                 // Send out any chunks that form the response
@@ -413,58 +408,6 @@ impl TcpTransport {
         Ok(())
     }
 
-    fn process_open_secure_channel(&mut self, message: &SupportedMessage) -> std::result::Result<OpenSecureChannelResponse, StatusCode> {
-        let request = match *message {
-            SupportedMessage::OpenSecureChannelRequest(ref request) => {
-                info!("Got secure channel request");
-                request
-            }
-            _ => {
-                error!("message is not an open secure channel request, got {:?}", message);
-                return Err(BAD_UNEXPECTED_ERROR);
-            }
-        };
-
-        let client_protocol_version = self.client_protocol_version;
-        // Must compare protocol version to the one from HELLO
-        if request.client_protocol_version != client_protocol_version {
-            error!("Client sent a different protocol version than it did in the HELLO - {} vs {}", request.client_protocol_version, client_protocol_version);
-            return Err(BAD_PROTOCOL_VERSION_UNSUPPORTED)
-        }
-
-        // Create secure channel info
-        self.secure_channel_info = SecureChannelInfo::new();
-
-        // Process the request
-        self.last_token_id += 1;
-        self.secure_channel_info.token_id = self.last_token_id;
-        self.last_secure_channel_id += 1;
-        self.secure_channel_info.secure_channel_id = self.last_secure_channel_id;
-        // self.secure_channel_info.security_policy = request.
-
-        if self.secure_channel_info.set_their_nonce(&request.client_nonce).is_ok() {
-            self.secure_channel_info.create_random_nonce();
-        } else {
-            debug!("Didn't receive a valid client nonce for this secure channel request so no crypto support");
-            // TODO if crypto is enabled, then this is an error
-        }
-
-        let now = DateTime::now();
-        let response = OpenSecureChannelResponse {
-            response_header: ResponseHeader::new_service_result(&now, &request.request_header, GOOD),
-            server_protocol_version: 0,
-            security_token: ChannelSecurityToken {
-                channel_id: self.secure_channel_info.secure_channel_id,
-                token_id: self.secure_channel_info.token_id,
-                created_at: now.clone(),
-                revised_lifetime: request.requested_lifetime,
-            },
-            server_nonce: self.secure_channel_info.nonce_as_byte_string(),
-        };
-
-        debug!("Sending OpenSecureChannelResponse {:?}", response);
-        Ok(response)
-    }
 }
 
 
