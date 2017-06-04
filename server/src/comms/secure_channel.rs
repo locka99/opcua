@@ -2,11 +2,15 @@ use std;
 
 use opcua_core::types::*;
 use opcua_core::comms::*;
-use opcua_core::services::ResponseHeader;
+use opcua_core::services::{ResponseHeader, SecurityTokenRequestType};
 
 pub struct SecureChannel {
     // Secure channel info for the session
     pub secure_channel_info: SecureChannelInfo,
+    // Issued flag
+    issued: bool,
+    // Renew count, debugging
+    renew_count: usize,
     // Last secure channel id
     last_secure_channel_id: UInt32,
     /// Last token id number
@@ -18,12 +22,14 @@ impl SecureChannel {
         SecureChannel {
             last_secure_channel_id: 0,
             secure_channel_info: SecureChannelInfo::new(),
+            issued: false,
+            renew_count: 0,
             last_token_id: 0,
         }
     }
 
-    pub fn process_open_secure_channel(&mut self, client_protocol_version: UInt32, message: &SupportedMessage) -> std::result::Result<OpenSecureChannelResponse, StatusCode> {
-        let request = match *message {
+    pub fn open_secure_channel(&mut self, client_protocol_version: UInt32, message: &SupportedMessage) -> std::result::Result<OpenSecureChannelResponse, StatusCode> {
+        let request: &OpenSecureChannelRequest = match *message {
             SupportedMessage::OpenSecureChannelRequest(ref request) => {
                 info!("Got secure channel request");
                 request
@@ -42,24 +48,64 @@ impl SecureChannel {
             return Err(BAD_PROTOCOL_VERSION_UNSUPPORTED);
         }
 
-        // Create secure channel info
-        self.secure_channel_info = SecureChannelInfo::new();
+        // Test the request type
+        match request.request_type {
+            SecurityTokenRequestType::Issue => {
+                debug!("Request type == Issue");
+                if self.renew_count > 0 {
+                    // TODO check to see if renew has been called before or not
+                    // error
+                    error!("Asked to issue token on session that has called renew before");
+                }
+            },
+            SecurityTokenRequestType::Renew => {
+                debug!("Request type == Renew");
+
+                // Check for a duplicate nonce. It is invalid for the renew to use the same nonce
+                // as was used for last issue/renew
+                if request.client_nonce.as_ref() == &self.secure_channel_info.their_nonce {
+                    return Err(BAD_NONCE_INVALID);
+                }
+
+                if !self.issued {
+                    // TODO check to see if the secure channel has been issued before or not
+                    error!("Asked to renew token on session that has never issued token");
+                    return Err(BAD_UNEXPECTED_ERROR)
+                }
+                self.renew_count += 1;
+            }
+        }
+
+        // Check the requested security mode
+        match request.security_mode {
+            MessageSecurityMode::None | MessageSecurityMode::Sign | MessageSecurityMode::SignAndEncrypt => {
+                debug!("Message security mode == {:?}", request.security_mode);
+            },
+            _ => {
+                return Err(BAD_SECURITY_MODE_REJECTED);
+            }
+        }
 
         // Process the request
+        self.issued = true;
         self.last_token_id += 1;
-        self.secure_channel_info.token_id = self.last_token_id;
         self.last_secure_channel_id += 1;
-        self.secure_channel_info.secure_channel_id = self.last_secure_channel_id;
-        // self.secure_channel_info.security_policy = request.
 
-        if self.secure_channel_info
-               .set_their_nonce(&request.client_nonce)
-               .is_ok() {
-            self.secure_channel_info.create_random_nonce();
-        } else {
-            debug!("Didn't receive a valid client nonce for this secure channel request so no crypto support");
-            // TODO if crypto is enabled, then this is an error
-        }
+        // Create a new secure channel info
+        self.secure_channel_info  = {
+            let mut secure_channel_info = SecureChannelInfo::new();
+            secure_channel_info.token_id = self.last_token_id;
+            secure_channel_info.security_mode = request.security_mode;
+            secure_channel_info.secure_channel_id = self.last_secure_channel_id;
+            secure_channel_info.security_mode = request.security_mode;
+            if secure_channel_info.set_their_nonce(&request.client_nonce).is_ok() {
+                secure_channel_info.create_random_nonce();
+            } else {
+                debug!("Didn't receive a valid client nonce for this secure channel request so no crypto support");
+                // TODO if crypto is enabled, then this is an error
+            }
+            secure_channel_info
+        };
 
         let now = DateTime::now();
         let response = OpenSecureChannelResponse {
@@ -78,5 +124,10 @@ impl SecureChannel {
 
         debug!("Sending OpenSecureChannelResponse {:?}", response);
         Ok(response)
+    }
+
+    pub fn close_secure_channel(&mut self, _: &SupportedMessage) -> std::result::Result<CloseSecureChannelResponse, StatusCode> {
+        info!("CloseSecureChannelRequest received, session closing");
+        Err(BAD_CONNECTION_CLOSED)
     }
 }

@@ -366,11 +366,10 @@ impl TcpTransport {
         let message = self.turn_received_chunks_into_message(&in_chunks)?;
         let response = match chunk_message_type {
             ChunkMessageType::OpenSecureChannel => {
-                SupportedMessage::OpenSecureChannelResponse(self.secure_channel.process_open_secure_channel(self.client_protocol_version, &message)?)
+                SupportedMessage::OpenSecureChannelResponse(self.secure_channel.open_secure_channel(self.client_protocol_version, &message)?)
             }
             ChunkMessageType::CloseSecureChannel => {
-                info!("CloseSecureChannelRequest received, session closing");
-                return Err(BAD_CONNECTION_CLOSED);
+                SupportedMessage::CloseSecureChannelResponse(self.secure_channel.close_secure_channel(&message)?)
             }
             ChunkMessageType::Message => {
                 self.message_handler.handle_message(request_id, message)?
