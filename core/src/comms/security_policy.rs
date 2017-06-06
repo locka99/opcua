@@ -1,24 +1,33 @@
+use chrono;
+
 use types::*;
 use profiles;
 use constants;
 use crypto::types::*;
 
 #[derive(Debug)]
-pub struct SecureChannelInfo {
+pub struct SecureChannelToken {
+    pub security_mode: MessageSecurityMode,
     pub security_policy: SecurityPolicy,
     pub secure_channel_id: UInt32,
+    pub token_created_at: DateTime,
     pub token_id: UInt32,
+    pub token_lifetime: UInt32,
     pub nonce: [u8; 32],
     pub their_nonce: [u8; 32],
     pub their_cert: Option<X509>,
 }
 
-impl SecureChannelInfo {
-    pub fn new() -> SecureChannelInfo {
-        SecureChannelInfo {
+impl SecureChannelToken {
+    pub fn new() -> SecureChannelToken {
+        // Invalid secure channel info by default
+        SecureChannelToken {
+            security_mode: MessageSecurityMode::None,
             security_policy: SecurityPolicy::None,
             secure_channel_id: 0,
             token_id: 0,
+            token_created_at: DateTime::now(),
+            token_lifetime: 0,
             nonce: [0; 32],
             their_nonce: [0; 32],
             their_cert: None
@@ -42,6 +51,13 @@ impl SecureChannelInfo {
         } else {
             Err(())
         }
+    }
+
+    /// Test if the token has expired yet
+    pub fn token_has_expired(&self) -> bool {
+        let now = DateTime::now().as_chrono();
+        let token_expires = self.token_created_at.as_chrono() + chrono::Duration::seconds(self.token_lifetime as i64);
+        if now.ge(&token_expires) { true } else { false }
     }
 }
 

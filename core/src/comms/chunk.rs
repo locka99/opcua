@@ -326,7 +326,7 @@ impl Chunk {
         self.chunk_header.message_type == ChunkMessageType::OpenSecureChannel
     }
 
-    pub fn chunk_info(&self, is_first_chunk: bool, secure_channel_info: &SecureChannelInfo) -> std::result::Result<ChunkInfo, StatusCode> {
+    pub fn chunk_info(&self, is_first_chunk: bool, secure_channel_token: &SecureChannelToken) -> std::result::Result<ChunkInfo, StatusCode> {
         //        {
         //            debug!("chunk_info() - chunk_body:");
         //            debug_buffer(&self.chunk_body);
@@ -362,7 +362,7 @@ impl Chunk {
             SecurityHeader::Symmetric(result.unwrap())
         };
 
-        /// TODO compare policy to secure_channel_info if it's supplied - must match
+        /// TODO compare policy to secure_channel_token if it's supplied - must match
 
         let sequence_header_offset = chunk_body_stream.position();
         let sequence_header_result = SequenceHeader::decode(&mut chunk_body_stream);

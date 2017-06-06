@@ -43,10 +43,10 @@ fn chunk_open_secure_channel() {
     let chunk = sample_secure_channel_request_data_security_none();
     let chunks = vec![chunk];
 
-    let secure_channel_info = SecureChannelInfo::new();
+    let secure_channel_token = SecureChannelToken::new();
 
     debug!("Decoding original chunks");
-    let request = Chunker::decode(&chunks, &secure_channel_info, None).unwrap();
+    let request = Chunker::decode(&chunks, &secure_channel_token, None).unwrap();
     let request = match request {
         SupportedMessage::OpenSecureChannelRequest(request) => request,
         _ => { panic!("Not a OpenSecureChannelRequest"); }
@@ -63,11 +63,11 @@ fn chunk_open_secure_channel() {
     // Encode the message up again to chunks, decode and compare to original
     debug!("Encoding back to chunks");
 
-    let chunks = Chunker::encode(1, 1, &secure_channel_info, &SupportedMessage::OpenSecureChannelRequest(request.clone())).unwrap();
+    let chunks = Chunker::encode(1, 1, &secure_channel_token, &SupportedMessage::OpenSecureChannelRequest(request.clone())).unwrap();
     assert_eq!(chunks.len(), 1);
 
     debug!("Decoding to compare the new version");
-    let new_request = Chunker::decode(&chunks, &secure_channel_info, None).unwrap();
+    let new_request = Chunker::decode(&chunks, &secure_channel_token, None).unwrap();
     let new_request = match new_request {
         SupportedMessage::OpenSecureChannelRequest(new_request) => new_request,
         _ => { panic!("Not a OpenSecureChannelRequest"); }
@@ -90,17 +90,17 @@ fn open_secure_channel_response() {
 
     let _ = Test::setup();
 
-    let secure_channel_info = SecureChannelInfo::new();
+    let secure_channel_token = SecureChannelToken::new();
 
     let mut stream = Cursor::new(chunk);
     let chunk = Chunk::decode(&mut stream).unwrap();
     let chunks = vec![chunk];
 
-    let decoded = Chunker::decode(&chunks, &secure_channel_info, None);
+    let decoded = Chunker::decode(&chunks, &secure_channel_token, None);
     if decoded.is_err() {
         panic!("Got error {:?}", decoded.unwrap_err());
     }
-    let message = Chunker::decode(&chunks, &secure_channel_info, None).unwrap();
+    let message = Chunker::decode(&chunks, &secure_channel_token, None).unwrap();
     //debug!("message = {:#?}", message);
     let response = match message {
         SupportedMessage::OpenSecureChannelResponse(response) => response,

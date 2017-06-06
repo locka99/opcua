@@ -22,11 +22,11 @@ impl Chunker {
     ///
     /// The function returns the last sequence number in the series for success, or
     /// BAD_SEQUENCE_NUMBER_INVALID for failure.
-    pub fn validate_chunk_sequences(starting_sequence_number: UInt32, secure_channel_info: &SecureChannelInfo, chunks: &Vec<Chunk>) -> Result<UInt32, StatusCode> {
+    pub fn validate_chunk_sequences(starting_sequence_number: UInt32, secure_channel_token: &SecureChannelToken, chunks: &Vec<Chunk>) -> Result<UInt32, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
         let mut sequence_number = starting_sequence_number;
         for (i, chunk) in chunks.iter().enumerate() {
-            let chunk_info = chunk.chunk_info(i == 0, secure_channel_info)?;
+            let chunk_info = chunk.chunk_info(i == 0, secure_channel_token)?;
             // Check the sequence id - should be larger than the last one decoded
             if chunk_info.sequence_header.sequence_number <= sequence_number {
                 error!("Chunk has a sequence number of {} which is less than last decoded sequence number of {}", chunk_info.sequence_header.sequence_number, sequence_number);
@@ -38,11 +38,11 @@ impl Chunker {
     }
 
     /// Encodes a message using the supplied sequence number and secure channel info and emits the corresponding chunks
-    pub fn encode(sequence_number: UInt32, request_id: UInt32, secure_channel_info: &SecureChannelInfo, supported_message: &SupportedMessage) -> std::result::Result<Vec<Chunk>, StatusCode> {
+    pub fn encode(sequence_number: UInt32, request_id: UInt32, secure_channel_token: &SecureChannelToken, supported_message: &SupportedMessage) -> std::result::Result<Vec<Chunk>, StatusCode> {
         // TODO multiple chunks
 
         // External values
-        let secure_channel_id = secure_channel_info.secure_channel_id;
+        let secure_channel_id = secure_channel_token.secure_channel_id;
 
         debug!("Creating a chunk for secure channel id {}, sequence id {}", secure_channel_id, sequence_number);
 
@@ -57,7 +57,7 @@ impl Chunker {
             SecurityHeader::Asymmetric(AsymmetricSecurityHeader::none())
         } else {
             SecurityHeader::Symmetric(SymmetricSecurityHeader {
-                token_id: secure_channel_info.token_id,
+                token_id: secure_channel_token.token_id,
             })
         };
 
@@ -125,7 +125,7 @@ impl Chunker {
 
     /// Decodes a series of chunks to create a message. The message must be of a `SupportedMessage`
     /// type otherwise an error will occur.
-    pub fn decode(chunks: &Vec<Chunk>, secure_channel_info: &SecureChannelInfo, expected_node_id: Option<NodeId>) -> std::result::Result<SupportedMessage, StatusCode> {
+    pub fn decode(chunks: &Vec<Chunk>, secure_channel_token: &SecureChannelToken, expected_node_id: Option<NodeId>) -> std::result::Result<SupportedMessage, StatusCode> {
         if chunks.len() != 1 {
             // TODO more than one chunk is not supported yet
             // TODO decoding multiple chunks means validating their headers, decrypting them to a buffer and stitching them together
@@ -136,7 +136,7 @@ impl Chunker {
         let chunk = &chunks[0];
 
         let is_first_chunk = true;
-        let chunk_info = chunk.chunk_info(is_first_chunk, secure_channel_info)?;
+        let chunk_info = chunk.chunk_info(is_first_chunk, secure_channel_token)?;
         debug!("Chunker::decode chunk_info = {:?}", chunk_info);
 
         let body_start = chunk_info.body_offset;

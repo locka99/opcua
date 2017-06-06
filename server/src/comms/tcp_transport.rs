@@ -342,9 +342,9 @@ impl TcpTransport {
 
     fn turn_received_chunks_into_message(&mut self, chunks: &Vec<Chunk>) -> std::result::Result<SupportedMessage, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
-        self.last_received_sequence_number = Chunker::validate_chunk_sequences(self.last_received_sequence_number, &self.secure_channel.secure_channel_info, chunks)?;
+        self.last_received_sequence_number = Chunker::validate_chunk_sequences(self.last_received_sequence_number, &self.secure_channel.secure_channel_token, chunks)?;
         // Now decode
-        Chunker::decode(&chunks, &self.secure_channel.secure_channel_info, None)
+        Chunker::decode(&chunks, &self.secure_channel.secure_channel_token, None)
     }
 
     fn process_chunk<W: Write>(&mut self, chunk: Chunk, out_stream: &mut W) -> std::result::Result<(), StatusCode> {
@@ -360,7 +360,7 @@ impl TcpTransport {
         let chunk_message_type = chunk.chunk_header.message_type.clone();
 
         let in_chunks = vec![chunk];
-        let chunk_info = in_chunks[0].chunk_info(true, &self.secure_channel.secure_channel_info)?;
+        let chunk_info = in_chunks[0].chunk_info(true, &self.secure_channel.secure_channel_token)?;
         let request_id = chunk_info.sequence_header.request_id;
 
         let message = self.turn_received_chunks_into_message(&in_chunks)?;
@@ -394,7 +394,7 @@ impl TcpTransport {
                 // Get the request id out of the request
                 // debug!("Response to send: {:?}", response);
                 let sequence_number = self.last_sent_sequence_number + 1;
-                let out_chunks = Chunker::encode(sequence_number, request_id, &self.secure_channel.secure_channel_info, response)?;
+                let out_chunks = Chunker::encode(sequence_number, request_id, &self.secure_channel.secure_channel_token, response)?;
                 self.last_sent_sequence_number = sequence_number + out_chunks.len() as UInt32 - 1;
 
                 // Send out any chunks that form the response

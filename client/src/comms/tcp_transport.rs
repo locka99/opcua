@@ -21,7 +21,7 @@ pub struct TcpTransport {
     /// Last decoded sequence number
     last_received_sequence_number: UInt32,
     /// Secure channel information
-    pub secure_channel_info: SecureChannelInfo,
+    pub secure_channel_token: SecureChannelToken,
 }
 
 impl TcpTransport {
@@ -37,7 +37,7 @@ impl TcpTransport {
             message_buffer: MessageBuffer::new(receive_buffer_size),
             last_sent_sequence_number: 0,
             last_received_sequence_number: 0,
-            secure_channel_info: SecureChannelInfo::new(),
+            secure_channel_token: SecureChannelToken::new(),
         }
     }
 
@@ -79,9 +79,9 @@ impl TcpTransport {
 
     fn turn_received_chunks_into_message(&mut self, chunks: &Vec<Chunk>) -> Result<SupportedMessage, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
-        self.last_received_sequence_number = Chunker::validate_chunk_sequences(self.last_received_sequence_number, &self.secure_channel_info, chunks)?;
+        self.last_received_sequence_number = Chunker::validate_chunk_sequences(self.last_received_sequence_number, &self.secure_channel_token, chunks)?;
         // Now decode
-        Chunker::decode(&chunks, &self.secure_channel_info, None)
+        Chunker::decode(&chunks, &self.secure_channel_token, None)
     }
 
     fn process_chunk(&mut self, chunk: Chunk) -> Result<Option<SupportedMessage>, StatusCode> {
@@ -181,7 +181,7 @@ impl TcpTransport {
         request.request_header = request_header;
 
         // Turn message to chunks
-        let chunks = Chunker::encode(sequence_number, request_id, &self.secure_channel_info, &request)?;
+        let chunks = Chunker::encode(sequence_number, request_id, &self.secure_channel_token, &request)?;
 
         // Send chunks
         let stream = self.stream();

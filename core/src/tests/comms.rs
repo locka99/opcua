@@ -48,7 +48,7 @@ pub fn acknowledge() {
 
 #[test]
 pub fn secure_channel_nonce() {
-    let mut sc = SecureChannelInfo::new();
+    let mut sc = SecureChannelToken::new();
     // Nonce which is not 32 bytes long is an error
     assert!(sc.set_their_nonce(&ByteString::null()).is_err());
     assert!(sc.set_their_nonce(&ByteString::from_bytes(b"")).is_err());
