@@ -1,5 +1,4 @@
 use std;
-use chrono;
 
 use opcua_core::types::*;
 use opcua_core::comms::*;
@@ -44,8 +43,8 @@ impl SecureChannel {
         // Must compare protocol version to the one from HELLO
         if request.client_protocol_version != client_protocol_version {
             error!("Client sent a different protocol version than it did in the HELLO - {} vs {}",
-            request.client_protocol_version,
-            client_protocol_version);
+                   request.client_protocol_version,
+                   client_protocol_version);
             return Err(BAD_PROTOCOL_VERSION_UNSUPPORTED);
         }
 
@@ -58,7 +57,7 @@ impl SecureChannel {
                     // error
                     error!("Asked to issue token on session that has called renew before");
                 }
-            }
+            },
             SecurityTokenRequestType::Renew => {
                 debug!("Request type == Renew");
 
@@ -81,7 +80,7 @@ impl SecureChannel {
         match request.security_mode {
             MessageSecurityMode::None | MessageSecurityMode::Sign | MessageSecurityMode::SignAndEncrypt => {
                 debug!("Message security mode == {:?}", request.security_mode);
-            }
+            },
             _ => {
                 return Err(BAD_SECURITY_MODE_REJECTED);
             }
@@ -93,11 +92,9 @@ impl SecureChannel {
         self.last_secure_channel_id += 1;
 
         // Create a new secure channel info
-        self.secure_channel_token = {
+        self.secure_channel_token  = {
             let mut secure_channel_token = SecureChannelToken::new();
             secure_channel_token.token_id = self.last_token_id;
-            secure_channel_token.token_created_at = DateTime::now();
-            secure_channel_token.token_lifetime = request.requested_lifetime;
             secure_channel_token.security_mode = request.security_mode;
             secure_channel_token.secure_channel_id = self.last_secure_channel_id;
             secure_channel_token.security_mode = request.security_mode;
@@ -110,14 +107,16 @@ impl SecureChannel {
             secure_channel_token
         };
 
+        let now = DateTime::now();
         let response = OpenSecureChannelResponse {
-            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, GOOD),
+            response_header: ResponseHeader::new_service_result(&now,                                                                &request.request_header,
+                                                                GOOD),
             server_protocol_version: 0,
             security_token: ChannelSecurityToken {
                 channel_id: self.secure_channel_token.secure_channel_id,
                 token_id: self.secure_channel_token.token_id,
-                created_at: self.secure_channel_token.token_created_at.clone(),
-                revised_lifetime: self.secure_channel_token.token_lifetime,
+                created_at: now.clone(),
+                revised_lifetime: request.requested_lifetime,
             },
             server_nonce: self.secure_channel_token.nonce_as_byte_string(),
         };
@@ -126,14 +125,8 @@ impl SecureChannel {
         Ok(response)
     }
 
-    /// Test if the token has expired yet
-    pub fn has_expired(&self) -> bool {
-        self.secure_channel_token.token_has_expired()
-    }
-
     pub fn close_secure_channel(&mut self, _: &SupportedMessage) -> std::result::Result<CloseSecureChannelResponse, StatusCode> {
         info!("CloseSecureChannelRequest received, session closing");
         Err(BAD_CONNECTION_CLOSED)
     }
 }
-
