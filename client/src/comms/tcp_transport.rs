@@ -20,6 +20,8 @@ pub struct TcpTransport {
     last_sent_sequence_number: UInt32,
     /// Last decoded sequence number
     last_received_sequence_number: UInt32,
+    /// Last request id, used to track async requests
+    last_request_id: UInt32,
     /// Secure channel information
     pub secure_channel_token: SecureChannelToken,
 }
@@ -37,6 +39,7 @@ impl TcpTransport {
             message_buffer: MessageBuffer::new(receive_buffer_size),
             last_sent_sequence_number: 0,
             last_received_sequence_number: 0,
+            last_request_id: 1000,
             secure_channel_token: SecureChannelToken::new(),
         }
     }
@@ -65,6 +68,9 @@ impl TcpTransport {
             error!("Could not connect to host {}:{}", host, port);
             return Err(BAD_NOT_CONNECTED);
         }
+
+        debug!("Connected...");
+
         self.stream = Some(stream.unwrap());
         Ok(())
     }
@@ -79,7 +85,7 @@ impl TcpTransport {
 
     fn turn_received_chunks_into_message(&mut self, chunks: &Vec<Chunk>) -> Result<SupportedMessage, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
-        self.last_received_sequence_number = Chunker::validate_chunk_sequences(self.last_received_sequence_number, &self.secure_channel_token, chunks)?;
+        self.last_received_sequence_number = Chunker::validate_chunk_sequences(self.last_received_sequence_number + 1, &self.secure_channel_token, chunks)?;
         // Now decode
         Chunker::decode(&chunks, &self.secure_channel_token, None)
     }
@@ -156,32 +162,34 @@ impl TcpTransport {
         Err(BAD_TIMEOUT)
     }
 
-    pub fn send_request(&mut self, request_header: RequestHeader, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
-        let request_timeout = request_header.timeout_hint;
-        let request_id = self.async_send_request(request_header, request)?;
+    pub fn send_request(&mut self, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
+        // let request_timeout = request_header.timeout_hint;
+        let request_timeout = 5; // TODO
+
+        let request_id = self.next_request_id();
+        self.async_send_request(request_id, request)?;
         self.wait_for_response(request_id, request_timeout)
     }
 
-    pub fn async_send_request(&mut self, request_header: RequestHeader, request: SupportedMessage) -> Result<UInt32, StatusCode> {
+    fn next_request_id(&mut self) -> UInt32 {
+        self.last_request_id += 1;
+        self.last_request_id
+    }
+
+    pub fn async_send_request(&mut self, request_id: UInt32, request: SupportedMessage) -> Result<UInt32, StatusCode> {
         if !self.is_connected() {
             return Err(BAD_NOT_CONNECTED);
         }
 
-        let request_id = request_header.request_id;
-        request.request_header = request_header;
+        // TODO This needs to wait for up to the timeout hint in the request header for a response
+        // with the same request handle to return. Other messages might arrive during that, so somehow
+        // we have to deal with that situation too, e.g. queuing them up.
 
-        /// This needs to wait for up to the timeout hint in the request header for a response
-        /// with the same request handle to return. Other messages might arrive during that, so somehow
-        /// we have to deal with that situation too, e.g. queuing them up.
+        // Turn message to chunk(s)
+        let chunks = Chunker::encode(self.last_sent_sequence_number + 1, request_id, &self.secure_channel_token, &request)?;
 
-        let sequence_number = self.last_sent_sequence_number;
-        self.last_sent_sequence_number += 1;
-
-        let request_id = request_header.request_id;
-        request.request_header = request_header;
-
-        // Turn message to chunks
-        let chunks = Chunker::encode(sequence_number, request_id, &self.secure_channel_token, &request)?;
+        // Sequence number monotonically increases per chunk
+        self.last_sent_sequence_number += chunks.len() as UInt32;
 
         // Send chunks
         let stream = self.stream();

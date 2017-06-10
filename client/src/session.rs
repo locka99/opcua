@@ -22,7 +22,7 @@ pub struct SessionState {
     /// Maximum message size
     pub max_message_size: usize,
     /// The next handle to assign to a request
-    pub next_request_handle: UInt32,
+    pub last_request_handle: UInt32,
     /// The authentication token negotiated with the server (if any)
     pub authentication_token: NodeId,
 }
@@ -45,7 +45,7 @@ impl Session {
             send_buffer_size: 65536,
             receive_buffer_size: 65536,
             max_message_size: 65536,
-            next_request_handle: 1,
+            last_request_handle: 1,
             authentication_token: NodeId::null(),
         }));
         let transport = TcpTransport::new(session_state.clone());
@@ -78,14 +78,14 @@ impl Session {
         let session_state = self.session_state.clone();
         let session_state = session_state.lock().unwrap();
 
-        let request_header = self.make_request_header();
         let request = GetEndpointsRequest {
-            request_header: request_header.clone(),
+            request_header: self.make_request_header(),
             endpoint_url: UAString::from_str(&session_state.endpoint_url),
             locale_ids: None,
             profile_uris: None,
         };
-        let response = self.transport.send_request(request_header, SupportedMessage::GetEndpointsRequest(request))?;
+
+        let response = self.transport.send_request(SupportedMessage::GetEndpointsRequest(request))?;
         if let SupportedMessage::GetEndpointsResponse(response) = response {
             // TODO
             Err(BAD_UNKNOWN_RESPONSE)
@@ -101,15 +101,13 @@ impl Session {
 
     /// Synchronously Read attributes from one or more nodes on the server
     pub fn read_nodes(&mut self, nodes_to_read: &[ReadValueId]) -> Result<Vec<DataValue>, StatusCode> {
-
-        let request_header = self.make_request_header();
         let request = ReadRequest {
-            request_header: request_header.clone(),
-            max_age: 1,
-            timestamps_to_return: None,
+            request_header:  self.make_request_header(),
+            max_age: 1f64,
+            timestamps_to_return: TimestampsToReturn::Server,
             nodes_to_read: None,
         };
-        let response = self.transport.send_request(request_header, SupportedMessage::ReadRequest(request))?;
+        let response = self.transport.send_request(SupportedMessage::ReadRequest(request))?;
         if let SupportedMessage::ReadResponse(response) = response {
             // TODO
             Err(BAD_NOT_IMPLEMENTED)
@@ -126,16 +124,16 @@ impl Session {
     /// Construct a request header for the session
     fn make_request_header(&mut self) -> RequestHeader {
         let mut session_state = self.session_state.lock().unwrap();
+        session_state.last_request_handle += 1;
         let request_header = RequestHeader {
             authentication_token: session_state.authentication_token.clone(),
             timestamp: DateTime::now(),
-            request_handle: session_state.next_request_handle,
+            request_handle: session_state.last_request_handle,
             return_diagnostics: 0,
             audit_entry_id: UAString::null(),
             timeout_hint: session_state.request_timeout,
             additional_header: ExtensionObject::null(),
         };
-        session_state.next_request_handle += 1;
         request_header
     }
 }
