@@ -1143,10 +1143,10 @@ impl UserNameIdentityToken {
 }
 
 impl ReadValueId {
-    pub fn new(node_id: NodeId) {
+    pub fn read_value(node_id: NodeId) -> ReadValueId {
         ReadValueId {
             node_id,
-            attribute_id: AttributeId::,
+            attribute_id: 13, // Value
             index_range: UAString::null(),
             data_encoding: QualifiedName::null(),
         }

@@ -34,7 +34,7 @@ impl Client {
     /// Creates a new session from this client.
     pub fn new_session(&mut self, endpoint_url: &str) -> Result<Arc<Mutex<Session>>, String> {
         if !is_opc_ua_binary_url(endpoint_url) {
-            Err(format!("Endpoint url {}, is not a valid / supported url", endpoint_url));
+            Err(format!("Endpoint url {}, is not a valid / supported url", endpoint_url))
         } else {
             let session = Arc::new(Mutex::new(Session::new(endpoint_url)));
             self.sessions.push(session.clone());
