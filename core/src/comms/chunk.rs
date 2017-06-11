@@ -348,9 +348,15 @@ impl Chunk {
             } else {
                 SecurityPolicy::from_uri(&security_header.security_policy_uri.as_ref())
             };
-            if security_policy == SecurityPolicy::Unknown {
-                error!("Security policy of chunk is unsupported, policy = {:?}", security_header.security_policy_uri);
-                return Err(BAD_SECURITY_POLICY_REJECTED);
+
+            match security_policy {
+                SecurityPolicy::Unknown => {
+                    error!("Security policy of chunk is unsupported, policy = {:?}", security_header.security_policy_uri);
+                    return Err(BAD_SECURITY_POLICY_REJECTED);
+                },
+                _ => {
+                    // Anything related to policy can be worked out here
+                }
             }
             SecurityHeader::Asymmetric(security_header)
         } else {
@@ -389,6 +395,7 @@ impl Chunk {
 
         // All of what follows is the message body
         let body_length = self.chunk_body.len() as u64 - body_offset;
+
         // Complex OPA UA calculation
         // TODO calculate max_body_size based on security policy
         // MaxBodySize = PlainTextBlockSize * Floor((MessageChunkSize –   HeaderSize – SignatureSize - 1)/CipherTextBlockSize) –    SequenceHeaderSize;

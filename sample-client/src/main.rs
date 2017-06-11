@@ -13,8 +13,7 @@ fn main() {
     let mut client = Client::new("SampleClient", "urn:SampleClient");
 
     // Create a session
-    let session = client.new_session("opc.tcp://127.0.0.1:1234").unwrap();
-    {
+    if let Ok(session) = client.new_session("opc.tcp://127.0.0.1:1234") {
         let mut session = session.lock().unwrap();
 
         // Connect
@@ -30,7 +29,12 @@ fn main() {
 
         // Fetch the values of v1, v2, v3
         // TODO
-        let read_nodes = vec![];
+        let read_nodes = vec![ReadValueId {
+            node_id: NodeId::new_string(2, "v1"),
+            attribute_id: AttributeId::Value as UInt32,
+            index_range: UAString::null(),
+            data_encoding: QualifiedName::null(),
+        }];
         let results = session.read_nodes(&read_nodes);
 
         // Print the values out
@@ -43,4 +47,8 @@ fn main() {
         // Disconnect
         session.disconnect();
     }
+    else {
+        error!("Sample client cannot create a session!");
+    }
+
 }

@@ -115,12 +115,14 @@ impl TcpTransport {
             Box::new(Vec::with_capacity(session_state.receive_buffer_size))
         };
 
+        debug!("Waiting for a response for request id {}", request_id);
+
         let start = UTC::now();
         loop {
             let now = UTC::now();
             let request_duration = now.signed_duration_since(start);
             if request_duration.num_milliseconds() > request_timeout as i64 {
-                debug!("Time expired waiting for response");
+                debug!("Time expired waiting for response from request id {}", request_id);
                 break;
             }
 

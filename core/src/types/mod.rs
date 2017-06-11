@@ -1142,6 +1142,17 @@ impl UserNameIdentityToken {
     }
 }
 
+impl ReadValueId {
+    pub fn new(node_id: NodeId) {
+        ReadValueId {
+            node_id,
+            attribute_id: AttributeId::,
+            index_range: UAString::null(),
+            data_encoding: QualifiedName::null(),
+        }
+    }
+}
+
 mod data_value;
 mod date_time;
 mod node_id;
