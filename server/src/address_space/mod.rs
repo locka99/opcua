@@ -56,7 +56,6 @@ macro_rules! find_attribute_value_optional {
 }
 
 mod generated;
-mod attribute;
 mod address_space;
 mod base;
 mod object;
@@ -69,7 +68,6 @@ mod data_type;
 mod view;
 
 pub use self::generated::*;
-pub use self::attribute::*;
 pub use self::address_space::*;
 pub use self::base::*;
 pub use self::object::*;

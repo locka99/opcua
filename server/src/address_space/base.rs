@@ -1,8 +1,6 @@
 use opcua_core::types::*;
 use opcua_core::services::*;
 
-use address_space::*;
-
 // This should match size of AttributeId
 const NUM_ATTRIBUTES: usize = 22;
 

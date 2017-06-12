@@ -1146,7 +1146,8 @@ impl ReadValueId {
     pub fn read_value(node_id: NodeId) -> ReadValueId {
         ReadValueId {
             node_id,
-            attribute_id: 13, // Value
+            attribute_id: self::attribute::AttributeId::Value as UInt32,
+            // Value
             index_range: UAString::null(),
             data_encoding: QualifiedName::null(),
         }
@@ -1161,6 +1162,7 @@ mod data_types;
 mod notification_message;
 mod generated;
 mod url;
+mod attribute;
 
 pub use self::helpers::*;
 pub use self::data_value::*;
@@ -1170,3 +1172,4 @@ pub use self::variant::*;
 pub use self::data_types::*;
 pub use self::generated::*;
 pub use self::url::*;
+pub use self::attribute::*;

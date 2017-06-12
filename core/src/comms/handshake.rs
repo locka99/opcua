@@ -186,7 +186,7 @@ impl BinaryEncoder<HelloMessage> for HelloMessage {
 impl HelloMessage {
     /// Creates a HEL message
     pub fn new(endpoint_url: &str, send_buffer_size: UInt32, receive_buffer_size: UInt32, max_message_size: UInt32) -> HelloMessage {
-        HelloMessage {
+        let mut msg = HelloMessage {
             message_header: MessageHeader::new(MessageType::Hello),
             protocol_version: 0,
             receive_buffer_size: receive_buffer_size,
@@ -194,7 +194,9 @@ impl HelloMessage {
             max_message_size: max_message_size,
             max_chunk_count: MAX_CHUNK_COUNT as UInt32,
             endpoint_url: UAString::from_str(endpoint_url),
-        }
+        };
+        msg.message_header.message_size = msg.byte_len() as UInt32;
+        msg
     }
 
     pub fn is_endpoint_url_valid(&self) -> bool {

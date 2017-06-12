@@ -166,8 +166,8 @@ impl TcpTransport {
 
     pub fn send_request(&mut self, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
         // let request_timeout = request_header.timeout_hint;
+        debug!("Sending a request");
         let request_timeout = 5; // TODO
-
         let request_id = self.next_request_id();
         self.async_send_request(request_id, request)?;
         self.wait_for_response(request_id, request_timeout)
@@ -186,6 +186,8 @@ impl TcpTransport {
         // TODO This needs to wait for up to the timeout hint in the request header for a response
         // with the same request handle to return. Other messages might arrive during that, so somehow
         // we have to deal with that situation too, e.g. queuing them up.
+
+        debug!("Sending request");
 
         // Turn message to chunk(s)
         let chunks = Chunker::encode(self.last_sent_sequence_number + 1, request_id, &self.secure_channel_token, &request)?;
@@ -209,17 +211,26 @@ impl TcpTransport {
     }
 
     pub fn send_hello(&mut self) -> Result<(), StatusCode> {
+
         let session_state = self.session_state.clone();
         let session_state = session_state.lock().unwrap();
 
         let mut stream = self.stream();
-        let hello = HelloMessage::new(&session_state.endpoint_url,
+        let mut hello = HelloMessage::new(&session_state.endpoint_url,
                                       session_state.send_buffer_size as UInt32,
                                       session_state.receive_buffer_size as UInt32,
                                       session_state.max_message_size as UInt32);
+        debug!("Sending HEL {:?}", hello);
         let _ = hello.encode(stream)?;
 
+        debug!("Hello sent");
+
         // Listen for ACK
+        debug!("Waiting for ack");
+        let ack  = AcknowledgeMessage::decode(stream)?;
+
+        // Process ack
+        debug!("Got ACK {:?}", ack);
 
         Ok(())
     }

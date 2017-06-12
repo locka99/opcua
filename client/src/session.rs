@@ -58,6 +58,11 @@ impl Session {
     pub fn connect(&mut self) -> Result<(), StatusCode> {
         let _ = self.transport.connect()?;
         let _ = self.transport.send_hello()?;
+
+        // send getendpoints
+        let endpoints = self.get_endpoints()?;
+        debug!("Endpoints = {:?}", endpoints);
+
         // Send create session
         // Send activate session
 
@@ -75,6 +80,9 @@ impl Session {
     }
 
     pub fn get_endpoints(&mut self) -> Result<Vec<EndpointDescription>, StatusCode> {
+
+        debug!("Fetching end points...");
+
         let session_state = self.session_state.clone();
         let session_state = session_state.lock().unwrap();
 
@@ -87,9 +95,10 @@ impl Session {
 
         let response = self.transport.send_request(SupportedMessage::GetEndpointsRequest(request))?;
         if let SupportedMessage::GetEndpointsResponse(response) = response {
-            // TODO
+            debug!("Got good response");
             Err(BAD_UNKNOWN_RESPONSE)
         } else {
+            debug!("Got an unexpected response");
             Err(BAD_UNKNOWN_RESPONSE)
         }
     }
