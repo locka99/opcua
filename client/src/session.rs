@@ -73,14 +73,7 @@ impl Session {
         self.transport.disconnect();
     }
 
-    /// Synchronously browses the nodes specified in the list of browse descriptions
-    pub fn browse(&mut self, nodes_to_browse: &[BrowseDescription]) -> Result<Vec<BrowseResult>, StatusCode> {
-        // Send browse_request
-        Err(BAD_NOT_IMPLEMENTED)
-    }
-
-    pub fn get_endpoints(&mut self) -> Result<Vec<EndpointDescription>, StatusCode> {
-
+    pub fn get_endpoints(&mut self) -> Result<Option<Vec<EndpointDescription>>, StatusCode> {
         debug!("Fetching end points...");
 
         let session_state = self.session_state.clone();
@@ -95,39 +88,61 @@ impl Session {
 
         let response = self.transport.send_request(SupportedMessage::GetEndpointsRequest(request))?;
         if let SupportedMessage::GetEndpointsResponse(response) = response {
-            debug!("Got good response");
-            Err(BAD_UNKNOWN_RESPONSE)
+            Ok(response.endpoints)
         } else {
-            debug!("Got an unexpected response");
             Err(BAD_UNKNOWN_RESPONSE)
         }
     }
 
-    /// Synchronously browses a single node
-    pub fn browse_node(&mut self) {
-        // Send browse request for one node
+    /// Synchronously browses the nodes specified in the list of browse descriptions
+    pub fn browse(&mut self, nodes_to_browse: &[BrowseDescription]) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
+        let request = BrowseRequest {
+            request_header: self.make_request_header(),
+            view: ViewDescription {
+                view_id: NodeId::null(),
+                timestamp: DateTime::now(),
+                view_version: 0,
+            },
+            requested_max_references_per_node: 1000,
+            nodes_to_browse: Some(nodes_to_browse.to_vec())
+        };
+        let response = self.transport.send_request(SupportedMessage::BrowseRequest(request))?;
+        if let SupportedMessage::BrowseResponse(response) = response {
+            Ok(response.results)
+        }
+        else {
+            Err(BAD_NOT_IMPLEMENTED)
+        }
     }
 
     /// Synchronously Read attributes from one or more nodes on the server
-    pub fn read_nodes(&mut self, nodes_to_read: &[ReadValueId]) -> Result<Vec<DataValue>, StatusCode> {
+    pub fn read_nodes(&mut self, nodes_to_read: &[ReadValueId]) -> Result<Option<Vec<DataValue>>, StatusCode> {
         let request = ReadRequest {
-            request_header:  self.make_request_header(),
+            request_header: self.make_request_header(),
             max_age: 1f64,
             timestamps_to_return: TimestampsToReturn::Server,
-            nodes_to_read: None,
+            nodes_to_read: Some(nodes_to_read.to_vec()),
         };
         let response = self.transport.send_request(SupportedMessage::ReadRequest(request))?;
         if let SupportedMessage::ReadResponse(response) = response {
-            // TODO
-            Err(BAD_NOT_IMPLEMENTED)
+            Ok(response.results)
         } else {
-            Err(BAD_NOT_IMPLEMENTED)
+            Err(BAD_UNKNOWN_RESPONSE)
         }
     }
 
     /// Synchronously writes values to the server
-    pub fn write_value(&mut self) {
-        // Write to a bunch of values
+    pub fn write_value(&mut self, nodes_to_write: &[WriteValue]) -> Result<Option<Vec<StatusCode>>, StatusCode> {
+        let request = WriteRequest {
+            request_header: self.make_request_header(),
+            nodes_to_write: Some(nodes_to_write.to_vec()),
+        };
+        let response = self.transport.send_request(SupportedMessage::WriteRequest(request))?;
+        if let SupportedMessage::WriteResponse(response) = response {
+            Ok(response.results)
+        } else {
+            Err(BAD_UNKNOWN_RESPONSE)
+        }
     }
 
     /// Construct a request header for the session
