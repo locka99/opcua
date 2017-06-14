@@ -58,13 +58,14 @@ impl Session {
     pub fn connect(&mut self) -> Result<(), StatusCode> {
         let _ = self.transport.connect()?;
         let _ = self.transport.send_hello()?;
+        let _ = self.transport.open_secure_channel();
+
+        let _ = self.create_session()?;
+        let _ = self.activate_session()?;
 
         // send getendpoints
         let endpoints = self.get_endpoints()?;
         debug!("Endpoints = {:?}", endpoints);
-
-        // Send create session
-        // Send activate session
 
         Ok(())
     }
@@ -73,20 +74,74 @@ impl Session {
         self.transport.disconnect();
     }
 
+    pub fn create_session(&mut self) -> Result<(), StatusCode> {
+        let request = CreateSessionRequest {
+            request_header: self.make_request_header(),
+            client_description: ApplicationDescription {
+                application_uri: UAString::null(),
+                product_uri: UAString::null(),
+                application_name: LocalizedText::null(),
+                application_type: ApplicationType::Client,
+                gateway_server_uri: UAString::null(),
+                discovery_profile_uri: UAString::null(),
+                discovery_urls: None,
+            },
+            server_uri: UAString::null(),
+            endpoint_url: UAString::null(),
+            session_name: UAString::null(),
+            client_nonce: ByteString::null(),
+            client_certificate: ByteString::null(),
+            requested_session_timeout: 0f64,
+            max_response_message_size: 0,
+        };
+        let response = self.send_request(SupportedMessage::CreateSessionRequest(request))?;
+        if let SupportedMessage::CreateSessionResponse(response) = response {
+            Ok(())
+        } else {
+            Err(BAD_UNKNOWN_RESPONSE)
+        }
+    }
+
+    pub fn activate_session(&mut self) -> Result<(), StatusCode> {
+        let request = ActivateSessionRequest {
+            request_header: self.make_request_header(),
+            client_signature: SignatureData {
+                algorithm: UAString::null(),
+                signature: ByteString::null(),
+            },
+            client_software_certificates: None,
+            locale_ids: None,
+            user_identity_token: ExtensionObject::null(),
+            user_token_signature: SignatureData {
+                algorithm: UAString::null(),
+                signature: ByteString::null(),
+            },
+        };
+        let response = self.send_request(SupportedMessage::ActivateSessionRequest(request))?;
+        if let SupportedMessage::ActivateSessionResponse(response) = response {
+            Ok(())
+        } else {
+            Err(BAD_UNKNOWN_RESPONSE)
+        }
+    }
+
     pub fn get_endpoints(&mut self) -> Result<Option<Vec<EndpointDescription>>, StatusCode> {
         debug!("Fetching end points...");
 
-        let session_state = self.session_state.clone();
-        let session_state = session_state.lock().unwrap();
+        let endpoint_url = {
+            let session_state = self.session_state.clone();
+            let session_state = session_state.lock().unwrap();
+            UAString::from_str(&session_state.endpoint_url)
+        };
 
         let request = GetEndpointsRequest {
             request_header: self.make_request_header(),
-            endpoint_url: UAString::from_str(&session_state.endpoint_url),
+            endpoint_url: endpoint_url,
             locale_ids: None,
             profile_uris: None,
         };
 
-        let response = self.transport.send_request(SupportedMessage::GetEndpointsRequest(request))?;
+        let response = self.send_request(SupportedMessage::GetEndpointsRequest(request))?;
         if let SupportedMessage::GetEndpointsResponse(response) = response {
             Ok(response.endpoints)
         } else {
@@ -106,12 +161,11 @@ impl Session {
             requested_max_references_per_node: 1000,
             nodes_to_browse: Some(nodes_to_browse.to_vec())
         };
-        let response = self.transport.send_request(SupportedMessage::BrowseRequest(request))?;
+        let response = self.send_request(SupportedMessage::BrowseRequest(request))?;
         if let SupportedMessage::BrowseResponse(response) = response {
             Ok(response.results)
-        }
-        else {
-            Err(BAD_NOT_IMPLEMENTED)
+        } else {
+            Err(BAD_UNKNOWN_RESPONSE)
         }
     }
 
@@ -123,7 +177,7 @@ impl Session {
             timestamps_to_return: TimestampsToReturn::Server,
             nodes_to_read: Some(nodes_to_read.to_vec()),
         };
-        let response = self.transport.send_request(SupportedMessage::ReadRequest(request))?;
+        let response = self.send_request(SupportedMessage::ReadRequest(request))?;
         if let SupportedMessage::ReadResponse(response) = response {
             Ok(response.results)
         } else {
@@ -137,7 +191,7 @@ impl Session {
             request_header: self.make_request_header(),
             nodes_to_write: Some(nodes_to_write.to_vec()),
         };
-        let response = self.transport.send_request(SupportedMessage::WriteRequest(request))?;
+        let response = self.send_request(SupportedMessage::WriteRequest(request))?;
         if let SupportedMessage::WriteResponse(response) = response {
             Ok(response.results)
         } else {
@@ -146,7 +200,7 @@ impl Session {
     }
 
     /// Construct a request header for the session
-    fn make_request_header(&mut self) -> RequestHeader {
+    pub fn make_request_header(&mut self) -> RequestHeader {
         let mut session_state = self.session_state.lock().unwrap();
         session_state.last_request_handle += 1;
         let request_header = RequestHeader {
@@ -159,5 +213,9 @@ impl Session {
             additional_header: ExtensionObject::null(),
         };
         request_header
+    }
+
+    pub fn send_request(&mut self, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
+        self.transport.send_request(request)
     }
 }

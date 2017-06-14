@@ -122,7 +122,7 @@ impl TcpTransport {
             let now = UTC::now();
             let request_duration = now.signed_duration_since(start);
             if request_duration.num_milliseconds() > request_timeout as i64 {
-                debug!("Time expired waiting for response from request id {}", request_id);
+                debug!("Time waiting {}ms exceeds timeout {}ms waiting for response from request id {}", request_duration.num_milliseconds(), request_timeout, request_id);
                 break;
             }
 
@@ -143,6 +143,7 @@ impl TcpTransport {
             if bytes_read == 0 {
                 continue;
             }
+            debug!("Bytes read = {}", bytes_read);
 
             let messages = self.message_buffer.store_bytes(&receive_buffer[0..bytes_read])?;
             for message in messages {
@@ -160,14 +161,13 @@ impl TcpTransport {
                 }
             }
         }
-
         Err(BAD_TIMEOUT)
     }
 
     pub fn send_request(&mut self, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
         // let request_timeout = request_header.timeout_hint;
         debug!("Sending a request");
-        let request_timeout = 5; // TODO
+        let request_timeout = 5000; // TODO
         let request_id = self.next_request_id();
         self.async_send_request(request_id, request)?;
         self.wait_for_response(request_id, request_timeout)
@@ -211,27 +211,30 @@ impl TcpTransport {
     }
 
     pub fn send_hello(&mut self) -> Result<(), StatusCode> {
+        let msg = {
+            let session_state = self.session_state.clone();
+            let session_state = session_state.lock().unwrap();
 
-        let session_state = self.session_state.clone();
-        let session_state = session_state.lock().unwrap();
-
+            HelloMessage::new(&session_state.endpoint_url,
+                              session_state.send_buffer_size as UInt32,
+                              session_state.receive_buffer_size as UInt32,
+                              session_state.max_message_size as UInt32)
+        };
+        debug!("Sending HEL {:?}", msg);
         let mut stream = self.stream();
-        let mut hello = HelloMessage::new(&session_state.endpoint_url,
-                                      session_state.send_buffer_size as UInt32,
-                                      session_state.receive_buffer_size as UInt32,
-                                      session_state.max_message_size as UInt32);
-        debug!("Sending HEL {:?}", hello);
-        let _ = hello.encode(stream)?;
-
-        debug!("Hello sent");
+        let _ = msg.encode(stream)?;
 
         // Listen for ACK
         debug!("Waiting for ack");
-        let ack  = AcknowledgeMessage::decode(stream)?;
+        let ack = AcknowledgeMessage::decode(stream)?;
 
         // Process ack
         debug!("Got ACK {:?}", ack);
 
         Ok(())
     }
+
+    pub fn open_secure_channel(&mut self) {}
+
+    pub fn close_secure_channel(&mut self) {}
 }
