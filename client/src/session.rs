@@ -25,6 +25,8 @@ pub struct SessionState {
     pub last_request_handle: UInt32,
     /// The authentication token negotiated with the server (if any)
     pub authentication_token: NodeId,
+    /// Channel token
+    pub channel_token: Option<ChannelSecurityToken>,
 }
 
 impl SessionState {}
@@ -47,6 +49,7 @@ impl Session {
             max_message_size: 65536,
             last_request_handle: 1,
             authentication_token: NodeId::null(),
+            channel_token: None
         }));
         let transport = TcpTransport::new(session_state.clone());
         Session {
@@ -58,7 +61,7 @@ impl Session {
     pub fn connect(&mut self) -> Result<(), StatusCode> {
         let _ = self.transport.connect()?;
         let _ = self.transport.send_hello()?;
-        let _ = self.transport.open_secure_channel();
+        let _ = self.open_secure_channel();
 
         let _ = self.create_session()?;
         let _ = self.activate_session()?;
@@ -71,7 +74,42 @@ impl Session {
     }
 
     pub fn disconnect(&mut self) {
+        self.close_secure_channel();
         self.transport.disconnect();
+    }
+
+    pub fn open_secure_channel(&mut self) -> Result<(), StatusCode> {
+        let request = OpenSecureChannelRequest {
+            request_header: self.make_request_header(),
+            client_protocol_version: 0,
+            request_type: SecurityTokenRequestType::Issue,
+            security_mode: MessageSecurityMode::None,
+            client_nonce: ByteString::null(),
+            requested_lifetime: 60000,
+        };
+        let response = self.send_request(SupportedMessage::OpenSecureChannelRequest(request))?;
+        if let SupportedMessage::OpenSecureChannelResponse(response) = response {
+            {
+                let session_state = self.session_state.clone();
+                let mut session_state = session_state.lock().unwrap();
+                session_state.channel_token = Some(response.security_token);
+            }
+            Ok(())
+        } else {
+            Err(BAD_UNKNOWN_RESPONSE)
+        }
+    }
+
+    pub fn close_secure_channel(&mut self) -> Result<(), StatusCode> {
+        let request = CloseSecureChannelRequest {
+            request_header: self.make_request_header(),
+        };
+        let response = self.send_request(SupportedMessage::CloseSecureChannelRequest(request))?;
+        if let SupportedMessage::CloseSecureChannelResponse(response) = response {
+            Ok(())
+        } else {
+            Err(BAD_UNKNOWN_RESPONSE)
+        }
     }
 
     pub fn create_session(&mut self) -> Result<(), StatusCode> {

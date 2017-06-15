@@ -233,8 +233,4 @@ impl TcpTransport {
 
         Ok(())
     }
-
-    pub fn open_secure_channel(&mut self) {}
-
-    pub fn close_secure_channel(&mut self) {}
 }
