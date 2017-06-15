@@ -74,7 +74,7 @@ impl Session {
     }
 
     pub fn disconnect(&mut self) {
-        self.close_secure_channel();
+        let _ = self.close_secure_channel();
         self.transport.disconnect();
     }
 
@@ -93,6 +93,8 @@ impl Session {
                 let session_state = self.session_state.clone();
                 let mut session_state = session_state.lock().unwrap();
                 session_state.channel_token = Some(response.security_token);
+                // TODO tell TCP channel about the channel token info so it can sign, sign+encrypt
+                // messages using the token
             }
             Ok(())
         } else {
@@ -105,7 +107,7 @@ impl Session {
             request_header: self.make_request_header(),
         };
         let response = self.send_request(SupportedMessage::CloseSecureChannelRequest(request))?;
-        if let SupportedMessage::CloseSecureChannelResponse(response) = response {
+        if let SupportedMessage::CloseSecureChannelResponse(_) = response {
             Ok(())
         } else {
             Err(BAD_UNKNOWN_RESPONSE)
@@ -118,7 +120,7 @@ impl Session {
             client_description: ApplicationDescription {
                 application_uri: UAString::null(),
                 product_uri: UAString::null(),
-                application_name: LocalizedText::null(),
+                application_name: LocalizedText::new("", "Rust OPCUA Client"),
                 application_type: ApplicationType::Client,
                 gateway_server_uri: UAString::null(),
                 discovery_profile_uri: UAString::null(),
@@ -126,7 +128,7 @@ impl Session {
             },
             server_uri: UAString::null(),
             endpoint_url: UAString::null(),
-            session_name: UAString::null(),
+            session_name: UAString::from_str("Rust OPCUA Client"),
             client_nonce: ByteString::null(),
             client_certificate: ByteString::null(),
             requested_session_timeout: 0f64,
@@ -134,6 +136,11 @@ impl Session {
         };
         let response = self.send_request(SupportedMessage::CreateSessionRequest(request))?;
         if let SupportedMessage::CreateSessionResponse(response) = response {
+            {
+                let session_state = self.session_state.clone();
+                let mut session_state = session_state.lock().unwrap();
+                session_state.authentication_token = response.authentication_token;
+            }
             Ok(())
         } else {
             Err(BAD_UNKNOWN_RESPONSE)
