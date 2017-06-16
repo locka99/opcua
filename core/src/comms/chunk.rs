@@ -49,8 +49,14 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
 
         let message_type = match self.message_type {
             ChunkMessageType::Message => { CHUNK_MESSAGE }
-            ChunkMessageType::OpenSecureChannel => { OPEN_SECURE_CHANNEL_MESSAGE }
-            ChunkMessageType::CloseSecureChannel => { CLOSE_SECURE_CHANNEL_MESSAGE }
+            ChunkMessageType::OpenSecureChannel => {
+                debug!("Encoding a OPEN message");
+                OPEN_SECURE_CHANNEL_MESSAGE
+            }
+            ChunkMessageType::CloseSecureChannel => {
+                debug!("Encoding a CLOSE message");
+                CLOSE_SECURE_CHANNEL_MESSAGE
+            }
         };
 
         let chunk_type: u8 = match self.chunk_type {
@@ -353,7 +359,7 @@ impl Chunk {
                 SecurityPolicy::Unknown => {
                     error!("Security policy of chunk is unsupported, policy = {:?}", security_header.security_policy_uri);
                     return Err(BAD_SECURITY_POLICY_REJECTED);
-                },
+                }
                 _ => {
                     // Anything related to policy can be worked out here
                 }

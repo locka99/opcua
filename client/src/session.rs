@@ -84,7 +84,7 @@ impl Session {
             client_protocol_version: 0,
             request_type: SecurityTokenRequestType::Issue,
             security_mode: MessageSecurityMode::None,
-            client_nonce: ByteString::null(),
+            client_nonce: ByteString::from_bytes(&[0]),
             requested_lifetime: 60000,
         };
         let response = self.send_request(SupportedMessage::OpenSecureChannelRequest(request))?;

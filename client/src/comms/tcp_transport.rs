@@ -20,10 +20,10 @@ pub struct TcpTransport {
     last_sent_sequence_number: UInt32,
     /// Last decoded sequence number
     last_received_sequence_number: UInt32,
-    /// Last request id, used to track async requests
-    last_request_id: UInt32,
     /// Secure channel information
     pub secure_channel_token: SecureChannelToken,
+    /// Last request id, used to track async requests
+    last_request_id: UInt32,
 }
 
 impl TcpTransport {
@@ -119,11 +119,12 @@ impl TcpTransport {
 
         let start = UTC::now();
         loop {
+            // Check for a timeout
             let now = UTC::now();
             let request_duration = now.signed_duration_since(start);
             if request_duration.num_milliseconds() > request_timeout as i64 {
                 debug!("Time waiting {}ms exceeds timeout {}ms waiting for response from request id {}", request_duration.num_milliseconds(), request_timeout, request_id);
-                break;
+                return Err(BAD_TIMEOUT);
             }
 
             // decode response
@@ -161,7 +162,6 @@ impl TcpTransport {
                 }
             }
         }
-        Err(BAD_TIMEOUT)
     }
 
     pub fn send_request(&mut self, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
@@ -198,8 +198,11 @@ impl TcpTransport {
         // Send chunks
         let stream = self.stream();
         for chunk in chunks {
+            debug!("Sending chunk of type {:?}", chunk.chunk_header.message_type);
             let _ = chunk.encode(stream)?;
         }
+
+        debug!("Request sent");
 
         Ok(request_id)
     }
