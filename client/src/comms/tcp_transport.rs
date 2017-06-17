@@ -9,6 +9,11 @@ use opcua_core::prelude::*;
 
 use session::*;
 
+// TODO these need to go, and use session settings
+const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;
+const SEND_BUFFER_SIZE: usize = 1024 * 64;
+const MAX_MESSAGE_SIZE: usize = 1024 * 64;
+
 pub struct TcpTransport {
     /// Session state
     session_state: Arc<Mutex<SessionState>>,
@@ -110,12 +115,10 @@ impl TcpTransport {
     fn wait_for_response(&mut self, request_id: UInt32, request_timeout: UInt32) -> Result<SupportedMessage, StatusCode> {
         // This loop terminates when the corresponding response comes back or a timeout occurs
 
-        let mut receive_buffer = {
-            let session_state = self.session_state.lock().unwrap();
-            Box::new(Vec::with_capacity(session_state.receive_buffer_size))
-        };
-
         debug!("Waiting for a response for request id {}", request_id);
+        let mut in_buf = vec![0u8; RECEIVE_BUFFER_SIZE];
+
+        let mut session_status_code = GOOD;
 
         let start = UTC::now();
         loop {
@@ -128,25 +131,27 @@ impl TcpTransport {
             }
 
             // decode response
-            let bytes_read = {
-                let stream = self.stream();
-                let bytes_read_result = stream.read(&mut receive_buffer);
-                if bytes_read_result.is_err() {
-                    let error = bytes_read_result.unwrap_err();
-                    if error.kind() == ErrorKind::TimedOut {
-                        continue;
-                    }
-                    debug!("Read error - kind = {:?}, {:?}", error.kind(), error);
-                    return Err(BAD_TCP_INTERNAL_ERROR);
+            let bytes_read_result = self.stream().read(&mut in_buf);
+            if bytes_read_result.is_err() {
+                let error = bytes_read_result.unwrap_err();
+                if error.kind() == ErrorKind::TimedOut {
+                    continue;
                 }
-                bytes_read_result.unwrap()
-            };
+                debug!("Read error - kind = {:?}, {:?}", error.kind(), error);
+                break;
+            }
+            let bytes_read = bytes_read_result.unwrap();
             if bytes_read == 0 {
                 continue;
             }
             debug!("Bytes read = {}", bytes_read);
 
-            let messages = self.message_buffer.store_bytes(&receive_buffer[0..bytes_read])?;
+            let result = self.message_buffer.store_bytes(&in_buf[0..bytes_read]);
+            if result.is_err() {
+                session_status_code = result.unwrap_err();
+                break;
+            }
+            let messages = result.unwrap();
             for message in messages {
                 debug!("Processing message");
                 if let Message::Chunk(chunk) = message {
@@ -162,6 +167,7 @@ impl TcpTransport {
                 }
             }
         }
+        Err(BAD_UNEXPECTED_ERROR)
     }
 
     pub fn send_request(&mut self, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {

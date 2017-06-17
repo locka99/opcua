@@ -1,5 +1,5 @@
 use std;
-use std::io::{Cursor};
+use std::io::{Cursor, Read};
 
 use debug::*;
 use types::*;
