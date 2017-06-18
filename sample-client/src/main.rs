@@ -29,12 +29,15 @@ fn main() {
 
         // Fetch the values of v1, v2, v3
         // TODO
-        let read_nodes = vec![ReadValueId::read_value(NodeId::new_string(2, "v1"))];
+        let read_nodes = vec![
+            ReadValueId::read_value(NodeId::new_string(1, "free_memory")),
+            ReadValueId::read_value(NodeId::new_numeric(1, 1001)),
+        ];
         let results = session.read_nodes(&read_nodes);
 
         // Print the values out
         if let Ok(results) = results {
-            println!("Values of nodes go here");
+            println!("Values of nodes {:?}", results);
         } else {
             println!("Got error reading results = {:?}", results.unwrap_err());
         }

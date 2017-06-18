@@ -214,14 +214,17 @@ impl Session {
 
     /// Synchronously Read attributes from one or more nodes on the server
     pub fn read_nodes(&mut self, nodes_to_read: &[ReadValueId]) -> Result<Option<Vec<DataValue>>, StatusCode> {
+        debug!("read_nodes requested to read nodes {:?}", nodes_to_read);
         let request = ReadRequest {
             request_header: self.make_request_header(),
             max_age: 1f64,
             timestamps_to_return: TimestampsToReturn::Server,
             nodes_to_read: Some(nodes_to_read.to_vec()),
         };
+        debug!("ReadRequest = {:#?}", request);
         let response = self.send_request(SupportedMessage::ReadRequest(request))?;
         if let SupportedMessage::ReadResponse(response) = response {
+            debug!("ReadResponse = {:#?}", response);
             Ok(response.results)
         } else {
             Err(BAD_UNKNOWN_RESPONSE)
