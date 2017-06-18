@@ -63,49 +63,65 @@ impl MessageHandler {
             SupportedMessage::CloseSessionRequest(request) => {
                 self.session_service.close_session(server_state, session, request)?
             }
+            // ALL THE REQUESTS BELOW MUST BE VALIDATED
             SupportedMessage::ActivateSessionRequest(request) => {
+                let _ = session.validate_request(&request.request_header)?;
                 self.session_service.activate_session(server_state, session, request)?
             }
             SupportedMessage::CreateSubscriptionRequest(request) => {
+                let _ = session.validate_request(&request.request_header)?;
                 self.subscription_service.create_subscription(server_state, session, request)?
             }
             SupportedMessage::ModifySubscriptionRequest(request) => {
+                let _ = session.validate_request(&request.request_header)?;
                 self.subscription_service.modify_subscription(server_state, session, request)?
             }
             SupportedMessage::DeleteSubscriptionsRequest(request) => {
+                let _ = session.validate_request(&request.request_header)?;
                 self.subscription_service.delete_subscriptions(server_state, session, request)?
             }
             SupportedMessage::SetPublishingModeRequest(request) => {
+                let _ = session.validate_request(&request.request_header)?;
                 self.subscription_service.set_publishing_mode(server_state, session, request)?
             }
             SupportedMessage::PublishRequest(request) => {
+                let _ = session.validate_request(&request.request_header)?;
                 self.subscription_service.publish(server_state, session, request_id, request)?
             }
             SupportedMessage::RepublishRequest(request) => {
+                let _ = session.validate_request(&request.request_header)?;
                 self.subscription_service.republish(server_state, session, request)?
             }
             SupportedMessage::BrowseRequest(request) => {
+                let _ = session.validate_request(&request.request_header)?;
                 self.view_service.browse(server_state, session, request)?
             }
             SupportedMessage::BrowseNextRequest(request) => {
+                let _ = session.validate_request(&request.request_header)?;
                 self.view_service.browse_next(server_state, session, request)?
             }
             SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(request) => {
+                let _ = session.validate_request(&request.request_header)?;
                 self.view_service.translate_browse_paths_to_node_ids(server_state, session, request)?
             }
             SupportedMessage::ReadRequest(request) => {
+                let _ = session.validate_request(&request.request_header)?;
                 self.attribute_service.read(server_state, session, request)?
             }
             SupportedMessage::WriteRequest(request) => {
+                let _ = session.validate_request(&request.request_header)?;
                 self.attribute_service.write(server_state, session, request)?
             }
             SupportedMessage::CreateMonitoredItemsRequest(request) => {
+                let _ = session.validate_request(&request.request_header)?;
                 self.monitored_item_service.create_monitored_items(server_state, session, request)?
             }
             SupportedMessage::ModifyMonitoredItemsRequest(request) => {
+                let _ = session.validate_request(&request.request_header)?;
                 self.monitored_item_service.modify_monitored_items(server_state, session, request)?
             }
             SupportedMessage::DeleteMonitoredItemsRequest(request) => {
+                let _ = session.validate_request(&request.request_header)?;
                 self.monitored_item_service.delete_monitored_items(server_state, session, request)?
             }
             _ => {

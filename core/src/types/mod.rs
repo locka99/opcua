@@ -10,6 +10,7 @@ use std::io::{Read, Write, Cursor};
 
 use services::*;
 use constants;
+use profiles;
 
 pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
 
@@ -1150,6 +1151,14 @@ impl ReadValueId {
             // Value
             index_range: UAString::null(),
             data_encoding: QualifiedName::null(),
+        }
+    }
+}
+
+impl AnonymousIdentityToken {
+    pub fn new() -> AnonymousIdentityToken {
+        AnonymousIdentityToken {
+            policy_id: UAString::from_str(profiles::SECURITY_USER_TOKEN_POLICY_ANONYMOUS)
         }
     }
 }

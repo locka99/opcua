@@ -116,6 +116,7 @@ impl TcpTransport {
         // This loop terminates when the corresponding response comes back or a timeout occurs
 
         debug!("Waiting for a response for request id {}", request_id);
+        // TODO buffer size
         let mut in_buf = vec![0u8; RECEIVE_BUFFER_SIZE];
 
         let mut session_status_code = GOOD;
@@ -129,6 +130,8 @@ impl TcpTransport {
                 debug!("Time waiting {}ms exceeds timeout {}ms waiting for response from request id {}", request_duration.num_milliseconds(), request_timeout, request_id);
                 return Err(BAD_TIMEOUT);
             }
+
+            // TODO this is practically cut and pasted from server loop and should be common to both
 
             // decode response
             let bytes_read_result = self.stream().read(&mut in_buf);
@@ -146,6 +149,7 @@ impl TcpTransport {
             }
             debug!("Bytes read = {}", bytes_read);
 
+            // TODO this is practically cut and pasted from server loop and should be common to both
             let result = self.message_buffer.store_bytes(&in_buf[0..bytes_read]);
             if result.is_err() {
                 session_status_code = result.unwrap_err();

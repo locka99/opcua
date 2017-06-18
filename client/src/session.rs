@@ -136,11 +136,9 @@ impl Session {
         };
         let response = self.send_request(SupportedMessage::CreateSessionRequest(request))?;
         if let SupportedMessage::CreateSessionResponse(response) = response {
-            {
-                let session_state = self.session_state.clone();
-                let mut session_state = session_state.lock().unwrap();
-                session_state.authentication_token = response.authentication_token;
-            }
+            let session_state = self.session_state.clone();
+            let mut session_state = session_state.lock().unwrap();
+            session_state.authentication_token = response.authentication_token;
             Ok(())
         } else {
             Err(BAD_UNKNOWN_RESPONSE)
@@ -156,7 +154,7 @@ impl Session {
             },
             client_software_certificates: None,
             locale_ids: None,
-            user_identity_token: ExtensionObject::null(),
+            user_identity_token: ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id(), AnonymousIdentityToken::new()),
             user_token_signature: SignatureData {
                 algorithm: UAString::null(),
                 signature: ByteString::null(),

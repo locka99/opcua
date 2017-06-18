@@ -120,6 +120,15 @@ impl Session {
         }
     }
 
+    pub fn validate_request(&self, request_header: &RequestHeader) -> Result<(), StatusCode> {
+        if self.authentication_token != request_header.authentication_token {
+            Err(BAD_IDENTITY_TOKEN_REJECTED)
+        }
+        else {
+            Ok(())
+        }
+    }
+
     /// Iterate all subscriptions calling tick on each. Note this could potentially be done to run in parallel
     /// assuming the action to clean dead subscriptions was a join done after all ticks had completed.
     pub fn tick_subscriptions(&mut self, receive_publish_request: bool, address_space: &AddressSpace) -> Option<Vec<PublishResponseEntry>> {
