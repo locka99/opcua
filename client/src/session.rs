@@ -152,6 +152,16 @@ impl Session {
 
     /// Sends an ActivateSession request to the server
     pub fn activate_session(&mut self) -> Result<(), StatusCode> {
+
+        // TODO THIS IS A HACK. The endpoints should be inspected for a user identity token and the 
+        // policy id we use should come from there.
+        let user_identity_token = AnonymousIdentityToken {
+            policy_id: UAString::from_str("anonymous"),
+        };
+        
+        debug!("Identity token for activate = {:#?}", user_identity_token);
+        let user_identity_token = ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id(), user_identity_token);
+
         let request = ActivateSessionRequest {
             request_header: self.make_request_header(),
             client_signature: SignatureData {
@@ -160,7 +170,7 @@ impl Session {
             },
             client_software_certificates: None,
             locale_ids: None,
-            user_identity_token: ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id(), AnonymousIdentityToken::new()),
+            user_identity_token: user_identity_token,
             user_token_signature: SignatureData {
                 algorithm: UAString::null(),
                 signature: ByteString::null(),
