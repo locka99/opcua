@@ -49,6 +49,30 @@ impl TcpTransport {
         }
     }
 
+    pub fn hello(&mut self) -> Result<(), StatusCode> {
+        let msg = {
+            let session_state = self.session_state.clone();
+            let session_state = session_state.lock().unwrap();
+
+            HelloMessage::new(&session_state.endpoint_url,
+                              session_state.send_buffer_size as UInt32,
+                              session_state.receive_buffer_size as UInt32,
+                              session_state.max_message_size as UInt32)
+        };
+        debug!("Sending HEL {:?}", msg);
+        let mut stream = self.stream();
+        let _ = msg.encode(stream)?;
+
+        // Listen for ACK
+        debug!("Waiting for ack");
+        let ack = AcknowledgeMessage::decode(stream)?;
+
+        // Process ack
+        debug!("Got ACK {:?}", ack);
+
+        Ok(())
+    }
+
     pub fn connect(&mut self) -> Result<(), StatusCode> {
         use url::{Url};
 
@@ -223,27 +247,4 @@ impl TcpTransport {
         }
     }
 
-    pub fn send_hello(&mut self) -> Result<(), StatusCode> {
-        let msg = {
-            let session_state = self.session_state.clone();
-            let session_state = session_state.lock().unwrap();
-
-            HelloMessage::new(&session_state.endpoint_url,
-                              session_state.send_buffer_size as UInt32,
-                              session_state.receive_buffer_size as UInt32,
-                              session_state.max_message_size as UInt32)
-        };
-        debug!("Sending HEL {:?}", msg);
-        let mut stream = self.stream();
-        let _ = msg.encode(stream)?;
-
-        // Listen for ACK
-        debug!("Waiting for ack");
-        let ack = AcknowledgeMessage::decode(stream)?;
-
-        // Process ack
-        debug!("Got ACK {:?}", ack);
-
-        Ok(())
-    }
 }

@@ -58,26 +58,29 @@ impl Session {
         }
     }
 
+    /// Connects to the server (if possible) using the configured session arguments
     pub fn connect(&mut self) -> Result<(), StatusCode> {
         let _ = self.transport.connect()?;
-        let _ = self.transport.send_hello()?;
-        let _ = self.open_secure_channel();
-
-        let _ = self.create_session()?;
-        let _ = self.activate_session()?;
-
-        // send getendpoints
-        let endpoints = self.get_endpoints()?;
-        debug!("Endpoints = {:?}", endpoints);
-
+        let _ = self.transport.hello()?;
+        let _ = self.open_secure_channel()?;
         Ok(())
     }
 
+    /// Connects to the server and activates a session
+    pub fn connect_and_activate_session(&mut self) -> Result<(), StatusCode> {
+        let _ = self.connect()?;
+        let _ = self.create_session()?;
+        let _ = self.activate_session()?;
+        Ok(())
+    }
+
+    /// Disconnect from the server
     pub fn disconnect(&mut self) {
         let _ = self.close_secure_channel();
         self.transport.disconnect();
     }
 
+    /// Sends an OpenSecureChannel request to the server
     pub fn open_secure_channel(&mut self) -> Result<(), StatusCode> {
         let request = OpenSecureChannelRequest {
             request_header: self.make_request_header(),
@@ -102,6 +105,7 @@ impl Session {
         }
     }
 
+    /// Sends a CloseSecureChannel request to the server
     pub fn close_secure_channel(&mut self) -> Result<(), StatusCode> {
         let request = CloseSecureChannelRequest {
             request_header: self.make_request_header(),
@@ -114,6 +118,7 @@ impl Session {
         }
     }
 
+    /// Sends a CreateSession request to the server
     pub fn create_session(&mut self) -> Result<(), StatusCode> {
         let request = CreateSessionRequest {
             request_header: self.make_request_header(),
@@ -145,6 +150,7 @@ impl Session {
         }
     }
 
+    /// Sends an ActivateSession request to the server
     pub fn activate_session(&mut self) -> Result<(), StatusCode> {
         let request = ActivateSessionRequest {
             request_header: self.make_request_header(),
@@ -160,17 +166,19 @@ impl Session {
                 signature: ByteString::null(),
             },
         };
+        debug!("ActivateSessionRequest = {:#?}", request);
         let response = self.send_request(SupportedMessage::ActivateSessionRequest(request))?;
         if let SupportedMessage::ActivateSessionResponse(response) = response {
+            debug!("ActivateSessionResponse = {:#?}", response);
             Ok(())
         } else {
             Err(BAD_UNKNOWN_RESPONSE)
         }
     }
 
+    /// Sends a GetEndpoints request to the server
     pub fn get_endpoints(&mut self) -> Result<Option<Vec<EndpointDescription>>, StatusCode> {
         debug!("Fetching end points...");
-
         let endpoint_url = {
             let session_state = self.session_state.clone();
             let session_state = session_state.lock().unwrap();
@@ -192,7 +200,7 @@ impl Session {
         }
     }
 
-    /// Synchronously browses the nodes specified in the list of browse descriptions
+    /// Sends a Browse request to the server
     pub fn browse(&mut self, nodes_to_browse: &[BrowseDescription]) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
         let request = BrowseRequest {
             request_header: self.make_request_header(),
@@ -212,7 +220,7 @@ impl Session {
         }
     }
 
-    /// Synchronously Read attributes from one or more nodes on the server
+    /// Sends a Read request to the server
     pub fn read_nodes(&mut self, nodes_to_read: &[ReadValueId]) -> Result<Option<Vec<DataValue>>, StatusCode> {
         debug!("read_nodes requested to read nodes {:?}", nodes_to_read);
         let request = ReadRequest {
@@ -231,7 +239,7 @@ impl Session {
         }
     }
 
-    /// Synchronously writes values to the server
+    /// Sends a Write request to the server
     pub fn write_value(&mut self, nodes_to_write: &[WriteValue]) -> Result<Option<Vec<StatusCode>>, StatusCode> {
         let request = WriteRequest {
             request_header: self.make_request_header(),
@@ -245,8 +253,14 @@ impl Session {
         }
     }
 
+    /// Checks if secure channel token needs to be renewed and renews it
+    fn ensure_secure_channel_token(&mut self) -> Result<(), StatusCode> {
+        // TODO check if secure channel 75% close to expiration in which case send a renew
+        Ok(())
+    }
+
     /// Construct a request header for the session
-    pub fn make_request_header(&mut self) -> RequestHeader {
+    fn make_request_header(&mut self) -> RequestHeader {
         let mut session_state = self.session_state.lock().unwrap();
         session_state.last_request_handle += 1;
         let request_header = RequestHeader {
@@ -262,6 +276,9 @@ impl Session {
     }
 
     pub fn send_request(&mut self, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
+        // Make sure secure channel token hasn't expired
+        let _ = self.ensure_secure_channel_token();
+        // Send the request
         self.transport.send_request(request)
     }
 }

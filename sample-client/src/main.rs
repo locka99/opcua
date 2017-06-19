@@ -17,7 +17,7 @@ fn main() {
         let mut session = session.lock().unwrap();
 
         // Connect
-        let result = session.connect();
+        let result = session.connect_and_activate_session();
         if result.is_err() {
             println!("Cannot connect to endpoint");
             return;
@@ -27,8 +27,7 @@ fn main() {
         // TODO
         let endpoints = session.get_endpoints();
 
-        // Fetch the values of v1, v2, v3
-        // TODO
+        // Fetch some values from the sample server
         let read_nodes = vec![
             ReadValueId::read_value(NodeId::new_string(1, "free_memory")),
             ReadValueId::read_value(NodeId::new_numeric(1, 1001)),

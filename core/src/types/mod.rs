@@ -32,7 +32,6 @@ mod helpers;
 
 // OPC UA Part 6 - Mappings 1.03 Specification
 
-
 // These are standard UA types
 
 /// A two-state logical value (true or false).
