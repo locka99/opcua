@@ -1,15 +1,27 @@
 {
     "version": "0.2.0",
     "configurations": [
+{
+    "name": "Debug - sample-server",
+    "type": "cppdbg",
+    "request": "launch",
+    "program": "${workspaceRoot}/target/debug/opcua-sample-server.exe",
+    "args": [],
+    "stopAtEntry": false,
+    "cwd": "${workspaceRoot}",
+    "environment": [],
+    "externalConsole": true,
+    "MIMode": "gdb",
+    "miDebuggerPath": "C:/msys64/mingw64/bin/gdb.exe",
+    "setupCommands": [
         {
-            "type": "gdb",
-            "request": "launch",
-            "name": "Debug - sample-server",
-            "target": "${workspaceRoot}/target/debug/opcua-sample-server.exe",
-            "cwd": "${workspaceRoot}"
+            "description": "Enable pretty-printing for gdb",
+            "text": "-enable-pretty-printing",
+            "ignoreFailures": true
         }
+    ]
+},
     ],
     "windows": {
-        "miDebuggerPath": "C:\\msys64\\mingw64\\bin\\gdb.exe"
     }
 }

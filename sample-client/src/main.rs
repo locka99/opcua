@@ -6,44 +6,50 @@ extern crate opcua_core;
 use opcua_client::prelude::*;
 
 fn main() {
-    // Logging is optional
+    // Logging is optional. If you call this, then you will see lots of output to the console.
     let _ = opcua_core::init_logging();
 
-    // Create the client's particulars
+    // Create the client's particulars, a name and a urn
     let mut client = Client::new("SampleClient", "urn:SampleClient");
 
-    // Create a session
-    if let Ok(session) = client.new_session("opc.tcp://127.0.0.1:1234") {
-        let mut session = session.lock().unwrap();
-
-        // Connect
-        let result = session.connect_and_activate_session();
-        if result.is_err() {
-            println!("Cannot connect to endpoint");
-            return;
-        }
-
-        // Enumerate endpoints
-        // TODO
-        let endpoints = session.get_endpoints();
-
-        // Fetch some values from the sample server
-        let read_nodes = vec![
-            ReadValueId::read_value(NodeId::new_string(1, "free_memory")),
-            ReadValueId::read_value(NodeId::new_numeric(1, 1001)),
-        ];
-        let results = session.read_nodes(&read_nodes);
-
-        // Print the values out
-        if let Ok(results) = results {
-            println!("Values of nodes {:?}", results);
-        } else {
-            println!("Got error reading results = {:?}", results.unwrap_err());
-        }
-
-        // Disconnect
-        session.disconnect();
-    } else {
+    // Create a session. This will not connect until it is told to connect.
+    if let Ok(session) = client.new_session("opc.tcp://127.0.0.1:1234", SecurityPolicy::None) {
         println!("Sample client cannot create a session!");
+        let mut session = session.lock().unwrap();
+        // Connect and do something with the server
+        let result = connect(client, &mut session);
+        if result.is_err() {
+            println!("ERROR: Got an error - check this code {:?}", result.unwrap_err().description());
+        }
     }
 }
+
+fn connect(client: Client, session: &mut Session) -> Result<(), StatusCode> {
+    // Connect & activate the session.
+    let _ = session.connect_and_activate_session()?;
+
+    // Fetch some values from the sample server
+    let read_nodes = vec![
+        ReadValueId::read_value(NodeId::new_string(2, "v1")),
+        ReadValueId::read_value(NodeId::new_string(2, "v2")),
+        ReadValueId::read_value(NodeId::new_string(2, "v3")),
+        ReadValueId::read_value(NodeId::new_string(2, "v4")),
+        // Invalid variable
+        ReadValueId::read_value(NodeId::new_string(2, "iv4")),
+    ];
+    let data_values = session.read_nodes(&read_nodes)?.unwrap();
+
+    // Print the values out
+    println!("Values from server:");
+    for data_value in data_values.iter() {
+        if  data_value.value.is_some() {
+            println!("Value = {:?}", data_value.value.as_ref().unwrap());
+        }
+        else {
+            println!("Value not found, error: {}", data_value.status.as_ref().unwrap().description());
+        }
+    }
+
+    Ok(())
+}
+

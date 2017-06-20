@@ -49,12 +49,11 @@ impl TcpTransport {
         }
     }
 
-    pub fn hello(&mut self) -> Result<(), StatusCode> {
+    pub fn hello(&mut self, endpoint_url: &str) -> Result<(), StatusCode> {
         let msg = {
             let session_state = self.session_state.clone();
             let session_state = session_state.lock().unwrap();
-
-            HelloMessage::new(&session_state.endpoint_url,
+            HelloMessage::new(endpoint_url,
                               session_state.send_buffer_size as UInt32,
                               session_state.receive_buffer_size as UInt32,
                               session_state.max_message_size as UInt32)
@@ -73,13 +72,13 @@ impl TcpTransport {
         Ok(())
     }
 
-    pub fn connect(&mut self) -> Result<(), StatusCode> {
+    pub fn connect(&mut self, endpoint_url: &str) -> Result<(), StatusCode> {
         use url::{Url};
 
         let session_state = self.session_state.lock().unwrap();
 
         // Validate and split out the endpoint we have
-        let result = Url::parse(&session_state.endpoint_url);
+        let result = Url::parse(&endpoint_url);
         if result.is_err() {
             return Err(BAD_TCP_ENDPOINT_URL_INVALID);
         }
@@ -102,6 +101,12 @@ impl TcpTransport {
 
         self.stream = Some(stream.unwrap());
         Ok(())
+    }
+
+    pub fn disconnect(&mut self) {
+        if self.stream.is_some() {
+            self.stream = None;
+        }
     }
 
     pub fn is_connected(&self) -> bool {
@@ -164,6 +169,10 @@ impl TcpTransport {
                 if error.kind() == ErrorKind::TimedOut {
                     continue;
                 }
+
+                // TODO check for broken socket. if this occurs, the code should go into an error
+                // recovery state
+
                 debug!("Read error - kind = {:?}, {:?}", error.kind(), error);
                 break;
             }
@@ -189,11 +198,17 @@ impl TcpTransport {
                         return Ok(result.unwrap())
                     }
                 } else {
+
+                    // TODO if this is an ERROR chunk, then the client should go into an error
+                    // recovery state, dropping the connection and reestablishing it.
+
                     // This is not a regular message, so what is happening?
                     error!("Expecting a chunk, got something that was not a chunk {:?}", message);
                     return Err(BAD_UNEXPECTED_ERROR);
                 }
             }
+
+            // TODO error recovery state
         }
         Err(BAD_UNEXPECTED_ERROR)
     }
@@ -202,8 +217,7 @@ impl TcpTransport {
         // let request_timeout = request_header.timeout_hint;
         debug!("Sending a request");
         let request_timeout = 5000; // TODO
-        let request_id = self.next_request_id();
-        self.async_send_request(request_id, request)?;
+        let request_id = self.async_send_request(request)?;
         self.wait_for_response(request_id, request_timeout)
     }
 
@@ -212,10 +226,12 @@ impl TcpTransport {
         self.last_request_id
     }
 
-    pub fn async_send_request(&mut self, request_id: UInt32, request: SupportedMessage) -> Result<UInt32, StatusCode> {
+    pub fn async_send_request(&mut self, request: SupportedMessage) -> Result<UInt32, StatusCode> {
         if !self.is_connected() {
             return Err(BAD_NOT_CONNECTED);
         }
+
+        let request_id = self.next_request_id();
 
         // TODO This needs to wait for up to the timeout hint in the request header for a response
         // with the same request handle to return. Other messages might arrive during that, so somehow
@@ -240,11 +256,4 @@ impl TcpTransport {
 
         Ok(request_id)
     }
-
-    pub fn disconnect(&mut self) {
-        if self.stream.is_some() {
-            self.stream = None;
-        }
-    }
-
 }

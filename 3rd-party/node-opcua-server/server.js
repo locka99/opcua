@@ -4,13 +4,12 @@ var opcua = require("node-opcua");
 
 // Let's create an instance of OPCUAServer
 var server = new opcua.OPCUAServer({
-//    alternateHostname: "192.168.0.31",
     securityPolicies: [opcua.SecurityPolicy.None],
     securityModes: [opcua.MessageSecurityMode.NONE],
     port: 1234, // the port of the listening socket of the server
     resourcePath: "", // this path will be added to the endpoint resource name
     buildInfo: {
-        productName: "MySampleServer1",
+        productName: "Node OPCUA Server",
         buildNumber: "7658",
         buildDate: new Date(2014, 5, 2)
     }
@@ -23,79 +22,80 @@ function post_initialize() {
         var addressSpace = server.engine.addressSpace;
 
         // declare a new object
-        var device = addressSpace.addObject({
+        var sampleDir = addressSpace.addObject({
             organizedBy: addressSpace.rootFolder.objects,
-            browseName: "MyDevice"
+            browseName: "Sample"
         });
 
-        // add some variables
-        // add a variable named MyVariable1 to the newly created folder "MyDevice"
-        var variable1 = 1;
+        // int, bool, string, double
+
+        var v1 = 100;
+        addressSpace.addVariable({
+            componentOf: sampleDir,
+            nodeId: "ns=2;s=v1",
+            browseName: "v1",
+            dataType: "Int32",
+            value: {
+                get: function () {
+                    return new opcua.Variant({dataType: opcua.DataType.Int32, value: v1});
+                }
+            }
+        });
+
+
+        var v2 = false;
+        addressSpace.addVariable({
+            componentOf: sampleDir,
+            nodeId: "ns=2;s=v2",
+            browseName: "v2",
+            dataType: "Boolean",
+            value: {
+                get: function () {
+                    return new opcua.Variant({dataType: opcua.DataType.Boolean, value: v2});
+                }
+            }
+        });
+
 
         // emulate variable1 changing every 500 ms
         setInterval(function () {
-            variable1 += 1;
-        }, 500);
+            v1 += 1;
+            v2 = v2 ? false : true;
+        }, 250);
 
+
+        var v3 = "";
         addressSpace.addVariable({
-            componentOf: device,
-            browseName: "MyVariable1",
-            dataType: "Double",
+            componentOf: sampleDir,
+            nodeId: "ns=2;s=v3",
+            browseName: "v3",
+            dataType: "String",
             value: {
                 get: function () {
-                    return new opcua.Variant({dataType: opcua.DataType.Double, value: variable1});
+                    return new opcua.Variant({dataType: opcua.DataType.String, value: v3});
                 }
             }
         });
 
-        // add a variable named MyVariable2 to the newly created folder "MyDevice"
-        var variable2 = 10.0;
-
-        server.engine.addressSpace.addVariable({
-
-            componentOf: device,
-
-            nodeId: "ns=1;b=1020FFAA", // some opaque NodeId in namespace 4
-
-            browseName: "MyVariable2",
-
-            dataType: "Double",
-
-            value: {
-                get: function () {
-                    return new opcua.Variant({dataType: opcua.DataType.Double, value: variable2});
-                },
-                set: function (variant) {
-                    variable2 = parseFloat(variant.value);
-                    return opcua.StatusCodes.Good;
-                }
-            }
-        });
-        var os = require("os");
-
-        /**
-         * returns the percentage of free memory on the running machine
-         * @return {double}
-         */
-        function available_memory() {
-            // var value = process.memoryUsage().heapUsed / 1000000;
-            var percentageMemUsed = os.freemem() / os.totalmem() * 100.0;
-            return percentageMemUsed;
-        }
-
-        server.engine.addressSpace.addVariable({
-
-            componentOf: device,
-
-            nodeId: "ns=1;s=free_memory", // a string nodeID
-            browseName: "FreeMemory",
+        var v4 = 1;
+        addressSpace.addVariable({
+            componentOf: sampleDir,
+            nodeId: "ns=2;s=v4",
+            browseName: "v4",
             dataType: "Double",
             value: {
                 get: function () {
-                    return new opcua.Variant({dataType: opcua.DataType.Double, value: available_memory()});
+                    return new opcua.Variant({dataType: opcua.DataType.Double, value: v4});
                 }
             }
         });
+        // emulate variable1 changing every 500 ms
+        var slowCounter = 1;
+        setInterval(function () {
+            slowCounter += 1;
+            v3 = "Hello world times " + slowCounter;
+            v4 = Math.sin((slowCounter % 360) * Math.PI / 180.0);
+        }, 1000);
     }
 
     construct_my_address_space(server);

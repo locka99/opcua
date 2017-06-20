@@ -1,6 +1,8 @@
 use std::result::Result;
 use std::sync::{Arc, Mutex};
 
+use chrono;
+
 use opcua_core::comms::*;
 use opcua_core::types::*;
 use opcua_core::services::*;
@@ -8,8 +10,8 @@ use opcua_core::services::*;
 use comms::*;
 
 pub struct SessionState {
-    /// The endpoint url
-    pub endpoint_url: String,
+    /// Endpoint, filled in during connect
+    pub endpoint: Option<EndpointDescription>,
     /// The request timeout is how long the session will wait from sending a request expecting a response
     /// if no response is received the client will terminate.
     pub request_timeout: u32,
@@ -32,16 +34,28 @@ pub struct SessionState {
 impl SessionState {}
 
 pub struct Session {
+    /// The endpoint url
+    pub endpoint_url: String,
+    /// Security policy
+    pub security_policy: SecurityPolicy,
     /// Runtime state of the session, reset if disconnected
     session_state: Arc<Mutex<SessionState>>,
     /// Transport layer
     transport: TcpTransport,
 }
 
+impl Drop for Session {
+    fn drop(&mut self) {
+        if self.is_connected() {
+            self.disconnect();
+        }
+    }
+}
+
 impl Session {
-    pub fn new(endpoint_url: &str) -> Session {
+    pub fn new(endpoint_url: &str, security_policy: SecurityPolicy) -> Session {
         let session_state = Arc::new(Mutex::new(SessionState {
-            endpoint_url: endpoint_url.to_string(),
+            endpoint: None,
             session_timeout: 60 * 1000,
             request_timeout: 10 * 1000,
             send_buffer_size: 65536,
@@ -55,13 +69,15 @@ impl Session {
         Session {
             session_state: session_state,
             transport: transport,
+            endpoint_url: endpoint_url.to_string(),
+            security_policy: security_policy,
         }
     }
 
     /// Connects to the server (if possible) using the configured session arguments
     pub fn connect(&mut self) -> Result<(), StatusCode> {
-        let _ = self.transport.connect()?;
-        let _ = self.transport.hello()?;
+        let _ = self.transport.connect(&self.endpoint_url)?;
+        let _ = self.transport.hello(&self.endpoint_url)?;
         let _ = self.open_secure_channel()?;
         Ok(())
     }
@@ -69,6 +85,19 @@ impl Session {
     /// Connects to the server and activates a session
     pub fn connect_and_activate_session(&mut self) -> Result<(), StatusCode> {
         let _ = self.connect()?;
+
+        // Find a matching end point
+        let endpoints = self.get_endpoints()?.unwrap();
+        {
+            let session_state = self.session_state.clone();
+            let mut session_state = session_state.lock().unwrap();
+            session_state.endpoint = Self::find_matching_endpoint(&endpoints, &self.endpoint_url, self.security_policy);
+            if session_state.endpoint.is_none() {
+                error!("Cannot find a matching endpoint for url and policy");
+                return Err(BAD_TCP_ENDPOINT_URL_INVALID);
+            }
+        }
+
         let _ = self.create_session()?;
         let _ = self.activate_session()?;
         Ok(())
@@ -80,29 +109,13 @@ impl Session {
         self.transport.disconnect();
     }
 
+    pub fn is_connected(&self) -> bool {
+        self.transport.is_connected()
+    }
+
     /// Sends an OpenSecureChannel request to the server
     pub fn open_secure_channel(&mut self) -> Result<(), StatusCode> {
-        let request = OpenSecureChannelRequest {
-            request_header: self.make_request_header(),
-            client_protocol_version: 0,
-            request_type: SecurityTokenRequestType::Issue,
-            security_mode: MessageSecurityMode::None,
-            client_nonce: ByteString::from_bytes(&[0]),
-            requested_lifetime: 60000,
-        };
-        let response = self.send_request(SupportedMessage::OpenSecureChannelRequest(request))?;
-        if let SupportedMessage::OpenSecureChannelResponse(response) = response {
-            {
-                let session_state = self.session_state.clone();
-                let mut session_state = session_state.lock().unwrap();
-                session_state.channel_token = Some(response.security_token);
-                // TODO tell TCP channel about the channel token info so it can sign, sign+encrypt
-                // messages using the token
-            }
-            Ok(())
-        } else {
-            Err(BAD_UNKNOWN_RESPONSE)
-        }
+        self.issue_or_renew_secure_channel(SecurityTokenRequestType::Issue)
     }
 
     /// Sends a CloseSecureChannel request to the server
@@ -110,16 +123,23 @@ impl Session {
         let request = CloseSecureChannelRequest {
             request_header: self.make_request_header(),
         };
-        let response = self.send_request(SupportedMessage::CloseSecureChannelRequest(request))?;
-        if let SupportedMessage::CloseSecureChannelResponse(_) = response {
-            Ok(())
-        } else {
-            Err(BAD_UNKNOWN_RESPONSE)
-        }
+        // We do not wait for a response because there may not be one. Just return
+        let _ = self.async_send_request(SupportedMessage::CloseSecureChannelRequest(request));
+        Ok(())
     }
 
     /// Sends a CreateSession request to the server
     pub fn create_session(&mut self) -> Result<(), StatusCode> {
+        let endpoint_url = {
+            let session_state = self.session_state.clone();
+            let mut session_state = session_state.lock().unwrap();
+            if session_state.endpoint.is_none() {
+                error!("Cannot create a session because no endpoint has been discovered and set!");
+                return Err(BAD_TCP_ENDPOINT_URL_INVALID);
+            }
+            session_state.endpoint.as_ref().unwrap().endpoint_url.clone()
+        };
+
         let request = CreateSessionRequest {
             request_header: self.make_request_header(),
             client_description: ApplicationDescription {
@@ -132,7 +152,7 @@ impl Session {
                 discovery_urls: None,
             },
             server_uri: UAString::null(),
-            endpoint_url: UAString::null(),
+            endpoint_url: endpoint_url,
             session_name: UAString::from_str("Rust OPCUA Client"),
             client_nonce: ByteString::null(),
             client_certificate: ByteString::null(),
@@ -141,6 +161,7 @@ impl Session {
         };
         let response = self.send_request(SupportedMessage::CreateSessionRequest(request))?;
         if let SupportedMessage::CreateSessionResponse(response) = response {
+            Self::process_service_result(&response.response_header)?;
             let session_state = self.session_state.clone();
             let mut session_state = session_state.lock().unwrap();
             session_state.authentication_token = response.authentication_token;
@@ -152,13 +173,25 @@ impl Session {
 
     /// Sends an ActivateSession request to the server
     pub fn activate_session(&mut self) -> Result<(), StatusCode> {
-
-        // TODO THIS IS A HACK. The endpoints should be inspected for a user identity token and the 
-        // policy id we use should come from there.
-        let user_identity_token = AnonymousIdentityToken {
-            policy_id: UAString::from_str("anonymous"),
+        // Anonymous only for time being
+        let user_identity_token = {
+            let session_state = self.session_state.clone();
+            let mut session_state = session_state.lock().unwrap();
+            if session_state.endpoint.is_none() {
+                error!("Cannot activate a session because no endpoint has been discovered and set!");
+                return Err(BAD_TCP_ENDPOINT_URL_INVALID);
+            }
+            let endpoint = session_state.endpoint.as_ref().unwrap();
+            let policy_id = endpoint.find_policy_id(UserTokenType::Anonymous);
+            if policy_id.is_none() {
+                error!("Cannot find anonymous policy id for this endpoint, cannot connect");
+                return Err(BAD_SECURITY_POLICY_REJECTED);
+            }
+            AnonymousIdentityToken {
+                policy_id: policy_id.unwrap(),
+            }
         };
-        
+
         debug!("Identity token for activate = {:#?}", user_identity_token);
         let user_identity_token = ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id(), user_identity_token);
 
@@ -180,6 +213,7 @@ impl Session {
         let response = self.send_request(SupportedMessage::ActivateSessionRequest(request))?;
         if let SupportedMessage::ActivateSessionResponse(response) = response {
             debug!("ActivateSessionResponse = {:#?}", response);
+            Self::process_service_result(&response.response_header)?;
             Ok(())
         } else {
             Err(BAD_UNKNOWN_RESPONSE)
@@ -192,7 +226,7 @@ impl Session {
         let endpoint_url = {
             let session_state = self.session_state.clone();
             let session_state = session_state.lock().unwrap();
-            UAString::from_str(&session_state.endpoint_url)
+            UAString::from_str(&self.endpoint_url)
         };
 
         let request = GetEndpointsRequest {
@@ -204,10 +238,27 @@ impl Session {
 
         let response = self.send_request(SupportedMessage::GetEndpointsRequest(request))?;
         if let SupportedMessage::GetEndpointsResponse(response) = response {
+            Self::process_service_result(&response.response_header)?;
             Ok(response.endpoints)
         } else {
             Err(BAD_UNKNOWN_RESPONSE)
         }
+    }
+
+    /// Find matching endpoint
+    pub fn find_matching_endpoint(endpoints: &[EndpointDescription], endpoint_url: &str, security_policy: SecurityPolicy) -> Option<EndpointDescription> {
+        if security_policy == SecurityPolicy::Unknown {
+            panic!("Can't match against unknown security policy");
+        }
+        for e in endpoints.iter() {
+            if security_policy != SecurityPolicy::from_uri(e.security_policy_uri.as_ref()) {
+                continue;
+            }
+            if url_matches_except_host(e.endpoint_url.as_ref(), endpoint_url).is_ok() {
+                return Some(e.clone())
+            }
+        }
+        None
     }
 
     /// Sends a Browse request to the server
@@ -224,6 +275,7 @@ impl Session {
         };
         let response = self.send_request(SupportedMessage::BrowseRequest(request))?;
         if let SupportedMessage::BrowseResponse(response) = response {
+            Self::process_service_result(&response.response_header)?;
             Ok(response.results)
         } else {
             Err(BAD_UNKNOWN_RESPONSE)
@@ -243,6 +295,7 @@ impl Session {
         let response = self.send_request(SupportedMessage::ReadRequest(request))?;
         if let SupportedMessage::ReadResponse(response) = response {
             debug!("ReadResponse = {:#?}", response);
+            Self::process_service_result(&response.response_header)?;
             Ok(response.results)
         } else {
             Err(BAD_UNKNOWN_RESPONSE)
@@ -257,6 +310,7 @@ impl Session {
         };
         let response = self.send_request(SupportedMessage::WriteRequest(request))?;
         if let SupportedMessage::WriteResponse(response) = response {
+            Self::process_service_result(&response.response_header)?;
             Ok(response.results)
         } else {
             Err(BAD_UNKNOWN_RESPONSE)
@@ -265,24 +319,83 @@ impl Session {
 
     /// Checks if secure channel token needs to be renewed and renews it
     fn ensure_secure_channel_token(&mut self) -> Result<(), StatusCode> {
-        // TODO check if secure channel 75% close to expiration in which case send a renew
-        Ok(())
+        let renew_token = {
+            let mut session_state = self.session_state.lock().unwrap();
+            if let Some(ref channel_token) = session_state.channel_token {
+                let now = chrono::UTC::now();
+
+                // Check if secure channel 75% close to expiration in which case send a renew
+                let renew_lifetime = (channel_token.revised_lifetime * 3) / 4;
+                let created_at = channel_token.created_at.as_chrono();
+                let renew_lifetime = chrono::Duration::milliseconds(renew_lifetime as i64);
+
+                // Renew the token?
+                now.signed_duration_since(created_at) > renew_lifetime
+            } else {
+                false
+            }
+        };
+        if renew_token {
+            self.issue_or_renew_secure_channel(SecurityTokenRequestType::Renew)
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Process the service result, i.e. where the request "succeed" but the response
+    /// contains a failure status code.
+    fn process_service_result(response_header: &ResponseHeader) -> Result<(), StatusCode> {
+        if response_header.service_result.is_bad() {
+            Err(response_header.service_result)
+        } else {
+            Ok(())
+        }
     }
 
     /// Construct a request header for the session
     fn make_request_header(&mut self) -> RequestHeader {
-        let mut session_state = self.session_state.lock().unwrap();
-        session_state.last_request_handle += 1;
+        let (authentication_token, request_handle, timeout_hint) = {
+            let mut session_state = self.session_state.lock().unwrap();
+            session_state.last_request_handle += 1;
+            (session_state.authentication_token.clone(), session_state.last_request_handle, session_state.request_timeout)
+        };
         let request_header = RequestHeader {
-            authentication_token: session_state.authentication_token.clone(),
+            authentication_token: authentication_token,
             timestamp: DateTime::now(),
-            request_handle: session_state.last_request_handle,
+            request_handle: request_handle,
             return_diagnostics: 0,
             audit_entry_id: UAString::null(),
-            timeout_hint: session_state.request_timeout,
+            timeout_hint: timeout_hint,
             additional_header: ExtensionObject::null(),
         };
         request_header
+    }
+
+    fn issue_or_renew_secure_channel(&mut self, request_type: SecurityTokenRequestType) -> Result<(), StatusCode> {
+        // TODO
+        let requested_lifetime = 60000;
+
+        let request = OpenSecureChannelRequest {
+            request_header: self.make_request_header(),
+            client_protocol_version: 0,
+            request_type: request_type,
+            security_mode: MessageSecurityMode::None,
+            client_nonce: ByteString::from_bytes(&[0]),
+            requested_lifetime: requested_lifetime,
+        };
+        let response = self.send_request(SupportedMessage::OpenSecureChannelRequest(request))?;
+        if let SupportedMessage::OpenSecureChannelResponse(response) = response {
+            {
+                let session_state = self.session_state.clone();
+                let mut session_state = session_state.lock().unwrap();
+                session_state.channel_token = Some(response.security_token);
+                // TODO tell TCP channel about the channel token info so it can sign, sign+encrypt
+                // messages using the token
+            }
+            Ok(())
+        } else {
+            Err(BAD_UNKNOWN_RESPONSE)
+        }
     }
 
     pub fn send_request(&mut self, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
@@ -290,5 +403,12 @@ impl Session {
         let _ = self.ensure_secure_channel_token();
         // Send the request
         self.transport.send_request(request)
+    }
+
+    pub fn async_send_request(&mut self, request: SupportedMessage) -> Result<UInt32, StatusCode> {
+        // Make sure secure channel token hasn't expired
+        let _ = self.ensure_secure_channel_token();
+        // Send the request
+        self.transport.async_send_request(request)
     }
 }
