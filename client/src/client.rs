@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::fmt::Display;
 use std;
 
 use prelude::*;
@@ -12,16 +13,18 @@ pub struct Client {
     /// running on an independent thread.
     pub sessions: Vec<Arc<Mutex<Session>>>,
     /// Certificate store is where certificates go.
-    pub certificate_store: Arc<Mutex<CertificateStore>>
+    pub certificate_store: Option<Arc<Mutex<CertificateStore>>>
 }
 
 impl Client {
     /// Creates a new `Client` instance. The application name and uri are supplied as arguments to
     /// this call and are passed to each session that connects hereafter.
     pub fn new(application_name: &str, application_uri: &str) -> Client {
-        // TODO this should be made some other way
+        // TODO this pki path should be made some other way
         let mut pki_path = std::env::current_dir().unwrap();
         pki_path.push("pki");
+        debug!("pki_path = {}", pki_path.to_str().unwrap());
+
         Client {
             client_description: ApplicationDescription {
                 application_uri: UAString::from_str(application_uri),
@@ -33,7 +36,7 @@ impl Client {
                 discovery_urls: None,
             },
             sessions: Vec::new(),
-            certificate_store: Arc::new(Mutex::new(CertificateStore::new(&pki_path)))
+            certificate_store: Some(Arc::new(Mutex::new(CertificateStore::new(&pki_path))))
         }
     }
 
