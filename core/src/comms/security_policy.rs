@@ -3,6 +3,7 @@ use chrono;
 use types::*;
 use profiles;
 use constants;
+use crypto;
 use crypto::types::*;
 
 #[derive(Debug)]
@@ -83,6 +84,41 @@ impl SecurityPolicy {
             &SecurityPolicy::Basic256Sha256 => profiles::SECURITY_POLICY_BASIC_256_SHA_256,
             _ => {
                 panic!("Shouldn't be turning an unknown policy into a uri");
+            }
+        }
+    }
+
+    pub fn asymmetric_signature_algorithm(&self) -> &'static str {
+        match self {
+            &SecurityPolicy::Basic128Rsa15 => crypto::consts::basic128rsa15::ASYMMETRIC_SIGNATURE_ALGORITHM,
+            &SecurityPolicy::Basic256 => crypto::consts::basic256::ASYMMETRIC_SIGNATURE_ALGORITHM,
+            &SecurityPolicy::Basic256Sha256 => crypto::consts::basic256sha256::ASYMMETRIC_SIGNATURE_ALGORITHM,
+            _ => {
+                panic!("Invalid policy");
+            }
+        }
+    }
+
+    pub fn plain_block_size(&self) -> u32 {
+        // TODO
+        match self {
+            &SecurityPolicy::Basic128Rsa15 => 0,
+            &SecurityPolicy::Basic256 => 0,
+            &SecurityPolicy::Basic256Sha256 => 0,
+            _ => {
+                panic!("Invalid policy");
+            }
+        }
+    }
+
+    pub fn cipher_block_size(&self) -> u32 {
+        // TODO
+        match self {
+            &SecurityPolicy::Basic128Rsa15 => 0,
+            &SecurityPolicy::Basic256 => 0,
+            &SecurityPolicy::Basic256Sha256 => 0,
+            _ => {
+                panic!("Invalid policy");
             }
         }
     }

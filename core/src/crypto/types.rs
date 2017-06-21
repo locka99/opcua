@@ -172,7 +172,7 @@ fn parse_asn1_date_test() {
 
 /// This is a wrapper around an OpenSSL asymmetric key pair
 pub struct PKey {
-    pub value: pkey::PKey
+    pub value: pkey::PKey,
 }
 
 impl Debug for PKey {
@@ -197,6 +197,10 @@ impl PKey {
                 pkey::PKey::from_rsa(rsa).unwrap()
             },
         }
+    }
+
+    pub fn bit_length(&self) -> u32 {
+        self.value.bits()
     }
 
     pub fn sign_sha1(&self, data: &[u8]) -> Vec<u8> {

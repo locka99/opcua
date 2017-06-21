@@ -35,7 +35,7 @@ impediment.
 
 ## Server
 
-The server implements (more or less) the OPC UA micro profile. Over time compliance will expand out to embedded support and possibly further.
+The server implements the OPC UA micro profile. Functionality is being added to cover embedded profile and possibly further.
 
 ### Supported services
 
@@ -106,7 +106,9 @@ Currently the following are not supported
 
 ## Client
 
-Client support is still work in progress. Stubs have been created for the client lib, sample-client and some basic functionality.
+Client will start with synchronous calls to the server to establish a connection, create/activate a session, read values.
+
+Subscriptions will come after basic functionality is working.
 
 # Building and testing
 
@@ -118,10 +120,10 @@ Client support is still work in progress. Stubs have been created for the client
 ### Windows
 
 You need OpenSSL to build OPC UA. The easiest way is to install the stable-x86_64-pc-windows-gnu Rust toolchain
-and then install [MSYS2 64-bit](http://www.msys2.org/). Read the instructions on the site but you are recommended
-to follow the instructions to update via `pacman -Syuu`.
+and then install [MSYS2 64-bit](http://www.msys2.org/). Read the instructions on the site especially on updating to the
+latest packages via `pacman -Syuu`.
 
-Once MSYS2 has installed & updated you must bring in the MingW 64-bit compiler toolchain and OpenSSL
+Once MSYS2 has installed & updated you must bring in the MingW 64-bit compiler toolchain and OpenSSL development files.
 
 ```bash
 pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb mingw-w64-x86_64-pkg-config openssl-devel
@@ -133,7 +135,7 @@ Now ensure that these ensure both Rust and MinGW64 binaries are on your PATH and
 set PATH=C:\msys64\mingw64\bin;C:\Users\MyName\.cargo\bin;%PATH%
 ```
 
-You can use MSVC or 32-bit GNU but you may run into issues which are not covered by this document.
+Note: It should be possible to build using MSVC but you should read the Rust OpenSSL docs for how to set up your paths properly.
 
 ## Layout
 
@@ -159,8 +161,7 @@ to allow simple servers to be created with a very small number of lines of code.
 
 ## Crypto
 
-At the moment crypto isn't implemented fully however OpenSSL is a dependency of opcua and you must be able to build it.
-You are advised to read the OpenSSL [documentation](https://github.com/sfackler/rust-openssl) for that to set up your 
+You are advised to read the OpenSSL [documentation](https://github.com/sfackler/rust-openssl) to set up your 
 environment.
 
 ### Certificate pki structure
@@ -195,13 +196,13 @@ For usage type:
  
 ```bash
 cd tools\certificate-creator
-cargo run --features crypto -- --help
+cargo run -- --help
 ```
 
 A minimal usage:
 
 ```bash
-cargo run --features crypto --
+cargo run --
 ```
 
 # Implementation details
@@ -348,12 +349,9 @@ Code should be formatted with the IntelliJ rust plugin, or with rustfmt.
 
 ### Server
 
-The intention is that the implementation will work its way through OPC UA profiles from nano to embedded to standard to attain a level of functionality acceptable to most consumers of the API.
+The server will work its way through OPC UA profiles from nano to embedded to standard to attain a level of functionality acceptable to most consumers of the API. Profiles are defined in "OPC UA Part 7 - Profiles 1.03 Specification"
 
-Profiles are defined in "OPC UA Part 7 - Profiles 1.03 Specification"
-
-This [OPC UA link](http://opcfoundation-onlineapplications.org/ProfileReporting/index.htm) provides interactive and descriptive information about
-profiles and relevant test cases.
+Development is in phases, the current phase is marked in bold.
 
 * Phase 0: Types, project structure, code generation tools, basic connectivity, binary transport format, services framework
 * Phase 1. This phase mostly implements the Nano Embedded Device Server Profile, which has these main points
@@ -363,22 +361,32 @@ profiles and relevant test cases.
   * Discovery Services
   * Session Services (minimum, single session)
   * View Services (basic)
-* **Phase 2:** Micro Embedded Device Server Profile. This is a bump up from Nano, supporting 2 or more sessions and data change notifications via a subscription. Internally, first efforts at writing a client may start here. Clients share most of the same structs as the server as well as utility code such as chunking etc. Where the client differs is that where a server deserializes certain messages and serializes others, the client does the opposite. So code must serialize and deserialize correctly. In addition the client has its own client side state starting with the HELLO, open secure channel, subscription state etc. 
-* Phase 3: Phase 3 Embedded UA Server Profile. This phase will bring the UA server up to the point that it is probably useful for most day-to-day functions and most clients. It includes support for Basic1238Rsa15 and PKI infrastructure. Internally, chunks can be signed and optionally encrypted. This means code that reads data from a chunk will have to be decrypted first and any padding / signature removed. Crypto happens on a per-chunk level so chunks have to be verified, decrypted and then stitched together to be turned into messages. In addition the open secure channel code needs to cope with crypto, trust / cert failures, reissue tokens and all the other issues that may occur. 
+* **Phase 2:** Micro Embedded Device Server Profile. This is a bump up from Nano.
+  * 2 or more sessions
+  * data change notifications via a subscription. 
+* Phase 3: Phase 3 Embedded UA Server Profile. 
+  * Basic128Rsa15 encryption
+  * PKI infrastructure
+  * Signing and encryption of chunks. 
 * Phase 4 Standard UA Server Profile - Basically embedded + enhanced data change subscription server facet + X509 user token server facet
+
+This [OPC UA link](http://opcfoundation-onlineapplications.org/ProfileReporting/index.htm) provides interactive and descriptive information about
+profiles and relevant test cases.
 
 ### Client
 
-Client functionality takes second place to server functionality. Client will not happen until at least a nano server exists.
+Client development will lag behind server development but will track it to some extent.
 
-In some respects implementing the client is HARDER than server since it must maintain state and attempt to reconnect when the 
-connection goes down. Client OPC UA is governed by its own core characteristics. These will be implemented to test the server functionality in general order:
+Implemented:
 
-* Base client behaviour facet - 
-* Core client facet (crypto, security policy)
+* Base client behaviour facet
 * Attribute read / write
+
+Planned:
+
+* Core client facet (crypto, security policy)
 * Datachange subscriber
-* Durable subscription client (i.e. ability to reconnect and re-establish group after disconnect)
+* Error recovery state (i.e. ability to reconnect and re-establish state after disconnect)
 
 ## Major 3rd party dependencies
 

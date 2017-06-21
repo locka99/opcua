@@ -76,10 +76,24 @@ impl Chunker {
             // Write a node id
             chunk_body_size += node_id.byte_len();
         }
-        chunk_body_size += supported_message.byte_len();
-        // TODO encrypted message size
-        // chunk_body_size += 1; // padding size byte when padding
-        // TODO signature size
+
+
+        let bytes_to_write = supported_message.byte_len();
+
+        chunk_body_size += bytes_to_write;
+
+        let padding_size = 0u8;
+        let extra_padding_size = 0u8;
+        let signature: Vec<u8> = Vec::new();
+
+        if secure_channel_token.security_policy != SecurityPolicy::None {
+/*            let signature_size =
+            let plain_block_size = secure_channel_token.security_policy.plain_block_size();
+            padding_size = plain_block_size - ((bytes_to_write + signature_size + 1) % plain_block_size); */
+            // TODO encrypted message size
+            // chunk_body_size += 1; // padding size byte when padding
+            // TODO signature size
+        }
 
         let message_size = (CHUNK_HEADER_SIZE + chunk_body_size) as u32;
 
@@ -106,13 +120,27 @@ impl Chunker {
         } else {}
         // write message
         let _ = supported_message.encode(&mut stream);
-        // write padding byte (0 since there is no padding bytes)
-        // write_u8(&mut stream, 0u8);
 
-        // TODO write padding
+        // write padding byte?
+        if padding_size > 0u8 {
+            // Padding size
+            write_u8(&mut stream, padding_size);
+            // Padding bytes
+            for _ in 0..padding_size {
+                write_u8(&mut stream, 0u8);
+            }
+            if extra_padding_size > 0u8 {
+                write_u8(&mut stream, extra_padding_size);
+                for _ in 0..extra_padding_size {
+                    write_u8(&mut stream, 0u8);
+                }
+            }
+        }
+
+
         // TODO encrypt
         // TODO calculate signature
-        // TODO write signature
+        // write signature
 
         // Now the chunk is made and can be added to the result
         let chunk = Chunk {
@@ -179,6 +207,9 @@ impl Chunker {
         // Now the payload. The node id of the prefix allows us to recognize it.
 
         let mut chunk_body_stream = &mut Cursor::new(chunk_body);
+
+        // TODO verify signature
+        // TODO decrypt
 
         let decoded_message = SupportedMessage::decode_by_object_id(&mut chunk_body_stream, object_id);
         if decoded_message.is_err() {
