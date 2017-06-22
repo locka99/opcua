@@ -123,6 +123,28 @@ impl SecurityPolicy {
         }
     }
 
+    pub fn min_asymmetric_key_length(&self) -> u32 {
+        match self {
+            &SecurityPolicy::Basic128Rsa15 => crypto::consts::basic128rsa15::MIN_ASYMMETRIC_KEY_LENGTH,
+            &SecurityPolicy::Basic256 => crypto::consts::basic256::MIN_ASYMMETRIC_KEY_LENGTH,
+            &SecurityPolicy::Basic256Sha256 => crypto::consts::basic256sha256::MIN_ASYMMETRIC_KEY_LENGTH,
+            _ => {
+                panic!("Invalid policy");
+            }
+        }
+    }
+
+    pub fn max_asymmetric_key_length(&self) -> u32 {
+        match self {
+            &SecurityPolicy::Basic128Rsa15 => crypto::consts::basic128rsa15::MAX_ASYMMETRIC_KEY_LENGTH,
+            &SecurityPolicy::Basic256 => crypto::consts::basic256::MAX_ASYMMETRIC_KEY_LENGTH,
+            &SecurityPolicy::Basic256Sha256 => crypto::consts::basic256sha256::MAX_ASYMMETRIC_KEY_LENGTH,
+            _ => {
+                panic!("Invalid policy");
+            }
+        }
+    }
+
     pub fn from_uri(uri: &str) -> SecurityPolicy {
         match uri {
             profiles::SECURITY_POLICY_NONE => SecurityPolicy::None,

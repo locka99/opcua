@@ -13,80 +13,129 @@ pub use self::encrypt_decrypt::*;
 use types::*;
 use comms::SecurityPolicy;
 
+/// These are constants that govern the different encryption / signing modes for OPC UA. In some
+/// cases these algorithm string constants will be passed over the wire and code needs to test the
+/// string to see if the algorithm is supported.
 pub mod consts {
+    /// 128Rsa15
+    ///
+    /// A suite of algorithms that uses RSA15 as Key-Wrap-algorithm and 128-Bit for encryption algorithms.
     pub mod basic128rsa15
     {
-        // 128Rsa15
-        //
-        // A suite of algorithms that uses RSA15 as Key-Wrap-algorithm and 128-Bit for encryption algorithms.
-        //
-        // -> SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
-        // -> SymmetricEncryptionAlgorithm – Aes128 – (http://www.w3.org/2001/04/xmlenc#aes128-cbc).
+        /// SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
+        pub const SYMMETRIC_SIGNATURE_ALGORITHM: &'static str = "http://www.w3.org/2000/09/xmldsig#hmac-sha1";
+
+        /// SymmetricEncryptionAlgorithm – Aes128 – (http://www.w3.org/2001/04/xmlenc#aes128-cbc).
+        pub const SYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = "http://www.w3.org/2001/04/xmlenc#aes128-cbc";
 
         /// AsymmetricSignatureAlgorithm – RsaSha1 – (http://www.w3.org/2000/09/xmldsig#rsa-sha1).
         pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &'static str = "http://www.w3.org/2000/09/xmldsig#rsa-sha1";
 
-        // -> AsymmetricKeyWrapAlgorithm – KwRsa15 – (http://www.w3.org/2001/04/xmlenc#rsa-1_5).
-        // -> AsymmetricEncryptionAlgorithm – Rsa15 – (http://www.w3.org/2001/04/xmlenc#rsa-1_5).
-        // -> KeyDerivationAlgorithm – PSha1 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1).
-        // -> DerivedSignatureKeyLength – 128.
-        // -> MinAsymmetricKeyLength – 1024
-        // -> MaxAsymmetricKeyLength – 2048
-        // -> CertificateSignatureAlgorithm – Sha1
-        //
-        // If a certificate or any certificate in the chain is not signed with a hash that is Sha1 or stronger then the certificate shall be rejected.
+        /// AsymmetricKeyWrapAlgorithm – KwRsa15 – (http://www.w3.org/2001/04/xmlenc#rsa-1_5).
+        pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &'static str = "http://www.w3.org/2001/04/xmlenc#rsa-1_5";
+
+        /// AsymmetricEncryptionAlgorithm – Rsa15 – (http://www.w3.org/2001/04/xmlenc#rsa-1_5).
+        pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = "http://www.w3.org/2001/04/xmlenc#rsa-1_5";
+
+        /// KeyDerivationAlgorithm – PSha1 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1).
+        pub const KEY_DERIVATION_ALGORITHM: &'static str = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1";
+
+        /// DerivedSignatureKeyLength – 128.
+        pub const DERIVED_SIGNATURE_KEY_LENGTH: u32 = 128;
+
+        /// MinAsymmetricKeyLength – 1024
+        pub const MIN_ASYMMETRIC_KEY_LENGTH: u32 = 1024;
+
+        /// MaxAsymmetricKeyLength – 2048
+        pub const MAX_ASYMMETRIC_KEY_LENGTH: u32 = 2048;
+
+        /// CertificateSignatureAlgorithm – Sha1
+        ///
+        /// If a certificate or any certificate in the chain is not signed with a hash that is Sha1 or stronger then the certificate shall be rejected.
+        pub const CERTIFICATE_SIGNATURE_ALGORITHM: &'static str = "Sha1";
     }
 
+    /// Security Basic 256
+    ///
+    /// A suite of algorithms that are for 256-Bit encryption, algorithms include:
     pub mod basic256 {
-        // Security Basic 256
-        //
-        // A suite of algorithms that are for 256-Bit encryption, algorithms include:
-        //
-        // -> SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
-        // -> SymmetricEncryptionAlgorithm – Aes256 – (http://www.w3.org/2001/04/xmlenc#aes256-cbc).
+        /// SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
+        pub const SYMMETRIC_SIGNATURE_ALGORITHM: &'static str = "http://www.w3.org/2000/09/xmldsig#hmac-sha1";
+
+        ///SymmetricEncryptionAlgorithm – Aes256 – (http://www.w3.org/2001/04/xmlenc#aes256-cbc).
+        pub const SYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = "http://www.w3.org/2001/04/xmlenc#aes256-cbc";
 
         /// AsymmetricSignatureAlgorithm – RsaSha1 – (http://www.w3.org/2000/09/xmldsig#rsa-sha1).
         pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &'static str = "http://www.w3.org/2000/09/xmldsig#rsa-sha1";
 
-        // -> AsymmetricKeyWrapAlgorithm – KwRsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p).
-        // -> AsymmetricEncryptionAlgorithm – RsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep).
-        // -> KeyDerivationAlgorithm – PSha1 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1).
-        // -> DerivedSignatureKeyLength – 192.
-        // -> MinAsymmetricKeyLength – 1024
-        // -> MaxAsymmetricKeyLength – 2048
-        // -> CertificateSignatureAlgorithm –
+        // AsymmetricKeyWrapAlgorithm – KwRsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p).
+        pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &'static str = "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p";
+
+        /// AsymmetricEncryptionAlgorithm – RsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep).
+        pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = "http://www.w3.org/2001/04/xmlenc#rsa-oaep";
+
+        /// KeyDerivationAlgorithm – PSha1 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1).
+        pub const KEY_DERIVATION_ALGORITHM: &'static str = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1";
+
+        /// DerivedSignatureKeyLength – 192.
+        pub const DERIVED_SIGNATURE_KEY_LENGTH: u32 = 192;
+
+        /// MinAsymmetricKeyLength – 1024
+        pub const MIN_ASYMMETRIC_KEY_LENGTH: u32 = 1024;
+
+        /// MaxAsymmetricKeyLength – 2048
+        pub const MAX_ASYMMETRIC_KEY_LENGTH: u32 = 2048;
+
+        /// CertificateSignatureAlgorithm –
+        ///
+        /// Sha1 [deprecated] or Sha256 [recommended]
+        ///
+        /// If a certificate or any certificate in the chain is not signed with a hash that is Sha1 or stronger then the certificate shall be rejected.
+        /// Release 1.03 17 OPC Unified Architecture, Part 7
+        /// Both Sha1 and Sha256 shall be supported. However, it is recommended to use Sha256 since Sha1 is considered not secure anymore.
+        pub const CERTIFICATE_SIGNATURE_ALGORITHM: &'static str = "Sha256";
     }
 
-    // Sha1 [deprecated] or Sha256 [recommended]
-    //
-    // If a certificate or any certificate in the chain is not signed with a hash that is Sha1 or stronger then the certificate shall be rejected.
-    // Release 1.03 17 OPC Unified Architecture, Part 7
-    // Both Sha1 and Sha256 shall be supported. However, it is recommended to use Sha256 since Sha1 is considered not secure anymore.
 
+    /// Security Basic 256 Sha256
+    ///
+    /// A suite of algorithms that are for 256-Bit encryption, algorithms include.
     pub mod basic256sha256 {
-        // Security Basic 256 Sha256
-        //
-        // A suite of algorithms that are for 256-Bit encryption, algorithms include.
-        //
-        // -> SymmetricSignatureAlgorithm – Hmac_Sha256 – (http://www.w3.org/2000/09/xmldsig#hmac-sha256).
-        // -> SymmetricEncryptionAlgorithm – Aes256_CBC – (http://www.w3.org/2001/04/xmlenc#aes256-cbc).
+        /// SymmetricSignatureAlgorithm – Hmac_Sha256 – (http://www.w3.org/2000/09/xmldsig#hmac-sha256).
+        pub const SYMMETRIC_SIGNATURE_ALGORITHM: &'static str = "http://www.w3.org/2000/09/xmldsig#hmac-sha256";
+
+        /// SymmetricEncryptionAlgorithm – Aes256_CBC – (http://www.w3.org/2001/04/xmlenc#aes256-cbc).
+        pub const SYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = "http://www.w3.org/2001/04/xmlenc#aes256-cbc";
 
         /// AsymmetricSignatureAlgorithm – Rsa_Sha256 – (http://www.w3.org/2001/04/xmldsig#rsa-sha256).
         pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &'static str = "http://www.w3.org/2001/04/xmldsig#rsa-sha256";
 
-        // -> AsymmetricKeyWrapAlgorithm – KwRsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p).
+        // AsymmetricKeyWrapAlgorithm – KwRsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p).
+        pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &'static str = "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p";
+
         // -> AsymmetricEncryptionAlgorithm – Rsa_Oaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep).
-        // -> KeyDerivationAlgorithm – PSHA256 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha256).
-        // -> DerivedSignatureKeyLength – 256
-        // -> MinAsymmetricKeyLength – 2048
-        // -> MaxAsymmetricKeyLength – 4096
-        // -> CertificateSignatureAlgorithm – Sha256
-        //
-        // If a certificate or any certificate in the chain is not signed with a hash that is Sha256 or stronger
-        // then the certificate shall be rejected. Support for this security profile may require support for
-        // a second application instance certificate, with a larger keysize. Applications shall support
-        // multiple Application Instance Certificates if required by supported Security Polices and use
-        // the certificate that is required for a given security endpoint.
+        pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = "http://www.w3.org/2001/04/xmlenc#rsa-oaep";
+
+        // KeyDerivationAlgorithm – PSHA256 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha256).
+        pub const KEY_DERIVATION_ALGORITHM: &'static str = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha256";
+
+        /// DerivedSignatureKeyLength – 256
+        pub const DERIVED_SIGNATURE_KEY_LENGTH: u32 = 256;
+
+        /// MinAsymmetricKeyLength – 2048
+        pub const MIN_ASYMMETRIC_KEY_LENGTH: u32 = 2048;
+
+        /// MaxAsymmetricKeyLength – 4096
+        pub const MAX_ASYMMETRIC_KEY_LENGTH: u32 = 4096;
+
+        /// CertificateSignatureAlgorithm – Sha256
+        ///
+        /// If a certificate or any certificate in the chain is not signed with a hash that is Sha256 or stronger
+        /// then the certificate shall be rejected. Support for this security profile may require support for
+        /// a second application instance certificate, with a larger keysize. Applications shall support
+        /// multiple Application Instance Certificates if required by supported Security Polices and use
+        /// the certificate that is required for a given security endpoint.
+        pub const CERTIFICATE_SIGNATURE_ALGORITHM: &'static str = "Sha256";
     }
 }
 
