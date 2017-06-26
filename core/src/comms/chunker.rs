@@ -39,115 +39,29 @@ impl Chunker {
 
     /// Encodes a message using the supplied sequence number and secure channel info and emits the corresponding chunks
     pub fn encode(sequence_number: UInt32, request_id: UInt32, secure_channel_token: &SecureChannelToken, supported_message: &SupportedMessage) -> std::result::Result<Vec<Chunk>, StatusCode> {
-        // TODO multiple chunks
-
-        // External values
-        let secure_channel_id = secure_channel_token.secure_channel_id;
-
-        debug!("Creating a chunk for secure channel id {}, sequence id {}", secure_channel_id, sequence_number);
+        let security_policy = secure_channel_token.security_policy;
+        if security_policy == SecurityPolicy::Unknown {
+            panic!("Security policy cannot be unknown");
+        }
 
         let message_type = Chunker::chunk_message_type(supported_message);
-
-        let is_first_chunk = true;
-        let is_last_chunk = true;
-        let chunk_type = if is_last_chunk { ChunkType::Final } else { ChunkType::Intermediate };
-
-        // security header depends on message type
-        let security_header = if message_type == ChunkMessageType::OpenSecureChannel {
-            SecurityHeader::Asymmetric(AsymmetricSecurityHeader::none())
-        } else {
-            SecurityHeader::Symmetric(SymmetricSecurityHeader {
-                token_id: secure_channel_token.token_id,
-            })
-        };
-
-        let sequence_header = SequenceHeader {
-            sequence_number: sequence_number,
-            request_id: request_id,
-        };
+        let chunk_type = ChunkType::Final;
 
         let node_id = supported_message.node_id();
+        let message_size = node_id.byte_len() + supported_message.byte_len();
+        let mut stream = Cursor::new(vec![0u8; message_size]);
 
-        // Calculate the chunk body size
-        let mut chunk_body_size = 0;
-        chunk_body_size += security_header.byte_len();
-        chunk_body_size += sequence_header.byte_len();
-        if is_first_chunk {
-            // Write a node id
-            chunk_body_size += node_id.byte_len();
-        }
+        debug!("Encoding node id {:?}", node_id);
+        let _ = node_id.encode(&mut stream);
+        let _ = supported_message.encode(&mut stream)?;
+        let data = stream.into_inner();
 
+        // One chunk support
+        // Multiple chunk means breaking the data up into sections, sending slices
+        // of data to encode_chunk
+        let node_id = supported_message.node_id();
 
-        let bytes_to_write = supported_message.byte_len();
-
-        chunk_body_size += bytes_to_write;
-
-        let padding_size = 0u8;
-        let extra_padding_size = 0u8;
-        let signature: Vec<u8> = Vec::new();
-
-        if secure_channel_token.security_policy != SecurityPolicy::None {
-/*            let signature_size =
-            let plain_block_size = secure_channel_token.security_policy.plain_block_size();
-            padding_size = plain_block_size - ((bytes_to_write + signature_size + 1) % plain_block_size); */
-            // TODO encrypted message size
-            // chunk_body_size += 1; // padding size byte when padding
-            // TODO signature size
-        }
-
-        let message_size = (CHUNK_HEADER_SIZE + chunk_body_size) as u32;
-
-        debug!("Creating a chunk with a size of {}", message_size);
-
-        let chunk_header = ChunkHeader {
-            message_type: message_type,
-            chunk_type: chunk_type,
-            message_size: message_size,
-            secure_channel_id: secure_channel_id,
-            is_valid: true,
-        };
-
-        let mut stream = Cursor::new(vec![0u8; chunk_body_size]);
-
-        // write security header
-        let _ = security_header.encode(&mut stream);
-        // write sequence header
-        let _ = sequence_header.encode(&mut stream);
-        // Write a node id for the first chunk
-        if is_first_chunk {
-            debug!("Encoding node id {:?}", node_id);
-            let _ = node_id.encode(&mut stream);
-        } else {}
-        // write message
-        let _ = supported_message.encode(&mut stream);
-
-        // write padding byte?
-        if padding_size > 0u8 {
-            // Padding size
-            write_u8(&mut stream, padding_size);
-            // Padding bytes
-            for _ in 0..padding_size {
-                write_u8(&mut stream, 0u8);
-            }
-            if extra_padding_size > 0u8 {
-                write_u8(&mut stream, extra_padding_size);
-                for _ in 0..extra_padding_size {
-                    write_u8(&mut stream, 0u8);
-                }
-            }
-        }
-
-
-        // TODO encrypt
-        // TODO calculate signature
-        // write signature
-
-        // Now the chunk is made and can be added to the result
-        let chunk = Chunk {
-            chunk_header: chunk_header,
-            chunk_body: stream.into_inner(),
-        };
-
+        let chunk = Chunk::new(sequence_number, request_id, message_type, chunk_type, secure_channel_token, &data)?;
         Ok(vec![chunk])
     }
 
@@ -163,8 +77,8 @@ impl Chunker {
 
         let chunk = &chunks[0];
 
-        let is_first_chunk = true;
-        let chunk_info = chunk.chunk_info(is_first_chunk, secure_channel_token)?;
+        let first_chunk = true;
+        let chunk_info = chunk.chunk_info(first_chunk, secure_channel_token)?;
         debug!("Chunker::decode chunk_info = {:?}", chunk_info);
 
         let body_start = chunk_info.body_offset;

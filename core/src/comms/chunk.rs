@@ -14,7 +14,7 @@ pub enum ChunkMessageType {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ChunkType {
-    /// Intermediate chunk
+    /// Intermediate
     Intermediate,
     /// Final chunk
     Final,
@@ -328,6 +328,81 @@ impl BinaryEncoder<Chunk> for Chunk {
 }
 
 impl Chunk {
+    pub fn new(sequence_number: UInt32, request_id: UInt32, message_type: ChunkMessageType, chunk_type: ChunkType, secure_channel_token: &SecureChannelToken, data: &[u8]) -> Result<Chunk, StatusCode> {
+        // security header depends on message type
+        let security_header = match message_type {
+            ChunkMessageType::OpenSecureChannel => {
+                SecurityHeader::Asymmetric(AsymmetricSecurityHeader::none())
+            }
+            _ => {
+                SecurityHeader::Symmetric(SymmetricSecurityHeader {
+                    token_id: secure_channel_token.token_id,
+                })
+            }
+        };
+
+        let sequence_header = SequenceHeader { sequence_number, request_id };
+
+        // Calculate the chunk body size
+        let mut chunk_body_size = 0;
+        chunk_body_size += security_header.byte_len();
+        chunk_body_size += sequence_header.byte_len();
+
+        chunk_body_size = data.len();
+        // Test if padding is required
+        let (padding_size, extra_padding_size) = secure_channel_token.calc_chunk_padding(data.len() as u32);
+        if padding_size > 0 {
+            chunk_body_size += 1 + padding_size as usize;
+        }
+        if extra_padding_size > 0 {
+            chunk_body_size += 1 + extra_padding_size as usize;
+        }
+
+        let message_size = (CHUNK_HEADER_SIZE + chunk_body_size) as u32;
+        debug!("Creating a chunk with a size of {}", message_size);
+
+        let secure_channel_id = secure_channel_token.secure_channel_id;
+        let chunk_header = ChunkHeader {
+            message_type,
+            chunk_type,
+            message_size,
+            secure_channel_id,
+            is_valid: true,
+        };
+
+        let mut stream = Cursor::new(vec![0u8; chunk_body_size]);
+        // write security header
+        let _ = security_header.encode(&mut stream);
+        // write sequence header
+        let _ = sequence_header.encode(&mut stream);
+        // write message
+        let _ = stream.write(data);
+        // write padding byte?
+        if padding_size > 0u8 {
+            // Padding size
+            let _ = write_u8(&mut stream, padding_size)?;
+            // Padding bytes
+            for _ in 0..padding_size {
+                let _ = write_u8(&mut stream, 0u8)?;
+            }
+            if extra_padding_size > 0u8 {
+                let _ = write_u8(&mut stream, extra_padding_size)?;
+                for _ in 0..extra_padding_size {
+                    let _ = write_u8(&mut stream, 0u8)?;
+                }
+            }
+        }
+
+        // TODO encrypt
+        // TODO calculate signature
+        // write signature
+
+        Ok(Chunk {
+            chunk_header: chunk_header,
+            chunk_body: stream.into_inner(),
+        })
+    }
+
     pub fn is_open_secure_channel(&self) -> bool {
         self.chunk_header.message_type == ChunkMessageType::OpenSecureChannel
     }

@@ -1,5 +1,5 @@
-//! This is a sample OPC UA Client
-//! It connects to the specified server, fetches some values before exiting.
+//! This is a sample OPC UA Client that connects to the specified server, fetches some
+//! values before exiting.
 extern crate opcua_client;
 extern crate opcua_core;
 
@@ -17,14 +17,14 @@ fn main() {
         println!("Sample client cannot create a session!");
         let mut session = session.lock().unwrap();
         // Connect and do something with the server
-        let result = connect(client, &mut session);
+        let result = connect(&mut session);
         if result.is_err() {
             println!("ERROR: Got an error - check this code {:?}", result.unwrap_err().description());
         }
     }
 }
 
-fn connect(client: Client, session: &mut Session) -> Result<(), StatusCode> {
+fn connect(session: &mut Session) -> Result<(), StatusCode> {
     // Connect & activate the session.
     let _ = session.connect_and_activate_session()?;
 

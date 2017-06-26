@@ -60,6 +60,20 @@ impl SecureChannelToken {
         let token_expires = self.token_created_at.as_chrono() + chrono::Duration::seconds(self.token_lifetime as i64);
         if now.ge(&token_expires) { true } else { false }
     }
+
+    /// Calculate the padding size
+    pub fn calc_chunk_padding(&self, byte_length: u32) -> (u8, u8) {
+        if self.security_policy != SecurityPolicy::None {
+            let signature_size = 20; // TODO
+            let plain_block_size = self.security_policy.plain_block_size();
+            let padding_size: u8 = (plain_block_size - ((byte_length + signature_size + 1) % plain_block_size)) as u8;
+            let extra_padding_size = 0u8;
+            debug!("Padding calculated to be this {} and {}", padding_size, extra_padding_size);
+            (padding_size, extra_padding_size)
+        } else {
+            (0u8, 0u8)
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -99,30 +113,32 @@ impl SecurityPolicy {
         }
     }
 
+    // Plaintext block size in bytes
     pub fn plain_block_size(&self) -> u32 {
-        // TODO
         match self {
-            &SecurityPolicy::Basic128Rsa15 => 0,
-            &SecurityPolicy::Basic256 => 0,
-            &SecurityPolicy::Basic256Sha256 => 0,
+            &SecurityPolicy::Basic128Rsa15 => 16,
+            &SecurityPolicy::Basic256 => 16,
+            &SecurityPolicy::Basic256Sha256 => 16,
             _ => {
                 panic!("Invalid policy");
             }
         }
     }
 
+    // Cipher block size in bytes
     pub fn cipher_block_size(&self) -> u32 {
-        // TODO
+        // AES uses a 128-bit block size regardless of key length
         match self {
-            &SecurityPolicy::Basic128Rsa15 => 0,
-            &SecurityPolicy::Basic256 => 0,
-            &SecurityPolicy::Basic256Sha256 => 0,
+            &SecurityPolicy::Basic128Rsa15 => 16,
+            &SecurityPolicy::Basic256 => 16,
+            &SecurityPolicy::Basic256Sha256 => 16,
             _ => {
                 panic!("Invalid policy");
             }
         }
     }
 
+    /// Returns the max key length in bits
     pub fn min_asymmetric_key_length(&self) -> u32 {
         match self {
             &SecurityPolicy::Basic128Rsa15 => crypto::consts::basic128rsa15::MIN_ASYMMETRIC_KEY_LENGTH,
@@ -134,6 +150,7 @@ impl SecurityPolicy {
         }
     }
 
+    /// Returns the max key length in bits
     pub fn max_asymmetric_key_length(&self) -> u32 {
         match self {
             &SecurityPolicy::Basic128Rsa15 => crypto::consts::basic128rsa15::MAX_ASYMMETRIC_KEY_LENGTH,

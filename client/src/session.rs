@@ -132,7 +132,7 @@ impl Session {
     pub fn create_session(&mut self) -> Result<(), StatusCode> {
         let endpoint_url = {
             let session_state = self.session_state.clone();
-            let mut session_state = session_state.lock().unwrap();
+            let session_state = session_state.lock().unwrap();
             if session_state.endpoint.is_none() {
                 error!("Cannot create a session because no endpoint has been discovered and set!");
                 return Err(BAD_TCP_ENDPOINT_URL_INVALID);
@@ -176,7 +176,7 @@ impl Session {
         // Anonymous only for time being
         let user_identity_token = {
             let session_state = self.session_state.clone();
-            let mut session_state = session_state.lock().unwrap();
+            let session_state = session_state.lock().unwrap();
             if session_state.endpoint.is_none() {
                 error!("Cannot activate a session because no endpoint has been discovered and set!");
                 return Err(BAD_TCP_ENDPOINT_URL_INVALID);
@@ -223,12 +223,7 @@ impl Session {
     /// Sends a GetEndpoints request to the server
     pub fn get_endpoints(&mut self) -> Result<Option<Vec<EndpointDescription>>, StatusCode> {
         debug!("Fetching end points...");
-        let endpoint_url = {
-            let session_state = self.session_state.clone();
-            let session_state = session_state.lock().unwrap();
-            UAString::from_str(&self.endpoint_url)
-        };
-
+        let endpoint_url = UAString::from_str(&self.endpoint_url);
         let request = GetEndpointsRequest {
             request_header: self.make_request_header(),
             endpoint_url: endpoint_url,
@@ -320,7 +315,7 @@ impl Session {
     /// Checks if secure channel token needs to be renewed and renews it
     fn ensure_secure_channel_token(&mut self) -> Result<(), StatusCode> {
         let renew_token = {
-            let mut session_state = self.session_state.lock().unwrap();
+            let session_state = self.session_state.lock().unwrap();
             if let Some(ref channel_token) = session_state.channel_token {
                 let now = chrono::UTC::now();
 

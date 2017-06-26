@@ -1,6 +1,4 @@
 use std::sync::{Arc, Mutex};
-use std::path::{Path, PathBuf};
-use std::fmt::Display;
 use std;
 
 use prelude::*;

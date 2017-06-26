@@ -127,11 +127,17 @@ impl TcpTransport {
     fn process_chunk(&mut self, chunk: Chunk) -> Result<Option<SupportedMessage>, StatusCode> {
         debug!("Got a chunk {:?}", chunk);
 
-        if chunk.chunk_header.chunk_type == ChunkType::Intermediate {
-            panic!("We don't support intermediate chunks yet");
-        } else if chunk.chunk_header.chunk_type == ChunkType::FinalError {
-            info!("Discarding chunk marked in as final error");
-            return Ok(None)
+        match chunk.chunk_header.chunk_type {
+            ChunkType::Intermediate => {
+                panic!("We don't support intermediate chunks yet");
+            } 
+            ChunkType::FinalError => {
+                info!("Discarding chunk marked in as final error");
+                return Ok(None)
+            }
+            _ => {
+                // Drop through
+            }
         }
 
         let chunk_message_type = chunk.chunk_header.message_type.clone();
@@ -149,7 +155,6 @@ impl TcpTransport {
         let mut in_buf = vec![0u8; RECEIVE_BUFFER_SIZE];
 
         let mut session_status_code = GOOD;
-
         let start = UTC::now();
         loop {
             // Check for a timeout
@@ -157,7 +162,8 @@ impl TcpTransport {
             let request_duration = now.signed_duration_since(start);
             if request_duration.num_milliseconds() > request_timeout as i64 {
                 debug!("Time waiting {}ms exceeds timeout {}ms waiting for response from request id {}", request_duration.num_milliseconds(), request_timeout, request_id);
-                return Err(BAD_TIMEOUT);
+                session_status_code = BAD_TIMEOUT;
+                break;
             }
 
             // TODO this is practically cut and pasted from server loop and should be common to both
@@ -174,6 +180,7 @@ impl TcpTransport {
                 // recovery state
 
                 debug!("Read error - kind = {:?}, {:?}", error.kind(), error);
+                session_status_code = BAD_UNEXPECTED_ERROR;
                 break;
             }
             let bytes_read = bytes_read_result.unwrap();
@@ -204,13 +211,14 @@ impl TcpTransport {
 
                     // This is not a regular message, so what is happening?
                     error!("Expecting a chunk, got something that was not a chunk {:?}", message);
-                    return Err(BAD_UNEXPECTED_ERROR);
+                    session_status_code = BAD_UNEXPECTED_ERROR;
+                    break;
                 }
             }
 
             // TODO error recovery state
         }
-        Err(BAD_UNEXPECTED_ERROR)
+        Err(session_status_code)
     }
 
     pub fn send_request(&mut self, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
