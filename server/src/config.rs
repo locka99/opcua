@@ -182,6 +182,7 @@ impl ServerConfig {
     /// Sample mode turns on everything including a hard coded user/pass
     pub fn default_sample() -> ServerConfig {
         ServerConfig::default(vec![
+            ServerEndpoint::default_anonymous(),
             ServerEndpoint::default_user_pass("sample", b"sample1"),
             ServerEndpoint::default_sign_encrypt()
         ])
