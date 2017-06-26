@@ -5,8 +5,6 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use types::*;
-#[allow(unused_imports)]
-use services::*;
 
 /// Translates one or more paths in the server address space.
 #[derive(Debug, Clone, PartialEq)]

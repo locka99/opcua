@@ -5,8 +5,6 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use types::*;
-#[allow(unused_imports)]
-use services::*;
 
 /// Describes an application and how to find it.
 #[derive(Debug, Clone, PartialEq)]

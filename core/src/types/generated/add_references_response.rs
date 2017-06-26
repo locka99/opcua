@@ -5,8 +5,6 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use types::*;
-#[allow(unused_imports)]
-use services::*;
 
 /// Adds one or more references to the server address space.
 #[derive(Debug, Clone, PartialEq)]

@@ -5,8 +5,6 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use types::*;
-#[allow(unused_imports)]
-use services::*;
 
 /// The description of a reference.
 #[derive(Debug, Clone, PartialEq)]

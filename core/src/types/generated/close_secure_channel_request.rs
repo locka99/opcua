@@ -5,8 +5,6 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use types::*;
-#[allow(unused_imports)]
-use services::*;
 
 /// Closes a secure channel.
 #[derive(Debug, Clone, PartialEq)]

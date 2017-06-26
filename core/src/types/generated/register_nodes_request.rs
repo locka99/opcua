@@ -5,8 +5,6 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use types::*;
-#[allow(unused_imports)]
-use services::*;
 
 /// Registers one or more nodes for repeated use within a session.
 #[derive(Debug, Clone, PartialEq)]

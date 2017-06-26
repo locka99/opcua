@@ -5,8 +5,6 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use types::*;
-#[allow(unused_imports)]
-use services::*;
 
 /// The token that identifies a set of keys for an active secure channel.
 #[derive(Debug, Clone, PartialEq)]

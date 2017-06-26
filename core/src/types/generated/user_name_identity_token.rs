@@ -5,8 +5,6 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use types::*;
-#[allow(unused_imports)]
-use services::*;
 
 /// A token representing a user identified by a user name and password.
 #[derive(Debug, Clone, PartialEq)]

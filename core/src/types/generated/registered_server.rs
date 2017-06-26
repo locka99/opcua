@@ -5,8 +5,6 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use types::*;
-#[allow(unused_imports)]
-use services::*;
 
 /// The information required to register a server with a discovery server.
 #[derive(Debug, Clone, PartialEq)]

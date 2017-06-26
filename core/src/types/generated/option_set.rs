@@ -5,8 +5,6 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use types::*;
-#[allow(unused_imports)]
-use services::*;
 
 /// This abstract Structured DataType is the base DataType for all DataTypes representing a bit mask.
 #[derive(Debug, Clone, PartialEq)]

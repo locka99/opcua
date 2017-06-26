@@ -5,8 +5,6 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use types::*;
-#[allow(unused_imports)]
-use services::*;
 
 /// A request to translate a path into a node id.
 #[derive(Debug, Clone, PartialEq)]

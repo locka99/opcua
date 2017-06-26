@@ -5,8 +5,6 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use types::*;
-#[allow(unused_imports)]
-use services::*;
 
 /// A relative path constructed from reference types and browse names.
 #[derive(Debug, Clone, PartialEq)]

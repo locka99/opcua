@@ -5,8 +5,6 @@ use std::io::{Read, Write};
 
 #[allow(unused_imports)]
 use types::*;
-#[allow(unused_imports)]
-use services::*;
 
 /// A software certificate with a digital signature.
 #[derive(Debug, Clone, PartialEq)]
