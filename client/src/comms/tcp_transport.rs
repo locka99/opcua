@@ -154,9 +154,9 @@ impl TcpTransport {
         // TODO buffer size
         let mut in_buf = vec![0u8; RECEIVE_BUFFER_SIZE];
 
-        let mut session_status_code = GOOD;
+        let session_status_code;
         let start = UTC::now();
-        loop {
+        'message_loop: loop {
             // Check for a timeout
             let now = UTC::now();
             let request_duration = now.signed_duration_since(start);
@@ -212,10 +212,9 @@ impl TcpTransport {
                     // This is not a regular message, so what is happening?
                     error!("Expecting a chunk, got something that was not a chunk {:?}", message);
                     session_status_code = BAD_UNEXPECTED_ERROR;
-                    break;
+                    break 'message_loop;
                 }
             }
-
             // TODO error recovery state
         }
         Err(session_status_code)
