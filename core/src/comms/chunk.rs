@@ -347,8 +347,7 @@ impl Chunk {
         let mut chunk_body_size = 0;
         chunk_body_size += security_header.byte_len();
         chunk_body_size += sequence_header.byte_len();
-
-        chunk_body_size = data.len();
+        chunk_body_size += data.len();
         // Test if padding is required
         let (padding_size, extra_padding_size) = secure_channel_token.calc_chunk_padding(data.len() as u32);
         if padding_size > 0 {
