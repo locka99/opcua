@@ -357,18 +357,6 @@ impl Chunk {
             chunk_body_size += 1 + extra_padding_size as usize;
         }
 
-        let message_size = (CHUNK_HEADER_SIZE + chunk_body_size) as u32;
-        debug!("Creating a chunk with a size of {}", message_size);
-
-        let secure_channel_id = secure_channel_token.secure_channel_id;
-        let chunk_header = ChunkHeader {
-            message_type,
-            chunk_type,
-            message_size,
-            secure_channel_id,
-            is_valid: true,
-        };
-
         let mut stream = Cursor::new(vec![0u8; chunk_body_size]);
         // write security header
         let _ = security_header.encode(&mut stream);
@@ -395,6 +383,18 @@ impl Chunk {
         // TODO encrypt
         // TODO calculate signature
         // write signature
+
+        let message_size = (CHUNK_HEADER_SIZE + chunk_body_size) as u32;
+        debug!("Creating a chunk with a size of {}", message_size);
+
+        let secure_channel_id = secure_channel_token.secure_channel_id;
+        let chunk_header = ChunkHeader {
+            message_type,
+            chunk_type,
+            message_size,
+            secure_channel_id,
+            is_valid: true,
+        };
 
         Ok(Chunk {
             chunk_header: chunk_header,

@@ -1176,6 +1176,15 @@ impl AnonymousIdentityToken {
     }
 }
 
+impl SignatureData {
+    pub fn null() -> SignatureData {
+        SignatureData {
+            algorithm: UAString::null(),
+            signature: ByteString::null(),
+        }
+    }
+}
+
 mod data_value;
 mod date_time;
 mod node_id;

@@ -49,9 +49,14 @@ impl SessionService {
             let session_timeout = constants::SESSION_TIMEOUT;
             let max_request_message_size = constants::MAX_REQUEST_MESSAGE_SIZE;
 
-            // Calculate a signature
-            let pkey = server_state.server_pkey.as_ref().unwrap();
-            let server_signature = crypto::create_signature_data(pkey, &security_policy_uri, &request.client_certificate, &request.client_nonce);
+            // Calculate a signature (assuming there is a pkey)
+            let server_signature = if server_state.server_pkey.is_some() { 
+                let pkey = server_state.server_pkey.as_ref().unwrap();
+                crypto::create_signature_data(pkey, &security_policy_uri, &request.client_certificate, &request.client_nonce)
+            }
+            else {
+                SignatureData::null()
+            };
 
             // Crypto
             let server_nonce = ByteString::random(32);
@@ -70,15 +75,15 @@ impl SessionService {
 
             CreateSessionResponse {
                 response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
-                session_id: session_id,
-                authentication_token: authentication_token,
+                session_id,
+                authentication_token,
                 revised_session_timeout: session_timeout,
-                server_nonce: server_nonce,
-                server_certificate: server_certificate,
+                server_nonce,
+                server_certificate,
                 server_endpoints: Some(server_state.endpoints()),
                 server_software_certificates: None,
                 server_signature: server_signature,
-                max_request_message_size: max_request_message_size,
+                max_request_message_size,
             }
         } else {
             // Error response
@@ -92,10 +97,7 @@ impl SessionService {
                 server_certificate: ByteString::null(),
                 server_endpoints: None,
                 server_software_certificates: None,
-                server_signature: SignatureData {
-                    algorithm: UAString::null(),
-                    signature: ByteString::null(),
-                },
+                server_signature: SignatureData::null(),
                 max_request_message_size: 0,
             }
         };
