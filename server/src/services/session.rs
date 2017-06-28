@@ -82,7 +82,7 @@ impl SessionService {
                 server_certificate,
                 server_endpoints: Some(server_state.endpoints()),
                 server_software_certificates: None,
-                server_signature: server_signature,
+                server_signature,
                 max_request_message_size,
             }
         } else {

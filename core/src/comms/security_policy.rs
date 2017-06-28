@@ -63,7 +63,7 @@ impl SecureChannelToken {
 
     /// Calculate the padding size
     pub fn calc_chunk_padding(&self, byte_length: u32) -> (u8, u8) {
-        if self.security_policy != SecurityPolicy::None {
+        if self.security_policy != SecurityPolicy::None && self.security_mode != MessageSecurityMode::None {
             let signature_size = 20; // TODO
             let plain_block_size = self.security_policy.plain_block_size();
             let padding_size: u8 = (plain_block_size - ((byte_length + signature_size + 1) % plain_block_size)) as u8;
@@ -72,6 +72,77 @@ impl SecureChannelToken {
             (padding_size, extra_padding_size)
         } else {
             (0u8, 0u8)
+        }
+    }
+
+    /// Encode data using security
+    pub fn encrypt_and_sign(&self, src: &[u8], dst: &mut [u8], signature: &mut [u8]) -> Result<(), StatusCode> {
+        match self.security_mode {
+            MessageSecurityMode::None => {
+                // Just copy data to out
+                let len = src.len();
+                &dst[..len].copy_from_slice(&src[..len]);
+                Ok(())
+            },
+            MessageSecurityMode::Sign => {
+                match self.security_policy {
+                    SecurityPolicy::None => {
+                        panic!("Sign makes no sense without security policy");
+                    },
+                    SecurityPolicy::Basic128Rsa15 => {
+
+                    },
+                    SecurityPolicy::Basic256 => {
+
+                    },
+                    SecurityPolicy::Basic256Sha256 => {
+
+                    },
+                    _ => {
+                        
+                    }
+                }
+                Ok(())
+            },
+            MessageSecurityMode::SignAndEncrypt => {
+                match self.security_policy {
+                    SecurityPolicy::None => {
+                        panic!("SignAndEncrypt makes no sense without security policy");
+                    },
+                    SecurityPolicy::Basic128Rsa15 => {
+
+                    },
+                    SecurityPolicy::Basic256 => {
+
+                    },
+                    SecurityPolicy::Basic256Sha256 => {
+
+                    },
+                    _ => {
+
+                    }
+                }
+                Ok(())
+            }
+            _ => {
+                panic!("Invalid message security mode");
+            }
+        }
+    }
+
+    /// Decrypts and verifies data
+    pub fn decrypt_and_verify(&self, src: &[u8], signature: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
+       match self.security_mode {
+            MessageSecurityMode::None => {
+                // Just copy data to out
+                let len = src.len();
+                &dst[..len].copy_from_slice(&src[..len]);
+                Ok(())
+            },
+            _ => {
+                // Use the security policy to decrypt the block using the token
+                unimplemented!()
+            }
         }
     }
 }

@@ -407,11 +407,6 @@ impl Chunk {
     }
 
     pub fn chunk_info(&self, is_first_chunk: bool, secure_channel_token: &SecureChannelToken) -> std::result::Result<ChunkInfo, StatusCode> {
-        //        {
-        //            debug!("chunk_info() - chunk_body:");
-        //            debug_buffer(&self.chunk_body);
-        //        }
-
         let mut chunk_body_stream = Cursor::new(&self.chunk_body);
 
         // Read the security header
