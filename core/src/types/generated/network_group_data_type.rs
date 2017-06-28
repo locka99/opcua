@@ -39,8 +39,8 @@ impl BinaryEncoder<NetworkGroupDataType> for NetworkGroupDataType {
         let server_uri = UAString::decode(stream)?;
         let network_paths: Option<Vec<EndpointUrlListDataType>> = read_array(stream)?;
         Ok(NetworkGroupDataType {
-            server_uri: server_uri,
-            network_paths: network_paths,
+            server_uri,
+            network_paths,
         })
     }
 }

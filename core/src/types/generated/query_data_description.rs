@@ -43,9 +43,9 @@ impl BinaryEncoder<QueryDataDescription> for QueryDataDescription {
         let attribute_id = UInt32::decode(stream)?;
         let index_range = UAString::decode(stream)?;
         Ok(QueryDataDescription {
-            relative_path: relative_path,
-            attribute_id: attribute_id,
-            index_range: index_range,
+            relative_path,
+            attribute_id,
+            index_range,
         })
     }
 }

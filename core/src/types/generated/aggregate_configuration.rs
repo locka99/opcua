@@ -51,11 +51,11 @@ impl BinaryEncoder<AggregateConfiguration> for AggregateConfiguration {
         let percent_data_good = Byte::decode(stream)?;
         let use_sloped_extrapolation = Boolean::decode(stream)?;
         Ok(AggregateConfiguration {
-            use_server_capabilities_defaults: use_server_capabilities_defaults,
-            treat_uncertain_as_bad: treat_uncertain_as_bad,
-            percent_data_bad: percent_data_bad,
-            percent_data_good: percent_data_good,
-            use_sloped_extrapolation: use_sloped_extrapolation,
+            use_server_capabilities_defaults,
+            treat_uncertain_as_bad,
+            percent_data_bad,
+            percent_data_good,
+            use_sloped_extrapolation,
         })
     }
 }

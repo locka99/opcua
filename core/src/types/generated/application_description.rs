@@ -60,13 +60,13 @@ impl BinaryEncoder<ApplicationDescription> for ApplicationDescription {
         let discovery_profile_uri = UAString::decode(stream)?;
         let discovery_urls: Option<Vec<UAString>> = read_array(stream)?;
         Ok(ApplicationDescription {
-            application_uri: application_uri,
-            product_uri: product_uri,
-            application_name: application_name,
-            application_type: application_type,
-            gateway_server_uri: gateway_server_uri,
-            discovery_profile_uri: discovery_profile_uri,
-            discovery_urls: discovery_urls,
+            application_uri,
+            product_uri,
+            application_name,
+            application_type,
+            gateway_server_uri,
+            discovery_profile_uri,
+            discovery_urls,
         })
     }
 }

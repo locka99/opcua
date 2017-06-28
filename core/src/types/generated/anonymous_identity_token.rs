@@ -30,7 +30,7 @@ impl BinaryEncoder<AnonymousIdentityToken> for AnonymousIdentityToken {
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let policy_id = UAString::decode(stream)?;
         Ok(AnonymousIdentityToken {
-            policy_id: policy_id,
+            policy_id,
         })
     }
 }

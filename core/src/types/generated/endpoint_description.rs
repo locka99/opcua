@@ -64,14 +64,14 @@ impl BinaryEncoder<EndpointDescription> for EndpointDescription {
         let transport_profile_uri = UAString::decode(stream)?;
         let security_level = Byte::decode(stream)?;
         Ok(EndpointDescription {
-            endpoint_url: endpoint_url,
-            server: server,
-            server_certificate: server_certificate,
-            security_mode: security_mode,
-            security_policy_uri: security_policy_uri,
-            user_identity_tokens: user_identity_tokens,
-            transport_profile_uri: transport_profile_uri,
-            security_level: security_level,
+            endpoint_url,
+            server,
+            server_certificate,
+            security_mode,
+            security_policy_uri,
+            user_identity_tokens,
+            transport_profile_uri,
+            security_level,
         })
     }
 }

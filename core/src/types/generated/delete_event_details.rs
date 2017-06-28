@@ -33,8 +33,8 @@ impl BinaryEncoder<DeleteEventDetails> for DeleteEventDetails {
         let node_id = NodeId::decode(stream)?;
         let event_ids: Option<Vec<ByteString>> = read_array(stream)?;
         Ok(DeleteEventDetails {
-            node_id: node_id,
-            event_ids: event_ids,
+            node_id,
+            event_ids,
         })
     }
 }

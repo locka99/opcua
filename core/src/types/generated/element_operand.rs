@@ -29,7 +29,7 @@ impl BinaryEncoder<ElementOperand> for ElementOperand {
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let index = UInt32::decode(stream)?;
         Ok(ElementOperand {
-            index: index,
+            index,
         })
     }
 }

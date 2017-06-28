@@ -40,8 +40,8 @@ impl BinaryEncoder<RegisterNodesRequest> for RegisterNodesRequest {
         let request_header = RequestHeader::decode(stream)?;
         let nodes_to_register: Option<Vec<NodeId>> = read_array(stream)?;
         Ok(RegisterNodesRequest {
-            request_header: request_header,
-            nodes_to_register: nodes_to_register,
+            request_header,
+            nodes_to_register,
         })
     }
 }

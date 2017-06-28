@@ -52,11 +52,11 @@ impl BinaryEncoder<DeleteReferencesItem> for DeleteReferencesItem {
         let target_node_id = ExpandedNodeId::decode(stream)?;
         let delete_bidirectional = Boolean::decode(stream)?;
         Ok(DeleteReferencesItem {
-            source_node_id: source_node_id,
-            reference_type_id: reference_type_id,
-            is_forward: is_forward,
-            target_node_id: target_node_id,
-            delete_bidirectional: delete_bidirectional,
+            source_node_id,
+            reference_type_id,
+            is_forward,
+            target_node_id,
+            delete_bidirectional,
         })
     }
 }

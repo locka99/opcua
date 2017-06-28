@@ -48,10 +48,10 @@ impl BinaryEncoder<BrowseRequest> for BrowseRequest {
         let requested_max_references_per_node = UInt32::decode(stream)?;
         let nodes_to_browse: Option<Vec<BrowseDescription>> = read_array(stream)?;
         Ok(BrowseRequest {
-            request_header: request_header,
-            view: view,
-            requested_max_references_per_node: requested_max_references_per_node,
-            nodes_to_browse: nodes_to_browse,
+            request_header,
+            view,
+            requested_max_references_per_node,
+            nodes_to_browse,
         })
     }
 }

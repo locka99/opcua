@@ -47,10 +47,10 @@ impl BinaryEncoder<ReadRequest> for ReadRequest {
         let timestamps_to_return = TimestampsToReturn::decode(stream)?;
         let nodes_to_read: Option<Vec<ReadValueId>> = read_array(stream)?;
         Ok(ReadRequest {
-            request_header: request_header,
-            max_age: max_age,
-            timestamps_to_return: timestamps_to_return,
-            nodes_to_read: nodes_to_read,
+            request_header,
+            max_age,
+            timestamps_to_return,
+            nodes_to_read,
         })
     }
 }

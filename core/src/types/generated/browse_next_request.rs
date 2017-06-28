@@ -44,9 +44,9 @@ impl BinaryEncoder<BrowseNextRequest> for BrowseNextRequest {
         let release_continuation_points = Boolean::decode(stream)?;
         let continuation_points: Option<Vec<ByteString>> = read_array(stream)?;
         Ok(BrowseNextRequest {
-            request_header: request_header,
-            release_continuation_points: release_continuation_points,
-            continuation_points: continuation_points,
+            request_header,
+            release_continuation_points,
+            continuation_points,
         })
     }
 }

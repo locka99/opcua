@@ -40,8 +40,8 @@ impl BinaryEncoder<BrowsePathTarget> for BrowsePathTarget {
         let target_id = ExpandedNodeId::decode(stream)?;
         let remaining_path_index = UInt32::decode(stream)?;
         Ok(BrowsePathTarget {
-            target_id: target_id,
-            remaining_path_index: remaining_path_index,
+            target_id,
+            remaining_path_index,
         })
     }
 }

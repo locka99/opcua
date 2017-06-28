@@ -33,8 +33,8 @@ impl BinaryEncoder<StatusChangeNotification> for StatusChangeNotification {
         let status = StatusCode::decode(stream)?;
         let diagnostic_info = DiagnosticInfo::decode(stream)?;
         Ok(StatusChangeNotification {
-            status: status,
-            diagnostic_info: diagnostic_info,
+            status,
+            diagnostic_info,
         })
     }
 }

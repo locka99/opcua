@@ -39,8 +39,8 @@ impl BinaryEncoder<CallRequest> for CallRequest {
         let request_header = RequestHeader::decode(stream)?;
         let methods_to_call: Option<Vec<CallMethodRequest>> = read_array(stream)?;
         Ok(CallRequest {
-            request_header: request_header,
-            methods_to_call: methods_to_call,
+            request_header,
+            methods_to_call,
         })
     }
 }

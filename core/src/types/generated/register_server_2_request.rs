@@ -43,9 +43,9 @@ impl BinaryEncoder<RegisterServer2Request> for RegisterServer2Request {
         let server = RegisteredServer::decode(stream)?;
         let discovery_configuration: Option<Vec<ExtensionObject>> = read_array(stream)?;
         Ok(RegisterServer2Request {
-            request_header: request_header,
-            server: server,
-            discovery_configuration: discovery_configuration,
+            request_header,
+            server,
+            discovery_configuration,
         })
     }
 }

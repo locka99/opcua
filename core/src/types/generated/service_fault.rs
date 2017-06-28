@@ -36,7 +36,7 @@ impl BinaryEncoder<ServiceFault> for ServiceFault {
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let response_header = ResponseHeader::decode(stream)?;
         Ok(ServiceFault {
-            response_header: response_header,
+            response_header,
         })
     }
 }

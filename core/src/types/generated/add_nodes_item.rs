@@ -60,13 +60,13 @@ impl BinaryEncoder<AddNodesItem> for AddNodesItem {
         let node_attributes = ExtensionObject::decode(stream)?;
         let type_definition = ExpandedNodeId::decode(stream)?;
         Ok(AddNodesItem {
-            parent_node_id: parent_node_id,
-            reference_type_id: reference_type_id,
-            requested_new_node_id: requested_new_node_id,
-            browse_name: browse_name,
-            node_class: node_class,
-            node_attributes: node_attributes,
-            type_definition: type_definition,
+            parent_node_id,
+            reference_type_id,
+            requested_new_node_id,
+            browse_name,
+            node_class,
+            node_attributes,
+            type_definition,
         })
     }
 }

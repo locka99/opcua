@@ -40,8 +40,8 @@ impl BinaryEncoder<BrowsePath> for BrowsePath {
         let starting_node = NodeId::decode(stream)?;
         let relative_path = RelativePath::decode(stream)?;
         Ok(BrowsePath {
-            starting_node: starting_node,
-            relative_path: relative_path,
+            starting_node,
+            relative_path,
         })
     }
 }

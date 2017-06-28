@@ -36,7 +36,7 @@ impl BinaryEncoder<UnregisterNodesResponse> for UnregisterNodesResponse {
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let response_header = ResponseHeader::decode(stream)?;
         Ok(UnregisterNodesResponse {
-            response_header: response_header,
+            response_header,
         })
     }
 }

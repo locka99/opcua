@@ -39,8 +39,8 @@ impl BinaryEncoder<MonitoredItemNotification> for MonitoredItemNotification {
         let client_handle = UInt32::decode(stream)?;
         let value = DataValue::decode(stream)?;
         Ok(MonitoredItemNotification {
-            client_handle: client_handle,
-            value: value,
+            client_handle,
+            value,
         })
     }
 }

@@ -43,9 +43,9 @@ impl BinaryEncoder<ModelChangeStructureDataType> for ModelChangeStructureDataTyp
         let affected_type = NodeId::decode(stream)?;
         let verb = Byte::decode(stream)?;
         Ok(ModelChangeStructureDataType {
-            affected: affected,
-            affected_type: affected_type,
-            verb: verb,
+            affected,
+            affected_type,
+            verb,
         })
     }
 }

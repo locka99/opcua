@@ -51,11 +51,11 @@ impl BinaryEncoder<SetTriggeringRequest> for SetTriggeringRequest {
         let links_to_add: Option<Vec<UInt32>> = read_array(stream)?;
         let links_to_remove: Option<Vec<UInt32>> = read_array(stream)?;
         Ok(SetTriggeringRequest {
-            request_header: request_header,
-            subscription_id: subscription_id,
-            triggering_item_id: triggering_item_id,
-            links_to_add: links_to_add,
-            links_to_remove: links_to_remove,
+            request_header,
+            subscription_id,
+            triggering_item_id,
+            links_to_add,
+            links_to_remove,
         })
     }
 }

@@ -39,8 +39,8 @@ impl BinaryEncoder<SemanticChangeStructureDataType> for SemanticChangeStructureD
         let affected = NodeId::decode(stream)?;
         let affected_type = NodeId::decode(stream)?;
         Ok(SemanticChangeStructureDataType {
-            affected: affected,
-            affected_type: affected_type,
+            affected,
+            affected_type,
         })
     }
 }

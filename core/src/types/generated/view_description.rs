@@ -44,9 +44,9 @@ impl BinaryEncoder<ViewDescription> for ViewDescription {
         let timestamp = DateTime::decode(stream)?;
         let view_version = UInt32::decode(stream)?;
         Ok(ViewDescription {
-            view_id: view_id,
-            timestamp: timestamp,
-            view_version: view_version,
+            view_id,
+            timestamp,
+            view_version,
         })
     }
 }

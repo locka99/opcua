@@ -41,10 +41,10 @@ impl BinaryEncoder<ReadEventDetails> for ReadEventDetails {
         let end_time = DateTime::decode(stream)?;
         let filter = EventFilter::decode(stream)?;
         Ok(ReadEventDetails {
-            num_values_per_node: num_values_per_node,
-            start_time: start_time,
-            end_time: end_time,
-            filter: filter,
+            num_values_per_node,
+            start_time,
+            end_time,
+            filter,
         })
     }
 }

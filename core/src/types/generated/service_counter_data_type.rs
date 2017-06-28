@@ -39,8 +39,8 @@ impl BinaryEncoder<ServiceCounterDataType> for ServiceCounterDataType {
         let total_count = UInt32::decode(stream)?;
         let error_count = UInt32::decode(stream)?;
         Ok(ServiceCounterDataType {
-            total_count: total_count,
-            error_count: error_count,
+            total_count,
+            error_count,
         })
     }
 }

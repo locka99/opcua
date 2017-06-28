@@ -56,12 +56,12 @@ impl BinaryEncoder<AddReferencesItem> for AddReferencesItem {
         let target_node_id = ExpandedNodeId::decode(stream)?;
         let target_node_class = NodeClass::decode(stream)?;
         Ok(AddReferencesItem {
-            source_node_id: source_node_id,
-            reference_type_id: reference_type_id,
-            is_forward: is_forward,
-            target_server_uri: target_server_uri,
-            target_node_id: target_node_id,
-            target_node_class: target_node_class,
+            source_node_id,
+            reference_type_id,
+            is_forward,
+            target_server_uri,
+            target_node_id,
+            target_node_class,
         })
     }
 }

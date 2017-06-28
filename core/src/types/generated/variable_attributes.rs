@@ -78,19 +78,19 @@ impl BinaryEncoder<VariableAttributes> for VariableAttributes {
         let minimum_sampling_interval = Double::decode(stream)?;
         let historizing = Boolean::decode(stream)?;
         Ok(VariableAttributes {
-            specified_attributes: specified_attributes,
-            display_name: display_name,
-            description: description,
-            write_mask: write_mask,
-            user_write_mask: user_write_mask,
-            value: value,
-            data_type: data_type,
-            value_rank: value_rank,
-            array_dimensions: array_dimensions,
-            access_level: access_level,
-            user_access_level: user_access_level,
-            minimum_sampling_interval: minimum_sampling_interval,
-            historizing: historizing,
+            specified_attributes,
+            display_name,
+            description,
+            write_mask,
+            user_write_mask,
+            value,
+            data_type,
+            value_rank,
+            array_dimensions,
+            access_level,
+            user_access_level,
+            minimum_sampling_interval,
+            historizing,
         })
     }
 }

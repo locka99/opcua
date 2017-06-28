@@ -40,8 +40,8 @@ impl BinaryEncoder<GetEndpointsResponse> for GetEndpointsResponse {
         let response_header = ResponseHeader::decode(stream)?;
         let endpoints: Option<Vec<EndpointDescription>> = read_array(stream)?;
         Ok(GetEndpointsResponse {
-            response_header: response_header,
-            endpoints: endpoints,
+            response_header,
+            endpoints,
         })
     }
 }

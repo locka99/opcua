@@ -52,11 +52,11 @@ impl BinaryEncoder<NodeAttributes> for NodeAttributes {
         let write_mask = UInt32::decode(stream)?;
         let user_write_mask = UInt32::decode(stream)?;
         Ok(NodeAttributes {
-            specified_attributes: specified_attributes,
-            display_name: display_name,
-            description: description,
-            write_mask: write_mask,
-            user_write_mask: user_write_mask,
+            specified_attributes,
+            display_name,
+            description,
+            write_mask,
+            user_write_mask,
         })
     }
 }

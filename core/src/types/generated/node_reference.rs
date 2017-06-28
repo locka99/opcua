@@ -47,10 +47,10 @@ impl BinaryEncoder<NodeReference> for NodeReference {
         let is_forward = Boolean::decode(stream)?;
         let referenced_node_ids: Option<Vec<NodeId>> = read_array(stream)?;
         Ok(NodeReference {
-            node_id: node_id,
-            reference_type_id: reference_type_id,
-            is_forward: is_forward,
-            referenced_node_ids: referenced_node_ids,
+            node_id,
+            reference_type_id,
+            is_forward,
+            referenced_node_ids,
         })
     }
 }

@@ -51,11 +51,11 @@ impl BinaryEncoder<MonitoredItemCreateResult> for MonitoredItemCreateResult {
         let revised_queue_size = UInt32::decode(stream)?;
         let filter_result = ExtensionObject::decode(stream)?;
         Ok(MonitoredItemCreateResult {
-            status_code: status_code,
-            monitored_item_id: monitored_item_id,
-            revised_sampling_interval: revised_sampling_interval,
-            revised_queue_size: revised_queue_size,
-            filter_result: filter_result,
+            status_code,
+            monitored_item_id,
+            revised_sampling_interval,
+            revised_queue_size,
+            filter_result,
         })
     }
 }

@@ -44,9 +44,9 @@ impl BinaryEncoder<BrowseResult> for BrowseResult {
         let continuation_point = ByteString::decode(stream)?;
         let references: Option<Vec<ReferenceDescription>> = read_array(stream)?;
         Ok(BrowseResult {
-            status_code: status_code,
-            continuation_point: continuation_point,
-            references: references,
+            status_code,
+            continuation_point,
+            references,
         })
     }
 }

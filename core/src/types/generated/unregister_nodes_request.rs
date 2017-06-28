@@ -40,8 +40,8 @@ impl BinaryEncoder<UnregisterNodesRequest> for UnregisterNodesRequest {
         let request_header = RequestHeader::decode(stream)?;
         let nodes_to_unregister: Option<Vec<NodeId>> = read_array(stream)?;
         Ok(UnregisterNodesRequest {
-            request_header: request_header,
-            nodes_to_unregister: nodes_to_unregister,
+            request_header,
+            nodes_to_unregister,
         })
     }
 }

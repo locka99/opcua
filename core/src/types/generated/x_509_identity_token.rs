@@ -34,8 +34,8 @@ impl BinaryEncoder<X509IdentityToken> for X509IdentityToken {
         let policy_id = UAString::decode(stream)?;
         let certificate_data = ByteString::decode(stream)?;
         Ok(X509IdentityToken {
-            policy_id: policy_id,
-            certificate_data: certificate_data,
+            policy_id,
+            certificate_data,
         })
     }
 }

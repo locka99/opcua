@@ -71,16 +71,16 @@ impl BinaryEncoder<ProgramDiagnosticDataType> for ProgramDiagnosticDataType {
         let last_method_call_time = DateTime::decode(stream)?;
         let last_method_return_status = StatusResult::decode(stream)?;
         Ok(ProgramDiagnosticDataType {
-            create_session_id: create_session_id,
-            create_client_name: create_client_name,
-            invocation_creation_time: invocation_creation_time,
-            last_transition_time: last_transition_time,
-            last_method_call: last_method_call,
-            last_method_session_id: last_method_session_id,
-            last_method_input_arguments: last_method_input_arguments,
-            last_method_output_arguments: last_method_output_arguments,
-            last_method_call_time: last_method_call_time,
-            last_method_return_status: last_method_return_status,
+            create_session_id,
+            create_client_name,
+            invocation_creation_time,
+            last_transition_time,
+            last_method_call,
+            last_method_session_id,
+            last_method_input_arguments,
+            last_method_output_arguments,
+            last_method_call_time,
+            last_method_return_status,
         })
     }
 }

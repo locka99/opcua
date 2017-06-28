@@ -45,11 +45,11 @@ impl BinaryEncoder<ReadRawModifiedDetails> for ReadRawModifiedDetails {
         let num_values_per_node = UInt32::decode(stream)?;
         let return_bounds = Boolean::decode(stream)?;
         Ok(ReadRawModifiedDetails {
-            is_read_modified: is_read_modified,
-            start_time: start_time,
-            end_time: end_time,
-            num_values_per_node: num_values_per_node,
-            return_bounds: return_bounds,
+            is_read_modified,
+            start_time,
+            end_time,
+            num_values_per_node,
+            return_bounds,
         })
     }
 }

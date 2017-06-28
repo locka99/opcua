@@ -59,13 +59,13 @@ impl BinaryEncoder<PublishResponse> for PublishResponse {
         let results: Option<Vec<StatusCode>> = read_array(stream)?;
         let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream)?;
         Ok(PublishResponse {
-            response_header: response_header,
-            subscription_id: subscription_id,
-            available_sequence_numbers: available_sequence_numbers,
-            more_notifications: more_notifications,
-            notification_message: notification_message,
-            results: results,
-            diagnostic_infos: diagnostic_infos,
+            response_header,
+            subscription_id,
+            available_sequence_numbers,
+            more_notifications,
+            notification_message,
+            results,
+            diagnostic_infos,
         })
     }
 }

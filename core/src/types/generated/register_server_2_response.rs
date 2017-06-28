@@ -43,9 +43,9 @@ impl BinaryEncoder<RegisterServer2Response> for RegisterServer2Response {
         let configuration_results: Option<Vec<StatusCode>> = read_array(stream)?;
         let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream)?;
         Ok(RegisterServer2Response {
-            response_header: response_header,
-            configuration_results: configuration_results,
-            diagnostic_infos: diagnostic_infos,
+            response_header,
+            configuration_results,
+            diagnostic_infos,
         })
     }
 }

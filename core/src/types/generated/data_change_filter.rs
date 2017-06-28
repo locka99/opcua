@@ -37,9 +37,9 @@ impl BinaryEncoder<DataChangeFilter> for DataChangeFilter {
         let deadband_type = UInt32::decode(stream)?;
         let deadband_value = Double::decode(stream)?;
         Ok(DataChangeFilter {
-            trigger: trigger,
-            deadband_type: deadband_type,
-            deadband_value: deadband_value,
+            trigger,
+            deadband_type,
+            deadband_value,
         })
     }
 }

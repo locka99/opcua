@@ -40,8 +40,8 @@ impl BinaryEncoder<CancelResponse> for CancelResponse {
         let response_header = ResponseHeader::decode(stream)?;
         let cancel_count = UInt32::decode(stream)?;
         Ok(CancelResponse {
-            response_header: response_header,
-            cancel_count: cancel_count,
+            response_header,
+            cancel_count,
         })
     }
 }

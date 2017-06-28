@@ -47,10 +47,10 @@ impl BinaryEncoder<FindServersOnNetworkRequest> for FindServersOnNetworkRequest 
         let max_records_to_return = UInt32::decode(stream)?;
         let server_capability_filter: Option<Vec<UAString>> = read_array(stream)?;
         Ok(FindServersOnNetworkRequest {
-            request_header: request_header,
-            starting_record_id: starting_record_id,
-            max_records_to_return: max_records_to_return,
-            server_capability_filter: server_capability_filter,
+            request_header,
+            starting_record_id,
+            max_records_to_return,
+            server_capability_filter,
         })
     }
 }

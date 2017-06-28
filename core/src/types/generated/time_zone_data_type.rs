@@ -39,8 +39,8 @@ impl BinaryEncoder<TimeZoneDataType> for TimeZoneDataType {
         let offset = Int16::decode(stream)?;
         let daylight_saving_in_offset = Boolean::decode(stream)?;
         Ok(TimeZoneDataType {
-            offset: offset,
-            daylight_saving_in_offset: daylight_saving_in_offset,
+            offset,
+            daylight_saving_in_offset,
         })
     }
 }

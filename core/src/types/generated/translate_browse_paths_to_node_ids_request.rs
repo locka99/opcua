@@ -40,8 +40,8 @@ impl BinaryEncoder<TranslateBrowsePathsToNodeIdsRequest> for TranslateBrowsePath
         let request_header = RequestHeader::decode(stream)?;
         let browse_paths: Option<Vec<BrowsePath>> = read_array(stream)?;
         Ok(TranslateBrowsePathsToNodeIdsRequest {
-            request_header: request_header,
-            browse_paths: browse_paths,
+            request_header,
+            browse_paths,
         })
     }
 }

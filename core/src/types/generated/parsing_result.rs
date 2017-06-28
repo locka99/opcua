@@ -43,9 +43,9 @@ impl BinaryEncoder<ParsingResult> for ParsingResult {
         let data_status_codes: Option<Vec<StatusCode>> = read_array(stream)?;
         let data_diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream)?;
         Ok(ParsingResult {
-            status_code: status_code,
-            data_status_codes: data_status_codes,
-            data_diagnostic_infos: data_diagnostic_infos,
+            status_code,
+            data_status_codes,
+            data_diagnostic_infos,
         })
     }
 }

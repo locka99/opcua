@@ -68,15 +68,15 @@ impl BinaryEncoder<CreateSessionRequest> for CreateSessionRequest {
         let requested_session_timeout = Double::decode(stream)?;
         let max_response_message_size = UInt32::decode(stream)?;
         Ok(CreateSessionRequest {
-            request_header: request_header,
-            client_description: client_description,
-            server_uri: server_uri,
-            endpoint_url: endpoint_url,
-            session_name: session_name,
-            client_nonce: client_nonce,
-            client_certificate: client_certificate,
-            requested_session_timeout: requested_session_timeout,
-            max_response_message_size: max_response_message_size,
+            request_header,
+            client_description,
+            server_uri,
+            endpoint_url,
+            session_name,
+            client_nonce,
+            client_certificate,
+            requested_session_timeout,
+            max_response_message_size,
         })
     }
 }

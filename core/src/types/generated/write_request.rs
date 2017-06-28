@@ -39,8 +39,8 @@ impl BinaryEncoder<WriteRequest> for WriteRequest {
         let request_header = RequestHeader::decode(stream)?;
         let nodes_to_write: Option<Vec<WriteValue>> = read_array(stream)?;
         Ok(WriteRequest {
-            request_header: request_header,
-            nodes_to_write: nodes_to_write,
+            request_header,
+            nodes_to_write,
         })
     }
 }

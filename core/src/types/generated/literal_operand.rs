@@ -29,7 +29,7 @@ impl BinaryEncoder<LiteralOperand> for LiteralOperand {
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let value = Variant::decode(stream)?;
         Ok(LiteralOperand {
-            value: value,
+            value,
         })
     }
 }

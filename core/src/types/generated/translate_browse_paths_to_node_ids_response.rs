@@ -44,9 +44,9 @@ impl BinaryEncoder<TranslateBrowsePathsToNodeIdsResponse> for TranslateBrowsePat
         let results: Option<Vec<BrowsePathResult>> = read_array(stream)?;
         let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream)?;
         Ok(TranslateBrowsePathsToNodeIdsResponse {
-            response_header: response_header,
-            results: results,
-            diagnostic_infos: diagnostic_infos,
+            response_header,
+            results,
+            diagnostic_infos,
         })
     }
 }

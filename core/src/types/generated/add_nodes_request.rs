@@ -40,8 +40,8 @@ impl BinaryEncoder<AddNodesRequest> for AddNodesRequest {
         let request_header = RequestHeader::decode(stream)?;
         let nodes_to_add: Option<Vec<AddNodesItem>> = read_array(stream)?;
         Ok(AddNodesRequest {
-            request_header: request_header,
-            nodes_to_add: nodes_to_add,
+            request_header,
+            nodes_to_add,
         })
     }
 }

@@ -45,11 +45,11 @@ impl BinaryEncoder<ReadProcessedDetails> for ReadProcessedDetails {
         let aggregate_type: Option<Vec<NodeId>> = read_array(stream)?;
         let aggregate_configuration = AggregateConfiguration::decode(stream)?;
         Ok(ReadProcessedDetails {
-            start_time: start_time,
-            end_time: end_time,
-            processing_interval: processing_interval,
-            aggregate_type: aggregate_type,
-            aggregate_configuration: aggregate_configuration,
+            start_time,
+            end_time,
+            processing_interval,
+            aggregate_type,
+            aggregate_configuration,
         })
     }
 }

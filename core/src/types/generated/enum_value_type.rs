@@ -44,9 +44,9 @@ impl BinaryEncoder<EnumValueType> for EnumValueType {
         let display_name = LocalizedText::decode(stream)?;
         let description = LocalizedText::decode(stream)?;
         Ok(EnumValueType {
-            value: value,
-            display_name: display_name,
-            description: description,
+            value,
+            display_name,
+            description,
         })
     }
 }

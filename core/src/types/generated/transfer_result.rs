@@ -39,8 +39,8 @@ impl BinaryEncoder<TransferResult> for TransferResult {
         let status_code = StatusCode::decode(stream)?;
         let available_sequence_numbers: Option<Vec<UInt32>> = read_array(stream)?;
         Ok(TransferResult {
-            status_code: status_code,
-            available_sequence_numbers: available_sequence_numbers,
+            status_code,
+            available_sequence_numbers,
         })
     }
 }

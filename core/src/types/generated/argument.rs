@@ -52,11 +52,11 @@ impl BinaryEncoder<Argument> for Argument {
         let array_dimensions: Option<Vec<UInt32>> = read_array(stream)?;
         let description = LocalizedText::decode(stream)?;
         Ok(Argument {
-            name: name,
-            data_type: data_type,
-            value_rank: value_rank,
-            array_dimensions: array_dimensions,
-            description: description,
+            name,
+            data_type,
+            value_rank,
+            array_dimensions,
+            description,
         })
     }
 }

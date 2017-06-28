@@ -39,8 +39,8 @@ impl BinaryEncoder<HistoryUpdateRequest> for HistoryUpdateRequest {
         let request_header = RequestHeader::decode(stream)?;
         let history_update_details: Option<Vec<ExtensionObject>> = read_array(stream)?;
         Ok(HistoryUpdateRequest {
-            request_header: request_header,
-            history_update_details: history_update_details,
+            request_header,
+            history_update_details,
         })
     }
 }

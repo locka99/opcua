@@ -54,13 +54,13 @@ impl BinaryEncoder<MethodAttributes> for MethodAttributes {
         let executable = Boolean::decode(stream)?;
         let user_executable = Boolean::decode(stream)?;
         Ok(MethodAttributes {
-            specified_attributes: specified_attributes,
-            display_name: display_name,
-            description: description,
-            write_mask: write_mask,
-            user_write_mask: user_write_mask,
-            executable: executable,
-            user_executable: user_executable,
+            specified_attributes,
+            display_name,
+            description,
+            write_mask,
+            user_write_mask,
+            executable,
+            user_executable,
         })
     }
 }

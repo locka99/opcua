@@ -39,8 +39,8 @@ impl BinaryEncoder<ContentFilterElement> for ContentFilterElement {
         let filter_operator = FilterOperator::decode(stream)?;
         let filter_operands: Option<Vec<ExtensionObject>> = read_array(stream)?;
         Ok(ContentFilterElement {
-            filter_operator: filter_operator,
-            filter_operands: filter_operands,
+            filter_operator,
+            filter_operands,
         })
     }
 }

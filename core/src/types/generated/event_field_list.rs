@@ -39,8 +39,8 @@ impl BinaryEncoder<EventFieldList> for EventFieldList {
         let client_handle = UInt32::decode(stream)?;
         let event_fields: Option<Vec<Variant>> = read_array(stream)?;
         Ok(EventFieldList {
-            client_handle: client_handle,
-            event_fields: event_fields,
+            client_handle,
+            event_fields,
         })
     }
 }

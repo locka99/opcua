@@ -47,10 +47,10 @@ impl BinaryEncoder<ServerOnNetwork> for ServerOnNetwork {
         let discovery_url = UAString::decode(stream)?;
         let server_capabilities: Option<Vec<UAString>> = read_array(stream)?;
         Ok(ServerOnNetwork {
-            record_id: record_id,
-            server_name: server_name,
-            discovery_url: discovery_url,
-            server_capabilities: server_capabilities,
+            record_id,
+            server_name,
+            discovery_url,
+            server_capabilities,
         })
     }
 }

@@ -33,8 +33,8 @@ impl BinaryEncoder<DeleteAtTimeDetails> for DeleteAtTimeDetails {
         let node_id = NodeId::decode(stream)?;
         let req_times: Option<Vec<DateTime>> = read_array(stream)?;
         Ok(DeleteAtTimeDetails {
-            node_id: node_id,
-            req_times: req_times,
+            node_id,
+            req_times,
         })
     }
 }

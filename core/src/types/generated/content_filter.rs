@@ -35,7 +35,7 @@ impl BinaryEncoder<ContentFilter> for ContentFilter {
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let elements: Option<Vec<ContentFilterElement>> = read_array(stream)?;
         Ok(ContentFilter {
-            elements: elements,
+            elements,
         })
     }
 }

@@ -33,8 +33,8 @@ impl BinaryEncoder<DataChangeNotification> for DataChangeNotification {
         let monitored_items: Option<Vec<MonitoredItemNotification>> = read_array(stream)?;
         let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream)?;
         Ok(DataChangeNotification {
-            monitored_items: monitored_items,
-            diagnostic_infos: diagnostic_infos,
+            monitored_items,
+            diagnostic_infos,
         })
     }
 }

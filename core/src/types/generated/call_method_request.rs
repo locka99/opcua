@@ -43,9 +43,9 @@ impl BinaryEncoder<CallMethodRequest> for CallMethodRequest {
         let method_id = NodeId::decode(stream)?;
         let input_arguments: Option<Vec<Variant>> = read_array(stream)?;
         Ok(CallMethodRequest {
-            object_id: object_id,
-            method_id: method_id,
-            input_arguments: input_arguments,
+            object_id,
+            method_id,
+            input_arguments,
         })
     }
 }

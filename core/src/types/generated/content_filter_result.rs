@@ -39,8 +39,8 @@ impl BinaryEncoder<ContentFilterResult> for ContentFilterResult {
         let element_results: Option<Vec<ContentFilterElementResult>> = read_array(stream)?;
         let element_diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream)?;
         Ok(ContentFilterResult {
-            element_results: element_results,
-            element_diagnostic_infos: element_diagnostic_infos,
+            element_results,
+            element_diagnostic_infos,
         })
     }
 }

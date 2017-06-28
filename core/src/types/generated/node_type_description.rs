@@ -43,9 +43,9 @@ impl BinaryEncoder<NodeTypeDescription> for NodeTypeDescription {
         let include_sub_types = Boolean::decode(stream)?;
         let data_to_return: Option<Vec<QueryDataDescription>> = read_array(stream)?;
         Ok(NodeTypeDescription {
-            type_definition_node: type_definition_node,
-            include_sub_types: include_sub_types,
-            data_to_return: data_to_return,
+            type_definition_node,
+            include_sub_types,
+            data_to_return,
         })
     }
 }

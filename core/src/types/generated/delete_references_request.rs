@@ -40,8 +40,8 @@ impl BinaryEncoder<DeleteReferencesRequest> for DeleteReferencesRequest {
         let request_header = RequestHeader::decode(stream)?;
         let references_to_delete: Option<Vec<DeleteReferencesItem>> = read_array(stream)?;
         Ok(DeleteReferencesRequest {
-            request_header: request_header,
-            references_to_delete: references_to_delete,
+            request_header,
+            references_to_delete,
         })
     }
 }

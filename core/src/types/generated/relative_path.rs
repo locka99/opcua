@@ -36,7 +36,7 @@ impl BinaryEncoder<RelativePath> for RelativePath {
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let elements: Option<Vec<RelativePathElement>> = read_array(stream)?;
         Ok(RelativePath {
-            elements: elements,
+            elements,
         })
     }
 }

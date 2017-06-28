@@ -47,10 +47,10 @@ impl BinaryEncoder<CallMethodResult> for CallMethodResult {
         let input_argument_diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream)?;
         let output_arguments: Option<Vec<Variant>> = read_array(stream)?;
         Ok(CallMethodResult {
-            status_code: status_code,
-            input_argument_results: input_argument_results,
-            input_argument_diagnostic_infos: input_argument_diagnostic_infos,
-            output_arguments: output_arguments,
+            status_code,
+            input_argument_results,
+            input_argument_diagnostic_infos,
+            output_arguments,
         })
     }
 }

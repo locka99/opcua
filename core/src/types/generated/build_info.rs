@@ -55,12 +55,12 @@ impl BinaryEncoder<BuildInfo> for BuildInfo {
         let build_number = UAString::decode(stream)?;
         let build_date = DateTime::decode(stream)?;
         Ok(BuildInfo {
-            product_uri: product_uri,
-            manufacturer_name: manufacturer_name,
-            product_name: product_name,
-            software_version: software_version,
-            build_number: build_number,
-            build_date: build_date,
+            product_uri,
+            manufacturer_name,
+            product_name,
+            software_version,
+            build_number,
+            build_date,
         })
     }
 }

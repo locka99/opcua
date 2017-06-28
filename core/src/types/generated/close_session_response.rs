@@ -36,7 +36,7 @@ impl BinaryEncoder<CloseSessionResponse> for CloseSessionResponse {
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let response_header = ResponseHeader::decode(stream)?;
         Ok(CloseSessionResponse {
-            response_header: response_header,
+            response_header,
         })
     }
 }

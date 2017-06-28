@@ -47,10 +47,10 @@ impl BinaryEncoder<ModifySubscriptionResponse> for ModifySubscriptionResponse {
         let revised_lifetime_count = UInt32::decode(stream)?;
         let revised_max_keep_alive_count = UInt32::decode(stream)?;
         Ok(ModifySubscriptionResponse {
-            response_header: response_header,
-            revised_publishing_interval: revised_publishing_interval,
-            revised_lifetime_count: revised_lifetime_count,
-            revised_max_keep_alive_count: revised_max_keep_alive_count,
+            response_header,
+            revised_publishing_interval,
+            revised_lifetime_count,
+            revised_max_keep_alive_count,
         })
     }
 }

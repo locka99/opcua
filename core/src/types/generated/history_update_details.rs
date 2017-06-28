@@ -35,7 +35,7 @@ impl BinaryEncoder<HistoryUpdateDetails> for HistoryUpdateDetails {
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let node_id = NodeId::decode(stream)?;
         Ok(HistoryUpdateDetails {
-            node_id: node_id,
+            node_id,
         })
     }
 }

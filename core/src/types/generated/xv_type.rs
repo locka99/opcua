@@ -39,8 +39,8 @@ impl BinaryEncoder<XVType> for XVType {
         let x = Double::decode(stream)?;
         let value = Float::decode(stream)?;
         Ok(XVType {
-            x: x,
-            value: value,
+            x,
+            value,
         })
     }
 }

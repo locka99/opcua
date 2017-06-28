@@ -43,9 +43,9 @@ impl BinaryEncoder<HistoryUpdateResult> for HistoryUpdateResult {
         let operation_results: Option<Vec<StatusCode>> = read_array(stream)?;
         let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream)?;
         Ok(HistoryUpdateResult {
-            status_code: status_code,
-            operation_results: operation_results,
-            diagnostic_infos: diagnostic_infos,
+            status_code,
+            operation_results,
+            diagnostic_infos,
         })
     }
 }

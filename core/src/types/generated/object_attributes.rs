@@ -50,12 +50,12 @@ impl BinaryEncoder<ObjectAttributes> for ObjectAttributes {
         let user_write_mask = UInt32::decode(stream)?;
         let event_notifier = Byte::decode(stream)?;
         Ok(ObjectAttributes {
-            specified_attributes: specified_attributes,
-            display_name: display_name,
-            description: description,
-            write_mask: write_mask,
-            user_write_mask: user_write_mask,
-            event_notifier: event_notifier,
+            specified_attributes,
+            display_name,
+            description,
+            write_mask,
+            user_write_mask,
+            event_notifier,
         })
     }
 }

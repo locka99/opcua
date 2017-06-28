@@ -56,12 +56,12 @@ impl BinaryEncoder<OpenSecureChannelRequest> for OpenSecureChannelRequest {
         let client_nonce = ByteString::decode(stream)?;
         let requested_lifetime = UInt32::decode(stream)?;
         Ok(OpenSecureChannelRequest {
-            request_header: request_header,
-            client_protocol_version: client_protocol_version,
-            request_type: request_type,
-            security_mode: security_mode,
-            client_nonce: client_nonce,
-            requested_lifetime: requested_lifetime,
+            request_header,
+            client_protocol_version,
+            request_type,
+            security_mode,
+            client_nonce,
+            requested_lifetime,
         })
     }
 }

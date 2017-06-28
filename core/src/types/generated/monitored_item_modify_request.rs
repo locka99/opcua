@@ -39,8 +39,8 @@ impl BinaryEncoder<MonitoredItemModifyRequest> for MonitoredItemModifyRequest {
         let monitored_item_id = UInt32::decode(stream)?;
         let requested_parameters = MonitoringParameters::decode(stream)?;
         Ok(MonitoredItemModifyRequest {
-            monitored_item_id: monitored_item_id,
-            requested_parameters: requested_parameters,
+            monitored_item_id,
+            requested_parameters,
         })
     }
 }

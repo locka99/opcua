@@ -43,9 +43,9 @@ impl BinaryEncoder<FindServersOnNetworkResponse> for FindServersOnNetworkRespons
         let last_counter_reset_time = DateTime::decode(stream)?;
         let servers: Option<Vec<ServerOnNetwork>> = read_array(stream)?;
         Ok(FindServersOnNetworkResponse {
-            response_header: response_header,
-            last_counter_reset_time: last_counter_reset_time,
-            servers: servers,
+            response_header,
+            last_counter_reset_time,
+            servers,
         })
     }
 }

@@ -43,9 +43,9 @@ impl BinaryEncoder<SetPublishingModeRequest> for SetPublishingModeRequest {
         let publishing_enabled = Boolean::decode(stream)?;
         let subscription_ids: Option<Vec<UInt32>> = read_array(stream)?;
         Ok(SetPublishingModeRequest {
-            request_header: request_header,
-            publishing_enabled: publishing_enabled,
-            subscription_ids: subscription_ids,
+            request_header,
+            publishing_enabled,
+            subscription_ids,
         })
     }
 }

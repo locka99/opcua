@@ -42,10 +42,10 @@ impl BinaryEncoder<UserNameIdentityToken> for UserNameIdentityToken {
         let password = ByteString::decode(stream)?;
         let encryption_algorithm = UAString::decode(stream)?;
         Ok(UserNameIdentityToken {
-            policy_id: policy_id,
-            user_name: user_name,
-            password: password,
-            encryption_algorithm: encryption_algorithm,
+            policy_id,
+            user_name,
+            password,
+            encryption_algorithm,
         })
     }
 }

@@ -40,8 +40,8 @@ impl BinaryEncoder<CancelRequest> for CancelRequest {
         let request_header = RequestHeader::decode(stream)?;
         let request_handle = UInt32::decode(stream)?;
         Ok(CancelRequest {
-            request_header: request_header,
-            request_handle: request_handle,
+            request_header,
+            request_handle,
         })
     }
 }

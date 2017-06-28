@@ -55,12 +55,12 @@ impl BinaryEncoder<QueryFirstResponse> for QueryFirstResponse {
         let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream)?;
         let filter_result = ContentFilterResult::decode(stream)?;
         Ok(QueryFirstResponse {
-            response_header: response_header,
-            query_data_sets: query_data_sets,
-            continuation_point: continuation_point,
-            parsing_results: parsing_results,
-            diagnostic_infos: diagnostic_infos,
-            filter_result: filter_result,
+            response_header,
+            query_data_sets,
+            continuation_point,
+            parsing_results,
+            diagnostic_infos,
+            filter_result,
         })
     }
 }

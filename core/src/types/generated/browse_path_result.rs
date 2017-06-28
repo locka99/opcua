@@ -40,8 +40,8 @@ impl BinaryEncoder<BrowsePathResult> for BrowsePathResult {
         let status_code = StatusCode::decode(stream)?;
         let targets: Option<Vec<BrowsePathTarget>> = read_array(stream)?;
         Ok(BrowsePathResult {
-            status_code: status_code,
-            targets: targets,
+            status_code,
+            targets,
         })
     }
 }

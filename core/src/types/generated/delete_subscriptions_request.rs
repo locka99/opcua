@@ -39,8 +39,8 @@ impl BinaryEncoder<DeleteSubscriptionsRequest> for DeleteSubscriptionsRequest {
         let request_header = RequestHeader::decode(stream)?;
         let subscription_ids: Option<Vec<UInt32>> = read_array(stream)?;
         Ok(DeleteSubscriptionsRequest {
-            request_header: request_header,
-            subscription_ids: subscription_ids,
+            request_header,
+            subscription_ids,
         })
     }
 }

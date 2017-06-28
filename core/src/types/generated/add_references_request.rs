@@ -40,8 +40,8 @@ impl BinaryEncoder<AddReferencesRequest> for AddReferencesRequest {
         let request_header = RequestHeader::decode(stream)?;
         let references_to_add: Option<Vec<AddReferencesItem>> = read_array(stream)?;
         Ok(AddReferencesRequest {
-            request_header: request_header,
-            references_to_add: references_to_add,
+            request_header,
+            references_to_add,
         })
     }
 }

@@ -47,10 +47,10 @@ impl BinaryEncoder<ModifyMonitoredItemsRequest> for ModifyMonitoredItemsRequest 
         let timestamps_to_return = TimestampsToReturn::decode(stream)?;
         let items_to_modify: Option<Vec<MonitoredItemModifyRequest>> = read_array(stream)?;
         Ok(ModifyMonitoredItemsRequest {
-            request_header: request_header,
-            subscription_id: subscription_id,
-            timestamps_to_return: timestamps_to_return,
-            items_to_modify: items_to_modify,
+            request_header,
+            subscription_id,
+            timestamps_to_return,
+            items_to_modify,
         })
     }
 }

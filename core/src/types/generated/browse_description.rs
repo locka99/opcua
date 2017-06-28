@@ -56,12 +56,12 @@ impl BinaryEncoder<BrowseDescription> for BrowseDescription {
         let node_class_mask = UInt32::decode(stream)?;
         let result_mask = UInt32::decode(stream)?;
         Ok(BrowseDescription {
-            node_id: node_id,
-            browse_direction: browse_direction,
-            reference_type_id: reference_type_id,
-            include_subtypes: include_subtypes,
-            node_class_mask: node_class_mask,
-            result_mask: result_mask,
+            node_id,
+            browse_direction,
+            reference_type_id,
+            include_subtypes,
+            node_class_mask,
+            result_mask,
         })
     }
 }

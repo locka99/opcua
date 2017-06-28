@@ -48,10 +48,10 @@ impl BinaryEncoder<GetEndpointsRequest> for GetEndpointsRequest {
         let locale_ids: Option<Vec<UAString>> = read_array(stream)?;
         let profile_uris: Option<Vec<UAString>> = read_array(stream)?;
         Ok(GetEndpointsRequest {
-            request_header: request_header,
-            endpoint_url: endpoint_url,
-            locale_ids: locale_ids,
-            profile_uris: profile_uris,
+            request_header,
+            endpoint_url,
+            locale_ids,
+            profile_uris,
         })
     }
 }

@@ -48,10 +48,10 @@ impl BinaryEncoder<ActivateSessionResponse> for ActivateSessionResponse {
         let results: Option<Vec<StatusCode>> = read_array(stream)?;
         let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream)?;
         Ok(ActivateSessionResponse {
-            response_header: response_header,
-            server_nonce: server_nonce,
-            results: results,
-            diagnostic_infos: diagnostic_infos,
+            response_header,
+            server_nonce,
+            results,
+            diagnostic_infos,
         })
     }
 }

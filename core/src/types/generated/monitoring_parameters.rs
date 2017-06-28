@@ -51,11 +51,11 @@ impl BinaryEncoder<MonitoringParameters> for MonitoringParameters {
         let queue_size = UInt32::decode(stream)?;
         let discard_oldest = Boolean::decode(stream)?;
         Ok(MonitoringParameters {
-            client_handle: client_handle,
-            sampling_interval: sampling_interval,
-            filter: filter,
-            queue_size: queue_size,
-            discard_oldest: discard_oldest,
+            client_handle,
+            sampling_interval,
+            filter,
+            queue_size,
+            discard_oldest,
         })
     }
 }

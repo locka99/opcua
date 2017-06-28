@@ -64,14 +64,14 @@ impl BinaryEncoder<RegisteredServer> for RegisteredServer {
         let semaphore_file_path = UAString::decode(stream)?;
         let is_online = Boolean::decode(stream)?;
         Ok(RegisteredServer {
-            server_uri: server_uri,
-            product_uri: product_uri,
-            server_names: server_names,
-            server_type: server_type,
-            gateway_server_uri: gateway_server_uri,
-            discovery_urls: discovery_urls,
-            semaphore_file_path: semaphore_file_path,
-            is_online: is_online,
+            server_uri,
+            product_uri,
+            server_names,
+            server_type,
+            gateway_server_uri,
+            discovery_urls,
+            semaphore_file_path,
+            is_online,
         })
     }
 }

@@ -236,7 +236,7 @@ pub struct ${structured_type.name} {
 
     _.each(structured_type.fields_to_add, function (field) {
         if (!_.includes(structured_type.fields_to_hide, field.name)) {
-            contents += `            ${field.name}: ${field.name},\n`;
+            contents += `            ${field.name},\n`;
         }
     });
 

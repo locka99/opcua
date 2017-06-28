@@ -33,8 +33,8 @@ impl BinaryEncoder<ReadAtTimeDetails> for ReadAtTimeDetails {
         let req_times: Option<Vec<DateTime>> = read_array(stream)?;
         let use_simple_bounds = Boolean::decode(stream)?;
         Ok(ReadAtTimeDetails {
-            req_times: req_times,
-            use_simple_bounds: use_simple_bounds,
+            req_times,
+            use_simple_bounds,
         })
     }
 }

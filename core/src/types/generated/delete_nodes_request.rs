@@ -40,8 +40,8 @@ impl BinaryEncoder<DeleteNodesRequest> for DeleteNodesRequest {
         let request_header = RequestHeader::decode(stream)?;
         let nodes_to_delete: Option<Vec<DeleteNodesItem>> = read_array(stream)?;
         Ok(DeleteNodesRequest {
-            request_header: request_header,
-            nodes_to_delete: nodes_to_delete,
+            request_header,
+            nodes_to_delete,
         })
     }
 }

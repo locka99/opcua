@@ -40,8 +40,8 @@ impl BinaryEncoder<AddNodesResult> for AddNodesResult {
         let status_code = StatusCode::decode(stream)?;
         let added_node_id = NodeId::decode(stream)?;
         Ok(AddNodesResult {
-            status_code: status_code,
-            added_node_id: added_node_id,
+            status_code,
+            added_node_id,
         })
     }
 }

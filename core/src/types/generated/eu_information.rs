@@ -47,10 +47,10 @@ impl BinaryEncoder<EUInformation> for EUInformation {
         let display_name = LocalizedText::decode(stream)?;
         let description = LocalizedText::decode(stream)?;
         Ok(EUInformation {
-            namespace_uri: namespace_uri,
-            unit_id: unit_id,
-            display_name: display_name,
-            description: description,
+            namespace_uri,
+            unit_id,
+            display_name,
+            description,
         })
     }
 }

@@ -43,9 +43,9 @@ impl BinaryEncoder<QueryDataSet> for QueryDataSet {
         let type_definition_node = ExpandedNodeId::decode(stream)?;
         let values: Option<Vec<Variant>> = read_array(stream)?;
         Ok(QueryDataSet {
-            node_id: node_id,
-            type_definition_node: type_definition_node,
-            values: values,
+            node_id,
+            type_definition_node,
+            values,
         })
     }
 }

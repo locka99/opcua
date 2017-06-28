@@ -47,10 +47,10 @@ impl BinaryEncoder<ReadValueId> for ReadValueId {
         let index_range = UAString::decode(stream)?;
         let data_encoding = QualifiedName::decode(stream)?;
         Ok(ReadValueId {
-            node_id: node_id,
-            attribute_id: attribute_id,
-            index_range: index_range,
-            data_encoding: data_encoding,
+            node_id,
+            attribute_id,
+            index_range,
+            data_encoding,
         })
     }
 }

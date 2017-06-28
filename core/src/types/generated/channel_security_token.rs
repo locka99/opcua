@@ -48,10 +48,10 @@ impl BinaryEncoder<ChannelSecurityToken> for ChannelSecurityToken {
         let created_at = DateTime::decode(stream)?;
         let revised_lifetime = UInt32::decode(stream)?;
         Ok(ChannelSecurityToken {
-            channel_id: channel_id,
-            token_id: token_id,
-            created_at: created_at,
-            revised_lifetime: revised_lifetime,
+            channel_id,
+            token_id,
+            created_at,
+            revised_lifetime,
         })
     }
 }

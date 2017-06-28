@@ -47,10 +47,10 @@ impl BinaryEncoder<SamplingIntervalDiagnosticsDataType> for SamplingIntervalDiag
         let max_monitored_item_count = UInt32::decode(stream)?;
         let disabled_monitored_item_count = UInt32::decode(stream)?;
         Ok(SamplingIntervalDiagnosticsDataType {
-            sampling_interval: sampling_interval,
-            monitored_item_count: monitored_item_count,
-            max_monitored_item_count: max_monitored_item_count,
-            disabled_monitored_item_count: disabled_monitored_item_count,
+            sampling_interval,
+            monitored_item_count,
+            max_monitored_item_count,
+            disabled_monitored_item_count,
         })
     }
 }

@@ -40,8 +40,8 @@ impl BinaryEncoder<OptionSet> for OptionSet {
         let value = ByteString::decode(stream)?;
         let valid_bits = ByteString::decode(stream)?;
         Ok(OptionSet {
-            value: value,
-            valid_bits: valid_bits,
+            value,
+            valid_bits,
         })
     }
 }

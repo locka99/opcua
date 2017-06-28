@@ -40,8 +40,8 @@ impl BinaryEncoder<SignatureData> for SignatureData {
         let algorithm = UAString::decode(stream)?;
         let signature = ByteString::decode(stream)?;
         Ok(SignatureData {
-            algorithm: algorithm,
-            signature: signature,
+            algorithm,
+            signature,
         })
     }
 }

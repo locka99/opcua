@@ -34,8 +34,8 @@ impl BinaryEncoder<MdnsDiscoveryConfiguration> for MdnsDiscoveryConfiguration {
         let mdns_server_name = UAString::decode(stream)?;
         let server_capabilities: Option<Vec<UAString>> = read_array(stream)?;
         Ok(MdnsDiscoveryConfiguration {
-            mdns_server_name: mdns_server_name,
-            server_capabilities: server_capabilities,
+            mdns_server_name,
+            server_capabilities,
         })
     }
 }

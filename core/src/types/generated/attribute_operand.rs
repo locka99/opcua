@@ -45,11 +45,11 @@ impl BinaryEncoder<AttributeOperand> for AttributeOperand {
         let attribute_id = UInt32::decode(stream)?;
         let index_range = UAString::decode(stream)?;
         Ok(AttributeOperand {
-            node_id: node_id,
-            alias: alias,
-            browse_path: browse_path,
-            attribute_id: attribute_id,
-            index_range: index_range,
+            node_id,
+            alias,
+            browse_path,
+            attribute_id,
+            index_range,
         })
     }
 }

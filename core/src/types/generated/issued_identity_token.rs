@@ -38,9 +38,9 @@ impl BinaryEncoder<IssuedIdentityToken> for IssuedIdentityToken {
         let token_data = ByteString::decode(stream)?;
         let encryption_algorithm = UAString::decode(stream)?;
         Ok(IssuedIdentityToken {
-            policy_id: policy_id,
-            token_data: token_data,
-            encryption_algorithm: encryption_algorithm,
+            policy_id,
+            token_data,
+            encryption_algorithm,
         })
     }
 }

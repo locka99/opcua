@@ -36,7 +36,7 @@ impl BinaryEncoder<UserIdentityToken> for UserIdentityToken {
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let policy_id = UAString::decode(stream)?;
         Ok(UserIdentityToken {
-            policy_id: policy_id,
+            policy_id,
         })
     }
 }

@@ -51,11 +51,11 @@ impl BinaryEncoder<SetTriggeringResponse> for SetTriggeringResponse {
         let remove_results: Option<Vec<StatusCode>> = read_array(stream)?;
         let remove_diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream)?;
         Ok(SetTriggeringResponse {
-            response_header: response_header,
-            add_results: add_results,
-            add_diagnostic_infos: add_diagnostic_infos,
-            remove_results: remove_results,
-            remove_diagnostic_infos: remove_diagnostic_infos,
+            response_header,
+            add_results,
+            add_diagnostic_infos,
+            remove_results,
+            remove_diagnostic_infos,
         })
     }
 }

@@ -33,8 +33,8 @@ impl BinaryEncoder<EventFilter> for EventFilter {
         let select_clauses: Option<Vec<SimpleAttributeOperand>> = read_array(stream)?;
         let where_clause = ContentFilter::decode(stream)?;
         Ok(EventFilter {
-            select_clauses: select_clauses,
-            where_clause: where_clause,
+            select_clauses,
+            where_clause,
         })
     }
 }

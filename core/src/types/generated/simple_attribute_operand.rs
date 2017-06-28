@@ -41,10 +41,10 @@ impl BinaryEncoder<SimpleAttributeOperand> for SimpleAttributeOperand {
         let attribute_id = UInt32::decode(stream)?;
         let index_range = UAString::decode(stream)?;
         Ok(SimpleAttributeOperand {
-            type_definition_id: type_definition_id,
-            browse_path: browse_path,
-            attribute_id: attribute_id,
-            index_range: index_range,
+            type_definition_id,
+            browse_path,
+            attribute_id,
+            index_range,
         })
     }
 }

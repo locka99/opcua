@@ -43,9 +43,9 @@ impl BinaryEncoder<HistoryReadResult> for HistoryReadResult {
         let continuation_point = ByteString::decode(stream)?;
         let history_data = ExtensionObject::decode(stream)?;
         Ok(HistoryReadResult {
-            status_code: status_code,
-            continuation_point: continuation_point,
-            history_data: history_data,
+            status_code,
+            continuation_point,
+            history_data,
         })
     }
 }

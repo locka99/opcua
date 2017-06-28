@@ -43,9 +43,9 @@ impl BinaryEncoder<QueryNextRequest> for QueryNextRequest {
         let release_continuation_point = Boolean::decode(stream)?;
         let continuation_point = ByteString::decode(stream)?;
         Ok(QueryNextRequest {
-            request_header: request_header,
-            release_continuation_point: release_continuation_point,
-            continuation_point: continuation_point,
+            request_header,
+            release_continuation_point,
+            continuation_point,
         })
     }
 }

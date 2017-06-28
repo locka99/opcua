@@ -35,7 +35,7 @@ impl BinaryEncoder<EndpointUrlListDataType> for EndpointUrlListDataType {
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let endpoint_url_list: Option<Vec<UAString>> = read_array(stream)?;
         Ok(EndpointUrlListDataType {
-            endpoint_url_list: endpoint_url_list,
+            endpoint_url_list,
         })
     }
 }

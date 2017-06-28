@@ -43,9 +43,9 @@ impl BinaryEncoder<MonitoredItemCreateRequest> for MonitoredItemCreateRequest {
         let monitoring_mode = MonitoringMode::decode(stream)?;
         let requested_parameters = MonitoringParameters::decode(stream)?;
         Ok(MonitoredItemCreateRequest {
-            item_to_monitor: item_to_monitor,
-            monitoring_mode: monitoring_mode,
-            requested_parameters: requested_parameters,
+            item_to_monitor,
+            monitoring_mode,
+            requested_parameters,
         })
     }
 }

@@ -55,12 +55,12 @@ impl BinaryEncoder<QueryFirstRequest> for QueryFirstRequest {
         let max_data_sets_to_return = UInt32::decode(stream)?;
         let max_references_to_return = UInt32::decode(stream)?;
         Ok(QueryFirstRequest {
-            request_header: request_header,
-            view: view,
-            node_types: node_types,
-            filter: filter,
-            max_data_sets_to_return: max_data_sets_to_return,
-            max_references_to_return: max_references_to_return,
+            request_header,
+            view,
+            node_types,
+            filter,
+            max_data_sets_to_return,
+            max_references_to_return,
         })
     }
 }

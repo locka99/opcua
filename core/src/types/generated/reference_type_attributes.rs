@@ -58,14 +58,14 @@ impl BinaryEncoder<ReferenceTypeAttributes> for ReferenceTypeAttributes {
         let symmetric = Boolean::decode(stream)?;
         let inverse_name = LocalizedText::decode(stream)?;
         Ok(ReferenceTypeAttributes {
-            specified_attributes: specified_attributes,
-            display_name: display_name,
-            description: description,
-            write_mask: write_mask,
-            user_write_mask: user_write_mask,
-            is_abstract: is_abstract,
-            symmetric: symmetric,
-            inverse_name: inverse_name,
+            specified_attributes,
+            display_name,
+            description,
+            write_mask,
+            user_write_mask,
+            is_abstract,
+            symmetric,
+            inverse_name,
         })
     }
 }

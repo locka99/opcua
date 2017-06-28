@@ -39,8 +39,8 @@ impl BinaryEncoder<RepublishResponse> for RepublishResponse {
         let response_header = ResponseHeader::decode(stream)?;
         let notification_message = NotificationMessage::decode(stream)?;
         Ok(RepublishResponse {
-            response_header: response_header,
-            notification_message: notification_message,
+            response_header,
+            notification_message,
         })
     }
 }

@@ -54,13 +54,13 @@ impl BinaryEncoder<ViewAttributes> for ViewAttributes {
         let contains_no_loops = Boolean::decode(stream)?;
         let event_notifier = Byte::decode(stream)?;
         Ok(ViewAttributes {
-            specified_attributes: specified_attributes,
-            display_name: display_name,
-            description: description,
-            write_mask: write_mask,
-            user_write_mask: user_write_mask,
-            contains_no_loops: contains_no_loops,
-            event_notifier: event_notifier,
+            specified_attributes,
+            display_name,
+            description,
+            write_mask,
+            user_write_mask,
+            contains_no_loops,
+            event_notifier,
         })
     }
 }

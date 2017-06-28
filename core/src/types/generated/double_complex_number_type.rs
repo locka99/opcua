@@ -39,8 +39,8 @@ impl BinaryEncoder<DoubleComplexNumberType> for DoubleComplexNumberType {
         let real = Double::decode(stream)?;
         let imaginary = Double::decode(stream)?;
         Ok(DoubleComplexNumberType {
-            real: real,
-            imaginary: imaginary,
+            real,
+            imaginary,
         })
     }
 }

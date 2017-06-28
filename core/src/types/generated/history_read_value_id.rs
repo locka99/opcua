@@ -47,10 +47,10 @@ impl BinaryEncoder<HistoryReadValueId> for HistoryReadValueId {
         let data_encoding = QualifiedName::decode(stream)?;
         let continuation_point = ByteString::decode(stream)?;
         Ok(HistoryReadValueId {
-            node_id: node_id,
-            index_range: index_range,
-            data_encoding: data_encoding,
-            continuation_point: continuation_point,
+            node_id,
+            index_range,
+            data_encoding,
+            continuation_point,
         })
     }
 }

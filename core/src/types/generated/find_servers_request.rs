@@ -48,10 +48,10 @@ impl BinaryEncoder<FindServersRequest> for FindServersRequest {
         let locale_ids: Option<Vec<UAString>> = read_array(stream)?;
         let server_uris: Option<Vec<UAString>> = read_array(stream)?;
         Ok(FindServersRequest {
-            request_header: request_header,
-            endpoint_url: endpoint_url,
-            locale_ids: locale_ids,
-            server_uris: server_uris,
+            request_header,
+            endpoint_url,
+            locale_ids,
+            server_uris,
         })
     }
 }

@@ -39,8 +39,8 @@ impl BinaryEncoder<StatusResult> for StatusResult {
         let status_code = StatusCode::decode(stream)?;
         let diagnostic_info = DiagnosticInfo::decode(stream)?;
         Ok(StatusResult {
-            status_code: status_code,
-            diagnostic_info: diagnostic_info,
+            status_code,
+            diagnostic_info,
         })
     }
 }

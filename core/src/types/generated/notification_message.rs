@@ -43,9 +43,9 @@ impl BinaryEncoder<NotificationMessage> for NotificationMessage {
         let publish_time = DateTime::decode(stream)?;
         let notification_data: Option<Vec<ExtensionObject>> = read_array(stream)?;
         Ok(NotificationMessage {
-            sequence_number: sequence_number,
-            publish_time: publish_time,
-            notification_data: notification_data,
+            sequence_number,
+            publish_time,
+            notification_data,
         })
     }
 }

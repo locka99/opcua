@@ -43,9 +43,9 @@ impl BinaryEncoder<RepublishRequest> for RepublishRequest {
         let subscription_id = UInt32::decode(stream)?;
         let retransmit_sequence_number = UInt32::decode(stream)?;
         Ok(RepublishRequest {
-            request_header: request_header,
-            subscription_id: subscription_id,
-            retransmit_sequence_number: retransmit_sequence_number,
+            request_header,
+            subscription_id,
+            retransmit_sequence_number,
         })
     }
 }

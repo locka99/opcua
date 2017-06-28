@@ -48,10 +48,10 @@ impl BinaryEncoder<OpenSecureChannelResponse> for OpenSecureChannelResponse {
         let security_token = ChannelSecurityToken::decode(stream)?;
         let server_nonce = ByteString::decode(stream)?;
         Ok(OpenSecureChannelResponse {
-            response_header: response_header,
-            server_protocol_version: server_protocol_version,
-            security_token: security_token,
-            server_nonce: server_nonce,
+            response_header,
+            server_protocol_version,
+            security_token,
+            server_nonce,
         })
     }
 }

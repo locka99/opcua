@@ -51,11 +51,11 @@ impl BinaryEncoder<TrustListDataType> for TrustListDataType {
         let issuer_certificates: Option<Vec<ByteString>> = read_array(stream)?;
         let issuer_crls: Option<Vec<ByteString>> = read_array(stream)?;
         Ok(TrustListDataType {
-            specified_lists: specified_lists,
-            trusted_certificates: trusted_certificates,
-            trusted_crls: trusted_crls,
-            issuer_certificates: issuer_certificates,
-            issuer_crls: issuer_crls,
+            specified_lists,
+            trusted_certificates,
+            trusted_crls,
+            issuer_certificates,
+            issuer_crls,
         })
     }
 }

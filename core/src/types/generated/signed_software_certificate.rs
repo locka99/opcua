@@ -40,8 +40,8 @@ impl BinaryEncoder<SignedSoftwareCertificate> for SignedSoftwareCertificate {
         let certificate_data = ByteString::decode(stream)?;
         let signature = ByteString::decode(stream)?;
         Ok(SignedSoftwareCertificate {
-            certificate_data: certificate_data,
-            signature: signature,
+            certificate_data,
+            signature,
         })
     }
 }

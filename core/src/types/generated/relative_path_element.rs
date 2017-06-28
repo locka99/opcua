@@ -48,10 +48,10 @@ impl BinaryEncoder<RelativePathElement> for RelativePathElement {
         let include_subtypes = Boolean::decode(stream)?;
         let target_name = QualifiedName::decode(stream)?;
         Ok(RelativePathElement {
-            reference_type_id: reference_type_id,
-            is_inverse: is_inverse,
-            include_subtypes: include_subtypes,
-            target_name: target_name,
+            reference_type_id,
+            is_inverse,
+            include_subtypes,
+            target_name,
         })
     }
 }

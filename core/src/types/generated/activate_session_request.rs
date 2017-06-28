@@ -56,12 +56,12 @@ impl BinaryEncoder<ActivateSessionRequest> for ActivateSessionRequest {
         let user_identity_token = ExtensionObject::decode(stream)?;
         let user_token_signature = SignatureData::decode(stream)?;
         Ok(ActivateSessionRequest {
-            request_header: request_header,
-            client_signature: client_signature,
-            client_software_certificates: client_software_certificates,
-            locale_ids: locale_ids,
-            user_identity_token: user_identity_token,
-            user_token_signature: user_token_signature,
+            request_header,
+            client_signature,
+            client_software_certificates,
+            locale_ids,
+            user_identity_token,
+            user_token_signature,
         })
     }
 }

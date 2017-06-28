@@ -43,9 +43,9 @@ impl BinaryEncoder<DeleteMonitoredItemsRequest> for DeleteMonitoredItemsRequest 
         let subscription_id = UInt32::decode(stream)?;
         let monitored_item_ids: Option<Vec<UInt32>> = read_array(stream)?;
         Ok(DeleteMonitoredItemsRequest {
-            request_header: request_header,
-            subscription_id: subscription_id,
-            monitored_item_ids: monitored_item_ids,
+            request_header,
+            subscription_id,
+            monitored_item_ids,
         })
     }
 }

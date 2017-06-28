@@ -39,8 +39,8 @@ impl BinaryEncoder<PublishRequest> for PublishRequest {
         let request_header = RequestHeader::decode(stream)?;
         let subscription_acknowledgements: Option<Vec<SubscriptionAcknowledgement>> = read_array(stream)?;
         Ok(PublishRequest {
-            request_header: request_header,
-            subscription_acknowledgements: subscription_acknowledgements,
+            request_header,
+            subscription_acknowledgements,
         })
     }
 }

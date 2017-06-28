@@ -37,9 +37,9 @@ impl BinaryEncoder<AggregateFilterResult> for AggregateFilterResult {
         let revised_processing_interval = Double::decode(stream)?;
         let revised_aggregate_configuration = AggregateConfiguration::decode(stream)?;
         Ok(AggregateFilterResult {
-            revised_start_time: revised_start_time,
-            revised_processing_interval: revised_processing_interval,
-            revised_aggregate_configuration: revised_aggregate_configuration,
+            revised_start_time,
+            revised_processing_interval,
+            revised_aggregate_configuration,
         })
     }
 }

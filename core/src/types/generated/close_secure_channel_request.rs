@@ -36,7 +36,7 @@ impl BinaryEncoder<CloseSecureChannelRequest> for CloseSecureChannelRequest {
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream)?;
         Ok(CloseSecureChannelRequest {
-            request_header: request_header,
+            request_header,
         })
     }
 }

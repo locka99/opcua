@@ -51,11 +51,11 @@ impl BinaryEncoder<HistoryReadRequest> for HistoryReadRequest {
         let release_continuation_points = Boolean::decode(stream)?;
         let nodes_to_read: Option<Vec<HistoryReadValueId>> = read_array(stream)?;
         Ok(HistoryReadRequest {
-            request_header: request_header,
-            history_read_details: history_read_details,
-            timestamps_to_return: timestamps_to_return,
-            release_continuation_points: release_continuation_points,
-            nodes_to_read: nodes_to_read,
+            request_header,
+            history_read_details,
+            timestamps_to_return,
+            release_continuation_points,
+            nodes_to_read,
         })
     }
 }

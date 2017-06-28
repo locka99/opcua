@@ -41,10 +41,10 @@ impl BinaryEncoder<AggregateFilter> for AggregateFilter {
         let processing_interval = Double::decode(stream)?;
         let aggregate_configuration = AggregateConfiguration::decode(stream)?;
         Ok(AggregateFilter {
-            start_time: start_time,
-            aggregate_type: aggregate_type,
-            processing_interval: processing_interval,
-            aggregate_configuration: aggregate_configuration,
+            start_time,
+            aggregate_type,
+            processing_interval,
+            aggregate_configuration,
         })
     }
 }

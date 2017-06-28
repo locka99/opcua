@@ -41,10 +41,10 @@ impl BinaryEncoder<DeleteRawModifiedDetails> for DeleteRawModifiedDetails {
         let start_time = DateTime::decode(stream)?;
         let end_time = DateTime::decode(stream)?;
         Ok(DeleteRawModifiedDetails {
-            node_id: node_id,
-            is_delete_modified: is_delete_modified,
-            start_time: start_time,
-            end_time: end_time,
+            node_id,
+            is_delete_modified,
+            start_time,
+            end_time,
         })
     }
 }

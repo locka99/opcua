@@ -29,7 +29,7 @@ impl BinaryEncoder<EventNotificationList> for EventNotificationList {
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let events: Option<Vec<EventFieldList>> = read_array(stream)?;
         Ok(EventNotificationList {
-            events: events,
+            events,
         })
     }
 }

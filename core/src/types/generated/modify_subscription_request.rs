@@ -59,13 +59,13 @@ impl BinaryEncoder<ModifySubscriptionRequest> for ModifySubscriptionRequest {
         let max_notifications_per_publish = UInt32::decode(stream)?;
         let priority = Byte::decode(stream)?;
         Ok(ModifySubscriptionRequest {
-            request_header: request_header,
-            subscription_id: subscription_id,
-            requested_publishing_interval: requested_publishing_interval,
-            requested_lifetime_count: requested_lifetime_count,
-            requested_max_keep_alive_count: requested_max_keep_alive_count,
-            max_notifications_per_publish: max_notifications_per_publish,
-            priority: priority,
+            request_header,
+            subscription_id,
+            requested_publishing_interval,
+            requested_lifetime_count,
+            requested_max_keep_alive_count,
+            max_notifications_per_publish,
+            priority,
         })
     }
 }

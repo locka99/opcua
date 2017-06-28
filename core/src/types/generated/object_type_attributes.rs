@@ -50,12 +50,12 @@ impl BinaryEncoder<ObjectTypeAttributes> for ObjectTypeAttributes {
         let user_write_mask = UInt32::decode(stream)?;
         let is_abstract = Boolean::decode(stream)?;
         Ok(ObjectTypeAttributes {
-            specified_attributes: specified_attributes,
-            display_name: display_name,
-            description: description,
-            write_mask: write_mask,
-            user_write_mask: user_write_mask,
-            is_abstract: is_abstract,
+            specified_attributes,
+            display_name,
+            description,
+            write_mask,
+            user_write_mask,
+            is_abstract,
         })
     }
 }

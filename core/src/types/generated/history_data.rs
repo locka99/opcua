@@ -35,7 +35,7 @@ impl BinaryEncoder<HistoryData> for HistoryData {
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let data_values: Option<Vec<DataValue>> = read_array(stream)?;
         Ok(HistoryData {
-            data_values: data_values,
+            data_values,
         })
     }
 }

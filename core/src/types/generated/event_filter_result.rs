@@ -37,9 +37,9 @@ impl BinaryEncoder<EventFilterResult> for EventFilterResult {
         let select_clause_diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream)?;
         let where_clause_result = ContentFilterResult::decode(stream)?;
         Ok(EventFilterResult {
-            select_clause_results: select_clause_results,
-            select_clause_diagnostic_infos: select_clause_diagnostic_infos,
-            where_clause_result: where_clause_result,
+            select_clause_results,
+            select_clause_diagnostic_infos,
+            where_clause_result,
         })
     }
 }

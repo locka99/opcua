@@ -43,9 +43,9 @@ impl BinaryEncoder<QueryNextResponse> for QueryNextResponse {
         let query_data_sets: Option<Vec<QueryDataSet>> = read_array(stream)?;
         let revised_continuation_point = ByteString::decode(stream)?;
         Ok(QueryNextResponse {
-            response_header: response_header,
-            query_data_sets: query_data_sets,
-            revised_continuation_point: revised_continuation_point,
+            response_header,
+            query_data_sets,
+            revised_continuation_point,
         })
     }
 }

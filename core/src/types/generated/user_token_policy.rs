@@ -52,11 +52,11 @@ impl BinaryEncoder<UserTokenPolicy> for UserTokenPolicy {
         let issuer_endpoint_url = UAString::decode(stream)?;
         let security_policy_uri = UAString::decode(stream)?;
         Ok(UserTokenPolicy {
-            policy_id: policy_id,
-            token_type: token_type,
-            issued_token_type: issued_token_type,
-            issuer_endpoint_url: issuer_endpoint_url,
-            security_policy_uri: security_policy_uri,
+            policy_id,
+            token_type,
+            issued_token_type,
+            issuer_endpoint_url,
+            security_policy_uri,
         })
     }
 }

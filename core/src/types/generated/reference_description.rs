@@ -60,13 +60,13 @@ impl BinaryEncoder<ReferenceDescription> for ReferenceDescription {
         let node_class = NodeClass::decode(stream)?;
         let type_definition = ExpandedNodeId::decode(stream)?;
         Ok(ReferenceDescription {
-            reference_type_id: reference_type_id,
-            is_forward: is_forward,
-            node_id: node_id,
-            browse_name: browse_name,
-            display_name: display_name,
-            node_class: node_class,
-            type_definition: type_definition,
+            reference_type_id,
+            is_forward,
+            node_id,
+            browse_name,
+            display_name,
+            node_class,
+            type_definition,
         })
     }
 }

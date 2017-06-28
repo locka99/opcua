@@ -47,10 +47,10 @@ impl BinaryEncoder<WriteValue> for WriteValue {
         let index_range = UAString::decode(stream)?;
         let value = DataValue::decode(stream)?;
         Ok(WriteValue {
-            node_id: node_id,
-            attribute_id: attribute_id,
-            index_range: index_range,
-            value: value,
+            node_id,
+            attribute_id,
+            index_range,
+            value,
         })
     }
 }

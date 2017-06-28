@@ -35,7 +35,7 @@ impl BinaryEncoder<HistoryEventFieldList> for HistoryEventFieldList {
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let event_fields: Option<Vec<Variant>> = read_array(stream)?;
         Ok(HistoryEventFieldList {
-            event_fields: event_fields,
+            event_fields,
         })
     }
 }

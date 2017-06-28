@@ -59,13 +59,13 @@ impl BinaryEncoder<CreateSubscriptionRequest> for CreateSubscriptionRequest {
         let publishing_enabled = Boolean::decode(stream)?;
         let priority = Byte::decode(stream)?;
         Ok(CreateSubscriptionRequest {
-            request_header: request_header,
-            requested_publishing_interval: requested_publishing_interval,
-            requested_lifetime_count: requested_lifetime_count,
-            requested_max_keep_alive_count: requested_max_keep_alive_count,
-            max_notifications_per_publish: max_notifications_per_publish,
-            publishing_enabled: publishing_enabled,
-            priority: priority,
+            request_header,
+            requested_publishing_interval,
+            requested_lifetime_count,
+            requested_max_keep_alive_count,
+            max_notifications_per_publish,
+            publishing_enabled,
+            priority,
         })
     }
 }

@@ -72,16 +72,16 @@ impl BinaryEncoder<CreateSessionResponse> for CreateSessionResponse {
         let server_signature = SignatureData::decode(stream)?;
         let max_request_message_size = UInt32::decode(stream)?;
         Ok(CreateSessionResponse {
-            response_header: response_header,
-            session_id: session_id,
-            authentication_token: authentication_token,
-            revised_session_timeout: revised_session_timeout,
-            server_nonce: server_nonce,
-            server_certificate: server_certificate,
-            server_endpoints: server_endpoints,
-            server_software_certificates: server_software_certificates,
-            server_signature: server_signature,
-            max_request_message_size: max_request_message_size,
+            response_header,
+            session_id,
+            authentication_token,
+            revised_session_timeout,
+            server_nonce,
+            server_certificate,
+            server_endpoints,
+            server_software_certificates,
+            server_signature,
+            max_request_message_size,
         })
     }
 }

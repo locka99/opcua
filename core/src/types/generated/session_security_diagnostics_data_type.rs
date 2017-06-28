@@ -67,15 +67,15 @@ impl BinaryEncoder<SessionSecurityDiagnosticsDataType> for SessionSecurityDiagno
         let security_policy_uri = UAString::decode(stream)?;
         let client_certificate = ByteString::decode(stream)?;
         Ok(SessionSecurityDiagnosticsDataType {
-            session_id: session_id,
-            client_user_id_of_session: client_user_id_of_session,
-            client_user_id_history: client_user_id_history,
-            authentication_mechanism: authentication_mechanism,
-            encoding: encoding,
-            transport_protocol: transport_protocol,
-            security_mode: security_mode,
-            security_policy_uri: security_policy_uri,
-            client_certificate: client_certificate,
+            session_id,
+            client_user_id_of_session,
+            client_user_id_history,
+            authentication_mechanism,
+            encoding,
+            transport_protocol,
+            security_mode,
+            security_policy_uri,
+            client_certificate,
         })
     }
 }

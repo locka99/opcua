@@ -39,8 +39,8 @@ impl BinaryEncoder<ComplexNumberType> for ComplexNumberType {
         let real = Float::decode(stream)?;
         let imaginary = Float::decode(stream)?;
         Ok(ComplexNumberType {
-            real: real,
-            imaginary: imaginary,
+            real,
+            imaginary,
         })
     }
 }

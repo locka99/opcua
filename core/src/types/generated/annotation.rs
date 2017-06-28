@@ -43,9 +43,9 @@ impl BinaryEncoder<Annotation> for Annotation {
         let user_name = UAString::decode(stream)?;
         let annotation_time = DateTime::decode(stream)?;
         Ok(Annotation {
-            message: message,
-            user_name: user_name,
-            annotation_time: annotation_time,
+            message,
+            user_name,
+            annotation_time,
         })
     }
 }

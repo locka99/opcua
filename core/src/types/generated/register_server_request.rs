@@ -40,8 +40,8 @@ impl BinaryEncoder<RegisterServerRequest> for RegisterServerRequest {
         let request_header = RequestHeader::decode(stream)?;
         let server = RegisteredServer::decode(stream)?;
         Ok(RegisterServerRequest {
-            request_header: request_header,
-            server: server,
+            request_header,
+            server,
         })
     }
 }

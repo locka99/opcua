@@ -39,8 +39,8 @@ impl BinaryEncoder<Range> for Range {
         let low = Double::decode(stream)?;
         let high = Double::decode(stream)?;
         Ok(Range {
-            low: low,
-            high: high,
+            low,
+            high,
         })
     }
 }

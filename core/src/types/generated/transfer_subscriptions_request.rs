@@ -43,9 +43,9 @@ impl BinaryEncoder<TransferSubscriptionsRequest> for TransferSubscriptionsReques
         let subscription_ids: Option<Vec<UInt32>> = read_array(stream)?;
         let send_initial_values = Boolean::decode(stream)?;
         Ok(TransferSubscriptionsRequest {
-            request_header: request_header,
-            subscription_ids: subscription_ids,
-            send_initial_values: send_initial_values,
+            request_header,
+            subscription_ids,
+            send_initial_values,
         })
     }
 }

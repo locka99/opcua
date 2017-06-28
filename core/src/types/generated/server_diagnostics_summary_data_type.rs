@@ -79,18 +79,18 @@ impl BinaryEncoder<ServerDiagnosticsSummaryDataType> for ServerDiagnosticsSummar
         let security_rejected_requests_count = UInt32::decode(stream)?;
         let rejected_requests_count = UInt32::decode(stream)?;
         Ok(ServerDiagnosticsSummaryDataType {
-            server_view_count: server_view_count,
-            current_session_count: current_session_count,
-            cumulated_session_count: cumulated_session_count,
-            security_rejected_session_count: security_rejected_session_count,
-            rejected_session_count: rejected_session_count,
-            session_timeout_count: session_timeout_count,
-            session_abort_count: session_abort_count,
-            current_subscription_count: current_subscription_count,
-            cumulated_subscription_count: cumulated_subscription_count,
-            publishing_interval_count: publishing_interval_count,
-            security_rejected_requests_count: security_rejected_requests_count,
-            rejected_requests_count: rejected_requests_count,
+            server_view_count,
+            current_session_count,
+            cumulated_session_count,
+            security_rejected_session_count,
+            rejected_session_count,
+            session_timeout_count,
+            session_abort_count,
+            current_subscription_count,
+            cumulated_subscription_count,
+            publishing_interval_count,
+            security_rejected_requests_count,
+            rejected_requests_count,
         })
     }
 }

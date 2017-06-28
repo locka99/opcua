@@ -39,8 +39,8 @@ impl BinaryEncoder<SubscriptionAcknowledgement> for SubscriptionAcknowledgement 
         let subscription_id = UInt32::decode(stream)?;
         let sequence_number = UInt32::decode(stream)?;
         Ok(SubscriptionAcknowledgement {
-            subscription_id: subscription_id,
-            sequence_number: sequence_number,
+            subscription_id,
+            sequence_number,
         })
     }
 }

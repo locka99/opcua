@@ -43,9 +43,9 @@ impl BinaryEncoder<ContentFilterElementResult> for ContentFilterElementResult {
         let operand_status_codes: Option<Vec<StatusCode>> = read_array(stream)?;
         let operand_diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream)?;
         Ok(ContentFilterElementResult {
-            status_code: status_code,
-            operand_status_codes: operand_status_codes,
-            operand_diagnostic_infos: operand_diagnostic_infos,
+            status_code,
+            operand_status_codes,
+            operand_diagnostic_infos,
         })
     }
 }

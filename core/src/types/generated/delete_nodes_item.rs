@@ -40,8 +40,8 @@ impl BinaryEncoder<DeleteNodesItem> for DeleteNodesItem {
         let node_id = NodeId::decode(stream)?;
         let delete_target_references = Boolean::decode(stream)?;
         Ok(DeleteNodesItem {
-            node_id: node_id,
-            delete_target_references: delete_target_references,
+            node_id,
+            delete_target_references,
         })
     }
 }

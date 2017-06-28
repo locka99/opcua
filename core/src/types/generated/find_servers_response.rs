@@ -40,8 +40,8 @@ impl BinaryEncoder<FindServersResponse> for FindServersResponse {
         let response_header = ResponseHeader::decode(stream)?;
         let servers: Option<Vec<ApplicationDescription>> = read_array(stream)?;
         Ok(FindServersResponse {
-            response_header: response_header,
-            servers: servers,
+            response_header,
+            servers,
         })
     }
 }

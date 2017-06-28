@@ -67,15 +67,15 @@ impl BinaryEncoder<EndpointConfiguration> for EndpointConfiguration {
         let channel_lifetime = Int32::decode(stream)?;
         let security_token_lifetime = Int32::decode(stream)?;
         Ok(EndpointConfiguration {
-            operation_timeout: operation_timeout,
-            use_binary_encoding: use_binary_encoding,
-            max_string_length: max_string_length,
-            max_byte_string_length: max_byte_string_length,
-            max_array_length: max_array_length,
-            max_message_size: max_message_size,
-            max_buffer_size: max_buffer_size,
-            channel_lifetime: channel_lifetime,
-            security_token_lifetime: security_token_lifetime,
+            operation_timeout,
+            use_binary_encoding,
+            max_string_length,
+            max_byte_string_length,
+            max_array_length,
+            max_message_size,
+            max_buffer_size,
+            channel_lifetime,
+            security_token_lifetime,
         })
     }
 }

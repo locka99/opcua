@@ -40,8 +40,8 @@ impl BinaryEncoder<CloseSessionRequest> for CloseSessionRequest {
         let request_header = RequestHeader::decode(stream)?;
         let delete_subscriptions = Boolean::decode(stream)?;
         Ok(CloseSessionRequest {
-            request_header: request_header,
-            delete_subscriptions: delete_subscriptions,
+            request_header,
+            delete_subscriptions,
         })
     }
 }

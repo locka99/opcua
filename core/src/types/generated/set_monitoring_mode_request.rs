@@ -47,10 +47,10 @@ impl BinaryEncoder<SetMonitoringModeRequest> for SetMonitoringModeRequest {
         let monitoring_mode = MonitoringMode::decode(stream)?;
         let monitored_item_ids: Option<Vec<UInt32>> = read_array(stream)?;
         Ok(SetMonitoringModeRequest {
-            request_header: request_header,
-            subscription_id: subscription_id,
-            monitoring_mode: monitoring_mode,
-            monitored_item_ids: monitored_item_ids,
+            request_header,
+            subscription_id,
+            monitoring_mode,
+            monitored_item_ids,
         })
     }
 }
