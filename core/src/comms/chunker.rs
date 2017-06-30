@@ -3,7 +3,6 @@ use std::io::{Cursor};
 
 use comms::*;
 use types::*;
-use debug::*;
 
 /// The Chunker is responsible for turning messages to chunks and chunks into messages.
 pub struct Chunker {}
@@ -26,7 +25,7 @@ impl Chunker {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
         let mut sequence_number = starting_sequence_number;
         for (i, chunk) in chunks.iter().enumerate() {
-            let chunk_info = chunk.chunk_info(i == 0, secure_channel_token)?;
+            let chunk_info = chunk.chunk_info(secure_channel_token)?;
             // Check the sequence id - should be larger than the last one decoded
             if chunk_info.sequence_header.sequence_number <= sequence_number {
                 error!("Chunk has a sequence number of {} which is less than last decoded sequence number of {}", chunk_info.sequence_header.sequence_number, sequence_number);
@@ -59,8 +58,8 @@ impl Chunker {
         // One chunk support
         // Multiple chunk means breaking the data up into sections, sending slices
         // of data to encode_chunk
-        let node_id = supported_message.node_id();
 
+        // let data_chunks = data.chunks(size) 
         let chunk = Chunk::new(sequence_number, request_id, message_type, chunk_type, secure_channel_token, &data)?;
         Ok(vec![chunk])
     }
@@ -75,29 +74,50 @@ impl Chunker {
             return Err(BAD_UNEXPECTED_ERROR);
         }
 
-        let chunk = &chunks[0];
+        // TODO all chunks should be verified first
 
-        let first_chunk = true;
-        let chunk_info = chunk.chunk_info(first_chunk, secure_channel_token)?;
-        debug!("Chunker::decode chunk_info = {:?}", chunk_info);
+        // Calculate the size of the data
+        let mut data_size: usize = 0;
+        for chunk in chunks.iter() {
+            let chunk_info = chunk.chunk_info(secure_channel_token)?;
+            debug!("Chunker::decode chunk_info = {:?}", chunk_info);
+            let body_start = chunk_info.body_offset;
+            let body_end = body_start + chunk_info.body_length;
+            data_size += chunk.chunk_body[body_start..body_end].len(); 
+        }
 
-        let body_start = chunk_info.body_offset;
-        let body_end = body_start + chunk_info.body_length;
-        let chunk_body = &chunk.chunk_body[body_start..body_end];
-        debug_buffer("chunk_message_body:", chunk_body);
+        // Read the data into a contiguous buffer
+        let mut data = Vec::with_capacity(data_size);
+        for chunk in chunks.iter() {
+            let chunk_info = chunk.chunk_info(secure_channel_token)?;
+            let body_start = chunk_info.body_offset;
+            let body_end = body_start + chunk_info.body_length;
+            let chunk_data = &chunk.chunk_body[body_start..body_end];
+            // TODO security policy decrypt
+            let decrypted_data = chunk_data;
+            data.extend_from_slice(decrypted_data); 
+        }
 
-        // First chunk has an extension object prefix.
-        //
+        // Make a stream around the data
+        let mut data = Cursor::new(data);
+
         // The extension object prefix is just the node id. A point the spec rather unhelpfully doesn't
         // elaborate on. Probably because people enjoy debugging why the stream pos is out by 1 byte
         // for hours.
 
-        let object_id = if let Some(ref node_id) = chunk_info.node_id {
+        // Read node id from stream
+        let node_id = NodeId::decode(&mut data)?;
+        let object_id = {
             let valid_node_id = if node_id.namespace != 0 || !node_id.is_numeric() {
                 // Must be ns 0 and numeric
+                error!("Expecting chunk to contain a OPC UA request or response");
                 false
-            } else if expected_node_id.is_some() {
-                expected_node_id.unwrap() == *node_id
+            } else if let Some(expected_node_id) = expected_node_id {
+                let matches_expected = expected_node_id == node_id;
+                if !matches_expected {
+                    error!("Chunk node id {:?} does not match expected {:?}", node_id, expected_node_id);
+                }
+                matches_expected
             } else {
                 true
             };
@@ -107,25 +127,16 @@ impl Chunker {
             }
             let object_id = node_id.as_object_id();
             if object_id.is_err() {
-                error!("The node was not an object id");
+                error!("The node {:?} was not an object id", node_id);
                 return Err(BAD_UNEXPECTED_ERROR);
             }
             let object_id = object_id.unwrap();
             debug!("Decoded node id / object id of {:?}", object_id);
             object_id
-        } else {
-            debug!("Node id in chunk is unrecognized");
-            return Err(BAD_TCP_MESSAGE_TYPE_INVALID);
         };
 
-        // Now the payload. The node id of the prefix allows us to recognize it.
-
-        let mut chunk_body_stream = &mut Cursor::new(chunk_body);
-
-        // TODO verify signature
-        // TODO decrypt
-
-        let decoded_message = SupportedMessage::decode_by_object_id(&mut chunk_body_stream, object_id);
+        // Now decode the payload using the node id.
+        let decoded_message = SupportedMessage::decode_by_object_id(&mut data, object_id);
         if decoded_message.is_err() {
             debug!("Can't decode message {:?}", object_id);
             return Err(BAD_SERVICE_UNSUPPORTED)

@@ -122,8 +122,6 @@ impl ChunkHeader {}
 /// the chunk and so on.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChunkInfo {
-    /// Node id, if present (first chunk only of a MSG)
-    pub node_id: Option<NodeId>,
     // Chunks either have an asymmetric or symmetric security header
     pub security_header: SecurityHeader,
     /// Byte offset to sequence header
@@ -136,6 +134,80 @@ pub struct ChunkInfo {
     pub body_length: usize,
     /// Byte offset to padding / signature
     pub padding_offset: usize,
+}
+
+impl ChunkInfo {
+    pub fn new(chunk: &Chunk, secure_channel_token: &SecureChannelToken) -> std::result::Result<ChunkInfo, StatusCode> {
+        let mut chunk_body_stream = Cursor::new(&chunk.chunk_body);
+
+        // Read the security header
+        let security_header = if chunk.is_open_secure_channel() {
+            let result = AsymmetricSecurityHeader::decode(&mut chunk_body_stream);
+            if result.is_err() {
+                error!("chunk_info() can't decode asymmetric security_header, {:?}", result.unwrap_err());
+                return Err(BAD_COMMUNICATION_ERROR)
+            }
+            let security_header = result.unwrap();
+
+            let security_policy = if security_header.security_policy_uri.is_null() {
+                SecurityPolicy::None
+            } else {
+                SecurityPolicy::from_uri(&security_header.security_policy_uri.as_ref())
+            };
+
+            match security_policy {
+                SecurityPolicy::Unknown => {
+                    error!("Security policy of chunk is unsupported, policy = {:?}", security_header.security_policy_uri);
+                    return Err(BAD_SECURITY_POLICY_REJECTED);
+                }
+                _ => {
+                    // Anything related to policy can be worked out here
+                }
+            }
+            SecurityHeader::Asymmetric(security_header)
+        } else {
+            let result = SymmetricSecurityHeader::decode(&mut chunk_body_stream);
+            if result.is_err() {
+                error!("chunk_info() can't decode symmetric security_header, {:?}", result.unwrap_err());
+                return Err(BAD_COMMUNICATION_ERROR)
+            }
+            SecurityHeader::Symmetric(result.unwrap())
+        };
+
+        /// TODO compare policy to secure_channel_token if it's supplied - must match
+
+        let sequence_header_offset = chunk_body_stream.position();
+        let sequence_header_result = SequenceHeader::decode(&mut chunk_body_stream);
+        if sequence_header_result.is_err() {
+            error!("Cannot decode sequence header {:?}", sequence_header_result.unwrap_err());
+            return Err(BAD_COMMUNICATION_ERROR);
+        }
+        let sequence_header = sequence_header_result.unwrap();
+
+        // Read Body
+        let body_offset = chunk_body_stream.position();
+
+        // All of what follows is the message body
+        let body_length = chunk.chunk_body.len() as u64 - body_offset;
+
+        // Complex OPA UA calculation
+        // TODO calculate max_body_size based on security policy
+        // MaxBodySize = PlainTextBlockSize * Floor((MessageChunkSize –   HeaderSize – SignatureSize - 1)/CipherTextBlockSize) –    SequenceHeaderSize;
+
+        // Padding and signature offset
+        let padding_offset = body_offset + body_length;
+
+        let chunk_info = ChunkInfo {
+            security_header: security_header,
+            sequence_header_offset: sequence_header_offset as usize,
+            sequence_header: sequence_header,
+            body_offset: body_offset as usize,
+            body_length: body_length as usize,
+            padding_offset: padding_offset as usize,
+        };
+
+        Ok(chunk_info)
+    }
 }
 
 /// Holds the security header associated with the chunk. Secure channel requests use an asymmetric
@@ -406,89 +478,7 @@ impl Chunk {
         self.chunk_header.message_type == ChunkMessageType::OpenSecureChannel
     }
 
-    pub fn chunk_info(&self, is_first_chunk: bool, secure_channel_token: &SecureChannelToken) -> std::result::Result<ChunkInfo, StatusCode> {
-        let mut chunk_body_stream = Cursor::new(&self.chunk_body);
-
-        // Read the security header
-        let security_header = if self.is_open_secure_channel() {
-            let result = AsymmetricSecurityHeader::decode(&mut chunk_body_stream);
-            if result.is_err() {
-                error!("chunk_info() can't decode asymmetric security_header, {:?}", result.unwrap_err());
-                return Err(BAD_COMMUNICATION_ERROR)
-            }
-            let security_header = result.unwrap();
-
-            let security_policy = if security_header.security_policy_uri.is_null() {
-                SecurityPolicy::None
-            } else {
-                SecurityPolicy::from_uri(&security_header.security_policy_uri.as_ref())
-            };
-
-            match security_policy {
-                SecurityPolicy::Unknown => {
-                    error!("Security policy of chunk is unsupported, policy = {:?}", security_header.security_policy_uri);
-                    return Err(BAD_SECURITY_POLICY_REJECTED);
-                }
-                _ => {
-                    // Anything related to policy can be worked out here
-                }
-            }
-            SecurityHeader::Asymmetric(security_header)
-        } else {
-            let result = SymmetricSecurityHeader::decode(&mut chunk_body_stream);
-            if result.is_err() {
-                error!("chunk_info() can't decode symmetric security_header, {:?}", result.unwrap_err());
-                return Err(BAD_COMMUNICATION_ERROR)
-            }
-            SecurityHeader::Symmetric(result.unwrap())
-        };
-
-        /// TODO compare policy to secure_channel_token if it's supplied - must match
-
-        let sequence_header_offset = chunk_body_stream.position();
-        let sequence_header_result = SequenceHeader::decode(&mut chunk_body_stream);
-        if sequence_header_result.is_err() {
-            error!("Cannot decode sequence header {:?}", sequence_header_result.unwrap_err());
-            return Err(BAD_COMMUNICATION_ERROR);
-        }
-        let sequence_header = sequence_header_result.unwrap();
-
-        let node_id = if is_first_chunk {
-            let node_id_result = NodeId::decode(&mut chunk_body_stream);
-            if node_id_result.is_err() {
-                error!("chunk_info() can't decode node_id, {:?}", node_id_result.unwrap_err());
-                return Err(BAD_COMMUNICATION_ERROR)
-            }
-            Some(node_id_result.unwrap())
-        } else {
-            debug!("chunk_info() is skipping node_id, is_first_chunk = {:?}, message_type = {:?}", is_first_chunk, self.chunk_header.message_type);
-            None
-        };
-
-        // Read Body
-        let body_offset = chunk_body_stream.position();
-
-        // All of what follows is the message body
-        let body_length = self.chunk_body.len() as u64 - body_offset;
-
-        // Complex OPA UA calculation
-        // TODO calculate max_body_size based on security policy
-        // MaxBodySize = PlainTextBlockSize * Floor((MessageChunkSize –   HeaderSize – SignatureSize - 1)/CipherTextBlockSize) –    SequenceHeaderSize;
-
-        // Padding and signature offset
-        let padding_offset = body_offset + body_length;
-
-        let chunk_info = ChunkInfo {
-            node_id: node_id,
-            security_header: security_header,
-            sequence_header_offset: sequence_header_offset as usize,
-            sequence_header: sequence_header,
-
-            body_offset: body_offset as usize,
-            body_length: body_length as usize,
-            padding_offset: padding_offset as usize,
-        };
-
-        Ok(chunk_info)
+    pub fn chunk_info(&self, secure_channel_token: &SecureChannelToken) -> std::result::Result<ChunkInfo, StatusCode> {
+        ChunkInfo::new(self, secure_channel_token)
     }
 }

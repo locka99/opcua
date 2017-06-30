@@ -360,7 +360,7 @@ impl TcpTransport {
         let chunk_message_type = chunk.chunk_header.message_type.clone();
 
         let in_chunks = vec![chunk];
-        let chunk_info = in_chunks[0].chunk_info(true, &self.secure_channel.secure_channel_token)?;
+        let chunk_info = in_chunks[0].chunk_info(&self.secure_channel.secure_channel_token)?;
         let request_id = chunk_info.sequence_header.request_id;
 
         let message = self.turn_received_chunks_into_message(&in_chunks)?;
