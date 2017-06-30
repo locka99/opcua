@@ -76,7 +76,7 @@ impl SecureChannelToken {
     }
 
     /// Encode data using security
-    pub fn encrypt_and_sign(&self, src: &[u8], dst: &mut [u8], signature: &mut [u8]) -> Result<(), StatusCode> {
+    pub fn encrypt(&self, src: &[u8], dst: &mut [u8], signature: &mut [u8]) -> Result<(), StatusCode> {
         match self.security_mode {
             MessageSecurityMode::None => {
                 // Just copy data to out
@@ -131,7 +131,7 @@ impl SecureChannelToken {
     }
 
     /// Decrypts and verifies data
-    pub fn decrypt_and_verify(&self, src: &[u8], signature: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
+    pub fn decrypt(&self, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
        match self.security_mode {
             MessageSecurityMode::None => {
                 // Just copy data to out

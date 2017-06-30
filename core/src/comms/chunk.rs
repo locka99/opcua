@@ -5,14 +5,14 @@ use types::*;
 use comms::*;
 use constants;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ChunkMessageType {
     Message,
     OpenSecureChannel,
     CloseSecureChannel
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ChunkType {
     /// Intermediate
     Intermediate,

@@ -55,25 +55,28 @@ impl Chunker {
         let _ = supported_message.encode(&mut stream)?;
         let data = stream.into_inner();
 
-        // One chunk support
-        // Multiple chunk means breaking the data up into sections, sending slices
-        // of data to encode_chunk
-
-        // let data_chunks = data.chunks(size) 
-        let chunk = Chunk::new(sequence_number, request_id, message_type, chunk_type, secure_channel_token, &data)?;
-        Ok(vec![chunk])
+        let chunk_size = 0; // TODO
+        let result = if chunk_size > 0 {
+            // Multiple chunks means breaking the data up into sections. Fortunately
+            // Rust has a nice function to do just that.
+            let data_chunks = data.chunks(chunk_size);
+            let mut chunks = Vec::with_capacity(data_chunks.len());
+            for (i, data_chunk) in data_chunks.enumerate() {
+                let chunk = Chunk::new(sequence_number + i as u32, request_id, message_type, chunk_type, secure_channel_token, data_chunk)?;
+                chunks.push(chunk);
+            }
+            chunks
+        }
+        else {
+            let chunk = Chunk::new(sequence_number, request_id, message_type, chunk_type, secure_channel_token, &data)?;
+            vec![chunk]
+        };
+        Ok(result)
     }
 
     /// Decodes a series of chunks to create a message. The message must be of a `SupportedMessage`
     /// type otherwise an error will occur.
     pub fn decode(chunks: &Vec<Chunk>, secure_channel_token: &SecureChannelToken, expected_node_id: Option<NodeId>) -> std::result::Result<SupportedMessage, StatusCode> {
-        if chunks.len() != 1 {
-            // TODO more than one chunk is not supported yet
-            // TODO decoding multiple chunks means validating their headers, decrypting them to a buffer and stitching them together
-            error!("Only one chunk is supported");
-            return Err(BAD_UNEXPECTED_ERROR);
-        }
-
         // TODO all chunks should be verified first
 
         // Calculate the size of the data
