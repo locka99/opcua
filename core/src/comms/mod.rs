@@ -19,12 +19,14 @@ pub const CHUNK_FINAL_ERROR: u8 = b'A';
 pub const MAX_CHUNK_COUNT: usize = 1;
 
 mod security_policy;
+mod security_header;
 mod chunk;
 mod chunker;
 mod message_buffer;
 mod handshake;
 mod supported_message;
 
+pub use self::security_header::*;
 pub use self::security_policy::*;
 pub use self::chunk::*;
 pub use self::chunker::*;

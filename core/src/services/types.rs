@@ -301,6 +301,19 @@ impl ResponseHeader {
             additional_header: ExtensionObject::null(),
         }
     }
+
+    /// For testing, nothing else
+    pub fn null() -> ResponseHeader {
+        ResponseHeader {
+            timestamp: DateTime::now(),
+            request_handle: 0,
+            service_result: GOOD,
+            service_diagnostics: DiagnosticInfo::new(),
+            string_table: None,
+            additional_header: ExtensionObject::null(),
+        }
+        
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]

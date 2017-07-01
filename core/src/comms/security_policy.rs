@@ -6,6 +6,9 @@ use constants;
 use crypto;
 use crypto::types::*;
 
+use comms::{SecurityHeader, SymmetricSecurityHeader, AsymmetricSecurityHeader};
+use comms::chunk::{ChunkMessageType};
+
 #[derive(Debug)]
 pub struct SecureChannelToken {
     pub security_mode: MessageSecurityMode,
@@ -35,6 +38,19 @@ impl SecureChannelToken {
         }
     }
 
+    pub fn make_security_header(&self, message_type: ChunkMessageType)-> SecurityHeader {
+        match message_type {
+            ChunkMessageType::OpenSecureChannel => {
+                SecurityHeader::Asymmetric(AsymmetricSecurityHeader::none())
+            }
+            _ => {
+                SecurityHeader::Symmetric(SymmetricSecurityHeader {
+                    token_id: self.token_id,
+                })
+            }
+        }
+    }
+
     pub fn create_random_nonce(&mut self) {
         use rand::{self, Rng};
         let mut rng = rand::thread_rng();
@@ -61,10 +77,19 @@ impl SecureChannelToken {
         if now.ge(&token_expires) { true } else { false }
     }
 
+    /// Calculate the signature size
+    pub fn signature_length(&self) -> usize {
+        // TODO check certificate type for signature size
+        match self.security_mode {
+            MessageSecurityMode::None => 0,
+            _ => 20,
+        }
+    }
+
     /// Calculate the padding size
-    pub fn calc_chunk_padding(&self, byte_length: u32) -> (u8, u8) {
+    pub fn calc_chunk_padding(&self, byte_length: usize) -> (u8, u8) {
         if self.security_policy != SecurityPolicy::None && self.security_mode != MessageSecurityMode::None {
-            let signature_size = 20; // TODO
+            let signature_size = self.signature_length();
             let plain_block_size = self.security_policy.plain_block_size();
             let padding_size: u8 = (plain_block_size - ((byte_length + signature_size + 1) % plain_block_size)) as u8;
             let extra_padding_size = 0u8;
@@ -185,7 +210,7 @@ impl SecurityPolicy {
     }
 
     // Plaintext block size in bytes
-    pub fn plain_block_size(&self) -> u32 {
+    pub fn plain_block_size(&self) -> usize {
         match self {
             &SecurityPolicy::Basic128Rsa15 => 16,
             &SecurityPolicy::Basic256 => 16,
@@ -197,7 +222,7 @@ impl SecurityPolicy {
     }
 
     // Cipher block size in bytes
-    pub fn cipher_block_size(&self) -> u32 {
+    pub fn cipher_block_size(&self) -> usize {
         // AES uses a 128-bit block size regardless of key length
         match self {
             &SecurityPolicy::Basic128Rsa15 => 16,
@@ -210,7 +235,7 @@ impl SecurityPolicy {
     }
 
     /// Returns the max key length in bits
-    pub fn min_asymmetric_key_length(&self) -> u32 {
+    pub fn min_asymmetric_key_length(&self) -> usize {
         match self {
             &SecurityPolicy::Basic128Rsa15 => crypto::consts::basic128rsa15::MIN_ASYMMETRIC_KEY_LENGTH,
             &SecurityPolicy::Basic256 => crypto::consts::basic256::MIN_ASYMMETRIC_KEY_LENGTH,
@@ -222,7 +247,7 @@ impl SecurityPolicy {
     }
 
     /// Returns the max key length in bits
-    pub fn max_asymmetric_key_length(&self) -> u32 {
+    pub fn max_asymmetric_key_length(&self) -> usize {
         match self {
             &SecurityPolicy::Basic128Rsa15 => crypto::consts::basic128rsa15::MAX_ASYMMETRIC_KEY_LENGTH,
             &SecurityPolicy::Basic256 => crypto::consts::basic256::MAX_ASYMMETRIC_KEY_LENGTH,

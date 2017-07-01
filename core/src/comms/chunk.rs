@@ -210,145 +210,6 @@ impl ChunkInfo {
     }
 }
 
-/// Holds the security header associated with the chunk. Secure channel requests use an asymmetric
-/// security header, regular messages use a symmetric security header.
-#[derive(Debug, Clone, PartialEq)]
-pub enum SecurityHeader {
-    Asymmetric(AsymmetricSecurityHeader),
-    Symmetric(SymmetricSecurityHeader),
-}
-
-impl BinaryEncoder<SecurityHeader> for SecurityHeader {
-    fn byte_len(&self) -> usize {
-        match self {
-            &SecurityHeader::Asymmetric(ref value) => { value.byte_len() }
-            &SecurityHeader::Symmetric(ref value) => { value.byte_len() }
-        }
-    }
-
-    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        match self {
-            &SecurityHeader::Asymmetric(ref value) => { value.encode(stream) }
-            &SecurityHeader::Symmetric(ref value) => { value.encode(stream) }
-        }
-    }
-
-    fn decode<S: Read>(_: &mut S) -> EncodingResult<Self> {
-        unimplemented!();
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct SymmetricSecurityHeader {
-    pub token_id: UInt32,
-}
-
-impl BinaryEncoder<SymmetricSecurityHeader> for SymmetricSecurityHeader {
-    fn byte_len(&self) -> usize {
-        4
-    }
-
-    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        Ok(self.token_id.encode(stream)?)
-    }
-
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let token_id = UInt32::decode(stream)?;
-        Ok(SymmetricSecurityHeader {
-            token_id: token_id
-        })
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct AsymmetricSecurityHeader {
-    pub security_policy_uri: UAString,
-    pub sender_certificate: ByteString,
-    pub receiver_certificate_thumbprint: ByteString,
-}
-
-impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
-    fn byte_len(&self) -> usize {
-        let mut size = 0;
-        size += self.security_policy_uri.byte_len();
-        size += self.sender_certificate.byte_len();
-        size += self.receiver_certificate_thumbprint.byte_len();
-        size
-    }
-
-    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        let mut size = 0;
-        size += self.security_policy_uri.encode(stream)?;
-        size += self.sender_certificate.encode(stream)?;
-        size += self.receiver_certificate_thumbprint.encode(stream)?;
-        assert_eq!(size, self.byte_len());
-        Ok(size)
-    }
-
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let security_policy_uri = UAString::decode(stream)?;
-        let sender_certificate = ByteString::decode(stream)?;
-        let receiver_certificate_thumbprint = ByteString::decode(stream)?;
-
-        // validate sender_certificate_length < MaxCertificateSize
-        if sender_certificate.value.is_some() && sender_certificate.value.as_ref().unwrap().len() >= constants::MAX_CERTIFICATE_LENGTH as usize {
-            error!("Sender certificate exceeds max certificate size");
-            return Err(BAD_DECODING_ERROR);
-        }
-
-        // validate receiver_certificate_thumbprint_length == 20
-        let thumbprint_len = if receiver_certificate_thumbprint.value.is_some() { receiver_certificate_thumbprint.value.as_ref().unwrap().len() } else { 0 };
-        if thumbprint_len > 0 && thumbprint_len != 20 {
-            error!("Receiver certificate thumbprint is not 20 bytes long, {} bytes", receiver_certificate_thumbprint.value.as_ref().unwrap().len());
-            return Err(BAD_DECODING_ERROR);
-        }
-
-        Ok(AsymmetricSecurityHeader {
-            security_policy_uri: security_policy_uri,
-            sender_certificate: sender_certificate,
-            receiver_certificate_thumbprint: receiver_certificate_thumbprint
-        })
-    }
-}
-
-impl AsymmetricSecurityHeader {
-    pub fn none() -> AsymmetricSecurityHeader {
-        AsymmetricSecurityHeader {
-            security_policy_uri: SecurityPolicy::None.to_string(),
-            sender_certificate: ByteString::null(),
-            receiver_certificate_thumbprint: ByteString::null(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct SequenceHeader {
-    pub sequence_number: UInt32,
-    pub request_id: UInt32,
-}
-
-impl BinaryEncoder<SequenceHeader> for SequenceHeader {
-    fn byte_len(&self) -> usize {
-        8
-    }
-
-    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        let mut size: usize = 0;
-        size += self.sequence_number.encode(stream)?;
-        size += self.request_id.encode(stream)?;
-        Ok(size)
-    }
-
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let sequence_number = UInt32::decode(stream)?;
-        let request_id = UInt32::decode(stream)?;
-        Ok(SequenceHeader {
-            sequence_number: sequence_number,
-            request_id: request_id,
-        })
-    }
-}
-
 /// A chunk holds a part or the whole of a message. The chunk may be signed and encrypted. To
 /// extract the message may require one or more chunks.
 #[derive(Debug)]
@@ -400,19 +261,33 @@ impl BinaryEncoder<Chunk> for Chunk {
 }
 
 impl Chunk {
+    /// Calculates how large a plain text can be to fix the inside of a chunk of a particular size.
+    /// This requires calculating the size of the header, the signature, padding etc. and deducting it
+    /// to reveal the message size
+    pub fn message_size_from_chunk_size(message_type: ChunkMessageType, secure_channel_token: &SecureChannelToken, max_chunk_size: usize) -> usize {
+        if max_chunk_size < 8192 {
+            panic!("max chunk size cannot be less than minimum in the spec");
+        }
+
+        let mut chunk_size = 0;
+        chunk_size += secure_channel_token.make_security_header(message_type).byte_len();
+        chunk_size += (SequenceHeader { sequence_number: 0, request_id: 0}).byte_len();
+
+        // 1 byte == most padding
+        let (padding_size, extra_padding_size) = secure_channel_token.calc_chunk_padding(1);
+        chunk_size += 1 + padding_size as usize;
+        chunk_size += 1 + extra_padding_size as usize;
+
+        // signature length
+        chunk_size += secure_channel_token.signature_length();
+
+        // Message size is what's left
+        max_chunk_size - chunk_size
+    }
+
     pub fn new(sequence_number: UInt32, request_id: UInt32, message_type: ChunkMessageType, chunk_type: ChunkType, secure_channel_token: &SecureChannelToken, data: &[u8]) -> Result<Chunk, StatusCode> {
         // security header depends on message type
-        let security_header = match message_type {
-            ChunkMessageType::OpenSecureChannel => {
-                SecurityHeader::Asymmetric(AsymmetricSecurityHeader::none())
-            }
-            _ => {
-                SecurityHeader::Symmetric(SymmetricSecurityHeader {
-                    token_id: secure_channel_token.token_id,
-                })
-            }
-        };
-
+        let security_header = secure_channel_token.make_security_header(message_type);
         let sequence_header = SequenceHeader { sequence_number, request_id };
 
         // Calculate the chunk body size
@@ -421,7 +296,7 @@ impl Chunk {
         chunk_body_size += sequence_header.byte_len();
         chunk_body_size += data.len();
         // Test if padding is required
-        let (padding_size, extra_padding_size) = secure_channel_token.calc_chunk_padding(data.len() as u32);
+        let (padding_size, extra_padding_size) = secure_channel_token.calc_chunk_padding(data.len());
         if padding_size > 0 {
             chunk_body_size += 1 + padding_size as usize;
         }

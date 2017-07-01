@@ -37,6 +37,35 @@ fn sample_secure_channel_request_data_security_none() -> Chunk {
 }
 
 #[test]
+fn chunk_multi_encode_decode() {
+    let _ = Test::setup();
+
+    let secure_channel_token = SecureChannelToken::new();
+
+    let mut results = Vec::new();
+    for i in 0..10000 {
+        results.push(DataValue::new(Variant::UInt32(i)));
+    }
+
+    let response = ReadResponse {
+        response_header: ResponseHeader::null(),
+        results: Some(results),
+        diagnostic_infos: None,
+    };
+
+    // Create a very large message
+    let chunks = Chunker::encode(1, 1, 0, 8192, &secure_channel_token, &SupportedMessage::ReadResponse(response.clone())).unwrap();
+    assert!(chunks.len() > 1);
+
+    let new_response = Chunker::decode(&chunks, &secure_channel_token, None).unwrap();
+    let new_response = match new_response {
+        SupportedMessage::ReadResponse(new_response) => new_response,
+        _ => { panic!("Not a ReadResponse"); }
+    };
+    assert_eq!(response, new_response);
+}
+
+#[test]
 fn chunk_open_secure_channel() {
     let _ = Test::setup();
 
@@ -63,7 +92,7 @@ fn chunk_open_secure_channel() {
     // Encode the message up again to chunks, decode and compare to original
     debug!("Encoding back to chunks");
 
-    let chunks = Chunker::encode(1, 1, &secure_channel_token, &SupportedMessage::OpenSecureChannelRequest(request.clone())).unwrap();
+    let chunks = Chunker::encode(1, 1, 0, 0, &secure_channel_token, &SupportedMessage::OpenSecureChannelRequest(request.clone())).unwrap();
     assert_eq!(chunks.len(), 1);
 
     debug!("Decoding to compare the new version");

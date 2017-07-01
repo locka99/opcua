@@ -247,7 +247,8 @@ impl TcpTransport {
         debug!("Sending request");
 
         // Turn message to chunk(s)
-        let chunks = Chunker::encode(self.last_sent_sequence_number + 1, request_id, &self.secure_channel_token, &request)?;
+        // TODO max message size and max chunk size
+        let chunks = Chunker::encode(self.last_sent_sequence_number + 1, request_id, 0, 0, &self.secure_channel_token, &request)?;
 
         // Sequence number monotonically increases per chunk
         self.last_sent_sequence_number += chunks.len() as UInt32;

@@ -37,17 +37,24 @@ impl Chunker {
     }
 
     /// Encodes a message using the supplied sequence number and secure channel info and emits the corresponding chunks
-    pub fn encode(sequence_number: UInt32, request_id: UInt32, secure_channel_token: &SecureChannelToken, supported_message: &SupportedMessage) -> std::result::Result<Vec<Chunk>, StatusCode> {
+    ///
+    /// max_chunk_size refers to the maximum byte length that a chunk should not exceed or 0 for no limit
+    /// max_message_size refers to the maximum byte length of a message or 0 for no limit
+    
+    pub fn encode(sequence_number: UInt32, request_id: UInt32, max_message_size: usize, max_chunk_size: usize, secure_channel_token: &SecureChannelToken, supported_message: &SupportedMessage) -> std::result::Result<Vec<Chunk>, StatusCode> {
         let security_policy = secure_channel_token.security_policy;
         if security_policy == SecurityPolicy::Unknown {
             panic!("Security policy cannot be unknown");
         }
 
-        let message_type = Chunker::chunk_message_type(supported_message);
-        let chunk_type = ChunkType::Final;
-
         let node_id = supported_message.node_id();
         let message_size = node_id.byte_len() + supported_message.byte_len();
+        if max_message_size > 0 && message_size > max_message_size {
+            return Err(BAD_RESPONSE_TOO_LARGE);
+        }
+
+        let message_type = Chunker::chunk_message_type(supported_message);
+        let chunk_type = ChunkType::Final;
         let mut stream = Cursor::new(vec![0u8; message_size]);
 
         debug!("Encoding node id {:?}", node_id);
@@ -55,11 +62,11 @@ impl Chunker {
         let _ = supported_message.encode(&mut stream)?;
         let data = stream.into_inner();
 
-        let chunk_size = 0; // TODO
-        let result = if chunk_size > 0 {
+        let result = if max_chunk_size > 0 {
+            let max_message_per_chunk_size = Chunk::message_size_from_chunk_size(message_type, secure_channel_token, max_chunk_size);
             // Multiple chunks means breaking the data up into sections. Fortunately
             // Rust has a nice function to do just that.
-            let data_chunks = data.chunks(chunk_size);
+            let data_chunks = data.chunks(max_message_per_chunk_size);
             let mut chunks = Vec::with_capacity(data_chunks.len());
             for (i, data_chunk) in data_chunks.enumerate() {
                 let chunk = Chunk::new(sequence_number + i as u32, request_id, message_type, chunk_type, secure_channel_token, data_chunk)?;

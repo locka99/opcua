@@ -41,13 +41,13 @@ pub mod consts {
         pub const KEY_DERIVATION_ALGORITHM: &'static str = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1";
 
         /// DerivedSignatureKeyLength – 128.
-        pub const DERIVED_SIGNATURE_KEY_LENGTH: u32 = 128;
+        pub const DERIVED_SIGNATURE_KEY_LENGTH: usize = 128;
 
         /// MinAsymmetricKeyLength – 1024
-        pub const MIN_ASYMMETRIC_KEY_LENGTH: u32 = 1024;
+        pub const MIN_ASYMMETRIC_KEY_LENGTH: usize = 1024;
 
         /// MaxAsymmetricKeyLength – 2048
-        pub const MAX_ASYMMETRIC_KEY_LENGTH: u32 = 2048;
+        pub const MAX_ASYMMETRIC_KEY_LENGTH: usize = 2048;
 
         /// CertificateSignatureAlgorithm – Sha1
         ///
@@ -78,13 +78,13 @@ pub mod consts {
         pub const KEY_DERIVATION_ALGORITHM: &'static str = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1";
 
         /// DerivedSignatureKeyLength – 192.
-        pub const DERIVED_SIGNATURE_KEY_LENGTH: u32 = 192;
+        pub const DERIVED_SIGNATURE_KEY_LENGTH: usize = 192;
 
         /// MinAsymmetricKeyLength – 1024
-        pub const MIN_ASYMMETRIC_KEY_LENGTH: u32 = 1024;
+        pub const MIN_ASYMMETRIC_KEY_LENGTH: usize = 1024;
 
         /// MaxAsymmetricKeyLength – 2048
-        pub const MAX_ASYMMETRIC_KEY_LENGTH: u32 = 2048;
+        pub const MAX_ASYMMETRIC_KEY_LENGTH: usize = 2048;
 
         /// CertificateSignatureAlgorithm –
         ///
@@ -120,13 +120,13 @@ pub mod consts {
         pub const KEY_DERIVATION_ALGORITHM: &'static str = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha256";
 
         /// DerivedSignatureKeyLength – 256
-        pub const DERIVED_SIGNATURE_KEY_LENGTH: u32 = 256;
+        pub const DERIVED_SIGNATURE_KEY_LENGTH: usize = 256;
 
         /// MinAsymmetricKeyLength – 2048
-        pub const MIN_ASYMMETRIC_KEY_LENGTH: u32 = 2048;
+        pub const MIN_ASYMMETRIC_KEY_LENGTH: usize = 2048;
 
         /// MaxAsymmetricKeyLength – 4096
-        pub const MAX_ASYMMETRIC_KEY_LENGTH: u32 = 4096;
+        pub const MAX_ASYMMETRIC_KEY_LENGTH: usize = 4096;
 
         /// CertificateSignatureAlgorithm – Sha256
         ///
