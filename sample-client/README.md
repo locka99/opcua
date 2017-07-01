@@ -1,1 +1,1 @@
-Client side is not yet implemented
+This sample client connects to a server and retrieves several values before terminating. Run against the 3rd party node server or Rust sample-server.

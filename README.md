@@ -101,7 +101,6 @@ Currently the following are not supported
 * Diagnostic info. OPC UA allows for you to ask for diagnostics with any request. None is supplied at this time
 * Session resumption. If your client disconnects, all information is discarded.
 * Encryption will come after basically functionality is working in the clear.
-* Chunks are 1 chunk only. 
 * Default nodeset is mostly static. Certain fields of server information will contain their default values unless explicitly set.
 
 ## Client
