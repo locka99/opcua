@@ -21,37 +21,45 @@ impl Chunker {
     ///
     /// The function returns the last sequence number in the series for success, or
     /// BAD_SEQUENCE_NUMBER_INVALID for failure.
-    pub fn validate_chunk_sequences(starting_sequence_number: UInt32, secure_channel_token: &SecureChannelToken, chunks: &Vec<Chunk>) -> Result<UInt32, StatusCode> {
+    pub fn validate_chunk_sequences(sequence_number: UInt32, secure_channel_token: &SecureChannelToken, chunks: &Vec<Chunk>) -> Result<UInt32, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
-        let mut sequence_number = starting_sequence_number;
-        for chunk in chunks.iter() {
-            let chunk_info = chunk.chunk_info(secure_channel_token)?;
-            // Check the sequence id - should be larger than the last one decoded
-            if chunk_info.sequence_header.sequence_number <= sequence_number {
-                error!("Chunk has a sequence number of {} which is less than last decoded sequence number of {}", chunk_info.sequence_header.sequence_number, sequence_number);
-                return Err(BAD_SEQUENCE_NUMBER_INVALID);
+        {
+            let mut sequence_number = sequence_number;
+            for chunk in chunks.iter() {
+                let chunk_info = chunk.chunk_info(secure_channel_token)?;
+                // Check the sequence id - should be larger than the last one decoded
+                if chunk_info.sequence_header.sequence_number != sequence_number {
+                    error!("Chunk has a sequence number of {} which is less than last decoded sequence number of {}", chunk_info.sequence_header.sequence_number, sequence_number);
+                    return Err(BAD_SEQUENCE_NUMBER_INVALID);
+                }
+                sequence_number += 1;
             }
-            sequence_number = chunk_info.sequence_header.sequence_number;
         }
-        Ok(sequence_number)
+        Ok(sequence_number + chunks.len() as UInt32 - 1)
     }
 
     /// Encodes a message using the supplied sequence number and secure channel info and emits the corresponding chunks
     ///
     /// max_chunk_size refers to the maximum byte length that a chunk should not exceed or 0 for no limit
     /// max_message_size refers to the maximum byte length of a message or 0 for no limit
-    
+    ///
     pub fn encode(sequence_number: UInt32, request_id: UInt32, max_message_size: usize, max_chunk_size: usize, secure_channel_token: &SecureChannelToken, supported_message: &SupportedMessage) -> std::result::Result<Vec<Chunk>, StatusCode> {
         let security_policy = secure_channel_token.security_policy;
         if security_policy == SecurityPolicy::Unknown {
             panic!("Security policy cannot be unknown");
         }
 
-        let node_id = supported_message.node_id();
-        let message_size = node_id.byte_len() + supported_message.byte_len();
+        // Client / server stacks should validate the length of a message before sending it and
+        // here makes as good a place as any to do that.
+        let mut message_size = supported_message.byte_len();
         if max_message_size > 0 && message_size > max_message_size {
+            warn!("Max message size is {} and message {} exceeds that", max_message_size, message_size);
+            // TODO Client stack should report a BAD_REQUEST_TOO_LARGE 
             return Err(BAD_RESPONSE_TOO_LARGE);
         }
+
+        let node_id = supported_message.node_id();
+        message_size += node_id.byte_len();
 
         let message_type = Chunker::chunk_message_type(supported_message);
         let chunk_type = ChunkType::Final;

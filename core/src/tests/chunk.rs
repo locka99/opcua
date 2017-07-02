@@ -36,33 +36,78 @@ fn sample_secure_channel_request_data_security_none() -> Chunk {
     }
 }
 
+fn make_large_read_response() -> SupportedMessage {
+    let mut results = Vec::new();
+    for i in 0..10000 {
+        results.push(DataValue::new(Variant::UInt32(i)));
+    }
+    SupportedMessage::ReadResponse(ReadResponse {
+        response_header: ResponseHeader::null(),
+        results: Some(results),
+        diagnostic_infos: None,
+    })
+}
+
 #[test]
 fn chunk_multi_encode_decode() {
     let _ = Test::setup();
 
     let secure_channel_token = SecureChannelToken::new();
-
-    let mut results = Vec::new();
-    for i in 0..10000 {
-        results.push(DataValue::new(Variant::UInt32(i)));
-    }
-
-    let response = ReadResponse {
-        response_header: ResponseHeader::null(),
-        results: Some(results),
-        diagnostic_infos: None,
-    };
+    let response = make_large_read_response();
 
     // Create a very large message
-    let chunks = Chunker::encode(1, 1, 0, 8192, &secure_channel_token, &SupportedMessage::ReadResponse(response.clone())).unwrap();
+    let sequence_number = 1000;
+    let request_id = 100;
+    let chunks = Chunker::encode(sequence_number, request_id, 0, 8192, &secure_channel_token, &response).unwrap();
     assert!(chunks.len() > 1);
 
+    // Verify chunk byte len <= 8192
+    let chunk_length = chunks[0].byte_len();
+    debug!("Chunk length = {}", chunk_length);
+    assert!(chunk_length <= 8192);
+
     let new_response = Chunker::decode(&chunks, &secure_channel_token, None).unwrap();
-    let new_response = match new_response {
-        SupportedMessage::ReadResponse(new_response) => new_response,
-        _ => { panic!("Not a ReadResponse"); }
-    };
     assert_eq!(response, new_response);
+}
+
+#[test]
+fn max_message_size() {
+      let _ = Test::setup();
+
+    let secure_channel_token = SecureChannelToken::new();
+
+    let response = make_large_read_response();
+
+    let max_message_size = response.byte_len();
+
+    let sequence_number = 1000;
+    let request_id = 100;
+    let chunks = Chunker::encode(sequence_number, request_id, max_message_size, 0, &secure_channel_token, &response).unwrap();
+    assert!(chunks.len() == 1);
+
+    // Expect this to fail
+    let err = Chunker::encode(sequence_number, request_id, max_message_size - 1, 0, &secure_channel_token, &response).unwrap_err();
+    assert_eq!(err, BAD_RESPONSE_TOO_LARGE);
+}
+
+#[test]
+fn validate_chunk_sequences() {
+   let _ = Test::setup();
+
+    let secure_channel_token = SecureChannelToken::new();
+    let response = make_large_read_response();
+
+    // Create a very large message
+    let sequence_number = 1000;
+    let request_id = 100;
+    let chunks = Chunker::encode(sequence_number, request_id, 0, 8192, &secure_channel_token, &response).unwrap();
+    assert!(chunks.len() > 1);
+
+    // Test sequence number is returned properly
+    let result = Chunker::validate_chunk_sequences(sequence_number, &secure_channel_token, &chunks).unwrap();
+    assert_eq!(sequence_number + chunks.len() as UInt32 - 1, result);
+
+    // TODO alter seq ids to generate a BAD_SEQUENCE_NUMBER_INVALID
 }
 
 #[test]

@@ -268,14 +268,18 @@ impl Chunk {
             panic!("max chunk size cannot be less than minimum in the spec");
         }
 
-        let mut chunk_size = 0;
+        let mut chunk_size = CHUNK_HEADER_SIZE;
         chunk_size += secure_channel_token.make_security_header(message_type).byte_len();
         chunk_size += (SequenceHeader { sequence_number: 0, request_id: 0}).byte_len();
 
         // 1 byte == most padding
         let (padding_size, extra_padding_size) = secure_channel_token.calc_chunk_padding(1);
-        chunk_size += 1 + padding_size as usize;
-        chunk_size += 1 + extra_padding_size as usize;
+        if padding_size > 0 {
+            chunk_size += 1 + padding_size as usize;
+        }
+        if extra_padding_size > 0 {
+            chunk_size += 1 + extra_padding_size as usize;
+        }
 
         // signature length
         chunk_size += secure_channel_token.signature_length();
