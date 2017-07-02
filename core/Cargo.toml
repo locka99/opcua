@@ -1,7 +1,12 @@
 [package]
 name = "opcua-core"
 version = "0.1.0"
+description = "Core components for OPC UA used by client and server"
 authors = ["Adam Lock <locka99@gmail.com>"]
+homepage = "https://github.com/locka99/opcua"
+license = "MPL-2.0"
+keywords = ["opcua","opc","ua"]
+categories = ["embedded","network-programming"]
 
 [dependencies]
 log = "0.3"

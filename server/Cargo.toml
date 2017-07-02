@@ -1,7 +1,12 @@
 [package]
 name = "opcua-server"
 version = "0.1.0"
+description = "OPC UA server API"
 authors = ["Adam Lock <locka99@gmail.com>"]
+homepage = "https://github.com/locka99/opcua"
+license = "MPL-2.0"
+keywords = ["opcua","opc","ua"]
+categories = ["embedded","network-programming"]
 
 [dependencies]
 log = "0.3"
