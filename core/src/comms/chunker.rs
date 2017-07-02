@@ -24,7 +24,7 @@ impl Chunker {
     pub fn validate_chunk_sequences(starting_sequence_number: UInt32, secure_channel_token: &SecureChannelToken, chunks: &Vec<Chunk>) -> Result<UInt32, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
         let mut sequence_number = starting_sequence_number;
-        for (i, chunk) in chunks.iter().enumerate() {
+        for chunk in chunks.iter() {
             let chunk_info = chunk.chunk_info(secure_channel_token)?;
             // Check the sequence id - should be larger than the last one decoded
             if chunk_info.sequence_header.sequence_number <= sequence_number {

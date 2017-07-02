@@ -1,5 +1,4 @@
-use std;
-use std::io::{Read, Write, Cursor};
+use std::io::{Read, Write};
 
 use constants;
 use types::*;

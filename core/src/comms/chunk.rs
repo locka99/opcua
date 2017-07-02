@@ -3,7 +3,6 @@ use std::io::{Read, Write, Cursor};
 
 use types::*;
 use comms::*;
-use constants;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ChunkMessageType {
