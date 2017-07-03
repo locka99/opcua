@@ -52,7 +52,7 @@ impl SubscriptionService {
 
     /// Handles a ModifySubscriptionRequest
     pub fn modify_subscription(&self, server_state: &mut ServerState, session: &mut Session, request: ModifySubscriptionRequest) -> Result<SupportedMessage, StatusCode> {
-        let  subscriptions = &mut session.subscriptions;
+        let subscriptions = &mut session.subscriptions;
         let subscription_id = request.subscription_id;
         let response = if !subscriptions.contains_key(&subscription_id) {
             ModifySubscriptionResponse {
@@ -90,7 +90,7 @@ impl SubscriptionService {
             let subscription_ids = request.subscription_ids.as_ref().unwrap();
             let mut results = Vec::with_capacity(subscription_ids.len());
 
-            let  subscriptions = &mut session.subscriptions;
+            let subscriptions = &mut session.subscriptions;
             for subscription_id in subscription_ids {
                 if subscriptions.contains_key(subscription_id) {
                     subscriptions.remove(subscription_id);

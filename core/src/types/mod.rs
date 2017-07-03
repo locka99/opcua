@@ -1099,7 +1099,7 @@ impl DataChangeFilter {
 impl EndpointDescription {
     /// Finds the policy id for the specified token type in the endpoint, otherwise None
     pub fn find_policy_id(&self, token_type: UserTokenType) -> Option<UAString> {
-        if let Some(ref tokens)=  self.user_identity_tokens {
+        if let Some(ref tokens) = self.user_identity_tokens {
             for token in tokens.iter() {
                 if token.token_type == token_type {
                     return Some(token.policy_id.clone())

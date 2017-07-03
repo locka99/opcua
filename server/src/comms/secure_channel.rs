@@ -42,9 +42,7 @@ impl SecureChannel {
 
         // Must compare protocol version to the one from HELLO
         if request.client_protocol_version != client_protocol_version {
-            error!("Client sent a different protocol version than it did in the HELLO - {} vs {}",
-                   request.client_protocol_version,
-                   client_protocol_version);
+            error!("Client sent a different protocol version than it did in the HELLO - {} vs {}", request.client_protocol_version, client_protocol_version);
             return Err(BAD_PROTOCOL_VERSION_UNSUPPORTED);
         }
 
@@ -57,7 +55,7 @@ impl SecureChannel {
                     // error
                     error!("Asked to issue token on session that has called renew before");
                 }
-            },
+            }
             SecurityTokenRequestType::Renew => {
                 debug!("Request type == Renew");
 
@@ -80,7 +78,7 @@ impl SecureChannel {
         match request.security_mode {
             MessageSecurityMode::None | MessageSecurityMode::Sign | MessageSecurityMode::SignAndEncrypt => {
                 debug!("Message security mode == {:?}", request.security_mode);
-            },
+            }
             _ => {
                 return Err(BAD_SECURITY_MODE_REJECTED);
             }
@@ -92,7 +90,7 @@ impl SecureChannel {
         self.last_secure_channel_id += 1;
 
         // Create a new secure channel info
-        self.secure_channel_token  = {
+        self.secure_channel_token = {
             let mut secure_channel_token = SecureChannelToken::new();
             secure_channel_token.token_id = self.last_token_id;
             secure_channel_token.security_mode = request.security_mode;
@@ -109,8 +107,7 @@ impl SecureChannel {
 
         let now = DateTime::now();
         let response = OpenSecureChannelResponse {
-            response_header: ResponseHeader::new_service_result(&now,                                                                &request.request_header,
-                                                                GOOD),
+            response_header: ResponseHeader::new_service_result(&now, &request.request_header, GOOD),
             server_protocol_version: 0,
             security_token: ChannelSecurityToken {
                 channel_id: self.secure_channel_token.secure_channel_id,

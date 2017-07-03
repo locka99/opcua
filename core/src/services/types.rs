@@ -312,7 +312,6 @@ impl ResponseHeader {
             string_table: None,
             additional_header: ExtensionObject::null(),
         }
-        
     }
 }
 

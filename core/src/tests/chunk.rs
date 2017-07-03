@@ -72,7 +72,7 @@ fn chunk_multi_encode_decode() {
 
 #[test]
 fn max_message_size() {
-      let _ = Test::setup();
+    let _ = Test::setup();
 
     let secure_channel_token = SecureChannelToken::new();
 
@@ -92,7 +92,7 @@ fn max_message_size() {
 
 #[test]
 fn validate_chunk_sequences() {
-   let _ = Test::setup();
+    let _ = Test::setup();
 
     let secure_channel_token = SecureChannelToken::new();
     let response = make_large_read_response();

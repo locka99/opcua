@@ -38,7 +38,7 @@ impl SecureChannelToken {
         }
     }
 
-    pub fn make_security_header(&self, message_type: ChunkMessageType)-> SecurityHeader {
+    pub fn make_security_header(&self, message_type: ChunkMessageType) -> SecurityHeader {
         match message_type {
             ChunkMessageType::OpenSecureChannel => {
                 SecurityHeader::Asymmetric(AsymmetricSecurityHeader::none())
@@ -108,44 +108,28 @@ impl SecureChannelToken {
                 let len = src.len();
                 &dst[..len].copy_from_slice(&src[..len]);
                 Ok(())
-            },
+            }
             MessageSecurityMode::Sign => {
                 match self.security_policy {
                     SecurityPolicy::None => {
                         panic!("Sign makes no sense without security policy");
-                    },
-                    SecurityPolicy::Basic128Rsa15 => {
-
-                    },
-                    SecurityPolicy::Basic256 => {
-
-                    },
-                    SecurityPolicy::Basic256Sha256 => {
-
-                    },
-                    _ => {
-                        
                     }
+                    SecurityPolicy::Basic128Rsa15 => {}
+                    SecurityPolicy::Basic256 => {}
+                    SecurityPolicy::Basic256Sha256 => {}
+                    _ => {}
                 }
                 Ok(())
-            },
+            }
             MessageSecurityMode::SignAndEncrypt => {
                 match self.security_policy {
                     SecurityPolicy::None => {
                         panic!("SignAndEncrypt makes no sense without security policy");
-                    },
-                    SecurityPolicy::Basic128Rsa15 => {
-
-                    },
-                    SecurityPolicy::Basic256 => {
-
-                    },
-                    SecurityPolicy::Basic256Sha256 => {
-
-                    },
-                    _ => {
-
                     }
+                    SecurityPolicy::Basic128Rsa15 => {}
+                    SecurityPolicy::Basic256 => {}
+                    SecurityPolicy::Basic256Sha256 => {}
+                    _ => {}
                 }
                 Ok(())
             }
@@ -157,13 +141,13 @@ impl SecureChannelToken {
 
     /// Decrypts and verifies data
     pub fn decrypt(&self, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
-       match self.security_mode {
+        match self.security_mode {
             MessageSecurityMode::None => {
                 // Just copy data to out
                 let len = src.len();
                 &dst[..len].copy_from_slice(&src[..len]);
                 Ok(())
-            },
+            }
             _ => {
                 // Use the security policy to decrypt the block using the token
                 unimplemented!()

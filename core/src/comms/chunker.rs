@@ -81,8 +81,7 @@ impl Chunker {
                 chunks.push(chunk);
             }
             chunks
-        }
-        else {
+        } else {
             let chunk = Chunk::new(sequence_number, request_id, message_type, chunk_type, secure_channel_token, &data)?;
             vec![chunk]
         };
@@ -101,7 +100,7 @@ impl Chunker {
             debug!("Chunker::decode chunk_info = {:?}", chunk_info);
             let body_start = chunk_info.body_offset;
             let body_end = body_start + chunk_info.body_length;
-            data_size += chunk.chunk_body[body_start..body_end].len(); 
+            data_size += chunk.chunk_body[body_start..body_end].len();
         }
 
         // Read the data into a contiguous buffer
@@ -113,7 +112,7 @@ impl Chunker {
             let chunk_data = &chunk.chunk_body[body_start..body_end];
             // TODO security policy decrypt
             let decrypted_data = chunk_data;
-            data.extend_from_slice(decrypted_data); 
+            data.extend_from_slice(decrypted_data);
         }
 
         // Make a stream around the data

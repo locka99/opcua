@@ -123,8 +123,7 @@ impl Session {
     pub fn validate_request(&self, request_header: &RequestHeader) -> Result<(), StatusCode> {
         if self.authentication_token != request_header.authentication_token {
             Err(BAD_IDENTITY_TOKEN_REJECTED)
-        }
-        else {
+        } else {
             Ok(())
         }
     }

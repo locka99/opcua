@@ -270,7 +270,7 @@ impl Chunk {
 
         let mut chunk_size = CHUNK_HEADER_SIZE;
         chunk_size += secure_channel_token.make_security_header(message_type).byte_len();
-        chunk_size += (SequenceHeader { sequence_number: 0, request_id: 0}).byte_len();
+        chunk_size += (SequenceHeader { sequence_number: 0, request_id: 0 }).byte_len();
 
         // 1 byte == most padding
         let (padding_size, extra_padding_size) = secure_channel_token.calc_chunk_padding(1);
