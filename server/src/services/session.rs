@@ -1,10 +1,9 @@
 use std::result::Result;
 
-use opcua_core::types::*;
-use opcua_core::services::*;
+use opcua_types::*;
+use opcua_types::profiles;
 use opcua_core::comms::*;
 use opcua_core::crypto;
-use opcua_core::profiles;
 
 use constants;
 use server::{Endpoint, ServerState};

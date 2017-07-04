@@ -1,5 +1,4 @@
-use types::*;
-use services::*;
+use opcua_types::*;
 
 use super::*;
 

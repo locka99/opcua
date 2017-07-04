@@ -1,7 +1,8 @@
 use std::io::{Read, Write, Cursor, Result, Error, ErrorKind};
 
+use opcua_types::*;
+
 use comms::*;
-use types::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum MessageType {

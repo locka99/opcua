@@ -1,8 +1,9 @@
 use chrono;
 
-use types::*;
-use profiles;
-use constants;
+use opcua_types::*;
+use opcua_types::profiles;
+use opcua_types::constants;
+
 use crypto;
 use crypto::types::*;
 

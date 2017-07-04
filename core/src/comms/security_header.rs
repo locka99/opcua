@@ -1,7 +1,8 @@
 use std::io::{Read, Write};
 
-use constants;
-use types::*;
+use opcua_types::*;
+use opcua_types::constants;
+
 use super::{SecurityPolicy};
 
 /// Holds the security header associated with the chunk. Secure channel requests use an asymmetric

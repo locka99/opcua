@@ -11,7 +11,7 @@ use timer;
 use chrono::{UTC};
 use time;
 
-use opcua_core::types::*;
+use opcua_types::*;
 use opcua_core::comms::*;
 use opcua_core::debug::*;
 

@@ -1,7 +1,8 @@
 //! This is a sample OPC UA Client that connects to the specified server, fetches some
 //! values before exiting.
-extern crate opcua_client;
+extern crate opcua_types;
 extern crate opcua_core;
+extern crate opcua_client;
 
 use opcua_client::prelude::*;
 

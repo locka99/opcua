@@ -2,6 +2,7 @@
 //! adds some variables to the address space and the listeners for connections. It also has
 //! a timer that updates those variables so anything monitoring variables sees the values changing.
 
+extern crate opcua_types;
 extern crate opcua_core;
 extern crate opcua_server;
 

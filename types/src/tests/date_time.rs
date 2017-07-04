@@ -1,4 +1,4 @@
-use types::*;
+use ::*;
 
 #[test]
 fn epoch() {

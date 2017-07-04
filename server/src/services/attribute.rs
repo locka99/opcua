@@ -1,8 +1,7 @@
 use std::result::Result;
 
-use opcua_core::types::*;
+use opcua_types::*;
 use opcua_core::comms::*;
-use opcua_core::services::*;
 
 use server::ServerState;
 use session::Session;

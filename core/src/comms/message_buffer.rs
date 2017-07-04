@@ -1,8 +1,9 @@
 use std;
 use std::io::{Cursor};
 
+use opcua_types::*;
+
 use debug::*;
-use types::*;
 use comms::*;
 
 #[derive(Debug)]

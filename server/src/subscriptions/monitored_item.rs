@@ -3,7 +3,7 @@ use std::result::Result;
 use chrono;
 use time;
 
-use opcua_core::types::*;
+use opcua_types::*;
 
 use constants;
 

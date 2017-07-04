@@ -11,6 +11,7 @@ extern crate time;
 extern crate chrono;
 extern crate timer;
 
+extern crate opcua_types;
 extern crate opcua_core;
 
 type DateTimeUTC = chrono::DateTime<chrono::UTC>;
@@ -25,7 +26,6 @@ pub mod config;
 pub mod address_space;
 pub mod util;
 
-
 pub mod prelude {
     pub use opcua_core::prelude::*;
     pub use address_space::*;
@@ -37,7 +37,7 @@ pub mod prelude {
 
 /// Constants that govern the internal workings of the server impl.
 pub mod constants {
-    use opcua_core::types::Double;
+    use opcua_types::Double;
 
     // Values used by configuration in the absence of user defined values
     /// The default hello timeout period in seconds

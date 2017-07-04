@@ -3,8 +3,7 @@
 
 macro_rules! node_impl {
     ( $node_struct:ty ) => {
-        use opcua_core::types::*;
-        use opcua_core::services::*;
+        use opcua_types::*;
 
         impl Node for $node_struct {
             fn node_class(&self) -> NodeClass { self.base.node_class() }

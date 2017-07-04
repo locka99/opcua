@@ -18,5 +18,8 @@ serde_yaml = "0.6"
 timer = "0.1.6"
 rand = "0.3"
 
+[dependencies.opcua-types]
+path = "../types"
+
 [dependencies.opcua-core]
 path = "../core"

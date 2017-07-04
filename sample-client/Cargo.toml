@@ -5,6 +5,9 @@ authors = ["Adam Lock <locka99@gmail.com>"]
 
 [dependencies]
 
+[dependencies.opcua-types]
+path = "../types"
+
 [dependencies.opcua-client]
 path = "../client"
 

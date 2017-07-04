@@ -4,8 +4,7 @@
 
 use std::io::{Read, Write};
 
-use types::*;
-use services::*;
+use opcua_types::*;
 
 /// This macro helps avoid tedious repetition as new messages are added
 /// The first form just handles the trailing comma after the last entry to save some pointless

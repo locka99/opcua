@@ -1,8 +1,7 @@
 use std;
 
-use opcua_core::types::*;
+use opcua_types::*;
 use opcua_core::comms::*;
-use opcua_core::services::{ResponseHeader, SecurityTokenRequestType};
 
 pub struct SecureChannel {
     // Secure channel info for the session

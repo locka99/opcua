@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
-use opcua_core::services::*;
-use opcua_core::types::*;
+use opcua_types::*;
 
 use address_space::*;
 use server::*;

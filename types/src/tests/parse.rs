@@ -1,6 +1,6 @@
 use std::str::{FromStr};
 
-use types::*;
+use ::*;
 
 #[test]
 fn parse_node_id() {

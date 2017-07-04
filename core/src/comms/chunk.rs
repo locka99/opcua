@@ -1,7 +1,8 @@
 use std;
 use std::io::{Read, Write, Cursor};
 
-use types::*;
+use opcua_types::*;
+
 use comms::*;
 
 #[derive(Debug, Clone, Copy, PartialEq)]

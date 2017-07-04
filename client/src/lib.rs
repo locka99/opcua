@@ -7,6 +7,7 @@ extern crate log;
 extern crate url;
 extern crate chrono;
 
+extern crate opcua_types;
 extern crate opcua_core;
 
 mod comms;

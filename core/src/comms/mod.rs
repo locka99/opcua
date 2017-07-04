@@ -1,6 +1,8 @@
 //! The comms module contains all code related to sending / receiving messages from a transport
 //! and turning those messages into and out of chunks.
 
+use opcua_types::*;
+
 pub const HELLO_MESSAGE: &'static [u8] = b"HEL";
 pub const ACKNOWLEDGE_MESSAGE: &'static [u8] = b"ACK";
 pub const ERROR_MESSAGE: &'static [u8] = b"ERR";

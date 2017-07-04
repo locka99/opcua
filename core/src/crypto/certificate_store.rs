@@ -13,7 +13,8 @@ use openssl::rsa::*;
 use openssl::asn1::*;
 use openssl::hash::*;
 
-use types::*;
+use opcua_types::*;
+
 use crypto::types::{X509, X509Data, PKey};
 
 /// The name that the server/client's application instance certificate is expected to be

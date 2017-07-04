@@ -1,5 +1,4 @@
-use types::*;
-
+use ::*;
 use super::*;
 
 #[test]

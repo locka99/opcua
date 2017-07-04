@@ -7,9 +7,10 @@ use std::env;
 
 use std::result::Result;
 
-use opcua_core;
-use opcua_core::types::MessageSecurityMode;
-use opcua_core::comms::SecurityPolicy;
+use opcua_types::{MessageSecurityMode};
+use opcua_types::constants as opcua_types_constants;
+
+use opcua_core::comms::{SecurityPolicy};
 
 use constants;
 
@@ -61,15 +62,15 @@ impl ServerEndpoint {
     }
 
     pub fn default_anonymous() -> ServerEndpoint {
-        ServerEndpoint::new_default(true, "", &[], opcua_core::constants::SECURITY_POLICY_NONE, opcua_core::constants::SECURITY_MODE_NONE)
+        ServerEndpoint::new_default(true, "", &[], opcua_types_constants::SECURITY_POLICY_NONE, opcua_types_constants::SECURITY_MODE_NONE)
     }
 
     pub fn default_user_pass(user: &str, pass: &[u8]) -> ServerEndpoint {
-        ServerEndpoint::new_default(false, user, pass, opcua_core::constants::SECURITY_POLICY_NONE, opcua_core::constants::SECURITY_MODE_NONE)
+        ServerEndpoint::new_default(false, user, pass, opcua_types_constants::SECURITY_POLICY_NONE, opcua_types_constants::SECURITY_MODE_NONE)
     }
 
     pub fn default_sign_encrypt() -> ServerEndpoint {
-        ServerEndpoint::new_default(false, "", &[], opcua_core::constants::SECURITY_POLICY_BASIC_128_RSA_15, opcua_core::constants::SECURITY_MODE_SIGN_AND_ENCRYPT)
+        ServerEndpoint::new_default(false, "", &[], opcua_types_constants::SECURITY_POLICY_BASIC_128_RSA_15, opcua_types_constants::SECURITY_MODE_SIGN_AND_ENCRYPT)
     }
 
     pub fn is_valid(&self) -> bool {
@@ -159,9 +160,9 @@ impl ServerConfig {
                 hello_timeout: constants::DEFAULT_HELLO_TIMEOUT_SECONDS,
             },
             endpoints: endpoints,
-            max_array_length: opcua_core::constants::MAX_ARRAY_LENGTH,
-            max_string_length: opcua_core::constants::MAX_STRING_LENGTH,
-            max_byte_string_length: opcua_core::constants::MAX_BYTE_STRING_LENGTH,
+            max_array_length: opcua_types_constants::MAX_ARRAY_LENGTH,
+            max_string_length: opcua_types_constants::MAX_STRING_LENGTH,
+            max_byte_string_length: opcua_types_constants::MAX_BYTE_STRING_LENGTH,
             max_subscriptions: constants::DEFAULT_MAX_SUBSCRIPTIONS,
         }
     }

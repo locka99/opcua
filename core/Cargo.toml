@@ -10,15 +10,13 @@ categories = ["embedded","network-programming"]
 
 [dependencies]
 log = "0.3"
-byteorder = "0.5"
 chrono = "0.3"
 rand = "0.3"
 regex = "0.2.1"
-lazy_static = "0.2"
 openssl = "0.9.9"
 
-[dependencies.url]
-git = "https://github.com/servo/rust-url"
+[dependencies.opcua-types]
+path = "../types"
 
 [dev-dependencies]
 tempdir = "0.3"

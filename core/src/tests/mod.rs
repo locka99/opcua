@@ -1,8 +1,5 @@
-mod encoding;
-mod date_time;
 mod chunk;
 mod services;
-mod parse;
 mod comms;
 mod authentication;
 mod crypto;
@@ -10,7 +7,8 @@ mod crypto;
 use std::fmt::Debug;
 use std::cmp::PartialEq;
 use std::io::Cursor;
-use types::*;
+
+use opcua_types::*;
 
 pub fn serialize_test_and_return<T>(value: T) -> T
     where T: BinaryEncoder<T> + Debug + PartialEq
@@ -46,29 +44,4 @@ pub fn serialize_test<T>(value: T)
     where T: BinaryEncoder<T> + Debug + PartialEq
 {
     let _ = serialize_test_and_return(value);
-}
-
-pub fn serialize_and_compare<T>(value: T, expected: &[u8])
-    where T: BinaryEncoder<T> + Debug + PartialEq
-{
-    // Ask the struct for its byte length
-    let byte_len = value.byte_len();
-    let mut stream = Cursor::new(vec![0; byte_len]);
-
-    let result = value.encode(&mut stream);
-    assert!(result.is_ok());
-
-    let size = result.unwrap();
-    assert_eq!(size, expected.len());
-    println!("Size of encoding = {}", size);
-    assert_eq!(size, byte_len);
-
-    let actual = stream.into_inner();
-
-    println!("actual {:?}", actual);
-    println!("expected {:?}", expected);
-
-    for i in 0..size {
-        assert_eq!(actual[i], expected[i])
-    }
 }

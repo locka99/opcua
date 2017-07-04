@@ -10,7 +10,8 @@ pub use self::types::*;
 pub use self::certificate_store::*;
 pub use self::encrypt_decrypt::*;
 
-use types::*;
+use opcua_types::*;
+
 use comms::SecurityPolicy;
 
 /// These are constants that govern the different encryption / signing modes for OPC UA. In some

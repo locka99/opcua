@@ -2,7 +2,6 @@ use std;
 use std::io::{Cursor};
 
 use comms::*;
-use types::*;
 
 /// The Chunker is responsible for turning messages to chunks and chunks into messages.
 pub struct Chunker {}

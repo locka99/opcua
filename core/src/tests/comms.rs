@@ -1,7 +1,8 @@
 use std::io::*;
 
+use opcua_types::*;
+
 use comms::*;
-use types::*;
 
 fn hello_data() -> Vec<u8> {
     vec![

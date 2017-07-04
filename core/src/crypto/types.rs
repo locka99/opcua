@@ -17,8 +17,8 @@ use openssl::hash;
 
 use chrono::{DateTime, UTC, TimeZone};
 
-use types::{ByteString, StatusCode};
-use types::StatusCode::*;
+use opcua_types::{ByteString, StatusCode};
+use opcua_types::StatusCode::*;
 
 #[derive(Debug)]
 /// Used to create an X509 cert (and private key)

@@ -1,27 +1,21 @@
 #[macro_use]
 extern crate log;
-#[macro_use]
-extern crate lazy_static;
-extern crate byteorder;
 extern crate chrono;
 extern crate regex;
 extern crate rand;
 extern crate openssl;
-extern crate url;
 #[cfg(test)]
 extern crate tempdir;
 
 extern crate opcua_types;
 
-pub mod types;
 pub mod comms;
-pub mod services;
 pub mod crypto;
 
 /// The prelude mod contains all the things you typically need to access from a client / server.
 pub mod prelude {
+    pub use opcua_types::*;
     pub use comms::*;
-    pub use services::*;
     pub use crypto::*;
 }
 
