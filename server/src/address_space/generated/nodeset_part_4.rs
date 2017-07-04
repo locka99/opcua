@@ -4,7 +4,10 @@
 #[allow(unused_imports)]
 use std::str::FromStr;
 
-use prelude::*;
+#[allow(unused_imports)]
+use opcua_types::*;
+#[allow(unused_imports)]
+use address_space::types::*;
 
 #[allow(unused_variables)]
 pub fn populate_address_space(address_space: &mut AddressSpace) {
