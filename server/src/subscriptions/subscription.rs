@@ -3,7 +3,8 @@ use std::collections::{HashMap, BTreeMap};
 use chrono;
 use time;
 
-use prelude::*;
+use opcua_types::*;
+
 use constants;
 
 use DateTimeUTC;

@@ -9,14 +9,13 @@ use std::thread;
 use opcua_types::*;
 use opcua_types::profiles;
 
-use opcua_core;
-use opcua_core::comms::*;
-
-use prelude::*;
+use opcua_core::prelude::*;
 
 use constants;
+use address_space::{AddressSpace};
 use comms::tcp_transport::*;
 use config::{ServerConfig};
+use util::{PollingAction};
 
 #[derive(Clone)]
 pub struct Endpoint {

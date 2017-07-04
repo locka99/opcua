@@ -1,7 +1,8 @@
 use std::sync::{Arc, Mutex};
 use std;
 
-use prelude::*;
+use opcua_core::prelude::*;
+
 use session::*;
 
 pub struct Client {
