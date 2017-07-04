@@ -34,7 +34,7 @@ fs.createReadStream(status_code_csv)
 use std;
 use std::io::{Read, Write};
 
-use types::*;
+use super::super::*;
 
 #[allow(non_camel_case_types)]
 #[derive(PartialEq, Debug, Copy, Clone)]

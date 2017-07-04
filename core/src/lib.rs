@@ -11,39 +11,18 @@ extern crate url;
 #[cfg(test)]
 extern crate tempdir;
 
+extern crate opcua_types;
+
 pub mod types;
 pub mod comms;
 pub mod services;
 pub mod crypto;
 
-pub mod constants {
-    /// Maximum number of elements in an array
-    pub const MAX_ARRAY_LENGTH: u32 = 1000;
-    /// Maximum size of a string in chars
-    pub const MAX_STRING_LENGTH: u32 = 65536;
-    /// Maximum size of a byte string in bytes
-    pub const MAX_BYTE_STRING_LENGTH: u32 = 65536;
-    /// Maximum size of a certificate to send
-    pub const MAX_CERTIFICATE_LENGTH: u32 = 32768;
-
-
-    pub const SECURITY_POLICY_NONE: &'static str = "None";
-    pub const SECURITY_POLICY_BASIC_128_RSA_15: &'static str = "Basic128Rsa15";
-    pub const SECURITY_POLICY_BASIC_256: &'static str = "Basic256";
-    pub const SECURITY_POLICY_BASIC_256_SHA_256: &'static str = "Basic256Sha256";
-
-    pub const SECURITY_MODE_NONE: &'static str = "None";
-    pub const SECURITY_MODE_SIGN: &'static str = "Sign";
-    pub const SECURITY_MODE_SIGN_AND_ENCRYPT: &'static str = "SignAndEncrypt";
-}
-
 /// The prelude mod contains all the things you typically need to access from a client / server.
 pub mod prelude {
-    pub use types::*;
     pub use comms::*;
     pub use services::*;
     pub use crypto::*;
-    pub use constants;
 }
 
 use log::*;
@@ -97,20 +76,6 @@ pub fn init_logging() -> Result<(), SetLoggerError> {
             target_map: HashSet::new(),
         })
     })
-}
-
-///Contains constants recognized by OPC UA clients and servers to describe various protocols and
-/// profiles used during communication and encryption.
-pub mod profiles {
-    pub const TRANSPORT_BINARY: &'static str = "http://opcfoundation.org/UA-Profile/Transport/uatcp-uasc-uabinary";
-
-    pub const SECURITY_POLICY_NONE: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#None";
-    pub const SECURITY_POLICY_BASIC_128_RSA_15: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#Basic128Rsa15";
-    pub const SECURITY_POLICY_BASIC_256: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256";
-    pub const SECURITY_POLICY_BASIC_256_SHA_256: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256";
-
-    pub const SECURITY_USER_TOKEN_POLICY_ANONYMOUS: &'static str = "http://opcfoundation.org/UA-Profile/Security/UserToken/Anonymous";
-    pub const SECURITY_USER_TOKEN_POLICY_USERPASS: &'static str = "http://opcfoundation.org/UA-Profile/ Security/UserToken-Server/UserNamePassword";
 }
 
 /// Contains debugging utility helper functions

@@ -137,7 +137,7 @@ function generate_structured_type_file(structured_type) {
 use std::io::{Read, Write};
 
 #[allow(unused_imports)]
-use types::*;
+use super::super::*;
 
 `;
     if (_.has(structured_type, "documentation")) {

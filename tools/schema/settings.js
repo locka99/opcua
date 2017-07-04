@@ -1,7 +1,7 @@
 var fs = require("fs");
 
 exports.schema_dir = `${__dirname}/../../schemas/1.0.3`;
-exports.rs_types_dir = `${__dirname}/../../core/src/types/generated`;
+exports.rs_types_dir = `${__dirname}/../../types/src/generated`;
 exports.rs_address_space_dir = `${__dirname}/../../server/src/address_space/generated`;
 
 exports.write_to_file = function (file_path, contents) {

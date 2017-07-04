@@ -1,0 +1,23 @@
+[package]
+name = "opcua-types"
+version = "0.1.0"
+description = "OPC UA types and constants"
+authors = ["Adam Lock <locka99@gmail.com>"]
+homepage = "https://github.com/locka99/opcua"
+license = "MPL-2.0"
+keywords = ["opcua","opc","ua"]
+categories = ["embedded","network-programming"]
+
+[dependencies]
+log = "0.3"
+byteorder = "0.5"
+chrono = "0.3"
+rand = "0.3"
+regex = "0.2.1"
+lazy_static = "0.2"
+
+[dependencies.url]
+git = "https://github.com/servo/rust-url"
+
+[dev-dependencies]
+tempdir = "0.3"
