@@ -554,3 +554,210 @@ impl BinaryEncoder<SecurityTokenRequestType> for SecurityTokenRequestType {
         })
     }
 }
+
+pub struct ValueChangeFilter {}
+
+impl ValueChangeFilter {
+    pub fn compare(&self, v1: &DataValue, v2: &DataValue) -> bool {
+        v1.value == v2.value
+    }
+}
+
+impl DataChangeFilter {
+    /// Compares one data value to another and returns true if they differ, according to their trigger
+    /// type of status, status/value or status/value/timestamp
+    pub fn compare(&self, v1: &DataValue, v2: &DataValue, eu_range: Option<(f64, f64)>) -> bool {
+        match self.trigger {
+            DataChangeTrigger::Status => {
+                v1.status == v2.status
+            }
+            DataChangeTrigger::StatusValue => {
+                v1.status == v2.status &&
+                    self.compare_value_option(&v1.value, &v2.value, eu_range)
+            }
+            DataChangeTrigger::StatusValueTimestamp => {
+                v1.status == v2.status &&
+                    self.compare_value_option(&v1.value, &v2.value, eu_range) &&
+                    v1.server_timestamp == v2.server_timestamp
+            }
+        }
+    }
+
+    pub fn compare_value_option(&self, v1: &Option<Variant>, v2: &Option<Variant>, eu_range: Option<(f64, f64)>) -> bool {
+        // Get the actual variant values
+        if (v1.is_some() && v2.is_none()) ||
+            (v1.is_none() && v2.is_some()) {
+            false
+        } else if v1.is_none() && v2.is_none() {
+            // If it's always none then it hasn't changed
+            true
+        } else {
+            // Otherwise test the filter
+            let v1 = v1.as_ref().unwrap();
+            let v2 = v2.as_ref().unwrap();
+            let result = self.compare_value(v1, v2, eu_range);
+            if let Ok(result) = result {
+                result
+            } else {
+                true
+            }
+        }
+    }
+
+    /// Compares two values, either a straight value compare or a numeric comparison against the
+    /// deadband settings. If deadband is asked for and the values are not convertible into a numeric
+    /// value, the result is false. The value is true if the values are the same within the limits
+    /// set.
+    ///
+    /// The eu_range is the engineering unit range and represents the range that the value should
+    /// typically operate between. It's used for percentage change operations and ignored otherwise.
+    ///
+    /// # Errors
+    ///
+    /// BAD_DEADBAND_FILTER_INVALID indicates the deadband settings were invalid, e.g. an invalid
+    /// type, or the args were invalid. A (low, high) range must be supplied for a percentage deadband compare.
+    pub fn compare_value(&self, v1: &Variant, v2: &Variant, eu_range: Option<(f64, f64)>) -> std::result::Result<bool, StatusCode> {
+        // TODO be able to compare arrays of numbers
+
+        if self.deadband_type == 0 {
+            // Straight comparison of values
+            Ok(v1 == v2)
+        } else {
+            // Absolute
+            let v1 = v1.as_f64();
+            let v2 = v2.as_f64();
+            if v1.is_none() || v2.is_none() {
+                return Ok(false)
+            }
+
+            let v1 = v1.unwrap();
+            let v2 = v2.unwrap();
+
+            if self.deadband_value < 0f64 {
+                return Err(BAD_DEADBAND_FILTER_INVALID);
+            }
+            if self.deadband_type == 1 {
+                Ok(DataChangeFilter::abs_compare(v1, v2, self.deadband_value))
+            } else if self.deadband_type == 2 {
+                if eu_range.is_none() {
+                    return Err(BAD_DEADBAND_FILTER_INVALID)
+                }
+                let (low, high) = eu_range.unwrap();
+                if low >= high {
+                    return Err(BAD_DEADBAND_FILTER_INVALID)
+                }
+                Ok(DataChangeFilter::pct_compare(v1, v2, low, high, self.deadband_value))
+            } else {
+                // Type is not recognized
+                return Err(BAD_DEADBAND_FILTER_INVALID);
+            }
+        }
+    }
+
+    /// Compares the difference between v1 and v2 to the threshold. The two values are considered equal
+    /// if their difference is less than or equal to the threshold.
+    pub fn abs_compare(v1: f64, v2: f64, threshold_diff: f64) -> bool {
+        let diff = (v1 - v2).abs();
+        diff <= threshold_diff
+    }
+
+    /// Compares the percentage difference between v1 and v2 using the low-high range as the comparison.
+    /// The two values are considered equal if their perentage difference is less than or equal to the
+    /// threshold.
+    pub fn pct_compare(v1: f64, v2: f64, low: f64, high: f64, threshold_pct_change: f64) -> bool {
+        let v1_pct = 100f64 * (v1 - low) / (high - low);
+        let v2_pct = 100f64 * (v2 - low) / (high - low);
+        let pct_change = (v1_pct - v2_pct).abs();
+        // Comparison is equal if the % change of v1 - v2 < the threshold
+        pct_change <= threshold_pct_change
+    }
+}
+
+impl EndpointDescription {
+    /// Finds the policy id for the specified token type in the endpoint, otherwise None
+    pub fn find_policy_id(&self, token_type: UserTokenType) -> Option<UAString> {
+        if let Some(ref tokens) = self.user_identity_tokens {
+            for token in tokens.iter() {
+                if token.token_type == token_type {
+                    return Some(token.policy_id.clone())
+                }
+            }
+        }
+        None
+    }
+}
+
+impl UserNameIdentityToken {
+    /// Ensures the token is valid
+    pub fn is_valid(&self) -> bool {
+        !self.user_name.is_null() && !self.password.is_null()
+    }
+
+    /// Authenticates the token against the supplied username and password.
+    pub fn authenticate(&self, username: &str, password: &[u8]) -> Result<(), StatusCode> {
+        // No comparison will be made unless user and pass are explicitly set to something in the token
+        // Even if someone has a blank password, client should pass an empty string, not null.
+        let valid = if self.is_valid() {
+            // Plaintext encryption
+            if self.encryption_algorithm.is_null() {
+                // Password shall be a UTF-8 encoded string
+                let id_user = self.user_name.as_ref();
+                let id_pass = self.password.value.as_ref().unwrap();
+                if username == id_user {
+                    if password == id_pass.as_slice() {
+                        true
+                    } else {
+                        error!("Authentication error: User name {} supplied by client is recognised but password is not", username);
+                        false
+                    }
+                } else {
+                    error!("Authentication error: User name supplied by client is unrecognised");
+                    false
+                }
+            } else {
+                // TODO See 7.36.3. UserTokenPolicy and SecurityPolicy should be used to provide
+                // a means to encrypt a password and not send it plain text. Sending a plaintext
+                // password over unsecured network is a bad thing!!!
+                error!("Authentication error: Unsupported encryption algorithm {}", self.encryption_algorithm.as_ref());
+                false
+            }
+        } else {
+            error!("Authentication error: User / pass credentials not supplied in token");
+            false
+        };
+        if valid {
+            Ok(())
+        } else {
+            Err(BAD_IDENTITY_TOKEN_REJECTED)
+        }
+    }
+}
+
+impl ReadValueId {
+    pub fn read_value(node_id: NodeId) -> ReadValueId {
+        ReadValueId {
+            node_id,
+            attribute_id: self::attribute::AttributeId::Value as UInt32,
+            // Value
+            index_range: UAString::null(),
+            data_encoding: QualifiedName::null(),
+        }
+    }
+}
+
+impl AnonymousIdentityToken {
+    pub fn new() -> AnonymousIdentityToken {
+        AnonymousIdentityToken {
+            policy_id: UAString::from_str(profiles::SECURITY_USER_TOKEN_POLICY_ANONYMOUS)
+        }
+    }
+}
+
+impl SignatureData {
+    pub fn null() -> SignatureData {
+        SignatureData {
+            algorithm: UAString::null(),
+            signature: ByteString::null(),
+        }
+    }
+}
