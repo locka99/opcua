@@ -27,10 +27,10 @@ impl Chunker {
             for chunk in chunks.iter() {
                 let chunk_info = chunk.chunk_info(secure_channel_token)?;
                 // Check the sequence id - should be larger than the last one decoded
-                if chunk_info.sequence_header.sequence_number != sequence_number {
-                    error!("Chunk has a sequence number of {} which is less than last decoded sequence number of {}", chunk_info.sequence_header.sequence_number, sequence_number);
-                    return Err(BAD_SEQUENCE_NUMBER_INVALID);
-                }
+                //if chunk_info.sequence_header.sequence_number != sequence_number {
+                //    error!("Chunk has a sequence number of {} which is less than last decoded sequence number of {}", chunk_info.sequence_header.sequence_number, sequence_number);
+                //    return Err(BAD_SEQUENCE_NUMBER_INVALID);
+                //}
                 sequence_number += 1;
             }
         }
