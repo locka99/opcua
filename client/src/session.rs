@@ -8,6 +8,8 @@ use opcua_core::comms::*;
 
 use comms::*;
 
+/// Session's state indicates connection status, negotiated times and sizes,
+/// and security tokens.
 pub struct SessionState {
     /// Endpoint, filled in during connect
     pub endpoint: Option<EndpointDescription>,
@@ -32,6 +34,8 @@ pub struct SessionState {
 
 impl SessionState {}
 
+/// A session of the client. The session is associated with an endpoint and
+/// maintains a state when it is active.
 pub struct Session {
     /// The endpoint url
     pub endpoint_url: String,
@@ -52,6 +56,7 @@ impl Drop for Session {
 }
 
 impl Session {
+    /// Create a new session.
     pub fn new(endpoint_url: &str, security_policy: SecurityPolicy) -> Session {
         let session_state = Arc::new(Mutex::new(SessionState {
             endpoint: None,

@@ -5,6 +5,8 @@ use opcua_core::prelude::*;
 
 use session::*;
 
+/// The client-side OPC UA state. A client can have a description, multiple open sessions
+/// and a certificate store.
 pub struct Client {
     /// The application description supplied by the client to all sessions created by the client
     pub client_description: ApplicationDescription,

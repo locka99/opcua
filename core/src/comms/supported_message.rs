@@ -1,6 +1,7 @@
-//! This module describes all of the supported messages. i.e those requests and responses
-//! that the implementation explicitly handles. The SupportedMessage type has values for
-//! each of those messages enabling them to be passed around.
+//! Defines all messages, request or response that are supported by the
+//! implementation. The SupportedMessage enumeration contains a value for
+//! each of those messages enabling them to be passed around in an agnostic
+//! fashion. 
 
 use std::io::{Read, Write};
 
