@@ -17,6 +17,7 @@ openssl = "0.9.9"
 
 [dependencies.opcua-types]
 path = "../types"
+version = "0.1.0"
 
 [dev-dependencies]
 tempdir = "0.3"

@@ -1,5 +1,6 @@
 /target/
 /.idea/
+types/target/
 core/target/
 client/target/
-server/target
+server/target/

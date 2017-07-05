@@ -5,44 +5,32 @@ The code is licenced under [MPL-2.0](https://opensource.org/licenses/MPL-2.0). L
 # Introduction
 
 This is an [OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) server / client API implemented in Rust. 
-It is work in progress but is aiming for embedded profile support according to the specification.
 
 OPC UA is an industry standard for live monitoring of data. It's intended for embedded devices, industrial control, IoT, 
 PCs, mainframes, cars - just about anything that has data that something else wants to monitor or visualize. It is
 a huge standard defined by compliance to profiles and facets. This implementation will comply with the smallest profiles 
 growing outwards until it reaches a usable level of functionality. 
 
-## Rationale - OPC UA for Rust?
-
-Rust is a natural choice for OPC UA.
-
-* Implementations in C/C++ are vulnerable to memory leaks, dangling pointers, complexity in their interface
-* Implementations in Java, JavaScript etc. would suffer from fluctuating memory consumption, performance issues
-
-An implementation in Rust should deliver high levels of performance without many of the risks associated with C/C++.
-HOWEVER, there are a number of mature OPC UA libraries for other platforms. This is a new project so bugs in logic are 
-likely and inevitable. Certain features found elsewhere may not be implemented or implemented incorrectly.
+Rust is a natural choice for OPC UA given the purpose of the specification and the expectations in terms of performance, security, stability that go with it. The caveat is that this implementation of OPC UA is relatively immature compared to other implementations.
 
 # Compliance
 
-The implementation will attempt to comply with the specification and other implementations working out from simpler profiles to more complex. 
+Compliance will work out from from simpler profiles and facets to more complex. 
 
 ## OPC UA Binary 
 
-This implementation will only implement the opc.tcp:// protocol and OPC UA Binary format. It *might* in time, 
-add binary over https. It will **not** implement OPC UA over XML. XML hasn't see much adoption so this is no great 
-impediment.
+This implementation will implement the opc.tcp:// protocol and OPC UA Binary format. Binary over https:// may happen in time. It will **not** implement OPC UA over XML. XML hasn't see much adoption so this is no great impediment.
 
 ## Server
 
-The server implements the OPC UA micro profile. Functionality is being added to cover embedded profile and possibly further.
+The server shall implement the OPC UA embedded profile.
 
 ### Supported services
 
 The following services are supported fully, partially (marked with a *) or as a stub / work in progress (marked !). That means a client
 may call them and receive a response. 
 
-Anything not listed is totally unsupported. Calling an unsupported service will terminate the session. Partial / stub
+Anything not listed is unsupported. Calling an unsupported service will terminate the session. Partial / stub
 implementations are expected to receive more functionality over time.
 
 * Discovery service set
@@ -105,9 +93,7 @@ Currently the following are not supported
 
 ## Client
 
-Client will start with synchronous calls to the server to establish a connection, create/activate a session, read values.
-
-Subscriptions will come after basic functionality is working.
+The client shall mirror the functionality in the server but may lag behind in some respects. At present it only supports synchronous calls to the server, and does not support subscriptions or monitoring of data.
 
 # Building and testing
 
@@ -115,6 +101,8 @@ Subscriptions will come after basic functionality is working.
 
 1. Install latest stable rust, e.g. using rustup
 2. Install gcc and OpenSSL development libs & headers. 
+
+On Linux this should be straightforward. On Windows, read below.
 
 ### Windows
 
@@ -165,7 +153,7 @@ environment.
 
 ### Certificate pki structure
 
-When crypto is enabled, the intention is that trusted/rejected certificates will be stored and managed on disk:
+The server / client shall use a directory structure to manage trusted/rejected certificates. These will be stored and managed on disk:
 
 ```
 pki/
@@ -179,17 +167,13 @@ pki/
     ...      - contains certs from client/servers you've connected with and you don't trust
 ```
 
-The idea is that when you first receive an encrypted connnection from an untrusted client the server will write the
-cert to the rejected/ folder and the connection will fail. You, the administrator will explicitly move the cert
-to the trusted/ folder to permit connections from that client in future. They might also have to do admin in their
-client to move the server cert to the client's trusted folder.
+When the server first receives an encrypted connnection from an unrecognized client it will write the cert to the rejected/ folder and the connection will fail. You, the administrator will explicitly move the cert to the trusted/ folder to permit connections from that client in future.
 
-More sophisticated trust based off hostnames, signed certs etc. is unlikely in the short term. 
+Likewise, the client shall reject unrecognized servers in the same fashion, and the cert must be moved from the rejected/ to trusted/ folder.
 
 ### Certificate creator
 
-The `tools/certificate-creator` tool will create a public self-signed cert and private key. You need OpenSSL to build the
-tool.
+The `tools/certificate-creator` tool will create a public self-signed cert and private key. You need OpenSSL to build the tool.
 
 For usage type:
  
@@ -214,6 +198,8 @@ it do something.
 This is all the code you need to write a minimal, functioning server. 
 
 ```rust
+extern crate opcua_types;
+extern crate opcua_core;
 extern crate opcua_server;
 
 use opcua_server::prelude::*;
@@ -229,15 +215,16 @@ Refer to the sample-server/ example for something that adds variables to the add
 
 ## Type generation from schemas
 
-Scripts will be used to generate Rust source code from schemas for the following:
+OPC UA provides XML schemas to define various data types:
 
 * Status codes
 * Node Ids (objects, variables, references etc.)
+* Data structures, Enumerations
 * Request and Response messages including serialization
 * Address space
 
-Generated code will reside in generated/ modules and pulled in by the rest of the code. Core types like String, 
-ByteString, Variant, DataValue, NodeId, ExtensionObject etc. are handwritten.
+The tools/schema/ directory contains NodeJS scripts that will parse these files and produce corresponding .rs files. Core types like String, 
+ByteString, Variant, DataValue, NodeId, ExtensionObject etc. are handwritten as are enumerations.
 
 ## Handling OPC UA names in Rust
 
