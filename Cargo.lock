@@ -36,15 +36,6 @@ version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "certificate-creator"
-version = "0.1.0"
-dependencies = [
- "clap 2.19.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "opcua-core 0.1.0",
-]
-
-[[package]]
 name = "chrono"
 version = "0.2.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -179,6 +170,16 @@ dependencies = [
 name = "num-traits"
 version = "0.1.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "opcua-certificate-creator"
+version = "0.1.0"
+dependencies = [
+ "clap 2.19.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "opcua-core 0.1.0",
+ "opcua-types 0.1.0",
+]
 
 [[package]]
 name = "opcua-client"

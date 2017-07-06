@@ -1,5 +1,5 @@
 [package]
-name = "certificate-creator"
+name = "opcua-certificate-creator"
 version = "0.1.0"
 authors = ["Adam Lock <locka99@gmail.com>"]
 
@@ -7,5 +7,10 @@ authors = ["Adam Lock <locka99@gmail.com>"]
 clap = "~2.19.0"
 log = "0.3.6"
 
+[dependencies.opcua-types]
+path = "../../types"
+version = "0.1.0"
+
 [dependencies.opcua-core]
 path = "../../core"
+version = "0.1.0"
