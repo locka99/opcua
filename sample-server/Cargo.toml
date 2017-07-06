@@ -7,10 +7,13 @@ authors = ["Adam Lock <locka99@gmail.com>"]
 
 [dependencies.opcua-types]
 path = "../types"
+version = "0.1.0"
 
 [dependencies.opcua-core]
 path = "../core"
+version = "0.1.0"
 
 [dependencies.opcua-server]
 path = "../server"
+version = "0.1.1"
 
