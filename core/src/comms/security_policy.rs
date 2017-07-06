@@ -6,9 +6,10 @@ use opcua_types::constants;
 
 use crypto;
 use crypto::types::*;
+use crypto::encrypt_decrypt::*;
 
 use comms::{SecurityHeader, SymmetricSecurityHeader, AsymmetricSecurityHeader};
-use comms::chunk::{ChunkMessageType};
+use comms::chunk::ChunkMessageType;
 
 #[derive(Debug)]
 pub struct SecureChannelToken {
@@ -21,6 +22,8 @@ pub struct SecureChannelToken {
     pub nonce: [u8; 32],
     pub their_nonce: [u8; 32],
     pub their_cert: Option<X509>,
+    pub decrypt_key: Option<AesKey>,
+    pub encrypt_key: Option<AesKey>,
 }
 
 impl SecureChannelToken {
@@ -35,7 +38,9 @@ impl SecureChannelToken {
             token_lifetime: 0,
             nonce: [0; 32],
             their_nonce: [0; 32],
-            their_cert: None
+            their_cert: None,
+            encrypt_key: None,
+            decrypt_key: None,
         }
     }
 
@@ -102,26 +107,36 @@ impl SecureChannelToken {
     }
 
     /// Sign the following block
-    ///
-    /// Message Header
-    /// Security Header
-    /// Sequence Header
-    /// Body
-    /// Padding
-    pub fn sign(&self, src: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
+    fn sign(&self, src: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
         // TODO
         Ok(())
     }
 
+    /// Verify the signature
+    fn verify(&self, src: &[u8], signature: &[u8]) -> Result<(), StatusCode> {
+        Err(BAD_APPLICATION_SIGNATURE_INVALID)
+    }
+
     /// Encrypt the data
-    ///
-    /// Sequence Header
-    /// Body
-    /// Padding
-    /// Signature
-    pub fn encrypt(&mut self, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
-        // TODO
-        Ok(())
+    fn encrypt(&mut self, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
+        let result = encrypt_aes(src, dst, &mut self.their_nonce, self.encrypt_key.as_ref().unwrap());
+        if result.is_ok() {
+            Ok(())
+        } else {
+            error!("Cannot encrypt data, {}", result.unwrap_err());
+            Err(BAD_ENCODING_ERROR)
+        }
+    }
+
+    /// Decrypt the data
+    fn decrypt(&mut self, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
+        let result = decrypt_aes(src, dst, &mut self.nonce, self.decrypt_key.as_ref().unwrap());
+        if result.is_ok() {
+            Ok(())
+        } else {
+            error!("Cannot decrypt data, {}", result.unwrap_err());
+            Err(BAD_DECODING_ERROR)
+        }
     }
 
     /// Encode data using security. Destination buffer is expected to be same size as src and expected
@@ -136,7 +151,6 @@ impl SecureChannelToken {
     /// S - Padding         - E
     ///     Signature       - E
     pub fn encrypt_and_sign_chunk(&mut self, src: &[u8], sign_info: (usize, usize), encrypt_info: (usize, usize), dst: &mut [u8]) -> Result<(), StatusCode> {
-
         // TODO supply a ChunkInfo to this function.
 
         let s_from = sign_info.0;
@@ -200,7 +214,7 @@ impl SecureChannelToken {
     /// S - Body            - E
     /// S - Padding         - E
     ///     Signature       - E
-    pub fn decrypt(&self, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
+    pub fn decrypt_and_verify(&self, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
         match self.security_mode {
             MessageSecurityMode::None => {
                 // Just copy data to out
