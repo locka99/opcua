@@ -1,4 +1,4 @@
-use opcua_types::{DataTypeId};
+use opcua_types::DataTypeId;
 
 use address_space::*;
 

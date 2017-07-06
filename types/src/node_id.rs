@@ -1,5 +1,5 @@
 use std;
-use std::str::{FromStr};
+use std::str::FromStr;
 use std::io::{Read, Write};
 
 use super::*;

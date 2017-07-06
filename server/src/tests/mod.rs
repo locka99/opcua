@@ -1,5 +1,5 @@
 use std;
-use std::path::{PathBuf};
+use std::path::PathBuf;
 
 use chrono;
 use time;

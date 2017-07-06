@@ -7,7 +7,7 @@ use opcua_core::crypto;
 
 use constants;
 use server::{Endpoint, ServerState};
-use session::{Session};
+use session::Session;
 
 pub struct SessionService {}
 

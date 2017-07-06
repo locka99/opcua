@@ -5,7 +5,7 @@
 //! The module also contains convenience methods
 
 use std;
-use std::marker::{Send};
+use std::marker::Send;
 use std::fmt::{Debug, Result, Formatter};
 
 use openssl::x509;

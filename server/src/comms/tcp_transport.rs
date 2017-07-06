@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{self, Receiver};
 
 use timer;
-use chrono::{UTC};
+use chrono::UTC;
 use time;
 
 use opcua_types::*;
@@ -20,7 +20,7 @@ use server::ServerState;
 use session::Session;
 use comms::message_handler::*;
 use comms::secure_channel::*;
-use subscriptions::{SubscriptionEvent};
+use subscriptions::SubscriptionEvent;
 
 
 // TODO these need to go, and use session settings

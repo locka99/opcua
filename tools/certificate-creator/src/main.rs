@@ -6,7 +6,7 @@ extern crate log;
 
 extern crate opcua_core;
 
-use std::path::{PathBuf};
+use std::path::PathBuf;
 
 use opcua_core::crypto::*;
 

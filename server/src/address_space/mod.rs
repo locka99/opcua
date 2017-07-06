@@ -67,15 +67,15 @@ mod data_type;
 mod view;
 
 pub mod types {
-    pub use super::address_space::{AddressSpace};
-    pub use super::data_type::{DataType};
-    pub use super::object::{Object};
-    pub use super::variable::{Variable};
-    pub use super::method::{Method};
-    pub use super::reference_type::{ReferenceType};
-    pub use super::object_type::{ObjectType};
-    pub use super::variable_type::{VariableType};
-    pub use super::view::{View};
+    pub use super::address_space::AddressSpace;
+    pub use super::data_type::DataType;
+    pub use super::object::Object;
+    pub use super::variable::Variable;
+    pub use super::method::Method;
+    pub use super::reference_type::ReferenceType;
+    pub use super::object_type::ObjectType;
+    pub use super::variable_type::VariableType;
+    pub use super::view::View;
 }
 
 pub use self::generated::*;

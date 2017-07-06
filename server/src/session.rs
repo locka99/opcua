@@ -6,9 +6,9 @@ use chrono;
 use opcua_types::*;
 
 use DateTimeUTC;
-use address_space::{AddressSpace};
+use address_space::AddressSpace;
 use subscriptions::*;
-use server::{ServerState};
+use server::ServerState;
 
 const MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE: usize = 100;
 const MAX_PUBLISH_REQUESTS: usize = 200;

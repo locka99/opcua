@@ -4,9 +4,9 @@ use std::fmt;
 
 use ::{BinaryEncoder, EncodingResult};
 use helpers::*;
-use generated::{StatusCode};
+use generated::StatusCode;
 use generated::StatusCode::*;
-use node_id::{NodeId};
+use node_id::NodeId;
 use constants;
 
 // OPC UA Part 6 - Mappings 1.03 Specification
