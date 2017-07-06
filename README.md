@@ -1,7 +1,3 @@
-# License
-
-The code is licenced under [MPL-2.0](https://opensource.org/licenses/MPL-2.0). Like all open source code, you use this code at your own risk. 
-
 # Introduction
 
 This is an [OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) server / client API implemented in Rust. 
@@ -13,11 +9,13 @@ growing outwards until it reaches a usable level of functionality.
 
 Rust is a natural choice for OPC UA given the purpose of the specification and the expectations in terms of performance, security, stability that go with it. The caveat is that this implementation of OPC UA is relatively immature compared to other implementations.
 
-# Compliance
+# License
 
-Compliance will work out from from simpler profiles and facets to more complex. 
+The code is licenced under [MPL-2.0](https://opensource.org/licenses/MPL-2.0). Like all open source code, you use this code at your own risk. 
 
-## OPC UA Binary 
+# Feature Support  
+
+## OPC UA Binary Transport Protocol
 
 This implementation will implement the opc.tcp:// protocol and OPC UA Binary format. Binary over https:// may happen in time. It will **not** implement OPC UA over XML. XML hasn't see much adoption so this is no great impediment.
 
@@ -25,12 +23,12 @@ This implementation will implement the opc.tcp:// protocol and OPC UA Binary for
 
 The server shall implement the OPC UA embedded profile.
 
-### Supported services
+### Services
 
 The following services are supported fully, partially (marked with a *) or as a stub / work in progress (marked !). That means a client
 may call them and receive a response. 
 
-Anything not listed is unsupported. Calling an unsupported service will terminate the session. Partial / stub
+Anything else is unsupported. Calling an unsupported service will terminate the session. Partial / stub
 implementations are expected to receive more functionality over time.
 
 * Discovery service set
@@ -62,13 +60,11 @@ implementations are expected to receive more functionality over time.
     * Republish (!). Implemented to always return a service error
     * SetPublishingMode
 
-### Nodeset
+### Address Space / Nodeset
 
-The standard OPC UA node set and address space is expressed in XML schemas, broken down by the document parts that 
-define those nodes.
+The standard OPC UA address space will be exposed. OPC UA for Rust uses a script to generate code to create and populate the standard address space. 
 
-OPC UA for Rust uses a script to generate code to create and populate the standard address space. Most of this 
-data is static however some server state variables will reflect the actual state of the server. 
+Most of this data is static however some server state variables will reflect the actual state of the server. Not all state in the server is implemented.
 
 ### Supported security profiles / authentication
 
@@ -77,10 +73,10 @@ The server supports the following security mode / profiles:
 1. Anonymous/None, i.e. no authentication
 2. User/password (plaintext password)
 
-Not supported:
+Work in progress:
 
-1. User/password using encrypted password.
-2. Public key authentication, signing and encryption. This will happen later once unencrypted functionality is working.
+1. Public key authentication, signing and encryption. This will happen later once unencrypted functionality is working.
+2. User/password using encrypted password.
 
 ### Current limitations
 
@@ -88,7 +84,7 @@ Currently the following are not supported
 
 * Diagnostic info. OPC UA allows for you to ask for diagnostics with any request. None is supplied at this time
 * Session resumption. If your client disconnects, all information is discarded.
-* Encryption will come after basically functionality is working in the clear.
+* Encryption will come after basic functionality is working in the clear.
 * Default nodeset is mostly static. Certain fields of server information will contain their default values unless explicitly set.
 
 ## Client
@@ -110,7 +106,7 @@ You need OpenSSL to build OPC UA. The easiest way is to install the stable-x86_6
 and then install [MSYS2 64-bit](http://www.msys2.org/). Read the instructions on the site especially on updating to the
 latest packages via `pacman -Syuu`.
 
-Once MSYS2 has installed & updated you must bring in the MingW 64-bit compiler toolchain and OpenSSL development files.
+Once MSYS2 has installed & updated you must install the MingW 64-bit compiler toolchain and OpenSSL packages.
 
 ```bash
 pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb mingw-w64-x86_64-pkg-config openssl-devel
@@ -173,29 +169,29 @@ Likewise, the client shall reject unrecognized servers in the same fashion, and 
 
 ### Certificate creator
 
-The `tools/certificate-creator` tool will create a public self-signed cert and private key. You need OpenSSL to build the tool.
-
-For usage type:
- 
-```bash
-cd tools\certificate-creator
-cargo run -- --help
-```
-
-A minimal usage:
+The `tools/certificate-creator` tool will create a demo public self-signed cert and private key. 
+It can be built from source, or the crate:
 
 ```bash
-cargo run --
+cargo install --force opcua-certificate-creator
 ```
 
-# Implementation details
+A minimal usage might be something like this:
+
+```bash
+ opcua-certificate-creator --pkipath ./pki
+```
+
+A full list of arguments can be obtained by ```--help``` and you are advised to set fields such
+as expiration length, description, country code etc to your requirements.
+
+# Design details
 
 ## Minimizing code through convention
 
-The API is designed on the principle of convention by default to minimize the amount of customization you need to make 
-it do something. 
+The API will use convention by default to minimize the amount of code that needs to be written.
 
-This is all the code you need to write a minimal, functioning server. 
+Here is a minimal, functioning server. 
 
 ```rust
 extern crate opcua_types;
@@ -211,20 +207,19 @@ fn main() {
 
 This server will accept connections, allow you to browse the address space and subscribe to variables. 
 
-Refer to the sample-server/ example for something that adds variables to the address space and changes their values on a timer.
+Refer to the `sample-server/` and `sample-client/` examples for something that adds variables to the address space and changes their values on a timer.
 
 ## Type generation from schemas
 
-OPC UA provides XML schemas to define various data types:
+Fundamental types are implemented by hand. Structures such as requests/responses are machine generated by script.
+
+The `tools/schema/` directory contains NodeJS scripts that will generate the following from OPC UA schemas.
 
 * Status codes
 * Node Ids (objects, variables, references etc.)
-* Data structures, Enumerations
+* Data structures including serialization.
 * Request and Response messages including serialization
 * Address space
-
-The tools/schema/ directory contains NodeJS scripts that will parse these files and produce corresponding .rs files. Core types like String, 
-ByteString, Variant, DataValue, NodeId, ExtensionObject etc. are handwritten as are enumerations.
 
 ## Handling OPC UA names in Rust
 
@@ -273,6 +268,9 @@ pub struct ExtensionObject {
 
 Rust enables the `body` payload to be `None`, `ByteString` or `XmlElement` and this is handled during serialization.
 
+Certain enums use Boxed types to avoiding being overly large. e.g. the Variant enum boxes complex values such as DataValue,
+arrays etc. to prevent being too bloated.
+
 ### Lint exceptions for OPC UA
 
 OPC UA has some some really long PascalCase ids, many of which are further broken up by underscores. I've tried converting the 
@@ -294,15 +292,18 @@ pub enum VariableId {
 
 ### Status codes
 
-Another change from the spec, is status codes. All status codes will be values of a `StatusCode` enum.
-At present, values are represented as `SNAKE_CASE` and the `StatusCode::` enum namespace will not be a necessary prefix. 
+All status codes will be values of a `StatusCode` enum. At present, values are 
+represented as `SNAKE_CASE` and the `StatusCode::` enum namespace will not be 
+a necessary prefix. 
 
 So code will contain values such as `GOOD`, `BAD_UNEXPECTED_ERROR` etc. without qualification.
 
-Note: the decision to upper case codes is subject to review because it is inconsistent with node ids above.
+Note: the decision to upper case codes is subject to review because it is inconsistent 
+with node ids above.
 
-The enum will also implement `Copy` so that status codes are copy on assign. The enum also provides helpers such 
-as `is_good()`, `is_bad()`, `name()` and `description()` for testing and debugging purposes.
+The enum will also implement `Copy` so that status codes are copy on 
+assign. The enum provides helpers `is_good()`, `is_bad()`, `name()` and `description()`
+for testing and debugging purposes.
 
 ```rust
 #[allow(non_camel_case_types)]
@@ -337,24 +338,30 @@ Code should be formatted with the IntelliJ rust plugin, or with rustfmt.
 
 The server will work its way through OPC UA profiles from nano to embedded to standard to attain a level of functionality acceptable to most consumers of the API. Profiles are defined in "OPC UA Part 7 - Profiles 1.03 Specification"
 
-Development is in phases, the current phase is marked in bold.
+Implemented:
 
-* Phase 0: Types, project structure, code generation tools, basic connectivity, binary transport format, services framework
-* Phase 1. This phase mostly implements the Nano Embedded Device Server Profile, which has these main points
+* Types, project structure, code generation tools, basic connectivity, binary transport format, services framework
+* Nano Embedded Device Server Profile, which has these main points
   * SecurityPolicy of None (i.e. no encryption / signing)
   * Username / Password support (plaintext)
   * Address space
   * Discovery Services
   * Session Services (minimum, single session)
   * View Services (basic)
-* **Phase 2:** Micro Embedded Device Server Profile. This is a bump up from Nano.
+* Micro Embedded Device Server Profile. This is a bump up from Nano.
   * 2 or more sessions
-  * data change notifications via a subscription. 
-* Phase 3: Phase 3 Embedded UA Server Profile. 
-  * Basic128Rsa15 encryption
-  * PKI infrastructure
-  * Signing and encryption of chunks. 
-* Phase 4 Standard UA Server Profile - Basically embedded + enhanced data change subscription server facet + X509 user token server facet
+  * Data change notifications via a subscription. 
+
+Work in progress:
+
+* Multiple chunks
+* Basic128Rsa15 encryption
+* PKI infrastructure
+* Signing and encryption of chunks. 
+
+Eventually:
+
+* Standard UA Server Profile - Basically embedded + enhanced data change subscription server facet + X509 user token server facet
 
 This [OPC UA link](http://opcfoundation-onlineapplications.org/ProfileReporting/index.htm) provides interactive and descriptive information about
 profiles and relevant test cases.
@@ -368,7 +375,7 @@ Implemented:
 * Base client behaviour facet
 * Attribute read / write
 
-Planned:
+Eventually:
 
 * Core client facet (crypto, security policy)
 * Datachange subscriber
@@ -391,16 +398,17 @@ Planned:
 The plan is for unit tests for at least the following
 
 * All data types, request and response types will be covered by a serialization
-* Chunking messages together, handling errors, buffer limits
+* Chunking messages together, handling errors, buffer limits, multiple chunks
 * Limit validation on string, array fields which have size limits
 * OpenSecureChannel, CloseSecureChannel request and response
 * Sign, verify, encrypt and decrypt (when implemented)
 * Data change filters
 * Subscription state engine
+* Encryption
 
 ## Integration testing
 
-Integration testing shall wait for client and server to be implemented. At that point it shall be possible to write a unit test that initiates a connection from a client to a server and simulates scenarios such as.
+Integration testing shall wait for client and server to be complete. At that point it shall be possible to write a unit test that initiates a connection from a client to a server and simulates scenarios such as.
 
 * Discovery service
 * Connect / disconnect

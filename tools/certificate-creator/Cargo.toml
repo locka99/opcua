@@ -1,7 +1,12 @@
 [package]
 name = "opcua-certificate-creator"
 version = "0.1.0"
+description = "OPC UA certificate creator"
 authors = ["Adam Lock <locka99@gmail.com>"]
+homepage = "https://github.com/locka99/opcua"
+license = "MPL-2.0"
+keywords = ["opcua","opc","ua"]
+categories = ["embedded","network-programming"]
 
 [dependencies]
 clap = "~2.19.0"
