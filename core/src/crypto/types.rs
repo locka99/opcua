@@ -7,9 +7,12 @@
 use std;
 use std::marker::Send;
 use std::fmt::{Debug, Result, Formatter};
+use std::result;
 
 use openssl::x509;
 use openssl::aes;
+use openssl::aes::aes_ige;
+use openssl::symm::Mode;
 use openssl::pkey;
 use openssl::rsa;
 use openssl::sign;
@@ -257,5 +260,33 @@ impl AesKey {
 
     pub fn new_decrypt(value: &[u8]) -> AesKey {
         AesKey { value: aes::AesKey::new_decrypt(&value).unwrap() }
+    }
+
+    fn validate_aes_args(src: &[u8], dst: &mut [u8], iv: &[u8]) -> result::Result<(), String> {
+        if src.len() != dst.len() {
+            Err(format!("In and out buffers have different lengths {} vs {}", src.len(), dst.len()))
+        } else if src.len() % 16 != 0 {
+            // Works for out too because inx.len == out.len
+            Err(format!("In and out buffers are not 16-byte padded, len = {}", src.len()))
+        } else if iv.len() != 16 && iv.len() != 32 {
+            // ... It would be nice to compare iv size to be exact to the key size here (should be the
+            // same) but AesKey doesn't tell us that info. Have to check elsewhere
+            Err(format!("IV is not an expected size, len = {}", iv.len()))
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn encrypt(&self, src: &[u8], dst: &mut [u8], iv: &mut [u8]) -> result::Result<(), String> {
+        let _ = Self::validate_aes_args(src, dst, iv)?;
+        aes_ige(src, dst, &self.value, iv, Mode::Encrypt);
+        Ok(())
+    }
+
+    /// Encrypts data using AES. The initialization vector is the nonce generated for the secure channel
+    pub fn decrypt(&self, src: &[u8], dst: &mut [u8], iv: &mut [u8]) -> result::Result<(), String> {
+        let _ = Self::validate_aes_args(src, dst, iv)?;
+        aes_ige(src, dst, &self.value, iv, Mode::Decrypt);
+        Ok(())
     }
 }

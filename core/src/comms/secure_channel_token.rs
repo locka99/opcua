@@ -4,7 +4,6 @@ use opcua_types::*;
 
 use crypto::SecurityPolicy;
 use crypto::types::*;
-use crypto::encrypt_decrypt::*;
 
 use comms::{SecurityHeader, SymmetricSecurityHeader, AsymmetricSecurityHeader};
 use comms::chunk::ChunkMessageType;
@@ -123,13 +122,16 @@ impl SecureChannelToken {
 
         let mut buffer = Vec::with_capacity(nonce.len() + their_nonce.len());
 
+        // Their encrypting key, i.e. what must be decrypted
         {
             buffer.extend_from_slice(their_nonce);
             buffer.extend_from_slice(nonce);
 
-            let their_signing_key = Self::prf(&buffer, signing_key_length, 0);
-            let their_encrypting_key = Self::prf(&buffer, encrypting_key_length, signing_key_length);
-            let their_iv = Self::prf(&buffer, encrypting_block_size, signing_key_length + encrypting_key_length);
+            let signing_key = Self::prf(&buffer, signing_key_length, 0);
+            let encrypting_key = Self::prf(&buffer, encrypting_key_length, signing_key_length);
+            let iv = Self::prf(&buffer, encrypting_block_size, signing_key_length + encrypting_key_length);
+
+            self.decrypt_key = Some(AesKey::new_decrypt(encrypting_key));
         }
 
         {
@@ -140,6 +142,8 @@ impl SecureChannelToken {
             let signing_key = Self::prf(&buffer, signing_key_length, 0);
             let encrypting_key = Self::prf(&buffer, encrypting_key_length, signing_key_length);
             let iv = Self::prf(&buffer, encrypting_block_size, signing_key_length + encrypting_key_length);
+
+            self.encrypt_key = Some(AesKey::new_encrypt(encrypting_key));
         }
     }
 
@@ -185,7 +189,8 @@ impl SecureChannelToken {
 
     /// Encrypt the data
     fn encrypt(&mut self, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
-        let result = encrypt_aes(src, dst, &mut self.their_nonce, self.encrypt_key.as_ref().unwrap());
+        let key = self.encrypt_key.as_ref().unwrap();
+        let result = key.encrypt(src, dst, &mut self.their_nonce);
         if result.is_ok() {
             Ok(())
         } else {
@@ -196,7 +201,8 @@ impl SecureChannelToken {
 
     /// Decrypt the data
     fn decrypt(&mut self, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
-        let result = decrypt_aes(src, dst, &mut self.nonce, self.decrypt_key.as_ref().unwrap());
+        let key = self.decrypt_key.as_ref().unwrap();
+        let result = key.decrypt(src, dst, &mut self.nonce);
         if result.is_ok() {
             Ok(())
         } else {

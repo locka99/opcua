@@ -4,7 +4,6 @@ use std::io::Write;
 use tempdir::TempDir;
 
 use crypto::types::*;
-use crypto::encrypt_decrypt::*;
 use crypto::certificate_store::*;
 
 #[test]
@@ -26,7 +25,7 @@ fn aes_test() {
         let mut nonce = nonce.clone();
         let aes_key = AesKey::new_encrypt(&raw_key);
         println!("Plaintext = {}, ciphertext = {}", plaintext.len(), ciphertext.len());
-        let r = encrypt_aes(plaintext, &mut ciphertext, &mut nonce, &aes_key);
+        let r = aes_key.encrypt(plaintext, &mut ciphertext, &mut nonce);
         println!("result = {:?}", r);
         assert!(r.is_ok());
     }
@@ -35,7 +34,7 @@ fn aes_test() {
     {
         let mut nonce = nonce.clone();
         let aes_key = AesKey::new_decrypt(&raw_key);
-        let r = decrypt_aes(&ciphertext, &mut plaintext2, &mut nonce, &aes_key);
+        let r = aes_key.decrypt(&ciphertext, &mut plaintext2, &mut nonce);
         println!("result = {:?}", r);
         assert!(r.is_ok());
     }
