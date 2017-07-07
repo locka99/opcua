@@ -84,7 +84,7 @@ impl SecureChannelToken {
     /// Deriving keys Once the SecureChannel is established the Messages are signed and encrypted with
     /// keys derived from the Nonces exchanged in the OpenSecureChannel call. These keys are derived by passing the Nonces to a pseudo-random function which produces a sequence of bytes from a set of inputs. A pseudo-random function is represented by the following function declaration: 
     ///
-    /// ```
+    /// ```c++
     /// Byte[] PRF( Byte[] secret,  Byte[] seed,  Int32 length,  Int32 offset)
     /// ```
     ///

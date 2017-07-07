@@ -138,7 +138,7 @@ pub struct ChunkInfo {
 }
 
 impl ChunkInfo {
-    pub fn new(chunk: &Chunk, secure_channel_token: &SecureChannelToken) -> std::result::Result<ChunkInfo, StatusCode> {
+    pub fn new(chunk: &Chunk, _: &SecureChannelToken) -> std::result::Result<ChunkInfo, StatusCode> {
         let mut chunk_body_stream = Cursor::new(&chunk.chunk_body);
 
         // Read the security header
