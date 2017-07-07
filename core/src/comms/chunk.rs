@@ -283,7 +283,7 @@ impl Chunk {
         }
 
         // signature length
-        chunk_size += secure_channel_token.signature_length();
+        chunk_size += secure_channel_token.signature_size();
 
         // Message size is what's left
         max_chunk_size - chunk_size

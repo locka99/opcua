@@ -22,6 +22,7 @@ pub const MAX_CHUNK_COUNT: usize = 1;
 
 mod security_policy;
 mod security_header;
+mod secure_channel_token;
 mod chunk;
 mod chunker;
 mod message_buffer;
@@ -30,6 +31,7 @@ mod supported_message;
 
 pub use self::security_header::*;
 pub use self::security_policy::*;
+pub use self::secure_channel_token::*;
 pub use self::chunk::*;
 pub use self::chunker::*;
 pub use self::message_buffer::*;
