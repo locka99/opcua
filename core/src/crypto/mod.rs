@@ -5,14 +5,14 @@
 pub mod types;
 pub mod certificate_store;
 pub mod encrypt_decrypt;
+pub mod security_policy;
 
 pub use self::types::*;
 pub use self::certificate_store::*;
 pub use self::encrypt_decrypt::*;
+pub use self::security_policy::*;
 
 use opcua_types::*;
-
-use comms::SecurityPolicy;
 
 /// These are constants that govern the different encryption / signing modes for OPC UA. In some
 /// cases these algorithm string constants will be passed over the wire and code needs to test the

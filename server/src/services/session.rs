@@ -2,8 +2,10 @@ use std::result::Result;
 
 use opcua_types::*;
 use opcua_types::profiles;
-use opcua_core::comms::*;
+
+use opcua_core::comms::SupportedMessage;
 use opcua_core::crypto;
+use opcua_core::crypto::SecurityPolicy;
 
 use constants;
 use server::{Endpoint, ServerState};

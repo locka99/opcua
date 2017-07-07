@@ -3,7 +3,7 @@ use std::io::{Read, Write};
 use opcua_types::*;
 use opcua_types::constants;
 
-use super::SecurityPolicy;
+use crypto::SecurityPolicy;
 
 /// Holds the security header associated with the chunk. Secure channel requests use an asymmetric
 /// security header, regular messages use a symmetric security header.

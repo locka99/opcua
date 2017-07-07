@@ -10,7 +10,7 @@ use std::result::Result;
 use opcua_types::MessageSecurityMode;
 use opcua_types::constants as opcua_types_constants;
 
-use opcua_core::comms::SecurityPolicy;
+use opcua_core::crypto::SecurityPolicy;
 
 use constants;
 

@@ -4,6 +4,7 @@ use std::io::{Read, Write, Cursor};
 use opcua_types::*;
 
 use comms::*;
+use crypto::SecurityPolicy;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ChunkMessageType {

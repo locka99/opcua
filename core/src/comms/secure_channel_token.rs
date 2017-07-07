@@ -1,16 +1,13 @@
 use chrono;
 
 use opcua_types::*;
-use opcua_types::profiles;
-use opcua_types::constants;
 
-use crypto;
+use crypto::SecurityPolicy;
 use crypto::types::*;
 use crypto::encrypt_decrypt::*;
 
 use comms::{SecurityHeader, SymmetricSecurityHeader, AsymmetricSecurityHeader};
 use comms::chunk::ChunkMessageType;
-use comms::security_policy::SecurityPolicy;
 
 #[derive(Debug)]
 pub struct SecureChannelToken {

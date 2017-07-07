@@ -4,6 +4,7 @@ use time;
 use chrono;
 
 use opcua_types::*;
+use opcua_core::crypto::SecurityPolicy;
 
 use DateTimeUTC;
 use address_space::AddressSpace;
