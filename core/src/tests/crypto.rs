@@ -3,6 +3,7 @@ use std::io::Write;
 
 use tempdir::TempDir;
 
+use crypto::SecurityPolicy;
 use crypto::types::*;
 use crypto::certificate_store::*;
 
@@ -19,7 +20,7 @@ fn aes_test() {
     let mut iv = vec![0u8; 16];
     rng.fill_bytes(&mut iv);
 
-    let aes_key = AesKey::new(&raw_key);
+    let aes_key = AesKey::new(SecurityPolicy::Basic128Rsa15, &raw_key);
 
     let plaintext = b"01234567890123450123456789012345";
     let buf_size = plaintext.len() + aes_key.block_size();

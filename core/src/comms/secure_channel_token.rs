@@ -135,7 +135,7 @@ impl SecureChannelToken {
             let encrypting_key = Self::prf(&buffer, encrypting_key_length, signing_key_length);
             let iv = Self::prf(&buffer, encrypting_block_size, signing_key_length + encrypting_key_length);
 
-            self.decrypt_key = Some(AesKey::new(encrypting_key));
+            self.decrypt_key = Some(AesKey::new(self.security_policy, encrypting_key));
         }
 
         {
@@ -147,7 +147,7 @@ impl SecureChannelToken {
             let encrypting_key = Self::prf(&buffer, encrypting_key_length, signing_key_length);
             let iv = Self::prf(&buffer, encrypting_block_size, signing_key_length + encrypting_key_length);
 
-            self.encrypt_key = Some(AesKey::new(encrypting_key));
+            self.encrypt_key = Some(AesKey::new(self.security_policy, encrypting_key));
         }
     }
 

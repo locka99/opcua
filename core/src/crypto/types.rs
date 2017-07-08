@@ -23,6 +23,8 @@ use chrono::{DateTime, UTC, TimeZone};
 use opcua_types::{ByteString, StatusCode};
 use opcua_types::StatusCode::*;
 
+use crypto::SecurityPolicy;
+
 #[derive(Debug)]
 /// Used to create an X509 cert (and private key)
 pub struct X509Data {
@@ -235,6 +237,7 @@ impl PKey {
 
 pub struct AesKey {
     pub value: Vec<u8>,
+    pub security_policy: SecurityPolicy,
 }
 
 impl Debug for AesKey {
@@ -249,8 +252,12 @@ impl Debug for AesKey {
 unsafe impl Send for AesKey {}
 
 impl AesKey {
-    pub fn new(value: &[u8]) -> AesKey {
-        AesKey { value: value.to_vec() }
+    pub fn new(security_policy: SecurityPolicy, value: &[u8]) -> AesKey {
+        // TODO validate key length to policy
+        AesKey { 
+            value: value.to_vec(),
+            security_policy: SecurityPolicy::Basic128Rsa15
+        }
     }
 
     fn validate_aes_args(cipher: &Cipher, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<(), String> {
@@ -269,7 +276,19 @@ impl AesKey {
     }
 
     fn cipher(&self) -> Cipher {
-        Cipher::aes_128_cbc()
+        match self.security_policy {
+            SecurityPolicy::Basic128Rsa15 => {
+                // Aes128_CBC
+                Cipher::aes_128_cbc()
+            }   
+            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {
+                // Aes256_CBC
+                Cipher::aes_256_cbc()
+            }
+            _ => {
+                panic!("Unsupported")
+            }
+        }
     }
 
     /// Encrypt or decrypt  data according to the mode
