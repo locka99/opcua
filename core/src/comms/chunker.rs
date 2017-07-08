@@ -25,15 +25,19 @@ impl Chunker {
     /// BAD_SEQUENCE_NUMBER_INVALID for failure.
     pub fn validate_chunk_sequences(starting_sequence_number: UInt32, secure_channel_token: &SecureChannelToken, chunks: &Vec<Chunk>) -> Result<UInt32, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
-        let mut sequence_number = starting_sequence_number;
-        for chunk in chunks.iter() {
+        for (i, chunk) in chunks.iter().enumerate() {
             let chunk_info = chunk.chunk_info(secure_channel_token)?;
+            let sequence_number = chunk_info.sequence_header.sequence_number;
+            let expected_sequence_number = chunk_info.sequence_header.sequence_number + i as UInt32;
             // Check the sequence id - should be larger than the last one decoded
-            if chunk_info.sequence_header.sequence_number != sequence_number {
-                error!("Chunk has a sequence number of {} which is less than last decoded sequence number of {}", chunk_info.sequence_header.sequence_number, sequence_number);
+            if sequence_number != expected_sequence_number {
+                error!("Chunk has a sequence number of {} which not the expected sequence number of {}", sequence_number, expected_sequence_number);
                 return Err(BAD_SEQUENCE_NUMBER_INVALID);
             }
-            sequence_number += 1;
+            if sequence_number <= starting_sequence_number {
+                error!("Chunk has a sequence number of {} which is less or equal to the last sequence number of {}", sequence_number, starting_sequence_number);
+                return Err(BAD_SEQUENCE_NUMBER_INVALID);
+            }
         }
         Ok(starting_sequence_number + chunks.len() as UInt32 - 1)
     }
