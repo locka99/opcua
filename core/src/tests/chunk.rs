@@ -104,7 +104,7 @@ fn validate_chunk_sequences() {
     assert!(chunks.len() > 1);
 
     // Test sequence number is returned properly
-    let result = Chunker::validate_chunk_sequences(sequence_number, &secure_channel_token, &chunks).unwrap();
+    let result = Chunker::validate_chunk_sequences(sequence_number - 1, &secure_channel_token, &chunks).unwrap();
     assert_eq!(sequence_number + chunks.len() as UInt32 - 1, result);
 
     // TODO alter seq ids to generate a BAD_SEQUENCE_NUMBER_INVALID
