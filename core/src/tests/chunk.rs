@@ -61,10 +61,10 @@ fn chunk_multi_encode_decode() {
     let chunks = Chunker::encode(sequence_number, request_id, 0, 8192, &secure_channel_token, &response).unwrap();
     assert!(chunks.len() > 1);
 
-    // Verify chunk byte len <= 8192
+    // Verify chunk byte len maxes out at == 8192
     let chunk_length = chunks[0].byte_len();
     debug!("Chunk length = {}", chunk_length);
-    assert!(chunk_length <= 8192);
+    assert_eq!(chunk_length, 8192);
 
     let new_response = Chunker::decode(&chunks, &secure_channel_token, None).unwrap();
     assert_eq!(response, new_response);

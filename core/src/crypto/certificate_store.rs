@@ -1,7 +1,6 @@
-//! The certificate manager for OPC UA for Rust is responsible for storing and retrieving
+//! The certificate store is responsible for storing and retrieving
 //! certificates from disk and for establishing the trustworthiness of those certificates when
 //! establishing connections between the application and the client/server it is communicating with.
-//!
 use std::path::{Path, PathBuf};
 use std::fs::{File, metadata};
 use std::io::{Write, Read};

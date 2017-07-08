@@ -18,6 +18,8 @@ pub struct SecureChannelToken {
     pub token_lifetime: UInt32,
     pub nonce: [u8; 32],
     pub their_nonce: [u8; 32],
+    pub iv: Vec<u8>,
+    pub their_iv: Vec<u8>,
     pub their_cert: Option<X509>,
     pub decrypt_key: Option<AesKey>,
     pub encrypt_key: Option<AesKey>,
@@ -35,6 +37,8 @@ impl SecureChannelToken {
             token_lifetime: 0,
             nonce: [0; 32],
             their_nonce: [0; 32],
+            iv: Vec::new(),
+            their_iv: Vec::new(),
             their_cert: None,
             encrypt_key: None,
             decrypt_key: None,
@@ -131,7 +135,7 @@ impl SecureChannelToken {
             let encrypting_key = Self::prf(&buffer, encrypting_key_length, signing_key_length);
             let iv = Self::prf(&buffer, encrypting_block_size, signing_key_length + encrypting_key_length);
 
-            self.decrypt_key = Some(AesKey::new_decrypt(encrypting_key));
+            self.decrypt_key = Some(AesKey::new(encrypting_key));
         }
 
         {
@@ -143,7 +147,7 @@ impl SecureChannelToken {
             let encrypting_key = Self::prf(&buffer, encrypting_key_length, signing_key_length);
             let iv = Self::prf(&buffer, encrypting_block_size, signing_key_length + encrypting_key_length);
 
-            self.encrypt_key = Some(AesKey::new_encrypt(encrypting_key));
+            self.encrypt_key = Some(AesKey::new(encrypting_key));
         }
     }
 
@@ -188,9 +192,11 @@ impl SecureChannelToken {
     }
 
     /// Encrypt the data
-    fn encrypt(&mut self, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
+    fn encrypt(&self, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
         let key = self.encrypt_key.as_ref().unwrap();
-        let result = key.encrypt(src, dst, &mut self.their_nonce);
+
+        let mut iv = self.their_nonce.clone(); // TODO 
+        let result = key.encrypt(src, dst, &mut iv);
         if result.is_ok() {
             Ok(())
         } else {
@@ -200,9 +206,10 @@ impl SecureChannelToken {
     }
 
     /// Decrypt the data
-    fn decrypt(&mut self, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
+    fn decrypt(&self, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
         let key = self.decrypt_key.as_ref().unwrap();
-        let result = key.decrypt(src, dst, &mut self.nonce);
+        let mut iv = self.their_nonce.clone(); // TODO 
+        let result = key.decrypt(src, dst, &mut iv);
         if result.is_ok() {
             Ok(())
         } else {
@@ -222,7 +229,7 @@ impl SecureChannelToken {
     /// S - Body            - E
     /// S - Padding         - E
     ///     Signature       - E
-    pub fn encrypt_and_sign_chunk(&mut self, src: &[u8], sign_info: (usize, usize), encrypt_info: (usize, usize), dst: &mut [u8]) -> Result<(), StatusCode> {
+    pub fn encrypt_and_sign_chunk(&self, src: &[u8], sign_info: (usize, usize), encrypt_info: (usize, usize), dst: &mut [u8]) -> Result<(), StatusCode> {
         // TODO supply a ChunkInfo to this function.
 
         let s_from = sign_info.0;
@@ -293,6 +300,26 @@ impl SecureChannelToken {
                 let len = src.len();
                 &dst[..len].copy_from_slice(&src[..len]);
                 Ok(())
+            }
+            MessageSecurityMode::Sign => {
+                match self.security_policy {
+                    SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {
+                        Ok(())
+                    }
+                    _ => {
+                        panic!("Unsupported security policy");
+                    }
+                }
+            }
+            MessageSecurityMode::SignAndEncrypt => {
+                match self.security_policy {
+                    SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {
+                        Ok(())
+                    }
+                    _ => {
+                        panic!("Unsupported security policy");
+                    }
+                }
             }
             _ => {
                 // Use the security policy to decrypt the block using the token

@@ -120,21 +120,22 @@ impl BinaryEncoder<ChunkHeader> for ChunkHeader {
 impl ChunkHeader {}
 
 /// Chunk info provides some basic information gleaned from reading the chunk such as offsets into
-/// the chunk and so on.
+/// the chunk and so on. The chunk MUST be decrypted before calling this otherwise the values are 
+/// garbage.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChunkInfo {
     // Chunks either have an asymmetric or symmetric security header
     pub security_header: SecurityHeader,
-    /// Byte offset to sequence header
-    pub sequence_header_offset: usize,
     /// Sequence header information
     pub sequence_header: SequenceHeader,
+    /// Byte offset to sequence header
+    pub sequence_header_offset: usize,
     /// Byte offset to actual message body
     pub body_offset: usize,
     /// Length of message body
     pub body_length: usize,
-    /// Byte offset to padding / signature
-    pub padding_offset: usize,
+    /// Byte offset to padding
+    pub padding_offset: usize
 }
 
 impl ChunkInfo {
@@ -200,8 +201,8 @@ impl ChunkInfo {
 
         let chunk_info = ChunkInfo {
             security_header: security_header,
-            sequence_header_offset: sequence_header_offset as usize,
             sequence_header: sequence_header,
+            sequence_header_offset: sequence_header_offset as usize,
             body_offset: body_offset as usize,
             body_length: body_length as usize,
             padding_offset: padding_offset as usize,
@@ -290,6 +291,11 @@ impl Chunk {
         max_chunk_size - chunk_size
     }
 
+    pub fn decrypt_data(&mut self, secure_channel_token: &SecureChannelToken) -> Result<(), StatusCode> {
+        // TODO this function should be called after decoding a chunk from a stream
+        Ok(())
+    }
+
     pub fn new(sequence_number: UInt32, request_id: UInt32, message_type: ChunkMessageType, chunk_type: ChunkType, secure_channel_token: &SecureChannelToken, data: &[u8]) -> Result<Chunk, StatusCode> {
         // security header depends on message type
         let security_header = secure_channel_token.make_security_header(message_type);
@@ -297,7 +303,10 @@ impl Chunk {
 
         // Calculate the chunk body size
         let mut chunk_body_size = 0;
+
+        let sign_from = 0;
         chunk_body_size += security_header.byte_len();
+        let encrypt_from = chunk_body_size;
         chunk_body_size += sequence_header.byte_len();
         chunk_body_size += data.len();
         // Test if padding is required
@@ -308,6 +317,10 @@ impl Chunk {
         if extra_padding_size > 0 {
             chunk_body_size += 1 + extra_padding_size as usize;
         }
+        let sign_to = chunk_body_size;
+        // Signature size (if required)
+        chunk_body_size += secure_channel_token.signature_size();
+        let encrypt_to = chunk_body_size;
 
         let mut stream = Cursor::new(vec![0u8; chunk_body_size]);
         // write security header
@@ -331,10 +344,15 @@ impl Chunk {
                 }
             }
         }
+        // Leave signature blank
+        // zeros
 
-        // TODO encrypt
-        // TODO calculate signature
-        // write signature
+        // Encrypt/sign
+        let data = stream.into_inner();
+        let mut processed_data = vec![0u8; chunk_body_size];
+        let sign_info = (sign_from, sign_to);
+        let encrypt_info = (encrypt_from, encrypt_to);
+        secure_channel_token.encrypt_and_sign_chunk(&data, sign_info, encrypt_info, &mut processed_data);
 
         let message_size = (CHUNK_HEADER_SIZE + chunk_body_size) as u32;
         debug!("Creating a chunk with a size of {}", message_size);
@@ -347,10 +365,9 @@ impl Chunk {
             secure_channel_id,
             is_valid: true,
         };
-
         Ok(Chunk {
             chunk_header: chunk_header,
-            chunk_body: stream.into_inner(),
+            chunk_body: data,
         })
     }
 

@@ -6,17 +6,17 @@
 
 use std;
 use std::marker::Send;
-use std::fmt::{Debug, Result, Formatter};
-use std::result;
+use std::fmt::{Debug, Formatter};
+use std::result::Result;
 
 use openssl::x509;
-use openssl::aes;
-use openssl::aes::aes_ige;
+use openssl::symm::{Cipher, Crypter};
 use openssl::symm::Mode;
 use openssl::pkey;
 use openssl::rsa;
 use openssl::sign;
 use openssl::hash;
+use openssl::error::{Error, ErrorStack};
 
 use chrono::{DateTime, UTC, TimeZone};
 
@@ -42,7 +42,7 @@ pub struct X509 {
 }
 
 impl Debug for X509 {
-    fn fmt(&self, f: &mut Formatter) -> Result {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         // This impl will not write out the key, but it exists to keep structs happy
         // that contain a key as a field
         write!(f, "[x509]")
@@ -57,7 +57,7 @@ impl X509 {
         X509 { value }
     }
 
-    pub fn from_byte_string(data: &ByteString) -> std::result::Result<X509, ()> {
+    pub fn from_byte_string(data: &ByteString) -> Result<X509, ()> {
         if data.is_null() {
             Err(())
         } else {
@@ -75,7 +75,7 @@ impl X509 {
         ByteString::from_bytes(&der)
     }
 
-    pub fn public_key(&self) -> std::result::Result<PKey, ()> {
+    pub fn public_key(&self) -> Result<PKey, ()> {
         if let Ok(pkey) = self.value.public_key() {
             let pkey = PKey::wrap(pkey);
             Ok(pkey)
@@ -123,18 +123,18 @@ impl X509 {
     }
 
     /// Turn the Asn1 values into useful portable types
-    pub fn not_before(&self) -> std::result::Result<DateTime<UTC>, ()> {
+    pub fn not_before(&self) -> Result<DateTime<UTC>, ()> {
         let date = self.value.not_before().to_string();
         Self::parse_asn1_date(&date)
     }
 
     /// Turn the Asn1 values into useful portable types
-    pub fn not_after(&self) -> std::result::Result<DateTime<UTC>, ()> {
+    pub fn not_after(&self) -> Result<DateTime<UTC>, ()> {
         let date = self.value.not_after().to_string();
         Self::parse_asn1_date(&date)
     }
 
-    fn parse_asn1_date(date: &str) -> std::result::Result<DateTime<UTC>, ()> {
+    fn parse_asn1_date(date: &str) -> Result<DateTime<UTC>, ()> {
         // Parse ASN1 time format
         // MMM DD HH:MM:SS YYYY [GMT]
         let date = if date.ends_with(" GMT") {
@@ -179,7 +179,7 @@ pub struct PKey {
 }
 
 impl Debug for PKey {
-    fn fmt(&self, f: &mut Formatter) -> Result {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         // This impl will not write out the key, but it exists to keep structs happy
         // that contain a key as a field
         write!(f, "[pkey]")
@@ -233,13 +233,12 @@ impl PKey {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// This is a wrapper around the OpenSSL AesKey type
 pub struct AesKey {
-    pub value: aes::AesKey,
+    pub value: Vec<u8>,
 }
 
 impl Debug for AesKey {
-    fn fmt(&self, f: &mut Formatter) -> Result {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         // This impl will not write out the key, but it exists to keep structs happy
         // that contain a key as a field
         write!(f, "[aes]")
@@ -250,21 +249,13 @@ impl Debug for AesKey {
 unsafe impl Send for AesKey {}
 
 impl AesKey {
-    pub fn wrap(key: aes::AesKey) -> AesKey {
-        AesKey { value: key }
+    pub fn new(value: &[u8]) -> AesKey {
+        AesKey { value: value.to_vec() }
     }
 
-    pub fn new_encrypt(value: &[u8]) -> AesKey {
-        AesKey { value: aes::AesKey::new_encrypt(&value).unwrap() }
-    }
-
-    pub fn new_decrypt(value: &[u8]) -> AesKey {
-        AesKey { value: aes::AesKey::new_decrypt(&value).unwrap() }
-    }
-
-    fn validate_aes_args(src: &[u8], dst: &mut [u8], iv: &[u8]) -> result::Result<(), String> {
-        if src.len() != dst.len() {
-            Err(format!("In and out buffers have different lengths {} vs {}", src.len(), dst.len()))
+    fn validate_aes_args(cipher: &Cipher, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<(), String> {
+        if dst.len() < src.len() + cipher.block_size() {
+            Err(format!("Dst buffer is too small {} vs {} + {}", src.len(), dst.len(), cipher.block_size()))
         } else if src.len() % 16 != 0 {
             // Works for out too because inx.len == out.len
             Err(format!("In and out buffers are not 16-byte padded, len = {}", src.len()))
@@ -277,16 +268,45 @@ impl AesKey {
         }
     }
 
-    pub fn encrypt(&self, src: &[u8], dst: &mut [u8], iv: &mut [u8]) -> result::Result<(), String> {
-        let _ = Self::validate_aes_args(src, dst, iv)?;
-        aes_ige(src, dst, &self.value, iv, Mode::Encrypt);
-        Ok(())
+    fn cipher(&self) -> Cipher {
+        Cipher::aes_128_cbc()
     }
 
-    /// Encrypts data using AES. The initialization vector is the nonce generated for the secure channel
-    pub fn decrypt(&self, src: &[u8], dst: &mut [u8], iv: &mut [u8]) -> result::Result<(), String> {
-        let _ = Self::validate_aes_args(src, dst, iv)?;
-        aes_ige(src, dst, &self.value, iv, Mode::Decrypt);
-        Ok(())
+    /// Encrypt or decrypt  data according to the mode
+    fn do_cipher(&self, mode: Mode, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<usize, String> {
+        let cipher = self.cipher();
+        let _ = Self::validate_aes_args(&cipher, src, iv, dst)?;
+        let key = &self.value;
+        let iv = Some(iv);
+        let crypter = Crypter::new(cipher, mode, &self.value, iv);
+        if let Ok(mut c) = crypter {
+            let count = c.update(src, dst).unwrap();
+            let rest = c.finalize(&mut dst[count..]).unwrap();
+            Ok(count + rest)
+        }
+        else {
+            Err("Encryption Error".to_owned())
+        }
+    }
+
+    pub fn block_size(&self) -> usize {
+        self.cipher().block_size()
+    }
+
+    pub fn iv_length(&self) -> usize {
+        self.cipher().iv_len().unwrap()
+    }
+
+    pub fn key_length(&self) -> usize {
+        self.cipher().key_len()
+    }
+
+    pub fn encrypt(&self, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<usize, String> {
+        self.do_cipher(Mode::Encrypt, src, iv, dst)
+    }
+
+    /// Decrypts data using AES. The initialization vector is the nonce generated for the secure channel
+    pub fn decrypt(&self, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<usize, String> {
+        self.do_cipher(Mode::Decrypt, src, iv, dst)
     }
 }

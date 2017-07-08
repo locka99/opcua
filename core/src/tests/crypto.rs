@@ -15,29 +15,33 @@ fn aes_test() {
     let mut raw_key = vec![0u8; 16];
     rng.fill_bytes(&mut raw_key);
 
-    // Create a random nonce(iv). Not obvious why iv should be 2*blocksize
-    let mut nonce = vec![0u8; 32];
-    rng.fill_bytes(&mut nonce);
+    // Create a random iv.
+    let mut iv = vec![0u8; 16];
+    rng.fill_bytes(&mut iv);
+
+    let aes_key = AesKey::new(&raw_key);
 
     let plaintext = b"01234567890123450123456789012345";
-    let mut ciphertext: [u8; 32] = [0; 32];
-    {
-        let mut nonce = nonce.clone();
-        let aes_key = AesKey::new_encrypt(&raw_key);
+    let buf_size = plaintext.len() + aes_key.block_size();
+    let mut ciphertext = vec![0u8; buf_size];
+    
+    let ciphertext = {
         println!("Plaintext = {}, ciphertext = {}", plaintext.len(), ciphertext.len());
-        let r = aes_key.encrypt(plaintext, &mut ciphertext, &mut nonce);
+        let r = aes_key.encrypt(plaintext, &iv, &mut ciphertext);
         println!("result = {:?}", r);
         assert!(r.is_ok());
-    }
+        &ciphertext[..r.unwrap()]
+    };
 
-    let mut plaintext2: [u8; 32] = [0; 32];
-    {
-        let mut nonce = nonce.clone();
-        let aes_key = AesKey::new_decrypt(&raw_key);
-        let r = aes_key.decrypt(&ciphertext, &mut plaintext2, &mut nonce);
+    let buf_size = ciphertext.len() + aes_key.block_size();
+    let mut plaintext2 = vec![0u8; buf_size];
+    
+    let plaintext2 = {
+        let r = aes_key.decrypt(&ciphertext, &iv, &mut plaintext2);
         println!("result = {:?}", r);
         assert!(r.is_ok());
-    }
+        &plaintext2[..r.unwrap()]
+    };
 
     assert_eq!(&plaintext[..], &plaintext2[..]);
 }

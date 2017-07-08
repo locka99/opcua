@@ -23,21 +23,19 @@ impl Chunker {
     ///
     /// The function returns the last sequence number in the series for success, or
     /// BAD_SEQUENCE_NUMBER_INVALID for failure.
-    pub fn validate_chunk_sequences(sequence_number: UInt32, secure_channel_token: &SecureChannelToken, chunks: &Vec<Chunk>) -> Result<UInt32, StatusCode> {
+    pub fn validate_chunk_sequences(starting_sequence_number: UInt32, secure_channel_token: &SecureChannelToken, chunks: &Vec<Chunk>) -> Result<UInt32, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
-        {
-            let mut sequence_number = sequence_number;
-            for chunk in chunks.iter() {
-                let chunk_info = chunk.chunk_info(secure_channel_token)?;
-                // Check the sequence id - should be larger than the last one decoded
-                //if chunk_info.sequence_header.sequence_number != sequence_number {
-                //    error!("Chunk has a sequence number of {} which is less than last decoded sequence number of {}", chunk_info.sequence_header.sequence_number, sequence_number);
-                //    return Err(BAD_SEQUENCE_NUMBER_INVALID);
-                //}
-                sequence_number += 1;
+        let mut sequence_number = starting_sequence_number;
+        for chunk in chunks.iter() {
+            let chunk_info = chunk.chunk_info(secure_channel_token)?;
+            // Check the sequence id - should be larger than the last one decoded
+            if chunk_info.sequence_header.sequence_number != sequence_number {
+                error!("Chunk has a sequence number of {} which is less than last decoded sequence number of {}", chunk_info.sequence_header.sequence_number, sequence_number);
+                return Err(BAD_SEQUENCE_NUMBER_INVALID);
             }
+            sequence_number += 1;
         }
-        Ok(sequence_number + chunks.len() as UInt32 - 1)
+        Ok(starting_sequence_number + chunks.len() as UInt32 - 1)
     }
 
     /// Encodes a message using the supplied sequence number and secure channel info and emits the corresponding chunks
