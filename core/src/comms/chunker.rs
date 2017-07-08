@@ -24,22 +24,26 @@ impl Chunker {
     /// The function returns the last sequence number in the series for success, or
     /// BAD_SEQUENCE_NUMBER_INVALID for failure.
     pub fn validate_chunk_sequences(starting_sequence_number: UInt32, secure_channel_token: &SecureChannelToken, chunks: &Vec<Chunk>) -> Result<UInt32, StatusCode> {
+        let first_sequence_number = {
+            let chunk_info = chunks[0].chunk_info(secure_channel_token)?;
+            chunk_info.sequence_header.sequence_number
+        };
+        if first_sequence_number < starting_sequence_number {
+            error!("First sequence number of {} is less than last value {}", first_sequence_number, starting_sequence_number);
+            return Err(BAD_SEQUENCE_NUMBER_INVALID); 
+        } 
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
         for (i, chunk) in chunks.iter().enumerate() {
             let chunk_info = chunk.chunk_info(secure_channel_token)?;
             let sequence_number = chunk_info.sequence_header.sequence_number;
-            let expected_sequence_number = chunk_info.sequence_header.sequence_number + i as UInt32;
+            let expected_sequence_number = first_sequence_number + i as UInt32;
             // Check the sequence id - should be larger than the last one decoded
             if sequence_number != expected_sequence_number {
-                error!("Chunk has a sequence number of {} which not the expected sequence number of {}", sequence_number, expected_sequence_number);
-                return Err(BAD_SEQUENCE_NUMBER_INVALID);
-            }
-            if sequence_number <= starting_sequence_number {
-                error!("Chunk has a sequence number of {} which is less or equal to the last sequence number of {}", sequence_number, starting_sequence_number);
+                error!("Chunk sequence number of {} is not the expected value of {}, idx {}", sequence_number, expected_sequence_number, i);
                 return Err(BAD_SEQUENCE_NUMBER_INVALID);
             }
         }
-        Ok(starting_sequence_number + chunks.len() as UInt32 - 1)
+        Ok(first_sequence_number + chunks.len() as UInt32 - 1)
     }
 
     /// Encodes a message using the supplied sequence number and secure channel info and emits the corresponding chunks
