@@ -30,8 +30,8 @@ impl Chunker {
         };
         if first_sequence_number < starting_sequence_number {
             error!("First sequence number of {} is less than last value {}", first_sequence_number, starting_sequence_number);
-            return Err(BAD_SEQUENCE_NUMBER_INVALID); 
-        } 
+            return Err(BAD_SEQUENCE_NUMBER_INVALID);
+        }
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
         for (i, chunk) in chunks.iter().enumerate() {
             let chunk_info = chunk.chunk_info(secure_channel_token)?;

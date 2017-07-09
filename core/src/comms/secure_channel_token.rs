@@ -18,11 +18,9 @@ pub struct SecureChannelToken {
     pub token_lifetime: UInt32,
     pub nonce: [u8; 32],
     pub their_nonce: [u8; 32],
-    pub iv: Vec<u8>,
-    pub their_iv: Vec<u8>,
+    pub keys: Option<(AesKey, AesKey, Vec<u8>)>,
     pub their_cert: Option<X509>,
-    pub decrypt_key: Option<AesKey>,
-    pub encrypt_key: Option<AesKey>,
+    pub their_keys: Option<(AesKey, AesKey, Vec<u8>)>,
 }
 
 impl SecureChannelToken {
@@ -37,11 +35,9 @@ impl SecureChannelToken {
             token_lifetime: 0,
             nonce: [0; 32],
             their_nonce: [0; 32],
-            iv: Vec::new(),
-            their_iv: Vec::new(),
+            keys: None,
             their_cert: None,
-            encrypt_key: None,
-            decrypt_key: None,
+            their_keys: None,
         }
     }
 
@@ -75,11 +71,6 @@ impl SecureChannelToken {
         } else {
             Err(())
         }
-    }
-
-    // Pseudo random function just returns a slice of data 
-    fn prf(data: &[u8], length: usize, offset: usize) -> &[u8] {
-        &data[offset..(offset + length)]
     }
 
     /// Part 6
@@ -116,39 +107,8 @@ impl SecureChannelToken {
     /// are used to secure Messages sent by the Server.
     /// 
     fn derive_keys(&mut self) {
-        // TODO
-        let signing_key_length = 16;
-        let encrypting_key_length = 16;
-        let encrypting_block_size = 16;
-
-        let their_nonce = &self.their_nonce;
-        let nonce = &self.nonce;
-
-        let mut buffer = Vec::with_capacity(nonce.len() + their_nonce.len());
-
-        // Their encrypting key, i.e. what must be decrypted
-        {
-            buffer.extend_from_slice(their_nonce);
-            buffer.extend_from_slice(nonce);
-
-            let signing_key = Self::prf(&buffer, signing_key_length, 0);
-            let encrypting_key = Self::prf(&buffer, encrypting_key_length, signing_key_length);
-            let iv = Self::prf(&buffer, encrypting_block_size, signing_key_length + encrypting_key_length);
-
-            self.decrypt_key = Some(AesKey::new(self.security_policy, encrypting_key));
-        }
-
-        {
-            buffer.clear();
-            buffer.extend_from_slice(nonce);
-            buffer.extend_from_slice(their_nonce);
-
-            let signing_key = Self::prf(&buffer, signing_key_length, 0);
-            let encrypting_key = Self::prf(&buffer, encrypting_key_length, signing_key_length);
-            let iv = Self::prf(&buffer, encrypting_block_size, signing_key_length + encrypting_key_length);
-
-            self.encrypt_key = Some(AesKey::new(self.security_policy, encrypting_key));
-        }
+        self.their_keys = Some(self.security_policy.make_secure_channel_keys(&self.their_nonce, &self.nonce));
+        self.keys = Some(self.security_policy.make_secure_channel_keys(&self.nonce, &self.their_nonce));
     }
 
     /// Test if the token has expired yet
@@ -159,17 +119,17 @@ impl SecureChannelToken {
     }
 
     pub fn signature_size(&self) -> usize {
-         if self.security_policy != SecurityPolicy::None {
-             self.security_policy.signature_size()
-         } else {
-             0
-         }
+        if self.security_policy != SecurityPolicy::None {
+            self.security_policy.derived_signature_size()
+        } else {
+            0
+        }
     }
 
     /// Calculate the padding size
     pub fn calc_chunk_padding(&self, byte_length: usize) -> (u8, u8) {
         if self.security_policy != SecurityPolicy::None && self.security_mode != MessageSecurityMode::None {
-            let signature_size = self.security_policy.signature_size();
+            let signature_size = self.security_policy.derived_signature_size();
             let plain_block_size = self.security_policy.plain_block_size();
             let padding_size: u8 = (plain_block_size - ((byte_length + signature_size + 1) % plain_block_size)) as u8;
             let extra_padding_size = 0u8;
@@ -182,21 +142,25 @@ impl SecureChannelToken {
 
     /// Sign the following block
     fn sign(&self, src: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
-        // TODO
+        let _ = &(self.keys.as_ref().unwrap()).0;
+        // TODO HMAC-1 or 256
         Ok(())
     }
 
-    /// Verify the signature
+    /// Verify their signature
     fn verify(&self, src: &[u8], signature: &[u8]) -> Result<(), StatusCode> {
+        let _ = &(self.their_keys.as_ref().unwrap()).0;
+        // TODO HMAC-1 or 256
         Err(BAD_APPLICATION_SIGNATURE_INVALID)
     }
 
+
     /// Encrypt the data
     fn encrypt(&self, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
-        let key = self.encrypt_key.as_ref().unwrap();
-
-        let mut iv = self.their_nonce.clone(); // TODO 
-        let result = key.encrypt(src, dst, &mut iv);
+        let keys = self.keys.as_ref().unwrap();
+        let key = &keys.1;
+        let iv = &keys.2;
+        let result = key.encrypt(src, iv, dst);
         if result.is_ok() {
             Ok(())
         } else {
@@ -207,9 +171,10 @@ impl SecureChannelToken {
 
     /// Decrypt the data
     fn decrypt(&self, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
-        let key = self.decrypt_key.as_ref().unwrap();
-        let mut iv = self.their_nonce.clone(); // TODO 
-        let result = key.decrypt(src, dst, &mut iv);
+        let keys = self.their_keys.as_ref().unwrap();
+        let key = &keys.1;
+        let iv = &keys.2;
+        let result = key.decrypt(src, iv, dst);
         if result.is_ok() {
             Ok(())
         } else {
@@ -230,13 +195,8 @@ impl SecureChannelToken {
     /// S - Padding         - E
     ///     Signature       - E
     pub fn encrypt_and_sign_chunk(&self, src: &[u8], sign_info: (usize, usize), encrypt_info: (usize, usize), dst: &mut [u8]) -> Result<(), StatusCode> {
-        // TODO supply a ChunkInfo to this function.
-
-        let s_from = sign_info.0;
-        let s_to = sign_info.1;
-
-        let e_from = encrypt_info.0;
-        let e_to = encrypt_info.1;
+        let (s_from, s_to) = sign_info;
+        let (e_from, e_to) = encrypt_info;
 
         match self.security_mode {
             MessageSecurityMode::None => {
@@ -249,7 +209,7 @@ impl SecureChannelToken {
                     SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {
                         let mut signature = vec![0u8; 20];
                         // Sign the message header, security header, sequence header, body, padding
-                        self.sign(&src[s_from..s_to], &mut signature);
+                        self.sign(&src[s_from..s_to], &mut signature)?;
                         &dst[..s_to].copy_from_slice(&src[..s_to]);
                         &dst[s_to..].copy_from_slice(&signature);
                         Ok(())
@@ -265,7 +225,7 @@ impl SecureChannelToken {
                         let mut dst_tmp = vec![0u8; dst.len()];
                         let mut signature = vec![0u8; 20];
                         // Sign the message header, security header, sequence header, body, padding
-                        self.sign(&src[s_from..s_to], &mut signature);
+                        self.sign(&src[s_from..s_to], &mut signature)?;
                         &dst_tmp[..s_to].copy_from_slice(&src[..s_to]);
                         &dst_tmp[s_to..].copy_from_slice(&signature);
                         // Encrypt the sequence header, payload, signature

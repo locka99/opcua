@@ -25,7 +25,7 @@ fn aes_test() {
     let plaintext = b"01234567890123450123456789012345";
     let buf_size = plaintext.len() + aes_key.block_size();
     let mut ciphertext = vec![0u8; buf_size];
-    
+
     let ciphertext = {
         println!("Plaintext = {}, ciphertext = {}", plaintext.len(), ciphertext.len());
         let r = aes_key.encrypt(plaintext, &iv, &mut ciphertext);
@@ -36,7 +36,7 @@ fn aes_test() {
 
     let buf_size = ciphertext.len() + aes_key.block_size();
     let mut plaintext2 = vec![0u8; buf_size];
-    
+
     let plaintext2 = {
         let r = aes_key.decrypt(&ciphertext, &iv, &mut plaintext2);
         println!("result = {:?}", r);

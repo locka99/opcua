@@ -352,7 +352,7 @@ impl Chunk {
         let mut processed_data = vec![0u8; chunk_body_size];
         let sign_info = (sign_from, sign_to);
         let encrypt_info = (encrypt_from, encrypt_to);
-        secure_channel_token.encrypt_and_sign_chunk(&data, sign_info, encrypt_info, &mut processed_data);
+        secure_channel_token.encrypt_and_sign_chunk(&data, sign_info, encrypt_info, &mut processed_data)?;
 
         let message_size = (CHUNK_HEADER_SIZE + chunk_body_size) as u32;
         debug!("Creating a chunk with a size of {}", message_size);

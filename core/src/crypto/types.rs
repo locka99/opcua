@@ -16,7 +16,6 @@ use openssl::pkey;
 use openssl::rsa;
 use openssl::sign;
 use openssl::hash;
-use openssl::error::{Error, ErrorStack};
 
 use chrono::{DateTime, UTC, TimeZone};
 
@@ -253,11 +252,7 @@ unsafe impl Send for AesKey {}
 
 impl AesKey {
     pub fn new(security_policy: SecurityPolicy, value: &[u8]) -> AesKey {
-        // TODO validate key length to policy
-        AesKey { 
-            value: value.to_vec(),
-            security_policy: SecurityPolicy::Basic128Rsa15
-        }
+        AesKey { value: value.to_vec(), security_policy }
     }
 
     fn validate_aes_args(cipher: &Cipher, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<(), String> {
@@ -280,7 +275,7 @@ impl AesKey {
             SecurityPolicy::Basic128Rsa15 => {
                 // Aes128_CBC
                 Cipher::aes_128_cbc()
-            }   
+            }
             SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {
                 // Aes256_CBC
                 Cipher::aes_256_cbc()
@@ -297,13 +292,12 @@ impl AesKey {
         let _ = Self::validate_aes_args(&cipher, src, iv, dst)?;
         let key = &self.value;
         let iv = Some(iv);
-        let crypter = Crypter::new(cipher, mode, &self.value, iv);
+        let crypter = Crypter::new(cipher, mode, key, iv);
         if let Ok(mut c) = crypter {
             let count = c.update(src, dst).unwrap();
             let rest = c.finalize(&mut dst[count..]).unwrap();
             Ok(count + rest)
-        }
-        else {
+        } else {
             Err("Encryption Error".to_owned())
         }
     }
@@ -318,6 +312,18 @@ impl AesKey {
 
     pub fn key_length(&self) -> usize {
         self.cipher().key_len()
+    }
+
+    pub fn sign_hmac1(&self, data: &[u8], signature: &mut [u8]) {}
+
+    pub fn verify_hmac1(&self, data: &[u8], signature: &[u8]) -> bool {
+        false
+    }
+
+    pub fn sign_hmac256(&self, data: &[u8], signature: &mut [u8]) {}
+
+    pub fn verify_hmac256(&self, data: &[u8], signature: &[u8]) -> bool {
+        false
     }
 
     pub fn encrypt(&self, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<usize, String> {
