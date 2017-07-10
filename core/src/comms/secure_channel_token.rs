@@ -142,18 +142,41 @@ impl SecureChannelToken {
 
     /// Sign the following block
     fn sign(&self, src: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
-        let _ = &(self.keys.as_ref().unwrap()).0;
-        // TODO HMAC-1 or 256
-        Ok(())
+        let key = &(self.keys.as_ref().unwrap()).0;
+        match self.security_policy {
+            SecurityPolicy::Basic128Rsa15 => {
+                // HMAC SHA-1
+                key.hmac_sha1(src, signature)
+            }
+            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => { 
+                // HMAC SHA-256                
+                key.hmac_sha256(src, signature)
+            }
+            _ => {
+                panic!("Unsupported policy")
+            }
+        }
     }
 
     /// Verify their signature
     fn verify(&self, src: &[u8], signature: &[u8]) -> Result<(), StatusCode> {
-        let _ = &(self.their_keys.as_ref().unwrap()).0;
-        // TODO HMAC-1 or 256
-        Err(BAD_APPLICATION_SIGNATURE_INVALID)
+        let key = &(self.their_keys.as_ref().unwrap()).0;
+        // Verify the signature using SHA-1 / SHA-256 HMAC
+        let verified = match self.security_policy {
+            SecurityPolicy::Basic128Rsa15 => {
+                // HMAC SHA-1
+                key.verify_hmac_sha1(src, signature)
+            }
+            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => { 
+                // HMAC SHA-256                
+                key.verify_hmac_sha256(src, signature)
+            }
+            _ => {
+                panic!("Unsupported policy")
+            }
+        };
+        if verified { Ok(()) } else { Err(BAD_APPLICATION_SIGNATURE_INVALID) }
     }
-
 
     /// Encrypt the data
     fn encrypt(&self, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
@@ -183,6 +206,16 @@ impl SecureChannelToken {
         }
     }
 
+    // Panic code which requires a policy
+    fn expect_supported_security_policy(&self) {
+        match self.security_policy {
+            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => { }
+            _ => {
+                panic!("Unsupported security policy");
+            }
+        }
+    }
+
     /// Encode data using security. Destination buffer is expected to be same size as src and expected
     /// to have space for for a signature if a signature is to be appended
     ///
@@ -197,7 +230,6 @@ impl SecureChannelToken {
     pub fn encrypt_and_sign_chunk(&self, src: &[u8], sign_info: (usize, usize), encrypt_info: (usize, usize), dst: &mut [u8]) -> Result<(), StatusCode> {
         let (s_from, s_to) = sign_info;
         let (e_from, e_to) = encrypt_info;
-
         match self.security_mode {
             MessageSecurityMode::None => {
                 // Just copy data to out
@@ -205,42 +237,31 @@ impl SecureChannelToken {
                 Ok(())
             }
             MessageSecurityMode::Sign => {
-                match self.security_policy {
-                    SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {
-                        let mut signature = vec![0u8; 20];
-                        // Sign the message header, security header, sequence header, body, padding
-                        self.sign(&src[s_from..s_to], &mut signature)?;
-                        &dst[..s_to].copy_from_slice(&src[..s_to]);
-                        &dst[s_to..].copy_from_slice(&signature);
-                        Ok(())
-                    }
-                    _ => {
-                        panic!("Unsupported security policy");
-                    }
-                }
+                self.expect_supported_security_policy();
+                let mut signature = vec![0u8; 20];
+                // Sign the message header, security header, sequence header, body, padding
+                self.sign(&src[s_from..s_to], &mut signature)?;
+                &dst[..s_to].copy_from_slice(&src[..s_to]);
+                &dst[s_to..].copy_from_slice(&signature);
+                Ok(())
             }
             MessageSecurityMode::SignAndEncrypt => {
-                match self.security_policy {
-                    SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {
-                        let mut dst_tmp = vec![0u8; dst.len()];
-                        let mut signature = vec![0u8; 20];
-                        // Sign the message header, security header, sequence header, body, padding
-                        self.sign(&src[s_from..s_to], &mut signature)?;
-                        &dst_tmp[..s_to].copy_from_slice(&src[..s_to]);
-                        &dst_tmp[s_to..].copy_from_slice(&signature);
-                        // Encrypt the sequence header, payload, signature
-                        self.encrypt(&dst_tmp[e_from..e_to], &mut dst[e_from..e_to])?;
-                        // Copy the message header / security header
-                        &dst[..e_from].copy_from_slice(&dst_tmp[..e_from]);
-                        Ok(())
-                    }
-                    _ => {
-                        panic!("Unsupported security policy");
-                    }
-                }
+                self.expect_supported_security_policy();
+                // TODO can this be done without a tmp?
+                let mut dst_tmp = vec![0u8; dst.len()];
+                let mut signature = vec![0u8; 20];
+                // Sign the message header, security header, sequence header, body, padding
+                self.sign(&src[s_from..s_to], &mut signature)?;
+                &dst_tmp[..s_to].copy_from_slice(&src[..s_to]);
+                &dst_tmp[s_to..].copy_from_slice(&signature);
+                // Encrypt the sequence header, payload, signature
+                self.encrypt(&dst_tmp[e_from..e_to], &mut dst[e_from..e_to])?;
+                // Copy the message header / security header
+                &dst[..e_from].copy_from_slice(&dst_tmp[..e_from]);
+                Ok(())
             }
-            _ => {
-                panic!("Invalid message security mode");
+            MessageSecurityMode::Invalid => {
+                panic!("Message security mode is invalid");
             }
         }
     }
@@ -253,37 +274,38 @@ impl SecureChannelToken {
     /// S - Body            - E
     /// S - Padding         - E
     ///     Signature       - E
-    pub fn decrypt_and_verify(&self, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
+    pub fn decrypt_and_verify(&self, src: &[u8], sign_info: (usize, usize), encrypt_info: (usize, usize), dst: &mut [u8]) -> Result<(), StatusCode> {
+        let (s_from, s_to) = sign_info;
+        let (e_from, e_to) = encrypt_info;
         match self.security_mode {
             MessageSecurityMode::None => {
-                // Just copy data to out
+                // Copy everything
                 let len = src.len();
                 &dst[..len].copy_from_slice(&src[..len]);
                 Ok(())
             }
             MessageSecurityMode::Sign => {
-                match self.security_policy {
-                    SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {
-                        Ok(())
-                    }
-                    _ => {
-                        panic!("Unsupported security policy");
-                    }
-                }
+                self.expect_supported_security_policy();
+                // Copy everything
+                let len = src.len();
+                &dst[..len].copy_from_slice(&src[..len]);
+                // Verify signature
+                self.verify(&dst[s_from..s_to], &dst[e_to..])?;
+                Ok(())
             }
             MessageSecurityMode::SignAndEncrypt => {
-                match self.security_policy {
-                    SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {
-                        Ok(())
-                    }
-                    _ => {
-                        panic!("Unsupported security policy");
-                    }
-                }
+                self.expect_supported_security_policy();
+                // Copy security header
+                &dst[..e_from].copy_from_slice(&src[..e_from]);
+                // Decrypt encrypted portion
+                self.decrypt(&src[e_from..e_to], &mut dst[e_from..e_to])?;
+                // Verify signature (after encrypted portion)
+                self.verify(&dst[s_from..s_to], &dst[e_to..])?;
+                Ok(())
             }
-            _ => {
+            MessageSecurityMode::Invalid => {
                 // Use the security policy to decrypt the block using the token
-                unimplemented!()
+                panic!("Message security mode is invalid");
             }
         }
     }
