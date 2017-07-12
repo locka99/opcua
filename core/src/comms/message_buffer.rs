@@ -11,7 +11,7 @@ pub enum Message {
     Hello(HelloMessage),
     Acknowledge(AcknowledgeMessage),
     Error(ErrorMessage),
-    Chunk(Chunk)
+    MessageChunk(MessageChunk)
 }
 
 /// The message buffer stores bytes read from the input and speculatively turns them into messages.
@@ -54,7 +54,7 @@ impl MessageBuffer {
                 MessageType::Acknowledge => Message::Acknowledge(AcknowledgeMessage::decode(&mut message_stream)?),
                 MessageType::Hello => Message::Hello(HelloMessage::decode(&mut message_stream)?),
                 MessageType::Error => Message::Error(ErrorMessage::decode(&mut message_stream)?),
-                MessageType::Chunk => Message::Chunk(Chunk::decode(&mut message_stream)?),
+                MessageType::Chunk => Message::MessageChunk(MessageChunk::decode(&mut message_stream)?),
                 _ => { return Err(BAD_COMMUNICATION_ERROR); }
             };
             messages.push(message);

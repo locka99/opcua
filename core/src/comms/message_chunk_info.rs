@@ -7,7 +7,7 @@ use opcua_types::StatusCode::*;
 
 use crypto::SecurityPolicy;
 use comms::security_header::{SecurityHeader, SequenceHeader};
-use comms::chunk::{Chunk, ChunkHeader};
+use comms::message_chunk::{MessageChunk, MessageChunkHeader};
 use comms::secure_channel_token::SecureChannelToken;
 use comms::security_header::{AsymmetricSecurityHeader, SymmetricSecurityHeader};
 
@@ -16,7 +16,7 @@ use comms::security_header::{AsymmetricSecurityHeader, SymmetricSecurityHeader};
 /// garbage.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChunkInfo {
-    pub message_header: ChunkHeader,
+    pub message_header: MessageChunkHeader,
     // Chunks either have an asymmetric or symmetric security header
     pub security_header: SecurityHeader,
     /// Sequence header information
@@ -30,10 +30,10 @@ pub struct ChunkInfo {
 }
 
 impl ChunkInfo {
-    pub fn new(chunk: &Chunk, _: &SecureChannelToken) -> std::result::Result<ChunkInfo, StatusCode> {
+    pub fn new(chunk: &MessageChunk, _: &SecureChannelToken) -> std::result::Result<ChunkInfo, StatusCode> {
         let mut stream = Cursor::new(&chunk.data);
 
-        let message_header = ChunkHeader::decode(&mut stream)?;
+        let message_header = MessageChunkHeader::decode(&mut stream)?;
 
         // Read the security header
         let security_header = if chunk.is_open_secure_channel() {

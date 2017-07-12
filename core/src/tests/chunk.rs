@@ -15,7 +15,7 @@ impl Test {
     }
 }
 
-fn sample_secure_channel_request_data_security_none() -> Chunk {
+fn sample_secure_channel_request_data_security_none() -> MessageChunk {
     let sample_data = vec![
         47, 0, 0, 0, 104, 116, 116, 112, 58, 47, 47, 111, 112, 99, 102, 111, 117, 110, 100, 97,
         116, 105, 111, 110, 46, 111, 114, 103, 47, 85, 65, 47, 83, 101, 99, 117, 114, 105, 116,
@@ -28,9 +28,9 @@ fn sample_secure_channel_request_data_security_none() -> Chunk {
     let mut stream = Cursor::new(data);
 
     // Write a header and the sample request
-    let _ = ChunkHeader {
-        message_type: ChunkMessageType::OpenSecureChannel,
-        chunk_type: ChunkType::Final,
+    let _ = MessageChunkHeader {
+        message_type: MessageChunkType::OpenSecureChannel,
+        is_final: MessageIsFinalType::Final,
         message_size: 12 +  sample_data.len() as u32,
         secure_channel_id: 1,
         is_valid: true,
@@ -39,9 +39,9 @@ fn sample_secure_channel_request_data_security_none() -> Chunk {
 
     // Decode chunk from stream
     stream.set_position(0);
-    let chunk = Chunk::decode(&mut stream).unwrap();
+    let chunk = MessageChunk::decode(&mut stream).unwrap();
 
-    println!("Sample chunk info = {:?}", chunk.chunk_header());
+    println!("Sample chunk info = {:?}", chunk.message_header());
 
     chunk
 }
@@ -73,7 +73,7 @@ fn chunk_multi_encode_decode() {
 
     // Verify chunk byte len maxes out at == 8192
     let chunk_length = chunks[0].byte_len();
-    debug!("Chunk length = {}", chunk_length);
+    debug!("MessageChunk length = {}", chunk_length);
     assert_eq!(chunk_length, 8192);
 
     let new_response = Chunker::decode(&chunks, &secure_channel_token, None).unwrap();
@@ -177,7 +177,7 @@ fn open_secure_channel_response() {
     let secure_channel_token = SecureChannelToken::new();
 
     let mut stream = Cursor::new(chunk);
-    let chunk = Chunk::decode(&mut stream).unwrap();
+    let chunk = MessageChunk::decode(&mut stream).unwrap();
     let chunks = vec![chunk];
 
     let decoded = Chunker::decode(&chunks, &secure_channel_token, None);

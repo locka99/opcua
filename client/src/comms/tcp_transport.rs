@@ -117,22 +117,22 @@ impl TcpTransport {
         self.stream.as_mut().unwrap()
     }
 
-    fn turn_received_chunks_into_message(&mut self, chunks: &Vec<Chunk>) -> Result<SupportedMessage, StatusCode> {
+    fn turn_received_chunks_into_message(&mut self, chunks: &Vec<MessageChunk>) -> Result<SupportedMessage, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
         self.last_received_sequence_number = Chunker::validate_chunk_sequences(self.last_received_sequence_number + 1, &self.secure_channel_token, chunks)?;
         // Now decode
         Chunker::decode(&chunks, &self.secure_channel_token, None)
     }
 
-    fn process_chunk(&mut self, chunk: Chunk) -> Result<Option<SupportedMessage>, StatusCode> {
+    fn process_chunk(&mut self, chunk: MessageChunk) -> Result<Option<SupportedMessage>, StatusCode> {
         debug!("Got a chunk {:?}", chunk);
 
-        let chunk_header = chunk.chunk_header();
-        match chunk_header.chunk_type {
-            ChunkType::Intermediate => {
+        let message_header = chunk.message_header();
+        match message_header.is_final {
+            MessageIsFinalType::Intermediate => {
                 panic!("We don't support intermediate chunks yet");
             }
-            ChunkType::FinalError => {
+            MessageIsFinalType::FinalError => {
                 info!("Discarding chunk marked in as final error");
                 return Ok(None);
             }
@@ -199,7 +199,7 @@ impl TcpTransport {
             let messages = result.unwrap();
             for message in messages {
                 debug!("Processing message");
-                if let Message::Chunk(chunk) = message {
+                if let Message::MessageChunk(chunk) = message {
                     let result = self.process_chunk(chunk)?;
                     if result.is_some() {
                         // TODO check the response request_handle to see if it matches our request
@@ -256,7 +256,7 @@ impl TcpTransport {
         // Send chunks
         let stream = self.stream();
         for chunk in chunks {
-            debug!("Sending chunk of type {:?}", chunk.chunk_header().message_type);
+            debug!("Sending chunk of type {:?}", chunk.message_header().message_type);
             let _ = chunk.encode(stream)?;
         }
 

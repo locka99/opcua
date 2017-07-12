@@ -7,7 +7,7 @@ use crypto::types::*;
 use crypto::hash;
 
 use comms::{SecurityHeader, SymmetricSecurityHeader, AsymmetricSecurityHeader};
-use comms::chunk::ChunkMessageType;
+use comms::message_chunk::MessageChunkType;
 
 #[derive(Debug)]
 pub struct SecureChannelToken {
@@ -44,9 +44,9 @@ impl SecureChannelToken {
         }
     }
 
-    pub fn make_security_header(&self, message_type: ChunkMessageType) -> SecurityHeader {
+    pub fn make_security_header(&self, message_type: MessageChunkType) -> SecurityHeader {
         match message_type {
-            ChunkMessageType::OpenSecureChannel => {
+            MessageChunkType::OpenSecureChannel => {
                 SecurityHeader::Asymmetric(AsymmetricSecurityHeader::none())
             }
             _ => {

@@ -180,7 +180,7 @@ impl TcpTransport {
                     }
                     TransportState::ProcessMessages => {
                         debug!("Processing message");
-                        if let Message::Chunk(chunk) = message {
+                        if let Message::MessageChunk(chunk) = message {
                             let result = self.process_chunk(chunk, &mut out_buf_stream);
                             if result.is_err() {
                                 session_status_code = result.unwrap_err();
@@ -340,29 +340,29 @@ impl TcpTransport {
         Ok(())
     }
 
-    fn turn_received_chunks_into_message(&mut self, chunks: &Vec<Chunk>) -> std::result::Result<SupportedMessage, StatusCode> {
+    fn turn_received_chunks_into_message(&mut self, chunks: &Vec<MessageChunk>) -> std::result::Result<SupportedMessage, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
         self.last_received_sequence_number = Chunker::validate_chunk_sequences(self.last_received_sequence_number + 1, &self.secure_channel.secure_channel_token, chunks)?;
         // Now decode
         Chunker::decode(&chunks, &self.secure_channel.secure_channel_token, None)
     }
 
-    fn process_chunk<W: Write>(&mut self, mut chunk: Chunk, out_stream: &mut W) -> std::result::Result<(), StatusCode> {
+    fn process_chunk<W: Write>(&mut self, mut chunk: MessageChunk, out_stream: &mut W) -> std::result::Result<(), StatusCode> {
         debug!("Got a chunk {:?}", chunk);
 
-        let chunk_header = chunk.chunk_header();
+        let message_header = chunk.message_header();
 
-        if chunk_header.chunk_type == ChunkType::Intermediate {
+        if message_header.is_final == MessageIsFinalType::Intermediate {
             panic!("We don't support intermediate chunks yet");
-        } else if chunk_header.chunk_type == ChunkType::FinalError {
+        } else if message_header.is_final == MessageIsFinalType::FinalError {
             info!("Discarding chunk marked in as final error");
             return Ok(());
         }
 
-        let chunk_message_type = chunk_header.message_type;
+        let chunk_message_type = message_header.message_type;
 
         // Decrypt / verify chunk if necessary
-        if chunk_message_type == ChunkMessageType::Message {
+        if chunk_message_type == MessageChunkType::Message {
             chunk.decrypt(&self.secure_channel.secure_channel_token)?;
         }
 
@@ -372,13 +372,13 @@ impl TcpTransport {
 
         let message = self.turn_received_chunks_into_message(&in_chunks)?;
         let response = match chunk_message_type {
-            ChunkMessageType::OpenSecureChannel => {
+            MessageChunkType::OpenSecureChannel => {
                 SupportedMessage::OpenSecureChannelResponse(self.secure_channel.open_secure_channel(self.client_protocol_version, &message)?)
             }
-            ChunkMessageType::CloseSecureChannel => {
+            MessageChunkType::CloseSecureChannel => {
                 SupportedMessage::CloseSecureChannelResponse(self.secure_channel.close_secure_channel(&message)?)
             }
-            ChunkMessageType::Message => {
+            MessageChunkType::Message => {
                 self.message_handler.handle_message(request_id, message)?
             }
         };
