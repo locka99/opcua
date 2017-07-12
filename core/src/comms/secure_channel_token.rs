@@ -58,10 +58,15 @@ impl SecureChannelToken {
     }
 
     pub fn create_random_nonce(&mut self) {
-        use rand::{self, Rng};
-        let mut rng = rand::thread_rng();
-        self.nonce = vec![0u8; self.security_policy.symmetric_key_size()];
-        rng.fill_bytes(&mut self.nonce);
+        if self.encryption_enabled() {
+            use rand::{self, Rng};
+            let mut rng = rand::thread_rng();
+            self.nonce = vec![0u8; self.security_policy.symmetric_key_size()];
+            rng.fill_bytes(&mut self.nonce);
+        }
+        else {
+            self.nonce = vec![0u8; 1];
+        }
     }
 
     pub fn nonce_as_byte_string(&self) -> ByteString {
@@ -69,10 +74,14 @@ impl SecureChannelToken {
     }
 
     pub fn set_their_nonce(&mut self, their_nonce: &ByteString) -> Result<(), ()> {
-        let key_size = self.security_policy.symmetric_key_size();
-        if their_nonce.value.is_some() && their_nonce.value.as_ref().unwrap().len() == key_size {
-            self.their_nonce = their_nonce.value.as_ref().unwrap().to_vec();
-            Ok(())
+        if let Some(ref their_nonce) = their_nonce.value {
+            if self.encryption_enabled() && their_nonce.len() != self.security_policy.symmetric_key_size() {
+                Err(())
+            }
+            else {
+                self.their_nonce = their_nonce.to_vec();
+                Ok(())
+            }
         } else {
             Err(())
         }
