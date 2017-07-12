@@ -1,7 +1,7 @@
 use std::io::{Read, Write};
+use std::fmt;
 
 use super::*;
-use constants;
 
 /// This primitive data type is a UInt32 that identifies an element of an array.
 pub type Index = UInt32;
@@ -9,6 +9,10 @@ pub type Index = UInt32;
 /// This primitive data type is a UInt32 that is used as an identifier, such as a handle. All values, except for 0, are valid.
 /// IntegerId = 288,
 pub type IntegerId = UInt32;
+
+pub const MESSAGE_SECURITY_MODE_NONE: &'static str = "None";
+pub const MESSAGE_SECURITY_MODE_SIGN: &'static str = "Sign";
+pub const MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT: &'static str = "SignAndEncrypt";
 
 /// The MessageSecurityMode is an enumeration that specifies what security should be applied to messages exchanges during a Session.
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -50,12 +54,24 @@ impl BinaryEncoder<MessageSecurityMode> for MessageSecurityMode {
     }
 }
 
+impl fmt::Display for MessageSecurityMode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let name = match self {
+            &MessageSecurityMode::None => MESSAGE_SECURITY_MODE_NONE,
+            &MessageSecurityMode::Sign => MESSAGE_SECURITY_MODE_SIGN,
+            &MessageSecurityMode::SignAndEncrypt => MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT,
+            _ => "",
+        };
+        write!(f, "{}", name)
+    }
+}
+
 impl MessageSecurityMode {
     pub fn from_str(str: &str) -> MessageSecurityMode {
         match str {
-            constants::SECURITY_MODE_NONE => MessageSecurityMode::None,
-            constants::SECURITY_MODE_SIGN => MessageSecurityMode::Sign,
-            constants::SECURITY_MODE_SIGN_AND_ENCRYPT => MessageSecurityMode::SignAndEncrypt,
+            MESSAGE_SECURITY_MODE_NONE => MessageSecurityMode::None,
+            MESSAGE_SECURITY_MODE_SIGN => MessageSecurityMode::Sign,
+            MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT => MessageSecurityMode::SignAndEncrypt,
             _ => {
                 error!("Specified security policy {} is not recognized", str);
                 MessageSecurityMode::Invalid

@@ -347,17 +347,24 @@ impl TcpTransport {
         Chunker::decode(&chunks, &self.secure_channel.secure_channel_token, None)
     }
 
-    fn process_chunk<W: Write>(&mut self, chunk: Chunk, out_stream: &mut W) -> std::result::Result<(), StatusCode> {
+    fn process_chunk<W: Write>(&mut self, mut chunk: Chunk, out_stream: &mut W) -> std::result::Result<(), StatusCode> {
         debug!("Got a chunk {:?}", chunk);
 
-        if chunk.chunk_header.chunk_type == ChunkType::Intermediate {
+        let chunk_header = chunk.chunk_header();
+
+        if chunk_header.chunk_type == ChunkType::Intermediate {
             panic!("We don't support intermediate chunks yet");
-        } else if chunk.chunk_header.chunk_type == ChunkType::FinalError {
+        } else if chunk_header.chunk_type == ChunkType::FinalError {
             info!("Discarding chunk marked in as final error");
-            return Ok(())
+            return Ok(());
         }
 
-        let chunk_message_type = chunk.chunk_header.message_type.clone();
+        let chunk_message_type = chunk_header.message_type;
+
+        // Decrypt / verify chunk if necessary
+        if chunk_message_type == ChunkMessageType::Message {
+            chunk.decrypt(&self.secure_channel.secure_channel_token)?;
+        }
 
         let in_chunks = vec![chunk];
         let chunk_info = in_chunks[0].chunk_info(&self.secure_channel.secure_channel_token)?;

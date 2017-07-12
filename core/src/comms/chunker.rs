@@ -108,7 +108,7 @@ impl Chunker {
             debug!("Chunker::decode chunk_info = {:?}", chunk_info);
             let body_start = chunk_info.body_offset;
             let body_end = body_start + chunk_info.body_length;
-            data_size += chunk.chunk_body[body_start..body_end].len();
+            data_size += chunk.data[body_start..body_end].len();
         }
 
         // Read the data into a contiguous buffer
@@ -117,7 +117,7 @@ impl Chunker {
             let chunk_info = chunk.chunk_info(secure_channel_token)?;
             let body_start = chunk_info.body_offset;
             let body_end = body_start + chunk_info.body_length;
-            let chunk_data = &chunk.chunk_body[body_start..body_end];
+            let chunk_data = &chunk.data[body_start..body_end];
             // TODO security policy decrypt
             let decrypted_data = chunk_data;
             data.extend_from_slice(decrypted_data);
@@ -164,7 +164,7 @@ impl Chunker {
         let decoded_message = SupportedMessage::decode_by_object_id(&mut data, object_id);
         if decoded_message.is_err() {
             debug!("Can't decode message {:?}", object_id);
-            return Err(BAD_SERVICE_UNSUPPORTED)
+            return Err(BAD_SERVICE_UNSUPPORTED);
         }
         let decoded_message = decoded_message.unwrap();
         if let SupportedMessage::Invalid(_) = decoded_message {
@@ -173,6 +173,6 @@ impl Chunker {
         }
 
         // debug!("Returning decoded msg {:?}", decoded_message);
-        return Ok(decoded_message)
+        return Ok(decoded_message);
     }
 }

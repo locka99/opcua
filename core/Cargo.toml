@@ -21,3 +21,4 @@ version = "0.1.0"
 
 [dev-dependencies]
 tempdir = "0.3"
+rustc-serialize = "0.3.24"

@@ -45,7 +45,7 @@ const DEFAULT_ENDPOINT_NAME: &'static str = "Default";
 const DEFAULT_ENDPOINT_PATH: &'static str = "/";
 
 impl ServerEndpoint {
-    pub fn new(name: &str, path: &str, anonymous: bool, user: &str, pass: &[u8], security_policy: &str, security_mode: &str) -> ServerEndpoint {
+    pub fn new(name: &str, path: &str, anonymous: bool, user: &str, pass: &[u8], security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> ServerEndpoint {
         ServerEndpoint {
             name: name.to_string(),
             path: path.to_string(),
@@ -57,20 +57,20 @@ impl ServerEndpoint {
         }
     }
 
-    pub fn new_default(anonymous: bool, user: &str, pass: &[u8], security_policy: &str, security_mode: &str) -> ServerEndpoint {
+    pub fn new_default(anonymous: bool, user: &str, pass: &[u8], security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> ServerEndpoint {
         ServerEndpoint::new(DEFAULT_ENDPOINT_NAME, DEFAULT_ENDPOINT_PATH, anonymous, user, pass, security_policy, security_mode)
     }
 
     pub fn default_anonymous() -> ServerEndpoint {
-        ServerEndpoint::new_default(true, "", &[], opcua_types_constants::SECURITY_POLICY_NONE, opcua_types_constants::SECURITY_MODE_NONE)
+        ServerEndpoint::new_default(true, "", &[], SecurityPolicy::None, MessageSecurityMode::None)
     }
 
     pub fn default_user_pass(user: &str, pass: &[u8]) -> ServerEndpoint {
-        ServerEndpoint::new_default(false, user, pass, opcua_types_constants::SECURITY_POLICY_NONE, opcua_types_constants::SECURITY_MODE_NONE)
+        ServerEndpoint::new_default(false, user, pass, SecurityPolicy::None, MessageSecurityMode::None)
     }
 
     pub fn default_sign_encrypt() -> ServerEndpoint {
-        ServerEndpoint::new_default(false, "", &[], opcua_types_constants::SECURITY_POLICY_BASIC_128_RSA_15, opcua_types_constants::SECURITY_MODE_SIGN_AND_ENCRYPT)
+        ServerEndpoint::new_default(false, "", &[], SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt)
     }
 
     pub fn is_valid(&self) -> bool {
@@ -92,7 +92,7 @@ impl ServerEndpoint {
         } else if security_policy == SecurityPolicy::None && security_mode == MessageSecurityMode::None {
             // None either means anonymous == true and/or user/pass is set
             if (self.anonymous.is_none() || !self.anonymous.as_ref().unwrap()) & &self.user.is_none() {
-                error! ("Endpoint {} is invalid. Mode requires either anonymous or user/pass connections but anonymous is not set to true", self.name);
+                error!("Endpoint {} is invalid. Mode requires either anonymous or user/pass connections but anonymous is not set to true", self.name);
                 valid = false;
             }
         } else if (security_policy == SecurityPolicy::None && security_mode != MessageSecurityMode::None) ||
@@ -206,7 +206,7 @@ impl ServerConfig {
             let mut s = String::new();
             if f.read_to_string(&mut s).is_ok() {
                 if let Ok(config) = serde_yaml::from_str(&s) {
-                    return Ok(config)
+                    return Ok(config);
                 }
             }
         }
@@ -216,7 +216,7 @@ impl ServerConfig {
     pub fn is_valid(&self) -> bool {
         let mut valid = true;
         if self.endpoints.is_empty() {
-            error! ("Server configuration is invalid. It defines no endpoints");
+            error!("Server configuration is invalid. It defines no endpoints");
             valid = false;
         }
         for e in self.endpoints.iter() {
@@ -225,15 +225,15 @@ impl ServerConfig {
             }
         }
         if self.max_array_length == 0 {
-            error! ("Server configuration is invalid.  Max array length is invalid");
+            error!("Server configuration is invalid.  Max array length is invalid");
             valid = false;
         }
         if self.max_string_length == 0 {
-            error! ("Server configuration is invalid.  Max string length is invalid");
+            error!("Server configuration is invalid.  Max string length is invalid");
             valid = false;
         }
         if self.max_byte_string_length == 0 {
-            error! ("Server configuration is invalid.  Max byte string length is invalid");
+            error!("Server configuration is invalid.  Max byte string length is invalid");
             valid = false;
         }
         valid

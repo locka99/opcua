@@ -1,4 +1,4 @@
-use std::io::Cursor;
+use std::io::{Cursor, Write};
 
 use opcua_types::*;
 
@@ -23,17 +23,27 @@ fn sample_secure_channel_request_data_security_none() -> Chunk {
         255, 255, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 190, 1, 0, 0, 208, 130, 196, 162, 147, 106, 210,
         1, 1, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 1, 0, 0, 0, 255, 255, 255, 255, 192, 39, 9, 0];
-    let sample_data_len = sample_data.len() as u32;
-    Chunk {
-        chunk_header: ChunkHeader {
-            message_type: ChunkMessageType::OpenSecureChannel,
-            chunk_type: ChunkType::Final,
-            message_size: 12 + sample_data_len,
-            secure_channel_id: 1,
-            is_valid: true,
-        },
-        chunk_body: sample_data
-    }
+
+    let data = vec![0u8; 12 + sample_data.len()];
+    let mut stream = Cursor::new(data);
+
+    // Write a header and the sample request
+    let _ = ChunkHeader {
+        message_type: ChunkMessageType::OpenSecureChannel,
+        chunk_type: ChunkType::Final,
+        message_size: 12 +  sample_data.len() as u32,
+        secure_channel_id: 1,
+        is_valid: true,
+    }.encode(&mut stream);
+    let _ = stream.write(&sample_data);
+
+    // Decode chunk from stream
+    stream.set_position(0);
+    let chunk = Chunk::decode(&mut stream).unwrap();
+
+    println!("Sample chunk info = {:?}", chunk.chunk_header());
+
+    chunk
 }
 
 fn make_large_read_response() -> SupportedMessage {

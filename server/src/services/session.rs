@@ -1,7 +1,6 @@
 use std::result::Result;
 
 use opcua_types::*;
-use opcua_types::profiles;
 
 use opcua_core::comms::SupportedMessage;
 use opcua_core::crypto;
@@ -30,8 +29,8 @@ impl SessionService {
         let endpoint = endpoint.unwrap();
 
         // Check the client's certificate for validity and acceptance
-        let security_policy_uri = if endpoint.security_policy_uri.is_null() { profiles::SECURITY_POLICY_NONE } else { endpoint.security_policy_uri.value.as_ref().unwrap() };
-        let service_status = if security_policy_uri != profiles::SECURITY_POLICY_NONE {
+        let security_policy_uri = if endpoint.security_policy_uri.is_null() { crypto::SECURITY_POLICY_NONE } else { endpoint.security_policy_uri.value.as_ref().unwrap() };
+        let service_status = if security_policy_uri != crypto::SECURITY_POLICY_NONE {
             if let Ok(client_certificate) = crypto::X509::from_byte_string(&request.client_certificate) {
                 let certificate_store = server_state.certificate_store.lock().unwrap();
                 certificate_store.validate_or_reject_application_instance_cert(&client_certificate)

@@ -134,7 +134,7 @@ impl CertificateStore {
         if let Ok(pkey_info) = metadata(path) {
             if let Ok(mut f) = File::open(&path) {
                 let mut buffer = Vec::with_capacity(pkey_info.len() as usize);
-                let bytes_read = f.read_to_end(&mut buffer);
+                let _ = f.read_to_end(&mut buffer);
                 drop(f);
                 if let Ok(pkey) = pkey::PKey::private_key_from_pem(&buffer) {
                     return Ok(PKey::wrap(pkey));
@@ -469,7 +469,7 @@ impl CertificateStore {
     ///
     fn write_to_file(bytes: &[u8], file_path: &Path, overwrite: bool) -> Result<(), String> {
         if !overwrite && file_path.exists() {
-            return Err(format!("File {} already exists and will not be overwritten. Use --overwrite to disable this safeguard.", file_path.display()))
+            return Err(format!("File {} already exists and will not be overwritten. Use --overwrite to disable this safeguard.", file_path.display()));
         }
         let file = File::create(file_path);
         if file.is_err() {

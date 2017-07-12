@@ -71,7 +71,7 @@ impl MessageHeader {
         let mut header = [0u8; 4];
         stream.read_exact(&mut header)?;
         if MessageHeader::message_type(&header) == MessageType::Invalid {
-            return Err(Error::new(ErrorKind::Other, "Message type is not recognized, cannot read bytes"))
+            return Err(Error::new(ErrorKind::Other, "Message type is not recognized, cannot read bytes"));
         }
         let message_size = UInt32::decode(stream);
         if message_size.is_err() {

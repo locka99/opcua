@@ -1,3 +1,5 @@
+extern crate rustc_serialize as serialize;
+
 use std::fs::File;
 use std::io::Write;
 
@@ -223,4 +225,98 @@ fn sign_verify_sha256() {
     assert!(!pkey.verify_sha256(msg, &signature[..signature.len() - 1]));
     signature[0] = !signature[0]; // bitwise not
     assert!(!pkey.verify_sha256(msg, &signature));
+}
+
+#[test]
+fn sign_hmac_sha1() {
+    use crypto::hash;
+    use tests::crypto::serialize::hex::FromHex;
+
+    let key = b"";
+    let data = b"";
+
+    let mut signature_wrong_size: [u8; 19] = [0u8; 19];
+    assert!(hash::hmac_sha1(key, data, &mut signature_wrong_size).is_err());
+
+    let mut signature: [u8; 20] = [0u8; 20];
+    assert!(hash::hmac_sha1(key, data, &mut signature).is_ok());
+    let expected = "fbdb1d1b18aa6c08324b7d64b71fb76370690e1d".from_hex().unwrap();
+    assert_eq!(&signature, &expected[..]);
+
+    let key = b"key";
+    let data = b"The quick brown fox jumps over the lazy dog";
+    assert!(hash::hmac_sha1(key, data, &mut signature).is_ok());
+    let expected = "de7c9b85b8b78aa6bc8a7a36f70a90701c9db4d9".from_hex().unwrap();
+    assert_eq!(&signature, &expected[..]);
+
+    assert!(hash::verify_hmac_sha1(key, data, &expected));
+    assert!(!hash::verify_hmac_sha1(key, &data[1..], &expected));
+}
+
+#[test]
+fn sign_hmac_sha256() {
+    use crypto::hash;
+    use tests::crypto::serialize::hex::FromHex;
+
+    let key = b"";
+    let data = b"";
+
+    let mut signature_wrong_size: [u8; 31] = [0u8; 31];
+    assert!(hash::hmac_sha256(key, data, &mut signature_wrong_size).is_err());
+
+    let mut signature: [u8; 32] = [0u8; 32];
+    assert!(hash::hmac_sha256(key, data, &mut signature).is_ok());
+    let expected = "b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad".from_hex().unwrap();
+    assert_eq!(&signature, &expected[..]);
+
+    let key = b"key";
+    let data = b"The quick brown fox jumps over the lazy dog";
+    assert!(hash::hmac_sha256(key, data, &mut signature).is_ok());
+    let expected = "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8".from_hex().unwrap();
+    assert_eq!(&signature, &expected[..]);
+
+    assert!(hash::verify_hmac_sha256(key, data, &expected));
+    assert!(!hash::verify_hmac_sha1(key, &data[1..], &expected));
+}
+
+#[test]
+fn keys_from_nonce() {
+    use tests::crypto::serialize::hex::FromHex;
+
+    // Create a pair of "random" nonces.
+    let nonce1 = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f".from_hex().unwrap();
+    let nonce2 = "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f".from_hex().unwrap();
+
+    // Create a security policy Basic128Rsa15 policy
+    //
+    /// a) SigningKeyLength = 16
+    /// b) EncryptingKeyLength = 16
+    /// c) EncryptingBlockSize = 16
+    let security_policy = SecurityPolicy::Basic128Rsa15;
+    let (signing_key, encryption_key, iv) = security_policy.make_secure_channel_keys(&nonce1, &nonce2);
+    assert_eq!(signing_key.len(), 16);
+    assert_eq!(encryption_key.value.len(), 16);
+    assert_eq!(iv.len(), 16);
+
+    // Create a security policy Basic256 policy
+    //
+    /// a) SigningKeyLength = 24
+    /// b) EncryptingKeyLength = 32
+    /// c) EncryptingBlockSize = 16
+    let security_policy = SecurityPolicy::Basic256;
+    let (signing_key, encryption_key, iv) = security_policy.make_secure_channel_keys(&nonce1, &nonce2);
+    assert_eq!(signing_key.len(), 24);
+    assert_eq!(encryption_key.value.len(), 32);
+    assert_eq!(iv.len(), 16);
+
+    // Create a security policy Basic256Sha256 policy
+    //
+    /// a) SigningKeyLength = 32
+    /// b) EncryptingKeyLength = 32
+    /// c) EncryptingBlockSize = 16
+    let security_policy = SecurityPolicy::Basic256Sha256;
+    let (signing_key, encryption_key, iv) = security_policy.make_secure_channel_keys(&nonce1, &nonce2);
+    assert_eq!(signing_key.len(), 32);
+    assert_eq!(encryption_key.value.len(), 32);
+    assert_eq!(iv.len(), 16);
 }

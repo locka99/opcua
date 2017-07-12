@@ -314,52 +314,6 @@ impl AesKey {
         self.cipher().key_len()
     }
 
-    fn hmac(&self, digest: hash::MessageDigest, data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
-        // Compute a signature
-        let pkey = pkey::PKey::hmac(&self.value).unwrap();
-        let mut signer = sign::Signer::new(digest, &pkey).unwrap();
-        signer.update(data).unwrap();
-        let hmac = signer.finish().unwrap();
-        &signature[..].copy_from_slice(&hmac[..]);
-        Ok(())
-    }
-
-    pub fn hmac_sha1(&self, data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
-        if signature.len() != 20 {
-            panic!("Invalid signature length");
-        }
-        self.hmac(hash::MessageDigest::sha1(), data, signature)
-    }
-
-    /// Verify that the HMAC for the data block matches the supplied signature
-    pub fn verify_hmac_sha1(&self, data: &[u8], signature: &[u8]) -> bool {
-        let mut tmp_signature = [0u8; 20];
-        if self.hmac_sha1(data, &mut tmp_signature).is_err() {
-            false
-        }
-        else {
-            signature == tmp_signature
-        }
-    }
-
-    pub fn hmac_sha256(&self, data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
-        if signature.len() != 32 {
-            panic!("Invalid signature length");
-        }
-        self.hmac(hash::MessageDigest::sha256(), data, signature)
-    }
-
-    /// Verify that the HMAC for the data block matches the supplied signature
-    pub fn verify_hmac_sha256(&self, data: &[u8], signature: &[u8]) -> bool {
-        let mut tmp_signature = [0u8; 32];
-        if self.hmac_sha256(data, &mut tmp_signature).is_err() {
-            false
-        }
-        else {
-            signature == tmp_signature
-        }
-    }
-
     pub fn encrypt(&self, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<usize, String> {
         self.do_cipher(Mode::Encrypt, src, iv, dst)
     }

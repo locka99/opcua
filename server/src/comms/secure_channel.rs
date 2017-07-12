@@ -60,14 +60,14 @@ impl SecureChannel {
 
                 // Check for a duplicate nonce. It is invalid for the renew to use the same nonce
                 // as was used for last issue/renew
-                if request.client_nonce.as_ref() == &self.secure_channel_token.their_nonce {
+                if request.client_nonce.as_ref() == &self.secure_channel_token.their_nonce[..] {
                     return Err(BAD_NONCE_INVALID);
                 }
 
                 if !self.issued {
                     // TODO check to see if the secure channel has been issued before or not
                     error!("Asked to renew token on session that has never issued token");
-                    return Err(BAD_UNEXPECTED_ERROR)
+                    return Err(BAD_UNEXPECTED_ERROR);
                 }
                 self.renew_count += 1;
             }

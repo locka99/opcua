@@ -1,4 +1,4 @@
-use std::net::{TcpStream};
+use std::net::TcpStream;
 use std::result::Result;
 use std::sync::{Arc, Mutex};
 use std::io::{Read, ErrorKind};
@@ -11,8 +11,8 @@ use session::*;
 
 // TODO these need to go, and use session settings
 const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;
-const SEND_BUFFER_SIZE: usize = 1024 * 64;
-const MAX_MESSAGE_SIZE: usize = 1024 * 64;
+//const SEND_BUFFER_SIZE: usize = 1024 * 64;
+//const MAX_MESSAGE_SIZE: usize = 1024 * 64;
 
 pub struct TcpTransport {
     /// Session state
@@ -73,9 +73,9 @@ impl TcpTransport {
     }
 
     pub fn connect(&mut self, endpoint_url: &str) -> Result<(), StatusCode> {
-        use url::{Url};
+        use url::Url;
 
-        let session_state = self.session_state.lock().unwrap();
+        // let session_state = self.session_state.lock().unwrap();
 
         // Validate and split out the endpoint we have
         let result = Url::parse(&endpoint_url);
@@ -127,20 +127,21 @@ impl TcpTransport {
     fn process_chunk(&mut self, chunk: Chunk) -> Result<Option<SupportedMessage>, StatusCode> {
         debug!("Got a chunk {:?}", chunk);
 
-        match chunk.chunk_header.chunk_type {
+        let chunk_header = chunk.chunk_header();
+        match chunk_header.chunk_type {
             ChunkType::Intermediate => {
                 panic!("We don't support intermediate chunks yet");
-            } 
+            }
             ChunkType::FinalError => {
                 info!("Discarding chunk marked in as final error");
-                return Ok(None)
+                return Ok(None);
             }
             _ => {
                 // Drop through
             }
         }
 
-        let chunk_message_type = chunk.chunk_header.message_type.clone();
+        // TODO test chunk message type and either push to queue, turn to message or clear
         let in_chunks = vec![chunk];
         let message = self.turn_received_chunks_into_message(&in_chunks)?;
 
@@ -202,10 +203,9 @@ impl TcpTransport {
                     let result = self.process_chunk(chunk)?;
                     if result.is_some() {
                         // TODO check the response request_handle to see if it matches our request
-                        return Ok(result.unwrap())
+                        return Ok(result.unwrap());
                     }
                 } else {
-
                     // TODO if this is an ERROR chunk, then the client should go into an error
                     // recovery state, dropping the connection and reestablishing it.
 
@@ -256,7 +256,7 @@ impl TcpTransport {
         // Send chunks
         let stream = self.stream();
         for chunk in chunks {
-            debug!("Sending chunk of type {:?}", chunk.chunk_header.message_type);
+            debug!("Sending chunk of type {:?}", chunk.chunk_header().message_type);
             let _ = chunk.encode(stream)?;
         }
 

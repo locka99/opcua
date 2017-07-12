@@ -3,6 +3,7 @@ use std::io::*;
 use opcua_types::*;
 
 use comms::*;
+use crypto::SecurityPolicy;
 
 fn hello_data() -> Vec<u8> {
     vec![
@@ -50,6 +51,7 @@ pub fn acknowledge() {
 #[test]
 pub fn secure_channel_nonce() {
     let mut sc = SecureChannelToken::new();
+    sc.security_policy = SecurityPolicy::Basic256;
     // Nonce which is not 32 bytes long is an error
     assert!(sc.set_their_nonce(&ByteString::null()).is_err());
     assert!(sc.set_their_nonce(&ByteString::from_bytes(b"")).is_err());

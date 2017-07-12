@@ -4,6 +4,7 @@ use opcua_types::*;
 
 use crypto::SecurityPolicy;
 use crypto::types::*;
+use crypto::hash;
 
 use comms::{SecurityHeader, SymmetricSecurityHeader, AsymmetricSecurityHeader};
 use comms::chunk::ChunkMessageType;
@@ -16,11 +17,13 @@ pub struct SecureChannelToken {
     pub token_created_at: DateTime,
     pub token_id: UInt32,
     pub token_lifetime: UInt32,
-    pub nonce: [u8; 32],
-    pub their_nonce: [u8; 32],
-    pub keys: Option<(AesKey, AesKey, Vec<u8>)>,
+    pub nonce: Vec<u8>,
+    pub their_nonce: Vec<u8>,
     pub their_cert: Option<X509>,
-    pub their_keys: Option<(AesKey, AesKey, Vec<u8>)>,
+    /// Symmetric Signing Key, Encrypt Key, IV
+    pub keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
+    /// Symmetric Signing Key, Decrypt Key, IV
+    pub their_keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
 }
 
 impl SecureChannelToken {
@@ -33,8 +36,8 @@ impl SecureChannelToken {
             token_id: 0,
             token_created_at: DateTime::now(),
             token_lifetime: 0,
-            nonce: [0; 32],
-            their_nonce: [0; 32],
+            nonce: Vec::with_capacity(64),
+            their_nonce: Vec::with_capacity(64),
             keys: None,
             their_cert: None,
             their_keys: None,
@@ -57,6 +60,7 @@ impl SecureChannelToken {
     pub fn create_random_nonce(&mut self) {
         use rand::{self, Rng};
         let mut rng = rand::thread_rng();
+        self.nonce = vec![0u8; self.security_policy.symmetric_key_size()];
         rng.fill_bytes(&mut self.nonce);
     }
 
@@ -65,8 +69,9 @@ impl SecureChannelToken {
     }
 
     pub fn set_their_nonce(&mut self, their_nonce: &ByteString) -> Result<(), ()> {
-        if their_nonce.value.is_some() && their_nonce.value.as_ref().unwrap().len() == self.their_nonce.len() {
-            self.their_nonce[..].clone_from_slice(their_nonce.value.as_ref().unwrap());
+        let key_size = self.security_policy.symmetric_key_size();
+        if their_nonce.value.is_some() && their_nonce.value.as_ref().unwrap().len() == key_size {
+            self.their_nonce = their_nonce.value.as_ref().unwrap().to_vec();
             Ok(())
         } else {
             Err(())
@@ -146,11 +151,11 @@ impl SecureChannelToken {
         match self.security_policy {
             SecurityPolicy::Basic128Rsa15 => {
                 // HMAC SHA-1
-                key.hmac_sha1(src, signature)
+                hash::hmac_sha1(key, src, signature)
             }
-            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => { 
+            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {
                 // HMAC SHA-256                
-                key.hmac_sha256(src, signature)
+                hash::hmac_sha256(key, src, signature)
             }
             _ => {
                 panic!("Unsupported policy")
@@ -165,11 +170,11 @@ impl SecureChannelToken {
         let verified = match self.security_policy {
             SecurityPolicy::Basic128Rsa15 => {
                 // HMAC SHA-1
-                key.verify_hmac_sha1(src, signature)
+                hash::verify_hmac_sha1(key, src, signature)
             }
-            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => { 
+            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {
                 // HMAC SHA-256                
-                key.verify_hmac_sha256(src, signature)
+                hash::verify_hmac_sha256(key, src, signature)
             }
             _ => {
                 panic!("Unsupported policy")
@@ -209,11 +214,16 @@ impl SecureChannelToken {
     // Panic code which requires a policy
     fn expect_supported_security_policy(&self) {
         match self.security_policy {
-            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => { }
+            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {}
             _ => {
                 panic!("Unsupported security policy");
             }
         }
+    }
+
+    /// Test if signing and/or encryption is enabled. 
+    pub fn encryption_enabled(&self) -> bool {
+        self.security_mode != MessageSecurityMode::None && self.security_policy != SecurityPolicy::None
     }
 
     /// Encode data using security. Destination buffer is expected to be same size as src and expected
@@ -227,7 +237,7 @@ impl SecureChannelToken {
     /// S - Body            - E
     /// S - Padding         - E
     ///     Signature       - E
-    pub fn encrypt_and_sign_chunk(&self, src: &[u8], sign_info: (usize, usize), encrypt_info: (usize, usize), dst: &mut [u8]) -> Result<(), StatusCode> {
+    pub fn encrypt_and_sign(&self, src: &[u8], sign_info: (usize, usize), encrypt_info: (usize, usize), dst: &mut [u8]) -> Result<(), StatusCode> {
         let (s_from, s_to) = sign_info;
         let (e_from, e_to) = encrypt_info;
         match self.security_mode {
