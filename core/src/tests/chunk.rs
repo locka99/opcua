@@ -46,6 +46,18 @@ fn sample_secure_channel_request_data_security_none() -> MessageChunk {
     chunk
 }
 
+fn set_chunk_sequence_number(chunk: &mut MessageChunk, secure_channel_token: &SecureChannelToken, sequence_number: UInt32) -> UInt32 {
+    // Read the sequence header
+    let mut chunk_info = chunk.chunk_info(&secure_channel_token).unwrap();
+    let old_sequence_number = chunk_info.sequence_header.sequence_number;
+    chunk_info.sequence_header.sequence_number = sequence_number;
+    // Write the sequence header out again with new value
+    let mut stream = Cursor::new(&mut chunk.data[..]);
+    stream.set_position(chunk_info.sequence_header_offset as u64);
+    let _ = chunk_info.sequence_header.encode(&mut stream);
+    old_sequence_number
+}
+
 fn make_large_read_response() -> SupportedMessage {
     let mut results = Vec::new();
     for i in 0..10000 {
@@ -110,14 +122,21 @@ fn validate_chunk_sequences() {
     // Create a very large message
     let sequence_number = 1000;
     let request_id = 100;
-    let chunks = Chunker::encode(sequence_number, request_id, 0, 8192, &secure_channel_token, &response).unwrap();
+    let mut chunks = Chunker::encode(sequence_number, request_id, 0, 8192, &secure_channel_token, &response).unwrap();
     assert!(chunks.len() > 1);
 
     // Test sequence number is returned properly
     let result = Chunker::validate_chunk_sequences(sequence_number, &secure_channel_token, &chunks).unwrap();
     assert_eq!(sequence_number + chunks.len() as UInt32 - 1, result);
 
-    // TODO alter seq ids to generate a BAD_SEQUENCE_NUMBER_INVALID
+    // Hack one of the chunks to alter its seq id
+    let old_sequence_nr = set_chunk_sequence_number(&mut chunks[0], &secure_channel_token, 1001);
+    assert_eq!(Chunker::validate_chunk_sequences(sequence_number, &secure_channel_token, &chunks).unwrap_err(), BAD_SEQUENCE_NUMBER_INVALID);
+
+    // Hack the nth
+    set_chunk_sequence_number(&mut chunks[0], &secure_channel_token, old_sequence_nr);
+    let _ = set_chunk_sequence_number(&mut chunks[5], &secure_channel_token, 1008);
+    assert_eq!(Chunker::validate_chunk_sequences(sequence_number, &secure_channel_token, &chunks).unwrap_err(), BAD_SEQUENCE_NUMBER_INVALID);
 }
 
 #[test]

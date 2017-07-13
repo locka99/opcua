@@ -172,34 +172,6 @@ impl BinaryEncoder<MessageChunk> for MessageChunk {
 }
 
 impl MessageChunk {
-    /// Calculates how large a plain text can be to fix the inside of a chunk of a particular size.
-    /// This requires calculating the size of the header, the signature, padding etc. and deducting it
-    /// to reveal the message size
-    pub fn body_size_from_message_size(message_type: MessageChunkType, secure_channel_token: &SecureChannelToken, max_chunk_size: usize) -> usize {
-        if max_chunk_size < 8192 {
-            panic!("max chunk size cannot be less than minimum in the spec");
-        }
-
-        let mut data_size = MESSAGE_CHUNK_HEADER_SIZE;
-        data_size += secure_channel_token.make_security_header(message_type).byte_len();
-        data_size += (SequenceHeader { sequence_number: 0, request_id: 0 }).byte_len();
-
-        // 1 byte == most padding
-        let (padding_size, extra_padding_size) = secure_channel_token.calc_chunk_padding(1);
-        if padding_size > 0 {
-            data_size += 1 + padding_size as usize;
-        }
-        if extra_padding_size > 0 {
-            data_size += 1 + extra_padding_size as usize;
-        }
-
-        // signature length
-        data_size += secure_channel_token.signature_size();
-
-        // Message size is what's left
-        max_chunk_size - data_size
-    }
-
     pub fn new(sequence_number: UInt32, request_id: UInt32, message_type: MessageChunkType, is_final: MessageIsFinalType, secure_channel_token: &SecureChannelToken, data: &[u8]) -> Result<MessageChunk, StatusCode> {
         // security header depends on message type
         let security_header = secure_channel_token.make_security_header(message_type);
@@ -270,6 +242,34 @@ impl MessageChunk {
         secure_channel_token.encrypt_and_sign(&message_data, sign_info, encrypt_info, &mut processed_data)?;
 
         Ok(MessageChunk { data: processed_data })
+    }
+
+    /// Calculates the body size that fit inside of a message chunk of a particular size.
+    /// This requires calculating the size of the header, the signature, padding etc. and deducting it
+    /// to reveal the message size
+    pub fn body_size_from_message_size(message_type: MessageChunkType, secure_channel_token: &SecureChannelToken, message_size: usize) -> usize {
+        if message_size < 8192 {
+            panic!("max chunk size cannot be less than minimum in the spec");
+        }
+
+        let mut data_size = MESSAGE_CHUNK_HEADER_SIZE;
+        data_size += secure_channel_token.make_security_header(message_type).byte_len();
+        data_size += (SequenceHeader { sequence_number: 0, request_id: 0 }).byte_len();
+
+        // 1 byte == most padding
+        let (padding_size, extra_padding_size) = secure_channel_token.calc_chunk_padding(1);
+        if padding_size > 0 {
+            data_size += 1 + padding_size as usize;
+        }
+        if extra_padding_size > 0 {
+            data_size += 1 + extra_padding_size as usize;
+        }
+
+        // signature length
+        data_size += secure_channel_token.signature_size();
+
+        // Message size is what's left
+        message_size - data_size
     }
 
     pub fn message_header(&self) -> MessageChunkHeader {
