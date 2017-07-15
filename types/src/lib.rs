@@ -62,6 +62,7 @@ mod notification_message;
 mod generated;
 mod attribute;
 mod service_types;
+mod supported_message;
 
 pub use self::helpers::*;
 pub use self::basic_types::*;
@@ -73,6 +74,7 @@ pub use self::data_types::*;
 pub use self::generated::*;
 pub use self::attribute::*;
 pub use self::service_types::*;
+pub use self::supported_message::*;
 
 #[cfg(test)]
 mod tests;

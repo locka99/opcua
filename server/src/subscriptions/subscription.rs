@@ -573,15 +573,15 @@ impl Subscription {
     fn make_publish_response(&self, publish_request: &PublishRequestEntry, now: &DateTime, notification_message: NotificationMessage) -> PublishResponseEntry {
         PublishResponseEntry {
             request_id: publish_request.request_id,
-            response: PublishResponse {
-                response_header: ResponseHeader::new_service_result(now, &publish_request.request.request_header, GOOD),
+            response: SupportedMessage::PublishResponse(PublishResponse {
+                response_header: ResponseHeader::new_timestamped_service_result(now.clone(), &publish_request.request.request_header, GOOD),
                 subscription_id: self.subscription_id,
                 available_sequence_numbers: self.available_sequence_numbers(),
                 more_notifications: self.more_notifications,
                 notification_message: notification_message,
                 results: None,
                 diagnostic_infos: None,
-            }
+            })
         }
     }
 }

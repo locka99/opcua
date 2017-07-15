@@ -27,7 +27,7 @@ impl SecureChannel {
         }
     }
 
-    pub fn open_secure_channel(&mut self, client_protocol_version: UInt32, message: &SupportedMessage) -> std::result::Result<OpenSecureChannelResponse, StatusCode> {
+    pub fn open_secure_channel(&mut self, client_protocol_version: UInt32, message: &SupportedMessage) -> std::result::Result<SupportedMessage, StatusCode> {
         let request: &OpenSecureChannelRequest = match *message {
             SupportedMessage::OpenSecureChannelRequest(ref request) => {
                 info!("Got secure channel request");
@@ -42,7 +42,7 @@ impl SecureChannel {
         // Must compare protocol version to the one from HELLO
         if request.client_protocol_version != client_protocol_version {
             error!("Client sent a different protocol version than it did in the HELLO - {} vs {}", request.client_protocol_version, client_protocol_version);
-            return Err(BAD_PROTOCOL_VERSION_UNSUPPORTED);
+            return Ok(ServiceFault::new_supported_message(&request.request_header, BAD_PROTOCOL_VERSION_UNSUPPORTED));
         }
 
         // Test the request type
@@ -61,7 +61,7 @@ impl SecureChannel {
                 // Check for a duplicate nonce. It is invalid for the renew to use the same nonce
                 // as was used for last issue/renew
                 if request.client_nonce.as_ref() == &self.secure_channel_token.their_nonce[..] {
-                    return Err(BAD_NONCE_INVALID);
+                    return Ok(ServiceFault::new_supported_message(&request.request_header, BAD_NONCE_INVALID));
                 }
 
                 if !self.issued {
@@ -74,12 +74,13 @@ impl SecureChannel {
         }
 
         // Check the requested security mode
+        debug!("Message security mode == {:?}", request.security_mode);
         match request.security_mode {
             MessageSecurityMode::None | MessageSecurityMode::Sign | MessageSecurityMode::SignAndEncrypt => {
-                debug!("Message security mode == {:?}", request.security_mode);
+                // TODO validate NONCE
             }
             _ => {
-                return Err(BAD_SECURITY_MODE_REJECTED);
+                return Ok(ServiceFault::new_supported_message(&request.request_header, BAD_SECURITY_MODE_REJECTED));
             }
         }
 
@@ -94,34 +95,35 @@ impl SecureChannel {
             secure_channel_token.token_id = self.last_token_id;
             secure_channel_token.security_mode = request.security_mode;
             secure_channel_token.secure_channel_id = self.last_secure_channel_id;
-            secure_channel_token.security_mode = request.security_mode;
-            if secure_channel_token.set_their_nonce(&request.client_nonce).is_ok() {
+            let nonce_result = secure_channel_token.set_their_nonce(&request.client_nonce);
+            if nonce_result.is_ok() {
                 secure_channel_token.create_random_nonce();
             } else {
-                debug!("Didn't receive a valid client nonce for this secure channel request so no crypto support");
-                // TODO if crypto is enabled, then this is an error
+                return Ok(ServiceFault::new_supported_message(&request.request_header, nonce_result.unwrap_err()));
+            }
+            if secure_channel_token.encryption_enabled() {
+                secure_channel_token.derive_keys();
             }
             secure_channel_token
         };
 
-        let now = DateTime::now();
         let response = OpenSecureChannelResponse {
-            response_header: ResponseHeader::new_service_result(&now, &request.request_header, GOOD),
+            response_header: ResponseHeader::new_good(&request.request_header),
             server_protocol_version: 0,
             security_token: ChannelSecurityToken {
                 channel_id: self.secure_channel_token.secure_channel_id,
                 token_id: self.secure_channel_token.token_id,
-                created_at: now.clone(),
+                created_at: DateTime::now(),
                 revised_lifetime: request.requested_lifetime,
             },
-            server_nonce: self.secure_channel_token.nonce_as_byte_string(),
+            server_nonce: ByteString::from_bytes(&self.secure_channel_token.nonce),
         };
 
         debug!("Sending OpenSecureChannelResponse {:?}", response);
-        Ok(response)
+        Ok(SupportedMessage::OpenSecureChannelResponse(response))
     }
 
-    pub fn close_secure_channel(&mut self, _: &SupportedMessage) -> std::result::Result<CloseSecureChannelResponse, StatusCode> {
+    pub fn close_secure_channel(&mut self, _: &SupportedMessage) -> std::result::Result<SupportedMessage, StatusCode> {
         info!("CloseSecureChannelRequest received, session closing");
         Err(BAD_CONNECTION_CLOSED)
     }

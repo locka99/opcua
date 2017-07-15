@@ -48,6 +48,23 @@ impl BinaryEncoder<UserTokenType> for UserTokenType {
     }
 }
 
+impl ServiceFault {
+    pub fn new(request_header: &RequestHeader, service_result: StatusCode) -> ServiceFault {
+        ServiceFault {
+            response_header: ResponseHeader::new_service_result(request_header, service_result)
+        }
+    }
+
+    pub fn new_supported_message(request_header: &RequestHeader, service_result: StatusCode) -> SupportedMessage {
+        ServiceFault::new(request_header, service_result).as_supported_message()
+    }
+
+    /// Returns this object in a supported message, consuming it
+    pub fn as_supported_message(self) -> SupportedMessage {
+        SupportedMessage::ServiceFault(self)
+    }
+}
+
 impl UserTokenPolicy {
     pub fn new_anonymous() -> UserTokenPolicy {
         UserTokenPolicy {
@@ -291,11 +308,19 @@ impl BinaryEncoder<ResponseHeader> for ResponseHeader {
 }
 
 impl ResponseHeader {
-    pub fn new_service_result(timestamp: &DateTime, request_header: &RequestHeader, service_result: StatusCode) -> ResponseHeader {
+    pub fn new_good(request_header: &RequestHeader) -> ResponseHeader {
+        ResponseHeader::new_service_result(request_header, GOOD)
+    }
+
+    pub fn new_service_result(request_header: &RequestHeader, service_result: StatusCode) -> ResponseHeader {
+        ResponseHeader::new_timestamped_service_result(DateTime::now(), request_header, service_result)
+    }
+
+    pub fn new_timestamped_service_result(timestamp: DateTime, request_header: &RequestHeader, service_result: StatusCode) -> ResponseHeader {
         ResponseHeader {
-            timestamp: timestamp.clone(),
+            timestamp,
             request_handle: request_header.request_handle,
-            service_result: service_result,
+            service_result,
             service_diagnostics: DiagnosticInfo::new(),
             string_table: None,
             additional_header: ExtensionObject::null(),
@@ -627,7 +652,7 @@ impl DataChangeFilter {
             let v1 = v1.as_f64();
             let v2 = v2.as_f64();
             if v1.is_none() || v2.is_none() {
-                return Ok(false)
+                return Ok(false);
             }
 
             let v1 = v1.unwrap();
@@ -640,11 +665,11 @@ impl DataChangeFilter {
                 Ok(DataChangeFilter::abs_compare(v1, v2, self.deadband_value))
             } else if self.deadband_type == 2 {
                 if eu_range.is_none() {
-                    return Err(BAD_DEADBAND_FILTER_INVALID)
+                    return Err(BAD_DEADBAND_FILTER_INVALID);
                 }
                 let (low, high) = eu_range.unwrap();
                 if low >= high {
-                    return Err(BAD_DEADBAND_FILTER_INVALID)
+                    return Err(BAD_DEADBAND_FILTER_INVALID);
                 }
                 Ok(DataChangeFilter::pct_compare(v1, v2, low, high, self.deadband_value))
             } else {
@@ -679,7 +704,7 @@ impl EndpointDescription {
         if let Some(ref tokens) = self.user_identity_tokens {
             for token in tokens.iter() {
                 if token.token_type == token_type {
-                    return Some(token.policy_id.clone())
+                    return Some(token.policy_id.clone());
                 }
             }
         }

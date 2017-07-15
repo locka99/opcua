@@ -1,13 +1,11 @@
 use std::result::Result;
 
 use opcua_types::*;
-use opcua_core::comms::*;
 
 use address_space::*;
 use server::ServerState;
 use session::Session;
-
-pub struct ViewService {}
+use services::Service;
 
 // Bits that control the reference description coming back from browse()
 
@@ -18,14 +16,16 @@ const RESULT_MASK_BROWSE_NAME: UInt32 = 1 << 3;
 const RESULT_MASK_DISPLAY_NAME: UInt32 = 1 << 4;
 const RESULT_MASK_TYPE_DEFINITION: UInt32 = 1 << 5;
 
+pub struct ViewService {}
+
+impl Service for ViewService {}
+
 impl ViewService {
     pub fn new() -> ViewService {
         ViewService {}
     }
 
     pub fn browse(&self, server_state: &mut ServerState, _: &mut Session, request: BrowseRequest) -> Result<SupportedMessage, StatusCode> {
-        let service_status = GOOD;
-
         let browse_results = if request.nodes_to_browse.is_some() {
             let nodes_to_browse = request.nodes_to_browse.as_ref().unwrap();
             let mut browse_results: Vec<BrowseResult> = Vec::new();
@@ -33,11 +33,7 @@ impl ViewService {
             if !request.view.view_id.is_null() {
                 // Views are not supported
                 info!("Browse request ignored because view was specified (views not supported)");
-                return Ok(SupportedMessage::BrowseResponse(BrowseResponse {
-                    response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, BAD_VIEW_ID_UNKNOWN),
-                    results: None,
-                    diagnostic_infos: None,
-                }));
+                return Ok(self.service_fault(&request.request_header, BAD_VIEW_ID_UNKNOWN));
             }
 
             let address_space = server_state.address_space.lock().unwrap();
@@ -64,15 +60,11 @@ impl ViewService {
             Some(browse_results)
         } else {
             // Nothing to do
-            return Ok(SupportedMessage::BrowseResponse(BrowseResponse {
-                response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, BAD_NOTHING_TO_DO),
-                results: None,
-                diagnostic_infos: None,
-            }));
+            return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
         };
 
         let response = BrowseResponse {
-            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
+            response_header: ResponseHeader::new_good(&request.request_header),
             results: browse_results,
             diagnostic_infos: None,
         };
@@ -82,17 +74,12 @@ impl ViewService {
 
     pub fn browse_next(&self, _: &mut ServerState, _: &mut Session, request: BrowseNextRequest) -> Result<SupportedMessage, StatusCode> {
         // BrowseNext does nothing
-        let service_status = BAD_NOTHING_TO_DO;
-        let response = BrowseNextResponse {
-            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
-            results: None,
-            diagnostic_infos: None,
-        };
-        Ok(SupportedMessage::BrowseNextResponse(response))
+        return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
     }
 
     pub fn translate_browse_paths_to_node_ids(&self, _: &mut ServerState, _: &mut Session, request: TranslateBrowsePathsToNodeIdsRequest) -> Result<SupportedMessage, StatusCode> {
-        let (service_status, results) = (BAD_NOTHING_TO_DO, None); /* if request.browse_paths.is_none() {
+        return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
+        /* if request.browse_paths.is_none() {
             let browse_paths = request.browse_paths.as_ref().unwrap();
 
             let mut results: Vec<BrowsePathResult> = Vec::with_capacity(browse_paths.len());
@@ -141,7 +128,7 @@ impl ViewService {
                 }
                 (GOOD, Some(results))
             }
-        }; */
+        };
 
         debug!("TranslateBrowsePathsToNodeIdsRequest = {:#?}", request);
 
@@ -150,7 +137,7 @@ impl ViewService {
             results: results,
             diagnostic_infos: None,
         };
-        Ok(SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(response))
+        Ok(SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(response)) */
     }
 
     fn reference_descriptions(address_space: &AddressSpace, node_to_browse: &BrowseDescription, max_references_per_node: UInt32) -> Result<Vec<ReferenceDescription>, StatusCode> {

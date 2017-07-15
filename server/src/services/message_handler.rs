@@ -1,7 +1,6 @@
 use std::sync::{Arc, Mutex};
 
 use opcua_types::*;
-use opcua_core::comms::*;
 
 use server::ServerState;
 use session::Session;

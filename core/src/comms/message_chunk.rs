@@ -12,6 +12,12 @@ pub enum MessageChunkType {
     CloseSecureChannel
 }
 
+impl MessageChunkType {
+    pub fn is_open_secure_channel(&self) -> bool {
+        *self == MessageChunkType::OpenSecureChannel
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum MessageIsFinalType {
     /// Intermediate
@@ -179,9 +185,7 @@ impl MessageChunk {
 
         // Calculate the chunk body size
         let mut message_chunk_size = MESSAGE_CHUNK_HEADER_SIZE;
-        let sign_from = message_chunk_size;
         message_chunk_size += security_header.byte_len();
-        let encrypt_from = message_chunk_size;
         message_chunk_size += sequence_header.byte_len();
         message_chunk_size += data.len();
         // Test if padding is required
@@ -192,10 +196,8 @@ impl MessageChunk {
         if extra_padding_size > 0 {
             message_chunk_size += 1 + extra_padding_size as usize;
         }
-        let sign_to = message_chunk_size;
         // Signature size (if required)
         message_chunk_size += secure_channel_token.signature_size();
-        let encrypt_to = message_chunk_size;
 
         let mut stream = Cursor::new(vec![0u8; message_chunk_size]);
 
@@ -234,14 +236,7 @@ impl MessageChunk {
         }
         //... The buffer has zeros for the signature 
 
-        // Encrypt/sign
-        let message_data = stream.into_inner();
-        let mut processed_data = vec![0u8; message_chunk_size];
-        let sign_info = (sign_from, sign_to);
-        let encrypt_info = (encrypt_from, encrypt_to);
-        secure_channel_token.encrypt_and_sign(&message_data, sign_info, encrypt_info, &mut processed_data)?;
-
-        Ok(MessageChunk { data: processed_data })
+        Ok(MessageChunk { data: stream.into_inner() })
     }
 
     /// Calculates the body size that fit inside of a message chunk of a particular size.
@@ -272,39 +267,79 @@ impl MessageChunk {
         message_size - data_size
     }
 
-    pub fn message_header(&self) -> MessageChunkHeader {
+    pub fn message_header(&self) -> Result<MessageChunkHeader, StatusCode> {
+        // Message header is first so just read it
         let mut stream = Cursor::new(&self.data);
-        let result = MessageChunkHeader::decode(&mut stream).unwrap();
-        result
+        MessageChunkHeader::decode(&mut stream)
+    }
+
+    pub fn security_header(&self) -> Result<SecurityHeader, StatusCode> {
+        // Message header is first so just read it
+        let mut stream = Cursor::new(&self.data);
+        let message_header = MessageChunkHeader::decode(&mut stream)?;
+        let security_header = if message_header.message_type == MessageChunkType::OpenSecureChannel {
+            SecurityHeader::Asymmetric(AsymmetricSecurityHeader::decode(&mut stream)?)
+        } else {
+            SecurityHeader::Symmetric(SymmetricSecurityHeader::decode(&mut stream)?)
+        };
+        Ok(security_header)
+    }
+
+    /// Signs and encrypts the data
+    pub fn encrypt(&mut self, secure_channel_token: &SecureChannelToken) -> Result<(), StatusCode> {
+        if secure_channel_token.encryption_enabled() && !self.is_open_secure_channel() {
+            // Encrypt/sign
+            let chunk_info = self.chunk_info(secure_channel_token)?;
+            // S - Message Header
+            // S - Security Header
+            // S - Sequence Header - E
+            // S - Body            - E
+            // S - Padding         - E
+            //     Signature       - E
+            let sign_info = (0, self.data.len() - secure_channel_token.security_policy.derived_signature_size());
+            let encrypt_info = (chunk_info.sequence_header_offset, self.data.len());
+
+            let mut encrypted_data = vec![0u8; self.data.len()];
+            secure_channel_token.encrypt_and_sign(&self.data, sign_info, encrypt_info, &mut encrypted_data)?;
+            self.data = encrypted_data;
+        }
+        Ok(())
     }
 
     /// Decrypts and verifies the body data if the mode / policy requires it
     pub fn decrypt(&mut self, secure_channel_token: &SecureChannelToken) -> Result<(), StatusCode> {
-        let mut decrypted_data = vec![0u8; self.data.len()];
+        if secure_channel_token.encryption_enabled() && !self.is_open_secure_channel() {
+            // S - Message Header
+            // S - Security Header
+            // S - Sequence Header - E
+            // S - Body            - E
+            // S - Padding         - E
+            //     Signature       - E
+            let sign_info = (0, self.data.len() - secure_channel_token.security_policy.derived_signature_size());
+            let encrypt_info = {
+                // Read past header and security header to get position of stream corresponding to sequence header
+                let mut stream = Cursor::new(&self.data);
+                let _ = MessageChunkHeader::decode(&mut stream)?;
+                let _ = SymmetricSecurityHeader::decode(&mut stream)?;
+                (stream.position() as usize, self.data.len())
+            };
+            debug!("Decrypting block with signature info {:?} and encrypt info {:?}", sign_info, encrypt_info);
 
-        // TODO
+            let mut decrypted_data = vec![0u8; self.data.len()];
+            secure_channel_token.decrypt_and_verify(&self.data, sign_info, encrypt_info, &mut decrypted_data)?;
 
-        /// S - Message Header
-        /// S - Security Header
-        /// S - Sequence Header - E
-        /// S - Body            - E
-        /// S - Padding         - E
-        ///     Signature       - E
+            self.data = decrypted_data;
+        }
 
-        let sign_info = (0, 0);
-        let encrypt_info = (0, 0);
-
-        debug!("Decrypting");
-
-        secure_channel_token.decrypt_and_verify(&self.data, sign_info, encrypt_info, &mut decrypted_data)?;
-
-        self.data.clear();
-        self.data.append(&mut decrypted_data);
         Ok(())
     }
 
     pub fn is_open_secure_channel(&self) -> bool {
-        self.message_header().message_type == MessageChunkType::OpenSecureChannel
+        if let Ok(message_header) = self.message_header() {
+            message_header.message_type.is_open_secure_channel()
+        } else {
+            false
+        }
     }
 
     pub fn chunk_info(&self, secure_channel_token: &SecureChannelToken) -> std::result::Result<ChunkInfo, StatusCode> {

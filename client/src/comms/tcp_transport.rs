@@ -127,7 +127,7 @@ impl TcpTransport {
     fn process_chunk(&mut self, chunk: MessageChunk) -> Result<Option<SupportedMessage>, StatusCode> {
         debug!("Got a chunk {:?}", chunk);
 
-        let message_header = chunk.message_header();
+        let message_header = chunk.message_header()?;
         match message_header.is_final {
             MessageIsFinalType::Intermediate => {
                 panic!("We don't support intermediate chunks yet");
@@ -256,7 +256,7 @@ impl TcpTransport {
         // Send chunks
         let stream = self.stream();
         for chunk in chunks {
-            debug!("Sending chunk of type {:?}", chunk.message_header().message_type);
+            debug!("Sending chunk of type {:?}", chunk.message_header()?.message_type);
             let _ = chunk.encode(stream)?;
         }
 

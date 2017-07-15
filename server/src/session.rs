@@ -27,7 +27,7 @@ pub struct PublishRequestEntry {
 #[derive(Clone, Debug, PartialEq)]
 pub struct PublishResponseEntry {
     pub request_id: UInt32,
-    pub response: PublishResponse,
+    pub response: SupportedMessage,
 }
 
 /// Session info holds information about a session created by CreateSession service
@@ -176,7 +176,9 @@ impl Session {
             let mut results = Vec::with_capacity(request_response_results.len());
             // Handle acknowledgements
             for mut rr in request_response_results {
-                rr.1.response.results = self.process_subscription_acknowledgements(&rr.0);
+                if let SupportedMessage::PublishResponse(ref mut response) = rr.1.response {
+                    response.results = self.process_subscription_acknowledgements(&rr.0);
+                }
                 results.push(rr.1);
             }
             Some(results)
@@ -227,19 +229,9 @@ impl Session {
             let now = DateTime::from_chrono(now);
             publish_responses.push(PublishResponseEntry {
                 request_id: expired_request.request_id,
-                response: PublishResponse {
-                    response_header: ResponseHeader::new_service_result(&now, &expired_request.request.request_header, BAD_REQUEST_TIMEOUT),
-                    subscription_id: 0,
-                    available_sequence_numbers: None,
-                    more_notifications: false,
-                    notification_message: NotificationMessage {
-                        sequence_number: 0,
-                        publish_time: now.clone(),
-                        notification_data: None
-                    },
-                    results: self.process_subscription_acknowledgements(&expired_request),
-                    diagnostic_infos: None
-                },
+                response: SupportedMessage::ServiceFault(ServiceFault {
+                    response_header: ResponseHeader::new_timestamped_service_result(now.clone(), &expired_request.request.request_header, BAD_REQUEST_TIMEOUT),
+                }),
             });
         }
         if !publish_responses.is_empty() {

@@ -106,8 +106,13 @@ pub fn expired_publish_requests() {
     assert_eq!(session.publish_request_queue[0].request.request_header.request_handle, 1000);
 
     let r1 = &expired_responses[0];
-    assert_eq!(r1.response.response_header.request_handle, 2000);
-    assert_eq!(r1.response.response_header.service_result, BAD_REQUEST_TIMEOUT);
+    if let SupportedMessage::ServiceFault(ref response_header) = r1.response {
+        assert_eq!(response_header.response_header.request_handle, 2000);
+        assert_eq!(response_header.response_header.service_result, BAD_REQUEST_TIMEOUT);
+    }
+    else {
+        panic!("Expected service faults for timed out publish requests")
+    }
 
     let expired_responses = session.expire_stale_publish_requests(&now_plus_5s);
     assert_eq!(expired_responses, None);

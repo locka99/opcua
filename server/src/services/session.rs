@@ -2,15 +2,17 @@ use std::result::Result;
 
 use opcua_types::*;
 
-use opcua_core::comms::SupportedMessage;
 use opcua_core::crypto;
 use opcua_core::crypto::SecurityPolicy;
 
 use constants;
 use server::{Endpoint, ServerState};
 use session::Session;
+use services::Service;
 
 pub struct SessionService {}
+
+impl Service for SessionService {}
 
 impl SessionService {
     pub fn new() -> SessionService {
@@ -30,7 +32,7 @@ impl SessionService {
 
         // Check the client's certificate for validity and acceptance
         let security_policy_uri = if endpoint.security_policy_uri.is_null() { crypto::SECURITY_POLICY_NONE } else { endpoint.security_policy_uri.value.as_ref().unwrap() };
-        let service_status = if security_policy_uri != crypto::SECURITY_POLICY_NONE {
+        let service_result = if security_policy_uri != crypto::SECURITY_POLICY_NONE {
             if let Ok(client_certificate) = crypto::X509::from_byte_string(&request.client_certificate) {
                 let certificate_store = server_state.certificate_store.lock().unwrap();
                 certificate_store.validate_or_reject_application_instance_cert(&client_certificate)
@@ -41,9 +43,9 @@ impl SessionService {
         } else {
             GOOD
         };
-
-        // Create a session response
-        let response = if service_status.is_good() {
+        let response = if service_result.is_bad() {
+            self.service_fault(&request.request_header, service_result)
+        } else {
             let session_id = session.next_session_id();
             let authentication_token = NodeId::new_byte_string(0, ByteString::random(32));
             let session_timeout = constants::SESSION_TIMEOUT;
@@ -72,8 +74,8 @@ impl SessionService {
             session.client_certificate = request.client_certificate.clone();
             session.session_nonce = server_nonce.clone();
 
-            CreateSessionResponse {
-                response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
+            SupportedMessage::CreateSessionResponse(CreateSessionResponse {
+                response_header: ResponseHeader::new_good(&request.request_header),
                 session_id,
                 authentication_token,
                 revised_session_timeout: session_timeout,
@@ -83,25 +85,9 @@ impl SessionService {
                 server_software_certificates: None,
                 server_signature,
                 max_request_message_size,
-            }
-        } else {
-            // Error response
-            session.terminate_session = true;
-            CreateSessionResponse {
-                response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
-                session_id: NodeId::null(),
-                authentication_token: NodeId::null(),
-                revised_session_timeout: 0f64,
-                server_nonce: ByteString::null(),
-                server_certificate: ByteString::null(),
-                server_endpoints: None,
-                server_software_certificates: None,
-                server_signature: SignatureData::null(),
-                max_request_message_size: 0,
-            }
+            })
         };
-
-        Ok(SupportedMessage::CreateSessionResponse(response))
+        Ok(response)
     }
 
     pub fn activate_session(&self, server_state: &mut ServerState, session: &mut Session, request: ActivateSessionRequest) -> Result<SupportedMessage, StatusCode> {
@@ -109,46 +95,50 @@ impl SessionService {
         // signature supplied by client
 
         let server_nonce = ByteString::random(32);
-        let service_status = if SecurityPolicy::from_uri(&session.security_policy_uri) != SecurityPolicy::None {
-            let mut service_status = BAD_UNEXPECTED_ERROR;
+        let service_result = if SecurityPolicy::from_uri(&session.security_policy_uri) != SecurityPolicy::None {
+            let mut service_result = BAD_UNEXPECTED_ERROR;
             if server_state.server_certificate.is_some() {
                 if let Ok(client_cert) = crypto::X509::from_byte_string(&session.client_certificate) {
                     let server_certificate = server_state.server_certificate.as_ref().unwrap().as_byte_string();
-                    service_status = crypto::verify_signature(&client_cert, &request.client_signature, &server_certificate, &session.session_nonce);
-                    // TODO crypto secure channel verification
-                    let endpoint = SessionService::get_session_endpoint(server_state, session);
-                    if endpoint.is_none() {
-                        return Err(BAD_TCP_ENDPOINT_URL_INVALID);
+                    service_result = crypto::verify_signature(&client_cert, &request.client_signature, &server_certificate, &session.session_nonce);
+                    if service_result.is_good() {
+                        // TODO crypto secure channel verification
+                        let endpoint = SessionService::get_session_endpoint(server_state, session);
+                        if endpoint.is_none() {
+                            return Err(BAD_TCP_ENDPOINT_URL_INVALID);
+                        }
+                        let endpoint = endpoint.unwrap();
+                        endpoint.validate_identity_token(&request.user_identity_token);
+                        session.session_nonce = server_nonce.clone();
+                        session.activated = true;
+                        service_result = GOOD;
                     }
-
-                    let endpoint = endpoint.unwrap();
-                    endpoint.validate_identity_token(&request.user_identity_token);
-                    session.session_nonce = server_nonce.clone();
-                    session.activated = true;
-                    service_status = GOOD
                 }
             }
-            service_status
+            service_result
         } else {
             session.session_nonce = server_nonce.clone();
             GOOD
         };
-
-        Ok(SupportedMessage::ActivateSessionResponse(ActivateSessionResponse {
-            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
-            server_nonce: server_nonce,
-            results: None,
-            diagnostic_infos: None,
-        }))
+        let response = if service_result.is_bad() {
+            self.service_fault(&request.request_header, service_result)
+        } else {
+            SupportedMessage::ActivateSessionResponse(ActivateSessionResponse {
+                response_header: ResponseHeader::new_good(&request.request_header),
+                server_nonce: server_nonce,
+                results: None,
+                diagnostic_infos: None,
+            })
+        };
+        Ok(response)
     }
 
     pub fn close_session(&self, _: &mut ServerState, session: &mut Session, request: CloseSessionRequest) -> Result<SupportedMessage, StatusCode> {
-        let service_status = GOOD;
         session.authentication_token = NodeId::null();
         session.user_identity = None;
         session.activated = false;
         let response = CloseSessionResponse {
-            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
+            response_header: ResponseHeader::new_good(&request.request_header),
         };
         Ok(SupportedMessage::CloseSessionResponse(response))
     }

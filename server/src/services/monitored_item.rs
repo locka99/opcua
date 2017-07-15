@@ -1,12 +1,14 @@
 use std::result::Result;
 
 use opcua_types::*;
-use opcua_core::comms::*;
 
 use server::ServerState;
 use session::Session;
+use services::Service;
 
 pub struct MonitoredItemService {}
+
+impl Service for MonitoredItemService {}
 
 impl MonitoredItemService {
     pub fn new() -> MonitoredItemService {
@@ -14,8 +16,6 @@ impl MonitoredItemService {
     }
 
     pub fn create_monitored_items(&self, _: &mut ServerState, session: &mut Session, request: CreateMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
-        let mut service_status = GOOD;
-
         // pub timestamps_to_return: TimestampsToReturn,
         let results = if let Some(ref items_to_create) = request.items_to_create {
             // Find subscription and add items to it
@@ -24,16 +24,14 @@ impl MonitoredItemService {
                 Some(subscription.create_monitored_items(items_to_create))
             } else {
                 // No matching subscription
-                service_status = BAD_SUBSCRIPTION_ID_INVALID;
-                None
+                return Ok(self.service_fault(&request.request_header, BAD_SUBSCRIPTION_ID_INVALID));
             }
         } else {
             // No items to create so nothing to do
-            service_status = BAD_NOTHING_TO_DO;
-            None
+            return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
         };
         let response = CreateMonitoredItemsResponse {
-            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
+            response_header: ResponseHeader::new_good(&request.request_header),
             results: results,
             diagnostic_infos: None
         };
@@ -41,7 +39,6 @@ impl MonitoredItemService {
     }
 
     pub fn modify_monitored_items(&self, _: &mut ServerState, session: &mut Session, request: ModifyMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
-        let mut service_status = GOOD;
         let results = if let Some(ref items_to_modify) = request.items_to_modify {
             // Find subscription and modify items in it
             let subscription_id = request.subscription_id;
@@ -49,16 +46,14 @@ impl MonitoredItemService {
                 Some(subscription.modify_monitored_items(items_to_modify))
             } else {
                 // No matching subscription
-                service_status = BAD_SUBSCRIPTION_ID_INVALID;
-                None
+                return Ok(self.service_fault(&request.request_header, BAD_SUBSCRIPTION_ID_INVALID));
             }
         } else {
             // No items to modify so nothing to do
-            service_status = BAD_NOTHING_TO_DO;
-            None
+            return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
         };
         let response = ModifyMonitoredItemsResponse {
-            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
+            response_header: ResponseHeader::new_good(&request.request_header),
             results: results,
             diagnostic_infos: None
         };
@@ -66,7 +61,6 @@ impl MonitoredItemService {
     }
 
     pub fn delete_monitored_items(&self, _: &mut ServerState, session: &mut Session, request: DeleteMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
-        let mut service_status = GOOD;
         let results = if let Some(ref items_to_delete) = request.monitored_item_ids {
             // Find subscription and delete items from it
             let subscription_id = request.subscription_id;
@@ -74,16 +68,14 @@ impl MonitoredItemService {
                 Some(subscription.delete_monitored_items(items_to_delete))
             } else {
                 // No matching subscription
-                service_status = BAD_SUBSCRIPTION_ID_INVALID;
-                None
+                return Ok(self.service_fault(&request.request_header, BAD_SUBSCRIPTION_ID_INVALID));
             }
         } else {
             // No items to modify so nothing to do
-            service_status = BAD_NOTHING_TO_DO;
-            None
+            return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
         };
         let response = DeleteMonitoredItemsResponse {
-            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
+            response_header: ResponseHeader::new_good(&request.request_header),
             results: results,
             diagnostic_infos: None
         };

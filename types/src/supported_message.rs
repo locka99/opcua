@@ -5,7 +5,10 @@
 
 use std::io::{Read, Write};
 
-use opcua_types::*;
+use node_id::NodeId;
+use service_types::*;
+use generated::*;
+use {BinaryEncoder, EncodingResult};
 
 /// This macro helps avoid tedious repetition as new messages are added
 /// The first form just handles the trailing comma after the last entry to save some pointless
@@ -19,6 +22,7 @@ macro_rules! supported_messages {
             Invalid(ObjectId),
             /// A specific do-nothing response, e.g. some messages may not require an instantaneous response
             DoNothing,
+            /// Other messages
             $( $x($x), )*
         }
 
@@ -73,6 +77,9 @@ impl SupportedMessage {
     pub fn decode_by_object_id<S: Read>(stream: &mut S, object_id: ObjectId) -> EncodingResult<Self> {
         debug!("decoding object_id {:?}", object_id);
         let decoded_message = match object_id {
+            ObjectId::ServiceFault_Encoding_DefaultBinary => {
+                SupportedMessage::ServiceFault(ServiceFault::decode(stream)?)
+            }
             ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary => {
                 SupportedMessage::OpenSecureChannelRequest(OpenSecureChannelRequest::decode(stream)?)
             }
@@ -204,6 +211,8 @@ impl SupportedMessage {
 
 // These are all the messages handled into and out of streams by the OPCUA server / client code
 supported_messages![
+    // A service fault, returned when the service failed
+    ServiceFault,
     // Secure channel service
     OpenSecureChannelRequest,
     OpenSecureChannelResponse,

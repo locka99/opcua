@@ -16,12 +16,11 @@ use opcua_core::comms::*;
 use opcua_core::debug::*;
 
 use constants;
+use comms::secure_channel::*;
 use server::ServerState;
 use session::Session;
-use comms::message_handler::*;
-use comms::secure_channel::*;
+use services::message_handler::*;
 use subscriptions::SubscriptionEvent;
-
 
 // TODO these need to go, and use session settings
 const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;
@@ -137,7 +136,7 @@ impl TcpTransport {
                         debug!("Got {} PublishResponse messages to send", publish_responses.len());
                         for publish_response in publish_responses {
                             debug!("<-- Sending a Publish Response{}, {:?}", publish_response.request_id, &publish_response.response);
-                            let _ = self.send_response(publish_response.request_id, &SupportedMessage::PublishResponse(publish_response.response), &mut out_buf_stream);
+                            let _ = self.send_response(publish_response.request_id, &publish_response.response, &mut out_buf_stream);
                         }
                         Self::write_output(&mut out_buf_stream, &mut stream);
                     }
@@ -350,7 +349,7 @@ impl TcpTransport {
     fn process_chunk<W: Write>(&mut self, mut chunk: MessageChunk, out_stream: &mut W) -> std::result::Result<(), StatusCode> {
         debug!("Got a chunk {:?}", chunk);
 
-        let message_header = chunk.message_header();
+        let message_header = chunk.message_header()?;
 
         if message_header.is_final == MessageIsFinalType::Intermediate {
             panic!("We don't support intermediate chunks yet");
@@ -373,10 +372,10 @@ impl TcpTransport {
         let message = self.turn_received_chunks_into_message(&in_chunks)?;
         let response = match chunk_message_type {
             MessageChunkType::OpenSecureChannel => {
-                SupportedMessage::OpenSecureChannelResponse(self.secure_channel.open_secure_channel(self.client_protocol_version, &message)?)
+                self.secure_channel.open_secure_channel(self.client_protocol_version, &message)?
             }
             MessageChunkType::CloseSecureChannel => {
-                SupportedMessage::CloseSecureChannelResponse(self.secure_channel.close_secure_channel(&message)?)
+                self.secure_channel.close_secure_channel(&message)?
             }
             MessageChunkType::Message => {
                 self.message_handler.handle_message(request_id, message)?

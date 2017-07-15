@@ -49,42 +49,52 @@ pub fn hmac_vec(digest: hash::MessageDigest, key: &[u8], data: &[u8]) -> Vec<u8>
 }
 
 pub fn hmac(digest: hash::MessageDigest, key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
-    &signature[..].copy_from_slice(&hmac_vec(digest, key, data)[..]);
+    let hmac = hmac_vec(digest, key, data);
+    debug!("hmac length = {}", hmac.len());
+    signature.copy_from_slice(&hmac);
     Ok(())
 }
 
 pub fn hmac_sha1(key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
-    if signature.len() != 20 {
-        Err(BAD_INVALID_ARGUMENT)
-    } else {
-        hmac(hash::MessageDigest::sha1(), key, data, signature)
+    match signature.len() {
+       20 => {
+            hmac(hash::MessageDigest::sha1(), key, data, signature)
+        }
+        _ => {
+            error!("Signature buffer length {} is not enough to receive hmac_sha1 signature", signature.len());
+            Err(BAD_INVALID_ARGUMENT)
+        }
     }
 }
 
 /// Verify that the HMAC for the data block matches the supplied signature
 pub fn verify_hmac_sha1(key: &[u8], data: &[u8], signature: &[u8]) -> bool {
-    let mut tmp_signature = [0u8; 20];
+    let mut tmp_signature = vec![0u8; signature.len()];
     if hmac_sha1(key, data, &mut tmp_signature).is_err() {
         false
     } else {
-        signature == tmp_signature
+        signature == &tmp_signature[..]
     }
 }
 
 pub fn hmac_sha256(key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
-    if signature.len() != 32 {
-        Err(BAD_INVALID_ARGUMENT)
-    } else {
-        hmac(hash::MessageDigest::sha256(), key, data, signature)
+    match signature.len() {
+        32 => {
+            hmac(hash::MessageDigest::sha256(), key, data, signature)
+        }
+        _ => {
+            error!("Signature buffer length {} is not enough to receive hmac_sha256 signature", signature.len());
+            Err(BAD_INVALID_ARGUMENT)
+        }
     }
 }
 
 /// Verify that the HMAC for the data block matches the supplied signature
 pub fn verify_hmac_sha256(key: &[u8], data: &[u8], signature: &[u8]) -> bool {
-    let mut tmp_signature = [0u8; 32];
+    let mut tmp_signature = vec![0u8; signature.len()];
     if hmac_sha256(key, data, &mut tmp_signature).is_err() {
         false
     } else {
-        signature == tmp_signature
+        signature == &tmp_signature[..]
     }
 }

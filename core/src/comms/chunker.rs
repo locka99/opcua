@@ -3,7 +3,7 @@ use std::io::Cursor;
 
 use opcua_types::*;
 
-use comms::{SupportedMessage, MessageIsFinalType, SecureChannelToken, MessageChunk, MessageChunkType};
+use comms::{MessageIsFinalType, SecureChannelToken, MessageChunk, MessageChunkType};
 use crypto::SecurityPolicy;
 
 /// The Chunker is responsible for turning messages to chunks and chunks into messages.
@@ -70,7 +70,6 @@ impl Chunker {
         message_size += node_id.byte_len();
 
         let message_type = Chunker::message_type(supported_message);
-        let chunk_type = MessageIsFinalType::Final;
         let mut stream = Cursor::new(vec![0u8; message_size]);
 
         debug!("Encoding node id {:?}", node_id);
@@ -83,14 +82,20 @@ impl Chunker {
             // Multiple chunks means breaking the data up into sections. Fortunately
             // Rust has a nice function to do just that.
             let data_chunks = data.chunks(max_body_per_chunk);
-            let mut chunks = Vec::with_capacity(data_chunks.len());
+            let data_chunks_len = data_chunks.len();
+            let mut chunks = Vec::with_capacity(data_chunks_len);
             for (i, data_chunk) in data_chunks.enumerate() {
-                let chunk = MessageChunk::new(sequence_number + i as u32, request_id, message_type, chunk_type, secure_channel_token, data_chunk)?;
+                let is_final = if i == data_chunks_len - 1 {
+                    MessageIsFinalType::Final
+                } else {
+                    MessageIsFinalType::Intermediate
+                };
+                let chunk = MessageChunk::new(sequence_number + i as u32, request_id, message_type, is_final, secure_channel_token, data_chunk)?;
                 chunks.push(chunk);
             }
             chunks
         } else {
-            let chunk = MessageChunk::new(sequence_number, request_id, message_type, chunk_type, secure_channel_token, &data)?;
+            let chunk = MessageChunk::new(sequence_number, request_id, message_type, MessageIsFinalType::Final, secure_channel_token, &data)?;
             vec![chunk]
         };
         Ok(result)
@@ -101,26 +106,36 @@ impl Chunker {
     pub fn decode(chunks: &Vec<MessageChunk>, secure_channel_token: &SecureChannelToken, expected_node_id: Option<NodeId>) -> std::result::Result<SupportedMessage, StatusCode> {
         // TODO all chunks should be verified first
 
-        // Calculate the size of the data
+        // Validate the data and calculate the size first
         let mut data_size: usize = 0;
-        for chunk in chunks.iter() {
+        for (i, chunk) in chunks.iter().enumerate() {
             let chunk_info = chunk.chunk_info(secure_channel_token)?;
             debug!("Chunker::decode chunk_info = {:?}", chunk_info);
+            // The last most chunk is expected to be final, the rest intermediate
+            let expected_is_final = if i == chunks.len() - 1 {
+                MessageIsFinalType::Final
+            } else {
+                MessageIsFinalType::Intermediate
+            };
+            if chunk_info.message_header.is_final != expected_is_final {
+                return Err(BAD_DECODING_ERROR);
+            }
+            // TODO sequence numbers expected to be consecutive
+            // TODO request number should be the same
             let body_start = chunk_info.body_offset;
             let body_end = body_start + chunk_info.body_length;
             data_size += chunk.data[body_start..body_end].len();
         }
 
-        // Read the data into a contiguous buffer
+        // Read the data into a contiguous buffer. The assumption is the data is encrypted / verified by now
         let mut data = Vec::with_capacity(data_size);
         for chunk in chunks.iter() {
             let chunk_info = chunk.chunk_info(secure_channel_token)?;
+
             let body_start = chunk_info.body_offset;
             let body_end = body_start + chunk_info.body_length;
-            let chunk_data = &chunk.data[body_start..body_end];
-            // TODO security policy decrypt
-            let decrypted_data = chunk_data;
-            data.extend_from_slice(decrypted_data);
+            let body_data = &chunk.data[body_start..body_end];
+            data.extend_from_slice(body_data);
         }
 
         // Make a stream around the data

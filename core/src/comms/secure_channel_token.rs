@@ -11,14 +11,23 @@ use comms::message_chunk::MessageChunkType;
 
 #[derive(Debug)]
 pub struct SecureChannelToken {
+    /// The security mode for the connection, None, Sign, SignAndEncrypt
     pub security_mode: MessageSecurityMode,
+    /// The security policy for the connection, None or Encryption/Signing settings
     pub security_policy: SecurityPolicy,
+    /// Secure channel id
     pub secure_channel_id: UInt32,
+    /// Token creation time.
     pub token_created_at: DateTime,
-    pub token_id: UInt32,
+    /// Token lifetime
     pub token_lifetime: UInt32,
+    /// Token identifier
+    pub token_id: UInt32,
+    /// Our nonce generated while handling open secure channel
     pub nonce: Vec<u8>,
+    /// Their nonce provided by open secure channel
     pub their_nonce: Vec<u8>,
+    /// Their certificate
     pub their_cert: Option<X509>,
     /// Symmetric Signing Key, Encrypt Key, IV
     pub keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
@@ -57,33 +66,29 @@ impl SecureChannelToken {
         }
     }
 
+    /// Creates a nonce for the connection. The nonce should be the same size as the symmetric key
     pub fn create_random_nonce(&mut self) {
         if self.encryption_enabled() {
             use rand::{self, Rng};
             let mut rng = rand::thread_rng();
             self.nonce = vec![0u8; self.security_policy.symmetric_key_size()];
             rng.fill_bytes(&mut self.nonce);
-        }
-        else {
+        } else {
             self.nonce = vec![0u8; 1];
         }
     }
 
-    pub fn nonce_as_byte_string(&self) -> ByteString {
-        ByteString::from_bytes(&self.nonce)
-    }
-
-    pub fn set_their_nonce(&mut self, their_nonce: &ByteString) -> Result<(), ()> {
+    /// Set their nonce which should be the same as the symmetric key
+    pub fn set_their_nonce(&mut self, their_nonce: &ByteString) -> Result<(), StatusCode> {
         if let Some(ref their_nonce) = their_nonce.value {
             if self.encryption_enabled() && their_nonce.len() != self.security_policy.symmetric_key_size() {
-                Err(())
-            }
-            else {
+                Err(BAD_NONCE_INVALID)
+            } else {
                 self.their_nonce = their_nonce.to_vec();
                 Ok(())
             }
         } else {
-            Err(())
+            Err(BAD_NONCE_INVALID)
         }
     }
 
@@ -120,9 +125,11 @@ impl SecureChannelToken {
     /// The Client keys are used to secure Messages sent by the Client. The Server keys
     /// are used to secure Messages sent by the Server.
     /// 
-    fn derive_keys(&mut self) {
+    pub fn derive_keys(&mut self) {
         self.their_keys = Some(self.security_policy.make_secure_channel_keys(&self.their_nonce, &self.nonce));
         self.keys = Some(self.security_policy.make_secure_channel_keys(&self.nonce, &self.their_nonce));
+        debug!("Derived our keys = {:?}", self.keys);
+        debug!("Derived their keys = {:?}", self.their_keys);
     }
 
     /// Test if the token has expired yet
@@ -156,6 +163,7 @@ impl SecureChannelToken {
 
     /// Sign the following block
     fn sign(&self, src: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
+        debug!("Producing signature for {} bytes of data into signature of {} bytes", src.len(), signature.len());
         let key = &(self.keys.as_ref().unwrap()).0;
         match self.security_policy {
             SecurityPolicy::Basic128Rsa15 => {
@@ -251,13 +259,17 @@ impl SecureChannelToken {
         let (e_from, e_to) = encrypt_info;
         match self.security_mode {
             MessageSecurityMode::None => {
+                debug!("encrypt_and_sign is doing nothing because security mode == None");
                 // Just copy data to out
                 dst.copy_from_slice(src);
                 Ok(())
             }
             MessageSecurityMode::Sign => {
+                debug!("encrypt_and_sign security mode == Sign");
                 self.expect_supported_security_policy();
-                let mut signature = vec![0u8; 20];
+                let signature_len = src.len() - s_to;
+                let mut signature = vec![0u8; signature_len];
+                debug!("signature len = {}", signature_len);
                 // Sign the message header, security header, sequence header, body, padding
                 self.sign(&src[s_from..s_to], &mut signature)?;
                 &dst[..s_to].copy_from_slice(&src[..s_to]);
@@ -265,10 +277,13 @@ impl SecureChannelToken {
                 Ok(())
             }
             MessageSecurityMode::SignAndEncrypt => {
+                debug!("encrypt_and_sign security mode == SignAndEncrypt");
                 self.expect_supported_security_policy();
                 // TODO can this be done without a tmp?
                 let mut dst_tmp = vec![0u8; dst.len()];
-                let mut signature = vec![0u8; 20];
+                let signature_len = src.len() - s_to;
+                debug!("signature len = {}", signature_len);
+                let mut signature = vec![0u8; signature_len];
                 // Sign the message header, security header, sequence header, body, padding
                 self.sign(&src[s_from..s_to], &mut signature)?;
                 &dst_tmp[..s_to].copy_from_slice(&src[..s_to]);

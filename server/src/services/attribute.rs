@@ -1,12 +1,14 @@
 use std::result::Result;
 
 use opcua_types::*;
-use opcua_core::comms::*;
 
 use server::ServerState;
 use session::Session;
+use services::Service;
 
 pub struct AttributeService {}
+
+impl Service for AttributeService {}
 
 impl AttributeService {
     pub fn new() -> AttributeService {
@@ -22,13 +24,11 @@ impl AttributeService {
     /// values available to Clients using this Service, although the historical values themselves
     /// are not visible in the AddressSpace.
     pub fn read(&self, server_state: &mut ServerState, _: &mut Session, request: ReadRequest) -> Result<SupportedMessage, StatusCode> {
-        let mut service_status = GOOD;
-
         // Read nodes and their attributes
         let timestamps_to_return = request.timestamps_to_return;
 
         if request.max_age < 0f64 {
-            return Err(BAD_MAX_AGE_INVALID);
+            return Ok(self.service_fault(&request.request_header, BAD_MAX_AGE_INVALID));
         }
 
         let results = if let Some(ref nodes_to_read) = request.nodes_to_read {
@@ -92,13 +92,12 @@ impl AttributeService {
             }
             Some(results)
         } else {
-            service_status = BAD_NOTHING_TO_DO;
-            None
+            return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
         };
 
         let diagnostic_infos = None;
         let response = ReadResponse {
-            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
+            response_header: ResponseHeader::new_good(&request.request_header),
             results: results,
             diagnostic_infos: diagnostic_infos,
         };
@@ -113,7 +112,6 @@ impl AttributeService {
     /// allows Clients to write the entire set of indexed values as a composite, to write individual
     /// elements or to write ranges of elements of the composite.
     pub fn write(&self, server_state: &mut ServerState, _: &mut Session, request: WriteRequest) -> Result<SupportedMessage, StatusCode> {
-        let mut service_status = GOOD;
         let results = if let Some(ref nodes_to_write) = request.nodes_to_write {
             let mut results: Vec<StatusCode> = Vec::with_capacity(nodes_to_write.len());
 
@@ -144,13 +142,12 @@ impl AttributeService {
             }
             Some(results)
         } else {
-            service_status = BAD_NOTHING_TO_DO;
-            None
+            return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
         };
 
         let diagnostic_infos = None;
         let response = WriteResponse {
-            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
+            response_header: ResponseHeader::new_good(&request.request_header),
             results: results,
             diagnostic_infos: diagnostic_infos,
         };

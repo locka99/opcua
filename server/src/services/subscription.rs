@@ -1,13 +1,15 @@
 use std::result::Result;
 
 use opcua_types::*;
-use opcua_core::comms::*;
 
 use subscriptions::*;
 use server::ServerState;
 use session::Session;
+use services::Service;
 
 pub struct SubscriptionService {}
+
+impl Service for SubscriptionService {}
 
 impl SubscriptionService {
     pub fn new() -> SubscriptionService {
@@ -18,13 +20,7 @@ impl SubscriptionService {
     pub fn create_subscription(&self, server_state: &mut ServerState, session: &mut Session, request: CreateSubscriptionRequest) -> Result<SupportedMessage, StatusCode> {
         let subscriptions = &mut session.subscriptions;
         let response = if server_state.max_subscriptions > 0 && subscriptions.len() >= server_state.max_subscriptions {
-            CreateSubscriptionResponse {
-                response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, BAD_TOO_MANY_SUBSCRIPTIONS),
-                subscription_id: 0,
-                revised_publishing_interval: 0f64,
-                revised_lifetime_count: 0,
-                revised_max_keep_alive_count: 0,
-            }
+            self.service_fault(&request.request_header, BAD_TOO_MANY_SUBSCRIPTIONS)
         } else {
             let subscription_id = server_state.create_subscription_id();
 
@@ -38,15 +34,15 @@ impl SubscriptionService {
             subscriptions.insert(subscription_id, subscription);
 
             // Create the response
-            CreateSubscriptionResponse {
-                response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, GOOD),
+            SupportedMessage::CreateSubscriptionResponse(CreateSubscriptionResponse {
+                response_header: ResponseHeader::new_good(&request.request_header),
                 subscription_id: subscription_id,
                 revised_publishing_interval: revised_publishing_interval,
                 revised_lifetime_count: revised_lifetime_count,
                 revised_max_keep_alive_count: revised_max_keep_alive_count,
-            }
+            })
         };
-        Ok(SupportedMessage::CreateSubscriptionResponse(response))
+        Ok(response)
     }
 
     /// Handles a ModifySubscriptionRequest
@@ -54,12 +50,7 @@ impl SubscriptionService {
         let subscriptions = &mut session.subscriptions;
         let subscription_id = request.subscription_id;
         let response = if !subscriptions.contains_key(&subscription_id) {
-            ModifySubscriptionResponse {
-                response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, BAD_SUBSCRIPTION_ID_INVALID),
-                revised_publishing_interval: 0f64,
-                revised_lifetime_count: 0,
-                revised_max_keep_alive_count: 0,
-            }
+            return Ok(self.service_fault(&request.request_header, BAD_SUBSCRIPTION_ID_INVALID));
         } else {
             let mut subscription = subscriptions.get_mut(&subscription_id).unwrap();
 
@@ -73,7 +64,7 @@ impl SubscriptionService {
             // ...max_notifications_per_publish??
 
             ModifySubscriptionResponse {
-                response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, GOOD),
+                response_header: ResponseHeader::new_good(&request.request_header),
                 revised_publishing_interval: revised_publishing_interval,
                 revised_lifetime_count: revised_lifetime_count,
                 revised_max_keep_alive_count: revised_max_keep_alive_count,
@@ -85,7 +76,10 @@ impl SubscriptionService {
 
     /// Handles a DeleteSubscriptionsRequest
     pub fn delete_subscriptions(&self, _: &mut ServerState, session: &mut Session, request: DeleteSubscriptionsRequest) -> Result<SupportedMessage, StatusCode> {
-        let (service_status, results) = if request.subscription_ids.is_some() {
+        if request.subscription_ids.is_none() {
+            return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
+        }
+        let results = {
             let subscription_ids = request.subscription_ids.as_ref().unwrap();
             let mut results = Vec::with_capacity(subscription_ids.len());
 
@@ -98,12 +92,10 @@ impl SubscriptionService {
                     results.push(BAD_SUBSCRIPTION_ID_INVALID);
                 }
             }
-            (GOOD, Some(results))
-        } else {
-            (BAD_NOTHING_TO_DO, None)
+            Some(results)
         };
         let response = DeleteSubscriptionsResponse {
-            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
+            response_header: ResponseHeader::new_good(&request.request_header),
             results: results,
             diagnostic_infos: None
         };
@@ -112,9 +104,10 @@ impl SubscriptionService {
 
     /// Handles a SerPublishingModeRequest
     pub fn set_publishing_mode(&self, _: &mut ServerState, session: &mut Session, request: SetPublishingModeRequest) -> Result<SupportedMessage, StatusCode> {
-        let (service_status, results) = if request.subscription_ids.is_none() {
-            (BAD_NOTHING_TO_DO, None)
-        } else {
+        if request.subscription_ids.is_none() {
+            return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
+        }
+        let results = {
             let publishing_enabled = request.publishing_enabled;
             let subscription_ids = request.subscription_ids.as_ref().unwrap();
             let mut results = Vec::with_capacity(subscription_ids.len());
@@ -128,10 +121,10 @@ impl SubscriptionService {
                     results.push(BAD_SUBSCRIPTION_ID_INVALID);
                 }
             }
-            (GOOD, Some(results))
+            Some(results)
         };
         let response = SetPublishingModeResponse {
-            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, service_status),
+            response_header: ResponseHeader::new_good(&request.request_header),
             results: results,
             diagnostic_infos: None
         };
@@ -149,7 +142,7 @@ impl SubscriptionService {
                 panic!("Shouldn't receive more than one response to a publish request");
             }
             // We assume the publish response request_id is the same as the request here
-            Ok(SupportedMessage::PublishResponse(publish_responses.remove(0).response))
+            Ok(publish_responses.remove(0).response)
         } else {
             Ok(SupportedMessage::DoNothing)
         }
@@ -158,15 +151,7 @@ impl SubscriptionService {
     /// Handles a RepublishRequest
     pub fn republish(&self, _: &mut ServerState, _: &mut Session, request: RepublishRequest) -> Result<SupportedMessage, StatusCode> {
         // TODO look for the subscription id and sequence number in the sent items and resend it
-        let response = RepublishResponse {
-            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, BAD_MESSAGE_NOT_AVAILABLE),
-            notification_message: NotificationMessage {
-                sequence_number: 0,
-                publish_time: DateTime::now(),
-                notification_data: None,
-            }
-        };
-        Ok(SupportedMessage::RepublishResponse(response))
+        Ok(self.service_fault(&request.request_header, BAD_MESSAGE_NOT_AVAILABLE))
     }
 
     /// This function takes the requested values passed in a create / modify and returns revised

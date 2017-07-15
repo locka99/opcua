@@ -3,6 +3,7 @@ use std::io::{Cursor, Write};
 use opcua_types::*;
 
 use comms::*;
+use crypto::SecurityPolicy;
 
 use super::*;
 
@@ -31,7 +32,7 @@ fn sample_secure_channel_request_data_security_none() -> MessageChunk {
     let _ = MessageChunkHeader {
         message_type: MessageChunkType::OpenSecureChannel,
         is_final: MessageIsFinalType::Final,
-        message_size: 12 +  sample_data.len() as u32,
+        message_size: 12 + sample_data.len() as u32,
         secure_channel_id: 1,
         is_valid: true,
     }.encode(&mut stream);
@@ -41,7 +42,7 @@ fn sample_secure_channel_request_data_security_none() -> MessageChunk {
     stream.set_position(0);
     let chunk = MessageChunk::decode(&mut stream).unwrap();
 
-    println!("Sample chunk info = {:?}", chunk.message_header());
+    println!("Sample chunk info = {:?}", chunk.message_header().unwrap());
 
     chunk
 }
@@ -90,6 +91,30 @@ fn chunk_multi_encode_decode() {
 
     let new_response = Chunker::decode(&chunks, &secure_channel_token, None).unwrap();
     assert_eq!(response, new_response);
+}
+
+#[test]
+fn chunk_multi_chunk_intermediate_final() {
+    let _ = Test::setup();
+
+    let secure_channel_token = SecureChannelToken::new();
+    let response = make_large_read_response();
+
+    // Create a very large message
+    let sequence_number = 1000;
+    let request_id = 100;
+    let chunks = Chunker::encode(sequence_number, request_id, 0, 8192, &secure_channel_token, &response).unwrap();
+    assert!(chunks.len() > 1);
+
+    // All chunks except the last should be intermediate, the last should be final
+    for (i, chunk) in chunks.iter().enumerate() {
+        let message_header = chunk.message_header().unwrap();
+        if i == chunks.len() - 1 {
+            assert!(message_header.is_final == MessageIsFinalType::Final);
+        } else {
+            assert!(message_header.is_final == MessageIsFinalType::Intermediate);
+        }
+    }
 }
 
 #[test]
@@ -259,4 +284,48 @@ fn open_secure_channel() {
     };
     let new_open_secure_channel_response = serialize_test_and_return(open_secure_channel_response.clone());
     assert_eq!(open_secure_channel_response, new_open_secure_channel_response);
+}
+
+#[test]
+fn signed_message_chunk()
+{
+    let _ = Test::setup();
+
+    let mut secure_channel_token = SecureChannelToken::new();
+    secure_channel_token.security_policy = SecurityPolicy::Basic128Rsa15;
+    secure_channel_token.security_mode = MessageSecurityMode::Sign;
+    secure_channel_token.nonce = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+    secure_channel_token.their_nonce = vec![20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35];
+    secure_channel_token.derive_keys();
+
+    let request = GetEndpointsRequest {
+        request_header: RequestHeader {
+            authentication_token: NodeId::new_numeric(0, 99),
+            timestamp: DateTime::now(),
+            request_handle: 1,
+            return_diagnostics: 0,
+            audit_entry_id: UAString::null(),
+            timeout_hint: 123456,
+            additional_header: ExtensionObject::null(),
+        },
+        endpoint_url: UAString::null(),
+        locale_ids: None,
+        profile_uris: None,
+    };
+
+    let mut chunks = Chunker::encode(1, 1, 0, 0, &secure_channel_token, &SupportedMessage::GetEndpointsRequest(request)).unwrap();
+    assert_eq!(chunks.len(), 1);
+    let mut chunk = &mut chunks[0];
+/*
+    let original_data = chunk.data.clone();
+
+    assert!(chunk.encrypt(&secure_channel_token).is_ok());
+    let encrypted_data = chunk.data.clone();
+    assert!(encrypted_data != original_data);
+
+    assert!(chunk.decrypt(&secure_channel_token).is_ok());
+    assert_eq!(&original_data, &chunk.data);
+
+    assert!(chunk.encrypt(&secure_channel_token).is_ok());
+    assert_eq!(&encrypted_data, &chunk.data); */
 }

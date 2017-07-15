@@ -25,7 +25,6 @@ mod message_chunk_info;
 mod chunker;
 mod message_buffer;
 mod handshake;
-mod supported_message;
 
 pub use self::security_header::*;
 pub use self::secure_channel_token::*;
@@ -33,5 +32,4 @@ pub use self::message_chunk::*;
 pub use self::message_chunk_info::*;
 pub use self::chunker::*;
 pub use self::message_buffer::*;
-pub use self::supported_message::*;
 pub use self::handshake::*;
