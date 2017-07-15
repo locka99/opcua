@@ -189,12 +189,12 @@ impl MessageChunk {
         message_chunk_size += sequence_header.byte_len();
         message_chunk_size += data.len();
         // Test if padding is required
-        let (padding_size, extra_padding_size) = secure_channel_token.calc_chunk_padding(data.len());
+        let padding_size = secure_channel_token.calc_chunk_padding(data.len());
         if padding_size > 0 {
-            message_chunk_size += 1 + padding_size as usize;
-        }
-        if extra_padding_size > 0 {
-            message_chunk_size += 1 + extra_padding_size as usize;
+            message_chunk_size += padding_size;
+            if padding_size > 255 {
+                message_chunk_size += 1;
+            }
         }
         // Signature size (if required)
         message_chunk_size += secure_channel_token.symmetric_signature_size();
@@ -220,18 +220,18 @@ impl MessageChunk {
         // write message
         let _ = stream.write(data);
         // write padding byte?
-        if padding_size > 0u8 {
-            // Padding size
-            let _ = write_u8(&mut stream, padding_size)?;
-            // Padding bytes
+        if padding_size > 0 {
+            // A number of bytes are written out equal to the padding size.
+            // Each byte is the padding size. So if padding size is 15 then
+            // there will be 15 bytes all with the value 15
+            let padding_value = (padding_size & 0xff) as u8;
             for _ in 0..padding_size {
-                let _ = write_u8(&mut stream, 0u8)?;
+                let _ = write_u8(&mut stream, padding_value)?;
             }
-            if extra_padding_size > 0u8 {
+            // For key sizes > 2048, there may be an extra byte if padding exceeds 255 chars
+            if padding_size > 255 {
+                let extra_padding_size = (padding_size >> 8) as u8;
                 let _ = write_u8(&mut stream, extra_padding_size)?;
-                for _ in 0..extra_padding_size {
-                    let _ = write_u8(&mut stream, 0u8)?;
-                }
             }
         }
         //... The buffer has zeros for the signature 
@@ -252,12 +252,13 @@ impl MessageChunk {
         data_size += (SequenceHeader { sequence_number: 0, request_id: 0 }).byte_len();
 
         // 1 byte == most padding
-        let (padding_size, extra_padding_size) = secure_channel_token.calc_chunk_padding(1);
+        let padding_size = secure_channel_token.calc_chunk_padding(1);
         if padding_size > 0 {
-            data_size += 1 + padding_size as usize;
-        }
-        if extra_padding_size > 0 {
-            data_size += 1 + extra_padding_size as usize;
+            data_size += padding_size;
+            if padding_size > 255 {
+                // Extra padding byte
+                data_size += 1;
+            }
         }
 
         // signature length
@@ -286,7 +287,7 @@ impl MessageChunk {
     }
 
     /// Signs and encrypts the data
-    pub fn encrypt(&mut self, secure_channel_token: &SecureChannelToken) -> Result<(), StatusCode> {
+    pub fn apply_security(&mut self, secure_channel_token: &SecureChannelToken) -> Result<(), StatusCode> {
         if secure_channel_token.encryption_enabled() && !self.is_open_secure_channel() {
             // Encrypt/sign
             let chunk_info = self.chunk_info(secure_channel_token)?;
@@ -307,7 +308,7 @@ impl MessageChunk {
     }
 
     /// Decrypts and verifies the body data if the mode / policy requires it
-    pub fn decrypt(&mut self, secure_channel_token: &SecureChannelToken) -> Result<(), StatusCode> {
+    pub fn verify_and_remove_security(&mut self, secure_channel_token: &SecureChannelToken) -> Result<(), StatusCode> {
         if secure_channel_token.encryption_enabled() && !self.is_open_secure_channel() {
             // S - Message Header
             // S - Security Header

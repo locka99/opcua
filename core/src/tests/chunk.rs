@@ -327,11 +327,11 @@ fn test_encrypt_decrypt(security_mode: MessageSecurityMode, security_policy: Sec
 
         let original_data = chunk.data.clone();
 
-        assert!(chunk.encrypt(&secure_channel_token).is_ok());
+        assert!(chunk.apply_security(&secure_channel_token).is_ok());
         let encrypted_data = chunk.data.clone();
         assert!(encrypted_data != original_data);
 
-        assert!(chunk.decrypt(&secure_channel_token).is_ok());
+        assert!(chunk.verify_and_remove_security(&secure_channel_token).is_ok());
     }
 
     let request2 = Chunker::decode(&chunks, &secure_channel_token, None).unwrap();

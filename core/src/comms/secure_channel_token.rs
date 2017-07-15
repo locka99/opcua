@@ -148,16 +148,15 @@ impl SecureChannelToken {
     }
 
     /// Calculate the padding size
-    pub fn calc_chunk_padding(&self, byte_length: usize) -> (u8, u8) {
+    pub fn calc_chunk_padding(&self, byte_length: usize) -> usize {
         if self.security_policy != SecurityPolicy::None && self.security_mode != MessageSecurityMode::None {
             let signature_size = self.security_policy.symmetric_signature_size();
             let plain_block_size = self.security_policy.plain_block_size();
-            let padding_size: u8 = (plain_block_size - ((byte_length + signature_size + 1) % plain_block_size)) as u8;
-            let extra_padding_size = 0u8;
-            debug!("Padding calculated to be this {} and {}", padding_size, extra_padding_size);
-            (padding_size, extra_padding_size)
+            let padding_size: usize = plain_block_size - ((byte_length + signature_size + 1) % plain_block_size);
+            debug!("Padding calculated to be {} bytes", padding_size);
+            padding_size
         } else {
-            (0u8, 0u8)
+            0
         }
     }
 

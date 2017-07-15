@@ -362,7 +362,7 @@ impl TcpTransport {
 
         // Decrypt / verify chunk if necessary
         if chunk_message_type == MessageChunkType::Message {
-            chunk.decrypt(&self.secure_channel.secure_channel_token)?;
+            chunk.verify_and_remove_security(&self.secure_channel.secure_channel_token)?;
         }
 
         let in_chunks = vec![chunk];
