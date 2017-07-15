@@ -22,11 +22,11 @@ impl SessionService {
     pub fn create_session(&self, server_state: &mut ServerState, session: &mut Session, request: CreateSessionRequest) -> Result<SupportedMessage, StatusCode> {
         // Validate the endpoint url
         if request.endpoint_url.is_null() {
-            return Err(BAD_TCP_ENDPOINT_URL_INVALID);
+            return Ok(self.service_fault(&request.request_header, BAD_TCP_ENDPOINT_URL_INVALID));
         }
         let endpoint = server_state.find_endpoint(request.endpoint_url.as_ref());
         if endpoint.is_none() {
-            return Err(BAD_TCP_ENDPOINT_URL_INVALID);
+            return Ok(self.service_fault(&request.request_header, BAD_TCP_ENDPOINT_URL_INVALID));
         }
         let endpoint = endpoint.unwrap();
 
@@ -123,11 +123,12 @@ impl SessionService {
         let response = if service_result.is_bad() {
             self.service_fault(&request.request_header, service_result)
         } else {
+            let diagnostic_infos = None;
             SupportedMessage::ActivateSessionResponse(ActivateSessionResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
-                server_nonce: server_nonce,
+                server_nonce,
                 results: None,
-                diagnostic_infos: None,
+                diagnostic_infos,
             })
         };
         Ok(response)

@@ -98,8 +98,8 @@ impl AttributeService {
         let diagnostic_infos = None;
         let response = ReadResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
-            results: results,
-            diagnostic_infos: diagnostic_infos,
+            results,
+            diagnostic_infos,
         };
 
         Ok(SupportedMessage::ReadResponse(response))
@@ -148,8 +148,8 @@ impl AttributeService {
         let diagnostic_infos = None;
         let response = WriteResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
-            results: results,
-            diagnostic_infos: diagnostic_infos,
+            results,
+            diagnostic_infos,
         };
 
         Ok(SupportedMessage::WriteResponse(response))

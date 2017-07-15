@@ -71,6 +71,8 @@ fn make_large_read_response() -> SupportedMessage {
     })
 }
 
+/// Encode a very large message with a maximum chunk size and ensure that it turns into multiple chunks
+/// and that the chunks can be decoded back to the original message.
 #[test]
 fn chunk_multi_encode_decode() {
     let _ = Test::setup();
@@ -93,6 +95,8 @@ fn chunk_multi_encode_decode() {
     assert_eq!(response, new_response);
 }
 
+/// Encode a large message with multiple chunks. Ensure all but the last chunk is marked intermediate
+/// and the last is marked final.
 #[test]
 fn chunk_multi_chunk_intermediate_final() {
     let _ = Test::setup();
@@ -117,6 +121,7 @@ fn chunk_multi_chunk_intermediate_final() {
     }
 }
 
+/// Encode a very large message that matches and exceeds a max message size and expect the appropriate response
 #[test]
 fn max_message_size() {
     let _ = Test::setup();
@@ -137,6 +142,8 @@ fn max_message_size() {
     assert_eq!(err, BAD_RESPONSE_TOO_LARGE);
 }
 
+/// Encode a large message and then verify the chunks are sequential. Also test code throws error for non-sequential
+/// chunks
 #[test]
 fn validate_chunk_sequences() {
     let _ = Test::setup();
@@ -164,6 +171,7 @@ fn validate_chunk_sequences() {
     assert_eq!(Chunker::validate_chunk_sequences(sequence_number, &secure_channel_token, &chunks).unwrap_err(), BAD_SEQUENCE_NUMBER_INVALID);
 }
 
+/// Test creating a request, encoding it and decoding it.
 #[test]
 fn chunk_open_secure_channel() {
     let _ = Test::setup();
@@ -203,6 +211,7 @@ fn chunk_open_secure_channel() {
     assert_eq!(request, new_request);
 }
 
+/// Decode a captured open secure channel response and verify some fields
 #[test]
 fn open_secure_channel_response() {
     let chunk = vec![
@@ -286,7 +295,6 @@ fn open_secure_channel() {
     assert_eq!(open_secure_channel_response, new_open_secure_channel_response);
 }
 
-
 fn test_encrypt_decrypt(security_mode: MessageSecurityMode, security_policy: SecurityPolicy) {
     let mut secure_channel_token = SecureChannelToken::new();
     secure_channel_token.security_mode = security_mode;
@@ -330,12 +338,14 @@ fn test_encrypt_decrypt(security_mode: MessageSecurityMode, security_policy: Sec
     assert_eq!(request, request2);
 }
 
+/// Create a message, encode it to a chunk, sign the chunk, verify the signature and decode back to message
 #[test]
 fn sign_message_chunk_basic128rsa15() {
     let _ = Test::setup();
     test_encrypt_decrypt(MessageSecurityMode::Sign, SecurityPolicy::Basic128Rsa15);
 }
 
+/// Create a message, encode it to a chunk, sign the chunk, encrypt, decrypt, verify the signature and decode back to message
 #[test]
 fn sign_and_encrypt_message_chunk_basic128rsa15() {
     //let _ = Test::setup();

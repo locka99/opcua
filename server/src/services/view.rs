@@ -63,10 +63,11 @@ impl ViewService {
             return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
         };
 
+        let diagnostic_infos = None;
         let response = BrowseResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
             results: browse_results,
-            diagnostic_infos: None,
+            diagnostic_infos,
         };
 
         Ok(SupportedMessage::BrowseResponse(response))
@@ -238,12 +239,12 @@ impl ViewService {
 
             let reference_description = ReferenceDescription {
                 node_id: ExpandedNodeId::new(&target_node_id),
-                reference_type_id: reference_type_id,
-                is_forward: is_forward,
+                reference_type_id,
+                is_forward,
                 node_class: target_node_class,
-                browse_name: browse_name,
-                display_name: display_name,
-                type_definition: type_definition,
+                browse_name,
+                display_name,
+                type_definition,
             };
 
             reference_descriptions.push(reference_description);

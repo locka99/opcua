@@ -36,10 +36,10 @@ impl SubscriptionService {
             // Create the response
             SupportedMessage::CreateSubscriptionResponse(CreateSubscriptionResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
-                subscription_id: subscription_id,
-                revised_publishing_interval: revised_publishing_interval,
-                revised_lifetime_count: revised_lifetime_count,
-                revised_max_keep_alive_count: revised_max_keep_alive_count,
+                subscription_id,
+                revised_publishing_interval,
+                revised_lifetime_count,
+                revised_max_keep_alive_count,
             })
         };
         Ok(response)
@@ -65,9 +65,9 @@ impl SubscriptionService {
 
             ModifySubscriptionResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
-                revised_publishing_interval: revised_publishing_interval,
-                revised_lifetime_count: revised_lifetime_count,
-                revised_max_keep_alive_count: revised_max_keep_alive_count,
+                revised_publishing_interval,
+                revised_lifetime_count,
+                revised_max_keep_alive_count,
             }
         };
 
@@ -94,10 +94,11 @@ impl SubscriptionService {
             }
             Some(results)
         };
+        let diagnostic_infos = None;
         let response = DeleteSubscriptionsResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
             results: results,
-            diagnostic_infos: None
+            diagnostic_infos,
         };
         Ok(SupportedMessage::DeleteSubscriptionsResponse(response))
     }
@@ -123,10 +124,11 @@ impl SubscriptionService {
             }
             Some(results)
         };
+        let diagnostic_infos = None;
         let response = SetPublishingModeResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
             results: results,
-            diagnostic_infos: None
+            diagnostic_infos,
         };
         Ok(SupportedMessage::SetPublishingModeResponse(response))
     }

@@ -74,10 +74,11 @@ impl MonitoredItemService {
             // No items to modify so nothing to do
             return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
         };
+        let diagnostic_infos = None;
         let response = DeleteMonitoredItemsResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
-            results: results,
-            diagnostic_infos: None
+            results,
+            diagnostic_infos
         };
         Ok(SupportedMessage::DeleteMonitoredItemsResponse(response))
     }
