@@ -242,8 +242,18 @@ impl SecurityPolicy {
         }
     }
 
-    /// Returns the signature size in bytes
-    pub fn derived_signature_size(&self) -> usize {
+    pub fn symmetric_signature_size(&self) -> usize {
+        match self {
+            &SecurityPolicy::Basic128Rsa15 |&SecurityPolicy::Basic256 => 20,
+            &SecurityPolicy::Basic256Sha256 => 32,
+            _ => {
+                panic!("Invalid policy");
+            }
+        }
+    }
+
+    /// Returns the derived signature key (not the signature) size in bytes
+    pub fn derived_signature_key_size(&self) -> usize {
         let result = match self {
             &SecurityPolicy::Basic128Rsa15 => basic128rsa15::DERIVED_SIGNATURE_KEY_LENGTH,
             &SecurityPolicy::Basic256 => basic256::DERIVED_SIGNATURE_KEY_LENGTH,
@@ -355,7 +365,7 @@ impl SecurityPolicy {
     ///
     pub fn make_secure_channel_keys(&self, nonce1: &[u8], nonce2: &[u8]) -> (Vec<u8>, AesKey, Vec<u8>) {
         // Work out the length of stuff
-        let signing_key_length = self.derived_signature_size();
+        let signing_key_length = self.derived_signature_key_size();
         let (encrypting_key_length, encrypting_block_size) = match self {
             &SecurityPolicy::Basic128Rsa15 => (16, 16),
             &SecurityPolicy::Basic256 => (32, 16),

@@ -73,6 +73,8 @@ pub fn verify_hmac_sha1(key: &[u8], data: &[u8], signature: &[u8]) -> bool {
     if hmac_sha1(key, data, &mut tmp_signature).is_err() {
         false
     } else {
+        debug!("Original signature = {:?}", signature);
+        debug!("Calculated signature = {:?}", tmp_signature);
         signature == &tmp_signature[..]
     }
 }

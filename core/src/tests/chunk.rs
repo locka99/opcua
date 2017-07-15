@@ -286,19 +286,17 @@ fn open_secure_channel() {
     assert_eq!(open_secure_channel_response, new_open_secure_channel_response);
 }
 
-#[test]
-fn signed_message_chunk()
-{
-    let _ = Test::setup();
 
+fn test_encrypt_decrypt(security_mode: MessageSecurityMode, security_policy: SecurityPolicy) {
     let mut secure_channel_token = SecureChannelToken::new();
-    secure_channel_token.security_policy = SecurityPolicy::Basic128Rsa15;
-    secure_channel_token.security_mode = MessageSecurityMode::Sign;
+    secure_channel_token.security_mode = security_mode;
+    secure_channel_token.security_policy = security_policy;
+    // Both nonces are the same because we shall be encrypting and decrypting our own blocks
     secure_channel_token.nonce = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-    secure_channel_token.their_nonce = vec![20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35];
+    secure_channel_token.their_nonce = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
     secure_channel_token.derive_keys();
 
-    let request = GetEndpointsRequest {
+    let request = SupportedMessage::GetEndpointsRequest(GetEndpointsRequest {
         request_header: RequestHeader {
             authentication_token: NodeId::new_numeric(0, 99),
             timestamp: DateTime::now(),
@@ -311,21 +309,35 @@ fn signed_message_chunk()
         endpoint_url: UAString::null(),
         locale_ids: None,
         profile_uris: None,
-    };
+    });
 
-    let mut chunks = Chunker::encode(1, 1, 0, 0, &secure_channel_token, &SupportedMessage::GetEndpointsRequest(request)).unwrap();
+    let mut chunks = Chunker::encode(1, 1, 0, 0, &secure_channel_token, &request).unwrap();
     assert_eq!(chunks.len(), 1);
-    let mut chunk = &mut chunks[0];
-/*
-    let original_data = chunk.data.clone();
 
-    assert!(chunk.encrypt(&secure_channel_token).is_ok());
-    let encrypted_data = chunk.data.clone();
-    assert!(encrypted_data != original_data);
+    {
+        let mut chunk = &mut chunks[0];
 
-    assert!(chunk.decrypt(&secure_channel_token).is_ok());
-    assert_eq!(&original_data, &chunk.data);
+        let original_data = chunk.data.clone();
 
-    assert!(chunk.encrypt(&secure_channel_token).is_ok());
-    assert_eq!(&encrypted_data, &chunk.data); */
+        assert!(chunk.encrypt(&secure_channel_token).is_ok());
+        let encrypted_data = chunk.data.clone();
+        assert!(encrypted_data != original_data);
+
+        assert!(chunk.decrypt(&secure_channel_token).is_ok());
+    }
+
+    let request2 = Chunker::decode(&chunks, &secure_channel_token, None).unwrap();
+    assert_eq!(request, request2);
+}
+
+#[test]
+fn sign_message_chunk_basic128rsa15() {
+    let _ = Test::setup();
+    test_encrypt_decrypt(MessageSecurityMode::Sign, SecurityPolicy::Basic128Rsa15);
+}
+
+#[test]
+fn sign_and_encrypt_message_chunk_basic128rsa15() {
+    //let _ = Test::setup();
+    //test_encrypt_decrypt(MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic128Rsa15);
 }

@@ -197,7 +197,7 @@ impl MessageChunk {
             message_chunk_size += 1 + extra_padding_size as usize;
         }
         // Signature size (if required)
-        message_chunk_size += secure_channel_token.signature_size();
+        message_chunk_size += secure_channel_token.symmetric_signature_size();
 
         let mut stream = Cursor::new(vec![0u8; message_chunk_size]);
 
@@ -261,7 +261,7 @@ impl MessageChunk {
         }
 
         // signature length
-        data_size += secure_channel_token.signature_size();
+        data_size += secure_channel_token.symmetric_signature_size();
 
         // Message size is what's left
         message_size - data_size
@@ -296,7 +296,7 @@ impl MessageChunk {
             // S - Body            - E
             // S - Padding         - E
             //     Signature       - E
-            let sign_info = (0, self.data.len() - secure_channel_token.security_policy.derived_signature_size());
+            let sign_info = (0, self.data.len() - secure_channel_token.security_policy.symmetric_signature_size());
             let encrypt_info = (chunk_info.sequence_header_offset, self.data.len());
 
             let mut encrypted_data = vec![0u8; self.data.len()];
@@ -315,7 +315,7 @@ impl MessageChunk {
             // S - Body            - E
             // S - Padding         - E
             //     Signature       - E
-            let sign_info = (0, self.data.len() - secure_channel_token.security_policy.derived_signature_size());
+            let sign_info = (0, self.data.len() - secure_channel_token.security_policy.symmetric_signature_size());
             let encrypt_info = {
                 // Read past header and security header to get position of stream corresponding to sequence header
                 let mut stream = Cursor::new(&self.data);

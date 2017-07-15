@@ -139,9 +139,9 @@ impl SecureChannelToken {
         if now.ge(&token_expires) { true } else { false }
     }
 
-    pub fn signature_size(&self) -> usize {
+    pub fn symmetric_signature_size(&self) -> usize {
         if self.security_policy != SecurityPolicy::None {
-            self.security_policy.derived_signature_size()
+            self.security_policy.symmetric_signature_size()
         } else {
             0
         }
@@ -150,7 +150,7 @@ impl SecureChannelToken {
     /// Calculate the padding size
     pub fn calc_chunk_padding(&self, byte_length: usize) -> (u8, u8) {
         if self.security_policy != SecurityPolicy::None && self.security_mode != MessageSecurityMode::None {
-            let signature_size = self.security_policy.derived_signature_size();
+            let signature_size = self.security_policy.symmetric_signature_size();
             let plain_block_size = self.security_policy.plain_block_size();
             let padding_size: u8 = (plain_block_size - ((byte_length + signature_size + 1) % plain_block_size)) as u8;
             let extra_padding_size = 0u8;
@@ -197,7 +197,12 @@ impl SecureChannelToken {
                 panic!("Unsupported policy")
             }
         };
-        if verified { Ok(()) } else { Err(BAD_APPLICATION_SIGNATURE_INVALID) }
+        if verified {
+            Ok(())
+        } else { 
+            error!("Signature invalid {:?}", signature);
+            Err(BAD_APPLICATION_SIGNATURE_INVALID)
+        }
     }
 
     /// Encrypt the data
@@ -273,6 +278,7 @@ impl SecureChannelToken {
                 // Sign the message header, security header, sequence header, body, padding
                 self.sign(&src[s_from..s_to], &mut signature)?;
                 &dst[..s_to].copy_from_slice(&src[..s_to]);
+                debug!("Signature = {:?}", signature);
                 &dst[s_to..].copy_from_slice(&signature);
                 Ok(())
             }
@@ -322,9 +328,11 @@ impl SecureChannelToken {
                 self.expect_supported_security_policy();
                 // Copy everything
                 let len = src.len();
+                debug!("copying from slice ..{}", len);
                 &dst[..len].copy_from_slice(&src[..len]);
                 // Verify signature
-                self.verify(&dst[s_from..s_to], &dst[e_to..])?;
+                debug!("Verifying range from {}..{} to signature {}..", s_from, s_to, s_to);
+                self.verify(&dst[s_from..s_to], &dst[s_to..])?;
                 Ok(())
             }
             MessageSecurityMode::SignAndEncrypt => {
@@ -334,7 +342,7 @@ impl SecureChannelToken {
                 // Decrypt encrypted portion
                 self.decrypt(&src[e_from..e_to], &mut dst[e_from..e_to])?;
                 // Verify signature (after encrypted portion)
-                self.verify(&dst[s_from..s_to], &dst[e_to..])?;
+                self.verify(&dst[s_from..s_to], &dst[s_to..])?;
                 Ok(())
             }
             MessageSecurityMode::Invalid => {
