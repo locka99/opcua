@@ -3,7 +3,7 @@ use std::io::Cursor;
 
 use opcua_types::*;
 
-use comms::{MessageIsFinalType, SecureChannelToken, MessageChunk, MessageChunkType};
+use comms::{MessageIsFinalType, SecureChannel, MessageChunk, MessageChunkType};
 use crypto::SecurityPolicy;
 
 /// The Chunker is responsible for turning messages to chunks and chunks into messages.
@@ -23,9 +23,9 @@ impl Chunker {
     ///
     /// The function returns the last sequence number in the series for success, or
     /// BAD_SEQUENCE_NUMBER_INVALID for failure.
-    pub fn validate_chunk_sequences(starting_sequence_number: UInt32, secure_channel_token: &SecureChannelToken, chunks: &Vec<MessageChunk>) -> Result<UInt32, StatusCode> {
+    pub fn validate_chunk_sequences(starting_sequence_number: UInt32, secure_channel: &SecureChannel, chunks: &Vec<MessageChunk>) -> Result<UInt32, StatusCode> {
         let first_sequence_number = {
-            let chunk_info = chunks[0].chunk_info(secure_channel_token)?;
+            let chunk_info = chunks[0].chunk_info(secure_channel)?;
             chunk_info.sequence_header.sequence_number
         };
         if first_sequence_number < starting_sequence_number {
@@ -34,7 +34,7 @@ impl Chunker {
         }
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
         for (i, chunk) in chunks.iter().enumerate() {
-            let chunk_info = chunk.chunk_info(secure_channel_token)?;
+            let chunk_info = chunk.chunk_info(secure_channel)?;
             let sequence_number = chunk_info.sequence_header.sequence_number;
             let expected_sequence_number = first_sequence_number + i as UInt32;
             // Check the sequence id - should be larger than the last one decoded
@@ -51,8 +51,8 @@ impl Chunker {
     /// max_chunk_size refers to the maximum byte length that a chunk should not exceed or 0 for no limit
     /// max_message_size refers to the maximum byte length of a message or 0 for no limit
     ///
-    pub fn encode(sequence_number: UInt32, request_id: UInt32, max_message_size: usize, max_chunk_size: usize, secure_channel_token: &SecureChannelToken, supported_message: &SupportedMessage) -> std::result::Result<Vec<MessageChunk>, StatusCode> {
-        let security_policy = secure_channel_token.security_policy;
+    pub fn encode(sequence_number: UInt32, request_id: UInt32, max_message_size: usize, max_chunk_size: usize, secure_channel: &SecureChannel, supported_message: &SupportedMessage) -> std::result::Result<Vec<MessageChunk>, StatusCode> {
+        let security_policy = secure_channel.security_policy;
         if security_policy == SecurityPolicy::Unknown {
             panic!("Security policy cannot be unknown");
         }
@@ -78,7 +78,7 @@ impl Chunker {
         let data = stream.into_inner();
 
         let result = if max_chunk_size > 0 {
-            let max_body_per_chunk = MessageChunk::body_size_from_message_size(message_type, secure_channel_token, max_chunk_size);
+            let max_body_per_chunk = MessageChunk::body_size_from_message_size(message_type, secure_channel, max_chunk_size);
             // Multiple chunks means breaking the data up into sections. Fortunately
             // Rust has a nice function to do just that.
             let data_chunks = data.chunks(max_body_per_chunk);
@@ -90,12 +90,12 @@ impl Chunker {
                 } else {
                     MessageIsFinalType::Intermediate
                 };
-                let chunk = MessageChunk::new(sequence_number + i as u32, request_id, message_type, is_final, secure_channel_token, data_chunk, max_chunk_size)?;
+                let chunk = MessageChunk::new(sequence_number + i as u32, request_id, message_type, is_final, secure_channel, data_chunk, max_chunk_size)?;
                 chunks.push(chunk);
             }
             chunks
         } else {
-            let chunk = MessageChunk::new(sequence_number, request_id, message_type, MessageIsFinalType::Final, secure_channel_token, &data, 0)?;
+            let chunk = MessageChunk::new(sequence_number, request_id, message_type, MessageIsFinalType::Final, secure_channel, &data, 0)?;
             vec![chunk]
         };
         Ok(result)
@@ -103,13 +103,13 @@ impl Chunker {
 
     /// Decodes a series of chunks to create a message. The message must be of a `SupportedMessage`
     /// type otherwise an error will occur.
-    pub fn decode(chunks: &Vec<MessageChunk>, secure_channel_token: &SecureChannelToken, expected_node_id: Option<NodeId>) -> std::result::Result<SupportedMessage, StatusCode> {
+    pub fn decode(chunks: &Vec<MessageChunk>, secure_channel: &SecureChannel, expected_node_id: Option<NodeId>) -> std::result::Result<SupportedMessage, StatusCode> {
         // TODO all chunks should be verified first
 
         // Validate the data and calculate the size first
         let mut data_size: usize = 0;
         for (i, chunk) in chunks.iter().enumerate() {
-            let chunk_info = chunk.chunk_info(secure_channel_token)?;
+            let chunk_info = chunk.chunk_info(secure_channel)?;
             debug!("Chunker::decode chunk_info = {:?}", chunk_info);
             // The last most chunk is expected to be final, the rest intermediate
             let expected_is_final = if i == chunks.len() - 1 {
@@ -130,7 +130,7 @@ impl Chunker {
         // Read the data into a contiguous buffer. The assumption is the data is encrypted / verified by now
         let mut data = Vec::with_capacity(data_size);
         for chunk in chunks.iter() {
-            let chunk_info = chunk.chunk_info(secure_channel_token)?;
+            let chunk_info = chunk.chunk_info(secure_channel)?;
 
             let body_start = chunk_info.body_offset;
             let body_end = body_start + chunk_info.body_length;

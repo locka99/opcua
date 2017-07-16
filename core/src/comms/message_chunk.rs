@@ -178,9 +178,9 @@ impl BinaryEncoder<MessageChunk> for MessageChunk {
 }
 
 impl MessageChunk {
-    pub fn new(sequence_number: UInt32, request_id: UInt32, message_type: MessageChunkType, is_final: MessageIsFinalType, secure_channel_token: &SecureChannelToken, data: &[u8], message_size: usize) -> Result<MessageChunk, StatusCode> {
+    pub fn new(sequence_number: UInt32, request_id: UInt32, message_type: MessageChunkType, is_final: MessageIsFinalType, secure_channel: &SecureChannel, data: &[u8], message_size: usize) -> Result<MessageChunk, StatusCode> {
         // security header depends on message type
-        let security_header = secure_channel_token.make_security_header(message_type);
+        let security_header = secure_channel.make_security_header(message_type);
         let sequence_header = SequenceHeader { sequence_number, request_id };
 
         // Calculate the chunk body size
@@ -189,7 +189,7 @@ impl MessageChunk {
         message_chunk_size += sequence_header.byte_len();
         message_chunk_size += data.len();
         // Test if padding is required
-        let padding_size = secure_channel_token.calc_chunk_padding(data.len(), &security_header, message_size);
+        let padding_size = secure_channel.calc_chunk_padding(data.len(), &security_header, message_size);
         if padding_size > 0 {
             message_chunk_size += padding_size;
             if padding_size > 255 {
@@ -197,12 +197,12 @@ impl MessageChunk {
             }
         }
         // Signature size (if required)
-        message_chunk_size += secure_channel_token.symmetric_signature_size();
+        message_chunk_size += secure_channel.symmetric_signature_size();
 
         let mut stream = Cursor::new(vec![0u8; message_chunk_size]);
 
         debug!("Creating a chunk with a size of {}", message_chunk_size);
-        let secure_channel_id = secure_channel_token.secure_channel_id;
+        let secure_channel_id = secure_channel.secure_channel_id;
         let chunk_header = MessageChunkHeader {
             message_type,
             is_final,
@@ -245,19 +245,19 @@ impl MessageChunk {
     /// Calculates the body size that fit inside of a message chunk of a particular size.
     /// This requires calculating the size of the header, the signature, padding etc. and deducting it
     /// to reveal the message size
-    pub fn body_size_from_message_size(message_type: MessageChunkType, secure_channel_token: &SecureChannelToken, message_size: usize) -> usize {
+    pub fn body_size_from_message_size(message_type: MessageChunkType, secure_channel: &SecureChannel, message_size: usize) -> usize {
         if message_size < 8192 {
             panic!("max chunk size cannot be less than minimum in the spec");
         }
 
-        let security_header = secure_channel_token.make_security_header(message_type);
+        let security_header = secure_channel.make_security_header(message_type);
 
         let mut data_size = MESSAGE_CHUNK_HEADER_SIZE;
         data_size += security_header.byte_len();
         data_size += (SequenceHeader { sequence_number: 0, request_id: 0 }).byte_len();
 
         // 1 byte == most padding
-        let padding_size = secure_channel_token.calc_chunk_padding(1, &security_header, message_size);
+        let padding_size = secure_channel.calc_chunk_padding(1, &security_header, message_size);
         if padding_size > 0 {
             data_size += padding_size;
             if padding_size > 255 {
@@ -267,7 +267,7 @@ impl MessageChunk {
         }
 
         // signature length
-        data_size += secure_channel_token.symmetric_signature_size();
+        data_size += secure_channel.symmetric_signature_size();
 
         // Message size is what's left
         message_size - data_size
@@ -292,36 +292,36 @@ impl MessageChunk {
     }
 
     /// Signs and encrypts the data
-    pub fn apply_security(&mut self, secure_channel_token: &SecureChannelToken) -> Result<(), StatusCode> {
-        if secure_channel_token.encryption_enabled() && !self.is_open_secure_channel() {
+    pub fn apply_security(&mut self, secure_channel: &SecureChannel) -> Result<(), StatusCode> {
+        if secure_channel.encryption_enabled() && !self.is_open_secure_channel() {
             // Encrypt/sign
-            let chunk_info = self.chunk_info(secure_channel_token)?;
+            let chunk_info = self.chunk_info(secure_channel)?;
             // S - Message Header
             // S - Security Header
             // S - Sequence Header - E
             // S - Body            - E
             // S - Padding         - E
             //     Signature       - E
-            let sign_info = (0, self.data.len() - secure_channel_token.security_policy.symmetric_signature_size());
+            let sign_info = (0, self.data.len() - secure_channel.security_policy.symmetric_signature_size());
             let encrypt_info = (chunk_info.sequence_header_offset, self.data.len());
 
             let mut encrypted_data = vec![0u8; self.data.len()];
-            secure_channel_token.encrypt_and_sign(&self.data, sign_info, encrypt_info, &mut encrypted_data)?;
+            secure_channel.encrypt_and_sign(&self.data, sign_info, encrypt_info, &mut encrypted_data)?;
             self.data = encrypted_data;
         }
         Ok(())
     }
 
     /// Decrypts and verifies the body data if the mode / policy requires it
-    pub fn verify_and_remove_security(&mut self, secure_channel_token: &SecureChannelToken) -> Result<(), StatusCode> {
-        if secure_channel_token.encryption_enabled() && !self.is_open_secure_channel() {
+    pub fn verify_and_remove_security(&mut self, secure_channel: &SecureChannel) -> Result<(), StatusCode> {
+        if secure_channel.encryption_enabled() && !self.is_open_secure_channel() {
             // S - Message Header
             // S - Security Header
             // S - Sequence Header - E
             // S - Body            - E
             // S - Padding         - E
             //     Signature       - E
-            let sign_info = (0, self.data.len() - secure_channel_token.security_policy.symmetric_signature_size());
+            let sign_info = (0, self.data.len() - secure_channel.security_policy.symmetric_signature_size());
             let encrypt_info = {
                 // Read past header and security header to get position of stream corresponding to sequence header
                 let mut stream = Cursor::new(&self.data);
@@ -332,7 +332,7 @@ impl MessageChunk {
             debug!("Decrypting block with signature info {:?} and encrypt info {:?}", sign_info, encrypt_info);
 
             let mut decrypted_data = vec![0u8; self.data.len()];
-            secure_channel_token.decrypt_and_verify(&self.data, sign_info, encrypt_info, &mut decrypted_data)?;
+            secure_channel.decrypt_and_verify(&self.data, sign_info, encrypt_info, &mut decrypted_data)?;
 
             self.data = decrypted_data;
         }
@@ -348,7 +348,7 @@ impl MessageChunk {
         }
     }
 
-    pub fn chunk_info(&self, secure_channel_token: &SecureChannelToken) -> std::result::Result<ChunkInfo, StatusCode> {
-        ChunkInfo::new(self, secure_channel_token)
+    pub fn chunk_info(&self, secure_channel: &SecureChannel) -> std::result::Result<ChunkInfo, StatusCode> {
+        ChunkInfo::new(self, secure_channel)
     }
 }

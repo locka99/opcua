@@ -5,7 +5,7 @@ use opcua_core::comms::*;
 
 pub struct SecureChannelService {
     // Secure channel info for the session
-    pub secure_channel: SecureChannelToken,
+    pub secure_channel: SecureChannel,
     // Issued flag
     issued: bool,
     // Renew count, debugging
@@ -20,7 +20,7 @@ impl SecureChannelService {
     pub fn new() -> SecureChannelService {
         SecureChannelService {
             last_secure_channel_id: 0,
-            secure_channel: SecureChannelToken::new(),
+            secure_channel: SecureChannel::new(),
             issued: false,
             renew_count: 0,
             last_token_id: 0,
@@ -91,7 +91,7 @@ impl SecureChannelService {
 
         // Create a new secure channel info
         self.secure_channel = {
-            let mut secure_channel = SecureChannelToken::new();
+            let mut secure_channel = SecureChannel::new();
             secure_channel.token_id = self.last_token_id;
             secure_channel.security_mode = request.security_mode;
             secure_channel.secure_channel_id = self.last_secure_channel_id;

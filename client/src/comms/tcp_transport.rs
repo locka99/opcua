@@ -26,7 +26,7 @@ pub struct TcpTransport {
     /// Last decoded sequence number
     last_received_sequence_number: UInt32,
     /// Secure channel information
-    pub secure_channel_token: SecureChannelToken,
+    pub secure_channel: SecureChannel,
     /// Last request id, used to track async requests
     last_request_id: UInt32,
 }
@@ -45,7 +45,7 @@ impl TcpTransport {
             last_sent_sequence_number: 0,
             last_received_sequence_number: 0,
             last_request_id: 1000,
-            secure_channel_token: SecureChannelToken::new(),
+            secure_channel: SecureChannel::new(),
         }
     }
 
@@ -119,9 +119,9 @@ impl TcpTransport {
 
     fn turn_received_chunks_into_message(&mut self, chunks: &Vec<MessageChunk>) -> Result<SupportedMessage, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
-        self.last_received_sequence_number = Chunker::validate_chunk_sequences(self.last_received_sequence_number + 1, &self.secure_channel_token, chunks)?;
+        self.last_received_sequence_number = Chunker::validate_chunk_sequences(self.last_received_sequence_number + 1, &self.secure_channel, chunks)?;
         // Now decode
-        Chunker::decode(&chunks, &self.secure_channel_token, None)
+        Chunker::decode(&chunks, &self.secure_channel, None)
     }
 
     fn process_chunk(&mut self, chunk: MessageChunk) -> Result<Option<SupportedMessage>, StatusCode> {
@@ -248,7 +248,7 @@ impl TcpTransport {
 
         // Turn message to chunk(s)
         // TODO max message size and max chunk size
-        let chunks = Chunker::encode(self.last_sent_sequence_number + 1, request_id, 0, 0, &self.secure_channel_token, &request)?;
+        let chunks = Chunker::encode(self.last_sent_sequence_number + 1, request_id, 0, 0, &self.secure_channel, &request)?;
 
         // Sequence number monotonically increases per chunk
         self.last_sent_sequence_number += chunks.len() as UInt32;

@@ -20,7 +20,7 @@ pub const CHUNK_FINAL_ERROR: u8 = b'A';
 pub const MAX_CHUNK_COUNT: usize = 1;
 
 mod security_header;
-mod secure_channel_token;
+mod secure_channel;
 mod message_chunk;
 mod message_chunk_info;
 mod chunker;
@@ -28,7 +28,7 @@ mod message_buffer;
 mod handshake;
 
 pub use self::security_header::*;
-pub use self::secure_channel_token::*;
+pub use self::secure_channel::*;
 pub use self::message_chunk::*;
 pub use self::message_chunk_info::*;
 pub use self::chunker::*;
