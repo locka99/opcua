@@ -3,9 +3,9 @@ use std;
 use opcua_types::*;
 use opcua_core::comms::*;
 
-pub struct SecureChannel {
+pub struct SecureChannelService {
     // Secure channel info for the session
-    pub secure_channel_token: SecureChannelToken,
+    pub secure_channel: SecureChannelToken,
     // Issued flag
     issued: bool,
     // Renew count, debugging
@@ -16,11 +16,11 @@ pub struct SecureChannel {
     last_token_id: UInt32,
 }
 
-impl SecureChannel {
-    pub fn new() -> SecureChannel {
-        SecureChannel {
+impl SecureChannelService {
+    pub fn new() -> SecureChannelService {
+        SecureChannelService {
             last_secure_channel_id: 0,
-            secure_channel_token: SecureChannelToken::new(),
+            secure_channel: SecureChannelToken::new(),
             issued: false,
             renew_count: 0,
             last_token_id: 0,
@@ -60,7 +60,7 @@ impl SecureChannel {
 
                 // Check for a duplicate nonce. It is invalid for the renew to use the same nonce
                 // as was used for last issue/renew
-                if request.client_nonce.as_ref() == &self.secure_channel_token.their_nonce[..] {
+                if request.client_nonce.as_ref() == &self.secure_channel.their_nonce[..] {
                     return Ok(ServiceFault::new_supported_message(&request.request_header, BAD_NONCE_INVALID));
                 }
 
@@ -90,33 +90,33 @@ impl SecureChannel {
         self.last_secure_channel_id += 1;
 
         // Create a new secure channel info
-        self.secure_channel_token = {
-            let mut secure_channel_token = SecureChannelToken::new();
-            secure_channel_token.token_id = self.last_token_id;
-            secure_channel_token.security_mode = request.security_mode;
-            secure_channel_token.secure_channel_id = self.last_secure_channel_id;
-            let nonce_result = secure_channel_token.set_their_nonce(&request.client_nonce);
+        self.secure_channel = {
+            let mut secure_channel = SecureChannelToken::new();
+            secure_channel.token_id = self.last_token_id;
+            secure_channel.security_mode = request.security_mode;
+            secure_channel.secure_channel_id = self.last_secure_channel_id;
+            let nonce_result = secure_channel.set_their_nonce(&request.client_nonce);
             if nonce_result.is_ok() {
-                secure_channel_token.create_random_nonce();
+                secure_channel.create_random_nonce();
             } else {
                 return Ok(ServiceFault::new_supported_message(&request.request_header, nonce_result.unwrap_err()));
             }
-            if secure_channel_token.encryption_enabled() {
-                secure_channel_token.derive_keys();
+            if secure_channel.encryption_enabled() {
+                secure_channel.derive_keys();
             }
-            secure_channel_token
+            secure_channel
         };
 
         let response = OpenSecureChannelResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
             server_protocol_version: 0,
             security_token: ChannelSecurityToken {
-                channel_id: self.secure_channel_token.secure_channel_id,
-                token_id: self.secure_channel_token.token_id,
+                channel_id: self.secure_channel.secure_channel_id,
+                token_id: self.secure_channel.token_id,
                 created_at: DateTime::now(),
                 revised_lifetime: request.requested_lifetime,
             },
-            server_nonce: ByteString::from_bytes(&self.secure_channel_token.nonce),
+            server_nonce: ByteString::from_bytes(&self.secure_channel.nonce),
         };
 
         debug!("Sending OpenSecureChannelResponse {:?}", response);

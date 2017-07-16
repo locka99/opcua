@@ -6,9 +6,10 @@ use crypto::SecurityPolicy;
 use crypto::types::*;
 use crypto::hash;
 
-use comms::{SecurityHeader, SymmetricSecurityHeader, AsymmetricSecurityHeader};
+use comms::{SecurityHeader, SymmetricSecurityHeader, AsymmetricSecurityHeader, MESSAGE_CHUNK_HEADER_SIZE, SEQUENCE_HEADER_SIZE};
 use comms::message_chunk::MessageChunkType;
 
+/// Holds all of the security information related to this session
 #[derive(Debug)]
 pub struct SecureChannelToken {
     /// The security mode for the connection, None, Sign, SignAndEncrypt
@@ -126,9 +127,9 @@ impl SecureChannelToken {
     /// are used to secure Messages sent by the Server.
     /// 
     pub fn derive_keys(&mut self) {
-        self.their_keys = Some(self.security_policy.make_secure_channel_keys(&self.their_nonce, &self.nonce));
         self.keys = Some(self.security_policy.make_secure_channel_keys(&self.nonce, &self.their_nonce));
         debug!("Derived our keys = {:?}", self.keys);
+        self.their_keys = Some(self.security_policy.make_secure_channel_keys(&self.their_nonce, &self.nonce));
         debug!("Derived their keys = {:?}", self.their_keys);
     }
 
@@ -148,11 +149,36 @@ impl SecureChannelToken {
     }
 
     /// Calculate the padding size
-    pub fn calc_chunk_padding(&self, byte_length: usize) -> usize {
+    ///
+    /// Padding adds bytes to the body to make it a multiple of the block size so it can be encrypted.
+    pub fn calc_chunk_padding(&self, bytes_to_write: usize, security_header: &SecurityHeader, message_chunk_size: usize) -> usize {
         if self.security_policy != SecurityPolicy::None && self.security_mode != MessageSecurityMode::None {
+            // Signature size comes from policy
             let signature_size = self.security_policy.symmetric_signature_size();
-            let plain_block_size = self.security_policy.plain_block_size();
-            let padding_size: usize = plain_block_size - ((byte_length + signature_size + 1) % plain_block_size);
+            // Plain text block size comes from policy
+            let plain_text_block_size = self.security_policy.plain_block_size();
+
+            // If a message chunk size is specified then we need to calculate the max body size
+            let max_body_size = if message_chunk_size != 0 {
+                // Cipher text block size comes from policy
+                let cipher_text_block_size = self.security_policy.cipher_block_size();
+                // Header size include message header and security header
+                let header_size = MESSAGE_CHUNK_HEADER_SIZE + security_header.byte_len();
+                // Sequence header size is 8 bytes
+                let sequence_header_size = SEQUENCE_HEADER_SIZE;
+
+                let f1: f64 = (message_chunk_size - header_size - signature_size - 1) as f64;
+                let f2: f64 = cipher_text_block_size as f64;
+                plain_text_block_size * ((f1 / f2).floor() as usize) - sequence_header_size
+            } else {
+                0
+            };
+            let padding_size = if max_body_size > 0 && bytes_to_write > max_body_size {
+                0
+            }
+            else {
+                plain_text_block_size - ((bytes_to_write + signature_size + 1) % plain_text_block_size)
+            };
             debug!("Padding calculated to be {} bytes", padding_size);
             padding_size
         } else {

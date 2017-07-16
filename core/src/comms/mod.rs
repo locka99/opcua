@@ -10,6 +10,7 @@ pub const CLOSE_SECURE_CHANNEL_MESSAGE: &'static [u8] = b"CLO";
 
 /// The size of a chunk header, used by several places
 pub const MESSAGE_CHUNK_HEADER_SIZE: usize = 12;
+pub const SEQUENCE_HEADER_SIZE: usize = 8;
 
 pub const CHUNK_FINAL: u8 = b'F';
 pub const CHUNK_INTERMEDIATE: u8 = b'C';

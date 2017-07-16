@@ -178,7 +178,7 @@ impl BinaryEncoder<MessageChunk> for MessageChunk {
 }
 
 impl MessageChunk {
-    pub fn new(sequence_number: UInt32, request_id: UInt32, message_type: MessageChunkType, is_final: MessageIsFinalType, secure_channel_token: &SecureChannelToken, data: &[u8]) -> Result<MessageChunk, StatusCode> {
+    pub fn new(sequence_number: UInt32, request_id: UInt32, message_type: MessageChunkType, is_final: MessageIsFinalType, secure_channel_token: &SecureChannelToken, data: &[u8], message_size: usize) -> Result<MessageChunk, StatusCode> {
         // security header depends on message type
         let security_header = secure_channel_token.make_security_header(message_type);
         let sequence_header = SequenceHeader { sequence_number, request_id };
@@ -189,7 +189,7 @@ impl MessageChunk {
         message_chunk_size += sequence_header.byte_len();
         message_chunk_size += data.len();
         // Test if padding is required
-        let padding_size = secure_channel_token.calc_chunk_padding(data.len());
+        let padding_size = secure_channel_token.calc_chunk_padding(data.len(), &security_header, message_size);
         if padding_size > 0 {
             message_chunk_size += padding_size;
             if padding_size > 255 {
@@ -229,6 +229,9 @@ impl MessageChunk {
                 let _ = write_u8(&mut stream, padding_value)?;
             }
             // For key sizes > 2048, there may be an extra byte if padding exceeds 255 chars
+            // NOTE this doesn't make any sense to me - if I add this byte then the padding is off by
+            // 1 for the block size. It would make sense when padding_size > 255 for the last padding
+            // byte to hold the extra padding size.
             if padding_size > 255 {
                 let extra_padding_size = (padding_size >> 8) as u8;
                 let _ = write_u8(&mut stream, extra_padding_size)?;
@@ -247,12 +250,14 @@ impl MessageChunk {
             panic!("max chunk size cannot be less than minimum in the spec");
         }
 
+        let security_header = secure_channel_token.make_security_header(message_type);
+
         let mut data_size = MESSAGE_CHUNK_HEADER_SIZE;
-        data_size += secure_channel_token.make_security_header(message_type).byte_len();
+        data_size += security_header.byte_len();
         data_size += (SequenceHeader { sequence_number: 0, request_id: 0 }).byte_len();
 
         // 1 byte == most padding
-        let padding_size = secure_channel_token.calc_chunk_padding(1);
+        let padding_size = secure_channel_token.calc_chunk_padding(1, &security_header, message_size);
         if padding_size > 0 {
             data_size += padding_size;
             if padding_size > 255 {
