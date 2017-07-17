@@ -347,8 +347,6 @@ impl TcpTransport {
     }
 
     fn process_chunk<W: Write>(&mut self, mut chunk: MessageChunk, out_stream: &mut W) -> std::result::Result<(), StatusCode> {
-        debug!("Got a chunk {:?}", chunk);
-
         let message_header = chunk.message_header()?;
 
         if message_header.is_final == MessageIsFinalType::Intermediate {

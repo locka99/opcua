@@ -110,7 +110,6 @@ impl Chunker {
         let mut data_size: usize = 0;
         for (i, chunk) in chunks.iter().enumerate() {
             let chunk_info = chunk.chunk_info(secure_channel)?;
-            debug!("Chunker::decode chunk_info = {:?}", chunk_info);
             // The last most chunk is expected to be final, the rest intermediate
             let expected_is_final = if i == chunks.len() - 1 {
                 MessageIsFinalType::Final
