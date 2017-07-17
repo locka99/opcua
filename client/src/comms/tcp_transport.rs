@@ -198,7 +198,6 @@ impl TcpTransport {
             }
             let messages = result.unwrap();
             for message in messages {
-                debug!("Processing message");
                 if let Message::MessageChunk(chunk) = message {
                     let result = self.process_chunk(chunk)?;
                     if result.is_some() {

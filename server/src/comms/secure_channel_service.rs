@@ -101,7 +101,7 @@ impl SecureChannelService {
             } else {
                 return Ok(ServiceFault::new_supported_message(&request.request_header, nonce_result.unwrap_err()));
             }
-            if secure_channel.encryption_enabled() {
+            if secure_channel.signing_enabled() || secure_channel.encryption_enabled() {
                 secure_channel.derive_keys();
             }
             secure_channel

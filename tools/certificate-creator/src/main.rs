@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use opcua_core::crypto::*;
 
 fn main() {
-    let _ = opcua_core::init_logging();
+    opcua_core::init_logging(opcua_core::LogLevelFilter::Debug);
     let (args, overwrite, path) = parse_x509_args();
 
     let cert_store = CertificateStore::new(&path);

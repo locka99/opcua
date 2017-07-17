@@ -69,7 +69,11 @@ impl ServerEndpoint {
         ServerEndpoint::new_default(false, user, pass, SecurityPolicy::None, MessageSecurityMode::None)
     }
 
-    pub fn default_sign_encrypt() -> ServerEndpoint {
+    pub fn default_basic128rs15_sign() -> ServerEndpoint {
+        ServerEndpoint::new_default(false, "", &[], SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign)
+    }
+
+    pub fn default_basic128rs15_sign_encrypt() -> ServerEndpoint {
         ServerEndpoint::new_default(false, "", &[], SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt)
     }
 
@@ -177,7 +181,7 @@ impl ServerConfig {
     }
 
     pub fn default_secure() -> ServerConfig {
-        ServerConfig::default(vec![ServerEndpoint::default_sign_encrypt()])
+        ServerConfig::default(vec![ServerEndpoint::default_basic128rs15_sign_encrypt()])
     }
 
     /// Sample mode turns on everything including a hard coded user/pass
@@ -185,7 +189,8 @@ impl ServerConfig {
         ServerConfig::default(vec![
             ServerEndpoint::default_anonymous(),
             ServerEndpoint::default_user_pass("sample", b"sample1"),
-            ServerEndpoint::default_sign_encrypt()
+            ServerEndpoint::default_basic128rs15_sign(),
+            ServerEndpoint::default_basic128rs15_sign_encrypt(),
         ])
     }
 

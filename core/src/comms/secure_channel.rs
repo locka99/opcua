@@ -69,7 +69,7 @@ impl SecureChannel {
 
     /// Creates a nonce for the connection. The nonce should be the same size as the symmetric key
     pub fn create_random_nonce(&mut self) {
-        if self.encryption_enabled() {
+        if self.signing_enabled() || self.encryption_enabled() {
             use rand::{self, Rng};
             let mut rng = rand::thread_rng();
             self.nonce = vec![0u8; self.security_policy.symmetric_key_size()];
@@ -82,7 +82,7 @@ impl SecureChannel {
     /// Set their nonce which should be the same as the symmetric key
     pub fn set_their_nonce(&mut self, their_nonce: &ByteString) -> Result<(), StatusCode> {
         if let Some(ref their_nonce) = their_nonce.value {
-            if self.encryption_enabled() && their_nonce.len() != self.security_policy.symmetric_key_size() {
+            if (self.signing_enabled() || self.encryption_enabled()) && their_nonce.len() != self.security_policy.symmetric_key_size() {
                 Err(BAD_NONCE_INVALID)
             } else {
                 self.their_nonce = their_nonce.to_vec();
@@ -268,9 +268,13 @@ impl SecureChannel {
         }
     }
 
-    /// Test if signing and/or encryption is enabled. 
+    pub fn signing_enabled(&self) -> bool {
+        self.security_policy != SecurityPolicy::None && self.security_mode == MessageSecurityMode::Sign
+    }
+
+    /// Test if encryption is enabled. 
     pub fn encryption_enabled(&self) -> bool {
-        self.security_mode != MessageSecurityMode::None && self.security_policy != SecurityPolicy::None
+        self.security_policy != SecurityPolicy::None && self.security_mode == MessageSecurityMode::SignAndEncrypt
     }
 
     /// Encode data using security. Destination buffer is expected to be same size as src and expected
@@ -310,8 +314,14 @@ impl SecureChannel {
             MessageSecurityMode::SignAndEncrypt => {
                 debug!("encrypt_and_sign security mode == SignAndEncrypt");
                 self.expect_supported_security_policy();
-                // TODO can this be done without a tmp?
-                let mut dst_tmp = vec![0u8; dst.len()];
+
+                // There is an expectation that the block is padded so, this is a quick test
+                if (e_to - e_from) % 16 != 0 {
+                    error!("The plain text block is not padded properly, size = {}", e_to - e_from);
+                    return Err(BAD_DECODING_ERROR);
+                }
+
+                let mut dst_tmp = vec![0u8; dst.len() + 16]; // tmp includes +16 for blocksize
                 let signature_len = src.len() - s_to;
                 debug!("signature len = {}", signature_len);
                 let mut signature = vec![0u8; signature_len];
@@ -319,10 +329,12 @@ impl SecureChannel {
                 self.sign(&src[s_from..s_to], &mut signature)?;
                 &dst_tmp[..s_to].copy_from_slice(&src[..s_to]);
                 &dst_tmp[s_to..].copy_from_slice(&signature);
+
                 // Encrypt the sequence header, payload, signature
                 self.encrypt(&dst_tmp[e_from..e_to], &mut dst[e_from..e_to])?;
                 // Copy the message header / security header
                 &dst[..e_from].copy_from_slice(&dst_tmp[..e_from]);
+
                 Ok(())
             }
             MessageSecurityMode::Invalid => {
@@ -362,10 +374,21 @@ impl SecureChannel {
             }
             MessageSecurityMode::SignAndEncrypt => {
                 self.expect_supported_security_policy();
+
+                // There is an expectation that the block is padded so, this is a quick test
+                if (e_to - e_from) % 16 != 0 {
+                    error!("The plain text block is not padded properly, size = {}", e_to - e_from);
+                    return Err(BAD_DECODING_ERROR);
+                }
+
                 // Copy security header
                 &dst[..e_from].copy_from_slice(&src[..e_from]);
+
                 // Decrypt encrypted portion
-                self.decrypt(&src[e_from..e_to], &mut dst[e_from..e_to])?;
+                let mut decrypted_tmp = vec![0u8; e_to - e_from + 16]; // tmp includes +16 for blocksize
+                self.decrypt(&src[e_from..e_to], &mut decrypted_tmp)?;
+                &dst[e_from..e_to].copy_from_slice(&decrypted_tmp[..(e_to - e_from)]);
+
                 // Verify signature (after encrypted portion)
                 self.verify(&dst[s_from..s_to], &dst[s_to..])?;
                 Ok(())

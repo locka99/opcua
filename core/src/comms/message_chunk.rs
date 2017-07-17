@@ -56,11 +56,9 @@ impl BinaryEncoder<MessageChunkHeader> for MessageChunkHeader {
         let message_type = match self.message_type {
             MessageChunkType::Message => { CHUNK_MESSAGE }
             MessageChunkType::OpenSecureChannel => {
-                debug!("Encoding a OPEN message");
                 OPEN_SECURE_CHANNEL_MESSAGE
             }
             MessageChunkType::CloseSecureChannel => {
-                debug!("Encoding a CLOSE message");
                 CLOSE_SECURE_CHANNEL_MESSAGE
             }
         };
@@ -92,7 +90,7 @@ impl BinaryEncoder<MessageChunkHeader> for MessageChunkHeader {
         } else if message_type_code == CLOSE_SECURE_CHANNEL_MESSAGE {
             MessageChunkType::CloseSecureChannel
         } else {
-            debug!("Invalid message code");
+            error!("Invalid message code");
             is_valid = false;
             MessageChunkType::Message
         };
@@ -103,7 +101,7 @@ impl BinaryEncoder<MessageChunkHeader> for MessageChunkHeader {
             CHUNK_INTERMEDIATE => { MessageIsFinalType::Intermediate }
             CHUNK_FINAL_ERROR => { MessageIsFinalType::FinalError }
             _ => {
-                debug!("Invalid chunk type");
+                error!("Invalid chunk type");
                 is_valid = false;
                 MessageIsFinalType::FinalError
             }
@@ -293,7 +291,7 @@ impl MessageChunk {
 
     /// Signs and encrypts the data
     pub fn apply_security(&mut self, secure_channel: &SecureChannel) -> Result<(), StatusCode> {
-        if secure_channel.encryption_enabled() && !self.is_open_secure_channel() {
+        if (secure_channel.signing_enabled() || secure_channel.encryption_enabled()) && !self.is_open_secure_channel() {
             // Encrypt/sign
             let chunk_info = self.chunk_info(secure_channel)?;
             // S - Message Header
@@ -314,7 +312,7 @@ impl MessageChunk {
 
     /// Decrypts and verifies the body data if the mode / policy requires it
     pub fn verify_and_remove_security(&mut self, secure_channel: &SecureChannel) -> Result<(), StatusCode> {
-        if secure_channel.encryption_enabled() && !self.is_open_secure_channel() {
+        if (secure_channel.signing_enabled() || secure_channel.encryption_enabled()) && !self.is_open_secure_channel() {
             // S - Message Header
             // S - Security Header
             // S - Sequence Header - E

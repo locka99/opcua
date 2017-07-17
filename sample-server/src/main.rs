@@ -10,7 +10,7 @@ use opcua_server::prelude::*;
 
 fn main() {
     // This enables logging. If you don't need logging you can omit it
-    let _ = opcua_core::init_logging();
+    opcua_core::init_logging(opcua_core::LogLevelFilter::Debug);
 
     // Create an OPC UA server with the default sample (demo) settings and node set
     let mut server = Server::new(ServerConfig::default_sample());

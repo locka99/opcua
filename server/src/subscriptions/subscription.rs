@@ -339,18 +339,21 @@ impl Subscription {
         {
             use log::LogLevel::Debug;
             if log_enabled!(Debug) {
-                debug!("State inputs:");
-                debug!("  subscription_id: {}", self.subscription_id);
-                debug!("  state: {:?}", self.state);
-                debug!("  receive_publish_request: {:?}", receive_publish_request);
-                debug!("  publishing_timer_expired: {}", publishing_timer_expired);
-                debug!("  publishing_req_queued: {}", self.publishing_req_queued);
-                debug!("  publishing_enabled: {}", self.publishing_enabled);
-                debug!("  more_notifications: {}", self.more_notifications);
-                debug!("  notifications_available: {} (queue size = {})", self.notifications_available, self.retransmission_queue.len());
-                debug!("  keep_alive_counter: {}", self.keep_alive_counter);
-                debug!("  lifetime_counter: {}", self.lifetime_counter);
-                debug!("  message_sent: {}", self.message_sent);
+                debug!(r#"State inputs:
+    subscription_id: {}
+    state: {:?}
+    receive_publish_request: {:?}
+    publishing_timer_expired: {}
+    publishing_req_queued: {}
+    publishing_enabled: {}
+    more_notifications: {}
+    notifications_available: {} (queue size = {})
+    keep_alive_counter: {}"
+    lifetime_counter: {}"
+    message_sent: {}"#,
+                       self.subscription_id, self.state, receive_publish_request, publishing_timer_expired, self.publishing_req_queued,
+                       self.publishing_enabled, self.more_notifications, self.notifications_available, self.retransmission_queue.len(),
+                       self.keep_alive_counter, self.lifetime_counter, self.message_sent);
             }
         }
 

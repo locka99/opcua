@@ -8,7 +8,7 @@ use opcua_client::prelude::*;
 
 fn main() {
     // Logging is optional. If you call this, then you will see lots of output to the console.
-    let _ = opcua_core::init_logging();
+    opcua_core::init_logging(opcua_core::LogLevelFilter::Debug);
 
     // Create the client's particulars, a name and a urn
     let mut client = Client::new("SampleClient", "urn:SampleClient");

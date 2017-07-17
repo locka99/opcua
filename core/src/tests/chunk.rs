@@ -11,7 +11,7 @@ struct Test;
 
 impl Test {
     pub fn setup() -> Test {
-        let _ = ::init_logging();
+        ::init_logging(::LogLevelFilter::Debug);
         Test {}
     }
 }

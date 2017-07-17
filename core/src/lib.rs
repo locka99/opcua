@@ -19,8 +19,6 @@ pub mod prelude {
     pub use crypto::*;
 }
 
-use log::*;
-
 use std::collections::HashSet;
 
 /// Simple logger (as the name suggests) is a bare bones implementation of the log::Log trait
@@ -30,11 +28,11 @@ struct SimpleLogger {
 }
 
 impl log::Log for SimpleLogger {
-    fn enabled(&self, metadata: &LogMetadata) -> bool {
-        metadata.level() <= LogLevel::Debug
+    fn enabled(&self, metadata: &log::LogMetadata) -> bool {
+        metadata.level() <= log::LogLevel::Debug
     }
 
-    fn log(&self, record: &LogRecord) {
+    fn log(&self, record: &log::LogRecord) {
         if self.enabled(record.metadata()) {
             if !self.target_map.is_empty() && !self.target_map.contains(record.metadata().target()) {
                 return;
@@ -45,13 +43,13 @@ impl log::Log for SimpleLogger {
             let time_fmt = now.format("%Y-%m-%d %H:%M:%S%.3f");
 
             match record.metadata().level() {
-                LogLevel::Error => {
+                log::LogLevel::Error => {
                     println!("{} - \x1b[37m\x1b[41m{}\x1b[0m - {} - {}", time_fmt, record.level(), record.metadata().target(), record.args());
                 }
-                LogLevel::Warn => {
+                log::LogLevel::Warn => {
                     println!("{} - \x1b[33m{}\x1b[0m - {} - {}", time_fmt, record.level(), record.metadata().target(), record.args());
                 }
-                LogLevel::Info => {
+                log::LogLevel::Info => {
                     println!("{} - \x1b[36m{}\x1b[0m - {} - {}", time_fmt, record.level(), record.metadata().target(), record.args());
                 }
                 _ => {
@@ -62,14 +60,34 @@ impl log::Log for SimpleLogger {
     }
 }
 
+/// This is directly analogous to the enum of the same name in the log crate,
+// but we expose ours to remove a dependency for client code to worry about.
+pub enum LogLevelFilter {
+    Off,
+    Error,
+    Warn,
+    Info,
+    Debug,
+    Trace
+}
+
 /// Initialise OPC UA logging on the executable.
-pub fn init_logging() -> Result<(), SetLoggerError> {
-    log::set_logger(|max_log_level| {
-        max_log_level.set(LogLevelFilter::Debug);
+pub fn init_logging(logging_level: LogLevelFilter) {
+    let _ = log::set_logger(|max_log_level| {
+        let logging_level = match logging_level {
+            LogLevelFilter::Off => log::LogLevelFilter::Off,
+            LogLevelFilter::Error => log::LogLevelFilter::Error,
+            LogLevelFilter::Warn => log::LogLevelFilter::Warn,
+            LogLevelFilter::Info => log::LogLevelFilter::Info,
+            LogLevelFilter::Debug => log::LogLevelFilter::Debug,
+            LogLevelFilter::Trace => log::LogLevelFilter::Trace,
+        };
+
+        max_log_level.set(logging_level);
         Box::new(SimpleLogger {
             target_map: HashSet::new(),
         })
-    })
+    });
 }
 
 /// Contains debugging utility helper functions
