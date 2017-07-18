@@ -27,7 +27,10 @@ impl AttributeService {
         // Read nodes and their attributes
         let timestamps_to_return = request.timestamps_to_return;
 
+        // debug!("ReadRequest = {:#?}", &request);
+
         if request.max_age < 0f64 {
+            warn!("ReadRequest max age is invalid");
             return Ok(self.service_fault(&request.request_header, BAD_MAX_AGE_INVALID));
         }
 
@@ -92,6 +95,7 @@ impl AttributeService {
             }
             Some(results)
         } else {
+            warn!("ReadRequest nothing to do");
             return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
         };
 
@@ -101,6 +105,8 @@ impl AttributeService {
             results,
             diagnostic_infos,
         };
+
+        // debug!("ReadResponse = {:#?}", &response);
 
         Ok(SupportedMessage::ReadResponse(response))
     }

@@ -58,14 +58,14 @@ impl X509 {
         X509 { value }
     }
 
-    pub fn from_byte_string(data: &ByteString) -> Result<X509, ()> {
+    pub fn from_byte_string(data: &ByteString) -> Result<X509, StatusCode> {
         if data.is_null() {
-            Err(())
+            Err(BAD_CERTIFICATE_INVALID)
         } else {
             if let Ok(cert) = x509::X509::from_der(&data.value.as_ref().unwrap()) {
                 Ok(X509::wrap(cert))
             } else {
-                Err(())
+                Err(BAD_CERTIFICATE_INVALID)
             }
         }
     }
@@ -76,12 +76,12 @@ impl X509 {
         ByteString::from_bytes(&der)
     }
 
-    pub fn public_key(&self) -> Result<PKey, ()> {
+    pub fn public_key(&self) -> Result<PKey, StatusCode> {
         if let Ok(pkey) = self.value.public_key() {
             let pkey = PKey::wrap(pkey);
             Ok(pkey)
         } else {
-            Err(())
+            Err(BAD_CERTIFICATE_INVALID)
         }
     }
 
@@ -203,8 +203,8 @@ impl PKey {
         }
     }
 
-    pub fn bit_length(&self) -> u32 {
-        self.value.bits()
+    pub fn bit_length(&self) -> usize {
+        self.value.bits() as usize
     }
 
     pub fn sign_sha1(&self, data: &[u8]) -> Vec<u8> {

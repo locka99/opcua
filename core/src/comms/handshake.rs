@@ -2,7 +2,9 @@ use std::io::{Read, Write, Cursor, Result, Error, ErrorKind};
 
 use opcua_types::*;
 
-use comms::*;
+use comms::{MAX_CHUNK_COUNT};
+use comms::{HELLO_MESSAGE, ACKNOWLEDGE_MESSAGE, ERROR_MESSAGE, CHUNK_MESSAGE, OPEN_SECURE_CHANNEL_MESSAGE, CLOSE_SECURE_CHANNEL_MESSAGE};
+use comms::{CHUNK_FINAL, CHUNK_INTERMEDIATE, CHUNK_FINAL_ERROR};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum MessageType {
@@ -59,7 +61,7 @@ impl BinaryEncoder<MessageHeader> for MessageHeader {
 impl MessageHeader {
     pub fn new(message_type: MessageType) -> MessageHeader {
         MessageHeader {
-            message_type: message_type,
+            message_type,
             message_size: 0,
         }
     }
@@ -173,13 +175,13 @@ impl BinaryEncoder<HelloMessage> for HelloMessage {
         let max_chunk_count = UInt32::decode(stream)?;
         let endpoint_url = UAString::decode(stream)?;
         Ok(HelloMessage {
-            message_header: message_header,
-            protocol_version: protocol_version,
-            receive_buffer_size: receive_buffer_size,
-            send_buffer_size: send_buffer_size,
-            max_message_size: max_message_size,
-            max_chunk_count: max_chunk_count,
-            endpoint_url: endpoint_url,
+            message_header,
+            protocol_version,
+            receive_buffer_size,
+            send_buffer_size,
+            max_message_size,
+            max_chunk_count,
+            endpoint_url,
         })
     }
 }
@@ -250,12 +252,12 @@ impl BinaryEncoder<AcknowledgeMessage> for AcknowledgeMessage {
         let max_message_size = UInt32::decode(stream)?;
         let max_chunk_count = UInt32::decode(stream)?;
         Ok(AcknowledgeMessage {
-            message_header: message_header,
-            protocol_version: protocol_version,
-            receive_buffer_size: receive_buffer_size,
-            send_buffer_size: send_buffer_size,
-            max_message_size: max_message_size,
-            max_chunk_count: max_chunk_count,
+            message_header,
+            protocol_version,
+            receive_buffer_size,
+            send_buffer_size,
+            max_message_size,
+            max_chunk_count,
         })
     }
 }
@@ -288,9 +290,9 @@ impl BinaryEncoder<ErrorMessage> for ErrorMessage {
         let error = UInt32::decode(stream)?;
         let reason = UAString::decode(stream)?;
         Ok(ErrorMessage {
-            message_header: message_header,
-            error: error,
-            reason: reason,
+            message_header,
+            error,
+            reason,
         })
     }
 }

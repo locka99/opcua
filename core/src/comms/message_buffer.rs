@@ -4,7 +4,8 @@ use std::io::Cursor;
 use opcua_types::*;
 
 use debug::*;
-use comms::*;
+
+use comms::{MessageType, MessageHeader, HelloMessage, AcknowledgeMessage, ErrorMessage, MessageChunk, MESSAGE_HEADER_LEN};
 
 #[derive(Debug)]
 pub enum Message {

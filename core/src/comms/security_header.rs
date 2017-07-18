@@ -99,9 +99,9 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
         }
 
         Ok(AsymmetricSecurityHeader {
-            security_policy_uri: security_policy_uri,
-            sender_certificate: sender_certificate,
-            receiver_certificate_thumbprint: receiver_certificate_thumbprint
+            security_policy_uri,
+            sender_certificate,
+            receiver_certificate_thumbprint
         })
     }
 }

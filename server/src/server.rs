@@ -215,7 +215,7 @@ impl Server {
         let application_name = config.application_name.clone();
         let application_uri = UAString::from_str(&config.application_uri);
         let product_uri = UAString::from_str(&config.product_uri);
-        let namespaces = vec!["http://opcfoundation.org/UA/".to_string(), config.application_uri.clone()];
+        let namespaces = vec!["http://opcfoundation.org/UA/".to_string(), "urn:OPCUA-Rust-Internal".to_string(), config.application_uri.clone()];
         let start_time = DateTime::now();
         let servers = vec![config.application_uri.clone()];
         let base_endpoint = format!("opc.tcp://{}:{}", config.tcp_config.host, config.tcp_config.port);
@@ -234,10 +234,10 @@ impl Server {
             };
             endpoints.push(Endpoint {
                 name: e.name.clone(),
-                endpoint_url: endpoint_url,
+                endpoint_url,
                 security_policy_uri: UAString::from_str(&security_policy_uri),
-                security_mode: security_mode,
-                anonymous: anonymous,
+                security_mode,
+                anonymous,
                 user: e.user.clone(),
                 pass: if e.pass.is_some() { Some(e.pass.as_ref().unwrap().clone().into_bytes()) } else { None },
             });
@@ -263,17 +263,17 @@ impl Server {
         let address_space = AddressSpace::new();
 
         let server_state = ServerState {
-            application_uri: application_uri,
-            product_uri: product_uri,
+            application_uri,
+            product_uri,
             application_name: LocalizedText {
                 locale: UAString::null(),
                 text: UAString::from_str(&application_name),
             },
-            namespaces: namespaces,
-            servers: servers,
-            base_endpoint: base_endpoint,
-            start_time: start_time,
-            endpoints: endpoints,
+            namespaces,
+            servers,
+            base_endpoint,
+            start_time,
+            endpoints,
             config: Arc::new(Mutex::new(config.clone())),
             certificate_store: Arc::new(Mutex::new(certificate_store)),
             server_certificate: cert,
@@ -281,7 +281,7 @@ impl Server {
             address_space: Arc::new(Mutex::new(address_space)),
             last_subscription_id: 0,
 
-            max_subscriptions: max_subscriptions,
+            max_subscriptions,
             min_publishing_interval: constants::MIN_PUBLISHING_INTERVAL,
             max_keep_alive_count: constants::MAX_KEEP_ALIVE_COUNT,
             abort: false,

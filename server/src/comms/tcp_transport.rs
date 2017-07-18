@@ -356,19 +356,15 @@ impl TcpTransport {
             return Ok(());
         }
 
-        let chunk_message_type = message_header.message_type;
-
         // Decrypt / verify chunk if necessary
-        if chunk_message_type == MessageChunkType::Message {
-            chunk.verify_and_remove_security(&self.secure_channel_service.secure_channel)?;
-        }
+        chunk.verify_and_remove_security(&self.secure_channel_service.secure_channel)?;
 
         let in_chunks = vec![chunk];
         let chunk_info = in_chunks[0].chunk_info(&self.secure_channel_service.secure_channel)?;
         let request_id = chunk_info.sequence_header.request_id;
 
         let message = self.turn_received_chunks_into_message(&in_chunks)?;
-        let response = match chunk_message_type {
+        let response = match message_header.message_type {
             MessageChunkType::OpenSecureChannel => {
                 self.secure_channel_service.open_secure_channel(self.client_protocol_version, &message)?
             }
