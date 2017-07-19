@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use chrono;
 
 use opcua_types::*;
@@ -5,6 +7,7 @@ use opcua_types::*;
 use crypto::SecurityPolicy;
 use crypto::types::*;
 use crypto::hash;
+use openssl::rsa::*;
 
 use comms::{SecurityHeader, SymmetricSecurityHeader, AsymmetricSecurityHeader, MESSAGE_CHUNK_HEADER_SIZE, SEQUENCE_HEADER_SIZE};
 use comms::message_chunk::MessageChunkType;
@@ -26,12 +29,16 @@ pub struct SecureChannel {
     pub token_id: UInt32,
     /// Our nonce generated while handling open secure channel
     pub nonce: Vec<u8>,
+    /// Our thumbprint
+    pub thumbprint: Option<Vec<u8>>,
+    /// Our private key
+    pub private_key: Option<PKey>,
+    /// Symmetric Signing Key, Encrypt Key, IV
+    pub keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
     /// Their nonce provided by open secure channel
     pub their_nonce: Vec<u8>,
     /// Their certificate
     pub their_cert: Option<X509>,
-    /// Symmetric Signing Key, Encrypt Key, IV
-    pub keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
     /// Symmetric Signing Key, Decrypt Key, IV
     pub their_keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
 }
@@ -47,8 +54,10 @@ impl SecureChannel {
             token_created_at: DateTime::now(),
             token_lifetime: 0,
             nonce: Vec::with_capacity(64),
-            their_nonce: Vec::with_capacity(64),
+            thumbprint: None,
+            private_key: None,
             keys: None,
+            their_nonce: Vec::with_capacity(64),
             their_cert: None,
             their_keys: None,
         }
@@ -202,7 +211,6 @@ impl SecureChannel {
         }
     }
 
-
     pub fn signing_enabled(&self) -> bool {
         self.security_policy != SecurityPolicy::None && self.security_mode == MessageSecurityMode::Sign
     }
@@ -210,6 +218,61 @@ impl SecureChannel {
     /// Test if encryption is enabled.
     pub fn encryption_enabled(&self) -> bool {
         self.security_policy != SecurityPolicy::None && self.security_mode == MessageSecurityMode::SignAndEncrypt
+    }
+
+    pub fn asymmetric_decrypt_and_verify(&self, sender_cert: PKey, receiver_thumbprint: ByteString, src: &[u8], sr: Range<usize>, er: Range<usize>, dst: &mut [u8]) -> Result<(), StatusCode> {
+        // Unlike the symmetric_decrypt_and_verify, this code will ALWAYS decrypt and verify regardless
+        // of security policy. This is part of the OpenSecureChannel request on a sign / signencrypt
+        // mode connection.
+
+        // The sender_certificate is is the cert used to sign the message, i.e. the client's cert
+        //
+        // The receiver certificate thumbprint identifies which of our certs was used by the client
+        // to encrypt the message. We have to work out from the thumbprint which cert to use
+
+        self.expect_supported_security_policy();
+
+        // There is an expectation that the block is padded so, this is a quick test
+        let plaintext_block_size = er.end - er.start;
+        if plaintext_block_size % 16 != 0 {
+            error!("The plain text block is not padded properly, size = {}", plaintext_block_size);
+            return Err(BAD_DECODING_ERROR);
+        }
+
+        // Copy security header
+        &dst[..er.start].copy_from_slice(&src[..er.start]);
+
+        // Decrypt encrypted portion
+        let mut decrypted_tmp = vec![0u8; plaintext_block_size + 16]; // tmp includes +16 for blocksize
+        self.asymmetric_decrypt(receiver_thumbprint.as_ref(), &src[er.clone()], &mut decrypted_tmp)?;
+        &dst[er.clone()].copy_from_slice(&decrypted_tmp[..plaintext_block_size]);
+
+        // Verify signature (after encrypted portion)
+        self.asymmetric_verify_signature(sender_cert, &dst[sr.clone()], &dst[sr.start..])?;
+        Ok(())
+    }
+
+    fn asymmetric_verify_signature(&self, certificate: PKey, src: &[u8], signature: &[u8]) -> Result<(), StatusCode> {
+        Err(BAD_NOT_IMPLEMENTED)
+    }
+
+    fn asymmetric_decrypt(&self, receiver_thumbprint: &[u8], src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
+        // Find the thumbprint in our certificate store
+        if self.thumbprint.is_none() || self.private_key.is_none() {
+            Err(BAD_NO_VALID_CERTIFICATES)
+        } else {
+            // The thumbprint has to match our cert, otherwise something has gone wrong
+            let thumbprint = self.thumbprint.as_ref().unwrap();
+            if &thumbprint[..] != receiver_thumbprint {
+                Err(BAD_NO_VALID_CERTIFICATES)
+            } else {
+                // decrypt data using our private key
+                let private_key = self.private_key.as_ref().unwrap();
+                let rsa = private_key.value.rsa().unwrap();
+                rsa.private_decrypt(src, dst, PKCS1_PADDING).unwrap();
+                Ok(())
+            }
+        }
     }
 
     /// Encode data using security. Destination buffer is expected to be same size as src and expected
@@ -223,9 +286,7 @@ impl SecureChannel {
     /// S - Body            - E
     /// S - Padding         - E
     ///     Signature       - E
-    pub fn symmetric_encrypt_and_sign(&self, src: &[u8], sign_info: (usize, usize), encrypt_info: (usize, usize), dst: &mut [u8]) -> Result<(), StatusCode> {
-        let (s_from, s_to) = sign_info;
-        let (e_from, e_to) = encrypt_info;
+    pub fn symmetric_encrypt_and_sign(&self, src: &[u8], sr: Range<usize>, er: Range<usize>, dst: &mut [u8]) -> Result<(), StatusCode> {
         match self.security_mode {
             MessageSecurityMode::None => {
                 debug!("encrypt_and_sign is doing nothing because security mode == None");
@@ -236,14 +297,14 @@ impl SecureChannel {
             MessageSecurityMode::Sign => {
                 debug!("encrypt_and_sign security mode == Sign");
                 self.expect_supported_security_policy();
-                let signature_len = src.len() - s_to;
+                let signature_len = src.len() - sr.end;
                 let mut signature = vec![0u8; signature_len];
                 debug!("signature len = {}", signature_len);
                 // Sign the message header, security header, sequence header, body, padding
-                self.sign(&src[s_from..s_to], &mut signature)?;
-                &dst[..s_to].copy_from_slice(&src[..s_to]);
+                self.symmetric_sign(&src[sr.clone()], &mut signature)?;
+                &dst[sr.clone()].copy_from_slice(&src[sr.clone()]);
                 debug!("Signature = {:?}", signature);
-                &dst[s_to..].copy_from_slice(&signature);
+                &dst[sr.end..].copy_from_slice(&signature);
                 Ok(())
             }
             MessageSecurityMode::SignAndEncrypt => {
@@ -251,23 +312,24 @@ impl SecureChannel {
                 self.expect_supported_security_policy();
 
                 // There is an expectation that the block is padded so, this is a quick test
-                if (e_to - e_from) % 16 != 0 {
-                    error!("The plain text block is not padded properly, size = {}", e_to - e_from);
+                let plaintext_block_size = er.end - er.start;
+                if plaintext_block_size % 16 != 0 {
+                    error!("The plain text block is not padded properly, size = {}", plaintext_block_size);
                     return Err(BAD_DECODING_ERROR);
                 }
                 let mut dst_tmp = vec![0u8; dst.len() + 16]; // tmp includes +16 for blocksize
-                let signature_len = src.len() - s_to;
+                let signature_len = src.len() - sr.end;
                 debug!("signature len = {}", signature_len);
                 let mut signature = vec![0u8; signature_len];
                 // Sign the message header, security header, sequence header, body, padding
-                self.sign(&src[s_from..s_to], &mut signature)?;
-                &dst_tmp[..s_to].copy_from_slice(&src[..s_to]);
-                &dst_tmp[s_to..].copy_from_slice(&signature);
+                self.symmetric_sign(&src[sr.clone()], &mut signature)?;
+                &dst_tmp[sr.clone()].copy_from_slice(&src[sr.clone()]);
+                &dst_tmp[sr.end..].copy_from_slice(&signature);
 
                 // Encrypt the sequence header, payload, signature
-                self.symmetric_encrypt(&dst_tmp[e_from..e_to], &mut dst[e_from..e_to])?;
+                self.symmetric_encrypt(&dst_tmp[er.clone()], &mut dst[er.clone()])?;
                 // Copy the message header / security header
-                &dst[..e_from].copy_from_slice(&dst_tmp[..e_from]);
+                &dst[..er.start].copy_from_slice(&dst_tmp[..er.start]);
 
                 Ok(())
             }
@@ -285,46 +347,45 @@ impl SecureChannel {
     /// S - Body            - E
     /// S - Padding         - E
     ///     Signature       - E
-    pub fn symmetric_decrypt_and_verify(&self, src: &[u8], sign_info: (usize, usize), encrypt_info: (usize, usize), dst: &mut [u8]) -> Result<(), StatusCode> {
-        let (s_from, s_to) = sign_info;
-        let (e_from, e_to) = encrypt_info;
+    pub fn symmetric_decrypt_and_verify(&self, src: &[u8], sr: Range<usize>, er: Range<usize>, dst: &mut [u8]) -> Result<(), StatusCode> {
         match self.security_mode {
             MessageSecurityMode::None => {
-                // Copy everything
-                let len = src.len();
-                &dst[..len].copy_from_slice(&src[..len]);
+                // Just copy everything from src to dst
+                let all = ..src.len();
+                &dst[all].copy_from_slice(&src[all]);
                 Ok(())
             }
             MessageSecurityMode::Sign => {
                 self.expect_supported_security_policy();
                 // Copy everything
-                let len = src.len();
-                debug!("copying from slice ..{}", len);
-                &dst[..len].copy_from_slice(&src[..len]);
+                let all = ..src.len();
+                debug!("copying from slice {:?}", all);
+                &dst[all].copy_from_slice(&src[all]);
                 // Verify signature
-                debug!("Verifying range from {}..{} to signature {}..", s_from, s_to, s_to);
-                self.verify(&dst[s_from..s_to], &dst[s_to..])?;
+                debug!("Verifying range from {:?} to signature {}..", sr, sr.end);
+                self.symmetric_verify_signature(&dst[sr.clone()], &dst[sr.end..])?;
                 Ok(())
             }
             MessageSecurityMode::SignAndEncrypt => {
                 self.expect_supported_security_policy();
 
                 // There is an expectation that the block is padded so, this is a quick test
-                if (e_to - e_from) % 16 != 0 {
-                    error!("The plain text block is not padded properly, size = {}", e_to - e_from);
+                let plaintext_block_size = er.end - er.start;
+                if plaintext_block_size % 16 != 0 {
+                    error!("The plain text block is not padded properly, size = {}", plaintext_block_size);
                     return Err(BAD_DECODING_ERROR);
                 }
 
                 // Copy security header
-                &dst[..e_from].copy_from_slice(&src[..e_from]);
+                &dst[..er.start].copy_from_slice(&src[..er.start]);
 
                 // Decrypt encrypted portion
-                let mut decrypted_tmp = vec![0u8; e_to - e_from + 16]; // tmp includes +16 for blocksize
-                self.symmetric_decrypt(&src[e_from..e_to], &mut decrypted_tmp)?;
-                &dst[e_from..e_to].copy_from_slice(&decrypted_tmp[..(e_to - e_from)]);
+                let mut decrypted_tmp = vec![0u8; plaintext_block_size + 16]; // tmp includes +16 for blocksize
+                self.symmetric_decrypt(&src[er.clone()], &mut decrypted_tmp)?;
+                &dst[er.clone()].copy_from_slice(&decrypted_tmp[..plaintext_block_size]);
 
                 // Verify signature (after encrypted portion)
-                self.verify(&dst[s_from..s_to], &dst[s_to..])?;
+                self.symmetric_verify_signature(&dst[sr.clone()], &dst[sr.start..])?;
                 Ok(())
             }
             MessageSecurityMode::Invalid => {
@@ -335,7 +396,7 @@ impl SecureChannel {
     }
 
     /// Sign the following block
-    fn sign(&self, src: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
+    fn symmetric_sign(&self, src: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
         debug!("Producing signature for {} bytes of data into signature of {} bytes", src.len(), signature.len());
         let key = &(self.keys.as_ref().unwrap()).0;
         match self.security_policy {
@@ -354,7 +415,7 @@ impl SecureChannel {
     }
 
     /// Verify their signature
-    fn verify(&self, src: &[u8], signature: &[u8]) -> Result<(), StatusCode> {
+    fn symmetric_verify_signature(&self, src: &[u8], signature: &[u8]) -> Result<(), StatusCode> {
         let key = &(self.their_keys.as_ref().unwrap()).0;
         // Verify the signature using SHA-1 / SHA-256 HMAC
         let verified = match self.security_policy {
