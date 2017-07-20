@@ -1,13 +1,16 @@
+use std::sync::{Arc, Mutex};
 use std::ops::Range;
 
 use chrono;
 
+use openssl::rsa::*;
+
 use opcua_types::*;
 
 use crypto::SecurityPolicy;
+use crypto::CertificateStore;
 use crypto::types::*;
 use crypto::hash;
-use openssl::rsa::*;
 
 use comms::{SecurityHeader, SymmetricSecurityHeader, AsymmetricSecurityHeader, MESSAGE_CHUNK_HEADER_SIZE, SEQUENCE_HEADER_SIZE};
 use comms::message_chunk::MessageChunkType;
@@ -29,8 +32,8 @@ pub struct SecureChannel {
     pub token_id: UInt32,
     /// Our nonce generated while handling open secure channel
     pub nonce: Vec<u8>,
-    /// Our thumbprint
-    pub thumbprint: Option<Vec<u8>>,
+    /// Our certificate
+    pub cert: Option<X509>,
     /// Our private key
     pub private_key: Option<PKey>,
     /// Symmetric Signing Key, Encrypt Key, IV
@@ -44,8 +47,8 @@ pub struct SecureChannel {
 }
 
 impl SecureChannel {
-    pub fn new() -> SecureChannel {
-        // Invalid secure channel info by default
+    /// For testing purposes only
+    pub fn new_no_certificate_store() -> SecureChannel {
         SecureChannel {
             security_mode: MessageSecurityMode::None,
             security_policy: SecurityPolicy::None,
@@ -54,8 +57,36 @@ impl SecureChannel {
             token_created_at: DateTime::now(),
             token_lifetime: 0,
             nonce: Vec::with_capacity(64),
-            thumbprint: None,
+            cert: None,
             private_key: None,
+            keys: None,
+            their_nonce: Vec::with_capacity(64),
+            their_cert: None,
+            their_keys: None,
+        }
+    }
+
+    pub fn new(certificate_store: Arc<Mutex<CertificateStore>>) -> SecureChannel {
+        let (cert, private_key) = {
+            let certificate_store = certificate_store.lock().unwrap();
+            if let Ok((cert, pkey)) = certificate_store.read_own_cert_and_pkey() {
+                (Some(cert), Some(pkey))
+            }
+            else {
+                error!("Cannot read our own certificate and private key. Check paths. Crypto won't work");
+                (None, None)
+            }
+        };
+        SecureChannel {
+            security_mode: MessageSecurityMode::None,
+            security_policy: SecurityPolicy::None,
+            secure_channel_id: 0,
+            token_id: 0,
+            token_created_at: DateTime::now(),
+            token_lifetime: 0,
+            nonce: Vec::with_capacity(64),
+            cert,
+            private_key,
             keys: None,
             their_nonce: Vec::with_capacity(64),
             their_cert: None,
@@ -221,6 +252,10 @@ impl SecureChannel {
     }
 
     pub fn asymmetric_decrypt_and_verify(&self, sender_cert: PKey, receiver_thumbprint: ByteString, src: &[u8], sr: Range<usize>, er: Range<usize>, dst: &mut [u8]) -> Result<(), StatusCode> {
+        if self.security_mode == MessageSecurityMode::None {
+            panic!("Should not be decrypting or verifying anything with security mode is None");
+        }
+
         // Unlike the symmetric_decrypt_and_verify, this code will ALWAYS decrypt and verify regardless
         // of security policy. This is part of the OpenSecureChannel request on a sign / signencrypt
         // mode connection.
@@ -239,6 +274,8 @@ impl SecureChannel {
             return Err(BAD_DECODING_ERROR);
         }
 
+        debug!("Decrypting message with our certificate");
+
         // Copy security header
         &dst[..er.start].copy_from_slice(&src[..er.start]);
 
@@ -249,20 +286,29 @@ impl SecureChannel {
 
         // Verify signature (after encrypted portion)
         self.asymmetric_verify_signature(sender_cert, &dst[sr.clone()], &dst[sr.start..])?;
+
+        {
+            use debug;
+            debug::debug_buffer("Decrypted message", dst);
+        }
+
+        // Decrypted and verified into dst
         Ok(())
     }
 
     fn asymmetric_verify_signature(&self, certificate: PKey, src: &[u8], signature: &[u8]) -> Result<(), StatusCode> {
-        Err(BAD_NOT_IMPLEMENTED)
+        // Err(BAD_NOT_IMPLEMENTED)
+        // TODO !!!!!
+        Ok(())
     }
 
     fn asymmetric_decrypt(&self, receiver_thumbprint: &[u8], src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
         // Find the thumbprint in our certificate store
-        if self.thumbprint.is_none() || self.private_key.is_none() {
+        if self.cert.is_none() || self.private_key.is_none() {
             Err(BAD_NO_VALID_CERTIFICATES)
         } else {
-            // The thumbprint has to match our cert, otherwise something has gone wrong
-            let thumbprint = self.thumbprint.as_ref().unwrap();
+            // The thumbprint has to match our cert's thumbprint, otherwise something has gone wrong
+            let thumbprint = self.cert.as_ref().unwrap().thumbprint();
             if &thumbprint[..] != receiver_thumbprint {
                 Err(BAD_NO_VALID_CERTIFICATES)
             } else {

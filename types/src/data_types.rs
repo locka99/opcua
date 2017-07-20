@@ -6,8 +6,8 @@ use super::*;
 /// This primitive data type is a UInt32 that identifies an element of an array.
 pub type Index = UInt32;
 
-/// This primitive data type is a UInt32 that is used as an identifier, such as a handle. All values, except for 0, are valid.
-/// IntegerId = 288,
+/// This primitive data type is a UInt32 that is used as an identifier, such as a handle.
+/// All values, except for 0, are valid. IntegerId = 288,
 pub type IntegerId = UInt32;
 
 pub const MESSAGE_SECURITY_MODE_NONE: &'static str = "None";
@@ -18,7 +18,8 @@ pub const MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT: &'static str = "SignAndEncrypt
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum MessageSecurityMode {
     /// The MessageSecurityMode is invalid.
-    /// This value is the default value to avoid an accidental choice of no security is applied.. This choice will always be rejected.
+    /// This value is the default value to avoid an accidental choice of no security is applied.
+    /// This choice will always be rejected.
     Invalid = 0,
     /// No security is applied.
     None = 1,
@@ -80,9 +81,9 @@ impl MessageSecurityMode {
     }
 }
 
-/// This Simple DataType is a Double that defines an interval of time in milliseconds (fractions can be used to define sub-millisecond values).
-/// Negative values are generally invalid but may have special meanings where the Duration is used.
-/// Duration = 290,
+/// This Simple DataType is a Double that defines an interval of time in milliseconds (fractions can
+/// be used to define sub-millisecond values). Negative values are generally invalid but may have
+/// special meanings where the Duration is used. Duration = 290,
 pub type Duration = Double;
 
 /// UtcTime = 294,
@@ -119,4 +120,3 @@ impl BinaryEncoder<MonitoringMode> for MonitoringMode {
         }
     }
 }
-

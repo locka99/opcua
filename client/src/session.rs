@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use chrono;
 
 use opcua_types::*;
-use opcua_core::crypto::SecurityPolicy;
+use opcua_core::crypto::{SecurityPolicy, CertificateStore};
 
 use comms::*;
 
@@ -57,7 +57,7 @@ impl Drop for Session {
 
 impl Session {
     /// Create a new session.
-    pub fn new(endpoint_url: &str, security_policy: SecurityPolicy) -> Session {
+    pub fn new(certificate_store: Arc<Mutex<CertificateStore>>, endpoint_url: &str, security_policy: SecurityPolicy) -> Session {
         let session_state = Arc::new(Mutex::new(SessionState {
             endpoint: None,
             session_timeout: 60 * 1000,
@@ -69,7 +69,7 @@ impl Session {
             authentication_token: NodeId::null(),
             channel_token: None
         }));
-        let transport = TcpTransport::new(session_state.clone());
+        let transport = TcpTransport::new(certificate_store, session_state.clone());
         Session {
             session_state: session_state,
             transport: transport,

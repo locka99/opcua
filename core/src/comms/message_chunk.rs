@@ -333,6 +333,9 @@ impl MessageChunk {
             // S - Padding         - E
             //     Signature       - E
             if self.is_open_secure_channel() {
+
+                debug!("Decrypting OpenSecureChannel");
+
                 // Asymmetric decrypt and verify
 
                 // The OpenSecureChannel Messages are signed and encrypted if the SecurityMode is not None

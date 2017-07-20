@@ -1,7 +1,10 @@
 use std;
 
 use opcua_types::*;
+
 use opcua_core::comms::*;
+
+use server::ServerState;
 
 pub struct SecureChannelService {
     // Secure channel info for the session
@@ -17,10 +20,13 @@ pub struct SecureChannelService {
 }
 
 impl SecureChannelService {
-    pub fn new() -> SecureChannelService {
+    pub fn new(server_state: &ServerState) -> SecureChannelService {
+        let secure_channel = {
+            SecureChannel::new(server_state.certificate_store.clone())
+        };
         SecureChannelService {
             last_secure_channel_id: 0,
-            secure_channel: SecureChannel::new(),
+            secure_channel,
             issued: false,
             renew_count: 0,
             last_token_id: 0,
@@ -90,22 +96,18 @@ impl SecureChannelService {
         self.last_secure_channel_id += 1;
 
         // Create a new secure channel info
-        self.secure_channel = {
-            let mut secure_channel = SecureChannel::new();
-            secure_channel.token_id = self.last_token_id;
-            secure_channel.security_mode = request.security_mode;
-            secure_channel.secure_channel_id = self.last_secure_channel_id;
-            let nonce_result = secure_channel.set_their_nonce(&request.client_nonce);
-            if nonce_result.is_ok() {
-                secure_channel.create_random_nonce();
-            } else {
-                return Ok(ServiceFault::new_supported_message(&request.request_header, nonce_result.unwrap_err()));
-            }
-            if secure_channel.signing_enabled() || secure_channel.encryption_enabled() {
-                secure_channel.derive_keys();
-            }
-            secure_channel
-        };
+        self.secure_channel.token_id = self.last_token_id;
+        self.secure_channel.security_mode = request.security_mode;
+        self.secure_channel.secure_channel_id = self.last_secure_channel_id;
+        let nonce_result = self.secure_channel.set_their_nonce(&request.client_nonce);
+        if nonce_result.is_ok() {
+            self.secure_channel.create_random_nonce();
+        } else {
+            return Ok(ServiceFault::new_supported_message(&request.request_header, nonce_result.unwrap_err()));
+        }
+        if self.secure_channel.signing_enabled() || self.secure_channel.encryption_enabled() {
+            self.secure_channel.derive_keys();
+        }
 
         let response = OpenSecureChannelResponse {
             response_header: ResponseHeader::new_good(&request.request_header),

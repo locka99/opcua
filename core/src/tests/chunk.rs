@@ -77,7 +77,7 @@ fn make_large_read_response() -> SupportedMessage {
 fn chunk_multi_encode_decode() {
     let _ = Test::setup();
 
-    let secure_channel = SecureChannel::new();
+    let secure_channel = SecureChannel::new_no_certificate_store();
     let response = make_large_read_response();
 
     // Create a very large message
@@ -101,7 +101,7 @@ fn chunk_multi_encode_decode() {
 fn chunk_multi_chunk_intermediate_final() {
     let _ = Test::setup();
 
-    let secure_channel = SecureChannel::new();
+    let secure_channel = SecureChannel::new_no_certificate_store();
     let response = make_large_read_response();
 
     // Create a very large message
@@ -126,7 +126,7 @@ fn chunk_multi_chunk_intermediate_final() {
 fn max_message_size() {
     let _ = Test::setup();
 
-    let secure_channel = SecureChannel::new();
+    let secure_channel = SecureChannel::new_no_certificate_store();
 
     let response = make_large_read_response();
 
@@ -148,7 +148,7 @@ fn max_message_size() {
 fn validate_chunk_sequences() {
     let _ = Test::setup();
 
-    let secure_channel = SecureChannel::new();
+    let secure_channel = SecureChannel::new_no_certificate_store();
     let response = make_large_read_response();
 
     // Create a very large message
@@ -179,7 +179,7 @@ fn chunk_open_secure_channel() {
     let chunk = sample_secure_channel_request_data_security_none();
     let chunks = vec![chunk];
 
-    let secure_channel = SecureChannel::new();
+    let secure_channel = SecureChannel::new_no_certificate_store();
 
     debug!("Decoding original chunks");
     let request = Chunker::decode(&chunks, &secure_channel, None).unwrap();
@@ -227,7 +227,7 @@ fn open_secure_channel_response() {
 
     let _ = Test::setup();
 
-    let secure_channel = SecureChannel::new();
+    let secure_channel = SecureChannel::new_no_certificate_store();
 
     let mut stream = Cursor::new(chunk);
     let chunk = MessageChunk::decode(&mut stream).unwrap();
@@ -296,7 +296,7 @@ fn open_secure_channel() {
 }
 
 fn test_encrypt_decrypt(security_mode: MessageSecurityMode, security_policy: SecurityPolicy) {
-    let mut secure_channel = SecureChannel::new();
+    let mut secure_channel = SecureChannel::new_no_certificate_store();
     secure_channel.security_mode = security_mode;
     secure_channel.security_policy = security_policy;
     // Both nonces are the same because we shall be encrypting and decrypting our own blocks

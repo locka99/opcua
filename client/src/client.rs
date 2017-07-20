@@ -14,7 +14,7 @@ pub struct Client {
     /// running on an independent thread.
     pub sessions: Vec<Arc<Mutex<Session>>>,
     /// Certificate store is where certificates go.
-    pub certificate_store: Option<Arc<Mutex<CertificateStore>>>
+    pub certificate_store: Arc<Mutex<CertificateStore>>
 }
 
 impl Client {
@@ -37,7 +37,7 @@ impl Client {
                 discovery_urls: None,
             },
             sessions: Vec::new(),
-            certificate_store: Some(Arc::new(Mutex::new(CertificateStore::new(&pki_path))))
+            certificate_store: Arc::new(Mutex::new(CertificateStore::new(&pki_path)))
         }
     }
 
@@ -46,7 +46,7 @@ impl Client {
         if !is_opc_ua_binary_url(endpoint_url) {
             Err(format!("Endpoint url {}, is not a valid / supported url", endpoint_url))
         } else {
-            let session = Arc::new(Mutex::new(Session::new(endpoint_url, security_policy)));
+            let session = Arc::new(Mutex::new(Session::new(self.certificate_store.clone(), endpoint_url, security_policy)));
             self.sessions.push(session.clone());
             Ok(session)
         }

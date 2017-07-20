@@ -32,20 +32,22 @@ pub struct TcpTransport {
 }
 
 impl TcpTransport {
-    pub fn new(session_state: Arc<Mutex<SessionState>>) -> TcpTransport {
+    pub fn new(certificate_store: Arc<Mutex<CertificateStore>>, session_state: Arc<Mutex<SessionState>>) -> TcpTransport {
         let receive_buffer_size = {
             let session_state = session_state.lock().unwrap();
             session_state.receive_buffer_size
         };
 
+        let secure_channel = SecureChannel::new(certificate_store);
+
         TcpTransport {
-            session_state: session_state,
+            session_state,
             stream: None,
             message_buffer: MessageBuffer::new(receive_buffer_size),
             last_sent_sequence_number: 0,
             last_received_sequence_number: 0,
             last_request_id: 1000,
-            secure_channel: SecureChannel::new(),
+            secure_channel,
         }
     }
 
