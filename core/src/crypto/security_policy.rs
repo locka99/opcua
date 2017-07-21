@@ -1,8 +1,12 @@
 use std::fmt;
 
 use openssl::hash as openssl_hash;
+use openssl::rsa::*;
 
-use crypto::types::AesKey;
+use opcua_types::StatusCode;
+use opcua_types::StatusCode::*;
+
+use crypto::types::{AesKey, PKey, X509};
 use crypto::hash;
 
 /// URI supplied for the None security policy
@@ -383,5 +387,120 @@ impl SecurityPolicy {
         let iv = self.prf(nonce1, nonce2, encrypting_block_size, signing_key_length + encrypting_key_length);
 
         (signing_key, encrypting_key, iv)
+    }
+    
+    pub fn asymmetric_verify_signature(&self, certificate: PKey, src: &[u8], signature: &[u8]) -> Result<(), StatusCode> {
+        // Asymmetric verify signature against supplied certificate
+        Ok(())
+    }
+
+    pub fn asymmetric_sign(&self, src: &[u8], signature: &[u8]) -> Result<(), StatusCode> {
+        // Asymmetric sign data with our private key
+        Err(BAD_NOT_IMPLEMENTED)
+    }
+
+    pub fn asymmetric_decrypt(&self, x509: &X509, private_key: &PKey, receiver_thumbprint: &[u8], src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
+        // Find the thumbprint in our certificate store
+        // The thumbprint has to match our cert's thumbprint, otherwise something has gone wrong
+        let our_thumbprint = x509.thumbprint();
+        if &our_thumbprint[..] != receiver_thumbprint {
+            Err(BAD_NO_VALID_CERTIFICATES)
+        } else {
+            // decrypt data using our private key
+            let rsa = private_key.value.rsa().unwrap();
+            let key_size = private_key.bit_length() / 8;
+
+            let padding = match self {
+                &SecurityPolicy::Basic128Rsa15 => PKCS1_PADDING,
+                &SecurityPolicy::Basic256 | &SecurityPolicy::Basic256Sha256 => PKCS1_OAEP_PADDING,
+                _ => {
+                    panic!("Security policy is not supported, shouldn't have gotten here");
+                }
+            };
+
+            // Decrypt the data
+            let mut src_idx = 0;
+            let mut dst_idx = 0;
+            while src_idx < src.len() {
+                let src = &src[src_idx..(src_idx + key_size)];
+                let dst = &mut dst[dst_idx..(dst_idx + key_size)];
+                let decrypted_bytes = rsa.private_decrypt(src, dst, padding);
+                if decrypted_bytes.is_err() {
+                    return Err(BAD_DECODING_ERROR);
+                }
+                src_idx += key_size;
+                dst_idx += decrypted_bytes.unwrap();
+            }
+
+            Ok(())
+        }
+    }
+
+    pub fn asymmetric_encrypt(&self, pkey: PKey, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
+        Err(BAD_NOT_IMPLEMENTED)
+    }
+    
+    /// Sign the following block
+    pub fn symmetric_sign(&self, key: &[u8], src: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
+        debug!("Producing signature for {} bytes of data into signature of {} bytes", src.len(), signature.len());
+        match self {
+            &SecurityPolicy::Basic128Rsa15 => {
+                // HMAC SHA-1
+                hash::hmac_sha1(key, src, signature)
+            }
+            &SecurityPolicy::Basic256 | &SecurityPolicy::Basic256Sha256 => {
+                // HMAC SHA-256                
+                hash::hmac_sha256(key, src, signature)
+            }
+            _ => {
+                panic!("Unsupported policy")
+            }
+        }
+    }
+
+    /// Verify their signature
+    pub fn symmetric_verify_signature(&self, key: &[u8], src: &[u8], signature: &[u8]) -> Result<(), StatusCode> {
+        // Verify the signature using SHA-1 / SHA-256 HMAC
+        let verified = match self {
+            &SecurityPolicy::Basic128Rsa15 => {
+                // HMAC SHA-1
+                hash::verify_hmac_sha1(key, src, signature)
+            }
+            &SecurityPolicy::Basic256 | &SecurityPolicy::Basic256Sha256 => {
+                // HMAC SHA-256                
+                hash::verify_hmac_sha256(key, src, signature)
+            }
+            _ => {
+                panic!("Unsupported policy")
+            }
+        };
+        if verified {
+            Ok(())
+        } else {
+            error!("Signature invalid {:?}", signature);
+            Err(BAD_APPLICATION_SIGNATURE_INVALID)
+        }
+    }
+
+    /// Encrypt the data
+    pub fn symmetric_encrypt(&self, key: &AesKey, iv: &[u8], src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
+        let result = key.encrypt(src, iv, dst);
+        if result.is_ok() {
+            Ok(())
+        } else {
+            error!("Cannot encrypt data, {}", result.unwrap_err());
+            Err(BAD_ENCODING_ERROR)
+        }
+    }
+
+    /// Decrypt the data
+    pub fn symmetric_decrypt(&self, key: &AesKey, iv: &[u8], src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
+        let result = key.decrypt(src, iv, dst);
+        if result.is_ok() {
+            Ok(())
+        } else {
+            error!("Cannot decrypt data, {}", result.unwrap_err());
+            Err(BAD_DECODING_ERROR)
+        }
     }
 }

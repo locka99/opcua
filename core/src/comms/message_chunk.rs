@@ -325,65 +325,76 @@ impl MessageChunk {
 
     /// Decrypts and verifies the body data if the mode / policy requires it
     pub fn verify_and_remove_security(&mut self, secure_channel: &SecureChannel) -> Result<(), StatusCode> {
-        if secure_channel.signing_enabled() || secure_channel.encryption_enabled() {
+        if self.is_open_secure_channel() {
+
+            // The OpenSecureChannel is the first thing we receive so we must examine
+            // the security policy and use it to determine if the packet must be decrypted.
+            let (encrypt_info, security_header) = {
+                let mut stream = Cursor::new(&self.data);
+                let _ = MessageChunkHeader::decode(&mut stream)?;
+                let security_header = AsymmetricSecurityHeader::decode(&mut stream)?;
+                ((stream.position() as usize)..self.data.len(), security_header)
+            };
+
+            debug!("Decrypting OpenSecureChannel");
+
+            // The security policy dictates the encryption / signature algorithms used by the request
+            let security_policy = SecurityPolicy::from_uri(security_header.security_policy_uri.as_ref());
+            match security_policy {
+                SecurityPolicy::Unknown => {
+                    return Err(BAD_SECURITY_POLICY_REJECTED);
+                }
+                SecurityPolicy::None => {
+                    // Nothing to do
+                    return Ok(());
+                }
+                _ => {}
+            }
+
+            // Asymmetric decrypt and verify
+
+            // The OpenSecureChannel Messages are signed and encrypted if the SecurityMode is not None
+            // (even if the SecurityMode is SignOnly)
+
+            // An OpenSecureChannelRequest uses Asymmetric encryption - decrypt using the server's private
+            // key, verify signature with client's public key.
+
+            // This code doesn't *care* if the cert is trusted, merely that it was used to sign the message
+            let sender_certificate = X509::from_byte_string(&security_header.sender_certificate)?;
+            let sender_pkey = sender_certificate.public_key()?;
+            let asymmetric_signature_size = sender_pkey.bit_length() / 8;
+            let sign_info = 0..(self.data.len() - asymmetric_signature_size);
+
+            let receiver_thumbprint = security_header.receiver_certificate_thumbprint;
+
+            debug!("Asymmetric decrypting OPN with signature info {:?} and encrypt info {:?}", sign_info, encrypt_info);
+
+            let mut decrypted_data = vec![0u8; self.data.len()];
+            secure_channel.asymmetric_decrypt_and_verify(security_policy, sender_pkey, receiver_thumbprint, &self.data, sign_info, encrypt_info, &mut decrypted_data)?;
+
+            self.data = decrypted_data;
+        } else if secure_channel.signing_enabled() || secure_channel.encryption_enabled() {
             // S - Message Header
             // S - Security Header
             // S - Sequence Header - E
             // S - Body            - E
             // S - Padding         - E
             //     Signature       - E
-            if self.is_open_secure_channel() {
+            // Symmetric decrypt and verify
+            let sign_info = 0..(self.data.len() - secure_channel.security_policy.symmetric_signature_size());
+            let encrypt_info = {
+                // Read past header and security header to get position of stream corresponding to sequence header
+                let mut stream = Cursor::new(&self.data);
+                let _ = MessageChunkHeader::decode(&mut stream)?;
+                let _ = SymmetricSecurityHeader::decode(&mut stream)?;
+                (stream.position() as usize)..self.data.len()
+            };
+            debug!("Decrypting block with signature info {:?} and encrypt info {:?}", sign_info, encrypt_info);
 
-                debug!("Decrypting OpenSecureChannel");
+            let mut decrypted_data = vec![0u8; self.data.len()];
+            secure_channel.symmetric_decrypt_and_verify(&self.data, sign_info, encrypt_info, &mut decrypted_data)?;
 
-                // Asymmetric decrypt and verify
-
-                // The OpenSecureChannel Messages are signed and encrypted if the SecurityMode is not None
-                // (even if the SecurityMode is SignOnly)
-
-                // An OpenSecureChannelRequest uses Asymmetric encryption - decrypt using the server's private
-                // key, verify signature with client's public key.
-
-                let (encrypt_info, security_header) = {
-                    let mut stream = Cursor::new(&self.data);
-                    let _ = MessageChunkHeader::decode(&mut stream)?;
-                    ((stream.position() as usize)..self.data.len(), AsymmetricSecurityHeader::decode(&mut stream)?)
-                };
-
-                let security_policy = SecurityPolicy::from_uri(security_header.security_policy_uri.as_ref());
-                if security_policy == SecurityPolicy::Unknown {
-                    return Err(BAD_SECURITY_POLICY_REJECTED);
-                }
-
-                // This code doesn't *care* if the cert is trusted, merely that it was used to sign the message
-                let sender_certificate = X509::from_byte_string(&security_header.sender_certificate)?;
-                let sender_pkey = sender_certificate.public_key()?;
-                let asymmetric_signature_size = sender_pkey.bit_length() / 8;
-                let sign_info = 0..(self.data.len() - asymmetric_signature_size);
-
-                let receiver_thumbprint = security_header.receiver_certificate_thumbprint;
-
-                let mut decrypted_data = vec![0u8; self.data.len()];
-                secure_channel.asymmetric_decrypt_and_verify(sender_pkey, receiver_thumbprint, &self.data, sign_info, encrypt_info, &mut decrypted_data)?;
-
-                self.data = decrypted_data;
-            } else {
-                // Symmetric decrypt and verify
-                let sign_info = 0..(self.data.len() - secure_channel.security_policy.symmetric_signature_size());
-                let encrypt_info = {
-                    // Read past header and security header to get position of stream corresponding to sequence header
-                    let mut stream = Cursor::new(&self.data);
-                    let _ = MessageChunkHeader::decode(&mut stream)?;
-                    let _ = SymmetricSecurityHeader::decode(&mut stream)?;
-                    (stream.position() as usize)..self.data.len()
-                };
-                debug!("Decrypting block with signature info {:?} and encrypt info {:?}", sign_info, encrypt_info);
-
-                let mut decrypted_data = vec![0u8; self.data.len()];
-                secure_channel.symmetric_decrypt_and_verify(&self.data, sign_info, encrypt_info, &mut decrypted_data)?;
-
-                self.data = decrypted_data;
-            }
+            self.data = decrypted_data;
         }
 
         Ok(())

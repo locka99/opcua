@@ -36,7 +36,7 @@ impl SecureChannelService {
     pub fn open_secure_channel(&mut self, client_protocol_version: UInt32, message: &SupportedMessage) -> std::result::Result<SupportedMessage, StatusCode> {
         let request: &OpenSecureChannelRequest = match *message {
             SupportedMessage::OpenSecureChannelRequest(ref request) => {
-                info!("Got secure channel request");
+                info!("Got secure channel request {:?}", request);
                 request
             }
             _ => {
@@ -95,9 +95,10 @@ impl SecureChannelService {
         self.last_token_id += 1;
         self.last_secure_channel_id += 1;
 
+        self.secure_channel.security_mode = request.security_mode;
+
         // Create a new secure channel info
         self.secure_channel.token_id = self.last_token_id;
-        self.secure_channel.security_mode = request.security_mode;
         self.secure_channel.secure_channel_id = self.last_secure_channel_id;
         let nonce_result = self.secure_channel.set_their_nonce(&request.client_nonce);
         if nonce_result.is_ok() {
