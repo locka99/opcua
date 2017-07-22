@@ -34,7 +34,8 @@ fs.createReadStream(status_code_csv)
 use std;
 use std::io::{Read, Write};
 
-use super::super::*;
+use {BinaryEncoder, EncodingResult};
+use helpers::*;
 
 #[allow(non_camel_case_types)]
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -58,7 +59,7 @@ impl BinaryEncoder<StatusCode> for StatusCode {
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let code = read_u32(stream)?;
         let status_code = StatusCode::from_u32(code);
-        if status_code.is_ok() { Ok(status_code.unwrap()) } else { Ok(BAD_UNEXPECTED_ERROR) }
+        if status_code.is_ok() { Ok(status_code.unwrap()) } else { Ok(StatusCode::BAD_UNEXPECTED_ERROR) }
     }
 }
 
@@ -85,7 +86,7 @@ impl StatusCode {
         match *self {
 `);
         _.each(status_codes, function (data) {
-            rs_out.write(`            ${data.var_name} => "${data.str_code}",\n`);
+            rs_out.write(`            StatusCode::${data.var_name} => "${data.str_code}",\n`);
         });
         rs_out.write(`        }
     }
@@ -97,7 +98,7 @@ impl StatusCode {
         match *self {
 `);
         _.each(status_codes, function (data) {
-            rs_out.write(`            ${data.var_name} => "${data.description}",\n`);
+            rs_out.write(`            StatusCode::${data.var_name} => "${data.description}",\n`);
         });
         rs_out.write(`        }
     }
@@ -109,7 +110,7 @@ impl StatusCode {
         match code {
 `);
         _.each(status_codes, function (data) {
-            rs_out.write(`            ${data.hex_code} => Ok(${data.var_name}),\n`);
+            rs_out.write(`            ${data.hex_code} => Ok(StatusCode::${data.var_name}),\n`);
         });
         rs_out.write(
             `            _ => Err(())
@@ -121,7 +122,7 @@ impl StatusCode {
         match name {
 `);
         _.each(status_codes, function (data) {
-            rs_out.write(`            "${data.str_code}" => Ok(${data.var_name}),\n`);
+            rs_out.write(`            "${data.str_code}" => Ok(StatusCode::${data.var_name}),\n`);
         });
         rs_out.write(`            _ => Err(())
         }
