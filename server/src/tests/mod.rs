@@ -109,8 +109,7 @@ pub fn expired_publish_requests() {
     if let SupportedMessage::ServiceFault(ref response_header) = r1.response {
         assert_eq!(response_header.response_header.request_handle, 2000);
         assert_eq!(response_header.response_header.service_result, BAD_REQUEST_TIMEOUT);
-    }
-    else {
+    } else {
         panic!("Expected service faults for timed out publish requests")
     }
 

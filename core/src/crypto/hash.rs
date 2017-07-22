@@ -57,7 +57,7 @@ pub fn hmac(digest: hash::MessageDigest, key: &[u8], data: &[u8], signature: &mu
 
 pub fn hmac_sha1(key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
     match signature.len() {
-       20 => {
+        20 => {
             hmac(hash::MessageDigest::sha1(), key, data, signature)
         }
         _ => {

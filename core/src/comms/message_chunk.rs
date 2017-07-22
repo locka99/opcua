@@ -326,7 +326,6 @@ impl MessageChunk {
     /// Decrypts and verifies the body data if the mode / policy requires it
     pub fn verify_and_remove_security(&mut self, secure_channel: &SecureChannel) -> Result<(), StatusCode> {
         if self.is_open_secure_channel() {
-
             // The OpenSecureChannel is the first thing we receive so we must examine
             // the security policy and use it to determine if the packet must be decrypted.
             let (encrypt_info, security_header) = {

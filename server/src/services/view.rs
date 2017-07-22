@@ -79,7 +79,6 @@ impl ViewService {
     }
 
     pub fn translate_browse_paths_to_node_ids(&self, _: &mut ServerState, _: &mut Session, request: TranslateBrowsePathsToNodeIdsRequest) -> Result<SupportedMessage, StatusCode> {
-
         debug!("TranslateBrowsePathsToNodeIdsRequest = {:?}", &request);
 
         return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));

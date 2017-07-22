@@ -248,7 +248,7 @@ impl SecurityPolicy {
 
     pub fn symmetric_signature_size(&self) -> usize {
         match self {
-            &SecurityPolicy::Basic128Rsa15 |&SecurityPolicy::Basic256 => 20,
+            &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => 20,
             &SecurityPolicy::Basic256Sha256 => 32,
             _ => {
                 panic!("Invalid policy");
@@ -388,7 +388,7 @@ impl SecurityPolicy {
 
         (signing_key, encrypting_key, iv)
     }
-    
+
     pub fn asymmetric_verify_signature(&self, certificate: PKey, src: &[u8], signature: &[u8]) -> Result<(), StatusCode> {
         // Asymmetric verify signature against supplied certificate
         Ok(())
@@ -439,7 +439,7 @@ impl SecurityPolicy {
     pub fn asymmetric_encrypt(&self, pkey: PKey, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
         Err(BAD_NOT_IMPLEMENTED)
     }
-    
+
     /// Sign the following block
     pub fn symmetric_sign(&self, key: &[u8], src: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
         debug!("Producing signature for {} bytes of data into signature of {} bytes", src.len(), signature.len());

@@ -2,7 +2,7 @@ use std::io::{Read, Write, Cursor, Result, Error, ErrorKind};
 
 use opcua_types::*;
 
-use comms::{MAX_CHUNK_COUNT};
+use comms::MAX_CHUNK_COUNT;
 use comms::{HELLO_MESSAGE, ACKNOWLEDGE_MESSAGE, ERROR_MESSAGE, CHUNK_MESSAGE, OPEN_SECURE_CHANNEL_MESSAGE, CLOSE_SECURE_CHANNEL_MESSAGE};
 use comms::{CHUNK_FINAL, CHUNK_INTERMEDIATE, CHUNK_FINAL_ERROR};
 
