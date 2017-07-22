@@ -1,6 +1,9 @@
 ///! Helpers for NotificationMessage types
 
-use super::*;
+use date_time::DateTime;
+use basic_types::*;
+use generated::ObjectId;
+use generated::{NotificationMessage, MonitoredItemNotification, DataChangeNotification};
 
 impl NotificationMessage {
     pub fn new_data_change(sequence_number: UInt32, publish_time: &DateTime, monitored_items: Vec<MonitoredItemNotification>) -> NotificationMessage {

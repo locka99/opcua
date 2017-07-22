@@ -1,6 +1,11 @@
 use std::io::{Read, Write};
 
-use super::*;
+use {BinaryEncoder, EncodingResult};
+use basic_types::*;
+use date_time::*;
+use variant::Variant;
+use generated::StatusCode;
+use generated::StatusCode::*;
 
 /// False if the Value is Null.
 const HAS_VALUE: u8 = 0x1;

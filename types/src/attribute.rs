@@ -1,4 +1,4 @@
-use super::UInt32;
+use UInt32;
 
 // Attributes as defined in Part 4, Figure B.7
 

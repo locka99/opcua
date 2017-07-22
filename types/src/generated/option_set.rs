@@ -3,8 +3,31 @@
 
 use std::io::{Read, Write};
 
+use {BinaryEncoder, EncodingResult};
 #[allow(unused_imports)]
-use super::super::*;
+use basic_types::*;
+#[allow(unused_imports)]
+use data_types::*;
+#[allow(unused_imports)]
+use data_value::*;
+#[allow(unused_imports)]
+use helpers::*;
+#[allow(unused_imports)]
+use attribute::*;
+#[allow(unused_imports)]
+use date_time::*;
+#[allow(unused_imports)]
+use node_id::*;
+#[allow(unused_imports)]
+use service_types::*;
+#[allow(unused_imports)]
+use variant::*;
+#[allow(unused_imports)]
+use generated::node_ids::*;
+#[allow(unused_imports)]
+use generated::status_codes::StatusCode;
+#[allow(unused_imports)]
+use generated::status_codes::StatusCode::*;
 
 /// This abstract Structured DataType is the base DataType for all DataTypes representing a bit mask.
 #[derive(Debug, Clone, PartialEq)]

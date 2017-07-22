@@ -5,10 +5,10 @@
 
 use std::io::{Read, Write};
 
+use {BinaryEncoder, EncodingResult};
 use node_id::NodeId;
 use service_types::*;
 use generated::*;
-use {BinaryEncoder, EncodingResult};
 
 /// This macro helps avoid tedious repetition as new messages are added
 /// The first form just handles the trailing comma after the last entry to save some pointless

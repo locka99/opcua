@@ -1,7 +1,15 @@
 use std::io::{Read, Write};
 
-use super::*;
+use {BinaryEncoder, EncodingResult};
+use helpers::*;
 use constants;
+use basic_types::*;
+use date_time::DateTime;
+use data_value::DataValue;
+use node_id::{NodeId, ExpandedNodeId};
+use generated::StatusCode;
+use generated::StatusCode::*;
+use generated::DataTypeId;
 
 const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
 const ARRAY_VALUES_BIT: u8 = 1 << 7;

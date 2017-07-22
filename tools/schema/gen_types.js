@@ -60,6 +60,7 @@ fs.readFile(types_xml, function (err, data) {
                         fields_to_add.push({
                             name: field_name,
                             type: `Option<Vec<${type}>>`,
+                            contained_type: type,
                             inner_type: type,
                             is_array: true,
                         });
@@ -69,6 +70,7 @@ fs.readFile(types_xml, function (err, data) {
                         fields_to_add.push({
                             name: field_name,
                             type: type,
+                            contained_type: type,
                         })
                     }
                 });
@@ -95,7 +97,7 @@ fs.readFile(types_xml, function (err, data) {
 function generate_types(data) {
     // Output structured types
     _.each(data.structured_types, function (structured_type) {
-        generate_structured_type_file(structured_type);
+        generate_structured_type_file(data.structured_types, structured_type);
     });
     generate_types_mod(data.structured_types);
 }
@@ -125,7 +127,56 @@ pub use self::${mod_name}::*;
     settings.write_to_file(file_path, contents);
 }
 
-function generate_structured_type_file(structured_type) {
+function generate_type_imports(structured_types, fields_to_add, fields_to_hide) {
+    var imports = `use {BinaryEncoder, EncodingResult};
+#[allow(unused_imports)]
+use basic_types::*;
+#[allow(unused_imports)]
+use data_types::*;
+#[allow(unused_imports)]
+use data_value::*;
+#[allow(unused_imports)]
+use helpers::*;
+#[allow(unused_imports)]
+use attribute::*;
+#[allow(unused_imports)]
+use date_time::*;
+#[allow(unused_imports)]
+use node_id::*;
+#[allow(unused_imports)]
+use service_types::*;
+#[allow(unused_imports)]
+use variant::*;
+#[allow(unused_imports)]
+use generated::node_ids::*;
+#[allow(unused_imports)]
+use generated::status_codes::StatusCode;
+#[allow(unused_imports)]
+use generated::status_codes::StatusCode::*;
+`;
+
+    var types = {};
+
+    // Make a set of the types that need to be imported. Generated types will be explicitly imported, other types
+    // will be
+    _.each(fields_to_add, function (field) {
+        if (!_.includes(fields_to_hide, field.name)) {
+            var type = _.find(structured_types, { name: field.contained_type });
+            if (type) {
+                types[type.name] = type.name;
+            }
+        }
+    });
+
+    _.each(types, function(key, value) {
+        imports += `use generated::${key};
+`;
+    })
+
+    return imports;
+}
+
+function generate_structured_type_file(structured_types, structured_type) {
     var file_name = _.snakeCase(structured_type.name) + ".rs";
     var file_path = `${settings.rs_types_dir}/${file_name}`;
 
@@ -136,10 +187,10 @@ function generate_structured_type_file(structured_type) {
 
 use std::io::{Read, Write};
 
-#[allow(unused_imports)]
-use super::super::*;
-
 `;
+    contents += generate_type_imports(structured_types, structured_type.fields_to_add, structured_type.fields_to_hide);
+    contents += "\n";
+
     if (_.has(structured_type, "documentation")) {
         contents += `/// ${structured_type.documentation}\n`;
     }

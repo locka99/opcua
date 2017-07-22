@@ -5,7 +5,8 @@ use std::result;
 use byteorder::{ByteOrder, LittleEndian};
 use url::Url;
 
-use super::*;
+use {BinaryEncoder, EncodingResult};
+use generated::StatusCode::*;
 
 /// Converts an IO encoding error (and logs when in error) into an EncodingResult
 pub fn process_encode_io_result(result: Result<usize>) -> EncodingResult<usize> {

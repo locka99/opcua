@@ -1,6 +1,20 @@
+use std;
 use std::io::{Read, Write};
 
-use super::*;
+use {BinaryEncoder, EncodingResult};
+use profiles;
+use basic_types::*;
+use helpers::*;
+use attribute::AttributeId;
+use data_types::*;
+use date_time::DateTime;
+use data_value::DataValue;
+use node_id::NodeId;
+use variant::Variant;
+use supported_message::SupportedMessage;
+use generated::StatusCode;
+use generated::StatusCode::*;
+use generated::{DataChangeFilter, ObjectId, AnonymousIdentityToken, UserNameIdentityToken, SignatureData, ReadValueId, EndpointDescription, UserTokenPolicy, ServiceFault};
 
 /// Implemented by messages
 pub trait MessageInfo {
@@ -762,7 +776,7 @@ impl ReadValueId {
     pub fn read_value(node_id: NodeId) -> ReadValueId {
         ReadValueId {
             node_id,
-            attribute_id: self::attribute::AttributeId::Value as UInt32,
+            attribute_id: AttributeId::Value as UInt32,
             // Value
             index_range: UAString::null(),
             data_encoding: QualifiedName::null(),

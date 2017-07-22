@@ -2,7 +2,9 @@ use std::io::{Read, Write};
 
 use chrono::{self, UTC, TimeZone, Timelike, Datelike};
 
-use super::*;
+use {BinaryEncoder, EncodingResult};
+use basic_types::*;
+use helpers::{write_i64, read_i64};
 
 const NANOS_PER_SECOND: i64 = 1_000_000_000;
 const NANOS_PER_TICK: i64 = 100;

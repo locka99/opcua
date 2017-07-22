@@ -2,7 +2,12 @@ use std;
 use std::str::FromStr;
 use std::io::{Read, Write};
 
-use super::*;
+use {BinaryEncoder, EncodingResult};
+use basic_types::*;
+use helpers::*;
+use generated::StatusCode;
+use generated::StatusCode::*;
+use generated::{ObjectId, ReferenceTypeId};
 
 /// The kind of identifier, numeric, string, guid or byte
 #[derive(Eq, PartialEq, Clone, Debug, Hash)]
