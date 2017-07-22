@@ -2,9 +2,8 @@ use std;
 use std::str::FromStr;
 use std::io::{Read, Write};
 
-use {BinaryEncoder, EncodingResult};
+use encoding::*;
 use basic_types::*;
-use helpers::*;
 use generated::StatusCode;
 use generated::StatusCode::*;
 use generated::{ObjectId, ReferenceTypeId};

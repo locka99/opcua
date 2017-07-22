@@ -1,10 +1,9 @@
 use std::io::{Read, Write};
 use std::fmt;
 
-use {BinaryEncoder, EncodingResult};
+use encoding::*;
 use basic_types::*;
 use date_time::*;
-use helpers::*;
 use generated::StatusCode::*;
 
 /// This primitive data type is a UInt32 that identifies an element of an array.

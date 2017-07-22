@@ -1,10 +1,9 @@
 use std;
 use std::io::{Read, Write};
 
-use {BinaryEncoder, EncodingResult};
 use profiles;
+use encoding::*;
 use basic_types::*;
-use helpers::*;
 use attribute::AttributeId;
 use data_types::*;
 use date_time::DateTime;

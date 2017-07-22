@@ -128,15 +128,14 @@ pub use self::${mod_name}::*;
 }
 
 function generate_type_imports(structured_types, fields_to_add, fields_to_hide) {
-    var imports = `use {BinaryEncoder, EncodingResult};
+    var imports = `#[allow(unused_imports)]
+use encoding::*;
 #[allow(unused_imports)]
 use basic_types::*;
 #[allow(unused_imports)]
 use data_types::*;
 #[allow(unused_imports)]
 use data_value::*;
-#[allow(unused_imports)]
-use helpers::*;
 #[allow(unused_imports)]
 use attribute::*;
 #[allow(unused_imports)]

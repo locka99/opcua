@@ -5,7 +5,7 @@
 
 use std::io::{Read, Write};
 
-use {BinaryEncoder, EncodingResult};
+use encoding::*;
 use node_id::NodeId;
 use service_types::*;
 use generated::*;

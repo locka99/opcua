@@ -1,12 +1,27 @@
+use std;
 use std::fmt::Debug;
 use std::io::{Read, Write, Result};
-use std::result;
 
 use byteorder::{ByteOrder, LittleEndian};
 use url::Url;
 
-use {BinaryEncoder, EncodingResult};
+use generated::StatusCode;
 use generated::StatusCode::*;
+
+pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
+
+/// OPC UA Binary Encoding interface. Anything that encodes to binary must implement this. It provides
+/// functions to calculate the size in bytes of the struct (for allocating memory), encoding to a stream
+/// and decoding from a stream.
+pub trait BinaryEncoder<T> {
+    /// Returns the byte length of the structure. This calculation should be exact and as efficient
+    /// as possible.
+    fn byte_len(&self) -> usize;
+    /// Encodes the instance to the write stream.
+    fn encode<S: Write>(&self, _: &mut S) -> EncodingResult<usize>;
+    /// Decodes an instance from the read stream.
+    fn decode<S: Read>(_: &mut S) -> EncodingResult<T>;
+}
 
 /// Converts an IO encoding error (and logs when in error) into an EncodingResult
 pub fn process_encode_io_result(result: Result<usize>) -> EncodingResult<usize> {
@@ -213,7 +228,7 @@ pub fn read_f64(stream: &mut Read) -> EncodingResult<f64> {
 
 /// Test if the two urls match except for the hostname. Can be used by a server whose endpoint doesn't
 /// exactly match the incoming connection, e.g. 127.0.0.1 vs localhost.
-pub fn url_matches_except_host(url1: &str, url2: &str) -> result::Result<bool, ()> {
+pub fn url_matches_except_host(url1: &str, url2: &str) -> std::result::Result<bool, ()> {
     if let Ok(mut url1) = Url::parse(url1) {
         if let Ok(mut url2) = Url::parse(url2) {
             if url1.set_host(None).is_ok() && url2.set_host(None).is_ok() {

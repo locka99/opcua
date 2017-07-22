@@ -2,8 +2,7 @@ use std;
 use std::io::{Read, Write, Cursor};
 use std::fmt;
 
-use {BinaryEncoder, EncodingResult};
-use helpers::*;
+use encoding::*;
 use generated::StatusCode;
 use generated::StatusCode::*;
 use node_id::NodeId;

@@ -36,22 +36,7 @@ pub mod constants {
     pub const MAX_CERTIFICATE_LENGTH: u32 = 32768;
 }
 
-pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
-
-/// OPC UA Binary Encoding interface. Anything that encodes to binary must implement this. It provides
-/// functions to calculate the size in bytes of the struct (for allocating memory), encoding to a stream
-/// and decoding from a stream.
-pub trait BinaryEncoder<T> {
-    /// Returns the byte length of the structure. This calculation should be exact and as efficient
-    /// as possible.
-    fn byte_len(&self) -> usize;
-    /// Encodes the instance to the write stream.
-    fn encode<S: Write>(&self, _: &mut S) -> EncodingResult<usize>;
-    /// Decodes an instance from the read stream.
-    fn decode<S: Read>(_: &mut S) -> EncodingResult<T>;
-}
-
-mod helpers;
+mod encoding;
 mod basic_types;
 mod data_value;
 mod date_time;
@@ -64,7 +49,7 @@ mod attribute;
 mod service_types;
 mod supported_message;
 
-pub use self::helpers::*;
+pub use self::encoding::*;
 pub use self::basic_types::*;
 pub use self::data_value::*;
 pub use self::date_time::*;

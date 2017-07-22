@@ -4,8 +4,7 @@
 use std;
 use std::io::{Read, Write};
 
-use {BinaryEncoder, EncodingResult};
-use helpers::*;
+use encoding::*;
 
 #[allow(non_camel_case_types)]
 #[derive(PartialEq, Debug, Copy, Clone)]

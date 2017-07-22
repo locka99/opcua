@@ -1,6 +1,6 @@
 use std::io::{Read, Write};
 
-use {BinaryEncoder, EncodingResult};
+use encoding::*;
 use basic_types::*;
 use date_time::*;
 use variant::Variant;

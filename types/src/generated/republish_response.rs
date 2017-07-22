@@ -3,15 +3,14 @@
 
 use std::io::{Read, Write};
 
-use {BinaryEncoder, EncodingResult};
+#[allow(unused_imports)]
+use encoding::*;
 #[allow(unused_imports)]
 use basic_types::*;
 #[allow(unused_imports)]
 use data_types::*;
 #[allow(unused_imports)]
 use data_value::*;
-#[allow(unused_imports)]
-use helpers::*;
 #[allow(unused_imports)]
 use attribute::*;
 #[allow(unused_imports)]
