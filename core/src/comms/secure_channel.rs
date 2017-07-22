@@ -34,14 +34,14 @@ pub struct SecureChannel {
     pub cert: Option<X509>,
     /// Our private key
     pub private_key: Option<PKey>,
-    /// Symmetric Signing Key, Encrypt Key, IV
-    pub keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
     /// Their nonce provided by open secure channel
     pub their_nonce: Vec<u8>,
     /// Their certificate
     pub their_cert: Option<X509>,
+    /// Symmetric Signing Key, Encrypt Key, IV
+    pub sending_keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
     /// Symmetric Signing Key, Decrypt Key, IV
-    pub their_keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
+    pub receiving_keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
 }
 
 impl SecureChannel {
@@ -57,10 +57,10 @@ impl SecureChannel {
             nonce: Vec::with_capacity(64),
             cert: None,
             private_key: None,
-            keys: None,
             their_nonce: Vec::with_capacity(64),
             their_cert: None,
-            their_keys: None,
+            sending_keys: None,
+            receiving_keys: None,
         }
     }
 
@@ -84,10 +84,10 @@ impl SecureChannel {
             nonce: Vec::with_capacity(64),
             cert,
             private_key,
-            keys: None,
+            sending_keys: None,
             their_nonce: Vec::with_capacity(64),
             their_cert: None,
-            their_keys: None,
+            receiving_keys: None,
         }
     }
 
@@ -164,10 +164,10 @@ impl SecureChannel {
     /// are used to secure Messages sent by the Server.
     /// 
     pub fn derive_keys(&mut self) {
-        self.keys = Some(self.security_policy.make_secure_channel_keys(&self.nonce, &self.their_nonce));
-        debug!("Derived our keys = {:?}", self.keys);
-        self.their_keys = Some(self.security_policy.make_secure_channel_keys(&self.their_nonce, &self.nonce));
-        debug!("Derived their keys = {:?}", self.their_keys);
+        self.sending_keys = Some(self.security_policy.make_secure_channel_keys(&self.nonce, &self.their_nonce));
+        debug!("Derived our keys = {:?}", self.sending_keys);
+        self.receiving_keys = Some(self.security_policy.make_secure_channel_keys(&self.their_nonce, &self.nonce));
+        debug!("Derived their keys = {:?}", self.receiving_keys);
     }
 
     /// Test if the token has expired yet
@@ -332,7 +332,7 @@ impl SecureChannel {
                 let mut signature = vec![0u8; signature_len];
                 debug!("signature len = {}", signature_len);
                 // Sign the message header, security header, sequence header, body, padding
-                let key = &(self.keys.as_ref().unwrap()).0;
+                let key = &(self.sending_keys.as_ref().unwrap()).0;
                 self.security_policy.symmetric_sign(key, &src[sr.clone()], &mut signature)?;
                 &dst[sr.clone()].copy_from_slice(&src[sr.clone()]);
                 debug!("Signature = {:?}", signature);
@@ -343,7 +343,7 @@ impl SecureChannel {
                 debug!("encrypt_and_sign security mode == SignAndEncrypt");
                 self.expect_supported_security_policy();
 
-                let keys = self.keys.as_ref().unwrap();
+                let keys = self.sending_keys.as_ref().unwrap();
 
                 // There is an expectation that the block is padded so, this is a quick test
                 let plaintext_block_size = er.end - er.start;
@@ -399,7 +399,7 @@ impl SecureChannel {
                 &dst[all].copy_from_slice(&src[all]);
                 // Verify signature
                 debug!("Verifying range from {:?} to signature {}..", sr, sr.end);
-                let key = &(self.their_keys.as_ref().unwrap()).0;
+                let key = &(self.receiving_keys.as_ref().unwrap()).0;
                 self.security_policy.symmetric_verify_signature(key, &dst[sr.clone()], &dst[sr.end..])?;
                 Ok(())
             }
@@ -418,14 +418,14 @@ impl SecureChannel {
 
                 // Decrypt encrypted portion
                 let mut decrypted_tmp = vec![0u8; plaintext_block_size + 16]; // tmp includes +16 for blocksize
-                let keys = self.their_keys.as_ref().unwrap();
+                let keys = self.receiving_keys.as_ref().unwrap();
                 let key = &keys.1;
                 let iv = &keys.2;
                 self.security_policy.symmetric_decrypt(key, iv, &src[er.clone()], &mut decrypted_tmp)?;
                 &dst[er.clone()].copy_from_slice(&decrypted_tmp[..plaintext_block_size]);
 
                 // Verify signature (after encrypted portion)
-                let key = &(self.keys.as_ref().unwrap()).0;
+                let key = &(self.sending_keys.as_ref().unwrap()).0;
                 self.security_policy.symmetric_verify_signature(key, &dst[sr.clone()], &dst[sr.start..])?;
                 Ok(())
             }
