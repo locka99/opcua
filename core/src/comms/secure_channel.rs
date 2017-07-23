@@ -8,7 +8,6 @@ use opcua_types::*;
 use crypto::SecurityPolicy;
 use crypto::CertificateStore;
 use crypto::types::*;
-use crypto::hash;
 
 use comms::{SecurityHeader, SymmetricSecurityHeader, AsymmetricSecurityHeader, MESSAGE_CHUNK_HEADER_SIZE, SEQUENCE_HEADER_SIZE};
 use comms::message_chunk::MessageChunkType;
@@ -248,7 +247,7 @@ impl SecureChannel {
         self.security_policy != SecurityPolicy::None && self.security_mode == MessageSecurityMode::SignAndEncrypt
     }
 
-    pub fn asymmetric_decrypt_and_verify(&self, security_policy: SecurityPolicy, sender_cert: PKey, receiver_thumbprint: ByteString, src: &[u8], sr: Range<usize>, er: Range<usize>, dst: &mut [u8]) -> Result<(), StatusCode> {
+    pub fn asymmetric_decrypt_and_verify(&self, security_policy: SecurityPolicy, signing_key: &PKey, receiver_thumbprint: ByteString, src: &[u8], sr: Range<usize>, er: Range<usize>, dst: &mut [u8]) -> Result<(), StatusCode> {
         // Asymmetric encrypt requires the caller supply the security policy
         match security_policy {
             SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {}
@@ -286,7 +285,7 @@ impl SecureChannel {
         &dst[er.clone()].copy_from_slice(&decrypted_tmp[..plaintext_block_size]);
 
         // Verify signature (after encrypted portion)
-        security_policy.asymmetric_verify_signature(sender_cert, &dst[sr.clone()], &dst[sr.start..])?;
+        security_policy.asymmetric_verify_signature(signing_key, &dst[sr.clone()], &dst[sr.start..])?;
 
         {
             use debug;
@@ -299,10 +298,29 @@ impl SecureChannel {
 
     /// Use the security policy to asymmetric encrypt and sign the specified chunk of data
     pub fn asymmetric_encrypt_and_sign(&self, security_policy: SecurityPolicy, src: &[u8], sr: Range<usize>, er: Range<usize>, dst: &mut [u8]) -> Result<(), StatusCode> {
-        // Sign with our private key
-        //self.asymmetric_sign(security_policy, src, signature)?;
-        // Encrypt with their public cert
-        //self.asymmetric_encrypt(security_policy, pkey, src, dst)?;
+        // There is an expectation that the block is padded so, this is a quick test
+        let plaintext_block_size = er.end - er.start;
+        if plaintext_block_size % 16 != 0 {
+            error!("The plain text block is not padded properly, size = {}", plaintext_block_size);
+            return Err(BAD_DECODING_ERROR);
+        }
+
+        let mut dst_tmp = vec![0u8; dst.len() + 16]; // tmp includes +16 for blocksize
+        let signature_len = src.len() - sr.end;
+        debug!("signature len = {}", signature_len);
+        let mut signature = vec![0u8; signature_len];
+        // Sign the message header, security header, sequence header, body, padding
+        let signing_key = self.private_key.as_ref().unwrap();
+        security_policy.asymmetric_sign(&signing_key, &src[sr.clone()], &mut signature)?;
+        &dst_tmp[sr.clone()].copy_from_slice(&src[sr.clone()]);
+        &dst_tmp[sr.end..].copy_from_slice(&signature);
+
+        // Encrypt the sequence header, payload, signature
+        let encryption_key = self.their_cert.as_ref().unwrap().public_key()?;
+        security_policy.asymmetric_encrypt(&encryption_key, &dst_tmp[er.clone()], &mut dst[er.clone()])?;
+        // Copy the message header / security header
+        &dst[..er.start].copy_from_slice(&dst_tmp[..er.start]);
+
         Ok(())
     }
 
@@ -323,7 +341,6 @@ impl SecureChannel {
                 debug!("encrypt_and_sign is doing nothing because security mode == None");
                 // Just copy data to out
                 dst.copy_from_slice(src);
-                Ok(())
             }
             MessageSecurityMode::Sign => {
                 debug!("encrypt_and_sign security mode == Sign");
@@ -337,7 +354,6 @@ impl SecureChannel {
                 &dst[sr.clone()].copy_from_slice(&src[sr.clone()]);
                 debug!("Signature = {:?}", signature);
                 &dst[sr.end..].copy_from_slice(&signature);
-                Ok(())
             }
             MessageSecurityMode::SignAndEncrypt => {
                 debug!("encrypt_and_sign security mode == SignAndEncrypt");
@@ -366,13 +382,12 @@ impl SecureChannel {
                 self.security_policy.symmetric_encrypt(key, iv, &dst_tmp[er.clone()], &mut dst[er.clone()])?;
                 // Copy the message header / security header
                 &dst[..er.start].copy_from_slice(&dst_tmp[..er.start]);
-
-                Ok(())
             }
             MessageSecurityMode::Invalid => {
                 panic!("Message security mode is invalid");
             }
-        }
+        };
+        Ok(())
     }
 
     /// Decrypts and verifies data.

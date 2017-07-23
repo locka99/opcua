@@ -299,26 +299,25 @@ impl MessageChunk {
     /// Signs and encrypts the data
     pub fn apply_security(&mut self, secure_channel: &SecureChannel) -> Result<(), StatusCode> {
         if secure_channel.signing_enabled() || secure_channel.encryption_enabled() {
+            // S - Message Header
+            // S - Security Header
+            // S - Sequence Header - E
+            // S - Body            - E
+            // S - Padding         - E
+            //     Signature       - E
+            let chunk_info = self.chunk_info(secure_channel)?;
+            let sign_info = 0..(self.data.len() - secure_channel.security_policy.symmetric_signature_size());
+            let encrypt_info = chunk_info.sequence_header_offset..self.data.len();
+            let mut encrypted_data = vec![0u8; self.data.len()];
+
+            // Encrypt and sign - open secure channel
             if self.is_open_secure_channel() {
-                // Asymmetric encrypt and sign. Always encrypt
-                // TODO
+                secure_channel.asymmetric_encrypt_and_sign(secure_channel.security_policy, &self.data, sign_info, encrypt_info, &mut encrypted_data)?;
             } else {
-                let chunk_info = self.chunk_info(secure_channel)?;
                 // Symmetric encrypt and sign
-
-                // S - Message Header
-                // S - Security Header
-                // S - Sequence Header - E
-                // S - Body            - E
-                // S - Padding         - E
-                //     Signature       - E
-                let sign_info = 0..(self.data.len() - secure_channel.security_policy.symmetric_signature_size());
-                let encrypt_info = chunk_info.sequence_header_offset..self.data.len();
-
-                let mut encrypted_data = vec![0u8; self.data.len()];
                 secure_channel.symmetric_encrypt_and_sign(&self.data, sign_info, encrypt_info, &mut encrypted_data)?;
-                self.data = encrypted_data;
             }
+            self.data = encrypted_data;
         }
         Ok(())
     }
@@ -369,7 +368,7 @@ impl MessageChunk {
             debug!("Asymmetric decrypting OPN with signature info {:?} and encrypt info {:?}", sign_info, encrypt_info);
 
             let mut decrypted_data = vec![0u8; self.data.len()];
-            secure_channel.asymmetric_decrypt_and_verify(security_policy, sender_pkey, receiver_thumbprint, &self.data, sign_info, encrypt_info, &mut decrypted_data)?;
+            secure_channel.asymmetric_decrypt_and_verify(security_policy, &sender_pkey, receiver_thumbprint, &self.data, sign_info, encrypt_info, &mut decrypted_data)?;
 
             self.data = decrypted_data;
         } else if secure_channel.signing_enabled() || secure_channel.encryption_enabled() {

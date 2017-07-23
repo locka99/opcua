@@ -389,21 +389,47 @@ impl SecurityPolicy {
         (signing_key, encrypting_key, iv)
     }
 
-    pub fn asymmetric_verify_signature(&self, certificate: PKey, src: &[u8], signature: &[u8]) -> Result<(), StatusCode> {
+    pub fn asymmetric_verify_signature(&self, verification_key: &PKey, src: &[u8], signature: &[u8]) -> Result<(), StatusCode> {
         // Asymmetric verify signature against supplied certificate
+        let result = match self {
+            &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => {
+                verification_key.sign_sha1(src)
+            }
+            &SecurityPolicy::Basic256Sha256 => {
+                verification_key.sign_sha256(src)
+            }
+            _ => {
+                panic!("Invalid policy");
+            }
+        };
+        if signature == &result[..] {
+            Ok(())
+        } else {
+            Err(BAD_APPLICATION_SIGNATURE_INVALID)
+        }
+    }
+
+    pub fn asymmetric_sign(&self, signing_key: &PKey, src: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
+        let result = match self {
+            &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => {
+                signing_key.sign_sha1(src)
+            }
+            &SecurityPolicy::Basic256Sha256 => {
+                signing_key.sign_sha256(src)
+            }
+            _ => {
+                panic!("Invalid policy");
+            }
+        };
+        signature.copy_from_slice(&result[..]);
         Ok(())
     }
 
-    pub fn asymmetric_sign(&self, src: &[u8], signature: &[u8]) -> Result<(), StatusCode> {
-        // Asymmetric sign data with our private key
-        Err(BAD_NOT_IMPLEMENTED)
-    }
-
-    pub fn asymmetric_decrypt(&self, x509: &X509, private_key: &PKey, receiver_thumbprint: &[u8], src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
-        // Find the thumbprint in our certificate store
-        // The thumbprint has to match our cert's thumbprint, otherwise something has gone wrong
-        let our_thumbprint = x509.thumbprint();
-        if &our_thumbprint[..] != receiver_thumbprint {
+    /// Decrypts a message whose thumbprint matches the x509 cert and private key pair.
+    pub fn asymmetric_decrypt(&self, cert: &X509, private_key: &PKey, supplied_thumbprint: &[u8], src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
+        // The supplied thumbprint has to match the cert's thumbprint, otherwise something has gone wrong
+        let our_thumbprint = cert.thumbprint();
+        if &our_thumbprint[..] != supplied_thumbprint {
             Err(BAD_NO_VALID_CERTIFICATES)
         } else {
             // decrypt data using our private key
@@ -436,8 +462,34 @@ impl SecurityPolicy {
         }
     }
 
-    pub fn asymmetric_encrypt(&self, pkey: PKey, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
-        Err(BAD_NOT_IMPLEMENTED)
+    /// Encrypts a message using the supplied encryption key
+    pub fn asymmetric_encrypt(&self, encryption_key: &PKey, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
+        let rsa = encryption_key.value.rsa().unwrap();
+        let key_size = encryption_key.bit_length() / 8;
+
+        let padding = match self {
+            &SecurityPolicy::Basic128Rsa15 => PKCS1_PADDING,
+            &SecurityPolicy::Basic256 | &SecurityPolicy::Basic256Sha256 => PKCS1_OAEP_PADDING,
+            _ => {
+                panic!("Security policy is not supported, shouldn't have gotten here");
+            }
+        };
+
+        // Encrypt the data
+        let mut src_idx = 0;
+        let mut dst_idx = 0;
+        while src_idx < src.len() {
+            let src = &src[src_idx..(src_idx + key_size)];
+            let dst = &mut dst[dst_idx..(dst_idx + key_size)];
+            let encrypted_bytes = rsa.public_encrypt(src, dst, padding);
+            if encrypted_bytes.is_err() {
+                return Err(BAD_ENCODING_ERROR);
+            }
+            src_idx += key_size;
+            dst_idx += encrypted_bytes.unwrap();
+        }
+
+        Ok(())
     }
 
     /// Sign the following block
