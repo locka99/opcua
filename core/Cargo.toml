@@ -13,7 +13,7 @@ log = "0.3"
 chrono = "0.3"
 rand = "0.3"
 regex = "0.2.1"
-openssl = "0.9.9"
+openssl = "0.9.15"
 
 [dependencies.opcua-types]
 path = "../types"

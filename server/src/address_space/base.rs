@@ -36,21 +36,6 @@ pub trait Node {
 /// This is a sanity saving macro that adds Node trait methods to all types that have a base
 /// member.
 
-macro_rules! node_impl {
-    ( $node_struct:ty ) => {
-        impl Node for $node_struct {
-            fn node_class(&self) -> NodeClass { self.base.node_class() }
-            fn node_id(&self) -> NodeId { self.base.node_id() }
-            fn browse_name(&self) -> QualifiedName { self.base.browse_name() }
-            fn display_name(&self) -> LocalizedText { self.base.display_name() }
-            fn description(&self) -> Option<LocalizedText> { self.base.description() }
-            fn write_mask(&self) -> Option<UInt32> { self.base.write_mask() }
-            fn user_write_mask(&self) -> Option<UInt32> { self.base.user_write_mask() }
-            fn find_attribute(&self, attribute_id: AttributeId) -> Option<Attribute> { self.base.find_attribute(attribute_id); }
-        }
-    };
-}
-
 #[macro_export]
 macro_rules! find_attribute_mandatory {
     ( $sel:expr, $attr: ident ) => {
