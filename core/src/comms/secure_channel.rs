@@ -272,12 +272,11 @@ impl SecureChannel {
             return Err(BAD_DECODING_ERROR);
         }
 
-        debug!("Decrypting message with our certificate");
-
         // Copy security header
         &dst[..er.start].copy_from_slice(&src[..er.start]);
 
         // Decrypt encrypted portion
+        debug!("Decrypting message with our certificate range {:?}", er);
         let mut decrypted_tmp = vec![0u8; plaintext_block_size + 16]; // tmp includes +16 for blocksize
         let x509 = self.cert.as_ref().unwrap();
         let private_key = self.private_key.as_ref().unwrap();
@@ -285,7 +284,8 @@ impl SecureChannel {
         &dst[er.clone()].copy_from_slice(&decrypted_tmp[..plaintext_block_size]);
 
         // Verify signature (after encrypted portion)
-        security_policy.asymmetric_verify_signature(signing_key, &dst[sr.clone()], &dst[sr.start..])?;
+        debug!("Verifying signature range {:?}", sr);
+        security_policy.asymmetric_verify_signature(signing_key, &dst[sr.clone()], &dst[sr.clone()])?;
 
         {
             use debug;

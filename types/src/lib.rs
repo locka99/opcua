@@ -14,8 +14,6 @@ extern crate regex;
 extern crate rand;
 extern crate url;
 
-use std::io::{Read, Write};
-
 ///Contains constants recognized by OPC UA clients and servers to describe various protocols and
 /// profiles used during communication and encryption.
 pub mod profiles {
