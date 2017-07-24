@@ -203,24 +203,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "opcua-sample-client"
-version = "0.1.0"
-dependencies = [
- "opcua-client 0.1.0",
- "opcua-core 0.1.0",
- "opcua-types 0.1.0",
-]
-
-[[package]]
-name = "opcua-sample-server"
-version = "0.1.0"
-dependencies = [
- "opcua-core 0.1.0",
- "opcua-server 0.1.1",
- "opcua-types 0.1.0",
-]
-
-[[package]]
 name = "opcua-server"
 version = "0.1.1"
 dependencies = [
@@ -234,6 +216,24 @@ dependencies = [
  "serde_yaml 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.36 (registry+https://github.com/rust-lang/crates.io-index)",
  "timer 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "opcua-simple-client"
+version = "0.1.0"
+dependencies = [
+ "opcua-client 0.1.0",
+ "opcua-core 0.1.0",
+ "opcua-types 0.1.0",
+]
+
+[[package]]
+name = "opcua-simple-server"
+version = "0.1.0"
+dependencies = [
+ "opcua-core 0.1.0",
+ "opcua-server 0.1.1",
+ "opcua-types 0.1.0",
 ]
 
 [[package]]

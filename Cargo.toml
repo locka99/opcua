@@ -1,2 +1,2 @@
 [workspace]
-members = ["types", "core", "server", "client", "sample-client", "sample-server", "tools/certificate-creator"]
+members = ["types", "core", "server", "client", "samples/simple-client", "samples/simple-server", "tools/certificate-creator"]
