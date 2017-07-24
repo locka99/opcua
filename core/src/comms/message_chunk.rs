@@ -324,6 +324,12 @@ impl MessageChunk {
 
     /// Decrypts and verifies the body data if the mode / policy requires it
     pub fn verify_and_remove_security(&mut self, secure_channel: &SecureChannel) -> Result<(), StatusCode> {
+        // S - Message Header
+        // S - Security Header
+        // S - Sequence Header - E
+        // S - Body            - E
+        // S - Padding         - E
+        //     Signature       - E
         if self.is_open_secure_channel() {
             // The OpenSecureChannel is the first thing we receive so we must examine
             // the security policy and use it to determine if the packet must be decrypted.
@@ -359,8 +365,8 @@ impl MessageChunk {
 
             // This code doesn't *care* if the cert is trusted, merely that it was used to sign the message
             let sender_certificate = X509::from_byte_string(&security_header.sender_certificate)?;
-            let sender_pkey = sender_certificate.public_key()?;
-            let asymmetric_signature_size = sender_pkey.bit_length() / 8;
+            let verification_key = sender_certificate.public_key()?;
+            let asymmetric_signature_size = security_policy.asymmetric_signature_size();
             let sign_info = 0..(self.data.len() - asymmetric_signature_size);
 
             let receiver_thumbprint = security_header.receiver_certificate_thumbprint;
@@ -368,16 +374,10 @@ impl MessageChunk {
             debug!("Asymmetric decrypting OPN with signature info {:?} and encrypt info {:?}", sign_info, encrypt_info);
 
             let mut decrypted_data = vec![0u8; self.data.len()];
-            secure_channel.asymmetric_decrypt_and_verify(security_policy, &sender_pkey, receiver_thumbprint, &self.data, sign_info, encrypt_info, &mut decrypted_data)?;
+            secure_channel.asymmetric_decrypt_and_verify(security_policy, &verification_key, receiver_thumbprint, &self.data, sign_info, encrypt_info, &mut decrypted_data)?;
 
             self.data = decrypted_data;
         } else if secure_channel.signing_enabled() || secure_channel.encryption_enabled() {
-            // S - Message Header
-            // S - Security Header
-            // S - Sequence Header - E
-            // S - Body            - E
-            // S - Padding         - E
-            //     Signature       - E
             // Symmetric decrypt and verify
             let sign_info = 0..(self.data.len() - secure_channel.security_policy.symmetric_signature_size());
             let encrypt_info = {

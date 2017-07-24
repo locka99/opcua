@@ -245,9 +245,12 @@ impl PKey {
             debug!("Update");
             if signer.update(data).is_ok() {
                 debug!("Finish");
-                if let Ok(result) = signer.finish() {
+                let result = signer.finish();
+                if let Ok(result) = result {
                     debug!("Signature = {:?}", result);
                     return Ok(result);
+                } else {
+                    debug!("Can't sign data - error = {:?}", result.unwrap_err());
                 }
             }
         }
@@ -255,14 +258,17 @@ impl PKey {
     }
 
     fn verify(&self, message_digest: hash::MessageDigest, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
-        debug!("Key verifying");
+        debug!("Key verifying, against signature {:?}", signature);
         if let Ok(mut verifier) = sign::Verifier::new(message_digest, &self.value) {
             debug!("Update");
             if verifier.update(data).is_ok() {
                 debug!("Finish");
-                if let Ok(result) = verifier.finish(signature) {
+                let result = verifier.finish(signature);
+                if let Ok(result) = result {
                     debug!("Key verified = {:?}", result);
                     return Ok(result);
+                } else {
+                    debug!("Can't verify key - error = {:?}", result.unwrap_err());
                 }
             }
         }

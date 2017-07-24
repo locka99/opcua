@@ -247,7 +247,7 @@ impl SecureChannel {
         self.security_policy != SecurityPolicy::None && self.security_mode == MessageSecurityMode::SignAndEncrypt
     }
 
-    pub fn asymmetric_decrypt_and_verify(&self, security_policy: SecurityPolicy, signing_key: &PKey, receiver_thumbprint: ByteString, src: &[u8], sr: Range<usize>, er: Range<usize>, dst: &mut [u8]) -> Result<(), StatusCode> {
+    pub fn asymmetric_decrypt_and_verify(&self, security_policy: SecurityPolicy, verification_key: &PKey, receiver_thumbprint: ByteString, src: &[u8], sr: Range<usize>, er: Range<usize>, dst: &mut [u8]) -> Result<(), StatusCode> {
         // Asymmetric encrypt requires the caller supply the security policy
         match security_policy {
             SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {}
@@ -285,7 +285,9 @@ impl SecureChannel {
 
         // Verify signature (after encrypted portion)
         debug!("Verifying signature range {:?}", sr);
-        security_policy.asymmetric_verify_signature(signing_key, &dst[sr.clone()], &dst[sr.clone()])?;
+        let signature_range = sr.end..src.len();
+        security_policy.asymmetric_verify_signature(verification_key, &dst[sr.clone()], &src[signature_range.clone()])?;
+        &dst[signature_range.clone()].copy_from_slice(&src[signature_range.clone()]);
 
         {
             use debug;
@@ -441,7 +443,7 @@ impl SecureChannel {
 
                 // Verify signature (after encrypted portion)
                 let key = &(self.sending_keys.as_ref().unwrap()).0;
-                self.security_policy.symmetric_verify_signature(key, &dst[sr.clone()], &dst[sr.start..])?;
+                self.security_policy.symmetric_verify_signature(key, &dst[sr.clone()], &dst[sr.end..])?;
                 Ok(())
             }
             MessageSecurityMode::Invalid => {

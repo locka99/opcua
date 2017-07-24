@@ -246,6 +246,16 @@ impl SecurityPolicy {
         }
     }
 
+    pub fn asymmetric_signature_size(&self) -> usize {
+        match self {
+            &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => 20,
+            &SecurityPolicy::Basic256Sha256 => 32,
+            _ => {
+                panic!("Invalid policy");
+            }
+        }
+    }
+
     pub fn symmetric_signature_size(&self) -> usize {
         match self {
             &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => 20,
@@ -389,14 +399,14 @@ impl SecurityPolicy {
         (signing_key, encrypting_key, iv)
     }
 
-    pub fn asymmetric_verify_signature(&self, verification_key: &PKey, src: &[u8], signature: &[u8]) -> Result<(), StatusCode> {
+    pub fn asymmetric_verify_signature(&self, verification_key: &PKey, data: &[u8], signature: &[u8]) -> Result<(), StatusCode> {
         // Asymmetric verify signature against supplied certificate
         let result = match self {
             &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => {
-                verification_key.verify_sha1(src, signature)?
+                verification_key.verify_sha1(data, signature)?
             }
             &SecurityPolicy::Basic256Sha256 => {
-                verification_key.verify_sha256(src, signature)?
+                verification_key.verify_sha256(data, signature)?
             }
             _ => {
                 panic!("Invalid policy");
@@ -412,13 +422,13 @@ impl SecurityPolicy {
         }
     }
 
-    pub fn asymmetric_sign(&self, signing_key: &PKey, src: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
+    pub fn asymmetric_sign(&self, signing_key: &PKey, data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
         let result = match self {
             &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => {
-                signing_key.sign_sha1(src)?
+                signing_key.sign_sha1(data)?
             }
             &SecurityPolicy::Basic256Sha256 => {
-                signing_key.sign_sha256(src)?
+                signing_key.sign_sha256(data)?
             }
             _ => {
                 panic!("Invalid policy");
