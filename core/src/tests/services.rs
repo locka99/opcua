@@ -1,6 +1,6 @@
 use opcua_types::*;
 
-use super::*;
+use tests::*;
 
 fn request_header() -> RequestHeader {
     RequestHeader {

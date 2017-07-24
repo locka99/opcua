@@ -37,6 +37,37 @@ pub struct X509Data {
     pub certificate_duration_days: u32,
 }
 
+/// Thumbprint size is dictated by the OPC UA spec
+const THUMBPRINT_SIZE: usize = 20;
+
+/// The thumbprint is a 20 byte representation of a certificate that can be used as a hash, a filename
+/// or some other purpose.
+pub struct Thumbprint {
+    pub value: [u8; THUMBPRINT_SIZE],
+}
+
+impl Thumbprint {
+    /// Constructs a thumbprint from a message digest which is expected to be the proper length
+    pub fn new(digest: &[u8]) -> Thumbprint {
+        if digest.len() != THUMBPRINT_SIZE {
+            panic!("Thumbprint is not the right length");
+        }
+        let mut value: [u8; THUMBPRINT_SIZE] = Default::default();
+        value.clone_from_slice(digest);
+        Thumbprint { value }
+    }
+
+    /// Returns the thumbprint as a string using hexdecimal values for each byte
+    pub fn as_hex_string(&self) -> String {
+        // Hex name = 20 bytes = 40 chars in hex but add some spare capacity for file extensions
+        let mut hex_string = String::with_capacity(64);
+        for b in self.value.iter() {
+            hex_string.push_str(&format!("{:02x}", b))
+        }
+        hex_string
+    }
+}
+
 /// This is a wrapper around the OpenSSL X509 cert
 pub struct X509 {
     pub value: x509::X509,
@@ -117,10 +148,11 @@ impl X509 {
     /// (20 bytes) in length and is sent in some secure conversation headers.
     ///
     /// The thumbprint might be used by the server / client for look-up purposes.
-    pub fn thumbprint(&self) -> Vec<u8> {
-        use openssl::hash::{MessageDigest, hash};
+    pub fn thumbprint(&self) -> Thumbprint {
+        use openssl::hash::{MessageDigest, hash2};
         let der = self.value.to_der().unwrap();
-        hash(MessageDigest::sha1(), &der).unwrap()
+        let digest = hash2(MessageDigest::sha1(), &der).unwrap();
+        Thumbprint::new(&digest)
     }
 
     /// Turn the Asn1 values into useful portable types
@@ -207,28 +239,50 @@ impl PKey {
         self.value.bits() as usize
     }
 
-    pub fn sign_sha1(&self, data: &[u8]) -> Vec<u8> {
-        let mut signer = sign::Signer::new(hash::MessageDigest::sha1(), &self.value).unwrap();
-        signer.update(data).unwrap();
-        signer.finish().unwrap()
+    fn sign(&self, message_digest: hash::MessageDigest, data: &[u8]) -> Result<Vec<u8>, StatusCode> {
+        debug!("Key signing");
+        if let Ok(mut signer) = sign::Signer::new(message_digest, &self.value) {
+            debug!("Update");
+            if signer.update(data).is_ok() {
+                debug!("Finish");
+                if let Ok(result) = signer.finish() {
+                    debug!("Signature = {:?}", result);
+                    return Ok(result);
+                }
+            }
+        }
+        Err(BAD_UNEXPECTED_ERROR)
     }
 
-    pub fn verify_sha1(&self, data: &[u8], signature: &[u8]) -> bool {
-        let mut verifier = sign::Verifier::new(hash::MessageDigest::sha1(), &self.value).unwrap();
-        verifier.update(data).unwrap();
-        verifier.finish(signature).unwrap()
+    fn verify(&self, message_digest: hash::MessageDigest, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
+        debug!("Key verifying");
+        if let Ok(mut verifier) = sign::Verifier::new(message_digest, &self.value) {
+            debug!("Update");
+            if verifier.update(data).is_ok() {
+                debug!("Finish");
+                if let Ok(result) = verifier.finish(signature) {
+                    debug!("Key verified = {:?}", result);
+                    return Ok(result);
+                }
+            }
+        }
+        Err(BAD_UNEXPECTED_ERROR)
     }
 
-    pub fn sign_sha256(&self, data: &[u8]) -> Vec<u8> {
-        let mut signer = sign::Signer::new(hash::MessageDigest::sha256(), &self.value).unwrap();
-        signer.update(data).unwrap();
-        signer.finish().unwrap()
+    pub fn sign_sha1(&self, data: &[u8]) -> Result<Vec<u8>, StatusCode> {
+        self.sign(hash::MessageDigest::sha1(), data)
     }
 
-    pub fn verify_sha256(&self, data: &[u8], signature: &[u8]) -> bool {
-        let mut verifier = sign::Verifier::new(hash::MessageDigest::sha256(), &self.value).unwrap();
-        verifier.update(data).unwrap();
-        verifier.finish(signature).unwrap()
+    pub fn verify_sha1(&self, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
+        self.verify(hash::MessageDigest::sha1(), data, signature)
+    }
+
+    pub fn sign_sha256(&self, data: &[u8]) -> Result<Vec<u8>, StatusCode> {
+        self.sign(hash::MessageDigest::sha256(), data)
+    }
+
+    pub fn verify_sha256(&self, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
+        self.verify(hash::MessageDigest::sha256(), data, signature)
     }
 }
 

@@ -54,7 +54,7 @@ impl SessionService {
             // Calculate a signature (assuming there is a pkey)
             let server_signature = if server_state.server_pkey.is_some() {
                 let pkey = server_state.server_pkey.as_ref().unwrap();
-                crypto::create_signature_data(pkey, &security_policy_uri, &request.client_certificate, &request.client_nonce)
+                crypto::create_signature_data(pkey, &security_policy_uri, &request.client_certificate, &request.client_nonce).unwrap()
             } else {
                 SignatureData::null()
             };
@@ -100,7 +100,7 @@ impl SessionService {
             if server_state.server_certificate.is_some() {
                 if let Ok(client_cert) = crypto::X509::from_byte_string(&session.client_certificate) {
                     let server_certificate = server_state.server_certificate.as_ref().unwrap().as_byte_string();
-                    service_result = crypto::verify_signature(&client_cert, &request.client_signature, &server_certificate, &session.session_nonce);
+                    service_result = crypto::verify_signature(&client_cert, &request.client_signature, &server_certificate, &session.session_nonce).unwrap();
                     if service_result.is_good() {
                         // TODO crypto secure channel verification
                         let endpoint = SessionService::get_session_endpoint(server_state, session);

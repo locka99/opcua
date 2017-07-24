@@ -199,15 +199,15 @@ fn sign_verify_sha1() {
 
     let msg = b"Mary had a little lamb";
     let msg2 = b"It's fleece was white as snow";
-    let mut signature = pkey.sign_sha1(msg);
+    let mut signature = pkey.sign_sha1(msg).unwrap();
 
     assert_eq!(signature.len(), 256);
-    assert!(pkey.verify_sha1(msg, &signature));
-    assert!(!pkey.verify_sha1(msg2, &signature));
+    assert!(pkey.verify_sha1(msg, &signature).unwrap());
+    assert!(!pkey.verify_sha1(msg2, &signature).unwrap());
 
-    assert!(!pkey.verify_sha1(msg, &signature[..signature.len() - 1]));
+    assert!(!pkey.verify_sha1(msg, &signature[..signature.len() - 1]).unwrap());
     signature[0] = !signature[0]; // bitwise not
-    assert!(!pkey.verify_sha1(msg, &signature));
+    assert!(!pkey.verify_sha1(msg, &signature).unwrap());
 }
 
 #[test]
@@ -216,15 +216,15 @@ fn sign_verify_sha256() {
 
     let msg = b"Mary had a little lamb";
     let msg2 = b"It's fleece was white as snow";
-    let mut signature = pkey.sign_sha256(msg);
+    let mut signature = pkey.sign_sha256(msg).unwrap();
 
     assert_eq!(signature.len(), 256);
-    assert!(pkey.verify_sha256(msg, &signature));
-    assert!(!pkey.verify_sha256(msg2, &signature));
+    assert!(pkey.verify_sha256(msg, &signature).unwrap());
+    assert!(!pkey.verify_sha256(msg2, &signature).unwrap());
 
-    assert!(!pkey.verify_sha256(msg, &signature[..signature.len() - 1]));
+    assert!(!pkey.verify_sha256(msg, &signature[..signature.len() - 1]).unwrap());
     signature[0] = !signature[0]; // bitwise not
-    assert!(!pkey.verify_sha256(msg, &signature));
+    assert!(!pkey.verify_sha256(msg, &signature).unwrap());
 }
 
 #[test]

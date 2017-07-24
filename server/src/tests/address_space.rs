@@ -1,6 +1,6 @@
 use prelude::*;
 
-use super::*;
+use tests::*;
 
 #[test]
 fn address_space() {

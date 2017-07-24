@@ -393,18 +393,21 @@ impl SecurityPolicy {
         // Asymmetric verify signature against supplied certificate
         let result = match self {
             &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => {
-                verification_key.sign_sha1(src)
+                verification_key.verify_sha1(src, signature)?
             }
             &SecurityPolicy::Basic256Sha256 => {
-                verification_key.sign_sha256(src)
+                verification_key.verify_sha256(src, signature)?
             }
             _ => {
                 panic!("Invalid policy");
             }
         };
-        if signature == &result[..] {
+        debug!("Comparing signatures");
+        if result {
+            debug!("Signature matches");
             Ok(())
         } else {
+            error!("Signature mismatch");
             Err(BAD_APPLICATION_SIGNATURE_INVALID)
         }
     }
@@ -412,10 +415,10 @@ impl SecurityPolicy {
     pub fn asymmetric_sign(&self, signing_key: &PKey, src: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
         let result = match self {
             &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => {
-                signing_key.sign_sha1(src)
+                signing_key.sign_sha1(src)?
             }
             &SecurityPolicy::Basic256Sha256 => {
-                signing_key.sign_sha256(src)
+                signing_key.sign_sha256(src)?
             }
             _ => {
                 panic!("Invalid policy");
@@ -429,7 +432,7 @@ impl SecurityPolicy {
     pub fn asymmetric_decrypt(&self, cert: &X509, private_key: &PKey, supplied_thumbprint: &[u8], src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
         // The supplied thumbprint has to match the cert's thumbprint, otherwise something has gone wrong
         let our_thumbprint = cert.thumbprint();
-        if &our_thumbprint[..] != supplied_thumbprint {
+        if &our_thumbprint.value[..] != supplied_thumbprint {
             Err(BAD_NO_VALID_CERTIFICATES)
         } else {
             // decrypt data using our private key

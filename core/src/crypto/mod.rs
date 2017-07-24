@@ -22,13 +22,13 @@ fn concat_data_and_nonce(data: &[u8], nonce: &[u8]) -> Vec<u8> {
 }
 
 /// Verifies that cert matches the signed data
-pub fn verify_signature(verifying_cert: &X509, signature_data: &SignatureData, data: &ByteString, nonce: &ByteString) -> StatusCode {
+pub fn verify_signature(verifying_cert: &X509, signature_data: &SignatureData, data: &ByteString, nonce: &ByteString) -> Result<StatusCode, StatusCode> {
     if data.is_null() || nonce.is_null() {
         error!("Data or nonce are null");
-        BAD_UNEXPECTED_ERROR
+        Err(BAD_UNEXPECTED_ERROR)
     } else if signature_data.algorithm.is_null() {
         error!("Signature data has no algorithm");
-        BAD_UNEXPECTED_ERROR
+        Err(BAD_UNEXPECTED_ERROR)
     } else {
         // Get the public key
         if let Ok(public_key) = verifying_cert.public_key() {
@@ -40,10 +40,10 @@ pub fn verify_signature(verifying_cert: &X509, signature_data: &SignatureData, d
 
             let verified = match security_policy {
                 SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => {
-                    public_key.verify_sha1(&data, signature)
+                    public_key.verify_sha1(&data, signature)?
                 }
                 SecurityPolicy::Basic256Sha256 => {
-                    public_key.verify_sha256(&data, signature)
+                    public_key.verify_sha256(&data, signature)?
                 }
                 SecurityPolicy::None => {
                     error!("Cannot verify a signature with no security policy of None");
@@ -54,16 +54,16 @@ pub fn verify_signature(verifying_cert: &X509, signature_data: &SignatureData, d
                     false
                 }
             };
-            if verified { GOOD } else { BAD_APPLICATION_SIGNATURE_INVALID }
+            Ok(if verified { GOOD } else { BAD_APPLICATION_SIGNATURE_INVALID })
         } else {
             error!("Public key cannot be obtained from cert");
-            BAD_UNEXPECTED_ERROR
+            Err(BAD_UNEXPECTED_ERROR)
         }
     }
 }
 
 /// Creates a SignatureData object by signing the supplied certificate and nonce with a pkey
-pub fn create_signature_data(pkey: &PKey, security_policy_uri: &str, data: &ByteString, nonce: &ByteString) -> SignatureData {
+pub fn create_signature_data(pkey: &PKey, security_policy_uri: &str, data: &ByteString, nonce: &ByteString) -> Result<SignatureData, StatusCode> {
     let (algorithm, signature) = if data.is_null() || nonce.is_null() {
         (UAString::null(), ByteString::null())
     } else {
@@ -74,15 +74,15 @@ pub fn create_signature_data(pkey: &PKey, security_policy_uri: &str, data: &Byte
         match security_policy {
             SecurityPolicy::Basic128Rsa15 => (
                 UAString::from_str(security_policy.asymmetric_signature_algorithm()),
-                ByteString::from_bytes(&pkey.sign_sha1(&data))
+                ByteString::from_bytes(&pkey.sign_sha1(&data)?)
             ),
             SecurityPolicy::Basic256 => (
                 UAString::from_str(security_policy.asymmetric_signature_algorithm()),
-                ByteString::from_bytes(&pkey.sign_sha1(&data))
+                ByteString::from_bytes(&pkey.sign_sha1(&data)?)
             ),
             SecurityPolicy::Basic256Sha256 => (
                 UAString::from_str(security_policy.asymmetric_signature_algorithm()),
-                ByteString::from_bytes(&pkey.sign_sha256(&data))
+                ByteString::from_bytes(&pkey.sign_sha256(&data)?)
             ),
             SecurityPolicy::None => (
                 UAString::null(), ByteString::null()
@@ -93,5 +93,5 @@ pub fn create_signature_data(pkey: &PKey, security_policy_uri: &str, data: &Byte
             }
         }
     };
-    SignatureData { algorithm, signature }
+    Ok(SignatureData { algorithm, signature })
 }

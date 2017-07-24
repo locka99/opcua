@@ -5,7 +5,7 @@ use opcua_types::*;
 use comms::*;
 use crypto::SecurityPolicy;
 
-use super::*;
+use tests::*;
 
 struct Test;
 

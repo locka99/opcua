@@ -2,7 +2,7 @@ use prelude::*;
 use comms::tcp_transport::*;
 use services::view::ViewService;
 
-use super::*;
+use tests::*;
 
 fn make_browse_request(nodes: Vec<NodeId>, browse_direction: BrowseDirection, reference_type: ReferenceTypeId) -> BrowseRequest {
     let request_header = RequestHeader {

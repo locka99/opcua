@@ -303,12 +303,7 @@ impl CertificateStore {
 
     /// Returns a certificate file name from the cert's issuer and thumbprint fields
     pub fn cert_file_name(cert: &X509) -> String {
-        let thumbprint = cert.thumbprint();
-        // Hex name = 20 bytes = 40 chars in hex + 4 for .der ext
-        let mut file_name = String::with_capacity(20 * 2 + 4);
-        for b in thumbprint.iter() {
-            file_name.push_str(&format!("{:02x}", b))
-        }
+        let mut file_name = cert.thumbprint().as_hex_string();
         file_name.push_str(".der");
         file_name
     }

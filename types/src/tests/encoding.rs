@@ -1,5 +1,4 @@
-use ::*;
-use super::*;
+use tests::*;
 
 #[test]
 fn encoding_bool() {
