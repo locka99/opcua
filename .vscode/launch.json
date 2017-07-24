@@ -2,13 +2,13 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug - sample-client",
+            "name": "Debug - simple-client",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceRoot}/target/debug/opcua-sample-client.exe",
+            "program": "${workspaceRoot}/target/debug/opcua-simple-client.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/sample-client",
+            "cwd": "${workspaceRoot}/samples/simple-client",
             "environment": [],
             "externalConsole": true,
             "MIMode": "gdb",
@@ -22,13 +22,13 @@
             ]
         },
         {
-            "name": "Debug - sample-server",
+            "name": "Debug - simple-server",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceRoot}/target/debug/opcua-sample-server.exe",
+            "program": "${workspaceRoot}/target/debug/opcua-simple-server.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/sample-server",
+            "cwd": "${workspaceRoot}/samples/simple-server",
             "environment": [],
             "externalConsole": true,
             "MIMode": "gdb",
