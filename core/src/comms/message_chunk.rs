@@ -378,16 +378,13 @@ impl MessageChunk {
             let signature_size = verification_key.bit_length() / 8;
             debug!("Sender public key byte length = {}", signature_size);
 
-            let signed_range = 0..message_size - signature_size;
-
             let receiver_thumbprint = security_header.receiver_certificate_thumbprint;
 
-            debug!("Asymmetric decrypting OPN with signature info {:?} and encrypt info {:?}", signed_range, encrypted_range);
-
             let mut decrypted_data = vec![0u8; message_size];
-            secure_channel.asymmetric_decrypt_and_verify(security_policy, &verification_key, receiver_thumbprint, &self.data, signed_range, encrypted_range, &mut decrypted_data)?;
+            let decrypted_size = secure_channel.asymmetric_decrypt_and_verify(security_policy, &verification_key, receiver_thumbprint, &self.data, encrypted_range, &mut decrypted_data)?;
 
-            self.data = decrypted_data;
+            self.data.clear();
+            self.data.extend_from_slice(&decrypted_data[0..decrypted_size]);
         } else if secure_channel.signing_enabled() || secure_channel.encryption_enabled() {
             // Symmetric decrypt and verify
             let (encrypted_data_offset, message_size) = {

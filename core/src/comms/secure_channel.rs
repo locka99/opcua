@@ -247,7 +247,7 @@ impl SecureChannel {
         self.security_policy != SecurityPolicy::None && self.security_mode == MessageSecurityMode::SignAndEncrypt
     }
 
-    pub fn asymmetric_decrypt_and_verify(&self, security_policy: SecurityPolicy, verification_key: &PKey, receiver_thumbprint: ByteString, src: &[u8], signed_range: Range<usize>, encrypted_range: Range<usize>, dst: &mut [u8]) -> Result<(), StatusCode> {
+    pub fn asymmetric_decrypt_and_verify(&self, security_policy: SecurityPolicy, verification_key: &PKey, receiver_thumbprint: ByteString, src: &[u8], encrypted_range: Range<usize>, dst: &mut [u8]) -> Result<usize, StatusCode> {
         // Asymmetric encrypt requires the caller supply the security policy
         match security_policy {
             SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {}
@@ -277,40 +277,35 @@ impl SecureChannel {
             // Decrypt and copy encrypted block
             // Note that the unencrypted size can be less than the encrypted size due to removal
             // of padding, so the ranges that were supplied to this function must be offset to compensate.
-            let (encrypted_range, signed_range, signature_range) = {
-                let plaintext_size = encrypted_range.end - encrypted_range.start;
-                debug!("Decrypting message with our certificate range {:?}", encrypted_range);
-                let mut decrypted_tmp = vec![0u8; plaintext_size];
+            let encrypted_size = encrypted_range.end - encrypted_range.start;
+            debug!("Decrypting message with our certificate range {:?}", encrypted_range);
+            let mut decrypted_tmp = vec![0u8; encrypted_size];
 
-                let private_key = self.private_key.as_ref().unwrap();
-                let decrypted_size = security_policy.asymmetric_decrypt(private_key, &src[encrypted_range.clone()], &mut decrypted_tmp)?;
-                debug!("Decrypted bytes = {} compared to encrypted range {}", decrypted_size, encrypted_range.end - encrypted_range.start);
-
-                let offset = plaintext_size - decrypted_size;
-
-                // Ranges change
-                let encrypted_range = encrypted_range.start..(encrypted_range.end - offset);
-                let signed_range = signed_range.start..(signed_range.end - offset);
-
-                &dst[encrypted_range.clone()].copy_from_slice(&decrypted_tmp[0..decrypted_size]);
-
-                let signature_range = signed_range.end..(src.len() - offset);
-
-                (encrypted_range, signed_range, signature_range)
-            };
+            let private_key = self.private_key.as_ref().unwrap();
+            let private_key_size = private_key.bit_length() / 8;
+            let decrypted_size = security_policy.asymmetric_decrypt(private_key, &src[encrypted_range.clone()], &mut decrypted_tmp)?;
+            debug!("Decrypted bytes = {} compared to encrypted range {}", decrypted_size, encrypted_size);
 
             {
                 use debug;
-                debug::debug_buffer("Decrypted data = ", &dst[encrypted_range.clone()])
+                debug::debug_buffer("Decrypted data = ", &decrypted_tmp[0..decrypted_size])
             }
+
+            // The signed range is from 0 to the end of the plaintext except for key size
+            let signed_range = 0..(encrypted_range.start + decrypted_size - private_key_size);
+
+            // The signature range is beyond the signed range and is
+            let signature_range = signed_range.end..(signed_range.end + private_key_size);
+
+            // Copy the bytes to dst
+            &dst[encrypted_range.start..signature_range.end].copy_from_slice(&decrypted_tmp[0..decrypted_size]);
 
             // Verify signature (contained encrypted portion) using verification key
             debug!("Verifying signature range {:?} with signature at {:?}", signed_range, signature_range);
             security_policy.asymmetric_verify_signature(verification_key, &dst[signed_range.clone()], &dst[signature_range.clone()])?;
-            &dst[signature_range.clone()].copy_from_slice(&src[signature_range.clone()]);
 
             // Decrypted and verified into dst
-            Ok(())
+            Ok(signature_range.start)
         }
     }
 
