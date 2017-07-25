@@ -37,6 +37,36 @@ pub struct X509Data {
     pub certificate_duration_days: u32,
 }
 
+impl X509Data {
+    /// Creates a sample certificate for testing, sample purposes only
+    pub fn sample_cert() -> X509Data {
+        let alt_host_names = {
+            let mut result = Vec::new();
+            result.push("localhost".to_string());
+            result.push("127.0.0.1".to_string());
+            result.push("::1".to_string());
+            // Get the machine name / ip address
+            if let Ok(machine_name) = std::env::var("COMPUTERNAME") {
+                result.push(machine_name);
+            }
+            if let Ok(machine_name) = std::env::var("NAME") {
+                result.push(machine_name);
+            }
+            result
+        };
+        X509Data {
+            key_size: 2048,
+            common_name: "OPC UA Demo Key".to_string(),
+            organization: "OPC UA for Rust".to_string(),
+            organizational_unit: "OPC UA for Rust".to_string(),
+            country: "IE".to_string(),
+            state: "Dublin".to_string(),
+            alt_host_names,
+            certificate_duration_days: 365,
+        }
+    }
+}
+
 /// Thumbprint size is dictated by the OPC UA spec
 const THUMBPRINT_SIZE: usize = 20;
 

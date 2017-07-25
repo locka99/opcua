@@ -6,7 +6,7 @@ use openssl::rsa::*;
 use opcua_types::StatusCode;
 use opcua_types::StatusCode::*;
 
-use crypto::types::{AesKey, PKey, X509};
+use crypto::types::{AesKey, PKey};
 use crypto::hash;
 
 /// URI supplied for the None security policy
@@ -246,16 +246,6 @@ impl SecurityPolicy {
         }
     }
 
-    pub fn asymmetric_signature_size(&self) -> usize {
-        match self {
-            &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => 20,
-            &SecurityPolicy::Basic256Sha256 => 32,
-            _ => {
-                panic!("Invalid policy");
-            }
-        }
-    }
-
     pub fn symmetric_signature_size(&self) -> usize {
         match self {
             &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => 20,
@@ -439,40 +429,36 @@ impl SecurityPolicy {
     }
 
     /// Decrypts a message whose thumbprint matches the x509 cert and private key pair.
-    pub fn asymmetric_decrypt(&self, cert: &X509, private_key: &PKey, supplied_thumbprint: &[u8], src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
-        // The supplied thumbprint has to match the cert's thumbprint, otherwise something has gone wrong
-        let our_thumbprint = cert.thumbprint();
-        if &our_thumbprint.value[..] != supplied_thumbprint {
-            Err(BAD_NO_VALID_CERTIFICATES)
-        } else {
-            // decrypt data using our private key
-            let rsa = private_key.value.rsa().unwrap();
-            let key_size = private_key.bit_length() / 8;
+    ///
+    /// Returns the number of decrypted bytes
+    pub fn asymmetric_decrypt(&self, private_key: &PKey, src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
+        // decrypt data using our private key
+        let rsa = private_key.value.rsa().unwrap();
+        let key_size = private_key.bit_length() / 8;
 
-            let padding = match self {
-                &SecurityPolicy::Basic128Rsa15 => PKCS1_PADDING,
-                &SecurityPolicy::Basic256 | &SecurityPolicy::Basic256Sha256 => PKCS1_OAEP_PADDING,
-                _ => {
-                    panic!("Security policy is not supported, shouldn't have gotten here");
-                }
-            };
-
-            // Decrypt the data
-            let mut src_idx = 0;
-            let mut dst_idx = 0;
-            while src_idx < src.len() {
-                let src = &src[src_idx..(src_idx + key_size)];
-                let dst = &mut dst[dst_idx..(dst_idx + key_size)];
-                let decrypted_bytes = rsa.private_decrypt(src, dst, padding);
-                if decrypted_bytes.is_err() {
-                    return Err(BAD_DECODING_ERROR);
-                }
-                src_idx += key_size;
-                dst_idx += decrypted_bytes.unwrap();
+        let padding = match self {
+            &SecurityPolicy::Basic128Rsa15 => PKCS1_PADDING,
+            &SecurityPolicy::Basic256 | &SecurityPolicy::Basic256Sha256 => PKCS1_OAEP_PADDING,
+            _ => {
+                panic!("Security policy is not supported, shouldn't have gotten here");
             }
+        };
 
-            Ok(())
+        // Decrypt the data
+        let mut src_idx = 0;
+        let mut dst_idx = 0;
+        while src_idx < src.len() {
+            let src = &src[src_idx..(src_idx + key_size)];
+            let dst = &mut dst[dst_idx..(dst_idx + key_size)];
+            let decrypted_bytes = rsa.private_decrypt(src, dst, padding);
+            if decrypted_bytes.is_err() {
+                return Err(BAD_DECODING_ERROR);
+            }
+            src_idx += key_size;
+            dst_idx += decrypted_bytes.unwrap();
         }
+
+        Ok(dst_idx)
     }
 
     /// Encrypts a message using the supplied encryption key
@@ -524,7 +510,7 @@ impl SecurityPolicy {
     }
 
     /// Verify their signature
-    pub fn symmetric_verify_signature(&self, key: &[u8], src: &[u8], signature: &[u8]) -> Result<(), StatusCode> {
+    pub fn symmetric_verify_signature(&self, key: &[u8], src: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
         // Verify the signature using SHA-1 / SHA-256 HMAC
         let verified = match self {
             &SecurityPolicy::Basic128Rsa15 => {
@@ -540,7 +526,7 @@ impl SecurityPolicy {
             }
         };
         if verified {
-            Ok(())
+            Ok(verified)
         } else {
             error!("Signature invalid {:?}", signature);
             Err(BAD_APPLICATION_SIGNATURE_INVALID)

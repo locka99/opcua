@@ -220,6 +220,8 @@ impl Server {
         let servers = vec![config.application_uri.clone()];
         let base_endpoint = format!("opc.tcp://{}:{}", config.tcp_config.host, config.tcp_config.port);
         let max_subscriptions = config.max_subscriptions as usize;
+        let address_space = Arc::new(Mutex::new(AddressSpace::new()));
+        let diagnostics = ServerDiagnostics::new();
         // TODO max string, byte string and array lengths
 
         let mut endpoints = Vec::new();
@@ -246,8 +248,8 @@ impl Server {
         // Security, pki auto create cert
         let pki_path = PathBuf::from(&config.pki_dir);
         let certificate_store = CertificateStore::new(&pki_path);
-        let (cert, pkey) = if certificate_store.ensure_pki_path().is_err() {
-            error!("PKI folder cannot be created so server has no certificate");
+        let (server_certificate, server_pkey) = if certificate_store.ensure_pki_path().is_err() {
+            error!("Folder for storing certificates cannot be examined so server has no application instance certificate or private key.");
             (None, None)
         } else {
             let result = certificate_store.read_own_cert_and_pkey();
@@ -255,12 +257,29 @@ impl Server {
                 let (cert, pkey) = result;
                 (Some(cert), Some(pkey))
             } else {
-                error!("Certification and private key could not be read - {}", result.unwrap_err());
-                (None, None)
+                // For sample projects, this value will be true and as a convenience we will create
+                // a certificate and private key if they do not exist.
+                if config.create_sample_keypair {
+                    info!("Creating sample application instance certificate and private key");
+                    let result = certificate_store.create_and_store_application_instance_cert(&X509Data::sample_cert(), false);
+                    if let Err(err) = result {
+                        error!("Certificate creation failed, error = {}", err);
+                        (None, None)
+                    } else {
+                        let (cert, pkey) = result.unwrap();
+                        (Some(cert), Some(pkey))
+                    }
+                } else {
+                    error!("Application instance certificate and private key could not be read - {}", result.unwrap_err());
+                    (None, None)
+                }
             }
         };
-
-        let address_space = AddressSpace::new();
+        if server_certificate.is_none() || server_pkey.is_none() {
+            error!("Server is missing its application instance certificate and/or its private key. Encrypted endpoints will not function correctly.")
+        }
+        let certificate_store = Arc::new(Mutex::new(certificate_store));
+        let config = Arc::new(Mutex::new(config.clone()));
 
         let server_state = ServerState {
             application_uri,
@@ -274,20 +293,20 @@ impl Server {
             base_endpoint,
             start_time,
             endpoints,
-            config: Arc::new(Mutex::new(config.clone())),
-            certificate_store: Arc::new(Mutex::new(certificate_store)),
-            server_certificate: cert,
-            server_pkey: pkey,
-            address_space: Arc::new(Mutex::new(address_space)),
+            config,
+            certificate_store,
+            server_certificate,
+            server_pkey,
+            address_space,
             last_subscription_id: 0,
-
             max_subscriptions,
             min_publishing_interval: constants::MIN_PUBLISHING_INTERVAL,
             max_keep_alive_count: constants::MAX_KEEP_ALIVE_COUNT,
+            diagnostics,
             abort: false,
-            diagnostics: ServerDiagnostics::new(),
         };
 
+        // Set some values in the address space from the server state
         {
             let mut address_space = server_state.address_space.lock().unwrap();
             address_space.update_from_server_state(&server_state);
@@ -329,12 +348,17 @@ impl Server {
             info!("Server supports these endpoints:");
             let server_state = self.server_state.lock().unwrap();
             for endpoint in server_state.endpoints.iter() {
-                info!("Endpoint \"{}\":", endpoint.name);
-                info!("  Url:              {}", endpoint.endpoint_url);
-                info!("  Anonymous Access: {:?}", endpoint.anonymous);
-                info!("  User/Password:    {:?}", endpoint.user.is_some());
-                info!("  Security Policy:  {}", if endpoint.security_policy_uri.is_null() { "" } else { endpoint.security_policy_uri.as_ref() });
+                info!("Endpoint \"{}\": {}", endpoint.name, endpoint.endpoint_url);
+                if endpoint.anonymous {
+                    info!("  Anonymous Access: {:?}", endpoint.anonymous);
+                }
+                if endpoint.user.is_some() {
+                    info!("  User/Password:    {:?}", endpoint.user.is_some());
+                }
                 info!("  Security Mode:    {:?}", endpoint.security_mode);
+                if endpoint.security_mode == MessageSecurityMode::Sign || endpoint.security_mode == MessageSecurityMode::SignAndEncrypt {
+                    info!("  Security Policy:  {}", if endpoint.security_policy_uri.is_null() { "" } else { endpoint.security_policy_uri.as_ref() });
+                }
             }
         }
         info!("Waiting for Connection");

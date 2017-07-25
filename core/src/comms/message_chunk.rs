@@ -306,16 +306,16 @@ impl MessageChunk {
             // S - Padding         - E
             //     Signature       - E
             let chunk_info = self.chunk_info(secure_channel)?;
-            let sign_info = 0..(self.data.len() - secure_channel.security_policy.symmetric_signature_size());
-            let encrypt_info = chunk_info.sequence_header_offset..self.data.len();
+            let signed_range = 0..(self.data.len() - secure_channel.security_policy.symmetric_signature_size());
+            let encrypted_range = chunk_info.sequence_header_offset..self.data.len();
             let mut encrypted_data = vec![0u8; self.data.len()];
 
             // Encrypt and sign - open secure channel
             if self.is_open_secure_channel() {
-                secure_channel.asymmetric_encrypt_and_sign(secure_channel.security_policy, &self.data, sign_info, encrypt_info, &mut encrypted_data)?;
+                secure_channel.asymmetric_encrypt_and_sign(secure_channel.security_policy, &self.data, signed_range, encrypted_range, &mut encrypted_data)?;
             } else {
                 // Symmetric encrypt and sign
-                secure_channel.symmetric_encrypt_and_sign(&self.data, sign_info, encrypt_info, &mut encrypted_data)?;
+                secure_channel.symmetric_encrypt_and_sign(&self.data, signed_range, encrypted_range, &mut encrypted_data)?;
             }
             self.data = encrypted_data;
         }
@@ -333,12 +333,13 @@ impl MessageChunk {
         if self.is_open_secure_channel() {
             // The OpenSecureChannel is the first thing we receive so we must examine
             // the security policy and use it to determine if the packet must be decrypted.
-            let (encrypt_info, security_header) = {
+            let (security_header, encrypted_data_offset, message_size) = {
                 let mut stream = Cursor::new(&self.data);
-                let _ = MessageChunkHeader::decode(&mut stream)?;
+                let message_header = MessageChunkHeader::decode(&mut stream)?;
                 let security_header = AsymmetricSecurityHeader::decode(&mut stream)?;
-                ((stream.position() as usize)..self.data.len(), security_header)
+                (security_header, stream.position() as usize, message_header.message_size as usize)
             };
+            let encrypted_range = encrypted_data_offset..message_size;
 
             debug!("Decrypting OpenSecureChannel");
 
@@ -364,33 +365,44 @@ impl MessageChunk {
             // key, verify signature with client's public key.
 
             // This code doesn't *care* if the cert is trusted, merely that it was used to sign the message
+            if security_header.sender_certificate.is_null() {
+                error!("Sender certificate is NULL!!!");
+                // TODO return
+            }
+
+            let sender_certificate_len = security_header.sender_certificate.value.as_ref().unwrap().len();
+            debug!("Sender certificate byte length = {}", sender_certificate_len);
             let sender_certificate = X509::from_byte_string(&security_header.sender_certificate)?;
+
             let verification_key = sender_certificate.public_key()?;
-            let asymmetric_signature_size = security_policy.asymmetric_signature_size();
-            let sign_info = 0..(self.data.len() - asymmetric_signature_size);
+            let signature_size = verification_key.bit_length() / 8;
+            debug!("Sender public key byte length = {}", signature_size);
+
+            let signed_range = 0..message_size - signature_size;
 
             let receiver_thumbprint = security_header.receiver_certificate_thumbprint;
 
-            debug!("Asymmetric decrypting OPN with signature info {:?} and encrypt info {:?}", sign_info, encrypt_info);
+            debug!("Asymmetric decrypting OPN with signature info {:?} and encrypt info {:?}", signed_range, encrypted_range);
 
-            let mut decrypted_data = vec![0u8; self.data.len()];
-            secure_channel.asymmetric_decrypt_and_verify(security_policy, &verification_key, receiver_thumbprint, &self.data, sign_info, encrypt_info, &mut decrypted_data)?;
+            let mut decrypted_data = vec![0u8; message_size];
+            secure_channel.asymmetric_decrypt_and_verify(security_policy, &verification_key, receiver_thumbprint, &self.data, signed_range, encrypted_range, &mut decrypted_data)?;
 
             self.data = decrypted_data;
         } else if secure_channel.signing_enabled() || secure_channel.encryption_enabled() {
             // Symmetric decrypt and verify
-            let sign_info = 0..(self.data.len() - secure_channel.security_policy.symmetric_signature_size());
-            let encrypt_info = {
-                // Read past header and security header to get position of stream corresponding to sequence header
+            let (encrypted_data_offset, message_size) = {
                 let mut stream = Cursor::new(&self.data);
-                let _ = MessageChunkHeader::decode(&mut stream)?;
+                let message_header = MessageChunkHeader::decode(&mut stream)?;
                 let _ = SymmetricSecurityHeader::decode(&mut stream)?;
-                (stream.position() as usize)..self.data.len()
+                (stream.position() as usize, message_header.message_size as usize)
             };
-            debug!("Decrypting block with signature info {:?} and encrypt info {:?}", sign_info, encrypt_info);
 
-            let mut decrypted_data = vec![0u8; self.data.len()];
-            secure_channel.symmetric_decrypt_and_verify(&self.data, sign_info, encrypt_info, &mut decrypted_data)?;
+            let encrypted_range = encrypted_data_offset..message_size;
+            let signed_range = 0..(message_size - secure_channel.security_policy.symmetric_signature_size());
+            debug!("Decrypting block with signature info {:?} and encrypt info {:?}", signed_range, encrypted_range);
+
+            let mut decrypted_data = vec![0u8; message_size];
+            secure_channel.symmetric_decrypt_and_verify(&self.data, signed_range, encrypted_range, &mut decrypted_data)?;
 
             self.data = decrypted_data;
         }

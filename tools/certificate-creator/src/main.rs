@@ -85,7 +85,7 @@ The files will be created under the specified under the specified --pkipath valu
     let pki_path = matches.value_of("pkipath").unwrap().to_string();
     let key_size = value_t_or_exit!(matches, "keysize", u32);
     let overwrite = matches.is_present("overwrite");
-    let duration = value_t_or_exit!(matches, "duration", u32);
+    let certificate_duration_days = value_t_or_exit!(matches, "duration", u32);
 
     let common_name = matches.value_of("CN").unwrap().to_string();
     let organization = matches.value_of("O").unwrap().to_string();
@@ -114,7 +114,7 @@ The files will be created under the specified under the specified --pkipath valu
         result
     };
 
-    if duration == 0 {
+    if certificate_duration_days == 0 {
         warn!("Duration is zero days!?");
     }
 
@@ -123,13 +123,13 @@ The files will be created under the specified under the specified --pkipath valu
     }
 
     (X509Data {
-        key_size: key_size,
-        common_name: common_name,
-        organization: organization,
-        organizational_unit: organizational_unit,
-        country: country,
-        state: state,
-        alt_host_names: alt_host_names,
-        certificate_duration_days: duration,
+        key_size,
+        common_name,
+        organization,
+        organizational_unit,
+        country,
+        state,
+        alt_host_names,
+        certificate_duration_days,
     }, overwrite, PathBuf::from(&pki_path))
 }

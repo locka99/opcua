@@ -69,12 +69,28 @@ impl ServerEndpoint {
         ServerEndpoint::new_default(false, user, pass, SecurityPolicy::None, MessageSecurityMode::None)
     }
 
-    pub fn default_basic128rs15_sign() -> ServerEndpoint {
+    pub fn default_basic128rsa15_sign() -> ServerEndpoint {
         ServerEndpoint::new_default(false, "", &[], SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign)
     }
 
-    pub fn default_basic128rs15_sign_encrypt() -> ServerEndpoint {
+    pub fn default_basic128rsa15_sign_encrypt() -> ServerEndpoint {
         ServerEndpoint::new_default(false, "", &[], SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt)
+    }
+
+    pub fn default_basic256_sign() -> ServerEndpoint {
+        ServerEndpoint::new_default(false, "", &[], SecurityPolicy::Basic256, MessageSecurityMode::Sign)
+    }
+
+    pub fn default_basic256_sign_encrypt() -> ServerEndpoint {
+        ServerEndpoint::new_default(false, "", &[], SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt)
+    }
+
+    pub fn default_basic256sha256_sign() -> ServerEndpoint {
+        ServerEndpoint::new_default(false, "", &[], SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign)
+    }
+
+    pub fn default_basic256sha256_sign_encrypt() -> ServerEndpoint {
+        ServerEndpoint::new_default(false, "", &[], SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt)
     }
 
     pub fn is_valid(&self) -> bool {
@@ -121,6 +137,9 @@ pub struct ServerConfig {
     pub product_uri: String,
     /// pki folder, either absolute or relative to executable
     pub pki_dir: String,
+    /// Autocreates public / private keypair if they don't exist. For testing/samples only
+    /// since you do not have control of the values
+    pub create_sample_keypair: bool,
     /// Flag turns on or off discovery service
     pub discovery_service: bool,
     /// tcp configuration information
@@ -153,17 +172,18 @@ impl ServerConfig {
         };
 
         ServerConfig {
-            application_name: application_name,
-            application_uri: application_uri,
-            product_uri: product_uri,
+            application_name,
+            application_uri,
+            product_uri,
             discovery_service: true,
             pki_dir: pki_dir.into_os_string().into_string().unwrap(),
+            create_sample_keypair: false,
             tcp_config: TcpConfig {
                 host: hostname,
                 port: constants::DEFAULT_OPC_UA_SERVER_PORT,
                 hello_timeout: constants::DEFAULT_HELLO_TIMEOUT_SECONDS,
             },
-            endpoints: endpoints,
+            endpoints,
             max_array_length: opcua_types_constants::MAX_ARRAY_LENGTH,
             max_string_length: opcua_types_constants::MAX_STRING_LENGTH,
             max_byte_string_length: opcua_types_constants::MAX_BYTE_STRING_LENGTH,
@@ -181,17 +201,23 @@ impl ServerConfig {
     }
 
     pub fn default_secure() -> ServerConfig {
-        ServerConfig::default(vec![ServerEndpoint::default_basic128rs15_sign_encrypt()])
+        ServerConfig::default(vec![ServerEndpoint::default_basic128rsa15_sign_encrypt()])
     }
 
     /// Sample mode turns on everything including a hard coded user/pass
     pub fn default_sample() -> ServerConfig {
-        ServerConfig::default(vec![
+        let mut config = ServerConfig::default(vec![
             ServerEndpoint::default_anonymous(),
             ServerEndpoint::default_user_pass("sample", b"sample1"),
-            ServerEndpoint::default_basic128rs15_sign(),
-            ServerEndpoint::default_basic128rs15_sign_encrypt(),
-        ])
+            ServerEndpoint::default_basic128rsa15_sign(),
+            ServerEndpoint::default_basic128rsa15_sign_encrypt(),
+            ServerEndpoint::default_basic256_sign(),
+            ServerEndpoint::default_basic256_sign_encrypt(),
+            ServerEndpoint::default_basic256sha256_sign(),
+            ServerEndpoint::default_basic256sha256_sign_encrypt(),
+        ]);
+        config.create_sample_keypair = true;
+        config
     }
 
     pub fn save(&self, path: &Path) -> Result<(), ()> {

@@ -247,7 +247,7 @@ impl SecureChannel {
         self.security_policy != SecurityPolicy::None && self.security_mode == MessageSecurityMode::SignAndEncrypt
     }
 
-    pub fn asymmetric_decrypt_and_verify(&self, security_policy: SecurityPolicy, verification_key: &PKey, receiver_thumbprint: ByteString, src: &[u8], sr: Range<usize>, er: Range<usize>, dst: &mut [u8]) -> Result<(), StatusCode> {
+    pub fn asymmetric_decrypt_and_verify(&self, security_policy: SecurityPolicy, verification_key: &PKey, receiver_thumbprint: ByteString, src: &[u8], signed_range: Range<usize>, encrypted_range: Range<usize>, dst: &mut [u8]) -> Result<(), StatusCode> {
         // Asymmetric encrypt requires the caller supply the security policy
         match security_policy {
             SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {}
@@ -265,63 +265,79 @@ impl SecureChannel {
         // The receiver certificate thumbprint identifies which of our certs was used by the client
         // to encrypt the message. We have to work out from the thumbprint which cert to use
 
-        // There is an expectation that the block is padded so, this is a quick test
-        let plaintext_block_size = er.end - er.start;
-        if plaintext_block_size % 16 != 0 {
-            error!("The plain text block is not padded properly, size = {}", plaintext_block_size);
-            return Err(BAD_DECODING_ERROR);
+        let our_cert = self.cert.as_ref().unwrap();
+        let our_thumbprint = our_cert.thumbprint();
+        if &our_thumbprint.value[..] != receiver_thumbprint.as_ref() {
+            error!("Supplied thumbprint does not match application certificate's thumbprint");
+            Err(BAD_NO_VALID_CERTIFICATES)
+        } else {
+            // Copy message, security header
+            &dst[..encrypted_range.start].copy_from_slice(&src[..encrypted_range.start]);
+
+            // Decrypt and copy encrypted block
+            // Note that the unencrypted size can be less than the encrypted size due to removal
+            // of padding, so the ranges that were supplied to this function must be offset to compensate.
+            let (encrypted_range, signed_range, signature_range) = {
+                let plaintext_size = encrypted_range.end - encrypted_range.start;
+                debug!("Decrypting message with our certificate range {:?}", encrypted_range);
+                let mut decrypted_tmp = vec![0u8; plaintext_size];
+
+                let private_key = self.private_key.as_ref().unwrap();
+                let decrypted_size = security_policy.asymmetric_decrypt(private_key, &src[encrypted_range.clone()], &mut decrypted_tmp)?;
+                debug!("Decrypted bytes = {} compared to encrypted range {}", decrypted_size, encrypted_range.end - encrypted_range.start);
+
+                let offset = plaintext_size - decrypted_size;
+
+                // Ranges change
+                let encrypted_range = encrypted_range.start..(encrypted_range.end - offset);
+                let signed_range = signed_range.start..(signed_range.end - offset);
+
+                &dst[encrypted_range.clone()].copy_from_slice(&decrypted_tmp[0..decrypted_size]);
+
+                let signature_range = signed_range.end..(src.len() - offset);
+
+                (encrypted_range, signed_range, signature_range)
+            };
+
+            {
+                use debug;
+                debug::debug_buffer("Decrypted data = ", &dst[encrypted_range.clone()])
+            }
+
+            // Verify signature (contained encrypted portion) using verification key
+            debug!("Verifying signature range {:?} with signature at {:?}", signed_range, signature_range);
+            security_policy.asymmetric_verify_signature(verification_key, &dst[signed_range.clone()], &dst[signature_range.clone()])?;
+            &dst[signature_range.clone()].copy_from_slice(&src[signature_range.clone()]);
+
+            // Decrypted and verified into dst
+            Ok(())
         }
-
-        // Copy security header
-        &dst[..er.start].copy_from_slice(&src[..er.start]);
-
-        // Decrypt encrypted portion
-        debug!("Decrypting message with our certificate range {:?}", er);
-        let mut decrypted_tmp = vec![0u8; plaintext_block_size + 16]; // tmp includes +16 for blocksize
-        let x509 = self.cert.as_ref().unwrap();
-        let private_key = self.private_key.as_ref().unwrap();
-        security_policy.asymmetric_decrypt(x509, private_key, receiver_thumbprint.as_ref(), &src[er.clone()], &mut decrypted_tmp)?;
-        &dst[er.clone()].copy_from_slice(&decrypted_tmp[..plaintext_block_size]);
-
-        // Verify signature (after encrypted portion)
-        debug!("Verifying signature range {:?}", sr);
-        let signature_range = sr.end..src.len();
-        security_policy.asymmetric_verify_signature(verification_key, &dst[sr.clone()], &src[signature_range.clone()])?;
-        &dst[signature_range.clone()].copy_from_slice(&src[signature_range.clone()]);
-
-        {
-            use debug;
-            debug::debug_buffer("Decrypted message", dst);
-        }
-
-        // Decrypted and verified into dst
-        Ok(())
     }
 
     /// Use the security policy to asymmetric encrypt and sign the specified chunk of data
-    pub fn asymmetric_encrypt_and_sign(&self, security_policy: SecurityPolicy, src: &[u8], sr: Range<usize>, er: Range<usize>, dst: &mut [u8]) -> Result<(), StatusCode> {
+    pub fn asymmetric_encrypt_and_sign(&self, security_policy: SecurityPolicy, src: &[u8], signed_range: Range<usize>, encrypted_range: Range<usize>, dst: &mut [u8]) -> Result<(), StatusCode> {
         // There is an expectation that the block is padded so, this is a quick test
-        let plaintext_block_size = er.end - er.start;
+        let plaintext_block_size = encrypted_range.end - encrypted_range.start;
         if plaintext_block_size % 16 != 0 {
             error!("The plain text block is not padded properly, size = {}", plaintext_block_size);
             return Err(BAD_DECODING_ERROR);
         }
 
         let mut dst_tmp = vec![0u8; dst.len() + 16]; // tmp includes +16 for blocksize
-        let signature_len = src.len() - sr.end;
+        let signature_len = src.len() - signed_range.end;
         debug!("signature len = {}", signature_len);
         let mut signature = vec![0u8; signature_len];
         // Sign the message header, security header, sequence header, body, padding
         let signing_key = self.private_key.as_ref().unwrap();
-        security_policy.asymmetric_sign(&signing_key, &src[sr.clone()], &mut signature)?;
-        &dst_tmp[sr.clone()].copy_from_slice(&src[sr.clone()]);
-        &dst_tmp[sr.end..].copy_from_slice(&signature);
+        security_policy.asymmetric_sign(&signing_key, &src[signed_range.clone()], &mut signature)?;
+        &dst_tmp[signed_range.clone()].copy_from_slice(&src[signed_range.clone()]);
+        &dst_tmp[signed_range.end..].copy_from_slice(&signature);
 
         // Encrypt the sequence header, payload, signature
         let encryption_key = self.their_cert.as_ref().unwrap().public_key()?;
-        security_policy.asymmetric_encrypt(&encryption_key, &dst_tmp[er.clone()], &mut dst[er.clone()])?;
+        security_policy.asymmetric_encrypt(&encryption_key, &dst_tmp[encrypted_range.clone()], &mut dst[encrypted_range.clone()])?;
         // Copy the message header / security header
-        &dst[..er.start].copy_from_slice(&dst_tmp[..er.start]);
+        &dst[..encrypted_range.start].copy_from_slice(&dst_tmp[..encrypted_range.start]);
 
         Ok(())
     }
@@ -337,7 +353,7 @@ impl SecureChannel {
     /// S - Body            - E
     /// S - Padding         - E
     ///     Signature       - E
-    pub fn symmetric_encrypt_and_sign(&self, src: &[u8], sr: Range<usize>, er: Range<usize>, dst: &mut [u8]) -> Result<(), StatusCode> {
+    pub fn symmetric_encrypt_and_sign(&self, src: &[u8], signed_range: Range<usize>, encrypted_range: Range<usize>, dst: &mut [u8]) -> Result<(), StatusCode> {
         match self.security_mode {
             MessageSecurityMode::None => {
                 debug!("encrypt_and_sign is doing nothing because security mode == None");
@@ -347,15 +363,15 @@ impl SecureChannel {
             MessageSecurityMode::Sign => {
                 debug!("encrypt_and_sign security mode == Sign");
                 self.expect_supported_security_policy();
-                let signature_len = src.len() - sr.end;
+                let signature_len = src.len() - signed_range.end;
                 let mut signature = vec![0u8; signature_len];
                 debug!("signature len = {}", signature_len);
                 // Sign the message header, security header, sequence header, body, padding
                 let key = &(self.sending_keys.as_ref().unwrap()).0;
-                self.security_policy.symmetric_sign(key, &src[sr.clone()], &mut signature)?;
-                &dst[sr.clone()].copy_from_slice(&src[sr.clone()]);
+                self.security_policy.symmetric_sign(key, &src[signed_range.clone()], &mut signature)?;
+                &dst[signed_range.clone()].copy_from_slice(&src[signed_range.clone()]);
                 debug!("Signature = {:?}", signature);
-                &dst[sr.end..].copy_from_slice(&signature);
+                &dst[signed_range.end..].copy_from_slice(&signature);
             }
             MessageSecurityMode::SignAndEncrypt => {
                 debug!("encrypt_and_sign security mode == SignAndEncrypt");
@@ -364,26 +380,26 @@ impl SecureChannel {
                 let keys = self.sending_keys.as_ref().unwrap();
 
                 // There is an expectation that the block is padded so, this is a quick test
-                let plaintext_block_size = er.end - er.start;
+                let plaintext_block_size = encrypted_range.end - encrypted_range.start;
                 if plaintext_block_size % 16 != 0 {
                     error!("The plain text block is not padded properly, size = {}", plaintext_block_size);
                     return Err(BAD_DECODING_ERROR);
                 }
                 let mut dst_tmp = vec![0u8; dst.len() + 16]; // tmp includes +16 for blocksize
-                let signature_len = src.len() - sr.end;
+                let signature_len = src.len() - signed_range.end;
                 debug!("signature len = {}", signature_len);
                 let mut signature = vec![0u8; signature_len];
                 // Sign the message header, security header, sequence header, body, padding
-                self.security_policy.symmetric_sign(&keys.0, &src[sr.clone()], &mut signature)?;
-                &dst_tmp[sr.clone()].copy_from_slice(&src[sr.clone()]);
-                &dst_tmp[sr.end..].copy_from_slice(&signature);
+                self.security_policy.symmetric_sign(&keys.0, &src[signed_range.clone()], &mut signature)?;
+                &dst_tmp[signed_range.clone()].copy_from_slice(&src[signed_range.clone()]);
+                &dst_tmp[signed_range.end..].copy_from_slice(&signature);
 
                 // Encrypt the sequence header, payload, signature
                 let key = &keys.1;
                 let iv = &keys.2;
-                self.security_policy.symmetric_encrypt(key, iv, &dst_tmp[er.clone()], &mut dst[er.clone()])?;
+                self.security_policy.symmetric_encrypt(key, iv, &dst_tmp[encrypted_range.clone()], &mut dst[encrypted_range.clone()])?;
                 // Copy the message header / security header
-                &dst[..er.start].copy_from_slice(&dst_tmp[..er.start]);
+                &dst[..encrypted_range.start].copy_from_slice(&dst_tmp[..encrypted_range.start]);
             }
             MessageSecurityMode::Invalid => {
                 panic!("Message security mode is invalid");
@@ -400,7 +416,7 @@ impl SecureChannel {
     /// S - Body            - E
     /// S - Padding         - E
     ///     Signature       - E
-    pub fn symmetric_decrypt_and_verify(&self, src: &[u8], sr: Range<usize>, er: Range<usize>, dst: &mut [u8]) -> Result<(), StatusCode> {
+    pub fn symmetric_decrypt_and_verify(&self, src: &[u8], signed_range: Range<usize>, encrypted_range: Range<usize>, dst: &mut [u8]) -> Result<(), StatusCode> {
         match self.security_mode {
             MessageSecurityMode::None => {
                 // Just copy everything from src to dst
@@ -415,35 +431,35 @@ impl SecureChannel {
                 debug!("copying from slice {:?}", all);
                 &dst[all].copy_from_slice(&src[all]);
                 // Verify signature
-                debug!("Verifying range from {:?} to signature {}..", sr, sr.end);
+                debug!("Verifying range from {:?} to signature {}..", signed_range, signed_range.end);
                 let key = &(self.receiving_keys.as_ref().unwrap()).0;
-                self.security_policy.symmetric_verify_signature(key, &dst[sr.clone()], &dst[sr.end..])?;
+                self.security_policy.symmetric_verify_signature(key, &dst[signed_range.clone()], &dst[signed_range.end..])?;
                 Ok(())
             }
             MessageSecurityMode::SignAndEncrypt => {
                 self.expect_supported_security_policy();
 
                 // There is an expectation that the block is padded so, this is a quick test
-                let plaintext_block_size = er.end - er.start;
+                let plaintext_block_size = encrypted_range.end - encrypted_range.start;
                 if plaintext_block_size % 16 != 0 {
                     error!("The plain text block is not padded properly, size = {}", plaintext_block_size);
                     return Err(BAD_DECODING_ERROR);
                 }
 
                 // Copy security header
-                &dst[..er.start].copy_from_slice(&src[..er.start]);
+                &dst[..encrypted_range.start].copy_from_slice(&src[..encrypted_range.start]);
 
                 // Decrypt encrypted portion
                 let mut decrypted_tmp = vec![0u8; plaintext_block_size + 16]; // tmp includes +16 for blocksize
                 let keys = self.receiving_keys.as_ref().unwrap();
                 let key = &keys.1;
                 let iv = &keys.2;
-                self.security_policy.symmetric_decrypt(key, iv, &src[er.clone()], &mut decrypted_tmp)?;
-                &dst[er.clone()].copy_from_slice(&decrypted_tmp[..plaintext_block_size]);
+                self.security_policy.symmetric_decrypt(key, iv, &src[encrypted_range.clone()], &mut decrypted_tmp)?;
+                &dst[encrypted_range.clone()].copy_from_slice(&decrypted_tmp[..plaintext_block_size]);
 
                 // Verify signature (after encrypted portion)
                 let key = &(self.sending_keys.as_ref().unwrap()).0;
-                self.security_policy.symmetric_verify_signature(key, &dst[sr.clone()], &dst[sr.end..])?;
+                self.security_policy.symmetric_verify_signature(key, &dst[signed_range.clone()], &dst[signed_range.end..])?;
                 Ok(())
             }
             MessageSecurityMode::Invalid => {
