@@ -367,7 +367,7 @@ impl TcpTransport {
         }
 
         // Decrypt / verify chunk if necessary
-        chunk.verify_and_remove_security(self.secure_channel())?;
+        chunk.verify_and_remove_security(&mut self.secure_channel_service.secure_channel)?;
 
         let in_chunks = vec![chunk];
         let chunk_info = in_chunks[0].chunk_info(self.secure_channel())?;
@@ -376,7 +376,7 @@ impl TcpTransport {
         let message = self.turn_received_chunks_into_message(&in_chunks)?;
         let response = match message_header.message_type {
             MessageChunkType::OpenSecureChannel => {
-                self.secure_channel_service.open_secure_channel(self.client_protocol_version, &message)?
+                self.secure_channel_service.open_secure_channel(&chunk_info.security_header, self.client_protocol_version, &message)?
             }
             MessageChunkType::CloseSecureChannel => {
                 self.secure_channel_service.close_secure_channel(&message)?
@@ -405,12 +405,14 @@ impl TcpTransport {
                 // debug!("Response to send: {:?}", response);
                 let sequence_number = self.last_sent_sequence_number + 1;
                 // TODO max message size, max chunk size
-                let out_chunks = Chunker::encode(sequence_number, request_id, 0, 0, self.secure_channel(), response)?;
+                let mut out_chunks = Chunker::encode(sequence_number, request_id, 0, 0, self.secure_channel(), response)?;
                 self.last_sent_sequence_number = sequence_number + out_chunks.len() as UInt32 - 1;
 
                 // Send out any chunks that form the response
                 // debug!("Got some chunks to send {:?}", out_chunks);
-                for out_chunk in out_chunks {
+                for out_chunk in out_chunks.iter_mut() {
+                    // Encrypt and sign the chunk if necessary
+                    out_chunk.apply_security(&mut self.secure_channel_service.secure_channel);
                     let _ = out_chunk.encode(out_stream);
                 }
             }

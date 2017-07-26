@@ -297,7 +297,7 @@ impl MessageChunk {
     }
 
     /// Signs and encrypts the data
-    pub fn apply_security(&mut self, secure_channel: &SecureChannel) -> Result<(), StatusCode> {
+    pub fn apply_security(&mut self, secure_channel: &mut SecureChannel) -> Result<(), StatusCode> {
         if secure_channel.signing_enabled() || secure_channel.encryption_enabled() {
             // S - Message Header
             // S - Security Header
@@ -306,24 +306,28 @@ impl MessageChunk {
             // S - Padding         - E
             //     Signature       - E
             let chunk_info = self.chunk_info(secure_channel)?;
-            let signed_range = 0..(self.data.len() - secure_channel.security_policy.symmetric_signature_size());
             let encrypted_range = chunk_info.sequence_header_offset..self.data.len();
-            let mut encrypted_data = vec![0u8; self.data.len()];
+
+            // Allow big chunk of space for any padding, signature
+            let mut encrypted_data = vec![0u8; self.data.len() + 1024];
 
             // Encrypt and sign - open secure channel
-            if self.is_open_secure_channel() {
-                secure_channel.asymmetric_encrypt_and_sign(secure_channel.security_policy, &self.data, signed_range, encrypted_range, &mut encrypted_data)?;
+            let encrypted_size = if self.is_open_secure_channel() {
+                secure_channel.asymmetric_encrypt_and_sign(secure_channel.security_policy, &self.data, encrypted_range, &mut encrypted_data)?
             } else {
                 // Symmetric encrypt and sign
-                secure_channel.symmetric_encrypt_and_sign(&self.data, signed_range, encrypted_range, &mut encrypted_data)?;
-            }
-            self.data = encrypted_data;
+                let signed_range = 0..(self.data.len() - secure_channel.security_policy.symmetric_signature_size());
+                secure_channel.symmetric_encrypt_and_sign(&self.data, signed_range, encrypted_range, &mut encrypted_data)?
+            };
+
+            self.data.clear();
+            self.data.extend_from_slice(&encrypted_data[0..encrypted_size]);
         }
         Ok(())
     }
 
     /// Decrypts and verifies the body data if the mode / policy requires it
-    pub fn verify_and_remove_security(&mut self, secure_channel: &SecureChannel) -> Result<(), StatusCode> {
+    pub fn verify_and_remove_security(&mut self, secure_channel: &mut SecureChannel) -> Result<(), StatusCode> {
         // S - Message Header
         // S - Security Header
         // S - Sequence Header - E

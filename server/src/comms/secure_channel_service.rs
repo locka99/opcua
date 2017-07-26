@@ -1,8 +1,9 @@
-use std;
+use std::result::Result;
 
 use opcua_types::*;
 
 use opcua_core::comms::*;
+use opcua_core::crypto::X509;
 
 use server::ServerState;
 
@@ -33,14 +34,24 @@ impl SecureChannelService {
         }
     }
 
-    pub fn open_secure_channel(&mut self, client_protocol_version: UInt32, message: &SupportedMessage) -> std::result::Result<SupportedMessage, StatusCode> {
-        let request: &OpenSecureChannelRequest = match *message {
-            SupportedMessage::OpenSecureChannelRequest(ref request) => {
+    pub fn open_secure_channel(&mut self, security_header: &SecurityHeader, client_protocol_version: UInt32, message: &SupportedMessage) -> Result<SupportedMessage, StatusCode> {
+        let request = match message {
+            &SupportedMessage::OpenSecureChannelRequest(ref request) => {
                 info!("Got secure channel request {:?}", request);
                 request
             }
             _ => {
                 error!("message is not an open secure channel request, got {:?}", message);
+                return Err(BAD_UNEXPECTED_ERROR);
+            }
+        };
+
+        let security_header = match security_header {
+            &SecurityHeader::Asymmetric(ref security_header) => {
+                security_header
+            }
+            _ => {
+                error!("Secure channel request message does not have asymmetric security header");
                 return Err(BAD_UNEXPECTED_ERROR);
             }
         };
@@ -100,6 +111,11 @@ impl SecureChannelService {
         // Create a new secure channel info
         self.secure_channel.token_id = self.last_token_id;
         self.secure_channel.secure_channel_id = self.last_secure_channel_id;
+
+        if !security_header.sender_certificate.is_null() {
+            self.secure_channel.their_cert = Some(X509::from_byte_string(&security_header.sender_certificate)?);
+        }
+
         let nonce_result = self.secure_channel.set_their_nonce(&request.client_nonce);
         if nonce_result.is_ok() {
             self.secure_channel.create_random_nonce();
@@ -126,7 +142,7 @@ impl SecureChannelService {
         Ok(SupportedMessage::OpenSecureChannelResponse(response))
     }
 
-    pub fn close_secure_channel(&mut self, _: &SupportedMessage) -> std::result::Result<SupportedMessage, StatusCode> {
+    pub fn close_secure_channel(&mut self, _: &SupportedMessage) -> Result<SupportedMessage, StatusCode> {
         info!("CloseSecureChannelRequest received, session closing");
         Err(BAD_CONNECTION_CLOSED)
     }

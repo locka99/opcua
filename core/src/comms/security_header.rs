@@ -3,7 +3,7 @@ use std::io::{Read, Write};
 use opcua_types::*;
 use opcua_types::constants;
 
-use crypto::SecurityPolicy;
+use crypto::{SecurityPolicy, X509};
 
 /// Holds the security header associated with the chunk. Secure channel requests use an asymmetric
 /// security header, regular messages use a symmetric security header.
@@ -112,6 +112,14 @@ impl AsymmetricSecurityHeader {
             security_policy_uri: UAString::from_str(SecurityPolicy::None.to_uri()),
             sender_certificate: ByteString::null(),
             receiver_certificate_thumbprint: ByteString::null(),
+        }
+    }
+
+    pub fn new(security_policy: SecurityPolicy, sender_certificate: &X509, receiver_certificate_thumbprint: ByteString) -> AsymmetricSecurityHeader {
+        AsymmetricSecurityHeader {
+            security_policy_uri: UAString::from_str(security_policy.to_uri()),
+            sender_certificate: sender_certificate.as_byte_string(),
+            receiver_certificate_thumbprint
         }
     }
 }

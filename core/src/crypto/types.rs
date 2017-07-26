@@ -87,6 +87,10 @@ impl Thumbprint {
         Thumbprint { value }
     }
 
+    pub fn as_byte_string(&self) -> ByteString {
+        ByteString::from_bytes(&self.value)
+    }
+
     /// Returns the thumbprint as a string using hexdecimal values for each byte
     pub fn as_hex_string(&self) -> String {
         // Hex name = 20 bytes = 40 chars in hex but add some spare capacity for file extensions

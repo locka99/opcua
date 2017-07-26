@@ -461,8 +461,9 @@ impl SecurityPolicy {
         Ok(dst_idx)
     }
 
-    /// Encrypts a message using the supplied encryption key
-    pub fn asymmetric_encrypt(&self, encryption_key: &PKey, src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
+    /// Encrypts a message using the supplied encryption key, returns the encrypted size. Destination
+    /// buffer must be large enough to hold encrypted bytes including padding.
+    pub fn asymmetric_encrypt(&self, encryption_key: &PKey, src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
         let rsa = encryption_key.value.rsa().unwrap();
         let key_size = encryption_key.bit_length() / 8;
 
@@ -488,7 +489,7 @@ impl SecurityPolicy {
             dst_idx += encrypted_bytes.unwrap();
         }
 
-        Ok(())
+        Ok(dst_idx)
     }
 
     /// Sign the following block

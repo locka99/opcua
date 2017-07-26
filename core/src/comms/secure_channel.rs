@@ -93,7 +93,13 @@ impl SecureChannel {
     pub fn make_security_header(&self, message_type: MessageChunkType) -> SecurityHeader {
         match message_type {
             MessageChunkType::OpenSecureChannel => {
-                SecurityHeader::Asymmetric(AsymmetricSecurityHeader::none())
+                let asymmetric_security_header = if self.security_policy == SecurityPolicy::None {
+                    AsymmetricSecurityHeader::none()
+                } else {
+                    let receiver_certificate_thumbprint = self.their_cert.as_ref().unwrap().thumbprint().as_byte_string();
+                    AsymmetricSecurityHeader::new(self.security_policy, self.cert.as_ref().unwrap(), receiver_certificate_thumbprint)
+                };
+                SecurityHeader::Asymmetric(asymmetric_security_header)
             }
             _ => {
                 SecurityHeader::Symmetric(SymmetricSecurityHeader {
@@ -207,31 +213,42 @@ impl SecureChannel {
         if self.security_policy != SecurityPolicy::None && self.security_mode != MessageSecurityMode::None {
             // Signature size in bytes
             let signature_size = self.signature_size(security_header);
+            let padding_size = match security_header {
+                &SecurityHeader::Asymmetric(_) => {
+                    if bytes_to_write < signature_size {
+                        signature_size - bytes_to_write
+                    } else {
+                        bytes_to_write
+                    }
+                }
+                &SecurityHeader::Symmetric(_) => {
+                    // Plain text block size comes from policy
+                    let plain_text_block_size = self.security_policy.plain_block_size();
 
-            // Plain text block size comes from policy
-            let plain_text_block_size = self.security_policy.plain_block_size();
+                    // If a message chunk size is specified then we need to calculate the max body size
+                    let max_body_size = if message_chunk_size != 0 {
+                        // Cipher text block size comes from policy
+                        let cipher_text_block_size = self.security_policy.cipher_block_size();
+                        // Header size include message header and security header
+                        let header_size = MESSAGE_CHUNK_HEADER_SIZE + security_header.byte_len();
+                        // Sequence header size is 8 bytes
+                        let sequence_header_size = SEQUENCE_HEADER_SIZE;
 
-            // If a message chunk size is specified then we need to calculate the max body size
-            let max_body_size = if message_chunk_size != 0 {
-                // Cipher text block size comes from policy
-                let cipher_text_block_size = self.security_policy.cipher_block_size();
-                // Header size include message header and security header
-                let header_size = MESSAGE_CHUNK_HEADER_SIZE + security_header.byte_len();
-                // Sequence header size is 8 bytes
-                let sequence_header_size = SEQUENCE_HEADER_SIZE;
-
-                let f1: f64 = (message_chunk_size - header_size - signature_size - 1) as f64;
-                let f2: f64 = cipher_text_block_size as f64;
-                plain_text_block_size * ((f1 / f2).floor() as usize) - sequence_header_size
-            } else {
-                0
+                        let f1: f64 = (message_chunk_size - header_size - signature_size - 1) as f64;
+                        let f2: f64 = cipher_text_block_size as f64;
+                        plain_text_block_size * ((f1 / f2).floor() as usize) - sequence_header_size
+                    } else {
+                        0
+                    };
+                    let padding_size = if max_body_size > 0 && bytes_to_write > max_body_size {
+                        0
+                    } else {
+                        plain_text_block_size - ((bytes_to_write + signature_size + 1) % plain_text_block_size)
+                    };
+                    padding_size
+                }
             };
-            let padding_size = if max_body_size > 0 && bytes_to_write > max_body_size {
-                0
-            } else {
-                plain_text_block_size - ((bytes_to_write + signature_size + 1) % plain_text_block_size)
-            };
-            debug!("Padding calculated to be {} bytes", padding_size);
+            debug!("Padding calculated, padding = {} bytes", padding_size);
             padding_size
         } else {
             0
@@ -247,7 +264,7 @@ impl SecureChannel {
         self.security_policy != SecurityPolicy::None && self.security_mode == MessageSecurityMode::SignAndEncrypt
     }
 
-    pub fn asymmetric_decrypt_and_verify(&self, security_policy: SecurityPolicy, verification_key: &PKey, receiver_thumbprint: ByteString, src: &[u8], encrypted_range: Range<usize>, dst: &mut [u8]) -> Result<usize, StatusCode> {
+    pub fn asymmetric_decrypt_and_verify(&mut self, security_policy: SecurityPolicy, verification_key: &PKey, receiver_thumbprint: ByteString, src: &[u8], encrypted_range: Range<usize>, dst: &mut [u8]) -> Result<usize, StatusCode> {
         // Asymmetric encrypt requires the caller supply the security policy
         match security_policy {
             SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {}
@@ -255,6 +272,7 @@ impl SecureChannel {
                 return Err(BAD_SECURITY_POLICY_REJECTED);
             }
         }
+        self.security_policy = security_policy;
 
         // Unlike the symmetric_decrypt_and_verify, this code will ALWAYS decrypt and verify regardless
         // of security mode. This is part of the OpenSecureChannel request on a sign / signencrypt
@@ -310,31 +328,35 @@ impl SecureChannel {
     }
 
     /// Use the security policy to asymmetric encrypt and sign the specified chunk of data
-    pub fn asymmetric_encrypt_and_sign(&self, security_policy: SecurityPolicy, src: &[u8], signed_range: Range<usize>, encrypted_range: Range<usize>, dst: &mut [u8]) -> Result<(), StatusCode> {
-        // There is an expectation that the block is padded so, this is a quick test
-        let plaintext_block_size = encrypted_range.end - encrypted_range.start;
-        if plaintext_block_size % 16 != 0 {
-            error!("The plain text block is not padded properly, size = {}", plaintext_block_size);
-            return Err(BAD_DECODING_ERROR);
-        }
-
-        let mut dst_tmp = vec![0u8; dst.len() + 16]; // tmp includes +16 for blocksize
-        let signature_len = src.len() - signed_range.end;
-        debug!("signature len = {}", signature_len);
-        let mut signature = vec![0u8; signature_len];
-        // Sign the message header, security header, sequence header, body, padding
+    pub fn asymmetric_encrypt_and_sign(&self, security_policy: SecurityPolicy, src: &[u8], encrypted_range: Range<usize>, dst: &mut [u8]) -> Result<usize, StatusCode> {
         let signing_key = self.private_key.as_ref().unwrap();
+        let signing_key_size = signing_key.bit_length() / 8;
+
+        let signed_range = 0..(encrypted_range.end - signing_key_size);
+        let signature_range = (encrypted_range.end - signing_key_size)..encrypted_range.end;
+
+        debug!("Encrypted range = {:?}, signed range = {:?}, signature range = {:?}", encrypted_range, signed_range, signature_range);
+
+        debug!("signature len = {}", signing_key_size);
+        let mut signature = vec![0u8; signing_key_size];
+
+        // Sign the message header, security header, sequence header, body, padding
         security_policy.asymmetric_sign(&signing_key, &src[signed_range.clone()], &mut signature)?;
-        &dst_tmp[signed_range.clone()].copy_from_slice(&src[signed_range.clone()]);
-        &dst_tmp[signed_range.end..].copy_from_slice(&signature);
 
-        // Encrypt the sequence header, payload, signature
+        let mut tmp = vec![0u8; dst.len()];
+        &tmp[signed_range.clone()].copy_from_slice(&src[signed_range.clone()]);
+        &tmp[signature_range.clone()].copy_from_slice(&signature);
+
+        // Copy the unecryped message header / security header portion to dst
+        &dst[..encrypted_range.start].copy_from_slice(&tmp[..encrypted_range.start]);
+
+        // Encrypt the sequence header, payload, signature portion into dst
         let encryption_key = self.their_cert.as_ref().unwrap().public_key()?;
-        security_policy.asymmetric_encrypt(&encryption_key, &dst_tmp[encrypted_range.clone()], &mut dst[encrypted_range.clone()])?;
-        // Copy the message header / security header
-        &dst[..encrypted_range.start].copy_from_slice(&dst_tmp[..encrypted_range.start]);
+        let encrypted_size = security_policy.asymmetric_encrypt(&encryption_key, &tmp[encrypted_range.clone()], &mut dst[encrypted_range.start..])?;
 
-        Ok(())
+        debug!("Encrypted bytes = {} compared to encrypted range {:?}", encrypted_size, encrypted_range);
+
+        Ok(encrypted_range.start + encrypted_size)
     }
 
     /// Encode data using security. Destination buffer is expected to be same size as src and expected
@@ -348,31 +370,23 @@ impl SecureChannel {
     /// S - Body            - E
     /// S - Padding         - E
     ///     Signature       - E
-    pub fn symmetric_encrypt_and_sign(&self, src: &[u8], signed_range: Range<usize>, encrypted_range: Range<usize>, dst: &mut [u8]) -> Result<(), StatusCode> {
-        match self.security_mode {
+    pub fn symmetric_encrypt_and_sign(&self, src: &[u8], signed_range: Range<usize>, encrypted_range: Range<usize>, dst: &mut [u8]) -> Result<usize, StatusCode> {
+        let encrypted_size = match self.security_mode {
             MessageSecurityMode::None => {
                 debug!("encrypt_and_sign is doing nothing because security mode == None");
                 // Just copy data to out
                 dst.copy_from_slice(src);
+
+                src.len()
             }
             MessageSecurityMode::Sign => {
                 debug!("encrypt_and_sign security mode == Sign");
                 self.expect_supported_security_policy();
-                let signature_len = src.len() - signed_range.end;
-                let mut signature = vec![0u8; signature_len];
-                debug!("signature len = {}", signature_len);
-                // Sign the message header, security header, sequence header, body, padding
-                let key = &(self.sending_keys.as_ref().unwrap()).0;
-                self.security_policy.symmetric_sign(key, &src[signed_range.clone()], &mut signature)?;
-                &dst[signed_range.clone()].copy_from_slice(&src[signed_range.clone()]);
-                debug!("Signature = {:?}", signature);
-                &dst[signed_range.end..].copy_from_slice(&signature);
+                self.symmetric_sign(src, signed_range, dst)?
             }
             MessageSecurityMode::SignAndEncrypt => {
                 debug!("encrypt_and_sign security mode == SignAndEncrypt");
                 self.expect_supported_security_policy();
-
-                let keys = self.sending_keys.as_ref().unwrap();
 
                 // There is an expectation that the block is padded so, this is a quick test
                 let plaintext_block_size = encrypted_range.end - encrypted_range.start;
@@ -380,27 +394,46 @@ impl SecureChannel {
                     error!("The plain text block is not padded properly, size = {}", plaintext_block_size);
                     return Err(BAD_DECODING_ERROR);
                 }
+
                 let mut dst_tmp = vec![0u8; dst.len() + 16]; // tmp includes +16 for blocksize
-                let signature_len = src.len() - signed_range.end;
-                debug!("signature len = {}", signature_len);
-                let mut signature = vec![0u8; signature_len];
-                // Sign the message header, security header, sequence header, body, padding
-                self.security_policy.symmetric_sign(&keys.0, &src[signed_range.clone()], &mut signature)?;
-                &dst_tmp[signed_range.clone()].copy_from_slice(&src[signed_range.clone()]);
-                &dst_tmp[signed_range.end..].copy_from_slice(&signature);
+
+                // Sign the block
+                let _ = self.symmetric_sign(src, signed_range, &mut dst_tmp)?;
 
                 // Encrypt the sequence header, payload, signature
+                let keys = self.sending_keys.as_ref().unwrap();
                 let key = &keys.1;
                 let iv = &keys.2;
                 self.security_policy.symmetric_encrypt(key, iv, &dst_tmp[encrypted_range.clone()], &mut dst[encrypted_range.clone()])?;
                 // Copy the message header / security header
                 &dst[..encrypted_range.start].copy_from_slice(&dst_tmp[..encrypted_range.start]);
+
+                encrypted_range.end
             }
             MessageSecurityMode::Invalid => {
                 panic!("Message security mode is invalid");
             }
         };
-        Ok(())
+        Ok(encrypted_size)
+    }
+
+    fn symmetric_sign(&self, src: &[u8], signed_range: Range<usize>, dst: &mut [u8]) -> Result<usize, StatusCode> {
+        let signature_size = self.security_policy.symmetric_signature_size();
+        let mut signature = vec![0u8; signature_size];
+        let signature_range = signed_range.end..(signed_range.end + signature_size);
+        debug!("signature len = {}", signature_size);
+
+        // Sign the message header, security header, sequence header, body, padding
+        let key = &(self.sending_keys.as_ref().unwrap()).0;
+        self.security_policy.symmetric_sign(key, &src[signed_range.clone()], &mut signature)?;
+
+        debug!("Signature = {:?}", signature);
+
+        // Copy the signed portion and the signature to the destination
+        &dst[signed_range.clone()].copy_from_slice(&src[signed_range.clone()]);
+        &dst[signature_range.clone()].copy_from_slice(&signature);
+
+        Ok(signature_range.end)
     }
 
     /// Decrypts and verifies data.
