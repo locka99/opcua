@@ -412,20 +412,19 @@ impl SecurityPolicy {
         }
     }
 
-    pub fn asymmetric_sign(&self, signing_key: &PKey, data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
+    pub fn asymmetric_sign(&self, signing_key: &PKey, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
         let result = match self {
             &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => {
-                signing_key.sign_sha1(data)?
+                signing_key.sign_sha1(data, signature)?
             }
             &SecurityPolicy::Basic256Sha256 => {
-                signing_key.sign_sha256(data)?
+                signing_key.sign_sha256(data, signature)?
             }
             _ => {
                 panic!("Invalid policy");
             }
         };
-        signature.copy_from_slice(&result[..]);
-        Ok(())
+        Ok(result)
     }
 
     /// Decrypts a message whose thumbprint matches the x509 cert and private key pair.
@@ -448,13 +447,14 @@ impl SecurityPolicy {
         let mut src_idx = 0;
         let mut dst_idx = 0;
         while src_idx < src.len() {
-            let src = &src[src_idx..(src_idx + key_size)];
+            let src_size = if src_idx + key_size < src.len() { key_size } else { src.len() - src_idx };
+            let src = &src[src_idx..(src_idx + src_size)];
             let dst = &mut dst[dst_idx..(dst_idx + key_size)];
             let decrypted_bytes = rsa.private_decrypt(src, dst, padding);
             if decrypted_bytes.is_err() {
                 return Err(BAD_DECODING_ERROR);
             }
-            src_idx += key_size;
+            src_idx += src_size;
             dst_idx += decrypted_bytes.unwrap();
         }
 
@@ -479,13 +479,14 @@ impl SecurityPolicy {
         let mut src_idx = 0;
         let mut dst_idx = 0;
         while src_idx < src.len() {
-            let src = &src[src_idx..(src_idx + key_size)];
+            let src_size = if src_idx + key_size < src.len() { key_size } else { src.len() - src_idx };
+            let src = &src[src_idx..(src_idx + src_size)];
             let dst = &mut dst[dst_idx..(dst_idx + key_size)];
             let encrypted_bytes = rsa.public_encrypt(src, dst, padding);
             if encrypted_bytes.is_err() {
                 return Err(BAD_ENCODING_ERROR);
             }
-            src_idx += key_size;
+            src_idx += src_size;
             dst_idx += encrypted_bytes.unwrap();
         }
 

@@ -273,7 +273,7 @@ impl PKey {
         self.value.bits() as usize
     }
 
-    fn sign(&self, message_digest: hash::MessageDigest, data: &[u8]) -> Result<Vec<u8>, StatusCode> {
+    fn sign(&self, message_digest: hash::MessageDigest, data: &[u8], message: &mut [u8]) -> Result<usize, StatusCode> {
         debug!("Key signing");
         if let Ok(mut signer) = sign::Signer::new(message_digest, &self.value) {
             debug!("Update");
@@ -282,7 +282,8 @@ impl PKey {
                 let result = signer.finish();
                 if let Ok(result) = result {
                     debug!("Signature = {:?}", result);
-                    return Ok(result);
+                    message.copy_from_slice(&result);
+                    return Ok(result.len());
                 } else {
                     debug!("Can't sign data - error = {:?}", result.unwrap_err());
                 }
@@ -309,16 +310,16 @@ impl PKey {
         Err(BAD_UNEXPECTED_ERROR)
     }
 
-    pub fn sign_sha1(&self, data: &[u8]) -> Result<Vec<u8>, StatusCode> {
-        self.sign(hash::MessageDigest::sha1(), data)
+    pub fn sign_sha1(&self, data: &[u8], message: &mut [u8]) -> Result<usize, StatusCode> {
+        self.sign(hash::MessageDigest::sha1(), data, message)
     }
 
     pub fn verify_sha1(&self, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
         self.verify(hash::MessageDigest::sha1(), data, signature)
     }
 
-    pub fn sign_sha256(&self, data: &[u8]) -> Result<Vec<u8>, StatusCode> {
-        self.sign(hash::MessageDigest::sha256(), data)
+    pub fn sign_sha256(&self, data: &[u8], message: &mut [u8]) -> Result<usize, StatusCode> {
+        self.sign(hash::MessageDigest::sha256(), data, message)
     }
 
     pub fn verify_sha256(&self, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {

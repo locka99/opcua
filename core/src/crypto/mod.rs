@@ -72,18 +72,30 @@ pub fn create_signature_data(pkey: &PKey, security_policy_uri: &str, data: &Byte
         // Sign the bytes and return the algorithm, signature
         let security_policy = SecurityPolicy::from_uri(security_policy_uri);
         match security_policy {
-            SecurityPolicy::Basic128Rsa15 => (
-                UAString::from_str(security_policy.asymmetric_signature_algorithm()),
-                ByteString::from_bytes(&pkey.sign_sha1(&data)?)
-            ),
-            SecurityPolicy::Basic256 => (
-                UAString::from_str(security_policy.asymmetric_signature_algorithm()),
-                ByteString::from_bytes(&pkey.sign_sha1(&data)?)
-            ),
-            SecurityPolicy::Basic256Sha256 => (
-                UAString::from_str(security_policy.asymmetric_signature_algorithm()),
-                ByteString::from_bytes(&pkey.sign_sha256(&data)?)
-            ),
+            SecurityPolicy::Basic128Rsa15 => {
+                let mut signature = vec![0u8; 20];
+                let _ = pkey.sign_sha1(&data, &mut signature)?;
+                (
+                    UAString::from_str(security_policy.asymmetric_signature_algorithm()),
+                    ByteString::from_bytes(&signature)
+                )
+            }
+            SecurityPolicy::Basic256 => {
+                let mut signature = vec![0u8; 20];
+                let _ = pkey.sign_sha1(&data, &mut signature)?;
+                (
+                    UAString::from_str(security_policy.asymmetric_signature_algorithm()),
+                    ByteString::from_bytes(&signature)
+                )
+            }
+            SecurityPolicy::Basic256Sha256 => {
+                let mut signature = vec![0u8; 32];
+                let _ = pkey.sign_sha256(&data, &mut signature)?;
+                (
+                    UAString::from_str(security_policy.asymmetric_signature_algorithm()),
+                    ByteString::from_bytes(&signature)
+                )
+            }
             SecurityPolicy::None => (
                 UAString::null(), ByteString::null()
             ),

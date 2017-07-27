@@ -199,9 +199,10 @@ fn sign_verify_sha1() {
 
     let msg = b"Mary had a little lamb";
     let msg2 = b"It's fleece was white as snow";
-    let mut signature = pkey.sign_sha1(msg).unwrap();
+    let mut signature = vec![0u8; 256];
+    let signed_len = pkey.sign_sha1(msg, &mut signature).unwrap();
 
-    assert_eq!(signature.len(), 256);
+    assert_eq!(signed_len, 256);
     assert!(pkey.verify_sha1(msg, &signature).unwrap());
     assert!(!pkey.verify_sha1(msg2, &signature).unwrap());
 
@@ -216,9 +217,10 @@ fn sign_verify_sha256() {
 
     let msg = b"Mary had a little lamb";
     let msg2 = b"It's fleece was white as snow";
-    let mut signature = pkey.sign_sha256(msg).unwrap();
+    let mut signature = vec![0u8; 256];
+    let signed_len = pkey.sign_sha256(msg, &mut signature).unwrap();
 
-    assert_eq!(signature.len(), 256);
+    assert_eq!(signed_len, 256);
     assert!(pkey.verify_sha256(msg, &signature).unwrap());
     assert!(!pkey.verify_sha256(msg2, &signature).unwrap());
 

@@ -354,9 +354,16 @@ impl SecureChannel {
         let encryption_key = self.their_cert.as_ref().unwrap().public_key()?;
         let encrypted_size = security_policy.asymmetric_encrypt(&encryption_key, &tmp[encrypted_range.clone()], &mut dst[encrypted_range.start..])?;
 
-        debug!("Encrypted bytes = {} compared to encrypted range {:?}", encrypted_size, encrypted_range);
 
-        Ok(encrypted_range.start + encrypted_size)
+       let encrypted_size = encrypted_range.start + encrypted_size;
+
+        {
+            use debug;
+            debug!("Encrypted bytes = {} compared to encrypted range {:?}", encrypted_size, encrypted_range);
+            debug::debug_buffer("Start of buffer", &dst[0..10]);
+        }
+
+        Ok(encrypted_size)
     }
 
     /// Encode data using security. Destination buffer is expected to be same size as src and expected
