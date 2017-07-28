@@ -14,6 +14,11 @@ pub use self::security_policy::*;
 
 use opcua_types::*;
 
+// Size of a SHA1 hash value in bytes
+pub const SHA1_SIZE: usize = 20;
+// Size of a SHA256 hash value bytes
+pub const SHA256_SIZE: usize = 32;
+
 fn concat_data_and_nonce(data: &[u8], nonce: &[u8]) -> Vec<u8> {
     let mut buffer: Vec<u8> = Vec::with_capacity(data.len() + nonce.len());
     buffer.extend_from_slice(data);
@@ -72,16 +77,8 @@ pub fn create_signature_data(pkey: &PKey, security_policy_uri: &str, data: &Byte
         // Sign the bytes and return the algorithm, signature
         let security_policy = SecurityPolicy::from_uri(security_policy_uri);
         match security_policy {
-            SecurityPolicy::Basic128Rsa15 => {
-                let mut signature = vec![0u8; 20];
-                let _ = pkey.sign_sha1(&data, &mut signature)?;
-                (
-                    UAString::from_str(security_policy.asymmetric_signature_algorithm()),
-                    ByteString::from_bytes(&signature)
-                )
-            }
-            SecurityPolicy::Basic256 => {
-                let mut signature = vec![0u8; 20];
+            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => {
+                let mut signature = [0u8; SHA1_SIZE];
                 let _ = pkey.sign_sha1(&data, &mut signature)?;
                 (
                     UAString::from_str(security_policy.asymmetric_signature_algorithm()),
@@ -89,7 +86,7 @@ pub fn create_signature_data(pkey: &PKey, security_policy_uri: &str, data: &Byte
                 )
             }
             SecurityPolicy::Basic256Sha256 => {
-                let mut signature = vec![0u8; 32];
+                let mut signature = [0u8; SHA256_SIZE];
                 let _ = pkey.sign_sha256(&data, &mut signature)?;
                 (
                     UAString::from_str(security_policy.asymmetric_signature_algorithm()),

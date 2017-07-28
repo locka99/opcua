@@ -5,7 +5,7 @@ use std::io::Write;
 
 use tempdir::TempDir;
 
-use crypto::SecurityPolicy;
+use crypto::{SecurityPolicy, SHA1_SIZE, SHA256_SIZE};
 use crypto::types::*;
 use crypto::certificate_store::*;
 
@@ -15,11 +15,11 @@ fn aes_test() {
     let mut rng = rand::thread_rng();
 
     // Create a random 128-bit key
-    let mut raw_key = vec![0u8; 16];
+    let mut raw_key = [0u8; 16];
     rng.fill_bytes(&mut raw_key);
 
     // Create a random iv.
-    let mut iv = vec![0u8; 16];
+    let mut iv = [0u8; 16];
     rng.fill_bytes(&mut iv);
 
     let aes_key = AesKey::new(SecurityPolicy::Basic128Rsa15, &raw_key);
@@ -199,7 +199,7 @@ fn sign_verify_sha1() {
 
     let msg = b"Mary had a little lamb";
     let msg2 = b"It's fleece was white as snow";
-    let mut signature = vec![0u8; 256];
+    let mut signature = [0u8; 256];
     let signed_len = pkey.sign_sha1(msg, &mut signature).unwrap();
 
     assert_eq!(signed_len, 256);
@@ -217,7 +217,7 @@ fn sign_verify_sha256() {
 
     let msg = b"Mary had a little lamb";
     let msg2 = b"It's fleece was white as snow";
-    let mut signature = vec![0u8; 256];
+    let mut signature = [0u8; 256];
     let signed_len = pkey.sign_sha256(msg, &mut signature).unwrap();
 
     assert_eq!(signed_len, 256);
@@ -237,10 +237,10 @@ fn sign_hmac_sha1() {
     let key = b"";
     let data = b"";
 
-    let mut signature_wrong_size: [u8; 19] = [0u8; 19];
+    let mut signature_wrong_size = [0u8; SHA1_SIZE - 1];
     assert!(hash::hmac_sha1(key, data, &mut signature_wrong_size).is_err());
 
-    let mut signature: [u8; 20] = [0u8; 20];
+    let mut signature = [0u8; SHA1_SIZE];
     assert!(hash::hmac_sha1(key, data, &mut signature).is_ok());
     let expected = "fbdb1d1b18aa6c08324b7d64b71fb76370690e1d".from_hex().unwrap();
     assert_eq!(&signature, &expected[..]);
@@ -263,10 +263,10 @@ fn sign_hmac_sha256() {
     let key = b"";
     let data = b"";
 
-    let mut signature_wrong_size: [u8; 31] = [0u8; 31];
+    let mut signature_wrong_size = [0u8; SHA256_SIZE - 1];
     assert!(hash::hmac_sha256(key, data, &mut signature_wrong_size).is_err());
 
-    let mut signature: [u8; 32] = [0u8; 32];
+    let mut signature = [0u8; SHA256_SIZE];
     assert!(hash::hmac_sha256(key, data, &mut signature).is_ok());
     let expected = "b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad".from_hex().unwrap();
     assert_eq!(&signature, &expected[..]);

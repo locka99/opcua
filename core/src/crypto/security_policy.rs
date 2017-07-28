@@ -6,6 +6,7 @@ use openssl::rsa::*;
 use opcua_types::StatusCode;
 use opcua_types::StatusCode::*;
 
+use crypto::{SHA1_SIZE, SHA256_SIZE};
 use crypto::types::{AesKey, PKey};
 use crypto::hash;
 
@@ -248,8 +249,8 @@ impl SecurityPolicy {
 
     pub fn symmetric_signature_size(&self) -> usize {
         match self {
-            &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => 20,
-            &SecurityPolicy::Basic256Sha256 => 32,
+            &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => SHA1_SIZE,
+            &SecurityPolicy::Basic256Sha256 => SHA256_SIZE,
             _ => {
                 panic!("Invalid policy");
             }
