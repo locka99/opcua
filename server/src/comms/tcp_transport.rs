@@ -412,7 +412,10 @@ impl TcpTransport {
                 // debug!("Got some chunks to send {:?}", out_chunks);
                 for out_chunk in out_chunks.iter_mut() {
                     // Encrypt and sign the chunk if necessary
-                    out_chunk.apply_security(&mut self.secure_channel_service.secure_channel);
+                    let result = out_chunk.apply_security(&mut self.secure_channel_service.secure_channel);
+                    if result.is_err() {
+                        panic!("Applying security to chunk failed - {:?}", result.unwrap_err());
+                    }
                     let _ = out_chunk.encode(out_stream);
                 }
             }

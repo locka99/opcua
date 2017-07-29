@@ -58,7 +58,7 @@ fn make_certificate_store() -> (TempDir, CertificateStore) {
 
 fn make_test_cert() -> (X509, PKey) {
     let args = X509Data {
-        key_size: 2045,
+        key_size: 2048,
         common_name: "x".to_string(),
         organization: "x.org".to_string(),
         organizational_unit: "x.org ops".to_string(),
@@ -191,6 +191,37 @@ fn test_and_reject_thumbprint_mismatch() {
     assert!(result.is_bad());
 
     drop(tmp_dir);
+}
+
+fn test_asymmetric_encrypt_and_decrypt(cert: &X509, key: &PKey, security_policy: SecurityPolicy, plaintext_size: usize) {
+    let mut plaintext = vec![0u8; plaintext_size];
+    for i in 0..plaintext_size {
+        plaintext[i] = (i % 256) as u8;
+    }
+    let mut ciphertext = vec![0u8; plaintext_size + 4096];
+    let mut plaintext2 = vec![0u8; plaintext_size + 4096];
+
+    debug!("Encrypting data of length {}", plaintext_size);
+    let encrypted_size = security_policy.asymmetric_encrypt(&cert.public_key().unwrap(), &plaintext, &mut ciphertext).unwrap();
+    debug!("Encrypted size = {}", encrypted_size);
+    debug!("Decrypting cipher text back");
+    let decrypted_size = security_policy.asymmetric_decrypt(key, &ciphertext[..encrypted_size], &mut plaintext2).unwrap();
+    debug!("Decrypted size = {}", decrypted_size);
+
+    assert_eq!(plaintext_size, decrypted_size);
+    assert_eq!(&plaintext[..], &plaintext2[..decrypted_size]);
+}
+
+
+#[test]
+fn asymmetric_encrypt_and_decrypt() {
+    let (cert, key) = make_test_cert();
+    // Try all security policies, ensure they encrypt / decrypt for various sizes
+    for security_policy in [SecurityPolicy::Basic128Rsa15, SecurityPolicy::Basic256, SecurityPolicy::Basic256Sha256].iter() {
+        for data_size in [0, 1, 127, 128, 129, 255, 256, 257, 13001].iter() {
+            test_asymmetric_encrypt_and_decrypt(&cert, &key, *security_policy, *data_size);
+        }
+    }
 }
 
 #[test]

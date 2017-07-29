@@ -354,13 +354,13 @@ impl SecureChannel {
         let encryption_key = self.their_cert.as_ref().unwrap().public_key()?;
         let encrypted_size = security_policy.asymmetric_encrypt(&encryption_key, &tmp[encrypted_range.clone()], &mut dst[encrypted_range.start..])?;
 
-
-       let encrypted_size = encrypted_range.start + encrypted_size;
+        let encrypted_size = encrypted_range.start + encrypted_size;
 
         {
             use debug;
-            debug!("Encrypted bytes = {} compared to encrypted range {:?}", encrypted_size, encrypted_range);
-            debug::debug_buffer("Start of buffer", &dst[0..10]);
+            debug!("Encrypted size in bytes = {} compared to encrypted range {:?}", encrypted_size, encrypted_range);
+            debug::debug_buffer("Start of buffer", &dst[0..64]);
+            debug::debug_buffer("End of buffer", &dst[(encrypted_size - 64)..]);
         }
 
         Ok(encrypted_size)

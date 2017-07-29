@@ -428,38 +428,14 @@ impl SecurityPolicy {
         Ok(result)
     }
 
-    /// Decrypts a message whose thumbprint matches the x509 cert and private key pair.
-    ///
-    /// Returns the number of decrypted bytes
-    pub fn asymmetric_decrypt(&self, private_key: &PKey, src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
-        // decrypt data using our private key
-        let rsa = private_key.value.rsa().unwrap();
-        let key_size = private_key.bit_length() / 8;
-
-        let padding = match self {
-            &SecurityPolicy::Basic128Rsa15 => PKCS1_PADDING,
-            &SecurityPolicy::Basic256 | &SecurityPolicy::Basic256Sha256 => PKCS1_OAEP_PADDING,
+    fn padding_and_encrypted_data_size_for_key(&self, key_size: usize) -> (Padding, usize) {
+        match self {
+            &SecurityPolicy::Basic128Rsa15 => (PKCS1_PADDING, key_size - 11),
+            &SecurityPolicy::Basic256 | &SecurityPolicy::Basic256Sha256 => (PKCS1_OAEP_PADDING, key_size - 42),
             _ => {
                 panic!("Security policy is not supported, shouldn't have gotten here");
             }
-        };
-
-        // Decrypt the data
-        let mut src_idx = 0;
-        let mut dst_idx = 0;
-        while src_idx < src.len() {
-            let src_size = if src_idx + key_size < src.len() { key_size } else { src.len() - src_idx };
-            let src = &src[src_idx..(src_idx + src_size)];
-            let dst = &mut dst[dst_idx..(dst_idx + key_size)];
-            let decrypted_bytes = rsa.private_decrypt(src, dst, padding);
-            if decrypted_bytes.is_err() {
-                return Err(BAD_DECODING_ERROR);
-            }
-            src_idx += src_size;
-            dst_idx += decrypted_bytes.unwrap();
         }
-
-        Ok(dst_idx)
     }
 
     /// Encrypts a message using the supplied encryption key, returns the encrypted size. Destination
@@ -468,27 +444,59 @@ impl SecurityPolicy {
         let rsa = encryption_key.value.rsa().unwrap();
         let key_size = encryption_key.bit_length() / 8;
 
-        let padding = match self {
-            &SecurityPolicy::Basic128Rsa15 => PKCS1_PADDING,
-            &SecurityPolicy::Basic256 | &SecurityPolicy::Basic256Sha256 => PKCS1_OAEP_PADDING,
-            _ => {
-                panic!("Security policy is not supported, shouldn't have gotten here");
-            }
+        let (padding, encrypted_data_size) = self.padding_and_encrypted_data_size_for_key(key_size);
+
+        let mut bytes_to_encrypt = if src.len() < encrypted_data_size {
+            src.len()
+        } else {
+            encrypted_data_size
         };
 
-        // Encrypt the data
+        // Encrypt the data in chunks no larger than the key size
         let mut src_idx = 0;
         let mut dst_idx = 0;
         while src_idx < src.len() {
-            let src_size = if src_idx + key_size < src.len() { key_size } else { src.len() - src_idx };
-            let src = &src[src_idx..(src_idx + src_size)];
+            if src.len() > encrypted_data_size && (src.len() - src_idx < encrypted_data_size) {
+                bytes_to_encrypt = src.len() - src_idx;
+            }
+            let src = &src[src_idx..(src_idx + bytes_to_encrypt)];
             let dst = &mut dst[dst_idx..(dst_idx + key_size)];
             let encrypted_bytes = rsa.public_encrypt(src, dst, padding);
             if encrypted_bytes.is_err() {
-                return Err(BAD_ENCODING_ERROR);
+                error!("Encryption failed for bytes_to_encrypt {}, key_size {}, src_idx {}, dst_idx {} error - {:?}", bytes_to_encrypt, key_size, src_idx, dst_idx, encrypted_bytes.unwrap_err());
+                return Err(BAD_UNEXPECTED_ERROR);
             }
-            src_idx += src_size;
             dst_idx += encrypted_bytes.unwrap();
+            src_idx += bytes_to_encrypt;
+        }
+
+        Ok(dst_idx)
+    }
+
+
+    /// Decrypts a message whose thumbprint matches the x509 cert and private key pair.
+    ///
+    /// Returns the number of decrypted bytes
+    pub fn asymmetric_decrypt(&self, private_key: &PKey, src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
+        // decrypt data using our private key
+        let rsa = private_key.value.rsa().unwrap();
+        let key_size = private_key.bit_length() / 8;
+
+        let (padding, _) = self.padding_and_encrypted_data_size_for_key(key_size);
+
+        // Decrypt the data
+        let mut src_idx = 0;
+        let mut dst_idx = 0;
+        while src_idx < src.len() {
+            let src = &src[src_idx..(src_idx + key_size)];
+            let dst = &mut dst[dst_idx..(dst_idx + key_size)];
+            let decrypted_bytes = rsa.private_decrypt(src, dst, padding);
+            if decrypted_bytes.is_err() {
+                error!("Decryption failed for key size {}, src idx {}, dst idx {} error - {:?}", key_size, src_idx, dst_idx, decrypted_bytes.unwrap_err());
+                return Err(BAD_UNEXPECTED_ERROR);
+            }
+            src_idx += key_size;
+            dst_idx += decrypted_bytes.unwrap();
         }
 
         Ok(dst_idx)
