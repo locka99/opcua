@@ -1,4 +1,4 @@
-use address_space::*;
+use address_space::{Base, Node, NodeType};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Object {

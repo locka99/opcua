@@ -2,9 +2,11 @@ use std::collections::HashMap;
 
 use opcua_types::*;
 
-use address_space::*;
-use server::*;
+use server::ServerState;
 use constants;
+
+use address_space::{Object, ObjectType, Reference, ReferenceType, Variable, VariableType, View, DataType, Method};
+use address_space::{Node};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum NodeType {
