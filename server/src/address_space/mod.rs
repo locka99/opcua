@@ -54,7 +54,20 @@ macro_rules! find_attribute_value_optional {
     }
 }
 
-mod generated;
+pub mod generated;
+
+pub mod types {
+    pub use address_space::address_space::AddressSpace;
+    pub use address_space::data_type::DataType;
+    pub use address_space::object::Object;
+    pub use address_space::variable::Variable;
+    pub use address_space::method::Method;
+    pub use address_space::reference_type::ReferenceType;
+    pub use address_space::object_type::ObjectType;
+    pub use address_space::variable_type::VariableType;
+    pub use address_space::view::View;
+}
+
 mod address_space;
 mod base;
 mod object;
@@ -66,19 +79,6 @@ mod variable_type;
 mod data_type;
 mod view;
 
-pub mod types {
-    pub use super::address_space::AddressSpace;
-    pub use super::data_type::DataType;
-    pub use super::object::Object;
-    pub use super::variable::Variable;
-    pub use super::method::Method;
-    pub use super::reference_type::ReferenceType;
-    pub use super::object_type::ObjectType;
-    pub use super::variable_type::VariableType;
-    pub use super::view::View;
-}
-
-pub use self::generated::*;
 pub use self::address_space::*;
 pub use self::base::*;
 pub use self::object::*;
