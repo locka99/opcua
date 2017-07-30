@@ -55,7 +55,7 @@ impl BinaryEncoder<UserTokenType> for UserTokenType {
             3 => Ok(UserTokenType::IssuedToken),
             _ => {
                 error!("Don't know what user token type {} is", user_token_type);
-                Err(BAD_DECODING_ERROR)
+                Err(BAD_UNEXPECTED_ERROR)
             }
         }
     }

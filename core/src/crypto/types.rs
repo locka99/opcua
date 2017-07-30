@@ -350,16 +350,18 @@ impl AesKey {
         AesKey { value: value.to_vec(), security_policy }
     }
 
-    fn validate_aes_args(cipher: &Cipher, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<(), String> {
+    fn validate_aes_args(cipher: &Cipher, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
         if dst.len() < src.len() + cipher.block_size() {
-            Err(format!("Dst buffer is too small {} vs {} + {}", src.len(), dst.len(), cipher.block_size()))
-        } else if src.len() % 16 != 0 {
-            // Works for out too because inx.len == out.len
-            Err(format!("In and out buffers are not 16-byte padded, len = {}", src.len()))
+            error!("Dst buffer is too small {} vs {} + {}", src.len(), dst.len(), cipher.block_size());
+            Err(BAD_UNEXPECTED_ERROR)
+            //        } else if src.len() % 16 != 0 {
+            //            // Works for out too because inx.len == out.len
+            //            Err(format!("In and out buffers are not 16-byte padded, len = {}", src.len()))
         } else if iv.len() != 16 && iv.len() != 32 {
             // ... It would be nice to compare iv size to be exact to the key size here (should be the
             // same) but AesKey doesn't tell us that info. Have to check elsewhere
-            Err(format!("IV is not an expected size, len = {}", iv.len()))
+            error!("IV is not an expected size, len = {}", iv.len());
+            Err(BAD_UNEXPECTED_ERROR)
         } else {
             Ok(())
         }
@@ -382,18 +384,29 @@ impl AesKey {
     }
 
     /// Encrypt or decrypt  data according to the mode
-    fn do_cipher(&self, mode: Mode, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<usize, String> {
+    fn do_cipher(&self, mode: Mode, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
         let cipher = self.cipher();
         let _ = Self::validate_aes_args(&cipher, src, iv, dst)?;
         let key = &self.value;
         let iv = Some(iv);
         let crypter = Crypter::new(cipher, mode, key, iv);
         if let Ok(mut c) = crypter {
-            let count = c.update(src, dst).unwrap();
-            let rest = c.finalize(&mut dst[count..]).unwrap();
-            Ok(count + rest)
+            let result = c.update(src, dst);
+            if let Ok(count) = result {
+                let result = c.finalize(&mut dst[count..]);
+                if let Ok(rest) = result {
+                    Ok(count + rest)
+                } else {
+                    error!("Encryption error during finalize {:?}", result.unwrap_err());
+                    Err(BAD_UNEXPECTED_ERROR)
+                }
+            } else {
+                error!("Encryption error during update {:?}", result.unwrap_err());
+                Err(BAD_UNEXPECTED_ERROR)
+            }
         } else {
-            Err("Encryption Error".to_owned())
+            error!("Encryption Error");
+            Err(BAD_UNEXPECTED_ERROR)
         }
     }
 
@@ -409,12 +422,12 @@ impl AesKey {
         self.cipher().key_len()
     }
 
-    pub fn encrypt(&self, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<usize, String> {
+    pub fn encrypt(&self, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
         self.do_cipher(Mode::Encrypt, src, iv, dst)
     }
 
     /// Decrypts data using AES. The initialization vector is the nonce generated for the secure channel
-    pub fn decrypt(&self, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<usize, String> {
+    pub fn decrypt(&self, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
         self.do_cipher(Mode::Decrypt, src, iv, dst)
     }
 }

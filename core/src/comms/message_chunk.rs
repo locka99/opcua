@@ -183,7 +183,7 @@ impl BinaryEncoder<MessageChunk> for MessageChunk {
 }
 
 impl MessageChunk {
-    pub fn new(sequence_number: UInt32, request_id: UInt32, message_type: MessageChunkType, is_final: MessageIsFinalType, secure_channel: &SecureChannel, data: &[u8], message_size: usize) -> Result<MessageChunk, StatusCode> {
+    pub fn new(sequence_number: UInt32, request_id: UInt32, message_type: MessageChunkType, is_final: MessageIsFinalType, secure_channel: &SecureChannel, data: &[u8]) -> Result<MessageChunk, StatusCode> {
         // security header depends on message type
         let security_header = secure_channel.make_security_header(message_type);
         let sequence_header = SequenceHeader { sequence_number, request_id };
@@ -194,9 +194,9 @@ impl MessageChunk {
         message_chunk_size += sequence_header.byte_len();
         message_chunk_size += data.len();
         // Test if padding is required
-        let padding_size = secure_channel.calc_chunk_padding(data.len(), &security_header, message_size);
+        let padding_size = secure_channel.calc_chunk_padding(data.len(), &security_header);
         if padding_size > 0 {
-            message_chunk_size += padding_size;
+            message_chunk_size += padding_size & 0xff;
             if padding_size > 255 {
                 message_chunk_size += 1;
             }
@@ -262,7 +262,7 @@ impl MessageChunk {
         data_size += (SequenceHeader { sequence_number: 0, request_id: 0 }).byte_len();
 
         // 1 byte == most padding
-        let padding_size = secure_channel.calc_chunk_padding(1, &security_header, message_size);
+        let padding_size = secure_channel.calc_chunk_padding(1, &security_header);
         if padding_size > 0 {
             data_size += padding_size;
             if padding_size > 255 {

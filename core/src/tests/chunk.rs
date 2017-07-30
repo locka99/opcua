@@ -47,6 +47,45 @@ fn sample_secure_channel_request_data_security_none() -> MessageChunk {
     chunk
 }
 
+
+fn make_open_secure_channel_response() -> OpenSecureChannelResponse {
+    OpenSecureChannelResponse {
+        response_header: ResponseHeader {
+            timestamp: DateTime::now(),
+            request_handle: 444,
+            service_result: BAD_PROTOCOL_VERSION_UNSUPPORTED,
+            service_diagnostics: DiagnosticInfo::new(),
+            string_table: None,
+            additional_header: ExtensionObject::null(),
+        },
+        server_protocol_version: 0,
+        security_token: ChannelSecurityToken {
+            channel_id: 1,
+            token_id: 2,
+            created_at: DateTime::now(),
+            revised_lifetime: 777,
+        },
+        server_nonce: ByteString::null(),
+    }
+}
+
+fn make_sample_message() -> SupportedMessage {
+    SupportedMessage::GetEndpointsRequest(GetEndpointsRequest {
+        request_header: RequestHeader {
+            authentication_token: NodeId::new_numeric(0, 99),
+            timestamp: DateTime::now(),
+            request_handle: 1,
+            return_diagnostics: 0,
+            audit_entry_id: UAString::null(),
+            timeout_hint: 123456,
+            additional_header: ExtensionObject::null(),
+        },
+        endpoint_url: UAString::null(),
+        locale_ids: None,
+        profile_uris: None,
+    })
+}
+
 fn set_chunk_sequence_number(chunk: &mut MessageChunk, secure_channel: &SecureChannel, sequence_number: UInt32) -> UInt32 {
     // Read the sequence header
     let mut chunk_info = chunk.chunk_info(&secure_channel).unwrap();
@@ -273,29 +312,12 @@ fn open_secure_channel() {
     assert_eq!(open_secure_channel_request, new_open_secure_channel_request);
 
     // And the response
-    let open_secure_channel_response = OpenSecureChannelResponse {
-        response_header: ResponseHeader {
-            timestamp: DateTime::now(),
-            request_handle: 444,
-            service_result: BAD_PROTOCOL_VERSION_UNSUPPORTED,
-            service_diagnostics: DiagnosticInfo::new(),
-            string_table: None,
-            additional_header: ExtensionObject::null(),
-        },
-        server_protocol_version: 0,
-        security_token: ChannelSecurityToken {
-            channel_id: 1,
-            token_id: 2,
-            created_at: DateTime::now(),
-            revised_lifetime: 777,
-        },
-        server_nonce: ByteString::null(),
-    };
+    let open_secure_channel_response = make_open_secure_channel_response();
     let new_open_secure_channel_response = serialize_test_and_return(open_secure_channel_response.clone());
     assert_eq!(open_secure_channel_response, new_open_secure_channel_response);
 }
 
-fn test_encrypt_decrypt(security_mode: MessageSecurityMode, security_policy: SecurityPolicy) {
+fn test_encrypt_decrypt(message: SupportedMessage, security_mode: MessageSecurityMode, security_policy: SecurityPolicy) {
     let mut secure_channel = SecureChannel::new_no_certificate_store();
     secure_channel.security_mode = security_mode;
     secure_channel.security_policy = security_policy;
@@ -304,22 +326,7 @@ fn test_encrypt_decrypt(security_mode: MessageSecurityMode, security_policy: Sec
     secure_channel.their_nonce = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
     secure_channel.derive_keys();
 
-    let request = SupportedMessage::GetEndpointsRequest(GetEndpointsRequest {
-        request_header: RequestHeader {
-            authentication_token: NodeId::new_numeric(0, 99),
-            timestamp: DateTime::now(),
-            request_handle: 1,
-            return_diagnostics: 0,
-            audit_entry_id: UAString::null(),
-            timeout_hint: 123456,
-            additional_header: ExtensionObject::null(),
-        },
-        endpoint_url: UAString::null(),
-        locale_ids: None,
-        profile_uris: None,
-    });
-
-    let mut chunks = Chunker::encode(1, 1, 0, 0, &secure_channel, &request).unwrap();
+    let mut chunks = Chunker::encode(1, 1, 0, 0, &secure_channel, &message).unwrap();
     assert_eq!(chunks.len(), 1);
 
     {
@@ -327,27 +334,31 @@ fn test_encrypt_decrypt(security_mode: MessageSecurityMode, security_policy: Sec
 
         let original_data = chunk.data.clone();
 
-        assert!(chunk.apply_security(&mut secure_channel).is_ok());
+        let result = chunk.apply_security(&mut secure_channel);
+        debug!("Result of applyingapplying security = {:?}", result);
+        assert!(result.is_ok());
         let encrypted_data = chunk.data.clone();
         assert!(encrypted_data != original_data);
 
-        assert!(chunk.verify_and_remove_security(&mut secure_channel).is_ok());
+        let result = chunk.verify_and_remove_security(&mut secure_channel);
+        debug!("Result of verifying and removing security = {:?}", result);
+        assert!(result.is_ok());
     }
 
-    let request2 = Chunker::decode(&chunks, &secure_channel, None).unwrap();
-    assert_eq!(request, request2);
+    let message2 = Chunker::decode(&chunks, &secure_channel, None).unwrap();
+    assert_eq!(message, message2);
 }
 
 /// Create a message, encode it to a chunk, sign the chunk, verify the signature and decode back to message
 #[test]
-fn sign_message_chunk_basic128rsa15() {
+fn symmetric_sign_message_chunk_basic128rsa15() {
     let _ = Test::setup();
-    test_encrypt_decrypt(MessageSecurityMode::Sign, SecurityPolicy::Basic128Rsa15);
+    test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::Sign, SecurityPolicy::Basic128Rsa15);
 }
 
 /// Create a message, encode it to a chunk, sign the chunk, encrypt, decrypt, verify the signature and decode back to message
 #[test]
-fn sign_and_encrypt_message_chunk_basic128rsa15() {
+fn symmetric_sign_and_encrypt_message_chunk_basic128rsa15() {
     //let _ = Test::setup();
-    //test_encrypt_decrypt(MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic128Rsa15);
+    //test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic128Rsa15);
 }

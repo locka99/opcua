@@ -545,24 +545,12 @@ impl SecurityPolicy {
     }
 
     /// Encrypt the data
-    pub fn symmetric_encrypt(&self, key: &AesKey, iv: &[u8], src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
-        let result = key.encrypt(src, iv, dst);
-        if result.is_ok() {
-            Ok(())
-        } else {
-            error!("Cannot encrypt data, {}", result.unwrap_err());
-            Err(BAD_ENCODING_ERROR)
-        }
+    pub fn symmetric_encrypt(&self, key: &AesKey, iv: &[u8], src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
+        key.encrypt(src, iv, dst)
     }
 
     /// Decrypt the data
-    pub fn symmetric_decrypt(&self, key: &AesKey, iv: &[u8], src: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
-        let result = key.decrypt(src, iv, dst);
-        if result.is_ok() {
-            Ok(())
-        } else {
-            error!("Cannot decrypt data, {}", result.unwrap_err());
-            Err(BAD_DECODING_ERROR)
-        }
+    pub fn symmetric_decrypt(&self, key: &AesKey, iv: &[u8], src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
+        key.decrypt(src, iv, dst)
     }
 }

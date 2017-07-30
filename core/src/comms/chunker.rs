@@ -90,12 +90,12 @@ impl Chunker {
                 } else {
                     MessageIsFinalType::Intermediate
                 };
-                let chunk = MessageChunk::new(sequence_number + i as u32, request_id, message_type, is_final, secure_channel, data_chunk, max_chunk_size)?;
+                let chunk = MessageChunk::new(sequence_number + i as u32, request_id, message_type, is_final, secure_channel, data_chunk)?;
                 chunks.push(chunk);
             }
             chunks
         } else {
-            let chunk = MessageChunk::new(sequence_number, request_id, message_type, MessageIsFinalType::Final, secure_channel, &data, 0)?;
+            let chunk = MessageChunk::new(sequence_number, request_id, message_type, MessageIsFinalType::Final, secure_channel, &data)?;
             vec![chunk]
         };
         Ok(result)
