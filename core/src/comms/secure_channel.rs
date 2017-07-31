@@ -225,19 +225,26 @@ impl SecureChannel {
                     // Plain text block size comes from policy
                     let plain_text_block_size = self.security_policy.plain_block_size();
 
-                    // Plain text includes 
+                    // PaddingSize = PlainTextBlockSize –
+                    // ((BytesToWrite + SignatureSize + 1) % PlainTextBlockSize);
+                    // Note +2 for signature size > 255
+
                     let mut plain_text_size = bytes_to_write;
                     plain_text_size += self.security_policy.symmetric_signature_size();
-                    plain_text_size += if plain_text_block_size > 255 { 2 } else { 1 };
+                    if plain_text_block_size > 255 {
+                        plain_text_size += 1;
+                    }
+
+                    debug!("bytes to write = {}, plain block size = {}, signature size = {}, plain text size = {}", bytes_to_write, plain_text_block_size, self.security_policy.symmetric_signature_size(), plain_text_size);
 
                     if plain_text_size % plain_text_block_size != 0 {
-                        plain_text_block_size - plain_text_size % plain_text_block_size
+                        plain_text_block_size - (plain_text_size % plain_text_block_size)
                     } else {
                         0
                     }
                 }
             };
-            debug!("Padding calculated, padding = {} bytes", padding_size);
+            debug!("Padding = {}", padding_size);
             padding_size
         } else {
             0
@@ -461,10 +468,10 @@ impl SecureChannel {
 
                 // There is an expectation that the block is padded so, this is a quick test
                 let ciphertext_size = encrypted_range.end - encrypted_range.start;
-//                if ciphertext_size % 16 != 0 {
-//                    error!("The cipher text size is not padded properly, size = {}", ciphertext_size);
-//                    return Err(BAD_UNEXPECTED_ERROR);
-//                }
+                //                if ciphertext_size % 16 != 0 {
+                //                    error!("The cipher text size is not padded properly, size = {}", ciphertext_size);
+                //                    return Err(BAD_UNEXPECTED_ERROR);
+                //                }
 
                 // Copy security header
                 &dst[..encrypted_range.start].copy_from_slice(&src[..encrypted_range.start]);
@@ -475,9 +482,8 @@ impl SecureChannel {
                 let key = &keys.1;
                 let iv = &keys.2;
 
-                let decrypt_range = 0..decrypted_tmp.len();
-                debug!("Secure decrypt called with encrypted range {:?}, decrypted range {:?}", encrypted_range, decrypt_range);
-                let decrypted_size = self.security_policy.symmetric_decrypt(key, iv, &src[encrypted_range.clone()], &mut decrypted_tmp[decrypt_range])?;
+                debug!("Secure decrypt called with encrypted range {:?}", encrypted_range);
+                let decrypted_size = self.security_policy.symmetric_decrypt(key, iv, &src[encrypted_range.clone()], &mut decrypted_tmp[..])?;
 
                 let encrypted_range = encrypted_range.start..(encrypted_range.start + decrypted_size);
                 &dst[encrypted_range.clone()].copy_from_slice(&decrypted_tmp[..decrypted_size]);

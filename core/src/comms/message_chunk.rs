@@ -192,21 +192,19 @@ impl MessageChunk {
         let mut message_chunk_size = MESSAGE_CHUNK_HEADER_SIZE;
         message_chunk_size += security_header.byte_len();
         message_chunk_size += sequence_header.byte_len();
+
         message_chunk_size += data.len();
         // Test if padding is required
         let padding_size = secure_channel.calc_chunk_padding(data.len(), &security_header);
-        if padding_size > 0 {
-            message_chunk_size += padding_size & 0xff;
-            if padding_size > 255 {
-                message_chunk_size += 1;
-            }
-        }
+        message_chunk_size += padding_size;
+
         // Signature size (if required)
-        message_chunk_size += secure_channel.symmetric_signature_size();
+        let signature_size = secure_channel.symmetric_signature_size();
+        message_chunk_size += signature_size;
 
         let mut stream = Cursor::new(vec![0u8; message_chunk_size]);
 
-        debug!("Creating a chunk with a size of {}", message_chunk_size);
+        debug!("Creating a chunk with a size of {}, data including padding & signature {}", message_chunk_size, data.len() + padding_size + signature_size);
         let secure_channel_id = secure_channel.secure_channel_id;
         let chunk_header = MessageChunkHeader {
             message_type,
