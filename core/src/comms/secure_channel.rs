@@ -417,7 +417,7 @@ impl SecureChannel {
         let signature_size = self.security_policy.symmetric_signature_size();
         let mut signature = vec![0u8; signature_size];
         let signature_range = signed_range.end..(signed_range.end + signature_size);
-        debug!("signature len = {}", signature_size);
+        debug!("signed_range = {:?}, signature range = {:?}, signature len = {}", signed_range, signature_range, signature_size);
 
         // Sign the message header, security header, sequence header, body, padding
         let key = &(self.sending_keys.as_ref().unwrap()).0;
@@ -489,8 +489,9 @@ impl SecureChannel {
                 &dst[encrypted_range.clone()].copy_from_slice(&decrypted_tmp[..decrypted_size]);
 
                 // Verify signature (after encrypted portion)
+                let signature_range = (encrypted_range.end - self.security_policy.symmetric_signature_size())..encrypted_range.end;
                 let key = &(self.sending_keys.as_ref().unwrap()).0;
-                self.security_policy.symmetric_verify_signature(key, &dst[signed_range.clone()], &dst[signed_range.end..])?;
+                self.security_policy.symmetric_verify_signature(key, &dst[signed_range.clone()], &dst[signature_range])?;
                 Ok(encrypted_range.end)
             }
             MessageSecurityMode::Invalid => {

@@ -386,15 +386,17 @@ impl AesKey {
     /// Encrypt or decrypt  data according to the mode
     fn do_cipher(&self, mode: Mode, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
         let cipher = self.cipher();
+
         let _ = Self::validate_aes_args(&cipher, src, iv, dst)?;
-        let key = &self.value;
-        let iv = Some(iv);
-        let crypter = Crypter::new(cipher, mode, key, iv);
-        if let Ok(mut c) = crypter {
-            let result = c.update(src, dst);
+
+        let crypter = Crypter::new(cipher, mode, &self.value, Some(iv));
+        if let Ok(mut crypter) = crypter {
+            crypter.pad(false);
+            let result = crypter.update(src, dst);
             if let Ok(count) = result {
-                let result = c.finalize(&mut dst[count..]);
+                let result = crypter.finalize(&mut dst[count..]);
                 if let Ok(rest) = result {
+                    debug!("do cipher size {}", count + rest);
                     Ok(count + rest)
                 } else {
                     error!("Encryption error during finalize {:?}", result.unwrap_err());

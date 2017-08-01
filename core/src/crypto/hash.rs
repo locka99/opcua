@@ -7,6 +7,8 @@ use openssl::hash;
 use opcua_types::StatusCode;
 use opcua_types::StatusCode::*;
 
+use crypto::{SHA1_SIZE, SHA256_SIZE};
+
 /// Pseudo random P_SHA implementation for creating pseudo random range of bytes from an input
 ///
 /// https://www.ietf.org/rfc/rfc4346.txt
@@ -57,7 +59,7 @@ pub fn hmac(digest: hash::MessageDigest, key: &[u8], data: &[u8], signature: &mu
 
 pub fn hmac_sha1(key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
     match signature.len() {
-        20 => {
+        SHA1_SIZE => {
             hmac(hash::MessageDigest::sha1(), key, data, signature)
         }
         _ => {
@@ -69,7 +71,7 @@ pub fn hmac_sha1(key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), St
 
 /// Verify that the HMAC for the data block matches the supplied signature
 pub fn verify_hmac_sha1(key: &[u8], data: &[u8], signature: &[u8]) -> bool {
-    let mut tmp_signature = vec![0u8; signature.len()];
+    let mut tmp_signature = vec![0u8; SHA1_SIZE];
     if hmac_sha1(key, data, &mut tmp_signature).is_err() {
         false
     } else {
@@ -81,7 +83,7 @@ pub fn verify_hmac_sha1(key: &[u8], data: &[u8], signature: &[u8]) -> bool {
 
 pub fn hmac_sha256(key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
     match signature.len() {
-        32 => {
+        SHA256_SIZE => {
             hmac(hash::MessageDigest::sha256(), key, data, signature)
         }
         _ => {
@@ -93,7 +95,7 @@ pub fn hmac_sha256(key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), 
 
 /// Verify that the HMAC for the data block matches the supplied signature
 pub fn verify_hmac_sha256(key: &[u8], data: &[u8], signature: &[u8]) -> bool {
-    let mut tmp_signature = vec![0u8; signature.len()];
+    let mut tmp_signature = vec![0u8; SHA256_SIZE];
     if hmac_sha256(key, data, &mut tmp_signature).is_err() {
         false
     } else {

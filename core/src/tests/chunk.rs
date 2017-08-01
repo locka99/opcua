@@ -356,9 +356,62 @@ fn symmetric_sign_message_chunk_basic128rsa15() {
     test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::Sign, SecurityPolicy::Basic128Rsa15);
 }
 
+#[test]
+fn symmetric_sign_message_chunk_basic256() {
+    let _ = Test::setup();
+    test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::Sign, SecurityPolicy::Basic256);
+}
+
+#[test]
+fn symmetric_sign_message_chunk_basic256sha256() {
+    let _ = Test::setup();
+    test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::Sign, SecurityPolicy::Basic256Sha256);
+}
+
 /// Create a message, encode it to a chunk, sign the chunk, encrypt, decrypt, verify the signature and decode back to message
 #[test]
 fn symmetric_sign_and_encrypt_message_chunk_basic128rsa15() {
+   // let _ = Test::setup();
+   // test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic128Rsa15);
+}
+
+/// Create a message, encode it to a chunk, sign the chunk, encrypt, decrypt, verify the signature and decode back to message
+#[test]
+fn symmetric_sign_and_encrypt_message_chunk_basic256() {
     //let _ = Test::setup();
-    //test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic128Rsa15);
+    //test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic256);
+}
+
+/// Create a message, encode it to a chunk, sign the chunk, encrypt, decrypt, verify the signature and decode back to message
+#[test]
+fn symmetric_sign_and_encrypt_message_chunk_basic256sha256() {
+    //let _ = Test::setup();
+    //test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic256Sha256);
+}
+
+#[test]
+fn security_policy_symmetric_encrypt_decrypt() {
+    // Encrypt and decrypt directly to the security policy, make sure all is well
+
+    let security_policy = SecurityPolicy::Basic128Rsa15;
+    let mut secure_channel = SecureChannel::new_no_certificate_store();
+    secure_channel.security_mode = MessageSecurityMode::SignAndEncrypt;
+    secure_channel.security_policy = security_policy;
+    // Both nonces are the same because we shall be encrypting and decrypting our own blocks
+    secure_channel.nonce = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+    secure_channel.their_nonce = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+    secure_channel.derive_keys();
+
+    let src = vec![0u8; 100];
+    let mut dst = vec![0u8; 200];
+
+    let encrypted_len = secure_channel.symmetric_encrypt_and_sign(&src, 0..80, 20..100, &mut dst).unwrap();
+    assert_eq!(encrypted_len, 100);
+
+    let mut src2 = vec![0u8; 200];
+    let decrypted_len = secure_channel.symmetric_decrypt_and_verify(&dst, 0..80, 20..100, &mut src2).unwrap();
+    assert_eq!(decrypted_len, 100);
+
+    // Compare the data, not the signature
+    assert_eq!(&src[..80], &src2[..80]);
 }

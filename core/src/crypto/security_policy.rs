@@ -506,11 +506,11 @@ impl SecurityPolicy {
     pub fn symmetric_sign(&self, key: &[u8], src: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
         debug!("Producing signature for {} bytes of data into signature of {} bytes", src.len(), signature.len());
         match self {
-            &SecurityPolicy::Basic128Rsa15 => {
+            &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => {
                 // HMAC SHA-1
                 hash::hmac_sha1(key, src, signature)
             }
-            &SecurityPolicy::Basic256 | &SecurityPolicy::Basic256Sha256 => {
+            &SecurityPolicy::Basic256Sha256 => {
                 // HMAC SHA-256                
                 hash::hmac_sha256(key, src, signature)
             }
@@ -524,11 +524,11 @@ impl SecurityPolicy {
     pub fn symmetric_verify_signature(&self, key: &[u8], src: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
         // Verify the signature using SHA-1 / SHA-256 HMAC
         let verified = match self {
-            &SecurityPolicy::Basic128Rsa15 => {
+            &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => {
                 // HMAC SHA-1
                 hash::verify_hmac_sha1(key, src, signature)
             }
-            &SecurityPolicy::Basic256 | &SecurityPolicy::Basic256Sha256 => {
+            &SecurityPolicy::Basic256Sha256 => {
                 // HMAC SHA-256                
                 hash::verify_hmac_sha256(key, src, signature)
             }
