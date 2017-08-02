@@ -221,7 +221,7 @@ impl SecureChannel {
                         bytes_to_write
                     }
                 }
-                &SecurityHeader::Symmetric(_) => {
+                &SecurityHeader::Symmetric(ref security_header) => {
                     // Plain text block size comes from policy
                     let plain_text_block_size = self.security_policy.plain_block_size();
 
@@ -229,7 +229,9 @@ impl SecureChannel {
                     // ((BytesToWrite + SignatureSize + 1) % PlainTextBlockSize);
                     // Note +2 for signature size > 255
 
-                    let mut plain_text_size = bytes_to_write;
+                    let mut plain_text_size = 0;
+                    plain_text_size += security_header.byte_len();
+                    plain_text_size += bytes_to_write;
                     plain_text_size += self.security_policy.symmetric_signature_size();
                     if plain_text_block_size > 255 {
                         plain_text_size += 1;
@@ -388,7 +390,7 @@ impl SecureChannel {
                 self.symmetric_sign(src, signed_range, dst)?
             }
             MessageSecurityMode::SignAndEncrypt => {
-                debug!("encrypt_and_sign security mode == SignAndEncrypt");
+                debug!("encrypt_and_sign security mode == SignAndEncrypt, signed_range = {:?}, encrypted_range = {:?}", signed_range, encrypted_range);
                 self.expect_supported_security_policy();
 
                 let mut dst_tmp = vec![0u8; dst.len() + 16]; // tmp includes +16 for blocksize

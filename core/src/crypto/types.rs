@@ -354,14 +354,13 @@ impl AesKey {
         if dst.len() < src.len() + cipher.block_size() {
             error!("Dst buffer is too small {} vs {} + {}", src.len(), dst.len(), cipher.block_size());
             Err(BAD_UNEXPECTED_ERROR)
-            //        } else if src.len() % 16 != 0 {
-            //            // Works for out too because inx.len == out.len
-            //            Err(format!("In and out buffers are not 16-byte padded, len = {}", src.len()))
         } else if iv.len() != 16 && iv.len() != 32 {
             // ... It would be nice to compare iv size to be exact to the key size here (should be the
             // same) but AesKey doesn't tell us that info. Have to check elsewhere
             error!("IV is not an expected size, len = {}", iv.len());
             Err(BAD_UNEXPECTED_ERROR)
+        } else if src.len() % 16 != 0 {
+            panic!("Block size {} is wrong, check stack", src.len());
         } else {
             Ok(())
         }
@@ -388,6 +387,8 @@ impl AesKey {
         let cipher = self.cipher();
 
         let _ = Self::validate_aes_args(&cipher, src, iv, dst)?;
+
+        debug!("Encrypting block of size {}", src.len());
 
         let crypter = Crypter::new(cipher, mode, &self.value, Some(iv));
         if let Ok(mut crypter) = crypter {
