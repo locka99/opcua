@@ -22,6 +22,8 @@ pub struct ChunkInfo {
     /// Sequence header information
     pub sequence_header: SequenceHeader,
     /// Byte offset to sequence header
+    pub security_header_offset: usize,
+    /// Byte offset to sequence header
     pub sequence_header_offset: usize,
     /// Byte offset to actual message body
     pub body_offset: usize,
@@ -36,6 +38,7 @@ impl ChunkInfo {
         let message_header = MessageChunkHeader::decode(&mut stream)?;
 
         // Read the security header
+        let security_header_offset = stream.position() as usize;
         let security_header = if chunk.is_open_secure_channel() {
             let result = AsymmetricSecurityHeader::decode(&mut stream);
             if result.is_err() {
@@ -87,6 +90,7 @@ impl ChunkInfo {
             message_header,
             security_header,
             sequence_header,
+            security_header_offset,
             sequence_header_offset,
             body_offset,
             body_length,

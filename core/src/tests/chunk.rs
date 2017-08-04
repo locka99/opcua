@@ -330,19 +330,17 @@ fn test_encrypt_decrypt(message: SupportedMessage, security_mode: MessageSecurit
     assert_eq!(chunks.len(), 1);
 
     {
-        let mut chunk = &mut chunks[0];
+        let chunk = &mut chunks[0];
 
-        let original_data = chunk.data.clone();
+        let mut encrypted_data = vec![0u8; chunk.data.len() + 4096];
+        let encrypted_size = secure_channel.apply_security(&chunk, &mut encrypted_data[..]).unwrap();
+        debug!("Result of applying security = {}", encrypted_size);
 
-        let result = chunk.apply_security(&mut secure_channel);
-        debug!("Result of applying security = {:?}", result);
-        assert!(result.is_ok());
-        let encrypted_data = chunk.data.clone();
-        assert!(encrypted_data != original_data);
+        // We can't strip padding, so just compare up to original length
+        let chunk2 = secure_channel.verify_and_remove_security(&encrypted_data[..encrypted_size]).unwrap();
 
-        let result = chunk.verify_and_remove_security(&mut secure_channel);
-        debug!("Result of verifying and removing security = {:?}", result);
-        assert!(result.is_ok());
+        // Less than ideal - skip header because message_size might be different
+        assert_eq!(&chunk.data[12..], &chunk2.data[12..chunk.data.len()]);
     }
 
     let message2 = Chunker::decode(&chunks, &secure_channel, None).unwrap();
@@ -352,8 +350,8 @@ fn test_encrypt_decrypt(message: SupportedMessage, security_mode: MessageSecurit
 /// Create a message, encode it to a chunk, sign the chunk, verify the signature and decode back to message
 #[test]
 fn symmetric_sign_message_chunk_basic128rsa15() {
-    // let _ = Test::setup();
-    // test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::Sign, SecurityPolicy::Basic128Rsa15);
+    let _ = Test::setup();
+    test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::Sign, SecurityPolicy::Basic128Rsa15);
 }
 
 #[test]
@@ -371,22 +369,22 @@ fn symmetric_sign_message_chunk_basic256sha256() {
 /// Create a message, encode it to a chunk, sign the chunk, encrypt, decrypt, verify the signature and decode back to message
 #[test]
 fn symmetric_sign_and_encrypt_message_chunk_basic128rsa15() {
-   //let _ = Test::setup();
-   //test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic128Rsa15);
+    let _ = Test::setup();
+    test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic128Rsa15);
 }
 
 /// Create a message, encode it to a chunk, sign the chunk, encrypt, decrypt, verify the signature and decode back to message
 #[test]
 fn symmetric_sign_and_encrypt_message_chunk_basic256() {
-    //let _ = Test::setup();
-    //test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic256);
+    let _ = Test::setup();
+    test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic256);
 }
 
 /// Create a message, encode it to a chunk, sign the chunk, encrypt, decrypt, verify the signature and decode back to message
 #[test]
 fn symmetric_sign_and_encrypt_message_chunk_basic256sha256() {
-    //let _ = Test::setup();
-    //test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic256Sha256);
+    let _ = Test::setup();
+    test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic256Sha256);
 }
 
 #[test]

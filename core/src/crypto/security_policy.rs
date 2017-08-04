@@ -249,6 +249,7 @@ impl SecurityPolicy {
 
     pub fn symmetric_signature_size(&self) -> usize {
         match self {
+            &SecurityPolicy::None => 0,
             &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => SHA1_SIZE,
             &SecurityPolicy::Basic256Sha256 => SHA256_SIZE,
             _ => {

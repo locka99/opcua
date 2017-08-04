@@ -356,7 +356,7 @@ impl TcpTransport {
         Chunker::decode(&chunks, self.secure_channel(), None)
     }
 
-    fn process_chunk<W: Write>(&mut self, mut chunk: MessageChunk, out_stream: &mut W) -> std::result::Result<(), StatusCode> {
+    fn process_chunk<W: Write>(&mut self, chunk: MessageChunk, out_stream: &mut W) -> std::result::Result<(), StatusCode> {
         let message_header = chunk.message_header()?;
 
         if message_header.is_final == MessageIsFinalType::Intermediate {
@@ -367,7 +367,7 @@ impl TcpTransport {
         }
 
         // Decrypt / verify chunk if necessary
-        chunk.verify_and_remove_security(&mut self.secure_channel_service.secure_channel)?;
+        let chunk = self.secure_channel_service.secure_channel.verify_and_remove_security(&chunk.data)?;
 
         let in_chunks = vec![chunk];
         let chunk_info = in_chunks[0].chunk_info(self.secure_channel())?;
@@ -405,18 +405,21 @@ impl TcpTransport {
                 // debug!("Response to send: {:?}", response);
                 let sequence_number = self.last_sent_sequence_number + 1;
                 // TODO max message size, max chunk size
-                let mut out_chunks = Chunker::encode(sequence_number, request_id, 0, 0, self.secure_channel(), response)?;
+                let max_chunk_size = 64 * 1024;
+                let out_chunks = Chunker::encode(sequence_number, request_id, 0, max_chunk_size, self.secure_channel(), response)?;
                 self.last_sent_sequence_number = sequence_number + out_chunks.len() as UInt32 - 1;
 
                 // Send out any chunks that form the response
                 // debug!("Got some chunks to send {:?}", out_chunks);
-                for out_chunk in out_chunks.iter_mut() {
+                let mut data = vec![0u8; max_chunk_size + 1024];
+                for out_chunk in out_chunks.iter() {
                     // Encrypt and sign the chunk if necessary
-                    let result = out_chunk.apply_security(&mut self.secure_channel_service.secure_channel);
-                    if result.is_err() {
-                        panic!("Applying security to chunk failed - {:?}", result.unwrap_err());
+                    let size = self.secure_channel_service.secure_channel.apply_security(out_chunk, &mut data);
+                    if size.is_ok() {
+                        let _ = out_stream.write(&data[..size.unwrap()]);
+                    } else {
+                        panic!("Applying security to chunk failed - {:?}", size.unwrap_err());
                     }
-                    let _ = out_chunk.encode(out_stream);
                 }
             }
         }

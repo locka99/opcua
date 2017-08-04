@@ -3,9 +3,6 @@ use std::io::{Read, Write, Cursor};
 
 use opcua_types::*;
 
-use crypto::security_policy::SecurityPolicy;
-use crypto::X509;
-
 use comms::{MESSAGE_CHUNK_HEADER_SIZE, CHUNK_MESSAGE, CLOSE_SECURE_CHANNEL_MESSAGE, OPEN_SECURE_CHANNEL_MESSAGE};
 use comms::{CHUNK_INTERMEDIATE, CHUNK_FINAL, CHUNK_FINAL_ERROR};
 use comms::{SequenceHeader, SecurityHeader, AsymmetricSecurityHeader, SymmetricSecurityHeader};
@@ -189,27 +186,19 @@ impl MessageChunk {
         let sequence_header = SequenceHeader { sequence_number, request_id };
 
         // Calculate the chunk body size
-        let mut message_chunk_size = MESSAGE_CHUNK_HEADER_SIZE;
-        message_chunk_size += security_header.byte_len();
-        message_chunk_size += sequence_header.byte_len();
+        let mut message_size = MESSAGE_CHUNK_HEADER_SIZE;
+        message_size += security_header.byte_len();
+        message_size += sequence_header.byte_len();
+        message_size += data.len();
 
-        message_chunk_size += data.len();
-        // Test if padding is required
-        let padding_size = secure_channel.calc_chunk_padding(data.len(), &security_header);
-        message_chunk_size += padding_size;
+        let mut stream = Cursor::new(vec![0u8; message_size]);
 
-        // Signature size (if required)
-        let signature_size = secure_channel.symmetric_signature_size();
-        message_chunk_size += signature_size;
-
-        let mut stream = Cursor::new(vec![0u8; message_chunk_size]);
-
-        debug!("Creating a chunk with a size of {}, data including padding & signature {}", message_chunk_size, data.len() + padding_size + signature_size);
+        debug!("Creating a chunk with a size of {}, data excluding padding & signature", message_size);
         let secure_channel_id = secure_channel.secure_channel_id;
         let chunk_header = MessageChunkHeader {
             message_type,
             is_final,
-            message_size: message_chunk_size as u32,
+            message_size: message_size as u32,
             secure_channel_id,
             is_valid: true,
         };
@@ -222,25 +211,7 @@ impl MessageChunk {
         let _ = sequence_header.encode(&mut stream);
         // write message
         let _ = stream.write(data);
-        // write padding byte?
-        if padding_size > 0 {
-            // A number of bytes are written out equal to the padding size.
-            // Each byte is the padding size. So if padding size is 15 then
-            // there will be 15 bytes all with the value 15
-            let padding_value = (padding_size & 0xff) as u8;
-            for _ in 0..padding_size {
-                let _ = write_u8(&mut stream, padding_value)?;
-            }
-            // For key sizes > 2048, there may be an extra byte if padding exceeds 255 chars
-            // NOTE this doesn't make any sense to me - if I add this byte then the padding is off by
-            // 1 for the block size. It would make sense when padding_size > 255 for the last padding
-            // byte to hold the extra padding size.
-            if padding_size > 255 {
-                let extra_padding_size = (padding_size >> 8) as u8;
-                let _ = write_u8(&mut stream, extra_padding_size)?;
-            }
-        }
-        //... The buffer has zeros for the signature 
+
 
         Ok(MessageChunk { data: stream.into_inner() })
     }
@@ -259,8 +230,10 @@ impl MessageChunk {
         data_size += security_header.byte_len();
         data_size += (SequenceHeader { sequence_number: 0, request_id: 0 }).byte_len();
 
+        let signature_size = secure_channel.signature_size(&security_header);
+
         // 1 byte == most padding
-        let padding_size = secure_channel.calc_chunk_padding(1, &security_header);
+        let padding_size = secure_channel.calc_chunk_padding(&security_header, 1, signature_size);
         if padding_size > 0 {
             data_size += padding_size;
             if padding_size > 255 {
@@ -270,7 +243,7 @@ impl MessageChunk {
         }
 
         // signature length
-        data_size += secure_channel.symmetric_signature_size();
+        data_size += signature_size;
 
         // Message size is what's left
         message_size - data_size
@@ -292,121 +265,6 @@ impl MessageChunk {
             SecurityHeader::Symmetric(SymmetricSecurityHeader::decode(&mut stream)?)
         };
         Ok(security_header)
-    }
-
-    /// Signs and encrypts the data
-    pub fn apply_security(&mut self, secure_channel: &mut SecureChannel) -> Result<(), StatusCode> {
-        if secure_channel.signing_enabled() || secure_channel.encryption_enabled() {
-            // S - Message Header
-            // S - Security Header
-            // S - Sequence Header - E
-            // S - Body            - E
-            // S - Padding         - E
-            //     Signature       - E
-            let chunk_info = self.chunk_info(secure_channel)?;
-            let encrypted_range = chunk_info.sequence_header_offset..self.data.len();
-
-            // Allow big chunk of space for any padding, signature
-            let mut encrypted_data = vec![0u8; self.data.len() + 1024];
-
-            // Encrypt and sign - open secure channel
-            let encrypted_size = if self.is_open_secure_channel() {
-                secure_channel.asymmetric_encrypt_and_sign(secure_channel.security_policy, &self.data, encrypted_range, &mut encrypted_data)?
-            } else {
-                // Symmetric encrypt and sign
-                let signed_range = 0..(self.data.len() - secure_channel.security_policy.symmetric_signature_size());
-                secure_channel.symmetric_encrypt_and_sign(&self.data, signed_range, encrypted_range, &mut encrypted_data)?
-            };
-
-            self.data.clear();
-            self.data.extend_from_slice(&encrypted_data[0..encrypted_size]);
-        }
-        Ok(())
-    }
-
-    /// Decrypts and verifies the body data if the mode / policy requires it
-    pub fn verify_and_remove_security(&mut self, secure_channel: &mut SecureChannel) -> Result<(), StatusCode> {
-        // S - Message Header
-        // S - Security Header
-        // S - Sequence Header - E
-        // S - Body            - E
-        // S - Padding         - E
-        //     Signature       - E
-        if self.is_open_secure_channel() {
-            // The OpenSecureChannel is the first thing we receive so we must examine
-            // the security policy and use it to determine if the packet must be decrypted.
-            let (security_header, encrypted_data_offset, message_size) = {
-                let mut stream = Cursor::new(&self.data);
-                let message_header = MessageChunkHeader::decode(&mut stream)?;
-                let security_header = AsymmetricSecurityHeader::decode(&mut stream)?;
-                (security_header, stream.position() as usize, message_header.message_size as usize)
-            };
-            let encrypted_range = encrypted_data_offset..message_size;
-
-            debug!("Decrypting OpenSecureChannel");
-
-            // The security policy dictates the encryption / signature algorithms used by the request
-            let security_policy = SecurityPolicy::from_uri(security_header.security_policy_uri.as_ref());
-            match security_policy {
-                SecurityPolicy::Unknown => {
-                    return Err(BAD_SECURITY_POLICY_REJECTED);
-                }
-                SecurityPolicy::None => {
-                    // Nothing to do
-                    return Ok(());
-                }
-                _ => {}
-            }
-
-            // Asymmetric decrypt and verify
-
-            // The OpenSecureChannel Messages are signed and encrypted if the SecurityMode is not None
-            // (even if the SecurityMode is SignOnly)
-
-            // An OpenSecureChannelRequest uses Asymmetric encryption - decrypt using the server's private
-            // key, verify signature with client's public key.
-
-            // This code doesn't *care* if the cert is trusted, merely that it was used to sign the message
-            if security_header.sender_certificate.is_null() {
-                error!("Sender certificate is NULL!!!");
-                // TODO return
-            }
-
-            let sender_certificate_len = security_header.sender_certificate.value.as_ref().unwrap().len();
-            debug!("Sender certificate byte length = {}", sender_certificate_len);
-            let sender_certificate = X509::from_byte_string(&security_header.sender_certificate)?;
-
-            let verification_key = sender_certificate.public_key()?;
-            let signature_size = verification_key.bit_length() / 8;
-            debug!("Sender public key byte length = {}", signature_size);
-
-            let receiver_thumbprint = security_header.receiver_certificate_thumbprint;
-
-            let mut decrypted_data = vec![0u8; message_size];
-            let decrypted_size = secure_channel.asymmetric_decrypt_and_verify(security_policy, &verification_key, receiver_thumbprint, &self.data, encrypted_range, &mut decrypted_data)?;
-
-            self.data.clear();
-            self.data.extend_from_slice(&decrypted_data[0..decrypted_size]);
-        } else if secure_channel.signing_enabled() || secure_channel.encryption_enabled() {
-            // Symmetric decrypt and verify
-            let (encrypted_data_offset, message_size) = {
-                let mut stream = Cursor::new(&self.data);
-                let message_header = MessageChunkHeader::decode(&mut stream)?;
-                let _ = SymmetricSecurityHeader::decode(&mut stream)?;
-                (stream.position() as usize, message_header.message_size as usize)
-            };
-
-            let encrypted_range = encrypted_data_offset..message_size;
-            let signed_range = 0..(message_size - secure_channel.security_policy.symmetric_signature_size());
-            debug!("Decrypting block with signature info {:?} and encrypt info {:?}", signed_range, encrypted_range);
-
-            let mut decrypted_data = vec![0u8; message_size];
-            secure_channel.symmetric_decrypt_and_verify(&self.data, signed_range, encrypted_range, &mut decrypted_data)?;
-
-            self.data = decrypted_data;
-        }
-
-        Ok(())
     }
 
     pub fn is_open_secure_channel(&self) -> bool {
