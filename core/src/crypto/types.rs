@@ -125,11 +125,13 @@ impl X509 {
 
     pub fn from_byte_string(data: &ByteString) -> Result<X509, StatusCode> {
         if data.is_null() {
+            error!("Can't make certificate from null bytestring");
             Err(BAD_CERTIFICATE_INVALID)
         } else {
             if let Ok(cert) = x509::X509::from_der(&data.value.as_ref().unwrap()) {
                 Ok(X509::wrap(cert))
             } else {
+                error!("Can't make certificate, does bytestring contain .der?");
                 Err(BAD_CERTIFICATE_INVALID)
             }
         }
@@ -146,6 +148,7 @@ impl X509 {
             let pkey = PKey::wrap(pkey);
             Ok(pkey)
         } else {
+            error!("Can't obtain public key from certificate");
             Err(BAD_CERTIFICATE_INVALID)
         }
     }
@@ -155,10 +158,12 @@ impl X509 {
         let not_before = self.not_before();
         if let Ok(not_before) = not_before {
             if now.lt(&not_before) {
+                error!("Certificate < before date)");
                 return BAD_CERTIFICATE_TIME_INVALID;
             }
         } else {
             // No before time
+            error!("Certificate has no before date");
             return BAD_CERTIFICATE_INVALID;
         }
 
@@ -166,10 +171,12 @@ impl X509 {
         let not_after = self.not_after();
         if let Ok(not_after) = not_after {
             if now.gt(&not_after) {
+                error!("Certificate has expired (> after date)");
                 return BAD_CERTIFICATE_TIME_INVALID;
             }
         } else {
             // No after time
+            error!("Certificate has no after date");
             return BAD_CERTIFICATE_INVALID;
         }
 

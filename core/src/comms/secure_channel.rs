@@ -196,9 +196,14 @@ impl SecureChannel {
         // Signature size in bytes
         match security_header {
             &SecurityHeader::Asymmetric(ref security_header) => {
-                let cert = X509::from_byte_string(&security_header.sender_certificate).unwrap();
-                let pkey = cert.public_key().unwrap();
-                pkey.bit_length() / 8
+                if security_header.sender_certificate.is_null() {
+                    0
+                }
+                else {
+                    let cert = X509::from_byte_string(&security_header.sender_certificate).unwrap();
+                    let pkey = cert.public_key().unwrap();
+                    pkey.bit_length() / 8
+                }
             }
             &SecurityHeader::Symmetric(_) => {
                 // Signature size comes from policy
