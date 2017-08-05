@@ -198,8 +198,7 @@ impl SecureChannel {
             &SecurityHeader::Asymmetric(ref security_header) => {
                 if security_header.sender_certificate.is_null() {
                     0
-                }
-                else {
+                } else {
                     let cert = X509::from_byte_string(&security_header.sender_certificate).unwrap();
                     let pkey = cert.public_key().unwrap();
                     pkey.bit_length() / 8
@@ -338,15 +337,15 @@ impl SecureChannel {
             // S - Padding         - E
             //     Signature       - E
 
-            let data = self.make_padded_chunk_buffer(message_chunk)?;
-
-            {
+            let data = if message_chunk.is_open_secure_channel() {
+                message_chunk.data.clone()
+            } else {
                 use debug::debug_buffer;
+                let data = self.make_padded_chunk_buffer(message_chunk)?;
                 debug_buffer("Chunk before padding", &message_chunk.data[..]);
                 debug_buffer("Chunk after padding", &data[..]);
-            }
-
-            debug!("chunk info = {:?}", chunk_info);
+                data
+            };
 
             // Allow big chunk of space for the padding, signature
             let encrypted_range = chunk_info.sequence_header_offset..data.len();
@@ -572,12 +571,12 @@ impl SecureChannel {
 
         let encrypted_size = encrypted_range.start + encrypted_size;
 
-        {
-            use debug;
-            debug!("Encrypted size in bytes = {} compared to encrypted range {:?}", encrypted_size, encrypted_range);
-            debug::debug_buffer("Start of buffer", &dst[0..64]);
-            debug::debug_buffer("End of buffer", &dst[(encrypted_size - 64)..]);
-        }
+        //       {
+        //           use debug;
+        //           debug!("Encrypted size in bytes = {} compared to encrypted range {:?}", encrypted_size, encrypted_range);
+        //           debug::debug_buffer("Start of buffer", &dst[0..64]);
+        //           debug::debug_buffer("End of buffer", &dst[(encrypted_size - 64)..encrypted_size]);
+        //       }
 
         Ok(encrypted_size)
     }

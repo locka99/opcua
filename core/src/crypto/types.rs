@@ -103,6 +103,7 @@ impl Thumbprint {
 }
 
 /// This is a wrapper around the OpenSSL X509 cert
+#[derive(Clone)]
 pub struct X509 {
     pub value: x509::X509,
 }
