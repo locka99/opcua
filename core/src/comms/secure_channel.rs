@@ -218,9 +218,14 @@ impl SecureChannel {
         if self.security_policy != SecurityPolicy::None && self.security_mode != MessageSecurityMode::None {
             // Signature size in bytes
             let plain_text_block_size = match security_header {
-                &SecurityHeader::Asymmetric(_) => {
-                    // The key size is the block size
-                    self.security_policy.symmetric_signature_size()
+                &SecurityHeader::Asymmetric(ref security_header) => {
+                    if !security_header.sender_certificate.is_null() {
+                        let x509 = X509::from_byte_string(&security_header.sender_certificate).unwrap();
+                        x509.public_key().unwrap().bit_length() / 8
+                    }
+                    else {
+                        0
+                    }
                 }
                 &SecurityHeader::Symmetric(_) => {
                     // Plain text block size comes from policy
@@ -435,10 +440,8 @@ impl SecureChannel {
             let sender_certificate = X509::from_byte_string(&security_header.sender_certificate)?;
 
             let verification_key = sender_certificate.public_key()?;
-            let signature_size = verification_key.bit_length() / 8;
-            debug!("Sender public key byte length = {}", signature_size);
-
             let receiver_thumbprint = security_header.receiver_certificate_thumbprint;
+            debug!("Receiver thumbprint = {:?}", receiver_thumbprint);
 
             let mut decrypted_data = vec![0u8; message_size];
             let decrypted_size = self.asymmetric_decrypt_and_verify(security_policy, &verification_key, receiver_thumbprint, src, encrypted_range, &mut decrypted_data)?;
@@ -447,7 +450,6 @@ impl SecureChannel {
         } else {
             if self.signing_enabled() || self.encryption_enabled() {
                 // Symmetric decrypt and verify
-
                 let signature_size = self.security_policy.symmetric_signature_size();
                 let encrypted_range = encrypted_data_offset..message_size;
                 let signed_range = 0..(message_size - signature_size);

@@ -284,9 +284,7 @@ impl PKey {
     fn sign(&self, message_digest: hash::MessageDigest, data: &[u8], message: &mut [u8]) -> Result<usize, StatusCode> {
         debug!("Key signing");
         if let Ok(mut signer) = sign::Signer::new(message_digest, &self.value) {
-            debug!("Update");
             if signer.update(data).is_ok() {
-                debug!("Finish");
                 let result = signer.finish();
                 if let Ok(result) = result {
                     debug!("Signature = {:?}", result);
@@ -303,9 +301,7 @@ impl PKey {
     fn verify(&self, message_digest: hash::MessageDigest, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
         debug!("Key verifying, against signature {:?}", signature);
         if let Ok(mut verifier) = sign::Verifier::new(message_digest, &self.value) {
-            debug!("Update");
             if verifier.update(data).is_ok() {
-                debug!("Finish");
                 let result = verifier.finish(signature);
                 if let Ok(result) = result {
                     debug!("Key verified = {:?}", result);

@@ -234,19 +234,6 @@ impl SecurityPolicy {
         }
     }
 
-    // Cipher block size in bytes
-    pub fn cipher_block_size(&self) -> usize {
-        // AES uses a 128-bit block size regardless of key length
-        match self {
-            &SecurityPolicy::Basic128Rsa15 => 16,
-            &SecurityPolicy::Basic256 => 16,
-            &SecurityPolicy::Basic256Sha256 => 16,
-            _ => {
-                panic!("Invalid policy");
-            }
-        }
-    }
-
     pub fn symmetric_signature_size(&self) -> usize {
         match self {
             &SecurityPolicy::None => 0,
@@ -391,6 +378,21 @@ impl SecurityPolicy {
         (signing_key, encrypting_key, iv)
     }
 
+    pub fn asymmetric_sign(&self, signing_key: &PKey, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
+        let result = match self {
+            &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => {
+                signing_key.sign_sha1(data, signature)?
+            }
+            &SecurityPolicy::Basic256Sha256 => {
+                signing_key.sign_sha256(data, signature)?
+            }
+            _ => {
+                panic!("Invalid policy");
+            }
+        };
+        Ok(result)
+    }
+
     pub fn asymmetric_verify_signature(&self, verification_key: &PKey, data: &[u8], signature: &[u8]) -> Result<(), StatusCode> {
         // Asymmetric verify signature against supplied certificate
         let result = match self {
@@ -412,21 +414,6 @@ impl SecurityPolicy {
             error!("Signature mismatch");
             Err(BAD_APPLICATION_SIGNATURE_INVALID)
         }
-    }
-
-    pub fn asymmetric_sign(&self, signing_key: &PKey, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
-        let result = match self {
-            &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => {
-                signing_key.sign_sha1(data, signature)?
-            }
-            &SecurityPolicy::Basic256Sha256 => {
-                signing_key.sign_sha256(data, signature)?
-            }
-            _ => {
-                panic!("Invalid policy");
-            }
-        };
-        Ok(result)
     }
 
     fn padding_and_encrypted_data_size_for_key(&self, key_size: usize) -> (Padding, usize) {
