@@ -356,13 +356,13 @@ fn test_asymmetric_encrypt_decrypt(message: SupportedMessage, security_mode: Mes
     let (our_cert, our_key) = make_test_cert();
     let (their_cert, their_key) = make_test_cert();
 
-    let mut chunks = Chunker::encode(1, 1, 0, 0, &secure_channel, &message).unwrap();
-    assert_eq!(chunks.len(), 1);
-
     // First we shall sign with our private key and encrypt with their public.
     secure_channel.cert = Some(our_cert);
     secure_channel.their_cert = Some(their_cert);
     secure_channel.private_key = Some(our_key);
+
+    let mut chunks = Chunker::encode(1, 1, 0, 0, &secure_channel, &message).unwrap();
+    assert_eq!(chunks.len(), 1);
 
     let chunk = &mut chunks[0];
 
