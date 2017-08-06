@@ -217,37 +217,35 @@ impl SecureChannel {
     pub fn calc_chunk_padding(&self, security_header: &SecurityHeader, body_size: usize, signature_size: usize) -> usize {
         if self.security_policy != SecurityPolicy::None && self.security_mode != MessageSecurityMode::None {
             // Signature size in bytes
-            let padding_size = match security_header {
+            let plain_text_block_size = match security_header {
                 &SecurityHeader::Asymmetric(_) => {
-                    // No padding for OpenSecureChannel
-                    0
+                    // The key size is the block size
+                    self.security_policy.symmetric_signature_size()
                 }
                 &SecurityHeader::Symmetric(_) => {
                     // Plain text block size comes from policy
-                    let plain_text_block_size = self.security_policy.plain_block_size();
-
-
-                    // PaddingSize = PlainTextBlockSize –
-                    // ((BytesToWrite + SignatureSize + 1) % PlainTextBlockSize);
-                    // Note +2 for signature size > 255
-
-                    let mut plain_text_size = 0;
-                    plain_text_size += 8; // sequence header
-                    plain_text_size += body_size;
-                    plain_text_size += signature_size;
-                    if plain_text_block_size > 255 {
-                        plain_text_size += 1;
-                    }
-
-                    let padding_size = if plain_text_size % plain_text_block_size != 0 {
-                        plain_text_block_size - (plain_text_size % plain_text_block_size)
-                    } else {
-                        0
-                    };
-                    debug!("sequence_header(8) + body({}) + signature ({}) = plain text size = {} / with padding {} = {}", body_size, signature_size, plain_text_size, padding_size, plain_text_size + padding_size);
-                    padding_size
+                    self.security_policy.plain_block_size()
                 }
             };
+
+            // PaddingSize = PlainTextBlockSize –
+            // ((BytesToWrite + SignatureSize + 1) % PlainTextBlockSize);
+            // Note +2 for signature size > 255
+
+            let mut plain_text_size = 0;
+            plain_text_size += 8; // sequence header
+            plain_text_size += body_size;
+            plain_text_size += signature_size;
+            if plain_text_block_size > 255 {
+                plain_text_size += 1;
+            }
+
+            let padding_size = if plain_text_size % plain_text_block_size != 0 {
+                plain_text_block_size - (plain_text_size % plain_text_block_size)
+            } else {
+                0
+            };
+            debug!("sequence_header(8) + body({}) + signature ({}) = plain text size = {} / with padding {} = {}", body_size, signature_size, plain_text_size, padding_size, plain_text_size + padding_size);
             padding_size
         } else {
             0
