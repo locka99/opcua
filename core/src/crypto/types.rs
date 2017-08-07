@@ -284,6 +284,7 @@ impl PKey {
     fn sign(&self, message_digest: hash::MessageDigest, data: &[u8], message: &mut [u8]) -> Result<usize, StatusCode> {
         debug!("Key signing");
         if let Ok(mut signer) = sign::Signer::new(message_digest, &self.value) {
+            signer.pkey_ctx_mut().set_rsa_padding(rsa::PKCS1_PADDING).unwrap();
             if signer.update(data).is_ok() {
                 let result = signer.finish();
                 if let Ok(result) = result {

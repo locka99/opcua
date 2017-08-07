@@ -3,7 +3,7 @@ use std::result::Result;
 use opcua_types::*;
 
 use opcua_core::comms::*;
-use opcua_core::crypto::X509;
+use opcua_core::crypto::{X509, SecurityPolicy};
 
 use server::ServerState;
 
@@ -122,7 +122,8 @@ impl SecureChannelService {
         } else {
             return Ok(ServiceFault::new_supported_message(&request.request_header, nonce_result.unwrap_err()));
         }
-        if (self.security_policy != SecurityPolicy::None && (self.security_mode == MessageSecurityMode::Sign || self.security_mode == MessageSecurityMode::SignAndEncrypt)) {
+
+        if self.secure_channel.security_policy != SecurityPolicy::None && (self.secure_channel.security_mode == MessageSecurityMode::Sign || self.secure_channel.security_mode == MessageSecurityMode::SignAndEncrypt) {
             self.secure_channel.derive_keys();
         }
 
