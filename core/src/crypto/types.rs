@@ -268,20 +268,25 @@ impl PKey {
         PKey { value: pkey }
     }
 
-    pub fn new(key_size: u32) -> PKey {
+    pub fn new(bit_length: u32) -> PKey {
         PKey {
             value: {
-                let rsa = rsa::Rsa::generate(key_size).unwrap();
+                let rsa = rsa::Rsa::generate(bit_length).unwrap();
                 pkey::PKey::from_rsa(rsa).unwrap()
             },
         }
     }
 
+    /// Length in bits
     pub fn bit_length(&self) -> usize {
         self.value.bits() as usize
     }
 
-    fn sign(&self, message_digest: hash::MessageDigest, data: &[u8], message: &mut [u8]) -> Result<usize, StatusCode> {
+    /// Size in bytes
+    pub fn size(&self) -> usize { self.bit_length() / 8 }
+
+    /// Creates a message digest from the specified block of data and then signs it to return a signature
+    fn sign(&self, message_digest: hash::MessageDigest, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
         debug!("Key signing");
         if let Ok(mut signer) = sign::Signer::new(message_digest, &self.value) {
             signer.pkey_ctx_mut().set_rsa_padding(rsa::PKCS1_PADDING).unwrap();
@@ -289,7 +294,7 @@ impl PKey {
                 let result = signer.finish();
                 if let Ok(result) = result {
                     debug!("Signature = {:?}", result);
-                    message.copy_from_slice(&result);
+                    signature.copy_from_slice(&result);
                     return Ok(result.len());
                 } else {
                     debug!("Can't sign data - error = {:?}", result.unwrap_err());
@@ -299,8 +304,9 @@ impl PKey {
         Err(BAD_UNEXPECTED_ERROR)
     }
 
+    /// Verifies that the signature matches the hash / signing key of the supplied data
     fn verify(&self, message_digest: hash::MessageDigest, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
-        debug!("Key verifying, against signature {:?}", signature);
+        debug!("Key verifying, against signature {:?}, len {}", signature, signature.len());
         if let Ok(mut verifier) = sign::Verifier::new(message_digest, &self.value) {
             if verifier.update(data).is_ok() {
                 let result = verifier.finish(signature);
@@ -315,18 +321,22 @@ impl PKey {
         Err(BAD_UNEXPECTED_ERROR)
     }
 
-    pub fn sign_sha1(&self, data: &[u8], message: &mut [u8]) -> Result<usize, StatusCode> {
-        self.sign(hash::MessageDigest::sha1(), data, message)
+    /// Signs the data using RSA-SHA1
+    pub fn sign_sha1(&self, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
+        self.sign(hash::MessageDigest::sha1(), data, signature)
     }
 
+    /// Verifies the data using RSA-SHA1
     pub fn verify_sha1(&self, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
         self.verify(hash::MessageDigest::sha1(), data, signature)
     }
 
-    pub fn sign_sha256(&self, data: &[u8], message: &mut [u8]) -> Result<usize, StatusCode> {
-        self.sign(hash::MessageDigest::sha256(), data, message)
+    /// Signs the data using RSA-SHA256
+    pub fn sign_sha256(&self, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
+        self.sign(hash::MessageDigest::sha256(), data, signature)
     }
 
+    /// Verifies the data using RSA-SHA256
     pub fn verify_sha256(&self, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
         self.verify(hash::MessageDigest::sha256(), data, signature)
     }

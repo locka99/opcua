@@ -202,7 +202,7 @@ impl SecureChannel {
                 } else {
                     let cert = X509::from_byte_string(&security_header.sender_certificate).unwrap();
                     let pkey = cert.public_key().unwrap();
-                    pkey.bit_length() / 8
+                    pkey.size()
                 }
             }
             &SecurityHeader::Symmetric(_) => {
@@ -222,7 +222,7 @@ impl SecureChannel {
                 &SecurityHeader::Asymmetric(ref security_header) => {
                     if !security_header.sender_certificate.is_null() {
                         let x509 = X509::from_byte_string(&security_header.sender_certificate).unwrap();
-                        x509.public_key().unwrap().bit_length() / 8
+                        x509.public_key().unwrap().size()
                     } else {
                         0
                     }
@@ -471,7 +471,7 @@ impl SecureChannel {
     /// Use the security policy to asymmetric encrypt and sign the specified chunk of data
     fn asymmetric_encrypt_and_sign(&self, security_policy: SecurityPolicy, src: &[u8], encrypted_range: Range<usize>, dst: &mut [u8]) -> Result<usize, StatusCode> {
         let signing_key = self.private_key.as_ref().unwrap();
-        let signing_key_size = signing_key.bit_length() / 8;
+        let signing_key_size = signing_key.size();
 
         let signed_range = 0..(encrypted_range.end - signing_key_size);
         let signature_range = (encrypted_range.end - signing_key_size)..encrypted_range.end;
@@ -540,7 +540,7 @@ impl SecureChannel {
             let mut decrypted_tmp = vec![0u8; encrypted_size];
 
             let private_key = self.private_key.as_ref().unwrap();
-            let private_key_size = private_key.bit_length() / 8;
+            let private_key_size = private_key.size();
             let decrypted_size = security_policy.asymmetric_decrypt(private_key, &src[encrypted_range.clone()], &mut decrypted_tmp)?;
             debug!("Decrypted bytes = {} compared to encrypted range {}", decrypted_size, encrypted_size);
 

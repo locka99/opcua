@@ -430,7 +430,7 @@ impl SecurityPolicy {
     /// buffer must be large enough to hold encrypted bytes including padding.
     pub fn asymmetric_encrypt(&self, encryption_key: &PKey, src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
         let rsa = encryption_key.value.rsa().unwrap();
-        let key_size = encryption_key.bit_length() / 8;
+        let key_size = encryption_key.size();
 
         let (padding, encrypted_data_size) = self.padding_and_encrypted_data_size_for_key(key_size);
 
@@ -468,7 +468,7 @@ impl SecurityPolicy {
     pub fn asymmetric_decrypt(&self, private_key: &PKey, src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
         // decrypt data using our private key
         let rsa = private_key.value.rsa().unwrap();
-        let key_size = private_key.bit_length() / 8;
+        let key_size = private_key.size();
 
         let (padding, _) = self.padding_and_encrypted_data_size_for_key(key_size);
 
