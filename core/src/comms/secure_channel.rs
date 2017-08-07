@@ -112,7 +112,7 @@ impl SecureChannel {
 
     /// Creates a nonce for the connection. The nonce should be the same size as the symmetric key
     pub fn create_random_nonce(&mut self) {
-        if self.signing_enabled() || self.encryption_enabled() {
+        if self.security_policy != SecurityPolicy::None && (self.security_mode == MessageSecurityMode::Sign || self.security_mode == MessageSecurityMode::SignAndEncrypt) {
             use rand::{self, Rng};
             let mut rng = rand::thread_rng();
             self.nonce = vec![0u8; self.security_policy.symmetric_key_size()];
@@ -125,38 +125,39 @@ impl SecureChannel {
     /// Set their nonce which should be the same as the symmetric key
     pub fn set_their_nonce(&mut self, their_nonce: &ByteString) -> Result<(), StatusCode> {
         if let Some(ref their_nonce) = their_nonce.value {
-            if (self.signing_enabled() || self.encryption_enabled()) && their_nonce.len() != self.security_policy.symmetric_key_size() {
-                Err(BAD_NONCE_INVALID)
-            } else {
-                self.their_nonce = their_nonce.to_vec();
-                Ok(())
+            if self.security_policy != SecurityPolicy::None && (self.security_mode == MessageSecurityMode::Sign || self.security_mode == MessageSecurityMode::SignAndEncrypt) {
+                if their_nonce.len() != self.security_policy.symmetric_key_size() {
+                    return Err(BAD_NONCE_INVALID);
+                }
             }
+            self.their_nonce = their_nonce.to_vec();
+            Ok(())
         } else {
             Err(BAD_NONCE_INVALID)
         }
     }
 
     /// Part 6
-    /// 6.7.5 
+    /// 6.7.5
     /// Deriving keys Once the SecureChannel is established the Messages are signed and encrypted with
-    /// keys derived from the Nonces exchanged in the OpenSecureChannel call. These keys are derived by passing the Nonces to a pseudo-random function which produces a sequence of bytes from a set of inputs. A pseudo-random function is represented by the following function declaration: 
+    /// keys derived from the Nonces exchanged in the OpenSecureChannel call. These keys are derived by passing the Nonces to a pseudo-random function which produces a sequence of bytes from a set of inputs. A pseudo-random function is represented by the following function declaration:
     ///
     /// ```c++
     /// Byte[] PRF( Byte[] secret,  Byte[] seed,  Int32 length,  Int32 offset)
     /// ```
     ///
-    /// Where length is the number of bytes to return and offset is a number of bytes from the beginning of the sequence. 
+    /// Where length is the number of bytes to return and offset is a number of bytes from the beginning of the sequence.
     ///
     /// The lengths of the keys that need to be generated depend on the SecurityPolicy used for the channel.
-    /// The following information is specified by the SecurityPolicy: 
+    /// The following information is specified by the SecurityPolicy:
     ///
     /// a) SigningKeyLength (from the DerivedSignatureKeyLength);
     /// b) EncryptingKeyLength (implied by the SymmetricEncryptionAlgorithm);
     /// c) EncryptingBlockSize (implied by the SymmetricEncryptionAlgorithm).
     ///
-    /// The parameters passed to the pseudo random function are specified in Table 33. 
+    /// The parameters passed to the pseudo random function are specified in Table 33.
     ///
-    /// Table 33 – Cryptography key generation parameters 
+    /// Table 33 – Cryptography key generation parameters
     ///
     /// Key | Secret | Seed | Length | Offset
     /// ClientSigningKey | ServerNonce | ClientNonce | SigningKeyLength | 0
@@ -165,10 +166,10 @@ impl SecureChannel {
     /// ServerSigningKey | ClientNonce | ServerNonce | SigningKeyLength | 0
     /// ServerEncryptingKey | ClientNonce | ServerNonce | EncryptingKeyLength | SigningKeyLength
     /// ServerInitializationVector | ClientNonce | ServerNonce | EncryptingBlockSize | SigningKeyLength + EncryptingKeyLength
-    ///  
+    ///
     /// The Client keys are used to secure Messages sent by the Client. The Server keys
     /// are used to secure Messages sent by the Server.
-    /// 
+    ///
     pub fn derive_keys(&mut self) {
         self.sending_keys = Some(self.security_policy.make_secure_channel_keys(&self.nonce, &self.their_nonce));
         debug!("Derived our keys = {:?}", self.sending_keys);
@@ -222,8 +223,7 @@ impl SecureChannel {
                     if !security_header.sender_certificate.is_null() {
                         let x509 = X509::from_byte_string(&security_header.sender_certificate).unwrap();
                         x509.public_key().unwrap().bit_length() / 8
-                    }
-                    else {
+                    } else {
                         0
                     }
                 }
@@ -330,7 +330,7 @@ impl SecureChannel {
 
     /// Applies security to a message chunk and yields a encrypted/signed block to be streamed
     pub fn apply_security(&self, message_chunk: &MessageChunk, dst: &mut [u8]) -> Result<usize, StatusCode> {
-        let size = if self.signing_enabled() || self.encryption_enabled() {
+        let size = if self.security_policy != SecurityPolicy::None && (self.security_mode == MessageSecurityMode::Sign || self.security_mode == MessageSecurityMode::SignAndEncrypt) {
             let chunk_info = message_chunk.chunk_info(self)?;
 
             // S - Message Header
@@ -448,7 +448,7 @@ impl SecureChannel {
 
             Self::update_message_size_and_truncate(decrypted_data, decrypted_size)?
         } else {
-            if self.signing_enabled() || self.encryption_enabled() {
+            if self.security_policy != SecurityPolicy::None && (self.security_mode == MessageSecurityMode::Sign || self.security_mode == MessageSecurityMode::SignAndEncrypt) {
                 // Symmetric decrypt and verify
                 let signature_size = self.security_policy.symmetric_signature_size();
                 let encrypted_range = encrypted_data_offset..message_size;
@@ -466,15 +466,6 @@ impl SecureChannel {
         };
 
         Ok(MessageChunk { data })
-    }
-
-    pub fn signing_enabled(&self) -> bool {
-        self.security_policy != SecurityPolicy::None && self.security_mode == MessageSecurityMode::Sign
-    }
-
-    /// Test if encryption is enabled.
-    pub fn encryption_enabled(&self) -> bool {
-        self.security_policy != SecurityPolicy::None && self.security_mode == MessageSecurityMode::SignAndEncrypt
     }
 
     /// Use the security policy to asymmetric encrypt and sign the specified chunk of data

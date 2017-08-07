@@ -122,7 +122,7 @@ impl SecureChannelService {
         } else {
             return Ok(ServiceFault::new_supported_message(&request.request_header, nonce_result.unwrap_err()));
         }
-        if self.secure_channel.signing_enabled() || self.secure_channel.encryption_enabled() {
+        if (self.security_policy != SecurityPolicy::None && (self.security_mode == MessageSecurityMode::Sign || self.security_mode == MessageSecurityMode::SignAndEncrypt)) {
             self.secure_channel.derive_keys();
         }
 
