@@ -393,7 +393,7 @@ impl SecurityPolicy {
         Ok(result)
     }
 
-    pub fn asymmetric_verify_signature(&self, verification_key: &PKey, data: &[u8], signature: &[u8]) -> Result<(), StatusCode> {
+    pub fn asymmetric_verify_signature(&self, verification_key: &PKey, data: &[u8], signature: &[u8], their_key: Option<PKey>) -> Result<(), StatusCode> {
         // Asymmetric verify signature against supplied certificate
         let result = match self {
             &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => {
@@ -406,12 +406,20 @@ impl SecurityPolicy {
                 panic!("Invalid policy");
             }
         };
-        debug!("Comparing signatures");
         if result {
-            debug!("Signature matches");
             Ok(())
         } else {
             error!("Signature mismatch");
+
+            // For debugging / unit testing purposes we might be able to supply their key to see the source of the error
+            if their_key.is_some() {
+                // Calculate the signature using their key, see what we were expecting versus theirs
+                let their_key = their_key.unwrap();
+                let mut their_signature = vec![0u8; their_key.size()];
+                self.asymmetric_sign(&their_key, data, &mut their_signature[..])?;
+                debug!("Using their_key, signature is should be {:?}", &their_signature);
+            }
+
             Err(BAD_APPLICATION_SIGNATURE_INVALID)
         }
     }

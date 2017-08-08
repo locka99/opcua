@@ -321,7 +321,7 @@ impl SecureChannel {
     }
 
     // Truncates a vec and writes the message size
-    fn update_message_size_and_truncate(mut data: Vec<u8>, message_size: usize) -> Result<Vec<u8>, StatusCode> {
+    pub fn update_message_size_and_truncate(mut data: Vec<u8>, message_size: usize) -> Result<Vec<u8>, StatusCode> {
         Self::update_message_size(&mut data[..], message_size)?;
         // Truncate vector to the size
         data.truncate(message_size);
@@ -368,6 +368,14 @@ impl SecureChannel {
 
     /// Decrypts and verifies the body data if the mode / policy requires it
     pub fn verify_and_remove_security(&mut self, src: &[u8]) -> Result<MessageChunk, StatusCode> {
+        self.verify_and_remove_security_forensic(src, None)
+    }
+
+    /// Decrypts and verifies the body data if the mode / policy requires it
+    ///
+    /// Note, that normally we do not have "their" key but for testing purposes and forensics, we
+    /// might have the key
+    pub fn verify_and_remove_security_forensic(&mut self, src: &[u8], their_key: Option<PKey>) -> Result<MessageChunk, StatusCode> {
         // Get message & security header from data
         let (message_header, security_header, encrypted_data_offset) = {
             let mut stream = Cursor::new(&src);
@@ -444,7 +452,7 @@ impl SecureChannel {
             debug!("Receiver thumbprint = {:?}", receiver_thumbprint);
 
             let mut decrypted_data = vec![0u8; message_size];
-            let decrypted_size = self.asymmetric_decrypt_and_verify(security_policy, &verification_key, receiver_thumbprint, src, encrypted_range, &mut decrypted_data)?;
+            let decrypted_size = self.asymmetric_decrypt_and_verify(security_policy, &verification_key, receiver_thumbprint, src, encrypted_range, their_key, &mut decrypted_data)?;
 
             Self::update_message_size_and_truncate(decrypted_data, decrypted_size)?
         } else {
@@ -505,7 +513,7 @@ impl SecureChannel {
         Ok(encrypted_size)
     }
 
-    fn asymmetric_decrypt_and_verify(&self, security_policy: SecurityPolicy, verification_key: &PKey, receiver_thumbprint: ByteString, src: &[u8], encrypted_range: Range<usize>, dst: &mut [u8]) -> Result<usize, StatusCode> {
+    fn asymmetric_decrypt_and_verify(&self, security_policy: SecurityPolicy, verification_key: &PKey, receiver_thumbprint: ByteString, src: &[u8], encrypted_range: Range<usize>, their_key: Option<PKey>, dst: &mut [u8]) -> Result<usize, StatusCode> {
         // Asymmetric encrypt requires the caller supply the security policy
         match security_policy {
             SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {}
@@ -563,7 +571,7 @@ impl SecureChannel {
 
             // Verify signature (contained encrypted portion) using verification key
             debug!("Verifying signature range {:?} with signature at {:?}", signed_range, signature_range);
-            security_policy.asymmetric_verify_signature(verification_key, &dst[signed_range.clone()], &dst[signature_range.clone()])?;
+            security_policy.asymmetric_verify_signature(verification_key, &dst[signed_range.clone()], &dst[signature_range.clone()], their_key)?;
 
             // Decrypted and verified into dst
             Ok(signature_range.start)

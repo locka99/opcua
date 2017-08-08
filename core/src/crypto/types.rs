@@ -301,6 +301,19 @@ impl PKey {
                 }
             }
         }
+
+        {
+            use openssl::hash;
+            use openssl::rsa;
+            let digest_bytes = hash::hash2(message_digest, data).unwrap();
+
+            let mut sig2 = vec![0u8; self.size()];
+
+            self.value.rsa().unwrap().public_encrypt(&digest_bytes, &mut sig2[..], rsa::PKCS1_PADDING);
+
+            debug!("Signature 2 = {:?}", sig2);
+        }
+
         Err(BAD_UNEXPECTED_ERROR)
     }
 
@@ -308,6 +321,7 @@ impl PKey {
     fn verify(&self, message_digest: hash::MessageDigest, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
         debug!("Key verifying, against signature {:?}, len {}", signature, signature.len());
         if let Ok(mut verifier) = sign::Verifier::new(message_digest, &self.value) {
+            verifier.pkey_ctx_mut().set_rsa_padding(rsa::PKCS1_PADDING).unwrap();
             if verifier.update(data).is_ok() {
                 let result = verifier.finish(signature);
                 if let Ok(result) = result {
