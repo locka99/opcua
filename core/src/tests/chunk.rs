@@ -469,7 +469,7 @@ fn security_policy_symmetric_encrypt_decrypt() {
     assert_eq!(&src[..80], &src2[..80]);
 }
 
-//#[test]
+#[test]
 fn asymmetric_decrypt_and_verify_sample_chunk() {
     use openssl::x509;
     use openssl::pkey;

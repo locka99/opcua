@@ -120,6 +120,7 @@ impl SecureChannelService {
         if nonce_result.is_ok() {
             self.secure_channel.create_random_nonce();
         } else {
+            error!("Was unable to set their nonce, check logic");
             return Ok(ServiceFault::new_supported_message(&request.request_header, nonce_result.unwrap_err()));
         }
 

@@ -31,8 +31,9 @@ impl SessionService {
         let endpoint = endpoint.unwrap();
 
         // Check the client's certificate for validity and acceptance
-        let security_policy_uri = if endpoint.security_policy_uri.is_null() { crypto::SECURITY_POLICY_NONE } else { endpoint.security_policy_uri.value.as_ref().unwrap() };
-        let service_result = if security_policy_uri != crypto::SECURITY_POLICY_NONE {
+        let security_policy_uri = if endpoint.security_policy_uri.is_null() { crypto::security_policy::SECURITY_POLICY_NONE_URI } else { endpoint.security_policy_uri.value.as_ref().unwrap() };
+        let service_result = if security_policy_uri != crypto::security_policy::SECURITY_POLICY_NONE_URI {
+            debug!("Security uri of retrieved end point = {}", security_policy_uri);
             if let Ok(client_certificate) = crypto::X509::from_byte_string(&request.client_certificate) {
                 let certificate_store = server_state.certificate_store.lock().unwrap();
                 certificate_store.validate_or_reject_application_instance_cert(&client_certificate)

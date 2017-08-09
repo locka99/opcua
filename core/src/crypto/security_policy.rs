@@ -420,7 +420,7 @@ impl SecurityPolicy {
                 debug!("Using their_key, signature is should be {:?}", &their_signature);
             }
 
-            Err(BAD_APPLICATION_SIGNATURE_INVALID)
+            Err(BAD_SECURITY_CHECKS_FAILED)
         }
     }
 
@@ -489,7 +489,7 @@ impl SecurityPolicy {
             let decrypted_bytes = rsa.private_decrypt(src, dst, padding);
             if decrypted_bytes.is_err() {
                 error!("Decryption failed for key size {}, src idx {}, dst idx {} error - {:?}", key_size, src_idx, dst_idx, decrypted_bytes.unwrap_err());
-                return Err(BAD_UNEXPECTED_ERROR);
+                return Err(BAD_SECURITY_CHECKS_FAILED);
             }
             src_idx += key_size;
             dst_idx += decrypted_bytes.unwrap();

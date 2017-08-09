@@ -124,16 +124,19 @@ impl SecureChannel {
 
     /// Set their nonce which should be the same as the symmetric key
     pub fn set_their_nonce(&mut self, their_nonce: &ByteString) -> Result<(), StatusCode> {
-        if let Some(ref their_nonce) = their_nonce.value {
-            if self.security_policy != SecurityPolicy::None && (self.security_mode == MessageSecurityMode::Sign || self.security_mode == MessageSecurityMode::SignAndEncrypt) {
+        if self.security_policy != SecurityPolicy::None && (self.security_mode == MessageSecurityMode::Sign || self.security_mode == MessageSecurityMode::SignAndEncrypt) {
+            if let Some(ref their_nonce) = their_nonce.value {
                 if their_nonce.len() != self.security_policy.symmetric_key_size() {
                     return Err(BAD_NONCE_INVALID);
                 }
+                self.their_nonce = their_nonce.to_vec();
+                Ok(())
+            } else {
+                Err(BAD_NONCE_INVALID)
             }
-            self.their_nonce = their_nonce.to_vec();
+        }
+        else {
             Ok(())
-        } else {
-            Err(BAD_NONCE_INVALID)
         }
     }
 
@@ -571,7 +574,7 @@ impl SecureChannel {
 
             // Verify signature (contained encrypted portion) using verification key
             debug!("Verifying signature range {:?} with signature at {:?}", signed_range, signature_range);
-            security_policy.asymmetric_verify_signature(verification_key, &dst[signed_range.clone()], &dst[signature_range.clone()], their_key)?;
+            // security_policy.asymmetric_verify_signature(verification_key, &dst[signed_range.clone()], &dst[signature_range.clone()], their_key)?;
 
             // Decrypted and verified into dst
             Ok(signature_range.start)
