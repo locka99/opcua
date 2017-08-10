@@ -14,16 +14,13 @@ impl Variable {
         NodeType::Variable(Variable::new(node_id, browse_name, display_name, description, data_type, value))
     }
 
-    pub fn new_array_node(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: DataValue, dimensions: &[Int32]) -> NodeType {
+    pub fn new_array_node(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: DataValue, dimensions: &[UInt32]) -> NodeType {
         NodeType::Variable(Variable::new_array(node_id, browse_name, display_name, description, data_type, value, dimensions))
     }
 
-    pub fn new_array(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: DataValue, dimensions: &[Int32]) -> Variable {
+    pub fn new_array(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: DataValue, dimensions: &[UInt32]) -> Variable {
         let mut variable = Variable::new(node_id, browse_name, display_name, description, data_type, value);
-        // An array has a value rank equivalent to the number of dimensions and an ArrayDimensions array
-        let now = DateTime::now();
-        variable.base.set_attribute_value(AttributeId::ValueRank, Variant::Int32(dimensions.len() as Int32), &now, &now);
-        variable.base.set_attribute_value(AttributeId::ArrayDimensions, Variant::new_i32_array(dimensions), &now, &now);
+        variable.set_array_dimensions(dimensions);
         variable
     }
 
@@ -81,7 +78,7 @@ impl Variable {
         let historizing = false;
         let access_level = 0;
         let user_access_level = 0;
-        let value_rank = -1; // TODO if value is an array, maybe this and array dimensions should be explicitly set
+        let value_rank = -1;
         let attributes = vec![
             (AttributeId::UserAccessLevel, Variant::Byte(user_access_level)),
             (AttributeId::AccessLevel, Variant::Byte(access_level)),
@@ -90,9 +87,11 @@ impl Variable {
             (AttributeId::Historizing, Variant::Boolean(historizing))
         ];
 
-        // Optional
-        // attrs.push(Attribute::MinimumSamplingInterval(0));
-        // attrs.push(Attribute::ArrayDimensions(1));
+        // Optional attributes can be added through functions
+        //
+        //    MinimumSamplingInterval
+        //    ArrayDimensions
+
         let mut result = Variable {
             base: Base::new(NodeClass::Variable, node_id, browse_name, display_name, description, attributes),
         };
@@ -112,6 +111,27 @@ impl Variable {
     pub fn set_value(&mut self, value: DataValue) {
         // Value is directly set - it's a datavalue
         self.base.attributes[Base::attribute_idx(AttributeId::Value)] = Some(value);
+    }
+
+    /// Sets the array dimensions information
+    ///
+    /// Specifies the length of each dimension for an array value. 
+    ///
+    /// A value of 0 in any dimension means length of the dimension is variable.
+    pub fn set_array_dimensions(&mut self, dimensions: &[UInt32]) {
+        let now = DateTime::now();
+        self.base.set_attribute_value(AttributeId::ValueRank, Variant::Int32(dimensions.len() as Int32), &now, &now);
+        self.base.set_attribute_value(AttributeId::ArrayDimensions, Variant::new_u32_array(dimensions), &now, &now);
+    }
+
+    /// Sets the minimum sampling interval
+    ///
+    /// Specifies in milliseconds how fast the server can reasonably sample the value for changes
+    ///
+    /// The value 0 means server is to monitor the value continuously. The value -1 means indeterminate.
+    pub fn set_minimum_sampling_interval(&mut self, minimum_sampling_interval: Int32) {
+        let now = DateTime::now();
+        self.base.set_attribute_value(AttributeId::MinimumSamplingInterval, Variant::Int32(minimum_sampling_interval), &now, &now);
     }
 
     /// Sets the variables value directly, updating the timestamp

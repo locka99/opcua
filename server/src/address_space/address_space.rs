@@ -6,7 +6,7 @@ use server::ServerState;
 use constants;
 
 use address_space::{Object, ObjectType, Reference, ReferenceType, Variable, VariableType, View, DataType, Method};
-use address_space::{Node};
+use address_space::Node;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum NodeType {
@@ -189,21 +189,40 @@ impl AddressSpace {
         }
     }
 
+    /// Find and return a variable with the specified node id or return None if it cannot be
+    /// found or is not a variable
+    fn find_variable_by_node_id(&mut self, node_id: &NodeId) -> Option<&mut Variable> {
+        if let Some(node) = self.find_node_mut(node_id) {
+            if let &mut NodeType::Variable(ref mut variable) = node {
+                Some(variable)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    /// Find and return a variable with the specified variable id
+    fn find_variable_by_variable_id(&mut self, variable_id: VariableId) -> Option<&mut Variable> {
+        self.find_variable_by_node_id(&variable_id.as_node_id())
+    }
+
+    /// Set a variable value
+    pub fn set_value_by_node_id(&mut self, node_id: &NodeId, value: Variant) -> bool {
+        if let Some(ref mut variable) = self.find_variable_by_node_id(node_id) {
+            variable.set_value_direct(&DateTime::now(), value);
+            true
+        } else {
+            false
+        }
+    }
+
     /// This is a convenience method. It sets a value directly on a variable assuming the supplied
     /// node id exists in the address space and is a Variable node. The response is true if the
     /// value was set and false otherwise.
-    pub fn set_variable_value(&mut self, node_id: &NodeId, value: Variant) -> bool {
-        let node = self.find_node_mut(node_id);
-        if node.is_none() {
-            false
-        } else {
-            if let &mut NodeType::Variable(ref mut variable) = node.unwrap() {
-                variable.set_value_direct(&DateTime::now(), value);
-                true
-            } else {
-                false
-            }
-        }
+    pub fn set_value_by_variable_id(&mut self, variable_id: VariableId, value: Variant) -> bool {
+        self.set_value_by_node_id(&variable_id.as_node_id(), value)
     }
 
     fn reference_type_matches(&self, r1: ReferenceTypeId, r2: ReferenceTypeId, include_subtypes: bool) -> bool {
@@ -343,21 +362,29 @@ impl AddressSpace {
 
     /// Sets values for nodes representing the server.
     pub fn update_from_server_state(&mut self, server_state: &ServerState) {
+        use opcua_types::VariableId::*;
+
         let server_config = server_state.config.lock().unwrap();
 
-        // Server/ (ServerType)
-        self.set_variable_value(&VariableId::Server_NamespaceArray.as_node_id(), Variant::new_string_array(&server_state.namespaces));
-        self.set_variable_value(&VariableId::Server_ServerArray.as_node_id(), Variant::new_string_array(&server_state.servers));
-        self.set_variable_value(&VariableId::Server_ServerCapabilities_MaxArrayLength.as_node_id(), Variant::UInt32(server_config.max_array_length));
-        self.set_variable_value(&VariableId::Server_ServerCapabilities_MaxStringLength.as_node_id(), Variant::UInt32(server_config.max_string_length));
-        self.set_variable_value(&VariableId::Server_ServerCapabilities_MaxByteStringLength.as_node_id(), Variant::UInt32(server_config.max_byte_string_length));
-        self.set_variable_value(&VariableId::Server_ServerCapabilities_MaxBrowseContinuationPoints.as_node_id(), Variant::UInt32(0));
-        self.set_variable_value(&VariableId::Server_ServerCapabilities_MaxHistoryContinuationPoints.as_node_id(), Variant::UInt32(0));
-        self.set_variable_value(&VariableId::Server_ServerCapabilities_MaxQueryContinuationPoints.as_node_id(), Variant::UInt32(0));
-        self.set_variable_value(&VariableId::Server_ServerCapabilities_MinSupportedSampleRate.as_node_id(), Variant::Double(constants::MIN_SAMPLING_INTERVAL));
+        // Server variables
+        if let Some(ref mut v) = self.find_variable_by_variable_id(Server_NamespaceArray) {
+            v.set_value_direct(&DateTime::now(), Variant::new_string_array(&server_state.namespaces));
+            v.set_array_dimensions(&[server_state.namespaces.len() as UInt32]);
+        }
+        if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerArray) {
+            v.set_value_direct(&DateTime::now(), Variant::new_string_array(&server_state.servers));
+            v.set_array_dimensions(&[server_state.servers.len() as UInt32]);
+        }
+        self.set_value_by_variable_id(Server_ServerCapabilities_MaxArrayLength, Variant::UInt32(server_config.max_array_length));
+        self.set_value_by_variable_id(Server_ServerCapabilities_MaxStringLength, Variant::UInt32(server_config.max_string_length));
+        self.set_value_by_variable_id(Server_ServerCapabilities_MaxByteStringLength, Variant::UInt32(server_config.max_byte_string_length));
+        self.set_value_by_variable_id(Server_ServerCapabilities_MaxBrowseContinuationPoints, Variant::UInt32(0));
+        self.set_value_by_variable_id(Server_ServerCapabilities_MaxHistoryContinuationPoints, Variant::UInt32(0));
+        self.set_value_by_variable_id(Server_ServerCapabilities_MaxQueryContinuationPoints, Variant::UInt32(0));
+        self.set_value_by_variable_id(Server_ServerCapabilities_MinSupportedSampleRate, Variant::Double(constants::MIN_SAMPLING_INTERVAL));
 
         // ServiceLevel - 0-255 worst to best quality of service
-        self.set_variable_value(&VariableId::Server_ServiceLevel.as_node_id(), Variant::Byte(255));
+        self.set_value_by_variable_id(Server_ServiceLevel, Variant::Byte(255));
 
         // Auditing - var
         // ServerDiagnostics
@@ -365,7 +392,7 @@ impl AddressSpace {
         // ServerRedundancy
 
         // Server status
-        self.set_variable_value(&VariableId::Server_ServerStatus_StartTime.as_node_id(), Variant::DateTime(DateTime::now()));
+        self.set_value_by_variable_id(Server_ServerStatus_StartTime, Variant::DateTime(DateTime::now()));
         // TODO Server_ServerStatus_CurrentTime
         // State OPC UA Part 5 12.6, Valid states are
         //
@@ -378,7 +405,7 @@ impl AddressSpace {
         // Communication Fault = 6
         // Unknown = 7
         //     State (Server_ServerStatus_State)
-        self.set_variable_value(&VariableId::Server_ServerStatus_State.as_node_id(), Variant::UInt32(0));
+        self.set_value_by_variable_id(Server_ServerStatus_State, Variant::UInt32(0));
 
         // ServerStatus_BuildInfo
         //    BuildDate

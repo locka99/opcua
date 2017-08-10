@@ -127,8 +127,7 @@ impl Base {
         }
         // Make attributes from their initial values
         let now = DateTime::now();
-        for attribute in attributes_to_add {
-            let (attribute_id, value) = attribute;
+        for (attribute_id, value) in attributes_to_add {
             let attribute_idx = Base::attribute_idx(attribute_id);
             attributes[attribute_idx] = Some(DataValue {
                 value: Some(value),
@@ -172,6 +171,11 @@ impl Base {
         } else {
             Err(())
         }
+    }
+
+    pub fn clear_attribute(&mut self, attribute_id: AttributeId) {
+        let attribute_idx = Base::attribute_idx(attribute_id);
+        self.attributes[attribute_idx] = None;
     }
 
     #[inline]

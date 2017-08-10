@@ -97,6 +97,7 @@ impl SecureChannelService {
                 // TODO validate NONCE
             }
             _ => {
+                error!("Security mode is invalid");
                 return Ok(ServiceFault::new_supported_message(&request.request_header, BAD_SECURITY_MODE_REJECTED));
             }
         }

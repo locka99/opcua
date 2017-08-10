@@ -325,37 +325,36 @@ impl Variant {
 
     /// Encodes just the value, not the encoding flag
     fn encode_variant_value<S: Write>(stream: &mut S, value: &Variant) -> EncodingResult<usize> {
-        let result = match value {
-            &Variant::Empty => 0,
-            &Variant::Boolean(ref value) => value.encode(stream)?,
-            &Variant::SByte(ref value) => value.encode(stream)?,
-            &Variant::Byte(ref value) => value.encode(stream)?,
-            &Variant::Int16(ref value) => value.encode(stream)?,
-            &Variant::UInt16(ref value) => value.encode(stream)?,
-            &Variant::Int32(ref value) => value.encode(stream)?,
-            &Variant::UInt32(ref value) => value.encode(stream)?,
-            &Variant::Int64(ref value) => value.encode(stream)?,
-            &Variant::UInt64(ref value) => value.encode(stream)?,
-            &Variant::Float(ref value) => value.encode(stream)?,
-            &Variant::Double(ref value) => value.encode(stream)?,
-            &Variant::String(ref value) => value.encode(stream)?,
-            &Variant::DateTime(ref value) => value.encode(stream)?,
-            &Variant::Guid(ref value) => value.encode(stream)?,
-            &Variant::ByteString(ref value) => value.encode(stream)?,
-            &Variant::XmlElement(ref value) => value.encode(stream)?,
-            &Variant::NodeId(ref value) => value.encode(stream)?,
-            &Variant::ExpandedNodeId(ref value) => value.encode(stream)?,
-            &Variant::StatusCode(ref value) => value.encode(stream)?,
-            &Variant::QualifiedName(ref value) => value.encode(stream)?,
-            &Variant::LocalizedText(ref value) => value.encode(stream)?,
-            &Variant::ExtensionObject(ref value) => value.encode(stream)?,
-            &Variant::DataValue(ref value) => value.encode(stream)?,
+        match value {
+            &Variant::Empty => Ok(0),
+            &Variant::Boolean(ref value) => value.encode(stream),
+            &Variant::SByte(ref value) => value.encode(stream),
+            &Variant::Byte(ref value) => value.encode(stream),
+            &Variant::Int16(ref value) => value.encode(stream),
+            &Variant::UInt16(ref value) => value.encode(stream),
+            &Variant::Int32(ref value) => value.encode(stream),
+            &Variant::UInt32(ref value) => value.encode(stream),
+            &Variant::Int64(ref value) => value.encode(stream),
+            &Variant::UInt64(ref value) => value.encode(stream),
+            &Variant::Float(ref value) => value.encode(stream),
+            &Variant::Double(ref value) => value.encode(stream),
+            &Variant::String(ref value) => value.encode(stream),
+            &Variant::DateTime(ref value) => value.encode(stream),
+            &Variant::Guid(ref value) => value.encode(stream),
+            &Variant::ByteString(ref value) => value.encode(stream),
+            &Variant::XmlElement(ref value) => value.encode(stream),
+            &Variant::NodeId(ref value) => value.encode(stream),
+            &Variant::ExpandedNodeId(ref value) => value.encode(stream),
+            &Variant::StatusCode(ref value) => value.encode(stream),
+            &Variant::QualifiedName(ref value) => value.encode(stream),
+            &Variant::LocalizedText(ref value) => value.encode(stream),
+            &Variant::ExtensionObject(ref value) => value.encode(stream),
+            &Variant::DataValue(ref value) => value.encode(stream),
             _ => {
                 debug!("Cannot encode this variant value type (probably nested array)");
-                return Err(BAD_ENCODING_ERROR)
+                Err(BAD_ENCODING_ERROR)
             }
-        };
-        Ok(result)
+        }
     }
 
     /// Reads just the variant value from the stream
@@ -422,6 +421,14 @@ impl Variant {
         let mut values = Vec::with_capacity(in_values.len());
         for v in in_values {
             values.push(Variant::Int32(*v));
+        }
+        Variant::Array(Box::new(values))
+    }
+
+    pub fn new_u32_array(in_values: &[UInt32]) -> Variant {
+        let mut values = Vec::with_capacity(in_values.len());
+        for v in in_values {
+            values.push(Variant::UInt32(*v));
         }
         Variant::Array(Box::new(values))
     }
