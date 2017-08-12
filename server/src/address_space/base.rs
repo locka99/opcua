@@ -5,7 +5,7 @@ const NUM_ATTRIBUTES: usize = 22;
 
 /// The NodeId is the target node. The reference is held in a list by the source node.
 /// The target node does not need to exist.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Reference {
     pub reference_type_id: ReferenceTypeId,
     pub node_id: NodeId,
@@ -52,7 +52,7 @@ macro_rules! find_attribute_mandatory {
 }
 
 /// Base is the functionality that all kinds of nodes need. Part 3, diagram B.4
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 pub struct Base {
     /// Attributes
     pub attributes: Vec<Option<DataValue>>,

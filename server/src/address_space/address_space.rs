@@ -8,7 +8,7 @@ use constants;
 use address_space::{Object, ObjectType, Reference, ReferenceType, Variable, VariableType, View, DataType, Method};
 use address_space::Node;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 pub enum NodeType {
     Object(Object),
     ObjectType(ObjectType),
@@ -39,7 +39,7 @@ impl NodeType {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AddressSpace {
     pub node_map: HashMap<NodeId, NodeType>,
     pub references: HashMap<NodeId, Vec<Reference>>,
@@ -159,7 +159,7 @@ impl AddressSpace {
     }
 
     /// Adds a list of varables to the specified parent node
-    pub fn add_variables(&mut self, variables: &Vec<Variable>, parent_node_id: &NodeId) -> Vec<Result<NodeId, ()>> {
+    pub fn add_variables(&mut self, variables: Vec<Variable>, parent_node_id: &NodeId) -> Vec<Result<NodeId, ()>> {
         let mut result = Vec::with_capacity(variables.len());
         for variable in variables {
             result.push(self.add_variable(variable, parent_node_id));
@@ -168,11 +168,11 @@ impl AddressSpace {
     }
 
     /// Adds a single variable under the parent node
-    pub fn add_variable(&mut self, variable: &Variable, parent_node_id: &NodeId) -> Result<NodeId, ()> {
+    pub fn add_variable(&mut self, variable: Variable, parent_node_id: &NodeId) -> Result<NodeId, ()> {
         let node_id = variable.node_id();
         if !self.node_map.contains_key(&node_id) {
             self.add_organizes(&parent_node_id, &node_id);
-            self.insert(NodeType::Variable(variable.clone()));
+            self.insert(NodeType::Variable(variable));
             Ok(node_id)
         } else {
             Err(())

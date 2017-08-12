@@ -1,10 +1,31 @@
+use std;
+use std::fmt::{Debug, Formatter};
+
 use opcua_types::DataTypeId;
 
+use address_space::address_space::AddressSpace;
 use address_space::{Base, Node, NodeType};
 
-#[derive(Debug, Clone, PartialEq)]
+pub trait ValueGetter {
+    fn value(&self, address_space: &AddressSpace, variable: &Variable) -> DataValue;
+}
+
+pub trait ValueSetter {
+    fn set_value(&mut self, address_space: &AddressSpace, variable: &Variable, data_value: DataValue);
+}
+
 pub struct Variable {
     pub base: Base,
+    pub getter: Option<Box<ValueGetter + Send>>,
+    pub setter: Option<Box<ValueSetter + Send>>,
+}
+
+impl Debug for Variable {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        // This impl will not write out the key, but it exists to keep structs happy
+        // that contain a key as a field
+        write!(f, "Variable {{ base: {:?} }}", self.base)
+    }
 }
 
 node_impl!(Variable);
@@ -94,6 +115,8 @@ impl Variable {
 
         let mut result = Variable {
             base: Base::new(NodeClass::Variable, node_id, browse_name, display_name, description, attributes),
+            getter: None,
+            setter: None,
         };
         result.base.set_attribute(AttributeId::Value, value);
         result

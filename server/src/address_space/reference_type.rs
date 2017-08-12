@@ -1,6 +1,6 @@
 use address_space::{Base, Node, NodeType};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 pub struct ReferenceType {
     pub base: Base,
 }

@@ -34,7 +34,7 @@ fn add_sample_vars_to_address_space(address_space: &mut AddressSpace) {
         Variable::new(&NodeId::new_numeric(2, 300), "v2", "v2", "", DataTypeId::Boolean, DataValue::new(Variant::Boolean(true))),
         Variable::new(&NodeId::new_string(1, "v3"), "v3", "v3", "", DataTypeId::String, DataValue::new(Variant::String(UAString::from_str("Hello world"))))
     ];
-    let _ = address_space.add_variables(&vars, &sample_folder_id);
+    let _ = address_space.add_variables(vars, &sample_folder_id);
 }
 
 #[test]

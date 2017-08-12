@@ -1,6 +1,6 @@
 use address_space::{Base, Node};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 pub struct View {
     base: Base,
 }
