@@ -1,6 +1,4 @@
-use std::sync::Arc;
-
-use address_space::{Base, Node, AttributeGetter, AttributeSetter};
+use address_space::{Base, Node};
 
 #[derive(Debug)]
 pub struct View {

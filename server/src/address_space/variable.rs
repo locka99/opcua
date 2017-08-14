@@ -1,6 +1,4 @@
-use std;
-use std::fmt::{Debug, Formatter};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use opcua_types::DataTypeId;
 
@@ -112,13 +110,13 @@ impl Variable {
         self.base.set_attribute(AttributeId::Value, value);
     }
 
-    //pub fn set_value_getter(&mut self, getter: Arc<Box<AttributeGetter + Send>>) {
-    //    self.base.set_attribute_getter(AttributeId::Value, getter);
-    //}
+    pub fn set_value_getter(&mut self, getter: Arc<Mutex<AttributeGetter + Send>>) {
+        self.base.set_attribute_getter(AttributeId::Value, getter);
+    }
 
-    //pub fn set_value_setter(&mut self, setter: Arc<Box<AttributeSetter + Send>>) {
-    //    self.base.set_attribute_setter(AttributeId::Value, setter);
-    //}
+    pub fn set_value_setter(&mut self, setter: Arc<Mutex<AttributeSetter + Send>>) {
+        self.base.set_attribute_setter(AttributeId::Value, setter);
+    }
 
     /// Sets the array dimensions information
     ///

@@ -2,8 +2,6 @@
 /// member.
 ///
 
-use std::sync::Arc;
-
 use opcua_types::{NodeClass, NodeId, LocalizedText, QualifiedName, UInt32, AttributeId, DataValue};
 
 pub trait AttributeGetter {

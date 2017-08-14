@@ -53,7 +53,7 @@ pub const WRITE_MASK_WRITE_MASK: UInt32 = 1 << 20;
 /// For Variables this bit shall be set to 0.
 pub const WRITE_MASK_VALUE_FOR_VARIABLE_TYPE: UInt32 = 1 << 21;
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq)]
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
 pub enum AttributeId {
     NodeId = 1,
     NodeClass = 2,
