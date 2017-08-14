@@ -309,7 +309,7 @@ impl Server {
         // Set some values in the address space from the server state
         {
             let mut address_space = server_state.address_space.lock().unwrap();
-            address_space.update_from_server_state(&server_state);
+            address_space.set_server_state(&server_state);
         }
 
         Server {

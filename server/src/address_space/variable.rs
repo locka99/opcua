@@ -1,31 +1,14 @@
 use std;
 use std::fmt::{Debug, Formatter};
+use std::sync::Arc;
 
 use opcua_types::DataTypeId;
 
-use address_space::address_space::AddressSpace;
-use address_space::{Base, Node, NodeType};
+use address_space::{Base, Node, NodeType, AttributeGetter, AttributeSetter};
 
-pub trait ValueGetter {
-    fn value(&self, address_space: &AddressSpace, variable: &Variable) -> DataValue;
-}
-
-pub trait ValueSetter {
-    fn set_value(&mut self, address_space: &AddressSpace, variable: &Variable, data_value: DataValue);
-}
-
+#[derive(Debug)]
 pub struct Variable {
-    pub base: Base,
-    pub getter: Option<Box<ValueGetter + Send>>,
-    pub setter: Option<Box<ValueSetter + Send>>,
-}
-
-impl Debug for Variable {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        // This impl will not write out the key, but it exists to keep structs happy
-        // that contain a key as a field
-        write!(f, "Variable {{ base: {:?} }}", self.base)
-    }
+    base: Base,
 }
 
 node_impl!(Variable);
@@ -115,25 +98,26 @@ impl Variable {
 
         let mut result = Variable {
             base: Base::new(NodeClass::Variable, node_id, browse_name, display_name, description, attributes),
-            getter: None,
-            setter: None,
         };
         result.base.set_attribute(AttributeId::Value, value);
         result
     }
 
     pub fn value(&self) -> DataValue {
-        if let &Some(ref attribute) = &self.base.attributes[Base::attribute_idx(AttributeId::Value)] {
-            attribute.clone()
-        } else {
-            panic!("Variable value is missing");
-        }
+        self.base.find_attribute(AttributeId::Value).unwrap()
     }
 
     /// Sets the variable's value
     pub fn set_value(&mut self, value: DataValue) {
-        // Value is directly set - it's a datavalue
-        self.base.attributes[Base::attribute_idx(AttributeId::Value)] = Some(value);
+        self.base.set_attribute(AttributeId::Value, value);
+    }
+
+    pub fn set_value_getter(&mut self, getter: Arc<Box<AttributeGetter + Send>>) {
+        self.base.set_attribute_getter(AttributeId::Value, getter);
+    }
+
+    pub fn set_value_setter(&mut self, setter: Arc<Box<AttributeSetter + Send>>) {
+        self.base.set_attribute_setter(AttributeId::Value, setter);
     }
 
     /// Sets the array dimensions information

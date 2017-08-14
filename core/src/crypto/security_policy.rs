@@ -154,7 +154,7 @@ pub mod basic256sha256 {
 
 /// SecurityPolicy implies what encryption and signing algorithms and their relevant key strengths
 /// are used during an encrypted session.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum SecurityPolicy {
     Unknown,
     None,

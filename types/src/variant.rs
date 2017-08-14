@@ -13,7 +13,7 @@ use generated::DataTypeId;
 const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
 const ARRAY_VALUES_BIT: u8 = 1 << 7;
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MultiDimensionArray {
     pub values: Vec<Variant>,
     pub dimensions: Vec<Int32>

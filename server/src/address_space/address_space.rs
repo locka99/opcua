@@ -7,6 +7,7 @@ use constants;
 
 use address_space::{Object, ObjectType, Reference, ReferenceType, Variable, VariableType, View, DataType, Method};
 use address_space::Node;
+use address_space::AttributeGetter;
 
 #[derive(Debug)]
 pub enum NodeType {
@@ -361,7 +362,7 @@ impl AddressSpace {
     }
 
     /// Sets values for nodes representing the server.
-    pub fn update_from_server_state(&mut self, server_state: &ServerState) {
+    pub fn set_server_state(&mut self, server_state: &ServerState) {
         use opcua_types::VariableId::*;
 
         let server_config = server_state.config.lock().unwrap();
@@ -375,13 +376,17 @@ impl AddressSpace {
             v.set_value_direct(&DateTime::now(), Variant::new_string_array(&server_state.servers));
             v.set_array_dimensions(&[server_state.servers.len() as UInt32]);
         }
-        self.set_value_by_variable_id(Server_ServerCapabilities_MaxArrayLength, Variant::UInt32(server_config.max_array_length));
-        self.set_value_by_variable_id(Server_ServerCapabilities_MaxStringLength, Variant::UInt32(server_config.max_string_length));
-        self.set_value_by_variable_id(Server_ServerCapabilities_MaxByteStringLength, Variant::UInt32(server_config.max_byte_string_length));
-        self.set_value_by_variable_id(Server_ServerCapabilities_MaxBrowseContinuationPoints, Variant::UInt32(0));
-        self.set_value_by_variable_id(Server_ServerCapabilities_MaxHistoryContinuationPoints, Variant::UInt32(0));
-        self.set_value_by_variable_id(Server_ServerCapabilities_MaxQueryContinuationPoints, Variant::UInt32(0));
-        self.set_value_by_variable_id(Server_ServerCapabilities_MinSupportedSampleRate, Variant::Double(constants::MIN_SAMPLING_INTERVAL));
+
+        // ServerCapabilities
+        {
+            self.set_value_by_variable_id(Server_ServerCapabilities_MaxArrayLength, Variant::UInt32(server_config.max_array_length));
+            self.set_value_by_variable_id(Server_ServerCapabilities_MaxStringLength, Variant::UInt32(server_config.max_string_length));
+            self.set_value_by_variable_id(Server_ServerCapabilities_MaxByteStringLength, Variant::UInt32(server_config.max_byte_string_length));
+            self.set_value_by_variable_id(Server_ServerCapabilities_MaxBrowseContinuationPoints, Variant::UInt32(0));
+            self.set_value_by_variable_id(Server_ServerCapabilities_MaxHistoryContinuationPoints, Variant::UInt32(0));
+            self.set_value_by_variable_id(Server_ServerCapabilities_MaxQueryContinuationPoints, Variant::UInt32(0));
+            self.set_value_by_variable_id(Server_ServerCapabilities_MinSupportedSampleRate, Variant::Double(constants::MIN_SAMPLING_INTERVAL));
+        }
 
         // ServiceLevel - 0-255 worst to best quality of service
         self.set_value_by_variable_id(Server_ServiceLevel, Variant::Byte(255));
@@ -393,7 +398,23 @@ impl AddressSpace {
 
         // Server status
         self.set_value_by_variable_id(Server_ServerStatus_StartTime, Variant::DateTime(DateTime::now()));
-        // TODO Server_ServerStatus_CurrentTime
+
+
+        // Server_ServerStatus_CurrentTime
+        if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerStatus_CurrentTime) {
+            /// Used to return the current time of the server, i.e. now
+            struct ServerCurrentTimeGetter {}
+
+            impl AttributeGetter for ServerCurrentTimeGetter {
+                fn get(&self, _: AttributeId, _: NodeId) -> Option<DataValue> {
+                    Some(DataValue::new(Variant::DateTime(DateTime::now())))
+                }
+            }
+
+            // Put a getter onto this thing so it can fetch the current time on demand
+            v.set_value_getter(Box::new(ServerCurrentTimeGetter {}));
+        }
+
         // State OPC UA Part 5 12.6, Valid states are
         //
         // Running = 0
@@ -408,12 +429,14 @@ impl AddressSpace {
         self.set_value_by_variable_id(Server_ServerStatus_State, Variant::UInt32(0));
 
         // ServerStatus_BuildInfo
-        //    BuildDate
-        //    BuildNumber
-        //    ManufacturerName
-        //    ProductName
-        //    ProductUri
-        //    SoftwareVersion
+        {
+            //    BuildDate
+            //    BuildNumber
+            //    ManufacturerName
+            //    ProductName
+            //    ProductUri
+            //    SoftwareVersion
+        }
     }
 
     pub fn insert_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) {

@@ -1,5 +1,7 @@
 use opcua_types::*;
 
+use address_space::{AttributeGetter, AttributeSetter, Node};
+
 // This should match size of AttributeId
 const NUM_ATTRIBUTES: usize = 22;
 
@@ -18,19 +20,6 @@ impl Reference {
             node_id: node_id.clone(),
         }
     }
-}
-
-/// Implemented by Base and all derived Node types. Functions that return a result in an Option
-/// do so because the attribute is optional and not necessarily there.
-pub trait Node {
-    fn node_class(&self) -> NodeClass;
-    fn node_id(&self) -> NodeId;
-    fn browse_name(&self) -> QualifiedName;
-    fn display_name(&self) -> LocalizedText;
-    fn description(&self) -> Option<LocalizedText>;
-    fn write_mask(&self) -> Option<UInt32>;
-    fn user_write_mask(&self) -> Option<UInt32>;
-    fn find_attribute(&self, attribute_id: AttributeId) -> Option<DataValue>;
 }
 
 /// This is a sanity saving macro that adds Node trait methods to all types that have a base
@@ -52,10 +41,21 @@ macro_rules! find_attribute_mandatory {
 }
 
 /// Base is the functionality that all kinds of nodes need. Part 3, diagram B.4
-#[derive(Debug)]
 pub struct Base {
     /// Attributes
-    pub attributes: Vec<Option<DataValue>>,
+    attributes: Vec<Option<DataValue>>,
+    /// Attribute getters - if None, handled by Base
+    attribute_getters: HashMap<AttributeId, Arc<Box<AttributeGetter + Send>>>,
+    /// Attribute setters - if None, handled by Base
+    attribute_setters: HashMap<AttributeId, Arc<Box<AttributeSetter + Send>>>,
+}
+
+impl Debug for Base {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        // This impl will not write out the key, but it exists to keep structs happy
+        // that contain a key as a field
+        write!(f, "Base {{ base: {:?} }}", self.attributes)
+    }
 }
 
 impl Node for Base {
@@ -105,6 +105,14 @@ impl Node for Base {
         }
         self.attributes[attribute_idx].clone()
     }
+
+    fn set_attribute_getter(&mut self, attribute_id: AttributeId, getter: Arc<Box<AttributeGetter + Send>>) {
+        self.attribute_getters.insert(attribute_id, getter);
+    }
+
+    fn set_attribute_setter(&mut self, attribute_id: AttributeId, setter: Arc<Box<AttributeSetter + Send>>) {
+        self.attribute_setters.insert(attribute_id, setter);
+    }
 }
 
 impl Base {
@@ -121,12 +129,9 @@ impl Base {
         ];
         attributes_to_add.append(&mut attributes);
 
-        let mut attributes: Vec<Option<DataValue>> = Vec::with_capacity(NUM_ATTRIBUTES);
-        for _ in 0..NUM_ATTRIBUTES {
-            attributes.push(None);
-        }
         // Make attributes from their initial values
         let now = DateTime::now();
+        let mut attributes = vec![None; NUM_ATTRIBUTES];
         for (attribute_id, value) in attributes_to_add {
             let attribute_idx = Base::attribute_idx(attribute_id);
             attributes[attribute_idx] = Some(DataValue {
@@ -139,19 +144,27 @@ impl Base {
             });
         }
 
+        let attribute_setters = vec![None; NUM_ATTRIBUTES];
+        let attribute_getters = vec![None; NUM_ATTRIBUTES];
+
         Base {
-            attributes: attributes,
+            attributes,
+            attribute_getters: HashMap::new(),
+            attribute_setters: HashMap::new(),
         }
     }
 
     pub fn set_attribute(&mut self, attribute_id: AttributeId, value: DataValue) {
         let attribute_idx = Base::attribute_idx(attribute_id);
-        self.attributes[attribute_idx] = Some(value);
+        if let Some(setter) = self.attribute_setters.get_mut(attribute_id) {
+            setter.set(attribute_id, self.node_id(), value);
+        } else {
+            self.attributes[attribute_idx] = Some(value);
+        }
     }
 
     pub fn set_attribute_value(&mut self, attribute_id: AttributeId, value: Variant, server_timestamp: &DateTime, source_timestamp: &DateTime) {
-        let attribute_idx = Base::attribute_idx(attribute_id);
-        self.attributes[attribute_idx] = Some(DataValue {
+        self.set_attribute(attribute_id, DataValue {
             value: Some(value),
             status: Some(GOOD),
             server_timestamp: Some(server_timestamp.clone()),
@@ -159,23 +172,6 @@ impl Base {
             source_timestamp: Some(source_timestamp.clone()),
             source_picoseconds: Some(0),
         });
-    }
-
-    pub fn update_attribute_value(&mut self, attribute_id: AttributeId, value: Variant, server_timestamp: &DateTime, source_timestamp: &DateTime) -> Result<(), ()> {
-        let ref mut attribute = self.attributes[Base::attribute_idx(attribute_id)];
-        if let &mut Some(ref mut attribute) = attribute {
-            attribute.value = Some(value);
-            attribute.server_timestamp = Some(server_timestamp.clone());
-            attribute.source_timestamp = Some(source_timestamp.clone());
-            Ok(())
-        } else {
-            Err(())
-        }
-    }
-
-    pub fn clear_attribute(&mut self, attribute_id: AttributeId) {
-        let attribute_idx = Base::attribute_idx(attribute_id);
-        self.attributes[attribute_idx] = None;
     }
 
     #[inline]
