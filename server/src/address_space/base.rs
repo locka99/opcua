@@ -1,3 +1,8 @@
+use std;
+use std::collections::HashMap;
+use std::fmt::{Debug, Formatter};
+use std::sync::Arc;
+
 use opcua_types::*;
 
 use address_space::{AttributeGetter, AttributeSetter, Node};
@@ -44,10 +49,10 @@ macro_rules! find_attribute_mandatory {
 pub struct Base {
     /// Attributes
     attributes: Vec<Option<DataValue>>,
-    /// Attribute getters - if None, handled by Base
-    attribute_getters: HashMap<AttributeId, Arc<Box<AttributeGetter + Send>>>,
-    /// Attribute setters - if None, handled by Base
-    attribute_setters: HashMap<AttributeId, Arc<Box<AttributeSetter + Send>>>,
+    // Attribute getters - if None, handled by Base
+    //attribute_getters: HashMap<AttributeId, Arc<Box<AttributeGetter + Send>>>,
+    // Attribute setters - if None, handled by Base
+    //attribute_setters: HashMap<AttributeId, Arc<Box<AttributeSetter + Send>>>,
 }
 
 impl Debug for Base {
@@ -106,13 +111,13 @@ impl Node for Base {
         self.attributes[attribute_idx].clone()
     }
 
-    fn set_attribute_getter(&mut self, attribute_id: AttributeId, getter: Arc<Box<AttributeGetter + Send>>) {
-        self.attribute_getters.insert(attribute_id, getter);
-    }
+    //fn set_attribute_getter(&mut self, attribute_id: AttributeId, getter: Arc<Box<AttributeGetter + Send>>) {
+    //    self.attribute_getters.insert(attribute_id, getter);
+    //}
 
-    fn set_attribute_setter(&mut self, attribute_id: AttributeId, setter: Arc<Box<AttributeSetter + Send>>) {
-        self.attribute_setters.insert(attribute_id, setter);
-    }
+    //fn set_attribute_setter(&mut self, attribute_id: AttributeId, setter: Arc<Box<AttributeSetter + Send>>) {
+    //    self.attribute_setters.insert(attribute_id, setter);
+    //}
 }
 
 impl Base {
@@ -144,23 +149,20 @@ impl Base {
             });
         }
 
-        let attribute_setters = vec![None; NUM_ATTRIBUTES];
-        let attribute_getters = vec![None; NUM_ATTRIBUTES];
-
         Base {
             attributes,
-            attribute_getters: HashMap::new(),
-            attribute_setters: HashMap::new(),
+            //attribute_getters: HashMap::new(),
+            //attribute_setters: HashMap::new(),
         }
     }
 
     pub fn set_attribute(&mut self, attribute_id: AttributeId, value: DataValue) {
         let attribute_idx = Base::attribute_idx(attribute_id);
-        if let Some(setter) = self.attribute_setters.get_mut(attribute_id) {
-            setter.set(attribute_id, self.node_id(), value);
-        } else {
+        //if let Some(setter) = self.attribute_setters.get_mut(attribute_id) {
+        //    setter.set(attribute_id, self.node_id(), value);
+        //} else {
             self.attributes[attribute_idx] = Some(value);
-        }
+        //}
     }
 
     pub fn set_attribute_value(&mut self, attribute_id: AttributeId, value: Variant, server_timestamp: &DateTime, source_timestamp: &DateTime) {

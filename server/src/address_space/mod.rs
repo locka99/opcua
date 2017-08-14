@@ -25,8 +25,8 @@ pub trait Node {
     fn write_mask(&self) -> Option<UInt32>;
     fn user_write_mask(&self) -> Option<UInt32>;
     fn find_attribute(&self, attribute_id: AttributeId) -> Option<DataValue>;
-    fn set_attribute_getter(&mut self, attribute_id: AttributeId, getter: Arc<Box<AttributeGetter + Send>>);
-    fn set_attribute_setter(&mut self, attribute_id: AttributeId, setter: Arc<Box<AttributeSetter + Send>>);
+    //fn set_attribute_getter(&mut self, attribute_id: AttributeId, getter: Arc<Box<AttributeGetter + Send>>);
+    //fn set_attribute_setter(&mut self, attribute_id: AttributeId, setter: Arc<Box<AttributeSetter + Send>>);
 }
 
 macro_rules! node_impl {
@@ -41,12 +41,12 @@ macro_rules! node_impl {
             fn write_mask(&self) -> Option<UInt32> { self.base.write_mask() }
             fn user_write_mask(&self) -> Option<UInt32> { self.base.user_write_mask() }
             fn find_attribute(&self, attribute_id: AttributeId) -> Option<DataValue> { self.base.find_attribute(attribute_id) }
-            fn set_attribute_getter(&mut self, attribute_id: AttributeId, getter: Arc<Box<AttributeGetter + Send>>) {
-                self.base.set_attribute_getter(attribute_id, getter);
-            }
-            fn set_attribute_setter(&mut self, attribute_id: AttributeId, setter: Arc<Box<AttributeSetter + Send>>) {
-                self.base.set_attribute_setter(attribute_id, setter);
-            }
+            //fn set_attribute_getter(&mut self, attribute_id: AttributeId, getter: Arc<Box<AttributeGetter + Send>>) {
+            //    self.base.set_attribute_getter(attribute_id, getter);
+            //}
+            //fn set_attribute_setter(&mut self, attribute_id: AttributeId, setter: Arc<Box<AttributeSetter + Send>>) {
+            //    self.base.set_attribute_setter(attribute_id, setter);
+            //}
         }
     };
 }

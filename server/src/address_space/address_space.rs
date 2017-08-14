@@ -412,7 +412,7 @@ impl AddressSpace {
             }
 
             // Put a getter onto this thing so it can fetch the current time on demand
-            v.set_value_getter(Box::new(ServerCurrentTimeGetter {}));
+            // v.set_value_getter(Box::new(ServerCurrentTimeGetter {}));
         }
 
         // State OPC UA Part 5 12.6, Valid states are
