@@ -231,6 +231,7 @@ dependencies = [
 name = "opcua-simple-server"
 version = "0.1.0"
 dependencies = [
+ "chrono 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-core 0.1.0",
  "opcua-server 0.1.1",
  "opcua-types 0.1.0",

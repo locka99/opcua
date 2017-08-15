@@ -1,31 +1,33 @@
 //! This is a simple server for OPC UA. Our sample creates a server with the default settings
 //! adds some variables to the address space and the listeners for connections. It also has
 //! a timer that updates those variables so anything monitoring variables sees the values changing.
-
+extern crate chrono;
 extern crate opcua_types;
 extern crate opcua_core;
 extern crate opcua_server;
+
+use std::sync::{Arc, Mutex};
 
 use opcua_server::prelude::*;
 
 fn main() {
     // This enables logging. If you don't need logging you can omit it
-    opcua_core::init_logging(opcua_core::LogLevelFilter::Debug);
+    opcua_core::init_logging(opcua_core::LogLevelFilter::Info);
 
     // Create an OPC UA server with the default sample (demo) settings and node set
     let mut server = Server::new(ServerConfig::default_sample());
 
     // Add some variables and update timer actions
-    let actions = setup_variable_update_actions(&mut server);
+    let timers = setup_variable_update_actions(&mut server);
 
     // Run the server. This does not ordinarily exit.
     server.run();
 
-    // This drop stops compiler complaining that actions var is unused.
-    drop(actions);
+    // This drop stops compiler complaining that timers var is unused.
+    drop(timers);
 }
 
-/// Creates some sample variables, and some fast / slow timers to update them
+/// Creates some sample variables, and some push / pull examples that update them
 fn setup_variable_update_actions(server: &mut Server) -> Vec<PollingAction> {
     // These will be the node ids of the variables
     let v1_node = NodeId::new_string(2, "v1");
@@ -51,30 +53,52 @@ fn setup_variable_update_actions(server: &mut Server) -> Vec<PollingAction> {
         let _ = address_space.add_variables(vars, &sample_folder_id);
     }
 
-    // These variables will be moved into the closures below which make use of them
+    // OPC UA for Rust gives you a choice to push or pull values from a variable.
+
+    // 1) Push. You'll use a timer or some other external mechanism to set the value on a variable
+    //    when it changes.
+
     let mut v1_counter: Int32 = 0;
     let mut v2_flag: Boolean = true;
-    let mut slow_counter: Int32 = 0;
-    let mut v3_string: String = "Hello world!".to_string();
-    let mut v4_double = 0f64;
 
-    // Caller must hang onto this result for as long as they want actions to happen. When this
-    // value is dropped, the action timers will stop.
-    vec![
+    let timers = vec![
         // Fast changes
         server.create_address_space_polling_action(250, move |address_space: &mut AddressSpace| {
             v1_counter += 1;
             v2_flag = !v2_flag;
             let _ = address_space.set_value_by_node_id(&v1_node, Variant::Int32(v1_counter));
             let _ = address_space.set_value_by_node_id(&v2_node, Variant::Boolean(v2_flag));
-        }),
-        // Slow changes
-        server.create_address_space_polling_action(1000, move |address_space: &mut AddressSpace| {
-            slow_counter += 1;
-            v3_string = format!("Hello World times {}", slow_counter);
-            v4_double = ((slow_counter % 360) as f64).to_radians().sin();
-            let _ = address_space.set_value_by_node_id(&v3_node, Variant::String(UAString::from_str(&v3_string)));
-            let _ = address_space.set_value_by_node_id(&v4_node, Variant::Double(v4_double));
         })
-    ]
+    ];
+
+    // 2) Pull. You can register a getter on a variable, and allow the monitoring and subscription
+    //    rate to control how often your getter is called.
+    let server_state = server.server_state.lock().unwrap();
+    let mut address_space = server_state.address_space.lock().unwrap();
+
+    if let Some(ref mut v) = address_space.find_variable_by_node_id(&v3_node) {
+        // Hello world's counter will increment with each get - slower interval == slower increment
+        let mut counter = 0;
+        let getter = AttrFnGetter::new(move |_, _| -> Option<DataValue> {
+            counter += 1;
+            Some(DataValue::new_string(UAString::from_str(&format!("Hello World times {}", counter))))
+        });
+        v.set_value_getter(Arc::new(Mutex::new(getter)));
+    }
+
+    if let Some(ref mut v) = address_space.find_variable_by_node_id(&v4_node) {
+        // Sine wave draws 2*PI over course of 10 seconds
+        use std::f64::consts;
+        use chrono::UTC;
+        let start_time = UTC::now();
+        let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Option<DataValue> {
+            let moment = (UTC::now().signed_duration_since(start_time).num_milliseconds() % 10000) as f64 / 10000.0;
+            Some(DataValue::new_f64((2.0 * consts::PI * moment).sin()))
+        });
+        v.set_value_getter(Arc::new(Mutex::new(getter)));
+    }
+
+    // Caller must hang onto the timers for as long as they want actions to happen. When timers are
+    // dropped, they no longer fire
+    timers
 }

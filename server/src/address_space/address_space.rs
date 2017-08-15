@@ -8,7 +8,7 @@ use constants;
 
 use address_space::{Object, ObjectType, Reference, ReferenceType, Variable, VariableType, View, DataType, Method};
 use address_space::Node;
-use address_space::AttributeGetter;
+use address_space::AttrFnGetter;
 
 #[derive(Debug)]
 pub enum NodeType {
@@ -58,6 +58,80 @@ impl AddressSpace {
         };
         address_space.add_default_nodes();
         address_space
+    }
+
+
+    /// Sets values for nodes representing the server.
+    pub fn set_server_state(&mut self, server_state: &ServerState) {
+        use opcua_types::VariableId::*;
+
+        let server_config = server_state.config.lock().unwrap();
+
+        // Server variables
+        if let Some(ref mut v) = self.find_variable_by_variable_id(Server_NamespaceArray) {
+            v.set_value_direct(&DateTime::now(), Variant::new_string_array(&server_state.namespaces));
+            v.set_array_dimensions(&[server_state.namespaces.len() as UInt32]);
+        }
+        if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerArray) {
+            v.set_value_direct(&DateTime::now(), Variant::new_string_array(&server_state.servers));
+            v.set_array_dimensions(&[server_state.servers.len() as UInt32]);
+        }
+
+        // ServerCapabilities
+        {
+            self.set_value_by_variable_id(Server_ServerCapabilities_MaxArrayLength, Variant::UInt32(server_config.max_array_length));
+            self.set_value_by_variable_id(Server_ServerCapabilities_MaxStringLength, Variant::UInt32(server_config.max_string_length));
+            self.set_value_by_variable_id(Server_ServerCapabilities_MaxByteStringLength, Variant::UInt32(server_config.max_byte_string_length));
+            self.set_value_by_variable_id(Server_ServerCapabilities_MaxBrowseContinuationPoints, Variant::UInt32(0));
+            self.set_value_by_variable_id(Server_ServerCapabilities_MaxHistoryContinuationPoints, Variant::UInt32(0));
+            self.set_value_by_variable_id(Server_ServerCapabilities_MaxQueryContinuationPoints, Variant::UInt32(0));
+            self.set_value_by_variable_id(Server_ServerCapabilities_MinSupportedSampleRate, Variant::Double(constants::MIN_SAMPLING_INTERVAL));
+        }
+
+        // ServiceLevel - 0-255 worst to best quality of service
+        self.set_value_by_variable_id(Server_ServiceLevel, Variant::Byte(255));
+
+        // Auditing - var
+        // ServerDiagnostics
+        // VendorServiceInfo
+        // ServerRedundancy
+
+        // Server status
+        self.set_value_by_variable_id(Server_ServerStatus_StartTime, Variant::DateTime(DateTime::now()));
+
+
+        // Server_ServerStatus_CurrentTime
+        if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerStatus_CurrentTime) {
+            /// Used to return the current time of the server, i.e. now
+            let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Option<DataValue> {
+                Some(DataValue::new(Variant::DateTime(DateTime::now())))
+            });
+            // Put a getter onto this thing so it can fetch the current time on demand
+            v.set_value_getter(Arc::new(Mutex::new(getter)));
+        }
+
+        // State OPC UA Part 5 12.6, Valid states are
+        //
+        // Running = 0
+        // Failed = 1
+        // No configuration = 2
+        // Suspended = 3
+        // Shutdown = 4
+        // Test = 5
+        // Communication Fault = 6
+        // Unknown = 7
+        //     State (Server_ServerStatus_State)
+        self.set_value_by_variable_id(Server_ServerStatus_State, Variant::UInt32(0));
+
+        // ServerStatus_BuildInfo
+        {
+            //    BuildDate
+            //    BuildNumber
+            //    ManufacturerName
+            //    ProductName
+            //    ProductUri
+            //    SoftwareVersion
+        }
     }
 
     pub fn root_folder_id() -> NodeId {
@@ -193,7 +267,7 @@ impl AddressSpace {
 
     /// Find and return a variable with the specified node id or return None if it cannot be
     /// found or is not a variable
-    fn find_variable_by_node_id(&mut self, node_id: &NodeId) -> Option<&mut Variable> {
+    pub fn find_variable_by_node_id(&mut self, node_id: &NodeId) -> Option<&mut Variable> {
         if let Some(node) = self.find_node_mut(node_id) {
             if let &mut NodeType::Variable(ref mut variable) = node {
                 Some(variable)
@@ -206,7 +280,7 @@ impl AddressSpace {
     }
 
     /// Find and return a variable with the specified variable id
-    fn find_variable_by_variable_id(&mut self, variable_id: VariableId) -> Option<&mut Variable> {
+    pub fn find_variable_by_variable_id(&mut self, variable_id: VariableId) -> Option<&mut Variable> {
         self.find_variable_by_node_id(&variable_id.as_node_id())
     }
 
@@ -360,84 +434,6 @@ impl AddressSpace {
     /// Adds the standard nodeset to the address space
     pub fn add_default_nodes(&mut self) {
         super::generated::populate_address_space(self);
-    }
-
-    /// Sets values for nodes representing the server.
-    pub fn set_server_state(&mut self, server_state: &ServerState) {
-        use opcua_types::VariableId::*;
-
-        let server_config = server_state.config.lock().unwrap();
-
-        // Server variables
-        if let Some(ref mut v) = self.find_variable_by_variable_id(Server_NamespaceArray) {
-            v.set_value_direct(&DateTime::now(), Variant::new_string_array(&server_state.namespaces));
-            v.set_array_dimensions(&[server_state.namespaces.len() as UInt32]);
-        }
-        if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerArray) {
-            v.set_value_direct(&DateTime::now(), Variant::new_string_array(&server_state.servers));
-            v.set_array_dimensions(&[server_state.servers.len() as UInt32]);
-        }
-
-        // ServerCapabilities
-        {
-            self.set_value_by_variable_id(Server_ServerCapabilities_MaxArrayLength, Variant::UInt32(server_config.max_array_length));
-            self.set_value_by_variable_id(Server_ServerCapabilities_MaxStringLength, Variant::UInt32(server_config.max_string_length));
-            self.set_value_by_variable_id(Server_ServerCapabilities_MaxByteStringLength, Variant::UInt32(server_config.max_byte_string_length));
-            self.set_value_by_variable_id(Server_ServerCapabilities_MaxBrowseContinuationPoints, Variant::UInt32(0));
-            self.set_value_by_variable_id(Server_ServerCapabilities_MaxHistoryContinuationPoints, Variant::UInt32(0));
-            self.set_value_by_variable_id(Server_ServerCapabilities_MaxQueryContinuationPoints, Variant::UInt32(0));
-            self.set_value_by_variable_id(Server_ServerCapabilities_MinSupportedSampleRate, Variant::Double(constants::MIN_SAMPLING_INTERVAL));
-        }
-
-        // ServiceLevel - 0-255 worst to best quality of service
-        self.set_value_by_variable_id(Server_ServiceLevel, Variant::Byte(255));
-
-        // Auditing - var
-        // ServerDiagnostics
-        // VendorServiceInfo
-        // ServerRedundancy
-
-        // Server status
-        self.set_value_by_variable_id(Server_ServerStatus_StartTime, Variant::DateTime(DateTime::now()));
-
-
-        // Server_ServerStatus_CurrentTime
-        if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerStatus_CurrentTime) {
-            /// Used to return the current time of the server, i.e. now
-            struct ServerCurrentTimeGetter {}
-
-            impl AttributeGetter for ServerCurrentTimeGetter {
-                fn get(&self, _: AttributeId, _: NodeId) -> Option<DataValue> {
-                    Some(DataValue::new(Variant::DateTime(DateTime::now())))
-                }
-            }
-
-            // Put a getter onto this thing so it can fetch the current time on demand
-            v.set_value_getter(Arc::new(Mutex::new(ServerCurrentTimeGetter {})));
-        }
-
-        // State OPC UA Part 5 12.6, Valid states are
-        //
-        // Running = 0
-        // Failed = 1
-        // No configuration = 2
-        // Suspended = 3
-        // Shutdown = 4
-        // Test = 5
-        // Communication Fault = 6
-        // Unknown = 7
-        //     State (Server_ServerStatus_State)
-        self.set_value_by_variable_id(Server_ServerStatus_State, Variant::UInt32(0));
-
-        // ServerStatus_BuildInfo
-        {
-            //    BuildDate
-            //    BuildNumber
-            //    ManufacturerName
-            //    ProductName
-            //    ProductUri
-            //    SoftwareVersion
-        }
     }
 
     pub fn insert_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) {

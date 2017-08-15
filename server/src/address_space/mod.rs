@@ -4,12 +4,45 @@
 
 use opcua_types::{NodeClass, NodeId, LocalizedText, QualifiedName, UInt32, AttributeId, DataValue};
 
+/// An attribute getter is used to obtain the datavalue associated with the particular attribute id
 pub trait AttributeGetter {
-    fn get(&self, attribute_id: AttributeId, node_id: NodeId) -> Option<DataValue>;
+    /// Returns some datavalue or none
+    fn get(&mut self, node_id: NodeId, attribute_id: AttributeId) -> Option<DataValue>;
 }
 
+/// An implementation of attribute getter that can be easily constructed from a mutable function
+pub struct AttrFnGetter<F> where F: FnMut(NodeId, AttributeId) -> Option<DataValue> + Send {
+    getter: F
+}
+
+impl<F> AttributeGetter for AttrFnGetter<F> where F: FnMut(NodeId, AttributeId) -> Option<DataValue> + Send {
+    fn get(&mut self, node_id: NodeId, attribute_id: AttributeId) -> Option<DataValue> {
+        (self.getter)(node_id, attribute_id)
+    }
+}
+
+impl<F> AttrFnGetter<F> where F: FnMut(NodeId, AttributeId) -> Option<DataValue> + Send {
+    pub fn new(getter: F) -> AttrFnGetter<F> { AttrFnGetter { getter } }
+}
+
+// An attribute setter. Sets the value on the specified attribute
 pub trait AttributeSetter {
-    fn set(&mut self, attribute_id: AttributeId, node_id: NodeId, data_value: DataValue);
+    fn set(&mut self, node_id: NodeId, attribute_id: AttributeId, data_value: DataValue);
+}
+
+/// An implementation of attribute setter that can be easily constructed using a mutable function
+pub struct AttrFnSetter<F> where F: FnMut(NodeId, AttributeId, DataValue) + Send {
+    setter: F
+}
+
+impl<F> AttributeSetter for AttrFnSetter<F> where F: FnMut(NodeId, AttributeId, DataValue) + Send {
+    fn set(&mut self, node_id: NodeId, attribute_id: AttributeId, data_value: DataValue) {
+        (self.setter)(node_id, attribute_id, data_value)
+    }
+}
+
+impl<F> AttrFnSetter<F> where F: FnMut(NodeId, AttributeId, DataValue) + Send {
+    pub fn new(setter: F) -> AttrFnSetter<F> { AttrFnSetter { setter } }
 }
 
 /// Implemented by Base and all derived Node types. Functions that return a result in an Option
@@ -23,8 +56,6 @@ pub trait Node {
     fn write_mask(&self) -> Option<UInt32>;
     fn user_write_mask(&self) -> Option<UInt32>;
     fn find_attribute(&self, attribute_id: AttributeId) -> Option<DataValue>;
-    //fn set_attribute_getter(&mut self, attribute_id: AttributeId, getter: Arc<Box<AttributeGetter + Send>>);
-    //fn set_attribute_setter(&mut self, attribute_id: AttributeId, setter: Arc<Box<AttributeSetter + Send>>);
 }
 
 macro_rules! node_impl {
@@ -39,12 +70,6 @@ macro_rules! node_impl {
             fn write_mask(&self) -> Option<UInt32> { self.base.write_mask() }
             fn user_write_mask(&self) -> Option<UInt32> { self.base.user_write_mask() }
             fn find_attribute(&self, attribute_id: AttributeId) -> Option<DataValue> { self.base.find_attribute(attribute_id) }
-            //fn set_attribute_getter(&mut self, attribute_id: AttributeId, getter: Arc<Box<AttributeGetter + Send>>) {
-            //    self.base.set_attribute_getter(attribute_id, getter);
-            //}
-            //fn set_attribute_setter(&mut self, attribute_id: AttributeId, setter: Arc<Box<AttributeSetter + Send>>) {
-            //    self.base.set_attribute_setter(attribute_id, setter);
-            //}
         }
     };
 }

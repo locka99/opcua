@@ -104,8 +104,8 @@ impl Node for Base {
 
     fn find_attribute(&self, attribute_id: AttributeId) -> Option<DataValue> {
         if let Some(getter) = self.attribute_getters.get(&attribute_id) {
-            let getter = getter.lock().unwrap();
-            getter.get(attribute_id, self.node_id())
+            let mut getter = getter.lock().unwrap();
+            getter.get(self.node_id(), attribute_id)
         }
         else {
             let attribute_idx = Base::attribute_idx(attribute_id);
@@ -167,7 +167,7 @@ impl Base {
         let attribute_idx = Base::attribute_idx(attribute_id);
         if let Some(setter) = self.attribute_setters.get(&attribute_id) {
             let mut setter = setter.lock().unwrap();
-            setter.set(attribute_id, self.node_id(), value);
+            setter.set(self.node_id(), attribute_id, value);
         }
         else {
             self.attributes[attribute_idx] = Some(value);
