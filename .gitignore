@@ -3,7 +3,7 @@
 types/target/
 core/target/
 client/target/
-sample-client/target/
+samples/simple-server/target/
+samples/simple-client/target/
 server/target/
-sample-server/target/
 tools/certificate-creator/target/
