@@ -134,8 +134,7 @@ impl SecureChannel {
             } else {
                 Err(BAD_NONCE_INVALID)
             }
-        }
-        else {
+        } else {
             Ok(())
         }
     }

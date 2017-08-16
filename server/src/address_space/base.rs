@@ -106,8 +106,7 @@ impl Node for Base {
         if let Some(getter) = self.attribute_getters.get(&attribute_id) {
             let mut getter = getter.lock().unwrap();
             getter.get(self.node_id(), attribute_id)
-        }
-        else {
+        } else {
             let attribute_idx = Base::attribute_idx(attribute_id);
             if attribute_idx >= self.attributes.len() {
                 warn!("Attribute id {:?} is out of range and invalid", attribute_id);
@@ -168,8 +167,7 @@ impl Base {
         if let Some(setter) = self.attribute_setters.get(&attribute_id) {
             let mut setter = setter.lock().unwrap();
             setter.set(self.node_id(), attribute_id, value);
-        }
-        else {
+        } else {
             self.attributes[attribute_idx] = Some(value);
         }
     }

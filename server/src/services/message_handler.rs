@@ -50,7 +50,7 @@ impl MessageHandler {
     ///
     /// The request header should contain the session authentication token issued during a
     /// CreateSession or the request is invalid. An invalid token can cause the session to close.
-     fn validate_request(&self, session: &mut Session, request_header: &RequestHeader) -> Result<(), SupportedMessage> {
+    fn validate_request(&self, session: &mut Session, request_header: &RequestHeader) -> Result<(), SupportedMessage> {
         // TODO if session's token is null, it might be possible to retrieve session state from a
         // previously closed session and reassociate it if the authentication token is recognized
 
