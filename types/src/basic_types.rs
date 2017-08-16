@@ -540,7 +540,7 @@ impl BinaryEncoder<QualifiedName> for QualifiedName {
         let mut size: usize = 0;
         size += self.namespace_index.encode(stream)?;
         size += self.name.encode(stream)?;
-        assert_eq! (size, self.byte_len());
+        assert_eq!(size, self.byte_len());
         Ok(size)
     }
 

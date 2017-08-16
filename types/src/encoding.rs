@@ -232,7 +232,7 @@ pub fn url_matches_except_host(url1: &str, url2: &str) -> std::result::Result<bo
     if let Ok(mut url1) = Url::parse(url1) {
         if let Ok(mut url2) = Url::parse(url2) {
             if url1.set_host(None).is_ok() && url2.set_host(None).is_ok() {
-                return Ok(url1 == url2)
+                return Ok(url1 == url2);
             }
         }
     }
