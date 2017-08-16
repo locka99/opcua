@@ -4,6 +4,21 @@ use opcua_types::DataTypeId;
 
 use address_space::{Base, Node, NodeType, AttributeGetter, AttributeSetter};
 
+const ACCESS_LEVEL_CURRENT_READ: Byte = 1 << 0;
+const ACCESS_LEVEL_CURRENT_WRITE: Byte = 1 << 1;
+//const ACCESS_LEVEL_HISTORY_READ: Byte = 1 << 2;
+//const ACCESS_LEVEL_HISTORY_WRITE: Byte = 1 << 3;
+//const ACCESS_LEVEL_SEMANTIC_CHANGE: Byte = 1 << 4;
+//const ACCESS_LEVEL_STATUS_WRITE: Byte = 1 << 5;
+//const ACCESS_LEVEL_TIMESTAMP_WRITE: Byte = 1 << 6;
+
+const USER_ACCESS_LEVEL_CURRENT_READ: Byte = 1 << 0;
+const USER_ACCESS_LEVEL_CURRENT_WRITE: Byte = 1 << 1;
+//const USER_ACCESS_LEVEL_HISTORY_READ: Byte = 1 << 2;
+//const USER_ACCESS_LEVEL_HISTORY_WRITE: Byte = 1 << 3;
+//const USER_ACCESS_LEVEL_STATUS_WRITE: Byte = 1 << 5;
+//const USER_ACCESS_LEVEL_TIMESTAMP_WRITE: Byte = 1 << 6;
+
 #[derive(Debug)]
 pub struct Variable {
     base: Base,
@@ -78,8 +93,8 @@ impl Variable {
     pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: DataValue) -> Variable {
         // Mandatory
         let historizing = false;
-        let access_level = 0;
-        let user_access_level = 0;
+        let access_level = ACCESS_LEVEL_CURRENT_READ;
+        let user_access_level = USER_ACCESS_LEVEL_CURRENT_READ;
         let value_rank = -1;
         let attributes = vec![
             (AttributeId::UserAccessLevel, Variant::Byte(user_access_level)),
@@ -148,6 +163,22 @@ impl Variable {
         data_value.source_picoseconds = Some(0);
         data_value.value = Some(value);
         self.set_value(data_value);
+    }
+
+    pub fn is_readable(&self) -> bool {
+        (self.access_level() & ACCESS_LEVEL_CURRENT_READ) != 0
+    }
+
+    pub fn is_writeable(&self) -> bool {
+        (self.access_level() & ACCESS_LEVEL_CURRENT_WRITE) != 0
+    }
+
+    pub fn is_user_readable(&self) -> bool {
+        (self.user_access_level() & USER_ACCESS_LEVEL_CURRENT_READ) != 0
+    }
+
+    pub fn is_user_writeable(&self) -> bool {
+        (self.user_access_level() & USER_ACCESS_LEVEL_CURRENT_WRITE) != 0
     }
 
     pub fn access_level(&self) -> Byte {

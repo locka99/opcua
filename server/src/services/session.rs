@@ -92,10 +92,10 @@ impl SessionService {
     }
 
     pub fn activate_session(&self, server_state: &mut ServerState, session: &mut Session, request: ActivateSessionRequest) -> Result<SupportedMessage, StatusCode> {
+        let server_nonce = ByteString::random(32);
+
         // Crypto see 5.6.3.1 verify the caller is the same caller as create_session by validating
         // signature supplied by client
-
-        let server_nonce = ByteString::random(32);
         let service_result = if SecurityPolicy::from_uri(&session.security_policy_uri) != SecurityPolicy::None {
             let mut service_result = BAD_UNEXPECTED_ERROR;
             if server_state.server_certificate.is_some() {
@@ -121,6 +121,7 @@ impl SessionService {
             session.session_nonce = server_nonce.clone();
             GOOD
         };
+
         let response = if service_result.is_bad() {
             self.service_fault(&request.request_header, service_result)
         } else {

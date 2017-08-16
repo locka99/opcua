@@ -385,7 +385,6 @@ impl TcpTransport {
                 self.message_handler.handle_message(request_id, message)?
             }
         };
-
         self.send_response(request_id, &response, out_stream)?;
         Ok(())
     }
