@@ -196,7 +196,7 @@ impl Session {
             }
         };
 
-        debug!("Identity token for activate = {:#?}", user_identity_token);
+        trace!("Identity token for activate = {:#?}", user_identity_token);
         let user_identity_token = ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id(), user_identity_token);
 
         let request = ActivateSessionRequest {
@@ -213,10 +213,10 @@ impl Session {
                 signature: ByteString::null(),
             },
         };
-        debug!("ActivateSessionRequest = {:#?}", request);
+        trace!("ActivateSessionRequest = {:#?}", request);
         let response = self.send_request(SupportedMessage::ActivateSessionRequest(request))?;
         if let SupportedMessage::ActivateSessionResponse(response) = response {
-            debug!("ActivateSessionResponse = {:#?}", response);
+            trace!("ActivateSessionResponse = {:#?}", response);
             Self::process_service_result(&response.response_header)?;
             Ok(())
         } else {
@@ -290,10 +290,10 @@ impl Session {
             timestamps_to_return: TimestampsToReturn::Server,
             nodes_to_read: Some(nodes_to_read.to_vec()),
         };
-        debug!("ReadRequest = {:#?}", request);
+        trace!("ReadRequest = {:#?}", request);
         let response = self.send_request(SupportedMessage::ReadRequest(request))?;
         if let SupportedMessage::ReadResponse(response) = response {
-            debug!("ReadResponse = {:#?}", response);
+            trace!("ReadResponse = {:#?}", response);
             Self::process_service_result(&response.response_header)?;
             Ok(response.results)
         } else {

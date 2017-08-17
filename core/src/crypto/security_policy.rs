@@ -417,7 +417,7 @@ impl SecurityPolicy {
                 let their_key = their_key.unwrap();
                 let mut their_signature = vec![0u8; their_key.size()];
                 self.asymmetric_sign(&their_key, data, &mut their_signature[..])?;
-                debug!("Using their_key, signature is should be {:?}", &their_signature);
+                trace!("Using their_key, signature should be {:?}", &their_signature);
             }
 
             Err(BAD_SECURITY_CHECKS_FAILED)
@@ -500,7 +500,7 @@ impl SecurityPolicy {
 
     /// Sign the following block
     pub fn symmetric_sign(&self, key: &[u8], src: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
-        debug!("Producing signature for {} bytes of data into signature of {} bytes", src.len(), signature.len());
+        trace!("Producing signature for {} bytes of data into signature of {} bytes", src.len(), signature.len());
         match self {
             &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => {
                 // HMAC SHA-1

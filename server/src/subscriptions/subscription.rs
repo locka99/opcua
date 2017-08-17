@@ -253,13 +253,13 @@ impl Subscription {
         // to send or state to update
         let result = if items_changed || publishing_timer_expired || publish_request.is_some() {
             let update_state_result = self.update_state(receive_publish_request, publish_request, publishing_timer_expired);
-            debug!("subscription tick - update_state_result = {:?}", update_state_result);
+            trace!("subscription tick - update_state_result = {:?}", update_state_result);
             let publish_response = match update_state_result.update_state_action {
                 UpdateStateAction::None => None,
                 UpdateStateAction::ReturnKeepAlive => Some(self.return_keep_alive(publish_request.as_ref().unwrap(), &update_state_result)),
                 UpdateStateAction::ReturnNotifications => Some(self.return_notifications(publish_request.as_ref().unwrap(), &update_state_result)),
             };
-            debug!("Subscription tick - publish_response = {:?}", publish_response);
+            trace!("Subscription tick - publish_response = {:?}", publish_response);
             (publish_response, Some(update_state_result))
         } else {
             (None, None)
@@ -300,7 +300,7 @@ impl Subscription {
         let result = if monitored_item_notifications.len() > 0 {
             // Create a notification message in the map
             let sequence_number = self.create_sequence_number();
-            debug!("Monitored items, seq nr = {}, nr notifications = {}", sequence_number, monitored_item_notifications.len());
+            trace!("Monitored items, seq nr = {}, nr notifications = {}", sequence_number, monitored_item_notifications.len());
             let notification = NotificationMessage::new_data_change(sequence_number, &DateTime::now(), monitored_item_notifications);
             self.retransmission_queue.insert(sequence_number, notification);
             true
@@ -341,9 +341,9 @@ impl Subscription {
 
         // Extra state debugging
         {
-            use log::LogLevel::Debug;
-            if log_enabled!(Debug) {
-                debug!(r#"State inputs:
+            use log::LogLevel::Trace;
+            if log_enabled!(Trace) {
+                trace!(r#"State inputs:
     subscription_id: {}
     state: {:?}
     receive_publish_request: {:?}
@@ -501,7 +501,7 @@ impl Subscription {
         }
         // Clear notification by sequence number
         if self.retransmission_queue.remove(&subscription_acknowledgement.sequence_number).is_some() {
-            info!("Removed acknowledged notification {}", subscription_acknowledgement.sequence_number);
+            trace!("Removed acknowledged notification {}", subscription_acknowledgement.sequence_number);
             self.more_notifications = !self.retransmission_queue.is_empty();
             GOOD
         } else {
@@ -551,7 +551,7 @@ impl Subscription {
             panic!("Should not be trying to return notifications if there are none");
         }
 
-        debug!("return notifications, len = {}", self.retransmission_queue.len());
+        trace!("return notifications, len = {}", self.retransmission_queue.len());
         let now = DateTime::now();
 
         // Find the first notification in the map. The map is ordered so the first item will

@@ -179,12 +179,12 @@ fn test_asymmetric_encrypt_and_decrypt(cert: &X509, key: &PKey, security_policy:
     let mut ciphertext = vec![0u8; plaintext_size + 4096];
     let mut plaintext2 = vec![0u8; plaintext_size + 4096];
 
-    debug!("Encrypting data of length {}", plaintext_size);
+    trace!("Encrypting data of length {}", plaintext_size);
     let encrypted_size = security_policy.asymmetric_encrypt(&cert.public_key().unwrap(), &plaintext, &mut ciphertext).unwrap();
-    debug!("Encrypted size = {}", encrypted_size);
-    debug!("Decrypting cipher text back");
+    trace!("Encrypted size = {}", encrypted_size);
+    trace!("Decrypting cipher text back");
     let decrypted_size = security_policy.asymmetric_decrypt(key, &ciphertext[..encrypted_size], &mut plaintext2).unwrap();
-    debug!("Decrypted size = {}", decrypted_size);
+    trace!("Decrypted size = {}", decrypted_size);
 
     assert_eq!(plaintext_size, decrypted_size);
     assert_eq!(&plaintext[..], &plaintext2[..decrypted_size]);

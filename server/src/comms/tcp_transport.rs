@@ -139,9 +139,9 @@ impl TcpTransport {
             if let Ok(result) = subscription_timer_rx.try_recv() {
                 match result {
                     SubscriptionEvent::PublishResponses(publish_responses) => {
-                        debug!("Got {} PublishResponse messages to send", publish_responses.len());
+                        trace!("Got {} PublishResponse messages to send", publish_responses.len());
                         for publish_response in publish_responses {
-                            debug!("<-- Sending a Publish Response{}, {:?}", publish_response.request_id, &publish_response.response);
+                            trace!("<-- Sending a Publish Response{}, {:?}", publish_response.request_id, &publish_response.response);
                             let _ = self.send_response(publish_response.request_id, &publish_response.response, &mut out_buf_stream);
                         }
                         Self::write_output(&mut out_buf_stream, &mut stream);
@@ -266,7 +266,7 @@ impl TcpTransport {
             {
                 let address_space = server_state.address_space.lock().unwrap();
                 if let Some(publish_responses) = session.tick_subscriptions(false, &address_space) {
-                    info!("Sending publish responses to session thread");
+                    trace!("Sending publish responses to session thread");
                     let sent = subscription_timer_tx.send(SubscriptionEvent::PublishResponses(publish_responses));
                     if sent.is_err() {
                         error!("Can't send publish responses, err = {}", sent.unwrap_err());
@@ -298,7 +298,7 @@ impl TcpTransport {
                 if bytes_to_write != bytes_written {
                     error!("Error writing bytes - bytes_to_write = {}, bytes_written = {}", bytes_to_write, bytes_written);
                 } else {
-                    debug!("Bytes written = {}", bytes_written);
+                    trace!("Bytes written = {}", bytes_written);
                 }
             }
             // let _ = stream.flush();
@@ -340,7 +340,7 @@ impl TcpTransport {
         self.transport_state = TransportState::ProcessMessages;
         self.client_protocol_version = client_protocol_version;
 
-        info!("Sending acknowledge {:?}", acknowledge);
+        debug!("Sending ACK");
         let _ = acknowledge.encode(out_stream);
         Ok(())
     }

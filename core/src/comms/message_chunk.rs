@@ -193,7 +193,7 @@ impl MessageChunk {
 
         let mut stream = Cursor::new(vec![0u8; message_size]);
 
-        debug!("Creating a chunk with a size of {}, data excluding padding & signature", message_size);
+        trace!("Creating a chunk with a size of {}, data excluding padding & signature", message_size);
         let secure_channel_id = secure_channel.secure_channel_id;
         let chunk_header = MessageChunkHeader {
             message_type,

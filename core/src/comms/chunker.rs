@@ -72,7 +72,7 @@ impl Chunker {
         let message_type = Chunker::message_type(supported_message);
         let mut stream = Cursor::new(vec![0u8; message_size]);
 
-        debug!("Encoding node id {:?}", node_id);
+        trace!("Encoding node id {:?}", node_id);
         let _ = node_id.encode(&mut stream);
         let _ = supported_message.encode(&mut stream)?;
         let data = stream.into_inner();
@@ -170,7 +170,7 @@ impl Chunker {
                 return Err(BAD_UNEXPECTED_ERROR);
             }
             let object_id = object_id.unwrap();
-            debug!("Decoded node id / object id of {:?}", object_id);
+            trace!("Decoded node id / object id of {:?}", object_id);
             object_id
         };
 

@@ -135,7 +135,7 @@ impl SubscriptionService {
 
     /// Handles a PublishRequest
     pub fn publish(&self, server_state: &mut ServerState, session: &mut Session, request_id: UInt32, request: PublishRequest) -> Result<SupportedMessage, StatusCode> {
-        debug!("--> Receive a PublishRequest {:?}", request);
+        trace!("--> Receive a PublishRequest {:?}", request);
         let publish_responses = session.enqueue_publish_request(server_state, request_id, request)?;
         if publish_responses.is_some() {
             let mut publish_responses = publish_responses.unwrap();

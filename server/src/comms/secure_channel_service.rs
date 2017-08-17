@@ -65,7 +65,7 @@ impl SecureChannelService {
         // Test the request type
         match request.request_type {
             SecurityTokenRequestType::Issue => {
-                debug!("Request type == Issue");
+                trace!("Request type == Issue");
                 if self.renew_count > 0 {
                     // TODO check to see if renew has been called before or not
                     // error
@@ -73,7 +73,7 @@ impl SecureChannelService {
                 }
             }
             SecurityTokenRequestType::Renew => {
-                debug!("Request type == Renew");
+                trace!("Request type == Renew");
 
                 // Check for a duplicate nonce. It is invalid for the renew to use the same nonce
                 // as was used for last issue/renew
@@ -141,7 +141,7 @@ impl SecureChannelService {
             server_nonce: ByteString::from_bytes(&self.secure_channel.nonce),
         };
 
-        debug!("Sending OpenSecureChannelResponse {:?}", response);
+        trace!("Sending OpenSecureChannelResponse {:?}", response);
         Ok(SupportedMessage::OpenSecureChannelResponse(response))
     }
 

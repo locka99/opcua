@@ -208,7 +208,7 @@ impl BinaryEncoder<Variant> for Variant {
         let array_length = if encoding_mask & ARRAY_VALUES_BIT != 0 {
             let array_length = Int32::decode(stream)?;
             if array_length <= 0 {
-                debug!("Invalid array_length {}", array_length);
+                error!("Invalid array_length {}", array_length);
                 return Err(BAD_DECODING_ERROR);
             }
             array_length
@@ -230,20 +230,20 @@ impl BinaryEncoder<Variant> for Variant {
             if encoding_mask & ARRAY_DIMENSIONS_BIT != 0 {
                 let dimensions: Option<Vec<Int32>> = read_array(stream)?;
                 if dimensions.is_none() {
-                    debug!("No array dimensions despite the bit flag being set");
+                    error!("No array dimensions despite the bit flag being set");
                     return Err(BAD_DECODING_ERROR);
                 }
                 let dimensions = dimensions.unwrap();
                 let mut array_dimensions_length = 1;
                 for d in &dimensions {
                     if *d <= 0 {
-                        debug!("Invalid array dimension {}", *d);
+                        error!("Invalid array dimension {}", *d);
                         return Err(BAD_DECODING_ERROR);
                     }
                     array_dimensions_length *= *d;
                 }
                 if array_dimensions_length != array_length {
-                    debug!("Array dimensions does not match array length {}", array_length);
+                    error!("Array dimensions does not match array length {}", array_length);
                     Err(BAD_DECODING_ERROR)
                 } else {
                     Ok(Variant::new_multi_dimension_array(result, dimensions))
@@ -252,7 +252,7 @@ impl BinaryEncoder<Variant> for Variant {
                 Ok(Variant::Array(Box::new(result)))
             }
         } else if encoding_mask & ARRAY_DIMENSIONS_BIT != 0 {
-            debug!("Array dimensions bit specified without any values");
+            error!("Array dimensions bit specified without any values");
             Err(BAD_DECODING_ERROR)
         } else {
             // Read a single variant
@@ -351,7 +351,7 @@ impl Variant {
             &Variant::ExtensionObject(ref value) => value.encode(stream),
             &Variant::DataValue(ref value) => value.encode(stream),
             _ => {
-                debug!("Cannot encode this variant value type (probably nested array)");
+                warn!("Cannot encode this variant value type (probably nested array)");
                 Err(BAD_ENCODING_ERROR)
             }
         }

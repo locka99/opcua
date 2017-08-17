@@ -26,7 +26,7 @@ pub trait BinaryEncoder<T> {
 /// Converts an IO encoding error (and logs when in error) into an EncodingResult
 pub fn process_encode_io_result(result: Result<usize>) -> EncodingResult<usize> {
     if result.is_err() {
-        debug!("Encoding error - {:?}", result.unwrap_err());
+        trace!("Encoding error - {:?}", result.unwrap_err());
         Err(BAD_ENCODING_ERROR)
     } else {
         Ok(result.unwrap())
@@ -36,7 +36,7 @@ pub fn process_encode_io_result(result: Result<usize>) -> EncodingResult<usize> 
 /// Converts an IO encoding error (and logs when in error) into an EncodingResult
 pub fn process_decode_io_result<T>(result: Result<T>) -> EncodingResult<T> where T: Debug {
     if result.is_err() {
-        debug!("Decoding error - {:?}", result.unwrap_err());
+        trace!("Decoding error - {:?}", result.unwrap_err());
         Err(BAD_DECODING_ERROR)
     } else {
         Ok(result.unwrap())

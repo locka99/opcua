@@ -13,7 +13,7 @@ struct Test;
 
 impl Test {
     pub fn setup() -> Test {
-        ::init_logging(::LogLevelFilter::Debug);
+        ::init_logging();
         Test {}
     }
 }
@@ -129,7 +129,7 @@ fn chunk_multi_encode_decode() {
 
     // Verify chunk byte len maxes out at == 8192
     let chunk_length = chunks[0].byte_len();
-    debug!("MessageChunk length = {}", chunk_length);
+    trace!("MessageChunk length = {}", chunk_length);
     assert_eq!(chunk_length, 8192);
 
     let new_response = Chunker::decode(&chunks, &secure_channel, None).unwrap();
@@ -222,7 +222,7 @@ fn chunk_open_secure_channel() {
 
     let secure_channel = SecureChannel::new_no_certificate_store();
 
-    debug!("Decoding original chunks");
+    trace!("Decoding original chunks");
     let request = Chunker::decode(&chunks, &secure_channel, None).unwrap();
     let request = match request {
         SupportedMessage::OpenSecureChannelRequest(request) => request,
@@ -238,12 +238,12 @@ fn chunk_open_secure_channel() {
     }
 
     // Encode the message up again to chunks, decode and compare to original
-    debug!("Encoding back to chunks");
+    trace!("Encoding back to chunks");
 
     let chunks = Chunker::encode(1, 1, 0, 0, &secure_channel, &SupportedMessage::OpenSecureChannelRequest(request.clone())).unwrap();
     assert_eq!(chunks.len(), 1);
 
-    debug!("Decoding to compare the new version");
+    trace!("Decoding to compare the new version");
     let new_request = Chunker::decode(&chunks, &secure_channel, None).unwrap();
     let new_request = match new_request {
         SupportedMessage::OpenSecureChannelRequest(new_request) => new_request,
@@ -336,7 +336,7 @@ fn test_encrypt_decrypt(message: SupportedMessage, security_mode: MessageSecurit
 
         let mut encrypted_data = vec![0u8; chunk.data.len() + 4096];
         let encrypted_size = secure_channel.apply_security(&chunk, &mut encrypted_data[..]).unwrap();
-        debug!("Result of applying security = {}", encrypted_size);
+        trace!("Result of applying security = {}", encrypted_size);
 
         // We can't strip padding, so just compare up to original length
         let chunk2 = secure_channel.verify_and_remove_security(&encrypted_data[..encrypted_size]).unwrap();
@@ -370,7 +370,7 @@ fn test_asymmetric_encrypt_decrypt(message: SupportedMessage, security_mode: Mes
 
     let mut encrypted_data = vec![0u8; chunk.data.len() + 4096];
     let encrypted_size = secure_channel.apply_security(&chunk, &mut encrypted_data[..]).unwrap();
-    debug!("Result of applying security = {}", encrypted_size);
+    trace!("Result of applying security = {}", encrypted_size);
 
     // Now we shall try to decrypt what has been encrypted by flipping the keys around
     let tmp = secure_channel.cert;

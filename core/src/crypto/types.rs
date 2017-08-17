@@ -287,13 +287,13 @@ impl PKey {
 
     /// Creates a message digest from the specified block of data and then signs it to return a signature
     fn sign(&self, message_digest: hash::MessageDigest, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
-        debug!("Key signing");
+        trace!("Key signing");
         if let Ok(mut signer) = sign::Signer::new(message_digest, &self.value) {
             signer.pkey_ctx_mut().set_rsa_padding(rsa::PKCS1_PADDING).unwrap();
             if signer.update(data).is_ok() {
                 let result = signer.finish();
                 if let Ok(result) = result {
-                    debug!("Signature = {:?}", result);
+                    trace!("Signature = {:?}", result);
                     signature.copy_from_slice(&result);
                     return Ok(result.len());
                 } else {
@@ -311,7 +311,7 @@ impl PKey {
 
             self.value.rsa().unwrap().public_encrypt(&digest_bytes, &mut sig2[..], rsa::PKCS1_PADDING);
 
-            debug!("Signature 2 = {:?}", sig2);
+            trace!("Signature 2 = {:?}", sig2);
         }
 
         Err(BAD_UNEXPECTED_ERROR)
@@ -319,13 +319,13 @@ impl PKey {
 
     /// Verifies that the signature matches the hash / signing key of the supplied data
     fn verify(&self, message_digest: hash::MessageDigest, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
-        debug!("Key verifying, against signature {:?}, len {}", signature, signature.len());
+        trace!("Key verifying, against signature {:?}, len {}", signature, signature.len());
         if let Ok(mut verifier) = sign::Verifier::new(message_digest, &self.value) {
             verifier.pkey_ctx_mut().set_rsa_padding(rsa::PKCS1_PADDING).unwrap();
             if verifier.update(data).is_ok() {
                 let result = verifier.finish(signature);
                 if let Ok(result) = result {
-                    debug!("Key verified = {:?}", result);
+                    trace!("Key verified = {:?}", result);
                     return Ok(result);
                 } else {
                     debug!("Can't verify key - error = {:?}", result.unwrap_err());
@@ -417,7 +417,7 @@ impl AesKey {
 
         let _ = Self::validate_aes_args(&cipher, src, iv, dst)?;
 
-        debug!("Encrypting block of size {}", src.len());
+        trace!("Encrypting block of size {}", src.len());
 
         let crypter = Crypter::new(cipher, mode, &self.value, Some(iv));
         if let Ok(mut crypter) = crypter {
@@ -426,7 +426,7 @@ impl AesKey {
             if let Ok(count) = result {
                 let result = crypter.finalize(&mut dst[count..]);
                 if let Ok(rest) = result {
-                    debug!("do cipher size {}", count + rest);
+                    trace!("do cipher size {}", count + rest);
                     Ok(count + rest)
                 } else {
                     error!("Encryption error during finalize {:?}", result.unwrap_err());

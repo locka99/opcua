@@ -113,7 +113,7 @@ impl Session {
             error!("Too many publish requests, throwing it away");
             Err(BAD_TOO_MANY_PUBLISH_REQUESTS)
         } else {
-            info!("Sending a tick to subscriptions to deal with the request");
+            trace!("Sending a tick to subscriptions to deal with the request");
             self.publish_request_queue.insert(0, PublishRequestEntry {
                 request_id: request_id,
                 request: request,
@@ -234,7 +234,7 @@ impl Session {
     }
 
     fn process_subscription_acknowledgements(&mut self, request: &PublishRequestEntry) -> Option<Vec<StatusCode>> {
-        info!("Processing subscription acknowledgements");
+        trace!("Processing subscription acknowledgements");
         //
         /// Deletes the acknowledged notifications, returning a list of status code for each according
         /// to whether it was found or not.

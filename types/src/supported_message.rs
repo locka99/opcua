@@ -75,7 +75,7 @@ macro_rules! supported_messages {
 
 impl SupportedMessage {
     pub fn decode_by_object_id<S: Read>(stream: &mut S, object_id: ObjectId) -> EncodingResult<Self> {
-        debug!("decoding object_id {:?}", object_id);
+        trace!("decoding object_id {:?}", object_id);
         let decoded_message = match object_id {
             ObjectId::ServiceFault_Encoding_DefaultBinary => {
                 SupportedMessage::ServiceFault(ServiceFault::decode(stream)?)

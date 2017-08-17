@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate log;
+extern crate env_logger;
 extern crate chrono;
 extern crate regex;
 extern crate rand;
@@ -19,75 +20,53 @@ pub mod prelude {
     pub use crypto::*;
 }
 
-use std::collections::HashSet;
-
-/// Simple logger (as the name suggests) is a bare bones implementation of the log::Log trait
-/// that may be used to print debug information out to the console.
-struct SimpleLogger {
-    target_map: HashSet<&'static str>,
-}
-
-impl log::Log for SimpleLogger {
-    fn enabled(&self, metadata: &log::LogMetadata) -> bool {
-        metadata.level() <= log::LogLevel::Debug
-    }
-
-    fn log(&self, record: &log::LogRecord) {
-        if self.enabled(record.metadata()) {
-            if !self.target_map.is_empty() && !self.target_map.contains(record.metadata().target()) {
-                return;
-            }
-
+/// OPC UA for Rust uses the standard log crate for internal logging purposes. This function
+/// can be called by executable targets (e.g. inside main() set up) to enable logging. The default
+/// implementation uses env_logger to provide console based output. Set the RUST_OPCUA_LOG
+/// environment variable with the default log level, e.g. RUST_OPCUA_LOG=debug for more logging.
+/// See env_logger for more filtering options.
+///
+/// Alternatively, don't call it and call another implementation that supports the log macros. e.g.
+/// use the fern crate and configure your own logging
+pub fn init_logging() {
+    use std::env;
+    // This is env_logger::init() but taking logging values from  instead of RUST_LOG.
+    // env_logger/RUST_LOG is used by cargo and other rust tools so console fills with garbage from
+    // other processes  when we're only interested in our own garbage!
+    let result = {
+        let mut builder = env_logger::LogBuilder::new();
+        builder.format(|record: &log::LogRecord| {
             use chrono;
             let now = chrono::UTC::now();
             let time_fmt = now.format("%Y-%m-%d %H:%M:%S%.3f");
 
             match record.metadata().level() {
                 log::LogLevel::Error => {
-                    println!("{} - \x1b[37m\x1b[41m{}\x1b[0m - {} - {}", time_fmt, record.level(), record.metadata().target(), record.args());
+                    format!("{} - \x1b[37m\x1b[41m{}\x1b[0m - {} - {}", time_fmt, record.level(), record.location().module_path(), record.args())
                 }
                 log::LogLevel::Warn => {
-                    println!("{} - \x1b[33m{}\x1b[0m - {} - {}", time_fmt, record.level(), record.metadata().target(), record.args());
+                    format!("{} - \x1b[33m{}\x1b[0m - {} - {}", time_fmt, record.level(), record.location().module_path(), record.args())
                 }
                 log::LogLevel::Info => {
-                    println!("{} - \x1b[36m{}\x1b[0m - {} - {}", time_fmt, record.level(), record.metadata().target(), record.args());
+                    format!("{} - \x1b[36m{}\x1b[0m - {} - {}", time_fmt, record.level(), record.location().module_path(), record.args())
                 }
                 _ => {
-                    println!("{} - {} - {} - {}", time_fmt, record.level(), record.metadata().target(), record.args());
+                    format!("{} - {} - {} - {}", time_fmt, record.level(), record.location().module_path(), record.args())
                 }
             }
-        }
-    }
-}
-
-/// This is directly analogous to the enum of the same name in the log crate,
-// but we expose ours to remove a dependency for client code to worry about.
-pub enum LogLevelFilter {
-    Off,
-    Error,
-    Warn,
-    Info,
-    Debug,
-    Trace
-}
-
-/// Initialise OPC UA logging on the executable.
-pub fn init_logging(logging_level: LogLevelFilter) {
-    let _ = log::set_logger(|max_log_level| {
-        let logging_level = match logging_level {
-            LogLevelFilter::Off => log::LogLevelFilter::Off,
-            LogLevelFilter::Error => log::LogLevelFilter::Error,
-            LogLevelFilter::Warn => log::LogLevelFilter::Warn,
-            LogLevelFilter::Info => log::LogLevelFilter::Info,
-            LogLevelFilter::Debug => log::LogLevelFilter::Debug,
-            LogLevelFilter::Trace => log::LogLevelFilter::Trace,
+        });
+        // Try to get filter from environment var, else default
+        let filters = if let Ok(env_filters) = env::var("RUST_OPCUA_LOG") {
+            env_filters
+        } else {
+            "info".to_string()
         };
-
-        max_log_level.set(logging_level);
-        Box::new(SimpleLogger {
-            target_map: HashSet::new(),
-        })
-    });
+        builder.parse(&filters);
+        builder.init()
+    };
+    if result.is_err() {
+        println!("Logger error, check error = {}", result.unwrap_err());
+    }
 }
 
 /// Contains debugging utility helper functions
@@ -107,7 +86,7 @@ pub mod debug {
         let len = buf.len();
         let last_line_padding = ((len / line_len) + 1) * line_len - len;
 
-        debug!("{}", message);
+        trace!("{}", message);
 
         let mut char_line = String::new();
         let mut hex_line = format!("{:08x}: ", 0);
@@ -115,7 +94,7 @@ pub mod debug {
         for (i, b) in buf.iter().enumerate() {
             let value = *b as u8;
             if i > 0 && i % line_len == 0 {
-                debug!(target: "hex", "{} {}", hex_line, char_line);
+                trace!(target: "hex", "{} {}", hex_line, char_line);
                 hex_line = format!("{:08}: ", i);
                 char_line.clear();
             }
@@ -126,7 +105,7 @@ pub mod debug {
             for _ in 0..last_line_padding {
                 hex_line.push_str("   ");
             }
-            debug!(target: "hex", "{} {}", hex_line, char_line);
+            trace!(target: "hex", "{} {}", hex_line, char_line);
         }
     }
 }

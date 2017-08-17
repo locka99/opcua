@@ -408,7 +408,7 @@ impl Server {
 
     /// Handles the incoming request
     fn handle_connection(&mut self, stream: TcpStream) {
-        debug!("Connection thread spawning");
+        trace!("Connection thread spawning");
         // Spawn a thread for the connection
         let session = Arc::new(Mutex::new(TcpTransport::new(self.server_state.clone())));
         self.sessions.push(session.clone());

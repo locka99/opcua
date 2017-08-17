@@ -127,7 +127,7 @@ impl TcpTransport {
     }
 
     fn process_chunk(&mut self, chunk: MessageChunk) -> Result<Option<SupportedMessage>, StatusCode> {
-        debug!("Got a chunk {:?}", chunk);
+        trace!("Got a chunk {:?}", chunk);
 
         let message_header = chunk.message_header()?;
         match message_header.is_final {
@@ -190,7 +190,7 @@ impl TcpTransport {
             if bytes_read == 0 {
                 continue;
             }
-            debug!("Bytes read = {}", bytes_read);
+            trace!("Bytes read = {}", bytes_read);
 
             // TODO this is practically cut and pasted from server loop and should be common to both
             let result = self.message_buffer.store_bytes(&in_buf[0..bytes_read]);
@@ -223,7 +223,7 @@ impl TcpTransport {
 
     pub fn send_request(&mut self, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
         // let request_timeout = request_header.timeout_hint;
-        debug!("Sending a request");
+        trace!("Sending a request");
         let request_timeout = 5000; // TODO
         let request_id = self.async_send_request(request)?;
         self.wait_for_response(request_id, request_timeout)
@@ -245,7 +245,7 @@ impl TcpTransport {
         // with the same request handle to return. Other messages might arrive during that, so somehow
         // we have to deal with that situation too, e.g. queuing them up.
 
-        debug!("Sending request");
+        trace!("Sending request");
 
         // Turn message to chunk(s)
         // TODO max message size and max chunk size
@@ -257,11 +257,11 @@ impl TcpTransport {
         // Send chunks
         let stream = self.stream();
         for chunk in chunks {
-            debug!("Sending chunk of type {:?}", chunk.message_header()?.message_type);
+            trace!("Sending chunk of type {:?}", chunk.message_header()?.message_type);
             let _ = chunk.encode(stream)?;
         }
 
-        debug!("Request sent");
+        trace!("Request sent");
 
         Ok(request_id)
     }

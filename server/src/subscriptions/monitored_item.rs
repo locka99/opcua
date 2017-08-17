@@ -119,7 +119,7 @@ impl MonitoredItem {
             let node = node.as_node();
             let attribute_id = AttributeId::from_u32(self.item_to_monitor.attribute_id);
             if attribute_id.is_err() {
-                debug!("Item has no attribute_id {:?} so it hasn't changed, node {:?}", attribute_id, self.item_to_monitor.node_id);
+                trace!("Item has no attribute_id {:?} so it hasn't changed, node {:?}", attribute_id, self.item_to_monitor.node_id);
                 return false;
             }
             let attribute_id = attribute_id.unwrap();
@@ -128,7 +128,7 @@ impl MonitoredItem {
                 // Test for data change
                 let data_change = if self.last_data_value.is_none() {
                     // There is no previous check so yes it changed
-                    debug!("No last data value so item has changed, node {:?}", self.item_to_monitor.node_id);
+                    trace!("No last data value so item has changed, node {:?}", self.item_to_monitor.node_id);
                     true
                 } else {
                     match self.filter {
@@ -142,10 +142,9 @@ impl MonitoredItem {
                     }
                 };
                 if data_change {
-                    debug!("Data change on item -, node {:?}, data_value = {:?}", self.item_to_monitor.node_id, data_value);
+                    trace!("Data change on item -, node {:?}, data_value = {:?}", self.item_to_monitor.node_id, data_value);
 
-                    // Store data value for comparison purposes - perhaps a dirty flag could achieve
-                    // this more efficiently
+                    // Store current data value to compare against on the next tick
                     self.last_data_value = Some(data_value.clone());
 
                     // Enqueue notification message
@@ -155,16 +154,16 @@ impl MonitoredItem {
                         value: data_value,
                     });
 
-                    debug!("Monitored item state = {:?}", self);
+                    trace!("Monitored item state = {:?}", self);
                 } else {
-                    debug!("No data change on item, node {:?}", self.item_to_monitor.node_id);
+                    trace!("No data change on item, node {:?}", self.item_to_monitor.node_id);
                 }
                 data_change
             } else {
                 false
             }
         } else {
-            debug!("Can't find item to monitor, node {:?}", self.item_to_monitor.node_id);
+            trace!("Can't find item to monitor, node {:?}", self.item_to_monitor.node_id);
             false
         }
     }
@@ -173,7 +172,7 @@ impl MonitoredItem {
     pub fn enqueue_notification_message(&mut self, notification: MonitoredItemNotification) {
         // test for overflow
         self.queue_overflow = if self.notification_queue.len() == self.queue_size {
-            debug!("Data change overflow, node {:?}", self.item_to_monitor.node_id);
+            trace!("Data change overflow, node {:?}", self.item_to_monitor.node_id);
             // Overflow behaviour
             if self.discard_oldest {
                 // Throw away oldest item (the one at the start) to make space at the end
