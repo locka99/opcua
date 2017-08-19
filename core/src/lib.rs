@@ -75,10 +75,10 @@ pub mod debug {
 
     /// Prints out the content of a slice in hex and visible char format to aid debugging. Format
     /// is similar to corresponding functionality in node-opcua
-    pub fn debug_buffer(message: &str, buf: &[u8]) {
+    pub fn log_buffer(message: &str, buf: &[u8]) {
         use log;
         // No point doing anything unless debug level is on
-        if !log_enabled!(log::LogLevel::Debug) {
+        if !log_enabled!(log::LogLevel::Trace) {
             return;
         }
 

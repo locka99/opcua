@@ -39,15 +39,17 @@ pub mod prelude {
 pub mod constants {
     use opcua_types::Double;
 
-    // Values used by configuration in the absence of user defined values
     /// The default hello timeout period in seconds
     pub const DEFAULT_HELLO_TIMEOUT_SECONDS: u32 = 120;
-    // Default OPC UA server port
+    /// Default OPC UA server port
     pub const DEFAULT_OPC_UA_SERVER_PORT: u16 = 1234;
-    // Default maximum number of subscriptions in a session
+    /// Default maximum number of subscriptions in a session
     pub const DEFAULT_MAX_SUBSCRIPTIONS: u32 = 100;
-    // Default, "well known address for TCP discovery server
+    /// Default, "well known address for TCP discovery server
     //pub const DEFAULT_OPC_UA_DISCOVERY_SERVER_PORT: u16 = 4840;
+
+    /// Sequence numbers wrap when they exceed this value
+    pub const SEQUENCE_NUMBER_WRAPAROUND: u32 = 4294966271;
 
     // Internally controlled values
 

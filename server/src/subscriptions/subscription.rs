@@ -278,7 +278,7 @@ impl Subscription {
     fn create_sequence_number(&mut self) -> UInt32 {
         self.last_sequence_number += 1;
         // Sequence number should wrap if it exceeds this value - part 6
-        if self.last_sequence_number > 4294966271 {
+        if self.last_sequence_number > constants::SEQUENCE_NUMBER_WRAPAROUND {
             self.last_sequence_number = 1;
         }
         self.last_sequence_number

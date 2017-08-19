@@ -29,7 +29,7 @@ impl MessageBuffer {
 
     /// Store bytes and analyse them for chunks. If chunks are pending, the result is true
     pub fn store_bytes(&mut self, bytes: &[u8]) -> std::result::Result<Vec<Message>, StatusCode> {
-        debug_buffer("Received bytes:", bytes);
+        log_buffer("Received bytes:", bytes);
 
         self.in_buffer.extend(bytes.iter().cloned());
 

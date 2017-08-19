@@ -288,7 +288,7 @@ impl TcpTransport {
             let bytes_to_write = buffer_stream.position() as usize;
             let buffer_slice = &buffer_stream.get_ref()[0..bytes_to_write];
 
-            debug_buffer("Writing bytes to client:", buffer_slice);
+            log_buffer("Writing bytes to client:", buffer_slice);
 
             let result = stream.write(buffer_slice);
             if result.is_err() {

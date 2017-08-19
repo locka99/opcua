@@ -342,10 +342,10 @@ impl SecureChannel {
             // S - Padding         - E
             //     Signature       - E
 
-            use debug::debug_buffer;
+            use debug::log_buffer;
             let data = self.add_space_for_padding_and_signature(message_chunk)?;
-            debug_buffer("Chunk before padding", &message_chunk.data[..]);
-            debug_buffer("Chunk after padding", &data[..]);
+            log_buffer("Chunk before padding", &message_chunk.data[..]);
+            log_buffer("Chunk after padding", &data[..]);
 
             // Encrypted range is from the sequence header to the end
             let encrypted_range = chunk_info.sequence_header_offset..data.len();
@@ -508,8 +508,8 @@ impl SecureChannel {
         //{
         //    use debug;
         //    debug!("Encrypted size in bytes = {} compared to encrypted range {:?}", encrypted_size, encrypted_range);
-        //    debug::debug_buffer("Decrypted data", src);
-        //    debug::debug_buffer("Encrypted data", &dst[0..encrypted_size]);
+        //    debug::log_buffer("Decrypted data", src);
+        //    debug::log_buffer("Encrypted data", &dst[0..encrypted_size]);
         //}
 
         Ok(encrypted_size)
@@ -568,7 +568,7 @@ impl SecureChannel {
 
             {
                 use debug;
-                debug::debug_buffer("Decrypted data = ", &dst[..signature_range.end]);
+                debug::log_buffer("Decrypted data = ", &dst[..signature_range.end]);
             }
 
             // Verify signature (contained encrypted portion) using verification key
