@@ -4,7 +4,9 @@ use std::io::{Cursor, Write};
 
 use opcua_types::*;
 
-use comms::*;
+use comms::chunker::*;
+use comms::message_chunk::*;
+use comms::secure_channel::*;
 use crypto::SecurityPolicy;
 
 use tests::*;

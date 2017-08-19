@@ -28,10 +28,12 @@ pub mod util;
 
 pub mod prelude {
     pub use opcua_core::prelude::*;
-    pub use address_space::*;
     pub use config::*;
     pub use server::*;
+    pub use address_space::types::*;
     pub use subscriptions::*;
+    pub use subscriptions::subscription::*;
+    pub use subscriptions::monitored_item::*;
     pub use util::*;
 }
 

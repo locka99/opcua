@@ -2,7 +2,8 @@ use std::io::*;
 
 use opcua_types::*;
 
-use comms::*;
+use comms::handshake::*;
+use comms::secure_channel::*;
 use crypto::SecurityPolicy;
 
 fn hello_data() -> Vec<u8> {

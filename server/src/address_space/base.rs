@@ -5,27 +5,11 @@ use std::sync::{Arc, Mutex};
 
 use opcua_types::*;
 
-use address_space::{AttributeGetter, AttributeSetter, Node};
+use address_space::{AttributeGetter, AttributeSetter};
+use address_space::node::Node;
 
 // This should match size of AttributeId
 const NUM_ATTRIBUTES: usize = 22;
-
-/// The NodeId is the target node. The reference is held in a list by the source node.
-/// The target node does not need to exist.
-#[derive(Debug, Clone)]
-pub struct Reference {
-    pub reference_type_id: ReferenceTypeId,
-    pub node_id: NodeId,
-}
-
-impl Reference {
-    pub fn new(reference_type_id: ReferenceTypeId, node_id: &NodeId) -> Reference {
-        Reference {
-            reference_type_id: reference_type_id,
-            node_id: node_id.clone(),
-        }
-    }
-}
 
 /// This is a sanity saving macro that adds Node trait methods to all types that have a base
 /// member.

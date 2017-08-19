@@ -6,7 +6,7 @@ use chrono;
 use opcua_types::*;
 use opcua_core::crypto::{SecurityPolicy, CertificateStore};
 
-use comms::*;
+use comms::tcp_transport::*;
 
 /// Session's state indicates connection status, negotiated times and sizes,
 /// and security tokens.

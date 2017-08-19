@@ -2,7 +2,7 @@
 /// member.
 ///
 
-use opcua_types::{NodeClass, NodeId, LocalizedText, QualifiedName, UInt32, AttributeId, DataValue};
+use opcua_types::{NodeId, AttributeId, DataValue};
 
 /// An attribute getter is used to obtain the datavalue associated with the particular attribute id
 pub trait AttributeGetter {
@@ -45,19 +45,6 @@ impl<F> AttrFnSetter<F> where F: FnMut(NodeId, AttributeId, DataValue) + Send {
     pub fn new(setter: F) -> AttrFnSetter<F> { AttrFnSetter { setter } }
 }
 
-/// Implemented by Base and all derived Node types. Functions that return a result in an Option
-/// do so because the attribute is optional and not necessarily there.
-pub trait Node {
-    fn node_class(&self) -> NodeClass;
-    fn node_id(&self) -> NodeId;
-    fn browse_name(&self) -> QualifiedName;
-    fn display_name(&self) -> LocalizedText;
-    fn description(&self) -> Option<LocalizedText>;
-    fn write_mask(&self) -> Option<UInt32>;
-    fn user_write_mask(&self) -> Option<UInt32>;
-    fn find_attribute(&self, attribute_id: AttributeId) -> Option<DataValue>;
-}
-
 macro_rules! node_impl {
     ( $node_struct:ty ) => {
         use opcua_types::*;
@@ -93,6 +80,7 @@ macro_rules! find_attribute_value_mandatory {
 macro_rules! find_attribute_value_optional {
     ( $sel:expr, $attribute_id: ident, $variant_type: ident ) => {
         {
+            use opcua_types::AttributeId;
             let attribute_id = AttributeId::$attribute_id;
             let data_value = $sel.find_attribute(attribute_id);
 
@@ -110,37 +98,28 @@ macro_rules! find_attribute_value_optional {
 }
 
 pub mod generated;
+pub mod address_space;
+pub mod base;
+pub mod object;
+pub mod variable;
+pub mod method;
+pub mod node;
+pub mod reference_type;
+pub mod object_type;
+pub mod variable_type;
+pub mod data_type;
+pub mod view;
 
 pub mod types {
-    pub use address_space::address_space::AddressSpace;
-    pub use address_space::data_type::DataType;
-    pub use address_space::object::Object;
-    pub use address_space::variable::Variable;
-    pub use address_space::method::Method;
-    pub use address_space::reference_type::ReferenceType;
-    pub use address_space::object_type::ObjectType;
-    pub use address_space::variable_type::VariableType;
-    pub use address_space::view::View;
+    pub use super::{AttrFnGetter, AttrFnSetter};
+    pub use super::address_space::AddressSpace;
+    pub use super::data_type::DataType;
+    pub use super::object::Object;
+    pub use super::variable::Variable;
+    pub use super::method::Method;
+    pub use super::reference_type::ReferenceType;
+    pub use super::object_type::ObjectType;
+    pub use super::variable_type::VariableType;
+    pub use super::view::View;
+    pub use super::node::{Node, NodeType};
 }
-
-mod address_space;
-mod base;
-mod object;
-mod variable;
-mod method;
-mod reference_type;
-mod object_type;
-mod variable_type;
-mod data_type;
-mod view;
-
-pub use self::address_space::*;
-pub use self::base::*;
-pub use self::object::*;
-pub use self::variable::*;
-pub use self::method::*;
-pub use self::reference_type::*;
-pub use self::object_type::*;
-pub use self::variable_type::*;
-pub use self::data_type::*;
-pub use self::view::*;

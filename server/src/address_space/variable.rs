@@ -2,7 +2,9 @@ use std::sync::{Arc, Mutex};
 
 use opcua_types::DataTypeId;
 
-use address_space::{Base, Node, NodeType, AttributeGetter, AttributeSetter};
+use address_space::base::Base;
+use address_space::node::{Node, NodeType};
+use address_space::{AttributeGetter, AttributeSetter};
 
 const ACCESS_LEVEL_CURRENT_READ: Byte = 1 << 0;
 const ACCESS_LEVEL_CURRENT_WRITE: Byte = 1 << 1;

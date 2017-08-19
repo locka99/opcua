@@ -3,7 +3,8 @@ use std::io::Cursor;
 
 use opcua_types::*;
 
-use comms::{MessageIsFinalType, SecureChannel, MessageChunk, MessageChunkType};
+use comms::message_chunk::{MessageIsFinalType, MessageChunk, MessageChunkType};
+use comms::secure_channel::SecureChannel;
 use crypto::SecurityPolicy;
 
 /// The Chunker is responsible for turning messages to chunks and chunks into messages.

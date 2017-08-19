@@ -10,7 +10,7 @@ use constants;
 use DateTimeUTC;
 use subscriptions::monitored_item::*;
 use session::{PublishRequestEntry, PublishResponseEntry};
-use address_space::*;
+use address_space::address_space::AddressSpace;
 
 /// Subscription events are passed between the timer thread and the session thread so must
 /// be transferable

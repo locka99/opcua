@@ -19,18 +19,21 @@ pub const CHUNK_FINAL_ERROR: u8 = b'A';
 /// This is a constraint in the existing implementation for the time being.
 pub const MAX_CHUNK_COUNT: usize = 1;
 
-mod security_header;
-mod secure_channel;
-mod message_chunk;
-mod message_chunk_info;
-mod chunker;
-mod message_buffer;
-mod handshake;
+pub mod chunker;
+pub mod handshake;
+pub mod message_buffer;
+pub mod message_chunk;
+pub mod message_chunk_info;
+pub mod secure_channel;
+pub mod security_header;
 
-pub use self::security_header::*;
-pub use self::secure_channel::*;
-pub use self::message_chunk::*;
-pub use self::message_chunk_info::*;
-pub use self::chunker::*;
-pub use self::message_buffer::*;
-pub use self::handshake::*;
+pub mod prelude {
+    pub use super::MAX_CHUNK_COUNT;
+    pub use super::chunker::*;
+    pub use super::handshake::*;
+    pub use super::message_buffer::*;
+    pub use super::message_chunk::*;
+    pub use super::message_chunk_info::*;
+    pub use super::secure_channel::*;
+    pub use super::security_header::*;
+}

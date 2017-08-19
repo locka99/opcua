@@ -2,7 +2,7 @@ use std::result::Result;
 
 use opcua_types::*;
 
-use address_space::*;
+use address_space::address_space::AddressSpace;
 use server::ServerState;
 use session::Session;
 use services::Service;

@@ -6,38 +6,25 @@ use opcua_types::*;
 use server::ServerState;
 use constants;
 
-use address_space::{Object, ObjectType, Reference, ReferenceType, Variable, VariableType, View, DataType, Method};
-use address_space::Node;
+use address_space::object::Object;
+use address_space::variable::Variable;
+use address_space::node::{Node, NodeType};
 use address_space::AttrFnGetter;
 
-#[derive(Debug)]
-pub enum NodeType {
-    Object(Object),
-    ObjectType(ObjectType),
-    ReferenceType(ReferenceType),
-    Variable(Variable),
-    VariableType(VariableType),
-    View(View),
-    DataType(DataType),
-    Method(Method),
+/// The NodeId is the target node. The reference is held in a list by the source node.
+/// The target node does not need to exist.
+#[derive(Debug, Clone)]
+pub struct Reference {
+    pub reference_type_id: ReferenceTypeId,
+    pub node_id: NodeId,
 }
 
-impl NodeType {
-    pub fn as_node(&self) -> &Node {
-        match self {
-            &NodeType::Object(ref value) => value,
-            &NodeType::ObjectType(ref value) => value,
-            &NodeType::ReferenceType(ref value) => value,
-            &NodeType::Variable(ref value) => value,
-            &NodeType::VariableType(ref value) => value,
-            &NodeType::View(ref value) => value,
-            &NodeType::DataType(ref value) => value,
-            &NodeType::Method(ref value) => value,
+impl Reference {
+    pub fn new(reference_type_id: ReferenceTypeId, node_id: &NodeId) -> Reference {
+        Reference {
+            reference_type_id: reference_type_id,
+            node_id: node_id.clone(),
         }
-    }
-
-    pub fn node_id(&self) -> NodeId {
-        self.as_node().node_id()
     }
 }
 

@@ -2,7 +2,7 @@ use std::result::Result;
 
 use opcua_types::*;
 
-use opcua_core::comms::*;
+use opcua_core::comms::prelude::*;
 use opcua_core::crypto::{X509, SecurityPolicy};
 
 use server::ServerState;

@@ -10,8 +10,8 @@ use crypto::SecurityPolicy;
 use crypto::CertificateStore;
 use crypto::types::*;
 
-use comms::{MessageChunkHeader, SecurityHeader, SymmetricSecurityHeader, AsymmetricSecurityHeader, MessageChunk};
-use comms::message_chunk::MessageChunkType;
+use comms::security_header::{SecurityHeader, SymmetricSecurityHeader, AsymmetricSecurityHeader};
+use comms::message_chunk::{MessageChunkHeader, MessageChunkType, MessageChunk};
 
 /// Holds all of the security information related to this session
 #[derive(Debug)]

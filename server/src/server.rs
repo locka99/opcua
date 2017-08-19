@@ -12,7 +12,7 @@ use opcua_types::profiles;
 use opcua_core::prelude::*;
 
 use constants;
-use address_space::AddressSpace;
+use address_space::types::AddressSpace;
 use comms::tcp_transport::*;
 use config::ServerConfig;
 use util::PollingAction;

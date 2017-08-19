@@ -12,7 +12,7 @@ use chrono::UTC;
 use time;
 
 use opcua_types::*;
-use opcua_core::comms::*;
+use opcua_core::prelude::*;
 use opcua_core::debug::*;
 
 use constants;
@@ -20,7 +20,7 @@ use comms::secure_channel_service::*;
 use server::ServerState;
 use session::Session;
 use services::message_handler::*;
-use subscriptions::SubscriptionEvent;
+use subscriptions::subscription::SubscriptionEvent;
 
 // TODO these need to go, and use session settings
 const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;

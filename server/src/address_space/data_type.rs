@@ -1,4 +1,5 @@
-use address_space::{Base, Node, NodeType};
+use address_space::base::Base;
+use address_space::node::{Node, NodeType};
 
 #[derive(Debug)]
 pub struct DataType {

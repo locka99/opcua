@@ -5,9 +5,10 @@ use opcua_types::*;
 
 use comms::{MESSAGE_CHUNK_HEADER_SIZE, CHUNK_MESSAGE, CLOSE_SECURE_CHANNEL_MESSAGE, OPEN_SECURE_CHANNEL_MESSAGE};
 use comms::{CHUNK_INTERMEDIATE, CHUNK_FINAL, CHUNK_FINAL_ERROR};
-use comms::{SequenceHeader, SecurityHeader, AsymmetricSecurityHeader, SymmetricSecurityHeader};
-use comms::SecureChannel;
-use comms::ChunkInfo;
+
+use comms::security_header::{SequenceHeader, SecurityHeader, AsymmetricSecurityHeader, SymmetricSecurityHeader};
+use comms::secure_channel::SecureChannel;
+use comms::message_chunk_info::ChunkInfo;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum MessageChunkType {

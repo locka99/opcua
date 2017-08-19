@@ -13,13 +13,6 @@ extern crate opcua_types;
 pub mod comms;
 pub mod crypto;
 
-/// The prelude mod contains all the things you typically need to access from a client / server.
-pub mod prelude {
-    pub use opcua_types::*;
-    pub use comms::*;
-    pub use crypto::*;
-}
-
 /// OPC UA for Rust uses the standard log crate for internal logging purposes. This function
 /// can be called by executable targets (e.g. inside main() set up) to enable logging. The default
 /// implementation uses env_logger to provide console based output. Set the RUST_OPCUA_LOG
@@ -112,3 +105,10 @@ pub mod debug {
 
 #[cfg(test)]
 mod tests;
+
+/// The prelude mod contains all the things you typically need to access from a client / server.
+pub mod prelude {
+    pub use opcua_types::*;
+    pub use comms::prelude::*;
+    pub use crypto::*;
+}

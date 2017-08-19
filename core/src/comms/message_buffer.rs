@@ -5,7 +5,8 @@ use opcua_types::*;
 
 use debug::*;
 
-use comms::{MessageType, MessageHeader, HelloMessage, AcknowledgeMessage, ErrorMessage, MessageChunk, MESSAGE_HEADER_LEN};
+use comms::handshake::{MessageType, MessageHeader, HelloMessage, AcknowledgeMessage, ErrorMessage, MESSAGE_HEADER_LEN};
+use comms::message_chunk::MessageChunk;
 
 #[derive(Debug)]
 pub enum Message {

@@ -8,7 +8,7 @@ use opcua_types::*;
 use constants;
 
 use DateTimeUTC;
-use address_space::*;
+use address_space::address_space::AddressSpace;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum FilterType {
