@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use opcua_types::*;
+use opcua_types::ServerState as ServerStateType;
 
 use server::ServerState;
 use constants;
@@ -73,6 +74,71 @@ impl AddressSpace {
             self.set_value_by_variable_id(Server_ServerCapabilities_MaxHistoryContinuationPoints, Variant::UInt32(0));
             self.set_value_by_variable_id(Server_ServerCapabilities_MaxQueryContinuationPoints, Variant::UInt32(0));
             self.set_value_by_variable_id(Server_ServerCapabilities_MinSupportedSampleRate, Variant::Double(constants::MIN_SAMPLING_INTERVAL));
+
+            // Server_ServerCapabilities_ServerProfileArray
+        if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerCapabilities_ServerProfileArray) {
+            // Declares what the server implements. Subitems are implied by the profile. A subitem
+            // marked - is optional to the spec
+            let server_profiles = [
+                // Base server behaviour
+                //  SecurityPolicy - None
+                //  User Token - User Name Password Server Facet
+                //  Address Space Base
+                //  AttributeRead
+                //  -Attribute Write Index
+                //  -Attribute Write Values   
+                //  Base Info Core Structure
+                //  -Base Info OptionSet
+                //  -Base Info Placeholder Modelling Rules
+                //  -Base Info ValueAsText
+                //  Discovery Find Servers Self
+                //  Discovery Get Endpoints
+                //  -Security - No Application Authentications
+                //  -Security - Security Administration
+                //   Session Base
+                //  Session General Service Behaviour
+                //  Session Minimum 1
+                //  View Basic
+                //  View Minimum Continuation Point 01
+                //  View RegisterNodes
+                //  View TranslateBrowsePath
+                "http://opcfoundation.org/UA-Profile/Server/Behaviour".to_string(),
+                // Embedded UA server
+                //  Micro Embedded Device Server Profile
+                //  SecurityPolicy - Basic128Rsa15
+                //  Standard DataChange Subscription Server Facet
+                //  User Token - X509 Certificate Server Facet
+                //  -Base Info Engineering Units
+                //  -Base Info PLaceholder Modelling Rules
+                //  -Base Info Type System
+                //  Security Default ApplicationInstanceCertificate
+                "http://opcfoundation.org/UA-Profile/Server/EmbeddedUA".to_string(),
+            ];
+            v.set_value_direct(&DateTime::now(), Variant::new_string_array(&server_profiles));
+            v.set_array_dimensions(&[server_profiles.len() as UInt32]);
+        }
+        
+
+            // Server_ServerCapabilities_LocaleIdArray
+            // Server_ServerCapabilities_MinSupportedSampleRate
+        }
+
+        {
+            // Server_ServerDiagnostics_ServerDiagnosticsSummary
+            // Server_ServerDiagnostics_ServerDiagnosticsSummary_ServerViewCount
+            // Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSessionCount
+            // Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSessionCount
+            // Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedSessionCount
+            // Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionTimeoutCount
+            // Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionAbortCount
+            // Server_ServerDiagnostics_ServerDiagnosticsSummary_PublishingIntervalCount
+            // Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSubscriptionCount
+            // Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSubscriptionCount
+            // Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedRequestsCount
+            // Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount
+            // Server_ServerDiagnostics_SamplingIntervalDiagnosticsArray
+            // Server_ServerDiagnostics_SubscriptionDiagnosticsArray
+            // Server_ServerDiagnostics_EnabledFlag
         }
 
         // ServiceLevel - 0-255 worst to best quality of service
@@ -98,17 +164,16 @@ impl AddressSpace {
         }
 
         // State OPC UA Part 5 12.6, Valid states are
-        //
-        // Running = 0
-        // Failed = 1
-        // No configuration = 2
-        // Suspended = 3
-        // Shutdown = 4
-        // Test = 5
-        // Communication Fault = 6
-        // Unknown = 7
         //     State (Server_ServerStatus_State)
-        self.set_value_by_variable_id(Server_ServerStatus_State, Variant::UInt32(0));
+        if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerStatus_State) {
+            /// Used to return the current time of the server, i.e. now
+            let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Option<DataValue> {
+                // TODO state should be live
+                let server_state = ServerStateType::Running;
+                Some(DataValue::new(Variant::Int32(server_state as Int32)))
+            });
+            v.set_value_getter(Arc::new(Mutex::new(getter)));
+        }
 
         // ServerStatus_BuildInfo
         {

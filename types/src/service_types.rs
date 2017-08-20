@@ -799,3 +799,45 @@ impl SignatureData {
         }
     }
 }
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum ServerState {
+    Running = 0,
+    Failed = 1,
+    NoConfiguration = 2,
+    Suspended = 3,
+    Shutdown = 4,
+    Test = 5,
+    CommunicationFault = 6,
+    Unknown = 7,
+}
+
+impl BinaryEncoder<ServerState> for ServerState {
+    fn byte_len(&self) -> usize {
+        4
+    }
+
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
+        // All enums are Int32
+        write_i32(stream, *self as Int32)
+    }
+
+    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+        // All enums are Int32
+        let value = read_i32(stream)?;
+        match value {
+            0 => Ok(ServerState::Running),
+            1 => Ok(ServerState::Failed),
+            2 => Ok(ServerState::NoConfiguration),
+            3 => Ok(ServerState::Suspended),
+            4 => Ok(ServerState::Shutdown),
+            5 => Ok(ServerState::Test),
+            6 => Ok(ServerState::CommunicationFault),
+            7 => Ok(ServerState::Unknown),
+            _ => {
+                error!("Don't know what server state {} is", value);
+                Err(BAD_UNEXPECTED_ERROR)
+            }
+        }
+    }
+}
