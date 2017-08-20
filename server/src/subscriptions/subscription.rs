@@ -38,8 +38,8 @@ pub struct UpdateStateResult {
 impl UpdateStateResult {
     pub fn new(handled_state: u8, update_state_action: UpdateStateAction) -> UpdateStateResult {
         UpdateStateResult {
-            handled_state: handled_state,
-            update_state_action: update_state_action,
+            handled_state,
+            update_state_action,
         }
     }
 }
@@ -61,9 +61,9 @@ pub struct Subscription {
     pub max_lifetime_count: UInt32,
     /// Keep alive count enforced
     pub max_keep_alive_count: UInt32,
-    /// Relative priority of the subscription. When more than
-    /// one subscription needs to send notifications the highest
-    /// priority subscription should be sent first.
+    /// Relative priority of the subscription. When more than one subscriptio
+    ///  needs to send notifications the highest priority subscription should
+    /// be sent first.
     pub priority: Byte,
     /// Map of monitored items
     pub monitored_items: HashMap<UInt32, MonitoredItem>,
@@ -107,9 +107,9 @@ pub struct Subscription {
 impl Subscription {
     pub fn new(subscription_id: UInt32, publishing_enabled: bool, publishing_interval: Double, lifetime_count: UInt32, keep_alive_count: UInt32, priority: Byte) -> Subscription {
         Subscription {
-            subscription_id: subscription_id,
-            publishing_interval: publishing_interval,
-            priority: priority,
+            subscription_id,
+            publishing_interval,
+            priority,
             monitored_items: HashMap::with_capacity(constants::DEFAULT_MONITORED_ITEM_CAPACITY),
             max_lifetime_count: lifetime_count,
             max_keep_alive_count: keep_alive_count,
@@ -121,7 +121,7 @@ impl Subscription {
             lifetime_counter: lifetime_count,
             keep_alive_counter: keep_alive_count,
             message_sent: false,
-            publishing_enabled: publishing_enabled,
+            publishing_enabled,
             publishing_req_queued: false,
             // Outgoing notifications
             retransmission_queue: BTreeMap::new(),
@@ -536,7 +536,7 @@ impl Subscription {
 
         // Empty notification message
         let notification_message = NotificationMessage {
-            sequence_number: sequence_number,
+            sequence_number,
             publish_time: now.clone(),
             notification_data: None,
         };
@@ -585,7 +585,7 @@ impl Subscription {
                 subscription_id: self.subscription_id,
                 available_sequence_numbers: self.available_sequence_numbers(),
                 more_notifications: self.more_notifications,
-                notification_message: notification_message,
+                notification_message,
                 results: None,
                 diagnostic_infos: None,
             })
