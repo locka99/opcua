@@ -147,7 +147,6 @@ impl Session {
                         if publish_request.is_none() {
                             panic!("Should not be publishing a response without a request, state = {:?}", update_state_result);
                         }
-                        // debug!("Queuing a publish response {:?}", publish_response);
                         request_response_results.push((publish_request.unwrap(), publish_response));
                     } else if publish_request.is_some() {
                         // Put the request back

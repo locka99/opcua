@@ -1,4 +1,3 @@
-
 use opcua_core::prelude::*;
 use address_space::types::{Object, ObjectType, ReferenceType, Variable, VariableType, View, DataType, Method};
 

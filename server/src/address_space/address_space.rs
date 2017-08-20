@@ -76,48 +76,48 @@ impl AddressSpace {
             self.set_value_by_variable_id(Server_ServerCapabilities_MinSupportedSampleRate, Variant::Double(constants::MIN_SAMPLING_INTERVAL));
 
             // Server_ServerCapabilities_ServerProfileArray
-        if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerCapabilities_ServerProfileArray) {
-            // Declares what the server implements. Subitems are implied by the profile. A subitem
-            // marked - is optional to the spec
-            let server_profiles = [
-                // Base server behaviour
-                //  SecurityPolicy - None
-                //  User Token - User Name Password Server Facet
-                //  Address Space Base
-                //  AttributeRead
-                //  -Attribute Write Index
-                //  -Attribute Write Values   
-                //  Base Info Core Structure
-                //  -Base Info OptionSet
-                //  -Base Info Placeholder Modelling Rules
-                //  -Base Info ValueAsText
-                //  Discovery Find Servers Self
-                //  Discovery Get Endpoints
-                //  -Security - No Application Authentications
-                //  -Security - Security Administration
-                //   Session Base
-                //  Session General Service Behaviour
-                //  Session Minimum 1
-                //  View Basic
-                //  View Minimum Continuation Point 01
-                //  View RegisterNodes
-                //  View TranslateBrowsePath
-                "http://opcfoundation.org/UA-Profile/Server/Behaviour".to_string(),
-                // Embedded UA server
-                //  Micro Embedded Device Server Profile
-                //  SecurityPolicy - Basic128Rsa15
-                //  Standard DataChange Subscription Server Facet
-                //  User Token - X509 Certificate Server Facet
-                //  -Base Info Engineering Units
-                //  -Base Info PLaceholder Modelling Rules
-                //  -Base Info Type System
-                //  Security Default ApplicationInstanceCertificate
-                "http://opcfoundation.org/UA-Profile/Server/EmbeddedUA".to_string(),
-            ];
-            v.set_value_direct(&DateTime::now(), Variant::new_string_array(&server_profiles));
-            v.set_array_dimensions(&[server_profiles.len() as UInt32]);
-        }
-        
+            if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerCapabilities_ServerProfileArray) {
+                // Declares what the server implements. Subitems are implied by the profile. A subitem
+                // marked - is optional to the spec
+                let server_profiles = [
+                    // Base server behaviour
+                    //  SecurityPolicy - None
+                    //  User Token - User Name Password Server Facet
+                    //  Address Space Base
+                    //  AttributeRead
+                    //  -Attribute Write Index
+                    //  -Attribute Write Values
+                    //  Base Info Core Structure
+                    //  -Base Info OptionSet
+                    //  -Base Info Placeholder Modelling Rules
+                    //  -Base Info ValueAsText
+                    //  Discovery Find Servers Self
+                    //  Discovery Get Endpoints
+                    //  -Security - No Application Authentications
+                    //  -Security - Security Administration
+                    //   Session Base
+                    //  Session General Service Behaviour
+                    //  Session Minimum 1
+                    //  View Basic
+                    //  View Minimum Continuation Point 01
+                    //  View RegisterNodes
+                    //  View TranslateBrowsePath
+                    "http://opcfoundation.org/UA-Profile/Server/Behaviour".to_string(),
+                    // Embedded UA server
+                    //  Micro Embedded Device Server Profile
+                    //  SecurityPolicy - Basic128Rsa15
+                    //  Standard DataChange Subscription Server Facet
+                    //  User Token - X509 Certificate Server Facet
+                    //  -Base Info Engineering Units
+                    //  -Base Info PLaceholder Modelling Rules
+                    //  -Base Info Type System
+                    //  Security Default ApplicationInstanceCertificate
+                    "http://opcfoundation.org/UA-Profile/Server/EmbeddedUA".to_string(),
+                ];
+                v.set_value_direct(&DateTime::now(), Variant::new_string_array(&server_profiles));
+                v.set_array_dimensions(&[server_profiles.len() as UInt32]);
+            }
+
 
             // Server_ServerCapabilities_LocaleIdArray
             // Server_ServerCapabilities_MinSupportedSampleRate
