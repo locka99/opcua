@@ -344,16 +344,12 @@ impl Subscription {
             use log::LogLevel::Trace;
             if log_enabled!(Trace) {
                 trace!(r#"State inputs:
-    subscription_id: {}
-    state: {:?}
+    subscription_id: {} state: {:?}
     receive_publish_request: {:?}
-    publishing_timer_expired: {}
-    publishing_req_queued: {}
-    publishing_enabled: {}
-    more_notifications: {}
+    publishing_timer_expired: {} publishing_req_queued: {}
+    publishing_enabled: {} more_notifications: {}
     notifications_available: {} (queue size = {})
-    keep_alive_counter: {}"
-    lifetime_counter: {}"
+    keep_alive_counter: {} lifetime_counter: {}
     message_sent: {}"#,
                        self.subscription_id, self.state, receive_publish_request, publishing_timer_expired, self.publishing_req_queued,
                        self.publishing_enabled, self.more_notifications, self.notifications_available, self.retransmission_queue.len(),

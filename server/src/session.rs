@@ -161,6 +161,9 @@ impl Session {
             self.subscriptions.remove(&subscription_id);
         }
 
+        // TODO this code here should process acknowledgements before the state machine starts OR
+        // state machine is broken.
+
         if request_response_results.is_empty() {
             None
         } else {
