@@ -54,16 +54,16 @@ impl MonitoredItem {
         let sampling_interval = MonitoredItem::sanitize_sampling_interval(request.requested_parameters.sampling_interval);
         let queue_size = MonitoredItem::sanitize_queue_size(request.requested_parameters.queue_size as usize);
         Ok(MonitoredItem {
-            monitored_item_id: monitored_item_id,
+            monitored_item_id,
             item_to_monitor: request.item_to_monitor.clone(),
             monitoring_mode: request.monitoring_mode,
             client_handle: request.requested_parameters.client_handle,
-            sampling_interval: sampling_interval,
-            filter: filter,
+            sampling_interval,
+            filter,
             discard_oldest: request.requested_parameters.discard_oldest,
             last_sample_time: chrono::UTC::now(),
             last_data_value: None,
-            queue_size: queue_size,
+            queue_size,
             notification_queue: Vec::with_capacity(queue_size),
             queue_overflow: false
         })

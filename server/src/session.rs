@@ -27,8 +27,7 @@ pub struct PublishRequestEntry {
 #[derive(Clone, Debug, PartialEq)]
 pub struct PublishResponseEntry {
     pub request_id: UInt32,
-    pub response: SupportedMessage,
-}
+    pub response: SupportedMessage,}
 
 /// Session info holds information about a session created by CreateSession service
 #[derive(Clone)]
@@ -115,8 +114,8 @@ impl Session {
         } else {
             trace!("Sending a tick to subscriptions to deal with the request");
             self.publish_request_queue.insert(0, PublishRequestEntry {
-                request_id: request_id,
-                request: request,
+                request_id,
+                request,
             });
             let address_space = server_state.address_space.lock().unwrap();
             Ok(self.tick_subscriptions(true, &address_space))
@@ -128,30 +127,44 @@ impl Session {
     pub fn tick_subscriptions(&mut self, receive_publish_request: bool, address_space: &AddressSpace) -> Option<Vec<PublishResponseEntry>> {
         let now = chrono::UTC::now();
 
-        let mut request_response_results = Vec::with_capacity(self.publish_request_queue.len());
+        let mut publish_request_queue = self.publish_request_queue.clone();
+
+        let mut request_response_results = Vec::with_capacity(publish_request_queue.len());
         let mut dead_subscriptions: Vec<u32> = Vec::with_capacity(self.subscriptions.len());
 
         // Iterate through all subscriptions. If there is a publish request it will be used to
         // acknowledge notifications and the response to return new notifications.
+
+        let mut acknowledge_results_map = HashMap::new();
+        for publish_request in publish_request_queue.iter() {
+            let acknowledge_results = self.process_subscription_acknowledgements(publish_request);
+            acknowledge_results_map.insert(publish_request.request_id, acknowledge_results);
+        }
+
+        // Now tick over the subscriptions
         for (subscription_id, subscription) in self.subscriptions.iter_mut() {
             // Dead subscriptions will be removed at the end
             if subscription.state == SubscriptionState::Closed {
                 dead_subscriptions.push(*subscription_id);
             } else {
-                let publish_request = self.publish_request_queue.pop();
-                let publishing_req_queued = self.publish_request_queue.len() > 0 || publish_request.is_some();
+                let publish_request = publish_request_queue.pop();
+                let publishing_req_queued = publish_request_queue.len() > 0 || publish_request.is_some();
 
+                // Now tick the subscription to see if it has any notifications. If there are
+                // notifications then the publish response will be associated with his subscription
+                // and ready to go.
                 let (publish_response, update_state_result) = subscription.tick(address_space, receive_publish_request, &publish_request, publishing_req_queued, &now);
-                if let Some(update_state_result) = update_state_result {
-                    if let Some(publish_response) = publish_response {
-                        if publish_request.is_none() {
-                            panic!("Should not be publishing a response without a request, state = {:?}", update_state_result);
+                if let Some(mut publish_response) = publish_response {
+                    if let SupportedMessage::PublishResponse(ref mut response) = publish_response.response {
+                        let request_id = publish_response.request_id;
+                        if let Some(acknowledge_results) = acknowledge_results_map.remove(&request_id) {
+                            // Consume the notifications
+                            response.results = acknowledge_results;
                         }
-                        request_response_results.push((publish_request.unwrap(), publish_response));
-                    } else if publish_request.is_some() {
-                        // Put the request back
-                        self.publish_request_queue.push(publish_request.unwrap());
+                    } else {
+                        panic!("Expecting publish response");
                     }
+                    request_response_results.push(publish_response);
                 }
             }
         }
@@ -161,21 +174,70 @@ impl Session {
             self.subscriptions.remove(&subscription_id);
         }
 
-        // TODO this code here should process acknowledgements before the state machine starts OR
-        // state machine is broken.
+        // Check for any publish requests which weren't handled already
+        publish_request_queue.retain(|ref publish_request| {
+            let request_id = publish_request.request_id;
+            if let Some(acknowledge_results) = acknowledge_results_map.remove(&request_id) {
+                let now = DateTime::now();
+                request_response_results.push(PublishResponseEntry {
+                    request_id: publish_request.request_id,
+                    response: SupportedMessage::PublishResponse(PublishResponse {
+                        response_header: ResponseHeader::new_timestamped_service_result(now.clone(), &publish_request.request.request_header, GOOD),
+                        subscription_id: 0,
+                        available_sequence_numbers: None,
+                        more_notifications: false,
+                        notification_message: NotificationMessage {
+                            sequence_number: 0,
+                            publish_time: now.clone(),
+                            notification_data: None,
+                        },
+                        results: acknowledge_results,
+                        diagnostic_infos: None,
+                    })
+                });
+                false
+            }
+            else {
+                true
+            }
+        }); 
+
+        // Update modified queue
+        self.publish_request_queue = publish_request_queue;
 
         if request_response_results.is_empty() {
             None
         } else {
-            let mut results = Vec::with_capacity(request_response_results.len());
-            // Handle acknowledgements
-            for mut rr in request_response_results {
-                if let SupportedMessage::PublishResponse(ref mut response) = rr.1.response {
-                    response.results = self.process_subscription_acknowledgements(&rr.0);
-                }
-                results.push(rr.1);
+            Some(request_response_results)
+        }
+    }
+
+    /// Deletes the acknowledged notifications, returning a list of status code for each according
+    /// to whether it was found or not.
+    ///
+    /// GOOD - deleted notification
+    /// BAD_SUBSCRIPTION_ID_INVALID - Subscription doesn't exist
+    /// BAD_SEQUENCE_NUMBER_UNKNOWN - Sequence number doesn't exist
+    ///
+    fn process_subscription_acknowledgements(&mut self, request: &PublishRequestEntry) -> Option<Vec<StatusCode>> {
+        trace!("Processing subscription acknowledgements");
+        let request = &request.request;
+        if request.subscription_acknowledgements.is_some() {
+            let subscription_acknowledgements = request.subscription_acknowledgements.as_ref().unwrap();
+            let mut results: Vec<StatusCode> = Vec::with_capacity(subscription_acknowledgements.len());
+            for subscription_acknowledgement in subscription_acknowledgements {
+                let subscription_id = subscription_acknowledgement.subscription_id;
+                let subscription = self.subscriptions.get_mut(&subscription_id);
+                let result = if subscription.is_none() {
+                    BAD_SUBSCRIPTION_ID_INVALID
+                } else {
+                    subscription.unwrap().delete_acked_notification_msg(subscription_acknowledgement)
+                };
+                results.push(result);
             }
             Some(results)
+        } else {
+            None
         }
     }
 
@@ -230,36 +292,6 @@ impl Session {
         }
         if !publish_responses.is_empty() {
             Some(publish_responses)
-        } else {
-            None
-        }
-    }
-
-    fn process_subscription_acknowledgements(&mut self, request: &PublishRequestEntry) -> Option<Vec<StatusCode>> {
-        trace!("Processing subscription acknowledgements");
-        //
-        /// Deletes the acknowledged notifications, returning a list of status code for each according
-        /// to whether it was found or not.
-        ///
-        /// GOOD - deleted notification
-        /// BAD_SUBSCRIPTION_ID_INVALID - Subscription doesn't exist
-        /// BAD_SEQUENCE_NUMBER_UNKNOWN - Sequence number doesn't exist
-        ///
-        let request = &request.request;
-        if request.subscription_acknowledgements.is_some() {
-            let subscription_acknowledgements = request.subscription_acknowledgements.as_ref().unwrap();
-            let mut results: Vec<StatusCode> = Vec::with_capacity(subscription_acknowledgements.len());
-            for subscription_acknowledgement in subscription_acknowledgements {
-                let subscription_id = subscription_acknowledgement.subscription_id;
-                let subscription = self.subscriptions.get_mut(&subscription_id);
-                let result = if subscription.is_none() {
-                    BAD_SUBSCRIPTION_ID_INVALID
-                } else {
-                    subscription.unwrap().delete_acked_notification_msg(subscription_acknowledgement)
-                };
-                results.push(result);
-            }
-            Some(results)
         } else {
             None
         }
