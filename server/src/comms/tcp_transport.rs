@@ -264,8 +264,7 @@ impl TcpTransport {
 
             // Process subscriptions
             {
-                let address_space = server_state.address_space.lock().unwrap();
-                if let Some(publish_responses) = session.tick_subscriptions(false, &address_space) {
+                if let Some(publish_responses) = session.tick_subscriptions(&server_state, false) {
                     trace!("Sending publish responses to session thread");
                     let sent = subscription_timer_tx.send(SubscriptionEvent::PublishResponses(publish_responses));
                     if sent.is_err() {

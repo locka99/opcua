@@ -20,7 +20,7 @@ impl MonitoredItemService {
         let results = if let Some(ref items_to_create) = request.items_to_create {
             // Find subscription and add items to it
             let subscription_id = request.subscription_id;
-            if let Some(mut subscription) = session.subscriptions.get_mut(&subscription_id) {
+            if let Some(mut subscription) = session.subscriptions.subscriptions.get_mut(&subscription_id) {
                 Some(subscription.create_monitored_items(items_to_create))
             } else {
                 // No matching subscription
@@ -42,7 +42,7 @@ impl MonitoredItemService {
         let results = if let Some(ref items_to_modify) = request.items_to_modify {
             // Find subscription and modify items in it
             let subscription_id = request.subscription_id;
-            if let Some(mut subscription) = session.subscriptions.get_mut(&subscription_id) {
+            if let Some(mut subscription) = session.subscriptions.subscriptions.get_mut(&subscription_id) {
                 Some(subscription.modify_monitored_items(items_to_modify))
             } else {
                 // No matching subscription
@@ -64,7 +64,7 @@ impl MonitoredItemService {
         let results = if let Some(ref items_to_delete) = request.monitored_item_ids {
             // Find subscription and delete items from it
             let subscription_id = request.subscription_id;
-            if let Some(mut subscription) = session.subscriptions.get_mut(&subscription_id) {
+            if let Some(mut subscription) = session.subscriptions.subscriptions.get_mut(&subscription_id) {
                 Some(subscription.delete_monitored_items(items_to_delete))
             } else {
                 // No matching subscription

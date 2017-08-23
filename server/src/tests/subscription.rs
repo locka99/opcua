@@ -1,5 +1,5 @@
 use prelude::*;
-use session::PublishRequestEntry;
+use subscriptions::PublishRequestEntry;
 
 const DEFAULT_LIFETIME_COUNT: UInt32 = 300;
 const DEFAULT_KEEPALIVE_COUNT: UInt32 = 100;
