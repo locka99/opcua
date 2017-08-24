@@ -21,7 +21,7 @@ const MAX_REQUEST_TIMEOUT: i64 = 30000;
 
 pub struct Subscriptions {
     /// Subscriptions associated with the session
-    pub subscriptions: HashMap<UInt32, Subscription>,
+    subscriptions: HashMap<UInt32, Subscription>,
     /// The publish requeust queue (requests by the client on the session)
     pub publish_request_queue: Vec<PublishRequestEntry>,
 }
@@ -47,6 +47,26 @@ impl Subscriptions {
             });
             Ok(self.tick(true, address_space))
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.subscriptions.len()
+    }
+
+    pub fn contains(&self, subscription_id: UInt32) -> bool {
+        self.subscriptions.contains_key(&subscription_id)
+    }
+
+    pub fn insert(&mut self, subscription_id: UInt32, subscription: Subscription) {
+        self.subscriptions.insert(subscription_id, subscription);
+    }
+
+    pub fn remove(&mut self, subscription_id: UInt32) -> Option<Subscription> {
+        self.subscriptions.remove(&subscription_id)
+    }
+
+    pub fn get_mut(&mut self, subscription_id: UInt32) -> Option<&mut Subscription> {
+        self.subscriptions.get_mut(&subscription_id)
     }
 
     /// Iterates through the existing queued publish requests and creates a timeout

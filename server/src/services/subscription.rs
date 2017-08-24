@@ -19,7 +19,7 @@ impl SubscriptionService {
     /// Handles a CreateSubscriptionRequest
     pub fn create_subscription(&self, server_state: &mut ServerState, session: &mut Session, request: CreateSubscriptionRequest) -> Result<SupportedMessage, StatusCode> {
         let subscriptions = &mut session.subscriptions;
-        let response = if server_state.max_subscriptions > 0 && subscriptions.subscriptions.len() >= server_state.max_subscriptions {
+        let response = if server_state.max_subscriptions > 0 && subscriptions.len() >= server_state.max_subscriptions {
             self.service_fault(&request.request_header, BAD_TOO_MANY_SUBSCRIPTIONS)
         } else {
             let subscription_id = server_state.create_subscription_id();
@@ -31,7 +31,7 @@ impl SubscriptionService {
             // Create a new subscription
             let publishing_enabled = request.publishing_enabled;
             let subscription = Subscription::new(subscription_id, publishing_enabled, revised_publishing_interval, revised_lifetime_count, revised_max_keep_alive_count, request.priority);
-            subscriptions.subscriptions.insert(subscription_id, subscription);
+            subscriptions.insert(subscription_id, subscription);
 
             // Create the response
             SupportedMessage::CreateSubscriptionResponse(CreateSubscriptionResponse {
@@ -49,10 +49,11 @@ impl SubscriptionService {
     pub fn modify_subscription(&self, server_state: &mut ServerState, session: &mut Session, request: ModifySubscriptionRequest) -> Result<SupportedMessage, StatusCode> {
         let subscriptions = &mut session.subscriptions;
         let subscription_id = request.subscription_id;
-        let response = if !subscriptions.subscriptions.contains_key(&subscription_id) {
+
+        let response = if !subscriptions.contains(subscription_id) {
             return Ok(self.service_fault(&request.request_header, BAD_SUBSCRIPTION_ID_INVALID));
         } else {
-            let mut subscription = subscriptions.subscriptions.get_mut(&subscription_id).unwrap();
+            let mut subscription = subscriptions.get_mut(subscription_id).unwrap();
 
             let (revised_publishing_interval, revised_max_keep_alive_count, revised_lifetime_count) =
                 SubscriptionService::revise_subscription_values(server_state, request.requested_publishing_interval, request.requested_max_keep_alive_count, request.requested_lifetime_count);
@@ -85,8 +86,8 @@ impl SubscriptionService {
 
             let subscriptions = &mut session.subscriptions;
             for subscription_id in subscription_ids {
-                if subscriptions.subscriptions.contains_key(subscription_id) {
-                    subscriptions.subscriptions.remove(subscription_id);
+                let subscription = subscriptions.remove(*subscription_id);
+                if subscription.is_some() {
                     results.push(GOOD);
                 } else {
                     results.push(BAD_SUBSCRIPTION_ID_INVALID);
@@ -114,8 +115,7 @@ impl SubscriptionService {
             let mut results = Vec::with_capacity(subscription_ids.len());
             let subscriptions = &mut session.subscriptions;
             for subscription_id in subscription_ids {
-                if subscriptions.subscriptions.contains_key(subscription_id) {
-                    let mut subscription = subscriptions.subscriptions.get_mut(subscription_id).unwrap();
+                if let Some(subscription) = subscriptions.get_mut(*subscription_id) {
                     subscription.publishing_enabled = publishing_enabled;
                     results.push(GOOD);
                 } else {
