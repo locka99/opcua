@@ -2,8 +2,7 @@
 //! authenticate itself, send messages, receive responses, get values, browse the address space and
 //! provide callbacks for things to be propagated to the client.
 
-#[macro_use]
-extern crate log;
+#[macro_use] extern crate log;
 extern crate url;
 extern crate chrono;
 

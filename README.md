@@ -17,11 +17,14 @@ The code is licenced under [MPL-2.0](https://opensource.org/licenses/MPL-2.0). L
 
 ## OPC UA Binary Transport Protocol
 
-This implementation will implement the opc.tcp:// protocol and OPC UA Binary format. Binary over https:// may happen in time. It will **not** implement OPC UA over XML. XML hasn't see much adoption so this is no great impediment.
+This implementation will implement the opc.tcp:// protocol and OPC UA Binary format. It will **not** implement OPC UA over XML. XML hasn't see much adoption so this is no great impediment. Binary over https:// might happen at a later time.
 
 ## Server
 
-The server shall implement the OPC UA embedded profile.
+The server shall implement the OPC UA capabilities:
+
+* http://opcfoundation.org/UA-Profile/Server/Behaviour - base server profile
+* http://opcfoundation.org/UA-Profile/Server/EmbeddedUA - embedded UA profile
 
 ### Services
 
@@ -29,7 +32,7 @@ The following services are supported fully, partially (marked with a *) or as a 
 may call them and receive a response. 
 
 Anything else is unsupported. Calling an unsupported service will terminate the session. Partial / stub
-implementations are expected to receive more functionality over time.
+implementations are expected to receive implementations over time.
 
 * Discovery service set
     * GetEndpoints
@@ -207,7 +210,7 @@ fn main() {
 
 This server will accept connections, allow you to browse the address space and subscribe to variables. 
 
-Refer to the `sample-server/` and `sample-client/` examples for something that adds variables to the address space and changes their values on a timer.
+Refer to the `samples/simple-server/` and `samples/simple-client/` examples for something that adds variables to the address space and changes their values.
 
 ## Type generation from schemas
 

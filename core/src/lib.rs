@@ -1,12 +1,10 @@
-#[macro_use]
-extern crate log;
+#[macro_use] extern crate log;
 extern crate env_logger;
 extern crate chrono;
 extern crate regex;
 extern crate rand;
 extern crate openssl;
-#[cfg(test)]
-extern crate tempdir;
+#[cfg(test)] extern crate tempdir;
 
 extern crate opcua_types;
 

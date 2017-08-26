@@ -1,17 +1,15 @@
-#[macro_use]
-extern crate serde_derive;
+#[macro_use] extern crate serde_derive;
 extern crate serde;
 extern crate serde_yaml;
 extern crate rand;
 
-#[macro_use]
-extern crate log;
+#[macro_use] extern crate log;
 
 extern crate time;
 extern crate chrono;
 extern crate timer;
 
-extern crate opcua_types;
+#[macro_use] extern crate opcua_types;
 extern crate opcua_core;
 
 type DateTimeUTC = chrono::DateTime<chrono::UTC>;
