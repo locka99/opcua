@@ -1,9 +1,3 @@
-/target/
-/.idea/
-types/target/
-core/target/
-client/target/
-samples/simple-server/target/
-samples/simple-client/target/
-server/target/
-tools/certificate-creator/target/
+target/
+.idea/
+pki/
