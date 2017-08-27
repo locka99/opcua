@@ -188,6 +188,6 @@ impl Chunker {
         }
 
         // debug!("Returning decoded msg {:?}", decoded_message);
-        return Ok(decoded_message);
+        Ok(decoded_message)
     }
 }

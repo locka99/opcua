@@ -9,7 +9,7 @@ use opcua_types::StatusCode::*;
 
 use crypto::{SHA1_SIZE, SHA256_SIZE};
 
-/// Pseudo random P_SHA implementation for creating pseudo random range of bytes from an input
+/// Pseudo random `P_SHA` implementation for creating pseudo random range of bytes from an input
 ///
 /// https://www.ietf.org/rfc/rfc4346.txt
 ///

@@ -1,4 +1,4 @@
-//! Contains semi-opaque wrappers for various OpenSSL types. The Rust bindings for OpenSSL do
+//! Contains semi-opaque wrappers for various `OpenSSL` types. The Rust bindings for `OpenSSL` do
 //! not mark types as implementing debug, thread safety etc. so these wrappers do that so the keys/certs
 //! can be contained by structs that have those things.
 //!
@@ -102,7 +102,7 @@ impl Thumbprint {
     }
 }
 
-/// This is a wrapper around the OpenSSL X509 cert
+/// This is a wrapper around the `OpenSSL` `X509` cert
 #[derive(Clone)]
 pub struct X509 {
     pub value: x509::X509,
@@ -128,13 +128,11 @@ impl X509 {
         if data.is_null() {
             error!("Can't make certificate from null bytestring");
             Err(BAD_CERTIFICATE_INVALID)
+        } else if let Ok(cert) = x509::X509::from_der(&data.value.as_ref().unwrap()) {
+            Ok(X509::wrap(cert))
         } else {
-            if let Ok(cert) = x509::X509::from_der(&data.value.as_ref().unwrap()) {
-                Ok(X509::wrap(cert))
-            } else {
-                error!("Can't make certificate, does bytestring contain .der?");
-                Err(BAD_CERTIFICATE_INVALID)
-            }
+            error!("Can't make certificate, does bytestring contain .der?");
+            Err(BAD_CERTIFICATE_INVALID)
         }
     }
 
@@ -248,7 +246,7 @@ fn parse_asn1_date_test() {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// This is a wrapper around an OpenSSL asymmetric key pair
+/// This is a wrapper around an `OpenSSL` asymmetric key pair
 pub struct PKey {
     pub value: pkey::PKey,
 }

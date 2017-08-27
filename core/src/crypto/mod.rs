@@ -34,40 +34,38 @@ pub fn verify_signature(verifying_cert: &X509, signature_data: &SignatureData, d
     } else if signature_data.algorithm.is_null() {
         error!("Signature data has no algorithm");
         Err(BAD_UNEXPECTED_ERROR)
-    } else {
+    } else if let Ok(public_key) = verifying_cert.public_key() {
         // Get the public key
-        if let Ok(public_key) = verifying_cert.public_key() {
-            let data = concat_data_and_nonce(data.as_ref(), nonce.as_ref());
-            let signature = signature_data.signature.as_ref();
+        let data = concat_data_and_nonce(data.as_ref(), nonce.as_ref());
+        let signature = signature_data.signature.as_ref();
 
-            let security_policy_uri = signature_data.algorithm.as_ref();
-            let security_policy = SecurityPolicy::from_uri(security_policy_uri);
+        let security_policy_uri = signature_data.algorithm.as_ref();
+        let security_policy = SecurityPolicy::from_uri(security_policy_uri);
 
-            let verified = match security_policy {
-                SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => {
-                    public_key.verify_sha1(&data, signature)?
-                }
-                SecurityPolicy::Basic256Sha256 => {
-                    public_key.verify_sha256(&data, signature)?
-                }
-                SecurityPolicy::None => {
-                    error!("Cannot verify a signature with no security policy of None");
-                    false
-                }
-                _ => {
-                    error!("An unknown security policy uri {} was passed to signing function and rejected", security_policy_uri);
-                    false
-                }
-            };
-            Ok(if verified { GOOD } else { BAD_APPLICATION_SIGNATURE_INVALID })
-        } else {
-            error!("Public key cannot be obtained from cert");
-            Err(BAD_UNEXPECTED_ERROR)
-        }
+        let verified = match security_policy {
+            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => {
+                public_key.verify_sha1(&data, signature)?
+            }
+            SecurityPolicy::Basic256Sha256 => {
+                public_key.verify_sha256(&data, signature)?
+            }
+            SecurityPolicy::None => {
+                error!("Cannot verify a signature with no security policy of None");
+                false
+            }
+            _ => {
+                error!("An unknown security policy uri {} was passed to signing function and rejected", security_policy_uri);
+                false
+            }
+        };
+        Ok(if verified { GOOD } else { BAD_APPLICATION_SIGNATURE_INVALID })
+    } else {
+        error!("Public key cannot be obtained from cert");
+        Err(BAD_UNEXPECTED_ERROR)
     }
 }
 
-/// Creates a SignatureData object by signing the supplied certificate and nonce with a pkey
+/// Creates a `SignatureData` object by signing the supplied certificate and nonce with a pkey
 pub fn create_signature_data(pkey: &PKey, security_policy_uri: &str, data: &ByteString, nonce: &ByteString) -> Result<SignatureData, StatusCode> {
     let (algorithm, signature) = if data.is_null() || nonce.is_null() {
         (UAString::null(), ByteString::null())

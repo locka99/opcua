@@ -594,10 +594,10 @@ impl BinaryEncoder<LocalizedText> for LocalizedText {
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size = 0;
-        /// A bit mask that indicates which fields are present in the stream.
-        /// The mask has the following bits:
-        /// 0x01    Locale
-        /// 0x02    Text
+        // A bit mask that indicates which fields are present in the stream.
+        // The mask has the following bits:
+        // 0x01    Locale
+        // 0x02    Text
         let mut encoding_mask: Byte = 0;
         if self.locale.len() > 0 {
             encoding_mask |= 0x1;

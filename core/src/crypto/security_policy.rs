@@ -1,4 +1,5 @@
 use std::fmt;
+use std::str::FromStr;
 
 use openssl::hash as openssl_hash;
 use openssl::rsa::*;
@@ -12,20 +13,20 @@ use crypto::hash;
 
 /// URI supplied for the None security policy
 pub const SECURITY_POLICY_NONE_URI: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#None";
-/// URI supplied for the Basic128Rsa15 security policy
+/// URI supplied for the `Basic128Rsa15` security policy
 pub const SECURITY_POLICY_BASIC_128_RSA_15_URI: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#Basic128Rsa15";
-/// URI supplied for the Basic256 security policy
+/// URI supplied for the `Basic256` security policy
 pub const SECURITY_POLICY_BASIC_256_URI: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256";
-/// URI supplied for the Basic256Sha256 security policy
+/// URI supplied for the `Basic256Sha256` security policy
 pub const SECURITY_POLICY_BASIC_256_SHA_256_URI: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256";
 
-/// String used as shorthand in config files, debug etc.for None security policy
+/// String used as shorthand in config files, debug etc.for `None` security policy
 pub const SECURITY_POLICY_NONE: &'static str = "None";
-/// String used as shorthand in config files, debug etc.for Basic128Rsa15 security policy
+/// String used as shorthand in config files, debug etc.for `Basic128Rsa15` security policy
 pub const SECURITY_POLICY_BASIC_128_RSA_15: &'static str = "Basic128Rsa15";
-/// String used as shorthand in config files, debug etc.for Basic256 security policy
+/// String used as shorthand in config files, debug etc.for `Basic256` security policy
 pub const SECURITY_POLICY_BASIC_256: &'static str = "Basic256";
-/// String used as shorthand in config files, debug etc.for Basic256Sha256 security policy
+/// String used as shorthand in config files, debug etc.for `Basic256Sha256` security policy
 pub const SECURITY_POLICY_BASIC_256_SHA_256: &'static str = "Basic256Sha256";
 
 // These are constants that govern the different encryption / signing modes for OPC UA. In some
@@ -165,24 +166,41 @@ pub enum SecurityPolicy {
 
 impl fmt::Display for SecurityPolicy {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match self {
-            &SecurityPolicy::None => SECURITY_POLICY_NONE,
-            &SecurityPolicy::Basic128Rsa15 => SECURITY_POLICY_BASIC_128_RSA_15,
-            &SecurityPolicy::Basic256 => SECURITY_POLICY_BASIC_256,
-            &SecurityPolicy::Basic256Sha256 => SECURITY_POLICY_BASIC_256_SHA_256,
+        let name = match *self {
+            SecurityPolicy::None => SECURITY_POLICY_NONE,
+            SecurityPolicy::Basic128Rsa15 => SECURITY_POLICY_BASIC_128_RSA_15,
+            SecurityPolicy::Basic256 => SECURITY_POLICY_BASIC_256,
+            SecurityPolicy::Basic256Sha256 => SECURITY_POLICY_BASIC_256_SHA_256,
             _ => ""
         };
         write!(f, "{}", name)
     }
 }
 
+impl FromStr for SecurityPolicy {
+    type Err = ();
+    
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            SECURITY_POLICY_NONE => SecurityPolicy::None,
+            SECURITY_POLICY_BASIC_128_RSA_15 => SecurityPolicy::Basic128Rsa15,
+            SECURITY_POLICY_BASIC_256 => SecurityPolicy::Basic256,
+            SECURITY_POLICY_BASIC_256_SHA_256 => SecurityPolicy::Basic256Sha256,
+            _ => {
+                error!("Specified security policy {} is not recognized", s);
+                SecurityPolicy::Unknown
+            }
+        })
+    }
+}
+
 impl SecurityPolicy {
     pub fn to_uri(&self) -> &'static str {
-        match self {
-            &SecurityPolicy::None => SECURITY_POLICY_NONE_URI,
-            &SecurityPolicy::Basic128Rsa15 => SECURITY_POLICY_BASIC_128_RSA_15_URI,
-            &SecurityPolicy::Basic256 => SECURITY_POLICY_BASIC_256_URI,
-            &SecurityPolicy::Basic256Sha256 => SECURITY_POLICY_BASIC_256_SHA_256_URI,
+        match *self {
+            SecurityPolicy::None => SECURITY_POLICY_NONE_URI,
+            SecurityPolicy::Basic128Rsa15 => SECURITY_POLICY_BASIC_128_RSA_15_URI,
+            SecurityPolicy::Basic256 => SECURITY_POLICY_BASIC_256_URI,
+            SecurityPolicy::Basic256Sha256 => SECURITY_POLICY_BASIC_256_SHA_256_URI,
             _ => {
                 panic!("Shouldn't be turning an unknown policy into a uri");
             }
@@ -190,10 +208,10 @@ impl SecurityPolicy {
     }
 
     pub fn asymmetric_signature_algorithm(&self) -> &'static str {
-        match self {
-            &SecurityPolicy::Basic128Rsa15 => basic128rsa15::ASYMMETRIC_SIGNATURE_ALGORITHM,
-            &SecurityPolicy::Basic256 => basic256::ASYMMETRIC_SIGNATURE_ALGORITHM,
-            &SecurityPolicy::Basic256Sha256 => basic256sha256::ASYMMETRIC_SIGNATURE_ALGORITHM,
+        match *self {
+            SecurityPolicy::Basic128Rsa15 => basic128rsa15::ASYMMETRIC_SIGNATURE_ALGORITHM,
+            SecurityPolicy::Basic256 => basic256::ASYMMETRIC_SIGNATURE_ALGORITHM,
+            SecurityPolicy::Basic256Sha256 => basic256sha256::ASYMMETRIC_SIGNATURE_ALGORITHM,
             _ => {
                 panic!("Invalid policy");
             }
@@ -201,10 +219,10 @@ impl SecurityPolicy {
     }
 
     pub fn symmetric_signature_algorithm(&self) -> &'static str {
-        match self {
-            &SecurityPolicy::Basic128Rsa15 => basic128rsa15::SYMMETRIC_SIGNATURE_ALGORITHM,
-            &SecurityPolicy::Basic256 => basic256::SYMMETRIC_SIGNATURE_ALGORITHM,
-            &SecurityPolicy::Basic256Sha256 => basic256sha256::SYMMETRIC_SIGNATURE_ALGORITHM,
+        match *self {
+            SecurityPolicy::Basic128Rsa15 => basic128rsa15::SYMMETRIC_SIGNATURE_ALGORITHM,
+            SecurityPolicy::Basic256 => basic256::SYMMETRIC_SIGNATURE_ALGORITHM,
+            SecurityPolicy::Basic256Sha256 => basic256sha256::SYMMETRIC_SIGNATURE_ALGORITHM,
             _ => {
                 panic!("Invalid policy");
             }
@@ -212,10 +230,9 @@ impl SecurityPolicy {
     }
 
     pub fn symmetric_key_size(&self) -> usize {
-        match self {
-            &SecurityPolicy::Basic128Rsa15 => 16,
-            &SecurityPolicy::Basic256 => 32,
-            &SecurityPolicy::Basic256Sha256 => 32,
+        match *self {
+            SecurityPolicy::Basic128Rsa15 => 16,
+            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => 32,
             _ => {
                 panic!("Invalid policy");
             }
@@ -224,10 +241,8 @@ impl SecurityPolicy {
 
     // Plaintext block size in bytes
     pub fn plain_block_size(&self) -> usize {
-        match self {
-            &SecurityPolicy::Basic128Rsa15 => 16,
-            &SecurityPolicy::Basic256 => 16,
-            &SecurityPolicy::Basic256Sha256 => 16,
+        match *self {
+            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => 16,
             _ => {
                 panic!("Invalid policy");
             }
@@ -235,10 +250,10 @@ impl SecurityPolicy {
     }
 
     pub fn symmetric_signature_size(&self) -> usize {
-        match self {
-            &SecurityPolicy::None => 0,
-            &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => SHA1_SIZE,
-            &SecurityPolicy::Basic256Sha256 => SHA256_SIZE,
+        match *self {
+            SecurityPolicy::None => 0,
+            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => SHA1_SIZE,
+            SecurityPolicy::Basic256Sha256 => SHA256_SIZE,
             _ => {
                 panic!("Invalid policy");
             }
@@ -247,10 +262,10 @@ impl SecurityPolicy {
 
     /// Returns the derived signature key (not the signature) size in bytes
     pub fn derived_signature_key_size(&self) -> usize {
-        let result = match self {
-            &SecurityPolicy::Basic128Rsa15 => basic128rsa15::DERIVED_SIGNATURE_KEY_LENGTH,
-            &SecurityPolicy::Basic256 => basic256::DERIVED_SIGNATURE_KEY_LENGTH,
-            &SecurityPolicy::Basic256Sha256 => basic256sha256::DERIVED_SIGNATURE_KEY_LENGTH,
+        let result = match *self {
+            SecurityPolicy::Basic128Rsa15 => basic128rsa15::DERIVED_SIGNATURE_KEY_LENGTH,
+            SecurityPolicy::Basic256 => basic256::DERIVED_SIGNATURE_KEY_LENGTH,
+            SecurityPolicy::Basic256Sha256 => basic256sha256::DERIVED_SIGNATURE_KEY_LENGTH,
             _ => {
                 panic!("Invalid policy");
             }
@@ -260,10 +275,10 @@ impl SecurityPolicy {
 
     /// Returns the max key length in bits
     pub fn min_asymmetric_key_length(&self) -> usize {
-        match self {
-            &SecurityPolicy::Basic128Rsa15 => basic128rsa15::MIN_ASYMMETRIC_KEY_LENGTH,
-            &SecurityPolicy::Basic256 => basic256::MIN_ASYMMETRIC_KEY_LENGTH,
-            &SecurityPolicy::Basic256Sha256 => basic256sha256::MIN_ASYMMETRIC_KEY_LENGTH,
+        match *self {
+            SecurityPolicy::Basic128Rsa15 => basic128rsa15::MIN_ASYMMETRIC_KEY_LENGTH,
+            SecurityPolicy::Basic256 => basic256::MIN_ASYMMETRIC_KEY_LENGTH,
+            SecurityPolicy::Basic256Sha256 => basic256sha256::MIN_ASYMMETRIC_KEY_LENGTH,
             _ => {
                 panic!("Invalid policy");
             }
@@ -272,10 +287,10 @@ impl SecurityPolicy {
 
     /// Returns the max key length in bits
     pub fn max_asymmetric_key_length(&self) -> usize {
-        match self {
-            &SecurityPolicy::Basic128Rsa15 => basic128rsa15::MAX_ASYMMETRIC_KEY_LENGTH,
-            &SecurityPolicy::Basic256 => basic256::MAX_ASYMMETRIC_KEY_LENGTH,
-            &SecurityPolicy::Basic256Sha256 => basic256sha256::MAX_ASYMMETRIC_KEY_LENGTH,
+        match *self {
+            SecurityPolicy::Basic128Rsa15 => basic128rsa15::MAX_ASYMMETRIC_KEY_LENGTH,
+            SecurityPolicy::Basic256 => basic256::MAX_ASYMMETRIC_KEY_LENGTH,
+            SecurityPolicy::Basic256Sha256 => basic256sha256::MAX_ASYMMETRIC_KEY_LENGTH,
             _ => {
                 panic!("Invalid policy");
             }
@@ -295,26 +310,13 @@ impl SecurityPolicy {
         }
     }
 
-    pub fn from_str(str: &str) -> SecurityPolicy {
-        match str {
-            SECURITY_POLICY_NONE => SecurityPolicy::None,
-            SECURITY_POLICY_BASIC_128_RSA_15 => SecurityPolicy::Basic128Rsa15,
-            SECURITY_POLICY_BASIC_256 => SecurityPolicy::Basic256,
-            SECURITY_POLICY_BASIC_256_SHA_256 => SecurityPolicy::Basic256Sha256,
-            _ => {
-                error!("Specified security policy {} is not recognized", str);
-                SecurityPolicy::Unknown
-            }
-        }
-    }
-
     /// Pseudo random function is used as a key derivation algorithm. It creates pseudo random bytes
     /// from a secret and seed specified by the parameters.
     fn prf(&self, secret: &[u8], seed: &[u8], length: usize, offset: usize) -> Vec<u8> {
         // P_SHA1 or P_SHA256
-        let message_digest = match self {
-            &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => openssl_hash::MessageDigest::sha1(),
-            &SecurityPolicy::Basic256Sha256 => openssl_hash::MessageDigest::sha256(),
+        let message_digest = match *self {
+            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => openssl_hash::MessageDigest::sha1(),
+            SecurityPolicy::Basic256Sha256 => openssl_hash::MessageDigest::sha256(),
             _ => {
                 panic!("Invalid policy");
             }
@@ -359,10 +361,9 @@ impl SecurityPolicy {
     pub fn make_secure_channel_keys(&self, nonce1: &[u8], nonce2: &[u8]) -> (Vec<u8>, AesKey, Vec<u8>) {
         // Work out the length of stuff
         let signing_key_length = self.derived_signature_key_size();
-        let (encrypting_key_length, encrypting_block_size) = match self {
-            &SecurityPolicy::Basic128Rsa15 => (16, 16),
-            &SecurityPolicy::Basic256 => (32, 16),
-            &SecurityPolicy::Basic256Sha256 => (32, 16),
+        let (encrypting_key_length, encrypting_block_size) = match *self {
+            SecurityPolicy::Basic128Rsa15 => (16, 16),
+            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => (32, 16),
             _ => {
                 panic!("Invalid policy");
             }
@@ -379,11 +380,11 @@ impl SecurityPolicy {
     }
 
     pub fn asymmetric_sign(&self, signing_key: &PKey, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
-        let result = match self {
-            &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => {
+        let result = match *self {
+            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => {
                 signing_key.sign_sha1(data, signature)?
             }
-            &SecurityPolicy::Basic256Sha256 => {
+            SecurityPolicy::Basic256Sha256 => {
                 signing_key.sign_sha256(data, signature)?
             }
             _ => {
@@ -395,11 +396,11 @@ impl SecurityPolicy {
 
     pub fn asymmetric_verify_signature(&self, verification_key: &PKey, data: &[u8], signature: &[u8], their_key: Option<PKey>) -> Result<(), StatusCode> {
         // Asymmetric verify signature against supplied certificate
-        let result = match self {
-            &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => {
+        let result = match *self {
+            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => {
                 verification_key.verify_sha1(data, signature)?
             }
-            &SecurityPolicy::Basic256Sha256 => {
+            SecurityPolicy::Basic256Sha256 => {
                 verification_key.verify_sha256(data, signature)?
             }
             _ => {
@@ -425,9 +426,9 @@ impl SecurityPolicy {
     }
 
     fn padding_and_encrypted_data_size_for_key(&self, key_size: usize) -> (Padding, usize) {
-        match self {
-            &SecurityPolicy::Basic128Rsa15 => (PKCS1_PADDING, key_size - 11),
-            &SecurityPolicy::Basic256 | &SecurityPolicy::Basic256Sha256 => (PKCS1_OAEP_PADDING, key_size - 42),
+        match *self {
+            SecurityPolicy::Basic128Rsa15 => (PKCS1_PADDING, key_size - 11),
+            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => (PKCS1_OAEP_PADDING, key_size - 42),
             _ => {
                 panic!("Security policy is not supported, shouldn't have gotten here");
             }
@@ -501,12 +502,12 @@ impl SecurityPolicy {
     /// Sign the following block
     pub fn symmetric_sign(&self, key: &[u8], src: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
         trace!("Producing signature for {} bytes of data into signature of {} bytes", src.len(), signature.len());
-        match self {
-            &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => {
+        match *self {
+            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => {
                 // HMAC SHA-1
                 hash::hmac_sha1(key, src, signature)
             }
-            &SecurityPolicy::Basic256Sha256 => {
+            SecurityPolicy::Basic256Sha256 => {
                 // HMAC SHA-256                
                 hash::hmac_sha256(key, src, signature)
             }
@@ -519,12 +520,12 @@ impl SecurityPolicy {
     /// Verify their signature
     pub fn symmetric_verify_signature(&self, key: &[u8], src: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
         // Verify the signature using SHA-1 / SHA-256 HMAC
-        let verified = match self {
-            &SecurityPolicy::Basic128Rsa15 | &SecurityPolicy::Basic256 => {
+        let verified = match *self {
+            SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => {
                 // HMAC SHA-1
                 hash::verify_hmac_sha1(key, src, signature)
             }
-            &SecurityPolicy::Basic256Sha256 => {
+            SecurityPolicy::Basic256Sha256 => {
                 // HMAC SHA-256                
                 hash::verify_hmac_sha256(key, src, signature)
             }

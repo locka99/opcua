@@ -53,15 +53,12 @@ impl ChunkInfo {
                 SecurityPolicy::from_uri(&security_header.security_policy_uri.as_ref())
             };
 
-            match security_policy {
-                SecurityPolicy::Unknown => {
-                    error!("Security policy of chunk is unsupported, policy = {:?}", security_header.security_policy_uri);
-                    return Err(BAD_SECURITY_POLICY_REJECTED);
-                }
-                _ => {
-                    // Anything related to policy can be worked out here
-                }
+            if security_policy == SecurityPolicy::Unknown {
+                error!("Security policy of chunk is unsupported, policy = {:?}", security_header.security_policy_uri);
+                return Err(BAD_SECURITY_POLICY_REJECTED);
             }
+
+            // Anything related to policy can be worked out here
             SecurityHeader::Asymmetric(security_header)
         } else {
             let result = SymmetricSecurityHeader::decode(&mut stream);

@@ -116,7 +116,6 @@ impl BinaryEncoder<Variant> for Variant {
             &Variant::LocalizedText(ref value) => value.byte_len(),
             &Variant::ExtensionObject(ref value) => value.byte_len(),
             &Variant::DataValue(ref value) => value.byte_len(),
-            /// A variant can be an array of other kinds
             &Variant::Array(ref values) => {
                 // Array length
                 let mut size = 4;
@@ -505,7 +504,6 @@ impl Variant {
             &Variant::LocalizedText(_) => DataTypeId::LocalizedText as u8,
             &Variant::ExtensionObject(_) => 22, // DataTypeId::ExtensionObject as u8,
             &Variant::DataValue(_) => DataTypeId::DataValue as u8,
-            /// A variant can be an array of other kinds
             &Variant::Array(ref values) => {
                 let mut encoding_mask = if values.is_empty() {
                     0u8
