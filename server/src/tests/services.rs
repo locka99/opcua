@@ -37,8 +37,25 @@ fn make_browse_request(nodes: Vec<NodeId>, browse_direction: BrowseDirection, re
     }
 }
 
+// Attribute service tests
+
+
+// Discovery service tests
+
+
+// Monitored item service tests
+
+
+// Session service tests
+
+
+// Subscription service tests
+
+
+// View service tests
+
 #[test]
-fn browse_nodes() {
+fn browse() {
     let server = Server::new(ServerConfig::default_anonymous());
     let tcp_session = TcpTransport::new(server.server_state);
 
@@ -85,4 +102,15 @@ fn browse_nodes() {
         let r3 = &references[2];
         assert_eq!(r3.browse_name, QualifiedName::new(0, "Views"));
     }
+}
+
+#[test]
+fn browse_next() {
+    // Set up a server more more nodes than can fit in a response to test Browse, BrowseNext response
+    // TODO
+}
+
+#[test]
+fn translate_browse_paths_to_node_ids() {
+    // TODO
 }

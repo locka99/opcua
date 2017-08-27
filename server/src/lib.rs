@@ -9,7 +9,7 @@ extern crate time;
 extern crate chrono;
 extern crate timer;
 
-#[macro_use] extern crate opcua_types;
+extern crate opcua_types;
 extern crate opcua_core;
 
 type DateTimeUTC = chrono::DateTime<chrono::UTC>;

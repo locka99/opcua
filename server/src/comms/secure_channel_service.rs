@@ -46,8 +46,8 @@ impl SecureChannelService {
             }
         };
 
-        let security_header = match security_header {
-            &SecurityHeader::Asymmetric(ref security_header) => {
+        let security_header = match *security_header {
+            SecurityHeader::Asymmetric(ref security_header) => {
                 security_header
             }
             _ => {

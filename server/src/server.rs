@@ -5,6 +5,7 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::path::PathBuf;
 use std::thread;
+use std::str::FromStr;
 
 use opcua_types::*;
 use opcua_types::profiles;
@@ -228,7 +229,7 @@ impl Server {
         for e in &config.endpoints {
             let endpoint_url = format!("{}{}", base_endpoint, e.path);
             let security_mode = MessageSecurityMode::from_str(&e.security_mode);
-            let security_policy_uri = SecurityPolicy::from_str(&e.security_policy).to_uri().to_string();
+            let security_policy_uri = SecurityPolicy::from_str(&e.security_policy).unwrap().to_uri().to_string();
             let anonymous = if let Some(anonymous) = e.anonymous.as_ref() {
                 *anonymous
             } else {

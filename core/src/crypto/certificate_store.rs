@@ -317,7 +317,7 @@ impl CertificateStore {
     pub fn ensure_pki_path(&self) -> Result<(), String> {
         let mut path = self.pki_path.clone();
         let subdirs = [OWN_CERTIFICATE_DIR, OWN_PRIVATE_KEY_DIR, TRUSTED_CERTS_DIR, REJECTED_CERTS_DIR];
-        for subdir in subdirs.iter() {
+        for subdir in &subdirs {
             path.push(subdir);
             CertificateStore::ensure_dir(&path)?;
             path.pop();
