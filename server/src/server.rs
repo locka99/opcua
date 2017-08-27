@@ -159,7 +159,7 @@ impl ServerState {
             user_identity_tokens.push(UserTokenPolicy::new_anonymous());
         }
         if let Some(ref user) = endpoint.user {
-            if user.len() > 0 {
+            if !user.is_empty() {
                 user_identity_tokens.push(UserTokenPolicy::new_user_pass());
             }
         }
@@ -348,7 +348,7 @@ impl Server {
         {
             info!("Server supports these endpoints:");
             let server_state = self.server_state.lock().unwrap();
-            for endpoint in server_state.endpoints.iter() {
+            for endpoint in &server_state.endpoints {
                 info!("Endpoint \"{}\": {}", endpoint.name, endpoint.endpoint_url);
                 if endpoint.anonymous {
                     info!("  Anonymous Access: {:?}", endpoint.anonymous);

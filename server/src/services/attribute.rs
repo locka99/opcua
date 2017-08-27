@@ -59,21 +59,21 @@ impl AttributeService {
                             } else {
                                 // Result value is clone from the attribute
                                 result_value.value = attribute.value.clone();
-                                result_value.status = attribute.status.clone();
+                                result_value.status = attribute.status;
                                 match timestamps_to_return {
                                     TimestampsToReturn::Source => {
                                         result_value.source_timestamp = attribute.source_timestamp.clone();
-                                        result_value.source_picoseconds = attribute.source_picoseconds.clone();
+                                        result_value.source_picoseconds = attribute.source_picoseconds;
                                     }
                                     TimestampsToReturn::Server => {
                                         result_value.server_timestamp = attribute.server_timestamp.clone();
-                                        result_value.server_picoseconds = attribute.server_picoseconds.clone();
+                                        result_value.server_picoseconds = attribute.server_picoseconds;
                                     }
                                     TimestampsToReturn::Both => {
                                         result_value.source_timestamp = attribute.source_timestamp.clone();
                                         result_value.source_picoseconds = attribute.source_picoseconds.clone();
                                         result_value.server_timestamp = attribute.server_timestamp.clone();
-                                        result_value.server_picoseconds = attribute.server_picoseconds.clone();
+                                        result_value.server_picoseconds = attribute.server_picoseconds;
                                     }
                                     TimestampsToReturn::Neither => {
                                         // Nothing needs to change
@@ -130,7 +130,7 @@ impl AttributeService {
                         // Index ranges are not supported
                         if !node_to_write.index_range.is_null() {
                             write_result = BAD_WRITE_NOT_SUPPORTED;
-                        } else if let Some(_) = node.as_node().find_attribute(attribute_id) {
+                        } else if node.as_node().find_attribute(attribute_id).is_some() {
                             // TODO implement write, checking masks to see if the action is allowed
                             write_result = BAD_WRITE_NOT_SUPPORTED;
                         } else {

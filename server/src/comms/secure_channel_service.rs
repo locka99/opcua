@@ -35,8 +35,8 @@ impl SecureChannelService {
     }
 
     pub fn open_secure_channel(&mut self, security_header: &SecurityHeader, client_protocol_version: UInt32, message: &SupportedMessage) -> Result<SupportedMessage, StatusCode> {
-        let request = match message {
-            &SupportedMessage::OpenSecureChannelRequest(ref request) => {
+        let request = match *message {
+            SupportedMessage::OpenSecureChannelRequest(ref request) => {
                 info!("Got secure channel request {:?}", request);
                 request
             }

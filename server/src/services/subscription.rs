@@ -53,7 +53,7 @@ impl SubscriptionService {
         let response = if !subscriptions.contains(subscription_id) {
             return Ok(self.service_fault(&request.request_header, BAD_SUBSCRIPTION_ID_INVALID));
         } else {
-            let mut subscription = subscriptions.get_mut(subscription_id).unwrap();
+            let subscription = subscriptions.get_mut(subscription_id).unwrap();
 
             let (revised_publishing_interval, revised_max_keep_alive_count, revised_lifetime_count) =
                 SubscriptionService::revise_subscription_values(server_state, request.requested_publishing_interval, request.requested_max_keep_alive_count, request.requested_lifetime_count);

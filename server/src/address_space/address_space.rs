@@ -12,7 +12,7 @@ use address_space::variable::Variable;
 use address_space::node::{Node, NodeType};
 use address_space::AttrFnGetter;
 
-/// The NodeId is the target node. The reference is held in a list by the source node.
+/// The `NodeId` is the target node. The reference is held in a list by the source node.
 /// The target node does not need to exist.
 #[derive(Debug, Clone)]
 pub struct Reference {
@@ -155,7 +155,7 @@ impl AddressSpace {
 
         // Server_ServerStatus_CurrentTime
         if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerStatus_CurrentTime) {
-            /// Used to return the current time of the server, i.e. now
+            // Used to return the current time of the server, i.e. now
             let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Option<DataValue> {
                 Some(DataValue::new(Variant::DateTime(DateTime::now())))
             });
@@ -166,7 +166,7 @@ impl AddressSpace {
         // State OPC UA Part 5 12.6, Valid states are
         //     State (Server_ServerStatus_State)
         if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerStatus_State) {
-            /// Used to return the current time of the server, i.e. now
+            // Used to return the current time of the server, i.e. now
             let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Option<DataValue> {
                 // TODO state should be live
                 let server_state = ServerStateType::Running;
@@ -310,7 +310,7 @@ impl AddressSpace {
     /// Adds a reference between one node and a target
     fn add_reference(reference_map: &mut HashMap<NodeId, Vec<Reference>>, node_id: &NodeId, reference: Reference) {
         if reference_map.contains_key(node_id) {
-            let mut references = reference_map.get_mut(node_id).unwrap();
+            let references = reference_map.get_mut(node_id).unwrap();
             references.push(reference);
         } else {
             reference_map.insert(node_id.clone(), vec![reference]);

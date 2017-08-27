@@ -390,11 +390,11 @@ impl TcpTransport {
 
     fn send_response<W: Write>(&mut self, request_id: UInt32, response: &SupportedMessage, out_stream: &mut W) -> std::result::Result<(), StatusCode> {
         // Prepare some chunks starting from the sequence number + 1
-        match response {
-            &SupportedMessage::Invalid(object_id) => {
+        match *response {
+            SupportedMessage::Invalid(object_id) => {
                 panic!("Invalid response with object_id {:?}", object_id);
             }
-            &SupportedMessage::DoNothing => {
+            SupportedMessage::DoNothing => {
                 // DO NOTHING
             }
             _ => {
@@ -410,7 +410,7 @@ impl TcpTransport {
                 // Send out any chunks that form the response
                 // debug!("Got some chunks to send {:?}", out_chunks);
                 let mut data = vec![0u8; max_chunk_size + 1024];
-                for out_chunk in out_chunks.iter() {
+                for out_chunk in &out_chunks {
                     // Encrypt and sign the chunk if necessary
                     let size = self.secure_channel_service.secure_channel.apply_security(out_chunk, &mut data);
                     if size.is_ok() {

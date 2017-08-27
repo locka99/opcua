@@ -246,8 +246,8 @@ impl Subscription {
         let items_changed = self.tick_monitored_items(address_space, now, publishing_timer_expired);
 
         self.publishing_req_queued = publishing_req_queued;
-        self.notifications_available = self.retransmission_queue.len() > 0;
-        self.more_notifications = self.retransmission_queue.len() > 0;
+        self.notifications_available = !self.retransmission_queue.is_empty();
+        self.more_notifications = !self.retransmission_queue.is_empty();
 
         // If items have changed or subscription interval elapsed then we may have notifications
         // to send or state to update
@@ -289,7 +289,7 @@ impl Subscription {
     /// elapsing, or their own interval elapsing.
     fn tick_monitored_items(&mut self, address_space: &AddressSpace, now: &DateTimeUTC, publishing_timer_expired: bool) -> bool {
         let mut monitored_item_notifications = Vec::new();
-        for (_, monitored_item) in self.monitored_items.iter_mut() {
+        for (_, monitored_item) in &mut self.monitored_items {
             if monitored_item.tick(address_space, now, publishing_timer_expired) {
                 // Take the monitored item's first notification
                 if let Some(mut notification_messages) = monitored_item.remove_all_notification_messages() {
@@ -297,7 +297,7 @@ impl Subscription {
                 }
             }
         }
-        let result = if monitored_item_notifications.len() > 0 {
+        let result = if !monitored_item_notifications.is_empty() {
             // Create a notification message in the map
             let sequence_number = self.create_sequence_number();
             trace!("Monitored items, seq nr = {}, nr notifications = {}", sequence_number, monitored_item_notifications.len());

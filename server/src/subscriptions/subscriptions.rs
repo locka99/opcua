@@ -80,7 +80,7 @@ impl Subscriptions {
         let mut expired_request_handles = HashSet::with_capacity(self.publish_request_queue.len());
         let mut expired_requests = Vec::with_capacity(self.publish_request_queue.len());
 
-        for request in self.publish_request_queue.iter() {
+        for request in &self.publish_request_queue {
             let request_header = &request.request.request_header;
             let timestamp: DateTimeUTC = request_header.timestamp.as_chrono();
             let timeout = if request_header.timeout_hint > 0 && (request_header.timeout_hint as i64) < MAX_REQUEST_TIMEOUT {
@@ -139,19 +139,19 @@ impl Subscriptions {
         // acknowledge notifications and the response to return new notifications.
 
         let mut acknowledge_results_map = HashMap::new();
-        for publish_request in publish_request_queue.iter() {
+        for publish_request in &publish_request_queue {
             let acknowledge_results = self.process_subscription_acknowledgements(publish_request);
             acknowledge_results_map.insert(publish_request.request_id, acknowledge_results);
         }
 
         // Now tick over the subscriptions
-        for (subscription_id, subscription) in self.subscriptions.iter_mut() {
+        for (subscription_id, subscription) in &mut self.subscriptions {
             // Dead subscriptions will be removed at the end
             if subscription.state == SubscriptionState::Closed {
                 dead_subscriptions.push(*subscription_id);
             } else {
                 let publish_request = publish_request_queue.pop();
-                let publishing_req_queued = publish_request_queue.len() > 0 || publish_request.is_some();
+                let publishing_req_queued = !publish_request_queue.is_empty() || publish_request.is_some();
 
                 // Now tick the subscription to see if it has any notifications. If there are
                 // notifications then the publish response will be associated with his subscription

@@ -15,15 +15,15 @@ pub enum NodeType {
 
 impl NodeType {
     pub fn as_node(&self) -> &Node {
-        match self {
-            &NodeType::Object(ref value) => value,
-            &NodeType::ObjectType(ref value) => value,
-            &NodeType::ReferenceType(ref value) => value,
-            &NodeType::Variable(ref value) => value,
-            &NodeType::VariableType(ref value) => value,
-            &NodeType::View(ref value) => value,
-            &NodeType::DataType(ref value) => value,
-            &NodeType::Method(ref value) => value,
+        match *self {
+            NodeType::Object(ref value) => value,
+            NodeType::ObjectType(ref value) => value,
+            NodeType::ReferenceType(ref value) => value,
+            NodeType::Variable(ref value) => value,
+            NodeType::VariableType(ref value) => value,
+            NodeType::View(ref value) => value,
+            NodeType::DataType(ref value) => value,
+            NodeType::Method(ref value) => value,
         }
     }
 

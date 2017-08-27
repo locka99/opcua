@@ -9,7 +9,7 @@ use services::Service;
 
 // Bits that control the reference description coming back from browse()
 
-const RESULT_MASK_REFERENCE_TYPE: UInt32 = 1 << 0;
+const RESULT_MASK_REFERENCE_TYPE: UInt32 = 1;
 const RESULT_MASK_IS_FORWARD: UInt32 = 1 << 1;
 const RESULT_MASK_NODE_CLASS: UInt32 = 1 << 2;
 const RESULT_MASK_BROWSE_NAME: UInt32 = 1 << 3;
@@ -43,7 +43,7 @@ impl ViewService {
                 let references = ViewService::reference_descriptions(&address_space, node_to_browse, request.requested_max_references_per_node);
                 let browse_result = if references.is_err() {
                     BrowseResult {
-                        status_code: references.unwrap_err().clone(),
+                        status_code: references.unwrap_err(),
                         continuation_point: ByteString::null(),
                         references: None
                     }

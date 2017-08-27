@@ -113,7 +113,7 @@ impl MonitoredItem {
             return false;
         }
 
-        self.last_sample_time = now.clone();
+        self.last_sample_time = *now;
 
         if let Some(node) = address_space.find_node(&self.item_to_monitor.node_id) {
             let node = node.as_node();
@@ -182,7 +182,7 @@ impl MonitoredItem {
                 self.notification_queue.pop();
             }
             // Overflow only affects queues > 1 element
-            if self.queue_size > 1 { true } else { false }
+            self.queue_size > 1
         } else {
             false
         };

@@ -28,26 +28,26 @@ macro_rules! supported_messages {
 
         impl BinaryEncoder <SupportedMessage> for SupportedMessage {
             fn byte_len(&self) -> usize {
-                match self {
-                    &SupportedMessage::Invalid(object_id) => {
+                match *self {
+                    SupportedMessage::Invalid(object_id) => {
                         panic!("Unsupported message {:?}", object_id);
                     },
-                    &SupportedMessage::DoNothing => {
+                    SupportedMessage::DoNothing => {
                         panic!("This message cannot be serialized");
                     },
-                    $( &SupportedMessage::$x(ref value) => value.byte_len(), )*
+                    $( SupportedMessage::$x(ref value) => value.byte_len(), )*
                 }
             }
 
             fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-                match self {
-                    &SupportedMessage::Invalid(object_id) => {
+                match *self {
+                    SupportedMessage::Invalid(object_id) => {
                         panic!("Unsupported message {:?}", object_id);
                     },
-                    &SupportedMessage::DoNothing => {
+                    SupportedMessage::DoNothing => {
                         panic!("This message cannot be serialized");
                     },
-                    $( &SupportedMessage::$x(ref value) => value.encode(stream), )*
+                    $( SupportedMessage::$x(ref value) => value.encode(stream), )*
                 }
             }
 
@@ -59,14 +59,14 @@ macro_rules! supported_messages {
 
         impl SupportedMessage {
             pub fn node_id(&self) -> NodeId {
-                match self {
-                    &SupportedMessage::Invalid(object_id) => {
+                match *self {
+                    SupportedMessage::Invalid(object_id) => {
                         panic!("Unsupported message {:?}", object_id);
                     },
-                    &SupportedMessage::DoNothing => {
+                    SupportedMessage::DoNothing => {
                         panic!("This message has no object id");
                     },
-                    $( &SupportedMessage::$x(ref value) => value.node_id(), )*
+                    $( SupportedMessage::$x(ref value) => value.node_id(), )*
                 }
             }
         }
