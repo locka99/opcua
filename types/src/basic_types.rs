@@ -568,6 +568,10 @@ impl QualifiedName {
             name: UAString::null(),
         }
     }
+
+    pub fn is_null(&self) -> bool {
+        self.namespace_index == 0 && name.is_null()
+    }
 }
 
 /// Human readable text with an optional locale identifier
