@@ -14,11 +14,6 @@ const MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE: usize = 100;
 const MAX_PUBLISH_REQUESTS: usize = 200;
 const MAX_REQUEST_TIMEOUT: i64 = 30000;
 
-/// The publish request entry preserves the request_id which is part of the chunk layer but clients
-/// are fickle about receiving responses from the same as the request. Normally this is easy because
-/// request and response are synchronous, but publish requests are async, so we preserve the request_id
-/// so that later we can send out responses that have the proper req id
-
 pub struct Subscriptions {
     /// Subscriptions associated with the session
     subscriptions: HashMap<UInt32, Subscription>,

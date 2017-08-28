@@ -38,6 +38,10 @@ impl ViewService {
 
             let address_space = server_state.address_space.lock().unwrap();
 
+            // TODO number of results should be limited to browse limit and when it is exceeded,
+            // create a continuation point on the session to continue the browse when they call
+            // BrowseNext
+
             // Nodes to browse
             for node_to_browse in nodes_to_browse {
                 let references = ViewService::reference_descriptions(&address_space, node_to_browse, request.requested_max_references_per_node);
@@ -75,14 +79,15 @@ impl ViewService {
 
     pub fn browse_next(&self, _: &mut ServerState, _: &mut Session, request: BrowseNextRequest) -> Result<SupportedMessage, StatusCode> {
         // BrowseNext does nothing
+
+        // TODO use the continuation point to return more nodes
+
         return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
     }
 
     pub fn translate_browse_paths_to_node_ids(&self, server_state: &mut ServerState, _: &mut Session, request: TranslateBrowsePathsToNodeIdsRequest) -> Result<SupportedMessage, StatusCode> {
         trace!("TranslateBrowsePathsToNodeIdsRequest = {:?}", &request);
 
-        return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
-/*
         if request.browse_paths.is_none() {
             return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
         }
@@ -92,55 +97,56 @@ impl ViewService {
         }
 
         let mut results: Vec<BrowsePathResult> = Vec::with_capacity(browse_paths.len());
-        let address_space = server_state.address_space.lock().unwrap();
 
+        let address_space = server_state.address_space.lock().unwrap();
         for browse_path in browse_paths.iter() {
-            let mut current_node = browse_path.starting_node.clone();
-            let browse_result = if address_space.find_node(&current_node).is_none() {
-                BrowsePathResult {
-                    status_code: BAD_NODE_ID_UNKNOWN,
-                    targets: None,
-                }
-            } else if browse_path.relative_path.elements.is_none() {
+            let mut node_id = browse_path.starting_node.clone();
+            let browse_result =  if browse_path.relative_path.elements.is_none() {
                 BrowsePathResult {
                     status_code: BAD_NOTHING_TO_DO,
                     targets: None,
                 }
             } else {
-                // Starting from the node_id...
-                // Can we find the first node
-                let elements = browse_path.relative_path.elements.as_ref().unwrap();
-                if elements.is_empty() {
+                // Starting from the node_id, find paths
+                let result = address_space.find_nodes_relative_path(&node_id, &browse_path.relative_path);
+                if result.is_err() {
                     BrowsePathResult {
-                        status_code: BAD_NOTHING_TO_DO,
+                        status_code: result.unwrap_err(),
                         targets: None,
                     }
-                } else {
-                    // Traverse the relative path elements
-                    let target_results: Vec<BrowsePathTarget> = Vec::with_capacity(elements.len());
-                    for element in elements.iter() {
-                        //                               target_results.push(BrowsePathResult {
-                        //                                   status_code: (),
-                        //                                    targets: (),
-                        //                                });
-                        current_node = target_node;
+                }
+                else {
+                    let result = result.unwrap();
+                    let targets = if !results.is_empty() {
+                        use std::u32;
+                        let mut targets = Vec::with_capacity(result.len());
+                        for node_id in &result {
+                            targets.push(BrowsePathTarget {
+                                target_id: ExpandedNodeId::new(node_id),
+                                remaining_path_index: u32::MAX as UInt32,
+                            });
+                        }
+                        Some(targets)
                     }
+                    else {
+                        None
+                    };
                     BrowsePathResult {
                         status_code: GOOD,
-                        targets: Some(target_results)
+                        targets,
                     }
-                };
-                results.push(browse_result);
+                }
             };
+            results.push(browse_result);
         }
 
         let response = TranslateBrowsePathsToNodeIdsResponse {
-            response_header: ResponseHeader::new_service_result(&DateTime::now(), &request.request_header, GOOD),
-            results: results,
+            response_header: ResponseHeader::new_good(&request.request_header),
+            results: Some(results),
             diagnostic_infos: None,
         };
+
         Ok(SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(response))
-*/
     }
 
     fn reference_descriptions(address_space: &AddressSpace, node_to_browse: &BrowseDescription, max_references_per_node: UInt32) -> Result<Vec<ReferenceDescription>, StatusCode> {

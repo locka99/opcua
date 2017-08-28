@@ -570,7 +570,7 @@ impl QualifiedName {
     }
 
     pub fn is_null(&self) -> bool {
-        self.namespace_index == 0 && name.is_null()
+        self.namespace_index == 0 && self.name.is_null()
     }
 }
 
