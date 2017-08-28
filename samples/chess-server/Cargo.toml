@@ -1,0 +1,7 @@
+[package]
+name = "chess-server"
+version = "0.1.0"
+authors = ["Adam Lock <a.lock@pilz.ie>"]
+
+[dependencies]
+uci = "0.1.1"
