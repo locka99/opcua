@@ -1,6 +1,6 @@
 This is an OPCUA server that continuously plays chess against itself and allows a client to monitor the game using variables on a board.
 
-Variables are labelled board.a1, board.a2 etc. through to board.g8. Each variable possesses a value which is one of the following:
+Variables are labelled Board/a1, Board/a2 etc. through to Board/g8. Each variable possesses a value which is one of the following:
 
     Empty = 0,
     WhitePawn = 1,

@@ -44,6 +44,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "chess-server"
 version = "0.1.0"
 dependencies = [
+ "opcua-core 0.1.0",
+ "opcua-server 0.1.1",
+ "opcua-types 0.1.0",
  "uci 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
