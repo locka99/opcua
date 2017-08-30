@@ -2,8 +2,9 @@ extern crate uci;
 
 use uci::Engine;
 
+/// The piece on a square
 #[derive(Clone, Copy, PartialEq)]
-pub enum Square {
+pub enum Piece {
     Empty = 0,
     WhitePawn,
     WhiteKnight,
@@ -19,60 +20,61 @@ pub enum Square {
     BlackQueen,
 }
 
-impl Square {
+impl Piece {
     pub fn as_char(&self) -> char {
         match *self {
-            Square::Empty => ' ',
-            Square::WhitePawn => 'p',
-            Square::WhiteKnight => 'n',
-            Square::WhiteBishop => 'b',
-            Square::WhiteRook => 'r',
-            Square::WhiteKing => 'k',
-            Square::WhiteQueen => 'q',
-            Square::BlackPawn => 'P',
-            Square::BlackKnight => 'N',
-            Square::BlackBishop => 'B',
-            Square::BlackRook => 'R',
-            Square::BlackKing => 'K',
-            Square::BlackQueen => 'Q',
+            Piece::Empty => ' ',
+            Piece::WhitePawn => 'P',
+            Piece::WhiteKnight => 'N',
+            Piece::WhiteBishop => 'B',
+            Piece::WhiteRook => 'R',
+            Piece::WhiteKing => 'K',
+            Piece::WhiteQueen => 'Q',
+            Piece::BlackPawn => 'p',
+            Piece::BlackKnight => 'n',
+            Piece::BlackBishop => 'b',
+            Piece::BlackRook => 'r',
+            Piece::BlackKing => 'k',
+            Piece::BlackQueen => 'q',
         }
     }
 
-    pub fn promote_to_queen(&self) -> Square {
+    pub fn promote_to_queen(&self) -> Piece {
         match *self {
-            Square::WhitePawn => Square::WhiteQueen,
-            Square::BlackPawn => Square::BlackQueen,
+            Piece::WhitePawn => Piece::WhiteQueen,
+            Piece::BlackPawn => Piece::BlackQueen,
             _ => panic!("This is not a pawn and cannot be promoted"),
         }
     }
 
-    pub fn promote_to_rook(&self) -> Square {
+    pub fn promote_to_rook(&self) -> Piece {
         match *self {
-            Square::WhitePawn => Square::WhiteRook,
-            Square::BlackPawn => Square::BlackRook,
+            Piece::WhitePawn => Piece::WhiteRook,
+            Piece::BlackPawn => Piece::BlackRook,
             _ => panic!("This is not a pawn and cannot be promoted"),
         }
     }
-    pub fn promote_to_bishop(&self) -> Square {
+    pub fn promote_to_bishop(&self) -> Piece {
         match *self {
-            Square::WhitePawn => Square::WhiteBishop,
-            Square::BlackPawn => Square::BlackBishop,
+            Piece::WhitePawn => Piece::WhiteBishop,
+            Piece::BlackPawn => Piece::BlackBishop,
             _ => panic!("This is not a pawn and cannot be promoted"),
         }
     }
 
-    pub fn promote_to_knight(&self) -> Square {
+    pub fn promote_to_knight(&self) -> Piece {
         match *self {
-            Square::WhitePawn => Square::WhiteKnight,
-            Square::BlackPawn => Square::BlackKnight,
+            Piece::WhitePawn => Piece::WhiteKnight,
+            Piece::BlackPawn => Piece::BlackKnight,
             _ => panic!("This is not a pawn and cannot be promoted"),
         }
     }
 }
 
-#[derive(Clone, Copy)]
+// File - letter of the square. The index is used for turning file to an array offset
+#[derive(Clone, Copy, PartialEq)]
 pub enum File {
-    A = 1,
+    A = 0,
     B,
     C,
     D,
@@ -96,18 +98,32 @@ impl File {
             _ => panic!("Not a valid file"),
         }
     }
+
+    pub fn as_char(&self) -> char {
+        match *self {
+            File::A => 'a',
+            File::B => 'b',
+            File::C => 'c',
+            File::D => 'd',
+            File::E => 'e',
+            File::F => 'f',
+            File::G => 'g',
+            File::H => 'h',
+        }
+    }
 }
 
-#[derive(Clone, Copy)]
+// Ranks - digit of the square. The index goes downwards from the top of the board.
+#[derive(Clone, Copy, PartialEq)]
 pub enum Rank {
-    R1 = 1,
-    R2,
-    R3,
-    R4,
-    R5,
-    R6,
+    R8 = 0,
     R7,
-    R8,
+    R6,
+    R5,
+    R4,
+    R3,
+    R2,
+    R1,
 }
 
 impl Rank {
@@ -124,73 +140,195 @@ impl Rank {
             _ => panic!("Not a valid rank"),
         }
     }
+
+    pub fn as_char(&self) -> char {
+        match *self {
+            Rank::R1 => '1',
+            Rank::R2 => '2',
+            Rank::R3 => '3',
+            Rank::R4 => '4',
+            Rank::R5 => '5',
+            Rank::R6 => '6',
+            Rank::R7 => '7',
+            Rank::R8 => '8',
+        }
+    }
 }
 
+/// Game manages the general game state and controls the engine.
 pub struct Game {
+    /// The chess engine backend
     engine: Engine,
-    squares: [Square; 64],
+    /// The squares of the board, each being empty or occupied by a piece
+    squares: [Piece; 64],
+    /// Flag indicating if white is to play
+    pub white_to_play: bool,
+    /// Number of full white, black moves
+    pub full_move: u32,
+    /// Number of half moves since the last capture or pawn advance
+    pub half_move_clock: u32,
+    /// Flags controlling castling
+    white_can_castle_queenside: bool,
+    white_can_castle_kingside: bool,
+    black_can_castle_queenside: bool,
+    black_can_castle_kingside: bool,
+    /// The rank, file for the last pawn to move 2 spaces
+    en_passant: Option<(Rank, File)>,
 }
 
 impl Game {
-    pub fn new() -> Game {
+    pub fn new(path: &str) -> Game {
         let mut game = Game {
-            engine: Engine::new(
-                "stockfish_8_x32.exe",
-            ).unwrap(),
-            squares: [Square::Empty; 64],
+            engine: Engine::new(path).unwrap(),
+            squares: [Piece::Empty; 64],
+            white_to_play: true,
+            full_move: 0,
+            half_move_clock: 0,
+            white_can_castle_queenside: true,
+            white_can_castle_kingside: true,
+            black_can_castle_queenside: true,
+            black_can_castle_kingside: true,
+            en_passant: None
         };
         game.engine.set_option("Skill Level", "15").unwrap();
-
-        game.set_square(Rank::R8, File::A, Square::BlackRook);
-        game.set_square(Rank::R8, File::B, Square::BlackKnight);
-        game.set_square(Rank::R8, File::C, Square::BlackBishop);
-        game.set_square(Rank::R8, File::D, Square::BlackQueen);
-        game.set_square(Rank::R8, File::E, Square::BlackKing);
-        game.set_square(Rank::R8, File::F, Square::BlackBishop);
-        game.set_square(Rank::R8, File::G, Square::BlackKnight);
-        game.set_square(Rank::R8, File::H, Square::BlackRook);
-
-        game.set_square(Rank::R7, File::A, Square::BlackPawn);
-        game.set_square(Rank::R7, File::B, Square::BlackPawn);
-        game.set_square(Rank::R7, File::C, Square::BlackPawn);
-        game.set_square(Rank::R7, File::D, Square::BlackPawn);
-        game.set_square(Rank::R7, File::E, Square::BlackPawn);
-        game.set_square(Rank::R7, File::F, Square::BlackPawn);
-        game.set_square(Rank::R7, File::G, Square::BlackPawn);
-        game.set_square(Rank::R7, File::H, Square::BlackPawn);
-
-        game.set_square(Rank::R2, File::A, Square::WhitePawn);
-        game.set_square(Rank::R2, File::B, Square::WhitePawn);
-        game.set_square(Rank::R2, File::C, Square::WhitePawn);
-        game.set_square(Rank::R2, File::D, Square::WhitePawn);
-        game.set_square(Rank::R2, File::E, Square::WhitePawn);
-        game.set_square(Rank::R2, File::F, Square::WhitePawn);
-        game.set_square(Rank::R2, File::G, Square::WhitePawn);
-        game.set_square(Rank::R2, File::H, Square::WhitePawn);
-
-        game.set_square(Rank::R1, File::A, Square::WhiteRook);
-        game.set_square(Rank::R1, File::B, Square::WhiteKnight);
-        game.set_square(Rank::R1, File::C, Square::WhiteBishop);
-        game.set_square(Rank::R1, File::D, Square::WhiteQueen);
-        game.set_square(Rank::R1, File::E, Square::WhiteKing);
-        game.set_square(Rank::R1, File::F, Square::WhiteBishop);
-        game.set_square(Rank::R1, File::G, Square::WhiteKnight);
-        game.set_square(Rank::R1, File::H, Square::WhiteRook);
-
+        game.reset();
         game
     }
 
-    pub fn square_from_str(&self, coord: &str) -> Square {
+    pub fn reset(&mut self) {
+        self.white_to_play = true;
+        self.full_move = 0;
+        self.half_move_clock = 0;
+        self.squares = [Piece::Empty; 64];
+        self.white_can_castle_queenside = true;
+        self.white_can_castle_kingside = true;
+        self.black_can_castle_queenside = true;
+        self.black_can_castle_kingside = true;
+        self.en_passant = None;
+
+        self.set_square(Rank::R8, File::A, Piece::BlackRook);
+        self.set_square(Rank::R8, File::B, Piece::BlackKnight);
+        self.set_square(Rank::R8, File::C, Piece::BlackBishop);
+        self.set_square(Rank::R8, File::D, Piece::BlackQueen);
+        self.set_square(Rank::R8, File::E, Piece::BlackKing);
+        self.set_square(Rank::R8, File::F, Piece::BlackBishop);
+        self.set_square(Rank::R8, File::G, Piece::BlackKnight);
+        self.set_square(Rank::R8, File::H, Piece::BlackRook);
+
+        self.set_square(Rank::R7, File::A, Piece::BlackPawn);
+        self.set_square(Rank::R7, File::B, Piece::BlackPawn);
+        self.set_square(Rank::R7, File::C, Piece::BlackPawn);
+        self.set_square(Rank::R7, File::D, Piece::BlackPawn);
+        self.set_square(Rank::R7, File::E, Piece::BlackPawn);
+        self.set_square(Rank::R7, File::F, Piece::BlackPawn);
+        self.set_square(Rank::R7, File::G, Piece::BlackPawn);
+        self.set_square(Rank::R7, File::H, Piece::BlackPawn);
+
+        self.set_square(Rank::R2, File::A, Piece::WhitePawn);
+        self.set_square(Rank::R2, File::B, Piece::WhitePawn);
+        self.set_square(Rank::R2, File::C, Piece::WhitePawn);
+        self.set_square(Rank::R2, File::D, Piece::WhitePawn);
+        self.set_square(Rank::R2, File::E, Piece::WhitePawn);
+        self.set_square(Rank::R2, File::F, Piece::WhitePawn);
+        self.set_square(Rank::R2, File::G, Piece::WhitePawn);
+        self.set_square(Rank::R2, File::H, Piece::WhitePawn);
+
+        self.set_square(Rank::R1, File::A, Piece::WhiteRook);
+        self.set_square(Rank::R1, File::B, Piece::WhiteKnight);
+        self.set_square(Rank::R1, File::C, Piece::WhiteBishop);
+        self.set_square(Rank::R1, File::D, Piece::WhiteQueen);
+        self.set_square(Rank::R1, File::E, Piece::WhiteKing);
+        self.set_square(Rank::R1, File::F, Piece::WhiteBishop);
+        self.set_square(Rank::R1, File::G, Piece::WhiteKnight);
+        self.set_square(Rank::R1, File::H, Piece::WhiteRook);
+    }
+
+    pub fn square_from_str(&self, coord: &str) -> Piece {
         self.squares[Self::rank_file_str_index(coord)]
     }
 
-    pub fn set_square(&mut self, rank: Rank, file: File, value: Square) {
-        if (rank as u8) < 1 || rank as u8 > 8 {
-            panic!("Not a valid Rank")
-        }
+    pub fn set_square(&mut self, rank: Rank, file: File, value: Piece) {
         self.squares[Self::rank_file_index(rank, file)] = value;
     }
 
+    fn fen_rank(&self, rank: Rank) -> String {
+        let rank_idx = rank as usize * 8;
+        let squares = &self.squares[rank_idx..(rank_idx + 8)];
+
+        let mut result = String::with_capacity(8);
+        let mut empty = 0;
+        for square in squares {
+            if *square == Piece::Empty {
+                empty += 1;
+            } else {
+                if empty != 0 {
+                    result.push_str(&format!("{}", empty));
+                    empty = 0;
+                }
+                result.push(square.as_char());
+            }
+        }
+        if empty != 0 {
+            result.push_str(&format!("{}", empty));
+        }
+        result
+    }
+
+    pub fn as_fen(&self) -> String {
+        let mut result = String::with_capacity(80);
+
+        let ranks = [Rank::R8, Rank::R7, Rank::R6, Rank::R5, Rank::R4, Rank::R3, Rank::R2, Rank::R1];
+        for r in ranks.iter() {
+            result.push_str(&self.fen_rank(*r));
+            result.push(if *r != Rank::R1 { '/' } else { ' ' });
+        }
+
+        // Player to move
+        result.push(if self.white_to_play { 'w' } else { 'b' });
+
+        // Castling requires this code tracks whether rooks or kings were moved in the game
+        result.push(' ');
+
+        let mut castle = String::with_capacity(4);
+        if self.white_can_castle_queenside {
+            castle.push('Q');
+        }
+        if self.white_can_castle_kingside {
+            castle.push('K');
+        }
+        if self.black_can_castle_queenside {
+            castle.push('q');
+        }
+        if self.black_can_castle_kingside {
+            castle.push('k');
+        }
+        if castle.is_empty() {
+            castle.push('-');
+        }
+        result.push_str(&castle);
+
+        result.push(' ');
+
+        // Disabling en passant.
+        if self.en_passant.is_some() {
+            let (rank, file) = *self.en_passant.as_ref().unwrap();
+            result.push(file.as_char());
+            result.push(rank.as_char());
+        } else {
+            result.push_str("-");
+        }
+        result.push(' ');
+
+        result.push_str(&format!("{} ", self.half_move_clock));
+        result.push_str(&format!("{}", self.full_move));
+        result
+    }
+
+    pub fn set_position(&self) {
+        let fen = self.as_fen();
+        println!("Setting position {}", fen);
+        let _ = self.engine.set_position(&fen);
+    }
 
     pub fn bestmove(&self) -> uci::Result<String> {
         self.engine.bestmove()
@@ -200,63 +338,122 @@ impl Game {
         let from_idx = Self::rank_file_str_index(&m[..2]);
         let to_idx = Self::rank_file_str_index(&m[2..4]);
 
-        let piece = self.squares[from_idx];
+        let piece_to_move = self.squares[from_idx];
+
+        self.half_move_clock += 1;
+        self.en_passant = None;
+
+        // Pawn advance reset half_move_clock
+        if piece_to_move == Piece::WhitePawn || piece_to_move == Piece::BlackPawn {
+            self.half_move_clock = 0;
+
+            let (r1, f1) = Self::rank_file(&m[..2]);
+            let (r2, _) = Self::rank_file(&m[2..4]);
+
+            // En passant test.
+            if r1 == Rank::R2 && r2 == Rank::R4 {
+                self.en_passant = Some((Rank::R3, f1));
+            } else if r1 == Rank::R7 && r2 == Rank::R5 {
+                self.en_passant = Some((Rank::R6, f1));
+            }
+        }
 
         // Check for pawn promotion
         if m.len() == 5 {
-            let action = m[5..6].chars().next().unwrap();
+            let action = m[4..5].chars().next().unwrap();
             match action {
                 'q' => {
-                    self.squares[to_idx] = piece.promote_to_queen();
-                    self.squares[from_idx] = Square::Empty;
+                    self.squares[to_idx] = piece_to_move.promote_to_queen();
+                    self.squares[from_idx] = Piece::Empty;
                 }
                 'r' => {
-                    self.squares[to_idx] = piece.promote_to_rook();
-                    self.squares[from_idx] = Square::Empty;
+                    self.squares[to_idx] = piece_to_move.promote_to_rook();
+                    self.squares[from_idx] = Piece::Empty;
                 }
                 'b' => {
-                    self.squares[to_idx] = piece.promote_to_bishop();
-                    self.squares[from_idx] = Square::Empty;
+                    self.squares[to_idx] = piece_to_move.promote_to_bishop();
+                    self.squares[from_idx] = Piece::Empty;
                 }
                 'n' => {
-                    self.squares[to_idx] = piece.promote_to_knight();
-                    self.squares[from_idx] = Square::Empty;
+                    self.squares[to_idx] = piece_to_move.promote_to_knight();
+                    self.squares[from_idx] = Piece::Empty;
                 }
                 _ => panic!("Unrecognized action"),
             }
         } else {
-            self.squares[to_idx] = self.squares[from_idx];
-            self.squares[from_idx] = Square::Empty;
-        }
+            // Castling - if king moves more than one space to the side
+            if piece_to_move == Piece::BlackKing || piece_to_move == Piece::WhiteKing {
+                self.squares[to_idx] = self.squares[from_idx];
+                self.squares[from_idx] = Piece::Empty;
 
-        // Castling - assumption is the chess program wouldn't have allowed
-        // this move if it wasn't legal
-        if piece == Square::BlackKing || piece == Square::WhiteKing {
-            let (r1, f1) = Self::rank_file(&m[..2]);
-            let (_, f2) = Self::rank_file(&m[2..4]);
+                let (r1, f1) = Self::rank_file(&m[..2]);
+                let (_, f2) = Self::rank_file(&m[2..4]);
 
-            // Now move the rook
-            if ((f1 as i32) - (f2 as i32)).abs() > 1 {
-                let rook_piece = if piece == Square::BlackKing {
-                    Square::BlackRook
-                } else {
-                    Square::WhiteRook
-                };
-                if (f1 as i32) < (f2 as i32) {
-                    self.squares[Self::rank_file_str_index(&format!("f{}", r1 as usize))] =
-                        rook_piece;
-                    self.squares[Self::rank_file_str_index(&format!("h{}", r1 as usize))] =
-                        Square::Empty;
-                } else if (f1 as i32) > (f2 as i32) {
-                    self.squares[Self::rank_file_str_index(&format!("d{}", r1 as usize))] =
-                        rook_piece;
-                    self.squares[Self::rank_file_str_index(&format!("a{}", r1 as usize))] =
-                        Square::Empty;
+                // Now move the rook
+                if ((f1 as i32) - (f2 as i32)).abs() > 1 {
+                    let rook_piece = if piece_to_move == Piece::BlackKing {
+                        self.black_can_castle_kingside = false;
+                        self.black_can_castle_queenside = false;
+                        Piece::BlackRook
+                    } else {
+                        self.white_can_castle_kingside = false;
+                        self.white_can_castle_queenside = false;
+                        Piece::WhiteRook
+                    };
+                    if (f1 as i32) < (f2 as i32) {
+                        self.squares[Self::rank_file_str_index(&format!("f{}", r1.as_char()))] =
+                            rook_piece;
+                        self.squares[Self::rank_file_str_index(&format!("h{}", r1.as_char()))] =
+                            Piece::Empty;
+                    } else if (f1 as i32) > (f2 as i32) {
+                        self.squares[Self::rank_file_str_index(&format!("d{}", r1.as_char()))] =
+                            rook_piece;
+                        self.squares[Self::rank_file_str_index(&format!("a{}", r1.as_char()))] =
+                            Piece::Empty;
+                    }
                 }
+            } else {
+                // If the piece being moved is a king or rook we have to disable castling options
+                match piece_to_move {
+                    Piece::BlackKing => {
+                        self.black_can_castle_kingside = false;
+                        self.black_can_castle_queenside = false;
+                    }
+                    Piece::WhiteKing => {
+                        self.white_can_castle_kingside = false;
+                        self.white_can_castle_queenside = false;
+                    }
+                    Piece::BlackRook => {
+                        if m == "a8" {
+                            self.black_can_castle_queenside = false;
+                        } else if m == "h8" {
+                            self.black_can_castle_kingside = false;
+                        }
+                    }
+                    Piece::WhiteRook => {
+                        if m == "a1" {
+                            self.white_can_castle_queenside = false;
+                        } else if m == "h1" {
+                            self.white_can_castle_kingside = false;
+                        }
+                    }
+                    _ => {}
+                }
+                if self.squares[to_idx] != Piece::Empty {
+                    self.half_move_clock = 0;
+                }
+                self.squares[to_idx] = self.squares[from_idx];
+                self.squares[from_idx] = Piece::Empty;
             }
         }
 
         let _ = self.engine.make_moves(&vec![m]);
+
+        // Switch active colour, increment full move counter
+        self.white_to_play = !self.white_to_play;
+        if self.white_to_play {
+            self.full_move += 1;
+        }
     }
 
     pub fn rank_file(coord: &str) -> (Rank, File) {
@@ -267,7 +464,7 @@ impl Game {
     }
 
     pub fn rank_file_index(rank: Rank, file: File) -> usize {
-        (file as usize - 1) + (rank as usize - 1) * 8
+        (rank as usize) * 8 + (file as usize)
     }
 
     pub fn rank_file_str_index(s: &str) -> usize {

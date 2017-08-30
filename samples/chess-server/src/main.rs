@@ -3,6 +3,7 @@ extern crate opcua_types;
 extern crate opcua_core;
 extern crate opcua_server;
 
+use std::env;
 use std::sync::{Arc, Mutex};
 
 use opcua_server::prelude::*;
@@ -24,14 +25,30 @@ const BOARD_SQUARES: [&'static str; 64] = [
     "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
 ];
 
+#[cfg(any(not(windows)))]
+fn default_engine_path() -> String{
+    String::from("stockfish")
+}
+
+#[cfg(any(windows))]
+fn default_engine_path() -> String{
+    String::from("stockfish_8_x32.exe")
+}
+
 fn main() {
-    let game = Arc::new(Mutex::new(game::Game::new()));
+
+    let engine_path = if env::args().len() > 1 {
+        env::args().nth(1).unwrap()
+    } else {
+        default_engine_path()
+    };
+    println!("Launching chess engine \"{}\"", engine_path);
+    let game = Arc::new(Mutex::new(game::Game::new(&engine_path)));
 
     // Create an OPC UA server with sample configuration and default node set
     let mut server = Server::new(ServerConfig::default_sample());
 
     {
-        
         let server_state = server.server_state.lock().unwrap();
         let mut address_space = server_state.address_space.lock().unwrap();
         let board_node_id = address_space
@@ -43,7 +60,7 @@ fn main() {
             let _ = address_space.add_variable(Variable::new_byte(&node_id, square, square, "", 0), &board_node_id);
         }
 
-        let mut game = game.lock().unwrap();
+        let game = game.lock().unwrap();
         update_board_state(&game, &mut address_space);
     }
 
@@ -55,16 +72,23 @@ fn main() {
 
     thread::spawn(move || {
         let mut game = game.lock().unwrap();
-        for _ in 0..100 {
+        loop {
+            game.set_position();
             thread::sleep(Duration::from_millis(1000));
             let bestmove = game.bestmove().unwrap();
-            println!("best move = {}", bestmove);
-            game.make_move(bestmove);
-            game.print_board();
-            {
-                let server_state = server_state.lock().unwrap();
-                let mut address_space = server_state.address_space.lock().unwrap();
-                update_board_state(&game, &mut address_space);
+            if bestmove == "(none)" || game.half_move_clock > 50 {
+                println!("Resetting the game - best move = {}, half move clock = {}", bestmove, game.half_move_clock);
+                // Reset the board
+                game.reset();
+            } else {
+                println!("best move = {}", bestmove);
+                game.make_move(bestmove);
+                game.print_board();
+                {
+                    let server_state = server_state.lock().unwrap();
+                    let mut address_space = server_state.address_space.lock().unwrap();
+                    update_board_state(&game, &mut address_space);
+                }
             }
         }
     });
