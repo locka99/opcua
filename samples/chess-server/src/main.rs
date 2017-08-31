@@ -1,14 +1,11 @@
 extern crate uci;
-extern crate opcua_types;
-extern crate opcua_core;
 extern crate opcua_server;
 
 use std::env;
 use std::sync::{Arc, Mutex};
+use std::thread;
 
 use opcua_server::prelude::*;
-use std::thread;
-use std::time::Duration;
 
 mod game;
 
@@ -74,7 +71,6 @@ fn main() {
         let mut game = game.lock().unwrap();
         loop {
             game.set_position();
-            thread::sleep(Duration::from_millis(1000));
             let bestmove = game.bestmove().unwrap();
             if bestmove == "(none)" || game.half_move_clock > 50 {
                 println!("Resetting the game - best move = {}, half move clock = {}", bestmove, game.half_move_clock);

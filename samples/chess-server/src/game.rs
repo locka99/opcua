@@ -178,8 +178,11 @@ pub struct Game {
 
 impl Game {
     pub fn new(path: &str) -> Game {
+        let engine = Engine::new(path).unwrap();
+        engine.set_option("Skill Level", "15").unwrap();
+
         let mut game = Game {
-            engine: Engine::new(path).unwrap(),
+            engine: engine.movetime(2000),
             squares: [Piece::Empty; 64],
             white_to_play: true,
             full_move: 0,
@@ -190,7 +193,6 @@ impl Game {
             black_can_castle_kingside: true,
             en_passant: None
         };
-        game.engine.set_option("Skill Level", "15").unwrap();
         game.reset();
         game
     }
