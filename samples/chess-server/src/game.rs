@@ -449,7 +449,7 @@ impl Game {
             }
         }
 
-        let _ = self.engine.make_moves(&vec![m]);
+        // let _ = self.engine.make_moves(&vec![m]);
 
         // Switch active colour, increment full move counter
         self.white_to_play = !self.white_to_play;
