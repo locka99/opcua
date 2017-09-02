@@ -292,17 +292,17 @@ impl Game {
         result.push(' ');
 
         let mut castle = String::with_capacity(4);
-        if self.white_can_castle_queenside {
-            castle.push('Q');
-        }
         if self.white_can_castle_kingside {
             castle.push('K');
         }
-        if self.black_can_castle_queenside {
-            castle.push('q');
+        if self.white_can_castle_queenside {
+            castle.push('Q');
         }
         if self.black_can_castle_kingside {
             castle.push('k');
+        }
+        if self.black_can_castle_queenside {
+            castle.push('q');
         }
         if castle.is_empty() {
             castle.push('-');

@@ -72,7 +72,9 @@ fn main() {
         loop {
             game.set_position();
             let bestmove = game.bestmove().unwrap();
-            if bestmove == "(none)" || game.half_move_clock > 50 {
+
+            let end_game = bestmove == "(none)" || bestmove == "a1a1" || bestmove == "NULL";
+            if end_game || game.half_move_clock >= 50 {
                 println!("Resetting the game - best move = {}, half move clock = {}", bestmove, game.half_move_clock);
                 // Reset the board
                 game.reset();
