@@ -179,7 +179,6 @@ pub struct Game {
 impl Game {
     pub fn new(path: &str) -> Game {
         let engine = Engine::new(path).unwrap();
-        engine.set_option("Skill Level", "15").unwrap();
 
         let mut game = Game {
             engine: engine.movetime(2000),
