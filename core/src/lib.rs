@@ -58,6 +58,9 @@ pub fn init_logging() {
     if result.is_err() {
         println!("Logger error, check error = {}", result.unwrap_err());
     }
+    else {
+        info!("Logging is enabled, use RUST_OPCUA_LOG environment variable to control filtering, logging level");
+    }
 }
 
 /// Contains debugging utility helper functions
