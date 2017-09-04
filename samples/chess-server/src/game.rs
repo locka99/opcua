@@ -167,6 +167,8 @@ pub struct Game {
     pub full_move: u32,
     /// Number of half moves since the last capture or pawn advance
     pub half_move_clock: u32,
+    /// Last move if any
+    pub last_move: Option<String>,
     /// Flags controlling castling
     white_can_castle_queenside: bool,
     white_can_castle_kingside: bool,
@@ -190,7 +192,8 @@ impl Game {
             white_can_castle_kingside: true,
             black_can_castle_queenside: true,
             black_can_castle_kingside: true,
-            en_passant: None
+            en_passant: None,
+            last_move: None,
         };
         game.reset();
         game
@@ -206,6 +209,7 @@ impl Game {
         self.black_can_castle_queenside = true;
         self.black_can_castle_kingside = true;
         self.en_passant = None;
+        self.last_move = None;
 
         self.set_square(Rank::R8, File::A, Piece::BlackRook);
         self.set_square(Rank::R8, File::B, Piece::BlackKnight);
@@ -448,13 +452,12 @@ impl Game {
             }
         }
 
-        // let _ = self.engine.make_moves(&vec![m]);
-
         // Switch active colour, increment full move counter
         self.white_to_play = !self.white_to_play;
         if self.white_to_play {
             self.full_move += 1;
         }
+        self.last_move = Some(m);
     }
 
     pub fn rank_file(coord: &str) -> (Rank, File) {
