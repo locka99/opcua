@@ -134,19 +134,18 @@ impl SubscriptionService {
     }
 
     /// Handles a PublishRequest
-    pub fn publish(&self, server_state: &mut ServerState, session: &mut Session, request_id: UInt32, request: PublishRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn publish(&self, server_state: &mut ServerState, session: &mut Session, request_id: UInt32, request: PublishRequest) -> Result<Option<SupportedMessage>, StatusCode> {
         trace!("--> Receive a PublishRequest {:?}", request);
-        let publish_responses = session.enqueue_publish_request(server_state, request_id, request)?;
-        if publish_responses.is_some() {
-            let mut publish_responses = publish_responses.unwrap();
-            if publish_responses.len() != 1 {
-                // A request should either get queued, consumed, or rejected resulting in one response at most
-                panic!("Shouldn't receive more than one response to a publish request");
-            }
-            // We assume the publish response request_id is the same as the request here
-            Ok(publish_responses.remove(0).response)
+        if session.subscriptions.is_empty() {
+            Ok(Some(self.service_fault(&request.request_header, BAD_NO_SUBSCRIPTION)))
         } else {
-            Ok(SupportedMessage::DoNothing)
+            let result = session.enqueue_publish_request(server_state, request_id, request);
+            if result.is_err() {
+                // Error is a ServiceFault message
+                Ok(Some(result.unwrap_err()))
+            } else {
+                Ok(None)
+            }
         }
     }
 

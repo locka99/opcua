@@ -285,7 +285,7 @@ impl AddressSpace {
 
             for node_id in &matching_nodes {
                 // Iterate current set of nodes and put the results into next
-                let mut result = self.follow_relative_path(&node_id, relative_path_element);
+                let result = self.follow_relative_path(&node_id, relative_path_element);
                 if result.is_some() {
                     next_matching_nodes.append(&mut result.unwrap());
                 }

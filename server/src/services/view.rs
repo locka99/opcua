@@ -100,7 +100,7 @@ impl ViewService {
 
         let address_space = server_state.address_space.lock().unwrap();
         for browse_path in browse_paths.iter() {
-            let mut node_id = browse_path.starting_node.clone();
+            let node_id = browse_path.starting_node.clone();
             let browse_result =  if browse_path.relative_path.elements.is_none() {
                 BrowsePathResult {
                     status_code: BAD_NOTHING_TO_DO,

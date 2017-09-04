@@ -10,38 +10,57 @@ use address_space::types::AddressSpace;
 use subscriptions::{PublishRequestEntry, PublishResponseEntry};
 use subscriptions::subscription::{Subscription, SubscriptionState};
 
-const MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE: usize = 100;
-const MAX_PUBLISH_REQUESTS: usize = 200;
-const MAX_REQUEST_TIMEOUT: i64 = 30000;
-
 pub struct Subscriptions {
+    // Timeout period for requests in ms
+    publish_request_timeout: i64,
     /// Subscriptions associated with the session
     subscriptions: HashMap<UInt32, Subscription>,
-    /// The publish requeust queue (requests by the client on the session)
+    /// Maximum number of publish requests
+    max_publish_requests: usize,
+    /// The publish request queue (requests by the client on the session)
     pub publish_request_queue: Vec<PublishRequestEntry>,
+    /// The publish response queue
+    pub publish_response_queue: Vec<PublishResponseEntry>,
 }
 
 impl Subscriptions {
-    pub fn new() -> Subscriptions {
+    pub fn new(max_publish_requests: usize, publish_request_timeout: i64) -> Subscriptions {
         Subscriptions {
+            publish_request_timeout,
             subscriptions: HashMap::new(),
-            publish_request_queue: Vec::with_capacity(MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE),
+            max_publish_requests,
+            publish_request_queue: Vec::with_capacity(max_publish_requests),
+            publish_response_queue: Vec::with_capacity(max_publish_requests),
         }
     }
 
-    pub fn enqueue_publish_request(&mut self, address_space: &AddressSpace, request_id: UInt32, request: PublishRequest) -> Result<Option<Vec<PublishResponseEntry>>, StatusCode> {
-        let max_publish_requests = MAX_PUBLISH_REQUESTS;
-        if self.publish_request_queue.len() >= max_publish_requests {
-            error!("Too many publish requests, throwing it away");
-            Err(BAD_TOO_MANY_PUBLISH_REQUESTS)
+    /// Places a new publish request onto the queue of publish requests.
+    ///
+    /// If the queue is full this call will pop the oldest and generate a service fault
+    /// for that before pushing the new one.
+    pub fn enqueue_publish_request(&mut self, address_space: &AddressSpace, request_id: UInt32, request: PublishRequest) -> Result<(), SupportedMessage> {
+        // Check if we have too many requests already
+        let result = if self.publish_request_queue.len() >= self.max_publish_requests {
+            error!("Too many publish requests {} for capacity {}, throwing oldest away", self.publish_request_queue.len(), self.max_publish_requests);
+            let oldest_publish_request = self.publish_request_queue.pop().unwrap();
+            Err(ServiceFault::new_supported_message(&oldest_publish_request.request.request_header, BAD_TOO_MANY_PUBLISH_REQUESTS))
         } else {
-            trace!("Sending a tick to subscriptions to deal with the request");
-            self.publish_request_queue.insert(0, PublishRequestEntry {
-                request_id,
-                request,
-            });
-            Ok(self.tick(true, address_space))
-        }
+            Ok(())
+        };
+        // Add to the start of the queue - older items are popped from the end
+        self.publish_request_queue.insert(0, PublishRequestEntry {
+            request_id,
+            request,
+        });
+        result
+    }
+
+    pub fn dequeue_publish_request(&mut self) -> Option<PublishRequestEntry> {
+        self.publish_request_queue.pop()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.subscriptions.is_empty()
     }
 
     pub fn len(&self) -> usize {
@@ -66,68 +85,51 @@ impl Subscriptions {
 
     /// Iterates through the existing queued publish requests and creates a timeout
     /// publish response any that have expired.
-    pub fn expire_stale_publish_requests(&mut self, now: &DateTimeUTC) -> Option<Vec<PublishResponseEntry>> {
+    pub fn expire_stale_publish_requests(&mut self, now: &DateTimeUTC) {
         if self.publish_request_queue.is_empty() {
-            return None;
+            return;
         }
 
-        // Look for publish requests that have expired
-        let mut expired_request_handles = HashSet::with_capacity(self.publish_request_queue.len());
-        let mut expired_requests = Vec::with_capacity(self.publish_request_queue.len());
+        let mut publish_responses = Vec::with_capacity(self.publish_request_queue.len());
 
-        for request in &self.publish_request_queue {
+        // Remove publish requests that have expired
+        let publish_request_timeout = self.publish_request_timeout;
+        self.publish_request_queue.retain(|ref request| {
             let request_header = &request.request.request_header;
             let timestamp: DateTimeUTC = request_header.timestamp.as_chrono();
-            let timeout = if request_header.timeout_hint > 0 && (request_header.timeout_hint as i64) < MAX_REQUEST_TIMEOUT {
+            let timeout = if request_header.timeout_hint > 0 && (request_header.timeout_hint as i64) < publish_request_timeout {
                 request_header.timeout_hint as i64
             } else {
-                MAX_REQUEST_TIMEOUT
+                publish_request_timeout
             };
             let timeout_d = time::Duration::milliseconds(timeout);
             // The request has timed out if the timestamp plus hint exceeds the input time
             let expiration_time = timestamp + timeout_d;
             if *now >= expiration_time {
                 debug!("Publish request {} has expired - timestamp = {:?}, expiration hint = {}, expiration time = {:?}, time now = {:?}, ", request_header.request_handle, timestamp, timeout, expiration_time, now);
-                expired_request_handles.insert(request_header.request_handle);
-                expired_requests.push(request.clone());
+                publish_responses.push(PublishResponseEntry {
+                    request_id: request.request_id,
+                    response: SupportedMessage::ServiceFault(ServiceFault {
+                        response_header: ResponseHeader::new_timestamped_service_result(DateTime::now(), &request.request.request_header, BAD_TIMEOUT),
+                    }),
+                });
+                false
+            } else {
+                true
             }
-        }
-
-        if expired_request_handles.is_empty() {
-            return None;
-        }
-
-        // Remove the expired requests (if any)
-        self.publish_request_queue.retain(|ref r| {
-            !expired_request_handles.contains(&r.request.request_header.request_handle)
         });
-
-        // Make publish responses for each expired request
-        let mut publish_responses = Vec::with_capacity(expired_requests.len());
-        for expired_request in expired_requests {
-            let now = DateTime::from_chrono(now);
-            publish_responses.push(PublishResponseEntry {
-                request_id: expired_request.request_id,
-                response: SupportedMessage::ServiceFault(ServiceFault {
-                    response_header: ResponseHeader::new_timestamped_service_result(now.clone(), &expired_request.request.request_header, BAD_REQUEST_TIMEOUT),
-                }),
-            });
-        }
-        if !publish_responses.is_empty() {
-            Some(publish_responses)
-        } else {
-            None
-        }
+        // Queue responses for each expired request
+        self.publish_response_queue.append(&mut publish_responses);
     }
 
     /// Iterate all subscriptions calling tick on each. Note this could potentially be done to run in parallel
     /// assuming the action to clean dead subscriptions was a join done after all ticks had completed.
-    pub fn tick(&mut self, receive_publish_request: bool, address_space: &AddressSpace) -> Option<Vec<PublishResponseEntry>> {
+    pub fn tick(&mut self, receive_publish_request: bool, address_space: &AddressSpace) -> Result<(), StatusCode> {
         let now = chrono::UTC::now();
 
         let mut publish_request_queue = self.publish_request_queue.clone();
 
-        let mut request_response_results = Vec::with_capacity(publish_request_queue.len());
+        let mut publish_responses = Vec::with_capacity(publish_request_queue.len());
         let mut dead_subscriptions: Vec<u32> = Vec::with_capacity(self.subscriptions.len());
 
         // Iterate through all subscriptions. If there is a publish request it will be used to
@@ -163,7 +165,7 @@ impl Subscriptions {
                     } else {
                         panic!("Expecting publish response");
                     }
-                    request_response_results.push(publish_response);
+                    publish_responses.push(publish_response);
                 } else if publish_request.is_some() {
                     let publish_request = publish_request.unwrap();
                     trace!("Publish request {} was unused by subscription {} and is being requeued", publish_request.request_id, subscription_id);
@@ -177,42 +179,11 @@ impl Subscriptions {
             self.subscriptions.remove(&subscription_id);
         }
 
-        // Check for any publish requests which weren't handled already
-        publish_request_queue.retain(|ref publish_request| {
-            let request_id = publish_request.request_id;
-            if let Some(acknowledge_results) = acknowledge_results_map.remove(&request_id) {
-                trace!("Publish request {} is being used to return notifications", request_id);
-                let now = DateTime::now();
-                request_response_results.push(PublishResponseEntry {
-                    request_id: publish_request.request_id,
-                    response: SupportedMessage::PublishResponse(PublishResponse {
-                        response_header: ResponseHeader::new_timestamped_service_result(now.clone(), &publish_request.request.request_header, GOOD),
-                        subscription_id: 0,
-                        available_sequence_numbers: None,
-                        more_notifications: false,
-                        notification_message: NotificationMessage {
-                            sequence_number: 0,
-                            publish_time: now.clone(),
-                            notification_data: None,
-                        },
-                        results: acknowledge_results,
-                        diagnostic_infos: None,
-                    })
-                });
-                false
-            } else {
-                true
-            }
-        });
-
-        // Update modified queue
+        // Update request and response queue
         self.publish_request_queue = publish_request_queue;
+        self.publish_response_queue.append(&mut publish_responses);
 
-        if request_response_results.is_empty() {
-            None
-        } else {
-            Some(request_response_results)
-        }
+        Ok(())
     }
 
     /// Deletes the acknowledged notifications, returning a list of status code for each according

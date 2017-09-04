@@ -19,6 +19,9 @@ impl SessionDiagnostics {
     }
 }
 
+const MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE: usize = 100;
+const PUBLISH_REQUEST_TIMEOUT: i64 = 30000;
+
 /// Session state is anything associated with the session at the message / service level
 pub struct Session {
     /// Subscriptions associated with the session
@@ -55,8 +58,9 @@ pub struct Session {
 
 impl Session {
     pub fn new() -> Session {
+        let max_publish_requests = MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE;
         Session {
-            subscriptions: Subscriptions::new(),
+            subscriptions: Subscriptions::new(max_publish_requests, PUBLISH_REQUEST_TIMEOUT),
             session_id: NodeId::null(),
             activated: false,
             terminate_session: false,
@@ -79,19 +83,19 @@ impl Session {
         NodeId::new_numeric(1, self.last_session_id as u64)
     }
 
-    pub fn enqueue_publish_request(&mut self, server_state: &ServerState, request_id: UInt32, request: PublishRequest) -> Result<Option<Vec<PublishResponseEntry>>, StatusCode> {
+    pub fn enqueue_publish_request(&mut self, server_state: &ServerState, request_id: UInt32, request: PublishRequest) -> Result<(), SupportedMessage> {
         let address_space = server_state.address_space.lock().unwrap();
         self.subscriptions.enqueue_publish_request(&address_space, request_id, request)
     }
 
-    pub fn tick_subscriptions(&mut self, server_state: &ServerState, receive_publish_request: bool) -> Option<Vec<PublishResponseEntry>> {
+    pub fn tick_subscriptions(&mut self, server_state: &ServerState, receive_publish_request: bool) -> Result<(), StatusCode> {
         let address_space = server_state.address_space.lock().unwrap();
         self.subscriptions.tick(receive_publish_request, &address_space)
     }
 
     /// Iterates through the existing queued publish requests and creates a timeout
     /// publish response any that have expired.
-    pub fn expire_stale_publish_requests(&mut self, now: &DateTimeUTC) -> Option<Vec<PublishResponseEntry>> {
-        self.subscriptions.expire_stale_publish_requests(now)
+    pub fn expire_stale_publish_requests(&mut self, now: &DateTimeUTC) {
+        self.subscriptions.expire_stale_publish_requests(now);
     }
 }

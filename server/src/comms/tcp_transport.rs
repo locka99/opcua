@@ -258,18 +258,19 @@ impl TcpTransport {
             let mut session = session.lock().unwrap();
 
             // Request queue might contain stale publish requests
-            if let Some(publish_responses) = session.expire_stale_publish_requests(&UTC::now()) {
-                let _ = subscription_timer_tx.send(SubscriptionEvent::PublishResponses(publish_responses));
-            }
+            session.expire_stale_publish_requests(&UTC::now());
 
             // Process subscriptions
-            {
-                if let Some(publish_responses) = session.tick_subscriptions(&server_state, false) {
-                    trace!("Sending publish responses to session thread");
-                    let sent = subscription_timer_tx.send(SubscriptionEvent::PublishResponses(publish_responses));
-                    if sent.is_err() {
-                        error!("Can't send publish responses, err = {}", sent.unwrap_err());
-                    }
+            let _ = session.tick_subscriptions(&server_state, false);
+
+            // Check if there are publish responses to send for transmission
+            if !session.subscriptions.publish_response_queue.is_empty() {
+                trace!("Sending publish responses to session thread");
+                let mut publish_responses = Vec::with_capacity(session.subscriptions.publish_response_queue.len());
+                publish_responses.append(&mut session.subscriptions.publish_response_queue);
+                let sent = subscription_timer_tx.send(SubscriptionEvent::PublishResponses(publish_responses));
+                if sent.is_err() {
+                    error!("Can't send publish responses, err = {}", sent.unwrap_err());
                 }
             }
         });
@@ -381,7 +382,12 @@ impl TcpTransport {
                 self.secure_channel_service.close_secure_channel(&message)?
             }
             MessageChunkType::Message => {
-                self.message_handler.handle_message(request_id, message)?
+                let response = self.message_handler.handle_message(request_id, message)?;
+                if response.is_none() {
+                    // No response for the message at this time
+                    return Ok(());
+                }
+                response.unwrap()
             }
         };
         self.send_response(request_id, &response, out_stream)?;
@@ -393,9 +399,6 @@ impl TcpTransport {
         match *response {
             SupportedMessage::Invalid(object_id) => {
                 panic!("Invalid response with object_id {:?}", object_id);
-            }
-            SupportedMessage::DoNothing => {
-                // DO NOTHING
             }
             _ => {
                 // Send the response

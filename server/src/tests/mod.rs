@@ -97,8 +97,8 @@ pub fn expired_publish_requests() {
     session.subscriptions.publish_request_queue = vec![pr1, pr2];
 
     // Expire requests, see which expire
-    let expired_responses = session.expire_stale_publish_requests(&now_plus_5s);
-    let expired_responses = expired_responses.unwrap();
+    session.expire_stale_publish_requests(&now_plus_5s);
+    let expired_responses = &session.subscriptions.publish_response_queue;
 
     // The > 30s timeout hint request should be expired and the other should remain
     assert_eq!(expired_responses.len(), 1);
@@ -108,11 +108,8 @@ pub fn expired_publish_requests() {
     let r1 = &expired_responses[0];
     if let SupportedMessage::ServiceFault(ref response_header) = r1.response {
         assert_eq!(response_header.response_header.request_handle, 2000);
-        assert_eq!(response_header.response_header.service_result, BAD_REQUEST_TIMEOUT);
+        assert_eq!(response_header.response_header.service_result, BAD_TIMEOUT);
     } else {
         panic!("Expected service faults for timed out publish requests")
     }
-
-    let expired_responses = session.expire_stale_publish_requests(&now_plus_5s);
-    assert_eq!(expired_responses, None);
 }

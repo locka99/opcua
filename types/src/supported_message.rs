@@ -20,8 +20,6 @@ macro_rules! supported_messages {
         pub enum SupportedMessage {
             /// An invalid request / response of some form
             Invalid(ObjectId),
-            /// A specific do-nothing response, e.g. some messages may not require an instantaneous response
-            DoNothing,
             /// Other messages
             $( $x($x), )*
         }
@@ -32,9 +30,6 @@ macro_rules! supported_messages {
                     SupportedMessage::Invalid(object_id) => {
                         panic!("Unsupported message {:?}", object_id);
                     },
-                    SupportedMessage::DoNothing => {
-                        panic!("This message cannot be serialized");
-                    },
                     $( SupportedMessage::$x(ref value) => value.byte_len(), )*
                 }
             }
@@ -43,9 +38,6 @@ macro_rules! supported_messages {
                 match *self {
                     SupportedMessage::Invalid(object_id) => {
                         panic!("Unsupported message {:?}", object_id);
-                    },
-                    SupportedMessage::DoNothing => {
-                        panic!("This message cannot be serialized");
                     },
                     $( SupportedMessage::$x(ref value) => value.encode(stream), )*
                 }
@@ -62,9 +54,6 @@ macro_rules! supported_messages {
                 match *self {
                     SupportedMessage::Invalid(object_id) => {
                         panic!("Unsupported message {:?}", object_id);
-                    },
-                    SupportedMessage::DoNothing => {
-                        panic!("This message has no object id");
                     },
                     $( SupportedMessage::$x(ref value) => value.node_id(), )*
                 }
