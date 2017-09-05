@@ -1,7 +1,6 @@
 use opcua_types::*;
 
 use DateTimeUTC;
-use subscriptions::PublishResponseEntry;
 use subscriptions::subscriptions::Subscriptions;
 use server::ServerState;
 

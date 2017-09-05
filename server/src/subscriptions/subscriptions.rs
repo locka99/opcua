@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 
 use time;
 use chrono;
@@ -129,17 +129,13 @@ impl Subscriptions {
 
         let mut publish_request_queue = self.publish_request_queue.clone();
 
+        let mut handled_requests = Vec::with_capacity(publish_request_queue.len());
         let mut publish_responses = Vec::with_capacity(publish_request_queue.len());
+
         let mut dead_subscriptions: Vec<u32> = Vec::with_capacity(self.subscriptions.len());
 
         // Iterate through all subscriptions. If there is a publish request it will be used to
         // acknowledge notifications and the response to return new notifications.
-
-        let mut acknowledge_results_map = HashMap::new();
-        for publish_request in &publish_request_queue {
-            let acknowledge_results = self.process_subscription_acknowledgements(publish_request);
-            acknowledge_results_map.insert(publish_request.request_id, acknowledge_results);
-        }
 
         // Now tick over the subscriptions
         for (subscription_id, subscription) in &mut self.subscriptions {
@@ -154,23 +150,23 @@ impl Subscriptions {
                 // notifications then the publish response will be associated with his subscription
                 // and ready to go.
                 let (publish_response, update_state_result) = subscription.tick(address_space, receive_publish_request, &publish_request, publishing_req_queued, &now);
-                if let Some(mut publish_response) = publish_response {
-                    if let SupportedMessage::PublishResponse(ref mut response) = publish_response.response {
-                        let request_id = publish_response.request_id;
-                        trace!("Publish response for request {} is being queued for subscription{}", request_id, subscription_id);
-                        if let Some(acknowledge_results) = acknowledge_results_map.remove(&request_id) {
-                            // Consume the notifications
-                            response.results = acknowledge_results;
-                        }
-                    } else {
-                        panic!("Expecting publish response");
-                    }
+                if let Some(publish_response) = publish_response {
+                    // Process the acknowledgements for the request
                     publish_responses.push(publish_response);
+                    handled_requests.push(publish_request.unwrap())
                 } else if publish_request.is_some() {
                     let publish_request = publish_request.unwrap();
                     trace!("Publish request {} was unused by subscription {} and is being requeued", publish_request.request_id, subscription_id);
                     publish_request_queue.push(publish_request);
                 }
+            }
+        }
+
+        // Handle the acknowledgements in the request
+        for (idx, publish_request) in handled_requests.iter().enumerate() {
+            let mut publish_response = publish_responses.get_mut(idx).unwrap();
+            if let SupportedMessage::PublishResponse(ref mut publish_response) = publish_response.response {
+                publish_response.results = self.process_subscription_acknowledgements(publish_request);
             }
         }
 
