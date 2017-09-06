@@ -72,8 +72,12 @@ fn main() {
     let server_state = server.server_state.clone();
 
     thread::spawn(move || {
+        use std::time::Duration;
+
+        let sleep_time = Duration::from_millis(1500);
         let mut game = game.lock().unwrap();
         loop {
+
             game.set_position();
             let bestmove = game.bestmove().unwrap();
 
@@ -94,6 +98,8 @@ fn main() {
                     update_board_state(&game, &mut address_space);
                 }
             }
+
+            thread::sleep(sleep_time);
         }
     });
 

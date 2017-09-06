@@ -183,7 +183,7 @@ impl Game {
         let engine = Engine::new(path).unwrap();
 
         let mut game = Game {
-            engine: engine.movetime(2000),
+            engine: engine.movetime(200),
             squares: [Piece::Empty; 64],
             white_to_play: true,
             full_move: 0,
