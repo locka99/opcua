@@ -1,4 +1,5 @@
 use std::result::Result;
+use std::sync::{Arc, Mutex};
 
 use opcua_types::*;
 
@@ -59,7 +60,7 @@ impl ViewService {
         } else {
             let continuation_points = request.continuation_points.as_ref().unwrap();
             let results = if request.release_continuation_points {
-                session.release_browse_continuation_points(continuation_points);
+                session.remove_browse_continuation_points(continuation_points);
                 None
             } else {
                 let address_space = server_state.address_space.lock().unwrap();
@@ -161,45 +162,6 @@ impl ViewService {
         browse_results
     }
 
-    fn browse_from_continuation_point(session: &mut Session, address_space: &AddressSpace, continuation_point: &ByteString) -> BrowseResult {
-        // Find the continuation point in the session
-        let (result, continuation_point_to_release) = {
-            let continuation_point = session.find_browse_continuation_point(continuation_point);
-            if continuation_point.is_none() {
-                // Not valid or missing
-                return BrowseResult {
-                    status_code: BAD_CONTINUATION_POINT_INVALID,
-                    continuation_point: ByteString::null(),
-                    references: None,
-                };
-            }
-
-            let continuation_point = continuation_point.unwrap();
-            let mut release_continuation_point = false;
-            let result = if continuation_point.is_valid_browse_continuation_point(&address_space) {
-                // TODO browse from here
-                BrowseResult {
-                    status_code: BAD_CONTINUATION_POINT_INVALID,
-                    continuation_point: ByteString::null(),
-                    references: None,
-                }
-            } else {
-                // remove from session
-                release_continuation_point = true;
-                BrowseResult {
-                    status_code: BAD_CONTINUATION_POINT_INVALID,
-                    continuation_point: ByteString::null(),
-                    references: None,
-                }
-            };
-            (result, if release_continuation_point { Some(continuation_point.id.clone()) } else { None })
-        };
-        if continuation_point_to_release.is_some() {
-            session.release_browse_continuation_point(continuation_point_to_release.as_ref().unwrap());
-        }
-        result
-    }
-
     fn browse_node(session: &mut Session, address_space: &AddressSpace, starting_index: usize, node_to_browse: &BrowseDescription, max_references_per_node: usize) -> Result<BrowseResult, StatusCode> {
         // Node must exist or there will be no references
         if node_to_browse.node_id.is_null() || !address_space.node_exists(&node_to_browse.node_id) {
@@ -225,26 +187,11 @@ impl ViewService {
         let node_class_mask = node_to_browse.node_class_mask;
 
         // Construct descriptions for each reference
-        let mut continuation_point = ByteString::null();
-
         let mut reference_descriptions: Vec<ReferenceDescription> = Vec::with_capacity(max_references_per_node);
         for (idx, reference) in references.iter().enumerate() {
             if idx < starting_index {
                 continue;
             }
-            if references.len() > max_references_per_node {
-                // Create a continuation point
-                continuation_point = ByteString::random(6);
-                session.add_browse_continuation_point(BrowseContinuationPoint {
-                    id: continuation_point.clone(),
-                    address_space_last_modified: address_space.last_modified.clone(),
-                    node_to_browse: node_to_browse.clone(),
-                    max_references_per_node,
-                    starting_index: starting_index + idx,
-                });
-                break;
-            }
-
             let target_node_id = reference.node_id.clone();
             if target_node_id.is_null() {
                 continue;
@@ -319,14 +266,61 @@ impl ViewService {
                 display_name,
                 type_definition,
             };
-
             reference_descriptions.push(reference_description);
         }
 
-        Ok(BrowseResult {
+        Ok(Self::reference_description_to_browse_result(session, address_space, &reference_descriptions, 0, max_references_per_node))
+    }
+
+    fn browse_from_continuation_point(session: &mut Session, address_space: &AddressSpace, continuation_point: &ByteString) -> BrowseResult {
+        // Find the continuation point in the session
+        session.remove_expired_browse_continuation_points(address_space);
+        if let Some(continuation_point) = session.find_browse_continuation_point(continuation_point) {
+            let reference_descriptions = continuation_point.reference_descriptions.lock().unwrap();
+            // Use the existing result. This may result in another continuation point being created
+            Self::reference_description_to_browse_result(session, address_space, &reference_descriptions, continuation_point.starting_index, continuation_point.max_references_per_node)
+        }
+        else {
+            // Not valid or missing
+            BrowseResult {
+                status_code: BAD_CONTINUATION_POINT_INVALID,
+                continuation_point: ByteString::null(),
+                references: None,
+            }
+        }
+    }
+
+    fn reference_description_to_browse_result(session: &mut Session, address_space: &AddressSpace, reference_descriptions: &[ReferenceDescription], starting_index: usize, max_references_per_node: usize) -> BrowseResult {
+        let references_remaining = reference_descriptions.len() - starting_index;
+        let (reference_descriptions, continuation_point) = if max_references_per_node > 0 && references_remaining > max_references_per_node {
+            // There is too many results for a single browse result, so only a result will be used
+            let ending_index = starting_index + max_references_per_node;
+            let reference_descriptions_slice = reference_descriptions[starting_index..ending_index].to_vec();
+
+            // TODO it is wasteful to create a new reference_descriptions vec if the caller to this fn
+            // already has a ref counted reference_descriptions. We could clone the Arc if the fn could
+            // be factored to allow for that
+
+            // Create a continuation point for the remainder of the result. The point will hold the entire result
+            let continuation_point = ByteString::random(6);
+            session.add_browse_continuation_point(BrowseContinuationPoint {
+                id: continuation_point.clone(),
+                address_space_last_modified: address_space.last_modified.clone(),
+                max_references_per_node,
+                starting_index: ending_index,
+                reference_descriptions: Arc::new(Mutex::new(reference_descriptions.to_vec()))
+            });
+            (reference_descriptions_slice, continuation_point)
+        }
+        else {
+            let reference_descriptions_slice = reference_descriptions[starting_index..].to_vec();
+            (reference_descriptions_slice, ByteString::null())
+        };
+        BrowseResult {
             status_code: GOOD,
             continuation_point,
             references: Some(reference_descriptions)
-        })
+        }
     }
+
 }
