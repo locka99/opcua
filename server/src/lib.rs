@@ -1,9 +1,11 @@
-#[macro_use] extern crate serde_derive;
+#[macro_use]
+extern crate serde_derive;
 extern crate serde;
 extern crate serde_yaml;
 extern crate rand;
 
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 
 extern crate time;
 extern crate chrono;
@@ -23,6 +25,7 @@ pub mod subscriptions;
 pub mod config;
 pub mod address_space;
 pub mod util;
+pub mod continuation_point;
 
 pub mod prelude {
     pub use opcua_core::prelude::*;
@@ -75,6 +78,12 @@ pub mod constants {
     pub const MAX_REQUEST_MESSAGE_SIZE: u32 = 32768;
     /// Maxmimum keep alive count
     pub const MAX_KEEP_ALIVE_COUNT: u32 = 30;
+    /// Maximum browse continuation points
+    pub const MAX_BROWSE_CONTINUATION_POINTS: usize = 10;
+    /// Maximum history continuation points
+    pub const MAX_HISTORY_CONTINUATION_POINTS: usize = 0;
+    /// Maximum query continuation points
+    pub const MAX_QUERY_CONTINUATION_POINTS: usize = 0;
 }
 
 #[cfg(test)]

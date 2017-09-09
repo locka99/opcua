@@ -6,6 +6,7 @@ use address_space::address_space::AddressSpace;
 use server::ServerState;
 use session::Session;
 use services::Service;
+use continuation_point::BrowseContinuationPoint;
 
 // Bits that control the reference description coming back from browse()
 
@@ -25,10 +26,9 @@ impl ViewService {
         ViewService {}
     }
 
-    pub fn browse(&self, server_state: &mut ServerState, _: &mut Session, request: BrowseRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn browse(&self, server_state: &mut ServerState, session: &mut Session, request: BrowseRequest) -> Result<SupportedMessage, StatusCode> {
         let browse_results = if request.nodes_to_browse.is_some() {
             let nodes_to_browse = request.nodes_to_browse.as_ref().unwrap();
-            let mut browse_results: Vec<BrowseResult> = Vec::new();
 
             if !request.view.view_id.is_null() {
                 // Views are not supported
@@ -37,31 +37,7 @@ impl ViewService {
             }
 
             let address_space = server_state.address_space.lock().unwrap();
-
-            // TODO number of results should be limited to browse limit and when it is exceeded,
-            // create a continuation point on the session to continue the browse when they call
-            // BrowseNext
-
-            // Nodes to browse
-            for node_to_browse in nodes_to_browse {
-                let references = ViewService::reference_descriptions(&address_space, node_to_browse, request.requested_max_references_per_node);
-                let browse_result = if references.is_err() {
-                    BrowseResult {
-                        status_code: references.unwrap_err(),
-                        continuation_point: ByteString::null(),
-                        references: None
-                    }
-                } else {
-                    BrowseResult {
-                        status_code: GOOD,
-                        continuation_point: ByteString::null(),
-                        references: Some(references.unwrap())
-                    }
-                };
-                browse_results.push(browse_result);
-            }
-
-            Some(browse_results)
+            Some(Self::browse_nodes(session, &address_space, nodes_to_browse, request.requested_max_references_per_node as usize))
         } else {
             // Nothing to do
             return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
@@ -77,12 +53,33 @@ impl ViewService {
         Ok(SupportedMessage::BrowseResponse(response))
     }
 
-    pub fn browse_next(&self, _: &mut ServerState, _: &mut Session, request: BrowseNextRequest) -> Result<SupportedMessage, StatusCode> {
-        // BrowseNext does nothing
+    pub fn browse_next(&self, server_state: &mut ServerState, session: &mut Session, request: BrowseNextRequest) -> Result<SupportedMessage, StatusCode> {
+        if request.continuation_points.is_none() {
+            Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO))
+        } else {
+            let continuation_points = request.continuation_points.as_ref().unwrap();
+            let results = if request.release_continuation_points {
+                session.release_browse_continuation_points(continuation_points);
+                None
+            } else {
+                let address_space = server_state.address_space.lock().unwrap();
+                let mut results = Vec::with_capacity(continuation_points.len());
+                for continuation_point in continuation_points {
+                    // Iterate from the continuation point, assuming it is valid
+                    let browse_result = Self::browse_from_continuation_point(session, &address_space, continuation_point);
+                    results.push(browse_result);
+                }
+                Some(results)
+            };
 
-        // TODO use the continuation point to return more nodes
-
-        return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
+            let diagnostic_infos = None;
+            let response = BrowseNextResponse {
+                response_header: ResponseHeader::new_good(&request.request_header),
+                results,
+                diagnostic_infos,
+            };
+            Ok(SupportedMessage::BrowseNextResponse(response))
+        }
     }
 
     pub fn translate_browse_paths_to_node_ids(&self, server_state: &mut ServerState, _: &mut Session, request: TranslateBrowsePathsToNodeIdsRequest) -> Result<SupportedMessage, StatusCode> {
@@ -101,7 +98,7 @@ impl ViewService {
         let address_space = server_state.address_space.lock().unwrap();
         for browse_path in browse_paths.iter() {
             let node_id = browse_path.starting_node.clone();
-            let browse_result =  if browse_path.relative_path.elements.is_none() {
+            let browse_result = if browse_path.relative_path.elements.is_none() {
                 BrowsePathResult {
                     status_code: BAD_NOTHING_TO_DO,
                     targets: None,
@@ -114,8 +111,7 @@ impl ViewService {
                         status_code: result.unwrap_err(),
                         targets: None,
                     }
-                }
-                else {
+                } else {
                     let result = result.unwrap();
                     let targets = if !results.is_empty() {
                         use std::u32;
@@ -127,8 +123,7 @@ impl ViewService {
                             });
                         }
                         Some(targets)
-                    }
-                    else {
+                    } else {
                         None
                     };
                     BrowsePathResult {
@@ -149,7 +144,63 @@ impl ViewService {
         Ok(SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(response))
     }
 
-    fn reference_descriptions(address_space: &AddressSpace, node_to_browse: &BrowseDescription, max_references_per_node: UInt32) -> Result<Vec<ReferenceDescription>, StatusCode> {
+    fn browse_nodes(session: &mut Session, address_space: &AddressSpace, nodes_to_browse: &[BrowseDescription], max_references_per_node: usize) -> Vec<BrowseResult> {
+        let mut browse_results: Vec<BrowseResult> = Vec::with_capacity(nodes_to_browse.len());
+        for node_to_browse in nodes_to_browse {
+            let browse_result = Self::browse_node(session, &address_space, 0, node_to_browse, max_references_per_node);
+            browse_results.push(if let Ok(browse_result) = browse_result {
+                browse_result
+            } else {
+                BrowseResult {
+                    status_code: browse_result.unwrap_err(),
+                    continuation_point: ByteString::null(),
+                    references: None
+                }
+            });
+        }
+        browse_results
+    }
+
+    fn browse_from_continuation_point(session: &mut Session, address_space: &AddressSpace, continuation_point: &ByteString) -> BrowseResult {
+        // Find the continuation point in the session
+        let (result, continuation_point_to_release) = {
+            let continuation_point = session.find_browse_continuation_point(continuation_point);
+            if continuation_point.is_none() {
+                // Not valid or missing
+                return BrowseResult {
+                    status_code: BAD_CONTINUATION_POINT_INVALID,
+                    continuation_point: ByteString::null(),
+                    references: None,
+                };
+            }
+
+            let continuation_point = continuation_point.unwrap();
+            let mut release_continuation_point = false;
+            let result = if continuation_point.is_valid_browse_continuation_point(&address_space) {
+                // TODO browse from here
+                BrowseResult {
+                    status_code: BAD_CONTINUATION_POINT_INVALID,
+                    continuation_point: ByteString::null(),
+                    references: None,
+                }
+            } else {
+                // remove from session
+                release_continuation_point = true;
+                BrowseResult {
+                    status_code: BAD_CONTINUATION_POINT_INVALID,
+                    continuation_point: ByteString::null(),
+                    references: None,
+                }
+            };
+            (result, if release_continuation_point { Some(continuation_point.id.clone()) } else { None })
+        };
+        if continuation_point_to_release.is_some() {
+            session.release_browse_continuation_point(continuation_point_to_release.as_ref().unwrap());
+        }
+        result
+    }
+
+    fn browse_node(session: &mut Session, address_space: &AddressSpace, starting_index: usize, node_to_browse: &BrowseDescription, max_references_per_node: usize) -> Result<BrowseResult, StatusCode> {
         // Node must exist or there will be no references
         if node_to_browse.node_id.is_null() || !address_space.node_exists(&node_to_browse.node_id) {
             return Err(BAD_NODE_ID_UNKNOWN);
@@ -174,9 +225,23 @@ impl ViewService {
         let node_class_mask = node_to_browse.node_class_mask;
 
         // Construct descriptions for each reference
-        let mut reference_descriptions: Vec<ReferenceDescription> = Vec::new();
+        let mut continuation_point = ByteString::null();
+
+        let mut reference_descriptions: Vec<ReferenceDescription> = Vec::with_capacity(max_references_per_node);
         for (idx, reference) in references.iter().enumerate() {
-            if reference_descriptions.len() > max_references_per_node as usize {
+            if idx < starting_index {
+                continue;
+            }
+            if references.len() > max_references_per_node {
+                // Create a continuation point
+                continuation_point = ByteString::random(6);
+                session.add_browse_continuation_point(BrowseContinuationPoint {
+                    id: continuation_point.clone(),
+                    address_space_last_modified: address_space.last_modified.clone(),
+                    node_to_browse: node_to_browse.clone(),
+                    max_references_per_node,
+                    starting_index: starting_index + idx,
+                });
                 break;
             }
 
@@ -258,6 +323,10 @@ impl ViewService {
             reference_descriptions.push(reference_description);
         }
 
-        Ok(reference_descriptions)
+        Ok(BrowseResult {
+            status_code: GOOD,
+            continuation_point,
+            references: Some(reference_descriptions)
+        })
     }
 }

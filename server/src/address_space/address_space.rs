@@ -1,11 +1,14 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
+use chrono::UTC;
+
 use opcua_types::*;
 use opcua_types::ServerState as ServerStateType;
 
 use server::ServerState;
 use constants;
+use DateTimeUTC;
 
 use address_space::object::Object;
 use address_space::variable::Variable;
@@ -29,11 +32,18 @@ impl Reference {
     }
 }
 
+/// The address space holds references between nodes. It is populated with some standard nodes
+/// and any that the server implementation chooses to add for itself.
 #[derive(Debug)]
 pub struct AddressSpace {
+    /// A map of all the nodes that are part of the address space
     pub node_map: HashMap<NodeId, NodeType>,
+    /// A map of references between nodes
     pub references: HashMap<NodeId, Vec<Reference>>,
+    /// A map of inverse references between nodes
     pub inverse_references: HashMap<NodeId, Vec<Reference>>,
+    /// This is the last time that references to nodes were added or removed from the address space.
+    pub last_modified: DateTimeUTC,
 }
 
 impl AddressSpace {
@@ -43,6 +53,7 @@ impl AddressSpace {
             node_map: HashMap::new(),
             references: HashMap::new(),
             inverse_references: HashMap::new(),
+            last_modified: UTC::now(),
         };
         address_space.add_default_nodes();
         address_space
@@ -70,9 +81,9 @@ impl AddressSpace {
             self.set_value_by_variable_id(Server_ServerCapabilities_MaxArrayLength, Variant::UInt32(server_config.max_array_length));
             self.set_value_by_variable_id(Server_ServerCapabilities_MaxStringLength, Variant::UInt32(server_config.max_string_length));
             self.set_value_by_variable_id(Server_ServerCapabilities_MaxByteStringLength, Variant::UInt32(server_config.max_byte_string_length));
-            self.set_value_by_variable_id(Server_ServerCapabilities_MaxBrowseContinuationPoints, Variant::UInt32(0));
-            self.set_value_by_variable_id(Server_ServerCapabilities_MaxHistoryContinuationPoints, Variant::UInt32(0));
-            self.set_value_by_variable_id(Server_ServerCapabilities_MaxQueryContinuationPoints, Variant::UInt32(0));
+            self.set_value_by_variable_id(Server_ServerCapabilities_MaxBrowseContinuationPoints, Variant::UInt32(constants::MAX_BROWSE_CONTINUATION_POINTS as UInt32));
+            self.set_value_by_variable_id(Server_ServerCapabilities_MaxHistoryContinuationPoints, Variant::UInt32(constants::MAX_HISTORY_CONTINUATION_POINTS as UInt32));
+            self.set_value_by_variable_id(Server_ServerCapabilities_MaxQueryContinuationPoints, Variant::UInt32(constants::MAX_QUERY_CONTINUATION_POINTS as UInt32));
             self.set_value_by_variable_id(Server_ServerCapabilities_MinSupportedSampleRate, Variant::Double(constants::MIN_SAMPLING_INTERVAL));
 
             // Server_ServerCapabilities_ServerProfileArray
@@ -240,6 +251,7 @@ impl AddressSpace {
             panic!("This node {:?} already exists", node_id);
         }
         self.node_map.insert(node_id, node_type);
+        self.update_last_modified();
     }
 
     pub fn node_exists(&self, node_id: &NodeId) -> bool {
@@ -334,6 +346,7 @@ impl AddressSpace {
             self.insert(Object::new_node(&node_id, browse_name, display_name, ""));
             self.add_organizes(&parent_node_id, &node_id);
             self.insert_reference(&node_id, &node_type_id.as_node_id(), ReferenceTypeId::HasTypeDefinition);
+            self.update_last_modified();
             Ok(node_id.clone())
         }
     }
@@ -354,6 +367,7 @@ impl AddressSpace {
         for variable in variables {
             result.push(self.add_variable(variable, parent_node_id));
         }
+        self.update_last_modified();
         result
     }
 
@@ -363,6 +377,7 @@ impl AddressSpace {
         if !self.node_map.contains_key(&node_id) {
             self.add_organizes(&parent_node_id, &node_id);
             self.insert(NodeType::Variable(variable));
+            self.update_last_modified();
             Ok(node_id)
         } else {
             Err(())
@@ -545,6 +560,10 @@ impl AddressSpace {
         (references, inverse_ref_idx)
     }
 
+    fn update_last_modified(&mut self) {
+        self.last_modified = UTC::now();
+    }
+
     /// Adds the standard nodeset to the address space
     pub fn add_default_nodes(&mut self) {
         super::generated::populate_address_space(self);
@@ -556,6 +575,7 @@ impl AddressSpace {
         }
         AddressSpace::add_reference(&mut self.references, node_id_from, Reference::new(reference_type_id, node_id_to));
         AddressSpace::add_reference(&mut self.inverse_references, node_id_to, Reference::new(reference_type_id, node_id_from));
+        self.update_last_modified();
     }
 
     pub fn set_object_type(&mut self, node_id: &NodeId, object_type: &ObjectTypeId) {
