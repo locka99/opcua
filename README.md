@@ -48,8 +48,8 @@ implementations are expected to receive implementations over time.
 
 * View service set
     * Browse
-    * BrowseNext (!). Implemented to do nothing
-    * TranslateBrowsePathsToNodeIds (!). Stub to silence some clients that call it.
+    * BrowseNext
+    * TranslateBrowsePathsToNodeIds
 
 * MonitoredItem service set
     * CreateMonitoredItems. Data change filter including dead band filtering. 
