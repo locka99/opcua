@@ -179,7 +179,7 @@ impl ServerState {
             security_mode: endpoint.security_mode,
             security_policy_uri: endpoint.security_policy_uri.clone(),
             user_identity_tokens: Some(user_identity_tokens),
-            transport_profile_uri: UAString::from_str(profiles::TRANSPORT_BINARY),
+            transport_profile_uri: UAString::from_str(profiles::TRANSPORT_PROFILE_URI_BINARY),
             security_level: 1,
         }
     }
