@@ -1,47 +1,9 @@
-use std::sync::MutexGuard;
-
 use prelude::*;
-use comms::tcp_transport::*;
-use services::view::ViewService;
 use server::ServerState;
-
-use tests::*;
-
-struct TestState {
-    tcp_transport: TcpTransport,
-}
-
-impl TestState {
-    pub fn new() -> TestState {
-        let server = Server::new(ServerConfig::default_anonymous());
-        TestState {
-            tcp_transport: TcpTransport::new(server.server_state),
-        }
-    }
-
-    pub fn get_server_state_and_session(&self) -> (MutexGuard<ServerState>, MutexGuard<Session>) {
-        (self.tcp_transport.server_state.lock().unwrap(),
-         self.tcp_transport.session.lock().unwrap())
-    }
-}
-
-// Attribute service tests
-
-
-// Discovery service tests
-
-
-// Monitored item service tests
-
-
-// Session service tests
-
-
-// Subscription service tests
-
+use services::view::ViewService;
+use super::*;
 
 // View service tests
-
 
 fn make_browse_request(nodes: &[NodeId], max_references_per_node: usize, browse_direction: BrowseDirection, reference_type: ReferenceTypeId) -> BrowseRequest {
     let request_header = RequestHeader {
@@ -286,10 +248,8 @@ fn browse_next() {
         use std::thread;
         use std::time::Duration;
 
-        let sleep_time = Duration::from_millis(50);
-
-        // Modify the continuation point's last modified value so it appears to expire
-        thread::sleep(sleep_time);
+        // Sleep a bit, modify the address space so the old continuation point is out of date
+        thread::sleep(Duration::from_millis(50));
         {
             let mut address_space = server_state.address_space.lock().unwrap();
             let var_name = "xxxx";
@@ -298,7 +258,7 @@ fn browse_next() {
             let _ = address_space.add_variable(var, &parent_node_id);
         }
 
-        // Browse should fail
+        // Browsing with the old continuation point should fail
         let response = do_browse_next(&vs, &mut server_state, &mut session, &continuation_point, false);
         let r1 = &response.results.unwrap()[0];
         assert_eq!(r1.status_code, BAD_CONTINUATION_POINT_INVALID);

@@ -339,7 +339,8 @@ Code should be formatted with the IntelliJ rust plugin, or with rustfmt.
 
 ### Server
 
-The server will work its way through OPC UA profiles from nano to embedded to standard to attain a level of functionality acceptable to most consumers of the API. Profiles are defined in "OPC UA Part 7 - Profiles 1.03 Specification"
+The server will work its way through OPC UA profiles from nano to embedded to standard to attain a level of
+functionality acceptable to most consumers of the API. Profiles are defined in "OPC UA Part 7 - Profiles 1.03 Specification"
 
 Implemented:
 
@@ -358,8 +359,6 @@ Implemented:
 Work in progress:
 
 * Multiple chunks
-* Basic128Rsa15 encryption
-* PKI infrastructure
 * Signing and encryption of chunks. 
 
 Eventually:
@@ -404,6 +403,7 @@ The plan is for unit tests for at least the following
 * Chunking messages together, handling errors, buffer limits, multiple chunks
 * Limit validation on string, array fields which have size limits
 * OpenSecureChannel, CloseSecureChannel request and response
+* Service calls
 * Sign, verify, encrypt and decrypt (when implemented)
 * Data change filters
 * Subscription state engine
