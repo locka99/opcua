@@ -24,10 +24,9 @@ impl TestState {
     }
 }
 
-// Attribute service tests
-// Discovery service tests
-// Monitored item service tests
-// Session service tests
-// Subscription service tests
-
+mod attribute;
+mod discovery;
+mod session;
+mod monitored_item;
+mod subscription;
 mod view;
