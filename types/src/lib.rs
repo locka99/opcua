@@ -59,7 +59,7 @@ pub use self::supported_message::*;
 
 #[macro_export]
 macro_rules! supported_message_as {
-    ($v: expr, $t: ty, $i: ident) => {
+    ($v: expr, $i: ident) => {
         if let SupportedMessage::$i(value) = $v {
             value
         } else {

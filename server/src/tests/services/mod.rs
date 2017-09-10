@@ -6,14 +6,14 @@ use server::ServerState;
 
 use tests::*;
 
-struct TestState {
+struct ServiceTest {
     tcp_transport: TcpTransport,
 }
 
-impl TestState {
-    pub fn new() -> TestState {
+impl ServiceTest {
+    pub fn new() -> ServiceTest {
         let server = Server::new(ServerConfig::default_anonymous());
-        TestState {
+        ServiceTest {
             tcp_transport: TcpTransport::new(server.server_state),
         }
     }
@@ -21,6 +21,18 @@ impl TestState {
     pub fn get_server_state_and_session(&self) -> (MutexGuard<ServerState>, MutexGuard<Session>) {
         (self.tcp_transport.server_state.lock().unwrap(),
          self.tcp_transport.session.lock().unwrap())
+    }
+}
+
+fn make_request_header() -> RequestHeader {
+    RequestHeader {
+        authentication_token: NodeId::new_numeric(0, 99),
+        timestamp: DateTime::now(),
+        request_handle: 1,
+        return_diagnostics: 0,
+        audit_entry_id: UAString::null(),
+        timeout_hint: 123456,
+        additional_header: ExtensionObject::null(),
     }
 }
 

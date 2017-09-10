@@ -6,15 +6,7 @@ use super::*;
 // View service tests
 
 fn make_browse_request(nodes: &[NodeId], max_references_per_node: usize, browse_direction: BrowseDirection, reference_type: ReferenceTypeId) -> BrowseRequest {
-    let request_header = RequestHeader {
-        authentication_token: NodeId::new_numeric(0, 99),
-        timestamp: DateTime::now(),
-        request_handle: 1,
-        return_diagnostics: 0,
-        audit_entry_id: UAString::null(),
-        timeout_hint: 123456,
-        additional_header: ExtensionObject::null(),
-    };
+    let request_header = make_request_header();
     let mut nodes_to_browse = Vec::with_capacity(nodes.len());
     for n in nodes {
         nodes_to_browse.push(BrowseDescription {
@@ -39,15 +31,7 @@ fn make_browse_request(nodes: &[NodeId], max_references_per_node: usize, browse_
 }
 
 fn make_browse_next_request(continuation_point: &ByteString, release_continuation_points: bool) -> BrowseNextRequest {
-    let request_header = RequestHeader {
-        authentication_token: NodeId::new_numeric(0, 99),
-        timestamp: DateTime::now(),
-        request_handle: 1,
-        return_diagnostics: 0,
-        audit_entry_id: UAString::null(),
-        timeout_hint: 123456,
-        additional_header: ExtensionObject::null(),
-    };
+    let request_header = make_request_header();
     BrowseNextRequest {
         request_header,
         release_continuation_points,
@@ -85,34 +69,20 @@ fn do_browse(vs: &ViewService, server_state: &mut ServerState, session: &mut Ses
     let request = make_browse_request(nodes, max_references_per_node, BrowseDirection::Forward, ReferenceTypeId::Organizes);
     let result = vs.browse(server_state, session, request);
     assert!(result.is_ok());
-    let result = result.unwrap();
-    let result = match result {
-        SupportedMessage::BrowseResponse(result) => result,
-        _ => {
-            panic!("Wrong response")
-        }
-    };
-    result
+    supported_message_as!(result.unwrap(), BrowseResponse)
 }
 
 fn do_browse_next(vs: &ViewService, server_state: &mut ServerState, session: &mut Session, continuation_point: &ByteString, release_continuation_points: bool) -> BrowseNextResponse {
     let request = make_browse_next_request(continuation_point, release_continuation_points);
     let result = vs.browse_next(server_state, session, request);
     assert!(result.is_ok());
-    let result = result.unwrap();
-    let result = match result {
-        SupportedMessage::BrowseNextResponse(result) => result,
-        _ => {
-            panic!("Wrong response")
-        }
-    };
-    result
+    supported_message_as!(result.unwrap(), BrowseNextResponse)
 }
 
 #[test]
 fn browse() {
-    let ts = TestState::new();
-    let (mut server_state, mut session) = ts.get_server_state_and_session();
+    let st = ServiceTest::new();
+    let (mut server_state, mut session) = st.get_server_state_and_session();
 
     let vs = ViewService::new();
 
@@ -148,9 +118,8 @@ fn browse() {
 #[test]
 fn browse_next() {
     // Set up a server more more nodes than can fit in a response to test Browse, BrowseNext response
-
-    let ts = TestState::new();
-    let (mut server_state, mut session) = ts.get_server_state_and_session();
+    let st = ServiceTest::new();
+    let (mut server_state, mut session) = st.get_server_state_and_session();
     let parent_node_id = {
         let mut address_space = server_state.address_space.lock().unwrap();
         add_many_vars_to_address_space(&mut address_space, 100)
@@ -267,5 +236,35 @@ fn browse_next() {
 
 #[test]
 fn translate_browse_paths_to_node_ids() {
-    // TODO
+    let st = ServiceTest::new();
+    let (mut server_state, mut session) = st.get_server_state_and_session();
+
+    let mut browse_paths = Vec::new();
+
+    let mut path_elements = Vec::new();
+    path_elements.push(RelativePathElement {
+        reference_type_id: ReferenceTypeId::HasChild.as_node_id(),
+        is_inverse: false,
+        include_subtypes: true,
+        target_name: QualifiedName::new(0, "Objects"),
+    });
+
+    browse_paths.push(BrowsePath {
+        starting_node: ObjectId::RootFolder.as_node_id(),
+        relative_path: RelativePath {
+            elements: Some(path_elements),
+        }
+    });
+
+    let request = TranslateBrowsePathsToNodeIdsRequest {
+        request_header: make_request_header(),
+        browse_paths: Some(browse_paths)
+    };
+
+    let vs = ViewService::new();
+    let result = vs.translate_browse_paths_to_node_ids(&mut server_state, &mut session, request);
+    assert!(result.is_ok());
+    let result = supported_message_as!(result.unwrap(), TranslateBrowsePathsToNodeIdsResponse);
+
+    debug!("result = {:#?}", result);
 }
