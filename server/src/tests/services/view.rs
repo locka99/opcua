@@ -117,7 +117,7 @@ fn browse() {
 
 #[test]
 fn browse_next() {
-    // Set up a server more more nodes than can fit in a response to test Browse, BrowseNext response
+    // Set up a server with more nodes than can fit in a response to test Browse, BrowseNext response
     let st = ServiceTest::new();
     let (mut server_state, mut session) = st.get_server_state_and_session();
     let parent_node_id = {
