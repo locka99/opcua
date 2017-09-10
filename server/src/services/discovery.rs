@@ -16,6 +16,9 @@ impl DiscoveryService {
     }
 
     pub fn get_endpoints(&self, server_state: &mut ServerState, _: &mut Session, request: GetEndpointsRequest) -> Result<SupportedMessage, StatusCode> {
+
+        // TODO filter endpoints based on profile_uris
+
         let response = GetEndpointsResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
             endpoints: Some(server_state.endpoints()),

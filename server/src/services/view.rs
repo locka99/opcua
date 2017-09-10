@@ -322,5 +322,4 @@ impl ViewService {
             references: Some(reference_descriptions)
         }
     }
-
 }

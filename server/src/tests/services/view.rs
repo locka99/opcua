@@ -239,32 +239,45 @@ fn translate_browse_paths_to_node_ids() {
     let st = ServiceTest::new();
     let (mut server_state, mut session) = st.get_server_state_and_session();
 
-    let mut browse_paths = Vec::new();
+    // This is a very basic test of this service. It just creates a relative path from root to the
+    // Objects folder and tests that it comes back in the result
+    {
+        let mut browse_paths = Vec::new();
+        let mut path_elements = Vec::new();
+        path_elements.push(RelativePathElement {
+            reference_type_id: ReferenceTypeId::HasChild.as_node_id(),
+            is_inverse: false,
+            include_subtypes: true,
+            target_name: QualifiedName::new(0, "Objects"),
+        });
 
-    let mut path_elements = Vec::new();
-    path_elements.push(RelativePathElement {
-        reference_type_id: ReferenceTypeId::HasChild.as_node_id(),
-        is_inverse: false,
-        include_subtypes: true,
-        target_name: QualifiedName::new(0, "Objects"),
-    });
+        browse_paths.push(BrowsePath {
+            starting_node: ObjectId::RootFolder.as_node_id(),
+            relative_path: RelativePath {
+                elements: Some(path_elements),
+            }
+        });
 
-    browse_paths.push(BrowsePath {
-        starting_node: ObjectId::RootFolder.as_node_id(),
-        relative_path: RelativePath {
-            elements: Some(path_elements),
-        }
-    });
+        let request = TranslateBrowsePathsToNodeIdsRequest {
+            request_header: make_request_header(),
+            browse_paths: Some(browse_paths)
+        };
 
-    let request = TranslateBrowsePathsToNodeIdsRequest {
-        request_header: make_request_header(),
-        browse_paths: Some(browse_paths)
-    };
+        let vs = ViewService::new();
+        let result = vs.translate_browse_paths_to_node_ids(&mut server_state, &mut session, request);
+        assert!(result.is_ok());
+        let result: TranslateBrowsePathsToNodeIdsResponse = supported_message_as!(result.unwrap(), TranslateBrowsePathsToNodeIdsResponse);
 
-    let vs = ViewService::new();
-    let result = vs.translate_browse_paths_to_node_ids(&mut server_state, &mut session, request);
-    assert!(result.is_ok());
-    let result = supported_message_as!(result.unwrap(), TranslateBrowsePathsToNodeIdsResponse);
+        debug!("result = {:#?}", result);
 
-    debug!("result = {:#?}", result);
+        let results = result.results.unwrap();
+        assert_eq!(results.len(), 1);
+        let r1 = &results[0];
+        /*
+        let targets = r1.targets.as_ref().unwrap();
+        assert_eq!(targets.len(), 1);
+        let t1 = &targets[0];
+        assert_eq!(&t1.target_id.node_id, &AddressSpace::objects_folder_id());
+        */
+    }
 }

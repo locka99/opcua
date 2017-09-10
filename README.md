@@ -56,7 +56,7 @@ implementations are expected to receive implementations over time.
     * ModifyMonitoredItems
     * DeleteMonitoredItems
 
-* Subscription
+* Subscription service set
     * CreateSubscription
     * ModifySubscription
     * Publish

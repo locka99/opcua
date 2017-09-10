@@ -513,7 +513,7 @@ impl ByteString {
 /// Data type ID 16
 pub type XmlElement = UAString;
 
-// NodeId and ExtendedNodeId are in node_id.rs
+// NodeId and ExpandedNodeId are in node_id.rs
 
 /// A numeric identifier for a error or condition that is associated with a value or an operation.
 /// Data type ID 19
