@@ -194,17 +194,15 @@ impl Subscriptions {
         let request = &request.request;
         if request.subscription_acknowledgements.is_some() {
             let subscription_acknowledgements = request.subscription_acknowledgements.as_ref().unwrap();
-            let mut results: Vec<StatusCode> = Vec::with_capacity(subscription_acknowledgements.len());
-            for subscription_acknowledgement in subscription_acknowledgements {
+            let results = subscription_acknowledgements.iter().map(|subscription_acknowledgement| {
                 let subscription_id = subscription_acknowledgement.subscription_id;
                 let subscription = self.subscriptions.get_mut(&subscription_id);
-                let result = if subscription.is_none() {
+                if subscription.is_none() {
                     BAD_SUBSCRIPTION_ID_INVALID
                 } else {
                     subscription.unwrap().delete_acked_notification_msg(subscription_acknowledgement)
-                };
-                results.push(result);
-            }
+                }
+            }).collect();
             Some(results)
         } else {
             None

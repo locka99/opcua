@@ -35,11 +35,8 @@ impl AttributeService {
         }
 
         let results = if let Some(ref nodes_to_read) = request.nodes_to_read {
-            let mut results: Vec<DataValue> = Vec::with_capacity(nodes_to_read.len());
-
             let address_space = server_state.address_space.lock().unwrap();
-
-            for node_to_read in nodes_to_read {
+            let results = nodes_to_read.iter().map(|node_to_read| {
                 let mut result_value = DataValue {
                     value: None,
                     status: None,
@@ -48,7 +45,6 @@ impl AttributeService {
                     server_timestamp: None,
                     server_picoseconds: None,
                 };
-
                 // Node node found
                 if let Some(node) = address_space.find_node(&node_to_read.node_id) {
                     if let Ok(attribute_id) = AttributeId::from_u32(node_to_read.attribute_id) {
@@ -91,8 +87,8 @@ impl AttributeService {
                     warn!("Cannot find node id {:?}", node_to_read.node_id);
                     result_value.status = Some(BAD_NODE_ID_UNKNOWN);
                 }
-                results.push(result_value);
-            }
+                result_value
+            }).collect();
             Some(results)
         } else {
             warn!("ReadRequest nothing to do");
@@ -119,32 +115,28 @@ impl AttributeService {
     /// elements or to write ranges of elements of the composite.
     pub fn write(&self, server_state: &mut ServerState, _: &mut Session, request: WriteRequest) -> Result<SupportedMessage, StatusCode> {
         let results = if let Some(ref nodes_to_write) = request.nodes_to_write {
-            let mut results: Vec<StatusCode> = Vec::with_capacity(nodes_to_write.len());
-
             let address_space = server_state.address_space.lock().unwrap();
-
-            for node_to_write in nodes_to_write {
+            let results = nodes_to_write.iter().map(|node_to_write| {
                 if let Some(node) = address_space.find_node(&node_to_write.node_id) {
                     if let Ok(attribute_id) = AttributeId::from_u32(node_to_write.attribute_id) {
                         // Index ranges are not supported
-                        let write_result = if !node_to_write.index_range.is_null() {
+                        if !node_to_write.index_range.is_null() {
                             BAD_WRITE_NOT_SUPPORTED
                         } else if node.as_node().find_attribute(attribute_id).is_some() {
                             // TODO implement write, checking masks to see if the action is allowed
                             BAD_WRITE_NOT_SUPPORTED
                         } else {
                             BAD_WRITE_NOT_SUPPORTED
-                        };
-                        results.push(write_result);
+                        }
                     } else {
                         warn!("Attribute id {} is invalid", node_to_write.attribute_id);
-                        results.push(BAD_ATTRIBUTE_ID_INVALID);
+                        BAD_ATTRIBUTE_ID_INVALID
                     }
                 } else {
                     warn!("Cannot find node id {:?}", node_to_write.node_id);
-                    results.push(BAD_NODE_ID_UNKNOWN);
+                    BAD_NODE_ID_UNKNOWN
                 }
-            }
+            }).collect();
             Some(results)
         } else {
             return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));

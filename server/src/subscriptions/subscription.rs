@@ -211,13 +211,11 @@ impl Subscription {
 
     /// Delete the specified monitored items (by item id), returning a status code for each
     pub fn delete_monitored_items(&mut self, items_to_delete: &[UInt32]) -> Vec<StatusCode> {
-        let mut result = Vec::with_capacity(items_to_delete.len());
-        for item_to_delete in items_to_delete {
+        items_to_delete.iter().map(|item_to_delete| {
             // Remove the item (or report an error with the id)
             let removed = self.monitored_items.remove(item_to_delete);
-            result.push(if removed.is_some() { GOOD } else { BAD_MONITORED_ITEM_ID_INVALID });
-        }
-        result
+            if removed.is_some() { GOOD } else { BAD_MONITORED_ITEM_ID_INVALID }
+        }).collect()
     }
 
     /// Checks the subscription and monitored items for state change, messages. If the tick does

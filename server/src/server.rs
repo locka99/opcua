@@ -138,11 +138,7 @@ impl ServerState {
             }
         }
         // Return the endpoints
-        let mut endpoints: Vec<EndpointDescription> = Vec::with_capacity(self.endpoints.len());
-        for e in &self.endpoints {
-            endpoints.push(self.new_endpoint_description(e));
-        }
-        Some(endpoints)
+        Some(self.endpoints.iter().map(|e| self.new_endpoint_description(e)).collect())
     }
 
     pub fn find_endpoint(&self, endpoint_url: &str) -> Option<Endpoint> {
@@ -236,8 +232,7 @@ impl Server {
         let diagnostics = ServerDiagnostics::new();
         // TODO max string, byte string and array lengths
 
-        let mut endpoints = Vec::new();
-        for e in &config.endpoints {
+        let endpoints = config.endpoints.iter().map(|e| {
             let endpoint_url = format!("{}{}", base_endpoint, e.path);
             let security_mode = MessageSecurityMode::from_str(&e.security_mode);
             let security_policy_uri = SecurityPolicy::from_str(&e.security_policy).unwrap().to_uri().to_string();
@@ -246,7 +241,7 @@ impl Server {
             } else {
                 false
             };
-            endpoints.push(Endpoint {
+            Endpoint {
                 name: e.name.clone(),
                 endpoint_url,
                 security_policy_uri: UAString::from_str(&security_policy_uri),
@@ -254,8 +249,8 @@ impl Server {
                 anonymous,
                 user: e.user.clone(),
                 pass: if e.pass.is_some() { Some(e.pass.as_ref().unwrap().clone().into_bytes()) } else { None },
-            });
-        }
+            }
+        }).collect();
 
         // Security, pki auto create cert
         let pki_path = PathBuf::from(&config.pki_dir);

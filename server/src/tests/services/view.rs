@@ -7,17 +7,16 @@ use super::*;
 
 fn make_browse_request(nodes: &[NodeId], max_references_per_node: usize, browse_direction: BrowseDirection, reference_type: ReferenceTypeId) -> BrowseRequest {
     let request_header = make_request_header();
-    let mut nodes_to_browse = Vec::with_capacity(nodes.len());
-    for n in nodes {
-        nodes_to_browse.push(BrowseDescription {
+    let nodes_to_browse = nodes.iter().map(|n| {
+        BrowseDescription {
             node_id: n.clone(),
-            browse_direction: browse_direction,
+            browse_direction,
             reference_type_id: reference_type.as_node_id(),
             include_subtypes: true,
             node_class_mask: 0xff,
             result_mask: 0xff,
-        });
-    }
+        }
+    }).collect();
     BrowseRequest {
         request_header,
         view: ViewDescription {
