@@ -126,16 +126,15 @@ impl AttributeService {
             for node_to_write in nodes_to_write {
                 if let Some(node) = address_space.find_node(&node_to_write.node_id) {
                     if let Ok(attribute_id) = AttributeId::from_u32(node_to_write.attribute_id) {
-                        let write_result;
                         // Index ranges are not supported
-                        if !node_to_write.index_range.is_null() {
-                            write_result = BAD_WRITE_NOT_SUPPORTED;
+                        let write_result = if !node_to_write.index_range.is_null() {
+                            BAD_WRITE_NOT_SUPPORTED
                         } else if node.as_node().find_attribute(attribute_id).is_some() {
                             // TODO implement write, checking masks to see if the action is allowed
-                            write_result = BAD_WRITE_NOT_SUPPORTED;
+                            BAD_WRITE_NOT_SUPPORTED
                         } else {
-                            write_result = BAD_WRITE_NOT_SUPPORTED;
-                        }
+                            BAD_WRITE_NOT_SUPPORTED
+                        };
                         results.push(write_result);
                     } else {
                         warn!("Attribute id {} is invalid", node_to_write.attribute_id);

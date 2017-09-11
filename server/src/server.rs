@@ -126,12 +126,23 @@ pub struct ServerState {
 }
 
 impl ServerState {
-    pub fn endpoints(&self) -> Vec<EndpointDescription> {
+    pub fn endpoints(&self, transport_profile_uris: Option<Vec<UAString>>) -> Option<Vec<EndpointDescription>> {
+        // Filter endpoints based on profile_uris
+        if let Some(transport_profile_uris) = transport_profile_uris {
+            // As we only support binary transport, the result is None if the supplied profile_uris does not contain that profile
+            let found_binary_transport = transport_profile_uris.iter().find(|profile_uri| {
+                profile_uri.as_ref() == profiles::TRANSPORT_PROFILE_URI_BINARY
+            });
+            if found_binary_transport.is_none() {
+                return None;
+            }
+        }
+        // Return the endpoints
         let mut endpoints: Vec<EndpointDescription> = Vec::with_capacity(self.endpoints.len());
         for e in &self.endpoints {
             endpoints.push(self.new_endpoint_description(e));
         }
-        endpoints
+        Some(endpoints)
     }
 
     pub fn find_endpoint(&self, endpoint_url: &str) -> Option<Endpoint> {

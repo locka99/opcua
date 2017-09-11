@@ -27,21 +27,6 @@ fn discovery_test() {
         assert!(!endpoints.is_empty())
     }
 
-    // TODO specify localeids
-    {
-        let locale_ids = vec![];
-        let request = GetEndpointsRequest {
-            request_header: make_request_header(),
-            endpoint_url: UAString::from_str(""),
-            locale_ids: Some(locale_ids),
-            profile_uris: None,
-        };
-
-        let result = ds.get_endpoints(&mut server_state, &mut session, request);
-        assert!(result.is_ok());
-        let result = supported_message_as!(result.unwrap(), GetEndpointsResponse);
-    }
-
     // specify profile ids in request
     {
         // Enter some nonsensical profile uris and expect nothing back

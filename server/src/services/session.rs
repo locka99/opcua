@@ -82,7 +82,7 @@ impl SessionService {
                 revised_session_timeout: session_timeout,
                 server_nonce,
                 server_certificate,
-                server_endpoints: Some(server_state.endpoints()),
+                server_endpoints: server_state.endpoints(None),
                 server_software_certificates: None,
                 server_signature,
                 max_request_message_size,
