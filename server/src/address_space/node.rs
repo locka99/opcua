@@ -43,4 +43,5 @@ pub trait Node {
     fn write_mask(&self) -> Option<UInt32>;
     fn user_write_mask(&self) -> Option<UInt32>;
     fn find_attribute(&self, attribute_id: AttributeId) -> Option<DataValue>;
+    fn set_attribute(&mut self, attribute_id: AttributeId, value: DataValue);
 }

@@ -91,12 +91,22 @@ impl Node for Base {
             let mut getter = getter.lock().unwrap();
             getter.get(self.node_id(), attribute_id)
         } else {
-            let attribute_idx = Base::attribute_idx(attribute_id);
+            let attribute_idx = Self::attribute_idx(attribute_id);
             if attribute_idx >= self.attributes.len() {
                 warn!("Attribute id {:?} is out of range and invalid", attribute_id);
                 return None;
             }
             self.attributes[attribute_idx].clone()
+        }
+    }
+
+    fn set_attribute(&mut self, attribute_id: AttributeId, value: DataValue) {
+        let attribute_idx = Self::attribute_idx(attribute_id);
+        if let Some(setter) = self.attribute_setters.get(&attribute_id) {
+            let mut setter = setter.lock().unwrap();
+            setter.set(self.node_id(), attribute_id, value);
+        } else {
+            self.attributes[attribute_idx] = Some(value);
         }
     }
 }
@@ -137,23 +147,12 @@ impl Base {
         }
     }
 
-
     pub fn set_attribute_getter(&mut self, attribute_id: AttributeId, getter: Arc<Mutex<AttributeGetter + Send>>) {
         self.attribute_getters.insert(attribute_id, getter);
     }
 
     pub fn set_attribute_setter(&mut self, attribute_id: AttributeId, setter: Arc<Mutex<AttributeSetter + Send>>) {
         self.attribute_setters.insert(attribute_id, setter);
-    }
-
-    pub fn set_attribute(&mut self, attribute_id: AttributeId, value: DataValue) {
-        let attribute_idx = Base::attribute_idx(attribute_id);
-        if let Some(setter) = self.attribute_setters.get(&attribute_id) {
-            let mut setter = setter.lock().unwrap();
-            setter.set(self.node_id(), attribute_id, value);
-        } else {
-            self.attributes[attribute_idx] = Some(value);
-        }
     }
 
     pub fn set_attribute_value(&mut self, attribute_id: AttributeId, value: Variant, server_timestamp: &DateTime, source_timestamp: &DateTime) {

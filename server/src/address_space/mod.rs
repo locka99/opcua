@@ -57,8 +57,9 @@ macro_rules! node_impl {
             fn write_mask(&self) -> Option<UInt32> { self.base.write_mask() }
             fn user_write_mask(&self) -> Option<UInt32> { self.base.user_write_mask() }
             fn find_attribute(&self, attribute_id: AttributeId) -> Option<DataValue> { self.base.find_attribute(attribute_id) }
+            fn set_attribute(&mut self, attribute_id: AttributeId, value: DataValue) { self.base.set_attribute(attribute_id, value) }
         }
-    };
+    }
 }
 
 #[macro_export]
@@ -109,6 +110,25 @@ pub mod object_type;
 pub mod variable_type;
 pub mod data_type;
 pub mod view;
+
+pub mod constants {
+    use opcua_types::Byte;
+
+    pub const ACCESS_LEVEL_CURRENT_READ: Byte = 1;
+    pub const ACCESS_LEVEL_CURRENT_WRITE: Byte = 1 << 1;
+    //pub const ACCESS_LEVEL_HISTORY_READ: Byte = 1 << 2;
+    //pub const ACCESS_LEVEL_HISTORY_WRITE: Byte = 1 << 3;
+    //pub const ACCESS_LEVEL_SEMANTIC_CHANGE: Byte = 1 << 4;
+    //pub const ACCESS_LEVEL_STATUS_WRITE: Byte = 1 << 5;
+    //pub const ACCESS_LEVEL_TIMESTAMP_WRITE: Byte = 1 << 6;
+
+    pub const USER_ACCESS_LEVEL_CURRENT_READ: Byte = 1;
+    pub const USER_ACCESS_LEVEL_CURRENT_WRITE: Byte = 1 << 1;
+    //pub const USER_ACCESS_LEVEL_HISTORY_READ: Byte = 1 << 2;
+    //pub const USER_ACCESS_LEVEL_HISTORY_WRITE: Byte = 1 << 3;
+    //pub const USER_ACCESS_LEVEL_STATUS_WRITE: Byte = 1 << 5;
+    //pub const USER_ACCESS_LEVEL_TIMESTAMP_WRITE: Byte = 1 << 6;
+}
 
 pub mod types {
     pub use super::{AttrFnGetter, AttrFnSetter};

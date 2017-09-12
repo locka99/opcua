@@ -5,21 +5,7 @@ use opcua_types::DataTypeId;
 use address_space::base::Base;
 use address_space::node::{Node, NodeType};
 use address_space::{AttributeGetter, AttributeSetter};
-
-const ACCESS_LEVEL_CURRENT_READ: Byte = 1;
-const ACCESS_LEVEL_CURRENT_WRITE: Byte = 1 << 1;
-//const ACCESS_LEVEL_HISTORY_READ: Byte = 1 << 2;
-//const ACCESS_LEVEL_HISTORY_WRITE: Byte = 1 << 3;
-//const ACCESS_LEVEL_SEMANTIC_CHANGE: Byte = 1 << 4;
-//const ACCESS_LEVEL_STATUS_WRITE: Byte = 1 << 5;
-//const ACCESS_LEVEL_TIMESTAMP_WRITE: Byte = 1 << 6;
-
-const USER_ACCESS_LEVEL_CURRENT_READ: Byte = 1;
-const USER_ACCESS_LEVEL_CURRENT_WRITE: Byte = 1 << 1;
-//const USER_ACCESS_LEVEL_HISTORY_READ: Byte = 1 << 2;
-//const USER_ACCESS_LEVEL_HISTORY_WRITE: Byte = 1 << 3;
-//const USER_ACCESS_LEVEL_STATUS_WRITE: Byte = 1 << 5;
-//const USER_ACCESS_LEVEL_TIMESTAMP_WRITE: Byte = 1 << 6;
+use address_space::constants::*;
 
 #[derive(Debug)]
 pub struct Variable {

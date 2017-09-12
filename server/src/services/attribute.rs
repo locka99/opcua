@@ -67,7 +67,7 @@ impl AttributeService {
                                     }
                                     TimestampsToReturn::Both => {
                                         result_value.source_timestamp = attribute.source_timestamp.clone();
-                                        result_value.source_picoseconds = attribute.source_picoseconds.clone();
+                                        result_value.source_picoseconds = attribute.source_picoseconds;
                                         result_value.server_timestamp = attribute.server_timestamp.clone();
                                         result_value.server_picoseconds = attribute.server_picoseconds;
                                     }

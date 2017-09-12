@@ -38,23 +38,6 @@ fn make_browse_next_request(continuation_point: &ByteString, release_continuatio
     }
 }
 
-fn add_many_vars_to_address_space(address_space: &mut AddressSpace, vars_to_add: usize) -> NodeId {
-    // Create a sample folder under objects folder
-    let sample_folder_id = address_space.add_folder("Many Vars", "Many Vars", &AddressSpace::objects_folder_id()).unwrap();
-
-    // Add as a bunch of sequential vars to the folder
-    let mut vars = Vec::with_capacity(vars_to_add);
-    for i in 0..vars_to_add {
-        let var_name = format!("v{}", i);
-        let node_id = NodeId::new_string(1, &var_name);
-        let var = Variable::new_i32(&node_id, &var_name, &var_name, "", i as Int32);
-        vars.push(var);
-    }
-    let _ = address_space.add_variables(vars, &sample_folder_id);
-
-    sample_folder_id
-}
-
 fn verify_references_to_many_vars(references: &[ReferenceDescription], expected_size: usize, start_idx: usize) {
     // Verify that the reference descriptions point at sequential vars
     assert_eq!(references.len(), expected_size);
