@@ -18,17 +18,14 @@ fn read_test() {
     let (mut server_state, mut session) = st.get_server_state_and_session();
 
     // test an empty read nothing to do
-    let parent_node_id = {
+    {
         let mut address_space = server_state.address_space.lock().unwrap();
-        let parent_node_id = add_many_vars_to_address_space(&mut address_space, 10);
-
+        let _ = add_many_vars_to_address_space(&mut address_space, 10);
         // change variable access level so it cannot be read
         //let v3_node_id = NodeId::new_string(2, "v3");
         //let v3_node = address_space.find_node(&v3_node_id).unwrap();
         //v3_node.as_node().set_attribute(AttributeId::WriteMask, DataValue::new_byte(0));
-
-        parent_node_id
-    };
+    }
 
     let ats = AttributeService::new();
 
@@ -79,17 +76,14 @@ fn write_test() {
     let (mut server_state, mut session) = st.get_server_state_and_session();
 
     // test an empty read nothing to do
-    let parent_node_id = {
+    {
         let mut address_space = server_state.address_space.lock().unwrap();
-        let parent_node_id = add_many_vars_to_address_space(&mut address_space, 10);
-
+        let _ = add_many_vars_to_address_space(&mut address_space, 10);
         // change variable access level so it cannot be written to
         //let v3_node_id = NodeId::new_string(2, "v3");
         //let v3_node = address_space.find_node(&v3_node_id).unwrap();
         //v3_node.as_node().set_attribute(AttributeId::WriteMask, DataValue::new_byte(0));
-
-        parent_node_id
-    };
+    }
 
     let ats = AttributeService::new();
 
