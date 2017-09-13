@@ -76,10 +76,10 @@ impl AttributeService {
                         } else if !node_to_write.index_range.is_null() {
                             // Index ranges are not supported
                             BAD_WRITE_NOT_SUPPORTED
-                        } else if node.as_node().find_attribute(attribute_id).is_some() {
-                            // TODO implement write, checking masks to see if the action is allowed
-                            BAD_WRITE_NOT_SUPPORTED
                         } else {
+                            //let node = node.as_mut_node();
+                            //node.set_attribute(attribute_id, node_to_write.value.clone());
+                            //GOOD
                             BAD_WRITE_NOT_SUPPORTED
                         }
                     } else {
