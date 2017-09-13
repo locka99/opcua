@@ -102,9 +102,22 @@ fn write_test() {
         let mut address_space = server_state.address_space.lock().unwrap();
         let (_, node_ids) = add_many_vars_to_address_space(&mut address_space, 10);
         // change variable access level so it cannot be written to
-        //let v3_node_id = NodeId::new_string(2, "v3");
-        //let v3_node = address_space.find_node(&v3_node_id).unwrap();
-        //v3_node.as_node().set_attribute(AttributeId::WriteMask, DataValue::new_byte(0));
+        for (i, node_id) in node_ids.iter().enumerate() {
+            let node = address_space.find_node_mut(node_id).unwrap();
+            if i == 2 {
+                // No write access
+                node.as_mut_node().set_attribute(AttributeId::AccessLevel, DataValue::new_byte(0));
+            }
+            else {
+                // Write access
+                node.as_mut_node().set_attribute(AttributeId::AccessLevel, DataValue::new_byte(access_level::CURRENT_WRITE));
+            }
+        }
+
+        // change node with write access removed for a certain action
+        let node = address_space.find_node_mut(&ReferenceTypeId::HasChild.as_node_id()).unwrap();
+        // node.as_mut_node().set_write_mask(), IsAbstract 0
+
         node_ids
     };
 
@@ -116,9 +129,14 @@ fn write_test() {
         // 1. a variable
         write_value(&node_ids[0], AttributeId::Value, DataValue::new_i32(100)),
         // 2. a variable without the required attribute
+        write_value(&node_ids[1], AttributeId::IsAbstract, DataValue::new_bool(true)),
         // 3. a variable which has no write access
+        write_value(&node_ids[2], AttributeId::Value, DataValue::new_i32(200)),
         // 4. a node of some kind other than variable
-        // 5. a non existent variable
+        write_value(&ReferenceTypeId::HasEncoding.as_node_id(), AttributeId::Value, DataValue::new_i32(200)),
+        // 5. a node with some kind other than variable with no write mask
+        write_value(&ReferenceTypeId::HasChild.as_node_id(), AttributeId::IsAbstract, DataValue::new_bool(false)),
+        // 6. a non existent variable
         write_value(&NodeId::new_string(2, "vxxx"), AttributeId::Value, DataValue::new_i32(100)),
     ];
 
@@ -131,6 +149,17 @@ fn write_test() {
     let response = ats.write(&mut server_state, &mut session, request);
     assert!(response.is_ok());
     let response: WriteResponse = supported_message_as!(response.unwrap(), WriteResponse);
+    let results = response.results.unwrap();
+
+    // 1. a variable
+    // assert_eq!(results[0], GOOD);
+    // 2. a variable without the required attribute
+    // assert_eq!(results[1], BAD_ATTRIBUTE_ID_INVALID);
+    // 3. a variable which has no write access
+    // 4. a node of some kind other than variable
+    // 5. a node with some kind other than variable with no write mask
+    // 6. a non existent variable
+    assert_eq!(results[5], BAD_NODE_ID_UNKNOWN);
 
     // write index range
 
