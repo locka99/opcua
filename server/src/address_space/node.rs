@@ -27,6 +27,19 @@ impl NodeType {
         }
     }
 
+    pub fn as_mut_node(&mut self) -> &mut Node {
+        match *self {
+            NodeType::Object(ref mut value) => value,
+            NodeType::ObjectType(ref mut value) => value,
+            NodeType::ReferenceType(ref mut value) => value,
+            NodeType::Variable(ref mut value) => value,
+            NodeType::VariableType(ref mut value) => value,
+            NodeType::View(ref mut value) => value,
+            NodeType::DataType(ref mut value) => value,
+            NodeType::Method(ref mut value) => value,
+        }
+    }
+
     pub fn node_id(&self) -> NodeId {
         self.as_node().node_id()
     }

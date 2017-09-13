@@ -1,6 +1,6 @@
 use super::*;
 use services::attribute::AttributeService;
-use address_space::constants::*;
+use address_space::access_level;
 
 fn read_value(node_id: &NodeId, attribute_id: AttributeId) -> ReadValueId {
     ReadValueId {
@@ -18,40 +18,62 @@ fn read_test() {
     let (mut server_state, mut session) = st.get_server_state_and_session();
 
     // test an empty read nothing to do
-    {
+    let node_ids = {
         let mut address_space = server_state.address_space.lock().unwrap();
-        let _ = add_many_vars_to_address_space(&mut address_space, 10);
-        // change variable access level so it cannot be read
-        //let v3_node_id = NodeId::new_string(2, "v3");
-        //let v3_node = address_space.find_node(&v3_node_id).unwrap();
-        //v3_node.as_node().set_attribute(AttributeId::WriteMask, DataValue::new_byte(0));
-    }
+        let (_, node_ids) = add_many_vars_to_address_space(&mut address_space, 10);
+        // Remove read access to [3] for a test below
+        let node = address_space.find_node_mut(&node_ids[3]).unwrap();
+        node.as_mut_node().set_attribute(AttributeId::AccessLevel, DataValue::new_byte(0));
+        node_ids
+    };
 
     let ats = AttributeService::new();
 
-    // Read a non existent variable
-    let nodes_to_read = vec![
-        // a non existent variable
-        read_value(&NodeId::new_string(2, "vxxx"), AttributeId::Value),
-        // a variable
-        read_value(&NodeId::new_string(2, "v1"), AttributeId::Value),
-        // a node of some kind other than variable
-        // another attribute
-        read_value(&NodeId::new_string(2, "v2"), AttributeId::AccessLevel),
-        // a variable without the required attribute
-        read_value(&NodeId::new_string(2, "v2"), AttributeId::IsAbstract),
-        // a variable with no read access
-    ];
-    let request = ReadRequest {
-        request_header: make_request_header(),
-        max_age: 0f64,
-        timestamps_to_return: TimestampsToReturn::Both,
-        nodes_to_read: Some(nodes_to_read),
-    };
+    {
+        // Read a non existent variable
+        let nodes_to_read = vec![
+            // 1. a variable
+            read_value(&node_ids[0], AttributeId::Value),
+            // 2. an attribute other than value
+            read_value(&node_ids[1], AttributeId::AccessLevel),
+            // 3. a variable without the required attribute
+            read_value(&node_ids[2], AttributeId::IsAbstract),
+            // 4. a variable with no read access
+            read_value(&node_ids[3], AttributeId::Value),
+            // 5. a non existent variable
+            read_value(&NodeId::new_string(1, "vxxx"), AttributeId::Value),
+        ];
+        let request = ReadRequest {
+            request_header: make_request_header(),
+            max_age: 0f64,
+            timestamps_to_return: TimestampsToReturn::Both,
+            nodes_to_read: Some(nodes_to_read),
+        };
 
-    let response = ats.read(&mut server_state, &mut session, request);
-    assert!(response.is_ok());
-    let response: ReadResponse = supported_message_as!(response.unwrap(), ReadResponse);
+        let response = ats.read(&mut server_state, &mut session, request);
+        assert!(response.is_ok());
+        let response: ReadResponse = supported_message_as!(response.unwrap(), ReadResponse);
+
+        // Verify expected values
+        let results = response.results.unwrap();
+
+        // 1. a variable
+        assert_eq!(results[0].status.as_ref().unwrap(), &GOOD);
+        assert_eq!(results[0].value.as_ref().unwrap(), &Variant::Int32(0));
+
+        // 2. an attribute other than value (access level)
+        assert_eq!(results[1].status.as_ref().unwrap(), &GOOD);
+        assert_eq!(results[1].value.as_ref().unwrap(), &Variant::Byte(1));
+
+        // 3. a variable without the required attribute
+        assert_eq!(results[2].status.as_ref().unwrap(), &BAD_ATTRIBUTE_ID_INVALID);
+
+        // 4. a variable with no read access
+        assert_eq!(results[3].status.as_ref().unwrap(), &BAD_NOT_READABLE);
+
+        // 5. Non existent
+        assert_eq!(results[4].status.as_ref().unwrap(), &BAD_NODE_ID_UNKNOWN);
+    }
 
     // read index range
 
@@ -76,27 +98,28 @@ fn write_test() {
     let (mut server_state, mut session) = st.get_server_state_and_session();
 
     // test an empty read nothing to do
-    {
+    let node_ids = {
         let mut address_space = server_state.address_space.lock().unwrap();
-        let _ = add_many_vars_to_address_space(&mut address_space, 10);
+        let (_, node_ids) = add_many_vars_to_address_space(&mut address_space, 10);
         // change variable access level so it cannot be written to
         //let v3_node_id = NodeId::new_string(2, "v3");
         //let v3_node = address_space.find_node(&v3_node_id).unwrap();
         //v3_node.as_node().set_attribute(AttributeId::WriteMask, DataValue::new_byte(0));
-    }
+        node_ids
+    };
 
     let ats = AttributeService::new();
 
     // test an empty write nothing to do
 
     let nodes_to_write = vec![
-        // a non existent variable
+        // 1. a variable
+        write_value(&node_ids[0], AttributeId::Value, DataValue::new_i32(100)),
+        // 2. a variable without the required attribute
+        // 3. a variable which has no write access
+        // 4. a node of some kind other than variable
+        // 5. a non existent variable
         write_value(&NodeId::new_string(2, "vxxx"), AttributeId::Value, DataValue::new_i32(100)),
-        // a variable
-        write_value(&NodeId::new_string(2, "v1"), AttributeId::Value, DataValue::new_i32(100)),
-        // a variable without the required attribute
-        // a variable which has no write access
-        // a node of some kind other than variable
     ];
 
     let request = WriteRequest {

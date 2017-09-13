@@ -111,23 +111,23 @@ pub mod variable_type;
 pub mod data_type;
 pub mod view;
 
-pub mod constants {
-    use opcua_types::Byte;
+pub mod access_level {
+    pub const CURRENT_READ: u8 = 1;
+    pub const CURRENT_WRITE: u8 = 1 << 1;
+    //pub const HISTORY_READ: u8 = 1 << 2;
+    //pub const HISTORY_WRITE: u8 = 1 << 3;
+    //pub const SEMANTIC_CHANGE: u8 = 1 << 4;
+    //pub const STATUS_WRITE: u8 = 1 << 5;
+    //pub const TIMESTAMP_WRITE: u8 = 1 << 6;
+}
 
-    pub const ACCESS_LEVEL_CURRENT_READ: Byte = 1;
-    pub const ACCESS_LEVEL_CURRENT_WRITE: Byte = 1 << 1;
-    //pub const ACCESS_LEVEL_HISTORY_READ: Byte = 1 << 2;
-    //pub const ACCESS_LEVEL_HISTORY_WRITE: Byte = 1 << 3;
-    //pub const ACCESS_LEVEL_SEMANTIC_CHANGE: Byte = 1 << 4;
-    //pub const ACCESS_LEVEL_STATUS_WRITE: Byte = 1 << 5;
-    //pub const ACCESS_LEVEL_TIMESTAMP_WRITE: Byte = 1 << 6;
-
-    pub const USER_ACCESS_LEVEL_CURRENT_READ: Byte = 1;
-    pub const USER_ACCESS_LEVEL_CURRENT_WRITE: Byte = 1 << 1;
-    //pub const USER_ACCESS_LEVEL_HISTORY_READ: Byte = 1 << 2;
-    //pub const USER_ACCESS_LEVEL_HISTORY_WRITE: Byte = 1 << 3;
-    //pub const USER_ACCESS_LEVEL_STATUS_WRITE: Byte = 1 << 5;
-    //pub const USER_ACCESS_LEVEL_TIMESTAMP_WRITE: Byte = 1 << 6;
+pub mod user_access_level {
+    pub const CURRENT_READ: u8 = 1;
+    pub const CURRENT_WRITE: u8 = 1 << 1;
+    //pub const HISTORY_READ: u8 = 1 << 2;
+    //pub const HISTORY_WRITE: u8 = 1 << 3;
+    //pub const STATUS_WRITE: u8 = 1 << 5;
+    //pub const TIMESTAMP_WRITE: u8 = 1 << 6;
 }
 
 pub mod types {

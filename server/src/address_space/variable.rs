@@ -5,7 +5,8 @@ use opcua_types::DataTypeId;
 use address_space::base::Base;
 use address_space::node::{Node, NodeType};
 use address_space::{AttributeGetter, AttributeSetter};
-use address_space::constants::*;
+use address_space::access_level;
+use address_space::user_access_level;
 
 #[derive(Debug)]
 pub struct Variable {
@@ -81,8 +82,8 @@ impl Variable {
     pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: DataValue) -> Variable {
         // Mandatory
         let historizing = false;
-        let access_level = ACCESS_LEVEL_CURRENT_READ;
-        let user_access_level = USER_ACCESS_LEVEL_CURRENT_READ;
+        let access_level = access_level::CURRENT_READ;
+        let user_access_level = user_access_level::CURRENT_READ;
         let value_rank = -1;
         let attributes = vec![
             (AttributeId::UserAccessLevel, Variant::Byte(user_access_level)),
@@ -154,19 +155,19 @@ impl Variable {
     }
 
     pub fn is_readable(&self) -> bool {
-        (self.access_level() & ACCESS_LEVEL_CURRENT_READ) != 0
+        (self.access_level() & access_level::CURRENT_READ) != 0
     }
 
-    pub fn is_writeable(&self) -> bool {
-        (self.access_level() & ACCESS_LEVEL_CURRENT_WRITE) != 0
+    pub fn is_writable(&self) -> bool {
+        (self.access_level() & access_level::CURRENT_WRITE) != 0
     }
 
     pub fn is_user_readable(&self) -> bool {
-        (self.user_access_level() & USER_ACCESS_LEVEL_CURRENT_READ) != 0
+        (self.user_access_level() & user_access_level::CURRENT_READ) != 0
     }
 
-    pub fn is_user_writeable(&self) -> bool {
-        (self.user_access_level() & USER_ACCESS_LEVEL_CURRENT_WRITE) != 0
+    pub fn is_user_writable(&self) -> bool {
+        (self.user_access_level() & user_access_level::CURRENT_WRITE) != 0
     }
 
     pub fn access_level(&self) -> Byte {

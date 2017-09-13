@@ -104,7 +104,7 @@ fn browse_next() {
     let (mut server_state, mut session) = st.get_server_state_and_session();
     let parent_node_id = {
         let mut address_space = server_state.address_space.lock().unwrap();
-        add_many_vars_to_address_space(&mut address_space, 100)
+        add_many_vars_to_address_space(&mut address_space, 100).0
     };
     let nodes = vec![parent_node_id.clone()];
 
