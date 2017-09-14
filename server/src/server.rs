@@ -129,12 +129,15 @@ impl ServerState {
     pub fn endpoints(&self, transport_profile_uris: Option<Vec<UAString>>) -> Option<Vec<EndpointDescription>> {
         // Filter endpoints based on profile_uris
         if let Some(transport_profile_uris) = transport_profile_uris {
-            // As we only support binary transport, the result is None if the supplied profile_uris does not contain that profile
-            let found_binary_transport = transport_profile_uris.iter().find(|profile_uri| {
-                profile_uri.as_ref() == profiles::TRANSPORT_PROFILE_URI_BINARY
-            });
-            if found_binary_transport.is_none() {
-                return None;
+            if !transport_profile_uris.is_empty() {
+                // As we only support binary transport, the result is None if the supplied profile_uris does not contain that profile
+                let found_binary_transport = transport_profile_uris.iter().find(|profile_uri| {
+                    profile_uri.as_ref() == profiles::TRANSPORT_PROFILE_URI_BINARY
+                });
+                if found_binary_transport.is_none() {
+                    error!("Client wants to connect with a non binary transport {:#?}", transport_profile_uris);
+                    return None;
+                }
             }
         }
         // Return the endpoints

@@ -162,6 +162,19 @@ impl Variable {
         (self.access_level() & access_level::CURRENT_WRITE) != 0
     }
 
+    pub fn set_writable(&mut self) {
+        let access_level = self.access_level() & access_level::CURRENT_WRITE;
+        self.set_user_access_level(access_level);
+    }
+
+    pub fn set_access_level(&mut self, access_level: Byte) {
+        self.base.set_attribute(AttributeId::AccessLevel, DataValue::new_byte(access_level));
+    }
+
+    pub fn access_level(&self) -> Byte {
+        find_attribute_value_mandatory!(&self.base, AccessLevel, Byte)
+    }
+
     pub fn is_user_readable(&self) -> bool {
         (self.user_access_level() & user_access_level::CURRENT_READ) != 0
     }
@@ -170,8 +183,8 @@ impl Variable {
         (self.user_access_level() & user_access_level::CURRENT_WRITE) != 0
     }
 
-    pub fn access_level(&self) -> Byte {
-        find_attribute_value_mandatory!(&self.base, AccessLevel, Byte)
+    pub fn set_user_access_level(&mut self, user_access_level: Byte) {
+        self.base.set_attribute(AttributeId::UserAccessLevel, DataValue::new_byte(user_access_level));
     }
 
     pub fn user_access_level(&self) -> Byte {

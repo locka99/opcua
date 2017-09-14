@@ -58,54 +58,6 @@ impl AttributeService {
         Ok(SupportedMessage::ReadResponse(response))
     }
 
-    /// Spec:
-    ///
-    /// This Service is used to write values to one or more Attributes of one or more Nodes. For
-    /// constructed Attribute values whose elements are indexed, such as an array, this Service
-    /// allows Clients to write the entire set of indexed values as a composite, to write individual
-    /// elements or to write ranges of elements of the composite.
-    pub fn write(&self, server_state: &mut ServerState, session: &mut Session, request: WriteRequest) -> Result<SupportedMessage, StatusCode> {
-        let results = if let Some(ref nodes_to_write) = request.nodes_to_write {
-            let address_space = server_state.address_space.lock().unwrap();
-            let results = nodes_to_write.iter().map(|node_to_write| {
-                if let Some(node) = address_space.find_node(&node_to_write.node_id) {
-                    if let Ok(attribute_id) = AttributeId::from_u32(node_to_write.attribute_id) {
-                        let is_writable = Self::is_writable(session, &node, attribute_id);
-                        if !is_writable {
-                            BAD_NOT_WRITABLE
-                        } else if !node_to_write.index_range.is_null() {
-                            // Index ranges are not supported
-                            BAD_WRITE_NOT_SUPPORTED
-                        } else {
-                            //let node = node.as_mut_node();
-                            //node.set_attribute(attribute_id, node_to_write.value.clone());
-                            //GOOD
-                            BAD_WRITE_NOT_SUPPORTED
-                        }
-                    } else {
-                        warn!("Attribute id {} is invalid", node_to_write.attribute_id);
-                        BAD_ATTRIBUTE_ID_INVALID
-                    }
-                } else {
-                    warn!("Cannot find node id {:?}", node_to_write.node_id);
-                    BAD_NODE_ID_UNKNOWN
-                }
-            }).collect();
-            Some(results)
-        } else {
-            return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
-        };
-
-        let diagnostic_infos = None;
-        let response = WriteResponse {
-            response_header: ResponseHeader::new_good(&request.request_header),
-            results,
-            diagnostic_infos,
-        };
-
-        Ok(SupportedMessage::WriteResponse(response))
-    }
-
     fn read_node_value(session: &Session, address_space: &AddressSpace, node_to_read: &ReadValueId, timestamps_to_return: TimestampsToReturn) -> DataValue {
         let mut result_value = DataValue {
             value: None,
@@ -173,6 +125,57 @@ impl AttributeService {
         true
     }
 
+    /// Spec:
+    ///
+    /// This Service is used to write values to one or more Attributes of one or more Nodes. For
+    /// constructed Attribute values whose elements are indexed, such as an array, this Service
+    /// allows Clients to write the entire set of indexed values as a composite, to write individual
+    /// elements or to write ranges of elements of the composite.
+    pub fn write(&self, server_state: &mut ServerState, session: &mut Session, request: WriteRequest) -> Result<SupportedMessage, StatusCode> {
+        let results = if let Some(ref nodes_to_write) = request.nodes_to_write {
+            let mut address_space = server_state.address_space.lock().unwrap();
+            let results = nodes_to_write.iter().map(|node_to_write| {
+                Self::write_node_value(session, &mut address_space, node_to_write)
+            }).collect();
+            Some(results)
+        } else {
+            return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
+        };
+
+        let diagnostic_infos = None;
+        let response = WriteResponse {
+            response_header: ResponseHeader::new_good(&request.request_header),
+            results,
+            diagnostic_infos,
+        };
+
+        Ok(SupportedMessage::WriteResponse(response))
+    }
+
+    fn write_node_value(session: &Session, address_space: &mut AddressSpace, node_to_write: &WriteValue) -> StatusCode {
+        if let Some(node) = address_space.find_node_mut(&node_to_write.node_id) {
+            if let Ok(attribute_id) = AttributeId::from_u32(node_to_write.attribute_id) {
+                let is_writable = Self::is_writable(session, &node, attribute_id);
+                if !is_writable {
+                    BAD_NOT_WRITABLE
+                } else if !node_to_write.index_range.is_null() {
+                    // Index ranges are not supported
+                    BAD_WRITE_NOT_SUPPORTED
+                } else {
+                    let node = node.as_mut_node();
+                    node.set_attribute(attribute_id, node_to_write.value.clone());
+                    GOOD
+                }
+            } else {
+                warn!("Attribute id {} is invalid", node_to_write.attribute_id);
+                BAD_ATTRIBUTE_ID_INVALID
+            }
+        } else {
+            warn!("Cannot find node id {:?}", node_to_write.node_id);
+            BAD_NODE_ID_UNKNOWN
+        }
+    }
+
     fn is_writable(_: &Session, node: &NodeType, attribute_id: AttributeId) -> bool {
         use opcua_types::write_mask;
 
@@ -181,7 +184,7 @@ impl AttributeService {
                 AttributeId::Value => {
                     // Variable types test writability using the access level
                     if let NodeType::Variable(ref node) = *node {
-                        node.access_level() & access_level::CURRENT_WRITE == 0
+                        node.access_level() & access_level::CURRENT_WRITE != 0
                     } else {
                         write_mask & write_mask::VALUE_FOR_VARIABLE_TYPE != 0
                     }

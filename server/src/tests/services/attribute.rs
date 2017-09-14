@@ -1,6 +1,7 @@
 use super::*;
 use services::attribute::AttributeService;
 use address_space::access_level;
+use opcua_types::write_mask;
 
 fn read_value(node_id: &NodeId, attribute_id: AttributeId) -> ReadValueId {
     ReadValueId {
@@ -101,16 +102,22 @@ fn write_test() {
     let node_ids = {
         let mut address_space = server_state.address_space.lock().unwrap();
         let (_, node_ids) = add_many_vars_to_address_space(&mut address_space, 10);
-        // change variable access level so it cannot be written to
+        // set up nodes for the tests to be performed to each
         for (i, node_id) in node_ids.iter().enumerate() {
             let node = address_space.find_node_mut(node_id).unwrap();
-            if i == 2 {
-                // No write access
-                node.as_mut_node().set_attribute(AttributeId::AccessLevel, DataValue::new_byte(0));
-            }
-            else {
-                // Write access
-                node.as_mut_node().set_attribute(AttributeId::AccessLevel, DataValue::new_byte(access_level::CURRENT_WRITE));
+            match i {
+                1 => {
+                    // Add IsAbstract to WriteMask
+                    node.as_mut_node().set_attribute(AttributeId::WriteMask, DataValue::new_u32(write_mask::IS_ABSTRACT));
+                }
+                2 => {
+                    // No write access
+                    node.as_mut_node().set_attribute(AttributeId::AccessLevel, DataValue::new_byte(0));
+                }
+                _ => {
+                    // Write access
+                    node.as_mut_node().set_attribute(AttributeId::AccessLevel, DataValue::new_byte(access_level::CURRENT_WRITE));
+                }
             }
         }
 
@@ -122,8 +129,6 @@ fn write_test() {
     };
 
     let ats = AttributeService::new();
-
-    // test an empty write nothing to do
 
     let nodes_to_write = vec![
         // 1. a variable
@@ -152,12 +157,15 @@ fn write_test() {
     let results = response.results.unwrap();
 
     // 1. a variable
-    // assert_eq!(results[0], GOOD);
+    assert_eq!(results[0], GOOD);
     // 2. a variable without the required attribute
-    // assert_eq!(results[1], BAD_ATTRIBUTE_ID_INVALID);
+    //assert_eq!(results[1], BAD_ATTRIBUTE_ID_INVALID);
     // 3. a variable which has no write access
+    assert_eq!(results[2], BAD_NOT_WRITABLE);
     // 4. a node of some kind other than variable
+    // assert_eq!(results[3], GOOD);
     // 5. a node with some kind other than variable with no write mask
+    assert_eq!(results[4], BAD_NOT_WRITABLE);
     // 6. a non existent variable
     assert_eq!(results[5], BAD_NODE_ID_UNKNOWN);
 
