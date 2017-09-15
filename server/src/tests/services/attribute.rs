@@ -76,8 +76,10 @@ fn read_test() {
         assert_eq!(results[4].status.as_ref().unwrap(), &BAD_NODE_ID_UNKNOWN);
     }
 
-    // read index range
 
+    // OTHER POTENTIAL TESTS
+
+    // read index range
     // distinguish between read and user read
     // test max_age
     // test timestamps to return Server, Source, None, Both
@@ -169,8 +171,9 @@ fn write_test() {
     // 6. a non existent variable
     assert_eq!(results[5], BAD_NODE_ID_UNKNOWN);
 
-    // write index range
+    // OTHER POTENTIAL TESTS
 
+    // write index range
     // distinguish between write and user write
     // test max_age
 }
