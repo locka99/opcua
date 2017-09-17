@@ -207,10 +207,10 @@ impl Base {
         // Mandatory attributes
         let mut attributes_to_add = vec![
             (AttributeId::NodeClass, Variant::Int32(node_class as Int32)),
-            (AttributeId::NodeId, Variant::new_node_id(node_id.clone())),
-            (AttributeId::DisplayName, Variant::new_localized_text(LocalizedText::new("", display_name))),
-            (AttributeId::BrowseName, Variant::new_qualified_name(QualifiedName::new(0, browse_name))),
-            (AttributeId::Description, Variant::new_localized_text(LocalizedText::new("", description))),
+            (AttributeId::NodeId, Variant::new(node_id.clone())),
+            (AttributeId::DisplayName, Variant::new(LocalizedText::new("", display_name))),
+            (AttributeId::BrowseName, Variant::new(QualifiedName::new(0, browse_name))),
+            (AttributeId::Description, Variant::new(LocalizedText::new("", description))),
             (AttributeId::WriteMask, Variant::UInt32(0)),
             (AttributeId::UserWriteMask, Variant::UInt32(0)),
         ];

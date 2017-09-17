@@ -21,7 +21,7 @@ impl ReferenceType {
         ];
         // Optional
         if let Some(inverse_name) = inverse_name {
-            attributes.push((AttributeId::InverseName, Variant::new_localized_text(inverse_name)));
+            attributes.push((AttributeId::InverseName, Variant::new(inverse_name)));
         }
         ReferenceType {
             base: Base::new(NodeClass::ReferenceType, node_id, browse_name, display_name, description, attributes),

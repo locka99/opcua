@@ -1,4 +1,5 @@
 use std::io::{Read, Write};
+use std::convert::Into;
 
 use encoding::*;
 use constants;
@@ -17,6 +18,93 @@ const ARRAY_VALUES_BIT: u8 = 1 << 7;
 pub struct MultiDimensionArray {
     pub values: Vec<Variant>,
     pub dimensions: Vec<Int32>
+}
+
+impl Into<Variant> for Boolean {
+    fn into(self) -> Variant { Variant::Boolean(self) }
+}
+
+impl Into<Variant> for Byte {
+    fn into(self) -> Variant { Variant::Byte(self) }
+}
+
+impl Into<Variant> for SByte {
+    fn into(self) -> Variant { Variant::SByte(self) }
+}
+
+impl Into<Variant> for Int16 {
+    fn into(self) -> Variant { Variant::Int16(self) }
+}
+
+impl Into<Variant> for UInt16 {
+    fn into(self) -> Variant { Variant::UInt16(self) }
+}
+
+impl Into<Variant> for Int32 {
+    fn into(self) -> Variant { Variant::Int32(self) }
+}
+
+impl Into<Variant> for UInt32 {
+    fn into(self) -> Variant { Variant::UInt32(self) }
+}
+
+impl Into<Variant> for Int64 {
+    fn into(self) -> Variant { Variant::Int64(self) }
+}
+
+impl Into<Variant> for UInt64 {
+    fn into(self) -> Variant { Variant::UInt64(self) }
+}
+
+impl Into<Variant> for Float {
+    fn into(self) -> Variant { Variant::Float(self) }
+}
+
+impl Into<Variant> for Double {
+    fn into(self) -> Variant { Variant::Double(self) }
+}
+
+impl Into<Variant> for UAString {
+    fn into(self) -> Variant { Variant::String(self) }
+}
+
+impl Into<Variant> for DateTime {
+    fn into(self) -> Variant { Variant::DateTime(self) }
+}
+
+impl Into<Variant> for Guid {
+    fn into(self) -> Variant { Variant::Guid(self) }
+}
+
+impl Into<Variant> for StatusCode {
+    fn into(self) -> Variant { Variant::StatusCode(self) }
+}
+impl Into<Variant> for ByteString {
+    fn into(self) -> Variant { Variant::ByteString(self) }
+}
+
+impl Into<Variant> for QualifiedName {
+    fn into(self) -> Variant { Variant::QualifiedName(Box::new(self)) }
+}
+
+impl Into<Variant> for LocalizedText {
+    fn into(self) -> Variant { Variant::LocalizedText(Box::new(self)) }
+}
+
+impl Into<Variant> for NodeId {
+    fn into(self) -> Variant { Variant::NodeId(Box::new(self)) }
+}
+
+impl Into<Variant> for ExpandedNodeId {
+    fn into(self) -> Variant { Variant::ExpandedNodeId(Box::new(self)) }
+}
+
+impl Into<Variant> for ExtensionObject {
+    fn into(self) -> Variant { Variant::ExtensionObject(Box::new(self)) }
+}
+
+impl Into<Variant> for DataValue {
+    fn into(self) -> Variant { Variant::DataValue(Box::new(self)) }
 }
 
 /// A Variant holds all primitive types, including single and multi dimensional arrays and
@@ -262,24 +350,8 @@ impl BinaryEncoder<Variant> for Variant {
 }
 
 impl Variant {
-    pub fn new_node_id(node_id: NodeId) -> Variant {
-        Variant::NodeId(Box::new(node_id))
-    }
-
-    pub fn new_expanded_node_id(expanded_node_id: ExpandedNodeId) -> Variant {
-        Variant::ExpandedNodeId(Box::new(expanded_node_id))
-    }
-
-    pub fn new_qualified_name(qualified_name: QualifiedName) -> Variant {
-        Variant::QualifiedName(Box::new(qualified_name))
-    }
-
-    pub fn new_localized_text(localized_text: LocalizedText) -> Variant {
-        Variant::LocalizedText(Box::new(localized_text))
-    }
-
-    pub fn new_extension_object(extension_object: ExtensionObject) -> Variant {
-        Variant::ExtensionObject(Box::new(extension_object))
+    pub fn new<T>(value: T) -> Variant where T:'static + Into<Variant> {
+        value.into()
     }
 
     /// Test the flag (convenience method)
@@ -360,52 +432,52 @@ impl Variant {
     fn decode_variant_value<S: Read>(stream: &mut S, encoding_mask: Byte) -> EncodingResult<Self> {
         let result = if encoding_mask == 0 {
             Variant::Empty
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Boolean) {
-            Variant::Boolean(Boolean::decode(stream)?)
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::SByte) {
-            Variant::SByte(SByte::decode(stream)?)
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Byte) {
-            Variant::Byte(Byte::decode(stream)?)
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Int16) {
-            Variant::Int16(Int16::decode(stream)?)
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::UInt16) {
-            Variant::UInt16(UInt16::decode(stream)?)
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Int32) {
-            Variant::Int32(Int32::decode(stream)?)
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::UInt32) {
-            Variant::UInt32(UInt32::decode(stream)?)
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Int64) {
-            Variant::Int64(Int64::decode(stream)?)
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::UInt64) {
-            Variant::UInt64(UInt64::decode(stream)?)
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Float) {
-            Variant::Float(Float::decode(stream)?)
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Double) {
-            Variant::Double(Double::decode(stream)?)
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::String) {
-            Variant::String(UAString::decode(stream)?)
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::DateTime) {
-            Variant::DateTime(DateTime::decode(stream)?)
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::Guid) {
-            Variant::Guid(Guid::decode(stream)?)
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::ByteString) {
-            Variant::ByteString(ByteString::decode(stream)?)
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::XmlElement) {
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Boolean) {
+            Self::new(Boolean::decode(stream)?)
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::SByte) {
+            Self::new(SByte::decode(stream)?)
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Byte) {
+            Self::new(Byte::decode(stream)?)
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Int16) {
+            Self::new(Int16::decode(stream)?)
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::UInt16) {
+            Self::new(UInt16::decode(stream)?)
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Int32) {
+            Self::new(Int32::decode(stream)?)
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::UInt32) {
+            Self::new(UInt32::decode(stream)?)
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Int64) {
+            Self::new(Int64::decode(stream)?)
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::UInt64) {
+            Self::new(UInt64::decode(stream)?)
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Float) {
+            Self::new(Float::decode(stream)?)
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Double) {
+            Self::new(Double::decode(stream)?)
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::String) {
+            Self::new(UAString::decode(stream)?)
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::DateTime) {
+            Self::new(DateTime::decode(stream)?)
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Guid) {
+            Self::new(Guid::decode(stream)?)
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::ByteString) {
+            Self::new(ByteString::decode(stream)?)
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::XmlElement) {
             Variant::XmlElement(XmlElement::decode(stream)?)
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::NodeId) {
-            Variant::new_node_id(NodeId::decode(stream)?)
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::ExpandedNodeId) {
-            Variant::new_expanded_node_id(ExpandedNodeId::decode(stream)?)
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::StatusCode) {
-            Variant::StatusCode(StatusCode::decode(stream)?)
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::QualifiedName) {
-            Variant::new_qualified_name(QualifiedName::decode(stream)?)
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::LocalizedText) {
-            Variant::new_localized_text(LocalizedText::decode(stream)?)
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::NodeId) {
+            Self::new(NodeId::decode(stream)?)
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::ExpandedNodeId) {
+            Self::new(ExpandedNodeId::decode(stream)?)
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::StatusCode) {
+            Self::new(StatusCode::decode(stream)?)
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::QualifiedName) {
+            Self::new(QualifiedName::decode(stream)?)
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::LocalizedText) {
+            Self::new(LocalizedText::decode(stream)?)
         } else if encoding_mask == 22 {
-            Variant::ExtensionObject(Box::new(ExtensionObject::decode(stream)?))
-        } else if Variant::test_encoding_flag(encoding_mask, DataTypeId::DataValue) {
-            Variant::DataValue(Box::new(DataValue::decode(stream)?))
+            Self::new(ExtensionObject::decode(stream)?)
+        } else if Self::test_encoding_flag(encoding_mask, DataTypeId::DataValue) {
+            Self::new(DataValue::decode(stream)?)
         } else {
             Variant::Empty
         };
