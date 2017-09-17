@@ -3,7 +3,7 @@ use std::io::{Read, Write};
 use opcua_types::*;
 use opcua_types::constants;
 
-use crypto::{SecurityPolicy, X509};
+use crypto::{SecurityPolicy, X509, Thumbprint};
 
 /// Holds the security header associated with the chunk. Secure channel requests use an asymmetric
 /// security header, regular messages use a symmetric security header.
@@ -93,7 +93,7 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
 
         // validate receiver_certificate_thumbprint_length == 20
         let thumbprint_len = if receiver_certificate_thumbprint.value.is_some() { receiver_certificate_thumbprint.value.as_ref().unwrap().len() } else { 0 };
-        if thumbprint_len > 0 && thumbprint_len != 20 {
+        if thumbprint_len > 0 && thumbprint_len != Thumbprint::THUMBPRINT_SIZE {
             error!("Receiver certificate thumbprint is not 20 bytes long, {} bytes", receiver_certificate_thumbprint.value.as_ref().unwrap().len());
             return Err(BAD_DECODING_ERROR);
         }

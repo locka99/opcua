@@ -101,7 +101,7 @@ impl Variable {
         let mut result = Variable {
             base: Base::new(NodeClass::Variable, node_id, browse_name, display_name, description, attributes),
         };
-        result.base.set_attribute(AttributeId::Value, value);
+        let _ = result.base.set_attribute(AttributeId::Value, value);
         result
     }
 
@@ -129,8 +129,8 @@ impl Variable {
     /// A value of 0 in any dimension means length of the dimension is variable.
     pub fn set_array_dimensions(&mut self, dimensions: &[UInt32]) {
         let now = DateTime::now();
-        self.base.set_attribute_value(AttributeId::ValueRank, Variant::Int32(dimensions.len() as Int32), &now, &now);
-        self.base.set_attribute_value(AttributeId::ArrayDimensions, Variant::new_u32_array(dimensions), &now, &now);
+        let _ = self.base.set_attribute_value(AttributeId::ValueRank, Variant::Int32(dimensions.len() as Int32), &now, &now);
+        let _ = self.base.set_attribute_value(AttributeId::ArrayDimensions, Variant::new_u32_array(dimensions), &now, &now);
     }
 
     /// Sets the minimum sampling interval
@@ -140,7 +140,7 @@ impl Variable {
     /// The value 0 means server is to monitor the value continuously. The value -1 means indeterminate.
     pub fn set_minimum_sampling_interval(&mut self, minimum_sampling_interval: Int32) {
         let now = DateTime::now();
-        self.base.set_attribute_value(AttributeId::MinimumSamplingInterval, Variant::Int32(minimum_sampling_interval), &now, &now);
+        let _ = self.base.set_attribute_value(AttributeId::MinimumSamplingInterval, Variant::Int32(minimum_sampling_interval), &now, &now);
     }
 
     /// Sets the variables value directly, updating the timestamp
@@ -168,7 +168,7 @@ impl Variable {
     }
 
     pub fn set_access_level(&mut self, access_level: Byte) {
-        self.base.set_attribute(AttributeId::AccessLevel, DataValue::new_byte(access_level));
+        let _ = self.base.set_attribute(AttributeId::AccessLevel, DataValue::new_byte(access_level));
     }
 
     pub fn access_level(&self) -> Byte {
@@ -184,7 +184,7 @@ impl Variable {
     }
 
     pub fn set_user_access_level(&mut self, user_access_level: Byte) {
-        self.base.set_attribute(AttributeId::UserAccessLevel, DataValue::new_byte(user_access_level));
+        let _ = self.base.set_attribute(AttributeId::UserAccessLevel, DataValue::new_byte(user_access_level));
     }
 
     pub fn user_access_level(&self) -> Byte {

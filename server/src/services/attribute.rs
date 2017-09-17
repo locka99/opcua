@@ -163,8 +163,12 @@ impl AttributeService {
                     BAD_WRITE_NOT_SUPPORTED
                 } else {
                     let node = node.as_mut_node();
-                    node.set_attribute(attribute_id, node_to_write.value.clone());
-                    GOOD
+                    let result = node.set_attribute(attribute_id, node_to_write.value.clone());
+                    if result.is_err() {
+                        result.unwrap_err()
+                    } else {
+                        GOOD
+                    }
                 }
             } else {
                 warn!("Attribute id {} is invalid", node_to_write.attribute_id);

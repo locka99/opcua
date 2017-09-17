@@ -103,10 +103,7 @@ fn set_chunk_sequence_number(chunk: &mut MessageChunk, secure_channel: &SecureCh
 }
 
 fn make_large_read_response() -> SupportedMessage {
-    let mut results = Vec::new();
-    for i in 0..10000 {
-        results.push(DataValue::new(Variant::UInt32(i)));
-    }
+    let results = (0..10000).map(|i| DataValue::new(Variant::UInt32(i)) ).collect();
     SupportedMessage::ReadResponse(ReadResponse {
         response_header: ResponseHeader::null(),
         results: Some(results),
