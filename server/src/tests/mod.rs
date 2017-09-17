@@ -28,9 +28,9 @@ fn add_sample_vars_to_address_space(address_space: &mut AddressSpace) {
 
     // Add some variables to our sample folder
     let vars = vec![
-        Variable::new(&NodeId::new_string(1, "v1"), "v1", "v1", "", DataTypeId::Int32, DataValue::new(Variant::Int32(30))),
-        Variable::new(&NodeId::new_numeric(2, 300), "v2", "v2", "", DataTypeId::Boolean, DataValue::new(Variant::Boolean(true))),
-        Variable::new(&NodeId::new_string(1, "v3"), "v3", "v3", "", DataTypeId::String, DataValue::new(Variant::String(UAString::from_str("Hello world"))))
+        Variable::new(&NodeId::new_string(1, "v1"), "v1", "v1", "", 30 as Int32),
+        Variable::new(&NodeId::new_numeric(2, 300), "v2", "v2", "", true),
+        Variable::new(&NodeId::new_string(1, "v3"), "v3", "v3", "", UAString::from_str("Hello world"))
     ];
     let _ = address_space.add_variables(vars, &sample_folder_id);
 }

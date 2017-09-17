@@ -205,7 +205,7 @@ fn browse_next() {
             let mut address_space = server_state.address_space.lock().unwrap();
             let var_name = "xxxx";
             let node_id = NodeId::new_string(1, var_name);
-            let var = Variable::new_i32(&node_id, var_name, var_name, "", 200);
+            let var = Variable::new(&node_id, var_name, var_name, "", 200 as Int32);
             let _ = address_space.add_variable(var, &parent_node_id);
         }
 

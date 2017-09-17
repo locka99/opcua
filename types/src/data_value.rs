@@ -149,56 +149,16 @@ impl BinaryEncoder<DataValue> for DataValue {
 }
 
 impl DataValue {
-    pub fn new(value: Variant) -> DataValue {
+    pub fn new<T>(value: T) -> DataValue where T: 'static + Into<Variant> {
         let now = DateTime::now();
         DataValue {
-            value: Some(value),
+            value: Some(Variant::new(value)),
             status: Some(GOOD),
             source_timestamp: Some(now.clone()),
             source_picoseconds: Some(0),
             server_timestamp: Some(now.clone()),
             server_picoseconds: Some(0),
         }
-    }
-
-    pub fn new_bool(value: Boolean) -> DataValue {
-        Self::new(Variant::Boolean(value))
-    }
-
-    pub fn new_byte(value: Byte) -> DataValue {
-        Self::new(Variant::Byte(value))
-    }
-
-    pub fn new_i8(value: SByte) -> DataValue {
-        Self::new(Variant::SByte(value))
-    }
-
-    pub fn new_u16(value: UInt16) -> DataValue {
-        Self::new(Variant::UInt16(value))
-    }
-
-    pub fn new_i16(value: Int16) -> DataValue {
-        Self::new(Variant::Int16(value))
-    }
-
-    pub fn new_u32(value: UInt32) -> DataValue {
-        Self::new(Variant::UInt32(value))
-    }
-
-    pub fn new_i32(value: Int32) -> DataValue {
-        Self::new(Variant::Int32(value))
-    }
-
-    pub fn new_f64(value: Double) -> DataValue {
-        Self::new(Variant::Double(value))
-    }
-
-    pub fn new_f32(value: Float) -> DataValue {
-        Self::new(Variant::Float(value))
-    }
-
-    pub fn new_string(value: UAString) -> DataValue {
-        Self::new(Variant::String(value))
     }
 
     pub fn null() -> DataValue {

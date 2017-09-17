@@ -193,7 +193,7 @@ fn extension_object() {
     let eo = ExtensionObject::null();
     serialize_test(eo);
 
-    let eo = ExtensionObject {
+    let eo = ExtensionObject { 
         node_id: ObjectId::CreateSessionResponse_Encoding_DefaultBinary.as_node_id(),
         body: ExtensionObjectEncoding::ByteString(ByteString::from_bytes(b"hello world")),
     };

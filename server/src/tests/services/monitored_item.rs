@@ -8,7 +8,7 @@ fn test_var_node_id() -> NodeId {
 
 fn make_address_space() -> AddressSpace {
     let mut address_space = AddressSpace::new();
-    let _ = address_space.add_variable(Variable::new(&NodeId::new_numeric(1, 1), "test", "test", "", DataTypeId::UInt32, DataValue::new(Variant::UInt32(0))), &AddressSpace::objects_folder_id());
+    let _ = address_space.add_variable(Variable::new(&NodeId::new_numeric(1, 1), "test", "test", "", 0 as UInt32), &AddressSpace::objects_folder_id());
     address_space
 }
 
@@ -204,14 +204,14 @@ fn populate_monitored_item(discard_oldest: bool) -> MonitoredItem {
     for i in 0..5 {
         monitored_item.enqueue_notification_message(MonitoredItemNotification {
             client_handle: client_handle,
-            value: DataValue::new(Variant::Int32(i as Int32)),
+            value: DataValue::new(i as Int32),
         });
         assert!(!monitored_item.queue_overflow);
     }
 
     monitored_item.enqueue_notification_message(MonitoredItemNotification {
         client_handle: client_handle,
-        value: DataValue::new(Variant::Int32(10 as Int32)),
+        value: DataValue::new(10 as Int32),
     });
     assert!(monitored_item.queue_overflow);
     monitored_item

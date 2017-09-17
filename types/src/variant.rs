@@ -68,6 +68,10 @@ impl Into<Variant> for UAString {
     fn into(self) -> Variant { Variant::String(self) }
 }
 
+impl Into<Variant> for String {
+    fn into(self) -> Variant { Variant::String(UAString::from_str(&self)) }
+}
+
 impl Into<Variant> for DateTime {
     fn into(self) -> Variant { Variant::DateTime(self) }
 }
@@ -545,6 +549,36 @@ impl Variant {
             &Variant::Double(value) => Some(value),
             _ => {
                 None
+            }
+        }
+    }
+
+    pub fn data_type(&self) -> DataTypeId {
+        match self {
+            &Variant::Boolean(_) => DataTypeId::Boolean,
+            &Variant::SByte(_) => DataTypeId::SByte,
+            &Variant::Byte(_) => DataTypeId::Byte,
+            &Variant::Int16(_) => DataTypeId::Int16,
+            &Variant::UInt16(_) => DataTypeId::UInt16,
+            &Variant::Int32(_) =>  DataTypeId::Int32,
+            &Variant::UInt32(_) =>  DataTypeId::UInt32,
+            &Variant::Int64(_) =>  DataTypeId::Int64,
+            &Variant::UInt64(_) =>  DataTypeId::UInt64,
+            &Variant::Float(_) =>  DataTypeId::Float,
+            &Variant::Double(_) =>  DataTypeId::Double,
+            &Variant::String(_) =>  DataTypeId::String,
+            &Variant::DateTime(_) =>  DataTypeId::DateTime,
+            &Variant::Guid(_) =>  DataTypeId::Guid,
+            &Variant::ByteString(_) =>  DataTypeId::ByteString,
+            &Variant::XmlElement(_) =>  DataTypeId::XmlElement,
+            &Variant::NodeId(_) =>  DataTypeId::NodeId,
+            &Variant::ExpandedNodeId(_) =>  DataTypeId::ExpandedNodeId,
+            &Variant::StatusCode(_) =>  DataTypeId::StatusCode,
+            &Variant::QualifiedName(_) =>  DataTypeId::QualifiedName,
+            &Variant::LocalizedText(_) =>  DataTypeId::LocalizedText,
+            &Variant::DataValue(_) => DataTypeId::DataValue,
+            _ => {
+                panic!("No datatype for this type");
             }
         }
     }

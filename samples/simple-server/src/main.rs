@@ -49,10 +49,10 @@ fn add_example_variables(server: &mut Server) -> Vec<PollingAction> {
             .unwrap();
 
         // Add some variables to our sample folder. Values will be overwritten by the timer
-        let vars = vec![Variable::new_i32(&v1_node, "v1", "v1", "v1 variable", 0),
-                        Variable::new_bool(&v2_node, "v2", "v2", "v2 variable", false),
-                        Variable::new_string(&v3_node, "v3", "v3", "v3 variable", ""),
-                        Variable::new_double(&v4_node, "v4", "v4", "v4 variable", 0f64)];
+        let vars = vec![Variable::new(&v1_node, "v1", "v1", "v1 variable", 0 as Int32),
+                        Variable::new(&v2_node, "v2", "v2", "v2 variable", false),
+                        Variable::new(&v3_node, "v3", "v3", "v3 variable", UAString::from_str("")),
+                        Variable::new(&v4_node, "v4", "v4", "v4 variable", 0f64)];
         let _ = address_space.add_variables(vars, &sample_folder_id);
     }
 
@@ -85,7 +85,7 @@ fn add_example_variables(server: &mut Server) -> Vec<PollingAction> {
             let mut counter = 0;
             let getter = AttrFnGetter::new(move |_, _| -> Option<DataValue> {
                 counter += 1;
-                Some(DataValue::new_string(UAString::from_str(&format!("Hello World times {}", counter))))
+                Some(DataValue::new(UAString::from_str(&format!("Hello World times {}", counter))))
             });
             v.set_value_getter(Arc::new(Mutex::new(getter)));
         }
@@ -97,7 +97,7 @@ fn add_example_variables(server: &mut Server) -> Vec<PollingAction> {
             let start_time = UTC::now();
             let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Option<DataValue> {
                 let moment = (UTC::now().signed_duration_since(start_time).num_milliseconds() % 10000) as f64 / 10000.0;
-                Some(DataValue::new_f64((2.0 * consts::PI * moment).sin()))
+                Some(DataValue::new((2.0 * consts::PI * moment).sin()))
             });
             v.set_value_getter(Arc::new(Mutex::new(getter)));
         }

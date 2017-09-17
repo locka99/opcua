@@ -24,7 +24,7 @@ fn read_test() {
         let (_, node_ids) = add_many_vars_to_address_space(&mut address_space, 10);
         // Remove read access to [3] for a test below
         let node = address_space.find_node_mut(&node_ids[3]).unwrap();
-        let r = node.as_mut_node().set_attribute(AttributeId::AccessLevel, DataValue::new_byte(0));
+        let r = node.as_mut_node().set_attribute(AttributeId::AccessLevel, DataValue::new(0 as Byte));
         assert!(r.is_ok());
         node_ids
     };
@@ -112,18 +112,18 @@ fn write_test() {
             match i {
                 1 => {
                     // Add IsAbstract to WriteMask
-                    let _ = node.as_mut_node().set_attribute(AttributeId::WriteMask, DataValue::new_u32(write_mask::IS_ABSTRACT)).unwrap();
+                    let _ = node.as_mut_node().set_attribute(AttributeId::WriteMask, DataValue::new(write_mask::IS_ABSTRACT as UInt32)).unwrap();
                 }
                 2 => {
                     // No write access
-                    let _ = node.as_mut_node().set_attribute(AttributeId::AccessLevel, DataValue::new_byte(0)).unwrap();
+                    let _ = node.as_mut_node().set_attribute(AttributeId::AccessLevel, DataValue::new(0 as Byte)).unwrap();
                 },
                 6 => {
                     node.as_mut_node().set_write_mask(write_mask::ACCESS_LEVEL);
                 }
                 _ => {
                     // Write access
-                    let _ = node.as_mut_node().set_attribute(AttributeId::AccessLevel, DataValue::new_byte(access_level::CURRENT_WRITE)).unwrap();
+                    let _ = node.as_mut_node().set_attribute(AttributeId::AccessLevel, DataValue::new(access_level::CURRENT_WRITE as Byte)).unwrap();
                 }
             }
         }
@@ -140,19 +140,19 @@ fn write_test() {
     // This is a cross section of variables and other kinds of nodes that we want to write to
     let nodes_to_write = vec![
         // 1. a variable value
-        write_value(&node_ids[0], AttributeId::Value, DataValue::new_i32(100)),
+        write_value(&node_ids[0], AttributeId::Value, DataValue::new(100 as Int32)),
         // 2. a variable with another attribute
-        write_value(&node_ids[1], AttributeId::IsAbstract, DataValue::new_bool(true)),
+        write_value(&node_ids[1], AttributeId::IsAbstract, DataValue::new(true)),
         // 3. a variable value which has no write access
-        write_value(&node_ids[2], AttributeId::Value, DataValue::new_i32(200)),
+        write_value(&node_ids[2], AttributeId::Value, DataValue::new(200 as Int32)),
         // 4. a node of some kind other than variable
-        write_value(&ReferenceTypeId::HasEncoding.as_node_id(), AttributeId::IsAbstract, DataValue::new_bool(false)),
+        write_value(&ReferenceTypeId::HasEncoding.as_node_id(), AttributeId::IsAbstract, DataValue::new(false)),
         // 5. a node with some kind other than variable with no write mask
-        write_value(&ReferenceTypeId::HasChild.as_node_id(), AttributeId::IsAbstract, DataValue::new_bool(false)),
+        write_value(&ReferenceTypeId::HasChild.as_node_id(), AttributeId::IsAbstract, DataValue::new(false)),
         // 6. a non existent variable
-        write_value(&NodeId::new_string(2, "vxxx"), AttributeId::Value, DataValue::new_i32(100)),
+        write_value(&NodeId::new_string(2, "vxxx"), AttributeId::Value, DataValue::new(100 as Int32)),
         // 7. wrong type for attribute
-        write_value(&node_ids[6], AttributeId::AccessLevel, DataValue::new_i8(-1)),
+        write_value(&node_ids[6], AttributeId::AccessLevel, DataValue::new(-1 as SByte)),
     ];
 
     let request = WriteRequest {

@@ -17,7 +17,7 @@ node_impl!(Variable);
 
 impl Variable {
     pub fn new_node(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: DataValue) -> NodeType {
-        NodeType::Variable(Variable::new(node_id, browse_name, display_name, description, data_type, value))
+        NodeType::Variable(Variable::new_data_value(node_id, browse_name, display_name, description, data_type, value))
     }
 
     pub fn new_array_node(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: DataValue, dimensions: &[UInt32]) -> NodeType {
@@ -25,61 +25,19 @@ impl Variable {
     }
 
     pub fn new_array(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: DataValue, dimensions: &[UInt32]) -> Variable {
-        let mut variable = Variable::new(node_id, browse_name, display_name, description, data_type, value);
+        let mut variable = Variable::new_data_value(node_id, browse_name, display_name, description, data_type, value);
         variable.set_array_dimensions(dimensions);
         variable
     }
 
-    pub fn new_bool(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, value: Boolean) -> Variable {
-        Variable::new(node_id, browse_name, display_name, description, DataTypeId::Boolean, DataValue::new(Variant::Boolean(value)))
-    }
-
-    pub fn new_byte(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, value: Byte) -> Variable {
-        Variable::new(node_id, browse_name, display_name, description, DataTypeId::Byte, DataValue::new(Variant::Byte(value)))
-    }
-
-    pub fn new_sbyte(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, value: SByte) -> Variable {
-        Variable::new(node_id, browse_name, display_name, description, DataTypeId::SByte, DataValue::new(Variant::SByte(value)))
-    }
-
-    pub fn new_i16(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, value: Int16) -> Variable {
-        Variable::new(node_id, browse_name, display_name, description, DataTypeId::Int16, DataValue::new(Variant::Int16(value)))
-    }
-
-    pub fn new_u16(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, value: UInt16) -> Variable {
-        Variable::new(node_id, browse_name, display_name, description, DataTypeId::UInt16, DataValue::new(Variant::UInt16(value)))
-    }
-
-    pub fn new_i32(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, value: Int32) -> Variable {
-        Variable::new(node_id, browse_name, display_name, description, DataTypeId::Int32, DataValue::new(Variant::Int32(value)))
-    }
-
-    pub fn new_u32(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, value: UInt32) -> Variable {
-        Variable::new(node_id, browse_name, display_name, description, DataTypeId::UInt32, DataValue::new(Variant::UInt32(value)))
-    }
-
-    pub fn new_i64(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, value: Int64) -> Variable {
-        Variable::new(node_id, browse_name, display_name, description, DataTypeId::Int64, DataValue::new(Variant::Int64(value)))
-    }
-
-    pub fn new_u64(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, value: UInt64) -> Variable {
-        Variable::new(node_id, browse_name, display_name, description, DataTypeId::UInt64, DataValue::new(Variant::UInt64(value)))
-    }
-
-    pub fn new_float(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, value: Float) -> Variable {
-        Variable::new(node_id, browse_name, display_name, description, DataTypeId::Float, DataValue::new(Variant::Float(value)))
-    }
-
-    pub fn new_double(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, value: Double) -> Variable {
-        Variable::new(node_id, browse_name, display_name, description, DataTypeId::Double, DataValue::new(Variant::Double(value)))
-    }
-
-    pub fn new_string(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, value: &str) -> Variable {
-        Variable::new(node_id, browse_name, display_name, description, DataTypeId::String, DataValue::new(Variant::String(UAString::from_str(value))))
+    pub fn new<T>(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, value: T) -> Variable where T: 'static + Into<Variant> {
+        let value = DataValue::new(value);
+        let data_type = value.value.as_ref().unwrap().data_type();
+        Variable::new_data_value(node_id, browse_name, display_name, description, data_type, value)
     }
 
     /// Constructs a new variable with the specified id, name, type and value
-    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: DataValue) -> Variable {
+    pub fn new_data_value(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: DataValue) -> Variable {
         // Mandatory
         let historizing = false;
         let access_level = access_level::CURRENT_READ;
@@ -168,7 +126,7 @@ impl Variable {
     }
 
     pub fn set_access_level(&mut self, access_level: Byte) {
-        let _ = self.base.set_attribute(AttributeId::AccessLevel, DataValue::new_byte(access_level));
+        let _ = self.base.set_attribute(AttributeId::AccessLevel, DataValue::new(access_level));
     }
 
     pub fn access_level(&self) -> Byte {
@@ -184,7 +142,7 @@ impl Variable {
     }
 
     pub fn set_user_access_level(&mut self, user_access_level: Byte) {
-        let _ = self.base.set_attribute(AttributeId::UserAccessLevel, DataValue::new_byte(user_access_level));
+        let _ = self.base.set_attribute(AttributeId::UserAccessLevel, DataValue::new(user_access_level));
     }
 
     pub fn user_access_level(&self) -> Byte {
