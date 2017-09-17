@@ -179,7 +179,7 @@ impl fmt::Display for SecurityPolicy {
 
 impl FromStr for SecurityPolicy {
     type Err = ();
-    
+
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
             SECURITY_POLICY_NONE => SecurityPolicy::None,

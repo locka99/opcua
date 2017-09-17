@@ -166,7 +166,7 @@ impl Node for Base {
                                     _ => {
                                         found_non_u32_value = true;
                                         break;
-                                    },
+                                    }
                                 }
                             }
                             if found_non_u32_value {
@@ -246,7 +246,7 @@ impl Base {
         self.attribute_setters.insert(attribute_id, setter);
     }
 
-    pub fn set_attribute_value(&mut self, attribute_id: AttributeId, value: Variant, server_timestamp: &DateTime, source_timestamp: &DateTime) -> Result<(), StatusCode>{
+    pub fn set_attribute_value(&mut self, attribute_id: AttributeId, value: Variant, server_timestamp: &DateTime, source_timestamp: &DateTime) -> Result<(), StatusCode> {
         self.set_attribute(attribute_id, DataValue {
             value: Some(value),
             status: Some(GOOD),

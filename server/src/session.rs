@@ -123,8 +123,7 @@ impl Session {
         });
         if let Some(continuation_point) = continuation_point {
             Some(continuation_point.clone())
-        }
-        else {
+        } else {
             None
         }
     }

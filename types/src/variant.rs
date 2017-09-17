@@ -83,6 +83,7 @@ impl Into<Variant> for Guid {
 impl Into<Variant> for StatusCode {
     fn into(self) -> Variant { Variant::StatusCode(self) }
 }
+
 impl Into<Variant> for ByteString {
     fn into(self) -> Variant { Variant::ByteString(self) }
 }
@@ -354,7 +355,7 @@ impl BinaryEncoder<Variant> for Variant {
 }
 
 impl Variant {
-    pub fn new<T>(value: T) -> Variant where T:'static + Into<Variant> {
+    pub fn new<T>(value: T) -> Variant where T: 'static + Into<Variant> {
         value.into()
     }
 
@@ -560,22 +561,22 @@ impl Variant {
             &Variant::Byte(_) => DataTypeId::Byte,
             &Variant::Int16(_) => DataTypeId::Int16,
             &Variant::UInt16(_) => DataTypeId::UInt16,
-            &Variant::Int32(_) =>  DataTypeId::Int32,
-            &Variant::UInt32(_) =>  DataTypeId::UInt32,
-            &Variant::Int64(_) =>  DataTypeId::Int64,
-            &Variant::UInt64(_) =>  DataTypeId::UInt64,
-            &Variant::Float(_) =>  DataTypeId::Float,
-            &Variant::Double(_) =>  DataTypeId::Double,
-            &Variant::String(_) =>  DataTypeId::String,
-            &Variant::DateTime(_) =>  DataTypeId::DateTime,
-            &Variant::Guid(_) =>  DataTypeId::Guid,
-            &Variant::ByteString(_) =>  DataTypeId::ByteString,
-            &Variant::XmlElement(_) =>  DataTypeId::XmlElement,
-            &Variant::NodeId(_) =>  DataTypeId::NodeId,
-            &Variant::ExpandedNodeId(_) =>  DataTypeId::ExpandedNodeId,
-            &Variant::StatusCode(_) =>  DataTypeId::StatusCode,
-            &Variant::QualifiedName(_) =>  DataTypeId::QualifiedName,
-            &Variant::LocalizedText(_) =>  DataTypeId::LocalizedText,
+            &Variant::Int32(_) => DataTypeId::Int32,
+            &Variant::UInt32(_) => DataTypeId::UInt32,
+            &Variant::Int64(_) => DataTypeId::Int64,
+            &Variant::UInt64(_) => DataTypeId::UInt64,
+            &Variant::Float(_) => DataTypeId::Float,
+            &Variant::Double(_) => DataTypeId::Double,
+            &Variant::String(_) => DataTypeId::String,
+            &Variant::DateTime(_) => DataTypeId::DateTime,
+            &Variant::Guid(_) => DataTypeId::Guid,
+            &Variant::ByteString(_) => DataTypeId::ByteString,
+            &Variant::XmlElement(_) => DataTypeId::XmlElement,
+            &Variant::NodeId(_) => DataTypeId::NodeId,
+            &Variant::ExpandedNodeId(_) => DataTypeId::ExpandedNodeId,
+            &Variant::StatusCode(_) => DataTypeId::StatusCode,
+            &Variant::QualifiedName(_) => DataTypeId::QualifiedName,
+            &Variant::LocalizedText(_) => DataTypeId::LocalizedText,
             &Variant::DataValue(_) => DataTypeId::DataValue,
             _ => {
                 panic!("No datatype for this type");

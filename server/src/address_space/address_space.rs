@@ -302,7 +302,7 @@ impl AddressSpace {
                     next_matching_nodes.append(&mut result.unwrap());
                 }
             }
-            
+
             matching_nodes.clear();
             matching_nodes.append(&mut next_matching_nodes);
         }
@@ -315,8 +315,7 @@ impl AddressSpace {
         let reference_filter = Some((reference_type_id, relative_path.include_subtypes));
         let references = if relative_path.is_inverse {
             self.find_references_to(node_id, reference_filter)
-        }
-        else {
+        } else {
             self.find_references_from(node_id, reference_filter)
         };
         if let Some(references) = references {
