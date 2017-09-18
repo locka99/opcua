@@ -35,13 +35,13 @@ fn parse_node_id() {
     assert_eq!(node_id.is_ok(), true);
     let node_id = node_id.unwrap();
     assert_eq!(node_id.namespace, 1);
-    assert_eq!(node_id.identifier, Identifier::String(UAString::from_str("Hello World")));
+    assert_eq!(node_id.identifier, Identifier::String(UAString::from("Hello World")));
 
     let node_id = NodeId::from_str("s=No NS this time");
     assert_eq!(node_id.is_ok(), true);
     let node_id = node_id.unwrap();
     assert_eq!(node_id.namespace, 0);
-    assert_eq!(node_id.identifier, Identifier::String(UAString::from_str("No NS this time")));
+    assert_eq!(node_id.identifier, Identifier::String(UAString::from("No NS this time")));
 
     // Guid
     let node_id = NodeId::from_str("g=72962B91-FA75-4ae6-8D28-B404DC7DAF63");

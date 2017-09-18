@@ -1,9 +1,10 @@
 use std::sync::{Arc, Mutex};
+use std::convert::Into;
 
 use opcua_types::DataTypeId;
 
 use address_space::base::Base;
-use address_space::node::{Node, NodeType};
+use address_space::node::Node;
 use address_space::{AttributeGetter, AttributeSetter};
 use address_space::access_level;
 use address_space::user_access_level;
@@ -19,21 +20,21 @@ impl Variable {
     pub fn new<T>(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, value: T) -> Variable where T: 'static + Into<Variant> {
         let value = DataValue::new(value);
         let data_type = value.value.as_ref().unwrap().data_type();
-        Variable::new_data_value(node_id, browse_name, display_name, description, data_type, value)
+        if let Some(data_type) = data_type {
+            Variable::new_data_value(node_id, browse_name, display_name, description, data_type, value)
+        } else {
+            panic!("Data type cannot be inferred from the value, use another constructor such as new_data_value")
+        }
     }
 
-    pub fn new_node(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: DataValue) -> NodeType {
-        NodeType::Variable(Variable::new_data_value(node_id, browse_name, display_name, description, data_type, value))
+    pub fn new_with_data_type<T>(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: T) -> Variable where T: 'static + Into<Variant> {
+        Variable::new_data_value(node_id, browse_name, display_name, description, data_type, DataValue::new(value))
     }
 
     pub fn new_array(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: DataValue, dimensions: &[UInt32]) -> Variable {
         let mut variable = Variable::new_data_value(node_id, browse_name, display_name, description, data_type, value);
         variable.set_array_dimensions(dimensions);
         variable
-    }
-
-    pub fn new_array_node(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: DataValue, dimensions: &[UInt32]) -> NodeType {
-        NodeType::Variable(Variable::new_array(node_id, browse_name, display_name, description, data_type, value, dimensions))
     }
 
     /// Constructs a new variable with the specified id, name, type and value

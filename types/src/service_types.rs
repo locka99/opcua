@@ -81,7 +81,7 @@ impl ServiceFault {
 impl UserTokenPolicy {
     pub fn new_anonymous() -> UserTokenPolicy {
         UserTokenPolicy {
-            policy_id: UAString::from_str("anonymous"),
+            policy_id: UAString::from("anonymous"),
             token_type: UserTokenType::Anonymous,
             issued_token_type: UAString::null(),
             issuer_endpoint_url: UAString::null(),
@@ -91,7 +91,7 @@ impl UserTokenPolicy {
 
     pub fn new_user_pass() -> UserTokenPolicy {
         UserTokenPolicy {
-            policy_id: UAString::from_str("userpass"),
+            policy_id: UAString::from("userpass"),
             token_type: UserTokenType::Username,
             issued_token_type: UAString::null(),
             issuer_endpoint_url: UAString::null(),
@@ -786,7 +786,7 @@ impl ReadValueId {
 impl AnonymousIdentityToken {
     pub fn new() -> AnonymousIdentityToken {
         AnonymousIdentityToken {
-            policy_id: UAString::from_str(profiles::SECURITY_USER_TOKEN_POLICY_ANONYMOUS)
+            policy_id: UAString::from(profiles::SECURITY_USER_TOKEN_POLICY_ANONYMOUS)
         }
     }
 }

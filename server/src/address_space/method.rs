@@ -1,5 +1,5 @@
 use address_space::base::Base;
-use address_space::node::{Node, NodeType};
+use address_space::node::Node;
 
 #[derive(Debug)]
 pub struct Method {
@@ -9,10 +9,6 @@ pub struct Method {
 node_impl!(Method);
 
 impl Method {
-    pub fn new_node(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, is_abstract: Boolean, executable: Boolean, user_executable: Boolean) -> NodeType {
-        NodeType::Method(Method::new(node_id, browse_name, display_name, description, is_abstract, executable, user_executable))
-    }
-
     pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, is_abstract: Boolean, executable: Boolean, user_executable: Boolean) -> Method {
         // Mandatory
         let attributes = vec![

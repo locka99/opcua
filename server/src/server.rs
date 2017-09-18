@@ -175,7 +175,7 @@ impl ServerState {
         }
 
         EndpointDescription {
-            endpoint_url: UAString::from_str(&endpoint.endpoint_url),
+            endpoint_url: UAString::from(endpoint.endpoint_url.as_ref()),
             server: ApplicationDescription {
                 application_uri: self.application_uri.clone(),
                 product_uri: self.product_uri.clone(),
@@ -189,7 +189,7 @@ impl ServerState {
             security_mode: endpoint.security_mode,
             security_policy_uri: endpoint.security_policy_uri.clone(),
             user_identity_tokens: Some(user_identity_tokens),
-            transport_profile_uri: UAString::from_str(profiles::TRANSPORT_PROFILE_URI_BINARY),
+            transport_profile_uri: UAString::from(profiles::TRANSPORT_PROFILE_URI_BINARY),
             security_level: 1,
         }
     }
@@ -224,8 +224,8 @@ impl Server {
 
         // Set from config
         let application_name = config.application_name.clone();
-        let application_uri = UAString::from_str(&config.application_uri);
-        let product_uri = UAString::from_str(&config.product_uri);
+        let application_uri = UAString::from(config.application_uri.as_ref());
+        let product_uri = UAString::from(config.product_uri.as_ref());
         let namespaces = vec!["http://opcfoundation.org/UA/".to_string(), "urn:OPCUA-Rust-Internal".to_string(), config.application_uri.clone()];
         let start_time = DateTime::now();
         let servers = vec![config.application_uri.clone()];
@@ -237,7 +237,7 @@ impl Server {
 
         let endpoints = config.endpoints.iter().map(|e| {
             let endpoint_url = format!("{}{}", base_endpoint, e.path);
-            let security_mode = MessageSecurityMode::from_str(&e.security_mode);
+            let security_mode = MessageSecurityMode::from(e.security_mode.as_ref());
             let security_policy_uri = SecurityPolicy::from_str(&e.security_policy).unwrap().to_uri().to_string();
             let anonymous = if let Some(anonymous) = e.anonymous.as_ref() {
                 *anonymous
@@ -247,7 +247,7 @@ impl Server {
             Endpoint {
                 name: e.name.clone(),
                 endpoint_url,
-                security_policy_uri: UAString::from_str(&security_policy_uri),
+                security_policy_uri: UAString::from(security_policy_uri.as_ref()),
                 security_mode,
                 anonymous,
                 user: e.user.clone(),
@@ -296,7 +296,7 @@ impl Server {
             product_uri,
             application_name: LocalizedText {
                 locale: UAString::null(),
-                text: UAString::from_str(&application_name),
+                text: UAString::from(application_name),
             },
             namespaces,
             servers,

@@ -103,7 +103,7 @@ impl ServerEndpoint {
         }
         // Validate the security policy and mode
         let security_policy = SecurityPolicy::from_str(&self.security_policy).unwrap();
-        let security_mode = MessageSecurityMode::from_str(&self.security_mode);
+        let security_mode = MessageSecurityMode::from(self.security_mode.as_ref());
         if security_policy == SecurityPolicy::Unknown {
             error!("Endpoint {} is invalid. Security policy \"{}\" is invalid. Valid values are None, Basic128Rsa15, Basic256, Basic256Sha256", self.name, self.security_policy);
             valid = false;

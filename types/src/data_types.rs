@@ -70,8 +70,8 @@ impl fmt::Display for MessageSecurityMode {
     }
 }
 
-impl MessageSecurityMode {
-    pub fn from_str(str: &str) -> MessageSecurityMode {
+impl<'a> From<&'a str> for MessageSecurityMode {
+    fn from(str: &'a str) -> Self {
         match str {
             MESSAGE_SECURITY_MODE_NONE => MessageSecurityMode::None,
             MESSAGE_SECURITY_MODE_SIGN => MessageSecurityMode::Sign,

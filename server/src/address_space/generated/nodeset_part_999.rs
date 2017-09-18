@@ -17,7 +17,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "EnumeratedTestType";
         let description = "A simple enumerated type used for testing.";
         let node_id = NodeId::new_numeric(0, 398);
-        let node = DataType::new_node(&node_id, browse_name, display_name, description, false);
+        let node = DataType::new(&node_id, browse_name, display_name, description, false);
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new_numeric(0, 11886), ReferenceTypeId::HasProperty);
         address_space.insert_reference(&NodeId::new_numeric(0, 29), &node_id, ReferenceTypeId::HasSubtype);
@@ -28,7 +28,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "EnumValues";
         let description = "";
         let node_id = NodeId::new_numeric(0, 11886);
-        let node = Variable::new_node(&node_id, browse_name, display_name, description, DataTypeId::from_u64(7594u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(7594u64).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new_numeric(0, 68), ReferenceTypeId::HasTypeDefinition);
         address_space.insert_reference(&node_id, &NodeId::new_numeric(0, 78), ReferenceTypeId::HasModellingRule);

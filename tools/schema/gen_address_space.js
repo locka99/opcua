@@ -84,19 +84,19 @@ use address_space::types::*;
     var nodes = ns.data["UANodeSet"];
     if (_.has(nodes, "UAObject")) {
         _.each(nodes["UAObject"], function (value) {
-            contents += insert_node(indent, "Object", value, "Object::new_node(&node_id, browse_name, display_name, description)");
+            contents += insert_node(indent, "Object", value, "Object::new(&node_id, browse_name, display_name, description)");
         });
     }
     if (_.has(nodes, "UAObjectType")) {
         _.each(nodes["UAObjectType"], function (value) {
             var is_abstract = _.has(value["$"], "IsAbstract") && value["$"]["IsAbstract"] === "true";
-            contents += insert_node(indent, "ObjectType", value, `ObjectType::new_node(&node_id, browse_name, display_name, description, ${is_abstract})`);
+            contents += insert_node(indent, "ObjectType", value, `ObjectType::new(&node_id, browse_name, display_name, description, ${is_abstract})`);
         });
     }
     if (_.has(nodes, "UADataType")) {
         _.each(nodes["UADataType"], function (value) {
             var is_abstract = _.has(value["$"], "IsAbstract") && value["$"]["IsAbstract"] === "true";
-            contents += insert_node(indent, "DataType", value, `DataType::new_node(&node_id, browse_name, display_name, description, ${is_abstract})`);
+            contents += insert_node(indent, "DataType", value, `DataType::new(&node_id, browse_name, display_name, description, ${is_abstract})`);
         });
     }
     if (_.has(nodes, "UAReferenceType")) {
@@ -104,7 +104,7 @@ use address_space::types::*;
             var is_abstract = _.has(value["$"], "IsAbstract") && value["$"]["IsAbstract"] === "true";
             var inverse_name = _.has(value, "InverseName") ? `Some(LocalizedText::new("", "${value["InverseName"][0]}"))` : "None";
             var symmetric = _.has(value["$"], "Symmetric") && value["$"]["Symmetric"] === "true";
-            contents += insert_node(indent, "DataType", value, `ReferenceType::new_node(&node_id, browse_name, display_name, description, ${inverse_name}, ${symmetric}, ${is_abstract})`);
+            contents += insert_node(indent, "DataType", value, `ReferenceType::new(&node_id, browse_name, display_name, description, ${inverse_name}, ${symmetric}, ${is_abstract})`);
         });
     }
     if (_.has(nodes, "UAVariable")) {
@@ -123,14 +123,14 @@ use address_space::types::*;
                 console.log("UAVariable has no data type???");
             }
             var data_value = "DataValue::null()";
-            contents += insert_node(indent, "Variable", value, `Variable::new_node(&node_id, browse_name, display_name, description, ${data_type}, ${data_value})`);
+            contents += insert_node(indent, "Variable", value, `Variable::new_data_value(&node_id, browse_name, display_name, description, ${data_type}, ${data_value})`);
         });
     }
     if (_.has(nodes, "UAVariableType")) {
         _.each(nodes["UAVariableType"], function (value) {
             var is_abstract = _.has(value["$"], "IsAbstract") && value["$"]["IsAbstract"] === "true";
             var value_rank = _.has(value["$"], "ValueRank") ? value["$"]["ValueRank"] : -1;
-            contents += insert_node(indent, "VariableType", value, `VariableType::new_node(&node_id, browse_name, display_name, description, ${is_abstract}, ${value_rank})`);
+            contents += insert_node(indent, "VariableType", value, `VariableType::new(&node_id, browse_name, display_name, description, ${is_abstract}, ${value_rank})`);
         });
     }
     if (_.has(nodes, "UAMethod")) {
@@ -138,7 +138,7 @@ use address_space::types::*;
             var is_abstract = _.has(value["$"], "IsAbstract") && value["$"]["IsAbstract"] === "true";
             var executable = false; // TODO
             var user_executable = false; // TODO
-            contents += insert_node(indent, "Method", value, `Method::new_node(&node_id, browse_name, display_name, description, ${is_abstract}, ${executable}, ${user_executable})`);
+            contents += insert_node(indent, "Method", value, `Method::new(&node_id, browse_name, display_name, description, ${is_abstract}, ${executable}, ${user_executable})`);
         });
     }
 

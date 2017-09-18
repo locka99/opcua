@@ -275,12 +275,19 @@ impl AsRef<str> for UAString {
     }
 }
 
-impl UAString {
-    /// Create a string from a string slice
-    pub fn from_str(value: &str) -> UAString {
-        UAString { value: Some(value.to_string()) }
+impl<'a> From<&'a str> for UAString {
+    fn from(value: &'a str) -> Self {
+        Self::from(value.to_string())
     }
+}
 
+impl From<String> for UAString {
+    fn from(value: String) -> Self {
+        UAString { value: Some(value) }
+    }
+}
+
+impl UAString {
     /// Returns the length of the string or -1 for null
     pub fn len(&self) -> isize {
         if self.value.is_none() { -1 } else { self.value.as_ref().unwrap().len() as isize }
@@ -482,6 +489,18 @@ impl BinaryEncoder<ByteString> for ByteString {
     }
 }
 
+impl<'a> From<&'a [u8]> for ByteString {
+    fn from(value: &'a [u8]) -> Self {
+        Self::from(value.to_vec())
+    }
+}
+
+impl From<Vec<u8>> for ByteString {
+    fn from(value: Vec<u8>) -> Self {
+        ByteString { value: Some(value) }
+    }
+}
+
 impl ByteString {
     /// Create a null string (not the same as an empty string)
     pub fn null() -> ByteString {
@@ -500,12 +519,7 @@ impl ByteString {
         let mut rng = rand::thread_rng();
         let mut bytes = vec![0u8; number_of_bytes];
         rng.fill_bytes(&mut bytes);
-        ByteString::from_bytes(&bytes)
-    }
-
-    /// Create a byte string from an array of bytes
-    pub fn from_bytes(v: &[u8]) -> ByteString {
-        ByteString { value: Some(v.to_vec()) }
+        ByteString::from(bytes)
     }
 }
 
@@ -558,7 +572,7 @@ impl QualifiedName {
     pub fn new(namespace_index: UInt16, name: &str) -> QualifiedName {
         QualifiedName {
             namespace_index: namespace_index,
-            name: UAString::from_str(name),
+            name: UAString::from(name),
         }
     }
 
@@ -641,8 +655,8 @@ impl BinaryEncoder<LocalizedText> for LocalizedText {
 impl LocalizedText {
     pub fn new(locale: &str, text: &str) -> LocalizedText {
         LocalizedText {
-            locale: UAString::from_str(locale),
-            text: UAString::from_str(text),
+            locale: UAString::from(locale),
+            text: UAString::from(text),
         }
     }
 
@@ -762,7 +776,7 @@ impl ExtensionObject {
         let _ = encodable.encode(&mut stream);
         ExtensionObject {
             node_id: node_id,
-            body: ExtensionObjectEncoding::ByteString(ByteString::from_bytes(&stream.into_inner())),
+            body: ExtensionObjectEncoding::ByteString(ByteString::from(stream.into_inner())),
         }
     }
 

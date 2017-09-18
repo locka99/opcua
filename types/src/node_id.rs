@@ -197,7 +197,7 @@ impl FromStr for NodeId {
             }
             "b" => {
                 // Parse hex back into bytes
-                // NodeId::new_bytestring(namespace, ByteString::from_bytes(decoded_v.as_str()))
+                // NodeId::new_bytestring(namespace, ByteString::from(decoded_v.as_str()))
                 error!("ByteString parsing needs to be implemented");
                 return Err(BAD_NODE_ID_INVALID);
             }
@@ -278,7 +278,7 @@ impl NodeId {
 
     /// Construct a string node id
     pub fn new_string(namespace: UInt16, value: &str) -> NodeId {
-        NodeId { namespace: namespace, identifier: Identifier::String(UAString::from_str(value)) }
+        NodeId { namespace: namespace, identifier: Identifier::String(UAString::from(value)) }
     }
 
     /// Construct a guid node id

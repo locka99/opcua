@@ -245,7 +245,8 @@ impl AddressSpace {
         }
     }
 
-    pub fn insert(&mut self, node_type: NodeType) {
+    pub fn insert<T>(&mut self, node: T) where T: 'static + Into<NodeType> {
+        let node_type = node.into();
         let node_id = node_type.node_id();
         if self.node_exists(&node_id) {
             panic!("This node {:?} already exists", node_id);
@@ -342,7 +343,7 @@ impl AddressSpace {
             panic!("Node {:?} already exists", node_id);
         } else {
             // Add a relationship to the parent
-            self.insert(Object::new_node(&node_id, browse_name, display_name, ""));
+            self.insert(Object::new(&node_id, browse_name, display_name, ""));
             self.add_organizes(&parent_node_id, &node_id);
             self.insert_reference(&node_id, &node_type_id.as_node_id(), ReferenceTypeId::HasTypeDefinition);
             self.update_last_modified();

@@ -89,7 +89,7 @@ impl Thumbprint {
     }
 
     pub fn as_byte_string(&self) -> ByteString {
-        ByteString::from_bytes(&self.value)
+        ByteString::from(self.value.as_ref())
     }
 
     /// Returns the thumbprint as a string using hexdecimal values for each byte
@@ -140,7 +140,7 @@ impl X509 {
     /// Returns a ByteString representation of the cert which is DER encoded form of X509v3
     pub fn as_byte_string(&self) -> ByteString {
         let der = self.value.to_der().unwrap();
-        ByteString::from_bytes(&der)
+        ByteString::from(der.as_ref())
     }
 
     pub fn public_key(&self) -> Result<PKey, StatusCode> {

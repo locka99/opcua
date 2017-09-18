@@ -196,7 +196,7 @@ impl HelloMessage {
             send_buffer_size: send_buffer_size,
             max_message_size: max_message_size,
             max_chunk_count: MAX_CHUNK_COUNT as UInt32,
-            endpoint_url: UAString::from_str(endpoint_url),
+            endpoint_url: UAString::from(endpoint_url),
         };
         msg.message_header.message_size = msg.byte_len() as UInt32;
         msg
@@ -302,7 +302,7 @@ impl ErrorMessage {
         let mut error = ErrorMessage {
             message_header: MessageHeader::new(MessageType::Error),
             error: status_code as UInt32,
-            reason: UAString::from_str(status_code.description()),
+            reason: UAString::from(status_code.description()),
         };
         error.message_header.message_size = error.byte_len() as UInt32;
         error

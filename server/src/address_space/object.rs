@@ -1,5 +1,5 @@
 use address_space::base::Base;
-use address_space::node::{Node, NodeType};
+use address_space::node::Node;
 
 #[derive(Debug)]
 pub struct Object {
@@ -9,10 +9,6 @@ pub struct Object {
 node_impl!(Object);
 
 impl Object {
-    pub fn new_node(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str) -> NodeType {
-        NodeType::Object(Object::new(node_id, browse_name, display_name, description))
-    }
-
     pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str) -> Object {
         // Mandatory
         let attributes = vec![

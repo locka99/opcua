@@ -81,16 +81,16 @@ fn encoding_f64() {
 #[test]
 fn encoding_string() {
     serialize_test(UAString::null());
-    serialize_test(UAString::from_str("ショッピング"));
-    serialize_test(UAString::from_str("This is a test"));
-    serialize_test(UAString::from_str("This is a test"));
+    serialize_test(UAString::from("ショッピング"));
+    serialize_test(UAString::from("This is a test"));
+    serialize_test(UAString::from("This is a test"));
 }
 
 #[test]
 fn encode_string_5224() {
     // Sample from OPCUA Part 6 - 5.2.2.4
     let expected = [0x06, 0x00, 0x00, 0x00, 0xE6, 0xB0, 0xB4, 0x42, 0x6F, 0x79];
-    let input = UAString::from_str("水Boy");
+    let input = UAString::from("水Boy");
     serialize_and_compare(input, &expected);
 }
 
@@ -183,7 +183,7 @@ fn node_id_guid() {
 
 #[test]
 fn node_id_byte_string() {
-    let node_id = NodeId::new_byte_string(30, ByteString::from_bytes(b"this is a byte string"));
+    let node_id = NodeId::new_byte_string(30, ByteString::from(b"this is a byte string".as_ref()));
     assert!(node_id.is_byte_string());
     serialize_test(node_id);
 }
@@ -195,13 +195,13 @@ fn extension_object() {
 
     let eo = ExtensionObject {
         node_id: ObjectId::CreateSessionResponse_Encoding_DefaultBinary.as_node_id(),
-        body: ExtensionObjectEncoding::ByteString(ByteString::from_bytes(b"hello world")),
+        body: ExtensionObjectEncoding::ByteString(ByteString::from(b"hello world".as_ref())),
     };
     serialize_test(eo);
 
     let eo = ExtensionObject {
         node_id: ObjectId::CreateSessionResponse_Encoding_DefaultBinary.as_node_id(),
-        body: ExtensionObjectEncoding::XmlElement(XmlElement::from_str("hello world")),
+        body: ExtensionObjectEncoding::XmlElement(XmlElement::from("hello world")),
     };
     serialize_test(eo);
 }
@@ -215,20 +215,20 @@ fn localized_text() {
     serialize_test(t);
 
     let t = LocalizedText {
-        locale: UAString::from_str("Hello world"),
+        locale: UAString::from("Hello world"),
         text: UAString::null(),
     };
     serialize_test(t);
 
     let t = LocalizedText {
         locale: UAString::null(),
-        text: UAString::from_str("Now is the winter of our discontent"),
+        text: UAString::from("Now is the winter of our discontent"),
     };
     serialize_test(t);
 
     let t = LocalizedText {
-        locale: UAString::from_str("ABCDEFG"),
-        text: UAString::from_str("Now is the winter of our discontent"),
+        locale: UAString::from("ABCDEFG"),
+        text: UAString::from("Now is the winter of our discontent"),
     };
     serialize_test(t);
 }
@@ -239,7 +239,7 @@ fn expanded_node_id() {
     serialize_test(node_id);
 
     let mut node_id = ExpandedNodeId::new(&NodeId::new_numeric(200, 2000));
-    node_id.namespace_uri = UAString::from_str("test");
+    node_id.namespace_uri = UAString::from("test");
     serialize_test(node_id);
 
     let mut node_id = ExpandedNodeId::new(&NodeId::new_numeric(200, 2000));
@@ -247,7 +247,7 @@ fn expanded_node_id() {
     serialize_test(node_id);
 
     let mut node_id = ExpandedNodeId::new(&NodeId::new_numeric(200, 2000));
-    node_id.namespace_uri = UAString::from_str("test2");
+    node_id.namespace_uri = UAString::from("test2");
     node_id.server_index = 50330;
     serialize_test(node_id);
 }
@@ -256,7 +256,7 @@ fn expanded_node_id() {
 fn qualified_name() {
     let qname = QualifiedName {
         namespace_index: 100,
-        name: UAString::from_str("this is a qualified name"),
+        name: UAString::from("this is a qualified name"),
     };
     serialize_test(qname);
 }
@@ -303,13 +303,13 @@ fn variant() {
     let v = Variant::DateTime(DateTime::now());
     serialize_test(v);
     // UAString
-    let v = Variant::String(UAString::from_str("Hello Everybody"));
+    let v = Variant::String(UAString::from("Hello Everybody"));
     serialize_test(v);
     // ByteString
-    let v = Variant::ByteString(ByteString::from_bytes(b"Everything or nothing"));
+    let v = Variant::ByteString(ByteString::from(b"Everything or nothing".as_ref()));
     serialize_test(v);
     // XmlElement
-    let v = Variant::XmlElement(XmlElement::from_str("The world wonders"));
+    let v = Variant::XmlElement(XmlElement::from("The world wonders"));
     serialize_test(v);
     // NodeId(NodeId),
     let v = Variant::new(ObjectId::AddNodesItem_Encoding_DefaultBinary.as_node_id());
@@ -325,13 +325,13 @@ fn variant() {
     // QualifiedName
     let v = Variant::new(QualifiedName {
         namespace_index: 100,
-        name: UAString::from_str("this is a qualified name"),
+        name: UAString::from("this is a qualified name"),
     });
     serialize_test(v);
     // LocalizedText
     let v = Variant::new(LocalizedText {
-        locale: UAString::from_str("Hello everyone"),
-        text: UAString::from_str("This text is localized")
+        locale: UAString::from("Hello everyone"),
+        text: UAString::from("This text is localized")
     });
     serialize_test(v);
     // ExtensionObject
@@ -390,7 +390,7 @@ fn diagnostic_info() {
     d.locale = Some(110);
     assert_eq!(d.encoding_mask(), 0xf);
 
-    d.additional_info = Some(UAString::from_str("Hello world"));
+    d.additional_info = Some(UAString::from("Hello world"));
     assert_eq!(d.encoding_mask(), 0x1f);
 
     d.inner_status_code = Some(BAD_ARGUMENTS_MISSING);
@@ -403,7 +403,7 @@ fn diagnostic_info() {
         namespace_uri: Some(437437),
         locale: Some(333),
         localized_text: Some(233),
-        additional_info: Some(UAString::from_str("Nested diagnostic")),
+        additional_info: Some(UAString::from("Nested diagnostic")),
         inner_status_code: Some(GOOD),
         inner_diagnostic_info: None,
     }));

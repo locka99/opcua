@@ -46,8 +46,10 @@ impl<F> AttrFnSetter<F> where F: FnMut(NodeId, AttributeId, DataValue) + Send {
 }
 
 macro_rules! node_impl {
-    ( $node_struct:ty ) => {
+    ( $node_struct:ident ) => {
         use opcua_types::*;
+        use address_space::node::NodeType;
+
         impl Node for $node_struct {
             fn node_class(&self) -> NodeClass { self.base.node_class() }
             fn node_id(&self) -> NodeId { self.base.node_id() }
@@ -60,6 +62,10 @@ macro_rules! node_impl {
             fn set_user_write_mask(&mut self, write_mask: UInt32) { self.base.set_user_write_mask(write_mask) }
             fn find_attribute(&self, attribute_id: AttributeId) -> Option<DataValue> { self.base.find_attribute(attribute_id) }
             fn set_attribute(&mut self, attribute_id: AttributeId, value: DataValue) -> Result<(), StatusCode> { self.base.set_attribute(attribute_id, value) }
+        }
+
+        impl Into<NodeType> for $node_struct {
+            fn into(self) -> NodeType { NodeType::$node_struct(self) }
         }
     }
 }

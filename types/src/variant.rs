@@ -68,9 +68,6 @@ impl Into<Variant> for UAString {
     fn into(self) -> Variant { Variant::String(self) }
 }
 
-impl Into<Variant> for String {
-    fn into(self) -> Variant { Variant::String(UAString::from_str(&self)) }
-}
 
 impl Into<Variant> for DateTime {
     fn into(self) -> Variant { Variant::DateTime(self) }
@@ -354,6 +351,18 @@ impl BinaryEncoder<Variant> for Variant {
     }
 }
 
+impl<'a> From<&'a str> for Variant {
+    fn from(value: &'a str) -> Self {
+        Variant::String(UAString::from(value))
+    }
+}
+
+impl From<String> for Variant {
+    fn from(value: String) -> Self {
+        Variant::String(UAString::from(value))
+    }
+}
+
 impl Variant {
     pub fn new<T>(value: T) -> Variant where T: 'static + Into<Variant> {
         value.into()
@@ -512,7 +521,7 @@ impl Variant {
     pub fn new_string_array(in_values: &[String]) -> Variant {
         let mut values = Vec::with_capacity(in_values.len());
         for v in in_values {
-            values.push(Variant::String(UAString::from_str(&v)));
+            values.push(Variant::String(UAString::from(v.as_ref())));
         }
         Variant::Array(Box::new(values))
     }
@@ -554,8 +563,8 @@ impl Variant {
         }
     }
 
-    pub fn data_type(&self) -> DataTypeId {
-        match self {
+    pub fn data_type(&self) -> Option<DataTypeId> {
+        Some(match self {
             &Variant::Boolean(_) => DataTypeId::Boolean,
             &Variant::SByte(_) => DataTypeId::SByte,
             &Variant::Byte(_) => DataTypeId::Byte,
@@ -579,9 +588,9 @@ impl Variant {
             &Variant::LocalizedText(_) => DataTypeId::LocalizedText,
             &Variant::DataValue(_) => DataTypeId::DataValue,
             _ => {
-                panic!("No datatype for this type");
+                return None;
             }
-        }
+        })
     }
 
     // Gets the encoding mask to write the variant to disk

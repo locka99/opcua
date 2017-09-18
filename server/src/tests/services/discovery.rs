@@ -13,7 +13,7 @@ fn discovery_test() {
     {
         let request = GetEndpointsRequest {
             request_header: make_request_header(),
-            endpoint_url: UAString::from_str(""),
+            endpoint_url: UAString::from(""),
             locale_ids: None,
             profile_uris: None,
         };
@@ -30,10 +30,10 @@ fn discovery_test() {
     // specify profile ids in request
     {
         // Enter some nonsensical profile uris and expect nothing back
-        let profile_uris = vec![UAString::from_str("xxxxxx")];
+        let profile_uris = vec![UAString::from("xxxxxx")];
         let request = GetEndpointsRequest {
             request_header: make_request_header(),
-            endpoint_url: UAString::from_str(""),
+            endpoint_url: UAString::from(""),
             locale_ids: None,
             profile_uris: Some(profile_uris),
         };
@@ -43,10 +43,10 @@ fn discovery_test() {
         assert!(result.endpoints.is_none());
 
         // Enter the binary transport profile and expect the endpoints
-        let profile_uris = vec![UAString::from_str("http://opcfoundation.org/UA-Profile/Transport/uatcp-uasc-uabinary")];
+        let profile_uris = vec![UAString::from("http://opcfoundation.org/UA-Profile/Transport/uatcp-uasc-uabinary")];
         let request = GetEndpointsRequest {
             request_header: make_request_header(),
-            endpoint_url: UAString::from_str(""),
+            endpoint_url: UAString::from(""),
             locale_ids: None,
             profile_uris: Some(profile_uris),
         };

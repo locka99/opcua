@@ -1,5 +1,5 @@
 use address_space::base::Base;
-use address_space::node::{Node, NodeType};
+use address_space::node::Node;
 
 #[derive(Debug)]
 pub struct VariableType {
@@ -9,10 +9,6 @@ pub struct VariableType {
 node_impl!(VariableType);
 
 impl VariableType {
-    pub fn new_node(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, is_abstract: bool, value_rank: Int32) -> NodeType {
-        NodeType::VariableType(VariableType::new(node_id, browse_name, display_name, description, is_abstract, value_rank))
-    }
-
     pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, is_abstract: bool, value_rank: Int32) -> VariableType {
         // Mandatory
         let attributes = vec![

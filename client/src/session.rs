@@ -157,7 +157,7 @@ impl Session {
             },
             server_uri: UAString::null(),
             endpoint_url: endpoint_url,
-            session_name: UAString::from_str("Rust OPCUA Client"),
+            session_name: UAString::from("Rust OPCUA Client"),
             client_nonce: ByteString::null(),
             client_certificate: ByteString::null(),
             requested_session_timeout: 0f64,
@@ -227,7 +227,7 @@ impl Session {
     /// Sends a GetEndpoints request to the server
     pub fn get_endpoints(&mut self) -> Result<Option<Vec<EndpointDescription>>, StatusCode> {
         debug!("Fetching end points...");
-        let endpoint_url = UAString::from_str(&self.endpoint_url);
+        let endpoint_url = UAString::from(self.endpoint_url.as_ref());
         let request = GetEndpointsRequest {
             request_header: self.make_request_header(),
             endpoint_url: endpoint_url,
@@ -379,7 +379,7 @@ impl Session {
             client_protocol_version: 0,
             request_type: request_type,
             security_mode: MessageSecurityMode::None,
-            client_nonce: ByteString::from_bytes(&[0]),
+            client_nonce: ByteString::from([0].as_ref()),
             requested_lifetime: requested_lifetime,
         };
         let response = self.send_request(SupportedMessage::OpenSecureChannelRequest(request))?;

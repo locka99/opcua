@@ -1,5 +1,5 @@
 use address_space::base::Base;
-use address_space::node::{Node, NodeType};
+use address_space::node::Node;
 
 #[derive(Debug)]
 pub struct ReferenceType {
@@ -9,10 +9,6 @@ pub struct ReferenceType {
 node_impl!(ReferenceType);
 
 impl ReferenceType {
-    pub fn new_node(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, inverse_name: Option<LocalizedText>, symmetric: Boolean, is_abstract: Boolean) -> NodeType {
-        NodeType::ReferenceType(ReferenceType::new(node_id, browse_name, display_name, description, inverse_name, symmetric, is_abstract))
-    }
-
     pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, inverse_name: Option<LocalizedText>, symmetric: Boolean, is_abstract: Boolean) -> ReferenceType {
         // Mandatory
         let mut attributes = vec![

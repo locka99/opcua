@@ -79,16 +79,16 @@ pub fn create_signature_data(pkey: &PKey, security_policy_uri: &str, data: &Byte
                 let mut signature = [0u8; SHA1_SIZE];
                 let _ = pkey.sign_sha1(&data, &mut signature)?;
                 (
-                    UAString::from_str(security_policy.asymmetric_signature_algorithm()),
-                    ByteString::from_bytes(&signature)
+                    UAString::from(security_policy.asymmetric_signature_algorithm()),
+                    ByteString::from(signature.as_ref())
                 )
             }
             SecurityPolicy::Basic256Sha256 => {
                 let mut signature = [0u8; SHA256_SIZE];
                 let _ = pkey.sign_sha256(&data, &mut signature)?;
                 (
-                    UAString::from_str(security_policy.asymmetric_signature_algorithm()),
-                    ByteString::from_bytes(&signature)
+                    UAString::from(security_policy.asymmetric_signature_algorithm()),
+                    ByteString::from(signature.as_ref())
                 )
             }
             SecurityPolicy::None => (

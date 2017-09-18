@@ -109,7 +109,7 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
 impl AsymmetricSecurityHeader {
     pub fn none() -> AsymmetricSecurityHeader {
         AsymmetricSecurityHeader {
-            security_policy_uri: UAString::from_str(SecurityPolicy::None.to_uri()),
+            security_policy_uri: UAString::from(SecurityPolicy::None.to_uri()),
             sender_certificate: ByteString::null(),
             receiver_certificate_thumbprint: ByteString::null(),
         }
@@ -117,7 +117,7 @@ impl AsymmetricSecurityHeader {
 
     pub fn new(security_policy: SecurityPolicy, sender_certificate: &X509, receiver_certificate_thumbprint: ByteString) -> AsymmetricSecurityHeader {
         AsymmetricSecurityHeader {
-            security_policy_uri: UAString::from_str(security_policy.to_uri()),
+            security_policy_uri: UAString::from(security_policy.to_uri()),
             sender_certificate: sender_certificate.as_byte_string(),
             receiver_certificate_thumbprint
         }

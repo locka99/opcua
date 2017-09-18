@@ -32,7 +32,7 @@ pub fn hello() {
     assert_eq!(hello.send_buffer_size, 655360);
     assert_eq!(hello.max_message_size, 0);
     assert_eq!(hello.max_chunk_count, 0);
-    assert_eq!(hello.endpoint_url, UAString::from_str("opc.tcp://127.0.0.1:1234/"));
+    assert_eq!(hello.endpoint_url, UAString::from("opc.tcp://127.0.0.1:1234/"));
 }
 
 #[test]
@@ -56,10 +56,10 @@ pub fn secure_channel_nonce() {
     sc.security_policy = SecurityPolicy::Basic256;
     // Nonce which is not 32 bytes long is an error
     assert!(sc.set_their_nonce(&ByteString::null()).is_err());
-    assert!(sc.set_their_nonce(&ByteString::from_bytes(b"")).is_err());
-    assert!(sc.set_their_nonce(&ByteString::from_bytes(b"1")).is_err());
-    assert!(sc.set_their_nonce(&ByteString::from_bytes(b"0123456789012345678901234567890")).is_err());
-    assert!(sc.set_their_nonce(&ByteString::from_bytes(b"012345678901234567890123456789012")).is_err());
+    assert!(sc.set_their_nonce(&ByteString::from(b"".as_ref())).is_err());
+    assert!(sc.set_their_nonce(&ByteString::from(b"1".as_ref())).is_err());
+    assert!(sc.set_their_nonce(&ByteString::from(b"0123456789012345678901234567890".as_ref())).is_err());
+    assert!(sc.set_their_nonce(&ByteString::from(b"012345678901234567890123456789012".as_ref())).is_err());
     // Nonce which is 32 bytes long is good
-    assert!(sc.set_their_nonce(&ByteString::from_bytes(b"01234567890123456789012345678901")).is_ok());
+    assert!(sc.set_their_nonce(&ByteString::from(b"01234567890123456789012345678901".as_ref())).is_ok());
 }

@@ -28,7 +28,7 @@ impl Client {
 
         Client {
             client_description: ApplicationDescription {
-                application_uri: UAString::from_str(application_uri),
+                application_uri: UAString::from(application_uri),
                 application_name: LocalizedText::new("", application_name),
                 application_type: ApplicationType::Client,
                 product_uri: UAString::null(),
