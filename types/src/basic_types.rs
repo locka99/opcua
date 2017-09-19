@@ -489,9 +489,9 @@ impl BinaryEncoder<ByteString> for ByteString {
     }
 }
 
-impl<'a> From<&'a [u8]> for ByteString {
-    fn from(value: &'a [u8]) -> Self {
-        Self::from(value.to_vec())
+impl<'a, T> From<&'a T> for ByteString where T: AsRef<[u8]> + ? Sized {
+    fn from(value: &'a T) -> Self {
+        Self::from(value.as_ref().to_vec())
     }
 }
 

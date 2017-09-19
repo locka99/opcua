@@ -17,6 +17,36 @@ pub enum Identifier {
     ByteString(ByteString),
 }
 
+impl Into<Identifier> for UInt64 {
+    fn into(self) -> Identifier {
+        Identifier::Numeric(self)
+    }
+}
+
+impl Into<Identifier> for String {
+    fn into(self) -> Identifier {
+        Identifier::String(UAString::from(self))
+    }
+}
+
+impl Into<Identifier> for UAString {
+    fn into(self) -> Identifier {
+        Identifier::String(self)
+    }
+}
+
+impl Into<Identifier> for Guid {
+    fn into(self) -> Identifier {
+        Identifier::Guid(self)
+    }
+}
+
+impl Into<Identifier> for ByteString {
+    fn into(self) -> Identifier {
+        Identifier::ByteString(self)
+    }
+}
+
 /// An identifier for a node in the address space of an OPC UA Server.
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
 pub struct NodeId {
@@ -99,32 +129,32 @@ impl BinaryEncoder<NodeId> for NodeId {
             0x0 => {
                 let namespace = 0;
                 let value = read_u8(stream)? as u64;
-                NodeId::new_numeric(namespace, value)
+                NodeId::new(namespace, value)
             }
             0x1 => {
                 let namespace = read_u8(stream)? as u16;
                 let value = read_u16(stream)? as u64;
-                NodeId::new_numeric(namespace, value)
+                NodeId::new(namespace, value)
             }
             0x2 => {
                 let namespace = read_u16(stream)?;
                 let value = read_u64(stream)?;
-                NodeId::new_numeric(namespace, value)
+                NodeId::new(namespace, value)
             }
             0x3 => {
                 let namespace = read_u16(stream)?;
                 let value = UAString::decode(stream)?;
-                NodeId::new_string(namespace, value.as_ref())
+                NodeId::new(namespace, value)
             }
             0x4 => {
                 let namespace = read_u16(stream)?;
                 let value = Guid::decode(stream)?;
-                NodeId::new_guid(namespace, value)
+                NodeId::new(namespace, value)
             }
             0x5 => {
                 let namespace = read_u16(stream)?;
                 let value = ByteString::decode(stream)?;
-                NodeId::new_byte_string(namespace, value)
+                NodeId::new(namespace, value)
             }
             _ => {
                 panic!("Unrecognized node id type {:?}", identifier);
@@ -193,7 +223,7 @@ impl FromStr for NodeId {
                 if guid.is_err() {
                     return Err(BAD_NODE_ID_INVALID);
                 }
-                NodeId::new_guid(namespace, guid.unwrap())
+                NodeId::new(namespace, guid.unwrap())
             }
             "b" => {
                 // Parse hex back into bytes
@@ -209,11 +239,39 @@ impl FromStr for NodeId {
     }
 }
 
+impl Into<String> for NodeId {
+    fn into(self) -> String {
+        self.to_string()
+    }
+}
+
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 
 static NEXT_NODE_ID_NUMERIC: AtomicUsize = ATOMIC_USIZE_INIT;
 
 impl NodeId {
+    pub fn new<T>(namespace: UInt16, value: T) -> NodeId where T: 'static + Into<Identifier> {
+        NodeId { namespace: namespace, identifier: value.into() }
+    }
+
+    /// Construct a numeric node id
+    pub fn new_numeric(namespace: UInt16, value: UInt64) -> NodeId {
+        Self::new(namespace, value)
+    }
+
+    /// Construct a string node id
+    pub fn new_string(namespace: UInt16, value: &str) -> NodeId {
+        Self::new(namespace, UAString::from(value))
+    }
+
+    /// Test if the node id is null, i.e. 0 namespace and 0 identifier
+    pub fn is_null(&self) -> bool {
+        match self.identifier {
+            Identifier::Numeric(id) => { id == 0 && self.namespace == 0 }
+            _ => false,
+        }
+    }
+
     /// Returns a null node id
     pub fn null() -> NodeId {
         NodeId::new_numeric(0, 0)
@@ -269,34 +327,6 @@ impl NodeId {
             }
         });
         result
-    }
-
-    /// Construct a numeric node id
-    pub fn new_numeric(namespace: UInt16, value: UInt64) -> NodeId {
-        NodeId { namespace: namespace, identifier: Identifier::Numeric(value) }
-    }
-
-    /// Construct a string node id
-    pub fn new_string(namespace: UInt16, value: &str) -> NodeId {
-        NodeId { namespace: namespace, identifier: Identifier::String(UAString::from(value)) }
-    }
-
-    /// Construct a guid node id
-    pub fn new_guid(namespace: UInt16, value: Guid) -> NodeId {
-        NodeId { namespace: namespace, identifier: Identifier::Guid(value) }
-    }
-
-    /// Construct a bytestring node id
-    pub fn new_byte_string(namespace: UInt16, value: ByteString) -> NodeId {
-        NodeId { namespace: namespace, identifier: Identifier::ByteString(value) }
-    }
-
-    /// Test if the node id is null, i.e. 0 namespace and 0 identifier
-    pub fn is_null(&self) -> bool {
-        match self.identifier {
-            Identifier::Numeric(id) => { id == 0 && self.namespace == 0 }
-            _ => false,
-        }
     }
 
     /// Test if the node id is numeric
@@ -416,32 +446,32 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
             0x0 => {
                 let namespace = 0;
                 let value = read_u8(stream)? as u64;
-                NodeId::new_numeric(namespace, value)
+                NodeId::new(namespace, value)
             }
             0x1 => {
                 let namespace = read_u8(stream)? as u16;
                 let value = read_u16(stream)? as u64;
-                NodeId::new_numeric(namespace, value)
+                NodeId::new(namespace, value)
             }
             0x2 => {
                 let namespace = read_u16(stream)?;
                 let value = read_u64(stream)?;
-                NodeId::new_numeric(namespace, value)
+                NodeId::new(namespace, value)
             }
             0x3 => {
                 let namespace = read_u16(stream)?;
                 let value = UAString::decode(stream)?;
-                NodeId::new_string(namespace, value.as_ref())
+                NodeId::new(namespace, value)
             }
             0x4 => {
                 let namespace = read_u16(stream)?;
                 let value = Guid::decode(stream)?;
-                NodeId::new_guid(namespace, value)
+                NodeId::new(namespace, value)
             }
             0x5 => {
                 let namespace = read_u16(stream)?;
                 let value = ByteString::decode(stream)?;
-                NodeId::new_byte_string(namespace, value)
+                NodeId::new(namespace, value)
             }
             _ => {
                 panic!("Unrecognized node id type {:?}", identifier);

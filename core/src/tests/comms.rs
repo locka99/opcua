@@ -56,10 +56,10 @@ pub fn secure_channel_nonce() {
     sc.security_policy = SecurityPolicy::Basic256;
     // Nonce which is not 32 bytes long is an error
     assert!(sc.set_their_nonce(&ByteString::null()).is_err());
-    assert!(sc.set_their_nonce(&ByteString::from(b"".as_ref())).is_err());
-    assert!(sc.set_their_nonce(&ByteString::from(b"1".as_ref())).is_err());
-    assert!(sc.set_their_nonce(&ByteString::from(b"0123456789012345678901234567890".as_ref())).is_err());
+    assert!(sc.set_their_nonce(&ByteString::from(b"")).is_err());
+    assert!(sc.set_their_nonce(&ByteString::from(b"1")).is_err());
+    assert!(sc.set_their_nonce(&ByteString::from(b"0123456789012345678901234567890")).is_err());
     assert!(sc.set_their_nonce(&ByteString::from(b"012345678901234567890123456789012".as_ref())).is_err());
     // Nonce which is 32 bytes long is good
-    assert!(sc.set_their_nonce(&ByteString::from(b"01234567890123456789012345678901".as_ref())).is_ok());
+    assert!(sc.set_their_nonce(&ByteString::from(b"01234567890123456789012345678901")).is_ok());
 }

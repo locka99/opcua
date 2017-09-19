@@ -135,7 +135,7 @@ fn encode_guid_5226() {
 #[test]
 fn node_id_2byte_numeric() {
     // Sample from OPCUA Part 6 - 5.2.2.9
-    let node_id = NodeId::new_numeric(0, 0x72);
+    let node_id = NodeId::new(0, 0x72 as UInt64);
     let expected_bytes = [0x0, 0x72];
     serialize_and_compare(node_id.clone(), &expected_bytes);
 
@@ -145,7 +145,7 @@ fn node_id_2byte_numeric() {
 #[test]
 fn node_id_4byte_numeric() {
     // Sample from OPCUA Part 6 - 5.2.2.9
-    let node_id = NodeId::new_numeric(5, 1025);
+    let node_id = NodeId::new(5, 1025u64);
     assert!(node_id.is_numeric());
     // NOTE: Example is wrong in 1.0.3, says 0x40, not 0x4
     let expected_bytes = [0x1, 0x5, 0x1, 0x4];
@@ -176,14 +176,14 @@ fn node_id_guid() {
         data3: 0x4ae6,
         data4: [0x8D, 0x28, 0xB4, 0x04, 0xDC, 0x7D, 0xAF, 0x63],
     };
-    let node_id = NodeId::new_guid(1, guid);
+    let node_id = NodeId::new(1, guid);
     assert!(node_id.is_guid());
     serialize_test(node_id);
 }
 
 #[test]
 fn node_id_byte_string() {
-    let node_id = NodeId::new_byte_string(30, ByteString::from(b"this is a byte string".as_ref()));
+    let node_id = NodeId::new(30, ByteString::from(b"this is a byte string"));
     assert!(node_id.is_byte_string());
     serialize_test(node_id);
 }
@@ -195,7 +195,7 @@ fn extension_object() {
 
     let eo = ExtensionObject {
         node_id: ObjectId::CreateSessionResponse_Encoding_DefaultBinary.as_node_id(),
-        body: ExtensionObjectEncoding::ByteString(ByteString::from(b"hello world".as_ref())),
+        body: ExtensionObjectEncoding::ByteString(ByteString::from(b"hello world")),
     };
     serialize_test(eo);
 
@@ -306,7 +306,7 @@ fn variant() {
     let v = Variant::String(UAString::from("Hello Everybody"));
     serialize_test(v);
     // ByteString
-    let v = Variant::ByteString(ByteString::from(b"Everything or nothing".as_ref()));
+    let v = Variant::ByteString(ByteString::from(b"Everything or nothing"));
     serialize_test(v);
     // XmlElement
     let v = Variant::XmlElement(XmlElement::from("The world wonders"));

@@ -80,7 +80,7 @@ pub fn create_signature_data(pkey: &PKey, security_policy_uri: &str, data: &Byte
                 let _ = pkey.sign_sha1(&data, &mut signature)?;
                 (
                     UAString::from(security_policy.asymmetric_signature_algorithm()),
-                    ByteString::from(signature.as_ref())
+                    ByteString::from(&signature)
                 )
             }
             SecurityPolicy::Basic256Sha256 => {
@@ -88,7 +88,7 @@ pub fn create_signature_data(pkey: &PKey, security_policy_uri: &str, data: &Byte
                 let _ = pkey.sign_sha256(&data, &mut signature)?;
                 (
                     UAString::from(security_policy.asymmetric_signature_algorithm()),
-                    ByteString::from(signature.as_ref())
+                    ByteString::from(&signature)
                 )
             }
             SecurityPolicy::None => (

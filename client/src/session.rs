@@ -379,7 +379,7 @@ impl Session {
             client_protocol_version: 0,
             request_type: request_type,
             security_mode: MessageSecurityMode::None,
-            client_nonce: ByteString::from([0].as_ref()),
+            client_nonce: ByteString::from(&[0]),
             requested_lifetime: requested_lifetime,
         };
         let response = self.send_request(SupportedMessage::OpenSecureChannelRequest(request))?;

@@ -12,7 +12,7 @@ fn user_name_identity_token_valid() {
     id.user_name = UAString::from("x");
     assert!(!id.is_valid());
     id.user_name = UAString::null();
-    id.password = ByteString::from(b"xyz".as_ref());
+    id.password = ByteString::from(b"xyz");
     assert!(!id.is_valid());
     id.user_name = UAString::from("x");
     assert!(id.is_valid());
@@ -23,7 +23,7 @@ fn user_name_identity_token_plaintext() {
     let mut id = UserNameIdentityToken {
         policy_id: UAString::null(),
         user_name: UAString::from("xyz"),
-        password: ByteString::from(b"pwd1".as_ref()),
+        password: ByteString::from(b"pwd1"),
         encryption_algorithm: UAString::null(),
     };
 
@@ -36,7 +36,7 @@ fn user_name_identity_token_plaintext() {
     let result = id.authenticate("xyz2", b"pwd1");
     assert!(result.is_err());
 
-    id.password = ByteString::from(b"".as_ref());
+    id.password = ByteString::from(b"");
     let result = id.authenticate("xyz", b"");
     assert!(result.is_ok());
 

@@ -48,7 +48,7 @@ impl SessionService {
             self.service_fault(&request.request_header, service_result)
         } else {
             let session_id = session.next_session_id();
-            let authentication_token = NodeId::new_byte_string(0, ByteString::random(32));
+            let authentication_token = NodeId::new(0, ByteString::random(32));
             let session_timeout = constants::SESSION_TIMEOUT;
             let max_request_message_size = constants::MAX_REQUEST_MESSAGE_SIZE;
 

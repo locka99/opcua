@@ -138,7 +138,7 @@ impl SecureChannelService {
                 created_at: DateTime::now(),
                 revised_lifetime: request.requested_lifetime,
             },
-            server_nonce: ByteString::from(self.secure_channel.nonce.as_ref()),
+            server_nonce: ByteString::from(&self.secure_channel.nonce),
         };
 
         trace!("Sending OpenSecureChannelResponse {:?}", response);
