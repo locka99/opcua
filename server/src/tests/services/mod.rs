@@ -26,7 +26,7 @@ impl ServiceTest {
 
 fn make_request_header() -> RequestHeader {
     RequestHeader {
-        authentication_token: NodeId::new_numeric(0, 99),
+        authentication_token: NodeId::new(0, 99),
         timestamp: DateTime::now(),
         request_handle: 1,
         return_diagnostics: 0,

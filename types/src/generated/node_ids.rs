@@ -308,7 +308,7 @@ pub enum DataTypeId {
 
 impl DataTypeId {
     pub fn as_node_id(&self) -> NodeId {
-        NodeId::new_numeric(0, *self as UInt64)
+        NodeId::new(0, *self as UInt64)
     }
 
     pub fn from_u64(value: u64) -> Result<DataTypeId, ()> {
@@ -649,7 +649,7 @@ pub enum ReferenceTypeId {
 
 impl ReferenceTypeId {
     pub fn as_node_id(&self) -> NodeId {
-        NodeId::new_numeric(0, *self as UInt64)
+        NodeId::new(0, *self as UInt64)
     }
 
     pub fn from_u64(value: u64) -> Result<ReferenceTypeId, ()> {
@@ -814,7 +814,7 @@ pub enum ObjectTypeId {
 
 impl ObjectTypeId {
     pub fn as_node_id(&self) -> NodeId {
-        NodeId::new_numeric(0, *self as UInt64)
+        NodeId::new(0, *self as UInt64)
     }
 
     pub fn from_u64(value: u64) -> Result<ObjectTypeId, ()> {
@@ -989,7 +989,7 @@ pub enum VariableTypeId {
 
 impl VariableTypeId {
     pub fn as_node_id(&self) -> NodeId {
-        NodeId::new_numeric(0, *self as UInt64)
+        NodeId::new(0, *self as UInt64)
     }
 
     pub fn from_u64(value: u64) -> Result<VariableTypeId, ()> {
@@ -1435,7 +1435,7 @@ pub enum ObjectId {
 
 impl ObjectId {
     pub fn as_node_id(&self) -> NodeId {
-        NodeId::new_numeric(0, *self as UInt64)
+        NodeId::new(0, *self as UInt64)
     }
 
     pub fn from_u64(value: u64) -> Result<ObjectId, ()> {
@@ -5907,7 +5907,7 @@ pub enum VariableId {
 
 impl VariableId {
     pub fn as_node_id(&self) -> NodeId {
-        NodeId::new_numeric(0, *self as UInt64)
+        NodeId::new(0, *self as UInt64)
     }
 
     pub fn from_u64(value: u64) -> Result<VariableId, ()> {
@@ -10394,7 +10394,7 @@ pub enum MethodId {
 
 impl MethodId {
     pub fn as_node_id(&self) -> NodeId {
-        NodeId::new_numeric(0, *self as UInt64)
+        NodeId::new(0, *self as UInt64)
     }
 
     pub fn from_u64(value: u64) -> Result<MethodId, ()> {

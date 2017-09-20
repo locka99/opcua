@@ -152,7 +152,7 @@ fn node_id_4byte_numeric() {
     serialize_and_compare(node_id, &expected_bytes);
 
     // Serialize / deserialize to itself
-    let node_id = NodeId::new_numeric(5, 1025);
+    let node_id = NodeId::new(5, 1025);
     serialize_test(node_id);
 }
 
@@ -235,18 +235,19 @@ fn localized_text() {
 
 #[test]
 fn expanded_node_id() {
-    let node_id = ExpandedNodeId::new(&NodeId::new_numeric(200, 2000));
+    let node_id = ExpandedNodeId::new(NodeId::new(200, 2000));
     serialize_test(node_id);
 
-    let mut node_id = ExpandedNodeId::new(&NodeId::new_numeric(200, 2000));
+    let mut node_id = ExpandedNodeId::new(NodeId::new(200, 2000));
     node_id.namespace_uri = UAString::from("test");
     serialize_test(node_id);
 
-    let mut node_id = ExpandedNodeId::new(&NodeId::new_numeric(200, 2000));
+    let mut node_id = ExpandedNodeId::new(NodeId::new(200, 2000));
     node_id.server_index = 500;
+
     serialize_test(node_id);
 
-    let mut node_id = ExpandedNodeId::new(&NodeId::new_numeric(200, 2000));
+    let mut node_id = ExpandedNodeId::new(NodeId::new(200, 2000));
     node_id.namespace_uri = UAString::from("test2");
     node_id.server_index = 50330;
     serialize_test(node_id);
@@ -317,7 +318,7 @@ fn variant() {
     let v = Variant::new(NodeId::new_string(99, "hello everyone"));
     serialize_test(v);
     // ExpandedNodeId
-    let v = Variant::new(ExpandedNodeId::new(&ObjectId::AddNodesItem_Encoding_DefaultBinary.as_node_id()));
+    let v = Variant::new(ExpandedNodeId::new(ObjectId::AddNodesItem_Encoding_DefaultBinary.as_node_id()));
     serialize_test(v);
     // StatusCode
     let v = Variant::new(BAD_TCP_MESSAGE_TYPE_INVALID);

@@ -3,12 +3,12 @@ use chrono;
 use prelude::*;
 
 fn test_var_node_id() -> NodeId {
-    NodeId::new_numeric(1, 1)
+    NodeId::new(1, 1)
 }
 
 fn make_address_space() -> AddressSpace {
     let mut address_space = AddressSpace::new();
-    let _ = address_space.add_variable(Variable::new(&NodeId::new_numeric(1, 1), "test", "test", "", 0 as UInt32), &AddressSpace::objects_folder_id());
+    let _ = address_space.add_variable(Variable::new(&NodeId::new(1, 1), "test", "test", "", 0 as UInt32), &AddressSpace::objects_folder_id());
     address_space
 }
 

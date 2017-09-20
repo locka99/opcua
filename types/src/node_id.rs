@@ -213,7 +213,7 @@ impl FromStr for NodeId {
                 if number.is_err() {
                     return Err(BAD_NODE_ID_INVALID);
                 }
-                NodeId::new_numeric(namespace, number.unwrap())
+                NodeId::new(namespace, number.unwrap())
             }
             "s" => {
                 NodeId::new_string(namespace, v.as_str())
@@ -250,13 +250,10 @@ use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 static NEXT_NODE_ID_NUMERIC: AtomicUsize = ATOMIC_USIZE_INIT;
 
 impl NodeId {
+    // Constructs a new NodeId from anything that can be turned into Identifier
+    // UInt64, Guid, ByteString or String
     pub fn new<T>(namespace: UInt16, value: T) -> NodeId where T: 'static + Into<Identifier> {
         NodeId { namespace: namespace, identifier: value.into() }
-    }
-
-    /// Construct a numeric node id
-    pub fn new_numeric(namespace: UInt16, value: UInt64) -> NodeId {
-        Self::new(namespace, value)
     }
 
     /// Construct a string node id
@@ -274,12 +271,12 @@ impl NodeId {
 
     /// Returns a null node id
     pub fn null() -> NodeId {
-        NodeId::new_numeric(0, 0)
+        NodeId::new(0, 0)
     }
 
     // Creates a numeric node id with an id incrementing up from 1000
     pub fn next_numeric() -> NodeId {
-        let result = NodeId::new_numeric(1, NEXT_NODE_ID_NUMERIC.fetch_add(1, Ordering::SeqCst) as u64);
+        let result = NodeId::new(1, NEXT_NODE_ID_NUMERIC.fetch_add(1, Ordering::SeqCst) as u64);
         result
     }
 
@@ -490,18 +487,30 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
     }
 }
 
-impl ExpandedNodeId {
-    /// Creates an expanded node id from a node id
-    pub fn new(node_id: &NodeId) -> ExpandedNodeId {
+impl<'a> Into<ExpandedNodeId> for &'a NodeId {
+    fn into(self) -> ExpandedNodeId {
+        self.clone().into()
+    }
+}
+
+impl Into<ExpandedNodeId> for NodeId {
+    fn into(self) -> ExpandedNodeId {
         ExpandedNodeId {
-            node_id: node_id.clone(),
+            node_id: self,
             namespace_uri: UAString::null(),
             server_index: 0,
         }
     }
+}
+
+impl ExpandedNodeId {
+    /// Creates an expanded node id from a node id
+    pub fn new<T>(value: T) -> ExpandedNodeId where T: 'static + Into<ExpandedNodeId> {
+        value.into()
+    }
 
     pub fn null() -> ExpandedNodeId {
-        Self::new(&NodeId::null())
+        Self::new(NodeId::null())
     }
 
     pub fn is_null(&self) -> bool {

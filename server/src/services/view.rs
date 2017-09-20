@@ -114,7 +114,7 @@ impl ViewService {
                         use std::u32;
                         let targets = result.iter().map(|node_id| {
                             BrowsePathTarget {
-                                target_id: ExpandedNodeId::new(node_id),
+                                target_id: ExpandedNodeId::new(node_id.clone()),
                                 remaining_path_index: u32::MAX as UInt32,
                             }
                         }).collect();
@@ -236,7 +236,7 @@ impl ViewService {
                     NodeClass::Object | NodeClass::Variable => {
                         let type_defs = address_space.find_references_from(&target_node.node_id(), Some((ReferenceTypeId::HasTypeDefinition, false)));
                         if let Some(type_defs) = type_defs {
-                            ExpandedNodeId::new(&type_defs[0].node_id)
+                            ExpandedNodeId::new(type_defs[0].node_id.clone())
                         } else {
                             ExpandedNodeId::null()
                         }
@@ -250,7 +250,7 @@ impl ViewService {
             };
 
             let reference_description = ReferenceDescription {
-                node_id: ExpandedNodeId::new(&target_node_id),
+                node_id: ExpandedNodeId::new(target_node_id),
                 reference_type_id,
                 is_forward,
                 node_class: target_node_class,

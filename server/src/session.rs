@@ -89,7 +89,7 @@ impl Session {
 
     pub fn next_session_id(&mut self) -> NodeId {
         self.last_session_id += 1;
-        NodeId::new_numeric(1, self.last_session_id as u64)
+        NodeId::new(1, self.last_session_id as u64)
     }
 
     pub fn enqueue_publish_request(&mut self, server_state: &ServerState, request_id: UInt32, request: PublishRequest) -> Result<(), SupportedMessage> {

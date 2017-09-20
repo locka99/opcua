@@ -54,7 +54,7 @@ pub enum ${key}Id {
             rs_out.write(`
 impl ${key}Id {
     pub fn as_node_id(&self) -> NodeId {
-        NodeId::new_numeric(0, *self as UInt64)
+        NodeId::new(0, *self as UInt64)
     }
 
     pub fn from_u64(value: u64) -> Result<${key}Id, ()> {

@@ -177,7 +177,7 @@ settings.write_to_file(`${settings.rs_address_space_dir}/mod.rs`, mod_contents);
 
 function node_id_ctor(snippet) {
     // This turns a snippet like "i=2015" into a node id
-    return `NodeId::new_numeric(0, ${snippet.substr(2)})`;
+    return `NodeId::new(0, ${snippet.substr(2)})`;
 }
 
 function insert_node(indent, node_type, value, node_ctor) {

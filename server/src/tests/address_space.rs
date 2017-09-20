@@ -19,11 +19,11 @@ fn address_space() {
 #[test]
 fn find_root_folder() {
     let address_space = AddressSpace::new();
-    let node_type = address_space.find_node(&NodeId::new_numeric(0, 84));
+    let node_type = address_space.find_node(&NodeId::new(0, 84));
     assert!(node_type.is_some());
 
     let node = node_type.unwrap().as_node();
-    assert_eq!(node.node_id(), NodeId::new_numeric(0, 84));
+    assert_eq!(node.node_id(), NodeId::new(0, 84));
     assert_eq!(node.node_id(), ObjectId::RootFolder.as_node_id());
 }
 
@@ -123,7 +123,7 @@ fn find_node_by_id() {
     assert!(!address_space.node_exists(&NodeId::new_string(11, "v3")));
 
     assert!(address_space.node_exists(&NodeId::new_string(1, "v1")));
-    assert!(address_space.node_exists(&NodeId::new_numeric(2, 300)));
+    assert!(address_space.node_exists(&NodeId::new(2, 300)));
     assert!(address_space.node_exists(&NodeId::new_string(1, "v3")));
 }
 

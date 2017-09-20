@@ -76,7 +76,7 @@ fn make_open_secure_channel_response() -> OpenSecureChannelResponse {
 fn make_sample_message() -> SupportedMessage {
     SupportedMessage::GetEndpointsRequest(GetEndpointsRequest {
         request_header: RequestHeader {
-            authentication_token: NodeId::new_numeric(0, 99),
+            authentication_token: NodeId::new(0, 99),
             timestamp: DateTime::now(),
             request_handle: 1,
             return_diagnostics: 0,
@@ -295,7 +295,7 @@ fn open_secure_channel() {
     let _ = Test::setup();
     let open_secure_channel_request = OpenSecureChannelRequest {
         request_header: RequestHeader {
-            authentication_token: NodeId::new_numeric(0, 99),
+            authentication_token: NodeId::new(0, 99),
             timestamp: DateTime::now(),
             request_handle: 1,
             return_diagnostics: 0,
