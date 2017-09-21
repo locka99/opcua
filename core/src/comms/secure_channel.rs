@@ -8,7 +8,9 @@ use opcua_types::*;
 
 use crypto::SecurityPolicy;
 use crypto::CertificateStore;
-use crypto::types::*;
+use crypto::x509::X509;
+use crypto::aeskey::AesKey;
+use crypto::pkey::PKey;
 
 use comms::security_header::{SecurityHeader, SymmetricSecurityHeader, AsymmetricSecurityHeader};
 use comms::message_chunk::{MessageChunkHeader, MessageChunkType, MessageChunk};

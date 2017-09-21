@@ -7,7 +7,9 @@ use opcua_types::*;
 use comms::chunker::*;
 use comms::message_chunk::*;
 use comms::secure_channel::*;
+
 use crypto::SecurityPolicy;
+use crypto::x509::X509;
 
 use tests::*;
 

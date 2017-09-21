@@ -12,7 +12,8 @@ use tempdir::TempDir;
 
 use opcua_types::*;
 
-use crypto::types::*;
+use crypto::pkey::PKey;
+use crypto::x509::{X509, X509Data};
 use crypto::certificate_store::*;
 
 pub fn serialize_test_and_return<T>(value: T) -> T

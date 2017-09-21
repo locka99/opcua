@@ -4,8 +4,10 @@ use std::fs::File;
 use std::io::Write;
 
 use crypto::{SecurityPolicy, SHA1_SIZE, SHA256_SIZE};
-use crypto::types::*;
 use crypto::certificate_store::*;
+use crypto::x509::{X509, X509Data};
+use crypto::pkey::PKey;
+use crypto::aeskey::AesKey;
 
 use tests::{make_certificate_store, make_test_cert};
 

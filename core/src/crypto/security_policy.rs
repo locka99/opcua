@@ -8,7 +8,8 @@ use opcua_types::StatusCode;
 use opcua_types::StatusCode::*;
 
 use crypto::{SHA1_SIZE, SHA256_SIZE};
-use crypto::types::{AesKey, PKey};
+use crypto::aeskey::AesKey;
+use crypto::pkey::PKey;
 use crypto::hash;
 
 /// URI supplied for the None security policy

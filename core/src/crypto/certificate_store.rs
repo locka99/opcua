@@ -14,7 +14,8 @@ use openssl::hash::*;
 
 use opcua_types::*;
 
-use crypto::types::{X509, X509Data, PKey};
+use crypto::x509::{X509, X509Data};
+use crypto::pkey::PKey;
 
 /// The name that the server/client's application instance certificate is expected to be
 const OWN_CERTIFICATE_NAME: &'static str = "cert.der";
