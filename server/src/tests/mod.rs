@@ -71,7 +71,7 @@ pub fn expired_publish_requests() {
 
     // Create two publish requests timestamped now, one which expires in > 30s, one which expires
     // in > 20s
-    let now = DateTime::from(&now);
+    let now = DateTime::from(now.clone());
     let mut pr1 = PublishRequestEntry {
         request_id: 1,
         request: PublishRequest {
