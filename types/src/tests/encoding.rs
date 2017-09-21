@@ -353,7 +353,7 @@ fn variant() {
 #[test]
 fn variant_single_dimension_array() {
     let values = vec![Variant::Int32(100), Variant::Int32(200), Variant::Int32(300)];
-    let v = Variant::Array(Box::new(values));
+    let v = Variant::Array(values);
     serialize_test(v);
 }
 

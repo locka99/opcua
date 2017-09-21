@@ -50,10 +50,32 @@ impl BinaryEncoder<DateTime> for DateTime {
     }
 }
 
+impl From<chrono::DateTime<UTC>> for DateTime {
+    fn from(dt: chrono::DateTime<UTC>) -> Self {
+        DateTime {
+            year: dt.year() as UInt16,
+            month: dt.month() as UInt16,
+            day: dt.day() as UInt16,
+            hour: dt.hour() as UInt16,
+            min: dt.minute() as UInt16,
+            sec: dt.second() as UInt16,
+            nano_sec: (dt.nanosecond() / NANOS_PER_TICK as u32) * NANOS_PER_TICK as u32,
+        }
+    }
+}
+
+impl Into<chrono::DateTime<UTC>> for DateTime {
+    fn into(self) -> chrono::DateTime<UTC> {
+        /// Converts from the equivalent chrono type
+        UTC.ymd(self.year as i32, self.month as u32, self.day as u32)
+            .and_hms_nano(self.hour as u32, self.min as u32, self.sec as u32, self.nano_sec as u32)
+    }
+}
+
 impl DateTime {
     /// Constructs from the current time
     pub fn now() -> DateTime {
-        DateTime::from_chrono(&UTC::now())
+        DateTime::from(UTC::now())
     }
 
     /// Constructs from a year, month, day 
@@ -109,36 +131,15 @@ impl DateTime {
         }
     }
 
-    /// Converts from the equivalent chrono type
-    pub fn from_chrono(dt: &chrono::DateTime<UTC>) -> DateTime {
-        DateTime {
-            year: dt.year() as UInt16,
-            month: dt.month() as UInt16,
-            day: dt.day() as UInt16,
-            hour: dt.hour() as UInt16,
-            min: dt.minute() as UInt16,
-            sec: dt.second() as UInt16,
-            nano_sec: (dt.nanosecond() / NANOS_PER_TICK as u32) * NANOS_PER_TICK as u32,
-        }
-    }
-
-    /// Returns the equivalent chrono type
-    pub fn as_chrono(&self) -> chrono::DateTime<UTC> {
-        UTC.ymd(self.year as i32, self.month as u32, self.day as u32)
-            .and_hms_nano(self.hour as u32,
-                          self.min as u32,
-                          self.sec as u32,
-                          self.nano_sec as u32)
-    }
-
     /// Create a date time in ticks, of 100 nanosecond intervals relative to the UA epoch
     pub fn from_ticks(ticks: i64) -> DateTime {
-        DateTime::from_chrono(&(epoch_chrono() + ticks_to_duration(ticks)))
+        DateTime::from(epoch_chrono() + ticks_to_duration(ticks))
     }
 
     /// Returns the time in ticks, of 100 nanosecond intervals
     pub fn ticks(&self) -> i64 {
-        duration_to_ticks(self.as_chrono().signed_duration_since(epoch_chrono()))
+        let chrono_time: chrono::DateTime<UTC> = self.clone().into();
+        duration_to_ticks(chrono_time.signed_duration_since(epoch_chrono()))
     }
 
     /// To checked ticks. Function returns 0 or MAX_INT64

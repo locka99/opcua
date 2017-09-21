@@ -110,7 +110,9 @@ impl Into<Variant> for DataValue {
 }
 
 /// A Variant holds all primitive types, including single and multi dimensional arrays and
-/// data values. Boxes are used for more complex types to keep the size of this enum down a bit.
+/// data values.
+///
+/// Boxes are used for more complex types to keep the size of this enum down a bit.
 #[derive(PartialEq, Debug, Clone)]
 pub enum Variant {
     /// Empty type has no value
@@ -164,7 +166,7 @@ pub enum Variant {
     /// Single dimension array
     /// A variant can be an array of other kinds (all of which must be the same type), second argument is the dimensions of the
     /// array which should match the array length, otherwise BAD_DECODING_ERROR
-    Array(Box<Vec<Variant>>),
+    Array(Vec<Variant>),
     /// Multi dimension array
     /// A variant can be an array of other kinds (all of which must be the same type), second argument is the dimensions of the
     /// array which should match the array length, otherwise BAD_DECODING_ERROR
@@ -181,32 +183,32 @@ impl BinaryEncoder<Variant> for Variant {
         size += 1;
 
         // Value itself
-        size += match self {
-            &Variant::Empty => 0,
-            &Variant::Boolean(ref value) => value.byte_len(),
-            &Variant::SByte(ref value) => value.byte_len(),
-            &Variant::Byte(ref value) => value.byte_len(),
-            &Variant::Int16(ref value) => value.byte_len(),
-            &Variant::UInt16(ref value) => value.byte_len(),
-            &Variant::Int32(ref value) => value.byte_len(),
-            &Variant::UInt32(ref value) => value.byte_len(),
-            &Variant::Int64(ref value) => value.byte_len(),
-            &Variant::UInt64(ref value) => value.byte_len(),
-            &Variant::Float(ref value) => value.byte_len(),
-            &Variant::Double(ref value) => value.byte_len(),
-            &Variant::String(ref value) => value.byte_len(),
-            &Variant::DateTime(ref value) => value.byte_len(),
-            &Variant::Guid(ref value) => value.byte_len(),
-            &Variant::ByteString(ref value) => value.byte_len(),
-            &Variant::XmlElement(ref value) => value.byte_len(),
-            &Variant::NodeId(ref value) => value.byte_len(),
-            &Variant::ExpandedNodeId(ref value) => value.byte_len(),
-            &Variant::StatusCode(ref value) => value.byte_len(),
-            &Variant::QualifiedName(ref value) => value.byte_len(),
-            &Variant::LocalizedText(ref value) => value.byte_len(),
-            &Variant::ExtensionObject(ref value) => value.byte_len(),
-            &Variant::DataValue(ref value) => value.byte_len(),
-            &Variant::Array(ref values) => {
+        size += match *self {
+            Variant::Empty => 0,
+            Variant::Boolean(ref value) => value.byte_len(),
+            Variant::SByte(ref value) => value.byte_len(),
+            Variant::Byte(ref value) => value.byte_len(),
+            Variant::Int16(ref value) => value.byte_len(),
+            Variant::UInt16(ref value) => value.byte_len(),
+            Variant::Int32(ref value) => value.byte_len(),
+            Variant::UInt32(ref value) => value.byte_len(),
+            Variant::Int64(ref value) => value.byte_len(),
+            Variant::UInt64(ref value) => value.byte_len(),
+            Variant::Float(ref value) => value.byte_len(),
+            Variant::Double(ref value) => value.byte_len(),
+            Variant::String(ref value) => value.byte_len(),
+            Variant::DateTime(ref value) => value.byte_len(),
+            Variant::Guid(ref value) => value.byte_len(),
+            Variant::ByteString(ref value) => value.byte_len(),
+            Variant::XmlElement(ref value) => value.byte_len(),
+            Variant::NodeId(ref value) => value.byte_len(),
+            Variant::ExpandedNodeId(ref value) => value.byte_len(),
+            Variant::StatusCode(ref value) => value.byte_len(),
+            Variant::QualifiedName(ref value) => value.byte_len(),
+            Variant::LocalizedText(ref value) => value.byte_len(),
+            Variant::ExtensionObject(ref value) => value.byte_len(),
+            Variant::DataValue(ref value) => value.byte_len(),
+            Variant::Array(ref values) => {
                 // Array length
                 let mut size = 4;
                 // Values
@@ -215,7 +217,7 @@ impl BinaryEncoder<Variant> for Variant {
                 }
                 size
             }
-            &Variant::MultiDimensionArray(ref mda) => {
+            Variant::MultiDimensionArray(ref mda) => {
                 // Array length
                 let mut size = 4;
                 // Values
@@ -237,39 +239,39 @@ impl BinaryEncoder<Variant> for Variant {
         let encoding_mask = self.get_encoding_mask();
         size += write_u8(stream, encoding_mask)?;
 
-        size += match self {
-            &Variant::Empty => 0,
-            &Variant::Boolean(ref value) => value.encode(stream)?,
-            &Variant::SByte(ref value) => value.encode(stream)?,
-            &Variant::Byte(ref value) => value.encode(stream)?,
-            &Variant::Int16(ref value) => value.encode(stream)?,
-            &Variant::UInt16(ref value) => value.encode(stream)?,
-            &Variant::Int32(ref value) => value.encode(stream)?,
-            &Variant::UInt32(ref value) => value.encode(stream)?,
-            &Variant::Int64(ref value) => value.encode(stream)?,
-            &Variant::UInt64(ref value) => value.encode(stream)?,
-            &Variant::Float(ref value) => value.encode(stream)?,
-            &Variant::Double(ref value) => value.encode(stream)?,
-            &Variant::String(ref value) => value.encode(stream)?,
-            &Variant::DateTime(ref value) => value.encode(stream)?,
-            &Variant::Guid(ref value) => value.encode(stream)?,
-            &Variant::ByteString(ref value) => value.encode(stream)?,
-            &Variant::XmlElement(ref value) => value.encode(stream)?,
-            &Variant::NodeId(ref value) => value.encode(stream)?,
-            &Variant::ExpandedNodeId(ref value) => value.encode(stream)?,
-            &Variant::StatusCode(ref value) => value.encode(stream)?,
-            &Variant::QualifiedName(ref value) => value.encode(stream)?,
-            &Variant::LocalizedText(ref value) => value.encode(stream)?,
-            &Variant::ExtensionObject(ref value) => value.encode(stream)?,
-            &Variant::DataValue(ref value) => value.encode(stream)?,
-            &Variant::Array(ref values) => {
+        size += match *self {
+            Variant::Empty => 0,
+            Variant::Boolean(ref value) => value.encode(stream)?,
+            Variant::SByte(ref value) => value.encode(stream)?,
+            Variant::Byte(ref value) => value.encode(stream)?,
+            Variant::Int16(ref value) => value.encode(stream)?,
+            Variant::UInt16(ref value) => value.encode(stream)?,
+            Variant::Int32(ref value) => value.encode(stream)?,
+            Variant::UInt32(ref value) => value.encode(stream)?,
+            Variant::Int64(ref value) => value.encode(stream)?,
+            Variant::UInt64(ref value) => value.encode(stream)?,
+            Variant::Float(ref value) => value.encode(stream)?,
+            Variant::Double(ref value) => value.encode(stream)?,
+            Variant::String(ref value) => value.encode(stream)?,
+            Variant::DateTime(ref value) => value.encode(stream)?,
+            Variant::Guid(ref value) => value.encode(stream)?,
+            Variant::ByteString(ref value) => value.encode(stream)?,
+            Variant::XmlElement(ref value) => value.encode(stream)?,
+            Variant::NodeId(ref value) => value.encode(stream)?,
+            Variant::ExpandedNodeId(ref value) => value.encode(stream)?,
+            Variant::StatusCode(ref value) => value.encode(stream)?,
+            Variant::QualifiedName(ref value) => value.encode(stream)?,
+            Variant::LocalizedText(ref value) => value.encode(stream)?,
+            Variant::ExtensionObject(ref value) => value.encode(stream)?,
+            Variant::DataValue(ref value) => value.encode(stream)?,
+            Variant::Array(ref values) => {
                 let mut size = write_i32(stream, values.len() as i32)?;
                 for value in values.iter() {
                     size += Variant::encode_variant_value(stream, value)?;
                 }
                 size
             }
-            &Variant::MultiDimensionArray(ref mda) => {
+            Variant::MultiDimensionArray(ref mda) => {
                 // Encode array length
                 let mut size = write_i32(stream, mda.values.len() as i32)?;
                 // Encode values
@@ -338,7 +340,7 @@ impl BinaryEncoder<Variant> for Variant {
                     Ok(Variant::new_multi_dimension_array(result, dimensions))
                 }
             } else {
-                Ok(Variant::Array(Box::new(result)))
+                Ok(Variant::Array(result))
             }
         } else if encoding_mask & ARRAY_DIMENSIONS_BIT != 0 {
             error!("Array dimensions bit specified without any values");
@@ -375,31 +377,31 @@ impl Variant {
 
     /// Returns the length of just the value, not the encoding flag
     fn byte_len_variant_value(value: &Variant) -> usize {
-        let size = match value {
-            &Variant::Empty => 0,
-            &Variant::Boolean(ref value) => value.byte_len(),
-            &Variant::SByte(ref value) => value.byte_len(),
-            &Variant::Byte(ref value) => value.byte_len(),
-            &Variant::Int16(ref value) => value.byte_len(),
-            &Variant::UInt16(ref value) => value.byte_len(),
-            &Variant::Int32(ref value) => value.byte_len(),
-            &Variant::UInt32(ref value) => value.byte_len(),
-            &Variant::Int64(ref value) => value.byte_len(),
-            &Variant::UInt64(ref value) => value.byte_len(),
-            &Variant::Float(ref value) => value.byte_len(),
-            &Variant::Double(ref value) => value.byte_len(),
-            &Variant::String(ref value) => value.byte_len(),
-            &Variant::DateTime(ref value) => value.byte_len(),
-            &Variant::Guid(ref value) => value.byte_len(),
-            &Variant::ByteString(ref value) => value.byte_len(),
-            &Variant::XmlElement(ref value) => value.byte_len(),
-            &Variant::NodeId(ref value) => value.byte_len(),
-            &Variant::ExpandedNodeId(ref value) => value.byte_len(),
-            &Variant::StatusCode(ref value) => value.byte_len(),
-            &Variant::QualifiedName(ref value) => value.byte_len(),
-            &Variant::LocalizedText(ref value) => value.byte_len(),
-            &Variant::ExtensionObject(ref value) => value.byte_len(),
-            &Variant::DataValue(ref value) => value.byte_len(),
+        let size = match *value {
+            Variant::Empty => 0,
+            Variant::Boolean(ref value) => value.byte_len(),
+            Variant::SByte(ref value) => value.byte_len(),
+            Variant::Byte(ref value) => value.byte_len(),
+            Variant::Int16(ref value) => value.byte_len(),
+            Variant::UInt16(ref value) => value.byte_len(),
+            Variant::Int32(ref value) => value.byte_len(),
+            Variant::UInt32(ref value) => value.byte_len(),
+            Variant::Int64(ref value) => value.byte_len(),
+            Variant::UInt64(ref value) => value.byte_len(),
+            Variant::Float(ref value) => value.byte_len(),
+            Variant::Double(ref value) => value.byte_len(),
+            Variant::String(ref value) => value.byte_len(),
+            Variant::DateTime(ref value) => value.byte_len(),
+            Variant::Guid(ref value) => value.byte_len(),
+            Variant::ByteString(ref value) => value.byte_len(),
+            Variant::XmlElement(ref value) => value.byte_len(),
+            Variant::NodeId(ref value) => value.byte_len(),
+            Variant::ExpandedNodeId(ref value) => value.byte_len(),
+            Variant::StatusCode(ref value) => value.byte_len(),
+            Variant::QualifiedName(ref value) => value.byte_len(),
+            Variant::LocalizedText(ref value) => value.byte_len(),
+            Variant::ExtensionObject(ref value) => value.byte_len(),
+            Variant::DataValue(ref value) => value.byte_len(),
             _ => {
                 error!("Cannot compute length of this type (probably nested array)");
                 0
@@ -410,31 +412,31 @@ impl Variant {
 
     /// Encodes just the value, not the encoding flag
     fn encode_variant_value<S: Write>(stream: &mut S, value: &Variant) -> EncodingResult<usize> {
-        match value {
-            &Variant::Empty => Ok(0),
-            &Variant::Boolean(ref value) => value.encode(stream),
-            &Variant::SByte(ref value) => value.encode(stream),
-            &Variant::Byte(ref value) => value.encode(stream),
-            &Variant::Int16(ref value) => value.encode(stream),
-            &Variant::UInt16(ref value) => value.encode(stream),
-            &Variant::Int32(ref value) => value.encode(stream),
-            &Variant::UInt32(ref value) => value.encode(stream),
-            &Variant::Int64(ref value) => value.encode(stream),
-            &Variant::UInt64(ref value) => value.encode(stream),
-            &Variant::Float(ref value) => value.encode(stream),
-            &Variant::Double(ref value) => value.encode(stream),
-            &Variant::String(ref value) => value.encode(stream),
-            &Variant::DateTime(ref value) => value.encode(stream),
-            &Variant::Guid(ref value) => value.encode(stream),
-            &Variant::ByteString(ref value) => value.encode(stream),
-            &Variant::XmlElement(ref value) => value.encode(stream),
-            &Variant::NodeId(ref value) => value.encode(stream),
-            &Variant::ExpandedNodeId(ref value) => value.encode(stream),
-            &Variant::StatusCode(ref value) => value.encode(stream),
-            &Variant::QualifiedName(ref value) => value.encode(stream),
-            &Variant::LocalizedText(ref value) => value.encode(stream),
-            &Variant::ExtensionObject(ref value) => value.encode(stream),
-            &Variant::DataValue(ref value) => value.encode(stream),
+        match *value {
+            Variant::Empty => Ok(0),
+            Variant::Boolean(ref value) => value.encode(stream),
+            Variant::SByte(ref value) => value.encode(stream),
+            Variant::Byte(ref value) => value.encode(stream),
+            Variant::Int16(ref value) => value.encode(stream),
+            Variant::UInt16(ref value) => value.encode(stream),
+            Variant::Int32(ref value) => value.encode(stream),
+            Variant::UInt32(ref value) => value.encode(stream),
+            Variant::Int64(ref value) => value.encode(stream),
+            Variant::UInt64(ref value) => value.encode(stream),
+            Variant::Float(ref value) => value.encode(stream),
+            Variant::Double(ref value) => value.encode(stream),
+            Variant::String(ref value) => value.encode(stream),
+            Variant::DateTime(ref value) => value.encode(stream),
+            Variant::Guid(ref value) => value.encode(stream),
+            Variant::ByteString(ref value) => value.encode(stream),
+            Variant::XmlElement(ref value) => value.encode(stream),
+            Variant::NodeId(ref value) => value.encode(stream),
+            Variant::ExpandedNodeId(ref value) => value.encode(stream),
+            Variant::StatusCode(ref value) => value.encode(stream),
+            Variant::QualifiedName(ref value) => value.encode(stream),
+            Variant::LocalizedText(ref value) => value.encode(stream),
+            Variant::ExtensionObject(ref value) => value.encode(stream),
+            Variant::DataValue(ref value) => value.encode(stream),
             _ => {
                 warn!("Cannot encode this variant value type (probably nested array)");
                 Err(BAD_ENCODING_ERROR)
@@ -507,7 +509,7 @@ impl Variant {
         for v in in_values {
             values.push(Variant::Int32(*v));
         }
-        Variant::Array(Box::new(values))
+        Variant::Array(values)
     }
 
     pub fn new_u32_array(in_values: &[UInt32]) -> Variant {
@@ -515,7 +517,7 @@ impl Variant {
         for v in in_values {
             values.push(Variant::UInt32(*v));
         }
-        Variant::Array(Box::new(values))
+        Variant::Array(values)
     }
 
     pub fn new_string_array(in_values: &[String]) -> Variant {
@@ -523,40 +525,40 @@ impl Variant {
         for v in in_values {
             values.push(Variant::String(UAString::from(v.as_ref())));
         }
-        Variant::Array(Box::new(values))
+        Variant::Array(values)
     }
 
     /// Tests and returns true if the variant holds a numeric type
     pub fn is_numeric(&self) -> bool {
-        match self {
-            &Variant::SByte(_) | &Variant::Byte(_) |
-            &Variant::Int16(_) | &Variant::UInt16(_) |
-            &Variant::Int32(_) | &Variant::UInt32(_) |
-            &Variant::Int64(_) | &Variant::UInt64(_) |
-            &Variant::Float(_) | &Variant::Double(_) => true,
+        match *self {
+            Variant::SByte(_) | Variant::Byte(_) |
+            Variant::Int16(_) | Variant::UInt16(_) |
+            Variant::Int32(_) | Variant::UInt32(_) |
+            Variant::Int64(_) | Variant::UInt64(_) |
+            Variant::Float(_) | Variant::Double(_) => true,
             _ => false
         }
     }
 
     /// Converts the numeric type to a double or returns None
     pub fn as_f64(&self) -> Option<f64> {
-        match self {
-            &Variant::SByte(value) => Some(value as f64),
-            &Variant::Byte(value) => Some(value as f64),
-            &Variant::Int16(value) => Some(value as f64),
-            &Variant::UInt16(value) => Some(value as f64),
-            &Variant::Int32(value) => Some(value as f64),
-            &Variant::UInt32(value) => Some(value as f64),
-            &Variant::Int64(value) => {
+        match *self {
+            Variant::SByte(value) => Some(value as f64),
+            Variant::Byte(value) => Some(value as f64),
+            Variant::Int16(value) => Some(value as f64),
+            Variant::UInt16(value) => Some(value as f64),
+            Variant::Int32(value) => Some(value as f64),
+            Variant::UInt32(value) => Some(value as f64),
+            Variant::Int64(value) => {
                 // NOTE: Int64 could overflow
                 Some(value as f64)
             }
-            &Variant::UInt64(value) => {
+            Variant::UInt64(value) => {
                 // NOTE: UInt64 could overflow
                 Some(value as f64)
             }
-            &Variant::Float(value) => Some(value as f64),
-            &Variant::Double(value) => Some(value),
+            Variant::Float(value) => Some(value as f64),
+            Variant::Double(value) => Some(value),
             _ => {
                 None
             }
@@ -564,29 +566,29 @@ impl Variant {
     }
 
     pub fn data_type(&self) -> Option<DataTypeId> {
-        Some(match self {
-            &Variant::Boolean(_) => DataTypeId::Boolean,
-            &Variant::SByte(_) => DataTypeId::SByte,
-            &Variant::Byte(_) => DataTypeId::Byte,
-            &Variant::Int16(_) => DataTypeId::Int16,
-            &Variant::UInt16(_) => DataTypeId::UInt16,
-            &Variant::Int32(_) => DataTypeId::Int32,
-            &Variant::UInt32(_) => DataTypeId::UInt32,
-            &Variant::Int64(_) => DataTypeId::Int64,
-            &Variant::UInt64(_) => DataTypeId::UInt64,
-            &Variant::Float(_) => DataTypeId::Float,
-            &Variant::Double(_) => DataTypeId::Double,
-            &Variant::String(_) => DataTypeId::String,
-            &Variant::DateTime(_) => DataTypeId::DateTime,
-            &Variant::Guid(_) => DataTypeId::Guid,
-            &Variant::ByteString(_) => DataTypeId::ByteString,
-            &Variant::XmlElement(_) => DataTypeId::XmlElement,
-            &Variant::NodeId(_) => DataTypeId::NodeId,
-            &Variant::ExpandedNodeId(_) => DataTypeId::ExpandedNodeId,
-            &Variant::StatusCode(_) => DataTypeId::StatusCode,
-            &Variant::QualifiedName(_) => DataTypeId::QualifiedName,
-            &Variant::LocalizedText(_) => DataTypeId::LocalizedText,
-            &Variant::DataValue(_) => DataTypeId::DataValue,
+        Some(match *self {
+            Variant::Boolean(_) => DataTypeId::Boolean,
+            Variant::SByte(_) => DataTypeId::SByte,
+            Variant::Byte(_) => DataTypeId::Byte,
+            Variant::Int16(_) => DataTypeId::Int16,
+            Variant::UInt16(_) => DataTypeId::UInt16,
+            Variant::Int32(_) => DataTypeId::Int32,
+            Variant::UInt32(_) => DataTypeId::UInt32,
+            Variant::Int64(_) => DataTypeId::Int64,
+            Variant::UInt64(_) => DataTypeId::UInt64,
+            Variant::Float(_) => DataTypeId::Float,
+            Variant::Double(_) => DataTypeId::Double,
+            Variant::String(_) => DataTypeId::String,
+            Variant::DateTime(_) => DataTypeId::DateTime,
+            Variant::Guid(_) => DataTypeId::Guid,
+            Variant::ByteString(_) => DataTypeId::ByteString,
+            Variant::XmlElement(_) => DataTypeId::XmlElement,
+            Variant::NodeId(_) => DataTypeId::NodeId,
+            Variant::ExpandedNodeId(_) => DataTypeId::ExpandedNodeId,
+            Variant::StatusCode(_) => DataTypeId::StatusCode,
+            Variant::QualifiedName(_) => DataTypeId::QualifiedName,
+            Variant::LocalizedText(_) => DataTypeId::LocalizedText,
+            Variant::DataValue(_) => DataTypeId::DataValue,
             _ => {
                 return None;
             }
@@ -595,32 +597,32 @@ impl Variant {
 
     // Gets the encoding mask to write the variant to disk
     fn get_encoding_mask(&self) -> u8 {
-        let encoding_mask = match self {
-            &Variant::Empty => 0,
-            &Variant::Boolean(_) => DataTypeId::Boolean as u8,
-            &Variant::SByte(_) => DataTypeId::SByte as u8,
-            &Variant::Byte(_) => DataTypeId::Byte as u8,
-            &Variant::Int16(_) => DataTypeId::Int16 as u8,
-            &Variant::UInt16(_) => DataTypeId::UInt16 as u8,
-            &Variant::Int32(_) => DataTypeId::Int32 as u8,
-            &Variant::UInt32(_) => DataTypeId::UInt32 as u8,
-            &Variant::Int64(_) => DataTypeId::Int64 as u8,
-            &Variant::UInt64(_) => DataTypeId::UInt64 as u8,
-            &Variant::Float(_) => DataTypeId::Float as u8,
-            &Variant::Double(_) => DataTypeId::Double as u8,
-            &Variant::String(_) => DataTypeId::String as u8,
-            &Variant::DateTime(_) => DataTypeId::DateTime as u8,
-            &Variant::Guid(_) => DataTypeId::Guid as u8,
-            &Variant::ByteString(_) => DataTypeId::ByteString as u8,
-            &Variant::XmlElement(_) => DataTypeId::XmlElement as u8,
-            &Variant::NodeId(_) => DataTypeId::NodeId as u8,
-            &Variant::ExpandedNodeId(_) => DataTypeId::ExpandedNodeId as u8,
-            &Variant::StatusCode(_) => DataTypeId::StatusCode as u8,
-            &Variant::QualifiedName(_) => DataTypeId::QualifiedName as u8,
-            &Variant::LocalizedText(_) => DataTypeId::LocalizedText as u8,
-            &Variant::ExtensionObject(_) => 22, // DataTypeId::ExtensionObject as u8,
-            &Variant::DataValue(_) => DataTypeId::DataValue as u8,
-            &Variant::Array(ref values) => {
+        let encoding_mask = match *self {
+            Variant::Empty => 0,
+            Variant::Boolean(_) => DataTypeId::Boolean as u8,
+            Variant::SByte(_) => DataTypeId::SByte as u8,
+            Variant::Byte(_) => DataTypeId::Byte as u8,
+            Variant::Int16(_) => DataTypeId::Int16 as u8,
+            Variant::UInt16(_) => DataTypeId::UInt16 as u8,
+            Variant::Int32(_) => DataTypeId::Int32 as u8,
+            Variant::UInt32(_) => DataTypeId::UInt32 as u8,
+            Variant::Int64(_) => DataTypeId::Int64 as u8,
+            Variant::UInt64(_) => DataTypeId::UInt64 as u8,
+            Variant::Float(_) => DataTypeId::Float as u8,
+            Variant::Double(_) => DataTypeId::Double as u8,
+            Variant::String(_) => DataTypeId::String as u8,
+            Variant::DateTime(_) => DataTypeId::DateTime as u8,
+            Variant::Guid(_) => DataTypeId::Guid as u8,
+            Variant::ByteString(_) => DataTypeId::ByteString as u8,
+            Variant::XmlElement(_) => DataTypeId::XmlElement as u8,
+            Variant::NodeId(_) => DataTypeId::NodeId as u8,
+            Variant::ExpandedNodeId(_) => DataTypeId::ExpandedNodeId as u8,
+            Variant::StatusCode(_) => DataTypeId::StatusCode as u8,
+            Variant::QualifiedName(_) => DataTypeId::QualifiedName as u8,
+            Variant::LocalizedText(_) => DataTypeId::LocalizedText as u8,
+            Variant::ExtensionObject(_) => 22, // DataTypeId::ExtensionObject as u8,
+            Variant::DataValue(_) => DataTypeId::DataValue as u8,
+            Variant::Array(ref values) => {
                 let mut encoding_mask = if values.is_empty() {
                     0u8
                 } else {
@@ -629,7 +631,7 @@ impl Variant {
                 encoding_mask |= ARRAY_VALUES_BIT;
                 encoding_mask
             }
-            &Variant::MultiDimensionArray(ref mda) => {
+            Variant::MultiDimensionArray(ref mda) => {
                 let mut encoding_mask = if mda.values.is_empty() {
                     0u8
                 } else {

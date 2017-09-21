@@ -325,7 +325,7 @@ impl Session {
 
                 // Check if secure channel 75% close to expiration in which case send a renew
                 let renew_lifetime = (channel_token.revised_lifetime * 3) / 4;
-                let created_at = channel_token.created_at.as_chrono();
+                let created_at = channel_token.created_at.clone().into();
                 let renew_lifetime = chrono::Duration::milliseconds(renew_lifetime as i64);
 
                 // Renew the token?

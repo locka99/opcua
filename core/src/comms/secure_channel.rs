@@ -183,8 +183,9 @@ impl SecureChannel {
 
     /// Test if the token has expired yet
     pub fn token_has_expired(&self) -> bool {
-        let now = DateTime::now().as_chrono();
-        let token_expires = self.token_created_at.as_chrono() + chrono::Duration::seconds(self.token_lifetime as i64);
+        let now: chrono::DateTime<chrono::UTC> = DateTime::now().into();
+        let token_created_at: chrono::DateTime<chrono::UTC> = self.token_created_at.clone().into();
+        let token_expires = token_created_at + chrono::Duration::seconds(self.token_lifetime as i64);
         if now.ge(&token_expires) { true } else { false }
     }
 

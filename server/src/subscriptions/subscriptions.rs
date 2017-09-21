@@ -96,7 +96,7 @@ impl Subscriptions {
         let publish_request_timeout = self.publish_request_timeout;
         self.publish_request_queue.retain(|ref request| {
             let request_header = &request.request.request_header;
-            let timestamp: DateTimeUTC = request_header.timestamp.as_chrono();
+            let timestamp: DateTimeUTC = request_header.timestamp.clone().into();
             let timeout = if request_header.timeout_hint > 0 && (request_header.timeout_hint as i64) < publish_request_timeout {
                 request_header.timeout_hint as i64
             } else {
