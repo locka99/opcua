@@ -1,11 +1,18 @@
 use opcua_types::ByteString;
 
-/// Thumbprint size is dictated by the OPC UA spec
-
-/// The thumbprint is a 20 byte representation of a certificate that can be used as a hash, a filename
-/// or some other purpose.
+/// The thumbprint holds a 20 byte representation of a certificate that can be used as a hash,
+/// handshake comparison, a filename hint or similar purpose where a shortened representation
+/// of a cert is required. Thumbprint size is dictated by the OPC UA spec
 pub struct Thumbprint {
+    /// Thumbprint is relatively small and fixed size, so use array to hold value instead of a vec
+    /// just to save heap
     pub value: [u8; Thumbprint::THUMBPRINT_SIZE],
+}
+
+impl Into<ByteString> for Thumbprint {
+    fn into(self) -> ByteString {
+        ByteString::from(&self.value)
+    }
 }
 
 impl Thumbprint {
