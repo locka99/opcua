@@ -524,7 +524,7 @@ impl Subscription {
 
     /// CreateKeepAliveMsg()
     /// ReturnResponse()
-    pub fn return_keep_alive(&mut self, publish_request: &PublishRequestEntry, update_state_result: &UpdateStateResult) -> PublishResponseEntry {
+    pub fn return_keep_alive(&mut self, publish_request: &PublishRequestEntry, _: &UpdateStateResult) -> PublishResponseEntry {
         let now = DateTime::now();
         let sequence_number = self.create_sequence_number();
 

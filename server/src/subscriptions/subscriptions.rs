@@ -38,7 +38,7 @@ impl Subscriptions {
     ///
     /// If the queue is full this call will pop the oldest and generate a service fault
     /// for that before pushing the new one.
-    pub fn enqueue_publish_request(&mut self, address_space: &AddressSpace, request_id: UInt32, request: PublishRequest) -> Result<(), SupportedMessage> {
+    pub fn enqueue_publish_request(&mut self, _: &AddressSpace, request_id: UInt32, request: PublishRequest) -> Result<(), SupportedMessage> {
         // Check if we have too many requests already
         let result = if self.publish_request_queue.len() >= self.max_publish_requests {
             error!("Too many publish requests {} for capacity {}, throwing oldest away", self.publish_request_queue.len(), self.max_publish_requests);
@@ -149,7 +149,7 @@ impl Subscriptions {
                 // Now tick the subscription to see if it has any notifications. If there are
                 // notifications then the publish response will be associated with his subscription
                 // and ready to go.
-                let (publish_response, update_state_result) = subscription.tick(address_space, receive_publish_request, &publish_request, publishing_req_queued, &now);
+                let (publish_response, _) = subscription.tick(address_space, receive_publish_request, &publish_request, publishing_req_queued, &now);
                 if let Some(publish_response) = publish_response {
                     // Process the acknowledgements for the request
                     publish_responses.push(publish_response);

@@ -1,9 +1,3 @@
-mod chunk;
-mod services;
-mod comms;
-mod authentication;
-mod crypto;
-
 use std::fmt::Debug;
 use std::cmp::PartialEq;
 use std::io::Cursor;
@@ -74,3 +68,10 @@ fn make_test_cert() -> (X509, PKey) {
     let cert = CertificateStore::create_cert_and_pkey(&args);
     cert.unwrap()
 }
+
+mod chunk;
+mod services;
+mod comms;
+mod authentication;
+mod crypto;
+mod secure_channel;

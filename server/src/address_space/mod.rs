@@ -1,10 +1,11 @@
-/// This is a sanity saving macro that adds Node trait methods to all types that have a base
-/// member.
-///
+//! This module holds functionality necessary to access the address space, find nodes, add nodes, change attributes
+//! and values on nodes.
 
 use opcua_types::{NodeId, AttributeId, DataValue};
 
-/// An attribute getter is used to obtain the datavalue associated with the particular attribute id
+/// An attribute getter trait is used to obtain the datavalue associated with the particular attribute id
+/// This allows server implementations to supply a value on demand, usually in response to a polling action
+/// such as a monitored item in a subscription.
 pub trait AttributeGetter {
     /// Returns some datavalue or none
     fn get(&mut self, node_id: NodeId, attribute_id: AttributeId) -> Option<DataValue>;
@@ -27,6 +28,7 @@ impl<F> AttrFnGetter<F> where F: FnMut(NodeId, AttributeId) -> Option<DataValue>
 
 // An attribute setter. Sets the value on the specified attribute
 pub trait AttributeSetter {
+    /// Sets the attribute on the specified node
     fn set(&mut self, node_id: NodeId, attribute_id: AttributeId, data_value: DataValue);
 }
 
@@ -45,6 +47,8 @@ impl<F> AttrFnSetter<F> where F: FnMut(NodeId, AttributeId, DataValue) + Send {
     pub fn new(setter: F) -> AttrFnSetter<F> { AttrFnSetter { setter } }
 }
 
+/// This is a sanity saving macro that adds Node trait methods to all types that have a base
+/// member.
 macro_rules! node_impl {
     ( $node_struct:ident ) => {
         use opcua_types::*;
@@ -70,6 +74,8 @@ macro_rules! node_impl {
     }
 }
 
+/// Macro that finds an attribute that is mandatory for the node type and returns its entry.
+/// This macro will trigger a panic if an expected attribute isn't there.
 #[macro_export]
 macro_rules! find_attribute_value_mandatory {
     ( $sel:expr, $attribute_id: ident, $variant_type: ident ) => {
@@ -85,6 +91,8 @@ macro_rules! find_attribute_value_mandatory {
     }
 }
 
+/// Macro that finds an optional attribute returning the attribute in a `Option`, or
+/// `None` if the attribute does not exist.
 #[macro_export]
 macro_rules! find_attribute_value_optional {
     ( $sel:expr, $attribute_id: ident, $variant_type: ident ) => {
