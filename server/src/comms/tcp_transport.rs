@@ -16,10 +16,10 @@ use opcua_core::prelude::*;
 use opcua_core::debug::*;
 
 use constants;
-use comms::secure_channel_service::*;
+use comms::secure_channel_service::SecureChannelService;
 use server::ServerState;
 use session::Session;
-use services::message_handler::*;
+use services::message_handler::MessageHandler;
 use subscriptions::subscription::SubscriptionEvent;
 
 // TODO these need to go, and use session settings

@@ -5,12 +5,12 @@ use opcua_types::*;
 use server::ServerState;
 use session::Session;
 
-use services::attribute::*;
-use services::discovery::*;
-use services::monitored_item::*;
-use services::session::*;
-use services::subscription::*;
-use services::view::*;
+use services::attribute::AttributeService;
+use services::discovery::DiscoveryService;
+use services::monitored_item::MonitoredItemService;
+use services::session::SessionService;
+use services::subscription::SubscriptionService;
+use services::view::ViewService;
 
 /// Processes and dispatches messages for handling
 pub struct MessageHandler {

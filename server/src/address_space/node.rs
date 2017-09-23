@@ -1,4 +1,4 @@
-use opcua_core::prelude::*;
+use opcua_core::prelude::{UInt32, NodeId, QualifiedName, LocalizedText, AttributeId, DataValue, NodeClass, StatusCode};
 use address_space::types::{Object, ObjectType, ReferenceType, Variable, VariableType, View, DataType, Method};
 
 #[derive(Debug)]

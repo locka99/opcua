@@ -70,7 +70,7 @@ impl Variable {
 
     /// Sets the variable's value
     pub fn set_value(&mut self, value: DataValue) {
-        self.base.set_attribute(AttributeId::Value, value);
+        let _ = self.base.set_attribute(AttributeId::Value, value);
     }
 
     pub fn set_value_getter(&mut self, getter: Arc<Mutex<AttributeGetter + Send>>) {

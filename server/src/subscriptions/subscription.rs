@@ -8,7 +8,7 @@ use opcua_types::*;
 use constants;
 
 use DateTimeUTC;
-use subscriptions::monitored_item::*;
+use subscriptions::monitored_item::MonitoredItem;
 use subscriptions::{PublishRequestEntry, PublishResponseEntry};
 use address_space::address_space::AddressSpace;
 
