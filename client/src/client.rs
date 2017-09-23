@@ -3,7 +3,7 @@ use std;
 
 use opcua_core::prelude::*;
 
-use session::*;
+use session::Session;
 
 /// The client-side OPC UA state. A client can have a description, multiple open sessions
 /// and a certificate store.

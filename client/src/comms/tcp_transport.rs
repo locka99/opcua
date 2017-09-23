@@ -3,11 +3,11 @@ use std::result::Result;
 use std::sync::{Arc, Mutex};
 use std::io::{Read, ErrorKind};
 
-use chrono::*;
+use chrono::UTC;
 
 use opcua_core::prelude::*;
 
-use session::*;
+use session::SessionState;
 
 // TODO these need to go, and use session settings
 const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;
