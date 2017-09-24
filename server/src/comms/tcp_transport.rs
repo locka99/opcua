@@ -222,16 +222,18 @@ impl TcpTransport {
         drop(subscription_timer);
 
         // As a final act, the session sends a status code to the client if one should be sent
-        if session_status_code == GOOD || session_status_code == BAD_CONNECTION_CLOSED {
-            warn!("Sending session terminating error {:?}", session_status_code);
-            out_buf_stream.set_position(0);
-            let error = ErrorMessage::from_status_code(session_status_code);
-            let _ = error.encode(&mut out_buf_stream);
-            Self::write_output(&mut out_buf_stream, &mut stream);
-        } else {
-            info!("Session terminating normally, session_status_code = {:?}", session_status_code);
+        match session_status_code {
+            GOOD | BAD_CONNECTION_CLOSED => {
+                info!("Session terminating normally, session_status_code = {:?}", session_status_code);
+            },
+            _ => {
+                warn!("Sending session terminating error {:?}", session_status_code);
+                out_buf_stream.set_position(0);
+                let error = ErrorMessage::from_status_code(session_status_code);
+                let _ = error.encode(&mut out_buf_stream);
+                Self::write_output(&mut out_buf_stream, &mut stream);
+            }
         }
-
         // Close socket
         info!("Terminating socket");
         let _ = stream.shutdown(Shutdown::Both);

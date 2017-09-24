@@ -642,7 +642,7 @@ impl SecureChannel {
         let key = &(self.sending_keys.as_ref().unwrap()).0;
         self.security_policy.symmetric_sign(key, &src[signed_range.clone()], &mut signature)?;
 
-        debug!("Signature = {:?}", signature);
+        debug!("Signature, len {} = {:?}", signature.len(), signature);
 
         // Copy the signed portion and the signature to the destination
         dst[signed_range.clone()].copy_from_slice(&src[signed_range.clone()]);
