@@ -217,6 +217,11 @@ impl SecureChannel {
         }
     }
 
+    // Extra padding required for keysize > 2048 bits (256 bytes)
+    fn minimum_padding(signature_size: usize) -> usize {
+        if signature_size > 256 { 2 } else { 1 }
+    }
+
     /// Calculate the padding size
     ///
     /// Padding adds bytes to the body to make it a multiple of the block size so it can be encrypted.
@@ -238,25 +243,23 @@ impl SecureChannel {
                 }
             };
 
-            // PaddingSize = PlainTextBlockSize –
-            // ((BytesToWrite + SignatureSize + 1) % PlainTextBlockSize);
-            // Note +2 for signature size > 255
+            // PaddingSize = PlainTextBlockSize – ((BytesToWrite + SignatureSize + 1) % PlainTextBlockSize);
 
-            let mut plain_text_size = 0;
-            plain_text_size += 8; // sequence header
-            plain_text_size += body_size;
-            plain_text_size += signature_size;
-            if plain_text_block_size > 255 {
-                plain_text_size += 1;
-            }
+            let minimum_padding = Self::minimum_padding(signature_size);
 
-            let padding_size = if plain_text_size % plain_text_block_size != 0 {
-                plain_text_block_size - (plain_text_size % plain_text_block_size)
+            let mut encrypt_size = 0;
+            encrypt_size += 8; // sequence header
+            encrypt_size += body_size;
+            encrypt_size += signature_size;
+            encrypt_size += minimum_padding;
+
+            let padding_size = if encrypt_size % plain_text_block_size != 0 {
+                plain_text_block_size - (encrypt_size % plain_text_block_size)
             } else {
                 0
             };
-            debug!("sequence_header(8) + body({}) + signature ({}) = plain text size = {} / with padding {} = {}", body_size, signature_size, plain_text_size, padding_size, plain_text_size + padding_size);
-            padding_size
+            debug!("sequence_header(8) + body({}) + signature ({}) = plain text size = {} / with padding {} = {}", body_size, signature_size, encrypt_size, padding_size, encrypt_size + padding_size);
+            minimum_padding + padding_size
         } else {
             0
         }
@@ -284,21 +287,22 @@ impl SecureChannel {
 
         let padding_size = self.calc_chunk_padding(&security_header, body_size, signature_size);
         if padding_size > 0 {
-            // write padding byte?
             // A number of bytes are written out equal to the padding size.
             // Each byte is the padding size. So if padding size is 15 then
             // there will be 15 bytes all with the value 15
-            let padding_value = (padding_size & 0xff) as u8;
-            for _ in 0..padding_size {
-                write_u8(&mut stream, padding_value)?;
-            }
-            // For key sizes > 2048, there may be an extra byte if padding exceeds 255 chars
-            // NOTE this doesn't make any sense to me - if I add this byte then the padding is off by
-            // 1 for the block size. It would make sense when padding_size > 255 for the last padding
-            // byte to hold the extra padding size.
-            if padding_size > 255 {
-                let extra_padding_size = (padding_size >> 8) as u8;
-                write_u8(&mut stream, extra_padding_size)?;
+            let minimum_padding = Self::minimum_padding(signature_size);
+            if minimum_padding == 1 {
+                let padding_byte = ((padding_size - 1) & 0xff) as u8;
+                for _ in 0..padding_size {
+                    write_u8(&mut stream, padding_byte)?;
+                }
+            } else if minimum_padding == 2 {
+                // Padding and then extra padding
+                let padding_byte = ((padding_size - 2) & 0xff) as u8;
+                for _ in 0..padding_size {
+                    write_u8(&mut stream, padding_byte)?;
+                }
+                write_u8(&mut stream, ((padding_size - 2) >> 8) as u8)?;
             }
         }
 
