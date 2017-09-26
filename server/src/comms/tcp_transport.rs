@@ -225,7 +225,7 @@ impl TcpTransport {
         match session_status_code {
             GOOD | BAD_CONNECTION_CLOSED => {
                 info!("Session terminating normally, session_status_code = {:?}", session_status_code);
-            },
+            }
             _ => {
                 warn!("Sending session terminating error {:?}", session_status_code);
                 out_buf_stream.set_position(0);
@@ -242,7 +242,12 @@ impl TcpTransport {
         self.transport_state = TransportState::Finished;
 
         let session_duration = UTC::now().signed_duration_since(session_start_time);
-        info!("Session is finished {:?}", session_duration)
+        info!("Session is finished {:?}", session_duration);
+
+        {
+            let mut session = self.session.lock().unwrap();
+            session.terminated();
+        }
     }
 
     /// Start the subscription timer to service subscriptions

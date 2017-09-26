@@ -211,8 +211,8 @@ impl ServerState {
 pub struct Server {
     /// The server state is everything that sessions share - address space, configuration etc.
     pub server_state: Arc<Mutex<ServerState>>,
-    /// List of open sessions
-    pub sessions: Vec<Arc<Mutex<TcpTransport>>>,
+    /// List of open connections
+    pub connections: Vec<Arc<Mutex<TcpTransport>>>,
 }
 
 impl Server {
@@ -324,7 +324,7 @@ impl Server {
 
         Server {
             server_state: Arc::new(Mutex::new(server_state)),
-            sessions: Vec::new()
+            connections: Vec::new()
         }
     }
 
@@ -373,28 +373,53 @@ impl Server {
         }
         info!("Waiting for Connection");
 
-        loop {
-            for stream in listener.incoming() {
-                if self.is_abort() {
-                    info!("Server is aborting");
-                    break;
+        // This iterator runs forever, just accept()'ing the next incoming connection.
+        for stream in listener.incoming() {
+            if self.is_abort() {
+                info!("Server is aborting");
+                break;
+            }
+            info!("Handling new connection {:?}", stream);
+            match stream {
+                Ok(stream) => {
+                    self.handle_connection(stream);
                 }
-                info!("Handling new connection {:?}", stream);
-                match stream {
-                    Ok(stream) => {
-                        self.handle_connection(stream);
-                    }
-                    Err(err) => {
-                        warn!("Got an error on stream {:?}", err);
-                    }
+                Err(err) => {
+                    warn!("Got an error on stream {:?}", err);
                 }
             }
+            // Clear out dead sessions
+            self.remove_dead_connections();
         }
     }
 
     fn is_abort(&mut self) -> bool {
         let server_state = self.server_state.lock().unwrap();
         server_state.abort
+    }
+
+    fn remove_dead_connections(&mut self) {
+        // Go through all connections, removing those that have terminated
+        self.connections.retain(|connection| {
+            // Try to obtain the lock on the transport and the session and check if session is terminated
+            // if it is, then we'll use its termination status to sweep it out.
+            let mut lock = connection.try_lock();
+            if let Ok(ref mut connection) = lock {
+                let mut lock = connection.session.try_lock();
+                if let Ok(ref mut session) = lock {
+                    if session.terminated {
+                        info!("Removing terminated session");
+                        false
+                    } else {
+                        true
+                    }
+                } else {
+                    true
+                }
+            } else {
+                true
+            }
+        });
     }
 
     /// Creates a polling action that happens continuously on an interval. The supplied
@@ -421,7 +446,7 @@ impl Server {
         trace!("Connection thread spawning");
         // Spawn a thread for the connection
         let session = Arc::new(Mutex::new(TcpTransport::new(self.server_state.clone())));
-        self.sessions.push(session.clone());
+        self.connections.push(session.clone());
         thread::spawn(move || {
             session.lock().unwrap().run(stream);
             info!("Session thread is terminated");

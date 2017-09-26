@@ -1,6 +1,6 @@
 use opcua_types::*;
 
-use DateTimeUTC;
+use chrono::{DateTime, UTC};
 
 use address_space::address_space::AddressSpace;
 use subscriptions::subscriptions::Subscriptions;
@@ -34,6 +34,10 @@ pub struct Session {
     pub activated: bool,
     /// Flag to indicate session should be terminated
     pub terminate_session: bool,
+    /// Time that session was terminated, helps with recovering sessions, or clearing them out
+    pub terminated_at: DateTime<UTC>,
+    /// Flag indicating session is actually terminated
+    pub terminated: bool,
     /// Security policy
     pub security_policy_uri: String,
     /// Client's certificate
@@ -71,6 +75,8 @@ impl Session {
             session_id: NodeId::null(),
             activated: false,
             terminate_session: false,
+            terminated: false,
+            terminated_at: UTC::now(),
             client_certificate: ByteString::null(),
             security_policy_uri: String::new(),
             authentication_token: NodeId::null(),
@@ -85,6 +91,11 @@ impl Session {
             diagnostics: SessionDiagnostics::new(),
             last_session_id: 0,
         }
+    }
+
+    pub fn terminated(&mut self) {
+        self.terminated = true;
+        self.terminated_at = UTC::now();
     }
 
     pub fn next_session_id(&mut self) -> NodeId {
@@ -104,7 +115,7 @@ impl Session {
 
     /// Iterates through the existing queued publish requests and creates a timeout
     /// publish response any that have expired.
-    pub fn expire_stale_publish_requests(&mut self, now: &DateTimeUTC) {
+    pub fn expire_stale_publish_requests(&mut self, now: &DateTime<UTC>) {
         self.subscriptions.expire_stale_publish_requests(now);
     }
 
