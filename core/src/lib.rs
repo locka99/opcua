@@ -1,3 +1,6 @@
+//! The OPC UA Core module holds functionality that is common to server and clients that make use of OPC UA
+//! It contains functionality such as message chunking, cryptography / pki and standard handshake messages.
+
 #[macro_use]
 extern crate log;
 extern crate env_logger;
@@ -15,9 +18,9 @@ pub mod crypto;
 
 /// OPC UA for Rust uses the standard log crate for internal logging purposes. This function
 /// can be called by executable targets (e.g. inside main() set up) to enable logging. The default
-/// implementation uses env_logger to provide console based output. Set the RUST_OPCUA_LOG
-/// environment variable with the default log level, e.g. RUST_OPCUA_LOG=debug for more logging.
-/// See env_logger for more filtering options.
+/// implementation uses env_logger to provide console based output. Set the `RUST_OPCUA_LOG`
+/// environment variable with the default log level, e.g. `RUST_OPCUA_LOG=debug` for more logging.
+/// See `env_logger` for more filtering options.
 ///
 /// Alternatively, don't call it and call another implementation that supports the log macros. e.g.
 /// use the fern crate and configure your own logging
