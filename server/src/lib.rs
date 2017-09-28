@@ -1,3 +1,6 @@
+//! The OPC UA Server module contains all server side functionality - address space, service implementations, server
+//! side authentications, sessions etc.
+
 #[macro_use]
 extern crate serde_derive;
 extern crate serde;
@@ -45,7 +48,7 @@ pub mod constants {
     /// The default hello timeout period in seconds
     pub const DEFAULT_HELLO_TIMEOUT_SECONDS: u32 = 120;
     /// Default OPC UA server port
-    pub const DEFAULT_OPC_UA_SERVER_PORT: u16 = 1234;
+    pub const DEFAULT_OPC_UA_SERVER_PORT: u16 = 4855;
     /// Default maximum number of subscriptions in a session
     pub const DEFAULT_MAX_SUBSCRIPTIONS: u32 = 100;
     /// Default, "well known address for TCP discovery server

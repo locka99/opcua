@@ -221,7 +221,7 @@ impl MessageChunk {
     /// This requires calculating the size of the header, the signature, padding etc. and deducting it
     /// to reveal the message size
     pub fn body_size_from_message_size(message_type: MessageChunkType, secure_channel: &SecureChannel, message_size: usize) -> usize {
-        if message_size < 8192 {
+        if message_size < 8196 {
             panic!("max chunk size cannot be less than minimum in the spec");
         }
 
@@ -231,17 +231,9 @@ impl MessageChunk {
         data_size += security_header.byte_len();
         data_size += (SequenceHeader { sequence_number: 0, request_id: 0 }).byte_len();
 
-        let signature_size = secure_channel.signature_size(&security_header);
-
         // 1 byte == most padding
-        let padding_size = secure_channel.calc_chunk_padding(&security_header, 1, signature_size);
-        if padding_size > 0 {
-            data_size += padding_size;
-            if padding_size > 255 {
-                // Extra padding byte
-                data_size += 1;
-            }
-        }
+        let signature_size = secure_channel.signature_size(&security_header);
+        data_size += secure_channel.padding_size(&security_header, 1, signature_size);
 
         // signature length
         data_size += signature_size;

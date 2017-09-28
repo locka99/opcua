@@ -211,15 +211,15 @@ fn sign_verify_sha1() {
     let msg = b"Mary had a little lamb";
     let msg2 = b"It's fleece was white as snow";
     let mut signature = [0u8; 256];
-    let signed_len = pkey.sign_sha1(msg, &mut signature).unwrap();
+    let signed_len = pkey.sign_hmac_sha1(msg, &mut signature).unwrap();
 
     assert_eq!(signed_len, 256);
-    assert!(pkey.verify_sha1(msg, &signature).unwrap());
-    assert!(!pkey.verify_sha1(msg2, &signature).unwrap());
+    assert!(pkey.verify_hmac_sha1(msg, &signature).unwrap());
+    assert!(!pkey.verify_hmac_sha1(msg2, &signature).unwrap());
 
-    assert!(!pkey.verify_sha1(msg, &signature[..signature.len() - 1]).unwrap());
+    assert!(!pkey.verify_hmac_sha1(msg, &signature[..signature.len() - 1]).unwrap());
     signature[0] = !signature[0]; // bitwise not
-    assert!(!pkey.verify_sha1(msg, &signature).unwrap());
+    assert!(!pkey.verify_hmac_sha1(msg, &signature).unwrap());
 }
 
 #[test]
@@ -229,15 +229,15 @@ fn sign_verify_sha256() {
     let msg = b"Mary had a little lamb";
     let msg2 = b"It's fleece was white as snow";
     let mut signature = [0u8; 256];
-    let signed_len = pkey.sign_sha256(msg, &mut signature).unwrap();
+    let signed_len = pkey.sign_hmac_sha256(msg, &mut signature).unwrap();
 
     assert_eq!(signed_len, 256);
-    assert!(pkey.verify_sha256(msg, &signature).unwrap());
-    assert!(!pkey.verify_sha256(msg2, &signature).unwrap());
+    assert!(pkey.verify_hmac_sha256(msg, &signature).unwrap());
+    assert!(!pkey.verify_hmac_sha256(msg2, &signature).unwrap());
 
-    assert!(!pkey.verify_sha256(msg, &signature[..signature.len() - 1]).unwrap());
+    assert!(!pkey.verify_hmac_sha256(msg, &signature[..signature.len() - 1]).unwrap());
     signature[0] = !signature[0]; // bitwise not
-    assert!(!pkey.verify_sha256(msg, &signature).unwrap());
+    assert!(!pkey.verify_hmac_sha256(msg, &signature).unwrap());
 }
 
 #[test]

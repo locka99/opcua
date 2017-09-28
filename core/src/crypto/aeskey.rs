@@ -1,6 +1,4 @@
-use std;
 use std::marker::Send;
-use std::fmt::{Debug, Formatter};
 use std::result::Result;
 
 use openssl::symm::{Cipher, Crypter};
@@ -11,17 +9,10 @@ use opcua_types::StatusCode::*;
 
 use crypto::SecurityPolicy;
 
+#[derive(Debug)]
 pub struct AesKey {
     pub value: Vec<u8>,
     pub security_policy: SecurityPolicy,
-}
-
-impl Debug for AesKey {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        // This impl will not write out the key, but it exists to keep structs happy
-        // that contain a key as a field
-        write!(f, "[aes]")
-    }
 }
 
 /// This allows key to be transferred between threads

@@ -19,6 +19,9 @@ pub const CHUNK_FINAL_ERROR: u8 = b'A';
 /// This is a constraint in the existing implementation for the time being.
 pub const MAX_CHUNK_COUNT: usize = 1;
 
+/// Minimum size in bytes than any single message chunk can be
+pub const MIN_CHUNK_SIZE: usize = 8196;
+
 pub mod chunker;
 pub mod handshake;
 pub mod message_buffer;

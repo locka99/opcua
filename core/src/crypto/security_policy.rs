@@ -57,14 +57,20 @@ pub mod basic128rsa15
     /// KeyDerivationAlgorithm – PSha1 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1).
     pub const KEY_DERIVATION_ALGORITHM: &'static str = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1";
 
-    /// DerivedSignatureKeyLength – 128.
+    /// DerivedSignatureKeyLength – 128 / 16 bytes.
     pub const DERIVED_SIGNATURE_KEY_LENGTH: usize = 128;
 
-    /// MinAsymmetricKeyLength – 1024
-    pub const MIN_ASYMMETRIC_KEY_LENGTH: usize = 1024;
+    /// DerivedEncryptionKeyLength – 128 / 16 bytes.
+    pub const DERIVED_ENCRYPTION_KEY_LENGTH: usize = 128;
+
+    /// MinAsymmetricKeyLength – 512
+    pub const MIN_ASYMMETRIC_KEY_LENGTH: usize = 512;
 
     /// MaxAsymmetricKeyLength – 2048
     pub const MAX_ASYMMETRIC_KEY_LENGTH: usize = 2048;
+
+    // Symmetric key length - 128 / 16 bytes
+    pub const SYMMETRIC_KEY_LENGTH: usize = 128;
 
     /// CertificateSignatureAlgorithm – Sha1
     ///
@@ -97,11 +103,17 @@ pub mod basic256 {
     /// DerivedSignatureKeyLength – 192.
     pub const DERIVED_SIGNATURE_KEY_LENGTH: usize = 192;
 
-    /// MinAsymmetricKeyLength – 1024
-    pub const MIN_ASYMMETRIC_KEY_LENGTH: usize = 1024;
+    /// DerivedEncryptionKeyLength – 192 / 24 bytes.
+    pub const DERIVED_ENCRYPTION_KEY_LENGTH: usize = 192;
+
+    /// MinAsymmetricKeyLength – 512
+    pub const MIN_ASYMMETRIC_KEY_LENGTH: usize = 512;
 
     /// MaxAsymmetricKeyLength – 2048
     pub const MAX_ASYMMETRIC_KEY_LENGTH: usize = 2048;
+
+    // Symmetric key length - 256 / 32 bytes
+    pub const SYMMETRIC_KEY_LENGTH: usize = 256;
 
     /// CertificateSignatureAlgorithm –
     ///
@@ -135,14 +147,20 @@ pub mod basic256sha256 {
     // KeyDerivationAlgorithm – PSHA256 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha256).
     pub const KEY_DERIVATION_ALGORITHM: &'static str = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha256";
 
-    /// DerivedSignatureKeyLength – 256
+    /// DerivedSignatureKeyLength – 256 / 32 bytes.
     pub const DERIVED_SIGNATURE_KEY_LENGTH: usize = 256;
 
-    /// MinAsymmetricKeyLength – 2048
-    pub const MIN_ASYMMETRIC_KEY_LENGTH: usize = 2048;
+    /// DerivedEncryptionKeyLength – 256 / 32 bytes.
+    pub const DERIVED_ENCRYPTION_KEY_LENGTH: usize = 256;
 
-    /// MaxAsymmetricKeyLength – 4096
-    pub const MAX_ASYMMETRIC_KEY_LENGTH: usize = 4096;
+    /// MinAsymmetricKeyLength – 1024
+    pub const MIN_ASYMMETRIC_KEY_LENGTH: usize = 1024;
+
+    /// MaxAsymmetricKeyLength – 2048
+    pub const MAX_ASYMMETRIC_KEY_LENGTH: usize = 2048;
+
+    // Symmetric key length - 256 / 32 bytes
+    pub const SYMMETRIC_KEY_LENGTH: usize = 256;
 
     /// CertificateSignatureAlgorithm – Sha256
     ///
@@ -230,14 +248,17 @@ impl SecurityPolicy {
         }
     }
 
+    // Symmetric key size in bytes
     pub fn symmetric_key_size(&self) -> usize {
-        match *self {
-            SecurityPolicy::Basic128Rsa15 => 16,
-            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => 32,
+        let length = match *self {
+            SecurityPolicy::Basic128Rsa15 => basic128rsa15::SYMMETRIC_KEY_LENGTH,
+            SecurityPolicy::Basic256 => basic256::SYMMETRIC_KEY_LENGTH,
+            SecurityPolicy::Basic256Sha256 => basic256sha256::SYMMETRIC_KEY_LENGTH,
             _ => {
                 panic!("Invalid policy");
             }
-        }
+        };
+        length / 8
     }
 
     // Plaintext block size in bytes
@@ -250,6 +271,7 @@ impl SecurityPolicy {
         }
     }
 
+    // Signature size in bytes
     pub fn symmetric_signature_size(&self) -> usize {
         match *self {
             SecurityPolicy::None => 0,
@@ -263,7 +285,7 @@ impl SecurityPolicy {
 
     /// Returns the derived signature key (not the signature) size in bytes
     pub fn derived_signature_key_size(&self) -> usize {
-        let result = match *self {
+        let length = match *self {
             SecurityPolicy::Basic128Rsa15 => basic128rsa15::DERIVED_SIGNATURE_KEY_LENGTH,
             SecurityPolicy::Basic256 => basic256::DERIVED_SIGNATURE_KEY_LENGTH,
             SecurityPolicy::Basic256Sha256 => basic256sha256::DERIVED_SIGNATURE_KEY_LENGTH,
@@ -271,7 +293,7 @@ impl SecurityPolicy {
                 panic!("Invalid policy");
             }
         };
-        result / 8
+        length / 8
     }
 
     /// Returns the max key length in bits
@@ -383,10 +405,10 @@ impl SecurityPolicy {
     pub fn asymmetric_sign(&self, signing_key: &PKey, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
         let result = match *self {
             SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => {
-                signing_key.sign_sha1(data, signature)?
+                signing_key.sign_hmac_sha1(data, signature)?
             }
             SecurityPolicy::Basic256Sha256 => {
-                signing_key.sign_sha256(data, signature)?
+                signing_key.sign_hmac_sha256(data, signature)?
             }
             _ => {
                 panic!("Invalid policy");
@@ -399,10 +421,10 @@ impl SecurityPolicy {
         // Asymmetric verify signature against supplied certificate
         let result = match *self {
             SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => {
-                verification_key.verify_sha1(data, signature)?
+                verification_key.verify_hmac_sha1(data, signature)?
             }
             SecurityPolicy::Basic256Sha256 => {
-                verification_key.verify_sha256(data, signature)?
+                verification_key.verify_hmac_sha256(data, signature)?
             }
             _ => {
                 panic!("Invalid policy");
@@ -427,8 +449,15 @@ impl SecurityPolicy {
     }
 
     fn padding_and_encrypted_data_size_for_key(&self, key_size: usize) -> (Padding, usize) {
+        // RSA_size here refers to the keysize
+
+        // From RSA_public_encrypt - flen must be less than RSA_size(rsa) - 11 for the PKCS #1 v1.5
+        // based padding modes, less than RSA_size(rsa) - 41 for RSA_PKCS1_OAEP_PADDING and exactly
+        // RSA_size(rsa) for RSA_NO_PADDING. The random number generator must be seeded prior to
+        // calling RSA_public_encrypt().
+
         match *self {
-            SecurityPolicy::Basic128Rsa15 => (PKCS1_PADDING, key_size - 11),
+            SecurityPolicy::Basic128Rsa15 => (PKCS1_PADDING, key_size - 12),
             SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => (PKCS1_OAEP_PADDING, key_size - 42),
             _ => {
                 panic!("Security policy is not supported, shouldn't have gotten here");
@@ -437,34 +466,42 @@ impl SecurityPolicy {
     }
 
     /// Encrypts a message using the supplied encryption key, returns the encrypted size. Destination
-    /// buffer must be large enough to hold encrypted bytes including padding.
+    /// buffer must be large enough to hold encrypted bytes including any padding.
     pub fn asymmetric_encrypt(&self, encryption_key: &PKey, src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
         let rsa = encryption_key.value.rsa().unwrap();
-        let key_size = encryption_key.size();
+        let encryption_key_size = encryption_key.size();
 
-        let (padding, encrypted_data_size) = self.padding_and_encrypted_data_size_for_key(key_size);
+        let (padding, encrypted_data_size) = self.padding_and_encrypted_data_size_for_key(encryption_key_size);
 
-        let mut bytes_to_encrypt = if src.len() < encrypted_data_size {
-            src.len()
-        } else {
-            encrypted_data_size
-        };
+        // For reference:
+        //
+        // https://www.openssl.org/docs/man1.0.2/crypto/RSA_public_encrypt.html
 
-        // Encrypt the data in chunks no larger than the key size
+        // Encrypt the data in chunks no larger than the key size less padding
         let mut src_idx = 0;
         let mut dst_idx = 0;
         while src_idx < src.len() {
-            if src.len() > encrypted_data_size && (src.len() - src_idx < encrypted_data_size) {
-                bytes_to_encrypt = src.len() - src_idx;
-            }
-            let src = &src[src_idx..(src_idx + bytes_to_encrypt)];
-            let dst = &mut dst[dst_idx..(dst_idx + key_size)];
-            let encrypted_bytes = rsa.public_encrypt(src, dst, padding);
-            if encrypted_bytes.is_err() {
-                error!("Encryption failed for bytes_to_encrypt {}, key_size {}, src_idx {}, dst_idx {} error - {:?}", bytes_to_encrypt, key_size, src_idx, dst_idx, encrypted_bytes.unwrap_err());
-                return Err(BAD_UNEXPECTED_ERROR);
-            }
-            dst_idx += encrypted_bytes.unwrap();
+            let bytes_to_encrypt = if src.len() < encrypted_data_size {
+                src.len()
+            } else if (src.len() - src_idx) < encrypted_data_size {
+                src.len() - src_idx
+            } else {
+                encrypted_data_size
+            };
+
+            // Encrypt data, advance dst index by number of bytes after encrypted
+            dst_idx += {
+                let src = &src[src_idx..(src_idx + bytes_to_encrypt)];
+                let dst = &mut dst[dst_idx..(dst_idx + encryption_key_size)];
+                let encrypted_bytes = rsa.public_encrypt(src, dst, padding);
+                if encrypted_bytes.is_err() {
+                    error!("Encryption failed for bytes_to_encrypt {}, key_size {}, src_idx {}, dst_idx {} error - {:?}", bytes_to_encrypt, encryption_key_size, src_idx, dst_idx, encrypted_bytes.unwrap_err());
+                    return Err(BAD_UNEXPECTED_ERROR);
+                }
+                encrypted_bytes.unwrap()
+            };
+
+            // Src advances by bytes to encrypt
             src_idx += bytes_to_encrypt;
         }
 

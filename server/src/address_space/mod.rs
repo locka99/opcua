@@ -130,6 +130,7 @@ pub mod view;
 pub mod access_level {
     pub const CURRENT_READ: u8 = 1;
     pub const CURRENT_WRITE: u8 = 1 << 1;
+    // These can be uncommented if they become used
     //pub const HISTORY_READ: u8 = 1 << 2;
     //pub const HISTORY_WRITE: u8 = 1 << 3;
     //pub const SEMANTIC_CHANGE: u8 = 1 << 4;
@@ -140,6 +141,7 @@ pub mod access_level {
 pub mod user_access_level {
     pub const CURRENT_READ: u8 = 1;
     pub const CURRENT_WRITE: u8 = 1 << 1;
+    // These can be uncommented if they become used
     //pub const HISTORY_READ: u8 = 1 << 2;
     //pub const HISTORY_WRITE: u8 = 1 << 3;
     //pub const STATUS_WRITE: u8 = 1 << 5;

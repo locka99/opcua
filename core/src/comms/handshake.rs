@@ -2,7 +2,7 @@ use std::io::{Read, Write, Cursor, Result, Error, ErrorKind};
 
 use opcua_types::*;
 
-use comms::MAX_CHUNK_COUNT;
+use comms::{MAX_CHUNK_COUNT, MIN_CHUNK_SIZE};
 use comms::{HELLO_MESSAGE, ACKNOWLEDGE_MESSAGE, ERROR_MESSAGE, CHUNK_MESSAGE, OPEN_SECURE_CHANNEL_MESSAGE, CLOSE_SECURE_CHANNEL_MESSAGE};
 use comms::{CHUNK_FINAL, CHUNK_INTERMEDIATE, CHUNK_FINAL_ERROR};
 
@@ -212,8 +212,8 @@ impl HelloMessage {
     }
 
     pub fn is_valid_buffer_sizes(&self) -> bool {
-        const MIN_BUFFER_SIZE: u32 = 8196; // Set in part 6 as minimum transport buffer size
-        self.receive_buffer_size >= MIN_BUFFER_SIZE && self.send_buffer_size >= MIN_BUFFER_SIZE
+        // Set in part 6 as minimum transport buffer size
+        self.receive_buffer_size >= MIN_CHUNK_SIZE as UInt32 && self.send_buffer_size >= MIN_CHUNK_SIZE as UInt32
     }
 }
 

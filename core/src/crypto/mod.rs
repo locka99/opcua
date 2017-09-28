@@ -50,10 +50,10 @@ pub fn verify_signature(verifying_cert: &X509, signature_data: &SignatureData, d
 
         let verified = match security_policy {
             SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => {
-                public_key.verify_sha1(&data, signature)?
+                public_key.verify_hmac_sha1(&data, signature)?
             }
             SecurityPolicy::Basic256Sha256 => {
-                public_key.verify_sha256(&data, signature)?
+                public_key.verify_hmac_sha256(&data, signature)?
             }
             SecurityPolicy::None => {
                 error!("Cannot verify a signature with no security policy of None");
@@ -83,7 +83,7 @@ pub fn create_signature_data(pkey: &PKey, security_policy_uri: &str, data: &Byte
         match security_policy {
             SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => {
                 let mut signature = [0u8; SHA1_SIZE];
-                let _ = pkey.sign_sha1(&data, &mut signature)?;
+                let _ = pkey.sign_hmac_sha1(&data, &mut signature)?;
                 (
                     UAString::from(security_policy.asymmetric_signature_algorithm()),
                     ByteString::from(&signature)
@@ -91,7 +91,7 @@ pub fn create_signature_data(pkey: &PKey, security_policy_uri: &str, data: &Byte
             }
             SecurityPolicy::Basic256Sha256 => {
                 let mut signature = [0u8; SHA256_SIZE];
-                let _ = pkey.sign_sha256(&data, &mut signature)?;
+                let _ = pkey.sign_hmac_sha256(&data, &mut signature)?;
                 (
                     UAString::from(security_policy.asymmetric_signature_algorithm()),
                     ByteString::from(&signature)

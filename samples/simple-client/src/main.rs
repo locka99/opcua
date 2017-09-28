@@ -14,7 +14,7 @@ fn main() {
     let mut client = Client::new("SampleClient", "urn:SampleClient");
 
     // Create a session. This will not connect until it is told to connect.
-    if let Ok(session) = client.new_session("opc.tcp://127.0.0.1:1234", SecurityPolicy::None) {
+    if let Ok(session) = client.new_session("opc.tcp://127.0.0.1:4855", SecurityPolicy::None) {
         println!("Sample client cannot create a session!");
         let mut session = session.lock().unwrap();
         // Connect and do something with the server

@@ -67,7 +67,7 @@ impl PKey {
         trace!("RSA signing");
 
         if let Ok(mut signer) = sign::Signer::new(message_digest, &self.value) {
-            signer.pkey_ctx_mut().set_rsa_padding(padding.into()).unwrap();
+            //signer.pkey_ctx_mut().set_rsa_padding(padding.into()).unwrap();
             if signer.update(data).is_ok() {
                 let result = signer.finish();
                 if let Ok(result) = result {
@@ -96,7 +96,7 @@ impl PKey {
     fn verify(&self, message_digest: hash::MessageDigest, data: &[u8], signature: &[u8], padding: RsaPadding) -> Result<bool, StatusCode> {
         trace!("RSA verifying, against signature {:?}, len {}", signature, signature.len());
         if let Ok(mut verifier) = sign::Verifier::new(message_digest, &self.value) {
-            verifier.pkey_ctx_mut().set_rsa_padding(padding.into()).unwrap();
+            //verifier.pkey_ctx_mut().set_rsa_padding(padding.into()).unwrap();
             if verifier.update(data).is_ok() {
                 let result = verifier.finish(signature);
                 if let Ok(result) = result {
@@ -111,22 +111,22 @@ impl PKey {
     }
 
     /// Signs the data using RSA-SHA1
-    pub fn sign_sha1(&self, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
+    pub fn sign_hmac_sha1(&self, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
         self.sign(hash::MessageDigest::sha1(), data, signature, RsaPadding::PKCS1)
     }
 
     /// Verifies the data using RSA-SHA1
-    pub fn verify_sha1(&self, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
+    pub fn verify_hmac_sha1(&self, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
         self.verify(hash::MessageDigest::sha1(), data, signature, RsaPadding::PKCS1)
     }
 
     /// Signs the data using RSA-SHA256
-    pub fn sign_sha256(&self, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
+    pub fn sign_hmac_sha256(&self, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
         self.sign(hash::MessageDigest::sha256(), data, signature, RsaPadding::PKCS1)
     }
 
     /// Verifies the data using RSA-SHA256
-    pub fn verify_sha256(&self, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
+    pub fn verify_hmac_sha256(&self, data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
         self.verify(hash::MessageDigest::sha256(), data, signature, RsaPadding::PKCS1)
     }
 }

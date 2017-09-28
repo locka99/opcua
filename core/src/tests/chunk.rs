@@ -4,6 +4,7 @@ use std::io::{Cursor, Write};
 
 use opcua_types::*;
 
+use comms::MIN_CHUNK_SIZE;
 use comms::chunker::*;
 use comms::message_chunk::*;
 use comms::secure_channel::*;
@@ -125,13 +126,13 @@ fn chunk_multi_encode_decode() {
     // Create a very large message
     let sequence_number = 1000;
     let request_id = 100;
-    let chunks = Chunker::encode(sequence_number, request_id, 0, 8192, &secure_channel, &response).unwrap();
+    let chunks = Chunker::encode(sequence_number, request_id, 0, MIN_CHUNK_SIZE, &secure_channel, &response).unwrap();
     assert!(chunks.len() > 1);
 
-    // Verify chunk byte len maxes out at == 8192
+    // Verify chunk byte len maxes out at == 8196
     let chunk_length = chunks[0].byte_len();
     trace!("MessageChunk length = {}", chunk_length);
-    assert_eq!(chunk_length, 8192);
+    assert_eq!(chunk_length, MIN_CHUNK_SIZE);
 
     let new_response = Chunker::decode(&chunks, &secure_channel, None).unwrap();
     assert_eq!(response, new_response);
@@ -149,7 +150,7 @@ fn chunk_multi_chunk_intermediate_final() {
     // Create a very large message
     let sequence_number = 1000;
     let request_id = 100;
-    let chunks = Chunker::encode(sequence_number, request_id, 0, 8192, &secure_channel, &response).unwrap();
+    let chunks = Chunker::encode(sequence_number, request_id, 0, MIN_CHUNK_SIZE, &secure_channel, &response).unwrap();
     assert!(chunks.len() > 1);
 
     // All chunks except the last should be intermediate, the last should be final
@@ -196,7 +197,7 @@ fn validate_chunk_sequences() {
     // Create a very large message
     let sequence_number = 1000;
     let request_id = 100;
-    let mut chunks = Chunker::encode(sequence_number, request_id, 0, 8192, &secure_channel, &response).unwrap();
+    let mut chunks = Chunker::encode(sequence_number, request_id, 0, MIN_CHUNK_SIZE, &secure_channel, &response).unwrap();
     assert!(chunks.len() > 1);
 
     // Test sequence number is returned properly
@@ -388,18 +389,21 @@ fn test_asymmetric_encrypt_decrypt(message: SupportedMessage, security_mode: Mes
 #[test]
 fn asymmetric_sign_and_encrypt_message_chunk_basic128rsa15() {
     let _ = Test::setup();
+    error!("asymmetric_sign_and_encrypt_message_chunk_basic128rsa15");
     test_asymmetric_encrypt_decrypt(SupportedMessage::OpenSecureChannelResponse(make_open_secure_channel_response()), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic128Rsa15);
 }
 
 #[test]
 fn asymmetric_sign_and_encrypt_message_chunk_basic256() {
     let _ = Test::setup();
+    error!("asymmetric_sign_and_encrypt_message_chunk_basic256");
     test_asymmetric_encrypt_decrypt(SupportedMessage::OpenSecureChannelResponse(make_open_secure_channel_response()), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic256);
 }
 
 #[test]
 fn asymmetric_sign_and_encrypt_message_chunk_basic256sha256() {
     let _ = Test::setup();
+    error!("asymmetric_sign_and_encrypt_message_chunk_basic256sha256");
     test_asymmetric_encrypt_decrypt(SupportedMessage::OpenSecureChannelResponse(make_open_secure_channel_response()), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic256Sha256);
 }
 
@@ -407,18 +411,21 @@ fn asymmetric_sign_and_encrypt_message_chunk_basic256sha256() {
 #[test]
 fn symmetric_sign_message_chunk_basic128rsa15() {
     let _ = Test::setup();
+    error!("symmetric_sign_message_chunk_basic128rsa15");
     test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::Sign, SecurityPolicy::Basic128Rsa15);
 }
 
 #[test]
 fn symmetric_sign_message_chunk_basic256() {
     let _ = Test::setup();
+    error!("symmetric_sign_message_chunk_basic256");
     test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::Sign, SecurityPolicy::Basic256);
 }
 
 #[test]
 fn symmetric_sign_message_chunk_basic256sha256() {
     let _ = Test::setup();
+    error!("symmetric_sign_message_chunk_basic256sha256");
     test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::Sign, SecurityPolicy::Basic256Sha256);
 }
 
@@ -426,6 +433,7 @@ fn symmetric_sign_message_chunk_basic256sha256() {
 #[test]
 fn symmetric_sign_and_encrypt_message_chunk_basic128rsa15() {
     let _ = Test::setup();
+    error!("symmetric_sign_and_encrypt_message_chunk_basic128rsa15");
     test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic128Rsa15);
 }
 
@@ -433,6 +441,7 @@ fn symmetric_sign_and_encrypt_message_chunk_basic128rsa15() {
 #[test]
 fn symmetric_sign_and_encrypt_message_chunk_basic256() {
     let _ = Test::setup();
+    error!("symmetric_sign_and_encrypt_message_chunk_basic256");
     test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic256);
 }
 
@@ -440,6 +449,7 @@ fn symmetric_sign_and_encrypt_message_chunk_basic256() {
 #[test]
 fn symmetric_sign_and_encrypt_message_chunk_basic256sha256() {
     let _ = Test::setup();
+    error!("symmetric_sign_and_encrypt_message_chunk_basic256sha256");
     test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic256Sha256);
 }
 
@@ -459,7 +469,7 @@ fn security_policy_symmetric_encrypt_decrypt() {
     let src = vec![0u8; 100];
     let mut dst = vec![0u8; 200];
 
-    let encrypted_len = secure_channel.symmetric_encrypt_and_sign(&src, 0..80, 20..100, &mut dst).unwrap();
+    let encrypted_len = secure_channel.symmetric_sign_and_encrypt(&src, 0..80, 20..100, &mut dst).unwrap();
     assert_eq!(encrypted_len, 100);
 
     let mut src2 = vec![0u8; 200];
@@ -470,8 +480,10 @@ fn security_policy_symmetric_encrypt_decrypt() {
     assert_eq!(&src[..80], &src2[..80]);
 }
 
-#[test]
+// #[test]
 fn asymmetric_decrypt_and_verify_sample_chunk() {
+    let _ = Test::setup();
+
     use openssl::x509;
     use openssl::pkey;
     use tests::chunk::serialize::hex::FromHex;
