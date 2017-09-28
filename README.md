@@ -133,17 +133,16 @@ cd opcua
 cargo build --all
 ```
 
-## Sample Server
+## Simple Server
 
-The sample server creates a handful of variables that you can monitor within the address space.
+The crate simple-server demonstrates a server that creates a handful of variables that you can monitor within the address space.
 
 ```bash
-cd opcua/sample-server
+cd opcua/samples/simple-server
 cargo run
 ```
 
-The sample server is designed to be super terse and simple to demonstrate how the library uses convention as much as possible
-to allow simple servers to be created with a very small number of lines of code.  
+The sample is designed to be super terse and to demonstrate what you can do with a small amount of code.  
 
 ## Crypto
 
