@@ -12,6 +12,7 @@ use crypto::{SHA1_SIZE, SHA256_SIZE};
 /// Pseudo random `P_SHA` implementation for creating pseudo random range of bytes from an input
 ///
 /// https://www.ietf.org/rfc/rfc4346.txt
+/// https://tools.ietf.org/html/rfc5246
 ///
 /// P_SHA1(secret, seed) = HMAC_SHA1(secret, A(1) + seed) +
 ///                        HMAC_SHA1(secret, A(2) + seed) +
@@ -25,19 +26,27 @@ pub fn p_sha(message_digest: hash::MessageDigest, secret: &[u8], seed: &[u8], le
     let mut result = Vec::with_capacity(length);
 
     let mut hmac = Vec::with_capacity(seed.len() * 2);
-    let mut a = vec![seed.to_vec()];
+
+    let mut a_last = Vec::with_capacity(seed.len());
+    a_last.extend_from_slice(seed); // A(0) = seed
+
     while result.len() < length {
-        let next_hmac = hmac_vec(message_digest, secret, a.last().as_ref().unwrap());
-        a.push(next_hmac);
+        // A(n) = HMAC_SHA1(secret, A(n-1))
+        let a_next = hmac_vec(message_digest, secret, &a_last);
+
         // Append a slice of random data
-        let data_slice = {
+        let bytes = {
             hmac.clear();
-            hmac.extend_from_slice(a.last().as_ref().unwrap());
+            hmac.extend(&a_next);
             hmac.extend_from_slice(seed);
             hmac_vec(message_digest, secret, &hmac)
         };
-        result.extend_from_slice(&hmac_vec(message_digest, secret, &data_slice));
+        result.extend(&bytes);
+
+        a_last.clear();
+        a_last.extend(&a_next);
     }
+
     result.truncate(length);
     result
 }
