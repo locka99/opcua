@@ -2,14 +2,13 @@ use std::fmt;
 use std::str::FromStr;
 
 use openssl::hash as openssl_hash;
-use openssl::rsa::*;
 
 use opcua_types::StatusCode;
 use opcua_types::StatusCode::*;
 
 use crypto::{SHA1_SIZE, SHA256_SIZE};
 use crypto::aeskey::AesKey;
-use crypto::pkey::PKey;
+use crypto::pkey::{PKey, RsaPadding};
 use crypto::hash;
 
 /// URI supplied for the None security policy
@@ -448,93 +447,36 @@ impl SecurityPolicy {
         }
     }
 
-    fn padding_and_encrypted_data_size_for_key(&self, key_size: usize) -> (Padding, usize) {
-        // RSA_size here refers to the keysize
-
-        // From RSA_public_encrypt - flen must be less than RSA_size(rsa) - 11 for the PKCS #1 v1.5
-        // based padding modes, less than RSA_size(rsa) - 41 for RSA_PKCS1_OAEP_PADDING and exactly
-        // RSA_size(rsa) for RSA_NO_PADDING. The random number generator must be seeded prior to
-        // calling RSA_public_encrypt().
-
+    pub fn padding(&self) -> RsaPadding {
         match *self {
-            SecurityPolicy::Basic128Rsa15 => (PKCS1_PADDING, key_size - 12),
-            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => (PKCS1_OAEP_PADDING, key_size - 42),
+            SecurityPolicy::Basic128Rsa15 => RsaPadding::PKCS1,
+            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => RsaPadding::OAEP,
             _ => {
                 panic!("Security policy is not supported, shouldn't have gotten here");
             }
         }
     }
-
     /// Encrypts a message using the supplied encryption key, returns the encrypted size. Destination
     /// buffer must be large enough to hold encrypted bytes including any padding.
     pub fn asymmetric_encrypt(&self, encryption_key: &PKey, src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
-        let rsa = encryption_key.value.rsa().unwrap();
-        let encryption_key_size = encryption_key.size();
-
-        let (padding, encrypted_data_size) = self.padding_and_encrypted_data_size_for_key(encryption_key_size);
-
-        // For reference:
-        //
-        // https://www.openssl.org/docs/man1.0.2/crypto/RSA_public_encrypt.html
-
-        // Encrypt the data in chunks no larger than the key size less padding
-        let mut src_idx = 0;
-        let mut dst_idx = 0;
-        while src_idx < src.len() {
-            let bytes_to_encrypt = if src.len() < encrypted_data_size {
-                src.len()
-            } else if (src.len() - src_idx) < encrypted_data_size {
-                src.len() - src_idx
-            } else {
-                encrypted_data_size
-            };
-
-            // Encrypt data, advance dst index by number of bytes after encrypted
-            dst_idx += {
-                let src = &src[src_idx..(src_idx + bytes_to_encrypt)];
-                let dst = &mut dst[dst_idx..(dst_idx + encryption_key_size)];
-                let encrypted_bytes = rsa.public_encrypt(src, dst, padding);
-                if encrypted_bytes.is_err() {
-                    error!("Encryption failed for bytes_to_encrypt {}, key_size {}, src_idx {}, dst_idx {} error - {:?}", bytes_to_encrypt, encryption_key_size, src_idx, dst_idx, encrypted_bytes.unwrap_err());
-                    return Err(BAD_UNEXPECTED_ERROR);
-                }
-                encrypted_bytes.unwrap()
-            };
-
-            // Src advances by bytes to encrypt
-            src_idx += bytes_to_encrypt;
+        let padding = self.padding();
+        if let Ok(encrypted_size) = encryption_key.public_encrypt(src, dst, padding) {
+            Ok(encrypted_size)
+        } else {
+            Err(BAD_UNEXPECTED_ERROR)
         }
-
-        Ok(dst_idx)
     }
-
 
     /// Decrypts a message whose thumbprint matches the x509 cert and private key pair.
     ///
     /// Returns the number of decrypted bytes
-    pub fn asymmetric_decrypt(&self, private_key: &PKey, src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
-        // decrypt data using our private key
-        let rsa = private_key.value.rsa().unwrap();
-        let key_size = private_key.size();
-
-        let (padding, _) = self.padding_and_encrypted_data_size_for_key(key_size);
-
-        // Decrypt the data
-        let mut src_idx = 0;
-        let mut dst_idx = 0;
-        while src_idx < src.len() {
-            let src = &src[src_idx..(src_idx + key_size)];
-            let dst = &mut dst[dst_idx..(dst_idx + key_size)];
-            let decrypted_bytes = rsa.private_decrypt(src, dst, padding);
-            if decrypted_bytes.is_err() {
-                error!("Decryption failed for key size {}, src idx {}, dst idx {} error - {:?}", key_size, src_idx, dst_idx, decrypted_bytes.unwrap_err());
-                return Err(BAD_SECURITY_CHECKS_FAILED);
-            }
-            src_idx += key_size;
-            dst_idx += decrypted_bytes.unwrap();
+    pub fn asymmetric_decrypt(&self, decryption_key: &PKey, src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
+        let padding = self.padding();
+        if let Ok(decrypted_size) = decryption_key.private_decrypt(src, dst, padding) {
+            Ok(decrypted_size)
+        } else {
+            return Err(BAD_SECURITY_CHECKS_FAILED);
         }
-
-        Ok(dst_idx)
     }
 
     /// Sign the following block
