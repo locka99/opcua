@@ -30,16 +30,16 @@ pub struct SecureChannel {
     pub token_lifetime: UInt32,
     /// Token identifier
     pub token_id: UInt32,
-    /// Our nonce generated while handling open secure channel
-    pub local_nonce: Vec<u8>,
     /// Our certificate
     pub cert: Option<X509>,
     /// Our private key
     pub private_key: Option<PKey>,
-    /// Their nonce provided by open secure channel
-    pub remote_nonce: Vec<u8>,
     /// Their certificate
     pub their_cert: Option<X509>,
+    /// Our nonce generated while handling open secure channel
+    pub local_nonce: Vec<u8>,
+    /// Their nonce provided by open secure channel
+    pub remote_nonce: Vec<u8>,
     /// Symmetric Signing Key, Encrypt Key, IV
     pub remote_keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
     /// Symmetric Signing Key, Decrypt Key, IV
@@ -56,13 +56,13 @@ impl SecureChannel {
             token_id: 0,
             token_created_at: DateTime::now(),
             token_lifetime: 0,
-            local_nonce: Vec::with_capacity(64),
+            local_nonce: Vec::new(),
+            remote_nonce: Vec::new(),
             cert: None,
             private_key: None,
-            remote_nonce: Vec::with_capacity(64),
             their_cert: None,
-            remote_keys: None,
             local_keys: None,
+            remote_keys: None,
         }
     }
 
@@ -83,13 +83,13 @@ impl SecureChannel {
             token_id: 0,
             token_created_at: DateTime::now(),
             token_lifetime: 0,
-            local_nonce: Vec::with_capacity(64),
+            remote_nonce: Vec::new(),
+            local_nonce: Vec::new(),
             cert,
             private_key,
-            remote_keys: None,
-            remote_nonce: Vec::with_capacity(64),
             their_cert: None,
             local_keys: None,
+            remote_keys: None,
         }
     }
 
@@ -632,6 +632,32 @@ impl SecureChannel {
         }
     }
 
+    fn local_keys(&self) -> &(Vec<u8>, AesKey, Vec<u8>) {
+        self.local_keys.as_ref().unwrap()
+    }
+    
+    fn remote_keys(&self) -> &(Vec<u8>, AesKey, Vec<u8>) {
+        self.remote_keys.as_ref().unwrap()
+    }
+
+    fn encryption_keys(&self) -> (&AesKey, &[u8]) {
+        let keys = self.remote_keys();
+        (&keys.1, &keys.2)
+    }
+
+    fn decryption_keys(&self) -> (&AesKey, &[u8]) {
+        let keys = self.local_keys();
+        (&keys.1, &keys.2)
+    }
+
+    fn signing_key(&self) -> &[u8] {
+        &(self.local_keys()).0
+    }
+
+    fn verification_key(&self) -> &[u8] {
+        &(self.remote_keys()).0
+    }
+
     /// Encode data using security. Destination buffer is expected to be same size as src and expected
     /// to have space for for a signature if a signature is to be appended
     ///
@@ -667,9 +693,7 @@ impl SecureChannel {
                 let _ = self.symmetric_sign(src, signed_range, &mut dst_tmp)?;
 
                 // Encrypt the sequence header, payload, signature
-                let keys = self.remote_keys.as_ref().unwrap();
-                let key = &keys.1;
-                let iv = &keys.2;
+                let (key, iv) = self.encryption_keys();
                 let encrypted_size = self.security_policy.symmetric_encrypt(key, iv, &dst_tmp[encrypted_range.clone()], &mut dst[encrypted_range.start..(encrypted_range.end + 16)])?;
                 // Copy the message header / security header
                 dst[..encrypted_range.start].copy_from_slice(&dst_tmp[..encrypted_range.start]);
@@ -690,8 +714,8 @@ impl SecureChannel {
         debug!("signed_range = {:?}, signature range = {:?}, signature len = {}", signed_range, signature_range, signature_size);
 
         // Sign the message header, security header, sequence header, body, padding
-        let key = &(self.local_keys.as_ref().unwrap()).0;
-        self.security_policy.symmetric_sign(key, &src[signed_range.clone()], &mut signature)?;
+        let signing_key = self.signing_key();
+        self.security_policy.symmetric_sign(signing_key, &src[signed_range.clone()], &mut signature)?;
 
         debug!("Signature, len {} = {:?}", signature.len(), signature);
 
@@ -728,8 +752,8 @@ impl SecureChannel {
                 dst[all].copy_from_slice(&src[all]);
                 // Verify signature
                 debug!("Verifying range from {:?} to signature {}..", signed_range, signed_range.end);
-                let key = &(self.remote_keys.as_ref().unwrap()).0;
-                self.security_policy.symmetric_verify_signature(key, &dst[signed_range.clone()], &dst[signed_range.end..])?;
+                let verification_key = self.verification_key();
+                self.security_policy.symmetric_verify_signature(verification_key, &dst[signed_range.clone()], &dst[signed_range.end..])?;
 
                 Ok(encrypted_range.end)
             }
@@ -748,9 +772,7 @@ impl SecureChannel {
 
                 // Decrypt encrypted portion
                 let mut decrypted_tmp = vec![0u8; ciphertext_size + 16]; // tmp includes +16 for blocksize
-                let keys = self.local_keys.as_ref().unwrap();
-                let key = &keys.1;
-                let iv = &keys.2;
+                let (key, iv) = self.decryption_keys();
 
                 debug!("Secure decrypt called with encrypted range {:?}", encrypted_range);
                 let decrypted_size = self.security_policy.symmetric_decrypt(key, iv, &src[encrypted_range.clone()], &mut decrypted_tmp[..])?;
@@ -762,10 +784,10 @@ impl SecureChannel {
 
                 // Verify signature (after encrypted portion)
                 let signature_range = (encrypted_range.end - self.security_policy.symmetric_signature_size())..encrypted_range.end;
-                let key = &(self.remote_keys.as_ref().unwrap()).0;
+                let verification_key = self.verification_key();
 
                 debug!("signed range = {:?}, signature range = {:?}", signed_range, signature_range);
-                self.security_policy.symmetric_verify_signature(key, &dst[signed_range.clone()], &dst[signature_range])?;
+                self.security_policy.symmetric_verify_signature(verification_key, &dst[signed_range.clone()], &dst[signature_range])?;
                 Ok(encrypted_range.end)
             }
             MessageSecurityMode::Invalid => {
