@@ -46,7 +46,7 @@
             "name": "Debug - core test",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceRoot}/target/debug/opcua_core-2a9e06f08a4bdb15.exe",
+            "program": "${workspaceRoot}/target/debug/opcua_core-eea3830d2f94e35b.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceRoot}",

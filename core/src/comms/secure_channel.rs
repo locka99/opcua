@@ -31,13 +31,13 @@ pub struct SecureChannel {
     /// Token identifier
     pub token_id: UInt32,
     /// Our nonce generated while handling open secure channel
-    pub nonce: Vec<u8>,
+    pub local_nonce: Vec<u8>,
     /// Our certificate
     pub cert: Option<X509>,
     /// Our private key
     pub private_key: Option<PKey>,
     /// Their nonce provided by open secure channel
-    pub their_nonce: Vec<u8>,
+    pub remote_nonce: Vec<u8>,
     /// Their certificate
     pub their_cert: Option<X509>,
     /// Symmetric Signing Key, Encrypt Key, IV
@@ -56,10 +56,10 @@ impl SecureChannel {
             token_id: 0,
             token_created_at: DateTime::now(),
             token_lifetime: 0,
-            nonce: Vec::with_capacity(64),
+            local_nonce: Vec::with_capacity(64),
             cert: None,
             private_key: None,
-            their_nonce: Vec::with_capacity(64),
+            remote_nonce: Vec::with_capacity(64),
             their_cert: None,
             remote_keys: None,
             local_keys: None,
@@ -83,11 +83,11 @@ impl SecureChannel {
             token_id: 0,
             token_created_at: DateTime::now(),
             token_lifetime: 0,
-            nonce: Vec::with_capacity(64),
+            local_nonce: Vec::with_capacity(64),
             cert,
             private_key,
             remote_keys: None,
-            their_nonce: Vec::with_capacity(64),
+            remote_nonce: Vec::with_capacity(64),
             their_cert: None,
             local_keys: None,
         }
@@ -117,21 +117,21 @@ impl SecureChannel {
         if self.security_policy != SecurityPolicy::None && (self.security_mode == MessageSecurityMode::Sign || self.security_mode == MessageSecurityMode::SignAndEncrypt) {
             use rand::{self, Rng};
             let mut rng = rand::thread_rng();
-            self.nonce = vec![0u8; self.security_policy.symmetric_key_size()];
-            rng.fill_bytes(&mut self.nonce);
+            self.local_nonce = vec![0u8; self.security_policy.symmetric_key_size()];
+            rng.fill_bytes(&mut self.local_nonce);
         } else {
-            self.nonce = vec![0u8; 1];
+            self.local_nonce = vec![0u8; 1];
         }
     }
 
     /// Set their nonce which should be the same as the symmetric key
-    pub fn set_their_nonce(&mut self, their_nonce: &ByteString) -> Result<(), StatusCode> {
+    pub fn set_remote_nonce(&mut self, remote_nonce: &ByteString) -> Result<(), StatusCode> {
         if self.security_policy != SecurityPolicy::None && (self.security_mode == MessageSecurityMode::Sign || self.security_mode == MessageSecurityMode::SignAndEncrypt) {
-            if let Some(ref their_nonce) = their_nonce.value {
-                if their_nonce.len() != self.security_policy.symmetric_key_size() {
+            if let Some(ref remote_nonce) = remote_nonce.value {
+                if remote_nonce.len() != self.security_policy.symmetric_key_size() {
                     return Err(BAD_NONCE_INVALID);
                 }
-                self.their_nonce = their_nonce.to_vec();
+                self.remote_nonce = remote_nonce.to_vec();
                 Ok(())
             } else {
                 Err(BAD_NONCE_INVALID)
@@ -175,10 +175,10 @@ impl SecureChannel {
     /// are used to secure Messages sent by the Server.
     ///
     pub fn derive_keys(&mut self) {
-        self.remote_keys = Some(self.security_policy.make_secure_channel_keys(&self.their_nonce, &self.nonce));
-        self.local_keys = Some(self.security_policy.make_secure_channel_keys(&self.nonce, &self.their_nonce));
-        trace!("Their nonce = {:?}", self.their_nonce);
-        trace!("Our nonce = {:?}", self.nonce);
+        self.remote_keys = Some(self.security_policy.make_secure_channel_keys(&self.remote_nonce, &self.local_nonce));
+        self.local_keys = Some(self.security_policy.make_secure_channel_keys(&self.local_nonce, &self.remote_nonce));
+        trace!("Remote nonce = {:?}", self.remote_nonce);
+        trace!("Local nonce = {:?}", self.local_nonce);
         trace!("Derived remote keys = {:?}", self.remote_keys);
         trace!("Derived local keys = {:?}", self.local_keys);
     }
@@ -690,7 +690,7 @@ impl SecureChannel {
         debug!("signed_range = {:?}, signature range = {:?}, signature len = {}", signed_range, signature_range, signature_size);
 
         // Sign the message header, security header, sequence header, body, padding
-        let key = &(self.remote_keys.as_ref().unwrap()).0;
+        let key = &(self.local_keys.as_ref().unwrap()).0;
         self.security_policy.symmetric_sign(key, &src[signed_range.clone()], &mut signature)?;
 
         debug!("Signature, len {} = {:?}", signature.len(), signature);
@@ -728,7 +728,7 @@ impl SecureChannel {
                 dst[all].copy_from_slice(&src[all]);
                 // Verify signature
                 debug!("Verifying range from {:?} to signature {}..", signed_range, signed_range.end);
-                let key = &(self.local_keys.as_ref().unwrap()).0;
+                let key = &(self.remote_keys.as_ref().unwrap()).0;
                 self.security_policy.symmetric_verify_signature(key, &dst[signed_range.clone()], &dst[signed_range.end..])?;
 
                 Ok(encrypted_range.end)
@@ -755,13 +755,16 @@ impl SecureChannel {
                 debug!("Secure decrypt called with encrypted range {:?}", encrypted_range);
                 let decrypted_size = self.security_policy.symmetric_decrypt(key, iv, &src[encrypted_range.clone()], &mut decrypted_tmp[..])?;
 
+                // log_buffer("Encrypted buffer", &src[..encrypted_range.end]);
                 let encrypted_range = encrypted_range.start..(encrypted_range.start + decrypted_size);
                 dst[encrypted_range.clone()].copy_from_slice(&decrypted_tmp[..decrypted_size]);
-                log_buffer("Decrypted buffer", &dst[..decrypted_size]);
+                log_buffer("Decrypted buffer", &dst[..encrypted_range.end]);
 
                 // Verify signature (after encrypted portion)
                 let signature_range = (encrypted_range.end - self.security_policy.symmetric_signature_size())..encrypted_range.end;
                 let key = &(self.remote_keys.as_ref().unwrap()).0;
+
+                debug!("signed range = {:?}, signature range = {:?}", signed_range, signature_range);
                 self.security_policy.symmetric_verify_signature(key, &dst[signed_range.clone()], &dst[signature_range])?;
                 Ok(encrypted_range.end)
             }

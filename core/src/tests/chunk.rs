@@ -14,15 +14,6 @@ use crypto::x509::X509;
 
 use tests::*;
 
-struct Test;
-
-impl Test {
-    pub fn setup() -> Test {
-        ::init_logging();
-        Test {}
-    }
-}
-
 fn sample_secure_channel_request_data_security_none() -> MessageChunk {
     let sample_data = vec![
         47, 0, 0, 0, 104, 116, 116, 112, 58, 47, 47, 111, 112, 99, 102, 111, 117, 110, 100, 97,
@@ -52,45 +43,6 @@ fn sample_secure_channel_request_data_security_none() -> MessageChunk {
     println!("Sample chunk info = {:?}", chunk.message_header().unwrap());
 
     chunk
-}
-
-
-fn make_open_secure_channel_response() -> OpenSecureChannelResponse {
-    OpenSecureChannelResponse {
-        response_header: ResponseHeader {
-            timestamp: DateTime::now(),
-            request_handle: 444,
-            service_result: BAD_PROTOCOL_VERSION_UNSUPPORTED,
-            service_diagnostics: DiagnosticInfo::new(),
-            string_table: None,
-            additional_header: ExtensionObject::null(),
-        },
-        server_protocol_version: 0,
-        security_token: ChannelSecurityToken {
-            channel_id: 1,
-            token_id: 2,
-            created_at: DateTime::now(),
-            revised_lifetime: 777,
-        },
-        server_nonce: ByteString::null(),
-    }
-}
-
-fn make_sample_message() -> SupportedMessage {
-    SupportedMessage::GetEndpointsRequest(GetEndpointsRequest {
-        request_header: RequestHeader {
-            authentication_token: NodeId::new(0, 99),
-            timestamp: DateTime::now(),
-            request_handle: 1,
-            return_diagnostics: 0,
-            audit_entry_id: UAString::null(),
-            timeout_hint: 123456,
-            additional_header: ExtensionObject::null(),
-        },
-        endpoint_url: UAString::null(),
-        locale_ids: None,
-        profile_uris: None,
-    })
 }
 
 fn set_chunk_sequence_number(chunk: &mut MessageChunk, secure_channel: &SecureChannel, sequence_number: UInt32) -> UInt32 {
@@ -321,138 +273,6 @@ fn open_secure_channel() {
     assert_eq!(open_secure_channel_response, new_open_secure_channel_response);
 }
 
-fn test_encrypt_decrypt(message: SupportedMessage, security_mode: MessageSecurityMode, security_policy: SecurityPolicy) {
-    let mut secure_channel = SecureChannel::new_no_certificate_store();
-    secure_channel.security_mode = security_mode;
-    secure_channel.security_policy = security_policy;
-    // Both nonces are the same because we shall be encrypting and decrypting our own blocks
-    secure_channel.nonce = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-    secure_channel.their_nonce = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-    secure_channel.derive_keys();
-
-    let mut chunks = Chunker::encode(1, 1, 0, 0, &secure_channel, &message).unwrap();
-    assert_eq!(chunks.len(), 1);
-
-    {
-        let chunk = &mut chunks[0];
-
-        let mut encrypted_data = vec![0u8; chunk.data.len() + 4096];
-        let encrypted_size = secure_channel.apply_security(&chunk, &mut encrypted_data[..]).unwrap();
-        trace!("Result of applying security = {}", encrypted_size);
-
-        // We can't strip padding, so just compare up to original length
-        let chunk2 = secure_channel.verify_and_remove_security(&encrypted_data[..encrypted_size]).unwrap();
-
-        // Why offset 12? So we don't compare message_size part which may differ when padding is added. Less than ideal
-        assert_eq!(&chunk.data[12..], &chunk2.data[12..chunk.data.len()]);
-    }
-
-    let message2 = Chunker::decode(&chunks, &secure_channel, None).unwrap();
-    assert_eq!(message, message2);
-}
-
-fn test_asymmetric_encrypt_decrypt(message: SupportedMessage, security_mode: MessageSecurityMode, security_policy: SecurityPolicy) {
-    let mut secure_channel = SecureChannel::new_no_certificate_store();
-    secure_channel.security_mode = security_mode;
-    secure_channel.security_policy = security_policy;
-
-    // Create a cert and private key pretending to be us and them
-    let (our_cert, our_key) = make_test_cert();
-    let (their_cert, their_key) = make_test_cert();
-
-    // First we shall sign with our private key and encrypt with their public.
-    secure_channel.cert = Some(our_cert);
-    secure_channel.their_cert = Some(their_cert);
-    secure_channel.private_key = Some(our_key);
-
-    let mut chunks = Chunker::encode(1, 1, 0, 0, &secure_channel, &message).unwrap();
-    assert_eq!(chunks.len(), 1);
-
-    let chunk = &mut chunks[0];
-
-    let mut encrypted_data = vec![0u8; chunk.data.len() + 4096];
-    let encrypted_size = secure_channel.apply_security(&chunk, &mut encrypted_data[..]).unwrap();
-    trace!("Result of applying security = {}", encrypted_size);
-
-    // Now we shall try to decrypt what has been encrypted by flipping the keys around
-    let tmp = secure_channel.cert;
-    secure_channel.cert = secure_channel.their_cert;
-    secure_channel.their_cert = tmp;
-    secure_channel.private_key = Some(their_key);
-
-    // We can't strip padding, so just compare up to original length
-    let chunk2 = secure_channel.verify_and_remove_security(&encrypted_data[..encrypted_size]).unwrap();
-
-    assert_eq!(&chunk.data[12..], &chunk2.data[12..chunk.data.len()]);
-}
-
-#[test]
-fn asymmetric_sign_and_encrypt_message_chunk_basic128rsa15() {
-    let _ = Test::setup();
-    error!("asymmetric_sign_and_encrypt_message_chunk_basic128rsa15");
-    test_asymmetric_encrypt_decrypt(SupportedMessage::OpenSecureChannelResponse(make_open_secure_channel_response()), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic128Rsa15);
-}
-
-#[test]
-fn asymmetric_sign_and_encrypt_message_chunk_basic256() {
-    let _ = Test::setup();
-    error!("asymmetric_sign_and_encrypt_message_chunk_basic256");
-    test_asymmetric_encrypt_decrypt(SupportedMessage::OpenSecureChannelResponse(make_open_secure_channel_response()), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic256);
-}
-
-#[test]
-fn asymmetric_sign_and_encrypt_message_chunk_basic256sha256() {
-    let _ = Test::setup();
-    error!("asymmetric_sign_and_encrypt_message_chunk_basic256sha256");
-    test_asymmetric_encrypt_decrypt(SupportedMessage::OpenSecureChannelResponse(make_open_secure_channel_response()), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic256Sha256);
-}
-
-/// Create a message, encode it to a chunk, sign the chunk, verify the signature and decode back to message
-#[test]
-fn symmetric_sign_message_chunk_basic128rsa15() {
-    let _ = Test::setup();
-    error!("symmetric_sign_message_chunk_basic128rsa15");
-    test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::Sign, SecurityPolicy::Basic128Rsa15);
-}
-
-#[test]
-fn symmetric_sign_message_chunk_basic256() {
-    let _ = Test::setup();
-    error!("symmetric_sign_message_chunk_basic256");
-    test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::Sign, SecurityPolicy::Basic256);
-}
-
-#[test]
-fn symmetric_sign_message_chunk_basic256sha256() {
-    let _ = Test::setup();
-    error!("symmetric_sign_message_chunk_basic256sha256");
-    test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::Sign, SecurityPolicy::Basic256Sha256);
-}
-
-/// Create a message, encode it to a chunk, sign the chunk, encrypt, decrypt, verify the signature and decode back to message
-#[test]
-fn symmetric_sign_and_encrypt_message_chunk_basic128rsa15() {
-    let _ = Test::setup();
-    error!("symmetric_sign_and_encrypt_message_chunk_basic128rsa15");
-    test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic128Rsa15);
-}
-
-/// Create a message, encode it to a chunk, sign the chunk, encrypt, decrypt, verify the signature and decode back to message
-#[test]
-fn symmetric_sign_and_encrypt_message_chunk_basic256() {
-    let _ = Test::setup();
-    error!("symmetric_sign_and_encrypt_message_chunk_basic256");
-    test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic256);
-}
-
-/// Create a message, encode it to a chunk, sign the chunk, encrypt, decrypt, verify the signature and decode back to message
-#[test]
-fn symmetric_sign_and_encrypt_message_chunk_basic256sha256() {
-    let _ = Test::setup();
-    error!("symmetric_sign_and_encrypt_message_chunk_basic256sha256");
-    test_encrypt_decrypt(make_sample_message(), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic256Sha256);
-}
-
 #[test]
 fn security_policy_symmetric_encrypt_decrypt() {
     // Encrypt and decrypt directly to the security policy, make sure all is well
@@ -462,8 +282,8 @@ fn security_policy_symmetric_encrypt_decrypt() {
     secure_channel.security_mode = MessageSecurityMode::SignAndEncrypt;
     secure_channel.security_policy = security_policy;
     // Both nonces are the same because we shall be encrypting and decrypting our own blocks
-    secure_channel.nonce = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-    secure_channel.their_nonce = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+    secure_channel.local_nonce = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+    secure_channel.remote_nonce = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
     secure_channel.derive_keys();
 
     let src = vec![0u8; 100];

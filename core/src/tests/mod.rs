@@ -69,6 +69,53 @@ fn make_test_cert() -> (X509, PKey) {
     cert.unwrap()
 }
 
+fn make_open_secure_channel_response() -> OpenSecureChannelResponse {
+    OpenSecureChannelResponse {
+        response_header: ResponseHeader {
+            timestamp: DateTime::now(),
+            request_handle: 444,
+            service_result: BAD_PROTOCOL_VERSION_UNSUPPORTED,
+            service_diagnostics: DiagnosticInfo::new(),
+            string_table: None,
+            additional_header: ExtensionObject::null(),
+        },
+        server_protocol_version: 0,
+        security_token: ChannelSecurityToken {
+            channel_id: 1,
+            token_id: 2,
+            created_at: DateTime::now(),
+            revised_lifetime: 777,
+        },
+        server_nonce: ByteString::null(),
+    }
+}
+
+fn make_sample_message() -> SupportedMessage {
+    SupportedMessage::GetEndpointsRequest(GetEndpointsRequest {
+        request_header: RequestHeader {
+            authentication_token: NodeId::new(0, 99),
+            timestamp: DateTime::now(),
+            request_handle: 1,
+            return_diagnostics: 0,
+            audit_entry_id: UAString::null(),
+            timeout_hint: 123456,
+            additional_header: ExtensionObject::null(),
+        },
+        endpoint_url: UAString::null(),
+        locale_ids: None,
+        profile_uris: None,
+    })
+}
+
+struct Test;
+
+impl Test {
+    pub fn setup() -> Test {
+        ::init_logging();
+        Test {}
+    }
+}
+
 mod chunk;
 mod services;
 mod comms;

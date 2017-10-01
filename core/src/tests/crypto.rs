@@ -336,7 +336,7 @@ fn derkeys_from_nonce() {
 fn derive_keys_from_nonce_basic128rsa15() {
     let security_policy = SecurityPolicy::Basic128Rsa15;
 
-    // This test takes two nonces generated from a client / server
+    // This test takes two nonces generated from a real client / server session
     let local_nonce = vec![0x88, 0x65, 0x13, 0xb6, 0xee, 0xad, 0x68, 0xa2, 0xcb, 0xa7, 0x29, 0x0f, 0x79, 0xb3, 0x84, 0xf3];
     let remote_nonce = vec![0x17, 0x0c, 0xe8, 0x68, 0x3e, 0xe6, 0xb3, 0x80, 0xb3, 0xf4, 0x67, 0x5c, 0x1e, 0xa2, 0xcc, 0xb1];
 
@@ -351,7 +351,7 @@ fn derive_keys_from_nonce_basic128rsa15() {
     let remote_iv = vec![0xab, 0xc6, 0x26, 0x78, 0xb9, 0xa4, 0xe6, 0x93, 0x21, 0x9e, 0xc1, 0x7e, 0xd5, 0x8b, 0x0e, 0xf2];
 
     // Make the keys using the two nonce values
-    let local_keys = security_policy.make_secure_channel_keys(&remote_nonce, &local_nonce);
+    let local_keys = security_policy.make_secure_channel_keys(&remote_nonce,&local_nonce);
     let remote_keys = security_policy.make_secure_channel_keys(&local_nonce, &remote_nonce);
 
     // Compare the keys we received against the expected
