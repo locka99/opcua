@@ -6,9 +6,12 @@ use tempdir::TempDir;
 
 use opcua_types::*;
 
+use comms::secure_channel::SecureChannel;
+
 use crypto::pkey::PKey;
 use crypto::x509::{X509, X509Data};
 use crypto::certificate_store::*;
+use crypto::security_policy::SecurityPolicy;
 
 pub fn serialize_test_and_return<T>(value: T) -> T
     where T: BinaryEncoder<T> + Debug + PartialEq
@@ -46,6 +49,26 @@ pub fn serialize_test<T>(value: T)
     let _ = serialize_test_and_return(value);
 }
 
+/// Makes a secure channel
+fn make_secure_channel(security_mode: MessageSecurityMode, security_policy: SecurityPolicy, local_nonce: Vec<u8>, remote_nonce: Vec<u8>) -> SecureChannel {
+    let mut secure_channel = SecureChannel::new_no_certificate_store();
+    secure_channel.security_mode = security_mode;
+    secure_channel.security_policy = security_policy;
+    secure_channel.local_nonce = local_nonce;
+    secure_channel.remote_nonce = remote_nonce;
+    secure_channel.derive_keys(); 
+    secure_channel
+}
+
+/// Makes a pair of secure channels representing local and remote side to test crypto
+fn make_secure_channels(security_mode: MessageSecurityMode, security_policy: SecurityPolicy) -> (SecureChannel, SecureChannel) {
+    let local_nonce = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+    let remote_nonce = vec![16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31];
+
+    let secure_channel1 = make_secure_channel(security_mode, security_policy, local_nonce.clone(), remote_nonce.clone());
+    let secure_channel2 = make_secure_channel(security_mode, security_policy, remote_nonce.clone(), local_nonce.clone());
+    (secure_channel1, secure_channel2)
+}
 
 fn make_certificate_store() -> (TempDir, CertificateStore) {
     let tmp_dir = TempDir::new("pki").unwrap();

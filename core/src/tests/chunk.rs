@@ -276,24 +276,16 @@ fn open_secure_channel() {
 #[test]
 fn security_policy_symmetric_encrypt_decrypt() {
     // Encrypt and decrypt directly to the security policy, make sure all is well
-
-    let security_policy = SecurityPolicy::Basic128Rsa15;
-    let mut secure_channel = SecureChannel::new_no_certificate_store();
-    secure_channel.security_mode = MessageSecurityMode::SignAndEncrypt;
-    secure_channel.security_policy = security_policy;
-    // Both nonces are the same because we shall be encrypting and decrypting our own blocks
-    secure_channel.local_nonce = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-    secure_channel.remote_nonce = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-    secure_channel.derive_keys();
+    let (secure_channel1, secure_channel2) = make_secure_channels(MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic128Rsa15);
 
     let src = vec![0u8; 100];
     let mut dst = vec![0u8; 200];
 
-    let encrypted_len = secure_channel.symmetric_sign_and_encrypt(&src, 0..80, 20..100, &mut dst).unwrap();
+    let encrypted_len = secure_channel1.symmetric_sign_and_encrypt(&src, 0..80, 20..100, &mut dst).unwrap();
     assert_eq!(encrypted_len, 100);
 
     let mut src2 = vec![0u8; 200];
-    let decrypted_len = secure_channel.symmetric_decrypt_and_verify(&dst, 0..80, 20..100, &mut src2).unwrap();
+    let decrypted_len = secure_channel2.symmetric_decrypt_and_verify(&dst, 0..80, 20..100, &mut src2).unwrap();
     assert_eq!(decrypted_len, 100);
 
     // Compare the data, not the signature
