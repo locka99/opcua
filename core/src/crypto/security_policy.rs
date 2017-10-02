@@ -506,7 +506,7 @@ impl SecurityPolicy {
                 hash::verify_hmac_sha1(key, src, signature)
             }
             SecurityPolicy::Basic256Sha256 => {
-                // HMAC SHA-256                
+                // HMAC SHA-256
                 hash::verify_hmac_sha256(key, src, signature)
             }
             _ => {
@@ -517,7 +517,7 @@ impl SecurityPolicy {
             Ok(verified)
         } else {
             error!("Signature invalid {:?}", signature);
-            Err(BAD_APPLICATION_SIGNATURE_INVALID)
+            Err(BAD_SECURITY_CHECKS_FAILED)
         }
     }
 
