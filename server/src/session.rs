@@ -30,14 +30,8 @@ pub struct Session {
     pub subscriptions: Subscriptions,
     /// The session identifier
     pub session_id: NodeId,
-    /// Indicates if the session has received an ActivateSession
-    pub activated: bool,
     /// Flag to indicate session should be terminated
     pub terminate_session: bool,
-    /// Time that session was terminated, helps with recovering sessions, or clearing them out
-    pub terminated_at: DateTime<UTC>,
-    /// Flag indicating session is actually terminated
-    pub terminated: bool,
     /// Security policy
     pub security_policy_uri: String,
     /// Client's certificate
@@ -57,11 +51,17 @@ pub struct Session {
     /// Endpoint url for this session
     pub endpoint_url: UAString,
     /// Maximum number of continuation points
-    pub max_browse_continuation_points: usize,
+    max_browse_continuation_points: usize,
     /// Browse continuation points (oldest to newest)
-    pub browse_continuation_points: Vec<BrowseContinuationPoint>,
+    browse_continuation_points: Vec<BrowseContinuationPoint>,
     /// Diagnostics associated with the session
-    pub diagnostics: SessionDiagnostics,
+    diagnostics: SessionDiagnostics,
+    /// Indicates if the session has received an ActivateSession
+    pub activated: bool,
+    /// Time that session was terminated, helps with recovering sessions, or clearing them out
+    terminated_at: DateTime<UTC>,
+    /// Flag indicating session is actually terminated
+    pub terminated: bool,
     /// Internal value used to create new session ids.
     last_session_id: UInt32,
 }
