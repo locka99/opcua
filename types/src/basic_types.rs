@@ -810,6 +810,20 @@ mod DiagnosticInfoMask {
     pub const HAS_INNER_DIAGNOSTIC_INFO: u8 = 0x40;
 }
 
+#[allow(non_snake_case)]
+pub mod DiagnosticFlags {
+    pub const SERVICE_LEVEL_SYMBOLIC_ID: u32 = 1;
+    pub const SERVICE_LEVEL_LOCALIZED_TEXT: u32 = 1 << 1;
+    pub const SERVICE_LEVEL_ADDITIONAL_INFO: u32 = 1 << 2;
+    pub const SERVICE_LEVEL_INNER_STATUS_CODE: u32 = 1 << 3;
+    pub const SERVICE_LEVEL_INNER_DIAGNOSTICS: u32 = 1 << 4;
+    pub const OPERATIONS_LEVEL_SYMBOLIC_ID: u32 = 1 << 5;
+    pub const OPERATIONS_LEVEL_LOCALIZED_TEXT: u32 = 1 << 6;
+    pub const OPERATIONS_LEVEL_ADDITIONAL_INFO: u32 = 1 << 8;
+    pub const OPERATIONS_LEVEL_INNER_STATUS_CODE: u32 = 1 << 9;
+    pub const OPERATIONS_LEVEL_INNER_DIAGNOSTICS: u32 = 1 << 10;
+}
+
 /// Data type ID 25
 #[derive(PartialEq, Debug, Clone)]
 pub struct DiagnosticInfo {
