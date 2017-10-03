@@ -37,13 +37,13 @@ pub struct SecureChannel {
     /// Their certificate
     pub their_cert: Option<X509>,
     /// Our nonce generated while handling open secure channel
-    pub local_nonce: Vec<u8>,
+    pub server_nonce: Vec<u8>,
     /// Their nonce provided by open secure channel
-    pub remote_nonce: Vec<u8>,
-    /// Symmetric Signing Key, Encrypt Key, IV
-    pub remote_keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
-    /// Symmetric Signing Key, Decrypt Key, IV
-    pub local_keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
+    pub client_nonce: Vec<u8>,
+    /// Client (i.e. other end's set of keys) Symmetric Signing Key, Encrypt Key, IV
+    pub client_keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
+    /// Server (i.e. our end's set of keys) Symmetric Signing Key, Decrypt Key, IV
+    pub server_keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
 }
 
 impl SecureChannel {
@@ -56,13 +56,13 @@ impl SecureChannel {
             token_id: 0,
             token_created_at: DateTime::now(),
             token_lifetime: 0,
-            local_nonce: Vec::new(),
-            remote_nonce: Vec::new(),
+            server_nonce: Vec::new(),
+            client_nonce: Vec::new(),
             cert: None,
             private_key: None,
             their_cert: None,
-            local_keys: None,
-            remote_keys: None,
+            server_keys: None,
+            client_keys: None,
         }
     }
 
@@ -83,13 +83,13 @@ impl SecureChannel {
             token_id: 0,
             token_created_at: DateTime::now(),
             token_lifetime: 0,
-            remote_nonce: Vec::new(),
-            local_nonce: Vec::new(),
+            client_nonce: Vec::new(),
+            server_nonce: Vec::new(),
             cert,
             private_key,
             their_cert: None,
-            local_keys: None,
-            remote_keys: None,
+            server_keys: None,
+            client_keys: None,
         }
     }
 
@@ -117,10 +117,10 @@ impl SecureChannel {
         if self.security_policy != SecurityPolicy::None && (self.security_mode == MessageSecurityMode::Sign || self.security_mode == MessageSecurityMode::SignAndEncrypt) {
             use rand::{self, Rng};
             let mut rng = rand::thread_rng();
-            self.local_nonce = vec![0u8; self.security_policy.symmetric_key_size()];
-            rng.fill_bytes(&mut self.local_nonce);
+            self.server_nonce = vec![0u8; self.security_policy.symmetric_key_size()];
+            rng.fill_bytes(&mut self.server_nonce);
         } else {
-            self.local_nonce = vec![0u8; 1];
+            self.server_nonce = vec![0u8; 1];
         }
     }
 
@@ -131,7 +131,7 @@ impl SecureChannel {
                 if remote_nonce.len() != self.security_policy.symmetric_key_size() {
                     return Err(BAD_NONCE_INVALID);
                 }
-                self.remote_nonce = remote_nonce.to_vec();
+                self.client_nonce = remote_nonce.to_vec();
                 Ok(())
             } else {
                 Err(BAD_NONCE_INVALID)
@@ -175,12 +175,12 @@ impl SecureChannel {
     /// are used to secure Messages sent by the Server.
     ///
     pub fn derive_keys(&mut self) {
-        self.remote_keys = Some(self.security_policy.make_secure_channel_keys(&self.remote_nonce, &self.local_nonce));
-        self.local_keys = Some(self.security_policy.make_secure_channel_keys(&self.local_nonce, &self.remote_nonce));
-        trace!("Remote nonce = {:?}", self.remote_nonce);
-        trace!("Local nonce = {:?}", self.local_nonce);
-        trace!("Derived remote keys = {:?}", self.remote_keys);
-        trace!("Derived local keys = {:?}", self.local_keys);
+        self.client_keys = Some(self.security_policy.make_secure_channel_keys(&self.server_nonce, &self.client_nonce));
+        self.server_keys = Some(self.security_policy.make_secure_channel_keys(&self.client_nonce, &self.server_nonce));
+        trace!("Remote nonce = {:?}", self.client_nonce);
+        trace!("Local nonce = {:?}", self.server_nonce);
+        trace!("Derived remote keys = {:?}", self.client_keys);
+        trace!("Derived local keys = {:?}", self.server_keys);
     }
 
     /// Test if the token has expired yet
@@ -632,30 +632,30 @@ impl SecureChannel {
         }
     }
 
-    fn local_keys(&self) -> &(Vec<u8>, AesKey, Vec<u8>) {
-        self.local_keys.as_ref().unwrap()
+    fn server_keys(&self) -> &(Vec<u8>, AesKey, Vec<u8>) {
+        self.server_keys.as_ref().unwrap()
     }
-    
-    fn remote_keys(&self) -> &(Vec<u8>, AesKey, Vec<u8>) {
-        self.remote_keys.as_ref().unwrap()
+
+    fn client_keys(&self) -> &(Vec<u8>, AesKey, Vec<u8>) {
+        self.client_keys.as_ref().unwrap()
     }
 
     fn encryption_keys(&self) -> (&AesKey, &[u8]) {
-        let keys = self.remote_keys();
-        (&keys.1, &keys.2)
-    }
-
-    fn decryption_keys(&self) -> (&AesKey, &[u8]) {
-        let keys = self.local_keys();
+        let keys = self.server_keys();
         (&keys.1, &keys.2)
     }
 
     fn signing_key(&self) -> &[u8] {
-        &(self.local_keys()).0
+        &(self.server_keys()).0
+    }
+
+    fn decryption_keys(&self) -> (&AesKey, &[u8]) {
+        let keys = self.client_keys();
+        (&keys.1, &keys.2)
     }
 
     fn verification_key(&self) -> &[u8] {
-        &(self.remote_keys()).0
+        &(self.client_keys()).0
     }
 
     /// Encode data using security. Destination buffer is expected to be same size as src and expected
@@ -784,9 +784,8 @@ impl SecureChannel {
 
                 // Verify signature (after encrypted portion)
                 let signature_range = (encrypted_range.end - self.security_policy.symmetric_signature_size())..encrypted_range.end;
-                let verification_key = self.verification_key();
-
                 debug!("signed range = {:?}, signature range = {:?}", signed_range, signature_range);
+                let verification_key = self.verification_key();
                 self.security_policy.symmetric_verify_signature(verification_key, &dst[signed_range.clone()], &dst[signature_range])?;
                 Ok(encrypted_range.end)
             }

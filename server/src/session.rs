@@ -103,6 +103,10 @@ impl Session {
         NodeId::new(1, self.last_session_id as u64)
     }
 
+    pub fn diagnostics(&self) -> &SessionDiagnostics {
+        &self.diagnostics
+    }
+
     pub fn enqueue_publish_request(&mut self, server_state: &ServerState, request_id: UInt32, request: PublishRequest) -> Result<(), SupportedMessage> {
         let address_space = server_state.address_space.lock().unwrap();
         self.subscriptions.enqueue_publish_request(&address_space, request_id, request)

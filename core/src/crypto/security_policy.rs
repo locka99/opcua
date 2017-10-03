@@ -380,7 +380,7 @@ impl SecurityPolicy {
     /// The Client keys are used to secure Messages sent by the Client. The Server keys
     /// are used to secure Messages sent by the Server.
     ///
-    pub fn make_secure_channel_keys(&self, nonce1: &[u8], nonce2: &[u8]) -> (Vec<u8>, AesKey, Vec<u8>) {
+    pub fn make_secure_channel_keys(&self, secret: &[u8], seed: &[u8]) -> (Vec<u8>, AesKey, Vec<u8>) {
         // Work out the length of stuff
         let signing_key_length = self.derived_signature_key_size();
         let (encrypting_key_length, encrypting_block_size) = match *self {
@@ -391,12 +391,10 @@ impl SecurityPolicy {
             }
         };
 
-        let signing_key = self.prf(nonce1, nonce2, signing_key_length, 0);
-
-        let encrypting_key = self.prf(nonce1, nonce2, encrypting_key_length, signing_key_length);
+        let signing_key = self.prf(secret, seed, signing_key_length, 0);
+        let encrypting_key = self.prf(secret, seed, encrypting_key_length, signing_key_length);
         let encrypting_key = AesKey::new(*self, &encrypting_key);
-
-        let iv = self.prf(nonce1, nonce2, encrypting_block_size, signing_key_length + encrypting_key_length);
+        let iv = self.prf(secret, seed, encrypting_block_size, signing_key_length + encrypting_key_length);
 
         (signing_key, encrypting_key, iv)
     }
