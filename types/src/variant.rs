@@ -68,7 +68,6 @@ impl Into<Variant> for UAString {
     fn into(self) -> Variant { Variant::String(self) }
 }
 
-
 impl Into<Variant> for DateTime {
     fn into(self) -> Variant { Variant::DateTime(self) }
 }
