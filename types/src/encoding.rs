@@ -231,10 +231,16 @@ pub fn read_f64(stream: &mut Read) -> EncodingResult<f64> {
 pub fn url_matches_except_host(url1: &str, url2: &str) -> std::result::Result<bool, ()> {
     if let Ok(mut url1) = Url::parse(url1) {
         if let Ok(mut url2) = Url::parse(url2) {
-            if url1.set_host(None).is_ok() && url2.set_host(None).is_ok() {
+            if url1.set_host(Some("xxxx")).is_ok() && url2.set_host(Some("xxxx")).is_ok() {
                 return Ok(url1 == url2);
             }
         }
+        else {
+            error!("Cannot parse url {}", url2);
+        }
+    }
+    else {
+        error!("Cannot parse url {}", url1);
     }
     Err(())
 }

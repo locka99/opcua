@@ -1,6 +1,16 @@
 use tests::*;
 
 #[test]
+fn endpoint_match() {
+    assert!(url_matches_except_host("opc.tcp://foo:4855/", "opc.tcp://bar:4855").unwrap());
+    assert!(url_matches_except_host("opc.tcp://127.0.0.1:4855/", "opc.tcp://bar:4855").unwrap());
+    assert!(url_matches_except_host("opc.tcp://foo:4855/", "opc.tcp://127.0.0.1:4855").unwrap());
+    assert!(url_matches_except_host("opc.tcp://foo:4855/UAServer", "opc.tcp://127.0.0.1:4855/UAServer").unwrap());
+
+    assert!(!url_matches_except_host("opc.tcp://foo:4855/UAServer", "opc.tcp://127.0.0.1:8888/UAServer").unwrap());
+}
+
+#[test]
 fn encoding_bool() {
     serialize_test(true);
     serialize_test(false);
