@@ -41,29 +41,27 @@ fn add_example_variables(server: &mut Server) -> Vec<PollingAction> {
         let server_state = server.server_state.lock().unwrap();
         let mut address_space = server_state.address_space.lock().unwrap();
 
-        // Create a folder to hold the variables, then add variables.
-
         // Create a sample folder under objects folder
         let sample_folder_id = address_space
             .add_folder("Sample", "Sample", &AddressSpace::objects_folder_id())
             .unwrap();
 
         // Add some variables to our sample folder. Values will be overwritten by the timer
-        let vars = vec![Variable::new(&v1_node, "v1", "v1", "v1 variable", 0 as Int32),
-                        Variable::new(&v2_node, "v2", "v2", "v2 variable", false),
-                        Variable::new(&v3_node, "v3", "v3", "v3 variable", UAString::from("")),
-                        Variable::new(&v4_node, "v4", "v4", "v4 variable", 0f64)];
-        let _ = address_space.add_variables(vars, &sample_folder_id);
+        let _ = address_space.add_variables(
+            vec![Variable::new(&v1_node, "v1", "v1", "v1 variable", 0 as Int32),
+                 Variable::new(&v2_node, "v2", "v2", "v2 variable", false),
+                 Variable::new(&v3_node, "v3", "v3", "v3 variable", UAString::from("")),
+                 Variable::new(&v4_node, "v4", "v4", "v4 variable", 0f64)],
+            &sample_folder_id);
     }
 
-    // OPC UA for Rust gives you a choice to push or pull values from a variable. The code below
-    // will hook up some variables using each method.
+    // OPC UA for Rust allows you to push or pull values from a variable so here are examples
+    // of each method.
 
     // 1) Push. This code will use a timer to set the values on variable v1 & v2 on an interval
 
     let mut v1_counter: Int32 = 0;
     let mut v2_flag: Boolean = true;
-
     let timers = vec![
         server.create_address_space_polling_action(250, move |address_space: &mut AddressSpace| {
             v1_counter += 1;
