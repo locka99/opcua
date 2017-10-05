@@ -18,7 +18,7 @@ use comms::tcp_transport::*;
 use config::ServerConfig;
 use util::PollingAction;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Endpoint {
     pub name: String,
     pub endpoint_url: String,
@@ -128,6 +128,9 @@ pub struct ServerState {
 impl ServerState {
     pub fn endpoints(&self, transport_profile_uris: Option<Vec<UAString>>) -> Option<Vec<EndpointDescription>> {
         // Filter endpoints based on profile_uris
+
+        debug!("Endpoints requested {:?}", transport_profile_uris);
+
         if let Some(transport_profile_uris) = transport_profile_uris {
             if !transport_profile_uris.is_empty() {
                 // As we only support binary transport, the result is None if the supplied profile_uris does not contain that profile
@@ -144,15 +147,25 @@ impl ServerState {
         Some(self.endpoints.iter().map(|e| self.new_endpoint_description(e)).collect())
     }
 
-    pub fn find_endpoint(&self, endpoint_url: &str) -> Option<Endpoint> {
-        for e in &self.endpoints {
-            if let Ok(result) = url_matches_except_host(&e.endpoint_url, endpoint_url) {
-                if result {
-                    return Some(e.clone());
+    /// Find endpoints in those supported by the server that match the specified url and security policy
+    /// If none match then None will be passed, therefore if Some is returned it will be guaranteed
+    /// to contain at least one result.
+    pub fn find_endpoints(&self, endpoint_url: &str, security_policy_uri: &str) -> Option<Vec<Endpoint>> {
+        debug!("find_endpoint, url = {}, security policy uri = {}", endpoint_url, security_policy_uri);
+        let endpoints: Vec<Endpoint> = self.endpoints.iter().filter(|e| {
+            // Test end point's security_policy_uri and matching url
+            let mut collect_endpoint = false;
+            if security_policy_uri == e.security_policy_uri.as_ref() {
+                if let Ok(result) = url_matches_except_host(&e.endpoint_url, endpoint_url) {
+                    if result {
+                        debug!("matching endpoint found for {:?}", e);
+                        collect_endpoint = true
+                    }
                 }
             }
-        }
-        None
+            collect_endpoint
+        }).cloned().collect();
+        if endpoints.is_empty() { None } else { Some(endpoints) }
     }
 
     pub fn server_certificate_as_byte_string(&self) -> ByteString {
@@ -163,7 +176,8 @@ impl ServerState {
         }
     }
 
-    fn new_endpoint_description(&self, endpoint: &Endpoint) -> EndpointDescription {
+    /// Constructs a new endpoint description using the server's info and that in an Endpoint
+    pub fn new_endpoint_description(&self, endpoint: &Endpoint) -> EndpointDescription {
         let mut user_identity_tokens = Vec::with_capacity(2);
         if endpoint.anonymous {
             user_identity_tokens.push(UserTokenPolicy::new_anonymous());

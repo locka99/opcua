@@ -56,7 +56,7 @@ fn make_secure_channel(security_mode: MessageSecurityMode, security_policy: Secu
     secure_channel.security_policy = security_policy;
     secure_channel.server_nonce = local_nonce;
     secure_channel.client_nonce = remote_nonce;
-    secure_channel.derive_keys(); 
+    secure_channel.derive_keys();
     secure_channel
 }
 

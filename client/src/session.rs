@@ -254,7 +254,7 @@ impl Session {
                 continue;
             }
             if url_matches_except_host(e.endpoint_url.as_ref(), endpoint_url).is_ok() {
-                return Some(e.clone())
+                return Some(e.clone());
             }
         }
         None

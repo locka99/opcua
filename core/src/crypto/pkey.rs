@@ -168,7 +168,7 @@ impl PKey {
             if signer.update(data).is_ok() {
                 let result = signer.finish();
                 if let Ok(result) = result {
-                    trace!("Signature, len {} = {:?}", result.len(), result);
+                    trace!("Signature result, len {} = {:?}, copying to signature len {}", result.len(), result, signature.len());
                     signature.copy_from_slice(&result);
                     return Ok(result.len());
                 } else {

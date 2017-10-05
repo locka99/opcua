@@ -20,20 +20,37 @@ impl SessionService {
     }
 
     pub fn create_session(&self, server_state: &mut ServerState, session: &mut Session, request: CreateSessionRequest) -> Result<SupportedMessage, StatusCode> {
+        debug!("Create session request {:?}", request);
+
         // Validate the endpoint url
         if request.endpoint_url.is_null() {
             return Ok(self.service_fault(&request.request_header, BAD_TCP_ENDPOINT_URL_INVALID));
         }
-        let endpoint = server_state.find_endpoint(request.endpoint_url.as_ref());
-        if endpoint.is_none() {
+
+        // get this from the secure channel state
+        let secure_channel_security_policy_uri = session.secure_channel.security_policy.to_uri(); //  crypto::security_policy::SECURITY_POLICY_NONE_URI;
+        debug!("SessionService secure_channel_security_policy_uri = {}", secure_channel_security_policy_uri);
+
+        // Find matching end points for this url
+        let endpoints = server_state.find_endpoints(request.endpoint_url.as_ref(), secure_channel_security_policy_uri);
+        if endpoints.is_none() {
             return Ok(self.service_fault(&request.request_header, BAD_TCP_ENDPOINT_URL_INVALID));
         }
-        let endpoint = endpoint.unwrap();
 
         // Check the client's certificate for validity and acceptance
-        let security_policy_uri = if endpoint.security_policy_uri.is_null() { crypto::security_policy::SECURITY_POLICY_NONE_URI } else { endpoint.security_policy_uri.value.as_ref().unwrap() };
+        let endpoints = endpoints.unwrap();
+        let security_policy_uri = {
+            let endpoint = &endpoints[0];
+            if endpoint.security_policy_uri.is_null() {
+                crypto::security_policy::SECURITY_POLICY_NONE_URI.to_string()
+            } else {
+                endpoint.security_policy_uri.value.as_ref().unwrap().to_string()
+            }
+        };
+
+        debug!("Security uri of retrieved end point = {}", security_policy_uri);
+
         let service_result = if security_policy_uri != crypto::security_policy::SECURITY_POLICY_NONE_URI {
-            debug!("Security uri of retrieved end point = {}", security_policy_uri);
             if let Ok(client_certificate) = crypto::X509::from_byte_string(&request.client_certificate) {
                 let certificate_store = server_state.certificate_store.lock().unwrap();
                 certificate_store.validate_or_reject_application_instance_cert(&client_certificate)
@@ -63,6 +80,7 @@ impl SessionService {
             // Crypto
             let server_nonce = ByteString::random(32);
             let server_certificate = server_state.server_certificate_as_byte_string();
+            let server_endpoints = Some(Self::endpoints_to_endpoint_descriptions(server_state, endpoints));
 
             session.session_id = session_id.clone();
             session.authentication_token = authentication_token.clone();
@@ -70,7 +88,7 @@ impl SessionService {
             session.max_request_message_size = max_request_message_size;
             session.max_response_message_size = request.max_response_message_size;
             session.endpoint_url = request.endpoint_url.clone();
-            session.security_policy_uri = security_policy_uri.to_string();
+            session.security_policy_uri = security_policy_uri;
             session.user_identity = None;
             session.client_certificate = request.client_certificate.clone();
             session.session_nonce = server_nonce.clone();
@@ -82,13 +100,17 @@ impl SessionService {
                 revised_session_timeout: session_timeout,
                 server_nonce,
                 server_certificate,
-                server_endpoints: server_state.endpoints(None),
+                server_endpoints,
                 server_software_certificates: None,
                 server_signature,
                 max_request_message_size,
             })
         };
         Ok(response)
+    }
+
+    fn endpoints_to_endpoint_descriptions(server_state: &ServerState, endpoints: Vec<Endpoint>) -> Vec<EndpointDescription> {
+        endpoints.iter().map(|e| server_state.new_endpoint_description(e)).collect()
     }
 
     pub fn activate_session(&self, server_state: &mut ServerState, session: &mut Session, request: ActivateSessionRequest) -> Result<SupportedMessage, StatusCode> {
@@ -104,12 +126,12 @@ impl SessionService {
                     service_result = crypto::verify_signature(&client_cert, &request.client_signature, &server_certificate, &session.session_nonce).unwrap();
                     if service_result.is_good() {
                         // TODO crypto secure channel verification
-                        let endpoint = SessionService::get_session_endpoint(server_state, session);
-                        if endpoint.is_none() {
-                            return Err(BAD_TCP_ENDPOINT_URL_INVALID);
-                        }
-                        let endpoint = endpoint.unwrap();
-                        endpoint.validate_identity_token(&request.user_identity_token);
+                        //                        let endpoint = SessionService::get_session_endpoint(server_state, session);
+                        //                        if endpoint.is_none() {
+                        //                            return Err(BAD_TCP_ENDPOINT_URL_INVALID);
+                        //                        }
+                        //                        let endpoint = endpoint.unwrap();
+                        //                        endpoint.validate_identity_token(&request.user_identity_token);
                         session.session_nonce = server_nonce.clone();
                         session.activated = true;
                         service_result = GOOD;
@@ -145,13 +167,20 @@ impl SessionService {
         };
         Ok(SupportedMessage::CloseSessionResponse(response))
     }
-
-    fn get_session_endpoint(server_state: &ServerState, session: &Session) -> Option<Endpoint> {
-        // Get security from endpoint url
-        if session.endpoint_url.is_null() {
-            None
-        } else {
-            server_state.find_endpoint(session.endpoint_url.as_ref())
+    /*
+        fn get_session_endpoint(server_state: &ServerState, session: &Session) -> Option<Endpoint> {
+            // Get security from endpoint url
+            if session.endpoint_url.is_null() {
+                None
+            } else {
+                let endpoints = server_state.find_endpoints(session.endpoint_url.as_ref());
+                if endpoints.is_none() {
+                    None
+                }
+                else {
+                    endpoints[0]
+                }
+            }
         }
-    }
+    */
 }

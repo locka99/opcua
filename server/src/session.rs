@@ -1,6 +1,8 @@
+use chrono::{DateTime, UTC};
+
 use opcua_types::*;
 
-use chrono::{DateTime, UTC};
+use opcua_core::comms::secure_channel::SecureChannel;
 
 use address_space::address_space::AddressSpace;
 use subscriptions::subscriptions::Subscriptions;
@@ -24,6 +26,7 @@ impl SessionDiagnostics {
 const MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE: usize = 100;
 const PUBLISH_REQUEST_TIMEOUT: i64 = 30000;
 
+
 /// The Session is any state maintained between the client and server
 pub struct Session {
     /// Subscriptions associated with the session
@@ -38,6 +41,8 @@ pub struct Session {
     pub client_certificate: ByteString,
     /// Authentication token for the session
     pub authentication_token: NodeId,
+    /// Secure channel state
+    pub secure_channel: SecureChannel,
     /// Session nonce
     pub session_nonce: ByteString,
     /// Session timeout
@@ -67,7 +72,8 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new() -> Session {
+    #[cfg(test)]
+    pub fn new_no_certificate_store() -> Session {
         let max_publish_requests = MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE;
         let max_browse_continuation_points = super::constants::MAX_BROWSE_CONTINUATION_POINTS;
         Session {
@@ -80,6 +86,34 @@ impl Session {
             client_certificate: ByteString::null(),
             security_policy_uri: String::new(),
             authentication_token: NodeId::null(),
+            secure_channel: SecureChannel::new_no_certificate_store(),
+            session_nonce: ByteString::null(),
+            session_timeout: 0f64,
+            user_identity: None,
+            max_request_message_size: 0,
+            max_response_message_size: 0,
+            endpoint_url: UAString::null(),
+            max_browse_continuation_points,
+            browse_continuation_points: Vec::with_capacity(max_browse_continuation_points),
+            diagnostics: SessionDiagnostics::new(),
+            last_session_id: 0,
+        }
+    }
+
+    pub fn new(server_state: &ServerState) -> Session {
+        let max_publish_requests = MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE;
+        let max_browse_continuation_points = super::constants::MAX_BROWSE_CONTINUATION_POINTS;
+        Session {
+            subscriptions: Subscriptions::new(max_publish_requests, PUBLISH_REQUEST_TIMEOUT),
+            session_id: NodeId::null(),
+            activated: false,
+            terminate_session: false,
+            terminated: false,
+            terminated_at: UTC::now(),
+            client_certificate: ByteString::null(),
+            security_policy_uri: String::new(),
+            authentication_token: NodeId::null(),
+            secure_channel: SecureChannel::new(server_state.certificate_store.clone()),
             session_nonce: ByteString::null(),
             session_timeout: 0f64,
             user_identity: None,

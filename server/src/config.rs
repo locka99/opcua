@@ -212,10 +212,10 @@ impl ServerConfig {
             ServerEndpoint::default_user_pass("sample", b"sample1"),
             ServerEndpoint::default_basic128rsa15_sign(),
             ServerEndpoint::default_basic128rsa15_sign_encrypt(),
-//            ServerEndpoint::default_basic256_sign(),
-//            ServerEndpoint::default_basic256_sign_encrypt(),
-//            ServerEndpoint::default_basic256sha256_sign(),
-//            ServerEndpoint::default_basic256sha256_sign_encrypt(),
+            //            ServerEndpoint::default_basic256_sign(),
+            //            ServerEndpoint::default_basic256_sign_encrypt(),
+            //            ServerEndpoint::default_basic256sha256_sign(),
+            //            ServerEndpoint::default_basic256sha256_sign_encrypt(),
         ]);
         config.create_sample_keypair = true;
         config
