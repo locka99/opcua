@@ -6,7 +6,7 @@ use opcua_core::crypto;
 use opcua_core::crypto::SecurityPolicy;
 
 use constants;
-use server::{Endpoint, ServerState};
+use server::ServerState;
 use session::Session;
 use services::Service;
 
@@ -28,11 +28,12 @@ impl SessionService {
         }
 
         // get this from the secure channel state
-        let secure_channel_security_policy_uri = session.secure_channel.security_policy.to_uri(); //  crypto::security_policy::SECURITY_POLICY_NONE_URI;
+        let secure_channel_security_policy_uri = session.secure_channel.security_policy.to_uri();
+        let security_mode = session.secure_channel.security_mode;
         debug!("SessionService secure_channel_security_policy_uri = {}", secure_channel_security_policy_uri);
 
         // Find matching end points for this url
-        let endpoints = server_state.find_endpoints(request.endpoint_url.as_ref(), secure_channel_security_policy_uri);
+        let endpoints = server_state.find_endpoints(request.endpoint_url.as_ref(), secure_channel_security_policy_uri, security_mode);
         if endpoints.is_none() {
             return Ok(self.service_fault(&request.request_header, BAD_TCP_ENDPOINT_URL_INVALID));
         }
@@ -80,7 +81,7 @@ impl SessionService {
             // Crypto
             let server_nonce = ByteString::random(32);
             let server_certificate = server_state.server_certificate_as_byte_string();
-            let server_endpoints = Some(Self::endpoints_to_endpoint_descriptions(server_state, endpoints));
+            let server_endpoints = Some(endpoints);
 
             session.session_id = session_id.clone();
             session.authentication_token = authentication_token.clone();
@@ -109,10 +110,6 @@ impl SessionService {
         Ok(response)
     }
 
-    fn endpoints_to_endpoint_descriptions(server_state: &ServerState, endpoints: Vec<Endpoint>) -> Vec<EndpointDescription> {
-        endpoints.iter().map(|e| server_state.new_endpoint_description(e)).collect()
-    }
-
     pub fn activate_session(&self, server_state: &mut ServerState, session: &mut Session, request: ActivateSessionRequest) -> Result<SupportedMessage, StatusCode> {
         let server_nonce = ByteString::random(32);
 
@@ -123,7 +120,7 @@ impl SessionService {
             if server_state.server_certificate.is_some() {
                 if let Ok(client_cert) = crypto::X509::from_byte_string(&session.client_certificate) {
                     let server_certificate = server_state.server_certificate.as_ref().unwrap().as_byte_string();
-                    service_result = crypto::verify_signature(&client_cert, &request.client_signature, &server_certificate, &session.session_nonce).unwrap();
+                    service_result = crypto::verify_signature(&client_cert, &request.client_signature, &server_certificate, &session.session_nonce);
                     if service_result.is_good() {
                         // TODO crypto secure channel verification
                         //                        let endpoint = SessionService::get_session_endpoint(server_state, session);

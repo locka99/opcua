@@ -295,7 +295,8 @@ impl TcpTransport {
             let bytes_to_write = buffer_stream.position() as usize;
             let buffer_slice = &buffer_stream.get_ref()[0..bytes_to_write];
 
-            log_buffer("Writing bytes to client:", buffer_slice);
+            trace!("Writing {} bytes to client", buffer_slice.len());
+            // log_buffer("Writing bytes to client:", buffer_slice);
 
             let result = stream.write(buffer_slice);
             if result.is_err() {
@@ -316,7 +317,7 @@ impl TcpTransport {
     fn process_hello<W: Write>(&mut self, hello: HelloMessage, out_stream: &mut W) -> std::result::Result<(), StatusCode> {
         let server_protocol_version = 0;
 
-        debug!("Server received HELLO {:?}", hello);
+        trace!("Server received HELLO {:?}", hello);
         if !hello.is_endpoint_url_valid() {
             return Err(BAD_TCP_ENDPOINT_URL_INVALID);
         }

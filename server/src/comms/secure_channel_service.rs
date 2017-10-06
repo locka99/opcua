@@ -52,7 +52,7 @@ impl SecureChannelService {
     pub fn open_secure_channel(&mut self, secure_channel: &mut SecureChannel, security_header: &SecurityHeader, client_protocol_version: UInt32, message: &SupportedMessage) -> Result<SupportedMessage, StatusCode> {
         let request = match *message {
             SupportedMessage::OpenSecureChannelRequest(ref request) => {
-                info!("Got secure channel request {:?}", request);
+                trace!("Got secure channel request {:?}", request);
                 request
             }
             _ => {
@@ -154,7 +154,7 @@ impl SecureChannelService {
             server_nonce: ByteString::from(&secure_channel.server_nonce),
         };
 
-        trace!("Sending OpenSecureChannelResponse {:?}", response);
+        trace!("Sending OpenSecureChannelResponse {:#?}", response);
         Ok(SupportedMessage::OpenSecureChannelResponse(response))
     }
 

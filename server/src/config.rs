@@ -71,27 +71,27 @@ impl ServerEndpoint {
     }
 
     pub fn default_basic128rsa15_sign() -> ServerEndpoint {
-        ServerEndpoint::new_default(false, "", &[], SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign)
+        ServerEndpoint::new_default(true, "", &[], SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign)
     }
 
     pub fn default_basic128rsa15_sign_encrypt() -> ServerEndpoint {
-        ServerEndpoint::new_default(false, "", &[], SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt)
+        ServerEndpoint::new_default(true, "", &[], SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt)
     }
 
     pub fn default_basic256_sign() -> ServerEndpoint {
-        ServerEndpoint::new_default(false, "", &[], SecurityPolicy::Basic256, MessageSecurityMode::Sign)
+        ServerEndpoint::new_default(true, "", &[], SecurityPolicy::Basic256, MessageSecurityMode::Sign)
     }
 
     pub fn default_basic256_sign_encrypt() -> ServerEndpoint {
-        ServerEndpoint::new_default(false, "", &[], SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt)
+        ServerEndpoint::new_default(true, "", &[], SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt)
     }
 
     pub fn default_basic256sha256_sign() -> ServerEndpoint {
-        ServerEndpoint::new_default(false, "", &[], SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign)
+        ServerEndpoint::new_default(true, "", &[], SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign)
     }
 
     pub fn default_basic256sha256_sign_encrypt() -> ServerEndpoint {
-        ServerEndpoint::new_default(false, "", &[], SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt)
+        ServerEndpoint::new_default(true, "", &[], SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt)
     }
 
     pub fn is_valid(&self) -> bool {
@@ -212,10 +212,10 @@ impl ServerConfig {
             ServerEndpoint::default_user_pass("sample", b"sample1"),
             ServerEndpoint::default_basic128rsa15_sign(),
             ServerEndpoint::default_basic128rsa15_sign_encrypt(),
-            //            ServerEndpoint::default_basic256_sign(),
-            //            ServerEndpoint::default_basic256_sign_encrypt(),
-            //            ServerEndpoint::default_basic256sha256_sign(),
-            //            ServerEndpoint::default_basic256sha256_sign_encrypt(),
+            ServerEndpoint::default_basic256_sign(),
+            ServerEndpoint::default_basic256_sign_encrypt(),
+            ServerEndpoint::default_basic256sha256_sign(),
+            ServerEndpoint::default_basic256sha256_sign_encrypt(),
         ]);
         config.create_sample_keypair = true;
         config

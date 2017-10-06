@@ -225,6 +225,17 @@ pub struct UAString {
     pub value: Option<String>,
 }
 
+impl fmt::Display for UAString {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.value.is_some() {
+            write!(f, "{}", self.value.as_ref().unwrap())
+        }
+        else {
+            write!(f, "[null]")
+        }
+    }
+}
+
 impl BinaryEncoder<UAString> for UAString {
     fn byte_len(&self) -> usize {
         // Length plus the actual length of bytes (if not null)
@@ -596,6 +607,12 @@ pub struct LocalizedText {
     pub locale: UAString,
     /// The text in the specified locale. Omitted frmo stream if null or empty.
     pub text: UAString,
+}
+
+impl fmt::Display for LocalizedText {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.text)
+    }
 }
 
 impl BinaryEncoder<LocalizedText> for LocalizedText {

@@ -128,9 +128,7 @@ pub struct ServerState {
 impl ServerState {
     pub fn endpoints(&self, transport_profile_uris: Option<Vec<UAString>>) -> Option<Vec<EndpointDescription>> {
         // Filter endpoints based on profile_uris
-
         debug!("Endpoints requested {:?}", transport_profile_uris);
-
         if let Some(transport_profile_uris) = transport_profile_uris {
             if !transport_profile_uris.is_empty() {
                 // As we only support binary transport, the result is None if the supplied profile_uris does not contain that profile
@@ -150,12 +148,12 @@ impl ServerState {
     /// Find endpoints in those supported by the server that match the specified url and security policy
     /// If none match then None will be passed, therefore if Some is returned it will be guaranteed
     /// to contain at least one result.
-    pub fn find_endpoints(&self, endpoint_url: &str, security_policy_uri: &str) -> Option<Vec<Endpoint>> {
+    pub fn find_endpoints(&self, endpoint_url: &str, security_policy_uri: &str, message_security_mode: MessageSecurityMode) -> Option<Vec<EndpointDescription>> {
         debug!("find_endpoint, url = {}, security policy uri = {}", endpoint_url, security_policy_uri);
-        let endpoints: Vec<Endpoint> = self.endpoints.iter().filter(|e| {
+        let endpoints: Vec<EndpointDescription> = self.endpoints.iter().filter(|e| {
             // Test end point's security_policy_uri and matching url
             let mut collect_endpoint = false;
-            if security_policy_uri == e.security_policy_uri.as_ref() {
+            if e.security_mode == message_security_mode && security_policy_uri == e.security_policy_uri.as_ref() {
                 if let Ok(result) = url_matches_except_host(&e.endpoint_url, endpoint_url) {
                     if result {
                         debug!("matching endpoint found for {:?}", e);
@@ -164,7 +162,7 @@ impl ServerState {
                 }
             }
             collect_endpoint
-        }).cloned().collect();
+        }).map(|e| self.new_endpoint_description(e)).collect();
         if endpoints.is_empty() { None } else { Some(endpoints) }
     }
 
@@ -177,7 +175,7 @@ impl ServerState {
     }
 
     /// Constructs a new endpoint description using the server's info and that in an Endpoint
-    pub fn new_endpoint_description(&self, endpoint: &Endpoint) -> EndpointDescription {
+    fn new_endpoint_description(&self, endpoint: &Endpoint) -> EndpointDescription {
         let mut user_identity_tokens = Vec::with_capacity(2);
         if endpoint.anonymous {
             user_identity_tokens.push(UserTokenPolicy::new_anonymous());
@@ -369,8 +367,10 @@ impl Server {
         let listener = TcpListener::bind(&sock_addr).unwrap();
 
         {
-            info!("Server supports these endpoints:");
             let server_state = self.server_state.lock().unwrap();
+
+            info!("OPC UA Server: {}", server_state.application_name);
+            info!("Supported endpoints:");
             for endpoint in &server_state.endpoints {
                 info!("Endpoint \"{}\": {}", endpoint.name, endpoint.endpoint_url);
                 if endpoint.anonymous {

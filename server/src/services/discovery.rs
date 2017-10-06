@@ -21,6 +21,8 @@ impl DiscoveryService {
             response_header: ResponseHeader::new_good(&request.request_header),
             endpoints,
         };
+
+        trace!("get_endpoints response = {:?}", response);
         Ok(SupportedMessage::GetEndpointsResponse(response))
     }
 }

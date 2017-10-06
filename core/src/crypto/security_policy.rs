@@ -36,25 +36,26 @@ pub const SECURITY_POLICY_BASIC_256_SHA_256: &'static str = "Basic256Sha256";
 /// 128Rsa15
 ///
 /// A suite of algorithms that uses RSA15 as Key-Wrap-algorithm and 128-Bit for encryption algorithms.
-pub mod basic128rsa15
-{
+pub mod basic128rsa15 {
+    use crypto::algorithms::*;
+
     /// SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
-    pub const SYMMETRIC_SIGNATURE_ALGORITHM: &'static str = "http://www.w3.org/2000/09/xmldsig#hmac-sha1";
+    pub const SYMMETRIC_SIGNATURE_ALGORITHM: &'static str = DSIG_HMAC_SHA1;
 
     /// SymmetricEncryptionAlgorithm – Aes128 – (http://www.w3.org/2001/04/xmlenc#aes128-cbc).
-    pub const SYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = "http://www.w3.org/2001/04/xmlenc#aes128-cbc";
+    pub const SYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = ENC_AES128_CBC;
 
     /// AsymmetricSignatureAlgorithm – RsaSha1 – (http://www.w3.org/2000/09/xmldsig#rsa-sha1).
-    pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &'static str = "http://www.w3.org/2000/09/xmldsig#rsa-sha1";
+    pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &'static str = DSIG_RSA_SHA1;
 
     /// AsymmetricKeyWrapAlgorithm – KwRsa15 – (http://www.w3.org/2001/04/xmlenc#rsa-1_5).
-    pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &'static str = "http://www.w3.org/2001/04/xmlenc#rsa-1_5";
+    pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &'static str = ENC_RSA_15;
 
     /// AsymmetricEncryptionAlgorithm – Rsa15 – (http://www.w3.org/2001/04/xmlenc#rsa-1_5).
-    pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = "http://www.w3.org/2001/04/xmlenc#rsa-1_5";
+    pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = ENC_RSA_15;
 
     /// KeyDerivationAlgorithm – PSha1 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1).
-    pub const KEY_DERIVATION_ALGORITHM: &'static str = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1";
+    pub const KEY_DERIVATION_ALGORITHM: &'static str = KEY_P_SHA1;
 
     /// DerivedSignatureKeyLength – 128 / 16 bytes.
     pub const DERIVED_SIGNATURE_KEY_LENGTH: usize = 128;
@@ -68,7 +69,7 @@ pub mod basic128rsa15
     /// MaxAsymmetricKeyLength – 2048
     pub const MAX_ASYMMETRIC_KEY_LENGTH: usize = 2048;
 
-    // Symmetric key length - 128 / 16 bytes
+    /// Symmetric key length - 128 / 16 bytes
     pub const SYMMETRIC_KEY_LENGTH: usize = 128;
 
     /// CertificateSignatureAlgorithm – Sha1
@@ -81,23 +82,25 @@ pub mod basic128rsa15
 ///
 /// A suite of algorithms that are for 256-Bit encryption, algorithms include:
 pub mod basic256 {
-    /// SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
-    pub const SYMMETRIC_SIGNATURE_ALGORITHM: &'static str = "http://www.w3.org/2000/09/xmldsig#hmac-sha1";
+    use crypto::algorithms::*;
 
-    ///SymmetricEncryptionAlgorithm – Aes256 – (http://www.w3.org/2001/04/xmlenc#aes256-cbc).
-    pub const SYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = "http://www.w3.org/2001/04/xmlenc#aes256-cbc";
+    /// SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
+    pub const SYMMETRIC_SIGNATURE_ALGORITHM: &'static str = DSIG_HMAC_SHA1;
+
+    /// SymmetricEncryptionAlgorithm – Aes256 – (http://www.w3.org/2001/04/xmlenc#aes256-cbc).
+    pub const SYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = ENC_AES256_CBC;
 
     /// AsymmetricSignatureAlgorithm – RsaSha1 – (http://www.w3.org/2000/09/xmldsig#rsa-sha1).
-    pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &'static str = "http://www.w3.org/2000/09/xmldsig#rsa-sha1";
+    pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &'static str = DSIG_RSA_SHA1;
 
-    // AsymmetricKeyWrapAlgorithm – KwRsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p).
-    pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &'static str = "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p";
+    /// AsymmetricKeyWrapAlgorithm – KwRsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p).
+    pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &'static str = ENC_RSA_OEAP_MGF1P;
 
     /// AsymmetricEncryptionAlgorithm – RsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep).
-    pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = "http://www.w3.org/2001/04/xmlenc#rsa-oaep";
+    pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = ENC_RSA_OEAP;
 
     /// KeyDerivationAlgorithm – PSha1 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1).
-    pub const KEY_DERIVATION_ALGORITHM: &'static str = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1";
+    pub const KEY_DERIVATION_ALGORITHM: &'static str = KEY_P_SHA1;
 
     /// DerivedSignatureKeyLength – 192.
     pub const DERIVED_SIGNATURE_KEY_LENGTH: usize = 192;
@@ -111,7 +114,7 @@ pub mod basic256 {
     /// MaxAsymmetricKeyLength – 2048
     pub const MAX_ASYMMETRIC_KEY_LENGTH: usize = 2048;
 
-    // Symmetric key length - 256 / 32 bytes
+    /// Symmetric key length - 256 / 32 bytes
     pub const SYMMETRIC_KEY_LENGTH: usize = 256;
 
     /// CertificateSignatureAlgorithm –
@@ -128,23 +131,25 @@ pub mod basic256 {
 ///
 /// A suite of algorithms that are for 256-Bit encryption, algorithms include.
 pub mod basic256sha256 {
+    use crypto::algorithms::*;
+
     /// SymmetricSignatureAlgorithm – Hmac_Sha256 – (http://www.w3.org/2000/09/xmldsig#hmac-sha256).
-    pub const SYMMETRIC_SIGNATURE_ALGORITHM: &'static str = "http://www.w3.org/2000/09/xmldsig#hmac-sha256";
+    pub const SYMMETRIC_SIGNATURE_ALGORITHM: &'static str = DSIG_HMAC_SHA256;
 
     /// SymmetricEncryptionAlgorithm – Aes256_CBC – (http://www.w3.org/2001/04/xmlenc#aes256-cbc).
-    pub const SYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = "http://www.w3.org/2001/04/xmlenc#aes256-cbc";
+    pub const SYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = ENC_AES256_CBC;
 
     /// AsymmetricSignatureAlgorithm – Rsa_Sha256 – (http://www.w3.org/2001/04/xmldsig#rsa-sha256).
-    pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &'static str = "http://www.w3.org/2001/04/xmldsig#rsa-sha256";
+    pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &'static str = DSIG_RSA_SHA256;
 
-    // AsymmetricKeyWrapAlgorithm – KwRsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p).
-    pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &'static str = "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p";
+    /// AsymmetricKeyWrapAlgorithm – KwRsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p).
+    pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &'static str = ENC_RSA_OEAP_MGF1P;
 
-    // -> AsymmetricEncryptionAlgorithm – Rsa_Oaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep).
-    pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = "http://www.w3.org/2001/04/xmlenc#rsa-oaep";
+    /// -> AsymmetricEncryptionAlgorithm – Rsa_Oaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep).
+    pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = ENC_RSA_OEAP;
 
-    // KeyDerivationAlgorithm – PSHA256 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha256).
-    pub const KEY_DERIVATION_ALGORITHM: &'static str = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha256";
+    /// KeyDerivationAlgorithm – PSHA256 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha256).
+    pub const KEY_DERIVATION_ALGORITHM: &'static str = KEY_P_SHA256;
 
     /// DerivedSignatureKeyLength – 256 / 32 bytes.
     pub const DERIVED_SIGNATURE_KEY_LENGTH: usize = 256;
@@ -158,7 +163,7 @@ pub mod basic256sha256 {
     /// MaxAsymmetricKeyLength – 2048
     pub const MAX_ASYMMETRIC_KEY_LENGTH: usize = 2048;
 
-    // Symmetric key length - 256 / 32 bytes
+    /// Symmetric key length - 256 / 32 bytes
     pub const SYMMETRIC_KEY_LENGTH: usize = 256;
 
     /// CertificateSignatureAlgorithm – Sha256

@@ -260,7 +260,7 @@ impl SecureChannel {
             } else {
                 0
             };
-            debug!("sequence_header(8) + body({}) + signature ({}) = plain text size = {} / with padding {} = {}", body_size, signature_size, encrypt_size, padding_size, encrypt_size + padding_size);
+            trace!("sequence_header(8) + body({}) + signature ({}) = plain text size = {} / with padding {} = {}", body_size, signature_size, encrypt_size, padding_size, encrypt_size + padding_size);
             minimum_padding + padding_size
         } else {
             0
@@ -329,7 +329,7 @@ impl SecureChannel {
         let old_message_size = message_header.message_size;
         message_header.message_size = message_size as UInt32;
         message_header.encode(&mut stream)?;
-        debug!("Message header message size being modified from {} to {}", old_message_size, message_size);
+        trace!("Message header message size being modified from {} to {}", old_message_size, message_size);
         Ok(())
     }
 
@@ -342,8 +342,8 @@ impl SecureChannel {
     }
 
     fn log_crypto_data(message: &str, data: &[u8]) {
-        // use debug;
-        // debug::log_buffer(message, data);
+        use debug;
+        debug::log_buffer(message, data);
     }
 
     /// Applies security to a message chunk and yields a encrypted/signed block to be streamed
@@ -425,7 +425,7 @@ impl SecureChannel {
             // the security policy and use it to determine if the packet must be decrypted.
             let encrypted_range = encrypted_data_offset..message_size;
 
-            debug!("Decrypting OpenSecureChannel");
+            trace!("Decrypting OpenSecureChannel");
 
             let security_header = match security_header {
                 SecurityHeader::Asymmetric(security_header) => security_header,
@@ -463,12 +463,12 @@ impl SecureChannel {
             }
 
             let sender_certificate_len = security_header.sender_certificate.value.as_ref().unwrap().len();
-            debug!("Sender certificate byte length = {}", sender_certificate_len);
+            trace!("Sender certificate byte length = {}", sender_certificate_len);
             let sender_certificate = X509::from_byte_string(&security_header.sender_certificate)?;
 
             let verification_key = sender_certificate.public_key()?;
             let receiver_thumbprint = security_header.receiver_certificate_thumbprint;
-            debug!("Receiver thumbprint = {:?}", receiver_thumbprint);
+            trace!("Receiver thumbprint = {:?}", receiver_thumbprint);
 
             let mut decrypted_data = vec![0u8; message_size];
             let decrypted_size = self.asymmetric_decrypt_and_verify(security_policy, &verification_key, receiver_thumbprint, src, encrypted_range, their_key, &mut decrypted_data)?;
@@ -501,9 +501,9 @@ impl SecureChannel {
         let signed_range = 0..(encrypted_range.end - signing_key_size);
         let signature_range = (encrypted_range.end - signing_key_size)..encrypted_range.end;
 
-        debug!("Encrypted range = {:?}, signed range = {:?}, signature range = {:?}", encrypted_range, signed_range, signature_range);
+        trace!("Encrypted range = {:?}, signed range = {:?}, signature range = {:?}", encrypted_range, signed_range, signature_range);
 
-        debug!("signature len = {}", signing_key_size);
+        trace!("signature len = {}", signing_key_size);
         let mut signature = vec![0u8; signing_key_size];
         let encryption_key = self.their_cert.as_ref().unwrap().public_key()?;
 
@@ -515,7 +515,7 @@ impl SecureChannel {
         let encrypted_block_size = {
             let plain_text_size = encrypted_range.end - encrypted_range.start;
             let encrypted_block_size = encryption_key.calculate_cipher_text_size(security_policy.padding(), plain_text_size);
-            debug!("plain_text_size = {}, encrypted_block_size = {}", plain_text_size, encrypted_block_size);
+            trace!("plain_text_size = {}, encrypted_block_size = {}", plain_text_size, encrypted_block_size);
             encrypted_block_size
         };
         Self::update_message_size(&mut tmp[..], encrypted_range.start + encrypted_block_size)?;
@@ -523,6 +523,7 @@ impl SecureChannel {
         // Sign the message header, security header, sequence header, body, padding
         security_policy.asymmetric_sign(&signing_key, &tmp[signed_range.clone()], &mut signature)?;
         tmp[signature_range.clone()].copy_from_slice(&signature);
+        assert_eq!(encrypted_range.end, signature_range.end);
 
         Self::log_crypto_data("Chunk after signing", &tmp[..signature_range.end]);
 
@@ -530,7 +531,7 @@ impl SecureChannel {
         dst[..encrypted_range.start].copy_from_slice(&tmp[..encrypted_range.start]);
 
         // Encrypt the sequence header, payload, signature portion into dst
-        let total_encrypted_size = encrypted_range.start + security_policy.asymmetric_encrypt(&encryption_key, &tmp[encrypted_range.clone()], &mut dst[encrypted_range.start..])?;
+        let encrypted_size = security_policy.asymmetric_encrypt(&encryption_key, &tmp[encrypted_range.clone()], &mut dst[encrypted_range.start..])?;
 
         //{
         //    debug!("Encrypted size in bytes = {} compared to encrypted range {:?}", encrypted_size, encrypted_range);
@@ -538,7 +539,7 @@ impl SecureChannel {
         //    Self::log_crypto_data("Encrypted data", &dst[0..encrypted_size]);
         //}
 
-        Ok(total_encrypted_size)
+        Ok(encrypted_range.start + encrypted_size)
     }
 
     /// Verify that the padding is correct. Padding is expected to be before the supplied padding end index.
@@ -555,7 +556,7 @@ impl SecureChannel {
             let padding_size = padding_byte as usize;
             (padding_byte, (padding_end - padding_size - 1)..padding_end)
         };
-        debug!("Padding byte {} check on range {:?}", padding_byte, padding_range);
+        trace!("Padding byte {} check on range {:?}", padding_byte, padding_range);
         for (i, b) in src[padding_range.clone()].iter().enumerate() {
             if *b != padding_byte {
                 error!("Expected padding byte {}, got {} at index {}", padding_byte, *b, i);
@@ -596,16 +597,16 @@ impl SecureChannel {
             // Note that the unencrypted size can be less than the encrypted size due to removal
             // of padding, so the ranges that were supplied to this function must be offset to compensate.
             let encrypted_size = encrypted_range.end - encrypted_range.start;
-            debug!("Decrypting message range {:?}", encrypted_range);
+            trace!("Decrypting message range {:?}", encrypted_range);
             let mut decrypted_tmp = vec![0u8; encrypted_size];
 
             let private_key = self.private_key.as_ref().unwrap();
             let decrypted_size = security_policy.asymmetric_decrypt(private_key, &src[encrypted_range.clone()], &mut decrypted_tmp)?;
-            debug!("Decrypted bytes = {} compared to encrypted range {}", decrypted_size, encrypted_size);
+            trace!("Decrypted bytes = {} compared to encrypted range {}", decrypted_size, encrypted_size);
             Self::log_crypto_data("Decrypted Bytes = ", &decrypted_tmp[..decrypted_size]);
 
             let verification_key_signature_size = verification_key.size();
-            debug!("Verification key size = {}", verification_key_signature_size);
+            trace!("Verification key size = {}", verification_key_signature_size);
 
             // Copy the bytes to dst
             dst[encrypted_range.start..(encrypted_range.start + decrypted_size)].copy_from_slice(&decrypted_tmp[0..decrypted_size]);
@@ -620,7 +621,7 @@ impl SecureChannel {
             Self::log_crypto_data("Decrypted data = ", &dst[..signature_range_dst.end]);
 
             // Verify signature (contained encrypted portion) using verification key
-            debug!("Verifying signature range {:?} with signature at {:?}", signed_range_dst, signature_range_dst);
+            trace!("Verifying signature range {:?} with signature at {:?}", signed_range_dst, signature_range_dst);
             security_policy.asymmetric_verify_signature(verification_key, &dst[signed_range_dst.clone()], &dst[signature_range_dst.clone()], their_key)?;
 
             // Verify that the padding is correct
@@ -671,19 +672,19 @@ impl SecureChannel {
     pub fn symmetric_sign_and_encrypt(&self, src: &[u8], signed_range: Range<usize>, encrypted_range: Range<usize>, dst: &mut [u8]) -> Result<usize, StatusCode> {
         let encrypted_size = match self.security_mode {
             MessageSecurityMode::None => {
-                debug!("encrypt_and_sign is doing nothing because security mode == None");
+                trace!("encrypt_and_sign is doing nothing because security mode == None");
                 // Just copy data to out
                 dst.copy_from_slice(src);
 
                 src.len()
             }
             MessageSecurityMode::Sign => {
-                debug!("encrypt_and_sign security mode == Sign");
+                trace!("encrypt_and_sign security mode == Sign");
                 self.expect_supported_security_policy();
                 self.symmetric_sign(src, signed_range, dst)?
             }
             MessageSecurityMode::SignAndEncrypt => {
-                debug!("encrypt_and_sign security mode == SignAndEncrypt, signed_range = {:?}, encrypted_range = {:?}", signed_range, encrypted_range);
+                trace!("encrypt_and_sign security mode == SignAndEncrypt, signed_range = {:?}, encrypted_range = {:?}", signed_range, encrypted_range);
                 self.expect_supported_security_policy();
 
                 let mut dst_tmp = vec![0u8; dst.len() + 16]; // tmp includes +16 for blocksize
@@ -710,13 +711,13 @@ impl SecureChannel {
         let signature_size = self.security_policy.symmetric_signature_size();
         let mut signature = vec![0u8; signature_size];
         let signature_range = signed_range.end..(signed_range.end + signature_size);
-        debug!("signed_range = {:?}, signature range = {:?}, signature len = {}", signed_range, signature_range, signature_size);
+        trace!("signed_range = {:?}, signature range = {:?}, signature len = {}", signed_range, signature_range, signature_size);
 
         // Sign the message header, security header, sequence header, body, padding
         let signing_key = self.signing_key();
         self.security_policy.symmetric_sign(signing_key, &src[signed_range.clone()], &mut signature)?;
 
-        debug!("Signature, len {} = {:?}", signature.len(), signature);
+        trace!("Signature, len {} = {:?}", signature.len(), signature);
 
         // Copy the signed portion and the signature to the destination
         dst[signed_range.clone()].copy_from_slice(&src[signed_range.clone()]);
@@ -746,10 +747,10 @@ impl SecureChannel {
                 self.expect_supported_security_policy();
                 // Copy everything
                 let all = ..src.len();
-                debug!("copying from slice {:?}", all);
+                trace!("copying from slice {:?}", all);
                 dst[all].copy_from_slice(&src[all]);
                 // Verify signature
-                debug!("Verifying range from {:?} to signature {}..", signed_range, signed_range.end);
+                trace!("Verifying range from {:?} to signature {}..", signed_range, signed_range.end);
                 let verification_key = self.verification_key();
                 self.security_policy.symmetric_verify_signature(verification_key, &dst[signed_range.clone()], &dst[signed_range.end..])?;
 
@@ -772,7 +773,7 @@ impl SecureChannel {
                 let mut decrypted_tmp = vec![0u8; ciphertext_size + 16]; // tmp includes +16 for blocksize
                 let (key, iv) = self.decryption_keys();
 
-                debug!("Secure decrypt called with encrypted range {:?}", encrypted_range);
+                trace!("Secure decrypt called with encrypted range {:?}", encrypted_range);
                 let decrypted_size = self.security_policy.symmetric_decrypt(key, iv, &src[encrypted_range.clone()], &mut decrypted_tmp[..])?;
 
                 // Self::log_crypto_data("Encrypted buffer", &src[..encrypted_range.end]);
@@ -782,7 +783,7 @@ impl SecureChannel {
 
                 // Verify signature (after encrypted portion)
                 let signature_range = (encrypted_range.end - self.security_policy.symmetric_signature_size())..encrypted_range.end;
-                debug!("signed range = {:?}, signature range = {:?}", signed_range, signature_range);
+                trace!("signed range = {:?}, signature range = {:?}", signed_range, signature_range);
                 let verification_key = self.verification_key();
                 self.security_policy.symmetric_verify_signature(verification_key, &dst[signed_range.clone()], &dst[signature_range])?;
                 Ok(encrypted_range.end)
