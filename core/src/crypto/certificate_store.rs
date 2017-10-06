@@ -71,12 +71,6 @@ impl CertificateStore {
             let mut builder = x509::X509Builder::new().unwrap();
             // value 2 == version 3 (go figure)
             let _ = builder.set_version(2);
-            let subject_name = {
-                let mut name = x509::X509NameBuilder::new().unwrap();
-                name.append_entry_by_text("CN", &args.common_name).unwrap();
-                name.build()
-            };
-            let _ = builder.set_subject_name(&subject_name);
             let issuer_name = {
                 let mut name = x509::X509NameBuilder::new().unwrap();
                 // Common name
@@ -91,6 +85,8 @@ impl CertificateStore {
                 name.append_entry_by_text("ST", &args.state).unwrap();
                 name.build()
             };
+            // Issuer and subject shall be the same for self-signed cert
+            let _ = builder.set_subject_name(&issuer_name);
             let _ = builder.set_issuer_name(&issuer_name);
 
             // For Application Instance Certificate specifies how cert may be used
