@@ -625,10 +625,10 @@ impl SecureChannel {
             security_policy.asymmetric_verify_signature(verification_key, &dst[signed_range_dst.clone()], &dst[signature_range_dst.clone()], their_key)?;
 
             // Verify that the padding is correct
-            let _ = self.verify_padding(dst, verification_key.size(), signature_range_dst.start)?;
+            let padding_range = self.verify_padding(dst, verification_key.size(), signature_range_dst.start)?;
 
             // Decrypted and verified into dst
-            Ok(signature_range_dst.start)
+            Ok(padding_range.start)
         }
     }
 

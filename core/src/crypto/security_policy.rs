@@ -437,7 +437,7 @@ impl SecurityPolicy {
         } else {
             error!("Signature mismatch");
 
-            // For debugging / unit testing purposes we might be able to supply their key to see the source of the error
+            // For debugging / unit testing purposes we might have a their_key to see the source of the error
             if their_key.is_some() {
                 // Calculate the signature using their key, see what we were expecting versus theirs
                 let their_key = their_key.unwrap();

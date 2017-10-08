@@ -43,7 +43,7 @@ fn main() {
     let game = Arc::new(Mutex::new(game::Game::new(&engine_path)));
 
     // Create an OPC UA server with sample configuration and default node set
-    let mut server = Server::new(ServerConfig::default_sample());
+    let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
 
     {
         let server_state = server.server_state.lock().unwrap();

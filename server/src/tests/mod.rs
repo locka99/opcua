@@ -36,6 +36,18 @@ fn add_sample_vars_to_address_space(address_space: &mut AddressSpace) {
 }
 
 #[test]
+pub fn server_config_sample_save() {
+    // This test only exists to dump a sample config
+    let config = ServerConfig::default_sample();
+    let mut path = std::env::current_dir().unwrap();
+    path.push("..");
+    path.push("samples");
+    path.push("server.conf");
+    println!("Path is {:?}", path);
+    assert!(config.save(&path).is_ok());
+}
+
+#[test]
 pub fn server_config_save() {
     let path = make_test_file("server_config.yaml");
     let config = ServerConfig::default_anonymous();

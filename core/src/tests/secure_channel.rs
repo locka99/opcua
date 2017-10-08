@@ -24,7 +24,8 @@ fn test_symmetric_encrypt_decrypt(message: SupportedMessage, security_mode: Mess
         let encrypted_size = secure_channel1.apply_security(&chunk, &mut encrypted_data[..]).unwrap();
         trace!("Result of applying security = {}", encrypted_size);
 
-        // We can't strip padding, so just compare up to original length
+        // Decrypted message should identical to original with same length and 
+        // no signature or padding
         let chunk2 = secure_channel2.verify_and_remove_security(&encrypted_data[..encrypted_size]).unwrap();
 
         // Why offset 12? So we don't compare message_size part which may differ when padding is added. Less than ideal

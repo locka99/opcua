@@ -7,6 +7,7 @@ extern crate opcua_core;
 extern crate opcua_server;
 
 use std::sync::{Arc, Mutex};
+use std::path::PathBuf;
 
 use opcua_server::prelude::*;
 
@@ -16,7 +17,7 @@ fn main() {
     opcua_core::init_logging();
 
     // Create an OPC UA server with sample configuration and default node set
-    let mut server = Server::new(ServerConfig::default_sample());
+    let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
 
     // Add some variables of our own
     let update_timers = add_example_variables(&mut server);

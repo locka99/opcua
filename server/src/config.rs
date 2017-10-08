@@ -26,6 +26,13 @@ pub struct TcpConfig {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub struct User {
+    pub user: String,
+    pub pass: Option<String>,
+    pub certificate: Option<String>
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct ServerEndpoint {
     /// Name for the endpoint
     pub name: String,
@@ -165,12 +172,7 @@ impl ServerConfig {
         let application_uri = format!("urn:{}", application_name);
         let product_uri = format!("urn:{}", application_name);
 
-        let pki_dir = if let Ok(mut pki_dir) = env::current_dir() {
-            pki_dir.push("pki");
-            pki_dir
-        } else {
-            PathBuf::from("./pki")
-        };
+        let pki_dir = PathBuf::from("./pki");
 
         ServerConfig {
             application_name,
@@ -207,6 +209,7 @@ impl ServerConfig {
 
     /// Sample mode turns on everything including a hard coded user/pass
     pub fn default_sample() -> ServerConfig {
+        warn!("Sample configuration is for testing purposes only. Use a proper configuration in your production environment");
         let mut config = ServerConfig::default(vec![
             ServerEndpoint::default_anonymous(),
             ServerEndpoint::default_user_pass("sample", b"sample1"),
