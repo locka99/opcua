@@ -4,6 +4,7 @@ extern crate opcua_server;
 use std::env;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::path::PathBuf;
 
 use opcua_server::prelude::*;
 
