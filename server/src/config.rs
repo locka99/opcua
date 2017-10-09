@@ -3,7 +3,6 @@ use serde_yaml;
 use std::path::{Path, PathBuf};
 use std::io::prelude::*;
 use std::fs::File;
-use std::env;
 use std::str::FromStr;
 
 use std::result::Result;

@@ -495,15 +495,16 @@ impl SecureChannel {
 
     /// Use the security policy to asymmetric encrypt and sign the specified chunk of data
     fn asymmetric_sign_and_encrypt(&self, security_policy: SecurityPolicy, src: &[u8], encrypted_range: Range<usize>, dst: &mut [u8]) -> Result<usize, StatusCode> {
+        let header_size = encrypted_range.start;
+
         let signing_key = self.private_key.as_ref().unwrap();
         let signing_key_size = signing_key.size();
 
         let signed_range = 0..(encrypted_range.end - signing_key_size);
         let signature_range = (encrypted_range.end - signing_key_size)..encrypted_range.end;
 
-        trace!("Encrypted range = {:?}, signed range = {:?}, signature range = {:?}", encrypted_range, signed_range, signature_range);
+        trace!("Header size = {}, Encrypted range = {:?}, Signed range = {:?}, Signature range = {:?}, signature size = {}", header_size, encrypted_range, signed_range, signature_range, signing_key_size);
 
-        trace!("signature len = {}", signing_key_size);
         let mut signature = vec![0u8; signing_key_size];
         let encryption_key = self.their_cert.as_ref().unwrap().public_key()?;
 
@@ -518,7 +519,7 @@ impl SecureChannel {
             trace!("plain_text_size = {}, encrypted_block_size = {}", plain_text_size, encrypted_block_size);
             encrypted_block_size
         };
-        Self::update_message_size(&mut tmp[..], encrypted_range.start + encrypted_block_size)?;
+        Self::update_message_size(&mut tmp[..], header_size + encrypted_block_size)?;
 
         // Sign the message header, security header, sequence header, body, padding
         security_policy.asymmetric_sign(&signing_key, &tmp[signed_range.clone()], &mut signature)?;
@@ -539,7 +540,7 @@ impl SecureChannel {
         //    Self::log_crypto_data("Encrypted data", &dst[0..encrypted_size]);
         //}
 
-        Ok(encrypted_range.start + encrypted_size)
+        Ok(header_size + encrypted_size)
     }
 
     /// Verify that the padding is correct. Padding is expected to be before the supplied padding end index.
