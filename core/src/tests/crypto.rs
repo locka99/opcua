@@ -210,16 +210,16 @@ fn calculate_cipher_text_size() {
 
     // Testing -11 bounds
     assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 1), 256);
-    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 245), 256);
-    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 246), 512);
+    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 244), 256);
+    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 245), 512);
     assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 255), 512);
     assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 256), 512);
     assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 512), 768);
 
     // Testing -42 bounds
     assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 1), 256);
-    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 214), 256);
-    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 215), 512);
+    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 213), 256);
+    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 214), 512);
     assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 255), 512);
     assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 256), 512);
     assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 512), 768);

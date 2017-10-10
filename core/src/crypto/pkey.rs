@@ -63,17 +63,11 @@ impl PKey {
     /// Size in bytes
     pub fn size(&self) -> usize { self.bit_length() / 8 }
 
-    pub fn calculate_cipher_text_size(&self, padding: RsaPadding, plain_text_size: usize) -> usize {
+    pub fn calculate_cipher_text_size(&self, padding: RsaPadding, data_size: usize) -> usize {
         let plain_text_block_size = self.plain_text_block_size(padding);
-        let cipher_text_block_size = self.cipher_text_block_size();
-        let mut src_idx = 0;
-        let mut encrypted_size = 0;
-        // This isn't a good implementation whatsoever. Just hacked in for the mean time.
-        while src_idx < plain_text_size {
-            src_idx += plain_text_block_size;
-            encrypted_size += cipher_text_block_size;
-        }
-        encrypted_size
+        let block_count = (data_size / plain_text_block_size) + 1;
+        let cipher_text_size = block_count * self.cipher_text_block_size();
+        cipher_text_size
     }
 
     pub fn plain_text_block_size(&self, padding: RsaPadding) -> usize {
