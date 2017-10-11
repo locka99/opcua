@@ -65,7 +65,11 @@ impl PKey {
 
     pub fn calculate_cipher_text_size(&self, padding: RsaPadding, data_size: usize) -> usize {
         let plain_text_block_size = self.plain_text_block_size(padding);
-        let block_count = (data_size / plain_text_block_size) + 1;
+        let block_count = if data_size % plain_text_block_size == 0 {
+            data_size / plain_text_block_size
+        } else {
+            (data_size / plain_text_block_size) + 1
+        };
         let cipher_text_size = block_count * self.cipher_text_block_size();
         cipher_text_size
     }

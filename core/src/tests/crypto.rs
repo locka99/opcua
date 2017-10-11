@@ -210,20 +210,47 @@ fn calculate_cipher_text_size() {
 
     // Testing -11 bounds
     assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 1), 256);
-    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 244), 256);
-    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 245), 512);
+    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 245), 256);
+    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 246), 512);
     assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 255), 512);
     assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 256), 512);
     assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 512), 768);
 
     // Testing -42 bounds
     assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 1), 256);
-    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 213), 256);
-    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 214), 512);
+    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 214), 256);
+    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 215), 512);
     assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 255), 512);
     assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 256), 512);
     assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 512), 768);
+}
 
+#[test]
+fn calculate_cipher_text_size2() {
+    let (_, pkey) = make_test_cert();
+
+    // The cipher text size function should report exactly the same value as the value returned
+    // by encrypting bytes. This is especially important on boundary values.
+    for padding in &[RsaPadding::PKCS1, RsaPadding::OAEP] {
+        for src_len in 1..550 {
+            let src = vec![127u8; src_len];
+
+            // Encrypt the bytes to a dst buffer of the expected size with padding
+            let expected_size = pkey.calculate_cipher_text_size(*padding, src_len);
+            let mut dst = vec![0u8; expected_size];
+            let actual_size = pkey.public_encrypt(&src, &mut dst, *padding).unwrap();
+            if expected_size != actual_size {
+                println!("Expected size {} != actual size {} for src length {}", expected_size, actual_size, src_len);
+                assert_eq!(expected_size, actual_size);
+            }
+
+            // Decrypt to be sure the data is same as input
+            let mut src2 = vec![0u8; expected_size];
+            let src2_len = pkey.private_decrypt(&dst, &mut src2, *padding).unwrap();
+            assert_eq!(src_len, src2_len);
+            assert_eq!(&src[..], &src[..src2_len]);
+        }
+    }
 }
 
 #[test]
