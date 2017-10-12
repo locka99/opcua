@@ -94,10 +94,10 @@ pub mod basic256 {
     pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &'static str = DSIG_RSA_SHA1;
 
     /// AsymmetricKeyWrapAlgorithm – KwRsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p).
-    pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &'static str = ENC_RSA_OEAP_MGF1P;
+    pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &'static str = ENC_RSA_OAEP_MGF1P;
 
     /// AsymmetricEncryptionAlgorithm – RsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep).
-    pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = ENC_RSA_OEAP;
+    pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = ENC_RSA_OAEP;
 
     /// KeyDerivationAlgorithm – PSha1 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1).
     pub const KEY_DERIVATION_ALGORITHM: &'static str = KEY_P_SHA1;
@@ -143,10 +143,10 @@ pub mod basic256sha256 {
     pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &'static str = DSIG_RSA_SHA256;
 
     /// AsymmetricKeyWrapAlgorithm – KwRsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p).
-    pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &'static str = ENC_RSA_OEAP_MGF1P;
+    pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &'static str = ENC_RSA_OAEP_MGF1P;
 
     /// -> AsymmetricEncryptionAlgorithm – Rsa_Oaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep).
-    pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = ENC_RSA_OEAP;
+    pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = ENC_RSA_OAEP;
 
     /// KeyDerivationAlgorithm – PSHA256 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha256).
     pub const KEY_DERIVATION_ALGORITHM: &'static str = KEY_P_SHA256;

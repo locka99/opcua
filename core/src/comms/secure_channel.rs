@@ -10,7 +10,7 @@ use crypto::SecurityPolicy;
 use crypto::CertificateStore;
 use crypto::x509::X509;
 use crypto::aeskey::AesKey;
-use crypto::pkey::PKey;
+use crypto::pkey::{PKey, RsaPadding};
 
 use comms::security_header::{SecurityHeader, SymmetricSecurityHeader, AsymmetricSecurityHeader};
 use comms::message_chunk::{MessageChunkHeader, MessageChunkType, MessageChunk};
@@ -233,8 +233,11 @@ impl SecureChannel {
             let plain_text_block_size = match *security_header {
                 SecurityHeader::Asymmetric(ref security_header) => {
                     if !security_header.sender_certificate.is_null() {
+                        // Asymmetric requires
+                        // TODO fix padding to come from the uri
+                        let padding = RsaPadding::PKCS1;
                         let x509 = X509::from_byte_string(&security_header.sender_certificate).unwrap();
-                        x509.public_key().unwrap().size()
+                        x509.public_key().unwrap().plain_text_block_size(padding)
                     } else {
                         0
                     }
@@ -501,7 +504,7 @@ impl SecureChannel {
         let signing_key_size = signing_key.size();
 
         let signed_range = 0..(encrypted_range.end - signing_key_size);
-        let signature_range = (encrypted_range.end - signing_key_size)..encrypted_range.end;
+        let signature_range = signed_range.end..encrypted_range.end;
 
         trace!("Header size = {}, Encrypted range = {:?}, Signed range = {:?}, Signature range = {:?}, signature size = {}", header_size, encrypted_range, signed_range, signature_range, signing_key_size);
 
@@ -513,13 +516,13 @@ impl SecureChannel {
 
         // Encryption will change the size of the chunk. Since we sign before encrypting, we need to
         // compute that size and change the message header to be that new size
-        let encrypted_block_size = {
+        let cipher_text_size = {
             let plain_text_size = encrypted_range.end - encrypted_range.start;
-            let encrypted_block_size = encryption_key.calculate_cipher_text_size(plain_text_size, security_policy.padding());
-            trace!("plain_text_size = {}, encrypted_block_size = {}", plain_text_size, encrypted_block_size);
-            encrypted_block_size
+            let cipher_text_size = encryption_key.calculate_cipher_text_size(plain_text_size, security_policy.padding());
+            trace!("plain_text_size = {}, encrypted_text_size = {}", plain_text_size, cipher_text_size);
+            cipher_text_size
         };
-        Self::update_message_size(&mut tmp[..], header_size + encrypted_block_size)?;
+        Self::update_message_size(&mut tmp[..], header_size + cipher_text_size)?;
 
         // Sign the message header, security header, sequence header, body, padding
         security_policy.asymmetric_sign(&signing_key, &tmp[signed_range.clone()], &mut signature)?;
@@ -528,11 +531,16 @@ impl SecureChannel {
 
         Self::log_crypto_data("Chunk after signing", &tmp[..signature_range.end]);
 
-        // Copy the unecrypted message header / security header portion to dst
+        // Copy the unencrypted message header / security header portion to dst
         dst[..encrypted_range.start].copy_from_slice(&tmp[..encrypted_range.start]);
 
         // Encrypt the sequence header, payload, signature portion into dst
         let encrypted_size = security_policy.asymmetric_encrypt(&encryption_key, &tmp[encrypted_range.clone()], &mut dst[encrypted_range.start..])?;
+
+        // Validate encrypted size is right
+        if encrypted_size != cipher_text_size {
+            panic!("Encrypted block size {} is not the same as calculated cipher text size {}", encrypted_size, cipher_text_size);
+        }
 
         //{
         //    debug!("Encrypted size in bytes = {} compared to encrypted range {:?}", encrypted_size, encrypted_range);

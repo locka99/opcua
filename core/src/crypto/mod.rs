@@ -37,10 +37,10 @@ pub mod algorithms {
     pub const ENC_RSA_15: &'static str = "http://www.w3.org/2001/04/xmlenc#rsa-1_5";
 
     /// Asymmetric encryption algorithm RSA-OAEP
-    pub const ENC_RSA_OEAP: &'static str = "http://www.w3.org/2001/04/xmlenc#rsa-oaep";
+    pub const ENC_RSA_OAEP: &'static str = "http://www.w3.org/2001/04/xmlenc#rsa-oaep";
 
     /// Asymmetric encryption algorithm RSA-OAEP-MGF1P
-    pub const ENC_RSA_OEAP_MGF1P: &'static str = "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p";
+    pub const ENC_RSA_OAEP_MGF1P: &'static str = "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p";
 
     /// SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
     pub const DSIG_HMAC_SHA1: &'static str = "http://www.w3.org/2000/09/xmldsig#hmac-sha1";
