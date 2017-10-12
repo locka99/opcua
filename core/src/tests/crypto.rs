@@ -209,20 +209,22 @@ fn calculate_cipher_text_size() {
     let (_, pkey) = make_test_cert();
 
     // Testing -11 bounds
-    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 1), 256);
-    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 245), 256);
-    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 246), 512);
-    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 255), 512);
-    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 256), 512);
-    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::PKCS1, 512), 768);
+    let padding = RsaPadding::PKCS1;
+    assert_eq!(pkey.calculate_cipher_text_size(1, padding), 256);
+    assert_eq!(pkey.calculate_cipher_text_size(245, padding), 256);
+    assert_eq!(pkey.calculate_cipher_text_size(246, padding), 512);
+    assert_eq!(pkey.calculate_cipher_text_size(255, padding), 512);
+    assert_eq!(pkey.calculate_cipher_text_size(256, padding), 512);
+    assert_eq!(pkey.calculate_cipher_text_size(512, padding), 768);
 
     // Testing -42 bounds
-    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 1), 256);
-    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 214), 256);
-    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 215), 512);
-    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 255), 512);
-    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 256), 512);
-    assert_eq!(pkey.calculate_cipher_text_size(RsaPadding::OAEP, 512), 768);
+    let padding = RsaPadding::OAEP;
+    assert_eq!(pkey.calculate_cipher_text_size(1, padding), 256);
+    assert_eq!(pkey.calculate_cipher_text_size(214, padding), 256);
+    assert_eq!(pkey.calculate_cipher_text_size(215, padding), 512);
+    assert_eq!(pkey.calculate_cipher_text_size(255, padding), 512);
+    assert_eq!(pkey.calculate_cipher_text_size(256, padding), 512);
+    assert_eq!(pkey.calculate_cipher_text_size(512, padding), 768);
 }
 
 #[test]
@@ -236,7 +238,7 @@ fn calculate_cipher_text_size2() {
             let src = vec![127u8; src_len];
 
             // Encrypt the bytes to a dst buffer of the expected size with padding
-            let expected_size = pkey.calculate_cipher_text_size(*padding, src_len);
+            let expected_size = pkey.calculate_cipher_text_size(src_len, *padding);
             let mut dst = vec![0u8; expected_size];
             let actual_size = pkey.public_encrypt(&src, &mut dst, *padding).unwrap();
             if expected_size != actual_size {
@@ -349,9 +351,9 @@ fn derive_keys_from_nonce() {
 
     // Create a security policy Basic128Rsa15 policy
     //
-    /// a) SigningKeyLength = 16
-    /// b) EncryptingKeyLength = 16
-    /// c) EncryptingBlockSize = 16
+    // a) SigningKeyLength = 16
+    // b) EncryptingKeyLength = 16
+    // c) EncryptingBlockSize = 16
     let security_policy = SecurityPolicy::Basic128Rsa15;
     let (signing_key, encryption_key, iv) = security_policy.make_secure_channel_keys(&nonce1, &nonce2);
     assert_eq!(signing_key.len(), 16);
@@ -360,9 +362,9 @@ fn derive_keys_from_nonce() {
 
     // Create a security policy Basic256 policy
     //
-    /// a) SigningKeyLength = 24
-    /// b) EncryptingKeyLength = 32
-    /// c) EncryptingBlockSize = 16
+    // a) SigningKeyLength = 24
+    // b) EncryptingKeyLength = 32
+    // c) EncryptingBlockSize = 16
     let security_policy = SecurityPolicy::Basic256;
     let (signing_key, encryption_key, iv) = security_policy.make_secure_channel_keys(&nonce1, &nonce2);
     assert_eq!(signing_key.len(), 24);
@@ -371,9 +373,9 @@ fn derive_keys_from_nonce() {
 
     // Create a security policy Basic256Sha256 policy
     //
-    /// a) SigningKeyLength = 32
-    /// b) EncryptingKeyLength = 32
-    /// c) EncryptingBlockSize = 16
+    // a) SigningKeyLength = 32
+    // b) EncryptingKeyLength = 32
+    // c) EncryptingBlockSize = 16
     let security_policy = SecurityPolicy::Basic256Sha256;
     let (signing_key, encryption_key, iv) = security_policy.make_secure_channel_keys(&nonce1, &nonce2);
     assert_eq!(signing_key.len(), 32);

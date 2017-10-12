@@ -65,9 +65,9 @@ impl MessageHandler {
 
     pub fn handle_message(&mut self, request_id: UInt32, message: SupportedMessage) -> Result<Option<SupportedMessage>, StatusCode> {
         let mut server_state = self.server_state.lock().unwrap();
-        let mut server_state = &mut server_state;
+        let server_state = &mut server_state;
         let mut session = self.session.lock().unwrap();
-        let mut session = &mut session;
+        let session = &mut session;
 
         let response = match message {
             SupportedMessage::GetEndpointsRequest(request) => {

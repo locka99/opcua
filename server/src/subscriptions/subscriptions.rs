@@ -164,7 +164,7 @@ impl Subscriptions {
 
         // Handle the acknowledgements in the request
         for (idx, publish_request) in handled_requests.iter().enumerate() {
-            let mut publish_response = publish_responses.get_mut(idx).unwrap();
+            let publish_response = publish_responses.get_mut(idx).unwrap();
             if let SupportedMessage::PublishResponse(ref mut publish_response) = publish_response.response {
                 publish_response.results = self.process_subscription_acknowledgements(publish_request);
             }

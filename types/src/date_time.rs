@@ -66,7 +66,7 @@ impl From<chrono::DateTime<UTC>> for DateTime {
 
 impl Into<chrono::DateTime<UTC>> for DateTime {
     fn into(self) -> chrono::DateTime<UTC> {
-        /// Converts from the equivalent chrono type
+        // Converts from the equivalent chrono type
         UTC.ymd(self.year as i32, self.month as u32, self.day as u32)
             .and_hms_nano(self.hour as u32, self.min as u32, self.sec as u32, self.nano_sec as u32)
     }

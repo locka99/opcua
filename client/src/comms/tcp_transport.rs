@@ -61,7 +61,7 @@ impl TcpTransport {
                               session_state.max_message_size as UInt32)
         };
         debug!("Sending HEL {:?}", msg);
-        let mut stream = self.stream();
+        let stream = self.stream();
         let _ = msg.encode(stream)?;
 
         // Listen for ACK

@@ -515,7 +515,7 @@ impl SecureChannel {
         // compute that size and change the message header to be that new size
         let encrypted_block_size = {
             let plain_text_size = encrypted_range.end - encrypted_range.start;
-            let encrypted_block_size = encryption_key.calculate_cipher_text_size(security_policy.padding(), plain_text_size);
+            let encrypted_block_size = encryption_key.calculate_cipher_text_size(plain_text_size, security_policy.padding());
             trace!("plain_text_size = {}, encrypted_block_size = {}", plain_text_size, encrypted_block_size);
             encrypted_block_size
         };
