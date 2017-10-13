@@ -207,17 +207,17 @@ impl CertificateStore {
     /// the memory cert or the test is assumed to fail.
     fn ensure_cert_and_file_are_the_same(cert: &X509, cert_path: &Path) -> bool {
         if !cert_path.exists() {
-            println!("Can't find cert on disk");
+            trace!("Can't find cert on disk");
             false
         } else {
             let cert2 = CertificateStore::read_cert(cert_path);
             if cert2.is_err() {
-                println!("Can't read cert from disk {:?} - {}", cert_path, cert2.unwrap_err());
+                trace!("Can't read cert from disk {:?} - {}", cert_path, cert2.unwrap_err());
                 // No cert2 to compare to
                 false
             } else {
                 // Compare the buffers
-                println!("Comparing cert on disk to memory");
+                trace!("Comparing cert on disk to memory");
                 let der = cert.value.to_der().unwrap();
                 let der2 = cert2.unwrap().value.to_der().unwrap();
                 der == der2
@@ -294,14 +294,31 @@ impl CertificateStore {
             // ... trust (self-signed, ca etc.)
             // ... revocation
         }
-
         GOOD
     }
 
     /// Returns a certificate file name from the cert's issuer and thumbprint fields
     pub fn cert_file_name(cert: &X509) -> String {
-        let mut file_name = cert.thumbprint().as_hex_string();
-        file_name.push_str(".der");
+        let mut file_name = String::with_capacity(128);
+
+        let prefix = if let Ok(common_name) = cert.common_name() {
+            common_name.trim().to_string()
+        } else {
+            String::new()
+        };
+
+        let thumbprint = cert.thumbprint().as_hex_string();
+        if !prefix.is_empty() {
+            // Format "prefix - [thumbprint].der"
+            file_name.push_str(&prefix);
+            file_name.push_str(" [");
+            file_name.push_str(&thumbprint);
+            file_name.push_str("].der");
+        } else {
+            // Format "thumbprint.der"
+            file_name.push_str(&thumbprint);
+            file_name.push_str(".der");
+        }
         file_name
     }
 

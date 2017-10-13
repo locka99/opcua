@@ -153,8 +153,6 @@ impl SecureChannelService {
             },
             server_nonce: ByteString::from(&secure_channel.server_nonce),
         };
-
-        trace!("Sending OpenSecureChannelResponse {:#?}", response);
         Ok(SupportedMessage::OpenSecureChannelResponse(response))
     }
 

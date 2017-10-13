@@ -10,7 +10,7 @@ use crypto::SecurityPolicy;
 use crypto::CertificateStore;
 use crypto::x509::X509;
 use crypto::aeskey::AesKey;
-use crypto::pkey::{PKey, RsaPadding};
+use crypto::pkey::PKey;
 
 use comms::security_header::{SecurityHeader, SymmetricSecurityHeader, AsymmetricSecurityHeader};
 use comms::message_chunk::{MessageChunkHeader, MessageChunkType, MessageChunk};
@@ -191,25 +191,18 @@ impl SecureChannel {
         if now.ge(&token_expires) { true } else { false }
     }
 
-    pub fn symmetric_signature_size(&self) -> usize {
-        if self.security_policy != SecurityPolicy::None {
-            self.security_policy.symmetric_signature_size()
-        } else {
-            0
-        }
-    }
-
     /// Calculates the signature size for a message depending on the supplied security header
     pub fn signature_size(&self, security_header: &SecurityHeader) -> usize {
         // Signature size in bytes
         match *security_header {
-            SecurityHeader::Asymmetric(ref security_header) => {
-                if security_header.sender_certificate.is_null() {
-                    0
-                } else {
-                    let cert = X509::from_byte_string(&security_header.sender_certificate).unwrap();
-                    let pkey = cert.public_key().unwrap();
+            SecurityHeader::Asymmetric(_) => {
+                if let Some(pkey) = self.private_key.as_ref() {
+                    error!("pkey size {} for asymm", pkey.size());
                     pkey.size()
+                }
+                else {
+                    error!("No pkey for asymm");
+                    0
                 }
             }
             SecurityHeader::Symmetric(_) => {
@@ -233,9 +226,8 @@ impl SecureChannel {
             let plain_text_block_size = match *security_header {
                 SecurityHeader::Asymmetric(ref security_header) => {
                     if !security_header.sender_certificate.is_null() {
-                        // Asymmetric requires
-                        // TODO fix padding to come from the uri
-                        let padding = RsaPadding::PKCS1;
+                        // Padding requires we look at the sending key and security policy
+                        let padding = self.security_policy.padding();
                         let x509 = X509::from_byte_string(&security_header.sender_certificate).unwrap();
                         x509.public_key().unwrap().plain_text_block_size(padding)
                     } else {
@@ -263,7 +255,7 @@ impl SecureChannel {
             } else {
                 0
             };
-            trace!("sequence_header(8) + body({}) + signature ({}) = plain text size = {} / with padding {} = {}", body_size, signature_size, encrypt_size, padding_size, encrypt_size + padding_size);
+            trace!("sequence_header(8) + body({}) + signature ({}) = plain text size = {} / with padding {} = {}, plain_text_block_size = {}", body_size, signature_size, encrypt_size, padding_size, encrypt_size + padding_size, plain_text_block_size);
             minimum_padding + padding_size
         } else {
             0

@@ -34,8 +34,7 @@ impl Thumbprint {
 
     /// Returns the thumbprint as a string using hexdecimal values for each byte
     pub fn as_hex_string(&self) -> String {
-        // Add a bit of space in case caller intends to append a file extension
-        let mut hex_string = String::with_capacity(self.value.len() * 2 + 8);
+        let mut hex_string = String::with_capacity(self.value.len() * 2);
         for b in self.value.iter() {
             hex_string.push_str(&format!("{:02x}", b))
         }

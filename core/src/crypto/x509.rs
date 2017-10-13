@@ -4,6 +4,8 @@ use std::fmt::{Debug, Formatter};
 use std::result::Result;
 
 use openssl::x509;
+use openssl::nid;
+use openssl::nid::Nid;
 
 use chrono::{DateTime, UTC, TimeZone};
 
@@ -105,6 +107,27 @@ impl X509 {
             error!("Can't obtain public key from certificate");
             Err(BAD_CERTIFICATE_INVALID)
         }
+    }
+
+    fn get_subject_entry(&self, nid: Nid) -> Result<String, ()> {
+        let subject_name = self.value.subject_name();
+        let mut entries = subject_name.entries_by_nid(nid);
+        if let Some(entry) = entries.next() {
+            // Asn1StringRef has to be converted out of Asn1 into UTF-8 and then a String
+            if let Ok(value) = entry.data().as_utf8() {
+                use std::ops::Deref;
+                // Value is an OpensslString type here so it has to be converted
+                Ok(value.deref().to_string())
+            } else {
+                Err(())
+            }
+        } else {
+            Err(())
+        }
+    }
+
+    pub fn common_name(&self) -> Result<String, ()> {
+        self.get_subject_entry(nid::COMMONNAME)
     }
 
     pub fn is_time_valid(&self, now: &DateTime<UTC>) -> StatusCode {
