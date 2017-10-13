@@ -1,6 +1,6 @@
 [package]
 name = "opcua-core"
-version = "0.1.0"
+version = "0.2.0"
 description = "Core components for OPC UA used by client and server"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"
@@ -19,7 +19,7 @@ openssl = "0.9.15"
 
 [dependencies.opcua-types]
 path = "../types"
-version = "0.1.0"
+version = "0.2.0"
 
 [dev-dependencies]
 tempdir = "0.3"

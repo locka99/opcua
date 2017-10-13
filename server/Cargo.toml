@@ -1,6 +1,6 @@
 [package]
 name = "opcua-server"
-version = "0.1.1"
+version = "0.2.0"
 description = "OPC UA server API"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"
@@ -21,8 +21,8 @@ rand = "0.3"
 
 [dependencies.opcua-types]
 path = "../types"
-version = "0.1.0"
+version = "0.2.0"
 
 [dependencies.opcua-core]
 path = "../core"
-version = "0.1.0"
+version = "0.2.0"

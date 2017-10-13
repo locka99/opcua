@@ -1,6 +1,6 @@
 [package]
 name = "opcua-simple-server"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Adam Lock <locka99@gmail.com>"]
 
 [dependencies]
@@ -8,13 +8,13 @@ chrono = "0.3"
 
 [dependencies.opcua-types]
 path = "../../types"
-version = "0.1.0"
+version = "0.2.0"
 
 [dependencies.opcua-core]
 path = "../../core"
-version = "0.1.0"
+version = "0.2.0"
 
 [dependencies.opcua-server]
 path = "../../server"
-version = "0.1.1"
+version = "0.2.0"
 
