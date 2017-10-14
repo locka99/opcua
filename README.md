@@ -59,6 +59,7 @@ implementations are expected to receive implementations over time.
 * Subscription service set
     * CreateSubscription
     * ModifySubscription
+    * DeleteSubscriptions
     * Publish
     * Republish (!). Implemented to always return a service error
     * SetPublishingMode
@@ -69,17 +70,27 @@ The standard OPC UA address space will be exposed. OPC UA for Rust uses a script
 
 Most of this data is static however some server state variables will reflect the actual state of the server. Not all state in the server is implemented.
 
-### Supported security profiles / authentication
+### Supported encryption modes
 
-The server supports the following security mode / profiles:
+The server supports enpoints with the standard security modes:
+
+* None - no encryption
+* Sign - no encryption but messages are digitally signed to ensure integrity
+* SignAndEncrypt - signed messages which are then encrypted
+
+The following security policies are supported.
+
+* None (no encryption)
+* Basic128Rsa15
+* Basic256
+* Basic256Rsa256
+
+### Supported user identities 
+
+The server supports the following user identities
 
 1. Anonymous/None, i.e. no authentication
 2. User/password (plaintext password)
-
-Work in progress:
-
-1. Public key authentication, signing and encryption. This will happen later once unencrypted functionality is working.
-2. User/password using encrypted password.
 
 ### Current limitations
 
@@ -92,7 +103,8 @@ Currently the following are not supported
 
 ## Client
 
-The client shall mirror the functionality in the server but may lag behind in some respects. At present it only supports synchronous calls to the server, and does not support subscriptions or monitoring of data.
+The client shall mirror the functionality in the server but currently only supports synchronous calls to the server, 
+and does not support subscriptions or monitoring of data.
 
 # Building and testing
 
@@ -146,12 +158,19 @@ The sample is designed to be super terse and to demonstrate what you can do with
 
 ## Crypto
 
+At present OPC UA for Rust uses OpenSSL bindings for Rust for crypto. The product makes extensive use of various 
+cryptographic algorithms for signing, verifying, encrypting and decrypting data. In addition it needs to be able 
+to create, load and save various file formats for certificates and keys.
+
+So we use OpenSSL for the time being. Almost all OpenSSL code is isolated and could be removed if a pure Rust implementation
+of the same functionality becomes viable.
+
 You are advised to read the OpenSSL [documentation](https://github.com/sfackler/rust-openssl) to set up your 
 environment.
 
 ### Certificate pki structure
 
-The server / client shall use a directory structure to manage trusted/rejected certificates. These will be stored and managed on disk:
+The server / client uses the following directory structure to manage trusted/rejected certificates:
 
 ```
 pki/
@@ -165,9 +184,13 @@ pki/
     ...      - contains certs from client/servers you've connected with and you don't trust
 ```
 
-When the server first receives an encrypted connnection from an unrecognized client it will write the cert to the rejected/ folder and the connection will fail. You, the administrator will explicitly move the cert to the trusted/ folder to permit connections from that client in future.
+For encrypted connections the following applies:
 
-Likewise, the client shall reject unrecognized servers in the same fashion, and the cert must be moved from the rejected/ to trusted/ folder.
+* The server will reject the first connection from an unrecognized client. It will create a file representing 
+the cert in its the `pki/rejected/` folder and you, the administrator must move the cert to 
+the `trusted/` folder to permit connections from that client in future.
+* Likewise, the client shall reject unrecognized servers in the same fashion, and the cert must be moved from the 
+`rejected/` to `trusted/` folder for connection to succeed.
 
 ### Certificate creator
 
