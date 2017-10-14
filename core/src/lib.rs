@@ -26,6 +26,16 @@ pub mod crypto;
 /// use the fern crate and configure your own logging
 pub fn init_logging() {
     use std::env;
+
+    /// White on red
+    const ANSI_ERROR: &str = "\x1b[37m\x1b[41m";
+    /// Yellow on black
+    const ANSI_WARN: &str = "\x1b[33m";
+    /// Blue on black
+    const ANSI_INFO: &str = "\x1b[36m";
+    /// Reset code
+    const ANSI_RESET: &str = "\x1b[0m";
+
     // This is env_logger::init() but taking logging values from  instead of RUST_LOG.
     // env_logger/RUST_LOG is used by cargo and other rust tools so console fills with garbage from
     // other processes  when we're only interested in our own garbage!
@@ -38,13 +48,13 @@ pub fn init_logging() {
 
             match record.metadata().level() {
                 log::LogLevel::Error => {
-                    format!("{} - \x1b[37m\x1b[41m{}\x1b[0m - {} - {}", time_fmt, record.level(), record.location().module_path(), record.args())
+                    format!("{} - {}{}{} - {} - {}", time_fmt, ANSI_ERROR, record.level(), ANSI_RESET, record.location().module_path(), record.args())
                 }
                 log::LogLevel::Warn => {
-                    format!("{} - \x1b[33m{}\x1b[0m - {} - {}", time_fmt, record.level(), record.location().module_path(), record.args())
+                    format!("{} - {}{}{} - {} - {}", time_fmt, ANSI_WARN, record.level(), ANSI_RESET, record.location().module_path(), record.args())
                 }
                 log::LogLevel::Info => {
-                    format!("{} - \x1b[36m{}\x1b[0m - {} - {}", time_fmt, record.level(), record.location().module_path(), record.args())
+                    format!("{} - {}{}{} - {} - {}", time_fmt, ANSI_INFO, record.level(), ANSI_RESET, record.location().module_path(), record.args())
                 }
                 _ => {
                     format!("{} - {} - {} - {}", time_fmt, record.level(), record.location().module_path(), record.args())
