@@ -33,7 +33,7 @@ impl SessionService {
         debug!("SessionService secure_channel_security_policy_uri = {}", secure_channel_security_policy_uri);
 
         // Find matching end points for this url
-        let endpoints = server_state.find_endpoints(request.endpoint_url.as_ref(), secure_channel_security_policy_uri, security_mode);
+        let endpoints = server_state.find_endpoints(request.endpoint_url.as_ref());
         if endpoints.is_none() {
             return Ok(self.service_fault(&request.request_header, BAD_TCP_ENDPOINT_URL_INVALID));
         }

@@ -148,20 +148,16 @@ impl ServerState {
     /// Find endpoints in those supported by the server that match the specified url and security policy
     /// If none match then None will be passed, therefore if Some is returned it will be guaranteed
     /// to contain at least one result.
-    pub fn find_endpoints(&self, endpoint_url: &str, security_policy_uri: &str, message_security_mode: MessageSecurityMode) -> Option<Vec<EndpointDescription>> {
-        debug!("find_endpoint, url = {}, security policy uri = {}", endpoint_url, security_policy_uri);
+    pub fn find_endpoints(&self, endpoint_url: &str) -> Option<Vec<EndpointDescription>> {
+        debug!("find_endpoint, url = {}", endpoint_url);
         let endpoints: Vec<EndpointDescription> = self.endpoints.iter().filter(|e| {
             // Test end point's security_policy_uri and matching url
-            let mut collect_endpoint = false;
-            if e.security_mode == message_security_mode && security_policy_uri == e.security_policy_uri.as_ref() {
-                if let Ok(result) = url_matches_except_host(&e.endpoint_url, endpoint_url) {
-                    if result {
-                        debug!("matching endpoint found for {:?}", e);
-                        collect_endpoint = true
-                    }
-                }
+            if let Ok(result) = url_matches_except_host(&e.endpoint_url, endpoint_url) {
+                result
             }
-            collect_endpoint
+            else {
+                false
+            }
         }).map(|e| self.new_endpoint_description(e)).collect();
         if endpoints.is_empty() { None } else { Some(endpoints) }
     }
@@ -173,6 +169,9 @@ impl ServerState {
             ByteString::null()
         }
     }
+
+    ///
+
 
     /// Constructs a new endpoint description using the server's info and that in an Endpoint
     fn new_endpoint_description(&self, endpoint: &Endpoint) -> EndpointDescription {
