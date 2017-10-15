@@ -92,13 +92,9 @@ fn make_test_cert(key_size: u32) -> (X509, PKey) {
     cert.unwrap()
 }
 
-fn make_test_cert_1024() -> (X509, PKey) {
-    make_test_cert(1024)
-}
-
-fn make_test_cert_2048() -> (X509, PKey) {
-    make_test_cert(2048)
-}
+fn make_test_cert_1024() -> (X509, PKey) { make_test_cert(1024) }
+fn make_test_cert_2048() -> (X509, PKey) { make_test_cert(2048) }
+fn make_test_cert_4096() -> (X509, PKey) { make_test_cert(4096) }
 
 fn make_open_secure_channel_response() -> OpenSecureChannelResponse {
     OpenSecureChannelResponse {

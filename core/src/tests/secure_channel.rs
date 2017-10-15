@@ -43,7 +43,8 @@ fn test_asymmetric_encrypt_decrypt(message: SupportedMessage, security_mode: Mes
     secure_channel.security_policy = security_policy;
 
     // Create a cert and private key pretending to be us and them. Keysizes are different to shake out issues with 
-    // signature lengths.
+    // signature lengths. Encrypting key will be 4096 bits to test extra padding functionality.
+//    let (our_cert, our_key) = make_test_cert_4096();
     let (our_cert, our_key) = make_test_cert_1024();
     let (their_cert, their_key) = make_test_cert_2048();
 

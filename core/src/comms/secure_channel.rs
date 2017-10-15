@@ -553,6 +553,7 @@ impl SecureChannel {
             let extra_padding_byte = src[padding_end - 1];
             let padding_byte = src[padding_end - 2];
             let padding_size = ((extra_padding_byte as usize) << 8) + (padding_byte as usize);
+            trace!("Extra padding: padding_end = {}, padding_size = {}", padding_end, padding_size);
             (padding_byte, (padding_end - padding_size - 1)..(padding_end - 1))
         } else {
             let padding_byte = src[padding_end - 1];
