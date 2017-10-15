@@ -111,14 +111,12 @@ pub fn verify_signature(verifying_cert: &X509, signature_data: &SignatureData, d
 }
 
 /// Creates a `SignatureData` object by signing the supplied certificate and nonce with a pkey
-pub fn create_signature_data(pkey: &PKey, security_policy_uri: &str, data: &ByteString, nonce: &ByteString) -> Result<SignatureData, StatusCode> {
+pub fn create_signature_data(pkey: &PKey, security_policy: SecurityPolicy, data: &ByteString, nonce: &ByteString) -> Result<SignatureData, StatusCode> {
     let (algorithm, signature) = if data.is_null() || nonce.is_null() {
         (UAString::null(), ByteString::null())
     } else {
         let data = concat_data_and_nonce(data.as_ref(), nonce.as_ref());
-
         // Sign the bytes and return the algorithm, signature
-        let security_policy = SecurityPolicy::from_uri(security_policy_uri);
         match security_policy {
             SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {
                 let signing_key_size = pkey.size();
@@ -133,7 +131,7 @@ pub fn create_signature_data(pkey: &PKey, security_policy_uri: &str, data: &Byte
                 UAString::null(), ByteString::null()
             ),
             _ => {
-                error!("An unknown security policy uri {} was passed to create_signature_data and rejected", security_policy_uri);
+                error!("An unknown security policy was passed to create_signature_data and rejected");
                 (UAString::null(), ByteString::null())
             }
         }

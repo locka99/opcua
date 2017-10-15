@@ -27,6 +27,8 @@ impl SessionService {
             return Ok(self.service_fault(&request.request_header, BAD_TCP_ENDPOINT_URL_INVALID));
         }
 
+        // TODO request.endpoint_url should match hostname of server application certificate
+
         // get this from the secure channel state
         let secure_channel_security_policy_uri = session.secure_channel.security_policy.to_uri();
         let security_mode = session.secure_channel.security_mode;
@@ -37,21 +39,11 @@ impl SessionService {
         if endpoints.is_none() {
             return Ok(self.service_fault(&request.request_header, BAD_TCP_ENDPOINT_URL_INVALID));
         }
+        let endpoints = endpoints.unwrap();
 
         // Check the client's certificate for validity and acceptance
-        let endpoints = endpoints.unwrap();
-        let security_policy_uri = {
-            let endpoint = &endpoints[0];
-            if endpoint.security_policy_uri.is_null() {
-                crypto::security_policy::SECURITY_POLICY_NONE_URI.to_string()
-            } else {
-                endpoint.security_policy_uri.value.as_ref().unwrap().to_string()
-            }
-        };
-
-        debug!("Security uri of retrieved end point = {}", security_policy_uri);
-
-        let service_result = if security_policy_uri != crypto::security_policy::SECURITY_POLICY_NONE_URI {
+        let security_policy = session.secure_channel.security_policy;
+        let service_result = if security_policy != SecurityPolicy::None {
             if let Ok(client_certificate) = crypto::X509::from_byte_string(&request.client_certificate) {
                 let certificate_store = server_state.certificate_store.lock().unwrap();
                 certificate_store.validate_or_reject_application_instance_cert(&client_certificate)
@@ -73,7 +65,7 @@ impl SessionService {
             // Calculate a signature (assuming there is a pkey)
             let server_signature = if server_state.server_pkey.is_some() {
                 let pkey = server_state.server_pkey.as_ref().unwrap();
-                crypto::create_signature_data(pkey, &security_policy_uri, &request.client_certificate, &request.client_nonce).unwrap()
+                crypto::create_signature_data(pkey, security_policy, &request.client_certificate, &request.client_nonce).unwrap()
             } else {
                 SignatureData::null()
             };
@@ -89,7 +81,7 @@ impl SessionService {
             session.max_request_message_size = max_request_message_size;
             session.max_response_message_size = request.max_response_message_size;
             session.endpoint_url = request.endpoint_url.clone();
-            session.security_policy_uri = security_policy_uri;
+            session.security_policy_uri = security_policy.to_uri().to_string();
             session.user_identity = None;
             session.client_certificate = request.client_certificate.clone();
             session.session_nonce = server_nonce.clone();

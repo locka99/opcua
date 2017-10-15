@@ -478,6 +478,7 @@ impl SecurityPolicy {
         if let Ok(decrypted_size) = decryption_key.private_decrypt(src, dst, padding) {
             Ok(decrypted_size)
         } else {
+            error!("Asymmetric decryption failed");
             return Err(BAD_SECURITY_CHECKS_FAILED);
         }
     }
