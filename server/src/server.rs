@@ -142,7 +142,7 @@ impl ServerState {
             }
         }
         // Return the endpoints
-        Some(self.endpoints.iter().map(|e| self.new_endpoint_description(e)).collect())
+        Some(self.endpoints.iter().map(|e| self.new_endpoint_description(e, true)).collect())
     }
 
     /// Find endpoints in those supported by the server that match the specified url and security policy
@@ -158,7 +158,7 @@ impl ServerState {
             else {
                 false
             }
-        }).map(|e| self.new_endpoint_description(e)).collect();
+        }).map(|e| self.new_endpoint_description(e, false)).collect();
         if endpoints.is_empty() { None } else { Some(endpoints) }
     }
 
@@ -174,7 +174,7 @@ impl ServerState {
 
 
     /// Constructs a new endpoint description using the server's info and that in an Endpoint
-    fn new_endpoint_description(&self, endpoint: &Endpoint) -> EndpointDescription {
+    fn new_endpoint_description(&self, endpoint: &Endpoint, all_fields: bool) -> EndpointDescription {
         let mut user_identity_tokens = Vec::with_capacity(2);
         if endpoint.anonymous {
             user_identity_tokens.push(UserTokenPolicy::new_anonymous());
@@ -185,9 +185,11 @@ impl ServerState {
             }
         }
 
-        EndpointDescription {
-            endpoint_url: UAString::from(endpoint.endpoint_url.as_ref()),
-            server: ApplicationDescription {
+        // CreateSession doesn't need all the endpoint description
+        // and docs say not to bother sending the server and server
+        // certificate info.
+        let (server, server_certificate) = if all_fields {
+            (ApplicationDescription {
                 application_uri: self.application_uri.clone(),
                 product_uri: self.product_uri.clone(),
                 application_name: self.application_name.clone(),
@@ -195,8 +197,23 @@ impl ServerState {
                 gateway_server_uri: UAString::null(),
                 discovery_profile_uri: UAString::null(),
                 discovery_urls: None,
-            },
-            server_certificate: self.server_certificate_as_byte_string(),
+            }, self.server_certificate_as_byte_string())
+        }
+        else {
+            (ApplicationDescription {
+                application_uri: UAString::null(),
+                product_uri: UAString::null(),
+                application_name: LocalizedText::null(),
+                application_type: ApplicationType::Server,
+                gateway_server_uri: UAString::null(),
+                discovery_profile_uri: UAString::null(),
+                discovery_urls: None,
+            }, ByteString::null())
+        };
+
+        EndpointDescription {
+            endpoint_url: UAString::from(endpoint.endpoint_url.as_ref()),
+            server, server_certificate,
             security_mode: endpoint.security_mode,
             security_policy_uri: endpoint.security_policy_uri.clone(),
             user_identity_tokens: Some(user_identity_tokens),

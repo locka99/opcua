@@ -195,10 +195,12 @@ impl SecureChannel {
     pub fn signature_size(&self, security_header: &SecurityHeader) -> usize {
         // Signature size in bytes
         match *security_header {
-            SecurityHeader::Asymmetric(_) => {
-                if let Some(pkey) = self.private_key.as_ref() {
-                    error!("pkey size {} for asymm", pkey.size());
-                    pkey.size()
+            SecurityHeader::Asymmetric(ref security_header) => {
+                if !security_header.sender_certificate.is_null() {
+                    let x509 = X509::from_byte_string(&security_header.sender_certificate).unwrap();
+                    let signature_size = x509.public_key().unwrap().size();
+                    error!("pkey size {} for asymm", signature_size);
+                    signature_size
                 }
                 else {
                     error!("No pkey for asymm");

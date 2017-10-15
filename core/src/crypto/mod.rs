@@ -136,5 +136,7 @@ pub fn create_signature_data(pkey: &PKey, security_policy: SecurityPolicy, data:
             }
         }
     };
-    Ok(SignatureData { algorithm, signature })
+    let signature_data = SignatureData { algorithm, signature };
+    trace!("Creating signature data = {:?}", signature_data);
+    Ok(signature_data)
 }

@@ -29,11 +29,6 @@ impl SessionService {
 
         // TODO request.endpoint_url should match hostname of server application certificate
 
-        // get this from the secure channel state
-        let secure_channel_security_policy_uri = session.secure_channel.security_policy.to_uri();
-        let security_mode = session.secure_channel.security_mode;
-        debug!("SessionService secure_channel_security_policy_uri = {}", secure_channel_security_policy_uri);
-
         // Find matching end points for this url
         let endpoints = server_state.find_endpoints(request.endpoint_url.as_ref());
         if endpoints.is_none() {
