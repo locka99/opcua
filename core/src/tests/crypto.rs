@@ -9,7 +9,7 @@ use crypto::x509::{X509, X509Data};
 use crypto::pkey::{PKey, RsaPadding};
 use crypto::aeskey::AesKey;
 
-use tests::{make_certificate_store, make_test_cert};
+use tests::{make_certificate_store, make_test_cert_1024, make_test_cert_2048};
 
 #[test]
 fn aes_test() {
@@ -53,7 +53,7 @@ fn aes_test() {
 
 #[test]
 fn create_cert() {
-    let (x509, _) = make_test_cert();
+    let (x509, _) = make_test_cert_1024();
     let not_before = x509.value.not_before().to_string();
     println!("Not before = {}", not_before);
     let not_after = x509.value.not_after().to_string();
@@ -75,7 +75,7 @@ fn ensure_pki_path() {
 #[test]
 fn create_own_cert_in_pki() {
     let args = X509Data {
-        key_size: 2045,
+        key_size: 2048,
         common_name: "x".to_string(),
         organization: "x.org".to_string(),
         organizational_unit: "x.org ops".to_string(),
@@ -103,7 +103,7 @@ fn create_own_cert_in_pki() {
 fn create_rejected_cert_in_pki() {
     let (tmp_dir, cert_store) = make_certificate_store();
 
-    let (cert, _) = make_test_cert();
+    let (cert, _) = make_test_cert_1024();
     let result = cert_store.store_rejected_cert(&cert);
     assert!(result.is_ok());
 
@@ -117,7 +117,7 @@ fn test_and_reject_application_instance_cert() {
     let (tmp_dir, cert_store) = make_certificate_store();
 
     // Make an unrecognized cert
-    let (cert, _) = make_test_cert();
+    let (cert, _) = make_test_cert_1024();
     let result = cert_store.validate_or_reject_application_instance_cert(&cert);
     assert!(result.is_bad());
 
@@ -129,7 +129,7 @@ fn test_and_trust_application_instance_cert() {
     let (tmp_dir, cert_store) = make_certificate_store();
 
     // Make a cert, write it to the trusted dir
-    let (cert, _) = make_test_cert();
+    let (cert, _) = make_test_cert_1024();
 
     // Simulate user/admin copying cert to the trusted folder
     let der = cert.value.to_der().unwrap();
@@ -153,8 +153,8 @@ fn test_and_reject_thumbprint_mismatch() {
     let (tmp_dir, cert_store) = make_certificate_store();
 
     // Make two certs, write it to the trusted dir
-    let (cert, _) = make_test_cert();
-    let (cert2, _) = make_test_cert();
+    let (cert, _) = make_test_cert_1024();
+    let (cert2, _) = make_test_cert_1024();
 
     // Simulate user/admin copying cert to the trusted folder and renaming it to cert2's name,
     // e.g. to trick the cert store to trust an untrusted cert
@@ -195,7 +195,7 @@ fn test_asymmetric_encrypt_and_decrypt(cert: &X509, key: &PKey, security_policy:
 
 #[test]
 fn asymmetric_encrypt_and_decrypt() {
-    let (cert, key) = make_test_cert();
+    let (cert, key) = make_test_cert_2048();
     // Try all security policies, ensure they encrypt / decrypt for various sizes
     for security_policy in [SecurityPolicy::Basic128Rsa15, SecurityPolicy::Basic256, SecurityPolicy::Basic256Sha256].iter() {
         for data_size in [0, 1, 127, 128, 129, 255, 256, 257, 13001].iter() {
@@ -206,7 +206,7 @@ fn asymmetric_encrypt_and_decrypt() {
 
 #[test]
 fn calculate_cipher_text_size() {
-    let (_, pkey) = make_test_cert();
+    let (_, pkey) = make_test_cert_2048();
 
     // Testing -11 bounds
     let padding = RsaPadding::PKCS1;
@@ -229,7 +229,7 @@ fn calculate_cipher_text_size() {
 
 #[test]
 fn calculate_cipher_text_size2() {
-    let (_, pkey) = make_test_cert();
+    let (_, pkey) = make_test_cert_1024();
 
     // The cipher text size function should report exactly the same value as the value returned
     // by encrypting bytes. This is especially important on boundary values.
@@ -257,7 +257,7 @@ fn calculate_cipher_text_size2() {
 
 #[test]
 fn sign_verify_sha1() {
-    let (_, pkey) = make_test_cert();
+    let (_, pkey) = make_test_cert_2048();
 
     let msg = b"Mary had a little lamb";
     let msg2 = b"It's fleece was white as snow";
@@ -275,7 +275,7 @@ fn sign_verify_sha1() {
 
 #[test]
 fn sign_verify_sha256() {
-    let (_, pkey) = make_test_cert();
+    let (_, pkey) = make_test_cert_2048();
 
     let msg = b"Mary had a little lamb";
     let msg2 = b"It's fleece was white as snow";

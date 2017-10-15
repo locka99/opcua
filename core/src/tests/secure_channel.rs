@@ -42,9 +42,10 @@ fn test_asymmetric_encrypt_decrypt(message: SupportedMessage, security_mode: Mes
     secure_channel.security_mode = security_mode;
     secure_channel.security_policy = security_policy;
 
-    // Create a cert and private key pretending to be us and them
-    let (our_cert, our_key) = make_test_cert();
-    let (their_cert, their_key) = make_test_cert();
+    // Create a cert and private key pretending to be us and them. Keysizes are different to shake out issues with 
+    // signature lengths.
+    let (our_cert, our_key) = make_test_cert_1024();
+    let (their_cert, their_key) = make_test_cert_2048();
 
     // First we shall sign with our private key and encrypt with their public.
     secure_channel.cert = Some(our_cert);
@@ -66,10 +67,10 @@ fn test_asymmetric_encrypt_decrypt(message: SupportedMessage, security_mode: Mes
     secure_channel.their_cert = tmp;
     secure_channel.private_key = Some(their_key);
 
-    // We can't strip padding, so just compare up to original length
+    // Compare up to original length
     let chunk2 = secure_channel.verify_and_remove_security(&encrypted_data[..encrypted_size]).unwrap();
-
-    assert_eq!(&chunk.data[12..], &chunk2.data[12..chunk.data.len()]);
+    assert_eq!(chunk.data.len(), chunk2.data.len());
+    assert_eq!(&chunk.data[12..], &chunk2.data[12..chunk2.data.len()]);
 }
 
 #[test]
