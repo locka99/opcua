@@ -201,9 +201,8 @@ impl SecureChannel {
                     let signature_size = x509.public_key().unwrap().size();
                     error!("pkey size {} for asymm", signature_size);
                     signature_size
-                }
-                else {
-                    error!("No pkey for asymm");
+                } else {
+                    error!("No certificate / public key was supplied in the asymmetric security header");
                     0
                 }
             }
@@ -298,10 +297,12 @@ impl SecureChannel {
             } else if minimum_padding == 2 {
                 // Padding and then extra padding
                 let padding_byte = ((padding_size - 2) & 0xff) as u8;
-                for _ in 0..padding_size {
+                let extra_padding_byte = ((padding_size - 2) >> 8) as u8;
+                trace!("adding extra padding - padding_byte = {}, extra_padding_byte = {}", padding_byte, extra_padding_byte);
+                for _ in 0..(padding_size - 1) {
                     write_u8(&mut stream, padding_byte)?;
                 }
-                write_u8(&mut stream, ((padding_size - 2) >> 8) as u8)?;
+                write_u8(&mut stream, extra_padding_byte)?;
             }
         }
 
@@ -545,28 +546,44 @@ impl SecureChannel {
         Ok(header_size + encrypted_size)
     }
 
+    fn check_padding_bytes(padding_bytes: &[u8], expected_padding_byte: u8, padding_range_start: usize) -> Result<(), StatusCode> {
+        for (i, b) in padding_bytes.iter().enumerate() {
+            if *b != expected_padding_byte {
+                error!("Expected padding byte {}, got {} at index {}", expected_padding_byte, *b, padding_range_start + i);
+                return Err(BAD_SECURITY_CHECKS_FAILED);
+            }
+        }
+        Ok(())
+    }
+
     /// Verify that the padding is correct. Padding is expected to be before the supplied padding end index.
     ///
     /// Function returns the padding range so caller can strip the range if it so desires.
     fn verify_padding(&self, src: &[u8], key_size: usize, padding_end: usize) -> Result<Range<usize>, StatusCode> {
-        let (padding_byte, padding_range) = if key_size > 256 {
-            let extra_padding_byte = src[padding_end - 1];
+        let padding_range = if key_size > 256 {
             let padding_byte = src[padding_end - 2];
+            let extra_padding_byte = src[padding_end - 1];
             let padding_size = ((extra_padding_byte as usize) << 8) + (padding_byte as usize);
-            trace!("Extra padding: padding_end = {}, padding_size = {}", padding_end, padding_size);
-            (padding_byte, (padding_end - padding_size - 1)..(padding_end - 1))
+            let padding_range = (padding_end - padding_size - 2)..padding_end;
+
+            trace!("Extra padding - extra_padding_byte = {}, padding_byte = {}, padding_end = {}, padding_size = {}", extra_padding_byte, padding_byte, padding_end, padding_size);
+
+            // Check padding bytes and extra padding byte
+            Self::check_padding_bytes(&src[padding_range.start..(padding_range.end - 1)], padding_byte, padding_range.start)?;
+            if src[padding_range.end - 1] != extra_padding_byte {
+                error!("Expected extra padding byte {}, at index {}", extra_padding_byte, padding_range.start);
+                return Err(BAD_SECURITY_CHECKS_FAILED);
+            }
+            padding_range
         } else {
             let padding_byte = src[padding_end - 1];
             let padding_size = padding_byte as usize;
-            (padding_byte, (padding_end - padding_size - 1)..padding_end)
+            let padding_range = (padding_end - padding_size - 1)..padding_end;
+            // Check padding bytes
+            Self::check_padding_bytes(&src[padding_range.clone()], padding_byte, padding_range.start)?;
+            padding_range
         };
-        trace!("Padding byte {} check on range {:?}", padding_byte, padding_range);
-        for (i, b) in src[padding_range.clone()].iter().enumerate() {
-            if *b != padding_byte {
-                error!("Expected padding byte {}, got {} at index {}", padding_byte, *b, i);
-                return Err(BAD_SECURITY_CHECKS_FAILED);
-            }
-        }
+        trace!("padding_range = {:?}", padding_range);
         Ok(padding_range)
     }
 
