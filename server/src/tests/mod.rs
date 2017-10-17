@@ -4,6 +4,8 @@ use std::path::PathBuf;
 use chrono;
 use time;
 
+use opcua_core::config::Config;
+
 use prelude::*;
 use session::*;
 

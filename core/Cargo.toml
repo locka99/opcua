@@ -16,6 +16,8 @@ chrono = "0.3"
 rand = "0.3"
 regex = "0.2.1"
 openssl = "0.9.15"
+serde = "0.9"
+serde_yaml = "0.6"
 
 [dependencies.opcua-types]
 path = "../types"

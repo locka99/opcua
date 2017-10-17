@@ -1,16 +1,11 @@
-use serde_yaml;
-
-use std::path::{Path, PathBuf};
-use std::io::prelude::*;
-use std::fs::File;
+use std::path::PathBuf;
 use std::str::FromStr;
-
-use std::result::Result;
 
 use opcua_types::MessageSecurityMode;
 use opcua_types::constants as opcua_types_constants;
 
 use opcua_core::crypto::SecurityPolicy;
+use opcua_core::config::Config;
 
 use constants;
 
@@ -163,8 +158,36 @@ pub struct ServerConfig {
     pub max_byte_string_length: u32,
 }
 
+impl Config for ServerConfig {
+    fn is_valid(&self) -> bool {
+        let mut valid = true;
+        if self.endpoints.is_empty() {
+            error!("Server configuration is invalid. It defines no endpoints");
+            valid = false;
+        }
+        for e in self.endpoints.iter() {
+            if !e.is_valid() {
+                valid = false;
+            }
+        }
+        if self.max_array_length == 0 {
+            error!("Server configuration is invalid.  Max array length is invalid");
+            valid = false;
+        }
+        if self.max_string_length == 0 {
+            error!("Server configuration is invalid.  Max string length is invalid");
+            valid = false;
+        }
+        if self.max_byte_string_length == 0 {
+            error!("Server configuration is invalid.  Max byte string length is invalid");
+            valid = false;
+        }
+        valid
+    }
+}
+
 impl ServerConfig {
-    pub fn default(endpoints: Vec<ServerEndpoint>) -> ServerConfig {
+    pub fn default(endpoints: Vec<ServerEndpoint>) -> Self {
         let application_name = "OPCUA-Rust".to_string();
         let hostname = "127.0.0.1".to_string();
 
@@ -194,15 +217,15 @@ impl ServerConfig {
     }
 
     /// Returns the default server configuration to run a server with no security and anonymous access enabled
-    pub fn default_anonymous() -> ServerConfig {
+    pub fn default_anonymous() -> Self {
         ServerConfig::default(vec![ServerEndpoint::default_anonymous()])
     }
 
-    pub fn default_user_pass(user: &str, pass: &[u8]) -> ServerConfig {
+    pub fn default_user_pass(user: &str, pass: &[u8]) -> Self {
         ServerConfig::default(vec![ServerEndpoint::default_user_pass(user, pass)])
     }
 
-    pub fn default_secure() -> ServerConfig {
+    pub fn default_secure() -> Self {
         ServerConfig::default(vec![ServerEndpoint::default_basic128rsa15_sign_encrypt()])
     }
 
@@ -221,55 +244,5 @@ impl ServerConfig {
         ]);
         config.create_sample_keypair = true;
         config
-    }
-
-    pub fn save(&self, path: &Path) -> Result<(), ()> {
-        if self.is_valid() {
-            let s = serde_yaml::to_string(&self).unwrap();
-            if let Ok(mut f) = File::create(path) {
-                if f.write_all(s.as_bytes()).is_ok() {
-                    return Ok(());
-                }
-            }
-        }
-        Err(())
-    }
-
-    pub fn load(path: &Path) -> Result<ServerConfig, ()> {
-        if let Ok(mut f) = File::open(path) {
-            let mut s = String::new();
-            if f.read_to_string(&mut s).is_ok() {
-                if let Ok(config) = serde_yaml::from_str(&s) {
-                    return Ok(config);
-                }
-            }
-        }
-        Err(())
-    }
-
-    pub fn is_valid(&self) -> bool {
-        let mut valid = true;
-        if self.endpoints.is_empty() {
-            error!("Server configuration is invalid. It defines no endpoints");
-            valid = false;
-        }
-        for e in self.endpoints.iter() {
-            if !e.is_valid() {
-                valid = false;
-            }
-        }
-        if self.max_array_length == 0 {
-            error!("Server configuration is invalid.  Max array length is invalid");
-            valid = false;
-        }
-        if self.max_string_length == 0 {
-            error!("Server configuration is invalid.  Max string length is invalid");
-            valid = false;
-        }
-        if self.max_byte_string_length == 0 {
-            error!("Server configuration is invalid.  Max byte string length is invalid");
-            valid = false;
-        }
-        valid
     }
 }

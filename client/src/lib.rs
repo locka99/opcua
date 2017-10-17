@@ -6,11 +6,15 @@
 extern crate log;
 extern crate url;
 extern crate chrono;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
 
 extern crate opcua_types;
 extern crate opcua_core;
 
 mod comms;
+mod config;
 
 pub mod client;
 pub mod session;
@@ -20,3 +24,6 @@ pub mod prelude {
     pub use client::*;
     pub use session::*;
 }
+
+#[cfg(test)]
+mod tests;

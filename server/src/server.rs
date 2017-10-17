@@ -11,6 +11,7 @@ use opcua_types::*;
 use opcua_types::profiles;
 
 use opcua_core::prelude::*;
+use opcua_core::config::Config;
 
 use constants;
 use address_space::types::AddressSpace;
@@ -154,8 +155,7 @@ impl ServerState {
             // Test end point's security_policy_uri and matching url
             if let Ok(result) = url_matches_except_host(&e.endpoint_url, endpoint_url) {
                 result
-            }
-            else {
+            } else {
                 false
             }
         }).map(|e| self.new_endpoint_description(e, false)).collect();
@@ -198,8 +198,7 @@ impl ServerState {
                 discovery_profile_uri: UAString::null(),
                 discovery_urls: None,
             }, self.server_certificate_as_byte_string())
-        }
-        else {
+        } else {
             (ApplicationDescription {
                 application_uri: UAString::null(),
                 product_uri: UAString::null(),
@@ -213,7 +212,8 @@ impl ServerState {
 
         EndpointDescription {
             endpoint_url: UAString::from(endpoint.endpoint_url.as_ref()),
-            server, server_certificate,
+            server,
+            server_certificate,
             security_mode: endpoint.security_mode,
             security_policy_uri: endpoint.security_policy_uri.clone(),
             user_identity_tokens: Some(user_identity_tokens),

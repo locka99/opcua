@@ -10,6 +10,8 @@ extern crate rand;
 extern crate openssl;
 #[cfg(test)]
 extern crate tempdir;
+extern crate serde;
+extern crate serde_yaml;
 
 extern crate opcua_types;
 
@@ -121,9 +123,12 @@ pub mod debug {
 #[cfg(test)]
 mod tests;
 
+pub mod config;
+
 /// The prelude mod contains all the things you typically need to access from a client / server.
 pub mod prelude {
     pub use opcua_types::*;
     pub use comms::prelude::*;
     pub use crypto::*;
+    pub use config::Config;
 }

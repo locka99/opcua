@@ -15,7 +15,6 @@ time = "0.1"
 chrono = "0.3"
 serde = "0.9"
 serde_derive = "0.9"
-serde_yaml = "0.6"
 timer = "0.1.6"
 rand = "0.3"
 
