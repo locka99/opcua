@@ -105,6 +105,15 @@ impl CertificateStore {
             builder.set_not_after(&Asn1Time::days_from_now(args.certificate_duration_days).unwrap()).unwrap();
             builder.set_pubkey(&pkey).unwrap();
 
+            // Random serial number
+            {
+                use openssl::bn::{BigNum, MSB_MAYBE_ZERO};
+                let mut serial = BigNum::new().unwrap();
+                serial.rand(128, MSB_MAYBE_ZERO, false).unwrap();
+                let serial = serial.to_asn1_integer().unwrap();
+                let _ = builder.set_serial_number(&serial);
+            }
+
             // Subject alt names - Alt hostnames, ip addresses for application instance cert
             if !args.alt_host_names.is_empty() {
                 let subject_alternative_name = {
