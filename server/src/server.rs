@@ -170,9 +170,6 @@ impl ServerState {
         }
     }
 
-    ///
-
-
     /// Constructs a new endpoint description using the server's info and that in an Endpoint
     fn new_endpoint_description(&self, endpoint: &Endpoint, all_fields: bool) -> EndpointDescription {
         let mut user_identity_tokens = Vec::with_capacity(2);

@@ -14,7 +14,7 @@ fn make_test_file(filename: &str) -> PathBuf {
 fn client_config() {
     let path = make_test_file("client_config.yaml");
     println!("Client path = {:?}", path);
-    let config = ClientConfig::new();
+    let config = ClientConfig::new_sample();
     assert!(config.save(&path).is_ok());
     if let Ok(config2) = ClientConfig::load(&path) {
         assert_eq!(config, config2);

@@ -11,7 +11,7 @@ fn main() {
     opcua_core::init_logging();
 
     // Create the client's particulars, a name and a urn
-    let mut client = Client::new("SampleClient", "urn:SampleClient");
+    let mut client = Client::new(ClientConfig::new("SampleClient", "urn:SampleClient"));
 
     // Create a session. This will not connect until it is told to connect.
     if let Ok(session) = client.new_session("opc.tcp://127.0.0.1:4855", SecurityPolicy::None) {

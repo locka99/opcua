@@ -1,3 +1,6 @@
+use std;
+use std::path::PathBuf;
+
 use opcua_core::config::Config;
 
 pub trait ClientUserToken {}
@@ -23,7 +26,7 @@ pub struct ClientConfig {
     /// since you do not have control of the values
     pub create_sample_keypair: bool,
     /// pki folder, either absolute or relative to executable
-    pub pki_dir: String,
+    pub pki_dir: PathBuf,
 }
 
 impl Config for ClientConfig {
@@ -33,12 +36,27 @@ impl Config for ClientConfig {
 }
 
 impl ClientConfig {
-    pub fn new() -> Self {
+    pub fn new(application_name: &str, application_uri: &str) -> Self {
+        let mut pki_dir = std::env::current_dir().unwrap();
+        pki_dir.push("pki");
+
         ClientConfig {
-            application_name: String::new(),
-            application_uri: String::new(),
+            application_name: application_name.to_string(),
+            application_uri: application_uri.to_string(),
             create_sample_keypair: false,
-            pki_dir: String::new(),
+            pki_dir,
+        }
+    }
+
+    pub fn new_sample() -> Self {
+        let mut pki_dir = std::env::current_dir().unwrap();
+        pki_dir.push("pki");
+
+        ClientConfig {
+            application_name: "OPC UA Sample Client".to_string(),
+            application_uri: String::new(),
+            create_sample_keypair: true,
+            pki_dir,
         }
     }
 }

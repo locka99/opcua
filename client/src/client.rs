@@ -1,8 +1,8 @@
 use std::sync::{Arc, Mutex};
-use std;
 
 use opcua_core::prelude::*;
 
+use config::ClientConfig;
 use session::Session;
 
 /// The client-side OPC UA state. A client can have a description, multiple open sessions
@@ -20,16 +20,11 @@ pub struct Client {
 impl Client {
     /// Creates a new `Client` instance. The application name and uri are supplied as arguments to
     /// this call and are passed to each session that connects hereafter.
-    pub fn new(application_name: &str, application_uri: &str) -> Client {
-        // TODO this pki path should be made some other way
-        let mut pki_path = std::env::current_dir().unwrap();
-        pki_path.push("pki");
-        debug!("pki_path = {}", pki_path.to_str().unwrap());
-
+    pub fn new(config: ClientConfig) -> Client {
         Client {
             client_description: ApplicationDescription {
-                application_uri: UAString::from(application_uri),
-                application_name: LocalizedText::new("", application_name),
+                application_uri: UAString::from(config.application_uri.as_ref()),
+                application_name: LocalizedText::new("", &config.application_name),
                 application_type: ApplicationType::Client,
                 product_uri: UAString::null(),
                 gateway_server_uri: UAString::null(),
@@ -37,7 +32,7 @@ impl Client {
                 discovery_urls: None,
             },
             sessions: Vec::new(),
-            certificate_store: Arc::new(Mutex::new(CertificateStore::new(&pki_path)))
+            certificate_store: Arc::new(Mutex::new(CertificateStore::new(&config.pki_dir)))
         }
     }
 

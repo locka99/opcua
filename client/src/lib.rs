@@ -14,14 +14,15 @@ extern crate opcua_types;
 extern crate opcua_core;
 
 mod comms;
-mod config;
 
+pub mod config;
 pub mod client;
 pub mod session;
 
 pub mod prelude {
     pub use opcua_core::prelude::*;
     pub use client::*;
+    pub use config::ClientConfig;
     pub use session::*;
 }
 
