@@ -138,7 +138,7 @@ pub struct ServerConfig {
     /// Product url
     pub product_uri: String,
     /// pki folder, either absolute or relative to executable
-    pub pki_dir: String,
+    pub pki_dir: PathBuf,
     /// Autocreates public / private keypair if they don't exist. For testing/samples only
     /// since you do not have control of the values
     pub create_sample_keypair: bool,
@@ -193,7 +193,6 @@ impl ServerConfig {
 
         let application_uri = format!("urn:{}", application_name);
         let product_uri = format!("urn:{}", application_name);
-
         let pki_dir = PathBuf::from("./pki");
 
         ServerConfig {
@@ -201,7 +200,7 @@ impl ServerConfig {
             application_uri,
             product_uri,
             discovery_service: true,
-            pki_dir: pki_dir.into_os_string().into_string().unwrap(),
+            pki_dir,
             create_sample_keypair: false,
             tcp_config: TcpConfig {
                 host: hostname,

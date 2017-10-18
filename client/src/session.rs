@@ -41,6 +41,8 @@ pub struct Session {
     pub endpoint_url: String,
     /// Security policy
     pub security_policy: SecurityPolicy,
+    /// Message security mode
+    pub security_mode: MessageSecurityMode,
     /// Runtime state of the session, reset if disconnected
     session_state: Arc<Mutex<SessionState>>,
     /// Transport layer
@@ -57,7 +59,7 @@ impl Drop for Session {
 
 impl Session {
     /// Create a new session.
-    pub fn new(certificate_store: Arc<Mutex<CertificateStore>>, endpoint_url: &str, security_policy: SecurityPolicy) -> Session {
+    pub fn new(certificate_store: Arc<Mutex<CertificateStore>>, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> Session {
         let session_state = Arc::new(Mutex::new(SessionState {
             endpoint: None,
             session_timeout: 60 * 1000,
@@ -71,10 +73,11 @@ impl Session {
         }));
         let transport = TcpTransport::new(certificate_store, session_state.clone());
         Session {
-            session_state: session_state,
-            transport: transport,
+            session_state,
+            transport,
             endpoint_url: endpoint_url.to_string(),
-            security_policy: security_policy,
+            security_policy,
+            security_mode
         }
     }
 

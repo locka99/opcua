@@ -60,13 +60,26 @@ impl BinaryEncoder<MessageSecurityMode> for MessageSecurityMode {
 
 impl fmt::Display for MessageSecurityMode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match self {
-            &MessageSecurityMode::None => MESSAGE_SECURITY_MODE_NONE,
-            &MessageSecurityMode::Sign => MESSAGE_SECURITY_MODE_SIGN,
-            &MessageSecurityMode::SignAndEncrypt => MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT,
+        let name = match *self {
+            MessageSecurityMode::None => MESSAGE_SECURITY_MODE_NONE,
+            MessageSecurityMode::Sign => MESSAGE_SECURITY_MODE_SIGN,
+            MessageSecurityMode::SignAndEncrypt => MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT,
             _ => "",
         };
         write!(f, "{}", name)
+    }
+}
+
+impl From<MessageSecurityMode> for String {
+    fn from(security_mode: MessageSecurityMode) -> Self {
+        String::from(
+            match security_mode {
+                MessageSecurityMode::None => MESSAGE_SECURITY_MODE_NONE,
+                MessageSecurityMode::Sign => MESSAGE_SECURITY_MODE_SIGN,
+                MessageSecurityMode::SignAndEncrypt => MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT,
+                _ => "",
+            }
+        )
     }
 }
 

@@ -4,17 +4,19 @@ extern crate opcua_types;
 extern crate opcua_core;
 extern crate opcua_client;
 
+use std::path::PathBuf;
+
 use opcua_client::prelude::*;
 
 fn main() {
     // Logging is optional. If you call this, then you will see lots of output to the console.
     opcua_core::init_logging();
 
-    // Create the client's particulars, a name and a urn
-    let mut client = Client::new(ClientConfig::new("SampleClient", "urn:SampleClient"));
+    // Create the client using the sample client.config
+    let mut client = Client::new(ClientConfig::load(&PathBuf::from("../client.conf")).unwrap());
 
     // Create a session. This will not connect until it is told to connect.
-    if let Ok(session) = client.new_session("opc.tcp://127.0.0.1:4855", SecurityPolicy::None) {
+    if let Ok(session) = client.new_session_from_endpoint("sample_none") {
         println!("Sample client cannot create a session!");
         let mut session = session.lock().unwrap();
         // Connect and do something with the server
