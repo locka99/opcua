@@ -187,10 +187,10 @@ impl Config for ServerConfig {
 }
 
 impl ServerConfig {
-    pub fn default(endpoints: Vec<ServerEndpoint>) -> Self {
-        let application_name = "OPCUA-Rust".to_string();
+    pub fn default<T>(application_name: T, endpoints: Vec<ServerEndpoint>) -> Self where T: Into<String> {
         let hostname = "127.0.0.1".to_string();
 
+        let application_name = application_name.into();
         let application_uri = format!("urn:{}", application_name);
         let product_uri = format!("urn:{}", application_name);
         let pki_dir = PathBuf::from("./pki");
@@ -216,22 +216,23 @@ impl ServerConfig {
     }
 
     /// Returns the default server configuration to run a server with no security and anonymous access enabled
-    pub fn default_anonymous() -> Self {
-        ServerConfig::default(vec![ServerEndpoint::default_anonymous()])
+    pub fn default_anonymous<T>(application_name: T) -> Self where T: Into<String> {
+        ServerConfig::default(application_name, vec![ServerEndpoint::default_anonymous()])
     }
 
-    pub fn default_user_pass(user: &str, pass: &[u8]) -> Self {
-        ServerConfig::default(vec![ServerEndpoint::default_user_pass(user, pass)])
+    pub fn default_user_pass<T>(application_name: T, user: &str, pass: &[u8]) -> Self where T: Into<String> {
+        ServerConfig::default(application_name, vec![ServerEndpoint::default_user_pass(user, pass)])
     }
 
-    pub fn default_secure() -> Self {
-        ServerConfig::default(vec![ServerEndpoint::default_basic128rsa15_sign_encrypt()])
+    pub fn default_secure<T>(application_name: T) -> Self where T: Into<String> {
+        ServerConfig::default(application_name, vec![ServerEndpoint::default_basic128rsa15_sign_encrypt()])
     }
 
     /// Sample mode turns on everything including a hard coded user/pass
     pub fn default_sample() -> ServerConfig {
         warn!("Sample configuration is for testing purposes only. Use a proper configuration in your production environment");
-        let mut config = ServerConfig::default(vec![
+        let application_name = "OPC UA Sample Server";
+        let mut config = ServerConfig::default(application_name, vec![
             ServerEndpoint::default_anonymous(),
             ServerEndpoint::default_user_pass("sample", b"sample1"),
             ServerEndpoint::default_basic128rsa15_sign(),

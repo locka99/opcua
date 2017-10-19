@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use opcua_core::prelude::*;
 
-use config::{ClientConfig};
+use config::ClientConfig;
 use session::Session;
 
 /// The client-side OPC UA state. A client can have a description, multiple open sessions
@@ -39,6 +39,15 @@ impl Client {
             gateway_server_uri: UAString::null(),
             discovery_profile_uri: UAString::null(),
             discovery_urls: None,
+        }
+    }
+
+    pub fn new_session_default(&mut self) -> Result<Arc<Mutex<Session>>, String> {
+        let default_endpoint = self.config.default_endpoint.clone();
+        if default_endpoint.is_empty() {
+            Err(format!("No default endpoint has been specified"))
+        } else {
+            self.new_session_from_endpoint(&default_endpoint)
         }
     }
 

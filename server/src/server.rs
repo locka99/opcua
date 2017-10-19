@@ -354,13 +354,13 @@ impl Server {
     }
 
     /// Create a new server instance using the server default configuration
-    pub fn new_default_anonymous() -> Server {
-        Server::new(ServerConfig::default_anonymous())
+    pub fn new_default_anonymous<T>(application_name: T) -> Server where T: Into<String> {
+        Server::new(ServerConfig::default_anonymous(application_name))
     }
 
     /// Create a new server instance using the server default configuration for user/name password
-    pub fn new_default_user_pass(user: &str, pass: &[u8]) -> Server {
-        Server::new(ServerConfig::default_user_pass(user, pass))
+    pub fn new_default_user_pass<T>(application_name: T, user: &str, pass: &[u8]) -> Server where T: Into<String> {
+        Server::new(ServerConfig::default_user_pass(application_name, user, pass))
     }
 
     // Terminates the running server

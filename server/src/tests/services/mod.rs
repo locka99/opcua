@@ -12,7 +12,7 @@ struct ServiceTest {
 
 impl ServiceTest {
     pub fn new() -> ServiceTest {
-        let server = Server::new(ServerConfig::default_anonymous());
+        let server = Server::new(ServerConfig::default_anonymous("foo"));
         ServiceTest {
             tcp_transport: TcpTransport::new(server.server_state),
         }

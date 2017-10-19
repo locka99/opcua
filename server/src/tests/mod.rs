@@ -52,7 +52,7 @@ pub fn server_config_sample_save() {
 #[test]
 pub fn server_config_save() {
     let path = make_test_file("server_config.yaml");
-    let config = ServerConfig::default_anonymous();
+    let config = ServerConfig::default_anonymous("foo");
     assert!(config.save(&path).is_ok());
     if let Ok(config2) = ServerConfig::load(&path) {
         assert_eq!(config, config2);
@@ -63,17 +63,17 @@ pub fn server_config_save() {
 
 #[test]
 pub fn server_config_invalid() {
-    let mut config = ServerConfig::default_anonymous();
+    let mut config = ServerConfig::default_anonymous("foo");
     assert!(config.is_valid());
     config.endpoints.clear();
     assert_eq!(config.is_valid(), false);
-    config = ServerConfig::default_anonymous();
+    config = ServerConfig::default_anonymous("foo");
     config.endpoints[0].anonymous = None;
     assert_eq!(config.is_valid(), false);
-    config = ServerConfig::default_anonymous();
+    config = ServerConfig::default_anonymous("foo");
     config.endpoints[0].user = Some("hello".to_string());
     assert_eq!(config.is_valid(), false);
-    config = ServerConfig::default_anonymous();
+    config = ServerConfig::default_anonymous("foo");
     config.endpoints[0].pass = Some("hello".to_string());
     assert_eq!(config.is_valid(), false);
 }

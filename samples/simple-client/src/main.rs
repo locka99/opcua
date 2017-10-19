@@ -16,7 +16,7 @@ fn main() {
     let mut client = Client::new(ClientConfig::load(&PathBuf::from("../client.conf")).unwrap());
 
     // Create a session. This will not connect until it is told to connect.
-    if let Ok(session) = client.new_session_from_endpoint("sample_none") {
+    if let Ok(session) = client.new_session_default() {
         println!("Sample client cannot create a session!");
         let mut session = session.lock().unwrap();
         // Connect and do something with the server

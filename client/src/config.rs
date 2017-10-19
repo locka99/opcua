@@ -29,6 +29,8 @@ pub struct ClientConfig {
     pub product_uri: String,
     /// pki folder, either absolute or relative to executable
     pub pki_dir: PathBuf,
+    /// Name of the default endpoint
+    pub default_endpoint: String,
     /// List of end points
     pub endpoints: Vec<ClientEndpoint>
 }
@@ -40,16 +42,16 @@ impl Config for ClientConfig {
 }
 
 impl ClientConfig {
-    pub fn new(application_name: &str, application_uri: &str) -> Self {
+    pub fn new<T>(application_name: T, application_uri: T) -> Self where T: Into<String> {
         let mut pki_dir = std::env::current_dir().unwrap();
         pki_dir.push("pki");
-
         ClientConfig {
-            application_name: application_name.to_string(),
-            application_uri: application_uri.to_string(),
+            application_name: application_name.into(),
+            application_uri: application_uri.into(),
             create_sample_keypair: false,
             product_uri: String::new(),
             pki_dir,
+            default_endpoint: String::new(),
             endpoints: Vec::new()
         }
     }
@@ -94,6 +96,7 @@ impl ClientConfig {
             create_sample_keypair: true,
             product_uri: String::new(),
             pki_dir,
+            default_endpoint: "sample_none".to_string(),
             endpoints
         }
     }
