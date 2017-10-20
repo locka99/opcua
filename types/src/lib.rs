@@ -96,18 +96,20 @@ mod generated;
 mod attribute;
 mod service_types;
 mod supported_message;
+mod numeric_range;
 
-pub use self::encoding::*;
-pub use self::basic_types::*;
-pub use self::data_value::*;
-pub use self::date_time::*;
-pub use self::node_id::*;
-pub use self::variant::*;
-pub use self::data_types::*;
-pub use self::generated::*;
-pub use self::attribute::*;
-pub use self::service_types::*;
-pub use self::supported_message::*;
+pub use encoding::*;
+pub use basic_types::*;
+pub use data_value::*;
+pub use date_time::*;
+pub use node_id::*;
+pub use variant::*;
+pub use data_types::*;
+pub use generated::*;
+pub use attribute::*;
+pub use service_types::*;
+pub use supported_message::*;
+pub use numeric_range::*;
 
 #[macro_export]
 macro_rules! supported_message_as {
