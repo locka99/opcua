@@ -13,9 +13,9 @@ pub struct Client {
     config: ClientConfig,
     /// A list of sessions made by the client. They are protected since a session may or may not be
     /// running on an independent thread.
-    pub sessions: Vec<Arc<Mutex<Session>>>,
+    sessions: Vec<Arc<Mutex<Session>>>,
     /// Certificate store is where certificates go.
-    pub certificate_store: Arc<Mutex<CertificateStore>>
+    certificate_store: Arc<Mutex<CertificateStore>>
 }
 
 impl Client {
@@ -30,6 +30,7 @@ impl Client {
         }
     }
 
+    /// Returns a filled OPCUA `ApplicationDescription` struct using information from the config
     pub fn application_description(&self) -> ApplicationDescription {
         ApplicationDescription {
             application_uri: UAString::from(self.config.application_uri.as_ref()),
@@ -42,6 +43,8 @@ impl Client {
         }
     }
 
+    /// Creates a new `Session` using the default endpoint specified by name in the config. If there is no
+    /// default, or the name does not exist, this function will return an error
     pub fn new_session_default(&mut self) -> Result<Arc<Mutex<Session>>, String> {
         let default_endpoint = self.config.default_endpoint.clone();
         if default_endpoint.is_empty() {
@@ -51,10 +54,12 @@ impl Client {
         }
     }
 
-    pub fn new_session_from_endpoint(&mut self, endpoint_name: &str) -> Result<Arc<Mutex<Session>>, String> {
+    /// Creates a new `Session` using the endpoint id. If the named endpoint does not exist or
+    /// is in error, this function will return an error.
+    pub fn new_session_from_endpoint(&mut self, id: &str) -> Result<Arc<Mutex<Session>>, String> {
         // Enumerate endpoints looking for matching one
         let (url, security_policy, security_mode) = {
-            let endpoint = self.config.endpoints.iter().find(|e| &e.name == endpoint_name);
+            let endpoint = self.config.endpoints.iter().find(|e| &e.id == id);
             if let Some(ref endpoint) = endpoint {
                 if let Ok(security_policy) = SecurityPolicy::from_str(&endpoint.security_policy) {
                     let security_mode = MessageSecurityMode::from(endpoint.security_mode.as_ref());
@@ -62,19 +67,19 @@ impl Client {
                         let url = endpoint.url.clone();
                         (url, security_policy, security_mode)
                     } else {
-                        return Err(format!("Endpoint {} security mode {} is invalid", endpoint_name, endpoint.security_mode));
+                        return Err(format!("Endpoint {} security mode {} is invalid", id, endpoint.security_mode));
                     }
                 } else {
-                    return Err(format!("Endpoint {} security policy {} is invalid", endpoint_name, endpoint.security_policy));
+                    return Err(format!("Endpoint {} security policy {} is invalid", id, endpoint.security_policy));
                 }
             } else {
-                return Err(format!("Endpoint {} cannot be found in list of configured endpoints. Check config file", endpoint_name));
+                return Err(format!("Endpoint {} cannot be found in list of configured endpoints. Check config file", id));
             }
         };
         self.new_session(&url, security_policy, security_mode)
     }
 
-    /// Creates a new session from this client.
+    /// Creates a new `Session` using the specified endpoint url, security policy and mode.
     pub fn new_session(&mut self, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> Result<Arc<Mutex<Session>>, String> {
         if !is_opc_ua_binary_url(endpoint_url) {
             Err(format!("Endpoint url {}, is not a valid / supported url", endpoint_url))

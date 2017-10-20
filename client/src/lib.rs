@@ -18,12 +18,14 @@ mod comms;
 pub mod config;
 pub mod client;
 pub mod session;
+pub mod subscription;
 
 pub mod prelude {
     pub use opcua_core::prelude::*;
     pub use client::*;
     pub use config::ClientConfig;
     pub use session::*;
+    pub use subscription::*;
 }
 
 #[cfg(test)]
