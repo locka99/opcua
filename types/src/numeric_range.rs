@@ -48,6 +48,7 @@ fn valid_numeric_ranges() {
         ("0000", NumericRange::Index(0)),
         ("1", NumericRange::Index(1)),
         ("0123456789", NumericRange::Index(123456789)),
+        ("4294967295", NumericRange::Index(4294967295)),
         ("1:2", NumericRange::Range(1, 2)),
         ("2:3", NumericRange::Range(2, 3)),
         ("0:1,0:2,0:3,0:4,0:5", NumericRange::MultipleRanges(vec![
@@ -85,7 +86,8 @@ fn invalid_numeric_ranges() {
     // or number of indices.
     let invalid_ranges = vec![
         "", " ", " 1", "1 ", ":", ":1", "1:1", "2:1", "1:", "1:1:2", ",", ":,", ",:",
-        ",1", "1,", "1,2,", "1,,2", "01234567890", "0,1,2,3,4,5,6,7,8,9,10"
+        ",1", "1,", "1,2,", "1,,2", "01234567890", "0,1,2,3,4,5,6,7,8,9,10",
+        "4294967296", "0:4294967296", "4294967296:0"
     ];
     for vr in invalid_ranges {
         println!("vr = {}", vr);
@@ -147,27 +149,34 @@ impl NumericRange {
             lazy_static! {
                 static ref RE: Regex = Regex::new("^(?P<min>[0-9]{1,10})(:(?P<max>[0-9]{1,10}))?$").unwrap();
             }
-            let captures = RE.captures(s);
-            if captures.is_none() {
-                Err(())
-            } else {
-                let captures = captures.unwrap();
+            if let Some(captures) = RE.captures(s) {
                 let min = captures.name("min");
                 let max = captures.name("max");
                 if min.is_none() && max.is_none() {
                     Err(())
                 } else if min.is_some() && max.is_none() {
-                    let min = min.unwrap().as_str().parse::<UInt32>().unwrap();
-                    Ok(NumericRange::Index(min))
-                } else {
-                    let min = min.unwrap().as_str().parse::<UInt32>().unwrap();
-                    let max = max.unwrap().as_str().parse::<UInt32>().unwrap();
-                    if min >= max {
-                        Err(())
+                    if let Ok(min) = min.unwrap().as_str().parse::<UInt32>() {
+                        Ok(NumericRange::Index(min))
                     } else {
-                        Ok(NumericRange::Range(min, max))
+                        Err(())
+                    }
+                } else {
+                    if let Ok(min) = min.unwrap().as_str().parse::<UInt32>() {
+                        if let Ok(max) = max.unwrap().as_str().parse::<UInt32>() {
+                            if min >= max {
+                                Err(())
+                            } else {
+                                Ok(NumericRange::Range(min, max))
+                            }
+                        } else {
+                            Err(())
+                        }
+                    } else {
+                        Err(())
                     }
                 }
+            } else {
+                Err(())
             }
         }
     }
