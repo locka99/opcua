@@ -3,6 +3,7 @@ use std::str::FromStr;
 use regex::Regex;
 
 use basic_types::UInt32;
+use variant::Variant;
 
 /// See OPCUA Part 4 7.22
 ///
@@ -44,20 +45,20 @@ pub enum NumericRange {
 #[test]
 fn valid_numeric_ranges() {
     let valid_ranges = vec![
-        ("0", NumericRange::Index(0)),
-        ("0000", NumericRange::Index(0)),
-        ("1", NumericRange::Index(1)),
-        ("0123456789", NumericRange::Index(123456789)),
-        ("4294967295", NumericRange::Index(4294967295)),
-        ("1:2", NumericRange::Range(1, 2)),
-        ("2:3", NumericRange::Range(2, 3)),
+        ("0", NumericRange::Index(0), "0"),
+        ("0000", NumericRange::Index(0), "0"),
+        ("1", NumericRange::Index(1), "1"),
+        ("0123456789", NumericRange::Index(123456789), "123456789"),
+        ("4294967295", NumericRange::Index(4294967295), "4294967295"),
+        ("1:2", NumericRange::Range(1, 2), "1:2"),
+        ("2:3", NumericRange::Range(2, 3), "2:3"),
         ("0:1,0:2,0:3,0:4,0:5", NumericRange::MultipleRanges(vec![
             NumericRange::Range(0, 1),
             NumericRange::Range(0, 2),
             NumericRange::Range(0, 3),
             NumericRange::Range(0, 4),
             NumericRange::Range(0, 5)
-        ])),
+        ]), "0:1,0:2,0:3,0:4,0:5"),
         ("0:1,2,3,0:4,5,6,7,8,0:9", NumericRange::MultipleRanges(vec![
             NumericRange::Range(0, 1),
             NumericRange::Index(2),
@@ -68,7 +69,7 @@ fn valid_numeric_ranges() {
             NumericRange::Index(7),
             NumericRange::Index(8),
             NumericRange::Range(0, 9)
-        ]))
+        ]), "0:1,2,3,0:4,5,6,7,8,0:9")
     ];
     for vr in valid_ranges {
         let range = NumericRange::from_str(vr.0);
@@ -77,6 +78,7 @@ fn valid_numeric_ranges() {
         }
         assert!(range.is_ok());
         assert_eq!(range.unwrap(), vr.1);
+        assert_eq!(vr.2, &vr.1.as_string());
     }
 }
 
@@ -103,7 +105,6 @@ const MAX_INDICES: usize = 10;
 
 impl FromStr for NumericRange {
     type Err = ();
-
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // <numeric-range> ::= <dimension> [',' <dimension>]
         // <dimension> ::= <index> [':' <index>]
@@ -136,6 +137,25 @@ impl FromStr for NumericRange {
 }
 
 impl NumericRange {
+    pub fn new<T>(s: T) -> Result<Self, ()> where T: Into<String> {
+        Self::from_str(s.into().as_ref())
+    }
+
+    pub fn as_string(&self) -> String {
+        match *self {
+            NumericRange::Index(idx) => {
+                format!("{}", idx)
+            }
+            NumericRange::Range(min, max) => {
+                format!("{}:{}", min, max)
+            }
+            NumericRange::MultipleRanges(ref ranges) => {
+                let ranges: Vec<String> = ranges.iter().map(|r| r.as_string()).collect();
+                ranges.join(",")
+            }
+        }
+    }
+
     fn parse_range(s: &str) -> Result<NumericRange, ()> {
         if s.is_empty() {
             Err(())
@@ -210,5 +230,20 @@ impl NumericRange {
     }
 
     // This version should test the range against the supplied array
-    // pub fn is_valid_for_array(&self, array: &Variant) -> bool {
+    pub fn is_valid_for_array(&self, array: &Variant) -> bool {
+        match *array {
+            Variant::Array(_) => {
+                // Only accept range / index numeric ranges. Members of range have to be inside array
+                unimplemented!();
+            }
+            Variant::MultiDimensionArray(_) => {
+                // Only accept multi dimension numeric range with same # of dimensions as the array
+                // ensure that each range / index is inside that array dimension
+                unimplemented!();
+            }
+            _ => {
+                panic!("The array is not an array")
+            }
+        }
+    }
 }
