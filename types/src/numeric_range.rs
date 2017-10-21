@@ -142,7 +142,7 @@ impl NumericRange {
             //
             // BNF doesn't appear to care that number could start with a zero, e.g. 0009 etc.
             //
-            // To stop insane values, a number must be 10 digits or less regardless of trailing
+            // To stop insane values, a number must be 10 digits or less regardless of leading
             // zeroes.
             lazy_static! {
                 static ref RE: Regex = Regex::new("^(?P<min>[0-9]{1,10})(:(?P<max>[0-9]{1,10}))?$").unwrap();
