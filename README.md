@@ -17,7 +17,7 @@ The code is licenced under [MPL-2.0](https://opensource.org/licenses/MPL-2.0). L
 
 ## OPC UA Binary Transport Protocol
 
-This implementation will implement the opc.tcp:// protocol and OPC UA Binary format. It will **not** implement OPC UA over XML. XML hasn't see much adoption so this is no great impediment. Binary over https:// might happen at a later time.
+This implementation will implement the opc.tcp:// binary format. It will **not** implement OPC UA over XML. XML hasn't see much adoption so this is no great impediment. Binary over https:// might happen at a later time.
 
 ## Server
 
@@ -98,7 +98,6 @@ Currently the following are not supported
 
 * Diagnostic info. OPC UA allows for you to ask for diagnostics with any request. None is supplied at this time
 * Session resumption. If your client disconnects, all information is discarded.
-* Encryption will come after basic functionality is working in the clear.
 * Default nodeset is mostly static. Certain fields of server information will contain their default values unless explicitly set.
 
 ## Client
