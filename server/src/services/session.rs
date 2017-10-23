@@ -109,13 +109,16 @@ impl SessionService {
                     let server_certificate = server_state.server_certificate.as_ref().unwrap().as_byte_string();
                     service_result = crypto::verify_signature(&client_cert, &request.client_signature, &server_certificate, &session.session_nonce);
                     if service_result.is_good() {
-                        // TODO crypto secure channel verification
-                        //                        let endpoint = SessionService::get_session_endpoint(server_state, session);
-                        //                        if endpoint.is_none() {
-                        //                            return Err(BAD_TCP_ENDPOINT_URL_INVALID);
-                        //                        }
-                        //                        let endpoint = endpoint.unwrap();
-                        //                        endpoint.validate_identity_token(&request.user_identity_token);
+                        // crypto secure channel verification
+/*                        server_state.validate_identity_token(&request.user_identity_token, session.endpoint_url);
+
+                        let endpoint = SessionService::get_session_endpoint(server_state, session);
+                        if endpoint.is_none() {
+                            return Err(BAD_TCP_ENDPOINT_URL_INVALID);
+                        }
+                        let endpoint = endpoint.unwrap();
+                        endpoint.validate_identity_tokenvalidate_identity_token(&request.user_identity_token); */
+
                         session.session_nonce = server_nonce.clone();
                         session.activated = true;
                         service_result = GOOD;

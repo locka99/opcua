@@ -40,7 +40,7 @@ fn add_sample_vars_to_address_space(address_space: &mut AddressSpace) {
 #[test]
 pub fn server_config_sample_save() {
     // This test only exists to dump a sample config
-    let config = ServerConfig::default_sample();
+    let config = ServerConfig::new_sample();
     let mut path = std::env::current_dir().unwrap();
     path.push("..");
     path.push("samples");
@@ -52,7 +52,7 @@ pub fn server_config_sample_save() {
 #[test]
 pub fn server_config_save() {
     let path = make_test_file("server_config.yaml");
-    let config = ServerConfig::default_anonymous("foo");
+    let config = ServerConfig::new_anonymous("foo");
     assert!(config.save(&path).is_ok());
     if let Ok(config2) = ServerConfig::load(&path) {
         assert_eq!(config, config2);
@@ -63,18 +63,20 @@ pub fn server_config_save() {
 
 #[test]
 pub fn server_config_invalid() {
-    let mut config = ServerConfig::default_anonymous("foo");
+    // Remove the endpoint
+    let mut config = ServerConfig::new_anonymous("foo");
     assert!(config.is_valid());
     config.endpoints.clear();
     assert_eq!(config.is_valid(), false);
-    config = ServerConfig::default_anonymous("foo");
-    config.endpoints[0].anonymous = None;
+
+    // Remove the one and only user token id from the endpoint, ensure it's not valid
+    config = ServerConfig::new_anonymous("foo");
+    config.endpoints.get_mut("none").unwrap().user_token_ids.remove("anonymous");
     assert_eq!(config.is_valid(), false);
-    config = ServerConfig::default_anonymous("foo");
-    config.endpoints[0].user = Some("hello".to_string());
-    assert_eq!(config.is_valid(), false);
-    config = ServerConfig::default_anonymous("foo");
-    config.endpoints[0].pass = Some("hello".to_string());
+
+    // Insert a nonexistent user
+    config = ServerConfig::new_anonymous("foo");
+    config.endpoints.get_mut("none").unwrap().user_token_ids.insert("hello".to_string());
     assert_eq!(config.is_valid(), false);
 }
 

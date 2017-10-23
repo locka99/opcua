@@ -5,7 +5,6 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::path::PathBuf;
 use std::thread;
-use std::str::FromStr;
 
 use opcua_types::*;
 use opcua_types::profiles;
@@ -16,61 +15,8 @@ use opcua_core::config::Config;
 use constants;
 use address_space::types::AddressSpace;
 use comms::tcp_transport::*;
-use config::ServerConfig;
+use config::{ServerEndpoint, ServerConfig};
 use util::PollingAction;
-
-#[derive(Clone, Debug)]
-pub struct Endpoint {
-    pub name: String,
-    pub endpoint_url: String,
-    pub security_policy_uri: UAString,
-    pub security_mode: MessageSecurityMode,
-    pub anonymous: bool,
-    pub user: Option<String>,
-    pub pass: Option<Vec<u8>>,
-}
-
-impl Endpoint {
-    /// Compares the identity token to the endpoint and returns GOOD if it authenticates
-    pub fn validate_identity_token(&self, user_identity_token: &ExtensionObject) -> StatusCode {
-        let mut result = BAD_IDENTITY_TOKEN_REJECTED;
-        let identity_token_id = user_identity_token.node_id.clone();
-        debug!("Validating identity token {:?}", identity_token_id);
-        if identity_token_id == ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id() {
-            if self.anonymous {
-                result = GOOD;
-            } else {
-                error!("Authentication error: Client attempted to connect anonymously to endpoint: {}", self.endpoint_url);
-            }
-        } else if identity_token_id == ObjectId::UserNameIdentityToken_Encoding_DefaultBinary.as_node_id() {
-            let user_identity_token = user_identity_token.decode_inner::<UserNameIdentityToken>();
-            if let Ok(user_identity_token) = user_identity_token {
-                result = self.validate_user_name_identity_token(&user_identity_token);
-            } else {
-                error!("Authentication error: User identity token cannot be decoded");
-            }
-        } else {
-            error!("Authentication error: Unsupported identity token {:?}", identity_token_id);
-        };
-        result
-    }
-
-    fn validate_user_name_identity_token(&self, user_identity_token: &UserNameIdentityToken) -> StatusCode {
-        // No comparison will be made unless user and pass are explicitly set
-        if self.user.is_some() && self.pass.is_some() {
-            let result = user_identity_token.authenticate(self.user.as_ref().unwrap(), self.pass.as_ref().unwrap().as_slice());
-            if result.is_ok() {
-                info!("User identity is validated");
-                GOOD
-            } else {
-                result.unwrap_err()
-            }
-        } else {
-            error!("Authentication error: User / pass authentication is unsupported by endpoint {}", self.endpoint_url);
-            BAD_IDENTITY_TOKEN_REJECTED
-        }
-    }
-}
 
 #[derive(Clone)]
 /// Structure that captures diagnostics information for the server
@@ -99,8 +45,6 @@ pub struct ServerState {
     pub namespaces: Vec<String>,
     /// The list of servers (by urn)
     pub servers: Vec<String>,
-    // A list of endpoints
-    pub endpoints: Vec<Endpoint>,
     /// Server configuration
     pub config: Arc<Mutex<ServerConfig>>,
     /// Certificate store for certs
@@ -143,7 +87,8 @@ impl ServerState {
             }
         }
         // Return the endpoints
-        Some(self.endpoints.iter().map(|e| self.new_endpoint_description(e, true)).collect())
+        let config = self.config.lock().unwrap();
+        Some(config.endpoints.iter().map(|(_, e)| self.new_endpoint_description(&config, e, true)).collect())
     }
 
     /// Find endpoints in those supported by the server that match the specified url and security policy
@@ -151,35 +96,29 @@ impl ServerState {
     /// to contain at least one result.
     pub fn find_endpoints(&self, endpoint_url: &str) -> Option<Vec<EndpointDescription>> {
         debug!("find_endpoint, url = {}", endpoint_url);
-        let endpoints: Vec<EndpointDescription> = self.endpoints.iter().filter(|e| {
+        let config = self.config.lock().unwrap();
+        let base_endpoint_url = config.base_endpoint_url();
+        let endpoints: Vec<EndpointDescription> = config.endpoints.iter().filter(|&(_, e)| {
             // Test end point's security_policy_uri and matching url
-            if let Ok(result) = url_matches_except_host(&e.endpoint_url, endpoint_url) {
+            if let Ok(result) = url_matches_except_host(&e.endpoint_url(&base_endpoint_url), endpoint_url) {
                 result
             } else {
                 false
             }
-        }).map(|e| self.new_endpoint_description(e, false)).collect();
+        }).map(|(_, e)| self.new_endpoint_description(&config, e, false)).collect();
         if endpoints.is_empty() { None } else { Some(endpoints) }
     }
 
-    pub fn server_certificate_as_byte_string(&self) -> ByteString {
-        if self.server_certificate.is_some() {
-            self.server_certificate.as_ref().unwrap().as_byte_string()
-        } else {
-            ByteString::null()
-        }
-    }
-
     /// Constructs a new endpoint description using the server's info and that in an Endpoint
-    fn new_endpoint_description(&self, endpoint: &Endpoint, all_fields: bool) -> EndpointDescription {
+    fn new_endpoint_description(&self, config: &ServerConfig, endpoint: &ServerEndpoint, all_fields: bool) -> EndpointDescription {
+        let base_endpoint_url = config.base_endpoint_url();
+
         let mut user_identity_tokens = Vec::with_capacity(2);
-        if endpoint.anonymous {
+        if endpoint.supports_anonymous() {
             user_identity_tokens.push(UserTokenPolicy::new_anonymous());
         }
-        if let Some(ref user) = endpoint.user {
-            if !user.is_empty() {
-                user_identity_tokens.push(UserTokenPolicy::new_user_pass());
-            }
+        if !endpoint.user_token_ids.is_empty() {
+            user_identity_tokens.push(UserTokenPolicy::new_user_pass());
         }
 
         // CreateSession doesn't need all the endpoint description
@@ -208,14 +147,22 @@ impl ServerState {
         };
 
         EndpointDescription {
-            endpoint_url: UAString::from(endpoint.endpoint_url.as_ref()),
+            endpoint_url: endpoint.endpoint_url(&base_endpoint_url).into(),
             server,
             server_certificate,
-            security_mode: endpoint.security_mode,
-            security_policy_uri: endpoint.security_policy_uri.clone(),
+            security_mode: endpoint.message_security_mode(),
+            security_policy_uri: UAString::from(endpoint.security_policy.as_ref()),
             user_identity_tokens: Some(user_identity_tokens),
             transport_profile_uri: UAString::from(profiles::TRANSPORT_PROFILE_URI_BINARY),
             security_level: 1,
+        }
+    }
+
+    pub fn server_certificate_as_byte_string(&self) -> ByteString {
+        if self.server_certificate.is_some() {
+            self.server_certificate.as_ref().unwrap().as_byte_string()
+        } else {
+            ByteString::null()
         }
     }
 
@@ -259,26 +206,6 @@ impl Server {
         let address_space = Arc::new(Mutex::new(AddressSpace::new()));
         let diagnostics = ServerDiagnostics::new();
         // TODO max string, byte string and array lengths
-
-        let endpoints = config.endpoints.iter().map(|e| {
-            let endpoint_url = format!("{}{}", base_endpoint, e.path);
-            let security_mode = MessageSecurityMode::from(e.security_mode.as_ref());
-            let security_policy_uri = SecurityPolicy::from_str(&e.security_policy).unwrap().to_uri().to_string();
-            let anonymous = if let Some(anonymous) = e.anonymous.as_ref() {
-                *anonymous
-            } else {
-                false
-            };
-            Endpoint {
-                name: e.name.clone(),
-                endpoint_url,
-                security_policy_uri: UAString::from(security_policy_uri.as_ref()),
-                security_mode,
-                anonymous,
-                user: e.user.clone(),
-                pass: if e.pass.is_some() { Some(e.pass.as_ref().unwrap().clone().into_bytes()) } else { None },
-            }
-        }).collect();
 
         // Security, pki auto create cert
         let pki_path = PathBuf::from(&config.pki_dir);
@@ -327,7 +254,6 @@ impl Server {
             servers,
             base_endpoint,
             start_time,
-            endpoints,
             config,
             certificate_store,
             server_certificate,
@@ -353,16 +279,6 @@ impl Server {
         }
     }
 
-    /// Create a new server instance using the server default configuration
-    pub fn new_default_anonymous<T>(application_name: T) -> Server where T: Into<String> {
-        Server::new(ServerConfig::default_anonymous(application_name))
-    }
-
-    /// Create a new server instance using the server default configuration for user/name password
-    pub fn new_default_user_pass<T>(application_name: T, user: &str, pass: &[u8]) -> Server where T: Into<String> {
-        Server::new(ServerConfig::default_user_pass(application_name, user, pass))
-    }
-
     // Terminates the running server
     pub fn abort(&mut self) {
         let mut server_state = self.server_state.lock().unwrap();
@@ -381,21 +297,19 @@ impl Server {
 
         {
             let server_state = self.server_state.lock().unwrap();
+            let config = server_state.config.lock().unwrap();
 
             info!("OPC UA Server: {}", server_state.application_name);
             info!("Supported endpoints:");
-            for endpoint in &server_state.endpoints {
-                info!("Endpoint \"{}\": {}", endpoint.name, endpoint.endpoint_url);
-                if endpoint.anonymous {
-                    info!("  Anonymous Access: {:?}", endpoint.anonymous);
-                }
-                if endpoint.user.is_some() {
-                    info!("  User/Password:    {:?}", endpoint.user.is_some());
-                }
-                info!("  Security Mode:    {:?}", endpoint.security_mode);
-                if endpoint.security_mode == MessageSecurityMode::Sign || endpoint.security_mode == MessageSecurityMode::SignAndEncrypt {
-                    info!("  Security Policy:  {}", if endpoint.security_policy_uri.is_null() { "" } else { endpoint.security_policy_uri.as_ref() });
-                }
+            for (id, endpoint) in &config.endpoints {
+
+                let users: Vec<String> = endpoint.user_token_ids.iter().map(|id| id.clone()).collect();
+                let users = users.join(", ");
+
+                info!("Endpoint \"{}\": {}", id, endpoint.path);
+                info!("  Security Mode:    {}", endpoint.security_mode);
+                info!("  Security Policy:  {}", endpoint.security_policy);
+                info!("  Supported user tokens - {}", users);
             }
         }
         info!("Waiting for Connection");

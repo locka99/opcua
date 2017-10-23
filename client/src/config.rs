@@ -1,7 +1,6 @@
 use std;
 use std::path::PathBuf;
-use std::collections::HashSet;
-use std::str::FromStr;
+use std::collections::BTreeMap;
 
 use opcua_types::MessageSecurityMode;
 use opcua_core::config::Config;
@@ -11,8 +10,6 @@ pub const ANONYMOUS_USER_TOKEN_ID: &str = "anonymous";
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct ClientUserToken {
-    /// Identifier for the token
-    pub id: String,
     /// Username
     pub user: String,
     /// Password
@@ -21,8 +18,6 @@ pub struct ClientUserToken {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct ClientEndpoint {
-    /// Identifier for the endpoint
-    pub id: String,
     /// Endpoint path
     pub url: String,
     /// Security policy
@@ -60,48 +55,37 @@ pub struct ClientConfig {
     /// Identifier of the default endpoint
     pub default_endpoint: String,
     /// User tokens
-    pub user_tokens: Vec<ClientUserToken>,
+    pub user_tokens: BTreeMap<String, ClientUserToken>,
     /// List of end points
-    pub endpoints: Vec<ClientEndpoint>
+    pub endpoints: BTreeMap<String, ClientEndpoint>
 }
 
 impl Config for ClientConfig {
     fn is_valid(&self) -> bool {
         let mut valid = true;
 
-        // Check for duplicate ids in users
-        let user_token_ids: HashSet<String> = self.user_tokens.iter().map(|e| e.id.clone()).collect();
-        if user_token_ids.len() != self.user_tokens.len() {
-            error!("User tokens in configuration file contains duplicate user token ids");
-            valid = false;
-        }
-        if user_token_ids.contains(ANONYMOUS_USER_TOKEN_ID) {
+        if self.user_tokens.contains_key(ANONYMOUS_USER_TOKEN_ID) {
             error!("User tokens contains the reserved \"{}\" id", ANONYMOUS_USER_TOKEN_ID);
             valid = false;
         }
-        if user_token_ids.contains("") {
+        if self.user_tokens.contains_key("") {
             warn!("User tokens contains an endpoint with an empty id");
         }
 
         // Check for duplicate ids in endpoints
-        let endpoint_ids: HashSet<String> = self.endpoints.iter().map(|e| e.id.clone()).collect();
-        if endpoint_ids.len() != self.endpoints.len() {
-            error!("Endpoints in configuration file contains duplicate endpoint ids");
-            valid = false;
-        }
-        if endpoint_ids.contains("") {
+        if self.endpoints.contains_key("") {
             warn!("Endpoints contains an endpoint with an empty id");
         }
 
         // Check for invalid security policy and modes in endpoints
-        for e in &self.endpoints {
+        for (id, e) in &self.endpoints {
             if SecurityPolicy::from_uri(&e.security_policy) != SecurityPolicy::Unknown {
                 if MessageSecurityMode::Invalid == MessageSecurityMode::from(e.security_mode.as_ref()) {
-                    error!("Endpoint {} security mode {} is invalid", e.id, e.security_mode);
+                    error!("Endpoint {} security mode {} is invalid", id, e.security_mode);
                     valid = false;
                 }
             } else {
-                error!("Endpoint {} security policy {} is invalid", e.id, e.security_policy);
+                error!("Endpoint {} security policy {} is invalid", id, e.security_policy);
                 valid = false;
             }
         }
@@ -122,8 +106,8 @@ impl ClientConfig {
             product_uri: String::new(),
             pki_dir,
             default_endpoint: String::new(),
-            user_tokens: Vec::new(),
-            endpoints: Vec::new()
+            user_tokens: BTreeMap::new(),
+            endpoints: BTreeMap::new()
         }
     }
 }

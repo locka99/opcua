@@ -59,8 +59,7 @@ impl Client {
     pub fn new_session_from_endpoint(&mut self, id: &str) -> Result<Arc<Mutex<Session>>, String> {
         // Enumerate endpoints looking for matching one
         let (url, security_policy, security_mode) = {
-            let endpoint = self.config.endpoints.iter().find(|e| &e.id == id);
-            if let Some(ref endpoint) = endpoint {
+            if let Some(endpoint) = self.config.endpoints.get(id) {
                 if let Ok(security_policy) = SecurityPolicy::from_str(&endpoint.security_policy) {
                     let security_mode = MessageSecurityMode::from(endpoint.security_mode.as_ref());
                     if security_mode != MessageSecurityMode::Invalid {
