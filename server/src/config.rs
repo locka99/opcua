@@ -134,6 +134,10 @@ impl ServerEndpoint {
         valid
     }
 
+    pub fn security_policy(&self) -> SecurityPolicy {
+        SecurityPolicy::from_str(&self.security_policy).unwrap()
+    }
+
     pub fn message_security_mode(&self) -> MessageSecurityMode {
         MessageSecurityMode::from(self.security_mode.as_ref())
     }

@@ -1,6 +1,7 @@
 use std;
 use std::path::PathBuf;
 use std::collections::BTreeMap;
+use std::str::FromStr;
 
 use opcua_types::MessageSecurityMode;
 use opcua_core::config::Config;
@@ -32,6 +33,11 @@ pub struct ClientEndpoint {
 impl ClientEndpoint {
     fn anonymous() -> String {
         ANONYMOUS_USER_TOKEN_ID.to_string()
+    }
+
+    // Returns the security policy
+    pub fn security_policy(&self) -> SecurityPolicy {
+        SecurityPolicy::from_str(&self.security_policy).unwrap()
     }
 }
 
@@ -79,7 +85,7 @@ impl Config for ClientConfig {
 
         // Check for invalid security policy and modes in endpoints
         for (id, e) in &self.endpoints {
-            if SecurityPolicy::from_uri(&e.security_policy) != SecurityPolicy::Unknown {
+            if SecurityPolicy::from_str(&e.security_policy).unwrap() != SecurityPolicy::Unknown {
                 if MessageSecurityMode::Invalid == MessageSecurityMode::from(e.security_mode.as_ref()) {
                     error!("Endpoint {} security mode {} is invalid", id, e.security_mode);
                     valid = false;

@@ -151,7 +151,7 @@ impl ServerState {
             server,
             server_certificate,
             security_mode: endpoint.message_security_mode(),
-            security_policy_uri: UAString::from(endpoint.security_policy.as_ref()),
+            security_policy_uri: UAString::from(endpoint.security_policy().to_uri()),
             user_identity_tokens: Some(user_identity_tokens),
             transport_profile_uri: UAString::from(profiles::TRANSPORT_PROFILE_URI_BINARY),
             security_level: 1,

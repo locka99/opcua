@@ -24,25 +24,25 @@ pub fn default_sample_config() -> ClientConfig {
     let mut endpoints = BTreeMap::new();
     endpoints.insert(String::from("sample_none"), ClientEndpoint {
         url: String::from("opc.tcp://127.0.0.1:4855"),
-        security_policy: String::from(SecurityPolicy::None.to_uri()),
+        security_policy: String::from(SecurityPolicy::None.to_str()),
         security_mode: String::from(MessageSecurityMode::None),
         user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
     });
     endpoints.insert(String::from("sample_basic128rsa15"), ClientEndpoint {
         url: String::from("opc.tcp://127.0.0.1:4855"),
-        security_policy: String::from(SecurityPolicy::Basic128Rsa15.to_uri()),
+        security_policy: String::from(SecurityPolicy::Basic128Rsa15.to_str()),
         security_mode: String::from(MessageSecurityMode::SignAndEncrypt),
         user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
     });
     endpoints.insert(String::from("sample_basic256"), ClientEndpoint {
         url: String::from("opc.tcp://127.0.0.1:4855"),
-        security_policy: String::from(SecurityPolicy::Basic256.to_uri()),
+        security_policy: String::from(SecurityPolicy::Basic256.to_str()),
         security_mode: String::from(MessageSecurityMode::SignAndEncrypt),
         user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
     });
     endpoints.insert(String::from("sample_basic256sha256"), ClientEndpoint {
         url: String::from("opc.tcp://127.0.0.1:4855"),
-        security_policy: String::from(SecurityPolicy::Basic256Sha256.to_uri()),
+        security_policy: String::from(SecurityPolicy::Basic256Sha256.to_str()),
         security_mode: String::from(MessageSecurityMode::SignAndEncrypt),
         user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
     });
@@ -76,7 +76,10 @@ fn client_sample_config() {
     path.push("samples");
     path.push("client.conf");
     println!("Path is {:?}", path);
-    assert!(config.save(&path).is_ok());
+
+    let saved = config.save(&path);
+    println!("Saved = {:?}", saved);
+    assert!(saved.is_ok());
     assert!(config.is_valid());
 }
 
@@ -86,6 +89,8 @@ fn client_config() {
     let path = make_test_file("client_config.yaml");
     println!("Client path = {:?}", path);
     let config = default_sample_config();
+    let saved = config.save(&path);
+    println!("Saved = {:?}", saved);
     assert!(config.save(&path).is_ok());
     if let Ok(config2) = ClientConfig::load(&path) {
         assert_eq!(config, config2);

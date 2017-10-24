@@ -189,14 +189,7 @@ pub enum SecurityPolicy {
 
 impl fmt::Display for SecurityPolicy {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            SecurityPolicy::None => SECURITY_POLICY_NONE,
-            SecurityPolicy::Basic128Rsa15 => SECURITY_POLICY_BASIC_128_RSA_15,
-            SecurityPolicy::Basic256 => SECURITY_POLICY_BASIC_256,
-            SecurityPolicy::Basic256Sha256 => SECURITY_POLICY_BASIC_256_SHA_256,
-            _ => ""
-        };
-        write!(f, "{}", name)
+        write!(f, "{}", self.to_str())
     }
 }
 
@@ -205,10 +198,10 @@ impl FromStr for SecurityPolicy {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
-            SECURITY_POLICY_NONE => SecurityPolicy::None,
-            SECURITY_POLICY_BASIC_128_RSA_15 => SecurityPolicy::Basic128Rsa15,
-            SECURITY_POLICY_BASIC_256 => SecurityPolicy::Basic256,
-            SECURITY_POLICY_BASIC_256_SHA_256 => SecurityPolicy::Basic256Sha256,
+            SECURITY_POLICY_NONE | SECURITY_POLICY_NONE_URI => SecurityPolicy::None,
+            SECURITY_POLICY_BASIC_128_RSA_15 | SECURITY_POLICY_BASIC_128_RSA_15_URI => SecurityPolicy::Basic128Rsa15,
+            SECURITY_POLICY_BASIC_256 | SECURITY_POLICY_BASIC_256_URI => SecurityPolicy::Basic256,
+            SECURITY_POLICY_BASIC_256_SHA_256 | SECURITY_POLICY_BASIC_256_SHA_256_URI => SecurityPolicy::Basic256Sha256,
             _ => {
                 error!("Specified security policy {} is not recognized", s);
                 SecurityPolicy::Unknown
@@ -226,6 +219,18 @@ impl SecurityPolicy {
             SecurityPolicy::Basic256Sha256 => SECURITY_POLICY_BASIC_256_SHA_256_URI,
             _ => {
                 panic!("Shouldn't be turning an unknown policy into a uri");
+            }
+        }
+    }
+
+    pub fn to_str(&self) -> &'static str {
+        match *self {
+            SecurityPolicy::None => SECURITY_POLICY_NONE,
+            SecurityPolicy::Basic128Rsa15 => SECURITY_POLICY_BASIC_128_RSA_15,
+            SecurityPolicy::Basic256 => SECURITY_POLICY_BASIC_256,
+            SecurityPolicy::Basic256Sha256 => SECURITY_POLICY_BASIC_256_SHA_256,
+            _ => {
+                panic!("Shouldn't be turning an unknown policy into a string");
             }
         }
     }

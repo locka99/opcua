@@ -13,10 +13,17 @@ pub trait Config {
         if self.is_valid() {
             let s = serde_yaml::to_string(&self).unwrap();
             if let Ok(mut f) = File::create(path) {
-                if f.write_all(s.as_bytes()).is_ok() {
+                let result = f.write_all(s.as_bytes());
+                if result.is_ok() {
                     return Ok(());
+                } else {
+                    error!("Could not save config - error = {:?}", result.unwrap_err())
                 }
+            } else {
+                error!("Cannot create the path to save the config");
             }
+        } else {
+            error!("Config isn't valid and won't be saved");
         }
         Err(())
     }
