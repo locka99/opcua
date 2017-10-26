@@ -167,6 +167,28 @@ fn node_id_4byte_numeric() {
 }
 
 #[test]
+fn node_id_large_namespace() {
+    let node_id = NodeId::new(0x100, 1u64);
+    assert!(node_id.is_numeric());
+
+    let expected_bytes = [0x2, 0x0, 0x1, 0x1, 0x0, 0x0, 0x0];
+    serialize_and_compare(node_id.clone(), &expected_bytes);
+
+    serialize_test(node_id);
+}
+
+#[test]
+fn node_id_large_id() {
+let node_id = NodeId::new(1, 0xdeadbeefu64);
+    assert!(node_id.is_numeric());
+
+    let expected_bytes = [0x2, 0x1, 0x0, 0xef, 0xbe, 0xad, 0xde];
+    serialize_and_compare(node_id.clone(), &expected_bytes);
+
+    serialize_test(node_id);
+}
+
+#[test]
 fn node_id_string_5229() {
     // Sample from OPCUA Part 6 - 5.2.2.9
     let node_id = NodeId::new_string(1, "Hot水");
