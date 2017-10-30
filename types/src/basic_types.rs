@@ -770,8 +770,8 @@ impl BinaryEncoder<ExtensionObject> for ExtensionObject {
             }
         };
         Ok(ExtensionObject {
-            node_id: node_id,
-            body: body,
+            node_id,
+            body,
         })
     }
 }
@@ -782,6 +782,19 @@ impl ExtensionObject {
         ExtensionObject {
             node_id: NodeId::null(),
             body: ExtensionObjectEncoding::None,
+        }
+    }
+
+    // Tests for null - node id null
+    pub fn is_null(&self) -> bool {
+        self.node_id.is_null()
+    }
+
+    // Tests for empty body
+    pub fn is_empty(&self) -> bool {
+        match self.body {
+            ExtensionObjectEncoding::None => true,
+            _ => false
         }
     }
 

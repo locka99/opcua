@@ -91,10 +91,37 @@ impl ServerState {
         Some(config.endpoints.iter().map(|(_, e)| self.new_endpoint_description(&config, e, true)).collect())
     }
 
-    /// Find endpoints in those supported by the server that match the specified url and security policy
+    pub fn endpoint_exists(&self, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> bool {
+        self.find_endpoint(endpoint_url, security_policy, security_mode).is_some()
+    }
+
+    /// Find a single endpoint that matches the specified url, security policy and message security mode
+    pub fn find_endpoint(&self, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> Option<ServerEndpoint> {
+        let config = self.config.lock().unwrap();
+        let base_endpoint_url = config.base_endpoint_url();
+        let endpoint = config.endpoints.iter().find(|&(_, e)| {
+            // Test end point's security_policy_uri and matching url
+            if let Ok(_) = url_matches_except_host(&e.endpoint_url(&base_endpoint_url), endpoint_url) {
+                if e.security_policy() == security_policy && e.message_security_mode() == security_mode {
+                    true
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        });
+        if endpoint.is_some() {
+            Some(endpoint.unwrap().1.clone())
+        } else {
+            None
+        }
+    }
+
+    /// Make matching endpoint descriptions for the specified url.
     /// If none match then None will be passed, therefore if Some is returned it will be guaranteed
     /// to contain at least one result.
-    pub fn find_endpoints(&self, endpoint_url: &str) -> Option<Vec<EndpointDescription>> {
+    pub fn new_endpoint_descriptions(&self, endpoint_url: &str) -> Option<Vec<EndpointDescription>> {
         debug!("find_endpoint, url = {}", endpoint_url);
         let config = self.config.lock().unwrap();
         let base_endpoint_url = config.base_endpoint_url();
@@ -171,9 +198,62 @@ impl ServerState {
         self.last_subscription_id
     }
 
+    pub fn authenticate_endpoint(&self, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode, user_identity_token: &ExtensionObject) -> StatusCode {
+        // Get security from endpoint url
+        if let Some(endpoint) = self.find_endpoint(endpoint_url, security_policy, security_mode) {
+            // Now validate the user identity token
+            if user_identity_token.is_null() || user_identity_token.is_empty() {
+                // Empty tokens are treated as anonymous
+                if endpoint.supports_anonymous() {
+                    GOOD
+                } else {
+                    BAD_IDENTITY_TOKEN_REJECTED
+                }
+            } else {
+                // Read the token out from the extension object
+                info!("Reading a user identity token from a bytestring");
+                if let Ok(object_id) = user_identity_token.node_id.as_object_id() {
+                    match object_id {
+                        ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary => {
+                            if endpoint.supports_anonymous() {
+                                GOOD
+                            } else {
+                                BAD_IDENTITY_TOKEN_REJECTED
+                            }
+                        }
+                        ObjectId::UserIdentityToken_Encoding_DefaultBinary => {
+                            let result = user_identity_token.decode_inner::<UserNameIdentityToken>();
+                            if let Ok(token) = result {
+                                if self.validate_username_identity_token(&endpoint, &token) {
+                                    GOOD
+                                }
+                                else {
+                                    BAD_IDENTITY_TOKEN_REJECTED
+                                }
+                            }
+                            else {
+                                // Garbage in the extension object
+                                error!("User name identity token could not be decoded");
+                                BAD_IDENTITY_TOKEN_REJECTED
+                            }
+                        }
+                        _ => {
+                            BAD_IDENTITY_TOKEN_REJECTED
+                        }
+                    }
+                } else {
+                    BAD_IDENTITY_TOKEN_REJECTED
+                }
+            }
+        } else {
+            BAD_TCP_ENDPOINT_URL_INVALID
+        }
+    }
+
     /// Validate the username identity token
-    pub fn validate_username_identity_token(&self, _: &UserNameIdentityToken) -> bool {
+    pub fn validate_username_identity_token(&self, _: &ServerEndpoint, _: &UserNameIdentityToken) -> bool {
         // TODO need to check the specified endpoint to the user identity token and validate it
+        // iterate ids in endpoint, for each id, find equivalent user in config, compare name & pass 
         false
     }
 }
@@ -302,7 +382,6 @@ impl Server {
             info!("OPC UA Server: {}", server_state.application_name);
             info!("Supported endpoints:");
             for (id, endpoint) in &config.endpoints {
-
                 let users: Vec<String> = endpoint.user_token_ids.iter().map(|id| id.clone()).collect();
                 let users = users.join(", ");
 
