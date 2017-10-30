@@ -1,5 +1,5 @@
 use prelude::*;
-use server::ServerState;
+use server_state::ServerState;
 use services::view::ViewService;
 use super::*;
 

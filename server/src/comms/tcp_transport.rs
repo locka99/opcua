@@ -17,7 +17,7 @@ use opcua_core::debug::*;
 
 use constants;
 use comms::secure_channel_service::SecureChannelService;
-use server::ServerState;
+use server_state::ServerState;
 use session::Session;
 use services::message_handler::MessageHandler;
 use subscriptions::subscription::SubscriptionEvent;

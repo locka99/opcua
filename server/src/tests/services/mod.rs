@@ -2,7 +2,7 @@ use std::sync::MutexGuard;
 
 use prelude::*;
 use comms::tcp_transport::*;
-use server::ServerState;
+use server_state::ServerState;
 
 use tests::*;
 

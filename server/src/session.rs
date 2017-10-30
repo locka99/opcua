@@ -6,7 +6,7 @@ use opcua_core::comms::secure_channel::SecureChannel;
 
 use address_space::address_space::AddressSpace;
 use subscriptions::subscriptions::Subscriptions;
-use server::ServerState;
+use server_state::ServerState;
 use continuation_point::BrowseContinuationPoint;
 
 /// Session info holds information about a session created by CreateSession service

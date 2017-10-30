@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use opcua_types::*;
 
 use address_space::address_space::AddressSpace;
-use server::ServerState;
+use server_state::ServerState;
 use session::Session;
 use services::Service;
 use continuation_point::BrowseContinuationPoint;

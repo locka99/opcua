@@ -6,7 +6,7 @@ use chrono::UTC;
 use opcua_types::*;
 use opcua_types::ServerState as ServerStateType;
 
-use server::ServerState;
+use server_state::ServerState;
 use constants;
 use DateTimeUTC;
 

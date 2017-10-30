@@ -2,7 +2,7 @@ use std::result::Result;
 
 use opcua_types::*;
 
-use server::ServerState;
+use server_state::ServerState;
 use session::Session;
 use services::Service;
 

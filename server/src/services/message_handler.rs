@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use opcua_types::*;
 
-use server::ServerState;
+use server_state::ServerState;
 use session::Session;
 
 use services::attribute::AttributeService;

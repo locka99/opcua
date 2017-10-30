@@ -6,7 +6,7 @@ use opcua_core::crypto;
 use opcua_core::crypto::SecurityPolicy;
 
 use constants;
-use server::ServerState;
+use server_state::ServerState;
 use session::Session;
 use services::Service;
 

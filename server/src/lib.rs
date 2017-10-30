@@ -23,6 +23,7 @@ mod comms;
 mod session;
 
 pub mod server;
+pub mod server_state;
 pub mod subscriptions;
 pub mod config;
 pub mod address_space;

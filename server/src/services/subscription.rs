@@ -3,7 +3,7 @@ use std::result::Result;
 use opcua_types::*;
 
 use subscriptions::subscription::Subscription;
-use server::ServerState;
+use server_state::ServerState;
 use session::Session;
 use services::Service;
 
