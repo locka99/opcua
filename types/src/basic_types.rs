@@ -523,6 +523,11 @@ impl ByteString {
         self.value.is_none()
     }
 
+    /// Test if the string is null or empty
+    pub fn is_null_or_empty(&self) -> bool {
+        self.value.is_none() || self.value.as_ref().unwrap().is_empty()
+    }
+
     /// Create a byte string with a number of random characters. Can be used to create a nonce or
     /// a similar reason.
     pub fn random(number_of_bytes: usize) -> ByteString {

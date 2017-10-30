@@ -242,9 +242,32 @@ impl ServerState {
     }
 
     /// Validate the username identity token
-    pub fn validate_username_identity_token(&self, _: &ServerEndpoint, _: &UserNameIdentityToken) -> bool {
-        // TODO need to check the specified endpoint to the user identity token and validate it
-        // iterate ids in endpoint, for each id, find equivalent user in config, compare name & pass
-        false
+    pub fn validate_username_identity_token(&self, endpoint: &ServerEndpoint, token: &UserNameIdentityToken) -> bool {
+        // Iterate ids in endpoint
+        if token.user_name.is_null() {
+            false
+        }
+        else {
+            let mut valid = false;
+            let config = self.config.lock().unwrap();
+            for user_token_id in &endpoint.user_token_ids {
+                if let Some(server_user_token) = config.user_tokens.get(user_token_id) {
+                    if &server_user_token.user == token.user_name.as_ref() {
+                        // test for empty password
+                        let result = if server_user_token.pass.is_none() {
+                            // Empty password for user
+                            token.authenticate(&server_user_token.user, b"")
+                        } else {
+                            // Password compared as UTF-8 bytes
+                            let password = server_user_token.pass.as_ref().unwrap().as_bytes();
+                            token.authenticate(&server_user_token.user, password)
+                        };
+                        valid = result.is_ok();
+                        break;
+                    }
+                }
+            }
+            valid
+        }
     }
 }
