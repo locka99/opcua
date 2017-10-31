@@ -66,7 +66,7 @@ impl BinaryEncoder<NodeId> for NodeId {
                 } else if self.namespace <= 255 && *value <= 65535 {
                     4
                 } else {
-                    11
+                    7
                 }
             }
             Identifier::String(ref value) => {
@@ -100,7 +100,7 @@ impl BinaryEncoder<NodeId> for NodeId {
                     // full node id
                     size += write_u8(stream, 0x2)?;
                     size += write_u16(stream, self.namespace)?;
-                    size += write_u64(stream, *value as u64)?;
+                    size += write_u32(stream, *value as u32)?;
                 }
             }
             Identifier::String(ref value) => {
@@ -138,7 +138,7 @@ impl BinaryEncoder<NodeId> for NodeId {
             }
             0x2 => {
                 let namespace = read_u16(stream)?;
-                let value = read_u64(stream)?;
+                let value = read_u32(stream)? as u64;
                 NodeId::new(namespace, value)
             }
             0x3 => {
@@ -407,7 +407,7 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
                     // full node id
                     size += write_u8(stream, data_encoding | 0x2)?;
                     size += write_u16(stream, self.node_id.namespace)?;
-                    size += write_u64(stream, *value as u64)?;
+                    size += write_u32(stream, *value as u32)?;
                 }
             }
             Identifier::String(ref value) => {
@@ -452,7 +452,7 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
             }
             0x2 => {
                 let namespace = read_u16(stream)?;
-                let value = read_u64(stream)?;
+                let value = read_u32(stream)? as u64;
                 NodeId::new(namespace, value)
             }
             0x3 => {
