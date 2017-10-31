@@ -153,7 +153,10 @@ cd opcua/samples/simple-server
 cargo run
 ```
 
-The sample is designed to be super terse and to demonstrate what you can do with a small amount of code.  
+The sample is designed to be super terse and to demonstrate what you can do with a small amount of code.
+
+default user: sample and password: sample1
+default endpoint: opc.tcp://localhost:4855
 
 ## Crypto
 
@@ -200,7 +203,7 @@ It can be built from source, or the crate:
 cargo install --force opcua-certificate-creator
 ```
 
-A minimal usage might be something like this:
+A minimal usage might be something like this inside samples/simple-client and/or samples/simple-server:
 
 ```bash
  opcua-certificate-creator --pkipath ./pki
@@ -468,6 +471,6 @@ cargo run
 And in another shell
 
 ```bash
-opcua-commander -e opc.tcp://localhost:1234
+opcua-commander -e opc.tcp://localhost:4855
 ```
 
