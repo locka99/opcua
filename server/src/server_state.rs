@@ -85,30 +85,8 @@ impl ServerState {
     }
 
     pub fn endpoint_exists(&self, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> bool {
-        self.find_endpoint(endpoint_url, security_policy, security_mode).is_some()
-    }
-
-    /// Find a single endpoint that matches the specified url, security policy and message security mode
-    pub fn find_endpoint(&self, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> Option<ServerEndpoint> {
         let config = self.config.lock().unwrap();
-        let base_endpoint_url = config.base_endpoint_url();
-        let endpoint = config.endpoints.iter().find(|&(_, e)| {
-            // Test end point's security_policy_uri and matching url
-            if let Ok(_) = url_matches_except_host(&e.endpoint_url(&base_endpoint_url), endpoint_url) {
-                if e.security_policy() == security_policy && e.message_security_mode() == security_mode {
-                    true
-                } else {
-                    false
-                }
-            } else {
-                false
-            }
-        });
-        if endpoint.is_some() {
-            Some(endpoint.unwrap().1.clone())
-        } else {
-            None
-        }
+        config.find_endpoint(endpoint_url, security_policy, security_mode).is_some()
     }
 
     /// Make matching endpoint descriptions for the specified url.
@@ -191,35 +169,37 @@ impl ServerState {
         self.last_subscription_id
     }
 
+    /// Authenticates access to an endpoint. The endpoint is described by its path, policy, mode and
+    /// the token is supplied in an extension object that must be extracted and authenticated.
+    ///
+    /// It is possible that the endpoint does not exist, or that the token is invalid / unsupported
+    /// or that the token cannot be used with the end point. The return codes reflect the responses
+    /// that ActivateSession would expect from a service call.
     pub fn authenticate_endpoint(&self, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode, user_identity_token: &ExtensionObject) -> StatusCode {
         // Get security from endpoint url
-        if let Some(endpoint) = self.find_endpoint(endpoint_url, security_policy, security_mode) {
+        let config = self.config.lock().unwrap();
+        if let Some(endpoint) = config.find_endpoint(endpoint_url, security_policy, security_mode) {
             // Now validate the user identity token
             if user_identity_token.is_null() || user_identity_token.is_empty() {
                 // Empty tokens are treated as anonymous
-                if endpoint.supports_anonymous() {
-                    GOOD
-                } else {
-                    BAD_IDENTITY_TOKEN_REJECTED
-                }
+                Self::authenticate_anonymous_token(endpoint)
             } else {
                 // Read the token out from the extension object
-                info!("Reading a user identity token from a bytestring");
                 if let Ok(object_id) = user_identity_token.node_id.as_object_id() {
                     match object_id {
                         ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary => {
-                            if endpoint.supports_anonymous() {
-                                GOOD
-                            } else {
-                                BAD_IDENTITY_TOKEN_REJECTED
-                            }
+                            // Anonymous
+                            Self::authenticate_anonymous_token(endpoint)
                         }
-                        ObjectId::UserIdentityToken_Encoding_DefaultBinary => {
+                        ObjectId::UserNameIdentityToken_Encoding_DefaultBinary => {
+                            // Username / password
                             let result = user_identity_token.decode_inner::<UserNameIdentityToken>();
                             if let Ok(token) = result {
-                                if self.validate_username_identity_token(&endpoint, &token) {
+                                if self.authenticate_username_identity_token(&config, endpoint, &token) {
+                                    debug!("Username identity token is authenticated");
                                     GOOD
                                 } else {
+                                    error!("User \"{}\" could not be authenticated", token.user_name);
                                     BAD_IDENTITY_TOKEN_REJECTED
                                 }
                             } else {
@@ -229,27 +209,43 @@ impl ServerState {
                             }
                         }
                         _ => {
+                            error!("User identity token type {:?} is not supported", object_id);
                             BAD_IDENTITY_TOKEN_REJECTED
                         }
                     }
                 } else {
+                    error!("Cannot read user identity token");
                     BAD_IDENTITY_TOKEN_REJECTED
                 }
             }
         } else {
+            error!("Cannot find endpoint that matches path \"{}\", security policy {:?}, and security mode {:?}", endpoint_url, security_policy, security_mode);
             BAD_TCP_ENDPOINT_URL_INVALID
         }
     }
 
-    /// Validate the username identity token
-    pub fn validate_username_identity_token(&self, endpoint: &ServerEndpoint, token: &UserNameIdentityToken) -> bool {
+    /// Authenticates an anonymous token, i.e. does the endpoint support anonymous access or not
+    fn authenticate_anonymous_token(endpoint: &ServerEndpoint) -> StatusCode {
+        if endpoint.supports_anonymous() {
+            debug!("Anonymous identity is authenticated");
+            GOOD
+        } else {
+            error!("Endpoint \"{}\" does not support anonymous authentication", endpoint.path);
+            BAD_IDENTITY_TOKEN_REJECTED
+        }
+    }
+
+    /// Authenticates the username identity token with the supplied endpoint
+    fn authenticate_username_identity_token(&self, config: &ServerConfig, endpoint: &ServerEndpoint, token: &UserNameIdentityToken) -> bool {
         // Iterate ids in endpoint
         if token.user_name.is_null() {
+            error!("User identify token supplies no user name");
             false
-        }
-        else {
-            let mut valid = false;
-            let config = self.config.lock().unwrap();
+        } else {
+
+            // TODO the token specifies a security policy and an encryption algorithm that
+            // may be used to decrypt the password. At present password is plaintext only.
+
             for user_token_id in &endpoint.user_token_ids {
                 if let Some(server_user_token) = config.user_tokens.get(user_token_id) {
                     if &server_user_token.user == token.user_name.as_ref() {
@@ -262,12 +258,16 @@ impl ServerState {
                             let password = server_user_token.pass.as_ref().unwrap().as_bytes();
                             token.authenticate(&server_user_token.user, password)
                         };
-                        valid = result.is_ok();
-                        break;
+                        let valid = result.is_ok();
+                        if !valid {
+                            error!("Cannot authenticate \"{}\", password is invalid", server_user_token.user);
+                        }
+                        return valid;
                     }
                 }
             }
-            valid
+            error!("Cannot authenticate \"{}\", user not found for endpoint", token.user_name);
+            false
         }
     }
 }

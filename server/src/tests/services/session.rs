@@ -1,17 +1,74 @@
+use opcua_types::{AnonymousIdentityToken, UserNameIdentityToken, UAString, ByteString, MessageSecurityMode, ExtensionObject, ObjectId};
+use opcua_types::StatusCode::*;
 
-// fn anonymous_user_token()
-//
-// this test should create a sample config and use a
-// server_state.authenticate_endpoint() with an anonymous
-// token
-//
-// at least one endpoint should be tested with the negative case
+use opcua_core;
+use opcua_core::crypto::SecurityPolicy;
 
-// fn user_name_pass_token()
-//
-// this test should create a sample config and use
-// server_state.authenticate_endpoint() with a 
-// user token
-//
-// try with null user, null password, valid user + invalid pass
-// valid user + valid pass
+use config::*;
+use server::Server;
+use server_state::ServerState;
+
+#[test]
+fn anonymous_user_token()
+{
+    opcua_core::init_logging();
+
+    let config = ServerConfig::new_sample();
+    let server = Server::new(config);
+    let server_state = server.server_state.lock().unwrap();
+
+    // Makes an anonymous token and sticks it into an extension object
+    let token = AnonymousIdentityToken {
+        policy_id: UAString::from(SecurityPolicy::None.to_uri())
+    };
+    let token = ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id(), token);
+
+    let result = server_state.authenticate_endpoint("opc.tcp://localhost:4855/", SecurityPolicy::None, MessageSecurityMode::None, &token);
+    trace!("result = {:?}", result);
+    assert!(result.is_good());
+
+    let result = server_state.authenticate_endpoint("opc.tcp://localhost:4855/x", SecurityPolicy::None, MessageSecurityMode::None, &token);
+    trace!("result = {:?}", result);
+    assert_eq!(result, BAD_TCP_ENDPOINT_URL_INVALID);
+
+    let result = server_state.authenticate_endpoint("opc.tcp://localhost:4855/noaccess", SecurityPolicy::None, MessageSecurityMode::None, &token);
+    trace!("result = {:?}", result);
+    assert_eq!(result, BAD_IDENTITY_TOKEN_REJECTED);
+}
+
+fn make_user_name_identity_token(user: &str, pass: &[u8]) -> ExtensionObject {
+    let token = UserNameIdentityToken {
+        policy_id: UAString::from(SecurityPolicy::None.to_uri()),
+        user_name: UAString::from(user),
+        password: ByteString::from(pass),
+        encryption_algorithm: UAString::null()
+    };
+    ExtensionObject::from_encodable(ObjectId::UserNameIdentityToken_Encoding_DefaultBinary.as_node_id(), token)
+}
+
+#[test]
+fn user_name_pass_token() {
+    opcua_core::init_logging();
+
+    let config = ServerConfig::new_sample();
+    let server = Server::new(config);
+    let server_state = server.server_state.lock().unwrap();
+
+    // Test that a good user authenticates
+    let token = make_user_name_identity_token("sample", b"sample1");
+    let result = server_state.authenticate_endpoint("opc.tcp://localhost:4855/", SecurityPolicy::None, MessageSecurityMode::None, &token);
+    assert!(result.is_good());
+
+    // Invalid tests
+    let token = make_user_name_identity_token("samplex", b"sample1");
+    let result = server_state.authenticate_endpoint("opc.tcp://localhost:4855/", SecurityPolicy::None, MessageSecurityMode::None, &token);
+    assert_eq!(result, BAD_IDENTITY_TOKEN_REJECTED);
+
+    let token = make_user_name_identity_token("sample", b"sample");
+    let result = server_state.authenticate_endpoint("opc.tcp://localhost:4855/", SecurityPolicy::None, MessageSecurityMode::None, &token);
+    assert_eq!(result, BAD_IDENTITY_TOKEN_REJECTED);
+
+    let token = make_user_name_identity_token("", b"sample");
+    let result = server_state.authenticate_endpoint("opc.tcp://localhost:4855/", SecurityPolicy::None, MessageSecurityMode::None, &token);
+    assert_eq!(result, BAD_IDENTITY_TOKEN_REJECTED);
+}

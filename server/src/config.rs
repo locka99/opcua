@@ -4,6 +4,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use opcua_types::MessageSecurityMode;
 use opcua_types::constants as opcua_types_constants;
+use opcua_types::url_matches_except_host;
 
 use opcua_core::crypto::SecurityPolicy;
 use opcua_core::config::Config;
@@ -97,20 +98,16 @@ impl ServerEndpoint {
 
     pub fn is_valid(&self, id: &str, user_tokens: &BTreeMap<String, ServerUserToken>) -> bool {
         let mut valid = true;
+
         // Validate that the user token ids exist
-        if self.user_token_ids.is_empty() {
-            error!("Endpoint {} is invalid because it has no user token ids associated with it", id);
-            valid = false;
-        } else {
-            for id in &self.user_token_ids {
-                // Skip anonymous
-                if id == ANONYMOUS_USER_TOKEN_ID {
-                    continue;
-                }
-                if !user_tokens.contains_key(id) {
-                    error!("Cannot find user token with id {}", id);
-                    valid = false;
-                }
+        for id in &self.user_token_ids {
+            // Skip anonymous
+            if id == ANONYMOUS_USER_TOKEN_ID {
+                continue;
+            }
+            if !user_tokens.contains_key(id) {
+                error!("Cannot find user token with id {}", id);
+                valid = false;
             }
         }
 
@@ -274,6 +271,10 @@ impl ServerConfig {
             user: "sample".to_string(),
             pass: Some("sample1".to_string()),
         });
+        user_tokens.insert("unused_user".to_string(), ServerUserToken {
+            user: "unused".to_string(),
+            pass: Some("unused1".to_string()),
+        });
 
         let path = DEFAULT_ENDPOINT_PATH;
         let user_token_ids = vec![ANONYMOUS_USER_TOKEN_ID.to_string(), sample_user_id.to_string()];
@@ -286,12 +287,43 @@ impl ServerConfig {
         endpoints.insert("basic256_sign_encrypt".to_string(), ServerEndpoint::new_basic256_sign_encrypt(path, &user_token_ids));
         endpoints.insert("basic256sha256_sign".to_string(), ServerEndpoint::new_basic256sha256_sign(path, &user_token_ids));
         endpoints.insert("basic256sha256_sign_encrypt".to_string(), ServerEndpoint::new_basic256sha256_sign_encrypt(path, &user_token_ids));
+        endpoints.insert("no_access".to_string(), ServerEndpoint::new_none("/noaccess", &[]));
         let mut config = ServerConfig::new(application_name, user_tokens, endpoints);
         config.create_sample_keypair = true;
         config
     }
 
+    /// Returns a opc.tcp://server:port url that paths can be appended onto
     pub fn base_endpoint_url(&self) -> String {
         format!("opc.tcp://{}:{}", self.tcp_config.host, self.tcp_config.port)
+    }
+
+    /// Find the first endpoint that matches the specified url, security policy and message
+    /// security mode.
+    pub fn find_endpoint(&self, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> Option<&ServerEndpoint> {
+        let base_endpoint_url = self.base_endpoint_url();
+        let endpoint = self.endpoints.iter().find(|&(_, e)| {
+            // Test end point's security_policy_uri and matching url
+            if let Ok(result) = url_matches_except_host(&e.endpoint_url(&base_endpoint_url), endpoint_url) {
+                if result {
+                    trace!("Found matching endpoint for url {} - {:?}", endpoint_url, e);
+                    if e.security_policy() == security_policy && e.message_security_mode() == security_mode {
+                        true
+                    } else {
+                        false
+                    }
+                }
+                else {
+                    false
+                }
+            } else {
+                false
+            }
+        });
+        if endpoint.is_some() {
+            Some(endpoint.unwrap().1)
+        } else {
+            None
+        }
     }
 }

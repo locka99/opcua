@@ -69,11 +69,6 @@ pub fn server_config_invalid() {
     config.endpoints.clear();
     assert_eq!(config.is_valid(), false);
 
-    // Remove the one and only user token id from the endpoint, ensure it's not valid
-    config = ServerConfig::new_anonymous("foo");
-    config.endpoints.get_mut("none").unwrap().user_token_ids.remove("anonymous");
-    assert_eq!(config.is_valid(), false);
-
     // Insert a nonexistent user
     config = ServerConfig::new_anonymous("foo");
     config.endpoints.get_mut("none").unwrap().user_token_ids.insert("hello".to_string());

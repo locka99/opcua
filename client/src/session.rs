@@ -256,8 +256,10 @@ impl Session {
             if security_policy != SecurityPolicy::from_uri(e.security_policy_uri.as_ref()) {
                 continue;
             }
-            if url_matches_except_host(e.endpoint_url.as_ref(), endpoint_url).is_ok() {
-                return Some(e.clone());
+            if let Ok(result) = url_matches_except_host(e.endpoint_url.as_ref(), endpoint_url) {
+                if result {
+                    return Some(e.clone());
+                }
             }
         }
         None
