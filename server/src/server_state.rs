@@ -98,11 +98,7 @@ impl ServerState {
         let base_endpoint_url = config.base_endpoint_url();
         let endpoints: Vec<EndpointDescription> = config.endpoints.iter().filter(|&(_, e)| {
             // Test end point's security_policy_uri and matching url
-            if let Ok(result) = url_matches_except_host(&e.endpoint_url(&base_endpoint_url), endpoint_url) {
-                result
-            } else {
-                false
-            }
+            url_matches_except_host(&e.endpoint_url(&base_endpoint_url), endpoint_url)
         }).map(|(_, e)| self.new_endpoint_description(&config, e, false)).collect();
         if endpoints.is_empty() { None } else { Some(endpoints) }
     }
@@ -195,27 +191,33 @@ impl ServerState {
                             // Username / password
                             let result = user_identity_token.decode_inner::<UserNameIdentityToken>();
                             if let Ok(token) = result {
-                                if self.authenticate_username_identity_token(&config, endpoint, &token) {
-                                    debug!("Username identity token is authenticated");
-                                    GOOD
-                                } else {
-                                    error!("User \"{}\" could not be authenticated", token.user_name);
-                                    BAD_IDENTITY_TOKEN_REJECTED
-                                }
+                                self.authenticate_username_identity_token(&config, endpoint, &token)
                             } else {
                                 // Garbage in the extension object
                                 error!("User name identity token could not be decoded");
+                                BAD_IDENTITY_TOKEN_INVALID
+                            }
+                        }
+                        ObjectId::X509IdentityToken_Encoding_DefaultBinary => {
+                            // X509 certs could be recognized here
+                            let result = user_identity_token.decode_inner::<X509IdentityToken>();
+                            if let Ok(token) = result {
+                                error!("X509 identity token type is not supported");
                                 BAD_IDENTITY_TOKEN_REJECTED
+                            } else {
+                                // Garbage in the extension object
+                                error!("X509 identity token could not be decoded");
+                                BAD_IDENTITY_TOKEN_INVALID
                             }
                         }
                         _ => {
-                            error!("User identity token type {:?} is not supported", object_id);
-                            BAD_IDENTITY_TOKEN_REJECTED
+                            error!("User identity token type {:?} is unrecognized", object_id);
+                            BAD_IDENTITY_TOKEN_INVALID
                         }
                     }
                 } else {
                     error!("Cannot read user identity token");
-                    BAD_IDENTITY_TOKEN_REJECTED
+                    BAD_IDENTITY_TOKEN_INVALID
                 }
             }
         } else {
@@ -236,16 +238,16 @@ impl ServerState {
     }
 
     /// Authenticates the username identity token with the supplied endpoint
-    fn authenticate_username_identity_token(&self, config: &ServerConfig, endpoint: &ServerEndpoint, token: &UserNameIdentityToken) -> bool {
-        // Iterate ids in endpoint
-        if token.user_name.is_null() {
+    fn authenticate_username_identity_token(&self, config: &ServerConfig, endpoint: &ServerEndpoint, token: &UserNameIdentityToken) -> StatusCode {
+        if !token.encryption_algorithm.is_null() {
+            // Plaintext is the only supported algorithm at this time
+            error!("Only unencrypted passwords are supported");
+            BAD_IDENTITY_TOKEN_INVALID
+        } else if token.user_name.is_null() {
             error!("User identify token supplies no user name");
-            false
+            BAD_IDENTITY_TOKEN_INVALID
         } else {
-
-            // TODO the token specifies a security policy and an encryption algorithm that
-            // may be used to decrypt the password. At present password is plaintext only.
-
+            // Iterate ids in endpoint
             for user_token_id in &endpoint.user_token_ids {
                 if let Some(server_user_token) = config.user_tokens.get(user_token_id) {
                     if &server_user_token.user == token.user_name.as_ref() {
@@ -255,19 +257,21 @@ impl ServerState {
                             token.authenticate(&server_user_token.user, b"")
                         } else {
                             // Password compared as UTF-8 bytes
-                            let password = server_user_token.pass.as_ref().unwrap().as_bytes();
-                            token.authenticate(&server_user_token.user, password)
+                            let server_password = server_user_token.pass.as_ref().unwrap().as_bytes();
+                            token.authenticate(&server_user_token.user, server_password)
                         };
                         let valid = result.is_ok();
                         if !valid {
                             error!("Cannot authenticate \"{}\", password is invalid", server_user_token.user);
+                            return BAD_IDENTITY_TOKEN_REJECTED;
+                        } else {
+                            return GOOD;
                         }
-                        return valid;
                     }
                 }
             }
             error!("Cannot authenticate \"{}\", user not found for endpoint", token.user_name);
-            false
+            BAD_IDENTITY_TOKEN_REJECTED
         }
     }
 }

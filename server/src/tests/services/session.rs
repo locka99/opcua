@@ -6,11 +6,9 @@ use opcua_core::crypto::SecurityPolicy;
 
 use config::*;
 use server::Server;
-use server_state::ServerState;
 
 #[test]
-fn anonymous_user_token()
-{
+fn anonymous_user_token() {
     opcua_core::init_logging();
 
     let config = ServerConfig::new_sample();
