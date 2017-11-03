@@ -198,11 +198,9 @@ impl SecureChannel {
             SecurityHeader::Asymmetric(ref security_header) => {
                 if !security_header.sender_certificate.is_null() {
                     let x509 = X509::from_byte_string(&security_header.sender_certificate).unwrap();
-                    let signature_size = x509.public_key().unwrap().size();
-                    error!("pkey size {} for asymm", signature_size);
-                    signature_size
+                    x509.public_key().unwrap().size()
                 } else {
-                    error!("No certificate / public key was supplied in the asymmetric security header");
+                    trace!("No certificate / public key was supplied in the asymmetric security header");
                     0
                 }
             }

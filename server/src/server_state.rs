@@ -11,6 +11,9 @@ use opcua_core::prelude::*;
 use address_space::types::AddressSpace;
 use config::{ServerEndpoint, ServerConfig};
 
+const TOKEN_POLICY_ANONYMOUS: &'static str = "anonymous";
+const TOKEN_POLICY_USER_PASS_PLAINTEXT: &'static str = "userpass_plaintext";
+
 #[derive(Clone)]
 /// Structure that captures diagnostics information for the server
 pub struct ServerDiagnostics {}
@@ -109,10 +112,23 @@ impl ServerState {
 
         let mut user_identity_tokens = Vec::with_capacity(2);
         if endpoint.supports_anonymous() {
-            user_identity_tokens.push(UserTokenPolicy::new_anonymous());
+            user_identity_tokens.push(UserTokenPolicy {
+                policy_id: UAString::from(TOKEN_POLICY_ANONYMOUS),
+                token_type: UserTokenType::Anonymous,
+                issued_token_type: UAString::null(),
+                issuer_endpoint_url: UAString::null(),
+                security_policy_uri: UAString::null(),
+            }
+            );
         }
         if !endpoint.user_token_ids.is_empty() {
-            user_identity_tokens.push(UserTokenPolicy::new_user_pass());
+            user_identity_tokens.push(UserTokenPolicy {
+                policy_id: UAString::from(TOKEN_POLICY_USER_PASS_PLAINTEXT),
+                token_type: UserTokenType::Username,
+                issued_token_type: UAString::null(),
+                issuer_endpoint_url: UAString::null(),
+                security_policy_uri: UAString::from(SecurityPolicy::None.to_uri()),
+            });
         }
 
         // CreateSession doesn't need all the endpoint description
@@ -201,7 +217,7 @@ impl ServerState {
                         ObjectId::X509IdentityToken_Encoding_DefaultBinary => {
                             // X509 certs could be recognized here
                             let result = user_identity_token.decode_inner::<X509IdentityToken>();
-                            if let Ok(token) = result {
+                            if let Ok(_) = result {
                                 error!("X509 identity token type is not supported");
                                 BAD_IDENTITY_TOKEN_REJECTED
                             } else {
@@ -239,9 +255,11 @@ impl ServerState {
 
     /// Authenticates the username identity token with the supplied endpoint
     fn authenticate_username_identity_token(&self, config: &ServerConfig, endpoint: &ServerEndpoint, token: &UserNameIdentityToken) -> StatusCode {
+        // TODO Server's user token policy should be checked here.
+        // The policy_id should be used to determine the algorithm for encoding passwords etc.
         if !token.encryption_algorithm.is_null() {
             // Plaintext is the only supported algorithm at this time
-            error!("Only unencrypted passwords are supported");
+            error!("Only unencrypted passwords are supported, {:?}", token);
             BAD_IDENTITY_TOKEN_INVALID
         } else if token.user_name.is_null() {
             error!("User identify token supplies no user name");

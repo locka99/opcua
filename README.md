@@ -90,7 +90,7 @@ The following security policies are supported.
 The server supports the following user identities
 
 1. Anonymous/None, i.e. no authentication
-2. User/password (plaintext password)
+2. User/password - plaintext password only
 
 ### Current limitations
 

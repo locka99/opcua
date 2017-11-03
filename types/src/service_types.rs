@@ -13,7 +13,7 @@ use variant::Variant;
 use supported_message::SupportedMessage;
 use generated::StatusCode;
 use generated::StatusCode::*;
-use generated::{DataChangeFilter, ObjectId, AnonymousIdentityToken, UserNameIdentityToken, SignatureData, ReadValueId, EndpointDescription, UserTokenPolicy, ServiceFault};
+use generated::{DataChangeFilter, ObjectId, AnonymousIdentityToken, UserNameIdentityToken, SignatureData, ReadValueId, EndpointDescription, ServiceFault};
 
 /// Implemented by messages
 pub trait MessageInfo {
@@ -26,12 +26,16 @@ pub trait MessageInfo {
     }
 }
 
-/// ONLY complex service specific data types go in this file
+/// The enumeration for the type of user identity token supported by an endpoint.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum UserTokenType {
+    // No token required
     Anonymous = 0,
+    // A username/password token
     Username = 1,
+    // An X509v3 certificate token
     Certificate = 2,
+    // Any WS-security defined token
     IssuedToken = 3
 }
 
@@ -75,29 +79,6 @@ impl ServiceFault {
     /// Returns this object in a supported message, consuming it
     pub fn as_supported_message(self) -> SupportedMessage {
         SupportedMessage::ServiceFault(self)
-    }
-}
-
-impl UserTokenPolicy {
-    pub fn new_anonymous() -> UserTokenPolicy {
-        UserTokenPolicy {
-            policy_id: UAString::from("anonymous"),
-            token_type: UserTokenType::Anonymous,
-            issued_token_type: UAString::null(),
-            issuer_endpoint_url: UAString::null(),
-            security_policy_uri: UAString::null(),
-        }
-    }
-
-    pub fn new_user_pass() -> UserTokenPolicy {
-        UserTokenPolicy {
-            policy_id: UAString::from("userpass"),
-            token_type: UserTokenType::Username,
-            issued_token_type: UAString::null(),
-            issuer_endpoint_url: UAString::null(),
-            security_policy_uri: UAString::null(),
-            // TODO
-        }
     }
 }
 

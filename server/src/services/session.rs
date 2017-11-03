@@ -36,12 +36,19 @@ impl SessionService {
         }
         let endpoints = endpoints.unwrap();
 
+        // Extract the client certificate if one is supplied
+        let client_certificate = if let Ok(client_certificate) = crypto::X509::from_byte_string(&request.client_certificate) {
+            Some(client_certificate)
+        } else {
+            None
+        };
+
         // Check the client's certificate for validity and acceptance
         let security_policy = session.secure_channel.security_policy;
         let service_result = if security_policy != SecurityPolicy::None {
-            if let Ok(client_certificate) = crypto::X509::from_byte_string(&request.client_certificate) {
+            if let Some(ref client_certificate) = client_certificate {
                 let certificate_store = server_state.certificate_store.lock().unwrap();
-                certificate_store.validate_or_reject_application_instance_cert(&client_certificate)
+                certificate_store.validate_or_reject_application_instance_cert(client_certificate)
             } else {
                 warn!("Certificate supplied by client is invalid");
                 BAD_CERTIFICATE_INVALID
@@ -78,7 +85,7 @@ impl SessionService {
             session.endpoint_url = request.endpoint_url.clone();
             session.security_policy_uri = security_policy.to_uri().to_string();
             session.user_identity = None;
-            session.client_certificate = request.client_certificate.clone();
+            session.client_certificate = client_certificate;
             session.session_nonce = server_nonce.clone();
 
             SupportedMessage::CreateSessionResponse(CreateSessionResponse {
@@ -109,17 +116,8 @@ impl SessionService {
             BAD_TCP_ENDPOINT_URL_INVALID
         } else if security_policy != SecurityPolicy::None {
             // Crypto see 5.6.3.1 verify the caller is the same caller as create_session by validating
-            // signature supplied by client
-            //let mut service_result = BAD_UNEXPECTED_ERROR;
-            //if server_state.server_certificate.is_some() {
-                // TODO fixme
-                //if let Ok(client_cert) = crypto::X509::from_byte_string(&session.client_certificate) {
-                //    let server_certificate = server_state.server_certificate.as_ref().unwrap().as_byte_string();
-                //    service_result = crypto::verify_signature(&client_cert, &request.client_signature, &server_certificate, &server_nonce);
-                //}
-            //}
-            //service_result
-            GOOD
+            // signature supplied by the client during the create.
+            Self::verify_client_signature(server_state, session, &request.client_signature)
         } else {
             // No cert checks for no security
             GOOD
@@ -154,5 +152,40 @@ impl SessionService {
             response_header: ResponseHeader::new_good(&request.request_header),
         };
         Ok(SupportedMessage::CloseSessionResponse(response))
+    }
+
+    /// Verifies that the supplied client signature was produced by the session's client certificate
+    /// from the server's certificate and nonce.
+    fn verify_client_signature(server_state: &ServerState, session: &Session, client_signature: &SignatureData) -> StatusCode {
+        if let Some(ref client_certificate) = session.client_certificate {
+            if let Some(ref server_certificate) = server_state.server_certificate {
+                if let Ok(verification_key) = client_certificate.public_key() {
+                    // This is the data that the client should have signed
+                    let server_certificate = server_certificate.as_byte_string();
+                    let data = crypto::concat_data_and_nonce(server_certificate.as_ref(), session.session_nonce.as_ref());
+
+                    // Verify the signature
+                    let security_policy = session.secure_channel.security_policy;
+                    let result = security_policy.asymmetric_verify_signature(&verification_key, &data, client_signature.signature.as_ref(), None);
+
+                    if result.is_ok() {
+                        GOOD
+                    } else {
+                        let result = result.unwrap_err();
+                        error!("Client signature verification failed, status code = {:?}", result);
+                        result
+                    }
+                } else {
+                    error!("Client signature verification failed, client certificate has no public key");
+                    BAD_UNEXPECTED_ERROR
+                }
+            } else {
+                error!("Client signature verification failed, server has no server certificate");
+                BAD_UNEXPECTED_ERROR
+            }
+        } else {
+            error!("Client signature verification failed, session has no client certificate");
+            BAD_UNEXPECTED_ERROR
+        }
     }
 }

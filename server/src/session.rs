@@ -3,6 +3,7 @@ use chrono::{DateTime, UTC};
 use opcua_types::*;
 
 use opcua_core::comms::secure_channel::SecureChannel;
+use opcua_core::crypto::X509;
 
 use address_space::address_space::AddressSpace;
 use subscriptions::subscriptions::Subscriptions;
@@ -26,7 +27,6 @@ impl SessionDiagnostics {
 const MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE: usize = 100;
 const PUBLISH_REQUEST_TIMEOUT: i64 = 30000;
 
-
 /// The Session is any state maintained between the client and server
 pub struct Session {
     /// Subscriptions associated with the session
@@ -38,7 +38,7 @@ pub struct Session {
     /// Security policy
     pub security_policy_uri: String,
     /// Client's certificate
-    pub client_certificate: ByteString,
+    pub client_certificate: Option<X509>,
     /// Authentication token for the session
     pub authentication_token: NodeId,
     /// Secure channel state
@@ -83,7 +83,7 @@ impl Session {
             terminate_session: false,
             terminated: false,
             terminated_at: UTC::now(),
-            client_certificate: ByteString::null(),
+            client_certificate: None,
             security_policy_uri: String::new(),
             authentication_token: NodeId::null(),
             secure_channel: SecureChannel::new_no_certificate_store(),
@@ -110,7 +110,7 @@ impl Session {
             terminate_session: false,
             terminated: false,
             terminated_at: UTC::now(),
-            client_certificate: ByteString::null(),
+            client_certificate: None,
             security_policy_uri: String::new(),
             authentication_token: NodeId::null(),
             secure_channel: SecureChannel::new(server_state.certificate_store.clone()),

@@ -52,7 +52,7 @@ pub mod algorithms {
     pub const DSIG_RSA_SHA1: &'static str = "http://www.w3.org/2000/09/xmldsig#rsa-sha1";
 
     /// Asymmetric digital signature algorithm using RSA-SHA256
-    pub const DSIG_RSA_SHA256: &'static str = "http://www.w3.org/2000/09/xmldsig#rsa-sha256";
+    pub const DSIG_RSA_SHA256: &'static str = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256";
 
     /// Key derivation algorithm P_SHA1
     pub const KEY_P_SHA1: &'static str = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1";
@@ -61,53 +61,11 @@ pub mod algorithms {
     pub const KEY_P_SHA256: &'static str = "http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha256";
 }
 
-fn concat_data_and_nonce(data: &[u8], nonce: &[u8]) -> Vec<u8> {
+pub fn concat_data_and_nonce(data: &[u8], nonce: &[u8]) -> Vec<u8> {
     let mut buffer: Vec<u8> = Vec::with_capacity(data.len() + nonce.len());
     buffer.extend_from_slice(data);
     buffer.extend_from_slice(nonce);
     buffer
-}
-
-/// Verifies that cert matches the signed data
-pub fn verify_signature(verifying_cert: &X509, signature_data: &SignatureData, data: &ByteString, nonce: &ByteString) -> StatusCode {
-    if data.is_null() || nonce.is_null() {
-        error!("Data or nonce are null");
-        BAD_UNEXPECTED_ERROR
-    } else if signature_data.algorithm.is_null() {
-        error!("Signature data has no algorithm");
-        BAD_UNEXPECTED_ERROR
-    } else if let Ok(public_key) = verifying_cert.public_key() {
-        // Get the public key
-        let data = concat_data_and_nonce(data.as_ref(), nonce.as_ref());
-        let signature = signature_data.signature.as_ref();
-
-        // Match the signature algorithm to one we recognize
-        let signature_algorithm = signature_data.algorithm.as_ref();
-        let verified = match signature_algorithm {
-            algorithms::DSIG_RSA_SHA1 => {
-                public_key.verify_hmac_sha1(&data, signature)
-            }
-            algorithms::DSIG_RSA_SHA256 => {
-                public_key.verify_hmac_sha256(&data, signature)
-            }
-            _ => {
-                error!("An unknown signature algorithm {} was passed to verify_signature and rejected", signature_algorithm);
-                Ok(false)
-            }
-        };
-        if let Ok(verified) = verified {
-            if verified {
-                GOOD
-            } else {
-                BAD_APPLICATION_SIGNATURE_INVALID
-            }
-        } else {
-            verified.unwrap_err()
-        }
-    } else {
-        error!("Public key cannot be obtained from cert");
-        BAD_UNEXPECTED_ERROR
-    }
 }
 
 /// Creates a `SignatureData` object by signing the supplied certificate and nonce with a pkey
