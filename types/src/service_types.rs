@@ -4,6 +4,7 @@ use std::io::{Read, Write};
 use profiles;
 use encoding::*;
 use basic_types::*;
+use string::*;
 use attribute::AttributeId;
 use data_types::*;
 use date_time::DateTime;

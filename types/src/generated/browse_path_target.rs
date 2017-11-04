@@ -8,6 +8,8 @@ use encoding::*;
 #[allow(unused_imports)]
 use basic_types::*;
 #[allow(unused_imports)]
+use string::*;
+#[allow(unused_imports)]
 use data_types::*;
 #[allow(unused_imports)]
 use data_value::*;

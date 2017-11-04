@@ -86,6 +86,7 @@ pub mod write_mask {
 
 mod encoding;
 mod basic_types;
+mod string;
 mod data_value;
 mod date_time;
 mod node_id;
@@ -100,6 +101,7 @@ mod numeric_range;
 
 pub use encoding::*;
 pub use basic_types::*;
+pub use string::*;
 pub use data_value::*;
 pub use date_time::*;
 pub use node_id::*;

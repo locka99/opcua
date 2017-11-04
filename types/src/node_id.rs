@@ -4,6 +4,7 @@ use std::io::{Read, Write};
 
 use encoding::*;
 use basic_types::*;
+use string::*;
 use generated::StatusCode;
 use generated::StatusCode::*;
 use generated::{ObjectId, ReferenceTypeId};
