@@ -2,12 +2,11 @@
 
 This is an [OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) server / client API implemented in Rust. 
 
-OPC UA is an industry standard for live monitoring of data. It's intended for embedded devices, industrial control, IoT, 
-PCs, mainframes, cars - just about anything that has data that something else wants to monitor or visualize. It is
-a huge standard defined by compliance to profiles and facets. This implementation will comply with the smallest profiles 
-growing outwards until it reaches a usable level of functionality. 
+OPC UA is an industry standard for monitoring of data. It's used extensively for embedded devices, industrial control, IoT, 
+etc. - just about anything that has data that something else wants to monitor, control or visualize. 
 
-Rust is a natural choice for OPC UA given the purpose of the specification and the expectations in terms of performance, security, stability that go with it. The caveat is that this implementation of OPC UA is relatively immature compared to other implementations.
+Rust is a systems programming language and is therefore a natural choice for implementing OPC UA. This implementation 
+will support the embedded profile.  
 
 # License
 
@@ -30,9 +29,6 @@ The server shall implement the OPC UA capabilities:
 
 The following services are supported fully, partially (marked with a *) or as a stub / work in progress (marked !). That means a client
 may call them and receive a response. 
-
-Anything else is unsupported. Calling an unsupported service will terminate the session. Partial / stub
-implementations are expected to receive implementations over time.
 
 * Discovery service set
     * GetEndpoints
@@ -64,15 +60,24 @@ implementations are expected to receive implementations over time.
     * Republish (!). Implemented to always return a service error
     * SetPublishingMode
 
+Other service calls are unsupported. Calling an unsupported service will terminate the session. 
+
 ### Address Space / Nodeset
 
-The standard OPC UA address space will be exposed. OPC UA for Rust uses a script to generate code to create and populate the standard address space. 
+The standard OPC UA address space will be exposed. OPC UA for Rust uses a script to generate code to create and
+populate the standard address space. 
 
-Most of this data is static however some server state variables will reflect the actual state of the server. Not all state in the server is implemented.
+Most of this data is static however some server state variables will reflect the actual state of the server. Not all 
+state in the server is implemented.
 
-### Supported encryption modes
+### Configuration
 
-The server supports enpoints with the standard security modes:
+Server uses a configuration file defined in YAML to define the endpoints, encryption modes and user identities it
+supports. The configuration can also be built programmatically.
+
+### Encryption modes
+
+The server supports endpoints with the standard message security modes:
 
 * None - no encryption
 * Sign - no encryption but messages are digitally signed to ensure integrity
@@ -85,12 +90,14 @@ The following security policies are supported.
 * Basic256
 * Basic256Rsa256
 
-### Supported user identities 
+### User identities 
 
 The server supports the following user identities
 
 1. Anonymous/None, i.e. no authentication
 2. User/password - plaintext password only
+
+Identities are defined by configuration
 
 ### Current limitations
 

@@ -23,25 +23,25 @@ pub fn default_sample_config() -> ClientConfig {
     let pki_dir = PathBuf::from("./pki");
     let mut endpoints = BTreeMap::new();
     endpoints.insert(String::from("sample_none"), ClientEndpoint {
-        url: String::from("opc.tcp://127.0.0.1:4855"),
+        url: String::from("opc.tcp://127.0.0.1:4855/"),
         security_policy: String::from(SecurityPolicy::None.to_str()),
         security_mode: String::from(MessageSecurityMode::None),
         user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
     });
     endpoints.insert(String::from("sample_basic128rsa15"), ClientEndpoint {
-        url: String::from("opc.tcp://127.0.0.1:4855"),
+        url: String::from("opc.tcp://127.0.0.1:4855/"),
         security_policy: String::from(SecurityPolicy::Basic128Rsa15.to_str()),
         security_mode: String::from(MessageSecurityMode::SignAndEncrypt),
         user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
     });
     endpoints.insert(String::from("sample_basic256"), ClientEndpoint {
-        url: String::from("opc.tcp://127.0.0.1:4855"),
+        url: String::from("opc.tcp://127.0.0.1:4855/"),
         security_policy: String::from(SecurityPolicy::Basic256.to_str()),
         security_mode: String::from(MessageSecurityMode::SignAndEncrypt),
         user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),
     });
     endpoints.insert(String::from("sample_basic256sha256"), ClientEndpoint {
-        url: String::from("opc.tcp://127.0.0.1:4855"),
+        url: String::from("opc.tcp://127.0.0.1:4855/"),
         security_policy: String::from(SecurityPolicy::Basic256Sha256.to_str()),
         security_mode: String::from(MessageSecurityMode::SignAndEncrypt),
         user_token_id: ANONYMOUS_USER_TOKEN_ID.to_string(),

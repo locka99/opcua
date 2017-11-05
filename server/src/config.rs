@@ -13,7 +13,7 @@ use constants;
 
 const DEFAULT_ENDPOINT_PATH: &'static str = "/";
 
-const ANONYMOUS_USER_TOKEN_ID: &'static str = "anonymous";
+pub const ANONYMOUS_USER_TOKEN_ID: &'static str = "anonymous";
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct TcpConfig {
@@ -32,6 +32,13 @@ pub struct ServerUserToken {
 }
 
 impl ServerUserToken {
+    pub fn new_user_pass(user: &str, pass: &str) -> ServerUserToken {
+        ServerUserToken {
+            user: user.to_string(),
+            pass: Some(pass.to_string())
+        }
+    }
+
     pub fn is_valid(&self, id: &str) -> bool {
         let mut valid = true;
         if id == ANONYMOUS_USER_TOKEN_ID {

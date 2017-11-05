@@ -23,7 +23,7 @@ pub mod subscription;
 pub mod prelude {
     pub use opcua_core::prelude::*;
     pub use client::*;
-    pub use config::ClientConfig;
+    pub use config::*;
     pub use session::*;
     pub use subscription::*;
 }
