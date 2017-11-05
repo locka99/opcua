@@ -143,25 +143,27 @@ fn perform_test() {
 }
 
 
-#[test]
-fn connect() {}
+#[bench]
+fn connect() {
+    // Simply be able to connect
+}
 
-#[test]
+#[bench]
 fn hello_timeout() {
     // For this test we want to set the hello timeout to a low value for the sake of speed.
 }
 
-#[test]
+#[bench]
 fn get_endpoints() {
     // Connect to server and get a list of endpoints
 }
 
-#[test]
+#[bench]
 fn connect_none_anonymous() {
     // Connect a session using None security policy and anonymous token.
 }
 
-#[test]
+#[bench]
 fn connect_none_username_password() {
     // Connect a session using None security policy and username/password token
 }
