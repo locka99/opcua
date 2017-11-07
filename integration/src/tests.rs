@@ -1,10 +1,10 @@
 use std::collections::BTreeMap;
 use std::thread;
+use std::sync::mpsc;
 use std::sync::mpsc::channel;
 
 // Integration tests are asynchronous so futures will be used
 use futures;
-
 
 use opcua_core;
 use opcua_client::prelude::*;
@@ -89,7 +89,9 @@ fn new_client_server() -> (Client, Server) {
     (client, server)
 }
 
-enum ClientCommand {}
+enum ClientCommand {
+
+}
 
 enum ClientResponse {
     Quit
@@ -101,25 +103,34 @@ enum ServerResponse {
     Quit
 }
 
-fn perform_test() {
+fn perform_test<CT, ST>(client_test: CT, server_test: ST)
+    where CT: FnOnce(&mpsc::Sender<ClientResponse>, &Client) + Send + 'static,
+          ST: FnOnce(&mpsc::Sender<ServerResponse>, &Server) + Send + 'static {
     let (client, server) = new_client_server();
 
     // Now spawn a couple of threads to house the client and server.
-    let (tx_client, rx_client) = channel();
+    let (tx_client_to_main, rx_client_to_main) = channel();
+    let (tx_server_to_main, rx_server_to_main) = channel();
+
+    let (tx_server_to_client, rx_server_to_client) = channel();
+    let (tx_client_to_server, rx_client_to_server) = channel();
+
     thread::spawn(move || {
         // Client thread
+        client_test(&tx_client_to_main, & rx_main_to_client, &client);
         let _ = tx_client.send(ClientResponse::Quit);
     });
 
-    let (tx_server, rx_server) = channel();
+    let (tx_main_to_server, rx_main_to_server) = channel();
     thread::spawn(move || {
         // Server thread
+        server_test(&tx_server, &server);
         let _ = tx_server.send(ServerResponse::Quit);
     });
 
     // Loop until either the client or the server has quit
     loop {
-        if let Ok(response) = rx_client.try_recv() {
+        if let Ok(response) = rx_client_to_main.try_recv() {
             match response {
                 ClientResponse::Quit => {
                     trace!("Client quit");
@@ -127,7 +138,7 @@ fn perform_test() {
                 }
             }
         }
-        if let Ok(response) = rx_server.try_recv() {
+        if let Ok(response) = rx_server_to_main.try_recv() {
             match response {
                 ServerResponse::Quit => {
                     trace!("Server quit");
@@ -144,7 +155,25 @@ fn perform_test() {
 
 
 #[test]
-fn connect() {}
+fn connect() {
+    perform_test(|tx_client, rx_client, client| {
+        trace!("Hello from client");
+
+        // Wait for server to say its ready
+
+        //let session = client.new_session_default().unwrap();
+        //let session = session.lock().unwrap();
+        //session.connect_and_activate_session().unwrap();
+    }, |tx_server, rx_server, server| {
+        trace!("Hello from server");
+
+        // Server runs on its own thread
+        thread::spawn(|| {
+            // Client thread
+            server.run();
+        });
+    });
+}
 
 #[test]
 fn hello_timeout() {
