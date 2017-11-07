@@ -173,8 +173,9 @@ pub struct ServerConfig {
     /// Autocreates public / private keypair if they don't exist. For testing/samples only
     /// since you do not have control of the values
     pub create_sample_keypair: bool,
-    /// Flag turns on or off discovery service
-    pub discovery_service: bool,
+    /// Url to a discovery server - adding this string causes the server to assume you wish to
+    /// register the server with a discovery server.
+    pub discovery_server_url: Option<String>,
     /// tcp configuration information
     pub tcp_config: TcpConfig,
     /// User tokens
@@ -237,9 +238,9 @@ impl ServerConfig {
             application_name,
             application_uri,
             product_uri,
-            discovery_service: true,
             pki_dir,
             create_sample_keypair: false,
+            discovery_server_url: None,
             tcp_config: TcpConfig {
                 host: hostname,
                 port: constants::DEFAULT_OPC_UA_SERVER_PORT,

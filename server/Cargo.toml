@@ -25,3 +25,7 @@ version = "0.2.0"
 [dependencies.opcua-core]
 path = "../core"
 version = "0.2.0"
+
+[dependencies.opcua-client]
+path = "../client"
+version = "0.2.0"

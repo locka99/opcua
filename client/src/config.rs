@@ -58,6 +58,8 @@ pub struct ClientConfig {
     pub product_uri: String,
     /// pki folder, either absolute or relative to executable
     pub pki_dir: PathBuf,
+    // Preferred locales
+    pub preferred_locales: Vec<String>,
     /// Identifier of the default endpoint
     pub default_endpoint: String,
     /// User tokens
@@ -111,6 +113,7 @@ impl ClientConfig {
             trust_server_certs: false,
             product_uri: String::new(),
             pki_dir,
+            preferred_locales: Vec::new(),
             default_endpoint: String::new(),
             user_tokens: BTreeMap::new(),
             endpoints: BTreeMap::new()

@@ -7,6 +7,7 @@ use opcua_types::*;
 use opcua_core::crypto::{SecurityPolicy, CertificateStore};
 
 use comms::tcp_transport::TcpTransport;
+use subscription::{Subscription};
 
 /// Session's state indicates connection status, negotiated times and sizes,
 /// and security tokens.
@@ -174,7 +175,7 @@ impl Session {
             session_state.authentication_token = response.authentication_token;
             Ok(())
         } else {
-            Err(BAD_UNKNOWN_RESPONSE)
+            Err(Self::process_unexpected_response(response))
         }
     }
 
@@ -223,7 +224,7 @@ impl Session {
             Self::process_service_result(&response.response_header)?;
             Ok(())
         } else {
-            Err(BAD_UNKNOWN_RESPONSE)
+            Err(Self::process_unexpected_response(response))
         }
     }
 
@@ -243,7 +244,7 @@ impl Session {
             Self::process_service_result(&response.response_header)?;
             Ok(response.endpoints)
         } else {
-            Err(BAD_UNKNOWN_RESPONSE)
+            Err(Self::process_unexpected_response(response))
         }
     }
 
@@ -263,28 +264,56 @@ impl Session {
         None
     }
 
-    /// Sends a Browse request to the server
+    /// Sends a BrowseRequest to the server
     pub fn browse(&mut self, nodes_to_browse: &[BrowseDescription]) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
-        let request = BrowseRequest {
-            request_header: self.make_request_header(),
-            view: ViewDescription {
-                view_id: NodeId::null(),
-                timestamp: DateTime::now(),
-                view_version: 0,
-            },
-            requested_max_references_per_node: 1000,
-            nodes_to_browse: Some(nodes_to_browse.to_vec())
-        };
-        let response = self.send_request(SupportedMessage::BrowseRequest(request))?;
-        if let SupportedMessage::BrowseResponse(response) = response {
-            Self::process_service_result(&response.response_header)?;
-            Ok(response.results)
-        } else {
-            Err(BAD_UNKNOWN_RESPONSE)
+        if nodes_to_browse.is_empty() {
+            error!("Cannot browse without any nodes to browse");
+            Err(BAD_INVALID_ARGUMENT)
+        }
+        else {
+            let request = BrowseRequest {
+                request_header: self.make_request_header(),
+                view: ViewDescription {
+                    view_id: NodeId::null(),
+                    timestamp: DateTime::now(),
+                    view_version: 0,
+                },
+                requested_max_references_per_node: 1000,
+                nodes_to_browse: Some(nodes_to_browse.to_vec())
+            };
+            let response = self.send_request(SupportedMessage::BrowseRequest(request))?;
+            if let SupportedMessage::BrowseResponse(response) = response {
+                Self::process_service_result(&response.response_header)?;
+                Ok(response.results)
+            } else {
+                Err(Self::process_unexpected_response(response))
+            }
         }
     }
 
-    /// Sends a Read request to the server
+    /// Sends a BrowseNextRequest to the server
+    pub fn browse_next(&mut self, release_continuation_points: bool, continuation_points: &[ByteString]) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
+        if continuation_points.is_empty() {
+            error!("Cannot browse next without any continuation points");
+            Err(BAD_INVALID_ARGUMENT)
+        }
+        else {
+            let request = BrowseNextRequest {
+                request_header: self.make_request_header(),
+                continuation_points: Some(continuation_points.to_vec()),
+                release_continuation_points,
+            };
+            let response = self.send_request(SupportedMessage::BrowseNextRequest(request))?;
+            if let SupportedMessage::BrowseNextResponse(response) = response {
+                Self::process_service_result(&response.response_header)?;
+                Ok(response.results)
+            } else {
+                Err(Self::process_unexpected_response(response))
+            }
+        }
+    }
+
+    /// Sends a ReadRequest to the server
     pub fn read_nodes(&mut self, nodes_to_read: &[ReadValueId]) -> Result<Option<Vec<DataValue>>, StatusCode> {
         debug!("read_nodes requested to read nodes {:?}", nodes_to_read);
         let request = ReadRequest {
@@ -300,11 +329,11 @@ impl Session {
             Self::process_service_result(&response.response_header)?;
             Ok(response.results)
         } else {
-            Err(BAD_UNKNOWN_RESPONSE)
+            Err(Self::process_unexpected_response(response))
         }
     }
 
-    /// Sends a Write request to the server
+    /// Sends a WriteRequest to the server
     pub fn write_value(&mut self, nodes_to_write: &[WriteValue]) -> Result<Option<Vec<StatusCode>>, StatusCode> {
         let request = WriteRequest {
             request_header: self.make_request_header(),
@@ -315,9 +344,80 @@ impl Session {
             Self::process_service_result(&response.response_header)?;
             Ok(response.results)
         } else {
-            Err(BAD_UNKNOWN_RESPONSE)
+            Err(Self::process_unexpected_response(response))
         }
     }
+
+    /// Sends a CreateSubscriptionRequest request to the server. A subcription is described by the 
+    /// supplied subscription struct. The initial values imply the requested interval, lifetime 
+    /// and keepalive and the value returned in the response are the revised values. The
+    /// subscription id is also returned in the response.
+    pub fn add_subscription(&mut self, mut subscription: Subscription) -> Result<Subscription, StatusCode> {
+        if subscription.subscription_id != 0 {
+            error!("Subscription id must be 0, or the subscription is considered already created");
+            Err(BAD_INVALID_ARGUMENT)
+        }
+        else {
+            let request = CreateSubscriptionRequest {
+                request_header: self.make_request_header(),
+                requested_publishing_interval: subscription.publishing_interval,
+                requested_lifetime_count: subscription.lifetime_count,
+                requested_max_keep_alive_count: subscription.max_keep_alive_count,
+                max_notifications_per_publish: subscription.max_notifications_per_publish,
+                publishing_enabled: subscription.publishing_enabled,
+                priority: subscription.priority,
+            };
+            let response = self.send_request(SupportedMessage::CreateSubscriptionRequest(request))?;
+            if let SupportedMessage::CreateSubscriptionResponse(response) = response {
+                Self::process_service_result(&response.response_header)?;
+                subscription.subscription_id = response.subscription_id;
+                // Update the subscription with the actual revised values
+                subscription.publishing_interval = response.revised_publishing_interval;
+                subscription.lifetime_count = response.revised_lifetime_count;
+                subscription.max_keep_alive_count = response.revised_max_keep_alive_count;
+                Ok(subscription)
+            } else {
+                Err(Self::process_unexpected_response(response))
+            }
+        }
+    }
+
+    /// Removes a subscription using its subscription id
+    pub fn remove_subscription(&mut self, subscription: Subscription) -> Result<(), StatusCode> {
+        if subscription.subscription_id == 0 {
+            error!("Subscription id must be non-zero, or the subscription is considered invalid");
+            Err(BAD_INVALID_ARGUMENT)
+        }
+        else {
+            let request = DeleteSubscriptionsRequest {
+                request_header: self.make_request_header(),
+                subscription_ids: Some(vec![subscription.subscription_id])
+            };
+            let response = self.send_request(SupportedMessage::DeleteSubscriptionsRequest(request))?;
+            if let SupportedMessage::DeleteSubscriptionsResponse(response) = response {
+                Self::process_service_result(&response.response_header)?;
+                Ok(())
+            } else {
+                Err(Self::process_unexpected_response(response))
+            }
+        }
+    }
+
+    pub fn send_request(&mut self, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
+        // Make sure secure channel token hasn't expired
+        let _ = self.ensure_secure_channel_token();
+        // Send the request
+        self.transport.send_request(request)
+    }
+
+    pub fn async_send_request(&mut self, request: SupportedMessage) -> Result<UInt32, StatusCode> {
+        // Make sure secure channel token hasn't expired
+        let _ = self.ensure_secure_channel_token();
+        // Send the request
+        self.transport.async_send_request(request)
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /// Checks if secure channel token needs to be renewed and renews it
     fn ensure_secure_channel_token(&mut self) -> Result<(), StatusCode> {
@@ -344,10 +444,26 @@ impl Session {
         }
     }
 
-    /// Process the service result, i.e. where the request "succeed" but the response
+    /// Process a call where the response is not the message corresponding to the request
+    /// but something else such as a service fault.
+    fn process_unexpected_response(response: SupportedMessage) -> StatusCode {
+        match response {
+            SupportedMessage::ServiceFault(service_fault) => {
+                error!("Received a service fault of {:?} for the request", service_fault.response_header.service_result);
+                service_fault.response_header.service_result
+            }
+            _ => {
+                error!("Received an unexpected response to the request");
+                BAD_UNKNOWN_RESPONSE
+            }
+        }
+    }
+
+    /// Process the service result, i.e. where the request "succeeded" but the response
     /// contains a failure status code.
     fn process_service_result(response_header: &ResponseHeader) -> Result<(), StatusCode> {
         if response_header.service_result.is_bad() {
+            info!("Received a bad service result {:?} from the request", response_header.service_result);
             Err(response_header.service_result)
         } else {
             Ok(())
@@ -398,19 +514,5 @@ impl Session {
         } else {
             Err(BAD_UNKNOWN_RESPONSE)
         }
-    }
-
-    pub fn send_request(&mut self, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
-        // Make sure secure channel token hasn't expired
-        let _ = self.ensure_secure_channel_token();
-        // Send the request
-        self.transport.send_request(request)
-    }
-
-    pub fn async_send_request(&mut self, request: SupportedMessage) -> Result<UInt32, StatusCode> {
-        // Make sure secure channel token hasn't expired
-        let _ = self.ensure_secure_channel_token();
-        // Send the request
-        self.transport.async_send_request(request)
     }
 }

@@ -15,6 +15,7 @@ extern crate timer;
 
 extern crate opcua_types;
 extern crate opcua_core;
+extern crate opcua_client;
 
 type DateTimeUTC = chrono::DateTime<chrono::UTC>;
 

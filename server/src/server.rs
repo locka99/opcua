@@ -6,6 +6,9 @@ use std::sync::{Arc, Mutex};
 use std::path::PathBuf;
 use std::thread;
 
+use time;
+use timer;
+
 use opcua_types::*;
 
 use opcua_core::prelude::*;
@@ -14,7 +17,7 @@ use opcua_core::config::Config;
 use constants;
 use address_space::types::AddressSpace;
 use comms::tcp_transport::*;
-use config::{ServerConfig};
+use config::ServerConfig;
 use server_state::{ServerState, ServerDiagnostics};
 use util::PollingAction;
 
@@ -127,10 +130,10 @@ impl Server {
 
     /// Runs the server
     pub fn run(&mut self) {
-        let (host, port, _) = {
+        let (host, port, _, discovery_server_url) = {
             let server_state = self.server_state.lock().unwrap();
             let config = server_state.config.lock().unwrap();
-            (config.tcp_config.host.clone(), config.tcp_config.port, server_state.base_endpoint.clone())
+            (config.tcp_config.host.clone(), config.tcp_config.port, server_state.base_endpoint.clone(), config.discovery_server_url.clone())
         };
         let sock_addr = (host.as_str(), port);
         let listener = TcpListener::bind(&sock_addr).unwrap();
@@ -151,6 +154,9 @@ impl Server {
                 info!("  Supported user tokens - {}", users);
             }
         }
+
+        let discovery_server_timer = self.start_discovery_server_registration_timer(discovery_server_url);
+
         info!("Waiting for Connection");
 
         // This iterator runs forever, just accept()'ing the next incoming connection.
@@ -171,6 +177,8 @@ impl Server {
             // Clear out dead sessions
             self.remove_dead_connections();
         }
+
+        drop(discovery_server_timer);
     }
 
     fn is_abort(&mut self) -> bool {
@@ -200,6 +208,24 @@ impl Server {
                 true
             }
         });
+    }
+
+    /// Start a timer that triggers every 5 minutes and causes the server to register itself with a discovery server
+    fn start_discovery_server_registration_timer(&self, discovery_server_url: Option<String>) -> Option<timer::Timer> {
+        if discovery_server_url.is_some() {
+            let server_state = self.server_state.clone();
+            let timer = timer::Timer::new();
+            let timer_guard = timer.schedule_repeating(time::Duration::minutes(5i64), move || {
+                let server_state = server_state.lock().unwrap();
+                let config = server_state.config.lock().unwrap();
+                // TODO - open a secure channel to discovery server, and register the endpoints of this server
+                // with the discovery server
+                trace!("Discovery server registration stub is triggering for {}", config.base_endpoint_url());
+            });
+            Some(timer)
+        } else {
+            None
+        }
     }
 
     /// Creates a polling action that happens continuously on an interval. The supplied

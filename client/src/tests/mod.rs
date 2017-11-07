@@ -60,6 +60,7 @@ pub fn default_sample_config() -> ClientConfig {
         trust_server_certs: true,
         product_uri: String::new(),
         pki_dir,
+        preferred_locales: Vec::new(),
         default_endpoint: "sample_none".to_string(),
         endpoints,
         user_tokens

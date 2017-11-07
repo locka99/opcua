@@ -116,6 +116,10 @@ fn perform_test<CT, ST>(client_test: CT, server_test: ST)
     let (tx_client_to_server, rx_client_to_server) = channel();
 
     thread::spawn(move || {
+        if client_test.is_some() {
+            let client_test = client_test.unwrap();
+            client_test();
+        }
         // Client thread
         client_test(&tx_client_to_main, & rx_main_to_client, &client);
         let _ = tx_client.send(ClientResponse::Quit);
