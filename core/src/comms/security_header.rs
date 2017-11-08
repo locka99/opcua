@@ -50,7 +50,7 @@ impl BinaryEncoder<SymmetricSecurityHeader> for SymmetricSecurityHeader {
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let token_id = UInt32::decode(stream)?;
         Ok(SymmetricSecurityHeader {
-            token_id: token_id
+            token_id
         })
     }
 }
@@ -146,8 +146,8 @@ impl BinaryEncoder<SequenceHeader> for SequenceHeader {
         let sequence_number = UInt32::decode(stream)?;
         let request_id = UInt32::decode(stream)?;
         Ok(SequenceHeader {
-            sequence_number: sequence_number,
-            request_id: request_id,
+            sequence_number,
+            request_id,
         })
     }
 }

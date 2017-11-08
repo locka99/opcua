@@ -6,7 +6,7 @@ use encoding::*;
 use basic_types::*;
 use string::*;
 use generated::StatusCode;
-use generated::StatusCode::*;
+use generated::StatusCode::BAD_NODE_ID_INVALID;
 use generated::{ObjectId, ReferenceTypeId};
 
 /// The kind of identifier, numeric, string, guid or byte
@@ -254,7 +254,7 @@ impl NodeId {
     // Constructs a new NodeId from anything that can be turned into Identifier
     // UInt64, Guid, ByteString or String
     pub fn new<T>(namespace: UInt16, value: T) -> NodeId where T: 'static + Into<Identifier> {
-        NodeId { namespace: namespace, identifier: value.into() }
+        NodeId { namespace, identifier: value.into() }
     }
 
     /// Construct a string node id
@@ -481,9 +481,9 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
         let server_index = if data_encoding & 0x40 != 0 { UInt32::decode(stream)? } else { 0 };
 
         Ok(ExpandedNodeId {
-            node_id: node_id,
-            namespace_uri: namespace_uri,
-            server_index: server_index,
+            node_id,
+            namespace_uri,
+            server_index,
         })
     }
 }

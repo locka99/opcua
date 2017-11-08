@@ -7,7 +7,7 @@ use opcua_types::*;
 use opcua_core::crypto::{SecurityPolicy, CertificateStore};
 
 use comms::tcp_transport::TcpTransport;
-use subscription::{Subscription};
+use subscription::Subscription;
 
 /// Session's state indicates connection status, negotiated times and sizes,
 /// and security tokens.
@@ -38,6 +38,8 @@ impl SessionState {}
 /// A session of the client. The session is associated with an endpoint and
 /// maintains a state when it is active.
 pub struct Session {
+    /// The client application's name
+    pub application_description: ApplicationDescription,
     /// The endpoint url
     pub endpoint_url: String,
     /// Security policy
@@ -60,7 +62,7 @@ impl Drop for Session {
 
 impl Session {
     /// Create a new session.
-    pub fn new(certificate_store: Arc<Mutex<CertificateStore>>, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> Session {
+    pub fn new(application_description: ApplicationDescription, certificate_store: Arc<Mutex<CertificateStore>>, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> Session {
         let session_state = Arc::new(Mutex::new(SessionState {
             endpoint: None,
             session_timeout: 60 * 1000,
@@ -72,8 +74,10 @@ impl Session {
             authentication_token: NodeId::null(),
             channel_token: None
         }));
+
         let transport = TcpTransport::new(certificate_store, session_state.clone());
         Session {
+            application_description,
             session_state,
             transport,
             endpoint_url: endpoint_url.to_string(),
@@ -148,21 +152,14 @@ impl Session {
             session_state.endpoint.as_ref().unwrap().endpoint_url.clone()
         };
 
+        let client_nonce = ByteString::nonce();
         let request = CreateSessionRequest {
             request_header: self.make_request_header(),
-            client_description: ApplicationDescription {
-                application_uri: UAString::null(),
-                product_uri: UAString::null(),
-                application_name: LocalizedText::new("", "Rust OPCUA Client"),
-                application_type: ApplicationType::Client,
-                gateway_server_uri: UAString::null(),
-                discovery_profile_uri: UAString::null(),
-                discovery_urls: None,
-            },
+            client_description: self.application_description.clone(),
             server_uri: UAString::null(),
-            endpoint_url: endpoint_url,
+            endpoint_url,
             session_name: UAString::from("Rust OPCUA Client"),
-            client_nonce: ByteString::null(),
+            client_nonce,
             client_certificate: ByteString::null(),
             requested_session_timeout: 0f64,
             max_response_message_size: 0,
@@ -211,7 +208,7 @@ impl Session {
             },
             client_software_certificates: None,
             locale_ids: None,
-            user_identity_token: user_identity_token,
+            user_identity_token,
             user_token_signature: SignatureData {
                 algorithm: UAString::null(),
                 signature: ByteString::null(),
@@ -234,7 +231,7 @@ impl Session {
         let endpoint_url = UAString::from(self.endpoint_url.as_ref());
         let request = GetEndpointsRequest {
             request_header: self.make_request_header(),
-            endpoint_url: endpoint_url,
+            endpoint_url,
             locale_ids: None,
             profile_uris: None,
         };
@@ -269,8 +266,7 @@ impl Session {
         if nodes_to_browse.is_empty() {
             error!("Cannot browse without any nodes to browse");
             Err(BAD_INVALID_ARGUMENT)
-        }
-        else {
+        } else {
             let request = BrowseRequest {
                 request_header: self.make_request_header(),
                 view: ViewDescription {
@@ -296,8 +292,7 @@ impl Session {
         if continuation_points.is_empty() {
             error!("Cannot browse next without any continuation points");
             Err(BAD_INVALID_ARGUMENT)
-        }
-        else {
+        } else {
             let request = BrowseNextRequest {
                 request_header: self.make_request_header(),
                 continuation_points: Some(continuation_points.to_vec()),
@@ -356,8 +351,7 @@ impl Session {
         if subscription.subscription_id != 0 {
             error!("Subscription id must be 0, or the subscription is considered already created");
             Err(BAD_INVALID_ARGUMENT)
-        }
-        else {
+        } else {
             let request = CreateSubscriptionRequest {
                 request_header: self.make_request_header(),
                 requested_publishing_interval: subscription.publishing_interval,
@@ -387,8 +381,7 @@ impl Session {
         if subscription.subscription_id == 0 {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
             Err(BAD_INVALID_ARGUMENT)
-        }
-        else {
+        } else {
             let request = DeleteSubscriptionsRequest {
                 request_header: self.make_request_header(),
                 subscription_ids: Some(vec![subscription.subscription_id])
@@ -478,12 +471,12 @@ impl Session {
             (session_state.authentication_token.clone(), session_state.last_request_handle, session_state.request_timeout)
         };
         let request_header = RequestHeader {
-            authentication_token: authentication_token,
+            authentication_token,
             timestamp: DateTime::now(),
-            request_handle: request_handle,
+            request_handle,
             return_diagnostics: 0,
             audit_entry_id: UAString::null(),
-            timeout_hint: timeout_hint,
+            timeout_hint,
             additional_header: ExtensionObject::null(),
         };
         request_header
@@ -496,10 +489,10 @@ impl Session {
         let request = OpenSecureChannelRequest {
             request_header: self.make_request_header(),
             client_protocol_version: 0,
-            request_type: request_type,
+            request_type,
             security_mode: MessageSecurityMode::None,
             client_nonce: ByteString::from(&[0]),
-            requested_lifetime: requested_lifetime,
+            requested_lifetime,
         };
         let response = self.send_request(SupportedMessage::OpenSecureChannelRequest(request))?;
         if let SupportedMessage::OpenSecureChannelResponse(response) = response {

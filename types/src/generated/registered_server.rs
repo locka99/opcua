@@ -24,11 +24,9 @@ use service_types::*;
 #[allow(unused_imports)]
 use variant::*;
 #[allow(unused_imports)]
-use generated::node_ids::*;
+use generated::node_ids::ObjectId;
 #[allow(unused_imports)]
 use generated::status_codes::StatusCode;
-#[allow(unused_imports)]
-use generated::status_codes::StatusCode::*;
 
 /// The information required to register a server with a discovery server.
 #[derive(Debug, Clone, PartialEq)]

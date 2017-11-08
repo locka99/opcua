@@ -35,8 +35,8 @@ pub struct MessageHandler {
 impl MessageHandler {
     pub fn new(server_state: Arc<Mutex<ServerState>>, session: Arc<Mutex<Session>>) -> MessageHandler {
         MessageHandler {
-            server_state: server_state,
-            session: session,
+            server_state,
+            session,
             attribute_service: AttributeService::new(),
             discovery_service: DiscoveryService::new(),
             monitored_item_service: MonitoredItemService::new(),

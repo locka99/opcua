@@ -24,7 +24,7 @@ fn make_publish_request() -> PublishRequestEntry {
 #[test]
 fn basic_subscription() {
     let s = Subscription::new(0, true, 1000f64, DEFAULT_LIFETIME_COUNT, DEFAULT_KEEPALIVE_COUNT, 0);
-    assert!(s.state == SubscriptionState::Creating);
+    assert_eq!(s.state, SubscriptionState::Creating);
 }
 
 #[test]

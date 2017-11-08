@@ -6,7 +6,7 @@ use byteorder::{ByteOrder, LittleEndian};
 use url::Url;
 
 use generated::StatusCode;
-use generated::StatusCode::*;
+use generated::StatusCode::{BAD_ENCODING_ERROR, BAD_DECODING_ERROR};
 
 pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
 
@@ -236,12 +236,10 @@ pub fn url_matches_except_host(url1: &str, url2: &str) -> bool {
             if url1.set_host(Some("xxxx")).is_ok() && url2.set_host(Some("xxxx")).is_ok() {
                 return url1 == url2;
             }
-        }
-        else {
+        } else {
             error!("Cannot parse url {}", url2);
         }
-    }
-    else {
+    } else {
         error!("Cannot parse url {}", url1);
     }
     false

@@ -85,7 +85,7 @@ impl StatusCode {
         match *self {
 `);
         _.each(status_codes, function (data) {
-            rs_out.write(`            StatusCode::${data.var_name} => "${data.str_code}",\n`);
+            rs_out.write(`            Self::${data.var_name} => "${data.str_code}",\n`);
         });
         rs_out.write(`        }
     }
@@ -97,7 +97,7 @@ impl StatusCode {
         match *self {
 `);
         _.each(status_codes, function (data) {
-            rs_out.write(`            StatusCode::${data.var_name} => "${data.description}",\n`);
+            rs_out.write(`            Self::${data.var_name} => "${data.description}",\n`);
         });
         rs_out.write(`        }
     }
@@ -109,7 +109,7 @@ impl StatusCode {
         match code {
 `);
         _.each(status_codes, function (data) {
-            rs_out.write(`            ${data.hex_code} => Ok(StatusCode::${data.var_name}),\n`);
+            rs_out.write(`            ${data.hex_code} => Ok(Self::${data.var_name}),\n`);
         });
         rs_out.write(
             `            _ => Err(())
@@ -121,7 +121,7 @@ impl StatusCode {
         match name {
 `);
         _.each(status_codes, function (data) {
-            rs_out.write(`            "${data.str_code}" => Ok(StatusCode::${data.var_name}),\n`);
+            rs_out.write(`            "${data.str_code}" => Ok(Self::${data.var_name}),\n`);
         });
         rs_out.write(`            _ => Err(())
         }

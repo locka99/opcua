@@ -83,7 +83,8 @@ impl Client {
         if !is_opc_ua_binary_url(endpoint_url) {
             Err(format!("Endpoint url {}, is not a valid / supported url", endpoint_url))
         } else {
-            let session = Arc::new(Mutex::new(Session::new(self.certificate_store.clone(), endpoint_url, security_policy, security_mode)));
+            // TODO User identity token
+            let session = Arc::new(Mutex::new(Session::new(self.application_description(), self.certificate_store.clone(), endpoint_url, security_policy, security_mode)));
             self.sessions.push(session.clone());
             Ok(session)
         }

@@ -5,7 +5,7 @@ use std::fmt;
 use encoding::*;
 use string::*;
 use generated::StatusCode;
-use generated::StatusCode::*;
+use generated::StatusCode::BAD_DECODING_ERROR;
 use node_id::NodeId;
 
 // OPC UA Part 6 - Mappings 1.03 Specification
@@ -258,7 +258,7 @@ impl BinaryEncoder<Guid> for Guid {
         let data2: UInt16 = (data[4] as UInt16).wrapping_shl(0) + (data[5] as UInt16).wrapping_shl(8);
         let data3: UInt16 = (data[6] as UInt16).wrapping_shl(0) + (data[7] as UInt16).wrapping_shl(8);
         let data4 = [data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]];
-        Ok(Guid { data1: data1, data2: data2, data3: data3, data4: data4 })
+        Ok(Guid { data1, data2, data3, data4 })
     }
 }
 
@@ -377,8 +377,8 @@ impl BinaryEncoder<QualifiedName> for QualifiedName {
         let namespace_index = UInt16::decode(stream)?;
         let name = UAString::decode(stream)?;
         Ok(QualifiedName {
-            namespace_index: namespace_index,
-            name: name,
+            namespace_index,
+            name,
         })
     }
 }
@@ -386,7 +386,7 @@ impl BinaryEncoder<QualifiedName> for QualifiedName {
 impl QualifiedName {
     pub fn new(namespace_index: UInt16, name: &str) -> QualifiedName {
         QualifiedName {
-            namespace_index: namespace_index,
+            namespace_index,
             name: UAString::from(name),
         }
     }
@@ -467,8 +467,8 @@ impl BinaryEncoder<LocalizedText> for LocalizedText {
             UAString::null()
         };
         Ok(LocalizedText {
-            locale: locale,
-            text: text,
+            locale,
+            text,
         })
     }
 }
@@ -609,7 +609,7 @@ impl ExtensionObject {
         let mut stream = Cursor::new(vec![0u8; encodable.byte_len()]);
         let _ = encodable.encode(&mut stream);
         ExtensionObject {
-            node_id: node_id,
+            node_id,
             body: ExtensionObjectEncoding::ByteString(ByteString::from(stream.into_inner())),
         }
     }

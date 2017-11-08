@@ -121,10 +121,10 @@ impl DateTime {
             panic!("Invalid nanosecond");
         }
         DateTime {
-            year: year,
-            month: month,
-            day: day,
-            hour: hour,
+            year,
+            month,
+            day,
+            hour,
             min: minute,
             sec: second,
             nano_sec: (nanos / NANOS_PER_TICK as u32) * NANOS_PER_TICK as u32,

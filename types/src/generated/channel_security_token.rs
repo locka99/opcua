@@ -24,11 +24,9 @@ use service_types::*;
 #[allow(unused_imports)]
 use variant::*;
 #[allow(unused_imports)]
-use generated::node_ids::*;
+use generated::node_ids::ObjectId;
 #[allow(unused_imports)]
 use generated::status_codes::StatusCode;
-#[allow(unused_imports)]
-use generated::status_codes::StatusCode::*;
 
 /// The token that identifies a set of keys for an active secure channel.
 #[derive(Debug, Clone, PartialEq)]

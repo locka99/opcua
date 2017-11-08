@@ -116,11 +116,11 @@ impl BinaryEncoder<MessageChunkHeader> for MessageChunkHeader {
         let secure_channel_id = read_u32(stream)?;
 
         Ok(MessageChunkHeader {
-            message_type: message_type,
-            is_final: is_final,
-            message_size: message_size,
-            secure_channel_id: secure_channel_id,
-            is_valid: is_valid,
+            message_type,
+            is_final,
+            message_size,
+            secure_channel_id,
+            is_valid,
         })
     }
 }

@@ -109,9 +109,9 @@ fn chunk_multi_chunk_intermediate_final() {
     for (i, chunk) in chunks.iter().enumerate() {
         let message_header = chunk.message_header().unwrap();
         if i == chunks.len() - 1 {
-            assert!(message_header.is_final == MessageIsFinalType::Final);
+            assert_eq!(message_header.is_final, MessageIsFinalType::Final);
         } else {
-            assert!(message_header.is_final == MessageIsFinalType::Intermediate);
+            assert_eq!(message_header.is_final, MessageIsFinalType::Intermediate);
         }
     }
 }
@@ -130,7 +130,7 @@ fn max_message_size() {
     let sequence_number = 1000;
     let request_id = 100;
     let chunks = Chunker::encode(sequence_number, request_id, max_message_size, 0, &secure_channel, &response).unwrap();
-    assert!(chunks.len() == 1);
+    assert_eq!(chunks.len(), 1);
 
     // Expect this to fail
     let err = Chunker::encode(sequence_number, request_id, max_message_size - 1, 0, &secure_channel, &response).unwrap_err();

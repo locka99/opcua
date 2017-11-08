@@ -53,7 +53,7 @@ impl BinaryEncoder<MessageHeader> for MessageHeader {
         let message_size = read_u32(stream)?;
         Ok(MessageHeader {
             message_type: MessageHeader::message_type(&message_type),
-            message_size: message_size,
+            message_size,
         })
     }
 }
@@ -192,9 +192,9 @@ impl HelloMessage {
         let mut msg = HelloMessage {
             message_header: MessageHeader::new(MessageType::Hello),
             protocol_version: 0,
-            receive_buffer_size: receive_buffer_size,
-            send_buffer_size: send_buffer_size,
-            max_message_size: max_message_size,
+            receive_buffer_size,
+            send_buffer_size,
+            max_message_size,
             max_chunk_count: MAX_CHUNK_COUNT as UInt32,
             endpoint_url: UAString::from(endpoint_url),
         };

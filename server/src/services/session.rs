@@ -73,7 +73,7 @@ impl SessionService {
             };
 
             // Crypto
-            let server_nonce = ByteString::random(32);
+            let server_nonce = ByteString::nonce();
             let server_certificate = server_state.server_certificate_as_byte_string();
             let server_endpoints = Some(endpoints);
 
@@ -105,7 +105,7 @@ impl SessionService {
     }
 
     pub fn activate_session(&self, server_state: &mut ServerState, session: &mut Session, request: ActivateSessionRequest) -> Result<SupportedMessage, StatusCode> {
-        let server_nonce = ByteString::random(32);
+        let server_nonce = ByteString::nonce();
 
         let endpoint_url = session.endpoint_url.as_ref();
         let security_policy = session.secure_channel.security_policy;

@@ -24,11 +24,9 @@ use service_types::*;
 #[allow(unused_imports)]
 use variant::*;
 #[allow(unused_imports)]
-use generated::node_ids::*;
+use generated::node_ids::ObjectId;
 #[allow(unused_imports)]
 use generated::status_codes::StatusCode;
-#[allow(unused_imports)]
-use generated::status_codes::StatusCode::*;
 
 /// This abstract Structured DataType is the base DataType for all DataTypes representing a bit mask.
 #[derive(Debug, Clone, PartialEq)]

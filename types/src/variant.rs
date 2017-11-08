@@ -9,7 +9,6 @@ use date_time::DateTime;
 use data_value::DataValue;
 use node_id::{NodeId, ExpandedNodeId};
 use generated::StatusCode;
-use generated::StatusCode::*;
 use generated::DataTypeId;
 
 const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
@@ -300,7 +299,7 @@ impl BinaryEncoder<Variant> for Variant {
             let array_length = Int32::decode(stream)?;
             if array_length <= 0 {
                 error!("Invalid array_length {}", array_length);
-                return Err(BAD_DECODING_ERROR);
+                return Err(StatusCode::BAD_DECODING_ERROR);
             }
             array_length
         } else {
@@ -311,7 +310,7 @@ impl BinaryEncoder<Variant> for Variant {
         let result = if array_length > 0 {
             // Array length in total cannot exceed max array length
             if array_length > constants::MAX_ARRAY_LENGTH as i32 {
-                return Err(BAD_ENCODING_LIMITS_EXCEEDED);
+                return Err(StatusCode::BAD_ENCODING_LIMITS_EXCEEDED);
             }
 
             let mut result: Vec<Variant> = Vec::with_capacity(array_length as usize);
@@ -322,20 +321,20 @@ impl BinaryEncoder<Variant> for Variant {
                 let dimensions: Option<Vec<Int32>> = read_array(stream)?;
                 if dimensions.is_none() {
                     error!("No array dimensions despite the bit flag being set");
-                    return Err(BAD_DECODING_ERROR);
+                    return Err(StatusCode::BAD_DECODING_ERROR);
                 }
                 let dimensions = dimensions.unwrap();
                 let mut array_dimensions_length = 1;
                 for d in &dimensions {
                     if *d <= 0 {
                         error!("Invalid array dimension {}", *d);
-                        return Err(BAD_DECODING_ERROR);
+                        return Err(StatusCode::BAD_DECODING_ERROR);
                     }
                     array_dimensions_length *= *d;
                 }
                 if array_dimensions_length != array_length {
                     error!("Array dimensions does not match array length {}", array_length);
-                    Err(BAD_DECODING_ERROR)
+                    Err(StatusCode::BAD_DECODING_ERROR)
                 } else {
                     Ok(Variant::new_multi_dimension_array(result, dimensions))
                 }
@@ -344,7 +343,7 @@ impl BinaryEncoder<Variant> for Variant {
             }
         } else if encoding_mask & ARRAY_DIMENSIONS_BIT != 0 {
             error!("Array dimensions bit specified without any values");
-            Err(BAD_DECODING_ERROR)
+            Err(StatusCode::BAD_DECODING_ERROR)
         } else {
             // Read a single variant
             Variant::decode_variant_value(stream, element_encoding_mask)
@@ -439,7 +438,7 @@ impl Variant {
             Variant::DataValue(ref value) => value.encode(stream),
             _ => {
                 warn!("Cannot encode this variant value type (probably nested array)");
-                Err(BAD_ENCODING_ERROR)
+                Err(StatusCode::BAD_ENCODING_ERROR)
             }
         }
     }
@@ -501,7 +500,7 @@ impl Variant {
     }
 
     pub fn new_multi_dimension_array(values: Vec<Variant>, dimensions: Vec<Int32>) -> Variant {
-        Variant::MultiDimensionArray(Box::new(MultiDimensionArray { values: values, dimensions: dimensions }))
+        Variant::MultiDimensionArray(Box::new(MultiDimensionArray { values, dimensions }))
     }
 
     pub fn new_i32_array(in_values: &[Int32]) -> Variant {

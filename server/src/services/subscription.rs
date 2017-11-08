@@ -98,7 +98,7 @@ impl SubscriptionService {
         let diagnostic_infos = None;
         let response = DeleteSubscriptionsResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
-            results: results,
+            results,
             diagnostic_infos,
         };
         Ok(SupportedMessage::DeleteSubscriptionsResponse(response))
@@ -127,7 +127,7 @@ impl SubscriptionService {
         let diagnostic_infos = None;
         let response = SetPublishingModeResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
-            results: results,
+            results,
             diagnostic_infos,
         };
         Ok(SupportedMessage::SetPublishingModeResponse(response))

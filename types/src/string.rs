@@ -193,6 +193,11 @@ impl ByteString {
         self.value.is_none() || self.value.as_ref().unwrap().is_empty()
     }
 
+    /// Creates a nonce - 32 bytes of random data
+    pub fn nonce() -> ByteString {
+        Self::random(32)
+    }
+
     /// Create a byte string with a number of random characters. Can be used to create a nonce or
     /// a similar reason.
     pub fn random(number_of_bytes: usize) -> ByteString {

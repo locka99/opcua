@@ -5,7 +5,7 @@ use basic_types::*;
 use date_time::*;
 use variant::Variant;
 use generated::StatusCode;
-use generated::StatusCode::*;
+use generated::StatusCode::GOOD;
 
 /// False if the Value is Null.
 const HAS_VALUE: u8 = 0x1;
@@ -138,12 +138,12 @@ impl BinaryEncoder<DataValue> for DataValue {
         };
         // Pico second values are discarded if associated timestamp is not supplied
         Ok(DataValue {
-            value: value,
-            status: status,
+            value,
+            status,
             source_picoseconds: if source_timestamp.is_some() { source_picoseconds } else { None },
-            source_timestamp: source_timestamp,
+            source_timestamp,
             server_picoseconds: if server_timestamp.is_some() { server_picoseconds } else { None },
-            server_timestamp: server_timestamp,
+            server_timestamp,
         })
     }
 }

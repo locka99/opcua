@@ -4,7 +4,7 @@ use std::fmt;
 use encoding::*;
 use basic_types::*;
 use date_time::*;
-use generated::StatusCode::*;
+use generated::StatusCode::BAD_MONITORING_MODE_INVALID;
 
 /// This primitive data type is a UInt32 that identifies an element of an array.
 pub type Index = UInt32;

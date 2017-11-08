@@ -24,11 +24,9 @@ use service_types::*;
 #[allow(unused_imports)]
 use variant::*;
 #[allow(unused_imports)]
-use generated::node_ids::*;
+use generated::node_ids::ObjectId;
 #[allow(unused_imports)]
 use generated::status_codes::StatusCode;
-#[allow(unused_imports)]
-use generated::status_codes::StatusCode::*;
 use generated::BrowsePathResult;
 
 /// Translates one or more paths in the server address space.

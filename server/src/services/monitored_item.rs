@@ -32,7 +32,7 @@ impl MonitoredItemService {
         };
         let response = CreateMonitoredItemsResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
-            results: results,
+            results,
             diagnostic_infos: None
         };
         Ok(SupportedMessage::CreateMonitoredItemsResponse(response))
@@ -54,7 +54,7 @@ impl MonitoredItemService {
         };
         let response = ModifyMonitoredItemsResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
-            results: results,
+            results,
             diagnostic_infos: None
         };
         Ok(SupportedMessage::ModifyMonitoredItemsResponse(response))

@@ -15,8 +15,8 @@ impl PollingAction {
         let timer = timer::Timer::new();
         let timer_guard = timer.schedule_repeating(time::Duration::milliseconds(interval_ms as i64), action);
         PollingAction {
-            timer: timer,
-            timer_guard: timer_guard,
+            timer,
+            timer_guard,
         }
     }
 }

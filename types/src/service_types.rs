@@ -224,13 +224,13 @@ impl BinaryEncoder<RequestHeader> for RequestHeader {
         let timeout_hint = UInt32::decode(stream)?;
         let additional_header = ExtensionObject::decode(stream)?;
         Ok(RequestHeader {
-            authentication_token: authentication_token,
-            timestamp: timestamp,
-            request_handle: request_handle,
-            return_diagnostics: return_diagnostics,
-            audit_entry_id: audit_entry_id,
-            timeout_hint: timeout_hint,
-            additional_header: additional_header,
+            authentication_token,
+            timestamp,
+            request_handle,
+            return_diagnostics,
+            audit_entry_id,
+            timeout_hint,
+            additional_header,
         })
     }
 }
@@ -240,7 +240,7 @@ impl RequestHeader {
         RequestHeader {
             authentication_token: authentication_token.clone(),
             timestamp: timestamp.clone(),
-            request_handle: request_handle,
+            request_handle,
             return_diagnostics: 0,
             audit_entry_id: UAString::null(),
             timeout_hint: 0,
@@ -292,12 +292,12 @@ impl BinaryEncoder<ResponseHeader> for ResponseHeader {
         let string_table: Option<Vec<UAString>> = read_array(stream)?;
         let additional_header = ExtensionObject::decode(stream)?;
         Ok(ResponseHeader {
-            timestamp: timestamp,
-            request_handle: request_handle,
-            service_result: service_result,
-            service_diagnostics: service_diagnostics,
-            string_table: string_table,
-            additional_header: additional_header,
+            timestamp,
+            request_handle,
+            service_result,
+            service_diagnostics,
+            string_table,
+            additional_header,
         })
     }
 }
