@@ -1,10 +1,17 @@
 use std::sync::{Arc, Mutex};
 use std::str::FromStr;
 
-use opcua_core::prelude::*;
+use opcua_types::{UAString, LocalizedText, MessageSecurityMode, ApplicationDescription, ApplicationType};
+use opcua_types::is_opc_ua_binary_url;
+use opcua_core::crypto::{SecurityPolicy, CertificateStore};
 
-use config::ClientConfig;
-use session::Session;
+use config::{ClientConfig, ANONYMOUS_USER_TOKEN_ID};
+use session::{Session, SessionInfo};
+
+pub enum IdentityToken {
+    Anonymous,
+    UserName(String, String),
+}
 
 /// The client-side OPC UA state. A client can have a description, multiple open sessions
 /// and a certificate store.
@@ -54,37 +61,61 @@ impl Client {
         }
     }
 
-    /// Creates a new `Session` using the endpoint id. If the named endpoint does not exist or
-    /// is in error, this function will return an error.
-    pub fn new_session_from_endpoint(&mut self, id: &str) -> Result<Arc<Mutex<Session>>, String> {
-        // Enumerate endpoints looking for matching one
-        let (url, security_policy, security_mode) = {
-            if let Some(endpoint) = self.config.endpoints.get(id) {
-                if let Ok(security_policy) = SecurityPolicy::from_str(&endpoint.security_policy) {
-                    let security_mode = MessageSecurityMode::from(endpoint.security_mode.as_ref());
-                    if security_mode != MessageSecurityMode::Invalid {
-                        let url = endpoint.url.clone();
-                        (url, security_policy, security_mode)
-                    } else {
-                        return Err(format!("Endpoint {} security mode {} is invalid", id, endpoint.security_mode));
-                    }
-                } else {
-                    return Err(format!("Endpoint {} security policy {} is invalid", id, endpoint.security_policy));
-                }
+    fn client_identity_token(&self, user_token_id: &str) -> Option<IdentityToken> {
+        if user_token_id == ANONYMOUS_USER_TOKEN_ID {
+            Some(IdentityToken::Anonymous)
+        } else {
+            if let Some(token) = self.config.user_tokens.get(user_token_id) {
+                Some(IdentityToken::UserName(token.user.clone(), token.password.clone()))
             } else {
-                return Err(format!("Endpoint {} cannot be found in list of configured endpoints. Check config file", id));
+                None
             }
-        };
-        self.new_session(&url, security_policy, security_mode)
+        }
     }
 
-    /// Creates a new `Session` using the specified endpoint url, security policy and mode.
-    pub fn new_session(&mut self, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> Result<Arc<Mutex<Session>>, String> {
-        if !is_opc_ua_binary_url(endpoint_url) {
-            Err(format!("Endpoint url {}, is not a valid / supported url", endpoint_url))
+    fn session_info_for_endpoint(&self, id: &str) -> Result<SessionInfo, String> {
+        // Enumerate endpoints looking for matching one
+        if let Some(endpoint) = self.config.endpoints.get(id) {
+            if let Ok(security_policy) = SecurityPolicy::from_str(&endpoint.security_policy) {
+                let security_mode = MessageSecurityMode::from(endpoint.security_mode.as_ref());
+                if security_mode != MessageSecurityMode::Invalid {
+                    let url = endpoint.url.clone();
+                    if let Some(user_identity_token) = self.client_identity_token(&endpoint.user_token_id) {
+                        let preferred_locales = self.config.preferred_locales.clone();
+                        Ok(SessionInfo {
+                            url,
+                            security_policy,
+                            security_mode,
+                            user_identity_token,
+                            preferred_locales
+                        })
+                    } else {
+                        Err(format!("Endpoint {} user id cannot be found", endpoint.user_token_id))
+                    }
+                } else {
+                    Err(format!("Endpoint {} security mode {} is invalid", id, endpoint.security_mode))
+                }
+            } else {
+                Err(format!("Endpoint {} security policy {} is invalid", id, endpoint.security_policy))
+            }
         } else {
-            // TODO User identity token
-            let session = Arc::new(Mutex::new(Session::new(self.application_description(), self.certificate_store.clone(), endpoint_url, security_policy, security_mode)));
+            Err(format!("Endpoint {} cannot be found in list of configured endpoints. Check config file", id))
+        }
+    }
+
+    /// Creates a new `Session` using the endpoint id referring to an endpoint in the client
+    /// configuration. If the named endpoint does not exist oris in error, this function will return an error.
+    pub fn new_session_from_endpoint(&mut self, id: &str) -> Result<Arc<Mutex<Session>>, String> {
+        let session_info = self.session_info_for_endpoint(id)?;
+        self.new_session(session_info)
+    }
+
+    /// Creates an ad hoc new anonmous `Session` using the specified endpoint url, security policy and mode.
+    pub fn new_session(&mut self, session_info: SessionInfo) -> Result<Arc<Mutex<Session>>, String> {
+        if !is_opc_ua_binary_url(&session_info.url) {
+            Err(format!("Endpoint url {}, is not a valid / supported url", session_info.url))
+        } else {
+            let session = Arc::new(Mutex::new(Session::new(self.application_description(), self.certificate_store.clone(), session_info)));
             self.sessions.push(session.clone());
             Ok(session)
         }

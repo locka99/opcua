@@ -6,8 +6,24 @@ use chrono;
 use opcua_types::*;
 use opcua_core::crypto::{SecurityPolicy, CertificateStore};
 
+use client;
 use comms::tcp_transport::TcpTransport;
 use subscription::Subscription;
+
+/// Information about the server endpoint, security policy, security mode and user identity that the session will
+/// will use to establish a connection.
+pub struct SessionInfo {
+    /// The endpoint url
+    pub url: String,
+    /// Security policy
+    pub security_policy: SecurityPolicy,
+    /// Message security mode
+    pub security_mode: MessageSecurityMode,
+    /// User identity token
+    pub user_identity_token: client::IdentityToken,
+    /// Preferred language locales
+    pub preferred_locales: Vec<String>,
+}
 
 /// Session's state indicates connection status, negotiated times and sizes,
 /// and security tokens.
@@ -15,7 +31,7 @@ pub struct SessionState {
     /// Endpoint, filled in during connect
     pub endpoint: Option<EndpointDescription>,
     /// The request timeout is how long the session will wait from sending a request expecting a response
-    /// if no response is received the client will terminate.
+    /// if no response is received the rclient will terminate.
     pub request_timeout: u32,
     /// Session timeout in milliseconds
     pub session_timeout: u32,
@@ -40,12 +56,8 @@ impl SessionState {}
 pub struct Session {
     /// The client application's name
     pub application_description: ApplicationDescription,
-    /// The endpoint url
-    pub endpoint_url: String,
-    /// Security policy
-    pub security_policy: SecurityPolicy,
-    /// Message security mode
-    pub security_mode: MessageSecurityMode,
+    /// The session connection info
+    pub session_info: SessionInfo,
     /// Runtime state of the session, reset if disconnected
     session_state: Arc<Mutex<SessionState>>,
     /// Transport layer
@@ -62,7 +74,7 @@ impl Drop for Session {
 
 impl Session {
     /// Create a new session.
-    pub fn new(application_description: ApplicationDescription, certificate_store: Arc<Mutex<CertificateStore>>, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> Session {
+    pub fn new(application_description: ApplicationDescription, certificate_store: Arc<Mutex<CertificateStore>>, session_info: SessionInfo) -> Session {
         let session_state = Arc::new(Mutex::new(SessionState {
             endpoint: None,
             session_timeout: 60 * 1000,
@@ -74,22 +86,19 @@ impl Session {
             authentication_token: NodeId::null(),
             channel_token: None
         }));
-
         let transport = TcpTransport::new(certificate_store, session_state.clone());
         Session {
             application_description,
             session_state,
             transport,
-            endpoint_url: endpoint_url.to_string(),
-            security_policy,
-            security_mode
+            session_info,
         }
     }
 
     /// Connects to the server (if possible) using the configured session arguments
     pub fn connect(&mut self) -> Result<(), StatusCode> {
-        let _ = self.transport.connect(&self.endpoint_url)?;
-        let _ = self.transport.hello(&self.endpoint_url)?;
+        let _ = self.transport.connect(&self.session_info.url)?;
+        let _ = self.transport.hello(&self.session_info.url)?;
         let _ = self.open_secure_channel()?;
         Ok(())
     }
@@ -103,7 +112,7 @@ impl Session {
         {
             let session_state = self.session_state.clone();
             let mut session_state = session_state.lock().unwrap();
-            session_state.endpoint = Self::find_matching_endpoint(&endpoints, &self.endpoint_url, self.security_policy);
+            session_state.endpoint = Self::find_matching_endpoint(&endpoints, &self.session_info.url, self.session_info.security_policy);
             if session_state.endpoint.is_none() {
                 error!("Cannot find a matching endpoint for url and policy");
                 return Err(BAD_TCP_ENDPOINT_URL_INVALID);
@@ -176,29 +185,56 @@ impl Session {
         }
     }
 
-    /// Sends an ActivateSession request to the server
-    pub fn activate_session(&mut self) -> Result<(), StatusCode> {
-        // Anonymous only for time being
-        let user_identity_token = {
-            let session_state = self.session_state.clone();
-            let session_state = session_state.lock().unwrap();
-            if session_state.endpoint.is_none() {
-                error!("Cannot activate a session because no endpoint has been discovered and set!");
-                return Err(BAD_TCP_ENDPOINT_URL_INVALID);
+    fn user_identity_token(&self) -> Result<ExtensionObject, StatusCode> {
+        let user_token_type = match self.session_info.user_identity_token {
+            client::IdentityToken::Anonymous => {
+                UserTokenType::Anonymous
             }
-            let endpoint = session_state.endpoint.as_ref().unwrap();
-            let policy_id = endpoint.find_policy_id(UserTokenType::Anonymous);
-            if policy_id.is_none() {
-                error!("Cannot find anonymous policy id for this endpoint, cannot connect");
-                return Err(BAD_SECURITY_POLICY_REJECTED);
-            }
-            AnonymousIdentityToken {
-                policy_id: policy_id.unwrap(),
+            client::IdentityToken::UserName(_, _) => {
+                UserTokenType::Username
             }
         };
 
-        trace!("Identity token for activate = {:#?}", user_identity_token);
-        let user_identity_token = ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id(), user_identity_token);
+        let session_state = self.session_state.clone();
+        let session_state = session_state.lock().unwrap();
+        if session_state.endpoint.is_none() {
+            error!("Cannot activate a session because no endpoint has been discovered and set!");
+            return Err(BAD_TCP_ENDPOINT_URL_INVALID);
+        }
+        let endpoint = session_state.endpoint.as_ref().unwrap();
+        let policy_id = endpoint.find_policy_id(user_token_type);
+
+        // Return the result
+        if policy_id.is_none() {
+            error!("Cannot find user token type {:?} for this endpoint, cannot connect", user_token_type);
+            Err(BAD_SECURITY_POLICY_REJECTED)
+        } else {
+            match self.session_info.user_identity_token {
+                client::IdentityToken::Anonymous => {
+                    let token = AnonymousIdentityToken {
+                        policy_id: policy_id.unwrap(),
+                    };
+                    Ok(ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id(), token))
+                }
+                client::IdentityToken::UserName(ref user, ref pass) => {
+                    // TODO Check that the security policy is something we can supply
+                    let token = UserNameIdentityToken {
+                        policy_id: policy_id.unwrap(),
+                        user_name: UAString::from(user.as_ref()),
+                        password: ByteString::from(pass.as_bytes()),
+                        encryption_algorithm: UAString::null(),
+                    };
+                    Ok(ExtensionObject::from_encodable(ObjectId::UserNameIdentityToken_Encoding_DefaultBinary.as_node_id(), token))
+                }
+            }
+        }
+    }
+
+    /// Sends an ActivateSession request to the server
+    pub fn activate_session(&mut self) -> Result<(), StatusCode> {
+        let user_identity_token = self.user_identity_token()?;
+
+        // TODO Turn preferred locales into locale ids
 
         let request = ActivateSessionRequest {
             request_header: self.make_request_header(),
@@ -228,7 +264,7 @@ impl Session {
     /// Sends a GetEndpoints request to the server
     pub fn get_endpoints(&mut self) -> Result<Option<Vec<EndpointDescription>>, StatusCode> {
         debug!("Fetching end points...");
-        let endpoint_url = UAString::from(self.endpoint_url.as_ref());
+        let endpoint_url = UAString::from(self.session_info.url.as_ref());
         let request = GetEndpointsRequest {
             request_header: self.make_request_header(),
             endpoint_url,
