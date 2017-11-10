@@ -153,11 +153,15 @@ impl TcpTransport {
             let bytes_read_result = stream.read(&mut in_buf);
             if bytes_read_result.is_err() {
                 let error = bytes_read_result.unwrap_err();
-                if error.kind() == ErrorKind::TimedOut {
-                    continue;
+                match error.kind() {
+                    ErrorKind::TimedOut | ErrorKind::WouldBlock => {
+                        continue;
+                    }
+                    kind => {
+                        error!("Read error - kind = {:?}, {:?}", kind, error);
+                        break;
+                    }
                 }
-                debug!("Read error - kind = {:?}, {:?}", error.kind(), error);
-                break;
             }
             let bytes_read = bytes_read_result.unwrap();
             if bytes_read == 0 {
