@@ -26,7 +26,7 @@ impl SubscriptionService {
 
             // Check the requested publishing interval and keep alive values
             let (revised_publishing_interval, revised_max_keep_alive_count, revised_lifetime_count) =
-                SubscriptionService::revise_subscription_values(server_state, request.requested_publishing_interval, request.requested_max_keep_alive_count, request.requested_lifetime_count);
+                Self::revise_subscription_values(server_state, request.requested_publishing_interval, request.requested_max_keep_alive_count, request.requested_lifetime_count);
 
             // Create a new subscription
             let publishing_enabled = request.publishing_enabled;

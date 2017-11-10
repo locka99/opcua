@@ -12,18 +12,21 @@ fn main() {
     // Logging is optional. If you call this, then you will see lots of output to the console.
     opcua_core::init_logging();
 
-    // Create the client using the sample client.config
+    // Use the sample client config to set up a client. The sample config has a number of endpoints
+    // in it, one of which is marked as the default.
     let mut client = Client::new(ClientConfig::load(&PathBuf::from("../client.conf")).unwrap());
 
-    // Create a session. This will not connect until it is told to connect.
+    // Create a session to the default endpoint
     if let Ok(session) = client.new_session_default() {
-        println!("Sample client cannot create a session!");
         let mut session = session.lock().unwrap();
         // Connect and do something with the server
         let result = connect(&mut session);
         if result.is_err() {
             println!("ERROR: Got an error - check this code {:?}", result.unwrap_err().description());
         }
+    }
+    else {
+        println!("ERROR: Sample client cannot create a session!");
     }
 }
 
@@ -37,8 +40,6 @@ fn connect(session: &mut Session) -> Result<(), StatusCode> {
         ReadValueId::read_value(NodeId::new_string(2, "v2")),
         ReadValueId::read_value(NodeId::new_string(2, "v3")),
         ReadValueId::read_value(NodeId::new_string(2, "v4")),
-        // Invalid variable
-        ReadValueId::read_value(NodeId::new_string(2, "iv4")),
     ];
     let data_values = session.read_nodes(&read_nodes)?.unwrap();
 

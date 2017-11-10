@@ -5,7 +5,7 @@ var opcua = require("node-opcua");
 var async = require("async");
 
 var client = new opcua.OPCUAClient();
-var endpointUrl = "opc.tcp://127.0.0.1:1234/";
+var endpointUrl = "opc.tcp://127.0.0.1:4855/";
 
 var the_session, the_subscription;
 

@@ -27,7 +27,7 @@ pub struct DataValue {
     /// Not present if the Value bit in the EncodingMask is False.
     pub value: Option<Variant>,
     /// The status associated with the value.
-    /// Not present (set to GOOD) if the StatusCode bit in the EncodingMask is False
+    /// Not present if the StatusCode bit in the EncodingMask is False
     pub status: Option<StatusCode>,
     /// The source timestamp associated with the value.
     /// Not present if the SourceTimestamp bit in the EncodingMask is False.
