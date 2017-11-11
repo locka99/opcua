@@ -7,7 +7,7 @@ use opcua_types::MessageSecurityMode;
 use opcua_core::config::Config;
 use opcua_core::crypto::SecurityPolicy;
 
-pub const ANONYMOUS_USER_TOKEN_ID: &str = "anonymous";
+pub const ANONYMOUS_USER_TOKEN_ID: &str = "ANONYMOUS";
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct ClientUserToken {

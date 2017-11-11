@@ -13,7 +13,7 @@ use constants;
 
 const DEFAULT_ENDPOINT_PATH: &'static str = "/";
 
-pub const ANONYMOUS_USER_TOKEN_ID: &'static str = "anonymous";
+pub const ANONYMOUS_USER_TOKEN_ID: &'static str = "ANONYMOUS";
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct TcpConfig {
@@ -288,17 +288,21 @@ impl ServerConfig {
         let user_token_ids = vec![ANONYMOUS_USER_TOKEN_ID.to_string(), sample_user_id.to_string()];
 
         let mut endpoints = BTreeMap::new();
-        endpoints.insert("none".to_string(), ServerEndpoint::new_none(path, &user_token_ids));
-        endpoints.insert("basic128rsa15_sign".to_string(), ServerEndpoint::new_basic128rsa15_sign(path, &user_token_ids));
-        endpoints.insert("basic128rsa15_sign_encrypt".to_string(), ServerEndpoint::new_basic128rsa15_sign_encrypt(path, &user_token_ids));
-        endpoints.insert("basic256_sign".to_string(), ServerEndpoint::new_basic256_sign(path, &user_token_ids));
-        endpoints.insert("basic256_sign_encrypt".to_string(), ServerEndpoint::new_basic256_sign_encrypt(path, &user_token_ids));
-        endpoints.insert("basic256sha256_sign".to_string(), ServerEndpoint::new_basic256sha256_sign(path, &user_token_ids));
-        endpoints.insert("basic256sha256_sign_encrypt".to_string(), ServerEndpoint::new_basic256sha256_sign_encrypt(path, &user_token_ids));
-        endpoints.insert("no_access".to_string(), ServerEndpoint::new_none("/noaccess", &[]));
         let mut config = ServerConfig::new(application_name, user_tokens, endpoints);
         config.create_sample_keypair = true;
+        config.add_endpoint("none", ServerEndpoint::new_none(path, &user_token_ids));
+        config.add_endpoint("basic128rsa15_sign", ServerEndpoint::new_basic128rsa15_sign(path, &user_token_ids));
+        config.add_endpoint("basic128rsa15_sign_encrypt", ServerEndpoint::new_basic128rsa15_sign_encrypt(path, &user_token_ids));
+        config.add_endpoint("basic256_sign", ServerEndpoint::new_basic256_sign(path, &user_token_ids));
+        config.add_endpoint("basic256_sign_encrypt", ServerEndpoint::new_basic256_sign_encrypt(path, &user_token_ids));
+        config.add_endpoint("basic256sha256_sign", ServerEndpoint::new_basic256sha256_sign(path, &user_token_ids));
+        config.add_endpoint("basic256sha256_sign_encrypt", ServerEndpoint::new_basic256sha256_sign_encrypt(path, &user_token_ids));
+        config.add_endpoint("no_access", ServerEndpoint::new_none("/noaccess", &[]));
         config
+    }
+
+    pub fn add_endpoint(&mut self, id: &str, endpoint: ServerEndpoint) {
+        self.endpoints.insert(id.to_string(), endpoint);
     }
 
     /// Returns a opc.tcp://server:port url that paths can be appended onto

@@ -67,10 +67,10 @@ pub struct ServerState {
 }
 
 impl ServerState {
-    pub fn endpoints(&self, transport_profile_uris: Option<Vec<UAString>>) -> Option<Vec<EndpointDescription>> {
+    pub fn endpoints(&self, transport_profile_uris: &Option<Vec<UAString>>) -> Option<Vec<EndpointDescription>> {
         // Filter endpoints based on profile_uris
         debug!("Endpoints requested {:?}", transport_profile_uris);
-        if let Some(transport_profile_uris) = transport_profile_uris {
+        if let Some(ref transport_profile_uris) = *transport_profile_uris {
             if !transport_profile_uris.is_empty() {
                 // As we only support binary transport, the result is None if the supplied profile_uris does not contain that profile
                 let found_binary_transport = transport_profile_uris.iter().find(|profile_uri| {
@@ -84,7 +84,9 @@ impl ServerState {
         }
         // Return the endpoints
         let config = self.config.lock().unwrap();
-        Some(config.endpoints.iter().map(|(_, e)| self.new_endpoint_description(&config, e, true)).collect())
+        Some(config.endpoints.iter().map(|(_, e)| {
+            self.new_endpoint_description(&config, e, true)
+        }).collect())
     }
 
     pub fn endpoint_exists(&self, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> bool {

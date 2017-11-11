@@ -1,7 +1,39 @@
+use opcua_core;
 use opcua_types::UAString;
 
 use super::*;
 use services::discovery::DiscoveryService;
+
+#[test]
+fn get_endpoints() {
+    opcua_core::init_logging();
+
+    let st = ServiceTest::new();
+    let (mut server_state, mut session) = st.get_server_state_and_session();
+
+    let ds = DiscoveryService::new();
+
+    {
+        let request = GetEndpointsRequest {
+            request_header: make_request_header(),
+            endpoint_url: UAString::from("opc.tcp://localhost:4855/"),
+            locale_ids: None,
+            profile_uris: None,
+        };
+
+        let result = ds.get_endpoints(&mut server_state, &mut session, request);
+        assert!(result.is_ok());
+        let result = supported_message_as!(result.unwrap(), GetEndpointsResponse);
+
+        // Verify endpoints
+        let endpoints = result.endpoints.unwrap();
+        assert!(!endpoints.is_empty());
+
+        debug!("Endpoints = {:#?}", endpoints);
+
+//        panic!("error");
+    }
+}
 
 #[test]
 fn discovery_test() {
@@ -24,7 +56,7 @@ fn discovery_test() {
 
         // Verify endpoints
         let endpoints = result.endpoints.unwrap();
-        assert!(!endpoints.is_empty())
+        assert!(!endpoints.is_empty());
     }
 
     // specify profile ids in request

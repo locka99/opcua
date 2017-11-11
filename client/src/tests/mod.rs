@@ -142,7 +142,7 @@ fn client_anonymous_user_tokens_id() {
     // id anonymous is reserved
     config.user_tokens = BTreeMap::new();
     config.user_tokens.insert(
-        String::from("anonymous"),
+        String::from("ANONYMOUS"),
         ClientUserToken {
             user: String::new(),
             password: String::new()
