@@ -297,8 +297,7 @@ impl ServerConfig {
         let path = DEFAULT_ENDPOINT_PATH;
         let user_token_ids = vec![ANONYMOUS_USER_TOKEN_ID.to_string(), sample_user_id.to_string()];
 
-        let mut endpoints = BTreeMap::new();
-        let mut config = ServerConfig::new(application_name, user_tokens, endpoints);
+        let mut config = ServerConfig::new(application_name, user_tokens, BTreeMap::new());
         config.create_sample_keypair = true;
         config.add_endpoint("none", ServerEndpoint::new_none(path, &user_token_ids));
         config.add_endpoint("basic128rsa15_sign", ServerEndpoint::new_basic128rsa15_sign(path, &user_token_ids));
