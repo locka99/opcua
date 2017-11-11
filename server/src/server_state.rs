@@ -166,7 +166,7 @@ impl ServerState {
             security_policy_uri: UAString::from(endpoint.security_policy().to_uri()),
             user_identity_tokens: Some(user_identity_tokens),
             transport_profile_uri: UAString::from(profiles::TRANSPORT_PROFILE_URI_BINARY),
-            security_level: 1,
+            security_level: endpoint.security_level,
         }
     }
 

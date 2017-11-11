@@ -61,16 +61,26 @@ pub struct ServerEndpoint {
     pub security_policy: String,
     /// Security mode
     pub security_mode: String,
+    /// Security level, higher being more secure
+    pub security_level: u8,
     /// User tokens
     pub user_token_ids: BTreeSet<String>,
 }
 
 impl ServerEndpoint {
     pub fn new(path: &str, user_token_ids: &[String], security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> ServerEndpoint {
+        let security_level = match security_policy {
+            SecurityPolicy::None => 1,
+            SecurityPolicy::Basic128Rsa15 => 2,
+            SecurityPolicy::Basic256 => 3,
+            SecurityPolicy::Basic256Sha256 => 4,
+            _ => 0
+        };
         ServerEndpoint {
             path: path.to_string(),
             security_policy: security_policy.to_string(),
             security_mode: security_mode.to_string(),
+            security_level,
             user_token_ids: user_token_ids.iter().map(|id| id.clone()).collect(),
         }
     }
