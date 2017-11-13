@@ -96,7 +96,7 @@ impl TcpTransport {
         let stream = TcpStream::connect((host, port));
         if stream.is_err() {
             error!("Could not connect to host {}:{}", host, port);
-            return Err(BAD_NOT_CONNECTED);
+            return Err(BAD_SERVER_NOT_CONNECTED);
         }
 
         debug!("Connected...");
@@ -236,7 +236,7 @@ impl TcpTransport {
 
     pub fn async_send_request(&mut self, request: SupportedMessage) -> Result<UInt32, StatusCode> {
         if !self.is_connected() {
-            return Err(BAD_NOT_CONNECTED);
+            return Err(BAD_SERVER_NOT_CONNECTED);
         }
 
         let request_id = self.next_request_id();

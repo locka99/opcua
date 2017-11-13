@@ -5,16 +5,28 @@ extern crate opcua_core;
 extern crate opcua_client;
 
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use opcua_client::prelude::*;
 
 fn main() {
-    // Logging is optional. If you call this, then you will see lots of output to the console.
+    // Optional - enable OPC UA logging
     opcua_core::init_logging();
 
-    // Use the sample client config to set up a client. The sample config has a number of endpoints
-    // in it, one of which is marked as the default.
+    // Use the sample client config to set up a client. The sample config has a number of named
+    // endpoints one of which is marked as the default.
     let mut client = Client::new(ClientConfig::load(&PathBuf::from("../client.conf")).unwrap());
+
+    // Optional - ask the server associated with the default endpoint for its list of endpoints
+    let endpoints = client.get_server_endpoints_default();
+    if let Ok(endpoints) = endpoints {
+        println!("Server has these endpoints:");
+        for e in &endpoints {
+            println!("  {} - {:?} / {:?}", e.endpoint_url, SecurityPolicy::from_str(e.security_policy_uri.as_ref()).unwrap(), e.security_mode);
+        }
+    } else {
+        println!("ERROR: Can't get endpoints for server, error - {:?}", endpoints.unwrap_err().description());
+    }
 
     // Create a session to the default endpoint
     if let Ok(session) = client.new_session_default() {
@@ -22,10 +34,9 @@ fn main() {
         // Connect and do something with the server
         let result = connect(&mut session);
         if result.is_err() {
-            println!("ERROR: Got an error - check this code {:?}", result.unwrap_err().description());
+            println!("ERROR: Got an error while creating the default session - {:?}", result.unwrap_err().description());
         }
-    }
-    else {
+    } else {
         println!("ERROR: Sample client cannot create a session!");
     }
 }

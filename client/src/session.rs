@@ -108,7 +108,7 @@ impl Session {
         let _ = self.connect()?;
 
         // Find a matching end point
-        let endpoints = self.get_endpoints()?.unwrap();
+        let endpoints = self.get_endpoints()?;
         {
             let session_state = self.session_state.clone();
             let mut session_state = session_state.lock().unwrap();
@@ -262,7 +262,7 @@ impl Session {
     }
 
     /// Sends a GetEndpoints request to the server
-    pub fn get_endpoints(&mut self) -> Result<Option<Vec<EndpointDescription>>, StatusCode> {
+    pub fn get_endpoints(&mut self) -> Result<Vec<EndpointDescription>, StatusCode> {
         debug!("Fetching end points...");
         let endpoint_url = UAString::from(self.session_info.url.as_ref());
         let request = GetEndpointsRequest {
@@ -275,7 +275,11 @@ impl Session {
         let response = self.send_request(SupportedMessage::GetEndpointsRequest(request))?;
         if let SupportedMessage::GetEndpointsResponse(response) = response {
             Self::process_service_result(&response.response_header)?;
-            Ok(response.endpoints)
+            if response.endpoints.is_none() {
+                Ok(Vec::new())
+            } else {
+                Ok(response.endpoints.unwrap())
+            }
         } else {
             Err(Self::process_unexpected_response(response))
         }

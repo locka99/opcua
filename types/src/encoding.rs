@@ -245,6 +245,18 @@ pub fn url_matches_except_host(url1: &str, url2: &str) -> bool {
     false
 }
 
+/// Takes an endpoint url and strips off the path and args to leave just the protocol, host & port.
+pub fn server_url_from_endpoint_url(endpoint_url: &str) -> std::result::Result<String, ()> {
+    if let Ok(mut url) = Url::parse(endpoint_url) {
+        url.set_path("");
+        url.set_query(None);
+        Ok(url.into_string())
+    }
+    else {
+        Err(())
+    }
+}
+
 pub fn is_opc_ua_binary_url(url: &str) -> bool {
     if let Ok(url) = Url::parse(url) {
         url.scheme() == "opc.tcp"
@@ -263,4 +275,11 @@ fn url_scheme() {
 fn url_matches() {
     assert!(url_matches_except_host("opc.tcp://localhost/xyz", "opc.tcp://127.0.0.1/xyz"));
     assert!(!url_matches_except_host("opc.tcp://localhost/xyz", "opc.tcp://127.0.0.1/abc"));
+}
+
+#[test]
+fn server_url_from_endpoint_url_test() {
+    assert_eq!("opc.tcp://localhost/", server_url_from_endpoint_url("opc.tcp://localhost").unwrap());
+    assert_eq!("opc.tcp://localhost/", server_url_from_endpoint_url("opc.tcp://localhost/xyz/abc?1").unwrap());
+    assert_eq!("opc.tcp://localhost:999/", server_url_from_endpoint_url("opc.tcp://localhost:999/xyz/abc?1").unwrap());
 }
