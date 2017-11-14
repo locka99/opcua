@@ -29,7 +29,7 @@ fn main() {
     }
 
     // Create a session to the default endpoint
-    if let Ok(session) = client.new_session_default() {
+    if let Ok(session) = client.new_session_default_endpoint() {
         let mut session = session.lock().unwrap();
         // Connect and do something with the server
         let result = connect(&mut session);
