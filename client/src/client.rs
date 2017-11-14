@@ -2,9 +2,9 @@ use std::sync::{Arc, Mutex};
 use std::str::FromStr;
 
 use opcua_types::{UAString, LocalizedText, MessageSecurityMode, ApplicationDescription, ApplicationType, EndpointDescription, StatusCode};
-use opcua_types::{is_opc_ua_binary_url, server_url_from_endpoint_url};
+use opcua_types::{is_opc_ua_binary_url, server_url_from_endpoint_url, url_matches, url_matches_except_host};
 use opcua_types::StatusCode::BAD_UNEXPECTED_ERROR;
-use opcua_core::crypto::{SecurityPolicy, CertificateStore};
+use opcua_core::crypto::{SecurityPolicy, CertificateStore, X509, PKey};
 
 use config::{ClientConfig, ClientEndpoint, ANONYMOUS_USER_TOKEN_ID};
 use session::{Session, SessionInfo};
@@ -23,18 +23,27 @@ pub struct Client {
     /// running on an independent thread.
     sessions: Vec<Arc<Mutex<Session>>>,
     /// Certificate store is where certificates go.
-    certificate_store: Arc<Mutex<CertificateStore>>
+    certificate_store: Arc<Mutex<CertificateStore>>,
+    /// Client certificate
+    client_certificate: Option<X509>,
+    /// Client private key
+    client_pkey: Option<PKey>,
 }
 
 impl Client {
     /// Creates a new `Client` instance. The application name and uri are supplied as arguments to
     /// this call and are passed to each session that connects hereafter.
     pub fn new(config: ClientConfig) -> Client {
-        let pki_dir = config.pki_dir.clone();
+        let (certificate_store, client_certificate, client_pkey) = CertificateStore::new_with_keypair(&config.pki_dir, config.create_sample_keypair);
+        if client_certificate.is_none() || client_pkey.is_none() {
+            error!("Client is missing its application instance certificate and/or its private key. Encrypted endpoints will not function correctly.")
+        }
         Client {
             config,
             sessions: Vec::new(),
-            certificate_store: Arc::new(Mutex::new(CertificateStore::new(&pki_dir)))
+            certificate_store: Arc::new(Mutex::new(certificate_store)),
+            client_certificate,
+            client_pkey,
         }
     }
 
@@ -63,14 +72,28 @@ impl Client {
         }
     }
 
-    /// Creates a new `Session` using the default endpoint specified by name in the config. If there is no
-    /// default, or the name does not exist, this function will return an error
-    pub fn new_session_default(&mut self) -> Result<Arc<Mutex<Session>>, String> {
+    /// Creates a new `Session` using the default endpoint specified in the config. If there is no
+    /// default, or the endpoint does not exist, this function will return an error
+    pub fn new_session_default_endpoint(&mut self) -> Result<Arc<Mutex<Session>>, String> {
         let endpoint = self.default_endpoint()?;
         self.new_session_from_endpoint(&endpoint)
     }
 
-    /// Makes a None/None connection to the server in the default endpoint to obtain a list of endpoints
+    /// Creates a new `Session` using the endpoint id specified in the config. If there is no
+    /// endpoint of that id, this function will return an error
+    pub fn new_session_endpoint_id(&mut self, endpoint_id: &str) -> Result<Arc<Mutex<Session>>, String> {
+        let endpoint = {
+            let endpoint = self.config.endpoints.get(endpoint_id);
+            if endpoint.is_none() {
+                return Err(format!("Cannot find endpoint with id {}", endpoint_id));
+            }
+            endpoint.unwrap().clone()
+        };
+        self.new_session_from_endpoint(&endpoint)
+    }
+
+    /// Makes a None/None connection to the server in the default endpoint to obtain a list of
+    /// endpoints
     pub fn get_server_endpoints_default(&self) -> Result<Vec<EndpointDescription>, StatusCode> {
         if let Ok(default_endpoint) = self.default_endpoint() {
             if let Ok(server_url) = server_url_from_endpoint_url(&default_endpoint.url) {
@@ -98,6 +121,31 @@ impl Client {
         let mut session = Session::new(self.application_description(), self.certificate_store.clone(), session_info);
         let _ = session.connect()?;
         session.get_endpoints()
+    }
+
+    /// Finds a matching endpoint, one that most closely matches the host, path, security policy
+    /// and security mode used as inputs. The function will fallback to omit the host in its
+    /// comparison if no exact match is found.
+    pub fn find_server_endpoint(&self, endpoints: &[EndpointDescription], endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> Option<EndpointDescription> {
+        // Iterate the supplied endpoints looking for the closest match.
+        let security_policy_uri = security_policy.to_uri();
+        // Do an exact match first
+        for e in endpoints {
+            if e.security_policy_uri.as_ref() == security_policy_uri &&
+                e.security_mode == security_mode &&
+                url_matches(e.endpoint_url.as_ref(), endpoint_url) {
+                return Some(e.clone());
+            }
+        }
+        // Now try a fuzzier match, ignoring the hostname part
+        for e in endpoints {
+            if e.security_policy_uri.as_ref() == security_policy_uri &&
+                e.security_mode == security_mode &&
+                url_matches_except_host(e.endpoint_url.as_ref(), endpoint_url) {
+                return Some(e.clone());
+            }
+        }
+        None
     }
 
     /// Creates a new `Session` using the endpoint id referring to an endpoint in the client

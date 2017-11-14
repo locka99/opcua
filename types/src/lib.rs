@@ -12,7 +12,7 @@ extern crate byteorder;
 extern crate chrono;
 extern crate regex;
 extern crate rand;
-extern crate url;
+extern crate url as url_external;
 
 ///Contains constants recognized by OPC UA clients and servers to describe various protocols and
 /// profiles used during communication and encryption.
@@ -98,6 +98,7 @@ mod attribute;
 mod service_types;
 mod supported_message;
 mod numeric_range;
+mod url;
 
 pub use encoding::*;
 pub use basic_types::*;
@@ -112,6 +113,7 @@ pub use attribute::*;
 pub use service_types::*;
 pub use supported_message::*;
 pub use numeric_range::*;
+pub use url::*;
 
 #[macro_export]
 macro_rules! supported_message_as {

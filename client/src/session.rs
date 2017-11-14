@@ -233,9 +233,7 @@ impl Session {
     /// Sends an ActivateSession request to the server
     pub fn activate_session(&mut self) -> Result<(), StatusCode> {
         let user_identity_token = self.user_identity_token()?;
-
         // TODO Turn preferred locales into locale ids
-
         let request = ActivateSessionRequest {
             request_header: self.make_request_header(),
             client_signature: SignatureData {

@@ -3,7 +3,6 @@ use std::fmt::Debug;
 use std::io::{Read, Write, Result};
 
 use byteorder::{ByteOrder, LittleEndian};
-use url::Url;
 
 use generated::StatusCode;
 use generated::StatusCode::{BAD_ENCODING_ERROR, BAD_DECODING_ERROR};
@@ -224,62 +223,4 @@ pub fn read_f64(stream: &mut Read) -> EncodingResult<f64> {
     let result = stream.read_exact(&mut buf);
     let _ = process_decode_io_result(result)?;
     Ok(LittleEndian::read_f64(&buf))
-}
-
-/// Test if the two urls match except for the hostname. Can be used by a server whose endpoint doesn't
-/// exactly match the incoming connection, e.g. 127.0.0.1 vs localhost.
-pub fn url_matches_except_host(url1: &str, url2: &str) -> bool {
-    if let Ok(mut url1) = Url::parse(url1) {
-        if let Ok(mut url2) = Url::parse(url2) {
-            // Both hostnames are set to xxxx so the comparison should come out as the same url
-            // if they actually match one another.
-            if url1.set_host(Some("xxxx")).is_ok() && url2.set_host(Some("xxxx")).is_ok() {
-                return url1 == url2;
-            }
-        } else {
-            error!("Cannot parse url {}", url2);
-        }
-    } else {
-        error!("Cannot parse url {}", url1);
-    }
-    false
-}
-
-/// Takes an endpoint url and strips off the path and args to leave just the protocol, host & port.
-pub fn server_url_from_endpoint_url(endpoint_url: &str) -> std::result::Result<String, ()> {
-    if let Ok(mut url) = Url::parse(endpoint_url) {
-        url.set_path("");
-        url.set_query(None);
-        Ok(url.into_string())
-    }
-    else {
-        Err(())
-    }
-}
-
-pub fn is_opc_ua_binary_url(url: &str) -> bool {
-    if let Ok(url) = Url::parse(url) {
-        url.scheme() == "opc.tcp"
-    } else {
-        false
-    }
-}
-
-#[test]
-fn url_scheme() {
-    assert!(is_opc_ua_binary_url("opc.tcp://foo/xyz"));
-    assert!(!is_opc_ua_binary_url("http://foo/xyz"));
-}
-
-#[test]
-fn url_matches() {
-    assert!(url_matches_except_host("opc.tcp://localhost/xyz", "opc.tcp://127.0.0.1/xyz"));
-    assert!(!url_matches_except_host("opc.tcp://localhost/xyz", "opc.tcp://127.0.0.1/abc"));
-}
-
-#[test]
-fn server_url_from_endpoint_url_test() {
-    assert_eq!("opc.tcp://localhost/", server_url_from_endpoint_url("opc.tcp://localhost").unwrap());
-    assert_eq!("opc.tcp://localhost/", server_url_from_endpoint_url("opc.tcp://localhost/xyz/abc?1").unwrap());
-    assert_eq!("opc.tcp://localhost:999/", server_url_from_endpoint_url("opc.tcp://localhost:999/xyz/abc?1").unwrap());
 }

@@ -3,7 +3,6 @@
 
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
-use std::path::PathBuf;
 use std::thread;
 
 use time;
@@ -51,35 +50,7 @@ impl Server {
         // TODO max string, byte string and array lengths
 
         // Security, pki auto create cert
-        let pki_path = PathBuf::from(&config.pki_dir);
-        let certificate_store = CertificateStore::new(&pki_path);
-        let (server_certificate, server_pkey) = if certificate_store.ensure_pki_path().is_err() {
-            error!("Folder for storing certificates cannot be examined so server has no application instance certificate or private key.");
-            (None, None)
-        } else {
-            let result = certificate_store.read_own_cert_and_pkey();
-            if let Ok(result) = result {
-                let (cert, pkey) = result;
-                (Some(cert), Some(pkey))
-            } else {
-                // For sample projects, this value will be true and as a convenience we will create
-                // a certificate and private key if they do not exist.
-                if config.create_sample_keypair {
-                    info!("Creating sample application instance certificate and private key");
-                    let result = certificate_store.create_and_store_application_instance_cert(&X509Data::sample_cert(), false);
-                    if let Err(err) = result {
-                        error!("Certificate creation failed, error = {}", err);
-                        (None, None)
-                    } else {
-                        let (cert, pkey) = result.unwrap();
-                        (Some(cert), Some(pkey))
-                    }
-                } else {
-                    error!("Application instance certificate and private key could not be read - {}", result.unwrap_err());
-                    (None, None)
-                }
-            }
-        };
+        let (certificate_store, server_certificate, server_pkey) = CertificateStore::new_with_keypair(&config.pki_dir, config.create_sample_keypair);
         if server_certificate.is_none() || server_pkey.is_none() {
             error!("Server is missing its application instance certificate and/or its private key. Encrypted endpoints will not function correctly.")
         }

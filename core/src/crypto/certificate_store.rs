@@ -50,6 +50,36 @@ impl CertificateStore {
         }
     }
 
+    /// Sets up the certificate store, creates the path to it, and optionally creates a demo cert
+    pub fn new_with_keypair(pki_path: &Path, create_sample_keypair: bool) -> (CertificateStore, Option<X509>, Option<PKey>) {
+        let certificate_store = CertificateStore::new(pki_path);
+        let (cert, pkey) = if certificate_store.ensure_pki_path().is_err() {
+            error!("Folder for storing certificates cannot be examined so server has no application instance certificate or private key.");
+            (None, None)
+        } else {
+            let result = certificate_store.read_own_cert_and_pkey();
+            if let Ok((cert, pkey)) = result {
+                (Some(cert), Some(pkey))
+            } else {
+                if create_sample_keypair {
+                    info!("Creating sample application instance certificate and private key");
+                    let result = certificate_store.create_and_store_application_instance_cert(&X509Data::sample_cert(), false);
+                    if let Err(err) = result {
+                        error!("Certificate creation failed, error = {}", err);
+                        (None, None)
+                    } else {
+                        let (cert, pkey) = result.unwrap();
+                        (Some(cert), Some(pkey))
+                    }
+                } else {
+                    error!("Application instance certificate and private key could not be read - {}", result.unwrap_err());
+                    (None, None)
+                }
+            }
+        };
+        (certificate_store, cert, pkey)
+    }
+
     /// Creates a self-signed X509v3 certificate and public/private key from the supplied creation args.
     /// The certificate identifies an instance of the application running on a host as well
     /// as the public key. The PKey holds the corresponding public/private key. Note that if
