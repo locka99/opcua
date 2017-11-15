@@ -24,10 +24,6 @@ pub struct Client {
     sessions: Vec<Arc<Mutex<Session>>>,
     /// Certificate store is where certificates go.
     certificate_store: Arc<Mutex<CertificateStore>>,
-    /// Client certificate
-    client_certificate: Option<X509>,
-    /// Client private key
-    client_pkey: Option<PKey>,
 }
 
 impl Client {
@@ -42,8 +38,6 @@ impl Client {
             config,
             sessions: Vec::new(),
             certificate_store: Arc::new(Mutex::new(certificate_store)),
-            client_certificate,
-            client_pkey,
         }
     }
 
@@ -108,15 +102,27 @@ impl Client {
         }
     }
 
+    fn get_client_cert_and_key(&self) -> (Option<X509>, Option<PKey>) {
+        let certificate_store = self.certificate_store.lock().unwrap();
+        if let Ok((cert, key)) = certificate_store.read_own_cert_and_pkey() {
+            (Some(cert), Some(key))
+        } else {
+            (None, None)
+        }
+    }
+
     /// Makes a None/None connection to the server to obtain a list of endpoints
     pub fn get_server_endpoints(&self, server_url: &str) -> Result<Vec<EndpointDescription>, StatusCode> {
         let preferred_locales = Vec::new();
+        let (client_certificate, client_pkey) = self.get_client_cert_and_key();
         let session_info = SessionInfo {
             url: server_url.to_string(),
             security_policy: SecurityPolicy::None,
             security_mode: MessageSecurityMode::None,
             user_identity_token: IdentityToken::Anonymous,
-            preferred_locales
+            preferred_locales,
+            client_pkey,
+            client_certificate,
         };
         let mut session = Session::new(self.application_description(), self.certificate_store.clone(), session_info);
         let _ = session.connect()?;
@@ -186,12 +192,15 @@ impl Client {
                 let url = endpoint.url.clone();
                 if let Some(user_identity_token) = self.client_identity_token(&endpoint.user_token_id) {
                     let preferred_locales = self.config.preferred_locales.clone();
+                    let (client_certificate, client_pkey) = self.get_client_cert_and_key();
                     Ok(SessionInfo {
                         url,
                         security_policy,
                         security_mode,
                         user_identity_token,
-                        preferred_locales
+                        preferred_locales,
+                        client_pkey,
+                        client_certificate,
                     })
                 } else {
                     Err(format!("Endpoint {} user id cannot be found", endpoint.user_token_id))

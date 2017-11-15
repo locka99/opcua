@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use chrono;
 
 use opcua_types::*;
-use opcua_core::crypto::{SecurityPolicy, CertificateStore};
+use opcua_core::crypto::{SecurityPolicy, CertificateStore, X509, PKey};
 
 use client;
 use comms::tcp_transport::TcpTransport;
@@ -23,7 +23,17 @@ pub struct SessionInfo {
     pub user_identity_token: client::IdentityToken,
     /// Preferred language locales
     pub preferred_locales: Vec<String>,
+    /// Client certificate
+    pub client_certificate: Option<X509>,
+    /// Client private key
+    pub client_pkey: Option<PKey>,
 }
+
+const DEFAULT_SESSION_TIMEOUT: u32 = 60 * 1000;
+const DEFAULT_REQUEST_TIMEOUT: u32 = 10 * 1000;
+const SEND_BUFFER_SIZE: usize = 65536;
+const RECEIVE_BUFFER_SIZE: usize = 65536;
+const MAX_BUFFER_SIZE: usize = 65536;
 
 /// Session's state indicates connection status, negotiated times and sizes,
 /// and security tokens.
@@ -47,9 +57,26 @@ pub struct SessionState {
     pub authentication_token: NodeId,
     /// Channel token
     pub channel_token: Option<ChannelSecurityToken>,
+    /// Client side nonce
+    pub client_nonce: ByteString,
 }
 
-impl SessionState {}
+impl SessionState {
+    pub fn new() -> SessionState {
+        SessionState {
+            endpoint: None,
+            session_timeout: DEFAULT_SESSION_TIMEOUT,
+            request_timeout: DEFAULT_REQUEST_TIMEOUT,
+            send_buffer_size: SEND_BUFFER_SIZE,
+            receive_buffer_size: RECEIVE_BUFFER_SIZE,
+            max_message_size: MAX_BUFFER_SIZE,
+            last_request_handle: 1,
+            authentication_token: NodeId::null(),
+            channel_token: None,
+            client_nonce: ByteString::nonce(),
+        }
+    }
+}
 
 /// A session of the client. The session is associated with an endpoint and
 /// maintains a state when it is active.
@@ -75,17 +102,7 @@ impl Drop for Session {
 impl Session {
     /// Create a new session.
     pub fn new(application_description: ApplicationDescription, certificate_store: Arc<Mutex<CertificateStore>>, session_info: SessionInfo) -> Session {
-        let session_state = Arc::new(Mutex::new(SessionState {
-            endpoint: None,
-            session_timeout: 60 * 1000,
-            request_timeout: 10 * 1000,
-            send_buffer_size: 65536,
-            receive_buffer_size: 65536,
-            max_message_size: 65536,
-            last_request_handle: 1,
-            authentication_token: NodeId::null(),
-            channel_token: None
-        }));
+        let session_state = Arc::new(Mutex::new(SessionState::new()));
         let transport = TcpTransport::new(certificate_store, session_state.clone());
         Session {
             application_description,
@@ -185,70 +202,43 @@ impl Session {
         }
     }
 
-    fn user_identity_token(&self) -> Result<ExtensionObject, StatusCode> {
-        let user_token_type = match self.session_info.user_identity_token {
-            client::IdentityToken::Anonymous => {
-                UserTokenType::Anonymous
-            }
-            client::IdentityToken::UserName(_, _) => {
-                UserTokenType::Username
-            }
-        };
-
-        let session_state = self.session_state.clone();
-        let session_state = session_state.lock().unwrap();
-        if session_state.endpoint.is_none() {
-            error!("Cannot activate a session because no endpoint has been discovered and set!");
-            return Err(BAD_TCP_ENDPOINT_URL_INVALID);
-        }
-        let endpoint = session_state.endpoint.as_ref().unwrap();
-        let policy_id = endpoint.find_policy_id(user_token_type);
-
-        // Return the result
-        if policy_id.is_none() {
-            error!("Cannot find user token type {:?} for this endpoint, cannot connect", user_token_type);
-            Err(BAD_SECURITY_POLICY_REJECTED)
-        } else {
-            match self.session_info.user_identity_token {
-                client::IdentityToken::Anonymous => {
-                    let token = AnonymousIdentityToken {
-                        policy_id: policy_id.unwrap(),
-                    };
-                    Ok(ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id(), token))
-                }
-                client::IdentityToken::UserName(ref user, ref pass) => {
-                    // TODO Check that the security policy is something we can supply
-                    let token = UserNameIdentityToken {
-                        policy_id: policy_id.unwrap(),
-                        user_name: UAString::from(user.as_ref()),
-                        password: ByteString::from(pass.as_bytes()),
-                        encryption_algorithm: UAString::null(),
-                    };
-                    Ok(ExtensionObject::from_encodable(ObjectId::UserNameIdentityToken_Encoding_DefaultBinary.as_node_id(), token))
-                }
-            }
-        }
-    }
-
     /// Sends an ActivateSession request to the server
     pub fn activate_session(&mut self) -> Result<(), StatusCode> {
         let user_identity_token = self.user_identity_token()?;
-        // TODO Turn preferred locales into locale ids
+        let locale_ids = if self.session_info.preferred_locales.is_empty() {
+            None
+        } else {
+            let locale_ids = self.session_info.preferred_locales.iter().map(|id| UAString::from(id.as_ref())).collect();
+            Some(locale_ids)
+        };
+        let client_signature = if self.session_info.security_policy != SecurityPolicy::None {
+            SignatureData {
+                algorithm: UAString::null(),
+                signature: ByteString::null(),
+            }
+        }
+        else {
+            // TODO
+            SignatureData {
+                algorithm: UAString::null(),
+                signature: ByteString::null(),
+            }
+        };
+        let client_software_certificates = None;
+        let user_token_signature = SignatureData {
+            algorithm: UAString::null(),
+            signature: ByteString::null(),
+        };
         let request = ActivateSessionRequest {
             request_header: self.make_request_header(),
-            client_signature: SignatureData {
-                algorithm: UAString::null(),
-                signature: ByteString::null(),
-            },
-            client_software_certificates: None,
-            locale_ids: None,
+            client_signature,
+            client_software_certificates,
+            locale_ids,
             user_identity_token,
-            user_token_signature: SignatureData {
-                algorithm: UAString::null(),
-                signature: ByteString::null(),
-            },
+            user_token_signature,
         };
         trace!("ActivateSessionRequest = {:#?}", request);
+
         let response = self.send_request(SupportedMessage::ActivateSessionRequest(request))?;
         if let SupportedMessage::ActivateSessionResponse(response) = response {
             trace!("ActivateSessionResponse = {:#?}", response);
@@ -449,6 +439,51 @@ impl Session {
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    fn user_identity_token(&self) -> Result<ExtensionObject, StatusCode> {
+        let user_token_type = match self.session_info.user_identity_token {
+            client::IdentityToken::Anonymous => {
+                UserTokenType::Anonymous
+            }
+            client::IdentityToken::UserName(_, _) => {
+                UserTokenType::Username
+            }
+        };
+
+        let session_state = self.session_state.clone();
+        let session_state = session_state.lock().unwrap();
+        if session_state.endpoint.is_none() {
+            error!("Cannot activate a session because no endpoint has been discovered and set!");
+            return Err(BAD_TCP_ENDPOINT_URL_INVALID);
+        }
+        let endpoint = session_state.endpoint.as_ref().unwrap();
+        let policy_id = endpoint.find_policy_id(user_token_type);
+
+        // Return the result
+        if policy_id.is_none() {
+            error!("Cannot find user token type {:?} for this endpoint, cannot connect", user_token_type);
+            Err(BAD_SECURITY_POLICY_REJECTED)
+        } else {
+            match self.session_info.user_identity_token {
+                client::IdentityToken::Anonymous => {
+                    let token = AnonymousIdentityToken {
+                        policy_id: policy_id.unwrap(),
+                    };
+                    Ok(ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id(), token))
+                }
+                client::IdentityToken::UserName(ref user, ref pass) => {
+                    // TODO Check that the security policy is something we can supply
+                    let token = UserNameIdentityToken {
+                        policy_id: policy_id.unwrap(),
+                        user_name: UAString::from(user.as_ref()),
+                        password: ByteString::from(pass.as_bytes()),
+                        encryption_algorithm: UAString::null(),
+                    };
+                    Ok(ExtensionObject::from_encodable(ObjectId::UserNameIdentityToken_Encoding_DefaultBinary.as_node_id(), token))
+                }
+            }
+        }
+    }
 
     /// Checks if secure channel token needs to be renewed and renews it
     fn ensure_secure_channel_token(&mut self) -> Result<(), StatusCode> {
