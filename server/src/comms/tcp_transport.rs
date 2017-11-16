@@ -13,7 +13,6 @@ use time;
 
 use opcua_types::*;
 use opcua_core::prelude::*;
-use opcua_core::debug::*;
 
 use constants;
 use comms::secure_channel_service::SecureChannelService;

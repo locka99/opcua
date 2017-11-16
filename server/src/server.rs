@@ -182,7 +182,7 @@ impl Server {
     }
 
     /// Start a timer that triggers every 5 minutes and causes the server to register itself with a discovery server
-    fn start_discovery_server_registration_timer(&self, discovery_server_url: Option<String>) -> Option<timer::Timer> {
+    fn start_discovery_server_registration_timer(&self, discovery_server_url: Option<String>) -> Option<(timer::Timer, timer::Guard)> {
         if discovery_server_url.is_some() {
             let server_state = self.server_state.clone();
             let timer = timer::Timer::new();
@@ -193,7 +193,7 @@ impl Server {
                 // with the discovery server
                 trace!("Discovery server registration stub is triggering for {}", config.base_endpoint_url());
             });
-            Some(timer)
+            Some((timer, timer_guard))
         } else {
             None
         }

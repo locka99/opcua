@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex};
 use chrono;
 
 use opcua_types::*;
+use opcua_core::crypto;
 use opcua_core::crypto::{SecurityPolicy, CertificateStore, X509, PKey};
 
 use client;
@@ -59,6 +60,10 @@ pub struct SessionState {
     pub channel_token: Option<ChannelSecurityToken>,
     /// Client side nonce
     pub client_nonce: ByteString,
+    /// Server side nonce
+    pub server_nonce: ByteString,
+    /// Server certificate (not that endpoint may also contain this)
+    pub server_certificate: ByteString,
 }
 
 impl SessionState {
@@ -74,6 +79,8 @@ impl SessionState {
             authentication_token: NodeId::null(),
             channel_token: None,
             client_nonce: ByteString::nonce(),
+            server_nonce: ByteString::null(),
+            server_certificate: ByteString::null(),
         }
     }
 }
@@ -168,34 +175,57 @@ impl Session {
 
     /// Sends a CreateSession request to the server
     pub fn create_session(&mut self) -> Result<(), StatusCode> {
-        let endpoint_url = {
-            let session_state = self.session_state.clone();
-            let session_state = session_state.lock().unwrap();
+        // Get some state stuff
+        let (endpoint_url, client_nonce) = {
+            let session_state = self.session_state.lock().unwrap();
             if session_state.endpoint.is_none() {
                 error!("Cannot create a session because no endpoint has been discovered and set!");
                 return Err(BAD_TCP_ENDPOINT_URL_INVALID);
             }
-            session_state.endpoint.as_ref().unwrap().endpoint_url.clone()
+            let endpoint_url = session_state.endpoint.as_ref().unwrap().endpoint_url.clone();
+            let client_nonce = session_state.client_nonce.clone();
+            (endpoint_url, client_nonce)
         };
 
-        let client_nonce = ByteString::nonce();
+        let server_uri = UAString::null();
+        let session_name = UAString::from("Rust OPCUA Client");
+
+        // Security
+        let client_certificate = if let Some(ref client_certificate) = self.session_info.client_certificate {
+            client_certificate.as_byte_string()
+        } else {
+            ByteString::null()
+        };
+
         let request = CreateSessionRequest {
             request_header: self.make_request_header(),
             client_description: self.application_description.clone(),
-            server_uri: UAString::null(),
+            server_uri,
             endpoint_url,
-            session_name: UAString::from("Rust OPCUA Client"),
+            session_name,
             client_nonce,
-            client_certificate: ByteString::null(),
+            client_certificate,
             requested_session_timeout: 0f64,
             max_response_message_size: 0,
         };
         let response = self.send_request(SupportedMessage::CreateSessionRequest(request))?;
         if let SupportedMessage::CreateSessionResponse(response) = response {
             Self::process_service_result(&response.response_header)?;
+
             let session_state = self.session_state.clone();
             let mut session_state = session_state.lock().unwrap();
+
             session_state.authentication_token = response.authentication_token;
+            session_state.server_nonce = response.server_nonce;
+
+            // TODO Verify signature using server's public key (from endpoint) comparing with
+            // data made from client certificate and nonce.
+
+            // crypto::verify_signature_data(verification_key, security_policy, server_certificate, client_certificate, client_nonce);
+
+            // TODO validate server certificate against endpoint
+            session_state.server_certificate = response.server_certificate;
+
             Ok(())
         } else {
             Err(Self::process_unexpected_response(response))
@@ -208,27 +238,32 @@ impl Session {
         let locale_ids = if self.session_info.preferred_locales.is_empty() {
             None
         } else {
+            // Ids are
             let locale_ids = self.session_info.preferred_locales.iter().map(|id| UAString::from(id.as_ref())).collect();
             Some(locale_ids)
         };
-        let client_signature = if self.session_info.security_policy != SecurityPolicy::None {
-            SignatureData {
-                algorithm: UAString::null(),
-                signature: ByteString::null(),
-            }
-        }
-        else {
-            // TODO
-            SignatureData {
-                algorithm: UAString::null(),
-                signature: ByteString::null(),
+
+        let security_policy = self.session_info.security_policy;
+        let client_signature = match security_policy {
+            SecurityPolicy::None => SignatureData::null(),
+            _ => {
+                // Create a signature data
+                let session_state = self.session_state.lock().unwrap();
+                if self.session_info.client_pkey.is_none() {
+                    error!("Cannot create client signature - no pkey!");
+                    return Err(BAD_UNEXPECTED_ERROR);
+                } else if session_state.server_certificate.is_null() || session_state.server_nonce.is_null() {
+                    error!("Cannot sign server certificate + nonce because one of them is null");
+                    return Err(BAD_UNEXPECTED_ERROR);
+                }
+                let signing_key = self.session_info.client_pkey.as_ref().unwrap();
+                crypto::create_signature_data(signing_key, security_policy, &session_state.server_certificate, &session_state.server_nonce)?
             }
         };
+
         let client_software_certificates = None;
-        let user_token_signature = SignatureData {
-            algorithm: UAString::null(),
-            signature: ByteString::null(),
-        };
+        let user_token_signature = SignatureData::null();
+
         let request = ActivateSessionRequest {
             request_header: self.make_request_header(),
             client_signature,
@@ -556,15 +591,18 @@ impl Session {
     }
 
     fn issue_or_renew_secure_channel(&mut self, request_type: SecurityTokenRequestType) -> Result<(), StatusCode> {
-        // TODO
+        let client_nonce = {
+            let session_state = self.session_state.lock().unwrap();
+            session_state.client_nonce.clone()
+        };
+        let security_mode = self.session_info.security_mode;
         let requested_lifetime = 60000;
-
         let request = OpenSecureChannelRequest {
             request_header: self.make_request_header(),
             client_protocol_version: 0,
             request_type,
-            security_mode: MessageSecurityMode::None,
-            client_nonce: ByteString::from(&[0]),
+            security_mode,
+            client_nonce,
             requested_lifetime,
         };
         let response = self.send_request(SupportedMessage::OpenSecureChannelRequest(request))?;

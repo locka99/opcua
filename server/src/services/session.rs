@@ -67,7 +67,7 @@ impl SessionService {
             // Calculate a signature (assuming there is a pkey)
             let server_signature = if server_state.server_pkey.is_some() {
                 let pkey = server_state.server_pkey.as_ref().unwrap();
-                crypto::create_signature_data(pkey, security_policy, &request.client_certificate, &request.client_nonce).unwrap()
+                crypto::create_signature_data(pkey, security_policy, &request.client_certificate, &request.client_nonce)?
             } else {
                 SignatureData::null()
             };
@@ -159,26 +159,8 @@ impl SessionService {
     fn verify_client_signature(server_state: &ServerState, session: &Session, client_signature: &SignatureData) -> StatusCode {
         if let Some(ref client_certificate) = session.client_certificate {
             if let Some(ref server_certificate) = server_state.server_certificate {
-                if let Ok(verification_key) = client_certificate.public_key() {
-                    // This is the data that the client should have signed
-                    let server_certificate = server_certificate.as_byte_string();
-                    let data = crypto::concat_data_and_nonce(server_certificate.as_ref(), session.session_nonce.as_ref());
-
-                    // Verify the signature
-                    let security_policy = session.secure_channel.security_policy;
-                    let result = security_policy.asymmetric_verify_signature(&verification_key, &data, client_signature.signature.as_ref(), None);
-
-                    if result.is_ok() {
-                        GOOD
-                    } else {
-                        let result = result.unwrap_err();
-                        error!("Client signature verification failed, status code = {:?}", result);
-                        result
-                    }
-                } else {
-                    error!("Client signature verification failed, client certificate has no public key");
-                    BAD_UNEXPECTED_ERROR
-                }
+                let security_policy = session.secure_channel.security_policy;
+                crypto::verify_signature_data(client_signature, security_policy, client_certificate, server_certificate, &session.session_nonce)
             } else {
                 error!("Client signature verification failed, server has no server certificate");
                 BAD_UNEXPECTED_ERROR
@@ -188,4 +170,5 @@ impl SessionService {
             BAD_UNEXPECTED_ERROR
         }
     }
+
 }
