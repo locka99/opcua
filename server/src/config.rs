@@ -32,10 +32,10 @@ pub struct ServerUserToken {
 }
 
 impl ServerUserToken {
-    pub fn new_user_pass(user: &str, pass: &str) -> ServerUserToken {
+    pub fn new_user_pass<T>(user: T, pass: T) -> Self where T: Into<String> {
         ServerUserToken {
-            user: user.to_string(),
-            pass: Some(pass.to_string())
+            user: user.into(),
+            pass: Some(pass.into())
         }
     }
 
@@ -68,7 +68,7 @@ pub struct ServerEndpoint {
 }
 
 impl ServerEndpoint {
-    pub fn new(path: &str, user_token_ids: &[String], security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> ServerEndpoint {
+    pub fn new<T>(path: T, user_token_ids: &[String], security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> Self where T: Into<String> {
         let security_level = match security_policy {
             SecurityPolicy::None => 1,
             SecurityPolicy::Basic128Rsa15 => 2,
@@ -77,7 +77,7 @@ impl ServerEndpoint {
             _ => 0
         };
         ServerEndpoint {
-            path: path.to_string(),
+            path: path.into(),
             security_policy: security_policy.to_string(),
             security_mode: security_mode.to_string(),
             security_level,
@@ -85,31 +85,31 @@ impl ServerEndpoint {
         }
     }
 
-    pub fn new_none(path: &str, user_token_ids: &[String]) -> ServerEndpoint {
+    pub fn new_none<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
         Self::new(path, user_token_ids, SecurityPolicy::None, MessageSecurityMode::None)
     }
 
-    pub fn new_basic128rsa15_sign(path: &str, user_token_ids: &[String]) -> ServerEndpoint {
+    pub fn new_basic128rsa15_sign<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
         Self::new(path, user_token_ids, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign)
     }
 
-    pub fn new_basic128rsa15_sign_encrypt(path: &str, user_token_ids: &[String]) -> ServerEndpoint {
+    pub fn new_basic128rsa15_sign_encrypt<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
         Self::new(path, user_token_ids, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt)
     }
 
-    pub fn new_basic256_sign(path: &str, user_token_ids: &[String]) -> ServerEndpoint {
+    pub fn new_basic256_sign<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
         Self::new(path, user_token_ids, SecurityPolicy::Basic256, MessageSecurityMode::Sign)
     }
 
-    pub fn new_basic256_sign_encrypt(path: &str, user_token_ids: &[String]) -> ServerEndpoint {
+    pub fn new_basic256_sign_encrypt<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
         Self::new(path, user_token_ids, SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt)
     }
 
-    pub fn new_basic256sha256_sign(path: &str, user_token_ids: &[String]) -> ServerEndpoint {
+    pub fn new_basic256sha256_sign<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
         Self::new(path, user_token_ids, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign)
     }
 
-    pub fn new_basic256sha256_sign_encrypt(path: &str, user_token_ids: &[String]) -> ServerEndpoint {
+    pub fn new_basic256sha256_sign_encrypt<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
         Self::new(path, user_token_ids, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt)
     }
 

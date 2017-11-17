@@ -17,6 +17,15 @@ pub struct ClientUserToken {
     pub password: String,
 }
 
+impl ClientUserToken {
+    pub fn new<T>(user: T, password: T) -> Self where T: Into<String> {
+        ClientUserToken {
+            user: user.into(),
+            password: password.into(),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct ClientEndpoint {
     /// Endpoint path
@@ -26,12 +35,22 @@ pub struct ClientEndpoint {
     /// Security mode
     pub security_mode: String,
     /// User id to use with the endpoint
-    #[serde(default = "ClientEndpoint::anonymous")]
+    #[serde(default = "ClientEndpoint::anonymous_id")]
     pub user_token_id: String
 }
 
 impl ClientEndpoint {
-    fn anonymous() -> String {
+    /// Makes a client endpoint
+    pub fn new<T>(url: T) -> Self where T: Into<String> {
+        ClientEndpoint {
+            url: url.into(),
+            security_policy: SecurityPolicy::None.to_str().into(),
+            security_mode: MessageSecurityMode::None.into(),
+            user_token_id: Self::anonymous_id()
+        }
+    }
+
+    fn anonymous_id() -> String {
         ANONYMOUS_USER_TOKEN_ID.to_string()
     }
 
