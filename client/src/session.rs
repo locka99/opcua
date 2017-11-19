@@ -406,11 +406,11 @@ impl Session {
         }
     }
 
-    /// Sends a CreateSubscriptionRequest request to the server. A subcription is described by the 
+    /// Sends a CreateSubscriptionRequest request to the server. A subscription is described by the
     /// supplied subscription struct. The initial values imply the requested interval, lifetime 
     /// and keepalive and the value returned in the response are the revised values. The
     /// subscription id is also returned in the response.
-    pub fn add_subscription(&mut self, mut subscription: Subscription) -> Result<Subscription, StatusCode> {
+    pub fn create_subscription(&mut self, mut subscription: Subscription) -> Result<Subscription, StatusCode> {
         if subscription.subscription_id != 0 {
             error!("Subscription id must be 0, or the subscription is considered already created");
             Err(BAD_INVALID_ARGUMENT)
@@ -439,8 +439,10 @@ impl Session {
         }
     }
 
+    // modify subscription
+
     /// Removes a subscription using its subscription id
-    pub fn remove_subscription(&mut self, subscription: Subscription) -> Result<(), StatusCode> {
+    pub fn delete_subscription(&mut self, subscription: &mut Subscription) -> Result<(), StatusCode> {
         if subscription.subscription_id == 0 {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
             Err(BAD_INVALID_ARGUMENT)
@@ -452,6 +454,53 @@ impl Session {
             let response = self.send_request(SupportedMessage::DeleteSubscriptionsRequest(request))?;
             if let SupportedMessage::DeleteSubscriptionsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
+                subscription.subscription_id = 0;
+                subscription.monitored_items.clear();
+                Ok(())
+            } else {
+                Err(Self::process_unexpected_response(response))
+            }
+        }
+    }
+
+    /// Create monitored items request
+    pub fn create_monitored_items(&mut self, subscription: &mut Subscription, items_to_create: Vec<MonitoredItemCreateRequest>) -> Result<(), StatusCode> {
+        if !subscription.is_valid() {
+            error!("Subscription id must be non-zero, or the subscription is considered invalid");
+            Err(BAD_INVALID_ARGUMENT)
+        } else {
+            let request = CreateMonitoredItemsRequest {
+                request_header: self.make_request_header(),
+                subscription_id: subscription.subscription_id,
+                timestamps_to_return: TimestampsToReturn::Both,
+                items_to_create: Some(items_to_create),
+            };
+            let response = self.send_request(SupportedMessage::CreateMonitoredItemsRequest(request))?;
+            if let SupportedMessage::CreateMonitoredItemsResponse(response) = response {
+                Self::process_service_result(&response.response_header)?;
+                // TODO Create monitored items on the subscription
+                Ok(())
+            } else {
+                Err(Self::process_unexpected_response(response))
+            }
+        }
+    }
+
+    /// Deletes monitored items from the subscription
+    pub fn delete_monitored_items(&mut self, subscription: &mut Subscription, monitored_item_ids: Vec<UInt32>) -> Result<(), StatusCode> {
+        if !subscription.is_valid() {
+            error!("Subscription id must be non-zero, or the subscription is considered invalid");
+            Err(BAD_INVALID_ARGUMENT)
+        } else {
+            let request = DeleteMonitoredItemsRequest {
+                request_header: self.make_request_header(),
+                subscription_id: subscription.subscription_id,
+                monitored_item_ids: Some(monitored_item_ids),
+            };
+            let response = self.send_request(SupportedMessage::DeleteMonitoredItemsRequest(request))?;
+            if let SupportedMessage::DeleteMonitoredItemsResponse(response) = response {
+                Self::process_service_result(&response.response_header)?;
+                // TODO Delete monitored items from the subscription
                 Ok(())
             } else {
                 Err(Self::process_unexpected_response(response))

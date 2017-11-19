@@ -38,4 +38,8 @@ impl Subscription {
             monitored_items: Vec::with_capacity(32)
         }
     }
+
+    pub fn is_valid(&self) -> bool {
+        self.subscription_id != 0
+    }
 }

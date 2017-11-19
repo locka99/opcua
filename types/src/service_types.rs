@@ -15,6 +15,7 @@ use supported_message::SupportedMessage;
 use generated::StatusCode;
 use generated::StatusCode::*;
 use generated::{DataChangeFilter, ObjectId, AnonymousIdentityToken, UserNameIdentityToken, SignatureData, ReadValueId, EndpointDescription, ServiceFault};
+use generated::{MonitoredItemCreateRequest, MonitoringParameters};
 
 /// Implemented by messages
 pub trait MessageInfo {
@@ -779,6 +780,17 @@ impl SignatureData {
         SignatureData {
             algorithm: UAString::null(),
             signature: ByteString::null(),
+        }
+    }
+}
+
+impl MonitoredItemCreateRequest {
+    /// Adds an item to monitor to the subscription
+    pub fn new(item_to_monitor: ReadValueId, monitoring_mode: MonitoringMode, requested_parameters: MonitoringParameters) -> MonitoredItemCreateRequest {
+        MonitoredItemCreateRequest {
+            item_to_monitor,
+            monitoring_mode,
+            requested_parameters,
         }
     }
 }
