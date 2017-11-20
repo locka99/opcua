@@ -161,14 +161,46 @@ impl Client {
         self.new_session(session_info)
     }
 
-    /// Creates an ad hoc new anonymous `Session` using the specified endpoint url, security policy and mode.
-    pub fn new_session(&mut self, session_info: SessionInfo) -> Result<Arc<Mutex<Session>>, String> {
+    /// Creates an ad hoc new `Session` using the specified endpoint url, security policy and mode.
+    pub fn new_session<T>(&mut self, session_info: T) -> Result<Arc<Mutex<Session>>, String> where T: Into<SessionInfo> {
+        let session_info = session_info.into();
         if !is_opc_ua_binary_url(&session_info.url) {
             Err(format!("Endpoint url {}, is not a valid / supported url", session_info.url))
         } else {
             let session = Arc::new(Mutex::new(Session::new(self.application_description(), self.certificate_store.clone(), session_info)));
             self.sessions.push(session.clone());
             Ok(session)
+        }
+    }
+
+    /// Creates a temporary `Session` to the specified discovery endpoint and returns the server results that it finds
+    pub fn find_servers<T>(&mut self, discovery_endpoint_url: T) -> Result<Vec<ApplicationDescription>, StatusCode> where T: Into<String> {
+        let discovery_endpoint_url = discovery_endpoint_url.into();
+        debug!("Creating a temporary session to discovery server {}", discovery_endpoint_url);
+        let session = self.new_session(discovery_endpoint_url.clone());
+        if let Ok(session) = session {
+            let mut session = session.lock().unwrap();
+            // Connect & activate the session.
+            let connected = session.connect();
+            if let Ok(_) = connected {
+                // Find me some some servers
+                let servers = session.find_servers(discovery_endpoint_url.clone());
+                if let Ok(servers) = servers {
+                    Ok(servers)
+                } else {
+                    let result = servers.unwrap_err();
+                    error!("Cannot find servers on discovery server {} - check this error - {:?}", discovery_endpoint_url, result);
+                    Err(result)
+                }
+            } else {
+                let result = connected.unwrap_err();
+                error!("Cannot connect to {} - check this error - {:?}", discovery_endpoint_url, result);
+                Err(result)
+            }
+        } else {
+            let result = BAD_UNEXPECTED_ERROR;
+            error!("Cannot create a sesion to {} - check if url is malformed", discovery_endpoint_url);
+            Err(result)
         }
     }
 

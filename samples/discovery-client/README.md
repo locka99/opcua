@@ -1,0 +1,1 @@
+This sample attempts to connect to a discovery server url and find servers from it.

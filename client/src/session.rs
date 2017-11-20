@@ -30,6 +30,46 @@ pub struct SessionInfo {
     pub client_pkey: Option<PKey>,
 }
 
+impl<'a> From<&'a str> for SessionInfo {
+    fn from(value: &'a str) -> SessionInfo {
+        let value: String = value.into();
+        value.into()
+    }
+}
+
+impl Into<SessionInfo> for String {
+    fn into(self) -> SessionInfo {
+        (self, SecurityPolicy::None, MessageSecurityMode::None, client::IdentityToken::Anonymous).into()
+    }
+}
+
+impl Into<SessionInfo> for (String, SecurityPolicy, MessageSecurityMode) {
+    fn into(self) -> SessionInfo {
+        (self.0, self.1, self.2, client::IdentityToken::Anonymous).into()
+    }
+}
+
+impl Into<SessionInfo> for (String, SecurityPolicy, MessageSecurityMode, client::IdentityToken) {
+    fn into(self) -> SessionInfo {
+        SessionInfo {
+            url: self.0,
+            security_policy: self.1,
+            security_mode: self.2,
+            user_identity_token: self.3,
+            preferred_locales: Vec::new(),
+            client_pkey: None,
+            client_certificate: None,
+        }
+    }
+}
+
+impl SessionInfo {
+    /// Creates a basic session info that points to an endpoint url with no security
+    pub fn new<T>(url: T) -> SessionInfo where T: Into<String> {
+        (url.into()).into()
+    }
+}
+
 const DEFAULT_SESSION_TIMEOUT: u32 = 60 * 1000;
 const DEFAULT_REQUEST_TIMEOUT: u32 = 10 * 1000;
 const SEND_BUFFER_SIZE: usize = 65536;
@@ -127,7 +167,7 @@ impl Session {
         Ok(())
     }
 
-    /// Connects to the server and activates a session
+    /// Connects to the server, creates and activates a session
     pub fn connect_and_activate_session(&mut self) -> Result<(), StatusCode> {
         let _ = self.connect()?;
 
@@ -279,6 +319,28 @@ impl Session {
             trace!("ActivateSessionResponse = {:#?}", response);
             Self::process_service_result(&response.response_header)?;
             Ok(())
+        } else {
+            Err(Self::process_unexpected_response(response))
+        }
+    }
+
+    // Find a bunch of servers
+    pub fn find_servers<T>(&mut self, discovery_url: T) -> Result<Vec<ApplicationDescription>, StatusCode> where T: Into<String> {
+        let request = FindServersRequest {
+            request_header: self.make_request_header(),
+            endpoint_url: UAString::from(discovery_url.into()),
+            locale_ids: None,
+            server_uris: None
+        };
+        let response = self.send_request(SupportedMessage::FindServersRequest(request))?;
+        if let SupportedMessage::FindServersResponse(response) = response {
+            Self::process_service_result(&response.response_header)?;
+            let servers = if let Some(servers) = response.servers {
+                servers
+            } else {
+                Vec::new()
+            };
+            Ok(servers)
         } else {
             Err(Self::process_unexpected_response(response))
         }

@@ -81,6 +81,12 @@ impl SupportedMessage {
             ObjectId::CloseSecureChannelResponse_Encoding_DefaultBinary => {
                 SupportedMessage::CloseSecureChannelResponse(CloseSecureChannelResponse::decode(stream)?)
             }
+            ObjectId::FindServersRequest_Encoding_DefaultBinary => {
+                SupportedMessage::FindServersRequest(FindServersRequest::decode(stream)?)
+            }
+            ObjectId::FindServersResponse_Encoding_DefaultBinary => {
+                SupportedMessage::FindServersResponse(FindServersResponse::decode(stream)?)
+            }
             ObjectId::GetEndpointsRequest_Encoding_DefaultBinary => {
                 SupportedMessage::GetEndpointsRequest(GetEndpointsRequest::decode(stream)?)
             }
@@ -210,6 +216,8 @@ supported_messages![
     // Discovery service
     GetEndpointsRequest,
     GetEndpointsResponse,
+    FindServersRequest,
+    FindServersResponse,
     // Session service
     CreateSessionRequest,
     CreateSessionResponse,
