@@ -200,20 +200,32 @@ impl TcpTransport {
             }
             let messages = result.unwrap();
             for message in messages {
-                if let Message::MessageChunk(chunk) = message {
-                    let result = self.process_chunk(chunk)?;
-                    if result.is_some() {
-                        // TODO check the response request_handle to see if it matches our request
-                        return Ok(result.unwrap());
+                match message {
+                    Message::MessageChunk(chunk) => {
+                        let result = self.process_chunk(chunk)?;
+                        if result.is_some() {
+                            // TODO check the response request_handle to see if it matches our request
+                            return Ok(result.unwrap());
+                        }
+                    },
+                    Message::Error(error_message) => {
+                        // TODO if this is an ERROR chunk, then the client should go into an error
+                        // recovery state, dropping the connection and reestablishing it.
+                        session_status_code = if let Ok(status_code) = StatusCode::from_u32(error_message.error) {
+                            status_code
+                        }
+                        else {
+                            BAD_UNEXPECTED_ERROR
+                        };
+                        error!("Expecting a chunk, got an error message {:?}, reason \"{}\"", session_status_code, error_message.reason.as_ref());
+                        break 'message_loop;
+                    },
+                    message => {
+                        // This is not a regular message, or an error so what is happening?
+                        error!("Expecting a chunk, got something that was not a chunk or even an error - {:?}", message);
+                        session_status_code = BAD_UNEXPECTED_ERROR;
+                        break 'message_loop;
                     }
-                } else {
-                    // TODO if this is an ERROR chunk, then the client should go into an error
-                    // recovery state, dropping the connection and reestablishing it.
-
-                    // This is not a regular message, so what is happening?
-                    error!("Expecting a chunk, got something that was not a chunk {:?}", message);
-                    session_status_code = BAD_UNEXPECTED_ERROR;
-                    break 'message_loop;
                 }
             }
             // TODO error recovery state
