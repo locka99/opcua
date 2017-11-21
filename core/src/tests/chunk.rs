@@ -140,10 +140,10 @@ fn max_message_size() {
 /// Encode a large message and then verify the chunks are sequential. Also test code throws error for non-sequential
 /// chunks
 #[test]
-fn validate_chunk_sequences() {
+fn validate_chunks() {
     let _ = Test::setup();
 
-    let secure_channel = SecureChannel::new_no_certificate_store();
+    let mut secure_channel = SecureChannel::new_no_certificate_store();
     let response = make_large_read_response();
 
     // Create a very large message
@@ -153,17 +153,23 @@ fn validate_chunk_sequences() {
     assert!(chunks.len() > 1);
 
     // Test sequence number is returned properly
-    let result = Chunker::validate_chunk_sequences(sequence_number, &secure_channel, &chunks).unwrap();
+    let result = Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap();
     assert_eq!(sequence_number + chunks.len() as UInt32 - 1, result);
+
+    // Test secure channel id mismatch
+    let old_secure_channel_id = secure_channel.secure_channel_id;
+    secure_channel.secure_channel_id += 1;
+    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), BAD_SECURE_CHANNEL_ID_INVALID);
+    secure_channel.secure_channel_id = old_secure_channel_id;
 
     // Hack one of the chunks to alter its seq id
     let old_sequence_nr = set_chunk_sequence_number(&mut chunks[0], &secure_channel, 1001);
-    assert_eq!(Chunker::validate_chunk_sequences(sequence_number, &secure_channel, &chunks).unwrap_err(), BAD_SEQUENCE_NUMBER_INVALID);
+    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), BAD_SEQUENCE_NUMBER_INVALID);
 
     // Hack the nth
     set_chunk_sequence_number(&mut chunks[0], &secure_channel, old_sequence_nr);
     let _ = set_chunk_sequence_number(&mut chunks[5], &secure_channel, 1008);
-    assert_eq!(Chunker::validate_chunk_sequences(sequence_number, &secure_channel, &chunks).unwrap_err(), BAD_SEQUENCE_NUMBER_INVALID);
+    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), BAD_SEQUENCE_NUMBER_INVALID);
 }
 
 /// Test creating a request, encoding it and decoding it.

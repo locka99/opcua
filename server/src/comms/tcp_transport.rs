@@ -359,7 +359,7 @@ impl TcpTransport {
     fn turn_received_chunks_into_message(&mut self, chunks: &Vec<MessageChunk>) -> std::result::Result<SupportedMessage, StatusCode> {
         let session = self.session.lock().unwrap();
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
-        self.last_received_sequence_number = Chunker::validate_chunk_sequences(self.last_received_sequence_number + 1, &session.secure_channel, chunks)?;
+        self.last_received_sequence_number = Chunker::validate_chunks(self.last_received_sequence_number + 1, &session.secure_channel, chunks)?;
         // Now decode
         Chunker::decode(&chunks, &session.secure_channel, None)
     }

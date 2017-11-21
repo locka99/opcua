@@ -230,6 +230,7 @@ dependencies = [
 name = "opcua-discovery-client"
 version = "0.2.0"
 dependencies = [
+ "clap 2.19.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-client 0.2.0",
  "opcua-core 0.2.0",
  "opcua-types 0.2.0",

@@ -1,5 +1,6 @@
-//! This is a sample OPC UA Client that connects to the specified server, fetches some
-//! values before exiting.
+//! This is a sample that calls find servers on a OPC UA discovery server
+extern crate clap;
+
 extern crate opcua_types;
 extern crate opcua_core;
 extern crate opcua_client;
@@ -8,14 +9,28 @@ use opcua_client::prelude::*;
 
 fn main() {
     // Optional - enable OPC UA logging
-    opcua_core::init_logging();
+    //opcua_core::init_logging();
 
-    let discovery_endpoint_url = "opc.tcp://localhost:4840/";
+    // Read the argument
+    let url = {
+        use clap::*;
+        let matches = App::new("OPC UA Discovery client")
+            .about(
+                r#"Finds servers from a discovery url."#)
+            .arg(Arg::with_name("url")
+                .long("url")
+                .help("The url for the discover server")
+                .default_value("opc.tcp://localhost:4840/")
+                .takes_value(true))
+            .get_matches();
+        matches.value_of("url").unwrap().to_string()
+    };
 
-    // To find servers, we connect to a local discovery server and call FindServers.
-    // The client API has a simple `find_servers` function that does it for us.
+    println!("Attempting to connect to discovery server {} ...", url);
+
+    // The client API has a simple `find_servers` function that connects and returns servers for us.
     let mut client = Client::new(ClientConfig::new("DiscoveryClient", "urn:DiscoveryClient"));
-    let servers = client.find_servers(discovery_endpoint_url);
+    let servers = client.find_servers(url);
     if let Ok(servers) = servers {
         println!("Discovery server responded with {} servers:", servers.len());
         for server in &servers {
@@ -30,7 +45,7 @@ fn main() {
             }
         }
     } else {
-        println!("Cannot find servers on discovery server - check this error - {:?}", servers.unwrap_err());
+        println!("ERROR: Cannot find servers on discovery server - check this error - {:?}", servers.unwrap_err());
     }
 }
 

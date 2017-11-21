@@ -3,7 +3,7 @@ use std::result::Result;
 use std::sync::{Arc, Mutex};
 use std::io::{Read, ErrorKind};
 
-use chrono::UTC;
+use chrono;
 
 use opcua_core::prelude::*;
 
@@ -32,6 +32,7 @@ pub struct TcpTransport {
 }
 
 impl TcpTransport {
+    /// Create a new TCP transport layer for the session
     pub fn new(certificate_store: Arc<Mutex<CertificateStore>>, session_state: Arc<Mutex<SessionState>>) -> TcpTransport {
         let receive_buffer_size = {
             let session_state = session_state.lock().unwrap();
@@ -51,33 +52,13 @@ impl TcpTransport {
         }
     }
 
-    pub fn hello(&mut self, endpoint_url: &str) -> Result<(), StatusCode> {
-        let msg = {
-            let session_state = self.session_state.clone();
-            let session_state = session_state.lock().unwrap();
-            HelloMessage::new(endpoint_url,
-                              session_state.send_buffer_size as UInt32,
-                              session_state.receive_buffer_size as UInt32,
-                              session_state.max_message_size as UInt32)
-        };
-        debug!("Sending HEL {:?}", msg);
-        let stream = self.stream();
-        let _ = msg.encode(stream)?;
-
-        // Listen for ACK
-        debug!("Waiting for ack");
-        let ack = AcknowledgeMessage::decode(stream)?;
-
-        // Process ack
-        debug!("Got ACK {:?}", ack);
-
-        Ok(())
-    }
-
+    /// Connects the stream to the specified endpoint
     pub fn connect(&mut self, endpoint_url: &str) -> Result<(), StatusCode> {
-        use url::Url;
+        if self.is_connected() {
+            panic!("Should not try to connect when already connected");
+        }
 
-        // let session_state = self.session_state.lock().unwrap();
+        use url::Url;
 
         // Validate and split out the endpoint we have
         let result = Url::parse(&endpoint_url);
@@ -105,14 +86,68 @@ impl TcpTransport {
         Ok(())
     }
 
+    /// Sends a hello message to the server
+    pub fn hello(&mut self, endpoint_url: &str) -> Result<(), StatusCode> {
+        let msg = {
+            let session_state = self.session_state.clone();
+            let session_state = session_state.lock().unwrap();
+            HelloMessage::new(endpoint_url,
+                              session_state.send_buffer_size as UInt32,
+                              session_state.receive_buffer_size as UInt32,
+                              session_state.max_message_size as UInt32)
+        };
+        debug!("Sending HEL {:?}", msg);
+        let stream = self.stream();
+        let _ = msg.encode(stream)?;
+
+        // Listen for ACK
+        debug!("Waiting for ack");
+        let ack = AcknowledgeMessage::decode(stream)?;
+
+        // Process ack
+        debug!("Got ACK {:?}", ack);
+
+        Ok(())
+    }
+
+    /// Disconnects the stream from the server (if it is connected)
     pub fn disconnect(&mut self) {
-        if self.stream.is_some() {
+        if self.is_connected() {
             self.stream = None;
         }
     }
 
+    /// Tests if the transport is connected
     pub fn is_connected(&self) -> bool {
         self.stream.is_some()
+    }
+
+    /// Sets the security token info received from an issue / renew request
+    pub fn set_security_token(&mut self, channel_token: ChannelSecurityToken) {
+        let secure_channel = &mut self.secure_channel;
+        secure_channel.secure_channel_id = channel_token.channel_id;
+        secure_channel.token_id = channel_token.token_id;
+        secure_channel.token_created_at = channel_token.created_at;
+        secure_channel.token_lifetime = channel_token.revised_lifetime;
+    }
+
+    /// Test if the secure channel token needs to be renewed. The algorithm determines it needs
+    /// to be renewed if the issue period has elapsed by 75% or more.
+    pub fn should_renew_security_token(&self) -> bool {
+        let secure_channel = &self.secure_channel;
+        if secure_channel.token_id == 0 {
+            panic!("Shouldn't be asking this question, if there is no token id at all");
+        } else {
+            let now = chrono::UTC::now();
+
+            // Check if secure channel 75% close to expiration in which case send a renew
+            let renew_lifetime = (secure_channel.token_lifetime * 3) / 4;
+            let created_at = secure_channel.token_created_at.clone().into();
+            let renew_lifetime = chrono::Duration::milliseconds(renew_lifetime as i64);
+
+            // Renew the token?
+            now.signed_duration_since(created_at) > renew_lifetime
+        }
     }
 
     fn stream(&mut self) -> &mut TcpStream {
@@ -121,7 +156,7 @@ impl TcpTransport {
 
     fn turn_received_chunks_into_message(&mut self, chunks: &Vec<MessageChunk>) -> Result<SupportedMessage, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
-        self.last_received_sequence_number = Chunker::validate_chunk_sequences(self.last_received_sequence_number + 1, &self.secure_channel, chunks)?;
+        self.last_received_sequence_number = Chunker::validate_chunks(self.last_received_sequence_number + 1, &self.secure_channel, chunks)?;
         // Now decode
         Chunker::decode(&chunks, &self.secure_channel, None)
     }
@@ -158,10 +193,10 @@ impl TcpTransport {
         let mut in_buf = vec![0u8; RECEIVE_BUFFER_SIZE];
 
         let session_status_code;
-        let start = UTC::now();
+        let start = chrono::UTC::now();
         'message_loop: loop {
             // Check for a timeout
-            let now = UTC::now();
+            let now = chrono::UTC::now();
             let request_duration = now.signed_duration_since(start);
             if request_duration.num_milliseconds() > request_timeout as i64 {
                 debug!("Time waiting {}ms exceeds timeout {}ms waiting for response from request id {}", request_duration.num_milliseconds(), request_timeout, request_id);
@@ -207,19 +242,18 @@ impl TcpTransport {
                             // TODO check the response request_handle to see if it matches our request
                             return Ok(result.unwrap());
                         }
-                    },
+                    }
                     Message::Error(error_message) => {
                         // TODO if this is an ERROR chunk, then the client should go into an error
                         // recovery state, dropping the connection and reestablishing it.
                         session_status_code = if let Ok(status_code) = StatusCode::from_u32(error_message.error) {
                             status_code
-                        }
-                        else {
+                        } else {
                             BAD_UNEXPECTED_ERROR
                         };
                         error!("Expecting a chunk, got an error message {:?}, reason \"{}\"", session_status_code, error_message.reason.as_ref());
                         break 'message_loop;
-                    },
+                    }
                     message => {
                         // This is not a regular message, or an error so what is happening?
                         error!("Expecting a chunk, got something that was not a chunk or even an error - {:?}", message);

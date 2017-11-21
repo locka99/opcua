@@ -20,11 +20,12 @@ impl Chunker {
         }
     }
 
-    /// Ensure all of the supplied chunks have sequence numbers greater than the input sequence number and the preceding chunk
+    /// Ensure all of the supplied chunks have a valid secure channel id, and sequence numbers
+    /// greater than the input sequence number and the preceding chunk
     ///
     /// The function returns the last sequence number in the series for success, or
-    /// BAD_SEQUENCE_NUMBER_INVALID for failure.
-    pub fn validate_chunk_sequences(starting_sequence_number: UInt32, secure_channel: &SecureChannel, chunks: &Vec<MessageChunk>) -> Result<UInt32, StatusCode> {
+    /// `BAD_SEQUENCE_NUMBER_INVALID` or `BAD_SECURE_CHANNEL_ID_INVALID` for failure.
+    pub fn validate_chunks(starting_sequence_number: UInt32, secure_channel: &SecureChannel, chunks: &Vec<MessageChunk>) -> Result<UInt32, StatusCode> {
         let first_sequence_number = {
             let chunk_info = chunks[0].chunk_info(secure_channel)?;
             chunk_info.sequence_header.sequence_number
@@ -33,12 +34,22 @@ impl Chunker {
             error!("First sequence number of {} is less than last value {}", first_sequence_number, starting_sequence_number);
             return Err(BAD_SEQUENCE_NUMBER_INVALID);
         }
+
+        let secure_channel_id = secure_channel.secure_channel_id;
+
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
         for (i, chunk) in chunks.iter().enumerate() {
             let chunk_info = chunk.chunk_info(secure_channel)?;
+
+            // Check the channel id of each chunk
+            if secure_channel_id != 0 && chunk_info.message_header.secure_channel_id != secure_channel_id {
+                error!("Secure channel id {} does not match expected id {}", chunk_info.message_header.secure_channel_id, secure_channel_id);
+                return Err(BAD_SECURE_CHANNEL_ID_INVALID);
+            }
+
+            // Check the sequence id - should be larger than the last one decoded
             let sequence_number = chunk_info.sequence_header.sequence_number;
             let expected_sequence_number = first_sequence_number + i as UInt32;
-            // Check the sequence id - should be larger than the last one decoded
             if sequence_number != expected_sequence_number {
                 error!("Chunk sequence number of {} is not the expected value of {}, idx {}", sequence_number, expected_sequence_number, i);
                 return Err(BAD_SEQUENCE_NUMBER_INVALID);

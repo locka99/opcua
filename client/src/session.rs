@@ -1,8 +1,6 @@
 use std::result::Result;
 use std::sync::{Arc, Mutex};
 
-use chrono;
-
 use opcua_types::*;
 use opcua_core::crypto;
 use opcua_core::crypto::{SecurityPolicy, CertificateStore, X509, PKey};
@@ -96,8 +94,6 @@ pub struct SessionState {
     pub last_request_handle: UInt32,
     /// The authentication token negotiated with the server (if any)
     pub authentication_token: NodeId,
-    /// Channel token
-    pub channel_token: Option<ChannelSecurityToken>,
     /// Client side nonce
     pub client_nonce: ByteString,
     /// Server side nonce
@@ -117,7 +113,6 @@ impl SessionState {
             max_message_size: MAX_BUFFER_SIZE,
             last_request_handle: 1,
             authentication_token: NodeId::null(),
-            channel_token: None,
             client_nonce: ByteString::nonce(),
             server_nonce: ByteString::null(),
             server_certificate: ByteString::null(),
@@ -571,15 +566,25 @@ impl Session {
     }
 
     pub fn send_request(&mut self, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
-        // Make sure secure channel token hasn't expired
-        let _ = self.ensure_secure_channel_token();
+        match request {
+            SupportedMessage::OpenSecureChannelRequest(_) | SupportedMessage::CloseSecureChannelRequest(_) => {}
+            _ => {
+                // Make sure secure channel token hasn't expired
+                let _ = self.ensure_secure_channel_token();
+            }
+        }
         // Send the request
         self.transport.send_request(request)
     }
 
     pub fn async_send_request(&mut self, request: SupportedMessage) -> Result<UInt32, StatusCode> {
-        // Make sure secure channel token hasn't expired
-        let _ = self.ensure_secure_channel_token();
+        match request {
+            SupportedMessage::OpenSecureChannelRequest(_) | SupportedMessage::CloseSecureChannelRequest(_) => {}
+            _ => {
+                // Make sure secure channel token hasn't expired
+                let _ = self.ensure_secure_channel_token();
+            }
+        }
         // Send the request
         self.transport.async_send_request(request)
     }
@@ -633,23 +638,7 @@ impl Session {
 
     /// Checks if secure channel token needs to be renewed and renews it
     fn ensure_secure_channel_token(&mut self) -> Result<(), StatusCode> {
-        let renew_token = {
-            let session_state = self.session_state.lock().unwrap();
-            if let Some(ref channel_token) = session_state.channel_token {
-                let now = chrono::UTC::now();
-
-                // Check if secure channel 75% close to expiration in which case send a renew
-                let renew_lifetime = (channel_token.revised_lifetime * 3) / 4;
-                let created_at = channel_token.created_at.clone().into();
-                let renew_lifetime = chrono::Duration::milliseconds(renew_lifetime as i64);
-
-                // Renew the token?
-                now.signed_duration_since(created_at) > renew_lifetime
-            } else {
-                false
-            }
-        };
-        if renew_token {
+        if self.transport.should_renew_security_token() {
             self.issue_or_renew_secure_channel(SecurityTokenRequestType::Renew)
         } else {
             Ok(())
@@ -718,13 +707,7 @@ impl Session {
         };
         let response = self.send_request(SupportedMessage::OpenSecureChannelRequest(request))?;
         if let SupportedMessage::OpenSecureChannelResponse(response) = response {
-            {
-                let session_state = self.session_state.clone();
-                let mut session_state = session_state.lock().unwrap();
-                session_state.channel_token = Some(response.security_token);
-                // TODO tell TCP channel about the channel token info so it can sign, sign+encrypt
-                // messages using the token
-            }
+            self.transport.set_security_token(response.security_token);
             Ok(())
         } else {
             Err(BAD_UNKNOWN_RESPONSE)
