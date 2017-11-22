@@ -24,6 +24,10 @@ pub mod profiles {
 }
 
 pub mod constants {
+    /// Default OPC UA port number. Used by a discovery server. Other servers would normally run
+    /// on a different port. So OPC UA for Rust does not use this nr by default but it is used
+    /// implicitly in opc.tcp:// urls and elsewhere.
+    pub const DEFAULT_OPC_UA_SERVER_PORT: u16 = 4840;
     /// Maximum number of elements in an array
     pub const MAX_ARRAY_LENGTH: u32 = 1000;
     /// Maximum size of a string in chars
