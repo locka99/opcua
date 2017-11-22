@@ -5,7 +5,7 @@ use chrono;
 
 use opcua_types::*;
 
-use DateTimeUTC;
+use DateTimeUtc;
 use address_space::types::AddressSpace;
 use subscriptions::{PublishRequestEntry, PublishResponseEntry};
 use subscriptions::subscription::{Subscription, SubscriptionState};
@@ -85,7 +85,7 @@ impl Subscriptions {
 
     /// Iterates through the existing queued publish requests and creates a timeout
     /// publish response any that have expired.
-    pub fn expire_stale_publish_requests(&mut self, now: &DateTimeUTC) {
+    pub fn expire_stale_publish_requests(&mut self, now: &DateTimeUtc) {
         if self.publish_request_queue.is_empty() {
             return;
         }
@@ -96,7 +96,7 @@ impl Subscriptions {
         let publish_request_timeout = self.publish_request_timeout;
         self.publish_request_queue.retain(|ref request| {
             let request_header = &request.request.request_header;
-            let timestamp: DateTimeUTC = request_header.timestamp.clone().into();
+            let timestamp: DateTimeUtc = request_header.timestamp.clone().into();
             let timeout = if request_header.timeout_hint > 0 && (request_header.timeout_hint as i64) < publish_request_timeout {
                 request_header.timeout_hint as i64
             } else {
@@ -125,7 +125,7 @@ impl Subscriptions {
     /// Iterate all subscriptions calling tick on each. Note this could potentially be done to run in parallel
     /// assuming the action to clean dead subscriptions was a join done after all ticks had completed.
     pub fn tick(&mut self, receive_publish_request: bool, address_space: &AddressSpace) -> Result<(), StatusCode> {
-        let now = chrono::UTC::now();
+        let now = chrono::Utc::now();
 
         let mut publish_request_queue = self.publish_request_queue.clone();
 

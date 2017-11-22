@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{self, Receiver};
 
 use timer;
-use chrono::UTC;
+use chrono::Utc;
 use time;
 
 use opcua_types::*;
@@ -80,7 +80,7 @@ impl TcpTransport {
     pub fn run(&mut self, mut stream: TcpStream) {
         // ENTRY POINT TO ALL OF OPC
 
-        let session_start_time = UTC::now();
+        let session_start_time = Utc::now();
         info!("Session started {}", session_start_time);
 
         let (subscription_timer, subscription_timer_guard, subscription_timer_rx) = self.start_subscription_timer();
@@ -125,7 +125,7 @@ impl TcpTransport {
             let transport_state = self.transport_state.clone();
 
             // Session waits a configurable time for a hello and terminates if it fails to receive it
-            let now = UTC::now();
+            let now = Utc::now();
             if transport_state == TransportState::WaitingHello {
                 if now.signed_duration_since(session_start_time) > hello_timeout {
                     error!("Session timed out waiting for hello");
@@ -244,7 +244,7 @@ impl TcpTransport {
         // Session state
         self.transport_state = TransportState::Finished;
 
-        let session_duration = UTC::now().signed_duration_since(session_start_time);
+        let session_duration = Utc::now().signed_duration_since(session_start_time);
         info!("Session is finished {:?}", session_duration);
 
         {
@@ -268,7 +268,7 @@ impl TcpTransport {
             let mut session = session.lock().unwrap();
 
             // Request queue might contain stale publish requests
-            session.expire_stale_publish_requests(&UTC::now());
+            session.expire_stale_publish_requests(&Utc::now());
 
             // Process subscriptions
             let _ = session.tick_subscriptions(&server_state, false);

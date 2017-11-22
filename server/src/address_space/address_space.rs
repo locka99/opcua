@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use chrono::UTC;
+use chrono::Utc;
 
 use opcua_types::*;
 use opcua_types::ServerState as ServerStateType;
 
 use server_state::ServerState;
 use constants;
-use DateTimeUTC;
+use DateTimeUtc;
 
 use address_space::object::Object;
 use address_space::variable::Variable;
@@ -43,7 +43,7 @@ pub struct AddressSpace {
     /// A map of inverse references between nodes
     pub inverse_references: HashMap<NodeId, Vec<Reference>>,
     /// This is the last time that references to nodes were added or removed from the address space.
-    pub last_modified: DateTimeUTC,
+    pub last_modified: DateTimeUtc,
 }
 
 impl AddressSpace {
@@ -53,7 +53,7 @@ impl AddressSpace {
             node_map: HashMap::new(),
             references: HashMap::new(),
             inverse_references: HashMap::new(),
-            last_modified: UTC::now(),
+            last_modified: Utc::now(),
         };
         address_space.add_default_nodes();
         address_space
@@ -561,7 +561,7 @@ impl AddressSpace {
     }
 
     fn update_last_modified(&mut self) {
-        self.last_modified = UTC::now();
+        self.last_modified = Utc::now();
     }
 
     /// Adds the standard nodeset to the address space

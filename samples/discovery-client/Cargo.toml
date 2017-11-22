@@ -4,7 +4,7 @@ version = "0.2.0"
 authors = ["Adam Lock <locka99@gmail.com>"]
 
 [dependencies]
-clap = "~2.19.0"
+clap = "2.27"
 
 [dependencies.opcua-types]
 path = "../../types"

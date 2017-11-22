@@ -7,7 +7,7 @@ use openssl::x509;
 use openssl::nid;
 use openssl::nid::Nid;
 
-use chrono::{DateTime, UTC, TimeZone};
+use chrono::{DateTime, Utc, TimeZone};
 
 use opcua_types::{ByteString, StatusCode};
 use opcua_types::StatusCode::*;
@@ -130,7 +130,7 @@ impl X509 {
         self.get_subject_entry(nid::COMMONNAME)
     }
 
-    pub fn is_time_valid(&self, now: &DateTime<UTC>) -> StatusCode {
+    pub fn is_time_valid(&self, now: &DateTime<Utc>) -> StatusCode {
         // Issuer time
         let not_before = self.not_before();
         if let Ok(not_before) = not_before {
@@ -174,18 +174,18 @@ impl X509 {
     }
 
     /// Turn the Asn1 values into useful portable types
-    pub fn not_before(&self) -> Result<DateTime<UTC>, ()> {
+    pub fn not_before(&self) -> Result<DateTime<Utc>, ()> {
         let date = self.value.not_before().to_string();
         Self::parse_asn1_date(&date)
     }
 
     /// Turn the Asn1 values into useful portable types
-    pub fn not_after(&self) -> Result<DateTime<UTC>, ()> {
+    pub fn not_after(&self) -> Result<DateTime<Utc>, ()> {
         let date = self.value.not_after().to_string();
         Self::parse_asn1_date(&date)
     }
 
-    fn parse_asn1_date(date: &str) -> Result<DateTime<UTC>, ()> {
+    fn parse_asn1_date(date: &str) -> Result<DateTime<Utc>, ()> {
         // Parse ASN1 time format
         // MMM DD HH:MM:SS YYYY [GMT]
         let date = if date.ends_with(" GMT") {
@@ -194,7 +194,7 @@ impl X509 {
         } else {
             &date
         };
-        let result = UTC.datetime_from_str(date, "%b %d %H:%M:%S %Y");
+        let result = Utc.datetime_from_str(date, "%b %d %H:%M:%S %Y");
         if result.is_err() {
             println!("Error = {:?}", result.unwrap_err());
             Err(())
@@ -213,7 +213,7 @@ fn parse_asn1_date_test() {
     assert!(X509::parse_asn1_date("Feb 21 00:00:00 1970").is_ok());
     assert!(X509::parse_asn1_date("Feb 21 00:00:00 1970 GMT").is_ok());
 
-    let dt: DateTime<UTC> = X509::parse_asn1_date("Feb 21 12:45:30 1999 GMT").unwrap();
+    let dt: DateTime<Utc> = X509::parse_asn1_date("Feb 21 12:45:30 1999 GMT").unwrap();
     assert_eq!(dt.month(), 2);
     assert_eq!(dt.day(), 21);
     assert_eq!(dt.hour(), 12);

@@ -1,4 +1,4 @@
-use chrono::{DateTime, UTC};
+use chrono::{DateTime, Utc};
 
 use opcua_types::*;
 
@@ -64,7 +64,7 @@ pub struct Session {
     /// Indicates if the session has received an ActivateSession
     pub activated: bool,
     /// Time that session was terminated, helps with recovering sessions, or clearing them out
-    terminated_at: DateTime<UTC>,
+    terminated_at: DateTime<Utc>,
     /// Flag indicating session is actually terminated
     pub terminated: bool,
     /// Internal value used to create new session ids.
@@ -82,7 +82,7 @@ impl Session {
             activated: false,
             terminate_session: false,
             terminated: false,
-            terminated_at: UTC::now(),
+            terminated_at: Utc::now(),
             client_certificate: None,
             security_policy_uri: String::new(),
             authentication_token: NodeId::null(),
@@ -109,7 +109,7 @@ impl Session {
             activated: false,
             terminate_session: false,
             terminated: false,
-            terminated_at: UTC::now(),
+            terminated_at: Utc::now(),
             client_certificate: None,
             security_policy_uri: String::new(),
             authentication_token: NodeId::null(),
@@ -129,7 +129,7 @@ impl Session {
 
     pub fn terminated(&mut self) {
         self.terminated = true;
-        self.terminated_at = UTC::now();
+        self.terminated_at = Utc::now();
     }
 
     pub fn next_session_id(&mut self) -> NodeId {
@@ -153,7 +153,7 @@ impl Session {
 
     /// Iterates through the existing queued publish requests and creates a timeout
     /// publish response any that have expired.
-    pub fn expire_stale_publish_requests(&mut self, now: &DateTime<UTC>) {
+    pub fn expire_stale_publish_requests(&mut self, now: &DateTime<Utc>) {
         self.subscriptions.expire_stale_publish_requests(now);
     }
 

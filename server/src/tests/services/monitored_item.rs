@@ -170,7 +170,7 @@ fn monitored_item_data_change_filter() {
     // Sample interval is negative so it will always test on repeated calls
     let mut monitored_item = MonitoredItem::new(1, &make_create_request(-1f64, 5)).unwrap();
 
-    let now = chrono::UTC::now();
+    let now = chrono::Utc::now();
 
     assert_eq!(monitored_item.notification_queue.len(), 0);
 

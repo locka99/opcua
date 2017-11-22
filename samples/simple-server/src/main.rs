@@ -92,10 +92,10 @@ fn add_example_variables(server: &mut Server) -> Vec<PollingAction> {
         if let Some(ref mut v) = address_space.find_variable_by_node_id(&v4_node) {
             // Sine wave draws 2*PI over course of 10 seconds
             use std::f64::consts;
-            use chrono::UTC;
-            let start_time = UTC::now();
+            use chrono::Utc;
+            let start_time = Utc::now();
             let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Option<DataValue> {
-                let moment = (UTC::now().signed_duration_since(start_time).num_milliseconds() % 10000) as f64 / 10000.0;
+                let moment = (Utc::now().signed_duration_since(start_time).num_milliseconds() % 10000) as f64 / 10000.0;
                 Some(DataValue::new((2.0 * consts::PI * moment).sin()))
             });
             v.set_value_getter(Arc::new(Mutex::new(getter)));

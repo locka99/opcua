@@ -321,8 +321,8 @@ impl CertificateStore {
 
             // Now inspect the cert not before / after values to ensure its validity
             if self.check_time {
-                use chrono::UTC;
-                let now = UTC::now();
+                use chrono::Utc;
+                let now = Utc::now();
                 let time_status_code = cert.is_time_valid(&now);
                 if time_status_code.is_bad() {
                     return time_status_code;

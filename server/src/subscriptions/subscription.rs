@@ -7,7 +7,7 @@ use opcua_types::*;
 
 use constants;
 
-use DateTimeUTC;
+use DateTimeUtc;
 use subscriptions::monitored_item::MonitoredItem;
 use subscriptions::{PublishRequestEntry, PublishResponseEntry};
 use address_space::address_space::AddressSpace;
@@ -99,7 +99,7 @@ pub struct Subscription {
     // The last monitored item id
     last_monitored_item_id: UInt32,
     // The time that the subscription interval last fired
-    last_timer_expired_time: DateTimeUTC,
+    last_timer_expired_time: DateTimeUtc,
     /// The value that records the value of the sequence number used in NotificationMessages.
     last_sequence_number: UInt32,
 }
@@ -127,7 +127,7 @@ impl Subscription {
             retransmission_queue: BTreeMap::new(),
             // Counters for new items
             last_monitored_item_id: 0,
-            last_timer_expired_time: chrono::UTC::now(),
+            last_timer_expired_time: chrono::Utc::now(),
             last_sequence_number: 0,
         }
     }
@@ -220,7 +220,7 @@ impl Subscription {
 
     /// Checks the subscription and monitored items for state change, messages. If the tick does
     /// nothing, the function returns None. Otherwise it returns one or more messages in an Vec.
-    pub fn tick(&mut self, address_space: &AddressSpace, receive_publish_request: bool, publish_request: &Option<PublishRequestEntry>, publishing_req_queued: bool, now: &DateTimeUTC) -> (Option<PublishResponseEntry>, Option<UpdateStateResult>) {
+    pub fn tick(&mut self, address_space: &AddressSpace, receive_publish_request: bool, publish_request: &Option<PublishRequestEntry>, publishing_req_queued: bool, now: &DateTimeUtc) -> (Option<PublishResponseEntry>, Option<UpdateStateResult>) {
         // Test if the interval has elapsed.
         let publishing_timer_expired = if receive_publish_request {
             false
@@ -285,7 +285,7 @@ impl Subscription {
     /// Iterate through the monitored items belonging to the subscription, calling tick on each in turn.
     /// The function returns true if any of the monitored items due to the subscription interval
     /// elapsing, or their own interval elapsing.
-    fn tick_monitored_items(&mut self, address_space: &AddressSpace, now: &DateTimeUTC, publishing_timer_expired: bool) -> bool {
+    fn tick_monitored_items(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, publishing_timer_expired: bool) -> bool {
         let mut monitored_item_notifications = Vec::new();
         for (_, monitored_item) in &mut self.monitored_items {
             if monitored_item.tick(address_space, now, publishing_timer_expired) {

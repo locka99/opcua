@@ -28,16 +28,25 @@ pub trait Config {
         Err(())
     }
 
-    fn load<A>(path: &Path) -> Result<A, ()> where A: Config + serde::Deserialize + Sized {
+    fn load<A>(path: &Path) -> Result<A, ()> where for<'de> A: Config + serde::Deserialize<'de> + Sized {
         if let Ok(mut f) = File::open(path) {
             let mut s = String::new();
             if f.read_to_string(&mut s).is_ok() {
-                if let Ok(config) = serde_yaml::from_str(&s) {
-                    return Ok(config);
+                let config = serde_yaml::from_str(&s);
+                if let Ok(config) = config {
+                    Ok(config)
+                } else {
+                    error!("Cannot deserialize configuration from {}", path.to_string_lossy());
+                    Err(())
                 }
+            } else {
+                error!("Cannot read configuration file {} to string", path.to_string_lossy());
+                Err(())
             }
+        } else {
+            error!("Cannot open configuration file {}", path.to_string_lossy());
+            Err(())
         }
-        Err(())
     }
 
     fn is_valid(&self) -> bool;

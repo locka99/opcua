@@ -253,7 +253,7 @@ impl ServerConfig {
             discovery_server_url: None,
             tcp_config: TcpConfig {
                 host: hostname,
-                port: constants::DEFAULT_OPC_UA_SERVER_PORT,
+                port: constants::DEFAULT_RUST_OPC_UA_SERVER_PORT,
                 hello_timeout: constants::DEFAULT_HELLO_TIMEOUT_SECONDS,
             },
             user_tokens,

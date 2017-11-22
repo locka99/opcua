@@ -11,11 +11,11 @@ categories = ["embedded","network-programming"]
 [dependencies]
 log = "0.3"
 byteorder = "0.5"
-chrono = "0.3"
+chrono = "0.4"
 rand = "0.3"
-regex = "0.2.1"
+regex = "0.2"
 lazy_static = "0.2"
-url = "1.4.0"
+url = "1.6"
 
 [dev-dependencies]
 tempdir = "0.3"

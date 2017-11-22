@@ -7,7 +7,7 @@ use opcua_types::*;
 
 use constants;
 
-use DateTimeUTC;
+use DateTimeUtc;
 use address_space::address_space::AddressSpace;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -44,7 +44,7 @@ pub struct MonitoredItem {
     pub queue_size: usize,
     pub notification_queue: Vec<MonitoredItemNotification>,
     pub queue_overflow: bool,
-    last_sample_time: DateTimeUTC,
+    last_sample_time: DateTimeUtc,
     last_data_value: Option<DataValue>,
 }
 
@@ -61,7 +61,7 @@ impl MonitoredItem {
             sampling_interval,
             filter,
             discard_oldest: request.requested_parameters.discard_oldest,
-            last_sample_time: chrono::UTC::now(),
+            last_sample_time: chrono::Utc::now(),
             last_data_value: None,
             queue_size,
             notification_queue: Vec::with_capacity(queue_size),
@@ -86,7 +86,7 @@ impl MonitoredItem {
     /// the subscriptions and controls the rate.
     ///
     /// Function returns true if a notification message was added to the queue
-    pub fn tick(&mut self, address_space: &AddressSpace, now: &DateTimeUTC, publishing_timer_expired: bool) -> bool {
+    pub fn tick(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, publishing_timer_expired: bool) -> bool {
         let check_value = if self.sampling_interval > 0f64 {
             // Compare sample interval
             let sampling_interval = time::Duration::milliseconds(self.sampling_interval as i64);

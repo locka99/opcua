@@ -9,8 +9,8 @@ keywords = ["opcua","opc","ua"]
 categories = ["embedded","network-programming"]
 
 [dependencies]
-clap = "~2.19.0"
-log = "0.3.6"
+clap = "2.27"
+log = "0.3"
 
 [dependencies.opcua-types]
 path = "../../types"

@@ -2,14 +2,14 @@ use std::sync::{Arc, Mutex};
 
 use opcua_types::{ByteString, ReferenceDescription};
 
-use DateTimeUTC;
+use DateTimeUtc;
 
 use prelude::AddressSpace;
 
 #[derive(Clone)]
 pub struct BrowseContinuationPoint {
     pub id: ByteString,
-    pub address_space_last_modified: DateTimeUTC,
+    pub address_space_last_modified: DateTimeUtc,
     pub max_references_per_node: usize,
     pub starting_index: usize,
     pub reference_descriptions: Arc<Mutex<Vec<ReferenceDescription>>>

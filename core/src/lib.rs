@@ -45,7 +45,7 @@ pub fn init_logging() {
         let mut builder = env_logger::LogBuilder::new();
         builder.format(|record: &log::LogRecord| {
             use chrono;
-            let now = chrono::UTC::now();
+            let now = chrono::Utc::now();
             let time_fmt = now.format("%Y-%m-%d %H:%M:%S%.3f");
 
             match record.metadata().level() {

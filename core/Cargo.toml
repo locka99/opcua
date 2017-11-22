@@ -12,12 +12,12 @@ readme = "../README.md"
 [dependencies]
 log = "0.3"
 env_logger = "0.4"
-chrono = "0.3"
+chrono = "0.4"
 rand = "0.3"
-regex = "0.2.1"
-openssl = "0.9.15"
-serde = "0.9"
-serde_yaml = "0.6"
+regex = "0.2"
+openssl = "0.9"
+serde = "1.0"
+serde_yaml = "0.7"
 
 [dependencies.opcua-types]
 path = "../types"

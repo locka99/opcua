@@ -138,7 +138,7 @@ impl TcpTransport {
         if secure_channel.token_id == 0 {
             panic!("Shouldn't be asking this question, if there is no token id at all");
         } else {
-            let now = chrono::UTC::now();
+            let now = chrono::Utc::now();
 
             // Check if secure channel 75% close to expiration in which case send a renew
             let renew_lifetime = (secure_channel.token_lifetime * 3) / 4;
@@ -193,10 +193,10 @@ impl TcpTransport {
         let mut in_buf = vec![0u8; RECEIVE_BUFFER_SIZE];
 
         let session_status_code;
-        let start = chrono::UTC::now();
+        let start = chrono::Utc::now();
         'message_loop: loop {
             // Check for a timeout
-            let now = chrono::UTC::now();
+            let now = chrono::Utc::now();
             let request_duration = now.signed_duration_since(start);
             if request_duration.num_milliseconds() > request_timeout as i64 {
                 debug!("Time waiting {}ms exceeds timeout {}ms waiting for response from request id {}", request_duration.num_milliseconds(), request_timeout, request_id);

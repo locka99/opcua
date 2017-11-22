@@ -17,7 +17,7 @@ extern crate opcua_types;
 extern crate opcua_core;
 extern crate opcua_client;
 
-type DateTimeUTC = chrono::DateTime<chrono::UTC>;
+type DateTimeUtc = chrono::DateTime<chrono::Utc>;
 
 mod services;
 mod comms;
@@ -48,8 +48,8 @@ pub mod constants {
 
     /// The default hello timeout period in seconds
     pub const DEFAULT_HELLO_TIMEOUT_SECONDS: u32 = 120;
-    /// Default OPC UA server port
-    pub const DEFAULT_OPC_UA_SERVER_PORT: u16 = 4855;
+    /// Default OPC UA server port for this implementation
+    pub const DEFAULT_RUST_OPC_UA_SERVER_PORT: u16 = 4855;
     /// Default maximum number of subscriptions in a session
     pub const DEFAULT_MAX_SUBSCRIPTIONS: u32 = 100;
     /// Default, "well known address for TCP discovery server
