@@ -9,6 +9,7 @@ use time;
 use timer;
 
 use opcua_types::*;
+use opcua_types::ServerState as ServerStateType;
 
 use opcua_core::prelude::*;
 use opcua_core::config::Config;
@@ -23,8 +24,10 @@ use util::PollingAction;
 /// The Server represents a running instance of OPC UA. There can be more than one server running
 /// at a time providing they do not share the same thread or listen on the same ports.
 pub struct Server {
-    /// The server state is everything that sessions share - address space, configuration etc.
+    /// The server state is everything that sessions share - configuration etc.
     pub server_state: Arc<Mutex<ServerState>>,
+    /// Address space
+    pub address_space: Arc<Mutex<AddressSpace>>,
     /// List of open connections
     pub connections: Vec<Arc<Mutex<TcpTransport>>>,
 }
@@ -45,7 +48,6 @@ impl Server {
         let servers = vec![config.application_uri.clone()];
         let base_endpoint = format!("opc.tcp://{}:{}", config.tcp_config.host, config.tcp_config.port);
         let max_subscriptions = config.max_subscriptions as usize;
-        let address_space = Arc::new(Mutex::new(AddressSpace::new()));
         let diagnostics = ServerDiagnostics::new();
         // TODO max string, byte string and array lengths
 
@@ -67,12 +69,12 @@ impl Server {
             namespaces,
             servers,
             base_endpoint,
+            state: ServerStateType::Running,
             start_time,
             config,
             certificate_store,
             server_certificate,
             server_pkey,
-            address_space,
             last_subscription_id: 0,
             max_subscriptions,
             min_publishing_interval: constants::MIN_PUBLISHING_INTERVAL,
@@ -80,15 +82,14 @@ impl Server {
             diagnostics,
             abort: false,
         };
+        let server_state = Arc::new(Mutex::new(server_state));
 
         // Set some values in the address space from the server state
-        {
-            let mut address_space = server_state.address_space.lock().unwrap();
-            address_space.set_server_state(&server_state);
-        }
+        let address_space = Arc::new(Mutex::new(AddressSpace::new(server_state.clone())));
 
         Server {
-            server_state: Arc::new(Mutex::new(server_state)),
+            server_state,
+            address_space,
             connections: Vec::new()
         }
     }

@@ -5,6 +5,7 @@ use opcua_types::*;
 use server_state::ServerState;
 use session::Session;
 use services::Service;
+use address_space::address_space::AddressSpace;
 
 pub struct DiscoveryService {}
 
@@ -15,7 +16,7 @@ impl DiscoveryService {
         DiscoveryService {}
     }
 
-    pub fn get_endpoints(&self, server_state: &mut ServerState, _: &mut Session, request: GetEndpointsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn get_endpoints(&self, server_state: &mut ServerState, _: &mut Session, address_space: &AddressSpace, request: GetEndpointsRequest) -> Result<SupportedMessage, StatusCode> {
         let endpoints = server_state.endpoints(&request.profile_uris);
 //        error!("Endpoint request = {:#?}", request);
         let response = GetEndpointsResponse {

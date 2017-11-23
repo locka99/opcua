@@ -4,7 +4,6 @@ use std::sync::{Arc, Mutex};
 use chrono::Utc;
 
 use opcua_types::*;
-use opcua_types::ServerState as ServerStateType;
 
 use server_state::ServerState;
 use constants;
@@ -44,16 +43,19 @@ pub struct AddressSpace {
     pub inverse_references: HashMap<NodeId, Vec<Reference>>,
     /// This is the last time that references to nodes were added or removed from the address space.
     pub last_modified: DateTimeUtc,
+    /// Server state, used by some values
+    server_state: Arc<Mutex<ServerState>>
 }
 
 impl AddressSpace {
-    pub fn new() -> AddressSpace {
+    pub fn new(server_state: Arc<Mutex<ServerState>>) -> AddressSpace {
         // Construct the Root folder and the top level nodes
         let mut address_space = AddressSpace {
             node_map: HashMap::new(),
             references: HashMap::new(),
             inverse_references: HashMap::new(),
             last_modified: Utc::now(),
+            server_state
         };
         address_space.add_default_nodes();
         address_space
@@ -61,10 +63,8 @@ impl AddressSpace {
 
 
     /// Sets values for nodes representing the server.
-    pub fn set_server_state(&mut self, server_state: &ServerState) {
+    pub fn set_server_state(&mut self, server_state: Arc<Mutex<ServerState>>) {
         use opcua_types::VariableId::*;
-
-        let server_config = server_state.config.lock().unwrap();
 
         // Server variables
         if let Some(ref mut v) = self.find_variable_by_variable_id(Server_NamespaceArray) {
@@ -78,6 +78,7 @@ impl AddressSpace {
 
         // ServerCapabilities
         {
+            let server_config = server_state.config.lock().unwrap();
             self.set_value_by_variable_id(Server_ServerCapabilities_MaxArrayLength, Variant::UInt32(server_config.max_array_length));
             self.set_value_by_variable_id(Server_ServerCapabilities_MaxStringLength, Variant::UInt32(server_config.max_string_length));
             self.set_value_by_variable_id(Server_ServerCapabilities_MaxByteStringLength, Variant::UInt32(server_config.max_byte_string_length));
@@ -85,54 +86,54 @@ impl AddressSpace {
             self.set_value_by_variable_id(Server_ServerCapabilities_MaxHistoryContinuationPoints, Variant::UInt32(constants::MAX_HISTORY_CONTINUATION_POINTS as UInt32));
             self.set_value_by_variable_id(Server_ServerCapabilities_MaxQueryContinuationPoints, Variant::UInt32(constants::MAX_QUERY_CONTINUATION_POINTS as UInt32));
             self.set_value_by_variable_id(Server_ServerCapabilities_MinSupportedSampleRate, Variant::Double(constants::MIN_SAMPLING_INTERVAL));
-
-            // Server_ServerCapabilities_ServerProfileArray
-            if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerCapabilities_ServerProfileArray) {
-                // Declares what the server implements. Subitems are implied by the profile. A subitem
-                // marked - is optional to the spec
-                let server_profiles = [
-                    // Base server behaviour
-                    //  SecurityPolicy - None
-                    //  User Token - User Name Password Server Facet
-                    //  Address Space Base
-                    //  AttributeRead
-                    //  -Attribute Write Index
-                    //  -Attribute Write Values
-                    //  Base Info Core Structure
-                    //  -Base Info OptionSet
-                    //  -Base Info Placeholder Modelling Rules
-                    //  -Base Info ValueAsText
-                    //  Discovery Find Servers Self
-                    //  Discovery Get Endpoints
-                    //  -Security - No Application Authentications
-                    //  -Security - Security Administration
-                    //   Session Base
-                    //  Session General Service Behaviour
-                    //  Session Minimum 1
-                    //  View Basic
-                    //  View Minimum Continuation Point 01
-                    //  View RegisterNodes
-                    //  View TranslateBrowsePath
-                    "http://opcfoundation.org/UA-Profile/Server/Behaviour".to_string(),
-                    // Embedded UA server
-                    //  Micro Embedded Device Server Profile
-                    //  SecurityPolicy - Basic128Rsa15
-                    //  Standard DataChange Subscription Server Facet
-                    //  User Token - X509 Certificate Server Facet
-                    //  -Base Info Engineering Units
-                    //  -Base Info PLaceholder Modelling Rules
-                    //  -Base Info Type System
-                    //  Security Default ApplicationInstanceCertificate
-                    "http://opcfoundation.org/UA-Profile/Server/EmbeddedUA".to_string(),
-                ];
-                v.set_value_direct(&DateTime::now(), Variant::new_string_array(&server_profiles));
-                v.set_array_dimensions(&[server_profiles.len() as UInt32]);
-            }
-
-
-            // Server_ServerCapabilities_LocaleIdArray
-            // Server_ServerCapabilities_MinSupportedSampleRate
         }
+
+        // Server_ServerCapabilities_ServerProfileArray
+        if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerCapabilities_ServerProfileArray) {
+            // Declares what the server implements. Subitems are implied by the profile. A subitem
+            // marked - is optional to the spec
+            let server_profiles = [
+                // Base server behaviour
+                //  SecurityPolicy - None
+                //  User Token - User Name Password Server Facet
+                //  Address Space Base
+                //  AttributeRead
+                //  -Attribute Write Index
+                //  -Attribute Write Values
+                //  Base Info Core Structure
+                //  -Base Info OptionSet
+                //  -Base Info Placeholder Modelling Rules
+                //  -Base Info ValueAsText
+                //  Discovery Find Servers Self
+                //  Discovery Get Endpoints
+                //  -Security - No Application Authentications
+                //  -Security - Security Administration
+                //   Session Base
+                //  Session General Service Behaviour
+                //  Session Minimum 1
+                //  View Basic
+                //  View Minimum Continuation Point 01
+                //  View RegisterNodes
+                //  View TranslateBrowsePath
+                "http://opcfoundation.org/UA-Profile/Server/Behaviour".to_string(),
+                // Embedded UA server
+                //  Micro Embedded Device Server Profile
+                //  SecurityPolicy - Basic128Rsa15
+                //  Standard DataChange Subscription Server Facet
+                //  User Token - X509 Certificate Server Facet
+                //  -Base Info Engineering Units
+                //  -Base Info PLaceholder Modelling Rules
+                //  -Base Info Type System
+                //  Security Default ApplicationInstanceCertificate
+                "http://opcfoundation.org/UA-Profile/Server/EmbeddedUA".to_string(),
+            ];
+            v.set_value_direct(&DateTime::now(), Variant::new_string_array(&server_profiles));
+            v.set_array_dimensions(&[server_profiles.len() as UInt32]);
+        }
+
+
+        // Server_ServerCapabilities_LocaleIdArray
+        // Server_ServerCapabilities_MinSupportedSampleRate
 
         {
             // Server_ServerDiagnostics_ServerDiagnosticsSummary
@@ -179,8 +180,7 @@ impl AddressSpace {
         if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerStatus_State) {
             // Used to return the current time of the server, i.e. now
             let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Option<DataValue> {
-                // TODO state should be live
-                let server_state = ServerStateType::Running;
+                let server_state = server_state.lock().unwrap();
                 Some(DataValue::new(server_state as Int32))
             });
             v.set_value_getter(Arc::new(Mutex::new(getter)));

@@ -5,10 +5,10 @@ use std::sync::{Arc, Mutex};
 
 use opcua_types::*;
 use opcua_types::profiles;
+use opcua_types::ServerState as ServerStateType;
 
 use opcua_core::prelude::*;
 
-use address_space::types::AddressSpace;
 use config::{ServerEndpoint, ServerConfig};
 
 const TOKEN_POLICY_ANONYMOUS: &'static str = "anonymous";
@@ -25,7 +25,7 @@ impl ServerDiagnostics {
 }
 
 /// Server state is any state associated with the server as a whole that individual sessions might
-/// be interested in. That includes configuration info, address space etc.
+/// be interested in. That includes configuration info etc.
 pub struct ServerState {
     /// The application URI
     pub application_uri: UAString,
@@ -35,6 +35,8 @@ pub struct ServerState {
     pub application_name: LocalizedText,
     /// The protocol, hostname and port formatted as a url, but less the path
     pub base_endpoint: String,
+    //// Current state
+    pub state: ServerStateType,
     /// The time the server started
     pub start_time: DateTime,
     /// The list of namespaces
@@ -49,8 +51,6 @@ pub struct ServerState {
     pub server_certificate: Option<X509>,
     /// Server private key pair
     pub server_pkey: Option<PKey>,
-    /// The address space
-    pub address_space: Arc<Mutex<AddressSpace>>,
     /// The next subscription id - subscriptions are shared across the whole server. Initial value
     /// is a random u32.
     pub last_subscription_id: UInt32,

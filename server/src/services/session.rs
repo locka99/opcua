@@ -9,6 +9,7 @@ use constants;
 use server_state::ServerState;
 use session::Session;
 use services::Service;
+use address_space::address_space::AddressSpace;
 
 pub struct SessionService {}
 
@@ -19,7 +20,7 @@ impl SessionService {
         SessionService {}
     }
 
-    pub fn create_session(&self, server_state: &mut ServerState, session: &mut Session, request: CreateSessionRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn create_session(&self, server_state: &mut ServerState, session: &mut Session, address_space: &AddressSpace, request: CreateSessionRequest) -> Result<SupportedMessage, StatusCode> {
         debug!("Create session request {:?}", request);
 
         // Validate the endpoint url
@@ -104,7 +105,7 @@ impl SessionService {
         Ok(response)
     }
 
-    pub fn activate_session(&self, server_state: &mut ServerState, session: &mut Session, request: ActivateSessionRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn activate_session(&self, server_state: &mut ServerState, session: &mut Session, address_space: &AddressSpace, request: ActivateSessionRequest) -> Result<SupportedMessage, StatusCode> {
         let server_nonce = ByteString::nonce();
 
         let endpoint_url = session.endpoint_url.as_ref();
@@ -144,7 +145,7 @@ impl SessionService {
         Ok(response)
     }
 
-    pub fn close_session(&self, _: &mut ServerState, session: &mut Session, request: CloseSessionRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn close_session(&self, _: &mut ServerState, session: &mut Session, address_space: &AddressSpace, request: CloseSessionRequest) -> Result<SupportedMessage, StatusCode> {
         session.authentication_token = NodeId::null();
         session.user_identity = None;
         session.activated = false;

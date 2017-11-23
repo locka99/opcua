@@ -27,7 +27,7 @@ impl ViewService {
         ViewService {}
     }
 
-    pub fn browse(&self, server_state: &mut ServerState, session: &mut Session, request: BrowseRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn browse(&self, server_state: &mut ServerState, session: &mut Session, address_space: &AddressSpace, request: BrowseRequest) -> Result<SupportedMessage, StatusCode> {
         let browse_results = if request.nodes_to_browse.is_some() {
             let nodes_to_browse = request.nodes_to_browse.as_ref().unwrap();
 
@@ -37,8 +37,7 @@ impl ViewService {
                 return Ok(self.service_fault(&request.request_header, BAD_VIEW_ID_UNKNOWN));
             }
 
-            let address_space = server_state.address_space.lock().unwrap();
-            Some(Self::browse_nodes(session, &address_space, nodes_to_browse, request.requested_max_references_per_node as usize))
+            Some(Self::browse_nodes(session, address_space, nodes_to_browse, request.requested_max_references_per_node as usize))
         } else {
             // Nothing to do
             return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
@@ -54,7 +53,7 @@ impl ViewService {
         Ok(SupportedMessage::BrowseResponse(response))
     }
 
-    pub fn browse_next(&self, server_state: &mut ServerState, session: &mut Session, request: BrowseNextRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn browse_next(&self, server_state: &mut ServerState, session: &mut Session, address_space: &AddressSpace, request: BrowseNextRequest) -> Result<SupportedMessage, StatusCode> {
         if request.continuation_points.is_none() {
             Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO))
         } else {
@@ -63,10 +62,9 @@ impl ViewService {
                 session.remove_browse_continuation_points(continuation_points);
                 None
             } else {
-                let address_space = server_state.address_space.lock().unwrap();
                 // Iterate from the continuation point, assuming it is valid
                 let results = continuation_points.iter().map(|continuation_point| {
-                    Self::browse_from_continuation_point(session, &address_space, continuation_point)
+                    Self::browse_from_continuation_point(session, address_space, continuation_point)
                 }).collect();
                 Some(results)
             };
@@ -81,7 +79,7 @@ impl ViewService {
         }
     }
 
-    pub fn translate_browse_paths_to_node_ids(&self, server_state: &mut ServerState, _: &mut Session, request: TranslateBrowsePathsToNodeIdsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn translate_browse_paths_to_node_ids(&self, server_state: &mut ServerState, _: &mut Session, address_space: &AddressSpace, request: TranslateBrowsePathsToNodeIdsRequest) -> Result<SupportedMessage, StatusCode> {
         trace!("TranslateBrowsePathsToNodeIdsRequest = {:?}", &request);
 
         if request.browse_paths.is_none() {
@@ -92,7 +90,6 @@ impl ViewService {
             return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
         }
 
-        let address_space = server_state.address_space.lock().unwrap();
         let results = browse_paths.iter().map(|browse_path| {
             let node_id = browse_path.starting_node.clone();
             if browse_path.relative_path.elements.is_none() {

@@ -5,6 +5,7 @@ use opcua_types::*;
 use server_state::ServerState;
 use session::Session;
 use services::Service;
+use address_space::address_space::AddressSpace;
 
 pub struct MonitoredItemService {}
 
@@ -15,7 +16,7 @@ impl MonitoredItemService {
         MonitoredItemService {}
     }
 
-    pub fn create_monitored_items(&self, _: &mut ServerState, session: &mut Session, request: CreateMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn create_monitored_items(&self, _: &mut ServerState, session: &mut Session, address_space: &AddressSpace, request: CreateMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
         // pub timestamps_to_return: TimestampsToReturn,
         let results = if let Some(ref items_to_create) = request.items_to_create {
             // Find subscription and add items to it
@@ -38,7 +39,7 @@ impl MonitoredItemService {
         Ok(SupportedMessage::CreateMonitoredItemsResponse(response))
     }
 
-    pub fn modify_monitored_items(&self, _: &mut ServerState, session: &mut Session, request: ModifyMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn modify_monitored_items(&self, _: &mut ServerState, session: &mut Session, address_space: &AddressSpace, request: ModifyMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
         let results = if let Some(ref items_to_modify) = request.items_to_modify {
             // Find subscription and modify items in it
             let subscription_id = request.subscription_id;
@@ -60,7 +61,7 @@ impl MonitoredItemService {
         Ok(SupportedMessage::ModifyMonitoredItemsResponse(response))
     }
 
-    pub fn delete_monitored_items(&self, _: &mut ServerState, session: &mut Session, request: DeleteMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn delete_monitored_items(&self, _: &mut ServerState, session: &mut Session, address_space: &AddressSpace, request: DeleteMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
         let results = if let Some(ref items_to_delete) = request.monitored_item_ids {
             // Find subscription and delete items from it
             let subscription_id = request.subscription_id;
