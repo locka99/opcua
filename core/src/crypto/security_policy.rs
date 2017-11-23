@@ -409,6 +409,8 @@ impl SecurityPolicy {
         (signing_key, encrypting_key, iv)
     }
 
+    /// Produce a signature of the data using an asymmetric key. Stores the signature in the supplied
+    /// `signature` buffer. Returns the size of the signature within that buffer.
     pub fn asymmetric_sign(&self, signing_key: &PKey, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
         let result = match *self {
             SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => {
@@ -424,6 +426,9 @@ impl SecurityPolicy {
         Ok(result)
     }
 
+    /// Verifies a signature of the data using an asymmetric key. In a debugging scenario, the
+    /// signing key can also be supplied so that the supplied signature can be compared to a freshly
+    /// generated signature.
     pub fn asymmetric_verify_signature(&self, verification_key: &PKey, data: &[u8], signature: &[u8], their_key: Option<PKey>) -> Result<(), StatusCode> {
         // Asymmetric verify signature against supplied certificate
         let result = match *self {
@@ -455,6 +460,7 @@ impl SecurityPolicy {
         }
     }
 
+    /// Returns the padding algorithm used for this security policy.
     pub fn padding(&self) -> RsaPadding {
         match *self {
             SecurityPolicy::Basic128Rsa15 => RsaPadding::PKCS1,
@@ -488,17 +494,18 @@ impl SecurityPolicy {
         }
     }
 
-    /// Sign the following block
-    pub fn symmetric_sign(&self, key: &[u8], src: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
-        trace!("Producing signature for {} bytes of data into signature of {} bytes", src.len(), signature.len());
+    /// Produce a signature of some data using the supplied symmetric key. Signing algorithm is determined
+    /// by the security policy. Signature is stored in the supplied `signature` argument.
+    pub fn symmetric_sign(&self, key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
+        trace!("Producing signature for {} bytes of data into signature of {} bytes", data.len(), signature.len());
         match *self {
             SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => {
                 // HMAC SHA-1
-                hash::hmac_sha1(key, src, signature)
+                hash::hmac_sha1(key, data, signature)
             }
             SecurityPolicy::Basic256Sha256 => {
                 // HMAC SHA-256                
-                hash::hmac_sha256(key, src, signature)
+                hash::hmac_sha256(key, data, signature)
             }
             _ => {
                 panic!("Unsupported policy")
@@ -506,17 +513,17 @@ impl SecurityPolicy {
         }
     }
 
-    /// Verify their signature
-    pub fn symmetric_verify_signature(&self, key: &[u8], src: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
+    /// Verify the signature of a data block using the supplied symmetric key.
+    pub fn symmetric_verify_signature(&self, key: &[u8], data: &[u8], signature: &[u8]) -> Result<bool, StatusCode> {
         // Verify the signature using SHA-1 / SHA-256 HMAC
         let verified = match *self {
             SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => {
                 // HMAC SHA-1
-                hash::verify_hmac_sha1(key, src, signature)
+                hash::verify_hmac_sha1(key, data, signature)
             }
             SecurityPolicy::Basic256Sha256 => {
                 // HMAC SHA-256
-                hash::verify_hmac_sha256(key, src, signature)
+                hash::verify_hmac_sha256(key, data, signature)
             }
             _ => {
                 panic!("Unsupported policy")
@@ -530,12 +537,12 @@ impl SecurityPolicy {
         }
     }
 
-    /// Encrypt the data
+    /// Encrypt the supplied data using the supplied key storing the result in the destination.
     pub fn symmetric_encrypt(&self, key: &AesKey, iv: &[u8], src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
         key.encrypt(src, iv, dst)
     }
 
-    /// Decrypt the data
+    /// Decrypts the supplied data using the supplied key storing the result in the destination.
     pub fn symmetric_decrypt(&self, key: &AesKey, iv: &[u8], src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
         key.decrypt(src, iv, dst)
     }
