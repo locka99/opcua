@@ -24,17 +24,16 @@ const BOARD_SQUARES: [&'static str; 64] = [
 ];
 
 #[cfg(any(not(windows)))]
-fn default_engine_path() -> String{
+fn default_engine_path() -> String {
     String::from("stockfish")
 }
 
 #[cfg(any(windows))]
-fn default_engine_path() -> String{
+fn default_engine_path() -> String {
     String::from("stockfish_8_x32.exe")
 }
 
 fn main() {
-
     let engine_path = if env::args().len() > 1 {
         env::args().nth(1).unwrap()
     } else {
@@ -47,8 +46,7 @@ fn main() {
     let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
 
     {
-        let server_state = server.server_state.lock().unwrap();
-        let mut address_space = server_state.address_space.lock().unwrap();
+        let mut address_space = server.address_space.lock().unwrap();
         let board_node_id = address_space
             .add_folder("Board", "Board", &AddressSpace::objects_folder_id())
             .unwrap();
@@ -70,7 +68,7 @@ fn main() {
 
     // Each variable will hold a value representing what's in the square. A client can subscribe to the content
     // of the variables and observe games being played.
-    let server_state = server.server_state.clone();
+    let address_space = server.address_space.clone();
 
     thread::spawn(move || {
         use std::time::Duration;
@@ -78,7 +76,6 @@ fn main() {
         let sleep_time = Duration::from_millis(1500);
         let mut game = game.lock().unwrap();
         loop {
-
             game.set_position();
             let bestmove = game.bestmove().unwrap();
 
@@ -93,9 +90,9 @@ fn main() {
                 println!("best move = {}", bestmove);
                 game.make_move(bestmove);
                 game.print_board();
+
                 {
-                    let server_state = server_state.lock().unwrap();
-                    let mut address_space = server_state.address_space.lock().unwrap();
+                    let mut address_space = address_space.lock().unwrap();
                     update_board_state(&game, &mut address_space);
                 }
             }

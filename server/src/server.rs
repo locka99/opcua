@@ -19,7 +19,9 @@ use address_space::types::AddressSpace;
 use comms::tcp_transport::*;
 use config::ServerConfig;
 use server_state::{ServerState, ServerDiagnostics};
+use session::Session;
 use util::PollingAction;
+use services::message_handler::MessageHandler;
 
 /// The Server represents a running instance of OPC UA. There can be more than one server running
 /// at a time providing they do not share the same thread or listen on the same ports.
@@ -85,7 +87,12 @@ impl Server {
         let server_state = Arc::new(Mutex::new(server_state));
 
         // Set some values in the address space from the server state
-        let address_space = Arc::new(Mutex::new(AddressSpace::new(server_state.clone())));
+        let address_space = Arc::new(Mutex::new(AddressSpace::new()));
+
+        {
+            let mut address_space = address_space.lock().unwrap();
+            address_space.set_server_state(server_state.clone());
+        }
 
         Server {
             server_state,
@@ -209,24 +216,32 @@ impl Server {
     pub fn create_address_space_polling_action<F>(&mut self, interval_ms: u32, action: F) -> PollingAction
         where F: 'static + FnMut(&mut AddressSpace) + Send {
         let mut action = action;
-        let address_space = {
-            let server_state = self.server_state.lock().unwrap();
-            server_state.address_space.clone()
-        };
+        let address_space = self.address_space.clone();
         PollingAction::new(interval_ms, move || {
             // Call the provided closure with the address space
             action(&mut address_space.lock().unwrap());
         })
     }
 
+    pub fn new_transport(&self) -> TcpTransport {
+        let session = {
+            let server_state = self.server_state.lock().unwrap();
+            Arc::new(Mutex::new(Session::new(&server_state)))
+        };
+        let address_space = self.address_space.clone();
+        let message_handler = MessageHandler::new(self.server_state.clone(), session.clone(), address_space.clone());
+        TcpTransport::new(self.server_state.clone(), session, address_space, message_handler)
+    }
+
     /// Handles the incoming request
     fn handle_connection(&mut self, stream: TcpStream) {
         trace!("Connection thread spawning");
+
         // Spawn a thread for the connection
-        let session = Arc::new(Mutex::new(TcpTransport::new(self.server_state.clone())));
-        self.connections.push(session.clone());
+        let connection = Arc::new(Mutex::new(self.new_transport()));
+        self.connections.push(connection.clone());
         thread::spawn(move || {
-            session.lock().unwrap().run(stream);
+            connection.lock().unwrap().run(stream);
             info!("Session thread is terminated");
         });
     }

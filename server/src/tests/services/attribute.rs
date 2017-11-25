@@ -20,7 +20,7 @@ fn read_test() {
 
     // test an empty read nothing to do
     let node_ids = {
-        let mut address_space = server_state.address_space.lock().unwrap();
+        let mut address_space = st.server.address_space.lock().unwrap();
         let (_, node_ids) = add_many_vars_to_address_space(&mut address_space, 10);
         // Remove read access to [3] for a test below
         let node = address_space.find_node_mut(&node_ids[3]).unwrap();
@@ -52,7 +52,8 @@ fn read_test() {
             nodes_to_read: Some(nodes_to_read),
         };
 
-        let response = ats.read(&mut server_state, &mut session, request);
+        let address_space = st.server.address_space.lock().unwrap();
+        let response = ats.read(&mut session, &address_space, request);
         assert!(response.is_ok());
         let response: ReadResponse = supported_message_as!(response.unwrap(), ReadResponse);
 
@@ -104,7 +105,7 @@ fn write_test() {
     // Create some variable nodes and modify permissions in the address space so we 
     // can see what happens when they are written to.
     let node_ids = {
-        let mut address_space = server_state.address_space.lock().unwrap();
+        let mut address_space = st.server.address_space.lock().unwrap();
         let (_, node_ids) = add_many_vars_to_address_space(&mut address_space, 10);
         // set up nodes for the tests to be performed to each
         for (i, node_id) in node_ids.iter().enumerate() {
@@ -161,7 +162,8 @@ fn write_test() {
     };
 
     // do a write with the following write
-    let response = ats.write(&mut server_state, &mut session, request);
+    let mut address_space = st.server.address_space.lock().unwrap();
+    let response = ats.write(&mut session, &mut address_space, request);
     assert!(response.is_ok());
     let response: WriteResponse = supported_message_as!(response.unwrap(), WriteResponse);
     let results = response.results.unwrap();

@@ -33,7 +33,6 @@ impl Reference {
 
 /// The address space holds references between nodes. It is populated with some standard nodes
 /// and any that the server implementation chooses to add for itself.
-#[derive(Debug)]
 pub struct AddressSpace {
     /// A map of all the nodes that are part of the address space
     pub node_map: HashMap<NodeId, NodeType>,
@@ -43,19 +42,16 @@ pub struct AddressSpace {
     pub inverse_references: HashMap<NodeId, Vec<Reference>>,
     /// This is the last time that references to nodes were added or removed from the address space.
     pub last_modified: DateTimeUtc,
-    /// Server state, used by some values
-    server_state: Arc<Mutex<ServerState>>
 }
 
 impl AddressSpace {
-    pub fn new(server_state: Arc<Mutex<ServerState>>) -> AddressSpace {
+    pub fn new() -> AddressSpace {
         // Construct the Root folder and the top level nodes
         let mut address_space = AddressSpace {
             node_map: HashMap::new(),
             references: HashMap::new(),
             inverse_references: HashMap::new(),
             last_modified: Utc::now(),
-            server_state
         };
         address_space.add_default_nodes();
         address_space
@@ -67,17 +63,21 @@ impl AddressSpace {
         use opcua_types::VariableId::*;
 
         // Server variables
-        if let Some(ref mut v) = self.find_variable_by_variable_id(Server_NamespaceArray) {
-            v.set_value_direct(&DateTime::now(), Variant::new_string_array(&server_state.namespaces));
-            v.set_array_dimensions(&[server_state.namespaces.len() as UInt32]);
-        }
-        if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerArray) {
-            v.set_value_direct(&DateTime::now(), Variant::new_string_array(&server_state.servers));
-            v.set_array_dimensions(&[server_state.servers.len() as UInt32]);
+        {
+            let server_state = server_state.lock().unwrap();
+            if let Some(ref mut v) = self.find_variable_by_variable_id(Server_NamespaceArray) {
+                v.set_value_direct(&DateTime::now(), Variant::new_string_array(&server_state.namespaces));
+                v.set_array_dimensions(&[server_state.namespaces.len() as UInt32]);
+            }
+            if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerArray) {
+                v.set_value_direct(&DateTime::now(), Variant::new_string_array(&server_state.servers));
+                v.set_array_dimensions(&[server_state.servers.len() as UInt32]);
+            }
         }
 
         // ServerCapabilities
         {
+            let server_state = server_state.lock().unwrap();
             let server_config = server_state.config.lock().unwrap();
             self.set_value_by_variable_id(Server_ServerCapabilities_MaxArrayLength, Variant::UInt32(server_config.max_array_length));
             self.set_value_by_variable_id(Server_ServerCapabilities_MaxStringLength, Variant::UInt32(server_config.max_string_length));
@@ -178,10 +178,11 @@ impl AddressSpace {
         // State OPC UA Part 5 12.6, Valid states are
         //     State (Server_ServerStatus_State)
         if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerStatus_State) {
+            let server_state = server_state.clone();
             // Used to return the current time of the server, i.e. now
             let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Option<DataValue> {
                 let server_state = server_state.lock().unwrap();
-                Some(DataValue::new(server_state as Int32))
+                Some(DataValue::new(server_state.state as Int32))
             });
             v.set_value_getter(Arc::new(Mutex::new(getter)));
         }
@@ -257,22 +258,6 @@ impl AddressSpace {
 
     pub fn node_exists(&self, node_id: &NodeId) -> bool {
         self.node_map.contains_key(node_id)
-    }
-
-    pub fn find_node(&self, node_id: &NodeId) -> Option<&NodeType> {
-        if self.node_map.contains_key(node_id) {
-            self.node_map.get(node_id)
-        } else {
-            None
-        }
-    }
-
-    pub fn find_node_mut(&mut self, node_id: &NodeId) -> Option<&mut NodeType> {
-        if self.node_map.contains_key(node_id) {
-            self.node_map.get_mut(node_id)
-        } else {
-            None
-        }
     }
 
     pub fn find_nodes_relative_path(&self, node_id: &NodeId, relative_path: &RelativePath) -> Result<Vec<NodeId>, StatusCode> {
@@ -604,5 +589,21 @@ impl AddressSpace {
 
     pub fn add_has_property(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
         self.insert_reference(node_id_from, node_id_to, ReferenceTypeId::HasProperty);
+    }
+
+    pub fn find_node(&self, node_id: &NodeId) -> Option<&NodeType> {
+        if self.node_map.contains_key(node_id) {
+            self.node_map.get(node_id)
+        } else {
+            None
+        }
+    }
+
+    pub fn find_node_mut(&mut self, node_id: &NodeId) -> Option<&mut NodeType> {
+        if self.node_map.contains_key(node_id) {
+            self.node_map.get_mut(node_id)
+        } else {
+            None
+        }
     }
 }

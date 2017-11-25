@@ -39,8 +39,7 @@ fn add_example_variables(server: &mut Server) -> Vec<PollingAction> {
 
     // The address space is guarded so obtain a lock to change it
     {
-        let server_state = server.server_state.lock().unwrap();
-        let mut address_space = server_state.address_space.lock().unwrap();
+        let mut address_space = server.address_space.lock().unwrap();
 
         // Create a sample folder under objects folder
         let sample_folder_id = address_space
@@ -76,9 +75,7 @@ fn add_example_variables(server: &mut Server) -> Vec<PollingAction> {
     //    function.
 
     {
-        let server_state = server.server_state.lock().unwrap();
-        let mut address_space = server_state.address_space.lock().unwrap();
-
+        let mut address_space = server.address_space.lock().unwrap();
         if let Some(ref mut v) = address_space.find_variable_by_node_id(&v3_node) {
             // Hello world's counter will increment with each get - slower interval == slower increment
             let mut counter = 0;

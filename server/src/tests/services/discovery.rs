@@ -9,7 +9,7 @@ fn get_endpoints() {
     opcua_core::init_logging();
 
     let st = ServiceTest::new();
-    let (mut server_state, mut session) = st.get_server_state_and_session();
+    let (mut server_state, _) = st.get_server_state_and_session();
 
     let ds = DiscoveryService::new();
 
@@ -21,7 +21,7 @@ fn get_endpoints() {
             profile_uris: None,
         };
 
-        let result = ds.get_endpoints(&mut server_state, &mut session, request);
+        let result = ds.get_endpoints(&mut server_state, request);
         assert!(result.is_ok());
         let result = supported_message_as!(result.unwrap(), GetEndpointsResponse);
 
@@ -38,7 +38,7 @@ fn get_endpoints() {
 #[test]
 fn discovery_test() {
     let st = ServiceTest::new();
-    let (mut server_state, mut session) = st.get_server_state_and_session();
+    let (mut server_state, _) = st.get_server_state_and_session();
 
     let ds = DiscoveryService::new();
 
@@ -50,7 +50,7 @@ fn discovery_test() {
             profile_uris: None,
         };
 
-        let result = ds.get_endpoints(&mut server_state, &mut session, request);
+        let result = ds.get_endpoints(&mut server_state, request);
         assert!(result.is_ok());
         let result = supported_message_as!(result.unwrap(), GetEndpointsResponse);
 
@@ -69,7 +69,7 @@ fn discovery_test() {
             locale_ids: None,
             profile_uris: Some(profile_uris),
         };
-        let result = ds.get_endpoints(&mut server_state, &mut session, request);
+        let result = ds.get_endpoints(&mut server_state, request);
         assert!(result.is_ok());
         let result = supported_message_as!(result.unwrap(), GetEndpointsResponse);
         assert!(result.endpoints.is_none());
@@ -82,7 +82,7 @@ fn discovery_test() {
             locale_ids: None,
             profile_uris: Some(profile_uris),
         };
-        let result = ds.get_endpoints(&mut server_state, &mut session, request);
+        let result = ds.get_endpoints(&mut server_state, request);
         assert!(result.is_ok());
         let result = supported_message_as!(result.unwrap(), GetEndpointsResponse);
         let endpoints = result.endpoints.unwrap();

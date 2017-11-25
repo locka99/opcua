@@ -47,16 +47,16 @@ fn verify_references_to_many_vars(references: &[ReferenceDescription], expected_
     }
 }
 
-fn do_browse(vs: &ViewService, server_state: &mut ServerState, session: &mut Session, nodes: &[NodeId], max_references_per_node: usize) -> BrowseResponse {
+fn do_browse(vs: &ViewService, server_state: &mut ServerState, session: &mut Session, address_space: &AddressSpace, nodes: &[NodeId], max_references_per_node: usize) -> BrowseResponse {
     let request = make_browse_request(nodes, max_references_per_node, BrowseDirection::Forward, ReferenceTypeId::Organizes);
-    let result = vs.browse(server_state, session, request);
+    let result = vs.browse(server_state, session, address_space, request);
     assert!(result.is_ok());
     supported_message_as!(result.unwrap(), BrowseResponse)
 }
 
-fn do_browse_next(vs: &ViewService, server_state: &mut ServerState, session: &mut Session, continuation_point: &ByteString, release_continuation_points: bool) -> BrowseNextResponse {
+fn do_browse_next(vs: &ViewService, server_state: &mut ServerState, session: &mut Session, address_space: &AddressSpace, continuation_point: &ByteString, release_continuation_points: bool) -> BrowseNextResponse {
     let request = make_browse_next_request(continuation_point, release_continuation_points);
-    let result = vs.browse_next(server_state, session, request);
+    let result = vs.browse_next(server_state, session, address_space, request);
     assert!(result.is_ok());
     supported_message_as!(result.unwrap(), BrowseNextResponse)
 }
@@ -68,13 +68,11 @@ fn browse() {
 
     let vs = ViewService::new();
 
-    {
-        let mut address_space = server_state.address_space.lock().unwrap();
-        add_sample_vars_to_address_space(&mut address_space);
-    }
+    let mut address_space = st.server.address_space.lock().unwrap();
+    add_sample_vars_to_address_space(&mut address_space);
 
     let nodes = vec![ObjectId::RootFolder.as_node_id()];
-    let response = do_browse(&vs, &mut server_state, &mut session, &nodes, 1000);
+    let response = do_browse(&vs, &mut server_state, &mut session, &address_space, &nodes, 1000);
     assert!(response.results.is_some());
 
     let results = response.results.unwrap();
@@ -102,17 +100,16 @@ fn browse_next() {
     // Set up a server with more nodes than can fit in a response to test Browse, BrowseNext response
     let st = ServiceTest::new();
     let (mut server_state, mut session) = st.get_server_state_and_session();
-    let parent_node_id = {
-        let mut address_space = server_state.address_space.lock().unwrap();
-        add_many_vars_to_address_space(&mut address_space, 100).0
-    };
+
+    let mut address_space = st.server.address_space.lock().unwrap();
+    let parent_node_id = add_many_vars_to_address_space(&mut address_space, 100).0;
     let nodes = vec![parent_node_id.clone()];
 
     let vs = ViewService::new();
 
     // Browse with requested_max_references_per_node = 101, expect 100 results, no continuation point
     {
-        let response = do_browse(&vs, &mut server_state, &mut session, &nodes, 101);
+        let response = do_browse(&vs, &mut server_state, &mut session, &address_space, &nodes, 101);
         assert!(response.results.is_some());
         let r1 = &response.results.unwrap()[0];
         let references = r1.references.as_ref().unwrap();
@@ -122,7 +119,7 @@ fn browse_next() {
 
     // Browse with requested_max_references_per_node = 100, expect 100 results, no continuation point
     {
-        let response = do_browse(&vs, &mut server_state, &mut session, &nodes, 100);
+        let response = do_browse(&vs, &mut server_state, &mut session, &address_space, &nodes, 100);
         let r1 = &response.results.unwrap()[0];
         let references = r1.references.as_ref().unwrap();
         assert!(r1.continuation_point.is_null());
@@ -133,21 +130,21 @@ fn browse_next() {
     // Browse next with continuation point, expect 1 result leaving off from last continuation point
     let continuation_point = {
         // Get first 99
-        let response = do_browse(&vs, &mut server_state, &mut session, &nodes, 99);
+        let response = do_browse(&vs, &mut server_state, &mut session, &address_space, &nodes, 99);
         let r1 = &response.results.unwrap()[0];
         let references = r1.references.as_ref().unwrap();
         assert!(!r1.continuation_point.is_null());
         verify_references_to_many_vars(references, 99, 0);
 
         // Expect continuation point and browse next to return last var and no more continuation point
-        let response = do_browse_next(&vs, &mut server_state, &mut session, &r1.continuation_point, false);
+        let response = do_browse_next(&vs, &mut server_state, &mut session, &address_space, &r1.continuation_point, false);
         let r2 = &response.results.unwrap()[0];
         assert!(r2.continuation_point.is_null());
         let references = r2.references.as_ref().unwrap();
         verify_references_to_many_vars(references, 1, 99);
 
         // Browse next again with same continuation point, expect same 1 result
-        let response = do_browse_next(&vs, &mut server_state, &mut session, &r1.continuation_point, false);
+        let response = do_browse_next(&vs, &mut server_state, &mut session, &address_space, &r1.continuation_point, false);
         let r2 = &response.results.unwrap()[0];
         assert!(r2.continuation_point.is_null());
         let references = r2.references.as_ref().unwrap();
@@ -158,11 +155,11 @@ fn browse_next() {
 
     // Browse next and release the previous continuation points, expect Null result
     {
-        let response = do_browse_next(&vs, &mut server_state, &mut session, &continuation_point, true);
+        let response = do_browse_next(&vs, &mut server_state, &mut session, &address_space, &continuation_point, true);
         assert!(response.results.is_none());
 
         // Browse next again with same continuation point, expect BAD_CONTINUATION_POINT_INVALID
-        let response = do_browse_next(&vs, &mut server_state, &mut session, &continuation_point, false);
+        let response = do_browse_next(&vs, &mut server_state, &mut session, &address_space, &continuation_point, false);
         let r1 = &response.results.unwrap()[0];
         assert_eq!(r1.status_code, BAD_CONTINUATION_POINT_INVALID);
     }
@@ -172,21 +169,21 @@ fn browse_next() {
     // Browse next with cp2 expect 30 results
     {
         // Get first 35
-        let response = do_browse(&vs, &mut server_state, &mut session, &nodes, 35);
+        let response = do_browse(&vs, &mut server_state, &mut session, &address_space, &nodes, 35);
         let r1 = &response.results.unwrap()[0];
         let references = r1.references.as_ref().unwrap();
         assert!(!r1.continuation_point.is_null());
         verify_references_to_many_vars(references, 35, 0);
 
         // Expect continuation point and browse next to return last var and no more continuation point
-        let response = do_browse_next(&vs, &mut server_state, &mut session, &r1.continuation_point, false);
+        let response = do_browse_next(&vs, &mut server_state, &mut session, &address_space, &r1.continuation_point, false);
         let r2 = &response.results.unwrap()[0];
         assert!(!r2.continuation_point.is_null());
         let references = r2.references.as_ref().unwrap();
         verify_references_to_many_vars(references, 35, 35);
 
         // Expect continuation point and browse next to return last var and no more continuation point
-        let response = do_browse_next(&vs, &mut server_state, &mut session, &r2.continuation_point, false);
+        let response = do_browse_next(&vs, &mut server_state, &mut session, &address_space, &r2.continuation_point, false);
         let r3 = &response.results.unwrap()[0];
         assert!(r3.continuation_point.is_null());
         let references = r3.references.as_ref().unwrap();
@@ -202,7 +199,6 @@ fn browse_next() {
         // Sleep a bit, modify the address space so the old continuation point is out of date
         thread::sleep(Duration::from_millis(50));
         {
-            let mut address_space = server_state.address_space.lock().unwrap();
             let var_name = "xxxx";
             let node_id = NodeId::new_string(1, var_name);
             let var = Variable::new(&node_id, var_name, var_name, "", 200 as Int32);
@@ -210,7 +206,7 @@ fn browse_next() {
         }
 
         // Browsing with the old continuation point should fail
-        let response = do_browse_next(&vs, &mut server_state, &mut session, &continuation_point, false);
+        let response = do_browse_next(&vs, &mut server_state, &mut session, &address_space, &continuation_point, false);
         let r1 = &response.results.unwrap()[0];
         assert_eq!(r1.status_code, BAD_CONTINUATION_POINT_INVALID);
     }
@@ -219,7 +215,6 @@ fn browse_next() {
 #[test]
 fn translate_browse_paths_to_node_ids() {
     let st = ServiceTest::new();
-    let (mut server_state, mut session) = st.get_server_state_and_session();
 
     // This is a very basic test of this service. It just creates a relative path from root to the
     // Objects folder and tests that it comes back in the result
@@ -246,7 +241,8 @@ fn translate_browse_paths_to_node_ids() {
         };
 
         let vs = ViewService::new();
-        let result = vs.translate_browse_paths_to_node_ids(&mut server_state, &mut session, request);
+        let address_space = st.server.address_space.lock().unwrap();
+        let result = vs.translate_browse_paths_to_node_ids(&address_space, request);
         assert!(result.is_ok());
         let result: TranslateBrowsePathsToNodeIdsResponse = supported_message_as!(result.unwrap(), TranslateBrowsePathsToNodeIdsResponse);
 

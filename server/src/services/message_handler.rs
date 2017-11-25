@@ -70,54 +70,54 @@ impl MessageHandler {
         let mut server_state = self.server_state.lock().unwrap();
         let server_state = &mut server_state;
         let mut session = self.session.lock().unwrap();
-        let address_space = self.address_space.lock().unwrap();
-        let address_space = &address_space;
+        let mut address_space = self.address_space.lock().unwrap();
+        let address_space = &mut address_space;
         let session = &mut session;
 
         let response = match message {
             SupportedMessage::GetEndpointsRequest(request) => {
-                Some(self.discovery_service.get_endpoints(server_state, session, address_space, request)?)
+                Some(self.discovery_service.get_endpoints(server_state, request)?)
             }
             SupportedMessage::CreateSessionRequest(request) => {
-                Some(self.session_service.create_session(server_state, session, address_space, request)?)
+                Some(self.session_service.create_session(server_state, session, request)?)
             }
             SupportedMessage::CloseSessionRequest(request) => {
-                Some(self.session_service.close_session(server_state, session, address_space, request)?)
+                Some(self.session_service.close_session(server_state, session, request)?)
             }
             // ALL THE REQUESTS BELOW MUST BE VALIDATED AGAINST THE SESSION
             SupportedMessage::ActivateSessionRequest(request) => {
                 if let Err(response) = self.validate_request(session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.session_service.activate_session(server_state, session, address_space, request)?)
+                    Some(self.session_service.activate_session(server_state, session, request)?)
                 }
             }
             SupportedMessage::CreateSubscriptionRequest(request) => {
                 if let Err(response) = self.validate_request(session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.subscription_service.create_subscription(server_state, session, address_space, request)?)
+                    Some(self.subscription_service.create_subscription(server_state, session, request)?)
                 }
             }
             SupportedMessage::ModifySubscriptionRequest(request) => {
                 if let Err(response) = self.validate_request(session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.subscription_service.modify_subscription(server_state, session, address_space, request)?)
+                    Some(self.subscription_service.modify_subscription(server_state, session, request)?)
                 }
             }
             SupportedMessage::DeleteSubscriptionsRequest(request) => {
                 if let Err(response) = self.validate_request(session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.subscription_service.delete_subscriptions(server_state, session, address_space, request)?)
+                    Some(self.subscription_service.delete_subscriptions(server_state, session, request)?)
                 }
             }
             SupportedMessage::SetPublishingModeRequest(request) => {
                 if let Err(response) = self.validate_request(session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.subscription_service.set_publishing_mode(server_state, session, address_space, request)?)
+                    Some(self.subscription_service.set_publishing_mode(server_state, session, request)?)
                 }
             }
             SupportedMessage::PublishRequest(request) => {
@@ -152,42 +152,42 @@ impl MessageHandler {
                 if let Err(response) = self.validate_request(session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.view_service.translate_browse_paths_to_node_ids(server_state, session, address_space, request)?)
+                    Some(self.view_service.translate_browse_paths_to_node_ids(address_space, request)?)
                 }
             }
             SupportedMessage::ReadRequest(request) => {
                 if let Err(response) = self.validate_request(session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.attribute_service.read(server_state, session, address_space, request)?)
+                    Some(self.attribute_service.read(session, address_space, request)?)
                 }
             }
             SupportedMessage::WriteRequest(request) => {
                 if let Err(response) = self.validate_request(session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.attribute_service.write(server_state, session, address_space, request)?)
+                    Some(self.attribute_service.write(session, address_space, request)?)
                 }
             }
             SupportedMessage::CreateMonitoredItemsRequest(request) => {
                 if let Err(response) = self.validate_request(session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.monitored_item_service.create_monitored_items(server_state, session, address_space, request)?)
+                    Some(self.monitored_item_service.create_monitored_items(server_state, session, request)?)
                 }
             }
             SupportedMessage::ModifyMonitoredItemsRequest(request) => {
                 if let Err(response) = self.validate_request(session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.monitored_item_service.modify_monitored_items(server_state, session, address_space, request)?)
+                    Some(self.monitored_item_service.modify_monitored_items(server_state, session, request)?)
                 }
             }
             SupportedMessage::DeleteMonitoredItemsRequest(request) => {
                 if let Err(response) = self.validate_request(session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.monitored_item_service.delete_monitored_items(server_state, session, address_space, request)?)
+                    Some(self.monitored_item_service.delete_monitored_items(server_state, session, request)?)
                 }
             }
             _ => {

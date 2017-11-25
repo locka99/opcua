@@ -141,14 +141,12 @@ impl Session {
         &self.diagnostics
     }
 
-    pub fn enqueue_publish_request(&mut self, server_state: &ServerState, request_id: UInt32, request: PublishRequest) -> Result<(), SupportedMessage> {
-        let address_space = server_state.address_space.lock().unwrap();
-        self.subscriptions.enqueue_publish_request(&address_space, request_id, request)
+    pub fn enqueue_publish_request(&mut self, address_space: &AddressSpace, request_id: UInt32, request: PublishRequest) -> Result<(), SupportedMessage> {
+        self.subscriptions.enqueue_publish_request(address_space, request_id, request)
     }
 
-    pub fn tick_subscriptions(&mut self, server_state: &ServerState, receive_publish_request: bool) -> Result<(), StatusCode> {
-        let address_space = server_state.address_space.lock().unwrap();
-        self.subscriptions.tick(receive_publish_request, &address_space)
+    pub fn tick_subscriptions(&mut self, address_space: &AddressSpace, receive_publish_request: bool) -> Result<(), StatusCode> {
+        self.subscriptions.tick(receive_publish_request, address_space)
     }
 
     /// Iterates through the existing queued publish requests and creates a timeout

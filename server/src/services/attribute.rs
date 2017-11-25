@@ -2,7 +2,6 @@ use std::result::Result;
 
 use opcua_types::*;
 
-use server_state::ServerState;
 use session::Session;
 use services::Service;
 use address_space::access_level;
@@ -26,7 +25,7 @@ impl AttributeService {
     /// elements or to read ranges of elements of the composite. Servers may make historical
     /// values available to Clients using this Service, although the historical values themselves
     /// are not visible in the AddressSpace.
-    pub fn read(&self, server_state: &mut ServerState, session: &mut Session, address_space: &AddressSpace, request: ReadRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn read(&self, session: &mut Session, address_space: &AddressSpace, request: ReadRequest) -> Result<SupportedMessage, StatusCode> {
         // Read nodes and their attributes
         let timestamps_to_return = request.timestamps_to_return;
 
@@ -51,8 +50,6 @@ impl AttributeService {
             results,
             diagnostic_infos,
         };
-
-        trace!("ReadResponse = {:#?}", &response);
 
         Ok(SupportedMessage::ReadResponse(response))
     }
@@ -130,7 +127,7 @@ impl AttributeService {
     /// constructed Attribute values whose elements are indexed, such as an array, this Service
     /// allows Clients to write the entire set of indexed values as a composite, to write individual
     /// elements or to write ranges of elements of the composite.
-    pub fn write(&self, server_state: &mut ServerState, session: &mut Session, address_space: &AddressSpace, request: WriteRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn write(&self, session: &mut Session, address_space: &mut AddressSpace, request: WriteRequest) -> Result<SupportedMessage, StatusCode> {
         let results = if let Some(ref nodes_to_write) = request.nodes_to_write {
             let results = nodes_to_write.iter().map(|node_to_write| {
                 Self::write_node_value(session, address_space, node_to_write)
@@ -150,7 +147,7 @@ impl AttributeService {
         Ok(SupportedMessage::WriteResponse(response))
     }
 
-    fn write_node_value(session: &Session, address_space: &AddressSpace, node_to_write: &WriteValue) -> StatusCode {
+    fn write_node_value(session: &Session, address_space: &mut AddressSpace, node_to_write: &WriteValue) -> StatusCode {
         if let Some(node) = address_space.find_node_mut(&node_to_write.node_id) {
             if let Ok(attribute_id) = AttributeId::from_u32(node_to_write.attribute_id) {
                 let is_writable = Self::is_writable(session, &node, attribute_id);

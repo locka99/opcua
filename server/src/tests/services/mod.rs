@@ -7,14 +7,17 @@ use server_state::ServerState;
 use tests::*;
 
 struct ServiceTest {
+    server: Server,
     tcp_transport: TcpTransport,
 }
 
 impl ServiceTest {
     pub fn new() -> ServiceTest {
         let server = Server::new(ServerConfig::new_anonymous("foo"));
+        let tcp_transport = server.new_transport();
         ServiceTest {
-            tcp_transport: TcpTransport::new(server.server_state),
+            server,
+            tcp_transport
         }
     }
 
