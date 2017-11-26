@@ -24,6 +24,7 @@ impl SessionService {
 
         // Validate the endpoint url
         if request.endpoint_url.is_null() {
+            error!("Create session was passed an null endpoint url");
             return Ok(self.service_fault(&request.request_header, BAD_TCP_ENDPOINT_URL_INVALID));
         }
 
@@ -32,6 +33,7 @@ impl SessionService {
         // Find matching end points for this url
         let endpoints = server_state.new_endpoint_descriptions(request.endpoint_url.as_ref());
         if endpoints.is_none() {
+            error!("Create session cannot find matching endpoints");
             return Ok(self.service_fault(&request.request_header, BAD_TCP_ENDPOINT_URL_INVALID));
         }
         let endpoints = endpoints.unwrap();
@@ -113,6 +115,7 @@ impl SessionService {
 
         let mut service_result = if !server_state.endpoint_exists(endpoint_url, security_policy, security_mode) {
             // Need an endpoint
+            error!("Endpoint does not exist for requested url & mode {}, {:?} / {:?}", endpoint_url, security_policy, security_mode);
             BAD_TCP_ENDPOINT_URL_INVALID
         } else if security_policy != SecurityPolicy::None {
             // Crypto see 5.6.3.1 verify the caller is the same caller as create_session by validating

@@ -223,6 +223,7 @@ impl Client {
             if security_mode != MessageSecurityMode::Invalid {
                 let url = endpoint.url.clone();
                 if let Some(user_identity_token) = self.client_identity_token(&endpoint.user_token_id) {
+                    info!("Creating a session for endpoint {}, {:?} / {:?}", url, security_policy, security_mode);
                     let preferred_locales = self.config.preferred_locales.clone();
                     let (client_certificate, client_pkey) = self.get_client_cert_and_key();
                     Ok(SessionInfo {
