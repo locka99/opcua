@@ -51,7 +51,7 @@ pub fn p_sha(message_digest: hash::MessageDigest, secret: &[u8], seed: &[u8], le
     result
 }
 
-pub fn hmac_vec(digest: hash::MessageDigest, key: &[u8], data: &[u8]) -> Vec<u8> {
+fn hmac_vec(digest: hash::MessageDigest, key: &[u8], data: &[u8]) -> Vec<u8> {
     // Compute a signature
     let pkey = pkey::PKey::hmac(key).unwrap();
     let mut signer = sign::Signer::new(digest, &pkey).unwrap();
@@ -59,7 +59,7 @@ pub fn hmac_vec(digest: hash::MessageDigest, key: &[u8], data: &[u8]) -> Vec<u8>
     signer.finish().unwrap()
 }
 
-pub fn hmac(digest: hash::MessageDigest, key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
+fn hmac(digest: hash::MessageDigest, key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
     let hmac = hmac_vec(digest, key, data);
     trace!("hmac length = {}", hmac.len());
     signature.copy_from_slice(&hmac);
