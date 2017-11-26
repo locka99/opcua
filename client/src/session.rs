@@ -710,7 +710,7 @@ impl Session {
             self.transport.set_security_token(response.security_token);
             Ok(())
         } else {
-            Err(BAD_UNKNOWN_RESPONSE)
+            Err(Self::process_unexpected_response(response))
         }
     }
 }
