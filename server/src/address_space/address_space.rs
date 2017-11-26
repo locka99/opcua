@@ -3,7 +3,6 @@ use std::sync::{Arc, Mutex};
 
 use chrono::Utc;
 
-use opcua_types;
 use opcua_types::*;
 
 use server_state::ServerState;
