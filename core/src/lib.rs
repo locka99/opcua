@@ -18,6 +18,21 @@ extern crate opcua_types;
 pub mod comms;
 pub mod crypto;
 
+// A convenience macro for deadlocks.
+
+#[macro_export]
+macro_rules! trace_lock_unwrap {
+    ( $x:expr ) => {
+        {
+            //use std::thread;
+            //trace!("Thread {:?}, locking at {}, line {}", thread::current().id(), file!(), line!());
+            let v = $x.lock().unwrap();
+            //trace!("Lock completed");
+            v
+        }
+    }
+}
+
 /// OPC UA for Rust uses the standard log crate for internal logging purposes. This function
 /// can be called by executable targets (e.g. inside main() set up) to enable logging. The default
 /// implementation uses env_logger to provide console based output. Set the `RUST_OPCUA_LOG`

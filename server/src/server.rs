@@ -90,7 +90,7 @@ impl Server {
         let address_space = Arc::new(Mutex::new(AddressSpace::new()));
 
         {
-            let mut address_space = address_space.lock().unwrap();
+            let mut address_space = trace_lock_unwrap!(address_space);
             address_space.set_server_state(server_state.clone());
         }
 
@@ -103,23 +103,23 @@ impl Server {
 
     // Terminates the running server
     pub fn abort(&mut self) {
-        let mut server_state = self.server_state.lock().unwrap();
+        let mut server_state = trace_lock_unwrap!(self.server_state);
         server_state.abort = true;
     }
 
     /// Runs the server
     pub fn run(&mut self) {
         let (host, port, _, discovery_server_url) = {
-            let server_state = self.server_state.lock().unwrap();
-            let config = server_state.config.lock().unwrap();
+            let server_state = trace_lock_unwrap!(self.server_state);
+            let config = trace_lock_unwrap!(server_state.config);
             (config.tcp_config.host.clone(), config.tcp_config.port, server_state.base_endpoint.clone(), config.discovery_server_url.clone())
         };
         let sock_addr = (host.as_str(), port);
         let listener = TcpListener::bind(&sock_addr).unwrap();
 
         {
-            let server_state = self.server_state.lock().unwrap();
-            let config = server_state.config.lock().unwrap();
+            let server_state = trace_lock_unwrap!(self.server_state);
+            let config = trace_lock_unwrap!(server_state.config);
 
             info!("OPC UA Server: {}", server_state.application_name);
             info!("Supported endpoints:");
@@ -161,7 +161,7 @@ impl Server {
     }
 
     fn is_abort(&mut self) -> bool {
-        let server_state = self.server_state.lock().unwrap();
+        let server_state = trace_lock_unwrap!(self.server_state);
         server_state.abort
     }
 
@@ -195,8 +195,8 @@ impl Server {
             let server_state = self.server_state.clone();
             let timer = timer::Timer::new();
             let timer_guard = timer.schedule_repeating(time::Duration::minutes(5i64), move || {
-                let server_state = server_state.lock().unwrap();
-                let config = server_state.config.lock().unwrap();
+                let server_state = trace_lock_unwrap!(server_state);
+                let config = trace_lock_unwrap!(server_state.config);
                 // TODO - open a secure channel to discovery server, and register the endpoints of this server
                 // with the discovery server
                 trace!("Discovery server registration stub is triggering for {}", config.base_endpoint_url());
@@ -219,13 +219,14 @@ impl Server {
         let address_space = self.address_space.clone();
         PollingAction::new(interval_ms, move || {
             // Call the provided closure with the address space
-            action(&mut address_space.lock().unwrap());
+            let mut address_space = trace_lock_unwrap!(address_space);
+            action(&mut address_space);
         })
     }
 
     pub fn new_transport(&self) -> TcpTransport {
         let session = {
-            let server_state = self.server_state.lock().unwrap();
+            let server_state = trace_lock_unwrap!(self.server_state);
             Arc::new(Mutex::new(Session::new(&server_state)))
         };
         let address_space = self.address_space.clone();

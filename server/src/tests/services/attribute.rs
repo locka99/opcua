@@ -16,7 +16,7 @@ fn read_value(node_id: &NodeId, attribute_id: AttributeId) -> ReadValueId {
 fn read_test() {
     // Set up some nodes
     let st = ServiceTest::new();
-    let (mut server_state, mut session) = st.get_server_state_and_session();
+    let (_, mut session) = st.get_server_state_and_session();
 
     // test an empty read nothing to do
     let node_ids = {
@@ -100,7 +100,7 @@ fn write_value(node_id: &NodeId, attribute_id: AttributeId, value: DataValue) ->
 fn write_test() {
     // Set up some nodes
     let st = ServiceTest::new();
-    let (mut server_state, mut session) = st.get_server_state_and_session();
+    let (_, mut session) = st.get_server_state_and_session();
 
     // Create some variable nodes and modify permissions in the address space so we 
     // can see what happens when they are written to.

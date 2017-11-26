@@ -14,6 +14,7 @@ extern crate chrono;
 extern crate timer;
 
 extern crate opcua_types;
+#[macro_use]
 extern crate opcua_core;
 extern crate opcua_client;
 

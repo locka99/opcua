@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use chrono::Utc;
 
+use opcua_types;
 use opcua_types::*;
 
 use server_state::ServerState;
@@ -64,7 +65,7 @@ impl AddressSpace {
 
         // Server variables
         {
-            let server_state = server_state.lock().unwrap();
+            let server_state = trace_lock_unwrap!(server_state);
             if let Some(ref mut v) = self.find_variable_by_variable_id(Server_NamespaceArray) {
                 v.set_value_direct(&DateTime::now(), Variant::new_string_array(&server_state.namespaces));
                 v.set_array_dimensions(&[server_state.namespaces.len() as UInt32]);
@@ -77,8 +78,8 @@ impl AddressSpace {
 
         // ServerCapabilities
         {
-            let server_state = server_state.lock().unwrap();
-            let server_config = server_state.config.lock().unwrap();
+            let server_state =  trace_lock_unwrap!(server_state);
+            let server_config =  trace_lock_unwrap!(server_state.config);
             self.set_value_by_variable_id(Server_ServerCapabilities_MaxArrayLength, Variant::UInt32(server_config.max_array_length));
             self.set_value_by_variable_id(Server_ServerCapabilities_MaxStringLength, Variant::UInt32(server_config.max_string_length));
             self.set_value_by_variable_id(Server_ServerCapabilities_MaxByteStringLength, Variant::UInt32(server_config.max_byte_string_length));
@@ -181,7 +182,7 @@ impl AddressSpace {
             let server_state = server_state.clone();
             // Used to return the current time of the server, i.e. now
             let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Option<DataValue> {
-                let server_state = server_state.lock().unwrap();
+                let server_state =  trace_lock_unwrap!(server_state);
                 Some(DataValue::new(server_state.state as Int32))
             });
             v.set_value_getter(Arc::new(Mutex::new(getter)));
