@@ -1,5 +1,6 @@
 use std::result::Result;
 use std::sync::{Arc, Mutex};
+use std::str::FromStr;
 
 use opcua_types::*;
 use opcua_core::crypto;
@@ -12,12 +13,8 @@ use subscription::Subscription;
 /// Information about the server endpoint, security policy, security mode and user identity that the session will
 /// will use to establish a connection.
 pub struct SessionInfo {
-    /// The endpoint url
-    pub url: String,
-    /// Security policy
-    pub security_policy: SecurityPolicy,
-    /// Message security mode
-    pub security_mode: MessageSecurityMode,
+    /// The endpoint
+    pub endpoint: EndpointDescription,
     /// User identity token
     pub user_identity_token: client::IdentityToken,
     /// Preferred language locales
@@ -28,43 +25,21 @@ pub struct SessionInfo {
     pub client_pkey: Option<PKey>,
 }
 
-impl<'a> From<&'a str> for SessionInfo {
-    fn from(value: &'a str) -> SessionInfo {
-        let value: String = value.into();
-        value.into()
-    }
-}
-
-impl Into<SessionInfo> for String {
+impl Into<SessionInfo> for EndpointDescription {
     fn into(self) -> SessionInfo {
-        (self, SecurityPolicy::None, MessageSecurityMode::None, client::IdentityToken::Anonymous).into()
+        (self, client::IdentityToken::Anonymous).into()
     }
 }
 
-impl Into<SessionInfo> for (String, SecurityPolicy, MessageSecurityMode) {
-    fn into(self) -> SessionInfo {
-        (self.0, self.1, self.2, client::IdentityToken::Anonymous).into()
-    }
-}
-
-impl Into<SessionInfo> for (String, SecurityPolicy, MessageSecurityMode, client::IdentityToken) {
+impl Into<SessionInfo> for (EndpointDescription, client::IdentityToken) {
     fn into(self) -> SessionInfo {
         SessionInfo {
-            url: self.0,
-            security_policy: self.1,
-            security_mode: self.2,
-            user_identity_token: self.3,
+            endpoint: self.0,
+            user_identity_token: self.1,
             preferred_locales: Vec::new(),
             client_pkey: None,
             client_certificate: None,
         }
-    }
-}
-
-impl SessionInfo {
-    /// Creates a basic session info that points to an endpoint url with no security
-    pub fn new<T>(url: T) -> SessionInfo where T: Into<String> {
-        (url.into()).into()
     }
 }
 
@@ -77,8 +52,6 @@ const MAX_BUFFER_SIZE: usize = 65536;
 /// Session's state indicates connection status, negotiated times and sizes,
 /// and security tokens.
 pub struct SessionState {
-    /// Endpoint, filled in during connect
-    pub endpoint: Option<EndpointDescription>,
     /// The request timeout is how long the session will wait from sending a request expecting a response
     /// if no response is received the rclient will terminate.
     pub request_timeout: u32,
@@ -105,7 +78,6 @@ pub struct SessionState {
 impl SessionState {
     pub fn new() -> SessionState {
         SessionState {
-            endpoint: None,
             session_timeout: DEFAULT_SESSION_TIMEOUT,
             request_timeout: DEFAULT_REQUEST_TIMEOUT,
             send_buffer_size: SEND_BUFFER_SIZE,
@@ -156,28 +128,17 @@ impl Session {
 
     /// Connects to the server (if possible) using the configured session arguments
     pub fn connect(&mut self) -> Result<(), StatusCode> {
-        let _ = self.transport.connect(&self.session_info.url)?;
-        let _ = self.transport.hello(&self.session_info.url)?;
+        let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
+        let _ = self.transport.connect(endpoint_url.as_ref())?;
+        let _ = self.transport.hello(endpoint_url.as_ref())?;
         let _ = self.open_secure_channel()?;
         Ok(())
     }
 
     /// Connects to the server, creates and activates a session
     pub fn connect_and_activate_session(&mut self) -> Result<(), StatusCode> {
-        let _ = self.connect()?;
-
-        // Find a matching end point
-        let endpoints = self.get_endpoints()?;
-        {
-            let session_state = self.session_state.clone();
-            let mut session_state = session_state.lock().unwrap();
-            session_state.endpoint = Self::find_matching_endpoint(&endpoints, &self.session_info.url, self.session_info.security_policy);
-            if session_state.endpoint.is_none() {
-                error!("Cannot find a matching endpoint for url and policy");
-                return Err(BAD_TCP_ENDPOINT_URL_INVALID);
-            }
-        }
-
+        // Reconnect now using the session state
+        let _ = self.connect();
         let _ = self.create_session()?;
         let _ = self.activate_session()?;
         Ok(())
@@ -213,13 +174,8 @@ impl Session {
         // Get some state stuff
         let (endpoint_url, client_nonce) = {
             let session_state = self.session_state.lock().unwrap();
-            if session_state.endpoint.is_none() {
-                error!("Cannot create a session because no endpoint has been discovered and set!");
-                return Err(BAD_TCP_ENDPOINT_URL_INVALID);
-            }
-            let endpoint_url = session_state.endpoint.as_ref().unwrap().endpoint_url.clone();
             let client_nonce = session_state.client_nonce.clone();
-            (endpoint_url, client_nonce)
+            (UAString::from(self.session_info.endpoint.endpoint_url.clone()), client_nonce)
         };
 
         let server_uri = UAString::null();
@@ -278,7 +234,7 @@ impl Session {
             Some(locale_ids)
         };
 
-        let security_policy = self.session_info.security_policy;
+        let security_policy = SecurityPolicy::from_str(self.session_info.endpoint.security_policy_uri.as_ref()).unwrap();
         let client_signature = match security_policy {
             SecurityPolicy::None => SignatureData::null(),
             _ => {
@@ -307,11 +263,12 @@ impl Session {
             user_identity_token,
             user_token_signature,
         };
-        trace!("ActivateSessionRequest = {:#?}", request);
+
+        // trace!("ActivateSessionRequest = {:#?}", request);
 
         let response = self.send_request(SupportedMessage::ActivateSessionRequest(request))?;
         if let SupportedMessage::ActivateSessionResponse(response) = response {
-            trace!("ActivateSessionResponse = {:#?}", response);
+            // trace!("ActivateSessionResponse = {:#?}", response);
             Self::process_service_result(&response.response_header)?;
             Ok(())
         } else {
@@ -344,7 +301,7 @@ impl Session {
     /// Sends a GetEndpoints request to the server
     pub fn get_endpoints(&mut self) -> Result<Vec<EndpointDescription>, StatusCode> {
         debug!("Fetching end points...");
-        let endpoint_url = UAString::from(self.session_info.url.as_ref());
+        let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
         let request = GetEndpointsRequest {
             request_header: self.make_request_header(),
             endpoint_url,
@@ -363,22 +320,6 @@ impl Session {
         } else {
             Err(Self::process_unexpected_response(response))
         }
-    }
-
-    /// Find matching endpoint
-    pub fn find_matching_endpoint(endpoints: &[EndpointDescription], endpoint_url: &str, security_policy: SecurityPolicy) -> Option<EndpointDescription> {
-        if security_policy == SecurityPolicy::Unknown {
-            panic!("Can't match against unknown security policy");
-        }
-        for e in endpoints.iter() {
-            if security_policy != SecurityPolicy::from_uri(e.security_policy_uri.as_ref()) {
-                continue;
-            }
-            if url_matches_except_host(e.endpoint_url.as_ref(), endpoint_url) {
-                return Some(e.clone());
-            }
-        }
-        None
     }
 
     /// Sends a BrowseRequest to the server
@@ -601,13 +542,7 @@ impl Session {
             }
         };
 
-        let session_state = self.session_state.clone();
-        let session_state = session_state.lock().unwrap();
-        if session_state.endpoint.is_none() {
-            error!("Cannot activate a session because no endpoint has been discovered and set!");
-            return Err(BAD_TCP_ENDPOINT_URL_INVALID);
-        }
-        let endpoint = session_state.endpoint.as_ref().unwrap();
+        let endpoint = &self.session_info.endpoint;
         let policy_id = endpoint.find_policy_id(user_token_type);
 
         // Return the result
@@ -695,7 +630,7 @@ impl Session {
             let session_state = self.session_state.lock().unwrap();
             session_state.client_nonce.clone()
         };
-        let security_mode = self.session_info.security_mode;
+        let security_mode = self.session_info.endpoint.security_mode;
         let requested_lifetime = 60000;
         let request = OpenSecureChannelRequest {
             request_header: self.make_request_header(),

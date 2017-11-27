@@ -17,19 +17,20 @@ fn main() {
     // endpoints one of which is marked as the default.
     let mut client = Client::new(ClientConfig::load(&PathBuf::from("../client.conf")).unwrap());
 
-    // Optional - ask the server associated with the default endpoint for its list of endpoints
-    let endpoints = client.get_server_endpoints_default();
-    if let Ok(endpoints) = endpoints {
-        println!("Server has these endpoints:");
-        for e in &endpoints {
-            println!("  {} - {:?} / {:?}", e.endpoint_url, SecurityPolicy::from_str(e.security_policy_uri.as_ref()).unwrap(), e.security_mode);
-        }
-    } else {
+    // Ask the server associated with the default endpoint for its list of endpoints
+    let endpoints = client.get_server_endpoints();
+    if endpoints.is_err() {
         println!("ERROR: Can't get endpoints for server, error - {:?}", endpoints.unwrap_err().description());
+        return;
+    }
+    let endpoints = endpoints.unwrap();
+    println!("Server has these endpoints:");
+    for e in &endpoints {
+        println!("  {} - {:?} / {:?}", e.endpoint_url, SecurityPolicy::from_str(e.security_policy_uri.as_ref()).unwrap(), e.security_mode);
     }
 
-    // Create a session to the default endpoint
-    if let Ok(session) = client.new_session_default_endpoint() {
+    // Create a session to the default endpoint. It has to match one received from the get_endpoints call
+    if let Ok(session) = client.new_session(&endpoints) {
         let mut session = session.lock().unwrap();
         // Connect and do something with the server
         let result = connect(&mut session);

@@ -16,6 +16,7 @@ use generated::StatusCode;
 use generated::StatusCode::*;
 use generated::{DataChangeFilter, ObjectId, AnonymousIdentityToken, UserNameIdentityToken, SignatureData, ReadValueId, EndpointDescription, ServiceFault};
 use generated::{MonitoredItemCreateRequest, MonitoringParameters};
+use generated::ApplicationDescription;
 
 /// Implemented by messages
 pub trait MessageInfo {
@@ -791,6 +792,20 @@ impl MonitoredItemCreateRequest {
             item_to_monitor,
             monitoring_mode,
             requested_parameters,
+        }
+    }
+}
+
+impl ApplicationDescription {
+    pub fn null() -> ApplicationDescription {
+        ApplicationDescription {
+            application_uri: UAString::null(),
+            product_uri: UAString::null(),
+            application_name: LocalizedText::null(),
+            application_type: ApplicationType::Server,
+            gateway_server_uri: UAString::null(),
+            discovery_profile_uri: UAString::null(),
+            discovery_urls: None
         }
     }
 }

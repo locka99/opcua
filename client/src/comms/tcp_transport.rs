@@ -13,6 +13,9 @@ use session::SessionState;
 const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;
 //const SEND_BUFFER_SIZE: usize = 1024 * 64;
 //const MAX_MESSAGE_SIZE: usize = 1024 * 64;
+const DEFAULT_SENT_SEQUENCE_NUMBER: UInt32 = 0;
+const DEFAULT_RECEIVED_SEQUENCE_NUMBER: UInt32 = 0;
+const DEFAULT_REQUEST_ID: UInt32 = 1000;
 
 pub struct TcpTransport {
     /// Session state
@@ -45,9 +48,9 @@ impl TcpTransport {
             session_state,
             stream: None,
             message_buffer: MessageBuffer::new(receive_buffer_size),
-            last_sent_sequence_number: 0,
-            last_received_sequence_number: 0,
-            last_request_id: 1000,
+            last_sent_sequence_number: DEFAULT_SENT_SEQUENCE_NUMBER,
+            last_received_sequence_number: DEFAULT_RECEIVED_SEQUENCE_NUMBER,
+            last_request_id: DEFAULT_REQUEST_ID,
             secure_channel,
         }
     }
@@ -115,6 +118,9 @@ impl TcpTransport {
         if self.is_connected() {
             self.stream = None;
         }
+        self.last_sent_sequence_number = DEFAULT_SENT_SEQUENCE_NUMBER;
+        self.last_received_sequence_number = DEFAULT_RECEIVED_SEQUENCE_NUMBER;
+        self.last_request_id = DEFAULT_REQUEST_ID;
     }
 
     /// Tests if the transport is connected
@@ -162,7 +168,7 @@ impl TcpTransport {
     }
 
     fn process_chunk(&mut self, chunk: MessageChunk) -> Result<Option<SupportedMessage>, StatusCode> {
-        trace!("Got a chunk {:?}", chunk);
+        // trace!("Got a chunk {:?}", chunk);
 
         let message_header = chunk.message_header()?;
         match message_header.is_final {
