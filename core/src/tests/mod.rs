@@ -54,8 +54,8 @@ fn make_secure_channel(security_mode: MessageSecurityMode, security_policy: Secu
     let mut secure_channel = SecureChannel::new_no_certificate_store();
     secure_channel.security_mode = security_mode;
     secure_channel.security_policy = security_policy;
-    secure_channel.server_nonce = local_nonce;
-    secure_channel.client_nonce = remote_nonce;
+    secure_channel.local_nonce = local_nonce;
+    secure_channel.remote_nonce = remote_nonce;
     secure_channel.derive_keys();
     secure_channel
 }

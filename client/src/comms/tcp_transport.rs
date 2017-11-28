@@ -29,7 +29,7 @@ pub struct TcpTransport {
     /// Last decoded sequence number
     last_received_sequence_number: UInt32,
     /// Secure channel information
-    secure_channel: SecureChannel,
+    pub secure_channel: SecureChannel,
     /// Last request id, used to track async requests
     last_request_id: UInt32,
 }

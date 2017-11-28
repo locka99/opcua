@@ -67,10 +67,6 @@ pub struct SessionState {
     pub last_request_handle: UInt32,
     /// The authentication token negotiated with the server (if any)
     pub authentication_token: NodeId,
-    /// Client side nonce
-    pub client_nonce: ByteString,
-    /// Server side nonce
-    pub server_nonce: ByteString,
     /// Server certificate (not that endpoint may also contain this)
     pub server_certificate: ByteString,
 }
@@ -85,8 +81,6 @@ impl SessionState {
             max_message_size: MAX_BUFFER_SIZE,
             last_request_handle: 1,
             authentication_token: NodeId::null(),
-            client_nonce: ByteString::nonce(),
-            server_nonce: ByteString::null(),
             server_certificate: ByteString::null(),
         }
     }
@@ -172,11 +166,9 @@ impl Session {
     /// Sends a CreateSession request to the server
     pub fn create_session(&mut self) -> Result<(), StatusCode> {
         // Get some state stuff
-        let (endpoint_url, client_nonce) = {
-            let session_state = self.session_state.lock().unwrap();
-            let client_nonce = session_state.client_nonce.clone();
-            (UAString::from(self.session_info.endpoint.endpoint_url.clone()), client_nonce)
-        };
+        let endpoint_url = UAString::from(self.session_info.endpoint.endpoint_url.clone());
+
+        let client_nonce = self.transport.secure_channel.local_nonce_as_byte_string();
 
         let server_uri = UAString::null();
         let session_name = UAString::from("Rust OPCUA Client");
@@ -207,7 +199,7 @@ impl Session {
             let mut session_state = session_state.lock().unwrap();
 
             session_state.authentication_token = response.authentication_token;
-            session_state.server_nonce = response.server_nonce;
+            let _ = self.transport.secure_channel.set_remote_nonce(&response.server_nonce);
 
             // TODO Verify signature using server's public key (from endpoint) comparing with
             // data made from client certificate and nonce.
@@ -238,17 +230,18 @@ impl Session {
         let client_signature = match security_policy {
             SecurityPolicy::None => SignatureData::null(),
             _ => {
+                let server_nonce = self.transport.secure_channel.remote_nonce_as_byte_string();
                 // Create a signature data
                 let session_state = self.session_state.lock().unwrap();
                 if self.session_info.client_pkey.is_none() {
                     error!("Cannot create client signature - no pkey!");
                     return Err(BAD_UNEXPECTED_ERROR);
-                } else if session_state.server_certificate.is_null() || session_state.server_nonce.is_null() {
+                } else if session_state.server_certificate.is_null() || server_nonce.is_null() {
                     error!("Cannot sign server certificate + nonce because one of them is null");
                     return Err(BAD_UNEXPECTED_ERROR);
                 }
                 let signing_key = self.session_info.client_pkey.as_ref().unwrap();
-                crypto::create_signature_data(signing_key, security_policy, &session_state.server_certificate, &session_state.server_nonce)?
+                crypto::create_signature_data(signing_key, security_policy, &session_state.server_certificate, &server_nonce)?
             }
         };
 
@@ -626,10 +619,7 @@ impl Session {
     }
 
     fn issue_or_renew_secure_channel(&mut self, request_type: SecurityTokenRequestType) -> Result<(), StatusCode> {
-        let client_nonce = {
-            let session_state = self.session_state.lock().unwrap();
-            session_state.client_nonce.clone()
-        };
+        let client_nonce = self.transport.secure_channel.local_nonce_as_byte_string();
         let security_mode = self.session_info.endpoint.security_mode;
         let requested_lifetime = 60000;
         let request = OpenSecureChannelRequest {

@@ -181,8 +181,8 @@ impl AddressSpace {
             let server_state = server_state.clone();
             // Used to return the current time of the server, i.e. now
             let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Option<DataValue> {
-                let server_state =  trace_lock_unwrap!(server_state);
-                Some(DataValue::new(server_state.state as Int32))
+                // let server_state =  trace_lock_unwrap!(server_state);
+                Some(DataValue::new(0 as Int32))
             });
             v.set_value_getter(Arc::new(Mutex::new(getter)));
         }

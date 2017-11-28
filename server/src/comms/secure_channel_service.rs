@@ -92,7 +92,7 @@ impl SecureChannelService {
 
                 // Check for a duplicate nonce. It is invalid for the renew to use the same nonce
                 // as was used for last issue/renew
-                if request.client_nonce.as_ref() == &secure_channel.client_nonce[..] {
+                if request.client_nonce.as_ref() == &secure_channel.remote_nonce()[..] {
                     return Ok(ServiceFault::new_supported_message(&request.request_header, BAD_NONCE_INVALID));
                 }
 
@@ -151,7 +151,7 @@ impl SecureChannelService {
                 created_at: DateTime::now(),
                 revised_lifetime: request.requested_lifetime,
             },
-            server_nonce: ByteString::from(&secure_channel.server_nonce),
+            server_nonce: secure_channel.local_nonce_as_byte_string(),
         };
         Ok(SupportedMessage::OpenSecureChannelResponse(response))
     }
