@@ -4,7 +4,6 @@ use std::sync::{Arc, Mutex};
 use opcua_types::*;
 
 use address_space::address_space::AddressSpace;
-use server_state::ServerState;
 use session::Session;
 use services::Service;
 use continuation_point::BrowseContinuationPoint;
@@ -27,7 +26,7 @@ impl ViewService {
         ViewService {}
     }
 
-    pub fn browse(&self, _: &mut ServerState, session: &mut Session, address_space: &AddressSpace, request: BrowseRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn browse(&self, session: &mut Session, address_space: &AddressSpace, request: BrowseRequest) -> Result<SupportedMessage, StatusCode> {
         let browse_results = if request.nodes_to_browse.is_some() {
             let nodes_to_browse = request.nodes_to_browse.as_ref().unwrap();
 
@@ -53,7 +52,7 @@ impl ViewService {
         Ok(SupportedMessage::BrowseResponse(response))
     }
 
-    pub fn browse_next(&self, _: &mut ServerState, session: &mut Session, address_space: &AddressSpace, request: BrowseNextRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn browse_next(&self, session: &mut Session, address_space: &AddressSpace, request: BrowseNextRequest) -> Result<SupportedMessage, StatusCode> {
         if request.continuation_points.is_none() {
             Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO))
         } else {

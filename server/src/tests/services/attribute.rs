@@ -16,7 +16,6 @@ fn read_value(node_id: &NodeId, attribute_id: AttributeId) -> ReadValueId {
 fn read_test() {
     // Set up some nodes
     let st = ServiceTest::new();
-    let (_, mut session) = st.get_server_state_and_session();
 
     // test an empty read nothing to do
     let node_ids = {
@@ -53,7 +52,7 @@ fn read_test() {
         };
 
         let address_space = st.server.address_space.lock().unwrap();
-        let response = ats.read(&mut session, &address_space, request);
+        let response = ats.read(&address_space, request);
         assert!(response.is_ok());
         let response: ReadResponse = supported_message_as!(response.unwrap(), ReadResponse);
 
@@ -100,7 +99,6 @@ fn write_value(node_id: &NodeId, attribute_id: AttributeId, value: DataValue) ->
 fn write_test() {
     // Set up some nodes
     let st = ServiceTest::new();
-    let (_, mut session) = st.get_server_state_and_session();
 
     // Create some variable nodes and modify permissions in the address space so we 
     // can see what happens when they are written to.
@@ -163,7 +161,7 @@ fn write_test() {
 
     // do a write with the following write
     let mut address_space = st.server.address_space.lock().unwrap();
-    let response = ats.write(&mut session, &mut address_space, request);
+    let response = ats.write(&mut address_space, request);
     assert!(response.is_ok());
     let response: WriteResponse = supported_message_as!(response.unwrap(), WriteResponse);
     let results = response.results.unwrap();

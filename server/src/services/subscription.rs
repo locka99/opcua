@@ -77,7 +77,7 @@ impl SubscriptionService {
     }
 
     /// Handles a DeleteSubscriptionsRequest
-    pub fn delete_subscriptions(&self, _: &mut ServerState, session: &mut Session, request: DeleteSubscriptionsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn delete_subscriptions(&self, session: &mut Session, request: DeleteSubscriptionsRequest) -> Result<SupportedMessage, StatusCode> {
         if request.subscription_ids.is_none() {
             return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
         }
@@ -106,7 +106,7 @@ impl SubscriptionService {
     }
 
     /// Handles a SerPublishingModeRequest
-    pub fn set_publishing_mode(&self, _: &mut ServerState, session: &mut Session, request: SetPublishingModeRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn set_publishing_mode(&self, session: &mut Session, request: SetPublishingModeRequest) -> Result<SupportedMessage, StatusCode> {
         if request.subscription_ids.is_none() {
             return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
         }
@@ -135,7 +135,7 @@ impl SubscriptionService {
     }
 
     /// Handles a PublishRequest
-    pub fn publish(&self, _: &mut ServerState, session: &mut Session, request_id: UInt32, address_space: &AddressSpace, request: PublishRequest) -> Result<Option<SupportedMessage>, StatusCode> {
+    pub fn publish(&self, session: &mut Session, request_id: UInt32, address_space: &AddressSpace, request: PublishRequest) -> Result<Option<SupportedMessage>, StatusCode> {
         trace!("--> Receive a PublishRequest {:?}", request);
         if session.subscriptions.is_empty() {
             Ok(Some(self.service_fault(&request.request_header, BAD_NO_SUBSCRIPTION)))
@@ -151,7 +151,7 @@ impl SubscriptionService {
     }
 
     /// Handles a RepublishRequest
-    pub fn republish(&self, _: &mut ServerState, _: &mut Session, _: &AddressSpace, request: RepublishRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn republish(&self, request: RepublishRequest) -> Result<SupportedMessage, StatusCode> {
         // TODO look for the subscription id and sequence number in the sent items and resend it
         Ok(self.service_fault(&request.request_header, BAD_MESSAGE_NOT_AVAILABLE))
     }

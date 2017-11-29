@@ -147,7 +147,7 @@ impl SessionService {
         Ok(response)
     }
 
-    pub fn close_session(&self, _: &mut ServerState, session: &mut Session, request: CloseSessionRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn close_session(&self, session: &mut Session, request: CloseSessionRequest) -> Result<SupportedMessage, StatusCode> {
         session.authentication_token = NodeId::null();
         session.user_identity = None;
         session.activated = false;

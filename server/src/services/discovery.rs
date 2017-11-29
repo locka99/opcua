@@ -14,7 +14,7 @@ impl DiscoveryService {
         DiscoveryService {}
     }
 
-    pub fn get_endpoints(&self, server_state: &mut ServerState, request: GetEndpointsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn get_endpoints(&self, server_state: &ServerState, request: GetEndpointsRequest) -> Result<SupportedMessage, StatusCode> {
         let endpoints = server_state.endpoints(&request.profile_uris);
 //        error!("Endpoint request = {:#?}", request);
         let response = GetEndpointsResponse {
