@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 
 use chrono::Utc;
 
@@ -59,12 +59,12 @@ impl AddressSpace {
 
 
     /// Sets values for nodes representing the server.
-    pub fn set_server_state(&mut self, server_state: Arc<Mutex<ServerState>>) {
+    pub fn set_server_state(&mut self, server_state: Arc<RwLock<ServerState>>) {
         use opcua_types::VariableId::*;
 
         // Server variables
         {
-            let server_state = trace_lock_unwrap!(server_state);
+            let server_state = trace_read_lock_unwrap!(server_state);
             if let Some(ref mut v) = self.find_variable_by_variable_id(Server_NamespaceArray) {
                 v.set_value_direct(&DateTime::now(), Variant::new_string_array(&server_state.namespaces));
                 v.set_array_dimensions(&[server_state.namespaces.len() as UInt32]);
@@ -77,8 +77,8 @@ impl AddressSpace {
 
         // ServerCapabilities
         {
-            let server_state =  trace_lock_unwrap!(server_state);
-            let server_config =  trace_lock_unwrap!(server_state.config);
+            let server_state = trace_read_lock_unwrap!(server_state);
+            let server_config = trace_lock_unwrap!(server_state.config);
             self.set_value_by_variable_id(Server_ServerCapabilities_MaxArrayLength, Variant::UInt32(server_config.max_array_length));
             self.set_value_by_variable_id(Server_ServerCapabilities_MaxStringLength, Variant::UInt32(server_config.max_string_length));
             self.set_value_by_variable_id(Server_ServerCapabilities_MaxByteStringLength, Variant::UInt32(server_config.max_byte_string_length));

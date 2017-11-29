@@ -2,7 +2,7 @@
 //! and end point information.
 
 use std::net::{TcpListener, TcpStream};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 
 use time;
@@ -27,9 +27,9 @@ use services::message_handler::MessageHandler;
 /// at a time providing they do not share the same thread or listen on the same ports.
 pub struct Server {
     /// The server state is everything that sessions share - configuration etc.
-    pub server_state: Arc<Mutex<ServerState>>,
+    pub server_state: Arc<RwLock<ServerState>>,
     /// Address space
-    pub address_space: Arc<Mutex<AddressSpace>>,
+    pub address_space: Arc<RwLock<AddressSpace>>,
     /// List of open connections
     pub connections: Vec<Arc<Mutex<TcpTransport>>>,
 }
@@ -84,13 +84,13 @@ impl Server {
             diagnostics,
             abort: false,
         };
-        let server_state = Arc::new(Mutex::new(server_state));
+        let server_state = Arc::new(RwLock::new(server_state));
 
         // Set some values in the address space from the server state
-        let address_space = Arc::new(Mutex::new(AddressSpace::new()));
+        let address_space = Arc::new(RwLock::new(AddressSpace::new()));
 
         {
-            let mut address_space = trace_lock_unwrap!(address_space);
+            let mut address_space = trace_write_lock_unwrap!(address_space);
             address_space.set_server_state(server_state.clone());
         }
 
@@ -103,14 +103,14 @@ impl Server {
 
     // Terminates the running server
     pub fn abort(&mut self) {
-        let mut server_state = trace_lock_unwrap!(self.server_state);
+        let mut server_state = trace_write_lock_unwrap!(self.server_state);
         server_state.abort = true;
     }
 
     /// Runs the server
     pub fn run(&mut self) {
         let (host, port, _, discovery_server_url) = {
-            let server_state = trace_lock_unwrap!(self.server_state);
+            let server_state = trace_read_lock_unwrap!(self.server_state);
             let config = trace_lock_unwrap!(server_state.config);
             (config.tcp_config.host.clone(), config.tcp_config.port, server_state.base_endpoint.clone(), config.discovery_server_url.clone())
         };
@@ -118,7 +118,7 @@ impl Server {
         let listener = TcpListener::bind(&sock_addr).unwrap();
 
         {
-            let server_state = trace_lock_unwrap!(self.server_state);
+            let server_state = trace_read_lock_unwrap!(self.server_state);
             let config = trace_lock_unwrap!(server_state.config);
 
             info!("OPC UA Server: {}", server_state.application_name);
@@ -161,7 +161,7 @@ impl Server {
     }
 
     fn is_abort(&mut self) -> bool {
-        let server_state = trace_lock_unwrap!(self.server_state);
+        let server_state = trace_read_lock_unwrap!(self.server_state);
         server_state.abort
     }
 
@@ -172,7 +172,7 @@ impl Server {
             // if it is, then we'll use its termination status to sweep it out.
             let mut lock = connection.try_lock();
             if let Ok(ref mut connection) = lock {
-                let mut lock = connection.session.try_lock();
+                let mut lock = connection.session.try_write();
                 if let Ok(ref mut session) = lock {
                     if session.terminated {
                         info!("Removing terminated session");
@@ -195,7 +195,7 @@ impl Server {
             let server_state = self.server_state.clone();
             let timer = timer::Timer::new();
             let timer_guard = timer.schedule_repeating(time::Duration::minutes(5i64), move || {
-                let server_state = trace_lock_unwrap!(server_state);
+                let server_state = trace_read_lock_unwrap!(server_state);
                 let config = trace_lock_unwrap!(server_state.config);
                 // TODO - open a secure channel to discovery server, and register the endpoints of this server
                 // with the discovery server
@@ -207,27 +207,23 @@ impl Server {
         }
     }
 
-    /// Creates a polling action that happens continuously on an interval. The supplied
-    /// function receives the address space which it can do what it likes with.
+    /// Creates a polling action that happens continuously on an interval.
     ///
-    /// This function is be updating values in the address space individually or en masse.
     /// The returned PollingAction will ensure the function is called for as long as it is
     /// in scope. Once the action is dropped, the function will no longer be called.
-    pub fn create_address_space_polling_action<F>(&mut self, interval_ms: u32, action: F) -> PollingAction
-        where F: 'static + FnMut(&mut AddressSpace) + Send {
+    pub fn create_polling_action<F>(&mut self, interval_ms: u32, action: F) -> PollingAction
+        where F: 'static + FnMut() + Send {
         let mut action = action;
-        let address_space = self.address_space.clone();
         PollingAction::new(interval_ms, move || {
             // Call the provided closure with the address space
-            let mut address_space = trace_lock_unwrap!(address_space);
-            action(&mut address_space);
+            action();
         })
     }
 
     pub fn new_transport(&self) -> TcpTransport {
         let session = {
-            let server_state = trace_lock_unwrap!(self.server_state);
-            Arc::new(Mutex::new(Session::new(&server_state)))
+            let server_state = trace_read_lock_unwrap!(self.server_state);
+            Arc::new(RwLock::new(Session::new(&server_state)))
         };
         let address_space = self.address_space.clone();
         let message_handler = MessageHandler::new(self.server_state.clone(), session.clone(), address_space.clone());

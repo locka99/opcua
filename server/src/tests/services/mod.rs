@@ -1,4 +1,4 @@
-use std::sync::MutexGuard;
+use std::sync::{RwLockWriteGuard};
 
 use prelude::*;
 use comms::tcp_transport::*;
@@ -21,9 +21,9 @@ impl ServiceTest {
         }
     }
 
-    pub fn get_server_state_and_session(&self) -> (MutexGuard<ServerState>, MutexGuard<Session>) {
-        (self.tcp_transport.server_state.lock().unwrap(),
-         self.tcp_transport.session.lock().unwrap())
+    pub fn get_server_state_and_session(&self) -> (RwLockWriteGuard<ServerState>, RwLockWriteGuard<Session>) {
+        (self.tcp_transport.server_state.write().unwrap(),
+         self.tcp_transport.session.write().unwrap())
     }
 }
 

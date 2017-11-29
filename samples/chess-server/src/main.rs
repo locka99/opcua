@@ -46,7 +46,7 @@ fn main() {
     let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
 
     {
-        let mut address_space = server.address_space.lock().unwrap();
+        let mut address_space = server.address_space.write().unwrap();
         let board_node_id = address_space
             .add_folder("Board", "Board", &AddressSpace::objects_folder_id())
             .unwrap();
@@ -92,7 +92,7 @@ fn main() {
                 game.print_board();
 
                 {
-                    let mut address_space = address_space.lock().unwrap();
+                    let mut address_space = address_space.write().unwrap();
                     update_board_state(&game, &mut address_space);
                 }
             }

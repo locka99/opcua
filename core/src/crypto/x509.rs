@@ -76,6 +76,8 @@ impl Debug for X509 {
 /// This allows certs to be transferred between threads
 unsafe impl Send for X509 {}
 
+unsafe impl std::marker::Sync for X509 {}
+
 impl X509 {
     pub fn wrap(value: x509::X509) -> X509 {
         X509 { value }

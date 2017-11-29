@@ -283,6 +283,7 @@ name = "opcua-simple-server"
 version = "0.2.0"
 dependencies = [
  "chrono 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-core 0.2.0",
  "opcua-server 0.2.0",
  "opcua-types 0.2.0",

@@ -1,6 +1,8 @@
 //! This is a simple server for OPC UA. Our sample creates a server with the default settings
 //! adds some variables to the address space and the listeners for connections. It also has
 //! a timer that updates those variables so anything monitoring variables sees the values changing.
+#[macro_use]
+extern crate log;
 extern crate chrono;
 extern crate opcua_types;
 extern crate opcua_core;
@@ -39,7 +41,7 @@ fn add_example_variables(server: &mut Server) -> Vec<PollingAction> {
 
     // The address space is guarded so obtain a lock to change it
     {
-        let mut address_space = server.address_space.lock().unwrap();
+        let mut address_space = server.address_space.write().unwrap();
 
         // Create a sample folder under objects folder
         let sample_folder_id = address_space
@@ -59,23 +61,26 @@ fn add_example_variables(server: &mut Server) -> Vec<PollingAction> {
     // of each method.
 
     // 1) Push. This code will use a timer to set the values on variable v1 & v2 on an interval
-
-    let mut v1_counter: Int32 = 0;
-    let mut v2_flag: Boolean = true;
-    let timers = vec![
-        server.create_address_space_polling_action(250, move |address_space: &mut AddressSpace| {
-            v1_counter += 1;
-            v2_flag = !v2_flag;
-            let _ = address_space.set_value_by_node_id(&v1_node, Variant::Int32(v1_counter));
-            let _ = address_space.set_value_by_node_id(&v2_node, Variant::Boolean(v2_flag));
-        })
-    ];
+    let timers = {
+        let address_space = server.address_space.clone();
+        let mut v1_counter: Int32 = 0;
+        let mut v2_flag: Boolean = true;
+        vec![
+            server.create_polling_action(250, move || {
+                v1_counter += 1;
+                v2_flag = !v2_flag;
+                let mut address_space = address_space.write().unwrap();
+                let _ = address_space.set_value_by_node_id(&v1_node, Variant::Int32(v1_counter));
+                let _ = address_space.set_value_by_node_id(&v2_node, Variant::Boolean(v2_flag));
+            })
+        ]
+    };
 
     // 2) Pull. This code will add getters to v3 & v4 that returns their values by calling
     //    function.
 
     {
-        let mut address_space = server.address_space.lock().unwrap();
+        let mut address_space = server.address_space.write().unwrap();
         if let Some(ref mut v) = address_space.find_variable_by_node_id(&v3_node) {
             // Hello world's counter will increment with each get - slower interval == slower increment
             let mut counter = 0;

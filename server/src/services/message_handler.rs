@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 
 use opcua_types::*;
 
@@ -16,11 +16,11 @@ use services::view::ViewService;
 /// Processes and dispatches messages for handling
 pub struct MessageHandler {
     /// Server state
-    server_state: Arc<Mutex<ServerState>>,
+    server_state: Arc<RwLock<ServerState>>,
     /// Address space
-    address_space: Arc<Mutex<AddressSpace>>,
+    address_space: Arc<RwLock<AddressSpace>>,
     /// Session state
-    session: Arc<Mutex<Session>>,
+    session: Arc<RwLock<Session>>,
     /// Attribute service
     attribute_service: AttributeService,
     /// Discovery service
@@ -36,7 +36,7 @@ pub struct MessageHandler {
 }
 
 impl MessageHandler {
-    pub fn new(server_state: Arc<Mutex<ServerState>>, session: Arc<Mutex<Session>>, address_space: Arc<Mutex<AddressSpace>>) -> MessageHandler {
+    pub fn new(server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>) -> MessageHandler {
         MessageHandler {
             server_state,
             session,
@@ -69,9 +69,9 @@ impl MessageHandler {
     pub fn handle_message(&mut self, request_id: UInt32, message: SupportedMessage) -> Result<Option<SupportedMessage>, StatusCode> {
         // Note address space has to be locked before server_state because of deadlock in address_space.rs
         // or other vars tied to state that will happen the other way around.
-        let mut address_space = trace_lock_unwrap!(self.address_space);
-        let mut server_state = trace_lock_unwrap!(self.server_state);
-        let mut session = trace_lock_unwrap!(self.session);
+        let mut server_state = trace_write_lock_unwrap!(self.server_state);
+        let mut session = trace_write_lock_unwrap!(self.session);
+        let mut address_space = trace_write_lock_unwrap!(self.address_space);
 
         let response = match message {
             SupportedMessage::GetEndpointsRequest(request) => {

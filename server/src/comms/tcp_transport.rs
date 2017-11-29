@@ -4,7 +4,7 @@
 use std;
 use std::net::{TcpStream, Shutdown};
 use std::io::{Read, Write, Cursor, ErrorKind};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 use std::sync::mpsc::{self, Receiver};
 
 use timer;
@@ -39,11 +39,11 @@ pub enum TransportState {
 /// session.
 pub struct TcpTransport {
     // Server state, address space etc.
-    pub server_state: Arc<Mutex<ServerState>>,
+    pub server_state: Arc<RwLock<ServerState>>,
     // Session state - open sessions, tokens etc
-    pub session: Arc<Mutex<Session>>,
+    pub session: Arc<RwLock<Session>>,
     /// Address space
-    address_space: Arc<Mutex<AddressSpace>>,
+    address_space: Arc<RwLock<AddressSpace>>,
     /// The current transport state
     pub transport_state: TransportState,
     /// Secure channel handler
@@ -59,7 +59,7 @@ pub struct TcpTransport {
 }
 
 impl TcpTransport {
-    pub fn new(server_state: Arc<Mutex<ServerState>>, session: Arc<Mutex<Session>>, address_space: Arc<Mutex<AddressSpace>>, message_handler: MessageHandler) -> TcpTransport {
+    pub fn new(server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, message_handler: MessageHandler) -> TcpTransport {
         let secure_channel_service = SecureChannelService::new();
         TcpTransport {
             server_state,
@@ -88,8 +88,8 @@ impl TcpTransport {
         // Hello timeout
         let hello_timeout = {
             let hello_timeout = {
-                let server_state = self.server_state.lock().unwrap();
-                let server_config = server_state.config.lock().unwrap();
+                let server_state = trace_read_lock_unwrap!(self.server_state);
+                let server_config = trace_lock_unwrap!(server_state.config);
                 server_config.tcp_config.hello_timeout as i64
             };
             time::Duration::seconds(hello_timeout)
@@ -113,7 +113,7 @@ impl TcpTransport {
         loop {
             // Check for abort
             {
-                let server_state = self.server_state.lock().unwrap();
+                let server_state = trace_read_lock_unwrap!(self.server_state);
                 if server_state.abort {
                     break;
                 }
@@ -207,7 +207,7 @@ impl TcpTransport {
             // Some handlers might wish to send their message and terminate, in which case this is
             // done here.
             {
-                let session =  trace_lock_unwrap!(self.session);
+                let session =  trace_read_lock_unwrap!(self.session);
                 if session.terminate_session {
                     session_status_code = BAD_CONNECTION_CLOSED;
                 }
@@ -245,7 +245,7 @@ impl TcpTransport {
         info!("Session is finished {:?}", session_duration);
 
         {
-            let mut session =  trace_lock_unwrap!(self.session);
+            let mut session = trace_write_lock_unwrap!(self.session);
             session.terminated();
         }
     }
@@ -261,20 +261,23 @@ impl TcpTransport {
         // so it can control the scope of events.
         let subscription_timer = timer::Timer::new();
         let subscription_timer_guard = subscription_timer.schedule_repeating(time::Duration::milliseconds(constants::SUBSCRIPTION_TIMER_RATE_MS), move || {
-            let address_space = trace_lock_unwrap!(address_space);
-            let mut session =  trace_lock_unwrap!(session);
+            let mut session =  trace_write_lock_unwrap!(session);
 
             // Request queue might contain stale publish requests
             session.expire_stale_publish_requests(&Utc::now());
 
             // Process subscriptions
-            let _ = session.tick_subscriptions(&address_space, false);
+            {
+                let address_space = trace_read_lock_unwrap!(address_space);
+                let _ = session.tick_subscriptions(&address_space, false);
+            }
 
             // Check if there are publish responses to send for transmission
             if !session.subscriptions.publish_response_queue.is_empty() {
                 trace!("Sending publish responses to session thread");
                 let mut publish_responses = Vec::with_capacity(session.subscriptions.publish_response_queue.len());
                 publish_responses.append(&mut session.subscriptions.publish_response_queue);
+                drop(session);
                 let sent = subscription_timer_tx.send(SubscriptionEvent::PublishResponses(publish_responses));
                 if sent.is_err() {
                     error!("Can't send publish responses, err = {}", sent.unwrap_err());
@@ -354,7 +357,7 @@ impl TcpTransport {
     }
 
     fn turn_received_chunks_into_message(&mut self, chunks: &Vec<MessageChunk>) -> std::result::Result<SupportedMessage, StatusCode> {
-        let session = trace_lock_unwrap!(self.session);
+        let session = trace_read_lock_unwrap!(self.session);
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
         self.last_received_sequence_number = Chunker::validate_chunks(self.last_received_sequence_number + 1, &session.secure_channel, chunks)?;
         // Now decode
@@ -373,13 +376,13 @@ impl TcpTransport {
 
         // Decrypt / verify chunk if necessary
         let chunk = {
-            let mut session = trace_lock_unwrap!(self.session);
+            let mut session = trace_write_lock_unwrap!(self.session);
             session.secure_channel.verify_and_remove_security(&chunk.data)?
         };
 
         let in_chunks = vec![chunk];
         let chunk_info = {
-            let session = trace_lock_unwrap!(self.session);
+            let session = trace_read_lock_unwrap!(self.session);
             in_chunks[0].chunk_info(&session.secure_channel)?
         };
         let request_id = chunk_info.sequence_header.request_id;
@@ -387,7 +390,7 @@ impl TcpTransport {
         let message = self.turn_received_chunks_into_message(&in_chunks)?;
         let response = match message_header.message_type {
             MessageChunkType::OpenSecureChannel => {
-                let mut session = trace_lock_unwrap!(self.session);
+                let mut session = trace_write_lock_unwrap!(self.session);
                 self.secure_channel_service.open_secure_channel(&mut session.secure_channel, &chunk_info.security_header, self.client_protocol_version, &message)?
             }
             MessageChunkType::CloseSecureChannel => {
@@ -420,7 +423,7 @@ impl TcpTransport {
                 // TODO max message size, max chunk size
                 let max_chunk_size = 64 * 1024;
                 let out_chunks = {
-                    let session = trace_lock_unwrap!(self.session);
+                    let session = trace_read_lock_unwrap!(self.session);
                     Chunker::encode(sequence_number, request_id, 0, max_chunk_size, &session.secure_channel, response)?
                 };
                 self.last_sent_sequence_number = sequence_number + out_chunks.len() as UInt32 - 1;
@@ -430,7 +433,7 @@ impl TcpTransport {
                 let mut data = vec![0u8; max_chunk_size + 1024];
                 for out_chunk in &out_chunks {
                     // Encrypt and sign the chunk if necessary
-                    let session = trace_lock_unwrap!(self.session);
+                    let session = trace_read_lock_unwrap!(self.session);
                     let size = session.secure_channel.apply_security(out_chunk, &mut data);
                     if size.is_ok() {
                         let _ = out_stream.write(&data[..size.unwrap()]);

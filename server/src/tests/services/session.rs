@@ -13,7 +13,7 @@ fn anonymous_user_token() {
 
     let config = ServerConfig::new_sample();
     let server = Server::new(config);
-    let server_state = server.server_state.lock().unwrap();
+    let server_state = server.server_state.read().unwrap();
 
     // Makes an anonymous token and sticks it into an extension object
     let token = AnonymousIdentityToken {
@@ -50,7 +50,7 @@ fn user_name_pass_token() {
 
     let config = ServerConfig::new_sample();
     let server = Server::new(config);
-    let server_state = server.server_state.lock().unwrap();
+    let server_state = server.server_state.read().unwrap();
 
     // Test that a good user authenticates
     let token = make_user_name_identity_token("sample", b"sample1");

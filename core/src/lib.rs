@@ -24,10 +24,36 @@ pub mod crypto;
 macro_rules! trace_lock_unwrap {
     ( $x:expr ) => {
         {
-            //use std::thread;
-            //trace!("Thread {:?}, locking at {}, line {}", thread::current().id(), file!(), line!());
+//            use std::thread;
+//            trace!("Thread {:?}, {} locking at {}, line {}", thread::current().id(), stringify!($x), file!(), line!());
             let v = $x.lock().unwrap();
-            //trace!("Lock completed");
+//            trace!("Thread {:?}, {} lock completed", thread::current().id(), stringify!($x));
+            v
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! trace_read_lock_unwrap {
+    ( $x:expr ) => {
+        {
+//            use std::thread;
+//            trace!("Thread {:?}, {} read locking at {}, line {}", thread::current().id(), stringify!($x), file!(), line!());
+            let v = $x.read().unwrap();
+//            trace!("Thread {:?}, {} read lock completed", thread::current().id(), stringify!($x));
+            v
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! trace_write_lock_unwrap {
+    ( $x:expr ) => {
+        {
+//            use std::thread;
+//            trace!("Thread {:?}, {} write locking at {}, line {}", thread::current().id(), stringify!($x), file!(), line!());
+            let v = $x.write().unwrap();
+//            trace!("Thread {:?}, {} write lock completed", thread::current().id(), stringify!($x));
             v
         }
     }
