@@ -131,27 +131,28 @@ impl AddressSpace {
             v.set_array_dimensions(&[server_profiles.len() as UInt32]);
         }
 
-
         // Server_ServerCapabilities_LocaleIdArray
         // Server_ServerCapabilities_MinSupportedSampleRate
 
-        {
-            // Server_ServerDiagnostics_ServerDiagnosticsSummary
-            // Server_ServerDiagnostics_ServerDiagnosticsSummary_ServerViewCount
-            // Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSessionCount
-            // Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSessionCount
-            // Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedSessionCount
-            // Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionTimeoutCount
-            // Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionAbortCount
-            // Server_ServerDiagnostics_ServerDiagnosticsSummary_PublishingIntervalCount
-            // Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSubscriptionCount
-            // Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSubscriptionCount
-            // Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedRequestsCount
-            // Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount
-            // Server_ServerDiagnostics_SamplingIntervalDiagnosticsArray
-            // Server_ServerDiagnostics_SubscriptionDiagnosticsArray
-            // Server_ServerDiagnostics_EnabledFlag
-        }
+        // Server_ServerDiagnostics_ServerDiagnosticsSummary
+        self.set_server_diagnostics_summary(ServerDiagnosticsSummaryDataType {
+            server_view_count: 0,
+            current_session_count: 0,
+            cumulated_session_count: 0,
+            security_rejected_session_count: 0,
+            rejected_session_count: 0,
+            session_timeout_count: 0,
+            session_abort_count: 0,
+            current_subscription_count: 0,
+            cumulated_subscription_count: 0,
+            publishing_interval_count: 0,
+            security_rejected_requests_count: 0,
+            rejected_requests_count: 0,
+        });
+
+        // Server_ServerDiagnostics_SamplingIntervalDiagnosticsArray
+        // Server_ServerDiagnostics_SubscriptionDiagnosticsArray
+        // Server_ServerDiagnostics_EnabledFlag
 
         // ServiceLevel - 0-255 worst to best quality of service
         self.set_value_by_variable_id(Server_ServiceLevel, Variant::Byte(255));
@@ -163,7 +164,6 @@ impl AddressSpace {
 
         // Server status
         self.set_value_by_variable_id(Server_ServerStatus_StartTime, Variant::DateTime(DateTime::now()));
-
 
         // Server_ServerStatus_CurrentTime
         if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerStatus_CurrentTime) {
@@ -181,7 +181,7 @@ impl AddressSpace {
             let server_state = server_state.clone();
             // Used to return the current time of the server, i.e. now
             let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Option<DataValue> {
-                // let server_state =  trace_lock_unwrap!(server_state);
+                // let server_state =  trace_read_lock_unwrap!(server_state);
                 Some(DataValue::new(0 as Int32))
             });
             v.set_value_getter(Arc::new(Mutex::new(getter)));
@@ -196,6 +196,21 @@ impl AddressSpace {
             //    ProductUri
             //    SoftwareVersion
         }
+    }
+
+    pub fn set_server_diagnostics_summary(&mut self, sds: ServerDiagnosticsSummaryDataType) {
+        use opcua_types::VariableId::*;
+        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_ServerViewCount, Variant::UInt32(sds.server_view_count));
+        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSessionCount, Variant::UInt32(sds.current_session_count));
+        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSessionCount, Variant::UInt32(sds.cumulated_session_count));
+        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedSessionCount, Variant::UInt32(sds.security_rejected_session_count));
+        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionTimeoutCount, Variant::UInt32(sds.session_timeout_count));
+        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionAbortCount, Variant::UInt32(sds.session_abort_count));
+        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_PublishingIntervalCount, Variant::UInt32(sds.publishing_interval_count));
+        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSubscriptionCount, Variant::UInt32(sds.current_subscription_count));
+        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSubscriptionCount, Variant::UInt32(sds.cumulated_subscription_count));
+        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedRequestsCount, Variant::UInt32(sds.security_rejected_requests_count));
+        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount, Variant::UInt32(sds.rejected_requests_count));
     }
 
     pub fn root_folder_id() -> NodeId {
