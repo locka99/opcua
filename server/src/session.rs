@@ -7,7 +7,7 @@ use opcua_core::crypto::X509;
 
 use address_space::address_space::AddressSpace;
 use subscriptions::subscriptions::Subscriptions;
-use server_state::ServerState;
+use server::Server;
 use continuation_point::BrowseContinuationPoint;
 
 /// Session info holds information about a session created by CreateSession service
@@ -66,7 +66,7 @@ pub struct Session {
     /// Time that session was terminated, helps with recovering sessions, or clearing them out
     terminated_at: DateTime<Utc>,
     /// Flag indicating session is actually terminated
-    pub terminated: bool,
+    terminated: bool,
     /// Internal value used to create new session ids.
     last_session_id: UInt32,
 }
@@ -100,7 +100,7 @@ impl Session {
         }
     }
 
-    pub fn new(server_state: &ServerState) -> Session {
+    pub fn new(server: &Server) -> Session {
         let max_publish_requests = MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE;
         let max_browse_continuation_points = super::constants::MAX_BROWSE_CONTINUATION_POINTS;
         Session {
@@ -113,7 +113,7 @@ impl Session {
             client_certificate: None,
             security_policy_uri: String::new(),
             authentication_token: NodeId::null(),
-            secure_channel: SecureChannel::new(server_state.certificate_store.clone()),
+            secure_channel: SecureChannel::new(server.certificate_store.clone()),
             session_nonce: ByteString::null(),
             session_timeout: 0f64,
             user_identity: None,
@@ -127,14 +127,16 @@ impl Session {
         }
     }
 
-    pub fn terminated(&mut self) {
-        self.terminated = true;
-        self.terminated_at = Utc::now();
-    }
-
     pub fn next_session_id(&mut self) -> NodeId {
         self.last_session_id += 1;
         NodeId::new(1, self.last_session_id as u64)
+    }
+
+    pub fn terminated(&self) -> bool { self.terminated }
+
+    pub fn set_terminated(&mut self) {
+        self.terminated = true;
+        self.terminated_at = Utc::now();
     }
 
     pub fn diagnostics(&self) -> &SessionDiagnostics {

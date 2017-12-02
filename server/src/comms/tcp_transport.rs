@@ -246,7 +246,7 @@ impl TcpTransport {
 
         {
             let mut session = trace_write_lock_unwrap!(self.session);
-            session.terminated();
+            session.set_terminated();
         }
     }
 

@@ -4,6 +4,7 @@ use opcua_types::*;
 
 use opcua_core::crypto;
 use opcua_core::crypto::SecurityPolicy;
+use opcua_core::crypto::CertificateStore;
 
 use constants;
 use server_state::ServerState;
@@ -19,7 +20,7 @@ impl SessionService {
         SessionService {}
     }
 
-    pub fn create_session(&self, server_state: &mut ServerState, session: &mut Session, request: CreateSessionRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn create_session(&self, certificate_store: &CertificateStore, server_state: &mut ServerState, session: &mut Session, request: CreateSessionRequest) -> Result<SupportedMessage, StatusCode> {
         debug!("Create session request {:?}", request);
 
         // Validate the endpoint url
@@ -49,7 +50,6 @@ impl SessionService {
         let security_policy = session.secure_channel.security_policy;
         let service_result = if security_policy != SecurityPolicy::None {
             if let Some(ref client_certificate) = client_certificate {
-                let certificate_store =  trace_lock_unwrap!(server_state.certificate_store);
                 certificate_store.validate_or_reject_application_instance_cert(client_certificate)
             } else {
                 warn!("Certificate supplied by client is invalid");

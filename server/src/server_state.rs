@@ -45,8 +45,6 @@ pub struct ServerState {
     pub servers: Vec<String>,
     /// Server configuration
     pub config: Arc<Mutex<ServerConfig>>,
-    /// Certificate store for certs
-    pub certificate_store: Arc<Mutex<CertificateStore>>,
     /// Server public certificate read from config location or null if there is none
     pub server_certificate: Option<X509>,
     /// Server private key pair

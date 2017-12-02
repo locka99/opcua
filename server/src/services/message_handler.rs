@@ -1,6 +1,8 @@
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 
 use opcua_types::*;
+
+use opcua_core::crypto::CertificateStore;
 
 use address_space::address_space::AddressSpace;
 use server_state::ServerState;
@@ -15,6 +17,8 @@ use services::view::ViewService;
 
 /// Processes and dispatches messages for handling
 pub struct MessageHandler {
+    /// Certificate store for certs
+    certificate_store: Arc<Mutex<CertificateStore>>,
     /// Server state
     server_state: Arc<RwLock<ServerState>>,
     /// Address space
@@ -36,8 +40,9 @@ pub struct MessageHandler {
 }
 
 impl MessageHandler {
-    pub fn new(server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>) -> MessageHandler {
+    pub fn new(certificate_store: Arc<Mutex<CertificateStore>>, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>) -> MessageHandler {
         MessageHandler {
+            certificate_store,
             server_state,
             session,
             address_space,
@@ -71,6 +76,9 @@ impl MessageHandler {
         // or other vars tied to state that will happen the other way around.
         let mut server_state = trace_write_lock_unwrap!(self.server_state);
         let mut session = trace_write_lock_unwrap!(self.session);
+
+        // This MUST be last of the lockable items because server impls may set timers on this but not
+        // state / session.
         let mut address_space = trace_write_lock_unwrap!(self.address_space);
 
         let response = match message {
@@ -78,7 +86,8 @@ impl MessageHandler {
                 Some(self.discovery_service.get_endpoints(&server_state, request)?)
             }
             SupportedMessage::CreateSessionRequest(request) => {
-                Some(self.session_service.create_session(&mut server_state, &mut session, request)?)
+                let certificate_store = trace_lock_unwrap!(self.certificate_store);
+                Some(self.session_service.create_session(&certificate_store, &mut server_state, &mut session, request)?)
             }
             SupportedMessage::CloseSessionRequest(request) => {
                 Some(self.session_service.close_session(&mut session, request)?)

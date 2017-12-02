@@ -26,7 +26,9 @@ use services::message_handler::MessageHandler;
 /// The Server represents a running instance of OPC UA. There can be more than one server running
 /// at a time providing they do not share the same thread or listen on the same ports.
 pub struct Server {
-    /// The server state is everything that sessions share - configuration etc.
+    /// Certificate store for certs
+    pub certificate_store: Arc<Mutex<CertificateStore>>,
+    /// The server state is everything that sessions share that can possibly change
     pub server_state: Arc<RwLock<ServerState>>,
     /// Address space
     pub address_space: Arc<RwLock<AddressSpace>>,
@@ -58,7 +60,6 @@ impl Server {
         if server_certificate.is_none() || server_pkey.is_none() {
             error!("Server is missing its application instance certificate and/or its private key. Encrypted endpoints will not function correctly.")
         }
-        let certificate_store = Arc::new(Mutex::new(certificate_store));
         let config = Arc::new(Mutex::new(config.clone()));
 
         let server_state = ServerState {
@@ -74,7 +75,6 @@ impl Server {
             state: ServerStateType::Running,
             start_time,
             config,
-            certificate_store,
             server_certificate,
             server_pkey,
             last_subscription_id: 0,
@@ -94,9 +94,11 @@ impl Server {
             address_space.set_server_state(server_state.clone());
         }
 
+        let certificate_store = Arc::new(Mutex::new(certificate_store));
         Server {
             server_state,
             address_space,
+            certificate_store,
             connections: Vec::new()
         }
     }
@@ -174,7 +176,7 @@ impl Server {
             if let Ok(ref mut connection) = lock {
                 let mut lock = connection.session.try_write();
                 if let Ok(ref mut session) = lock {
-                    if session.terminated {
+                    if session.terminated() {
                         info!("Removing terminated session");
                         false
                     } else {
@@ -222,11 +224,10 @@ impl Server {
 
     pub fn new_transport(&self) -> TcpTransport {
         let session = {
-            let server_state = trace_read_lock_unwrap!(self.server_state);
-            Arc::new(RwLock::new(Session::new(&server_state)))
+            Arc::new(RwLock::new(Session::new(self)))
         };
         let address_space = self.address_space.clone();
-        let message_handler = MessageHandler::new(self.server_state.clone(), session.clone(), address_space.clone());
+        let message_handler = MessageHandler::new(self.certificate_store.clone(), self.server_state.clone(), session.clone(), address_space.clone());
         TcpTransport::new(self.server_state.clone(), session, address_space, message_handler)
     }
 
