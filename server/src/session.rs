@@ -73,7 +73,7 @@ pub struct Session {
 
 impl Session {
     #[cfg(test)]
-    pub fn new_no_certificate_store() -> Session {
+    pub fn new_no_certificate_store(secure_channel: SecureChannel) -> Session {
         let max_publish_requests = MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE;
         let max_browse_continuation_points = super::constants::MAX_BROWSE_CONTINUATION_POINTS;
         Session {
@@ -86,7 +86,7 @@ impl Session {
             client_certificate: None,
             security_policy_uri: String::new(),
             authentication_token: NodeId::null(),
-            secure_channel: SecureChannel::new_no_certificate_store(),
+            secure_channel,
             session_nonce: ByteString::null(),
             session_timeout: 0f64,
             user_identity: None,

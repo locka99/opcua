@@ -127,8 +127,8 @@ impl Session {
         } else {
             {
                 let secure_channel = &mut self.transport.secure_channel;
-                secure_channel.security_policy = security_policy;
-                secure_channel.security_mode = self.session_info.endpoint.security_mode;
+                secure_channel.set_security_policy(security_policy);
+                secure_channel.set_security_mode(self.session_info.endpoint.security_mode);
             }
 
             let _ = self.transport.connect(endpoint_url.as_ref())?;
@@ -208,8 +208,8 @@ impl Session {
             let mut session_state = session_state.lock().unwrap();
 
             session_state.authentication_token = response.authentication_token;
-            let _ = self.transport.secure_channel.set_remote_nonce(&response.server_nonce);
-            let _ = self.transport.secure_channel.set_remote_cert(&response.server_certificate);
+            let _ = self.transport.secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce);
+            let _ = self.transport.secure_channel.set_remote_cert_from_byte_string(&response.server_certificate);
             debug!("server nonce is {:?}", response.server_nonce);
 
             // TODO Verify signature using server's public key (from endpoint) comparing with
@@ -236,13 +236,12 @@ impl Session {
             Some(locale_ids)
         };
 
-        let security_policy = self.transport.secure_channel.security_policy;
+        let security_policy = self.transport.secure_channel.security_policy();
         let client_signature = match security_policy {
             SecurityPolicy::None => SignatureData::null(),
             _ => {
                 let server_nonce = self.transport.secure_channel.remote_nonce_as_byte_string();
                 let server_cert = self.transport.secure_channel.remote_cert_as_byte_string();
-
                 // Create a signature data
                 let session_state = self.session_state.lock().unwrap();
                 if self.session_info.client_pkey.is_none() {
@@ -635,8 +634,8 @@ impl Session {
 
     fn issue_or_renew_secure_channel(&mut self, request_type: SecurityTokenRequestType) -> Result<(), StatusCode> {
         let client_nonce = self.transport.secure_channel.local_nonce_as_byte_string();
-        let security_mode = self.transport.secure_channel.security_mode;
-        let requested_lifetime = 60000;
+        let security_mode = self.transport.secure_channel.security_mode();
+        let requested_lifetime = 60000; // TODO
         let request = OpenSecureChannelRequest {
             request_header: self.make_request_header(),
             client_protocol_version: 0,

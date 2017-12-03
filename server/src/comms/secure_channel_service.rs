@@ -120,14 +120,14 @@ impl SecureChannelService {
         // Process the request
         self.secure_channel_state.issued = true;
 
-        secure_channel.security_mode = request.security_mode;
-
         // Create a new secure channel info
-        secure_channel.token_id = self.secure_channel_state.create_token_id();
-        secure_channel.secure_channel_id = self.secure_channel_state.create_secure_channel_id();
-        secure_channel.set_remote_cert(&security_header.sender_certificate)?;
+        let security_mode = request.security_mode;
+        secure_channel.set_security_mode(security_mode);
+        secure_channel.set_token_id(self.secure_channel_state.create_token_id());
+        secure_channel.set_secure_channel_id(self.secure_channel_state.create_secure_channel_id());
+        secure_channel.set_remote_cert_from_byte_string(&security_header.sender_certificate)?;
 
-        let nonce_result = secure_channel.set_remote_nonce(&request.client_nonce);
+        let nonce_result = secure_channel.set_remote_nonce_from_byte_string(&request.client_nonce);
         if nonce_result.is_ok() {
             secure_channel.create_random_nonce();
         } else {
@@ -135,7 +135,8 @@ impl SecureChannelService {
             return Ok(ServiceFault::new_supported_message(&request.request_header, nonce_result.unwrap_err()));
         }
 
-        if secure_channel.security_policy != SecurityPolicy::None && (secure_channel.security_mode == MessageSecurityMode::Sign || secure_channel.security_mode == MessageSecurityMode::SignAndEncrypt) {
+        let security_policy = secure_channel.security_policy();
+        if security_policy != SecurityPolicy::None && (security_mode == MessageSecurityMode::Sign || security_mode == MessageSecurityMode::SignAndEncrypt) {
             secure_channel.derive_keys();
         }
 
@@ -143,8 +144,8 @@ impl SecureChannelService {
             response_header: ResponseHeader::new_good(&request.request_header),
             server_protocol_version: 0,
             security_token: ChannelSecurityToken {
-                channel_id: secure_channel.secure_channel_id,
-                token_id: secure_channel.token_id,
+                channel_id: secure_channel.secure_channel_id(),
+                token_id: secure_channel.token_id(),
                 created_at: DateTime::now(),
                 revised_lifetime: request.requested_lifetime,
             },

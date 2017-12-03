@@ -48,13 +48,13 @@ fn test_asymmetric_encrypt_decrypt(message: SupportedMessage, security_mode: Mes
         let (their_cert, their_key) = if i == 0 { make_test_cert_2048() } else { make_test_cert_4096() };
 
         let mut secure_channel = SecureChannel::new_no_certificate_store();
-        secure_channel.security_mode = security_mode;
-        secure_channel.security_policy = security_policy;
+        secure_channel.set_security_mode(security_mode);
+        secure_channel.set_security_policy(security_policy);
 
         // First we shall sign with our private key and encrypt with their public.
-        secure_channel.cert = Some(our_cert);
-        secure_channel.remote_cert = Some(their_cert);
-        secure_channel.private_key = Some(our_key);
+        secure_channel.set_cert(Some(our_cert));
+        secure_channel.set_remote_cert(Some(their_cert));
+        secure_channel.set_private_key(Some(our_key));
 
         let mut chunks = Chunker::encode(1, 1, 0, 0, &secure_channel, &message).unwrap();
         assert_eq!(chunks.len(), 1);
@@ -66,10 +66,11 @@ fn test_asymmetric_encrypt_decrypt(message: SupportedMessage, security_mode: Mes
         trace!("Result of applying security = {}", encrypted_size);
 
         // Now we shall try to decrypt what has been encrypted by flipping the keys around
-        let tmp = secure_channel.cert;
-        secure_channel.cert = secure_channel.remote_cert;
-        secure_channel.remote_cert = tmp;
-        secure_channel.private_key = Some(their_key);
+        let tmp = secure_channel.cert();
+        let remote_cert = secure_channel.remote_cert();
+        secure_channel.set_cert(remote_cert);
+        secure_channel.set_remote_cert(tmp);
+        secure_channel.set_private_key(Some(their_key));
 
         // Compare up to original length
         let chunk2 = secure_channel.verify_and_remove_security(&encrypted_data[..encrypted_size]).unwrap();

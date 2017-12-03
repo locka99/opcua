@@ -35,7 +35,7 @@ impl Chunker {
             return Err(BAD_SEQUENCE_NUMBER_INVALID);
         }
 
-        let secure_channel_id = secure_channel.secure_channel_id;
+        let secure_channel_id = secure_channel.secure_channel_id();
 
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
         for (i, chunk) in chunks.iter().enumerate() {
@@ -64,7 +64,7 @@ impl Chunker {
     /// max_message_size refers to the maximum byte length of a message or 0 for no limit
     ///
     pub fn encode(sequence_number: UInt32, request_id: UInt32, max_message_size: usize, max_chunk_size: usize, secure_channel: &SecureChannel, supported_message: &SupportedMessage) -> std::result::Result<Vec<MessageChunk>, StatusCode> {
-        let security_policy = secure_channel.security_policy;
+        let security_policy = secure_channel.security_policy();
         if security_policy == SecurityPolicy::Unknown {
             panic!("Security policy cannot be unknown");
         }

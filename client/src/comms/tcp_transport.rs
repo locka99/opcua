@@ -130,25 +130,21 @@ impl TcpTransport {
 
     /// Sets the security token info received from an issue / renew request
     pub fn set_security_token(&mut self, channel_token: ChannelSecurityToken) {
-        let secure_channel = &mut self.secure_channel;
-        secure_channel.secure_channel_id = channel_token.channel_id;
-        secure_channel.token_id = channel_token.token_id;
-        secure_channel.token_created_at = channel_token.created_at;
-        secure_channel.token_lifetime = channel_token.revised_lifetime;
+        self.secure_channel.set_security_token(channel_token);
     }
 
     /// Test if the secure channel token needs to be renewed. The algorithm determines it needs
     /// to be renewed if the issue period has elapsed by 75% or more.
     pub fn should_renew_security_token(&self) -> bool {
         let secure_channel = &self.secure_channel;
-        if secure_channel.token_id == 0 {
+        if secure_channel.token_id() == 0 {
             panic!("Shouldn't be asking this question, if there is no token id at all");
         } else {
             let now = chrono::Utc::now();
 
             // Check if secure channel 75% close to expiration in which case send a renew
-            let renew_lifetime = (secure_channel.token_lifetime * 3) / 4;
-            let created_at = secure_channel.token_created_at.clone().into();
+            let renew_lifetime = (secure_channel.token_lifetime() * 3) / 4;
+            let created_at = secure_channel.token_created_at().into();
             let renew_lifetime = chrono::Duration::milliseconds(renew_lifetime as i64);
 
             // Renew the token?

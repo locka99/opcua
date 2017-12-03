@@ -18,40 +18,39 @@ use comms::message_chunk::{MessageChunkHeader, MessageChunkType, MessageChunk};
 /// Holds all of the security information related to this session
 #[derive(Debug)]
 pub struct SecureChannel {
-    /// The security mode for the connection, None, Sign, SignAndEncrypt
-    pub security_mode: MessageSecurityMode,
     /// The security policy for the connection, None or Encryption/Signing settings
-    pub security_policy: SecurityPolicy,
+    security_policy: SecurityPolicy,
+    /// The security mode for the connection, None, Sign, SignAndEncrypt
+    security_mode: MessageSecurityMode,
     /// Secure channel id
-    pub secure_channel_id: UInt32,
+    secure_channel_id: UInt32,
     /// Token creation time.
-    pub token_created_at: DateTime,
+    token_created_at: DateTime,
     /// Token lifetime
-    pub token_lifetime: UInt32,
+    token_lifetime: UInt32,
     /// Token identifier
-    pub token_id: UInt32,
+    token_id: UInt32,
     /// Our certificate
-    pub cert: Option<X509>,
+    cert: Option<X509>,
     /// Our private key
-    pub private_key: Option<PKey>,
+    private_key: Option<PKey>,
     /// Their certificate
-    pub remote_cert: Option<X509>,
+    remote_cert: Option<X509>,
     /// Their nonce provided by open secure channel
-    pub remote_nonce: Vec<u8>,
+    remote_nonce: Vec<u8>,
     /// Our nonce generated while handling open secure channel
-    pub local_nonce: Vec<u8>,
+    local_nonce: Vec<u8>,
     /// Client (i.e. other end's set of keys) Symmetric Signing Key, Encrypt Key, IV
     remote_keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
     /// Server (i.e. our end's set of keys) Symmetric Signing Key, Decrypt Key, IV
     local_keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
 }
 
-impl SecureChannel {
-    /// For testing purposes only
-    pub fn new_no_certificate_store() -> SecureChannel {
+impl Into<SecureChannel> for (SecurityPolicy, MessageSecurityMode) {
+    fn into(self) -> SecureChannel {
         SecureChannel {
-            security_mode: MessageSecurityMode::None,
-            security_policy: SecurityPolicy::None,
+            security_policy: self.0,
+            security_mode: self.1,
             secure_channel_id: 0,
             token_id: 0,
             token_created_at: DateTime::now(),
@@ -64,6 +63,14 @@ impl SecureChannel {
             local_keys: None,
             remote_keys: None,
         }
+    }
+}
+
+impl SecureChannel {
+    /// For testing purposes only
+    #[cfg(test)] 
+    pub fn new_no_certificate_store() -> SecureChannel {
+        (SecurityPolicy::None, MessageSecurityMode::None).into()
     }
 
     pub fn new(certificate_store: Arc<Mutex<CertificateStore>>) -> SecureChannel {
@@ -91,6 +98,73 @@ impl SecureChannel {
             local_keys: None,
             remote_keys: None,
         }
+    }
+
+    pub fn set_cert(&mut self, cert: Option<X509>) {
+        self.cert = cert;
+    }
+
+    pub fn cert(&self) -> Option<X509> {
+        self.cert.clone()
+    }
+
+    pub fn set_remote_cert(&mut self, remote_cert: Option<X509>) {
+        self.remote_cert = remote_cert;
+    }
+
+    pub fn remote_cert(&self) -> Option<X509> {
+        self.remote_cert.clone()
+    }
+
+    pub fn set_private_key(&mut self, private_key: Option<PKey>) {
+        self.private_key = private_key;
+    }
+
+    pub fn security_mode(&self) -> MessageSecurityMode {
+        self.security_mode
+    }
+
+    pub fn set_security_mode(&mut self, security_mode: MessageSecurityMode) {
+        self.security_mode = security_mode;
+    }
+
+    pub fn security_policy(&self) -> SecurityPolicy {
+        self.security_policy
+    }
+
+    pub fn set_security_policy(&mut self, security_policy: SecurityPolicy) {
+        self.security_policy = security_policy;
+    }
+
+    pub fn set_security_token(&mut self, channel_token: ChannelSecurityToken) {
+        self.secure_channel_id = channel_token.channel_id;
+        self.token_id = channel_token.token_id;
+        self.token_created_at = channel_token.created_at;
+        self.token_lifetime = channel_token.revised_lifetime;
+    }
+
+    pub fn set_secure_channel_id(&mut self, secure_channel_id: UInt32) {
+        self.secure_channel_id = secure_channel_id;
+    }
+
+    pub fn secure_channel_id(&self) -> UInt32 {
+        self.secure_channel_id
+    }
+
+    pub fn token_created_at(&self) -> DateTime {
+        self.token_created_at.clone()
+    }
+
+    pub fn token_lifetime(&self) -> UInt32 {
+        self.token_lifetime
+    }
+
+    pub fn set_token_id(&mut self, token_id: UInt32) {
+        self.token_id = token_id;
+    }
+
+    pub fn token_id(&self) -> UInt32 {
+        self.token_id
     }
 
     /// Makes a security header according to the type of message being sent, symmetric or asymmetric
@@ -127,7 +201,8 @@ impl SecureChannel {
         }
     }
 
-    pub fn set_remote_cert(&mut self, remote_cert: &ByteString) -> Result<(), StatusCode> {
+    /// Sets the remote certificate
+    pub fn set_remote_cert_from_byte_string(&mut self, remote_cert: &ByteString) -> Result<(), StatusCode> {
         self.remote_cert = if remote_cert.is_null() {
             None
         } else {
@@ -136,6 +211,7 @@ impl SecureChannel {
         Ok(())
     }
 
+    /// Obtains the remote certificate as a byte string
     pub fn remote_cert_as_byte_string(&self) -> ByteString {
         if self.remote_cert.is_none() {
             ByteString::null()
@@ -145,7 +221,7 @@ impl SecureChannel {
     }
 
     /// Set their nonce which should be the same as the symmetric key
-    pub fn set_remote_nonce(&mut self, remote_nonce: &ByteString) -> Result<(), StatusCode> {
+    pub fn set_remote_nonce_from_byte_string(&mut self, remote_nonce: &ByteString) -> Result<(), StatusCode> {
         if self.security_policy != SecurityPolicy::None && (self.security_mode == MessageSecurityMode::Sign || self.security_mode == MessageSecurityMode::SignAndEncrypt) {
             if let Some(ref remote_nonce) = remote_nonce.value {
                 if remote_nonce.len() != self.security_policy.symmetric_key_size() {
@@ -678,12 +754,22 @@ impl SecureChannel {
         &self.local_nonce
     }
 
+    pub fn set_local_nonce(&mut self, local_nonce: &[u8]) {
+        self.local_nonce.clear();
+        self.local_nonce.extend_from_slice(local_nonce);
+    }
+
     pub fn local_nonce_as_byte_string(&self) -> ByteString {
         if self.local_nonce.is_empty() {
             ByteString::null()
         } else {
             ByteString::from(&self.local_nonce)
         }
+    }
+
+    pub fn set_remote_nonce(&mut self, remote_nonce: &[u8]) {
+        self.remote_nonce.clear();
+        self.remote_nonce.extend_from_slice(remote_nonce);
     }
 
     pub fn remote_nonce(&self) -> &[u8] {

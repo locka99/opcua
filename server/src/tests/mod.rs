@@ -102,7 +102,8 @@ pub fn expired_publish_requests() {
     pr2.request.request_header.timeout_hint = 3000;
 
     // Create session with publish requests
-    let mut session = Session::new_no_certificate_store();
+    let secure_channel: SecureChannel = (SecurityPolicy::None, MessageSecurityMode::None).into();
+    let mut session = Session::new_no_certificate_store(secure_channel);
     session.subscriptions.publish_request_queue = vec![pr1, pr2];
 
     // Expire requests, see which expire

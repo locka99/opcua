@@ -47,7 +47,7 @@ impl SessionService {
         };
 
         // Check the client's certificate for validity and acceptance
-        let security_policy = session.secure_channel.security_policy;
+        let security_policy = session.secure_channel.security_policy();
         let service_result = if security_policy != SecurityPolicy::None {
             if let Some(ref client_certificate) = client_certificate {
                 certificate_store.validate_or_reject_application_instance_cert(client_certificate)
@@ -110,8 +110,8 @@ impl SessionService {
         let server_nonce = ByteString::nonce();
 
         let endpoint_url = session.endpoint_url.as_ref();
-        let security_policy = session.secure_channel.security_policy;
-        let security_mode = session.secure_channel.security_mode;
+        let security_policy = session.secure_channel.security_policy();
+        let security_mode = session.secure_channel.security_mode();
 
         let mut service_result = if !server_state.endpoint_exists(endpoint_url, security_policy, security_mode) {
             // Need an endpoint
@@ -162,7 +162,7 @@ impl SessionService {
     fn verify_client_signature(server_state: &ServerState, session: &Session, client_signature: &SignatureData) -> StatusCode {
         if let Some(ref client_certificate) = session.client_certificate {
             if let Some(ref server_certificate) = server_state.server_certificate {
-                let security_policy = session.secure_channel.security_policy;
+                let security_policy = session.secure_channel.security_policy();
                 crypto::verify_signature_data(client_signature, security_policy, client_certificate, server_certificate, &session.session_nonce)
             } else {
                 error!("Client signature verification failed, server has no server certificate");
