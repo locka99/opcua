@@ -53,7 +53,7 @@ fn test_asymmetric_encrypt_decrypt(message: SupportedMessage, security_mode: Mes
 
         // First we shall sign with our private key and encrypt with their public.
         secure_channel.cert = Some(our_cert);
-        secure_channel.their_cert = Some(their_cert);
+        secure_channel.remote_cert = Some(their_cert);
         secure_channel.private_key = Some(our_key);
 
         let mut chunks = Chunker::encode(1, 1, 0, 0, &secure_channel, &message).unwrap();
@@ -67,8 +67,8 @@ fn test_asymmetric_encrypt_decrypt(message: SupportedMessage, security_mode: Mes
 
         // Now we shall try to decrypt what has been encrypted by flipping the keys around
         let tmp = secure_channel.cert;
-        secure_channel.cert = secure_channel.their_cert;
-        secure_channel.their_cert = tmp;
+        secure_channel.cert = secure_channel.remote_cert;
+        secure_channel.remote_cert = tmp;
         secure_channel.private_key = Some(their_key);
 
         // Compare up to original length

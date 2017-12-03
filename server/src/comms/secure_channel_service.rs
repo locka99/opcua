@@ -3,7 +3,7 @@ use std::result::Result;
 use opcua_types::*;
 
 use opcua_core::comms::prelude::*;
-use opcua_core::crypto::{X509, SecurityPolicy};
+use opcua_core::crypto::{SecurityPolicy};
 
 struct SecureChannelState {
     // Issued flag
@@ -125,10 +125,7 @@ impl SecureChannelService {
         // Create a new secure channel info
         secure_channel.token_id = self.secure_channel_state.create_token_id();
         secure_channel.secure_channel_id = self.secure_channel_state.create_secure_channel_id();
-
-        if !security_header.sender_certificate.is_null() {
-            secure_channel.their_cert = Some(X509::from_byte_string(&security_header.sender_certificate)?);
-        }
+        secure_channel.set_remote_cert(&security_header.sender_certificate)?;
 
         let nonce_result = secure_channel.set_remote_nonce(&request.client_nonce);
         if nonce_result.is_ok() {

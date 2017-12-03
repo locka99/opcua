@@ -327,7 +327,7 @@ fn asymmetric_decrypt_and_verify_sample_chunk() {
 
     // First we shall sign with our private key and encrypt with their public.
     secure_channel.cert = Some(our_cert);
-    secure_channel.their_cert = Some(their_cert);
+    secure_channel.remote_cert = Some(their_cert);
     secure_channel.private_key = Some(our_key);
 
     let _ = secure_channel.verify_and_remove_security_forensic(&message_data, Some(their_key)).unwrap();

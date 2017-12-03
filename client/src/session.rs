@@ -67,8 +67,6 @@ pub struct SessionState {
     pub last_request_handle: UInt32,
     /// The authentication token negotiated with the server (if any)
     pub authentication_token: NodeId,
-    /// Server certificate (not that endpoint may also contain this)
-    pub server_certificate: ByteString,
 }
 
 impl SessionState {
@@ -81,7 +79,6 @@ impl SessionState {
             max_message_size: MAX_BUFFER_SIZE,
             last_request_handle: 1,
             authentication_token: NodeId::null(),
-            server_certificate: ByteString::null(),
         }
     }
 }
@@ -90,9 +87,9 @@ impl SessionState {
 /// maintains a state when it is active.
 pub struct Session {
     /// The client application's name
-    pub application_description: ApplicationDescription,
+    application_description: ApplicationDescription,
     /// The session connection info
-    pub session_info: SessionInfo,
+    session_info: SessionInfo,
     /// Runtime state of the session, reset if disconnected
     session_state: Arc<Mutex<SessionState>>,
     /// Transport layer
@@ -123,10 +120,22 @@ impl Session {
     /// Connects to the server (if possible) using the configured session arguments
     pub fn connect(&mut self) -> Result<(), StatusCode> {
         let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
-        let _ = self.transport.connect(endpoint_url.as_ref())?;
-        let _ = self.transport.hello(endpoint_url.as_ref())?;
-        let _ = self.open_secure_channel()?;
-        Ok(())
+
+        let security_policy = SecurityPolicy::from_str(self.session_info.endpoint.security_policy_uri.as_ref()).unwrap();
+        if security_policy == SecurityPolicy::Unknown {
+            Err(BAD_SECURITY_POLICY_REJECTED)
+        } else {
+            {
+                let secure_channel = &mut self.transport.secure_channel;
+                secure_channel.security_policy = security_policy;
+                secure_channel.security_mode = self.session_info.endpoint.security_mode;
+            }
+
+            let _ = self.transport.connect(endpoint_url.as_ref())?;
+            let _ = self.transport.hello(endpoint_url.as_ref())?;
+            let _ = self.open_secure_channel()?;
+            Ok(())
+        }
     }
 
     /// Connects to the server, creates and activates a session
@@ -200,6 +209,8 @@ impl Session {
 
             session_state.authentication_token = response.authentication_token;
             let _ = self.transport.secure_channel.set_remote_nonce(&response.server_nonce);
+            let _ = self.transport.secure_channel.set_remote_cert(&response.server_certificate);
+            debug!("server nonce is {:?}", response.server_nonce);
 
             // TODO Verify signature using server's public key (from endpoint) comparing with
             // data made from client certificate and nonce.
@@ -207,7 +218,6 @@ impl Session {
             // crypto::verify_signature_data(verification_key, security_policy, server_certificate, client_certificate, client_nonce);
 
             // TODO validate server certificate against endpoint
-            session_state.server_certificate = response.server_certificate;
 
             Ok(())
         } else {
@@ -226,22 +236,27 @@ impl Session {
             Some(locale_ids)
         };
 
-        let security_policy = SecurityPolicy::from_str(self.session_info.endpoint.security_policy_uri.as_ref()).unwrap();
+        let security_policy = self.transport.secure_channel.security_policy;
         let client_signature = match security_policy {
             SecurityPolicy::None => SignatureData::null(),
             _ => {
                 let server_nonce = self.transport.secure_channel.remote_nonce_as_byte_string();
+                let server_cert = self.transport.secure_channel.remote_cert_as_byte_string();
+
                 // Create a signature data
                 let session_state = self.session_state.lock().unwrap();
                 if self.session_info.client_pkey.is_none() {
                     error!("Cannot create client signature - no pkey!");
                     return Err(BAD_UNEXPECTED_ERROR);
-                } else if session_state.server_certificate.is_null() || server_nonce.is_null() {
-                    error!("Cannot sign server certificate + nonce because one of them is null");
+                } else if server_cert.is_null() {
+                    error!("Cannot sign server certificate because server cert is null");
+                    return Err(BAD_UNEXPECTED_ERROR);
+                } else if server_nonce.is_null() {
+                    error!("Cannot sign server certificate because server nonce is null");
                     return Err(BAD_UNEXPECTED_ERROR);
                 }
                 let signing_key = self.session_info.client_pkey.as_ref().unwrap();
-                crypto::create_signature_data(signing_key, security_policy, &session_state.server_certificate, &server_nonce)?
+                crypto::create_signature_data(signing_key, security_policy, &server_cert, &server_nonce)?
             }
         };
 
@@ -620,7 +635,7 @@ impl Session {
 
     fn issue_or_renew_secure_channel(&mut self, request_type: SecurityTokenRequestType) -> Result<(), StatusCode> {
         let client_nonce = self.transport.secure_channel.local_nonce_as_byte_string();
-        let security_mode = self.session_info.endpoint.security_mode;
+        let security_mode = self.transport.secure_channel.security_mode;
         let requested_lifetime = 60000;
         let request = OpenSecureChannelRequest {
             request_header: self.make_request_header(),

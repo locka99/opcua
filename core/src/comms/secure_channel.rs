@@ -35,7 +35,7 @@ pub struct SecureChannel {
     /// Our private key
     pub private_key: Option<PKey>,
     /// Their certificate
-    pub their_cert: Option<X509>,
+    pub remote_cert: Option<X509>,
     /// Their nonce provided by open secure channel
     pub remote_nonce: Vec<u8>,
     /// Our nonce generated while handling open secure channel
@@ -60,7 +60,7 @@ impl SecureChannel {
             remote_nonce: Vec::new(),
             cert: None,
             private_key: None,
-            their_cert: None,
+            remote_cert: None,
             local_keys: None,
             remote_keys: None,
         }
@@ -87,19 +87,22 @@ impl SecureChannel {
             remote_nonce: Vec::new(),
             cert,
             private_key,
-            their_cert: None,
+            remote_cert: None,
             local_keys: None,
             remote_keys: None,
         }
     }
 
+    /// Makes a security header according to the type of message being sent, symmetric or asymmetric
     pub fn make_security_header(&self, message_type: MessageChunkType) -> SecurityHeader {
         match message_type {
             MessageChunkType::OpenSecureChannel => {
                 let asymmetric_security_header = if self.security_policy == SecurityPolicy::None {
                     AsymmetricSecurityHeader::none()
+                } else if self.remote_cert.is_none() {
+                    AsymmetricSecurityHeader::none()
                 } else {
-                    let receiver_certificate_thumbprint = self.their_cert.as_ref().unwrap().thumbprint().as_byte_string();
+                    let receiver_certificate_thumbprint = self.remote_cert.as_ref().unwrap().thumbprint().as_byte_string();
                     AsymmetricSecurityHeader::new(self.security_policy, self.cert.as_ref().unwrap(), receiver_certificate_thumbprint)
                 };
                 SecurityHeader::Asymmetric(asymmetric_security_header)
@@ -124,19 +127,39 @@ impl SecureChannel {
         }
     }
 
+    pub fn set_remote_cert(&mut self, remote_cert: &ByteString) -> Result<(), StatusCode> {
+        self.remote_cert = if remote_cert.is_null() {
+            None
+        } else {
+            Some(X509::from_byte_string(&remote_cert)?)
+        };
+        Ok(())
+    }
+
+    pub fn remote_cert_as_byte_string(&self) -> ByteString {
+        if self.remote_cert.is_none() {
+            ByteString::null()
+        } else {
+            self.remote_cert.as_ref().unwrap().as_byte_string()
+        }
+    }
+
     /// Set their nonce which should be the same as the symmetric key
     pub fn set_remote_nonce(&mut self, remote_nonce: &ByteString) -> Result<(), StatusCode> {
         if self.security_policy != SecurityPolicy::None && (self.security_mode == MessageSecurityMode::Sign || self.security_mode == MessageSecurityMode::SignAndEncrypt) {
             if let Some(ref remote_nonce) = remote_nonce.value {
                 if remote_nonce.len() != self.security_policy.symmetric_key_size() {
+                    error!("Remote nonce is invalid length {}, expecting {}. {:?}", remote_nonce.len(), self.security_policy.symmetric_key_size(), remote_nonce);
                     return Err(BAD_NONCE_INVALID);
                 }
                 self.remote_nonce = remote_nonce.to_vec();
                 Ok(())
             } else {
+                error!("Remote nonce is invalid {:?}", remote_nonce);
                 Err(BAD_NONCE_INVALID)
             }
         } else {
+            trace!("set_remote_nonce is doing nothing because security policy = {:?}, mode = {:?}", self.security_policy, self.security_mode);
             Ok(())
         }
     }
@@ -502,7 +525,7 @@ impl SecureChannel {
         trace!("Header size = {}, Encrypted range = {:?}, Signed range = {:?}, Signature range = {:?}, signature size = {}", header_size, encrypted_range, signed_range, signature_range, signing_key_size);
 
         let mut signature = vec![0u8; signing_key_size];
-        let encryption_key = self.their_cert.as_ref().unwrap().public_key()?;
+        let encryption_key = self.remote_cert.as_ref().unwrap().public_key()?;
 
         let mut tmp = vec![0u8; encrypted_range.end];
         tmp[signed_range.clone()].copy_from_slice(&src[signed_range.clone()]);
