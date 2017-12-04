@@ -545,8 +545,8 @@ impl SecureChannel {
 
             // Asymmetric decrypt and verify
 
-            // The OpenSecureChannel Messages are signed and encrypted if the SecurityMode is not None
-            // (even if the SecurityMode is SignOnly)
+            // The OpenSecureChannel Messages are always signed and encrypted if the SecurityMode
+            // is not None. Even if the SecurityMode is Sign and not SignAndEncrypt.
 
             // An OpenSecureChannelRequest uses Asymmetric encryption - decrypt using the server's private
             // key, verify signature with client's public key.
