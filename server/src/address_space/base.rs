@@ -126,64 +126,62 @@ impl Node for Base {
 
     fn set_attribute(&mut self, attribute_id: AttributeId, value: DataValue) -> Result<(), StatusCode> {
         // Check the type of the datavalue
-        let type_is_valid = {
-            match attribute_id {
-                AttributeId::NodeId | AttributeId::NodeClass => {
+        let type_is_valid = match attribute_id {
+            AttributeId::NodeId | AttributeId::NodeClass => {
+                false
+            }
+            AttributeId::BrowseName => {
+                is_valid_value_type!(value, String)
+            }
+            AttributeId::DisplayName | AttributeId::Description | AttributeId::InverseName => {
+                is_valid_value_type!(value, LocalizedText)
+            }
+            AttributeId::WriteMask | AttributeId::UserWriteMask => {
+                is_valid_value_type!(value, UInt32)
+            }
+            AttributeId::IsAbstract | AttributeId::Symmetric | AttributeId::ContainsNoLoops | AttributeId::Historizing | AttributeId::Executable | AttributeId::UserExecutable => {
+                is_valid_value_type!(value, Boolean)
+            }
+            AttributeId::EventNotifier | AttributeId::AccessLevel | AttributeId::UserAccessLevel => {
+                is_valid_value_type!(value, Byte)
+            }
+            AttributeId::DataType => {
+                is_valid_value_type!(value, NodeId)
+            }
+            AttributeId::ValueRank => {
+                is_valid_value_type!(value, Int32)
+            }
+            AttributeId::ArrayDimensions => {
+                if !is_valid_value_type!(value, Array) {
                     false
-                }
-                AttributeId::BrowseName => {
-                    is_valid_value_type!(value, String)
-                }
-                AttributeId::DisplayName | AttributeId::Description | AttributeId::InverseName => {
-                    is_valid_value_type!(value, LocalizedText)
-                }
-                AttributeId::WriteMask | AttributeId::UserWriteMask => {
-                    is_valid_value_type!(value, UInt32)
-                }
-                AttributeId::IsAbstract | AttributeId::Symmetric | AttributeId::ContainsNoLoops | AttributeId::Historizing | AttributeId::Executable | AttributeId::UserExecutable => {
-                    is_valid_value_type!(value, Boolean)
-                }
-                AttributeId::EventNotifier | AttributeId::AccessLevel | AttributeId::UserAccessLevel => {
-                    is_valid_value_type!(value, Byte)
-                }
-                AttributeId::DataType => {
-                    is_valid_value_type!(value, NodeId)
-                }
-                AttributeId::ValueRank => {
-                    is_valid_value_type!(value, Int32)
-                }
-                AttributeId::ArrayDimensions => {
-                    if !is_valid_value_type!(value, Array) {
-                        false
-                    } else {
-                        if let &Variant::Array(ref array) = value.value.as_ref().unwrap() {
-                            // check that array of variants are all UInt32s
-                            let mut found_non_u32_value = false;
-                            for v in array.iter() {
-                                match v {
-                                    &Variant::UInt32(_) => {}
-                                    _ => {
-                                        found_non_u32_value = true;
-                                        break;
-                                    }
+                } else {
+                    if let &Variant::Array(ref array) = value.value.as_ref().unwrap() {
+                        // check that array of variants are all UInt32s
+                        let mut found_non_u32_value = false;
+                        for v in array.iter() {
+                            match v {
+                                &Variant::UInt32(_) => {}
+                                _ => {
+                                    found_non_u32_value = true;
+                                    break;
                                 }
                             }
-                            if found_non_u32_value {
-                                error!("Array contains non UInt32 values, cannot use as array dimensions");
-                            }
-                            !found_non_u32_value
-                        } else {
-                            panic!("The value should be an Array");
                         }
+                        if found_non_u32_value {
+                            error!("Array contains non UInt32 values, cannot use as array dimensions");
+                        }
+                        !found_non_u32_value
+                    } else {
+                        panic!("The value should be an Array");
                     }
                 }
-                AttributeId::MinimumSamplingInterval => {
-                    is_valid_value_type!(value, Double)
-                }
-                AttributeId::Value => {
-                    // Anything is permitted
-                    true
-                }
+            }
+            AttributeId::MinimumSamplingInterval => {
+                is_valid_value_type!(value, Double)
+            }
+            AttributeId::Value => {
+                // Anything is permitted
+                true
             }
         };
         if !type_is_valid {
@@ -192,7 +190,7 @@ impl Node for Base {
             let attribute_idx = Self::attribute_idx(attribute_id);
             if let Some(setter) = self.attribute_setters.get(&attribute_id) {
                 let mut setter = setter.lock().unwrap();
-                setter.set(self.node_id(), attribute_id, value);
+                setter.set(self.node_id(), attribute_id, value)?;
             } else {
                 self.attributes[attribute_idx] = Some(value);
             }

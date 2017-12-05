@@ -1,7 +1,9 @@
 //! This module holds functionality necessary to access the address space, find nodes, add nodes, change attributes
 //! and values on nodes.
 
-use opcua_types::{NodeId, AttributeId, DataValue};
+use std::result::Result;
+
+use opcua_types::{NodeId, AttributeId, DataValue, StatusCode};
 
 /// An attribute getter trait is used to obtain the datavalue associated with the particular attribute id
 /// This allows server implementations to supply a value on demand, usually in response to a polling action
@@ -29,21 +31,21 @@ impl<F> AttrFnGetter<F> where F: FnMut(NodeId, AttributeId) -> Option<DataValue>
 // An attribute setter. Sets the value on the specified attribute
 pub trait AttributeSetter {
     /// Sets the attribute on the specified node
-    fn set(&mut self, node_id: NodeId, attribute_id: AttributeId, data_value: DataValue);
+    fn set(&mut self, node_id: NodeId, attribute_id: AttributeId, data_value: DataValue) -> Result<(), StatusCode>;
 }
 
 /// An implementation of attribute setter that can be easily constructed using a mutable function
-pub struct AttrFnSetter<F> where F: FnMut(NodeId, AttributeId, DataValue) + Send {
+pub struct AttrFnSetter<F> where F: FnMut(NodeId, AttributeId, DataValue) -> Result<(), StatusCode> + Send {
     setter: F
 }
 
-impl<F> AttributeSetter for AttrFnSetter<F> where F: FnMut(NodeId, AttributeId, DataValue) + Send {
-    fn set(&mut self, node_id: NodeId, attribute_id: AttributeId, data_value: DataValue) {
+impl<F> AttributeSetter for AttrFnSetter<F> where F: FnMut(NodeId, AttributeId, DataValue) -> Result<(), StatusCode> + Send {
+    fn set(&mut self, node_id: NodeId, attribute_id: AttributeId, data_value: DataValue) -> Result<(), StatusCode> {
         (self.setter)(node_id, attribute_id, data_value)
     }
 }
 
-impl<F> AttrFnSetter<F> where F: FnMut(NodeId, AttributeId, DataValue) + Send {
+impl<F> AttrFnSetter<F> where F: FnMut(NodeId, AttributeId, DataValue) -> Result<(), StatusCode> + Send {
     pub fn new(setter: F) -> AttrFnSetter<F> { AttrFnSetter { setter } }
 }
 
