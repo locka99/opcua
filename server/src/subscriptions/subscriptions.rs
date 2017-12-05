@@ -39,6 +39,16 @@ impl Subscriptions {
     /// If the queue is full this call will pop the oldest and generate a service fault
     /// for that before pushing the new one.
     pub fn enqueue_publish_request(&mut self, _: &AddressSpace, request_id: UInt32, request: PublishRequest) -> Result<(), SupportedMessage> {
+
+        // TODO we need to check subscriptions here that are waiting to publish, starting with the
+        // one waiting longest / priority
+        //
+        // If there is no waiting subscription waiting to publish, the request shall be queued
+        // including expiring old requests and returning the BAD_TOO_MANY_PUBLISH_REQUESTS if
+        // there are too many
+        //
+        // else get the subscription ready to publish
+
         // Check if we have too many requests already
         let result = if self.publish_request_queue.len() >= self.max_publish_requests {
             error!("Too many publish requests {} for capacity {}, throwing oldest away", self.publish_request_queue.len(), self.max_publish_requests);
