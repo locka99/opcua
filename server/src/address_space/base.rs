@@ -113,14 +113,20 @@ impl Node for Base {
     fn find_attribute(&self, attribute_id: AttributeId) -> Option<DataValue> {
         if let Some(getter) = self.attribute_getters.get(&attribute_id) {
             let mut getter = getter.lock().unwrap();
-            getter.get(self.node_id(), attribute_id)
+            let value = getter.get(self.node_id(), attribute_id);
+            if value.is_ok() {
+                value.unwrap()
+            } else {
+                None
+            }
         } else {
             let attribute_idx = Self::attribute_idx(attribute_id);
             if attribute_idx >= self.attributes.len() {
                 warn!("Attribute id {:?} is out of range and invalid", attribute_id);
-                return None;
+                None
+            } else {
+                self.attributes[attribute_idx].clone()
             }
-            self.attributes[attribute_idx].clone()
         }
     }
 

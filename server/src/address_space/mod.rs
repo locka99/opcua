@@ -10,21 +10,21 @@ use opcua_types::{NodeId, AttributeId, DataValue, StatusCode};
 /// such as a monitored item in a subscription.
 pub trait AttributeGetter {
     /// Returns some datavalue or none
-    fn get(&mut self, node_id: NodeId, attribute_id: AttributeId) -> Option<DataValue>;
+    fn get(&mut self, node_id: NodeId, attribute_id: AttributeId) -> Result<Option<DataValue>, StatusCode>;
 }
 
 /// An implementation of attribute getter that can be easily constructed from a mutable function
-pub struct AttrFnGetter<F> where F: FnMut(NodeId, AttributeId) -> Option<DataValue> + Send {
+pub struct AttrFnGetter<F> where F: FnMut(NodeId, AttributeId) -> Result<Option<DataValue>, StatusCode> + Send {
     getter: F
 }
 
-impl<F> AttributeGetter for AttrFnGetter<F> where F: FnMut(NodeId, AttributeId) -> Option<DataValue> + Send {
-    fn get(&mut self, node_id: NodeId, attribute_id: AttributeId) -> Option<DataValue> {
+impl<F> AttributeGetter for AttrFnGetter<F> where F: FnMut(NodeId, AttributeId) -> Result<Option<DataValue>, StatusCode> + Send {
+    fn get(&mut self, node_id: NodeId, attribute_id: AttributeId) -> Result<Option<DataValue>, StatusCode> {
         (self.getter)(node_id, attribute_id)
     }
 }
 
-impl<F> AttrFnGetter<F> where F: FnMut(NodeId, AttributeId) -> Option<DataValue> + Send {
+impl<F> AttrFnGetter<F> where F: FnMut(NodeId, AttributeId) -> Result<Option<DataValue>, StatusCode> + Send {
     pub fn new(getter: F) -> AttrFnGetter<F> { AttrFnGetter { getter } }
 }
 

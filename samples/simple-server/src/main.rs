@@ -84,9 +84,9 @@ fn add_example_variables(server: &mut Server) -> Vec<PollingAction> {
         if let Some(ref mut v) = address_space.find_variable_by_node_id(&v3_node) {
             // Hello world's counter will increment with each get - slower interval == slower increment
             let mut counter = 0;
-            let getter = AttrFnGetter::new(move |_, _| -> Option<DataValue> {
+            let getter = AttrFnGetter::new(move |_, _| -> Result<Option<DataValue>, StatusCode> {
                 counter += 1;
-                Some(DataValue::new(UAString::from(format!("Hello World times {}", counter))))
+                Ok(Some(DataValue::new(UAString::from(format!("Hello World times {}", counter)))))
             });
             v.set_value_getter(Arc::new(Mutex::new(getter)));
         }
@@ -96,9 +96,9 @@ fn add_example_variables(server: &mut Server) -> Vec<PollingAction> {
             use std::f64::consts;
             use chrono::Utc;
             let start_time = Utc::now();
-            let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Option<DataValue> {
+            let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Result<Option<DataValue>, StatusCode> {
                 let moment = (Utc::now().signed_duration_since(start_time).num_milliseconds() % 10000) as f64 / 10000.0;
-                Some(DataValue::new((2.0 * consts::PI * moment).sin()))
+                Ok(Some(DataValue::new((2.0 * consts::PI * moment).sin())))
             });
             v.set_value_getter(Arc::new(Mutex::new(getter)));
         }

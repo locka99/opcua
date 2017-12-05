@@ -168,8 +168,8 @@ impl AddressSpace {
         // Server_ServerStatus_CurrentTime
         if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerStatus_CurrentTime) {
             // Used to return the current time of the server, i.e. now
-            let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Option<DataValue> {
-                Some(DataValue::new(DateTime::now()))
+            let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Result<Option<DataValue>, StatusCode> {
+                Ok(Some(DataValue::new(DateTime::now())))
             });
             // Put a getter onto this thing so it can fetch the current time on demand
             v.set_value_getter(Arc::new(Mutex::new(getter)));
@@ -180,9 +180,9 @@ impl AddressSpace {
         if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerStatus_State) {
             let server_state = server_state.clone();
             // Used to return the current time of the server, i.e. now
-            let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Option<DataValue> {
+            let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Result<Option<DataValue>, StatusCode> {
                 // let server_state =  trace_read_lock_unwrap!(server_state);
-                Some(DataValue::new(0 as Int32))
+                Ok(Some(DataValue::new(0 as Int32)))
             });
             v.set_value_getter(Arc::new(Mutex::new(getter)));
         }
