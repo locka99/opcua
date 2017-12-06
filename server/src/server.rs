@@ -174,17 +174,7 @@ impl Server {
             // if it is, then we'll use its termination status to sweep it out.
             let mut lock = connection.try_lock();
             if let Ok(ref mut connection) = lock {
-                let mut lock = connection.session.try_write();
-                if let Ok(ref mut session) = lock {
-                    if session.terminated() {
-                        info!("Removing terminated session");
-                        false
-                    } else {
-                        true
-                    }
-                } else {
-                    true
-                }
+                !connection.terminated()
             } else {
                 true
             }

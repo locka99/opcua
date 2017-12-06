@@ -1,29 +1,32 @@
-use std::sync::{RwLockWriteGuard};
+use std::sync::{Arc, RwLock, RwLockWriteGuard};
 
 use prelude::*;
-use comms::tcp_transport::*;
 use server_state::ServerState;
+use session::Session;
 
 use tests::*;
 
 struct ServiceTest {
     server: Server,
-    tcp_transport: TcpTransport,
+    server_state: Arc<RwLock<ServerState>>,
+    session: Arc<RwLock<Session>>,
 }
 
 impl ServiceTest {
     pub fn new() -> ServiceTest {
         let server = Server::new(ServerConfig::new_anonymous("foo"));
         let tcp_transport = server.new_transport();
+        let server_state = server.server_state.clone();
+        let session = tcp_transport.session();
         ServiceTest {
             server,
-            tcp_transport
+            server_state,
+            session,
         }
     }
 
     pub fn get_server_state_and_session(&self) -> (RwLockWriteGuard<ServerState>, RwLockWriteGuard<Session>) {
-        (self.tcp_transport.server_state.write().unwrap(),
-         self.tcp_transport.session.write().unwrap())
+        (self.server_state.write().unwrap(), self.session.write().unwrap())
     }
 }
 

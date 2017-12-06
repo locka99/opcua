@@ -633,7 +633,9 @@ impl Session {
     }
 
     fn issue_or_renew_secure_channel(&mut self, request_type: SecurityTokenRequestType) -> Result<(), StatusCode> {
-        let client_nonce = self.transport.secure_channel.local_nonce_as_byte_string();
+        let client_nonce = ByteString::nonce();
+        self.transport.secure_channel.set_local_nonce(client_nonce.as_ref());
+
         let security_mode = self.transport.secure_channel.security_mode();
         let requested_lifetime = 60000; // TODO
         let request = OpenSecureChannelRequest {

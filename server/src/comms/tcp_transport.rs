@@ -39,15 +39,15 @@ pub enum TransportState {
 /// session.
 pub struct TcpTransport {
     // Server state, address space etc.
-    pub server_state: Arc<RwLock<ServerState>>,
+    server_state: Arc<RwLock<ServerState>>,
     // Session state - open sessions, tokens etc
-    pub session: Arc<RwLock<Session>>,
+    session: Arc<RwLock<Session>>,
     /// Address space
     address_space: Arc<RwLock<AddressSpace>>,
     /// The current transport state
-    pub transport_state: TransportState,
+    transport_state: TransportState,
     /// Secure channel handler
-    pub secure_channel_service: SecureChannelService,
+    secure_channel_service: SecureChannelService,
     /// Message handler
     message_handler: MessageHandler,
     /// Client protocol version set during HELLO
@@ -207,7 +207,7 @@ impl TcpTransport {
             // Some handlers might wish to send their message and terminate, in which case this is
             // done here.
             {
-                let session =  trace_read_lock_unwrap!(self.session);
+                let session = trace_read_lock_unwrap!(self.session);
                 if session.terminate_session {
                     session_status_code = BAD_CONNECTION_CLOSED;
                 }
@@ -250,6 +250,15 @@ impl TcpTransport {
         }
     }
 
+    /// Test if the connection is terminated
+    pub fn terminated(&self) -> bool {
+        if let Ok(ref session) = self.session.try_read() {
+            session.terminated()
+        } else {
+            false
+        }
+    }
+
     /// Start the subscription timer to service subscriptions
     fn start_subscription_timer(&mut self) -> (timer::Timer, timer::Guard, Receiver<SubscriptionEvent>) {
         let (subscription_timer_tx, subscription_timer_rx) = mpsc::channel();
@@ -261,7 +270,7 @@ impl TcpTransport {
         // so it can control the scope of events.
         let subscription_timer = timer::Timer::new();
         let subscription_timer_guard = subscription_timer.schedule_repeating(time::Duration::milliseconds(constants::SUBSCRIPTION_TIMER_RATE_MS), move || {
-            let mut session =  trace_write_lock_unwrap!(session);
+            let mut session = trace_write_lock_unwrap!(session);
 
             // Request queue might contain stale publish requests
             session.expire_stale_publish_requests(&Utc::now());
@@ -285,6 +294,10 @@ impl TcpTransport {
             }
         });
         (subscription_timer, subscription_timer_guard, subscription_timer_rx)
+    }
+
+    pub fn session(&self) -> Arc<RwLock<Session>> {
+        self.session.clone()
     }
 
     fn write_output(buffer_stream: &mut Cursor<Vec<u8>>, stream: &mut Write) {

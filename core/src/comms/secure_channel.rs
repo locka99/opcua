@@ -68,7 +68,7 @@ impl Into<SecureChannel> for (SecurityPolicy, MessageSecurityMode) {
 
 impl SecureChannel {
     /// For testing purposes only
-    #[cfg(test)] 
+    #[cfg(test)]
     pub fn new_no_certificate_store() -> SecureChannel {
         (SecurityPolicy::None, MessageSecurityMode::None).into()
     }
