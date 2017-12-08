@@ -416,7 +416,7 @@ impl Session {
     /// and keepalive and the value returned in the response are the revised values. The
     /// subscription id is also returned in the response.
     pub fn create_subscription(&mut self, mut subscription: Subscription) -> Result<Subscription, StatusCode> {
-        if subscription.subscription_id != 0 {
+        if subscription.is_valid() {
             error!("Subscription id must be 0, or the subscription is considered already created");
             Err(BAD_INVALID_ARGUMENT)
         } else {
@@ -445,10 +445,36 @@ impl Session {
     }
 
     // modify subscription
+    pub fn modify_subscription(&mut self, subscription: &mut Subscription) -> Result<(), StatusCode> {
+        if !subscription.is_valid() {
+            error!("Subscription id must be non-zero, or the subscription is considered invalid");
+            Err(BAD_INVALID_ARGUMENT)
+        } else {
+            let request = ModifySubscriptionRequest {
+                request_header: self.make_request_header(),
+                subscription_id: subscription.subscription_id,
+                requested_publishing_interval: subscription.publishing_interval,
+                requested_lifetime_count: subscription.lifetime_count,
+                requested_max_keep_alive_count: subscription.max_keep_alive_count,
+                max_notifications_per_publish: subscription.max_notifications_per_publish,
+                priority: subscription.priority,
+            };
+            let response = self.send_request(SupportedMessage::ModifySubscriptionRequest(request))?;
+            if let SupportedMessage::ModifySubscriptionResponse(response) = response {
+                Self::process_service_result(&response.response_header)?;
+                subscription.publishing_interval = response.revised_publishing_interval;
+                subscription.lifetime_count = response.revised_lifetime_count;
+                subscription.max_keep_alive_count = response.revised_max_keep_alive_count;
+                Ok(())
+            } else {
+                Err(Self::process_unexpected_response(response))
+            }
+        }
+    }
 
     /// Removes a subscription using its subscription id
     pub fn delete_subscription(&mut self, subscription: &mut Subscription) -> Result<(), StatusCode> {
-        if subscription.subscription_id == 0 {
+        if !subscription.is_valid() {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
             Err(BAD_INVALID_ARGUMENT)
         } else {
@@ -484,6 +510,29 @@ impl Session {
             if let SupportedMessage::CreateMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 // TODO Create monitored items on the subscription
+                Ok(())
+            } else {
+                Err(Self::process_unexpected_response(response))
+            }
+        }
+    }
+
+    /// Modifies monitored items in the subscription
+    pub fn modify_monitored_items(&mut self, subscription: &mut Subscription, items_to_modify: Vec<MonitoredItemModifyRequest>) -> Result<(), StatusCode> {
+        if !subscription.is_valid() {
+            error!("Subscription id must be non-zero, or the subscription is considered invalid");
+            Err(BAD_INVALID_ARGUMENT)
+        } else {
+            let request = ModifyMonitoredItemsRequest {
+                request_header: self.make_request_header(),
+                subscription_id: subscription.subscription_id,
+                timestamps_to_return: TimestampsToReturn::Both,
+                items_to_modify: Some(items_to_modify)
+            };
+            let response = self.send_request(SupportedMessage::ModifyMonitoredItemsRequest(request))?;
+            if let SupportedMessage::ModifyMonitoredItemsResponse(response) = response {
+                Self::process_service_result(&response.response_header)?;
+                // TODO Modify monitored items in the subscription
                 Ok(())
             } else {
                 Err(Self::process_unexpected_response(response))
