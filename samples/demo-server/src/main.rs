@@ -24,7 +24,7 @@ fn main() {
     let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
 
     // Add some variables of our own
-    let update_timers = add_example_variables(&mut server);
+    let update_timers = add_scalar_variables(&mut server);
 
     // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
     server.run();
@@ -33,7 +33,94 @@ fn main() {
     drop(update_timers);
 }
 
+enum Scalar {
+    Boolean,
+    Byte,
+    SByte,
+    Int16,
+    UInt16,
+    Int32,
+    UInt32,
+    Int64,
+    UInt64,
+    Float,
+    Double,
+    String,
+}
+
+impl Scalar {
+    pub fn name(&self) -> &'static str {
+        match *self {
+            Scalar::Boolean => "Boolean",
+            Scalar::Byte => "Byte",
+            Scalar::SByte => "SByte",
+            Scalar::Int16 => "Int16",
+            Scalar::UInt16 => "UInt16",
+            Scalar::Int32 => "Int32",
+            Scalar::UInt32 => "UInt32",
+            Scalar::Int64 => "Int64",
+            Scalar::UInt64 => "UInt64",
+            Scalar::Float => "Float",
+            Scalar::Double => "Double",
+            Scalar::String => "String",
+        }
+    }
+    pub fn node_id(&self) -> NodeId {
+        NodeId::new_string(2, self.name())
+    }
+
+    pub fn default_value(&self) -> Variant {
+        match *self {
+            Scalar::Boolean => Variant::new(false),
+            Scalar::Byte => Variant::new(0u8),
+            Scalar::SByte => Variant::new(0i8),
+            Scalar::Int16 => Variant::new(0i16),
+            Scalar::UInt16 => Variant::new(0u16),
+            Scalar::Int32 => Variant::new(0i32),
+            Scalar::UInt32 => Variant::new(0u32),
+            Scalar::Int64 => Variant::new(0i64),
+            Scalar::UInt64 => Variant::new(0u64),
+            Scalar::Float => Variant::new(0f32),
+            Scalar::Double => Variant::new(0f64),
+            Scalar::String => Variant::new(""),
+        }
+    }
+
+    pub fn values() -> Vec<Scalar> {
+        vec![
+            Scalar::Boolean,
+            Scalar::Byte,
+            Scalar::SByte,
+            Scalar::Int16,
+            Scalar::UInt16,
+            Scalar::Int32,
+            Scalar::UInt32,
+            Scalar::Int64,
+            Scalar::UInt64,
+            Scalar::String,
+            Scalar::Float,
+            Scalar::Double,
+        ]
+    }
+}
+
+
 /// Creates some sample variables, and some push / pull examples that update them
-fn add_example_variables(server: &mut Server) -> Vec<PollingAction> {
+fn add_scalar_variables(server: &mut Server) -> Vec<PollingAction> {
+    // The address space is guarded so obtain a lock to change it
+    let mut address_space = server.address_space.write().unwrap();
+
+    // Create a sample folder under objects folder
+    let scalar_folder_id = address_space
+        .add_folder("Scalar", "Scalar", &AddressSpace::objects_folder_id())
+        .unwrap();
+
+    for sn in Scalar::values().iter() {
+        let node_id = sn.node_id();
+        let name = sn.name();
+        let default_value = sn.default_value();
+        let _ = address_space.add_variable(Variable::new(&node_id, name, name, &format!("{} value", name), default_value), &scalar_folder_id);
+    }
+
     vec![]
 }

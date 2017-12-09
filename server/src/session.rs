@@ -129,7 +129,7 @@ impl Session {
 
     pub fn next_session_id(&mut self) -> NodeId {
         self.last_session_id += 1;
-        NodeId::new(1, self.last_session_id as u64)
+        NodeId::new(1, self.last_session_id)
     }
 
     pub fn terminated(&self) -> bool { self.terminated }

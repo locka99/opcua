@@ -808,7 +808,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "EnumValues";
         let description = "";
         let node_id = NodeId::new(0, 12169);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(7594u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(7594u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
         address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
@@ -841,7 +841,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "Icon";
         let description = "A small image representing the object.";
         let node_id = NodeId::new(0, 3067);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(30u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(30u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
     }
@@ -851,7 +851,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "LocalTime";
         let description = "The local time where the owning variable value was collected.";
         let node_id = NodeId::new(0, 3069);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(8912u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(8912u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
     }
@@ -911,7 +911,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "EngineeringUnits";
         let description = "The engineering units for the value of the owning variable.";
         let node_id = NodeId::new(0, 11513);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(887u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(887u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
     }
@@ -931,7 +931,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "EnumValues";
         let description = "The human readable strings associated with the values of an enumerated value (when values have no sequence).";
         let node_id = NodeId::new(0, 3071);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(7594u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(7594u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
     }
@@ -951,7 +951,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "InputArguments";
         let description = "The input arguments for a method.";
         let node_id = NodeId::new(0, 3072);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(296u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(296u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
     }
@@ -961,7 +961,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "OutputArguments";
         let description = "The output arguments for a method.";
         let node_id = NodeId::new(0, 3073);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(296u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(296u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
     }
@@ -984,7 +984,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "EnumValues";
         let description = "";
         let node_id = NodeId::new(0, 11878);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(7594u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(7594u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
         address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);

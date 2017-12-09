@@ -258,7 +258,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "InstrumentRange";
         let description = "";
         let node_id = NodeId::new(0, 2370);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(884u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(884u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
         address_space.insert_reference(&node_id, &NodeId::new(0, 80), ReferenceTypeId::HasModellingRule);
@@ -271,7 +271,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "EURange";
         let description = "";
         let node_id = NodeId::new(0, 2369);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(884u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(884u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
         address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
@@ -284,7 +284,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "EngineeringUnits";
         let description = "";
         let node_id = NodeId::new(0, 2371);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(887u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(887u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
         address_space.insert_reference(&node_id, &NodeId::new(0, 80), ReferenceTypeId::HasModellingRule);
@@ -336,7 +336,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "EnumValues";
         let description = "";
         let node_id = NodeId::new(0, 11241);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(7594u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(7594u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
         address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
@@ -362,7 +362,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "InstrumentRange";
         let description = "";
         let node_id = NodeId::new(0, 12024);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(884u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(884u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
         address_space.insert_reference(&node_id, &NodeId::new(0, 80), ReferenceTypeId::HasModellingRule);
@@ -375,7 +375,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "EURange";
         let description = "";
         let node_id = NodeId::new(0, 12025);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(884u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(884u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
         address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
@@ -388,7 +388,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "EngineeringUnits";
         let description = "";
         let node_id = NodeId::new(0, 12026);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(887u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(887u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
         address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
@@ -414,7 +414,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "AxisScaleType";
         let description = "";
         let node_id = NodeId::new(0, 12028);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(12077u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(12077u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
         address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
@@ -427,7 +427,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "XAxisDefinition";
         let description = "";
         let node_id = NodeId::new(0, 12037);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(12079u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(12079u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
         address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
@@ -440,7 +440,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "XAxisDefinition";
         let description = "";
         let node_id = NodeId::new(0, 12046);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(12079u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(12079u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
         address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
@@ -453,7 +453,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "XAxisDefinition";
         let description = "";
         let node_id = NodeId::new(0, 12055);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(12079u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(12079u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
         address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
@@ -466,7 +466,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "YAxisDefinition";
         let description = "";
         let node_id = NodeId::new(0, 12056);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(12079u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(12079u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
         address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
@@ -479,7 +479,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "XAxisDefinition";
         let description = "";
         let node_id = NodeId::new(0, 12065);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(12079u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(12079u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
         address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
@@ -492,7 +492,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "YAxisDefinition";
         let description = "";
         let node_id = NodeId::new(0, 12066);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(12079u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(12079u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
         address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
@@ -505,7 +505,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "ZAxisDefinition";
         let description = "";
         let node_id = NodeId::new(0, 12067);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(12079u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(12079u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
         address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
@@ -518,7 +518,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let display_name = "AxisDefinition";
         let description = "";
         let node_id = NodeId::new(0, 12076);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u64(12079u64).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(12079u32).unwrap(), DataValue::null());
         address_space.insert(node);
         address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
         address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);

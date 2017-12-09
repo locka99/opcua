@@ -12,13 +12,19 @@ use generated::{ObjectId, ReferenceTypeId};
 /// The kind of identifier, numeric, string, guid or byte
 #[derive(Eq, PartialEq, Clone, Debug, Hash)]
 pub enum Identifier {
-    Numeric(UInt64),
+    Numeric(UInt32),
     String(UAString),
     Guid(Guid),
     ByteString(ByteString),
 }
 
-impl Into<Identifier> for UInt64 {
+impl Into<Identifier> for Int32 {
+    fn into(self) -> Identifier {
+        Identifier::Numeric(self as u32)
+    }
+}
+
+impl Into<Identifier> for UInt32 {
     fn into(self) -> Identifier {
         Identifier::Numeric(self)
     }
@@ -55,6 +61,15 @@ pub struct NodeId {
     pub namespace: UInt16,
     /// The identifier for the node in the address space
     pub identifier: Identifier,
+}
+
+impl Default for NodeId {
+    fn default() -> Self {
+        NodeId {
+            namespace: 0,
+            identifier: Identifier::Numeric(0),
+        }
+    }
 }
 
 impl BinaryEncoder<NodeId> for NodeId {
@@ -129,17 +144,17 @@ impl BinaryEncoder<NodeId> for NodeId {
         let node_id = match identifier {
             0x0 => {
                 let namespace = 0;
-                let value = read_u8(stream)? as u64;
+                let value = read_u8(stream)? as u32;
                 NodeId::new(namespace, value)
             }
             0x1 => {
                 let namespace = read_u8(stream)? as u16;
-                let value = read_u16(stream)? as u64;
+                let value = read_u16(stream)? as u32;
                 NodeId::new(namespace, value)
             }
             0x2 => {
                 let namespace = read_u16(stream)?;
-                let value = read_u32(stream)? as u64;
+                let value = read_u32(stream)? as u32;
                 NodeId::new(namespace, value)
             }
             0x3 => {
@@ -210,7 +225,7 @@ impl FromStr for NodeId {
         let v = captures.name("v").unwrap();
         let node_id = match t.as_str() {
             "i" => {
-                let number = v.as_str().parse::<UInt64>();
+                let number = v.as_str().parse::<UInt32>();
                 if number.is_err() {
                     return Err(BAD_NODE_ID_INVALID);
                 }
@@ -252,7 +267,7 @@ static NEXT_NODE_ID_NUMERIC: AtomicUsize = ATOMIC_USIZE_INIT;
 
 impl NodeId {
     // Constructs a new NodeId from anything that can be turned into Identifier
-    // UInt64, Guid, ByteString or String
+    // UInt32, Guid, ByteString or String
     pub fn new<T>(namespace: UInt16, value: T) -> NodeId where T: 'static + Into<Identifier> {
         NodeId { namespace, identifier: value.into() }
     }
@@ -272,26 +287,26 @@ impl NodeId {
 
     /// Returns a null node id
     pub fn null() -> NodeId {
-        NodeId::new(0, 0)
+        NodeId::new(0, 0u32)
     }
 
     // Creates a numeric node id with an id incrementing up from 1000
     pub fn next_numeric() -> NodeId {
-        let result = NodeId::new(1, NEXT_NODE_ID_NUMERIC.fetch_add(1, Ordering::SeqCst) as u64);
+        let result = NodeId::new(1, NEXT_NODE_ID_NUMERIC.fetch_add(1, Ordering::SeqCst) as u32);
         result
     }
 
     /// Extracts an ObjectId from a node id, providing the node id holds an object id
     pub fn as_object_id(&self) -> std::result::Result<ObjectId, ()> {
         match self.identifier {
-            Identifier::Numeric(id) if self.namespace == 0 => ObjectId::from_u64(id),
+            Identifier::Numeric(id) if self.namespace == 0 => ObjectId::from_u32(id),
             _ => Err(())
         }
     }
 
     pub fn as_reference_type_id(&self) -> std::result::Result<ReferenceTypeId, ()> {
         match self.identifier {
-            Identifier::Numeric(id) if self.namespace == 0 => ReferenceTypeId::from_u64(id),
+            Identifier::Numeric(id) if self.namespace == 0 => ReferenceTypeId::from_u32(id),
             _ => Err(())
         }
     }
@@ -443,17 +458,17 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
         let node_id = match identifier {
             0x0 => {
                 let namespace = 0;
-                let value = read_u8(stream)? as u64;
+                let value = read_u8(stream)? as u32;
                 NodeId::new(namespace, value)
             }
             0x1 => {
                 let namespace = read_u8(stream)? as u16;
-                let value = read_u16(stream)? as u64;
+                let value = read_u16(stream)? as u32;
                 NodeId::new(namespace, value)
             }
             0x2 => {
                 let namespace = read_u16(stream)?;
-                let value = read_u32(stream)? as u64;
+                let value = read_u32(stream)? as u32;
                 NodeId::new(namespace, value)
             }
             0x3 => {

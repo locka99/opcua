@@ -308,10 +308,10 @@ pub enum DataTypeId {
 
 impl DataTypeId {
     pub fn as_node_id(&self) -> NodeId {
-        NodeId::new(0, *self as UInt64)
+        NodeId::new(0, *self as UInt32)
     }
 
-    pub fn from_u64(value: u64) -> Result<DataTypeId, ()> {
+    pub fn from_u32(value: u32) -> Result<DataTypeId, ()> {
         match value {
             1 => Ok(DataTypeId::Boolean),
             2 => Ok(DataTypeId::SByte),
@@ -649,10 +649,10 @@ pub enum ReferenceTypeId {
 
 impl ReferenceTypeId {
     pub fn as_node_id(&self) -> NodeId {
-        NodeId::new(0, *self as UInt64)
+        NodeId::new(0, *self as UInt32)
     }
 
-    pub fn from_u64(value: u64) -> Result<ReferenceTypeId, ()> {
+    pub fn from_u32(value: u32) -> Result<ReferenceTypeId, ()> {
         match value {
             31 => Ok(ReferenceTypeId::References),
             32 => Ok(ReferenceTypeId::NonHierarchicalReferences),
@@ -814,10 +814,10 @@ pub enum ObjectTypeId {
 
 impl ObjectTypeId {
     pub fn as_node_id(&self) -> NodeId {
-        NodeId::new(0, *self as UInt64)
+        NodeId::new(0, *self as UInt32)
     }
 
-    pub fn from_u64(value: u64) -> Result<ObjectTypeId, ()> {
+    pub fn from_u32(value: u32) -> Result<ObjectTypeId, ()> {
         match value {
             58 => Ok(ObjectTypeId::BaseObjectType),
             61 => Ok(ObjectTypeId::FolderType),
@@ -989,10 +989,10 @@ pub enum VariableTypeId {
 
 impl VariableTypeId {
     pub fn as_node_id(&self) -> NodeId {
-        NodeId::new(0, *self as UInt64)
+        NodeId::new(0, *self as UInt32)
     }
 
-    pub fn from_u64(value: u64) -> Result<VariableTypeId, ()> {
+    pub fn from_u32(value: u32) -> Result<VariableTypeId, ()> {
         match value {
             62 => Ok(VariableTypeId::BaseVariableType),
             63 => Ok(VariableTypeId::BaseDataVariableType),
@@ -1435,10 +1435,10 @@ pub enum ObjectId {
 
 impl ObjectId {
     pub fn as_node_id(&self) -> NodeId {
-        NodeId::new(0, *self as UInt64)
+        NodeId::new(0, *self as UInt32)
     }
 
-    pub fn from_u64(value: u64) -> Result<ObjectId, ()> {
+    pub fn from_u32(value: u32) -> Result<ObjectId, ()> {
         match value {
             78 => Ok(ObjectId::ModellingRule_Mandatory),
             79 => Ok(ObjectId::ModellingRule_MandatoryShared),
@@ -5907,10 +5907,10 @@ pub enum VariableId {
 
 impl VariableId {
     pub fn as_node_id(&self) -> NodeId {
-        NodeId::new(0, *self as UInt64)
+        NodeId::new(0, *self as UInt32)
     }
 
-    pub fn from_u64(value: u64) -> Result<VariableId, ()> {
+    pub fn from_u32(value: u32) -> Result<VariableId, ()> {
         match value {
             104 => Ok(VariableId::DataTypeDescriptionType_DataTypeVersion),
             105 => Ok(VariableId::DataTypeDescriptionType_DictionaryFragment),
@@ -10394,10 +10394,10 @@ pub enum MethodId {
 
 impl MethodId {
     pub fn as_node_id(&self) -> NodeId {
-        NodeId::new(0, *self as UInt64)
+        NodeId::new(0, *self as UInt32)
     }
 
-    pub fn from_u64(value: u64) -> Result<MethodId, ()> {
+    pub fn from_u32(value: u32) -> Result<MethodId, ()> {
         match value {
             2426 => Ok(MethodId::ProgramStateMachineType_Start),
             2427 => Ok(MethodId::ProgramStateMachineType_Suspend),

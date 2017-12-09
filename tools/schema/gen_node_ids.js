@@ -54,10 +54,10 @@ pub enum ${key}Id {
             rs_out.write(`
 impl ${key}Id {
     pub fn as_node_id(&self) -> NodeId {
-        NodeId::new(0, *self as UInt64)
+        NodeId::new(0, *self as UInt32)
     }
 
-    pub fn from_u64(value: u64) -> Result<${key}Id, ()> {
+    pub fn from_u32(value: u32) -> Result<${key}Id, ()> {
         match value {
 `);
             _.each(value, function (node) {

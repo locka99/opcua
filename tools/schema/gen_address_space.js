@@ -113,7 +113,7 @@ use address_space::types::*;
             if (_.has(value["$"], "DataType")) {
                 data_type = value["$"]["DataType"];
                 if (data_type.startsWith("i=")) {
-                    data_type = `DataTypeId::from_u64(${data_type.substr(2)}u64).unwrap()`;
+                    data_type = `DataTypeId::from_u32(${data_type.substr(2)}u32).unwrap()`;
                 }
                 else {
                     data_type = `DataTypeId::${data_type}`;
