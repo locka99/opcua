@@ -12,6 +12,7 @@ extern crate byteorder;
 extern crate chrono;
 extern crate regex;
 extern crate rand;
+extern crate uuid;
 extern crate url as url_external;
 
 ///Contains constants recognized by OPC UA clients and servers to describe various protocols and

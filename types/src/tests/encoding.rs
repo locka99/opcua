@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use tests::*;
 
 #[test]
@@ -117,15 +118,10 @@ fn encoding_datetime() {
 
 #[test]
 fn encoding_guid() {
-    let guid = Guid {
-        data1: 0xf0001234,
-        data2: 0xface,
-        data3: 0xbeef,
-        data4: [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08],
-    };
-    assert_eq!("F0001234-FACE-BEEF-0102-030405060708", format!("{:?}", guid));
+    let guid = Guid::from_str("F0001234-FACE-BEEF-0102-030405060708").unwrap();
+    assert_eq!("f0001234-face-beef-0102-030405060708", format!("{:?}", guid));
     let new_guid = serialize_test_and_return(guid.clone());
-    assert_eq!("F0001234-FACE-BEEF-0102-030405060708", format!("{:?}", new_guid));
+    assert_eq!("f0001234-face-beef-0102-030405060708", format!("{:?}", new_guid));
     serialize_test(guid);
 }
 
@@ -133,12 +129,7 @@ fn encoding_guid() {
 fn encode_guid_5226() {
     // Sample from OPCUA Part 6 - 5.2.2.6
     let expected_bytes = [0x91, 0x2B, 0x96, 0x72, 0x75, 0xFA, 0xE6, 0x4A, 0x8D, 0x28, 0xB4, 0x04, 0xDC, 0x7D, 0xAF, 0x63];
-    let guid = Guid {
-        data1: 0x72962B91,
-        data2: 0xFA75,
-        data3: 0x4ae6,
-        data4: [0x8D, 0x28, 0xB4, 0x04, 0xDC, 0x7D, 0xAF, 0x63],
-    };
+    let guid = Guid::from_str("912b9672-75fa-e64a-8D28-B404DC7DAF63").unwrap();
     serialize_and_compare(guid, &expected_bytes);
 }
 
@@ -179,7 +170,7 @@ fn node_id_large_namespace() {
 
 #[test]
 fn node_id_large_id() {
-let node_id = NodeId::new(1, 0xdeadbeef);
+    let node_id = NodeId::new(1, 0xdeadbeef as u32);
     assert!(node_id.is_numeric());
 
     let expected_bytes = [0x2, 0x1, 0x0, 0xef, 0xbe, 0xad, 0xde];
@@ -202,12 +193,7 @@ fn node_id_string_5229() {
 
 #[test]
 fn node_id_guid() {
-    let guid = Guid {
-        data1: 0x72962B91,
-        data2: 0xFA75,
-        data3: 0x4ae6,
-        data4: [0x8D, 0x28, 0xB4, 0x04, 0xDC, 0x7D, 0xAF, 0x63],
-    };
+    let guid = Guid::from_str("912b9672-75fa-e64a-8D28-B404DC7DAF63").unwrap();
     let node_id = NodeId::new(1, guid);
     assert!(node_id.is_guid());
     serialize_test(node_id);

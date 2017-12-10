@@ -16,6 +16,7 @@ rand = "0.3"
 regex = "0.2"
 lazy_static = "0.2"
 url = "1.6"
+uuid = { version = "0.5", features = ["v4"] }
 
 [dev-dependencies]
 tempdir = "0.3"
