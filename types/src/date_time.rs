@@ -46,7 +46,7 @@ impl BinaryEncoder<DateTime> for DateTime {
 
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let ticks = read_i64(stream)?;
-        Ok(DateTime::from_ticks(ticks))
+        Ok(DateTime::from(ticks))
     }
 }
 
@@ -64,6 +64,21 @@ impl From<chrono::DateTime<Utc>> for DateTime {
     }
 }
 
+impl From<Int64> for DateTime {
+    fn from(value: Int64) -> Self {
+        let secs = value / TICKS_PER_SECOND;
+        let nanos = (value - secs * TICKS_PER_SECOND) * NANOS_PER_TICK;
+        let duration = chrono::Duration::seconds(secs) + chrono::Duration::nanoseconds(nanos);
+        Self::from(Self::epoch_chrono() + duration)
+    }
+}
+
+impl Into<Int64> for DateTime {
+    fn into(self) -> Int64 {
+        self.checked_ticks()
+    }
+}
+
 impl Into<chrono::DateTime<Utc>> for DateTime {
     fn into(self) -> chrono::DateTime<Utc> {
         // Converts from the equivalent chrono type
@@ -78,7 +93,17 @@ impl DateTime {
         DateTime::from(Utc::now())
     }
 
-    /// Constructs from a year, month, day 
+    /// Constructs a date time for the epoch
+    pub fn epoch() -> DateTime {
+        DateTime::from(Self::epoch_chrono())
+    }
+
+    /// Constructs a date time for the endtimes
+    pub fn endtimes() -> DateTime {
+        DateTime::from(Self::endtimes_chrono())
+    }
+
+    /// Constructs from a year, month, day
     pub fn ymd(year: UInt16, month: UInt16, day: UInt16) -> DateTime {
         DateTime::ymd_hms_nano(year, month, day, 0, 0, 0, 0)
     }
@@ -131,15 +156,10 @@ impl DateTime {
         }
     }
 
-    /// Create a date time in ticks, of 100 nanosecond intervals relative to the UA epoch
-    pub fn from_ticks(ticks: i64) -> DateTime {
-        DateTime::from(epoch_chrono() + ticks_to_duration(ticks))
-    }
-
     /// Returns the time in ticks, of 100 nanosecond intervals
     pub fn ticks(&self) -> i64 {
         let chrono_time: chrono::DateTime<Utc> = self.clone().into();
-        duration_to_ticks(chrono_time.signed_duration_since(epoch_chrono()))
+        Self::duration_to_ticks(chrono_time.signed_duration_since(Self::epoch_chrono()))
     }
 
     /// To checked ticks. Function returns 0 or MAX_INT64
@@ -149,42 +169,35 @@ impl DateTime {
         if nanos < 0 {
             return 0;
         }
-        if nanos > max_ticks() {
+        if nanos > Self::max_ticks() {
             return i64::max_value();
         }
         nanos
     }
-}
 
-/// The OPC UA epoch - Jan 1 1601 00:00:00
-pub fn epoch_chrono() -> chrono::DateTime<Utc> {
-    Utc.ymd(MIN_YEAR as i32, 1, 1).and_hms(0, 0, 0)
-}
+    /// The OPC UA epoch - Jan 1 1601 00:00:00
+    fn epoch_chrono() -> chrono::DateTime<Utc> {
+        Utc.ymd(MIN_YEAR as i32, 1, 1).and_hms(0, 0, 0)
+    }
 
-/// The OPC UA endtimes - Dec 31 9999 23:59:59 i.e. the date after which dates are returned as MAX_INT64 ticks 
-/// Spec doesn't say what happens in the last second before midnight...
-pub fn endtimes_chrono() -> chrono::DateTime<Utc> {
-    Utc.ymd(MAX_YEAR as i32, 12, 31).and_hms(23, 59, 59)
-}
+    /// The OPC UA endtimes - Dec 31 9999 23:59:59 i.e. the date after which dates are returned as MAX_INT64 ticks
+    /// Spec doesn't say what happens in the last second before midnight...
+    fn endtimes_chrono() -> chrono::DateTime<Utc> {
+        Utc.ymd(MAX_YEAR as i32, 12, 31).and_hms(23, 59, 59)
+    }
 
-/// Turns a duration to ticks
-fn duration_to_ticks(duration: chrono::Duration) -> i64 {
-    // We can't directly ask for nanos because it will exceed i64,
-    // so we have to subtract the total seconds before asking for the nano portion
-    let seconds_part = chrono::Duration::seconds(duration.num_seconds());
-    let seconds = seconds_part.num_seconds();
-    let nanos = (duration - seconds_part).num_nanoseconds().unwrap();
-    // Put it back together in ticks
-    seconds * TICKS_PER_SECOND + nanos / NANOS_PER_TICK
-}
+    /// Turns a duration to ticks
+    fn duration_to_ticks(duration: chrono::Duration) -> i64 {
+        // We can't directly ask for nanos because it will exceed i64,
+        // so we have to subtract the total seconds before asking for the nano portion
+        let seconds_part = chrono::Duration::seconds(duration.num_seconds());
+        let seconds = seconds_part.num_seconds();
+        let nanos = (duration - seconds_part).num_nanoseconds().unwrap();
+        // Put it back together in ticks
+        seconds * TICKS_PER_SECOND + nanos / NANOS_PER_TICK
+    }
 
-/// Turns ticks to a duration
-fn ticks_to_duration(ticks: i64) -> chrono::Duration {
-    let secs = ticks / TICKS_PER_SECOND;
-    let nanos = (ticks - secs * TICKS_PER_SECOND) * NANOS_PER_TICK;
-    chrono::Duration::seconds(secs) + chrono::Duration::nanoseconds(nanos)
-}
-
-fn max_ticks() -> i64 {
-    duration_to_ticks(endtimes_chrono().signed_duration_since(epoch_chrono()))
+    fn max_ticks() -> i64 {
+        Self::duration_to_ticks(Self::endtimes_chrono().signed_duration_since(Self::epoch_chrono()))
+    }
 }

@@ -5,6 +5,7 @@ use encoding::*;
 use constants;
 use basic_types::*;
 use string::*;
+use guid::Guid;
 use date_time::DateTime;
 use data_value::DataValue;
 use node_id::{NodeId, ExpandedNodeId};

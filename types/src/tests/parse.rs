@@ -48,7 +48,7 @@ fn parse_node_id() {
     assert_eq!(node_id.is_ok(), true);
     let node_id = node_id.unwrap();
     assert_eq!(node_id.namespace, 0);
-    assert_eq!(node_id.identifier, Identifier::Guid(Guid::parse_str("72962B91-FA75-4ae6-8D28-B404DC7DAF63").unwrap()));
+    assert_eq!(node_id.identifier, Identifier::Guid(Guid::from_str("72962B91-FA75-4ae6-8D28-B404DC7DAF63").unwrap()));
 
     // TODO bytestring
 }

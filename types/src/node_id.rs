@@ -5,6 +5,7 @@ use std::io::{Read, Write};
 use encoding::*;
 use basic_types::*;
 use string::*;
+use guid::Guid;
 use generated::StatusCode;
 use generated::StatusCode::BAD_NODE_ID_INVALID;
 use generated::{ObjectId, ReferenceTypeId};
@@ -235,7 +236,7 @@ impl FromStr for NodeId {
                 NodeId::new_string(namespace, v.as_str())
             }
             "g" => {
-                let guid = Guid::parse_str(v.as_str());
+                let guid = Guid::from_str(v.as_str());
                 if guid.is_err() {
                     return Err(BAD_NODE_ID_INVALID);
                 }

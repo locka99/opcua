@@ -46,6 +46,10 @@ enum Scalar {
     Float,
     Double,
     String,
+    DateTime,
+    Guid,
+    // ByteString
+    // XmlElement
 }
 
 impl Scalar {
@@ -63,6 +67,8 @@ impl Scalar {
             Scalar::Float => "Float",
             Scalar::Double => "Double",
             Scalar::String => "String",
+            Scalar::DateTime => "DateTime",
+            Scalar::Guid => "Guid",
         }
     }
     pub fn node_id(&self) -> NodeId {
@@ -83,6 +89,8 @@ impl Scalar {
             Scalar::Float => Variant::new(0f32),
             Scalar::Double => Variant::new(0f64),
             Scalar::String => Variant::new(""),
+            Scalar::DateTime => Variant::new(DateTime::epoch()),
+            Scalar::Guid => Variant::new(Guid::null())
         }
     }
 
@@ -100,6 +108,8 @@ impl Scalar {
             Scalar::String,
             Scalar::Float,
             Scalar::Double,
+            Scalar::DateTime,
+            Scalar::Guid,
         ]
     }
 }
