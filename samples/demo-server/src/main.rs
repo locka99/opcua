@@ -6,6 +6,8 @@
 #[macro_use]
 extern crate log;
 extern crate chrono;
+extern crate rand;
+
 extern crate opcua_types;
 extern crate opcua_core;
 extern crate opcua_server;
@@ -14,6 +16,8 @@ use std::sync::{Arc, Mutex};
 use std::path::PathBuf;
 
 use opcua_server::prelude::*;
+
+use rand::Rng;
 
 fn main() {
     // This enables logging via env_logger & log crate macros. If you don't need logging or want
@@ -24,7 +28,8 @@ fn main() {
     let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
 
     // Add some variables of our own
-    let update_timers = add_scalar_variables(&mut server);
+    add_static_scalar_variables(&mut server);
+    let update_timers = add_dynamic_scalar_variables(&mut server);
 
     // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
     server.run();
@@ -71,8 +76,12 @@ impl Scalar {
             Scalar::Guid => "Guid",
         }
     }
-    pub fn node_id(&self) -> NodeId {
-        NodeId::new_string(2, self.name())
+    pub fn node_id(&self, dynamic: bool) -> NodeId {
+        let mut name = self.name().to_string();
+        if dynamic {
+            name.push_str("Dynamic");
+        }
+        NodeId::new_string(2, &name)
     }
 
     pub fn default_value(&self) -> Variant {
@@ -91,6 +100,29 @@ impl Scalar {
             Scalar::String => Variant::new(""),
             Scalar::DateTime => Variant::new(DateTime::epoch()),
             Scalar::Guid => Variant::new(Guid::null())
+        }
+    }
+
+    pub fn random_value(&self) -> Variant {
+        let mut rng = rand::thread_rng();
+        match *self {
+            Scalar::Boolean => Variant::new(rng.gen::<bool>()),
+            Scalar::Byte => Variant::new(rng.gen::<u8>()),
+            Scalar::SByte => Variant::new(rng.gen::<i8>()),
+            Scalar::Int16 => Variant::new(rng.gen::<i16>()),
+            Scalar::UInt16 => Variant::new(rng.gen::<u16>()),
+            Scalar::Int32 => Variant::new(rng.gen::<i32>()),
+            Scalar::UInt32 => Variant::new(rng.gen::<u32>()),
+            Scalar::Int64 => Variant::new(rng.gen::<i64>()),
+            Scalar::UInt64 => Variant::new(rng.gen::<u64>()),
+            Scalar::Float => Variant::new(rng.gen::<f32>()),
+            Scalar::Double => Variant::new(rng.gen::<f64>()),
+            Scalar::String => Variant::new(format!("Random {}", rng.gen::<u32>())),
+            Scalar::DateTime => {
+                let ticks = rng.gen::<i64>();
+                Variant::new(DateTime::from(ticks))
+            }
+            Scalar::Guid => Variant::new(Guid::new())
         }
     }
 
@@ -114,23 +146,62 @@ impl Scalar {
     }
 }
 
-
 /// Creates some sample variables, and some push / pull examples that update them
-fn add_scalar_variables(server: &mut Server) -> Vec<PollingAction> {
+fn add_static_scalar_variables(server: &mut Server) {
     // The address space is guarded so obtain a lock to change it
     let mut address_space = server.address_space.write().unwrap();
 
-    // Create a sample folder under objects folder
+    let static_folder_id = address_space
+        .add_folder("Static", "Static", &AddressSpace::objects_folder_id())
+        .unwrap();
+
+    // Create a folder under static folder
     let scalar_folder_id = address_space
-        .add_folder("Scalar", "Scalar", &AddressSpace::objects_folder_id())
+        .add_folder("Scalar", "Scalar", &static_folder_id)
         .unwrap();
 
     for sn in Scalar::values().iter() {
-        let node_id = sn.node_id();
+        let node_id = sn.node_id(false);
         let name = sn.name();
         let default_value = sn.default_value();
         let _ = address_space.add_variable(Variable::new(&node_id, name, name, &format!("{} value", name), default_value), &scalar_folder_id);
     }
+}
 
-    vec![]
+fn add_dynamic_scalar_variables(server: &mut Server) -> Vec<PollingAction> {
+    // The address space is guarded so obtain a lock to change it
+    {
+        let mut address_space = server.address_space.write().unwrap();
+
+        let dynamic_folder_id = address_space
+            .add_folder("Dynamic", "Dynamic", &AddressSpace::objects_folder_id())
+            .unwrap();
+
+        // Create a folder under static folder
+        let scalar_folder_id = address_space
+            .add_folder("Scalar", "Scalar", &dynamic_folder_id)
+            .unwrap();
+
+        for sn in Scalar::values().iter() {
+            let node_id = sn.node_id(true);
+            let name = sn.name();
+            let default_value = sn.default_value();
+            let _ = address_space.add_variable(Variable::new(&node_id, name, name, &format!("{} value", name), default_value), &scalar_folder_id);
+        }
+    }
+
+    let timers = {
+        let address_space = server.address_space.clone();
+        vec![
+            server.create_polling_action(250, move || {
+                let mut address_space = address_space.write().unwrap();
+                for sn in Scalar::values().iter() {
+                    let node_id = sn.node_id(true);
+                    let _ = address_space.set_value_by_node_id(&node_id, sn.random_value());
+                }
+            })
+        ]
+    };
+
+    timers
 }

@@ -173,5 +173,4 @@ impl SessionService {
             BAD_UNEXPECTED_ERROR
         }
     }
-
 }

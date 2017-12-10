@@ -252,6 +252,7 @@ dependencies = [
  "opcua-core 0.2.0",
  "opcua-server 0.2.0",
  "opcua-types 0.2.0",
+ "rand 0.3.18 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

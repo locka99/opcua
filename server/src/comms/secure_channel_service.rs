@@ -3,7 +3,7 @@ use std::result::Result;
 use opcua_types::*;
 
 use opcua_core::comms::prelude::*;
-use opcua_core::crypto::{SecurityPolicy};
+use opcua_core::crypto::SecurityPolicy;
 
 struct SecureChannelState {
     // Issued flag
