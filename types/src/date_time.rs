@@ -64,6 +64,12 @@ impl From<chrono::DateTime<Utc>> for DateTime {
     }
 }
 
+impl Default for DateTime {
+    fn default() -> Self {
+        DateTime::epoch()
+    }
+}
+
 impl From<Int64> for DateTime {
     fn from(value: Int64) -> Self {
         let secs = value / TICKS_PER_SECOND;
@@ -101,6 +107,11 @@ impl DateTime {
     /// Constructs a date time for the endtimes
     pub fn endtimes() -> DateTime {
         DateTime::from(Self::endtimes_chrono())
+    }
+
+    /// Returns the maximum tick value, corresponding to the end of time
+    pub fn endtimes_ticks() -> i64 {
+        Self::duration_to_ticks(Self::endtimes_chrono().signed_duration_since(Self::epoch_chrono()))
     }
 
     /// Constructs from a year, month, day
@@ -169,7 +180,7 @@ impl DateTime {
         if nanos < 0 {
             return 0;
         }
-        if nanos > Self::max_ticks() {
+        if nanos > Self::endtimes_ticks() {
             return i64::max_value();
         }
         nanos
@@ -195,9 +206,5 @@ impl DateTime {
         let nanos = (duration - seconds_part).num_nanoseconds().unwrap();
         // Put it back together in ticks
         seconds * TICKS_PER_SECOND + nanos / NANOS_PER_TICK
-    }
-
-    fn max_ticks() -> i64 {
-        Self::duration_to_ticks(Self::endtimes_chrono().signed_duration_since(Self::epoch_chrono()))
     }
 }

@@ -102,9 +102,15 @@ impl Variable {
         let _ = self.base.set_attribute_value(AttributeId::MinimumSamplingInterval, Variant::Int32(minimum_sampling_interval), &now, &now);
     }
 
-    /// Sets the variables value directly, updating the timestamp
+    /// Sets the variable's value but first test to see if it has changed. If the value has not
+    /// changed the existing timestamps are preserved. If
     pub fn set_value_direct(&mut self, now: &DateTime, value: Variant) {
         let mut data_value = self.value();
+        if let Some(ref existing_value) = data_value.value {
+            if *existing_value == value {
+                return;
+            }
+        }
         data_value.server_timestamp = Some(now.clone());
         data_value.server_picoseconds = Some(0);
         data_value.source_timestamp = Some(now.clone());

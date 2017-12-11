@@ -27,15 +27,17 @@ fn main() {
     // Create an OPC UA server with sample configuration and default node set
     let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
 
-    // Add some variables of our own
+    // Add static scalar values
     add_static_scalar_variables(&mut server);
-    let update_timers = add_dynamic_scalar_variables(&mut server);
+
+    // Add dynamically changing scalar values
+    let dynamic_scalar_timers = add_dynamic_scalar_variables(&mut server);
 
     // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
     server.run();
 
     // This explicit drop statement prevents the compiler complaining that update_timers is unused.
-    drop(update_timers);
+    drop(dynamic_scalar_timers);
 }
 
 enum Scalar {
@@ -84,6 +86,7 @@ impl Scalar {
         NodeId::new_string(2, &name)
     }
 
+    /// Returns the default value for any particular type
     pub fn default_value(&self) -> Variant {
         match *self {
             Scalar::Boolean => Variant::new(false),
@@ -98,11 +101,12 @@ impl Scalar {
             Scalar::Float => Variant::new(0f32),
             Scalar::Double => Variant::new(0f64),
             Scalar::String => Variant::new(""),
-            Scalar::DateTime => Variant::new(DateTime::epoch()),
-            Scalar::Guid => Variant::new(Guid::null())
+            Scalar::DateTime => Variant::new(DateTime::default()),
+            Scalar::Guid => Variant::new(Guid::default())
         }
     }
 
+    /// Generates a randomized value of the appropriate type in a Variant
     pub fn random_value(&self) -> Variant {
         let mut rng = rand::thread_rng();
         match *self {
@@ -117,12 +121,12 @@ impl Scalar {
             Scalar::UInt64 => Variant::new(rng.gen::<u64>()),
             Scalar::Float => Variant::new(rng.gen::<f32>()),
             Scalar::Double => Variant::new(rng.gen::<f64>()),
-            Scalar::String => Variant::new(format!("Random {}", rng.gen::<u32>())),
-            Scalar::DateTime => {
-                let ticks = rng.gen::<i64>();
-                Variant::new(DateTime::from(ticks))
+            Scalar::String => {
+                let s: String = rng.gen_ascii_chars().take(10).collect();
+                Variant::new(UAString::from(s))
             }
-            Scalar::Guid => Variant::new(Guid::new())
+            Scalar::DateTime => Variant::new(DateTime::from(rng.gen_range::<i64>(0, DateTime::endtimes_ticks()))),
+            Scalar::Guid => Variant::new(Guid::new()),
         }
     }
 

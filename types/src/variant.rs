@@ -365,6 +365,12 @@ impl From<String> for Variant {
     }
 }
 
+impl Default for Variant {
+    fn default() -> Self {
+        Variant::Empty
+    }
+}
+
 impl Variant {
     pub fn new<T>(value: T) -> Variant where T: 'static + Into<Variant> {
         value.into()

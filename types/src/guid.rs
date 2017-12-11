@@ -51,6 +51,12 @@ impl FromStr for Guid {
     }
 }
 
+impl Default for Guid {
+    fn default() -> Self {
+        Guid::null()
+    }
+}
+
 impl Guid {
     /// Return a null guid, i.e. 00000000-0000-0000-0000-000000000000
     pub fn null() -> Guid {

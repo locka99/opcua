@@ -92,6 +92,12 @@ impl From<String> for UAString {
     }
 }
 
+impl Default for UAString {
+    fn default() -> Self {
+        UAString::null()
+    }
+}
+
 impl UAString {
     /// Returns the length of the string or -1 for null
     pub fn len(&self) -> isize {
@@ -174,6 +180,12 @@ impl<'a, T> From<&'a T> for ByteString where T: AsRef<[u8]> + ? Sized {
 impl From<Vec<u8>> for ByteString {
     fn from(value: Vec<u8>) -> Self {
         ByteString { value: Some(value) }
+    }
+}
+
+impl Default for ByteString {
+    fn default() -> Self {
+        ByteString::null()
     }
 }
 
