@@ -11,6 +11,7 @@ use session::*;
 
 mod address_space;
 mod services;
+mod subscriptions;
 
 fn make_test_file(filename: &str) -> PathBuf {
     let mut path = std::env::temp_dir();
