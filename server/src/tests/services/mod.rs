@@ -9,6 +9,7 @@ use tests::*;
 struct ServiceTest {
     server: Server,
     server_state: Arc<RwLock<ServerState>>,
+    address_space: Arc<RwLock<AddressSpace>>,
     session: Arc<RwLock<Session>>,
 }
 
@@ -17,16 +18,22 @@ impl ServiceTest {
         let server = Server::new(ServerConfig::new_anonymous("foo"));
         let tcp_transport = server.new_transport();
         let server_state = server.server_state.clone();
+        let address_space = server.address_space.clone();
         let session = tcp_transport.session();
         ServiceTest {
             server,
             server_state,
+            address_space,
             session,
         }
     }
 
     pub fn get_server_state_and_session(&self) -> (RwLockWriteGuard<ServerState>, RwLockWriteGuard<Session>) {
         (self.server_state.write().unwrap(), self.session.write().unwrap())
+    }
+
+    pub fn get_address_space(&self) -> RwLockWriteGuard<AddressSpace> {
+        self.address_space.write().unwrap()
     }
 }
 
@@ -59,9 +66,9 @@ fn add_many_vars_to_address_space(address_space: &mut AddressSpace, vars_to_add:
     (sample_folder_id, node_ids)
 }
 
-mod attribute;
-mod discovery;
-mod session;
-mod monitored_item;
-mod subscription;
-mod view;
+pub mod attribute;
+pub mod discovery;
+pub mod session;
+pub mod monitored_item;
+pub mod subscription;
+pub mod view;

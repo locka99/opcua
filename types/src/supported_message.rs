@@ -10,6 +10,16 @@ use node_id::NodeId;
 use service_types::*;
 use generated::*;
 
+#[macro_export]
+macro_rules! expect_message {
+    ( $msg: expr, $x:ident ) => {
+            match $msg {
+                SupportedMessage::$x(msg) => msg,
+                _ => panic!("Unexpected message")
+            }
+        }
+    }
+
 /// This macro helps avoid tedious repetition as new messages are added
 /// The first form just handles the trailing comma after the last entry to save some pointless
 /// editing when new messages are added to the list.
