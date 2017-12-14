@@ -19,4 +19,3 @@ fn multiple_publish_response_subscription() {
     // Tick a change
     // Expect a publish response containing the subscription to be pushed
 }
-
