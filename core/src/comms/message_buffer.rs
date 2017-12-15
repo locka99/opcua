@@ -2,6 +2,7 @@ use std;
 use std::io::Cursor;
 
 use opcua_types::*;
+use opcua_types::StatusCode::BAD_COMMUNICATION_ERROR;
 
 use comms::handshake::{MessageType, MessageHeader, HelloMessage, AcknowledgeMessage, ErrorMessage, MESSAGE_HEADER_LEN};
 use comms::message_chunk::MessageChunk;

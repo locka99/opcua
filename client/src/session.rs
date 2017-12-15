@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::str::FromStr;
 
 use opcua_types::*;
+use opcua_types::StatusCode::*;
 use opcua_core::crypto;
 use opcua_core::crypto::{SecurityPolicy, CertificateStore, X509, PKey};
 
@@ -611,7 +612,7 @@ impl Session {
                     let token = AnonymousIdentityToken {
                         policy_id: policy_id.unwrap(),
                     };
-                    Ok(ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary.as_node_id(), token))
+                    Ok(ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary, token))
                 }
                 client::IdentityToken::UserName(ref user, ref pass) => {
                     // TODO Check that the security policy is something we can supply
@@ -621,7 +622,7 @@ impl Session {
                         password: ByteString::from(pass.as_bytes()),
                         encryption_algorithm: UAString::null(),
                     };
-                    Ok(ExtensionObject::from_encodable(ObjectId::UserNameIdentityToken_Encoding_DefaultBinary.as_node_id(), token))
+                    Ok(ExtensionObject::from_encodable(ObjectId::UserNameIdentityToken_Encoding_DefaultBinary, token))
                 }
             }
         }

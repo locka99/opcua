@@ -47,7 +47,7 @@ impl Variable {
         let attributes = vec![
             (AttributeId::UserAccessLevel, Variant::Byte(user_access_level)),
             (AttributeId::AccessLevel, Variant::Byte(access_level)),
-            (AttributeId::DataType, Variant::new(data_type.as_node_id())),
+            (AttributeId::DataType, Variant::new::<NodeId>(data_type.into())),
             (AttributeId::ValueRank, Variant::Int32(value_rank)),
             (AttributeId::Historizing, Variant::Boolean(historizing))
         ];

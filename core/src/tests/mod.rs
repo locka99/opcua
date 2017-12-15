@@ -5,6 +5,7 @@ use std::io::Cursor;
 use tempdir::TempDir;
 
 use opcua_types::*;
+use opcua_types::StatusCode::*;
 
 use comms::secure_channel::SecureChannel;
 

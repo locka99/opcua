@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex, RwLock};
 use chrono::Utc;
 
 use opcua_types::*;
+use opcua_types::StatusCode::*;
 
 use server_state::ServerState;
 use constants;
@@ -214,19 +215,19 @@ impl AddressSpace {
     }
 
     pub fn root_folder_id() -> NodeId {
-        ObjectId::RootFolder.as_node_id()
+        ObjectId::RootFolder.into()
     }
 
     pub fn objects_folder_id() -> NodeId {
-        ObjectId::ObjectsFolder.as_node_id()
+        ObjectId::ObjectsFolder.into()
     }
 
     pub fn types_folder_id() -> NodeId {
-        ObjectId::TypesFolder.as_node_id()
+        ObjectId::TypesFolder.into()
     }
 
     pub fn views_folder_id() -> NodeId {
-        ObjectId::ViewsFolder.as_node_id()
+        ObjectId::ViewsFolder.into()
     }
 
     pub fn root_folder(&self) -> &Object {
@@ -345,7 +346,7 @@ impl AddressSpace {
             // Add a relationship to the parent
             self.insert(Object::new(&node_id, browse_name, display_name, ""));
             self.add_organizes(&parent_node_id, &node_id);
-            self.insert_reference(&node_id, &node_type_id.as_node_id(), ReferenceTypeId::HasTypeDefinition);
+            self.insert_reference(&node_id, &node_type_id.into(), ReferenceTypeId::HasTypeDefinition);
             self.update_last_modified();
             Ok(node_id.clone())
         }
@@ -410,7 +411,7 @@ impl AddressSpace {
 
     /// Find and return a variable with the specified variable id
     pub fn find_variable_by_variable_id(&mut self, variable_id: VariableId) -> Option<&mut Variable> {
-        self.find_variable_by_node_id(&variable_id.as_node_id())
+        self.find_variable_by_node_id(&variable_id.into())
     }
 
     /// Set a variable value
@@ -427,7 +428,7 @@ impl AddressSpace {
     /// node id exists in the address space and is a Variable node. The response is true if the
     /// value was set and false otherwise.
     pub fn set_value_by_variable_id(&mut self, variable_id: VariableId, value: Variant) -> bool {
-        self.set_value_by_node_id(&variable_id.as_node_id(), value)
+        self.set_value_by_node_id(&variable_id.into(), value)
     }
 
     fn reference_type_matches(&self, r1: ReferenceTypeId, r2: ReferenceTypeId, include_subtypes: bool) -> bool {
@@ -578,16 +579,16 @@ impl AddressSpace {
         self.update_last_modified();
     }
 
-    pub fn set_object_type(&mut self, node_id: &NodeId, object_type: &ObjectTypeId) {
-        self.insert_reference(node_id, &object_type.as_node_id(), ReferenceTypeId::HasTypeDefinition);
+    pub fn set_object_type(&mut self, node_id: &NodeId, object_type: ObjectTypeId) {
+        self.insert_reference(node_id, &object_type.into(), ReferenceTypeId::HasTypeDefinition);
     }
 
-    pub fn set_variable_type(&mut self, node_id: &NodeId, variable_type: &VariableTypeId) {
-        self.insert_reference(node_id, &variable_type.as_node_id(), ReferenceTypeId::HasTypeDefinition);
+    pub fn set_variable_type(&mut self, node_id: &NodeId, variable_type: VariableTypeId) {
+        self.insert_reference(node_id, &variable_type.into(), ReferenceTypeId::HasTypeDefinition);
     }
 
     pub fn set_variable_as_property_type(&mut self, node_id: &NodeId) {
-        self.set_variable_type(node_id, &VariableTypeId::PropertyType);
+        self.set_variable_type(node_id, VariableTypeId::PropertyType);
     }
 
     pub fn add_has_component(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {

@@ -2,6 +2,7 @@ use std::result::Result;
 use std::sync::{Arc, Mutex};
 
 use opcua_types::*;
+use opcua_types::StatusCode::*;
 
 use address_space::address_space::AddressSpace;
 use session::Session;
@@ -199,7 +200,7 @@ impl ViewService {
 
             // Prepare the values to put into the struct according to the result mask
             let reference_type_id = if result_mask & RESULT_MASK_REFERENCE_TYPE != 0 {
-                reference.reference_type_id.as_node_id()
+                reference.reference_type_id.into()
             } else {
                 NodeId::null()
             };

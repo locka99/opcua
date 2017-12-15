@@ -2,8 +2,6 @@
 //! chunks containing messages
 extern crate rustc_serialize as serialize;
 
-use opcua_types::*;
-
 use comms::chunker::*;
 use comms::secure_channel::*;
 

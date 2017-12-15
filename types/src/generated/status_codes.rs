@@ -7,7 +7,7 @@ use std::io::{Read, Write};
 use encoding::*;
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, PartialEq, Copy)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub enum StatusCode {
     GOOD = 0,
     GOOD_SUBSCRIPTION_TRANSFERRED = 0x002D0000,

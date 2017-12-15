@@ -4,6 +4,7 @@ use chrono;
 use time;
 
 use opcua_types::*;
+use opcua_types::StatusCode::*;
 
 use constants;
 
@@ -23,7 +24,7 @@ impl FilterType {
         if filter_type_id.is_null() {
             // No data filter was passed, so just a dumb value comparison
             Ok(FilterType::None)
-        } else if filter_type_id == &ObjectId::DataChangeFilter_Encoding_DefaultBinary.as_node_id() {
+        } else if filter_type_id == &ObjectId::DataChangeFilter_Encoding_DefaultBinary.into() {
             Ok(FilterType::DataChangeFilter(filter.decode_inner::<DataChangeFilter>()?))
         } else {
             error!("Requested data filter type is not supported, {:?}", filter_type_id);

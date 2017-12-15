@@ -2,10 +2,12 @@ use std;
 use std::io::Cursor;
 
 use opcua_types::*;
+use opcua_types::StatusCode::*;
 
 use comms::message_chunk::{MessageIsFinalType, MessageChunk, MessageChunkType};
 use comms::secure_channel::SecureChannel;
 use crypto::SecurityPolicy;
+
 
 /// The Chunker is responsible for turning messages to chunks and chunks into messages.
 pub struct Chunker {}

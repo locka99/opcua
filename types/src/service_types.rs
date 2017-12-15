@@ -25,7 +25,7 @@ pub trait MessageInfo {
 
     /// Returns a node id equivalent to the message object id
     fn node_id(&self) -> NodeId {
-        self.object_id().as_node_id()
+        self.object_id().into()
     }
 }
 

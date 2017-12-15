@@ -7,6 +7,7 @@ use std::cmp::PartialEq;
 use std::io::Cursor;
 
 use ::*;
+use StatusCode::*;
 
 pub fn serialize_test_and_return<T>(value: T) -> T
     where T: BinaryEncoder<T> + Debug + PartialEq

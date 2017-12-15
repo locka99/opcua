@@ -1,6 +1,7 @@
 use std::result::Result;
 
 use opcua_types::*;
+use opcua_types::StatusCode::*;
 
 use subscriptions::subscription::Subscription;
 use server_state::ServerState;

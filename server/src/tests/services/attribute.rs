@@ -128,7 +128,7 @@ fn write_test() {
         }
 
         // change HasEncoding node with write access so response can be compared to HasChild which will be left alone
-        let node = address_space.find_node_mut(&ReferenceTypeId::HasEncoding.as_node_id()).unwrap();
+        let node = address_space.find_node_mut(&ReferenceTypeId::HasEncoding.into()).unwrap();
         node.as_mut_node().set_write_mask(write_mask::IS_ABSTRACT);
 
         node_ids
@@ -145,9 +145,9 @@ fn write_test() {
         // 3. a variable value which has no write access
         write_value(&node_ids[2], AttributeId::Value, DataValue::new(200 as Int32)),
         // 4. a node of some kind other than variable
-        write_value(&ReferenceTypeId::HasEncoding.as_node_id(), AttributeId::IsAbstract, DataValue::new(false)),
+        write_value(&ReferenceTypeId::HasEncoding.into(), AttributeId::IsAbstract, DataValue::new(false)),
         // 5. a node with some kind other than variable with no write mask
-        write_value(&ReferenceTypeId::HasChild.as_node_id(), AttributeId::IsAbstract, DataValue::new(false)),
+        write_value(&ReferenceTypeId::HasChild.into(), AttributeId::IsAbstract, DataValue::new(false)),
         // 6. a non existent variable
         write_value(&NodeId::new_string(2, "vxxx"), AttributeId::Value, DataValue::new(100 as Int32)),
         // 7. wrong type for attribute

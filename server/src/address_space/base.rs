@@ -4,6 +4,7 @@ use std::fmt::{Debug, Formatter};
 use std::sync::{Arc, Mutex};
 
 use opcua_types::*;
+use opcua_types::StatusCode::*;
 
 use address_space::{AttributeGetter, AttributeSetter};
 use address_space::node::Node;

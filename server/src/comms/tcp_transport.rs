@@ -12,6 +12,7 @@ use chrono::Utc;
 use time;
 
 use opcua_types::*;
+use opcua_types::StatusCode::*;
 use opcua_core::prelude::*;
 
 use constants;

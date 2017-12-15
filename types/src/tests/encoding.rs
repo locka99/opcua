@@ -212,13 +212,13 @@ fn extension_object() {
     serialize_test(eo);
 
     let eo = ExtensionObject {
-        node_id: ObjectId::CreateSessionResponse_Encoding_DefaultBinary.as_node_id(),
+        node_id: ObjectId::CreateSessionResponse_Encoding_DefaultBinary.into(),
         body: ExtensionObjectEncoding::ByteString(ByteString::from(b"hello world")),
     };
     serialize_test(eo);
 
     let eo = ExtensionObject {
-        node_id: ObjectId::CreateSessionResponse_Encoding_DefaultBinary.as_node_id(),
+        node_id: ObjectId::CreateSessionResponse_Encoding_DefaultBinary.into(),
         body: ExtensionObjectEncoding::XmlElement(XmlElement::from("hello world")),
     };
     serialize_test(eo);
@@ -331,12 +331,12 @@ fn variant() {
     let v = Variant::XmlElement(XmlElement::from("The world wonders"));
     serialize_test(v);
     // NodeId(NodeId),
-    let v = Variant::new(ObjectId::AddNodesItem_Encoding_DefaultBinary.as_node_id());
+    let v = Variant::new::<NodeId>(ObjectId::AddNodesItem_Encoding_DefaultBinary.into());
     serialize_test(v);
     let v = Variant::new(NodeId::new_string(99, "hello everyone"));
     serialize_test(v);
     // ExpandedNodeId
-    let v = Variant::new(ExpandedNodeId::new(ObjectId::AddNodesItem_Encoding_DefaultBinary.as_node_id()));
+    let v = Variant::new::<ExpandedNodeId>(ObjectId::AddNodesItem_Encoding_DefaultBinary.into());
     serialize_test(v);
     // StatusCode
     let v = Variant::new(BAD_TCP_MESSAGE_TYPE_INVALID);

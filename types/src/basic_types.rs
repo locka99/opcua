@@ -473,12 +473,13 @@ impl ExtensionObject {
 
     /// Creates an extension object with the specified node id and the encodable object as its payload.
     /// The body is set to a byte string containing the encoded struct.
-    pub fn from_encodable<T: BinaryEncoder<T>>(node_id: NodeId, encodable: T) -> ExtensionObject {
+    pub fn from_encodable<N, T>(node_id: N, encodable: T) -> ExtensionObject where N: 'static + Into<NodeId>,
+                                                                                   T: BinaryEncoder<T> {
         // Serialize to extension object
         let mut stream = Cursor::new(vec![0u8; encodable.byte_len()]);
         let _ = encodable.encode(&mut stream);
         ExtensionObject {
-            node_id,
+            node_id: node_id.into(),
             body: ExtensionObjectEncoding::ByteString(ByteString::from(stream.into_inner())),
         }
     }
@@ -486,7 +487,7 @@ impl ExtensionObject {
     /// Decodes the inner content of the extension object and returns it. The node id is ignored
     /// for decoding. The caller supplies the binary encoder impl that should be used to extract
     /// the data. Errors result in a decoding error.
-    pub fn decode_inner<T: BinaryEncoder<T>>(&self) -> EncodingResult<T> {
+    pub fn decode_inner<T>(&self) -> EncodingResult<T> where T: BinaryEncoder<T> {
         if let ExtensionObjectEncoding::ByteString(ref byte_string) = self.body {
             if let Some(ref value) = byte_string.value {
                 let value = value.clone();

@@ -18,9 +18,13 @@ var ignored_types =
         "FourByteNodeId", "TwoByteNodeId", "XmlElement", "Union", "RequestHeader", "ResponseHeader", "ExtensionObject",
         "Node", "InstanceNode", "TypeNode", "ObjectNode", "ObjectTypeNode", "VariableNode", "VariableTypeNode", "ReferenceTypeNode",
         "MethodNode", "ViewNode", "DataTypeNode", "ReferenceNode",
-        // Excluded because they use unimplemented enums
+        // Excluded because they use unimplemented enums, or are used by unimplemented services
         "ModificationInfo", "HistoryModifiedData", "UpdateDataDetails", "UpdateEventDetails", "UpdateStructureDataDetails", "RedundantServerDataType",
-        "ServerStatusDataType", "AxisInformation"
+        "ServerStatusDataType", "AxisInformation", "RegisterServer2Request", "RegisterServer2Response", "HistoryData", "HistoryEvent", "HistoryReadDetails",
+        "HistoryEventFieldList", "HistoryReadRequest", "HistoryReadResponse", "HistoryReadResult", "HistoryReadValueId", "HistoryUpdateDetails",
+        "HistoryUpdateRequest", "HistoryUpdateResponse", "HistoryUpdateResult", "SemanticChangeStructureDataType", "SemanticChangeStructureDataType",
+        "ReadAtTimeDetails", "ReadProcessedDetails"
+
     ];
 
 function convertFieldName(name) {
@@ -113,7 +117,6 @@ mod node_ids;
 pub use self::node_ids::*;
 mod status_codes;
 pub use self::status_codes::*;
-pub use self::status_codes::StatusCode::*;
 
 // All of the serializable types follow
 `;
@@ -160,14 +163,14 @@ use generated::status_codes::StatusCode;
     // will be
     _.each(fields_to_add, function (field) {
         if (!_.includes(fields_to_hide, field.name)) {
-            var type = _.find(structured_types, { name: field.contained_type });
+            var type = _.find(structured_types, {name: field.contained_type});
             if (type) {
                 types[type.name] = type.name;
             }
         }
     });
 
-    _.each(types, function(key, value) {
+    _.each(types, function (key, value) {
         imports += `use generated::${key};
 `;
     })

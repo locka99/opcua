@@ -5,6 +5,7 @@ use std::io::{Read, ErrorKind};
 
 use chrono;
 
+use opcua_types::StatusCode::*;
 use opcua_core::prelude::*;
 
 use session::SessionState;

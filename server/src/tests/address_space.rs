@@ -24,27 +24,27 @@ fn find_root_folder() {
 
     let node = node_type.unwrap().as_node();
     assert_eq!(node.node_id(), NodeId::new(0, 84));
-    assert_eq!(node.node_id(), ObjectId::RootFolder.as_node_id());
+    assert_eq!(node.node_id(), ObjectId::RootFolder.into());
 }
 
 #[test]
 fn find_objects_folder() {
     let address_space = AddressSpace::new();
-    let node_type = address_space.find_node(&ObjectId::ObjectsFolder.as_node_id());
+    let node_type = address_space.find_node(&ObjectId::ObjectsFolder.into());
     assert!(node_type.is_some());
 }
 
 #[test]
 fn find_types_folder() {
     let address_space = AddressSpace::new();
-    let node_type = address_space.find_node(&ObjectId::TypesFolder.as_node_id());
+    let node_type = address_space.find_node(&ObjectId::TypesFolder.into());
     assert!(node_type.is_some());
 }
 
 #[test]
 fn find_views_folder() {
     let address_space = AddressSpace::new();
-    let node_type = address_space.find_node(&ObjectId::ViewsFolder.as_node_id());
+    let node_type = address_space.find_node(&ObjectId::ViewsFolder.into());
     assert!(node_type.is_some());
 }
 
@@ -52,52 +52,52 @@ fn find_views_folder() {
 #[test]
 fn find_common_nodes() {
     let address_space = AddressSpace::new();
-    let nodes = vec![
+    let nodes: Vec<NodeId> = vec![
         AddressSpace::root_folder_id(),
         AddressSpace::objects_folder_id(),
         AddressSpace::types_folder_id(),
         AddressSpace::views_folder_id(),
-        ObjectId::DataTypesFolder.as_node_id(),
-        DataTypeId::BaseDataType.as_node_id(),
+        ObjectId::DataTypesFolder.into(),
+        DataTypeId::BaseDataType.into(),
         // Types
-        DataTypeId::Boolean.as_node_id(),
-        DataTypeId::ByteString.as_node_id(),
-        DataTypeId::DataValue.as_node_id(),
-        DataTypeId::DateTime.as_node_id(),
-        DataTypeId::DiagnosticInfo.as_node_id(),
-        DataTypeId::Enumeration.as_node_id(),
-        DataTypeId::ExpandedNodeId.as_node_id(),
-        DataTypeId::Guid.as_node_id(),
-        DataTypeId::LocalizedText.as_node_id(),
-        DataTypeId::NodeId.as_node_id(),
-        DataTypeId::Number.as_node_id(),
-        DataTypeId::QualifiedName.as_node_id(),
-        DataTypeId::StatusCode.as_node_id(),
-        DataTypeId::String.as_node_id(),
-        DataTypeId::Structure.as_node_id(),
-        DataTypeId::XmlElement.as_node_id(),
-        DataTypeId::Double.as_node_id(),
-        DataTypeId::Float.as_node_id(),
-        DataTypeId::Integer.as_node_id(),
-        DataTypeId::SByte.as_node_id(),
-        DataTypeId::Int16.as_node_id(),
-        DataTypeId::Int32.as_node_id(),
-        DataTypeId::Int64.as_node_id(),
-        DataTypeId::Byte.as_node_id(),
-        DataTypeId::UInt16.as_node_id(),
-        DataTypeId::UInt32.as_node_id(),
-        DataTypeId::UInt64.as_node_id(),
-        ObjectId::OPCBinarySchema_TypeSystem.as_node_id(),
-        ObjectTypeId::DataTypeSystemType.as_node_id(),
+        DataTypeId::Boolean.into(),
+        DataTypeId::ByteString.into(),
+        DataTypeId::DataValue.into(),
+        DataTypeId::DateTime.into(),
+        DataTypeId::DiagnosticInfo.into(),
+        DataTypeId::Enumeration.into(),
+        DataTypeId::ExpandedNodeId.into(),
+        DataTypeId::Guid.into(),
+        DataTypeId::LocalizedText.into(),
+        DataTypeId::NodeId.into(),
+        DataTypeId::Number.into(),
+        DataTypeId::QualifiedName.into(),
+        DataTypeId::StatusCode.into(),
+        DataTypeId::String.into(),
+        DataTypeId::Structure.into(),
+        DataTypeId::XmlElement.into(),
+        DataTypeId::Double.into(),
+        DataTypeId::Float.into(),
+        DataTypeId::Integer.into(),
+        DataTypeId::SByte.into(),
+        DataTypeId::Int16.into(),
+        DataTypeId::Int32.into(),
+        DataTypeId::Int64.into(),
+        DataTypeId::Byte.into(),
+        DataTypeId::UInt16.into(),
+        DataTypeId::UInt32.into(),
+        DataTypeId::UInt64.into(),
+        ObjectId::OPCBinarySchema_TypeSystem.into(),
+        ObjectTypeId::DataTypeSystemType.into(),
         // Refs
-        ObjectId::ReferenceTypesFolder.as_node_id(),
-        ReferenceTypeId::References.as_node_id(),
-        ReferenceTypeId::HierarchicalReferences.as_node_id(),
-        ReferenceTypeId::HasChild.as_node_id(),
-        ReferenceTypeId::HasSubtype.as_node_id(),
-        ReferenceTypeId::Organizes.as_node_id(),
-        ReferenceTypeId::NonHierarchicalReferences.as_node_id(),
-        ReferenceTypeId::HasTypeDefinition.as_node_id(),
+        ObjectId::ReferenceTypesFolder.into(),
+        ReferenceTypeId::References.into(),
+        ReferenceTypeId::HierarchicalReferences.into(),
+        ReferenceTypeId::HasChild.into(),
+        ReferenceTypeId::HasSubtype.into(),
+        ReferenceTypeId::Organizes.into(),
+        ReferenceTypeId::NonHierarchicalReferences.into(),
+        ReferenceTypeId::HasTypeDefinition.into(),
     ];
     for n in nodes {
         assert!(address_space.find_node(&n).is_some());

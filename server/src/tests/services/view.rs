@@ -10,7 +10,7 @@ fn make_browse_request(nodes: &[NodeId], max_references_per_node: usize, browse_
         BrowseDescription {
             node_id: n.clone(),
             browse_direction,
-            reference_type_id: reference_type.as_node_id(),
+            reference_type_id: reference_type.into(),
             include_subtypes: true,
             node_class_mask: 0xff,
             result_mask: 0xff,
@@ -70,7 +70,7 @@ fn browse() {
     let mut address_space = st.server.address_space.write().unwrap();
     add_sample_vars_to_address_space(&mut address_space);
 
-    let nodes = vec![ObjectId::RootFolder.as_node_id()];
+    let nodes: Vec<NodeId> = vec![ObjectId::RootFolder.into()];
     let response = do_browse(&vs, &mut session, &address_space, &nodes, 1000);
     assert!(response.results.is_some());
 
@@ -221,14 +221,14 @@ fn translate_browse_paths_to_node_ids() {
         let mut browse_paths = Vec::new();
         let mut path_elements = Vec::new();
         path_elements.push(RelativePathElement {
-            reference_type_id: ReferenceTypeId::HasChild.as_node_id(),
+            reference_type_id: ReferenceTypeId::HasChild.into(),
             is_inverse: false,
             include_subtypes: true,
             target_name: QualifiedName::new(0, "Objects"),
         });
 
         browse_paths.push(BrowsePath {
-            starting_node: ObjectId::RootFolder.as_node_id(),
+            starting_node: ObjectId::RootFolder.into(),
             relative_path: RelativePath {
                 elements: Some(path_elements),
             }

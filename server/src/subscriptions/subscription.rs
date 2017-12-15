@@ -4,6 +4,7 @@ use chrono;
 use time;
 
 use opcua_types::*;
+use opcua_types::StatusCode::*;
 
 use constants;
 

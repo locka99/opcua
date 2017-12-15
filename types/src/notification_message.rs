@@ -15,7 +15,7 @@ impl NotificationMessage {
         trace!("data change notification = {:?}", data_change_notification);
 
         // Serialize to extension object
-        let notification_data = ExtensionObject::from_encodable(ObjectId::DataChangeNotification_Encoding_DefaultBinary.as_node_id(), data_change_notification);
+        let notification_data = ExtensionObject::from_encodable(ObjectId::DataChangeNotification_Encoding_DefaultBinary, data_change_notification);
         NotificationMessage {
             sequence_number,
             publish_time: publish_time.clone(),
