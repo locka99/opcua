@@ -223,14 +223,14 @@ impl CertificateStore {
     /// be moved to trusted by user
     /// # Errors
     ///
-    /// A non `GOOD` status code indicates a failure in the cert or in some action required in
+    /// A non `Good` status code indicates a failure in the cert or in some action required in
     /// order to validate it.
     ///
     pub fn validate_or_reject_application_instance_cert(&self, cert: &X509) -> StatusCode {
         let result = self.validate_application_instance_cert(cert);
         if result.is_bad() {
             match result {
-                BAD_UNEXPECTED_ERROR | BAD_SECURITY_CHECKS_FAILED => {
+                BadUnexpectedError | BadSecurityChecksFailed => {
                     /* DO NOTHING */
                 }
                 _ => {
@@ -272,7 +272,7 @@ impl CertificateStore {
     ///
     /// # Errors
     ///
-    /// A non `GOOD` status code indicates a failure in the cert or in some action required in
+    /// A non `Good` status code indicates a failure in the cert or in some action required in
     /// order to validate it.
     ///
     pub fn validate_application_instance_cert(&self, cert: &X509) -> StatusCode {
@@ -285,12 +285,12 @@ impl CertificateStore {
             let mut cert_path = self.rejected_certs_dir();
             if !cert_path.exists() {
                 error!("Path for rejected certificates {} does not exist", cert_path.display());
-                return BAD_UNEXPECTED_ERROR;
+                return BadUnexpectedError;
             }
             cert_path.push(&cert_file_name);
             if cert_path.exists() {
                 warn!("Certificate {} is untrusted because it resides in the rejected directory", cert_file_name);
-                return BAD_SECURITY_CHECKS_FAILED;
+                return BadSecurityChecksFailed;
             }
         }
 
@@ -301,7 +301,7 @@ impl CertificateStore {
             let mut cert_path = self.trusted_certs_dir();
             if !cert_path.exists() {
                 error!("Path for rejected certificates {} does not exist", cert_path.display());
-                return BAD_UNEXPECTED_ERROR;
+                return BadUnexpectedError;
             }
             cert_path.push(&cert_file_name);
 
@@ -310,13 +310,13 @@ impl CertificateStore {
                 // ... trust checks based on ca could be added here to add cert straight to trust folder
                 warn!("Certificate {} is unknown and untrusted so it will be stored in rejected directory", cert_file_name);
                 let _ = self.store_rejected_cert(cert);
-                return BAD_CERTIFICATE_UNTRUSTED;
+                return BadCertificateUntrusted;
             }
 
             // Read the cert from the trusted folder to make sure it matches the one supplied
             if !CertificateStore::ensure_cert_and_file_are_the_same(cert, &cert_path) {
                 error!("Certificate in memory does not match the one on disk {} so cert will automatically be treated as untrusted", cert_path.display());
-                return BAD_UNEXPECTED_ERROR;
+                return BadUnexpectedError;
             }
 
             // Now inspect the cert not before / after values to ensure its validity
@@ -334,7 +334,7 @@ impl CertificateStore {
             // ... trust (self-signed, ca etc.)
             // ... revocation
         }
-        GOOD
+        Good
     }
 
     /// Returns a certificate file name from the cert's issuer and thumbprint fields

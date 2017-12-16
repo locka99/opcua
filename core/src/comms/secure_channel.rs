@@ -227,13 +227,13 @@ impl SecureChannel {
             if let Some(ref remote_nonce) = remote_nonce.value {
                 if remote_nonce.len() != self.security_policy.symmetric_key_size() {
                     error!("Remote nonce is invalid length {}, expecting {}. {:?}", remote_nonce.len(), self.security_policy.symmetric_key_size(), remote_nonce);
-                    return Err(BAD_NONCE_INVALID);
+                    return Err(BadNonceInvalid);
                 }
                 self.remote_nonce = remote_nonce.to_vec();
                 Ok(())
             } else {
                 error!("Remote nonce is invalid {:?}", remote_nonce);
-                Err(BAD_NONCE_INVALID)
+                Err(BadNonceInvalid)
             }
         } else {
             trace!("set_remote_nonce is doing nothing because security policy = {:?}, mode = {:?}", self.security_policy, self.security_mode);
@@ -507,7 +507,7 @@ impl SecureChannel {
         let message_size = message_header.message_size as usize;
         if message_size != src.len() {
             error!("The message size {} is not the same as the supplied buffer {}", message_size, src.len());
-            return Err(BAD_UNEXPECTED_ERROR);
+            return Err(BadUnexpectedError);
         }
 
         // S - Message Header
@@ -534,7 +534,7 @@ impl SecureChannel {
             let security_policy = SecurityPolicy::from_uri(security_header.security_policy_uri.as_ref());
             match security_policy {
                 SecurityPolicy::Unknown => {
-                    return Err(BAD_SECURITY_POLICY_REJECTED);
+                    return Err(BadSecurityPolicyRejected);
                 }
                 SecurityPolicy::None => {
                     // Nothing to do
@@ -648,7 +648,7 @@ impl SecureChannel {
         for (i, b) in padding_bytes.iter().enumerate() {
             if *b != expected_padding_byte {
                 error!("Expected padding byte {}, got {} at index {}", expected_padding_byte, *b, padding_range_start + i);
-                return Err(BAD_SECURITY_CHECKS_FAILED);
+                return Err(BadSecurityChecksFailed);
             }
         }
         Ok(())
@@ -670,7 +670,7 @@ impl SecureChannel {
             Self::check_padding_bytes(&src[padding_range.start..(padding_range.end - 1)], padding_byte, padding_range.start)?;
             if src[padding_range.end - 1] != extra_padding_byte {
                 error!("Expected extra padding byte {}, at index {}", extra_padding_byte, padding_range.start);
-                return Err(BAD_SECURITY_CHECKS_FAILED);
+                return Err(BadSecurityChecksFailed);
             }
             padding_range
         } else {
@@ -690,7 +690,7 @@ impl SecureChannel {
         match security_policy {
             SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {}
             _ => {
-                return Err(BAD_SECURITY_POLICY_REJECTED);
+                return Err(BadSecurityPolicyRejected);
             }
         }
 
@@ -707,7 +707,7 @@ impl SecureChannel {
         let our_thumbprint = our_cert.thumbprint();
         if &our_thumbprint.value[..] != receiver_thumbprint.as_ref() {
             error!("Supplied thumbprint does not match application certificate's thumbprint");
-            Err(BAD_NO_VALID_CERTIFICATES)
+            Err(BadNoValidCertificates)
         } else {
             // Copy message, security header
             dst[..encrypted_range.start].copy_from_slice(&src[..encrypted_range.start]);
@@ -916,7 +916,7 @@ impl SecureChannel {
                 let ciphertext_size = encrypted_range.end - encrypted_range.start;
                 //                if ciphertext_size % 16 != 0 {
                 //                    error!("The cipher text size is not padded properly, size = {}", ciphertext_size);
-                //                    return Err(BAD_UNEXPECTED_ERROR);
+                //                    return Err(BadUnexpectedError);
                 //                }
 
                 // Copy security header

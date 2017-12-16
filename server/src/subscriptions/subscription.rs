@@ -146,7 +146,7 @@ impl Subscription {
             let result = if let Ok(monitored_item) = monitored_item {
                 // Return the status
                 let result = MonitoredItemCreateResult {
-                    status_code: GOOD,
+                    status_code: Good,
                     monitored_item_id: monitored_item_id,
                     revised_sampling_interval: monitored_item.sampling_interval,
                     revised_queue_size: monitored_item.queue_size as UInt32,
@@ -184,7 +184,7 @@ impl Subscription {
                 let modify_result = monitored_item.modify(item_to_modify);
                 result.push(if modify_result.is_ok() {
                     MonitoredItemModifyResult {
-                        status_code: GOOD,
+                        status_code: Good,
                         revised_sampling_interval: monitored_item.sampling_interval,
                         revised_queue_size: monitored_item.queue_size as UInt32,
                         filter_result: ExtensionObject::null(),
@@ -200,7 +200,7 @@ impl Subscription {
             } else {
                 // Item does not exist
                 result.push(MonitoredItemModifyResult {
-                    status_code: BAD_MONITORED_ITEM_ID_INVALID,
+                    status_code: BadMonitoredItemIdInvalid,
                     revised_sampling_interval: 0f64,
                     revised_queue_size: 0,
                     filter_result: ExtensionObject::null(),
@@ -215,7 +215,7 @@ impl Subscription {
         items_to_delete.iter().map(|item_to_delete| {
             // Remove the item (or report an error with the id)
             let removed = self.monitored_items.remove(item_to_delete);
-            if removed.is_some() { GOOD } else { BAD_MONITORED_ITEM_ID_INVALID }
+            if removed.is_some() { Good } else { BadMonitoredItemIdInvalid }
         }).collect()
     }
 
@@ -498,10 +498,10 @@ impl Subscription {
         if self.retransmission_queue.remove(&subscription_acknowledgement.sequence_number).is_some() {
             trace!("Removed acknowledged notification {}", subscription_acknowledgement.sequence_number);
             self.more_notifications = !self.retransmission_queue.is_empty();
-            GOOD
+            Good
         } else {
             error!("Can't find acknowledged notification {}", subscription_acknowledgement.sequence_number);
-            BAD_SEQUENCE_NUMBER_UNKNOWN
+            BadSequenceNumberUnknown
         }
     }
 
@@ -576,7 +576,7 @@ impl Subscription {
         PublishResponseEntry {
             request_id: publish_request.request_id,
             response: SupportedMessage::PublishResponse(PublishResponse {
-                response_header: ResponseHeader::new_timestamped_service_result(now.clone(), &publish_request.request.request_header, GOOD),
+                response_header: ResponseHeader::new_timestamped_service_result(now.clone(), &publish_request.request.request_header, Good),
                 subscription_id: self.subscription_id,
                 available_sequence_numbers: self.available_sequence_numbers(),
                 more_notifications: self.more_notifications,

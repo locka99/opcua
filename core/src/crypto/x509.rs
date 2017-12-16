@@ -86,12 +86,12 @@ impl X509 {
     pub fn from_byte_string(data: &ByteString) -> Result<X509, StatusCode> {
         if data.is_null() {
             error!("Can't make certificate from null bytestring");
-            Err(BAD_CERTIFICATE_INVALID)
+            Err(BadCertificateInvalid)
         } else if let Ok(cert) = x509::X509::from_der(&data.value.as_ref().unwrap()) {
             Ok(X509::wrap(cert))
         } else {
             error!("Can't make certificate, does bytestring contain .der?");
-            Err(BAD_CERTIFICATE_INVALID)
+            Err(BadCertificateInvalid)
         }
     }
 
@@ -107,7 +107,7 @@ impl X509 {
             Ok(pkey)
         } else {
             error!("Can't obtain public key from certificate");
-            Err(BAD_CERTIFICATE_INVALID)
+            Err(BadCertificateInvalid)
         }
     }
 
@@ -138,12 +138,12 @@ impl X509 {
         if let Ok(not_before) = not_before {
             if now.lt(&not_before) {
                 error!("Certificate < before date)");
-                return BAD_CERTIFICATE_TIME_INVALID;
+                return BadCertificateTimeInvalid;
             }
         } else {
             // No before time
             error!("Certificate has no before date");
-            return BAD_CERTIFICATE_INVALID;
+            return BadCertificateInvalid;
         }
 
         // Expiration time
@@ -151,15 +151,15 @@ impl X509 {
         if let Ok(not_after) = not_after {
             if now.gt(&not_after) {
                 error!("Certificate has expired (> after date)");
-                return BAD_CERTIFICATE_TIME_INVALID;
+                return BadCertificateTimeInvalid;
             }
         } else {
             // No after time
             error!("Certificate has no after date");
-            return BAD_CERTIFICATE_INVALID;
+            return BadCertificateInvalid;
         }
 
-        GOOD
+        Good
     }
 
     /// OPC UA Part 6 MessageChunk structure

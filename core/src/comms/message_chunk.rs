@@ -144,7 +144,7 @@ impl BinaryEncoder<MessageChunk> for MessageChunk {
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let result = stream.write(&self.data);
         if result.is_err() {
-            Err(BAD_ENCODING_ERROR)
+            Err(BadEncodingError)
         } else {
             Ok(result.unwrap())
         }
@@ -155,12 +155,12 @@ impl BinaryEncoder<MessageChunk> for MessageChunk {
         let chunk_header_result = MessageChunkHeader::decode(in_stream);
         if chunk_header_result.is_err() {
             error!("Cannot decode chunk header {:?}", chunk_header_result.unwrap_err());
-            return Err(BAD_COMMUNICATION_ERROR);
+            return Err(BadCommunicationError);
         }
 
         let chunk_header = chunk_header_result.unwrap();
         if !chunk_header.is_valid {
-            return Err(BAD_TCP_MESSAGE_TYPE_INVALID);
+            return Err(BadTcpMessageTypeInvalid);
         }
 
         // Now make a 

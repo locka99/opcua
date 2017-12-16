@@ -66,7 +66,7 @@ impl MessageHandler {
         if session.authentication_token != request_header.authentication_token {
             // Session should terminate
             session.terminate_session = true;
-            Err(ServiceFault::new_supported_message(request_header, BAD_IDENTITY_TOKEN_REJECTED))
+            Err(ServiceFault::new_supported_message(request_header, BadIdentityTokenRejected))
         } else {
             Ok(())
         }
@@ -201,7 +201,7 @@ impl MessageHandler {
             }
             _ => {
                 debug!("Message handler does not handle this kind of message {:?}", message);
-                return Err(BAD_SERVICE_UNSUPPORTED);
+                return Err(BadServiceUnsupported);
             }
         };
         Ok(response)

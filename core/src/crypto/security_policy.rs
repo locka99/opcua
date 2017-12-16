@@ -456,7 +456,7 @@ impl SecurityPolicy {
                 trace!("Using their_key, signature should be {:?}", &their_signature);
             }
 
-            Err(BAD_SECURITY_CHECKS_FAILED)
+            Err(BadSecurityChecksFailed)
         }
     }
 
@@ -477,7 +477,7 @@ impl SecurityPolicy {
         if let Ok(encrypted_size) = encryption_key.public_encrypt(src, dst, padding) {
             Ok(encrypted_size)
         } else {
-            Err(BAD_UNEXPECTED_ERROR)
+            Err(BadUnexpectedError)
         }
     }
 
@@ -490,7 +490,7 @@ impl SecurityPolicy {
             Ok(decrypted_size)
         } else {
             error!("Asymmetric decryption failed");
-            return Err(BAD_SECURITY_CHECKS_FAILED);
+            return Err(BadSecurityChecksFailed);
         }
     }
 
@@ -533,7 +533,7 @@ impl SecurityPolicy {
             Ok(verified)
         } else {
             error!("Signature invalid {:?}", signature);
-            Err(BAD_SECURITY_CHECKS_FAILED)
+            Err(BadSecurityChecksFailed)
         }
     }
 

@@ -5,11 +5,11 @@ use basic_types::*;
 use date_time::*;
 use variant::Variant;
 use generated::StatusCode;
-use generated::StatusCode::GOOD;
+use generated::StatusCode::Good;
 
 /// False if the Value is Null.
 const HAS_VALUE: u8 = 0x1;
-/// False if the StatusCode is GOOD.
+/// False if the StatusCode is Good.
 const HAS_STATUS: u8 = 0x2;
 /// False if the Source Timestamp is DateTime.MinValue.
 const HAS_SOURCE_TIMESTAMP: u8 = 0x4;
@@ -153,7 +153,7 @@ impl DataValue {
         let now = DateTime::now();
         DataValue {
             value: Some(Variant::new(value)),
-            status: Some(GOOD),
+            status: Some(Good),
             source_timestamp: Some(now.clone()),
             source_picoseconds: Some(0),
             server_timestamp: Some(now.clone()),
@@ -165,7 +165,7 @@ impl DataValue {
         let now = DateTime::now();
         DataValue {
             value: None,
-            status: Some(GOOD),
+            status: Some(Good),
             source_timestamp: Some(now.clone()),
             source_picoseconds: Some(0),
             server_timestamp: Some(now.clone()),

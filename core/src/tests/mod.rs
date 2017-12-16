@@ -104,7 +104,7 @@ fn make_open_secure_channel_response() -> OpenSecureChannelResponse {
         response_header: ResponseHeader {
             timestamp: DateTime::now(),
             request_handle: 444,
-            service_result: BAD_PROTOCOL_VERSION_UNSUPPORTED,
+            service_result: BadProtocolVersionUnsupported,
             service_diagnostics: DiagnosticInfo::new(),
             string_table: None,
             additional_header: ExtensionObject::null(),

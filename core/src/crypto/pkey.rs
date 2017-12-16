@@ -174,7 +174,7 @@ impl PKey {
                 }
             }
         }
-        Err(BAD_UNEXPECTED_ERROR)
+        Err(BadUnexpectedError)
     }
 
     /// Verifies that the signature matches the hash / signing key of the supplied data
@@ -192,7 +192,7 @@ impl PKey {
                 }
             }
         }
-        Err(BAD_UNEXPECTED_ERROR)
+        Err(BadUnexpectedError)
     }
 
     /// Signs the data using RSA-SHA1

@@ -67,11 +67,11 @@ impl TcpTransport {
         // Validate and split out the endpoint we have
         let result = Url::parse(&endpoint_url);
         if result.is_err() {
-            return Err(BAD_TCP_ENDPOINT_URL_INVALID);
+            return Err(BadTcpEndpointUrlInvalid);
         }
         let url = result.unwrap();
         if url.scheme() != "opc.tcp" || !url.has_host() {
-            return Err(BAD_TCP_ENDPOINT_URL_INVALID);
+            return Err(BadTcpEndpointUrlInvalid);
         }
 
         debug!("Connecting to {:?}", url);
@@ -81,7 +81,7 @@ impl TcpTransport {
         let stream = TcpStream::connect((host, port));
         if stream.is_err() {
             error!("Could not connect to host {}:{}", host, port);
-            return Err(BAD_SERVER_NOT_CONNECTED);
+            return Err(BadServerNotConnected);
         }
 
         debug!("Connected...");
@@ -203,7 +203,7 @@ impl TcpTransport {
             let request_duration = now.signed_duration_since(start);
             if request_duration.num_milliseconds() > request_timeout as i64 {
                 debug!("Time waiting {}ms exceeds timeout {}ms waiting for response from request id {}", request_duration.num_milliseconds(), request_timeout, request_id);
-                session_status_code = BAD_TIMEOUT;
+                session_status_code = BadTimeout;
                 break;
             }
 
@@ -221,7 +221,7 @@ impl TcpTransport {
                 // recovery state
 
                 debug!("Read error - kind = {:?}, {:?}", error.kind(), error);
-                session_status_code = BAD_UNEXPECTED_ERROR;
+                session_status_code = BadUnexpectedError;
                 break;
             }
             let bytes_read = bytes_read_result.unwrap();
@@ -252,7 +252,7 @@ impl TcpTransport {
                         session_status_code = if let Ok(status_code) = StatusCode::from_u32(error_message.error) {
                             status_code
                         } else {
-                            BAD_UNEXPECTED_ERROR
+                            BadUnexpectedError
                         };
                         error!("Expecting a chunk, got an error message {:?}, reason \"{}\"", session_status_code, error_message.reason.as_ref());
                         break 'message_loop;
@@ -260,7 +260,7 @@ impl TcpTransport {
                     message => {
                         // This is not a regular message, or an error so what is happening?
                         error!("Expecting a chunk, got something that was not a chunk or even an error - {:?}", message);
-                        session_status_code = BAD_UNEXPECTED_ERROR;
+                        session_status_code = BadUnexpectedError;
                         break 'message_loop;
                     }
                 }
@@ -285,7 +285,7 @@ impl TcpTransport {
 
     pub fn async_send_request(&mut self, request: SupportedMessage) -> Result<UInt32, StatusCode> {
         if !self.is_connected() {
-            return Err(BAD_SERVER_NOT_CONNECTED);
+            return Err(BadServerNotConnected);
         }
 
         let request_id = self.next_request_id();

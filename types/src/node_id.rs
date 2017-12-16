@@ -7,7 +7,7 @@ use basic_types::*;
 use string::*;
 use guid::Guid;
 use generated::StatusCode;
-use generated::StatusCode::BAD_NODE_ID_INVALID;
+use generated::StatusCode::BadNodeIdInvalid;
 use generated::{ObjectId, ReferenceTypeId};
 
 /// The kind of identifier, numeric, string, guid or byte
@@ -204,7 +204,7 @@ impl FromStr for NodeId {
 
         let captures = RE.captures(s);
         if captures.is_none() {
-            return Err(BAD_NODE_ID_INVALID);
+            return Err(BadNodeIdInvalid);
         }
         let captures = captures.unwrap();
 
@@ -214,7 +214,7 @@ impl FromStr for NodeId {
         let namespace = if ns.is_some() {
             let parse_result = ns.unwrap().as_str().parse::<UInt16>();
             if parse_result.is_err() {
-                return Err(BAD_NODE_ID_INVALID);
+                return Err(BadNodeIdInvalid);
             }
             parse_result.unwrap()
         } else {
@@ -228,7 +228,7 @@ impl FromStr for NodeId {
             "i" => {
                 let number = v.as_str().parse::<UInt32>();
                 if number.is_err() {
-                    return Err(BAD_NODE_ID_INVALID);
+                    return Err(BadNodeIdInvalid);
                 }
                 NodeId::new(namespace, number.unwrap())
             }
@@ -238,7 +238,7 @@ impl FromStr for NodeId {
             "g" => {
                 let guid = Guid::from_str(v.as_str());
                 if guid.is_err() {
-                    return Err(BAD_NODE_ID_INVALID);
+                    return Err(BadNodeIdInvalid);
                 }
                 NodeId::new(namespace, guid.unwrap())
             }
@@ -246,10 +246,10 @@ impl FromStr for NodeId {
                 // Parse hex back into bytes
                 // NodeId::new_bytestring(namespace, ByteString::from(decoded_v.as_str()))
                 error!("ByteString parsing needs to be implemented");
-                return Err(BAD_NODE_ID_INVALID);
+                return Err(BadNodeIdInvalid);
             }
             _ => {
-                return Err(BAD_NODE_ID_INVALID);
+                return Err(BadNodeIdInvalid);
             }
         };
         Ok(node_id)

@@ -2,7 +2,7 @@ use std;
 use std::io::Cursor;
 
 use opcua_types::*;
-use opcua_types::StatusCode::BAD_COMMUNICATION_ERROR;
+use opcua_types::StatusCode::BadCommunicationError;
 
 use comms::handshake::{MessageType, MessageHeader, HelloMessage, AcknowledgeMessage, ErrorMessage, MESSAGE_HEADER_LEN};
 use comms::message_chunk::MessageChunk;
@@ -57,7 +57,7 @@ impl MessageBuffer {
                 MessageType::Hello => Message::Hello(HelloMessage::decode(&mut message_stream)?),
                 MessageType::Error => Message::Error(ErrorMessage::decode(&mut message_stream)?),
                 MessageType::Chunk => Message::MessageChunk(MessageChunk::decode(&mut message_stream)?),
-                _ => { return Err(BAD_COMMUNICATION_ERROR); }
+                _ => { return Err(BadCommunicationError); }
             };
             messages.push(message);
         }

@@ -28,7 +28,7 @@ impl FilterType {
             Ok(FilterType::DataChangeFilter(filter.decode_inner::<DataChangeFilter>()?))
         } else {
             error!("Requested data filter type is not supported, {:?}", filter_type_id);
-            Err(BAD_FILTER_NOT_ALLOWED)
+            Err(BadFilterNotAllowed)
         }
     }
 }

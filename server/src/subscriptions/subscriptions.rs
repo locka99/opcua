@@ -45,7 +45,7 @@ impl Subscriptions {
         // one waiting longest / priority
         //
         // If there is no waiting subscription waiting to publish, the request shall be queued
-        // including expiring old requests and returning the BAD_TOO_MANY_PUBLISH_REQUESTS if
+        // including expiring old requests and returning the BadTooManyPublishRequests if
         // there are too many
         //
         // else get the subscription ready to publish
@@ -54,7 +54,7 @@ impl Subscriptions {
         let result = if self.publish_request_queue.len() >= self.max_publish_requests {
             error!("Too many publish requests {} for capacity {}, throwing oldest away", self.publish_request_queue.len(), self.max_publish_requests);
             let oldest_publish_request = self.publish_request_queue.pop().unwrap();
-            Err(ServiceFault::new_supported_message(&oldest_publish_request.request.request_header, BAD_TOO_MANY_PUBLISH_REQUESTS))
+            Err(ServiceFault::new_supported_message(&oldest_publish_request.request.request_header, BadTooManyPublishRequests))
         } else {
             Ok(())
         };
@@ -121,7 +121,7 @@ impl Subscriptions {
                 publish_responses.push(PublishResponseEntry {
                     request_id: request.request_id,
                     response: SupportedMessage::ServiceFault(ServiceFault {
-                        response_header: ResponseHeader::new_timestamped_service_result(DateTime::now(), &request.request.request_header, BAD_TIMEOUT),
+                        response_header: ResponseHeader::new_timestamped_service_result(DateTime::now(), &request.request.request_header, BadTimeout),
                     }),
                 });
                 false
@@ -196,9 +196,9 @@ impl Subscriptions {
     /// Deletes the acknowledged notifications, returning a list of status code for each according
     /// to whether it was found or not.
     ///
-    /// GOOD - deleted notification
-    /// BAD_SUBSCRIPTION_ID_INVALID - Subscription doesn't exist
-    /// BAD_SEQUENCE_NUMBER_UNKNOWN - Sequence number doesn't exist
+    /// Good - deleted notification
+    /// BadSubscriptionIdInvalid - Subscription doesn't exist
+    /// BadSequenceNumberUnknown - Sequence number doesn't exist
     ///
     fn process_subscription_acknowledgements(&mut self, request: &PublishRequestEntry) -> Option<Vec<StatusCode>> {
         trace!("Processing subscription acknowledgements");
@@ -209,7 +209,7 @@ impl Subscriptions {
                 let subscription_id = subscription_acknowledgement.subscription_id;
                 let subscription = self.subscriptions.get_mut(&subscription_id);
                 if subscription.is_none() {
-                    BAD_SUBSCRIPTION_ID_INVALID
+                    BadSubscriptionIdInvalid
                 } else {
                     subscription.unwrap().delete_acked_notification_msg(subscription_acknowledgement)
                 }

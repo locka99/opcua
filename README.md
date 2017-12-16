@@ -326,38 +326,10 @@ pub enum VariableId {
 
 ### Status codes
 
-All status codes will be values of a `StatusCode` enum. At present, values are 
-represented as `SNAKE_CASE` and the `StatusCode::` enum namespace will not be 
-a necessary prefix. 
+All status codes will be values within the `StatusCode` enum. Values such as `Good`, `BadUnexpectedError` etc.
 
-So code will contain values such as `GOOD`, `BAD_UNEXPECTED_ERROR` etc. without qualification.
-
-Note: the decision to upper case codes is subject to review because it is inconsistent 
-with node ids above.
-
-The enum will also implement `Copy` so that status codes are copy on 
-assign. The enum provides helpers `is_good()`, `is_bad()`, `name()` and `description()`
-for testing and debugging purposes.
-
-```rust
-#[allow(non_camel_case_types)]
-#[derive(PartialEq, Debug, Copy, Clone)]
-pub enum StatusCode {
-    GOOD = 0,
-    //...
-    UNCERTAIN_REFERENCE_OUT_OF_SERVER = 0x406C0000,
-    UNCERTAIN_NO_COMMUNICATION_LAST_USABLE_VALUE = 0x408F0000,
-    //...
-    BAD_UNEXPECTED_ERROR = 0x80010000,
-    BAD_INTERNAL_ERROR = 0x80020000,
-    BAD_ENCODING_LIMITS_EXCEEDED = 0x80080000,
-    BAD_UNKNOWN_RESPONSE = 0x80090000,
-    BAD_TIMEOUT = 0x800A0000,
-    //...
-}
-// Everything in StatusCode:: becomes immediately accessible
-pub use self::status_codes::StatusCode::*;
-```
+The enum will also implement `Copy` so that status codes are copy on assign. The enum provides helpers `is_good()`,
+`is_bad()`, `name()` and `description()` for testing and debugging purposes.
 
 ## Formatting
 

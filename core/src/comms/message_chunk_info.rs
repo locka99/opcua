@@ -43,7 +43,7 @@ impl ChunkInfo {
             let result = AsymmetricSecurityHeader::decode(&mut stream);
             if result.is_err() {
                 error!("chunk_info() can't decode asymmetric security_header, {:?}", result.unwrap_err());
-                return Err(BAD_COMMUNICATION_ERROR);
+                return Err(BadCommunicationError);
             }
             let security_header = result.unwrap();
 
@@ -55,7 +55,7 @@ impl ChunkInfo {
 
             if security_policy == SecurityPolicy::Unknown {
                 error!("Security policy of chunk is unsupported, policy = {:?}", security_header.security_policy_uri);
-                return Err(BAD_SECURITY_POLICY_REJECTED);
+                return Err(BadSecurityPolicyRejected);
             }
 
             // Anything related to policy can be worked out here
@@ -64,7 +64,7 @@ impl ChunkInfo {
             let result = SymmetricSecurityHeader::decode(&mut stream);
             if result.is_err() {
                 error!("chunk_info() can't decode symmetric security_header, {:?}", result.unwrap_err());
-                return Err(BAD_COMMUNICATION_ERROR);
+                return Err(BadCommunicationError);
             }
             SecurityHeader::Symmetric(result.unwrap())
         };
@@ -73,7 +73,7 @@ impl ChunkInfo {
         let sequence_header_result = SequenceHeader::decode(&mut stream);
         if sequence_header_result.is_err() {
             error!("Cannot decode sequence header {:?}", sequence_header_result.unwrap_err());
-            return Err(BAD_COMMUNICATION_ERROR);
+            return Err(BadCommunicationError);
         }
         let sequence_header = sequence_header_result.unwrap();
 

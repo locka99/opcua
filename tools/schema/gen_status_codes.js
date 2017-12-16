@@ -10,7 +10,7 @@ var rs_out = fs.createWriteStream(`${settings.rs_types_dir}/status_codes.rs`);
 
 var status_codes = [
     {
-        var_name: "GOOD",
+        var_name: "Good",
         str_code: "Good",
         hex_code: 0,
         description: "Good"
@@ -20,7 +20,7 @@ var status_codes = [
 fs.createReadStream(status_code_csv)
     .pipe(csv(['str_code', 'hex_code', 'description']))
     .on('data', function (data) {
-        data.var_name = _.toUpper(_.snakeCase(data.str_code));
+        data.var_name = data.str_code;
         status_codes.push(data);
     })
     .on('end', function () {
@@ -36,7 +36,6 @@ use std::io::{Read, Write};
 
 use encoding::*;
 
-#[allow(non_camel_case_types)]
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum StatusCode {
 `);
@@ -58,7 +57,7 @@ impl BinaryEncoder<StatusCode> for StatusCode {
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let code = read_u32(stream)?;
         let status_code = StatusCode::from_u32(code);
-        if status_code.is_ok() { Ok(status_code.unwrap()) } else { Ok(StatusCode::BAD_UNEXPECTED_ERROR) }
+        if status_code.is_ok() { Ok(status_code.unwrap()) } else { Ok(StatusCode::BadUnexpectedError) }
     }
 }
 

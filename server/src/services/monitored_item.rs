@@ -24,11 +24,11 @@ impl MonitoredItemService {
                 Some(subscription.create_monitored_items(items_to_create))
             } else {
                 // No matching subscription
-                return Ok(self.service_fault(&request.request_header, BAD_SUBSCRIPTION_ID_INVALID));
+                return Ok(self.service_fault(&request.request_header, BadSubscriptionIdInvalid));
             }
         } else {
             // No items to create so nothing to do
-            return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
+            return Ok(self.service_fault(&request.request_header, BadNothingToDo));
         };
         let response = CreateMonitoredItemsResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
@@ -46,11 +46,11 @@ impl MonitoredItemService {
                 Some(subscription.modify_monitored_items(items_to_modify))
             } else {
                 // No matching subscription
-                return Ok(self.service_fault(&request.request_header, BAD_SUBSCRIPTION_ID_INVALID));
+                return Ok(self.service_fault(&request.request_header, BadSubscriptionIdInvalid));
             }
         } else {
             // No items to modify so nothing to do
-            return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
+            return Ok(self.service_fault(&request.request_header, BadNothingToDo));
         };
         let response = ModifyMonitoredItemsResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
@@ -68,11 +68,11 @@ impl MonitoredItemService {
                 Some(subscription.delete_monitored_items(items_to_delete))
             } else {
                 // No matching subscription
-                return Ok(self.service_fault(&request.request_header, BAD_SUBSCRIPTION_ID_INVALID));
+                return Ok(self.service_fault(&request.request_header, BadSubscriptionIdInvalid));
             }
         } else {
             // No items to modify so nothing to do
-            return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
+            return Ok(self.service_fault(&request.request_header, BadNothingToDo));
         };
         let diagnostic_infos = None;
         let response = DeleteMonitoredItemsResponse {

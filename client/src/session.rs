@@ -124,7 +124,7 @@ impl Session {
 
         let security_policy = SecurityPolicy::from_str(self.session_info.endpoint.security_policy_uri.as_ref()).unwrap();
         if security_policy == SecurityPolicy::Unknown {
-            Err(BAD_SECURITY_POLICY_REJECTED)
+            Err(BadSecurityPolicyRejected)
         } else {
             {
                 let secure_channel = &mut self.transport.secure_channel;
@@ -247,13 +247,13 @@ impl Session {
                 let session_state = self.session_state.lock().unwrap();
                 if self.session_info.client_pkey.is_none() {
                     error!("Cannot create client signature - no pkey!");
-                    return Err(BAD_UNEXPECTED_ERROR);
+                    return Err(BadUnexpectedError);
                 } else if server_cert.is_null() {
                     error!("Cannot sign server certificate because server cert is null");
-                    return Err(BAD_UNEXPECTED_ERROR);
+                    return Err(BadUnexpectedError);
                 } else if server_nonce.is_null() {
                     error!("Cannot sign server certificate because server nonce is null");
-                    return Err(BAD_UNEXPECTED_ERROR);
+                    return Err(BadUnexpectedError);
                 }
                 let signing_key = self.session_info.client_pkey.as_ref().unwrap();
                 crypto::create_signature_data(signing_key, security_policy, &server_cert, &server_nonce)?
@@ -334,7 +334,7 @@ impl Session {
     pub fn browse(&mut self, nodes_to_browse: &[BrowseDescription]) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
         if nodes_to_browse.is_empty() {
             error!("Cannot browse without any nodes to browse");
-            Err(BAD_INVALID_ARGUMENT)
+            Err(BadInvalidArgument)
         } else {
             let request = BrowseRequest {
                 request_header: self.make_request_header(),
@@ -360,7 +360,7 @@ impl Session {
     pub fn browse_next(&mut self, release_continuation_points: bool, continuation_points: &[ByteString]) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
         if continuation_points.is_empty() {
             error!("Cannot browse next without any continuation points");
-            Err(BAD_INVALID_ARGUMENT)
+            Err(BadInvalidArgument)
         } else {
             let request = BrowseNextRequest {
                 request_header: self.make_request_header(),
@@ -419,7 +419,7 @@ impl Session {
     pub fn create_subscription(&mut self, mut subscription: Subscription) -> Result<Subscription, StatusCode> {
         if subscription.is_valid() {
             error!("Subscription id must be 0, or the subscription is considered already created");
-            Err(BAD_INVALID_ARGUMENT)
+            Err(BadInvalidArgument)
         } else {
             let request = CreateSubscriptionRequest {
                 request_header: self.make_request_header(),
@@ -449,7 +449,7 @@ impl Session {
     pub fn modify_subscription(&mut self, subscription: &mut Subscription) -> Result<(), StatusCode> {
         if !subscription.is_valid() {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
-            Err(BAD_INVALID_ARGUMENT)
+            Err(BadInvalidArgument)
         } else {
             let request = ModifySubscriptionRequest {
                 request_header: self.make_request_header(),
@@ -477,7 +477,7 @@ impl Session {
     pub fn delete_subscription(&mut self, subscription: &mut Subscription) -> Result<(), StatusCode> {
         if !subscription.is_valid() {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
-            Err(BAD_INVALID_ARGUMENT)
+            Err(BadInvalidArgument)
         } else {
             let request = DeleteSubscriptionsRequest {
                 request_header: self.make_request_header(),
@@ -499,7 +499,7 @@ impl Session {
     pub fn create_monitored_items(&mut self, subscription: &mut Subscription, items_to_create: Vec<MonitoredItemCreateRequest>) -> Result<(), StatusCode> {
         if !subscription.is_valid() {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
-            Err(BAD_INVALID_ARGUMENT)
+            Err(BadInvalidArgument)
         } else {
             let request = CreateMonitoredItemsRequest {
                 request_header: self.make_request_header(),
@@ -522,7 +522,7 @@ impl Session {
     pub fn modify_monitored_items(&mut self, subscription: &mut Subscription, items_to_modify: Vec<MonitoredItemModifyRequest>) -> Result<(), StatusCode> {
         if !subscription.is_valid() {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
-            Err(BAD_INVALID_ARGUMENT)
+            Err(BadInvalidArgument)
         } else {
             let request = ModifyMonitoredItemsRequest {
                 request_header: self.make_request_header(),
@@ -545,7 +545,7 @@ impl Session {
     pub fn delete_monitored_items(&mut self, subscription: &mut Subscription, monitored_item_ids: Vec<UInt32>) -> Result<(), StatusCode> {
         if !subscription.is_valid() {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
-            Err(BAD_INVALID_ARGUMENT)
+            Err(BadInvalidArgument)
         } else {
             let request = DeleteMonitoredItemsRequest {
                 request_header: self.make_request_header(),
@@ -605,7 +605,7 @@ impl Session {
         // Return the result
         if policy_id.is_none() {
             error!("Cannot find user token type {:?} for this endpoint, cannot connect", user_token_type);
-            Err(BAD_SECURITY_POLICY_REJECTED)
+            Err(BadSecurityPolicyRejected)
         } else {
             match self.session_info.user_identity_token {
                 client::IdentityToken::Anonymous => {
@@ -647,7 +647,7 @@ impl Session {
             }
             _ => {
                 error!("Received an unexpected response to the request");
-                BAD_UNKNOWN_RESPONSE
+                BadUnknownResponse
             }
         }
     }

@@ -62,7 +62,7 @@ impl BinaryEncoder<UserTokenType> for UserTokenType {
             3 => Ok(UserTokenType::IssuedToken),
             _ => {
                 error!("Don't know what user token type {} is", user_token_type);
-                Err(BAD_UNEXPECTED_ERROR)
+                Err(BadUnexpectedError)
             }
         }
     }
@@ -181,11 +181,11 @@ pub struct RequestHeader {
     /// This timeout in milliseconds is used in the Client side Communication Stack to set the
     /// timeout on a per-call base. For a Server this timeout is only a hint and can be
     /// used to cancel long running operations to free resources. If the Server detects a
-    /// timeout, he can cancel the operation by sending the Service result BAD_Timeout.
+    /// timeout, he can cancel the operation by sending the Service result BadTimeout.
     /// The Server should wait at minimum the timeout after he received the request before
     /// cancelling the operation. The Server shall check the timeoutHint parameter of a
     /// PublishRequest before processing a PublishResponse. If the request timed out, a
-    /// BAD_Timeout Service result is sent and another PublishRequest is used.  The
+    /// BadTimeout Service result is sent and another PublishRequest is used.  The
     /// value of 0 indicates no timeout.
     pub timeout_hint: UInt32,
     /// Reserved for future use. Applications that do not understand the header should ignore it.
@@ -306,7 +306,7 @@ impl BinaryEncoder<ResponseHeader> for ResponseHeader {
 
 impl ResponseHeader {
     pub fn new_good(request_header: &RequestHeader) -> ResponseHeader {
-        ResponseHeader::new_service_result(request_header, GOOD)
+        ResponseHeader::new_service_result(request_header, Good)
     }
 
     pub fn new_service_result(request_header: &RequestHeader, service_result: StatusCode) -> ResponseHeader {
@@ -329,7 +329,7 @@ impl ResponseHeader {
         ResponseHeader {
             timestamp: DateTime::now(),
             request_handle: 0,
-            service_result: GOOD,
+            service_result: Good,
             service_diagnostics: DiagnosticInfo::new(),
             string_table: None,
             additional_header: ExtensionObject::null(),
@@ -365,7 +365,7 @@ impl BinaryEncoder<TimestampsToReturn> for TimestampsToReturn {
             3 => Ok(TimestampsToReturn::Neither),
             _ => {
                 error!("Don't know what TimestampsToReturn value {} is", value);
-                Err(BAD_TIMESTAMPS_TO_RETURN_INVALID)
+                Err(BadTimestampsToReturnInvalid)
             }
         }
     }
@@ -402,7 +402,7 @@ impl BinaryEncoder<NodeClass> for NodeClass {
             Ok(result.unwrap())
         } else {
             error!("Don't know what node class {} is", value);
-            Err(BAD_NODE_CLASS_INVALID)
+            Err(BadNodeClassInvalid)
         }
     }
 }
@@ -453,7 +453,7 @@ impl BinaryEncoder<DataChangeTrigger> for DataChangeTrigger {
             2 => Ok(DataChangeTrigger::StatusValueTimestamp),
             _ => {
                 error!("Don't know what data change trigger {} is", value);
-                Err(BAD_UNEXPECTED_ERROR)
+                Err(BadUnexpectedError)
             }
         }
     }
@@ -509,7 +509,7 @@ impl BinaryEncoder<FilterOperator> for FilterOperator {
             17 => Ok(FilterOperator::BitwiseOr),
             _ => {
                 error!("Don't know what filter operator {} is", value);
-                Err(BAD_FILTER_OPERATOR_INVALID)
+                Err(BadFilterOperatorInvalid)
             }
         }
     }
@@ -541,7 +541,7 @@ impl BinaryEncoder<BrowseDirection> for BrowseDirection {
             2 => Ok(BrowseDirection::Both),
             _ => {
                 error!("Don't know what browse direction {} is", value);
-                Err(BAD_BROWSE_DIRECTION_INVALID)
+                Err(BadBrowseDirectionInvalid)
             }
         }
     }
@@ -636,7 +636,7 @@ impl DataChangeFilter {
     ///
     /// # Errors
     ///
-    /// BAD_DEADBAND_FILTER_INVALID indicates the deadband settings were invalid, e.g. an invalid
+    /// BadDeadbandFilterInvalid indicates the deadband settings were invalid, e.g. an invalid
     /// type, or the args were invalid. A (low, high) range must be supplied for a percentage deadband compare.
     pub fn compare_value(&self, v1: &Variant, v2: &Variant, eu_range: Option<(f64, f64)>) -> std::result::Result<bool, StatusCode> {
         // TODO be able to compare arrays of numbers
@@ -656,22 +656,22 @@ impl DataChangeFilter {
             let v2 = v2.unwrap();
 
             if self.deadband_value < 0f64 {
-                return Err(BAD_DEADBAND_FILTER_INVALID);
+                return Err(BadDeadbandFilterInvalid);
             }
             if self.deadband_type == 1 {
                 Ok(DataChangeFilter::abs_compare(v1, v2, self.deadband_value))
             } else if self.deadband_type == 2 {
                 if eu_range.is_none() {
-                    return Err(BAD_DEADBAND_FILTER_INVALID);
+                    return Err(BadDeadbandFilterInvalid);
                 }
                 let (low, high) = eu_range.unwrap();
                 if low >= high {
-                    return Err(BAD_DEADBAND_FILTER_INVALID);
+                    return Err(BadDeadbandFilterInvalid);
                 }
                 Ok(DataChangeFilter::pct_compare(v1, v2, low, high, self.deadband_value))
             } else {
                 // Type is not recognized
-                return Err(BAD_DEADBAND_FILTER_INVALID);
+                return Err(BadDeadbandFilterInvalid);
             }
         }
     }
@@ -751,7 +751,7 @@ impl UserNameIdentityToken {
         if valid {
             Ok(())
         } else {
-            Err(BAD_IDENTITY_TOKEN_REJECTED)
+            Err(BadIdentityTokenRejected)
         }
     }
 }
@@ -846,7 +846,7 @@ impl BinaryEncoder<ServerState> for ServerState {
             7 => Ok(ServerState::Unknown),
             _ => {
                 error!("Don't know what server state {} is", value);
-                Err(BAD_UNEXPECTED_ERROR)
+                Err(BadUnexpectedError)
             }
         }
     }

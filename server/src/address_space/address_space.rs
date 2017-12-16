@@ -278,12 +278,12 @@ impl AddressSpace {
 
     pub fn find_nodes_relative_path(&self, node_id: &NodeId, relative_path: &RelativePath) -> Result<Vec<NodeId>, StatusCode> {
         if self.find_node(node_id).is_none() {
-            return Err(BAD_NODE_ID_UNKNOWN);
+            return Err(BadNodeIdUnknown);
         }
 
         let relative_path_elements = relative_path.elements.as_ref().unwrap();
         if relative_path_elements.is_empty() {
-            return Err(BAD_NOTHING_TO_DO);
+            return Err(BadNothingToDo);
         }
 
         let mut matching_nodes = vec![node_id.clone()];

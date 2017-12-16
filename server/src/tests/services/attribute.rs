@@ -60,21 +60,21 @@ fn read_test() {
         let results = response.results.unwrap();
 
         // 1. a variable
-        assert_eq!(results[0].status.as_ref().unwrap(), &GOOD);
+        assert_eq!(results[0].status.as_ref().unwrap(), &Good);
         assert_eq!(results[0].value.as_ref().unwrap(), &Variant::Int32(0));
 
         // 2. an attribute other than value (access level)
-        assert_eq!(results[1].status.as_ref().unwrap(), &GOOD);
+        assert_eq!(results[1].status.as_ref().unwrap(), &Good);
         assert_eq!(results[1].value.as_ref().unwrap(), &Variant::Byte(1));
 
         // 3. a variable without the required attribute
-        assert_eq!(results[2].status.as_ref().unwrap(), &BAD_ATTRIBUTE_ID_INVALID);
+        assert_eq!(results[2].status.as_ref().unwrap(), &BadAttributeIdInvalid);
 
         // 4. a variable with no read access
-        assert_eq!(results[3].status.as_ref().unwrap(), &BAD_NOT_READABLE);
+        assert_eq!(results[3].status.as_ref().unwrap(), &BadNotReadable);
 
         // 5. Non existent
-        assert_eq!(results[4].status.as_ref().unwrap(), &BAD_NODE_ID_UNKNOWN);
+        assert_eq!(results[4].status.as_ref().unwrap(), &BadNodeIdUnknown);
     }
 
 
@@ -167,19 +167,19 @@ fn write_test() {
     let results = response.results.unwrap();
 
     // 1. a variable value
-    assert_eq!(results[0], GOOD);
+    assert_eq!(results[0], Good);
     // 2. a variable with another attribute
-    assert_eq!(results[1], GOOD);
+    assert_eq!(results[1], Good);
     // 3. a variable value which has no write access
-    assert_eq!(results[2], BAD_NOT_WRITABLE);
+    assert_eq!(results[2], BadNotWritable);
     // 4. a node of some kind other than variable
-    assert_eq!(results[3], GOOD);
+    assert_eq!(results[3], Good);
     // 5. a node with some kind other than variable with no write mask
-    assert_eq!(results[4], BAD_NOT_WRITABLE);
+    assert_eq!(results[4], BadNotWritable);
     // 6. a non existent variable
-    assert_eq!(results[5], BAD_NODE_ID_UNKNOWN);
+    assert_eq!(results[5], BadNodeIdUnknown);
     // 7. wrong type for attribute
-    assert_eq!(results[6], BAD_TYPE_MISMATCH);
+    assert_eq!(results[6], BadTypeMismatch);
 
     // OTHER POTENTIAL TESTS
 

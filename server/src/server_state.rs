@@ -212,7 +212,7 @@ impl ServerState {
                             } else {
                                 // Garbage in the extension object
                                 error!("User name identity token could not be decoded");
-                                BAD_IDENTITY_TOKEN_INVALID
+                                BadIdentityTokenInvalid
                             }
                         }
                         ObjectId::X509IdentityToken_Encoding_DefaultBinary => {
@@ -220,26 +220,26 @@ impl ServerState {
                             let result = user_identity_token.decode_inner::<X509IdentityToken>();
                             if let Ok(_) = result {
                                 error!("X509 identity token type is not supported");
-                                BAD_IDENTITY_TOKEN_REJECTED
+                                BadIdentityTokenRejected
                             } else {
                                 // Garbage in the extension object
                                 error!("X509 identity token could not be decoded");
-                                BAD_IDENTITY_TOKEN_INVALID
+                                BadIdentityTokenInvalid
                             }
                         }
                         _ => {
                             error!("User identity token type {:?} is unrecognized", object_id);
-                            BAD_IDENTITY_TOKEN_INVALID
+                            BadIdentityTokenInvalid
                         }
                     }
                 } else {
                     error!("Cannot read user identity token");
-                    BAD_IDENTITY_TOKEN_INVALID
+                    BadIdentityTokenInvalid
                 }
             }
         } else {
             error!("Cannot find endpoint that matches path \"{}\", security policy {:?}, and security mode {:?}", endpoint_url, security_policy, security_mode);
-            BAD_TCP_ENDPOINT_URL_INVALID
+            BadTcpEndpointUrlInvalid
         }
     }
 
@@ -247,10 +247,10 @@ impl ServerState {
     fn authenticate_anonymous_token(endpoint: &ServerEndpoint) -> StatusCode {
         if endpoint.supports_anonymous() {
             debug!("Anonymous identity is authenticated");
-            GOOD
+            Good
         } else {
             error!("Endpoint \"{}\" does not support anonymous authentication", endpoint.path);
-            BAD_IDENTITY_TOKEN_REJECTED
+            BadIdentityTokenRejected
         }
     }
 
@@ -261,10 +261,10 @@ impl ServerState {
         if !token.encryption_algorithm.is_null() {
             // Plaintext is the only supported algorithm at this time
             error!("Only unencrypted passwords are supported, {:?}", token);
-            BAD_IDENTITY_TOKEN_INVALID
+            BadIdentityTokenInvalid
         } else if token.user_name.is_null() {
             error!("User identify token supplies no user name");
-            BAD_IDENTITY_TOKEN_INVALID
+            BadIdentityTokenInvalid
         } else {
             // Iterate ids in endpoint
             for user_token_id in &endpoint.user_token_ids {
@@ -282,15 +282,15 @@ impl ServerState {
                         let valid = result.is_ok();
                         if !valid {
                             error!("Cannot authenticate \"{}\", password is invalid", server_user_token.user);
-                            return BAD_IDENTITY_TOKEN_REJECTED;
+                            return BadIdentityTokenRejected;
                         } else {
-                            return GOOD;
+                            return Good;
                         }
                     }
                 }
             }
             error!("Cannot authenticate \"{}\", user not found for endpoint", token.user_name);
-            BAD_IDENTITY_TOKEN_REJECTED
+            BadIdentityTokenRejected
         }
     }
 }

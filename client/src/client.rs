@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use opcua_types::{UAString, ByteString, LocalizedText, MessageSecurityMode, ApplicationDescription, ApplicationType, EndpointDescription, StatusCode};
 use opcua_types::{is_opc_ua_binary_url, server_url_from_endpoint_url, url_matches, url_matches_except_host};
-use opcua_types::StatusCode::BAD_UNEXPECTED_ERROR;
+use opcua_types::StatusCode::BadUnexpectedError;
 use opcua_core::crypto::{SecurityPolicy, CertificateStore, X509, PKey};
 
 use config::{ClientConfig, ClientEndpoint, ANONYMOUS_USER_TOKEN_ID};
@@ -122,11 +122,11 @@ impl Client {
                 self.get_server_endpoints_from_url(&server_url)
             } else {
                 error!("Cannot create a server url from the specified endpoint url {}", default_endpoint.url);
-                Err(BAD_UNEXPECTED_ERROR)
+                Err(BadUnexpectedError)
             }
         } else {
             error!("There is no default endpoint, so cannot get endpoints");
-            Err(BAD_UNEXPECTED_ERROR)
+            Err(BadUnexpectedError)
         }
     }
 
@@ -175,7 +175,7 @@ impl Client {
                 Err(result)
             }
         } else {
-            let result = BAD_UNEXPECTED_ERROR;
+            let result = BadUnexpectedError;
             error!("Cannot create a sesion to {} - check if url is malformed", discovery_endpoint_url);
             Err(result)
         }

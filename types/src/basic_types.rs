@@ -4,7 +4,7 @@ use std::fmt;
 use encoding::*;
 use string::*;
 use generated::StatusCode;
-use generated::StatusCode::BAD_DECODING_ERROR;
+use generated::StatusCode::BadDecodingError;
 use node_id::NodeId;
 
 // OPC UA Part 6 - Mappings 1.03 Specification
@@ -439,7 +439,7 @@ impl BinaryEncoder<ExtensionObject> for ExtensionObject {
             }
             _ => {
                 error!("Invalid encoding type {} in stream", encoding_type);
-                return Err(BAD_DECODING_ERROR);
+                return Err(BadDecodingError);
             }
         };
         Ok(ExtensionObject {
@@ -495,7 +495,7 @@ impl ExtensionObject {
                 return T::decode(&mut stream);
             }
         }
-        Err(BAD_DECODING_ERROR)
+        Err(BadDecodingError)
     }
 }
 

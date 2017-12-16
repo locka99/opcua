@@ -110,7 +110,7 @@ pub fn verify_signature_data(signature: &SignatureData, security_policy: Securit
         // Verify the signature
         let result = security_policy.asymmetric_verify_signature(&verification_key, &data, signature.signature.as_ref(), None);
         if result.is_ok() {
-            StatusCode::GOOD
+            StatusCode::Good
         } else {
             let result = result.unwrap_err();
             error!("Client signature verification failed, status code = {:?}", result);
@@ -118,6 +118,6 @@ pub fn verify_signature_data(signature: &SignatureData, security_policy: Securit
         }
     } else {
         error!("Signature verification failed, signing certificate has no public key to verify with");
-        StatusCode::BAD_UNEXPECTED_ERROR
+        StatusCode::BadUnexpectedError
     }
 }

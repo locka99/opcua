@@ -4,7 +4,7 @@ use std::fmt;
 use encoding::{write_i32, BinaryEncoder, EncodingResult, process_encode_io_result, process_decode_io_result};
 use basic_types::Int32;
 use constants;
-use generated::StatusCode::{BAD_DECODING_ERROR, BAD_ENCODING_LIMITS_EXCEEDED};
+use generated::StatusCode::{BadDecodingError, BadEncodingLimitsExceeded};
 
 /// A UTF-8 encoded sequence of Unicode characters.
 ///
@@ -57,10 +57,10 @@ impl BinaryEncoder<UAString> for UAString {
             return Ok(UAString::null());
         } else if buf_len < -1 {
             error!("String buf length is a negative number {}", buf_len);
-            return Err(BAD_DECODING_ERROR);
+            return Err(BadDecodingError);
         } else if buf_len > constants::MAX_STRING_LENGTH as i32 {
             error!("String buf length {} is larger than max string length", buf_len);
-            return Err(BAD_ENCODING_LIMITS_EXCEEDED);
+            return Err(BadEncodingLimitsExceeded);
         }
 
         // Create the actual UTF8 string
@@ -154,10 +154,10 @@ impl BinaryEncoder<ByteString> for ByteString {
             return Ok(ByteString::null());
         } else if buf_len < -1 {
             error!("ByteString buf length is a negative number {}", buf_len);
-            return Err(BAD_DECODING_ERROR);
+            return Err(BadDecodingError);
         } else if buf_len > constants::MAX_BYTE_STRING_LENGTH as i32 {
             error!("ByteString buf length {} is longer than max byte string length", buf_len);
-            return Err(BAD_ENCODING_LIMITS_EXCEEDED);
+            return Err(BadEncodingLimitsExceeded);
         }
 
         // Create the actual UTF8 string

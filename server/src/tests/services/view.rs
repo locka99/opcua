@@ -157,10 +157,10 @@ fn browse_next() {
         let response = do_browse_next(&vs, &mut session, &address_space, &continuation_point, true);
         assert!(response.results.is_none());
 
-        // Browse next again with same continuation point, expect BAD_CONTINUATION_POINT_INVALID
+        // Browse next again with same continuation point, expect BadContinuationPointInvalid
         let response = do_browse_next(&vs, &mut session, &address_space, &continuation_point, false);
         let r1 = &response.results.unwrap()[0];
-        assert_eq!(r1.status_code, BAD_CONTINUATION_POINT_INVALID);
+        assert_eq!(r1.status_code, BadContinuationPointInvalid);
     }
 
     // Browse with 35 expect continuation point cp1
@@ -190,7 +190,7 @@ fn browse_next() {
     }
 
     // Modify address space so existing continuation point is invalid
-    // Browse next with continuation point, expect BAD_CONTINUATION_POINT_INVALID
+    // Browse next with continuation point, expect BadContinuationPointInvalid
     {
         use std::thread;
         use std::time::Duration;
@@ -207,7 +207,7 @@ fn browse_next() {
         // Browsing with the old continuation point should fail
         let response = do_browse_next(&vs, &mut session, &address_space, &continuation_point, false);
         let r1 = &response.results.unwrap()[0];
-        assert_eq!(r1.status_code, BAD_CONTINUATION_POINT_INVALID);
+        assert_eq!(r1.status_code, BadContinuationPointInvalid);
     }
 }
 

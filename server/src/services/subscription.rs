@@ -22,7 +22,7 @@ impl SubscriptionService {
     pub fn create_subscription(&self, server_state: &mut ServerState, session: &mut Session, request: CreateSubscriptionRequest) -> Result<SupportedMessage, StatusCode> {
         let subscriptions = &mut session.subscriptions;
         let response = if server_state.max_subscriptions > 0 && subscriptions.len() >= server_state.max_subscriptions {
-            self.service_fault(&request.request_header, BAD_TOO_MANY_SUBSCRIPTIONS)
+            self.service_fault(&request.request_header, BadTooManySubscriptions)
         } else {
             let subscription_id = server_state.create_subscription_id();
 
@@ -53,7 +53,7 @@ impl SubscriptionService {
         let subscription_id = request.subscription_id;
 
         let response = if !subscriptions.contains(subscription_id) {
-            return Ok(self.service_fault(&request.request_header, BAD_SUBSCRIPTION_ID_INVALID));
+            return Ok(self.service_fault(&request.request_header, BadSubscriptionIdInvalid));
         } else {
             let subscription = subscriptions.get_mut(subscription_id).unwrap();
 
@@ -80,7 +80,7 @@ impl SubscriptionService {
     /// Handles a DeleteSubscriptionsRequest
     pub fn delete_subscriptions(&self, session: &mut Session, request: DeleteSubscriptionsRequest) -> Result<SupportedMessage, StatusCode> {
         if request.subscription_ids.is_none() {
-            return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
+            return Ok(self.service_fault(&request.request_header, BadNothingToDo));
         }
         let results = {
             let subscription_ids = request.subscription_ids.as_ref().unwrap();
@@ -90,9 +90,9 @@ impl SubscriptionService {
             for subscription_id in subscription_ids {
                 let subscription = subscriptions.remove(*subscription_id);
                 if subscription.is_some() {
-                    results.push(GOOD);
+                    results.push(Good);
                 } else {
-                    results.push(BAD_SUBSCRIPTION_ID_INVALID);
+                    results.push(BadSubscriptionIdInvalid);
                 }
             }
             Some(results)
@@ -109,7 +109,7 @@ impl SubscriptionService {
     /// Handles a SerPublishingModeRequest
     pub fn set_publishing_mode(&self, session: &mut Session, request: SetPublishingModeRequest) -> Result<SupportedMessage, StatusCode> {
         if request.subscription_ids.is_none() {
-            return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
+            return Ok(self.service_fault(&request.request_header, BadNothingToDo));
         }
         let results = {
             let publishing_enabled = request.publishing_enabled;
@@ -119,9 +119,9 @@ impl SubscriptionService {
             for subscription_id in subscription_ids {
                 if let Some(subscription) = subscriptions.get_mut(*subscription_id) {
                     subscription.publishing_enabled = publishing_enabled;
-                    results.push(GOOD);
+                    results.push(Good);
                 } else {
-                    results.push(BAD_SUBSCRIPTION_ID_INVALID);
+                    results.push(BadSubscriptionIdInvalid);
                 }
             }
             Some(results)
@@ -139,7 +139,7 @@ impl SubscriptionService {
     pub fn publish(&self, session: &mut Session, request_id: UInt32, address_space: &AddressSpace, request: PublishRequest) -> Result<Option<SupportedMessage>, StatusCode> {
         trace!("--> Receive a PublishRequest {:?}", request);
         if session.subscriptions.is_empty() {
-            Ok(Some(self.service_fault(&request.request_header, BAD_NO_SUBSCRIPTION)))
+            Ok(Some(self.service_fault(&request.request_header, BadNoSubscription)))
         } else {
             let result = session.enqueue_publish_request(address_space, request_id, request);
             if result.is_err() {
@@ -154,7 +154,7 @@ impl SubscriptionService {
     /// Handles a RepublishRequest
     pub fn republish(&self, request: RepublishRequest) -> Result<SupportedMessage, StatusCode> {
         // TODO look for the subscription id and sequence number in the sent items and resend it
-        Ok(self.service_fault(&request.request_header, BAD_MESSAGE_NOT_AVAILABLE))
+        Ok(self.service_fault(&request.request_header, BadMessageNotAvailable))
     }
 
     /// This function takes the requested values passed in a create / modify and returns revised

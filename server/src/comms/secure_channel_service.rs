@@ -58,7 +58,7 @@ impl SecureChannelService {
             }
             _ => {
                 error!("message is not an open secure channel request, got {:?}", message);
-                return Err(BAD_UNEXPECTED_ERROR);
+                return Err(BadUnexpectedError);
             }
         };
 
@@ -68,14 +68,14 @@ impl SecureChannelService {
             }
             _ => {
                 error!("Secure channel request message does not have asymmetric security header");
-                return Err(BAD_UNEXPECTED_ERROR);
+                return Err(BadUnexpectedError);
             }
         };
 
         // Must compare protocol version to the one from HELLO
         if request.client_protocol_version != client_protocol_version {
             error!("Client sent a different protocol version than it did in the HELLO - {} vs {}", request.client_protocol_version, client_protocol_version);
-            return Ok(ServiceFault::new_supported_message(&request.request_header, BAD_PROTOCOL_VERSION_UNSUPPORTED));
+            return Ok(ServiceFault::new_supported_message(&request.request_header, BadProtocolVersionUnsupported));
         }
 
         // Test the request type
@@ -94,13 +94,13 @@ impl SecureChannelService {
                 // Check for a duplicate nonce. It is invalid for the renew to use the same nonce
                 // as was used for last issue/renew
                 if request.client_nonce.as_ref() == &secure_channel.remote_nonce()[..] {
-                    return Ok(ServiceFault::new_supported_message(&request.request_header, BAD_NONCE_INVALID));
+                    return Ok(ServiceFault::new_supported_message(&request.request_header, BadNonceInvalid));
                 }
 
                 if !self.secure_channel_state.issued {
                     // TODO check to see if the secure channel has been issued before or not
                     error!("Asked to renew token on session that has never issued token");
-                    return Err(BAD_UNEXPECTED_ERROR);
+                    return Err(BadUnexpectedError);
                 }
                 self.secure_channel_state.renew_count += 1;
             }
@@ -114,7 +114,7 @@ impl SecureChannelService {
             }
             _ => {
                 error!("Security mode is invalid");
-                return Ok(ServiceFault::new_supported_message(&request.request_header, BAD_SECURITY_MODE_REJECTED));
+                return Ok(ServiceFault::new_supported_message(&request.request_header, BadSecurityModeRejected));
             }
         }
 
@@ -157,6 +157,6 @@ impl SecureChannelService {
 
     pub fn close_secure_channel(&mut self, _: &SupportedMessage) -> Result<SupportedMessage, StatusCode> {
         info!("CloseSecureChannelRequest received, session closing");
-        Err(BAD_CONNECTION_CLOSED)
+        Err(BadConnectionClosed)
     }
 }

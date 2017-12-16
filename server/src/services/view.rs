@@ -34,13 +34,13 @@ impl ViewService {
             if !request.view.view_id.is_null() {
                 // Views are not supported
                 info!("Browse request ignored because view was specified (views not supported)");
-                return Ok(self.service_fault(&request.request_header, BAD_VIEW_ID_UNKNOWN));
+                return Ok(self.service_fault(&request.request_header, BadViewIdUnknown));
             }
 
             Some(Self::browse_nodes(session, address_space, nodes_to_browse, request.requested_max_references_per_node as usize))
         } else {
             // Nothing to do
-            return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
+            return Ok(self.service_fault(&request.request_header, BadNothingToDo));
         };
 
         let diagnostic_infos = None;
@@ -55,7 +55,7 @@ impl ViewService {
 
     pub fn browse_next(&self, session: &mut Session, address_space: &AddressSpace, request: BrowseNextRequest) -> Result<SupportedMessage, StatusCode> {
         if request.continuation_points.is_none() {
-            Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO))
+            Ok(self.service_fault(&request.request_header, BadNothingToDo))
         } else {
             let continuation_points = request.continuation_points.as_ref().unwrap();
             let results = if request.release_continuation_points {
@@ -83,18 +83,18 @@ impl ViewService {
         trace!("TranslateBrowsePathsToNodeIdsRequest = {:?}", &request);
 
         if request.browse_paths.is_none() {
-            return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
+            return Ok(self.service_fault(&request.request_header, BadNothingToDo));
         }
         let browse_paths = request.browse_paths.unwrap();
         if browse_paths.is_empty() {
-            return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
+            return Ok(self.service_fault(&request.request_header, BadNothingToDo));
         }
 
         let results = browse_paths.iter().map(|browse_path| {
             let node_id = browse_path.starting_node.clone();
             if browse_path.relative_path.elements.is_none() {
                 BrowsePathResult {
-                    status_code: BAD_NOTHING_TO_DO,
+                    status_code: BadNothingToDo,
                     targets: None,
                 }
             } else {
@@ -120,7 +120,7 @@ impl ViewService {
                         None
                     };
                     BrowsePathResult {
-                        status_code: GOOD,
+                        status_code: Good,
                         targets,
                     }
                 }
@@ -154,7 +154,7 @@ impl ViewService {
     fn browse_node(session: &mut Session, address_space: &AddressSpace, starting_index: usize, node_to_browse: &BrowseDescription, max_references_per_node: usize) -> Result<BrowseResult, StatusCode> {
         // Node must exist or there will be no references
         if node_to_browse.node_id.is_null() || !address_space.node_exists(&node_to_browse.node_id) {
-            return Err(BAD_NODE_ID_UNKNOWN);
+            return Err(BadNodeIdUnknown);
         }
 
         // Request may wish to filter by a kind of reference
@@ -271,7 +271,7 @@ impl ViewService {
         } else {
             // Not valid or missing
             BrowseResult {
-                status_code: BAD_CONTINUATION_POINT_INVALID,
+                status_code: BadContinuationPointInvalid,
                 continuation_point: ByteString::null(),
                 references: None,
             }
@@ -304,7 +304,7 @@ impl ViewService {
             (reference_descriptions_slice, ByteString::null())
         };
         BrowseResult {
-            status_code: GOOD,
+            status_code: Good,
             continuation_point,
             references: Some(reference_descriptions)
         }

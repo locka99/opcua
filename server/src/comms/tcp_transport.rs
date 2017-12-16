@@ -107,7 +107,7 @@ impl TcpTransport {
         // Format of OPC UA TCP is defined in OPC UA Part 6 Chapter 7
         // Basic startup is a HELLO,  OpenSecureChannel, begin
 
-        let mut session_status_code = GOOD;
+        let mut session_status_code = Good;
 
         let mut message_buffer = MessageBuffer::new(RECEIVE_BUFFER_SIZE);
 
@@ -127,7 +127,7 @@ impl TcpTransport {
             if transport_state == TransportState::WaitingHello {
                 if now.signed_duration_since(session_start_time) > hello_timeout {
                     error!("Session timed out waiting for hello");
-                    session_status_code = BAD_TIMEOUT;
+                    session_status_code = BadTimeout;
                     break;
                 }
             }
@@ -181,7 +181,7 @@ impl TcpTransport {
                                 session_status_code = result.unwrap_err();
                             }
                         } else {
-                            session_status_code = BAD_COMMUNICATION_ERROR;
+                            session_status_code = BadCommunicationError;
                         }
                     }
                     TransportState::ProcessMessages => {
@@ -192,12 +192,12 @@ impl TcpTransport {
                                 session_status_code = result.unwrap_err();
                             }
                         } else {
-                            session_status_code = BAD_COMMUNICATION_ERROR;
+                            session_status_code = BadCommunicationError;
                         }
                     }
                     _ => {
                         error!("Unknown sesion state, aborting");
-                        session_status_code = BAD_UNEXPECTED_ERROR;
+                        session_status_code = BadUnexpectedError;
                     }
                 };
             }
@@ -210,7 +210,7 @@ impl TcpTransport {
             {
                 let session = trace_read_lock_unwrap!(self.session);
                 if session.terminate_session {
-                    session_status_code = BAD_CONNECTION_CLOSED;
+                    session_status_code = BadConnectionClosed;
                 }
             }
 
@@ -224,7 +224,7 @@ impl TcpTransport {
 
         // As a final act, the session sends a status code to the client if one should be sent
         match session_status_code {
-            GOOD | BAD_CONNECTION_CLOSED => {
+            Good | BadConnectionClosed => {
                 info!("Session terminating normally, session_status_code = {:?}", session_status_code);
             }
             _ => {
@@ -336,16 +336,16 @@ impl TcpTransport {
 
         trace!("Server received HELLO {:?}", hello);
         if !hello.is_endpoint_url_valid() {
-            return Err(BAD_TCP_ENDPOINT_URL_INVALID);
+            return Err(BadTcpEndpointUrlInvalid);
         }
         if !hello.is_valid_buffer_sizes() {
             error!("HELLO buffer sizes are invalid");
-            return Err(BAD_COMMUNICATION_ERROR);
+            return Err(BadCommunicationError);
         }
 
         // Validate protocol version
         if hello.protocol_version > server_protocol_version {
-            return Err(BAD_PROTOCOL_VERSION_UNSUPPORTED);
+            return Err(BadProtocolVersionUnsupported);
         }
 
         let client_protocol_version = hello.protocol_version;

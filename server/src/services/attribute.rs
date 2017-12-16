@@ -31,7 +31,7 @@ impl AttributeService {
 
         if request.max_age < 0f64 {
             warn!("ReadRequest max age is invalid");
-            return Ok(self.service_fault(&request.request_header, BAD_MAX_AGE_INVALID));
+            return Ok(self.service_fault(&request.request_header, BadMaxAgeInvalid));
         }
 
         let results = if let Some(ref nodes_to_read) = request.nodes_to_read {
@@ -41,7 +41,7 @@ impl AttributeService {
             Some(results)
         } else {
             warn!("ReadRequest nothing to do");
-            return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
+            return Ok(self.service_fault(&request.request_header, BadNothingToDo));
         };
 
         let diagnostic_infos = None;
@@ -69,10 +69,10 @@ impl AttributeService {
                 if let Some(attribute) = node.as_node().find_attribute(attribute_id) {
                     let is_readable = Self::is_readable(&node);
                     if !is_readable {
-                        result_value.status = Some(BAD_NOT_READABLE)
+                        result_value.status = Some(BadNotReadable)
                     } else if !node_to_read.index_range.is_null() {
                         // Index ranges are not supported
-                        result_value.status = Some(BAD_NOT_READABLE);
+                        result_value.status = Some(BadNotReadable);
                     } else {
                         // Result value is clone from the attribute
                         result_value.value = attribute.value.clone();
@@ -98,15 +98,15 @@ impl AttributeService {
                         }
                     }
                 } else {
-                    result_value.status = Some(BAD_ATTRIBUTE_ID_INVALID);
+                    result_value.status = Some(BadAttributeIdInvalid);
                 }
             } else {
                 warn!("Attribute id {} is invalid", node_to_read.attribute_id);
-                result_value.status = Some(BAD_ATTRIBUTE_ID_INVALID);
+                result_value.status = Some(BadAttributeIdInvalid);
             }
         } else {
             warn!("Cannot find node id {:?}", node_to_read.node_id);
-            result_value.status = Some(BAD_NODE_ID_UNKNOWN);
+            result_value.status = Some(BadNodeIdUnknown);
         }
         result_value
     }
@@ -134,7 +134,7 @@ impl AttributeService {
             }).collect();
             Some(results)
         } else {
-            return Ok(self.service_fault(&request.request_header, BAD_NOTHING_TO_DO));
+            return Ok(self.service_fault(&request.request_header, BadNothingToDo));
         };
 
         let diagnostic_infos = None;
@@ -152,26 +152,26 @@ impl AttributeService {
             if let Ok(attribute_id) = AttributeId::from_u32(node_to_write.attribute_id) {
                 let is_writable = Self::is_writable(&node, attribute_id);
                 if !is_writable {
-                    BAD_NOT_WRITABLE
+                    BadNotWritable
                 } else if !node_to_write.index_range.is_null() {
                     // Index ranges are not supported
-                    BAD_WRITE_NOT_SUPPORTED
+                    BadWriteNotSupported
                 } else {
                     let node = node.as_mut_node();
                     let result = node.set_attribute(attribute_id, node_to_write.value.clone());
                     if result.is_err() {
                         result.unwrap_err()
                     } else {
-                        GOOD
+                        Good
                     }
                 }
             } else {
                 warn!("Attribute id {} is invalid", node_to_write.attribute_id);
-                BAD_ATTRIBUTE_ID_INVALID
+                BadAttributeIdInvalid
             }
         } else {
             warn!("Cannot find node id {:?}", node_to_write.node_id);
-            BAD_NODE_ID_UNKNOWN
+            BadNodeIdUnknown
         }
     }
 
