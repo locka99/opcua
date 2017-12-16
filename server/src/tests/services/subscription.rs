@@ -50,6 +50,7 @@ fn publish_response_subscription() {
     // Create a session
     let st = ServiceTest::new();
     let (mut server_state, mut session) = st.get_server_state_and_session();
+    let mut address_space = st.get_address_space();
 
     // Create a subscription with a monitored item
     let ss = SubscriptionService::new();
@@ -65,12 +66,11 @@ fn publish_response_subscription() {
     let response = expect_message!(mis.create_monitored_items(&mut session, request).unwrap(), CreateMonitoredItemsResponse);
     debug!("{:#?}", response);
 
-    // Tick a change on the monitored item
-    // TODOcar
+    // Tick subscriptions to be sure they catch a change
+    session.tick_subscriptions(&address_space, true);
 
     // Send a publish and expect a publish response containing the subscription
     let request_id = 1001;
-    let mut address_space = st.get_address_space();
     let request = PublishRequest {
         request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
         subscription_acknowledgements: None, // Option<Vec<SubscriptionAcknowledgement>>,
