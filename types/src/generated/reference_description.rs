@@ -3,7 +3,6 @@
 
 use std::io::{Read, Write};
 
-#[allow(unused_imports)]
 use encoding::*;
 #[allow(unused_imports)]
 use basic_types::*;
@@ -13,8 +12,6 @@ use string::*;
 use data_types::*;
 #[allow(unused_imports)]
 use data_value::*;
-#[allow(unused_imports)]
-use attribute::*;
 #[allow(unused_imports)]
 use date_time::*;
 #[allow(unused_imports)]

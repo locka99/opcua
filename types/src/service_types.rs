@@ -4,7 +4,7 @@ use std::io::{Read, Write};
 use profiles;
 use encoding::*;
 use basic_types::*;
-use string::*;
+use string::{UAString, ByteString};
 use attribute::AttributeId;
 use data_types::*;
 use date_time::DateTime;
@@ -22,11 +22,6 @@ use generated::ApplicationDescription;
 pub trait MessageInfo {
     /// The object id associated with the message
     fn object_id(&self) -> ObjectId;
-
-    /// Returns a node id equivalent to the message object id
-    fn node_id(&self) -> NodeId {
-        self.object_id().into()
-    }
 }
 
 /// The enumeration for the type of user identity token supported by an endpoint.

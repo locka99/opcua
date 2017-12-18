@@ -65,7 +65,7 @@ macro_rules! supported_messages {
                     SupportedMessage::Invalid(object_id) => {
                         panic!("Unsupported message {:?}", object_id);
                     },
-                    $( SupportedMessage::$x(ref value) => value.node_id(), )*
+                    $( SupportedMessage::$x(ref value) => value.object_id().into(), )*
                 }
             }
         }
