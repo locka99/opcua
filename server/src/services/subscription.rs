@@ -135,16 +135,16 @@ impl SubscriptionService {
         Ok(SupportedMessage::SetPublishingModeResponse(response))
     }
 
-    /// Handles a PublishRequest
+    /// Handles a PublishRequest. This is asynchronous, so the response will be sent later on.
     pub fn publish(&self, session: &mut Session, request_id: UInt32, address_space: &AddressSpace, request: PublishRequest) -> Result<Option<SupportedMessage>, StatusCode> {
         trace!("--> Receive a PublishRequest {:?}", request);
         if session.subscriptions.is_empty() {
             Ok(Some(self.service_fault(&request.request_header, BadNoSubscription)))
         } else {
+            let request_header = request.request_header.clone();
             let result = session.enqueue_publish_request(address_space, request_id, request);
-            if result.is_err() {
-                // Error is a ServiceFault message
-                Ok(Some(result.unwrap_err()))
+            if let Err(error) = result {
+                Ok(Some(self.service_fault(&request_header, error)))
             } else {
                 Ok(None)
             }

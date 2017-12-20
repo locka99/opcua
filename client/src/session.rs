@@ -290,7 +290,7 @@ impl Session {
             request_header: self.make_request_header(),
             endpoint_url: UAString::from(discovery_url.into()),
             locale_ids: None,
-            server_uris: None
+            server_uris: None,
         };
         let response = self.send_request(SupportedMessage::FindServersRequest(request))?;
         if let SupportedMessage::FindServersResponse(response) = response {
@@ -344,7 +344,7 @@ impl Session {
                     view_version: 0,
                 },
                 requested_max_references_per_node: 1000,
-                nodes_to_browse: Some(nodes_to_browse.to_vec())
+                nodes_to_browse: Some(nodes_to_browse.to_vec()),
             };
             let response = self.send_request(SupportedMessage::BrowseRequest(request))?;
             if let SupportedMessage::BrowseResponse(response) = response {
@@ -474,21 +474,21 @@ impl Session {
     }
 
     /// Removes a subscription using its subscription id
-    pub fn delete_subscription(&mut self, subscription: &mut Subscription) -> Result<(), StatusCode> {
+    pub fn delete_subscription(&mut self, subscription: &mut Subscription) -> Result<DeleteSubscriptionsResponse, StatusCode> {
         if !subscription.is_valid() {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
             Err(BadInvalidArgument)
         } else {
             let request = DeleteSubscriptionsRequest {
                 request_header: self.make_request_header(),
-                subscription_ids: Some(vec![subscription.subscription_id])
+                subscription_ids: Some(vec![subscription.subscription_id]),
             };
             let response = self.send_request(SupportedMessage::DeleteSubscriptionsRequest(request))?;
             if let SupportedMessage::DeleteSubscriptionsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 subscription.subscription_id = 0;
                 subscription.monitored_items.clear();
-                Ok(())
+                Ok(response)
             } else {
                 Err(Self::process_unexpected_response(response))
             }
@@ -496,7 +496,7 @@ impl Session {
     }
 
     /// Create monitored items request
-    pub fn create_monitored_items(&mut self, subscription: &mut Subscription, items_to_create: Vec<MonitoredItemCreateRequest>) -> Result<(), StatusCode> {
+    pub fn create_monitored_items(&mut self, subscription: &mut Subscription, items_to_create: Vec<MonitoredItemCreateRequest>) -> Result<CreateMonitoredItemsResponse, StatusCode> {
         if !subscription.is_valid() {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
             Err(BadInvalidArgument)
@@ -511,7 +511,7 @@ impl Session {
             if let SupportedMessage::CreateMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 // TODO Create monitored items on the subscription
-                Ok(())
+                Ok(response)
             } else {
                 Err(Self::process_unexpected_response(response))
             }
@@ -519,7 +519,7 @@ impl Session {
     }
 
     /// Modifies monitored items in the subscription
-    pub fn modify_monitored_items(&mut self, subscription: &mut Subscription, items_to_modify: Vec<MonitoredItemModifyRequest>) -> Result<(), StatusCode> {
+    pub fn modify_monitored_items(&mut self, subscription: &mut Subscription, items_to_modify: Vec<MonitoredItemModifyRequest>) -> Result<ModifyMonitoredItemsResponse, StatusCode> {
         if !subscription.is_valid() {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
             Err(BadInvalidArgument)
@@ -528,13 +528,13 @@ impl Session {
                 request_header: self.make_request_header(),
                 subscription_id: subscription.subscription_id,
                 timestamps_to_return: TimestampsToReturn::Both,
-                items_to_modify: Some(items_to_modify)
+                items_to_modify: Some(items_to_modify),
             };
             let response = self.send_request(SupportedMessage::ModifyMonitoredItemsRequest(request))?;
             if let SupportedMessage::ModifyMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 // TODO Modify monitored items in the subscription
-                Ok(())
+                Ok(response)
             } else {
                 Err(Self::process_unexpected_response(response))
             }
@@ -542,7 +542,7 @@ impl Session {
     }
 
     /// Deletes monitored items from the subscription
-    pub fn delete_monitored_items(&mut self, subscription: &mut Subscription, monitored_item_ids: Vec<UInt32>) -> Result<(), StatusCode> {
+    pub fn delete_monitored_items(&mut self, subscription: &mut Subscription, monitored_item_ids: Vec<UInt32>) -> Result<DeleteMonitoredItemsResponse, StatusCode> {
         if !subscription.is_valid() {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
             Err(BadInvalidArgument)
@@ -556,10 +556,24 @@ impl Session {
             if let SupportedMessage::DeleteMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 // TODO Delete monitored items from the subscription
-                Ok(())
+                Ok(response)
             } else {
                 Err(Self::process_unexpected_response(response))
             }
+        }
+    }
+
+    pub fn publish(&mut self, subscription_acknowledgements: Vec<SubscriptionAcknowledgement>) -> Result<PublishResponse, StatusCode> {
+        let request = PublishRequest {
+            request_header: self.make_request_header(),
+            subscription_acknowledgements: if subscription_acknowledgements.is_empty() { None } else { Some(subscription_acknowledgements) },
+        };
+        let response = self.send_request(SupportedMessage::PublishRequest(request))?;
+        if let SupportedMessage::PublishResponse(response) = response {
+            Self::process_service_result(&response.response_header)?;
+            Ok(response)
+        } else {
+            Err(Self::process_unexpected_response(response))
         }
     }
 
@@ -650,6 +664,26 @@ impl Session {
                 BadUnknownResponse
             }
         }
+    }
+
+    fn make_publish_timer(&mut self) {
+        // Publish timer will continuously issue publish requests to the server
+
+        // On timer, send a publish request with optional
+        //   Acknowledgements
+
+        // Receive response
+
+        // Terminate timer if
+        //   BadSessionIdInvalid
+        //   BadNoSubscription
+        //   BadTooManyPublishRequests
+
+        // Update subscriptions based on response
+
+        // Queue acknowledgements for next request
+
+        // Then reset timer for next call,
     }
 
     /// Process the service result, i.e. where the request "succeeded" but the response

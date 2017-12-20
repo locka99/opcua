@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 use time;
 use chrono;
@@ -19,7 +19,7 @@ pub struct Subscriptions {
     /// Maximum number of publish requests
     max_publish_requests: usize,
     /// The publish request queue (requests by the client on the session)
-    pub publish_request_queue: Vec<PublishRequestEntry>,
+    pub publish_request_queue: VecDeque<PublishRequestEntry>,
     /// The publish response queue
     pub publish_response_queue: Vec<PublishResponseEntry>,
 }
@@ -30,7 +30,7 @@ impl Subscriptions {
             publish_request_timeout,
             subscriptions: HashMap::new(),
             max_publish_requests,
-            publish_request_queue: Vec::with_capacity(max_publish_requests),
+            publish_request_queue: VecDeque::with_capacity(max_publish_requests),
             publish_response_queue: Vec::with_capacity(max_publish_requests),
         }
     }
@@ -39,7 +39,7 @@ impl Subscriptions {
     ///
     /// If the queue is full this call will pop the oldest and generate a service fault
     /// for that before pushing the new one.
-    pub fn enqueue_publish_request(&mut self, _: &AddressSpace, request_id: UInt32, request: PublishRequest) -> Result<(), SupportedMessage> {
+    pub fn enqueue_publish_request(&mut self, _: &AddressSpace, request_id: UInt32, request: PublishRequest) -> Result<(), StatusCode> {
 
         // TODO we need to check subscriptions here that are waiting to publish, starting with the
         // one waiting longest / priority
@@ -51,23 +51,22 @@ impl Subscriptions {
         // else get the subscription ready to publish
 
         // Check if we have too many requests already
-        let result = if self.publish_request_queue.len() >= self.max_publish_requests {
+        if self.publish_request_queue.len() >= self.max_publish_requests {
             error!("Too many publish requests {} for capacity {}, throwing oldest away", self.publish_request_queue.len(), self.max_publish_requests);
-            let oldest_publish_request = self.publish_request_queue.pop().unwrap();
-            Err(ServiceFault::new_supported_message(&oldest_publish_request.request.request_header, BadTooManyPublishRequests))
+            let oldest_publish_request = self.publish_request_queue.pop_back().unwrap();
+            Err(BadTooManyPublishRequests)
         } else {
+            // Add to the start of the queue - older items are popped from the end
+            self.publish_request_queue.push_front(PublishRequestEntry {
+                request_id,
+                request,
+            });
             Ok(())
-        };
-        // Add to the start of the queue - older items are popped from the end
-        self.publish_request_queue.insert(0, PublishRequestEntry {
-            request_id,
-            request,
-        });
-        result
+        }
     }
 
     pub fn dequeue_publish_request(&mut self) -> Option<PublishRequestEntry> {
-        self.publish_request_queue.pop()
+        self.publish_request_queue.pop_back()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -154,7 +153,7 @@ impl Subscriptions {
             if subscription.state == SubscriptionState::Closed {
                 dead_subscriptions.push(*subscription_id);
             } else {
-                let publish_request = publish_request_queue.pop();
+                let publish_request = publish_request_queue.pop_back();
                 let publishing_req_queued = !publish_request_queue.is_empty() || publish_request.is_some();
 
                 // Now tick the subscription to see if it has any notifications. If there are
@@ -168,7 +167,7 @@ impl Subscriptions {
                 } else if publish_request.is_some() {
                     let publish_request = publish_request.unwrap();
                     trace!("Publish request {} was unused by subscription {} and is being requeued", publish_request.request_id, subscription_id);
-                    publish_request_queue.push(publish_request);
+                    publish_request_queue.push_back(publish_request);
                 }
             }
         }

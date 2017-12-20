@@ -1,4 +1,5 @@
 use std;
+use std::collections::VecDeque;
 use std::path::PathBuf;
 
 use chrono;
@@ -90,7 +91,7 @@ pub fn expired_publish_requests() {
         request: PublishRequest {
             request_header: RequestHeader::new(&NodeId::null(), &now, 1000),
             subscription_acknowledgements: None,
-        }
+        },
     };
     pr1.request.request_header.timeout_hint = 5001;
 
@@ -99,14 +100,19 @@ pub fn expired_publish_requests() {
         request: PublishRequest {
             request_header: RequestHeader::new(&NodeId::null(), &now, 2000),
             subscription_acknowledgements: None,
-        }
+        },
     };
     pr2.request.request_header.timeout_hint = 3000;
 
     // Create session with publish requests
     let secure_channel: SecureChannel = (SecurityPolicy::None, MessageSecurityMode::None).into();
     let mut session = Session::new_no_certificate_store(secure_channel);
-    session.subscriptions.publish_request_queue = vec![pr1, pr2];
+    session.subscriptions.publish_request_queue = {
+        let mut publish_request_queue = VecDeque::with_capacity(2);
+        publish_request_queue.push_back(pr1);
+        publish_request_queue.push_back(pr2);
+        publish_request_queue
+    };
 
     // Expire requests, see which expire
     session.expire_stale_publish_requests(&now_plus_5s);

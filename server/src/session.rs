@@ -143,7 +143,7 @@ impl Session {
         &self.diagnostics
     }
 
-    pub fn enqueue_publish_request(&mut self, address_space: &AddressSpace, request_id: UInt32, request: PublishRequest) -> Result<(), SupportedMessage> {
+    pub fn enqueue_publish_request(&mut self, address_space: &AddressSpace, request_id: UInt32, request: PublishRequest) -> Result<(), StatusCode> {
         self.subscriptions.enqueue_publish_request(address_space, request_id, request)
     }
 
