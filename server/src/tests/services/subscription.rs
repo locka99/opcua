@@ -50,7 +50,7 @@ fn publish_response_subscription() {
     // Create a session
     let st = ServiceTest::new();
     let (mut server_state, mut session) = st.get_server_state_and_session();
-    let mut address_space = st.get_address_space();
+    let address_space = st.get_address_space();
 
     // Create a subscription with a monitored item
     let ss = SubscriptionService::new();
@@ -58,8 +58,10 @@ fn publish_response_subscription() {
 
     let request = create_subscription_request();
     debug!("{:#?}", request);
-    let response = expect_message!(ss.create_subscription(&mut server_state, &mut session, request).unwrap(), CreateSubscriptionResponse);
+    let response: CreateSubscriptionResponse = expect_message!(ss.create_subscription(&mut server_state, &mut session, request).unwrap(), CreateSubscriptionResponse);
     debug!("{:#?}", response);
+
+    let subscription_id = response.subscription_id;
 
     let request = create_monitored_items_request(response.subscription_id, VariableId::Server_ServerStatus_CurrentTime);
     debug!("{:#?}", request);
@@ -67,7 +69,9 @@ fn publish_response_subscription() {
     debug!("{:#?}", response);
 
     // Tick subscriptions to be sure they catch a change
-    session.tick_subscriptions(&address_space, true);
+    assert!(session.subscriptions.publish_response_queue.is_empty());
+    let _ = session.tick_subscriptions(&address_space, true);
+    assert!(session.subscriptions.publish_response_queue.is_empty());
 
     // Send a publish and expect a publish response containing the subscription
     let request_id = 1001;
@@ -83,13 +87,44 @@ fn publish_response_subscription() {
     } else {
         debug!("Got no response from publish (i.e. queued)");
     }
+
+    let _ = session.tick_subscriptions(&address_space, true);
+    assert!(!session.subscriptions.publish_response_queue.is_empty());
+
+    // Expect to see our publish response containing a
+    let response_entry = session.subscriptions.publish_response_queue.pop().unwrap();
+    assert_eq!(request_id, response_entry.request_id);
+
+    let response: PublishResponse = expect_message!(response_entry.response, PublishResponse);
+    assert!(response.available_sequence_numbers.is_some());
+    assert_eq!(response.subscription_id, subscription_id);
+    assert!(response.more_notifications, false);
+
+    let notification_message = response.notification_message;
+
+    assert!(notification_message.notification_data.is_some());
+    let notification_data = notification_message.data_change_notifications();
+
+    // Dump out the contents
+    assert_eq!(notification_data.len(), 1);
+    for n in notification_data {
+        debug!("data change notification = {:?}", n);
+
+        assert!(n.monitored_items.is_some());
+        let monitored_items = n.monitored_items.as_ref().unwrap();
+        assert_eq!(monitored_items.len(), 1);
+
+        for m in monitored_items {
+            assert_eq!(*m.value.status.as_ref().unwrap(), Good);
+        }
+    }
 }
 
 #[test]
 fn multiple_publish_response_subscription() {
     // Create a session
     let st = ServiceTest::new();
-    let (mut server_state, mut session) = st.get_server_state_and_session();
+    let (server_state, session) = st.get_server_state_and_session();
 
     // Create a subscription with a monitored item
     let ss = SubscriptionService::new();

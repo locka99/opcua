@@ -22,4 +22,18 @@ impl NotificationMessage {
             notification_data: Some(vec![notification_data]),
         }
     }
+
+    pub fn data_change_notifications(&self) -> Vec<DataChangeNotification> {
+        let mut result = Vec::with_capacity(10);
+        if let Some(ref notification_data) = self.notification_data {
+            // Dump out the contents
+            for n in notification_data {
+                if n.node_id != ObjectId::DataChangeNotification_Encoding_DefaultBinary.into() {
+                    continue;
+                }
+                result.push(n.decode_inner::<DataChangeNotification>().unwrap());
+            }
+        }
+        result
+    }
 }
