@@ -27,7 +27,7 @@ pub enum SubscriptionState {
     Creating,
     Normal,
     Late,
-    KeepAlive
+    KeepAlive,
 }
 
 #[derive(Debug)]
@@ -51,6 +51,12 @@ pub enum UpdateStateAction {
     None,
     ReturnKeepAlive,
     ReturnNotifications,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum TickReason {
+    ReceivedPublishRequest,
+    TickTimerFired,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -150,7 +156,7 @@ impl Subscription {
                     monitored_item_id: monitored_item_id,
                     revised_sampling_interval: monitored_item.sampling_interval,
                     revised_queue_size: monitored_item.queue_size as UInt32,
-                    filter_result: ExtensionObject::null()
+                    filter_result: ExtensionObject::null(),
                 };
                 // Register the item with the subscription
                 self.monitored_items.insert(monitored_item_id, monitored_item);
@@ -162,7 +168,7 @@ impl Subscription {
                     monitored_item_id: monitored_item_id,
                     revised_sampling_interval: 0f64,
                     revised_queue_size: 0,
-                    filter_result: ExtensionObject::null()
+                    filter_result: ExtensionObject::null(),
                 }
             };
             results.push(result);
@@ -221,28 +227,29 @@ impl Subscription {
 
     /// Checks the subscription and monitored items for state change, messages. If the tick does
     /// nothing, the function returns None. Otherwise it returns one or more messages in an Vec.
-    pub fn tick(&mut self, address_space: &AddressSpace, receive_publish_request: bool, publish_request: &Option<PublishRequestEntry>, publishing_req_queued: bool, now: &DateTimeUtc) -> (Option<PublishResponseEntry>, Option<UpdateStateResult>) {
-        // Test if the interval has elapsed.
-        let publishing_timer_expired = if receive_publish_request {
-            false
-        } else if self.state == SubscriptionState::Creating {
-            true
-        } else if self.publishing_interval <= 0f64 {
-            true
-        } else {
-            let publishing_interval = time::Duration::milliseconds(self.publishing_interval as i64);
-            let elapsed = (*now).signed_duration_since(self.last_timer_expired_time);
-            let timer_expired = elapsed >= publishing_interval;
-            if timer_expired {
-                self.last_timer_expired_time = *now;
+    pub fn tick(&mut self, address_space: &AddressSpace, tick_reason: TickReason, publish_request: &Option<PublishRequestEntry>, publishing_req_queued: bool, now: &DateTimeUtc) -> (Option<PublishResponseEntry>, Option<UpdateStateResult>) {
+        // Check if the publishing interval has elapsed. Only checks on the tick timer.
+        let publishing_interval_elapsed = match tick_reason {
+            TickReason::ReceivedPublishRequest => false,
+            TickReason::TickTimerFired => if self.state == SubscriptionState::Creating {
+                true
+            } else if self.publishing_interval <= 0f64 {
+                true
+            } else {
+                let publishing_interval = time::Duration::milliseconds(self.publishing_interval as i64);
+                let elapsed = (*now).signed_duration_since(self.last_timer_expired_time);
+                let timer_expired = elapsed >= publishing_interval;
+                if timer_expired {
+                    self.last_timer_expired_time = *now;
+                }
+                timer_expired
             }
-            timer_expired
         };
 
         // Do a tick on monitored items. Note that monitored items normally update when the interval
         // elapses but they don't have to. So this is called every tick just to catch items with their
         // own intervals.
-        let items_changed = self.tick_monitored_items(address_space, now, publishing_timer_expired);
+        let items_changed = self.tick_monitored_items(address_space, now, tick_reason);
 
         self.publishing_req_queued = publishing_req_queued;
         self.notifications_available = !self.retransmission_queue.is_empty();
@@ -250,8 +257,8 @@ impl Subscription {
 
         // If items have changed or subscription interval elapsed then we may have notifications
         // to send or state to update
-        let result = if items_changed || publishing_timer_expired || publish_request.is_some() {
-            let update_state_result = self.update_state(receive_publish_request, publish_request, publishing_timer_expired);
+        let result = if items_changed || publishing_interval_elapsed || publish_request.is_some() {
+            let update_state_result = self.update_state(tick_reason, publish_request, publishing_interval_elapsed);
             trace!("subscription tick - update_state_result = {:?}", update_state_result);
             let publish_response = match update_state_result.update_state_action {
                 UpdateStateAction::None => None,
@@ -286,10 +293,10 @@ impl Subscription {
     /// Iterate through the monitored items belonging to the subscription, calling tick on each in turn.
     /// The function returns true if any of the monitored items due to the subscription interval
     /// elapsing, or their own interval elapsing.
-    fn tick_monitored_items(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, publishing_timer_expired: bool) -> bool {
+    fn tick_monitored_items(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, tick_reason: TickReason) -> bool {
         let mut monitored_item_notifications = Vec::new();
         for (_, monitored_item) in &mut self.monitored_items {
-            if monitored_item.tick(address_space, now, publishing_timer_expired) {
+            if monitored_item.tick(address_space, now, tick_reason) {
                 // Take the monitored item's first notification
                 if let Some(mut notification_messages) = monitored_item.remove_all_notification_messages() {
                     monitored_item_notifications.append(&mut notification_messages);
@@ -323,7 +330,7 @@ impl Subscription {
     // Inputs:
     //
     // * publish_request - an optional publish request. May be used by subscription to remove acknowledged notifications
-    // * publishing_timer_expired - true if state is being updated in response to the subscription timer firing
+    // * publishing_interval_elapsed - true if the publishing interval has elapsed
     //
     // Returns in order:
     //
@@ -331,10 +338,10 @@ impl Subscription {
     // * Update state action - none, return notifications, return keep alive
     // * Publishing request action - nothing, dequeue
     //
-    pub fn update_state(&mut self, receive_publish_request: bool, _: &Option<PublishRequestEntry>, publishing_timer_expired: bool) -> UpdateStateResult {
+    pub fn update_state(&mut self, tick_reason: TickReason, _: &Option<PublishRequestEntry>, publishing_interval_elapsed: bool) -> UpdateStateResult {
         // This function is called when a publish request is received OR the timer expired, so getting
         // both is invalid code somewhere
-        if receive_publish_request && publishing_timer_expired {
+        if tick_reason == TickReason::ReceivedPublishRequest && publishing_interval_elapsed {
             panic!("Should not be possible for timer to have expired and received publish request at same time")
         }
 
@@ -344,13 +351,13 @@ impl Subscription {
             if log_enabled!(Trace) {
                 trace!(r#"State inputs:
     subscription_id: {} state: {:?}
-    receive_publish_request: {:?}
-    publishing_timer_expired: {} publishing_req_queued: {}
+    reason: {:?}
+    publishing_interval_elapsed: {} publishing_req_queued: {}
     publishing_enabled: {} more_notifications: {}
     notifications_available: {} (queue size = {})
     keep_alive_counter: {} lifetime_counter: {}
     message_sent: {}"#,
-                       self.subscription_id, self.state, receive_publish_request, publishing_timer_expired, self.publishing_req_queued,
+                       self.subscription_id, self.state, tick_reason, publishing_interval_elapsed, self.publishing_req_queued,
                        self.publishing_enabled, self.more_notifications, self.notifications_available, self.retransmission_queue.len(),
                        self.keep_alive_counter, self.lifetime_counter, self.message_sent);
             }
@@ -384,7 +391,7 @@ impl Subscription {
                 return UpdateStateResult::new(3, UpdateStateAction::None);
             }
             SubscriptionState::Normal => {
-                if receive_publish_request {
+                if tick_reason == TickReason::ReceivedPublishRequest {
                     if !self.publishing_enabled || (self.publishing_enabled && !self.more_notifications) {
                         // State #4
                         return UpdateStateResult::new(4, UpdateStateAction::None);
@@ -394,7 +401,7 @@ impl Subscription {
                         self.message_sent = true;
                         return UpdateStateResult::new(5, UpdateStateAction::ReturnNotifications);
                     }
-                } else if publishing_timer_expired {
+                } else if publishing_interval_elapsed {
                     if self.publishing_req_queued && self.publishing_enabled && self.notifications_available {
                         // State #6
                         self.reset_lifetime_counter();
@@ -422,7 +429,7 @@ impl Subscription {
                 }
             }
             SubscriptionState::Late => {
-                if receive_publish_request {
+                if tick_reason == TickReason::ReceivedPublishRequest {
                     if self.publishing_enabled && (self.notifications_available || self.more_notifications) {
                         // State #10
                         self.reset_lifetime_counter();
@@ -436,17 +443,17 @@ impl Subscription {
                         self.message_sent = true;
                         return UpdateStateResult::new(11, UpdateStateAction::ReturnKeepAlive);
                     }
-                } else if publishing_timer_expired {
+                } else if publishing_interval_elapsed {
                     // State #12
                     self.start_publishing_timer();
                     return UpdateStateResult::new(12, UpdateStateAction::None);
                 }
             }
             SubscriptionState::KeepAlive => {
-                if receive_publish_request {
+                if tick_reason == TickReason::ReceivedPublishRequest {
                     // State #13
                     return UpdateStateResult::new(13, UpdateStateAction::None);
-                } else if publishing_timer_expired {
+                } else if publishing_interval_elapsed {
                     if self.publishing_enabled && self.notifications_available && self.publishing_req_queued {
                         // State #14
                         self.message_sent = true;
@@ -583,7 +590,7 @@ impl Subscription {
                 notification_message,
                 results: None,
                 diagnostic_infos: None,
-            })
+            }),
         }
     }
 }

@@ -21,6 +21,7 @@ use server_state::ServerState;
 use services::message_handler::MessageHandler;
 use session::Session;
 use subscriptions::subscription::SubscriptionEvent;
+use subscriptions::subscription::TickReason;
 use address_space::types::AddressSpace;
 
 // TODO these need to go, and use session settings
@@ -279,7 +280,7 @@ impl TcpTransport {
             // Process subscriptions
             {
                 let address_space = trace_read_lock_unwrap!(address_space);
-                let _ = session.tick_subscriptions(&address_space, false);
+                let _ = session.tick_subscriptions(&address_space, TickReason::TickTimerFired);
             }
 
             // Check if there are publish responses to send for transmission

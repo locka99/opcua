@@ -7,6 +7,7 @@ use opcua_core::crypto::X509;
 
 use address_space::address_space::AddressSpace;
 use subscriptions::subscriptions::Subscriptions;
+use subscriptions::subscription::TickReason;
 use server::Server;
 use continuation_point::BrowseContinuationPoint;
 
@@ -147,8 +148,8 @@ impl Session {
         self.subscriptions.enqueue_publish_request(address_space, request_id, request)
     }
 
-    pub fn tick_subscriptions(&mut self, address_space: &AddressSpace, receive_publish_request: bool) -> Result<(), StatusCode> {
-        self.subscriptions.tick(receive_publish_request, address_space)
+    pub fn tick_subscriptions(&mut self, address_space: &AddressSpace, reason: TickReason) -> Result<(), StatusCode> {
+        self.subscriptions.tick(address_space, reason)
     }
 
     /// Iterates through the existing queued publish requests and creates a timeout

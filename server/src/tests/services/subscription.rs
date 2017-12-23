@@ -70,7 +70,7 @@ fn publish_response_subscription() {
 
     // Tick subscriptions to be sure they catch a change
     assert!(session.subscriptions.publish_response_queue.is_empty());
-    let _ = session.tick_subscriptions(&address_space, true);
+    let _ = session.tick_subscriptions(&address_space, TickReason::ReceivedPublishRequest);
     assert!(session.subscriptions.publish_response_queue.is_empty());
 
     // Send a publish and expect a publish response containing the subscription
@@ -88,7 +88,7 @@ fn publish_response_subscription() {
         debug!("Got no response from publish (i.e. queued)");
     }
 
-    let _ = session.tick_subscriptions(&address_space, true);
+    let _ = session.tick_subscriptions(&address_space, TickReason::ReceivedPublishRequest);
     assert!(!session.subscriptions.publish_response_queue.is_empty());
 
     // Expect to see our publish response containing a

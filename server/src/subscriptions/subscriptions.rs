@@ -9,7 +9,7 @@ use opcua_types::StatusCode::*;
 use DateTimeUtc;
 use address_space::types::AddressSpace;
 use subscriptions::{PublishRequestEntry, PublishResponseEntry};
-use subscriptions::subscription::{Subscription, SubscriptionState};
+use subscriptions::subscription::{Subscription, SubscriptionState, TickReason};
 
 pub struct Subscriptions {
     // Timeout period for requests in ms
@@ -132,9 +132,11 @@ impl Subscriptions {
         self.publish_response_queue.append(&mut publish_responses);
     }
 
-    /// Iterate all subscriptions calling tick on each. Note this could potentially be done to run in parallel
-    /// assuming the action to clean dead subscriptions was a join done after all ticks had completed.
-    pub fn tick(&mut self, receive_publish_request: bool, address_space: &AddressSpace) -> Result<(), StatusCode> {
+    /// The tick causes the subscription manager to iterate through individual subscriptions calling tick
+    /// on each in order of priority. In each case this could generate data change notifications. Data change
+    /// notifications will be attached to the next available publish response and queued for sending
+    /// to the client.
+    pub fn tick(&mut self, address_space: &AddressSpace, reason: TickReason) -> Result<(), StatusCode> {
         let now = chrono::Utc::now();
 
         let mut publish_request_queue = self.publish_request_queue.clone();
@@ -142,24 +144,35 @@ impl Subscriptions {
         let mut handled_requests = Vec::with_capacity(publish_request_queue.len());
         let mut publish_responses = Vec::with_capacity(publish_request_queue.len());
 
-        let mut dead_subscriptions: Vec<u32> = Vec::with_capacity(self.subscriptions.len());
+        // Produce a sorted list of subscription ids using the subscription's priority
+        let subscription_ids = {
+            let mut subscription_priority: Vec<(u32, u8)> = self.subscriptions.values().map(|v| (v.subscription_id, v.priority)).collect();
+            subscription_priority.sort_by(|s1, s2| s1.1.cmp(&s2.1));
+            subscription_priority.iter().map(|s| s.0).collect::<Vec<u32>>()
+        };
 
         // Iterate through all subscriptions. If there is a publish request it will be used to
         // acknowledge notifications and the response to return new notifications.
 
         // Now tick over the subscriptions
-        for (subscription_id, subscription) in &mut self.subscriptions {
-            // Dead subscriptions will be removed at the end
-            if subscription.state == SubscriptionState::Closed {
-                dead_subscriptions.push(*subscription_id);
+        subscription_ids.iter().for_each(|subscription_id| {
+            let subscription_state = {
+                let subscription = self.subscriptions.get(subscription_id).unwrap();
+                subscription.state
+            };
+            if subscription_state == SubscriptionState::Closed {
+                // Subscription is dead so remove it
+                self.subscriptions.remove(&subscription_id);
             } else {
+                let subscription = self.subscriptions.get_mut(subscription_id).unwrap();
                 let publish_request = publish_request_queue.pop_back();
                 let publishing_req_queued = !publish_request_queue.is_empty() || publish_request.is_some();
 
                 // Now tick the subscription to see if it has any notifications. If there are
                 // notifications then the publish response will be associated with his subscription
                 // and ready to go.
-                let (publish_response, _) = subscription.tick(address_space, receive_publish_request, &publish_request, publishing_req_queued, &now);
+
+                let (publish_response, _) = subscription.tick(address_space, reason, &publish_request, publishing_req_queued, &now);
                 if let Some(publish_response) = publish_response {
                     // Process the acknowledgements for the request
                     publish_responses.push(publish_response);
@@ -170,7 +183,7 @@ impl Subscriptions {
                     publish_request_queue.push_back(publish_request);
                 }
             }
-        }
+        });
 
         // Handle the acknowledgements in the request
         for (idx, publish_request) in handled_requests.iter().enumerate() {
@@ -178,11 +191,6 @@ impl Subscriptions {
             if let SupportedMessage::PublishResponse(ref mut publish_response) = publish_response.response {
                 publish_response.results = self.process_subscription_acknowledgements(publish_request);
             }
-        }
-
-        // Remove dead subscriptions
-        for subscription_id in dead_subscriptions {
-            self.subscriptions.remove(&subscription_id);
         }
 
         // Update request and response queue
