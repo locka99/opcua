@@ -1,6 +1,7 @@
 use std::io::{Read, Write, Cursor, Result, Error, ErrorKind};
 
 use opcua_types::*;
+use opcua_types::status_codes::StatusCode;
 
 use comms::{MAX_CHUNK_COUNT, MIN_CHUNK_SIZE};
 use comms::{HELLO_MESSAGE, ACKNOWLEDGE_MESSAGE, ERROR_MESSAGE, CHUNK_MESSAGE, OPEN_SECURE_CHANNEL_MESSAGE, CLOSE_SECURE_CHANNEL_MESSAGE};

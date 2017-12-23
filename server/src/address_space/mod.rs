@@ -3,7 +3,8 @@
 
 use std::result::Result;
 
-use opcua_types::{NodeId, AttributeId, DataValue, StatusCode};
+use opcua_types::{NodeId, AttributeId, DataValue};
+use opcua_types::status_codes::StatusCode;
 
 /// An attribute getter trait is used to obtain the datavalue associated with the particular attribute id
 /// This allows server implementations to supply a value on demand, usually in response to a polling action
@@ -54,6 +55,7 @@ impl<F> AttrFnSetter<F> where F: FnMut(NodeId, AttributeId, DataValue) -> Result
 macro_rules! node_impl {
     ( $node_struct:ident ) => {
         use opcua_types::*;
+        use opcua_types::status_codes::StatusCode;
         use address_space::node::NodeType;
 
         impl Node for $node_struct {

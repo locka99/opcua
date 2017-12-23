@@ -1,9 +1,10 @@
 use std::sync::{Arc, Mutex};
 use std::str::FromStr;
 
-use opcua_types::{UAString, ByteString, LocalizedText, MessageSecurityMode, ApplicationDescription, ApplicationType, EndpointDescription, StatusCode};
+use opcua_types::{UAString, ByteString, LocalizedText, MessageSecurityMode, ApplicationDescription, ApplicationType, EndpointDescription};
 use opcua_types::{is_opc_ua_binary_url, server_url_from_endpoint_url, url_matches, url_matches_except_host};
-use opcua_types::StatusCode::BadUnexpectedError;
+use opcua_types::status_codes::StatusCode;
+use opcua_types::status_codes::StatusCode::BadUnexpectedError;
 use opcua_core::crypto::{SecurityPolicy, CertificateStore, X509, PKey};
 
 use config::{ClientConfig, ClientEndpoint, ANONYMOUS_USER_TOKEN_ID};

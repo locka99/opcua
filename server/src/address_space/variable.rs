@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use std::convert::Into;
 
-use opcua_types::DataTypeId;
+use opcua_types::node_ids::DataTypeId;
 
 use address_space::base::Base;
 use address_space::node::Node;

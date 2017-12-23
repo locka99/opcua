@@ -1,4 +1,5 @@
-use opcua_types::{SupportedMessage, RequestHeader, ServiceFault, StatusCode};
+use opcua_types::{SupportedMessage, RequestHeader, ServiceFault};
+use opcua_types::status_codes::StatusCode;
 
 pub mod message_handler;
 

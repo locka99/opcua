@@ -4,7 +4,9 @@ use std::sync::{Arc, Mutex, RwLock};
 use chrono::Utc;
 
 use opcua_types::*;
+use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
+use opcua_types::node_ids::*;
 
 use server_state::ServerState;
 use constants;
@@ -61,7 +63,7 @@ impl AddressSpace {
 
     /// Sets values for nodes representing the server.
     pub fn set_server_state(&mut self, server_state: Arc<RwLock<ServerState>>) {
-        use opcua_types::VariableId::*;
+        use opcua_types::node_ids::VariableId::*;
 
         // Server variables
         {
@@ -200,7 +202,7 @@ impl AddressSpace {
     }
 
     pub fn set_server_diagnostics_summary(&mut self, sds: ServerDiagnosticsSummaryDataType) {
-        use opcua_types::VariableId::*;
+        use opcua_types::node_ids::VariableId::*;
         self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_ServerViewCount, Variant::UInt32(sds.server_view_count));
         self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSessionCount, Variant::UInt32(sds.current_session_count));
         self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSessionCount, Variant::UInt32(sds.cumulated_session_count));

@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 
 use opcua_types::*;
+pub use opcua_types::status_codes::StatusCode;
 
 use opcua_core::comms::secure_channel::SecureChannel;
 use opcua_core::crypto::X509;

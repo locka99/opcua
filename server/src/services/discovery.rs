@@ -1,6 +1,7 @@
 use std::result::Result;
 
 use opcua_types::*;
+use opcua_types::status_codes::StatusCode;
 
 use server_state::ServerState;
 use services::Service;
