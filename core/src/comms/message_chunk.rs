@@ -2,7 +2,7 @@ use std;
 use std::io::{Read, Write, Cursor};
 
 use opcua_types::*;
-use opcua_types::StatusCode::*;
+use opcua_types::status_codes::StatusCode::*;
 
 use comms::{MESSAGE_CHUNK_HEADER_SIZE, CHUNK_MESSAGE, CLOSE_SECURE_CHANNEL_MESSAGE, OPEN_SECURE_CHANNEL_MESSAGE};
 use comms::{CHUNK_INTERMEDIATE, CHUNK_FINAL, CHUNK_FINAL_ERROR};

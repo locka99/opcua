@@ -3,8 +3,8 @@ use std::fmt;
 
 use encoding::*;
 use string::*;
-use generated::StatusCode;
-use generated::StatusCode::BadDecodingError;
+use status_codes::StatusCode;
+use status_codes::StatusCode::BadDecodingError;
 use node_id::NodeId;
 
 // OPC UA Part 6 - Mappings 1.03 Specification

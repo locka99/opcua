@@ -6,9 +6,9 @@ use encoding::*;
 use basic_types::*;
 use string::*;
 use guid::Guid;
-use generated::StatusCode;
-use generated::StatusCode::BadNodeIdInvalid;
-use generated::{ObjectId, ReferenceTypeId};
+use status_codes::StatusCode;
+use status_codes::StatusCode::BadNodeIdInvalid;
+use node_ids::{ObjectId, ReferenceTypeId};
 
 /// The kind of identifier, numeric, string, guid or byte
 #[derive(Eq, PartialEq, Clone, Debug, Hash)]

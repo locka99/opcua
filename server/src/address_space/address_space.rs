@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex, RwLock};
 use chrono::Utc;
 
 use opcua_types::*;
-use opcua_types::StatusCode::*;
+use opcua_types::status_codes::StatusCode::*;
 
 use server_state::ServerState;
 use constants;

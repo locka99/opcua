@@ -8,8 +8,8 @@ use openssl::rsa;
 use openssl::sign;
 use openssl::hash;
 
-use opcua_types::StatusCode;
-use opcua_types::StatusCode::*;
+use opcua_types::status_codes::StatusCode;
+use opcua_types::status_codes::StatusCode::*;
 
 #[derive(Copy, Clone)]
 pub enum RsaPadding {

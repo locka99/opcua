@@ -1,7 +1,7 @@
 use std::result::Result;
 
 use opcua_types::*;
-use opcua_types::StatusCode::*;
+use opcua_types::status_codes::StatusCode::*;
 
 use services::Service;
 use address_space::access_level;

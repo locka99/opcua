@@ -2,7 +2,7 @@ use std::result::Result;
 use std::sync::{Arc, Mutex};
 
 use opcua_types::*;
-use opcua_types::StatusCode::*;
+use opcua_types::status_codes::StatusCode::*;
 
 use address_space::address_space::AddressSpace;
 use session::Session;

@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex, RwLock};
 
 use opcua_types::*;
-use opcua_types::StatusCode::*;
+use opcua_types::status_codes::StatusCode::*;
 
 use opcua_core::crypto::CertificateStore;
 

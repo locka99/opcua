@@ -4,7 +4,7 @@ use std::fmt;
 use encoding::{write_i32, BinaryEncoder, EncodingResult, process_encode_io_result, process_decode_io_result};
 use basic_types::Int32;
 use constants;
-use generated::StatusCode::{BadDecodingError, BadEncodingLimitsExceeded};
+use status_codes::StatusCode::{BadDecodingError, BadEncodingLimitsExceeded};
 
 /// A UTF-8 encoded sequence of Unicode characters.
 ///

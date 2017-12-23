@@ -1,4 +1,4 @@
-use UInt32;
+use basic_types::UInt32;
 
 // Attributes as defined in Part 4, Figure B.7
 

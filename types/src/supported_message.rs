@@ -8,7 +8,7 @@ use std::io::{Read, Write};
 use encoding::*;
 use node_id::NodeId;
 use service_types::*;
-use generated::*;
+use node_ids::ObjectId;
 
 #[macro_export]
 macro_rules! expect_message {

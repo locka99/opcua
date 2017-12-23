@@ -12,8 +12,8 @@ use openssl::rsa::*;
 use openssl::asn1::*;
 use openssl::hash::*;
 
-use opcua_types::StatusCode;
-use opcua_types::StatusCode::*;
+use opcua_types::status_codes::StatusCode;
+use opcua_types::status_codes::StatusCode::*;
 
 use crypto::x509::{X509, X509Data};
 use crypto::pkey::PKey;

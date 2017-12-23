@@ -89,22 +89,23 @@ pub mod write_mask {
     pub const VALUE_FOR_VARIABLE_TYPE: u32 = 1 << 21;
 }
 
-mod encoding;
-mod basic_types;
-mod string;
-mod data_value;
-mod date_time;
-mod guid;
-mod node_id;
-mod variant;
-mod data_types;
-mod notification_message;
-mod generated;
-mod attribute;
-mod service_types;
-mod supported_message;
-mod numeric_range;
-mod url;
+pub mod encoding;
+pub mod basic_types;
+pub mod string;
+pub mod data_value;
+pub mod date_time;
+pub mod guid;
+pub mod node_id;
+pub mod variant;
+pub mod data_types;
+pub mod notification_message;
+pub mod service_types;
+pub mod attribute;
+pub mod supported_message;
+pub mod numeric_range;
+pub mod url;
+pub mod node_ids;
+pub mod status_codes;
 
 pub use encoding::*;
 pub use basic_types::*;
@@ -115,12 +116,15 @@ pub use guid::*;
 pub use node_id::*;
 pub use variant::*;
 pub use data_types::*;
-pub use generated::*;
+pub use service_types::*;
 pub use attribute::*;
 pub use service_types::*;
 pub use supported_message::*;
 pub use numeric_range::*;
 pub use url::*;
+pub use node_ids::*;
+pub use status_codes::*;
+
 
 #[macro_export]
 macro_rules! supported_message_as {

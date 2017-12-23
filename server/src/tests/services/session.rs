@@ -1,5 +1,5 @@
 use opcua_types::{AnonymousIdentityToken, UserNameIdentityToken, UAString, ByteString, MessageSecurityMode, ExtensionObject, ObjectId};
-use opcua_types::StatusCode::*;
+use opcua_types::status_codes::StatusCode::*;
 
 use opcua_core;
 use opcua_core::crypto::SecurityPolicy;

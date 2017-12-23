@@ -9,8 +9,8 @@ use guid::Guid;
 use date_time::DateTime;
 use data_value::DataValue;
 use node_id::{NodeId, ExpandedNodeId};
-use generated::StatusCode;
-use generated::DataTypeId;
+use status_codes::StatusCode;
+use node_ids::DataTypeId;
 
 const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
 const ARRAY_VALUES_BIT: u8 = 1 << 7;

@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::str::FromStr;
 
 use opcua_types::*;
-use opcua_types::StatusCode::*;
+use opcua_types::status_codes::StatusCode::*;
 use opcua_core::crypto;
 use opcua_core::crypto::{SecurityPolicy, CertificateStore, X509, PKey};
 

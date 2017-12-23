@@ -4,7 +4,7 @@ use time;
 use chrono;
 
 use opcua_types::*;
-use opcua_types::StatusCode::*;
+use opcua_types::status_codes::StatusCode::*;
 
 use DateTimeUtc;
 use address_space::types::AddressSpace;

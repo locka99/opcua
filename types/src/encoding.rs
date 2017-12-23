@@ -4,8 +4,8 @@ use std::io::{Read, Write, Result};
 
 use byteorder::{ByteOrder, LittleEndian};
 
-use generated::StatusCode;
-use generated::StatusCode::{BadEncodingError, BadDecodingError};
+use status_codes::StatusCode;
+use status_codes::StatusCode::{BadEncodingError, BadDecodingError};
 
 pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
 

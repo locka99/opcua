@@ -4,8 +4,8 @@ use encoding::*;
 use basic_types::*;
 use date_time::*;
 use variant::Variant;
-use generated::StatusCode;
-use generated::StatusCode::Good;
+use status_codes::StatusCode;
+use status_codes::StatusCode::Good;
 
 /// False if the Value is Null.
 const HAS_VALUE: u8 = 0x1;
