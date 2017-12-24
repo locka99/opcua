@@ -64,6 +64,12 @@ impl BinaryEncoder<UserTokenType> for UserTokenType {
     }
 }
 
+impl Into<SupportedMessage> for ServiceFault {
+    fn into(self) -> SupportedMessage {
+        SupportedMessage::ServiceFault(self)
+    }
+}
+
 impl ServiceFault {
     pub fn new(request_header: &RequestHeader, service_result: StatusCode) -> ServiceFault {
         ServiceFault {
@@ -72,12 +78,7 @@ impl ServiceFault {
     }
 
     pub fn new_supported_message(request_header: &RequestHeader, service_result: StatusCode) -> SupportedMessage {
-        ServiceFault::new(request_header, service_result).as_supported_message()
-    }
-
-    /// Returns this object in a supported message, consuming it
-    pub fn as_supported_message(self) -> SupportedMessage {
-        SupportedMessage::ServiceFault(self)
+        ServiceFault::new(request_header, service_result).into()
     }
 }
 
