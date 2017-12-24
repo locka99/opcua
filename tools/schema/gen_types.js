@@ -183,7 +183,7 @@ use status_codes::StatusCode;
     _.each(types, function (key, value) {
         imports += `use service_types::${key};
 `;
-    })
+    });
 
     return imports;
 }
