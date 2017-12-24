@@ -7,6 +7,7 @@ use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
 use opcua_types::node_ids::ObjectId;
+use opcua_types::service_types::{DataChangeFilter, ReadValueId, MonitoredItemCreateRequest, MonitoredItemModifyRequest, MonitoredItemNotification};
 
 use constants;
 
@@ -154,7 +155,7 @@ impl MonitoredItem {
                     // Enqueue notification message
                     let client_handle = self.client_handle;
                     self.enqueue_notification_message(MonitoredItemNotification {
-                        client_handle: client_handle,
+                        client_handle,
                         value: data_value,
                     });
 

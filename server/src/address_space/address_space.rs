@@ -7,6 +7,7 @@ use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
 use opcua_types::node_ids::*;
+use opcua_types::service_types::{BrowseDirection, ServerDiagnosticsSummaryDataType, RelativePath, RelativePathElement};
 
 use server_state::ServerState;
 use constants;

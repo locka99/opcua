@@ -6,6 +6,7 @@ use chrono;
 use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
+use opcua_types::service_types::{PublishRequest, ServiceFault, ResponseHeader};
 
 use DateTimeUtc;
 use address_space::types::AddressSpace;

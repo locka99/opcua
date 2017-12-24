@@ -18,7 +18,8 @@ pub use self::certificate_store::*;
 pub use self::hash::*;
 pub use self::security_policy::*;
 
-use opcua_types::{SignatureData, UAString, ByteString};
+use opcua_types::{UAString, ByteString};
+use opcua_types::service_types::SignatureData;
 use opcua_types::status_codes::StatusCode;
 
 // Size of a SHA1 hash value in bytes

@@ -1,5 +1,5 @@
-use opcua_types::{UInt32, PublishRequest, SupportedMessage};
-
+use opcua_types::{UInt32, SupportedMessage};
+use opcua_types::service_types::PublishRequest;
 
 /// The publish request entry preserves the request_id which is part of the chunk layer but clients
 /// are fickle about receiving responses from the same as the request. Normally this is easy because

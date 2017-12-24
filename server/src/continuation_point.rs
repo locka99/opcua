@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 
-use opcua_types::{ByteString, ReferenceDescription};
+use opcua_types::{ByteString};
+use opcua_types::service_types::ReferenceDescription;
 
 use DateTimeUtc;
 

@@ -11,11 +11,34 @@ use service_types::*;
 use node_ids::ObjectId;
 
 #[macro_export]
-macro_rules! expect_message {
-    ( $msg: expr, $x:ident ) => {
-        match $msg {
-            SupportedMessage::$x(msg) => msg,
-            _ => panic!("Unexpected message")
+macro_rules! supported_message_as {
+    ($v: expr, $i: ident) => {
+        if let SupportedMessage::$i(value) = $v {
+            value
+        } else {
+            panic!("Failed to get a supported message of type {}", stringify!($i));
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! supported_message_as_ref {
+    ($v: expr, $i: ident) => {
+        if let SupportedMessage::$i(ref value) = $v {
+            value
+        } else {
+            panic!("Failed to get a supported message of type {}", stringify!($i));
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! supported_message_as_ref_mut {
+    ($v: expr, $i: ident) => {
+        if let SupportedMessage::$i(ref mut v) = $v {
+            v
+        } else {
+            panic!("Failed to get a supported message of type {}", stringify!($i));
         }
     }
 }

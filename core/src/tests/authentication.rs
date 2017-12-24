@@ -1,4 +1,4 @@
-use prelude::*;
+use tests::*;
 
 #[test]
 fn user_name_identity_token_valid() {

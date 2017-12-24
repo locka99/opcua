@@ -3,7 +3,6 @@
 //!
 //! Use simple-server to understand a terse and simple example.
 
-#[macro_use]
 extern crate log;
 extern crate chrono;
 extern crate rand;
@@ -12,7 +11,7 @@ extern crate opcua_types;
 extern crate opcua_core;
 extern crate opcua_server;
 
-use std::sync::{Arc, Mutex};
+//use std::sync::{Arc, Mutex};
 use std::path::PathBuf;
 
 use opcua_server::prelude::*;

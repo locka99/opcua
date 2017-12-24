@@ -9,7 +9,7 @@ use time;
 use timer;
 
 use opcua_types::*;
-use opcua_types::ServerState as ServerStateType;
+use opcua_types::service_types::ServerState as ServerStateType;
 
 use opcua_core::prelude::*;
 use opcua_core::config::Config;

@@ -58,14 +58,14 @@ fn publish_response_subscription() {
 
     let request = create_subscription_request();
     debug!("{:#?}", request);
-    let response: CreateSubscriptionResponse = expect_message!(ss.create_subscription(&mut server_state, &mut session, request).unwrap(), CreateSubscriptionResponse);
+    let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(&mut server_state, &mut session, request).unwrap(), CreateSubscriptionResponse);
     debug!("{:#?}", response);
 
     let subscription_id = response.subscription_id;
 
     let request = create_monitored_items_request(response.subscription_id, VariableId::Server_ServerStatus_CurrentTime);
     debug!("{:#?}", request);
-    let response = expect_message!(mis.create_monitored_items(&mut session, request).unwrap(), CreateMonitoredItemsResponse);
+    let response = supported_message_as!(mis.create_monitored_items(&mut session, request).unwrap(), CreateMonitoredItemsResponse);
     debug!("{:#?}", response);
 
     // Tick subscriptions to be sure they catch a change
@@ -82,7 +82,7 @@ fn publish_response_subscription() {
     debug!("{:#?}", request);
     let response = ss.publish(&mut session, request_id, &address_space, request).unwrap();
     if let Some(response) = response {
-        let response = expect_message!(response, PublishResponse);
+        let response = supported_message_as!(response, PublishResponse);
         debug!("{:#?}", response);
     } else {
         debug!("Got no response from publish (i.e. queued)");
@@ -95,7 +95,7 @@ fn publish_response_subscription() {
     let response_entry = session.subscriptions.publish_response_queue.pop().unwrap();
     assert_eq!(request_id, response_entry.request_id);
 
-    let response: PublishResponse = expect_message!(response_entry.response, PublishResponse);
+    let response: PublishResponse = supported_message_as!(response_entry.response, PublishResponse);
     assert!(response.available_sequence_numbers.is_some());
     assert_eq!(response.subscription_id, subscription_id);
     assert!(response.more_notifications, false);

@@ -7,6 +7,7 @@ use chrono;
 use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
+use opcua_types::service_types::ChannelSecurityToken;
 
 use crypto::SecurityPolicy;
 use crypto::CertificateStore;

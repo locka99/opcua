@@ -3,6 +3,7 @@ use std::result::Result;
 use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
+use opcua_types::service_types::*;
 
 use subscriptions::subscription::Subscription;
 use server_state::ServerState;

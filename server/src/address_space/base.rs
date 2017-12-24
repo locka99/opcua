@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex};
 use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
+use opcua_types::service_types::*;
 
 use address_space::{AttributeGetter, AttributeSetter};
 use address_space::node::Node;

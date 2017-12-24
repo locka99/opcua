@@ -3,6 +3,7 @@ use std::result::Result;
 use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
+use opcua_types::service_types::{ServiceFault, SecurityTokenRequestType, OpenSecureChannelResponse, ResponseHeader, ChannelSecurityToken};
 
 use opcua_core::comms::prelude::*;
 use opcua_core::crypto::SecurityPolicy;

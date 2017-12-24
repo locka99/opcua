@@ -6,6 +6,7 @@ use time;
 use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
+use opcua_types::service_types::{NotificationMessage, MonitoredItemCreateRequest, MonitoredItemCreateResult, MonitoredItemModifyRequest, MonitoredItemModifyResult, SubscriptionAcknowledgement, PublishResponse, ResponseHeader};
 
 use constants;
 

@@ -99,13 +99,10 @@ pub mod node_id;
 pub mod variant;
 pub mod data_types;
 pub mod notification_message;
-pub mod service_types;
 pub mod attribute;
 pub mod supported_message;
 pub mod numeric_range;
 pub mod url;
-pub mod node_ids;
-pub mod status_codes;
 
 pub use encoding::*;
 pub use basic_types::*;
@@ -117,43 +114,14 @@ pub use node_id::*;
 pub use variant::*;
 pub use data_types::*;
 pub use attribute::*;
-pub use service_types::*;
 pub use supported_message::*;
 pub use numeric_range::*;
 pub use url::*;
 
-#[macro_export]
-macro_rules! supported_message_as {
-    ($v: expr, $i: ident) => {
-        if let SupportedMessage::$i(value) = $v {
-            value
-        } else {
-            panic!("Failed to get a supported message of type {}", stringify!($i));
-        }
-    }
-}
-
-#[macro_export]
-macro_rules! supported_message_as_ref {
-    ($v: expr, $i: ident) => {
-        if let SupportedMessage::$i(ref value) = $v {
-            value
-        } else {
-            panic!("Failed to get a supported message of type {}", stringify!($i));
-        }
-    }
-}
-
-#[macro_export]
-macro_rules! supported_message_as_ref_mut {
-    ($v: expr, $i: ident) => {
-        if let SupportedMessage::$i(ref mut v) = $v {
-            v
-        } else {
-            panic!("Failed to get a supported message of type {}", stringify!($i));
-        }
-    }
-}
+// These mods are not use'd into this mod - too many types
+pub mod service_types;
+pub mod node_ids;
+pub mod status_codes;
 
 #[cfg(test)]
 mod tests;

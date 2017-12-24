@@ -21,6 +21,8 @@ pub mod session;
 pub mod subscription;
 
 pub mod prelude {
+    pub use opcua_types::status_codes::StatusCode;
+    pub use opcua_types::service_types::*;
     pub use opcua_core::prelude::*;
     pub use client::*;
     pub use config::*;
