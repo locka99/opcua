@@ -66,7 +66,7 @@ fs.readFile(types_xml, function (err, data) {
                             type: `Option<Vec<${type}>>`,
                             contained_type: type,
                             inner_type: type,
-                            is_array: true,
+                            is_array: true
                         });
                         fields_to_hide.push(convertFieldName(field["$"]["LengthField"]));
                     }
@@ -74,7 +74,7 @@ fs.readFile(types_xml, function (err, data) {
                         fields_to_add.push({
                             name: field_name,
                             type: type,
-                            contained_type: type,
+                            contained_type: type
                         })
                     }
                 });
@@ -82,7 +82,7 @@ fs.readFile(types_xml, function (err, data) {
                 var structured_type = {
                     name: name,
                     fields_to_add: fields_to_add,
-                    fields_to_hide: fields_to_hide,
+                    fields_to_hide: fields_to_hide
                 };
                 if (_.has(structured_type_element, "opc:Documentation")) {
                     structured_type.documentation = structured_type_element["opc:Documentation"];
