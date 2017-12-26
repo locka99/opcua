@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use chrono::{DateTime, Utc};
 
 use opcua_types::*;
@@ -61,7 +63,7 @@ pub struct Session {
     /// Maximum number of continuation points
     max_browse_continuation_points: usize,
     /// Browse continuation points (oldest to newest)
-    browse_continuation_points: Vec<BrowseContinuationPoint>,
+    browse_continuation_points: VecDeque<BrowseContinuationPoint>,
     /// Diagnostics associated with the session
     diagnostics: SessionDiagnostics,
     /// Indicates if the session has received an ActivateSession
@@ -97,7 +99,7 @@ impl Session {
             max_response_message_size: 0,
             endpoint_url: UAString::null(),
             max_browse_continuation_points,
-            browse_continuation_points: Vec::with_capacity(max_browse_continuation_points),
+            browse_continuation_points: VecDeque::with_capacity(max_browse_continuation_points),
             diagnostics: SessionDiagnostics::new(),
             last_session_id: 0,
         }
@@ -124,7 +126,7 @@ impl Session {
             max_response_message_size: 0,
             endpoint_url: UAString::null(),
             max_browse_continuation_points,
-            browse_continuation_points: Vec::with_capacity(max_browse_continuation_points),
+            browse_continuation_points: VecDeque::with_capacity(max_browse_continuation_points),
             diagnostics: SessionDiagnostics::new(),
             last_session_id: 0,
         }
@@ -161,10 +163,11 @@ impl Session {
     }
 
     pub fn add_browse_continuation_point(&mut self, continuation_point: BrowseContinuationPoint) {
-        self.browse_continuation_points.push(continuation_point);
-        while self.browse_continuation_points.len() > self.max_browse_continuation_points {
-            let _ = self.browse_continuation_points.remove(0);
+        // Remove excess browse continuation points
+        while self.browse_continuation_points.len() >= self.max_browse_continuation_points {
+            let _ = self.browse_continuation_points.pop_front();
         }
+        self.browse_continuation_points.push_back(continuation_point);
     }
 
     /// Find a continuation point by id. If the continuation point is out of date is removed and None

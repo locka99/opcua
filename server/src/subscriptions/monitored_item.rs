@@ -1,4 +1,5 @@
 use std::result::Result;
+use std::collections::VecDeque;
 
 use chrono;
 use time;
@@ -47,7 +48,7 @@ pub struct MonitoredItem {
     pub filter: FilterType,
     pub discard_oldest: Boolean,
     pub queue_size: usize,
-    pub notification_queue: Vec<MonitoredItemNotification>,
+    pub notification_queue: VecDeque<MonitoredItemNotification>,
     pub queue_overflow: bool,
     last_sample_time: DateTimeUtc,
     last_data_value: Option<DataValue>,
@@ -69,7 +70,7 @@ impl MonitoredItem {
             last_sample_time: chrono::Utc::now(),
             last_data_value: None,
             queue_size,
-            notification_queue: Vec::with_capacity(queue_size),
+            notification_queue: VecDeque::with_capacity(queue_size),
             queue_overflow: false
         })
     }
@@ -181,10 +182,10 @@ impl MonitoredItem {
             // Overflow behaviour
             if self.discard_oldest {
                 // Throw away oldest item (the one at the start) to make space at the end
-                let _ = self.notification_queue.remove(0);
+                let _ = self.notification_queue.pop_front();
             } else {
                 // Remove the last notification
-                self.notification_queue.pop();
+                self.notification_queue.pop_back();
             }
             // Overflow only affects queues > 1 element
             self.queue_size > 1
@@ -192,7 +193,7 @@ impl MonitoredItem {
             false
         };
         // Add to end
-        self.notification_queue.push(notification);
+        self.notification_queue.push_back(notification);
     }
 
     /// Gets the oldest notification message from the notification queue
@@ -202,7 +203,7 @@ impl MonitoredItem {
         } else {
             // Take first item off the queue
             self.queue_overflow = false;
-            Some(self.notification_queue.remove(0))
+            self.notification_queue.pop_front()
         }
     }
 
@@ -220,7 +221,7 @@ impl MonitoredItem {
     /// Gets the last notification (and discards the remainder to prevent out of sequence events) from
     /// the notification queue.
     pub fn remove_last_notification_message(&mut self) -> Option<MonitoredItemNotification> {
-        let result = self.notification_queue.pop();
+        let result = self.notification_queue.pop_back();
         if result.is_some() {
             self.queue_overflow = false;
             self.notification_queue.clear();
