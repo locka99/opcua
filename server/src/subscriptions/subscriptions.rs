@@ -191,7 +191,7 @@ impl Subscriptions {
         for (idx, publish_request) in handled_requests.iter().enumerate() {
             let publish_response = publish_responses.get_mut(idx).unwrap();
             if let SupportedMessage::PublishResponse(ref mut publish_response) = publish_response.response {
-                publish_response.results = self.process_subscription_acknowledgements(publish_request);
+                publish_response.results = self.process_subscription_acknowledgements(&publish_request.request);
             }
         }
 
@@ -209,9 +209,8 @@ impl Subscriptions {
     /// BadSubscriptionIdInvalid - Subscription doesn't exist
     /// BadSequenceNumberUnknown - Sequence number doesn't exist
     ///
-    fn process_subscription_acknowledgements(&mut self, request: &PublishRequestEntry) -> Option<Vec<StatusCode>> {
+    fn process_subscription_acknowledgements(&mut self, request: &PublishRequest) -> Option<Vec<StatusCode>> {
         trace!("Processing subscription acknowledgements");
-        let request = &request.request;
         if request.subscription_acknowledgements.is_some() {
             let subscription_acknowledgements = request.subscription_acknowledgements.as_ref().unwrap();
             let results = subscription_acknowledgements.iter().map(|subscription_acknowledgement| {

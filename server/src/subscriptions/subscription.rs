@@ -104,7 +104,9 @@ pub struct Subscription {
     pub publishing_req_queued: bool,
     // Notifications waiting to be sent in a map by sequence number. A b-tree is used to ensure ordering is
     // by sequence number.
-    pub retransmission_queue: BTreeMap<UInt32, NotificationMessage>,
+    notifications_to_send: BTreeMap<UInt32, NotificationMessage>,
+    // Notifications that have been sent but have yet to be acknowledged.
+    notifications_waiting_for_ack: BTreeMap<UInt32, NotificationMessage>,
     // The last monitored item id
     last_monitored_item_id: UInt32,
     // The time that the subscription interval last fired
@@ -133,7 +135,8 @@ impl Subscription {
             publishing_enabled,
             publishing_req_queued: false,
             // Outgoing notifications
-            retransmission_queue: BTreeMap::new(),
+            notifications_to_send: BTreeMap::new(),
+            notifications_waiting_for_ack: BTreeMap::new(),
             // Counters for new items
             last_monitored_item_id: 0,
             last_timer_expired_time: chrono::Utc::now(),
@@ -254,8 +257,8 @@ impl Subscription {
         let items_changed = self.tick_monitored_items(address_space, now, tick_reason);
 
         self.publishing_req_queued = publishing_req_queued;
-        self.notifications_available = !self.retransmission_queue.is_empty();
-        self.more_notifications = !self.retransmission_queue.is_empty();
+        self.notifications_available = !self.notifications_to_send.is_empty();
+        self.more_notifications = !self.notifications_to_send.is_empty();
 
         // If items have changed or subscription interval elapsed then we may have notifications
         // to send or state to update
@@ -309,8 +312,8 @@ impl Subscription {
             // Create a notification message in the map
             let sequence_number = self.create_sequence_number();
             trace!("Monitored items, seq nr = {}, nr notifications = {}", sequence_number, monitored_item_notifications.len());
-            let notification = NotificationMessage::new_data_change(sequence_number, &DateTime::now(), monitored_item_notifications);
-            self.retransmission_queue.insert(sequence_number, notification);
+            let notification = NotificationMessage::new_data_change(sequence_number, DateTime::now(), monitored_item_notifications);
+            self.notifications_to_send.insert(sequence_number, notification);
             true
         } else {
             false
@@ -356,11 +359,13 @@ impl Subscription {
     reason: {:?}
     publishing_interval_elapsed: {} publishing_req_queued: {}
     publishing_enabled: {} more_notifications: {}
-    notifications_available: {} (queue size = {})
+    notifications_available: {} (notifications_to_send = {})
+    notifications_waiting_for_ack = {}
     keep_alive_counter: {} lifetime_counter: {}
     message_sent: {}"#,
                        self.subscription_id, self.state, tick_reason, publishing_interval_elapsed, self.publishing_req_queued,
-                       self.publishing_enabled, self.more_notifications, self.notifications_available, self.retransmission_queue.len(),
+                       self.publishing_enabled, self.more_notifications, self.notifications_available, self.notifications_to_send.len(),
+                       self.notifications_waiting_for_ack.len(),
                        self.keep_alive_counter, self.lifetime_counter, self.message_sent);
             }
         }
@@ -504,9 +509,8 @@ impl Subscription {
             panic!("Code shouldn't call this for wrong subscription_id");
         }
         // Clear notification by sequence number
-        if self.retransmission_queue.remove(&subscription_acknowledgement.sequence_number).is_some() {
+        if self.notifications_waiting_for_ack.remove(&subscription_acknowledgement.sequence_number).is_some() {
             trace!("Removed acknowledged notification {}", subscription_acknowledgement.sequence_number);
-            self.more_notifications = !self.retransmission_queue.is_empty();
             Good
         } else {
             error!("Can't find acknowledged notification {}", subscription_acknowledgement.sequence_number);
@@ -551,19 +555,22 @@ impl Subscription {
 
     /// Returns the oldest notification
     pub fn return_notifications(&mut self, publish_request: &PublishRequestEntry, _: &UpdateStateResult) -> PublishResponseEntry {
-        if self.retransmission_queue.is_empty() {
+        if self.notifications_to_send.is_empty() {
             panic!("Should not be trying to return notifications if there are none");
         }
 
-        trace!("return notifications, len = {}", self.retransmission_queue.len());
+        trace!("return notifications, len = {}", self.notifications_to_send.len());
         let now = DateTime::now();
 
         // Find the first notification in the map. The map is ordered so the first item will
         // be the oldest.
         let sequence_number = {
-            *self.retransmission_queue.iter().next().unwrap().0
+            *self.notifications_to_send.iter().next().unwrap().0
         };
-        let notification_message = self.retransmission_queue.get(&sequence_number).unwrap().clone();
+        let notification_message = self.notifications_to_send.remove(&sequence_number).unwrap();
+
+        // Put the entry into the waiting for ack queue for republish
+        self.notifications_waiting_for_ack.insert(sequence_number, notification_message.clone());
 
         // Make the response
         let publish_response = self.make_publish_response(publish_request, &now, notification_message);
@@ -573,11 +580,11 @@ impl Subscription {
 
     /// Returns the array of available sequence numbers
     fn available_sequence_numbers(&self) -> Option<Vec<UInt32>> {
-        if self.retransmission_queue.is_empty() {
+        if self.notifications_to_send.is_empty() {
             None
         } else {
             // Turn our sequence numbers into a vector
-            Some(self.retransmission_queue.keys().cloned().collect())
+            Some(self.notifications_to_send.keys().cloned().collect())
         }
     }
 
