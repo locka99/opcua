@@ -78,7 +78,8 @@ impl MonitoredItem {
     }
 
     /// Modifies the existing item with the values of the modify request
-    pub fn modify(&mut self, request: &MonitoredItemModifyRequest) -> Result<(), StatusCode> {
+    pub fn modify(&mut self, timestamps_to_return: TimestampsToReturn, request: &MonitoredItemModifyRequest) -> Result<(), StatusCode> {
+        self.timestamps_to_return = timestamps_to_return;
         self.filter = FilterType::from_filter(&request.requested_parameters.filter)?;
         self.sampling_interval = MonitoredItem::sanitize_sampling_interval(request.requested_parameters.sampling_interval);
         self.queue_size = MonitoredItem::sanitize_queue_size(request.requested_parameters.queue_size as usize);

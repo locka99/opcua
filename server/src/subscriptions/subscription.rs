@@ -182,7 +182,7 @@ impl Subscription {
     }
 
     /// Modify the specified monitored items, returning a result for each
-    pub fn modify_monitored_items(&mut self, items_to_modify: &[MonitoredItemModifyRequest]) -> Vec<MonitoredItemModifyResult> {
+    pub fn modify_monitored_items(&mut self, timestamps_to_return: TimestampsToReturn, items_to_modify: &[MonitoredItemModifyRequest]) -> Vec<MonitoredItemModifyResult> {
         let mut result = Vec::with_capacity(items_to_modify.len());
         for item_to_modify in items_to_modify {
             let monitored_item = self.monitored_items.get_mut(&item_to_modify.monitored_item_id);
@@ -192,7 +192,7 @@ impl Subscription {
                     continue;
                 }
                 // Try to change the monitored item according to the modify request
-                let modify_result = monitored_item.modify(item_to_modify);
+                let modify_result = monitored_item.modify(timestamps_to_return, item_to_modify);
                 result.push(if modify_result.is_ok() {
                     MonitoredItemModifyResult {
                         status_code: Good,

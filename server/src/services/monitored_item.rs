@@ -44,7 +44,7 @@ impl MonitoredItemService {
             // Find subscription and modify items in it
             let subscription_id = request.subscription_id;
             if let Some(subscription) = session.subscriptions.get_mut(subscription_id) {
-                Some(subscription.modify_monitored_items(items_to_modify))
+                Some(subscription.modify_monitored_items(request.timestamps_to_return, items_to_modify))
             } else {
                 // No matching subscription
                 return Ok(self.service_fault(&request.request_header, BadSubscriptionIdInvalid));
