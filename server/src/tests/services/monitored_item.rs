@@ -169,7 +169,7 @@ fn monitored_item_data_change_filter() {
 
     // Create request should monitor attribute of variable, e.g. value
     // Sample interval is negative so it will always test on repeated calls
-    let mut monitored_item = MonitoredItem::new(1, &make_create_request(-1f64, 5)).unwrap();
+    let mut monitored_item = MonitoredItem::new(1, TimestampsToReturn::Both, &make_create_request(-1f64, 5)).unwrap();
 
     let now = chrono::Utc::now();
 
@@ -200,7 +200,7 @@ fn monitored_item_data_change_filter() {
 
 fn populate_monitored_item(discard_oldest: bool) -> MonitoredItem {
     let client_handle = 999;
-    let mut monitored_item = MonitoredItem::new(1, &make_create_request(-1f64, 5)).unwrap();
+    let mut monitored_item = MonitoredItem::new(1, TimestampsToReturn::Both, &make_create_request(-1f64, 5)).unwrap();
     monitored_item.discard_oldest = discard_oldest;
     for i in 0..5 {
         monitored_item.enqueue_notification_message(MonitoredItemNotification {

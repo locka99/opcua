@@ -8,7 +8,7 @@ use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
 use opcua_types::node_ids::ObjectId;
-use opcua_types::service_types::{DataChangeFilter, ReadValueId, MonitoredItemCreateRequest, MonitoredItemModifyRequest, MonitoredItemNotification};
+use opcua_types::service_types::{TimestampsToReturn, DataChangeFilter, ReadValueId, MonitoredItemCreateRequest, MonitoredItemModifyRequest, MonitoredItemNotification};
 
 use constants;
 
@@ -50,12 +50,13 @@ pub struct MonitoredItem {
     pub queue_size: usize,
     pub notification_queue: VecDeque<MonitoredItemNotification>,
     pub queue_overflow: bool,
+    timestamps_to_return: TimestampsToReturn,
     last_sample_time: DateTimeUtc,
     last_data_value: Option<DataValue>,
 }
 
 impl MonitoredItem {
-    pub fn new(monitored_item_id: UInt32, request: &MonitoredItemCreateRequest) -> Result<MonitoredItem, StatusCode> {
+    pub fn new(monitored_item_id: UInt32, timestamps_to_return: TimestampsToReturn, request: &MonitoredItemCreateRequest) -> Result<MonitoredItem, StatusCode> {
         let filter = FilterType::from_filter(&request.requested_parameters.filter)?;
         let sampling_interval = MonitoredItem::sanitize_sampling_interval(request.requested_parameters.sampling_interval);
         let queue_size = MonitoredItem::sanitize_queue_size(request.requested_parameters.queue_size as usize);
@@ -67,11 +68,12 @@ impl MonitoredItem {
             sampling_interval,
             filter,
             discard_oldest: request.requested_parameters.discard_oldest,
+            timestamps_to_return,
             last_sample_time: chrono::Utc::now(),
             last_data_value: None,
             queue_size,
             notification_queue: VecDeque::with_capacity(queue_size),
-            queue_overflow: false
+            queue_overflow: false,
         })
     }
 
@@ -130,7 +132,7 @@ impl MonitoredItem {
             }
             let attribute_id = attribute_id.unwrap();
             let data_value = node.find_attribute(attribute_id);
-            if let Some(data_value) = data_value {
+            if let Some(mut data_value) = data_value {
                 // Test for data change
                 let data_change = if self.last_data_value.is_none() {
                     // There is no previous check so yes it changed
@@ -152,6 +154,25 @@ impl MonitoredItem {
 
                     // Store current data value to compare against on the next tick
                     self.last_data_value = Some(data_value.clone());
+
+                    // Strip out timestamps that subscriber is not interested in
+                    match self.timestamps_to_return {
+                        TimestampsToReturn::Neither => {
+                            data_value.source_timestamp = None;
+                            data_value.source_picoseconds = None;
+                            data_value.server_timestamp = None;
+                            data_value.server_picoseconds = None
+                        }
+                        TimestampsToReturn::Server => {
+                            data_value.source_timestamp = None;
+                            data_value.source_picoseconds = None;
+                        }
+                        TimestampsToReturn::Source => {
+                            data_value.server_timestamp = None;
+                            data_value.server_picoseconds = None
+                        }
+                        _ => {}
+                    }
 
                     // Enqueue notification message
                     let client_handle = self.client_handle;

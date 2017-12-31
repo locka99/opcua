@@ -6,7 +6,7 @@ use time;
 use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
-use opcua_types::service_types::{NotificationMessage, MonitoredItemCreateRequest, MonitoredItemCreateResult, MonitoredItemModifyRequest, MonitoredItemModifyResult, SubscriptionAcknowledgement, PublishResponse, ResponseHeader};
+use opcua_types::service_types::{TimestampsToReturn, NotificationMessage, MonitoredItemCreateRequest, MonitoredItemCreateResult, MonitoredItemModifyRequest, MonitoredItemModifyResult, SubscriptionAcknowledgement, PublishResponse, ResponseHeader};
 
 use constants;
 
@@ -145,7 +145,7 @@ impl Subscription {
     }
 
     /// Creates monitored items on the specified subscription, returning the creation results
-    pub fn create_monitored_items(&mut self, items_to_create: &[MonitoredItemCreateRequest]) -> Vec<MonitoredItemCreateResult> {
+    pub fn create_monitored_items(&mut self, timestamps_to_return: TimestampsToReturn, items_to_create: &[MonitoredItemCreateRequest]) -> Vec<MonitoredItemCreateResult> {
         let mut results = Vec::with_capacity(items_to_create.len());
         // Add items to the subscription if they're not already in its
         for item_to_create in items_to_create {
@@ -153,7 +153,7 @@ impl Subscription {
             // Process items to create here
             let monitored_item_id = self.last_monitored_item_id;
             // Create a monitored item, if possible
-            let monitored_item = MonitoredItem::new(monitored_item_id, item_to_create);
+            let monitored_item = MonitoredItem::new(monitored_item_id, timestamps_to_return, item_to_create);
             let result = if let Ok(monitored_item) = monitored_item {
                 // Return the status
                 let result = MonitoredItemCreateResult {
@@ -580,11 +580,13 @@ impl Subscription {
 
     /// Returns the array of available sequence numbers
     fn available_sequence_numbers(&self) -> Option<Vec<UInt32>> {
-        if self.notifications_to_send.is_empty() {
+        if self.notifications_to_send.is_empty() && self.notifications_waiting_for_ack.is_empty() {
             None
         } else {
-            // Turn our sequence numbers into a vector
-            Some(self.notifications_to_send.keys().cloned().collect())
+            let mut available_sequence_numbers: Vec<u32> = Vec::with_capacity(self.notifications_to_send.len() + self.notifications_waiting_for_ack.len());
+            self.notifications_to_send.keys().for_each(|k| available_sequence_numbers.push(*k));
+            self.notifications_waiting_for_ack.keys().for_each(|k| available_sequence_numbers.push(*k));
+            Some(available_sequence_numbers)
         }
     }
 

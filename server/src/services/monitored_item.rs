@@ -18,12 +18,11 @@ impl MonitoredItemService {
     }
 
     pub fn create_monitored_items(&self, session: &mut Session, request: CreateMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
-        // pub timestamps_to_return: TimestampsToReturn,
         let results = if let Some(ref items_to_create) = request.items_to_create {
             // Find subscription and add items to it
             let subscription_id = request.subscription_id;
             if let Some(subscription) = session.subscriptions.get_mut(subscription_id) {
-                Some(subscription.create_monitored_items(items_to_create))
+                Some(subscription.create_monitored_items(request.timestamps_to_return, items_to_create))
             } else {
                 // No matching subscription
                 return Ok(self.service_fault(&request.request_header, BadSubscriptionIdInvalid));
