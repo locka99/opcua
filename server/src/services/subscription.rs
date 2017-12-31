@@ -172,9 +172,9 @@ impl SubscriptionService {
         } else {
             requested_max_keep_alive_count
         };
-        let max_keep_alive_count = revised_max_keep_alive_count * 3;
-        let revised_lifetime_count = if requested_lifetime_count > max_keep_alive_count {
-            max_keep_alive_count
+        let min_keep_alive_count = revised_max_keep_alive_count * 3;
+        let revised_lifetime_count = if requested_lifetime_count < min_keep_alive_count {
+            min_keep_alive_count
         } else {
             requested_lifetime_count
         };
