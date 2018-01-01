@@ -549,8 +549,10 @@ impl Subscription {
             notification_data: None,
         };
 
+        let available_sequence_numbers = self.available_sequence_numbers();
+
         // Publish response with no notification message
-        self.make_publish_response(publish_request, &now, notification_message)
+        self.make_publish_response(publish_request, &now, notification_message, available_sequence_numbers)
     }
 
     /// Returns the oldest notification
@@ -561,6 +563,9 @@ impl Subscription {
 
         trace!("return notifications, len = {}", self.notifications_to_send.len());
         let now = DateTime::now();
+
+        // Make a list of available sequence numbers
+        let available_sequence_numbers = self.available_sequence_numbers();
 
         // Find the first notification in the map. The map is ordered so the first item will
         // be the oldest.
@@ -573,30 +578,27 @@ impl Subscription {
         self.notifications_waiting_for_ack.insert(sequence_number, notification_message.clone());
 
         // Make the response
-        let publish_response = self.make_publish_response(publish_request, &now, notification_message);
+        let publish_response = self.make_publish_response(publish_request, &now, notification_message, available_sequence_numbers);
 
         publish_response
     }
 
     /// Returns the array of available sequence numbers
     fn available_sequence_numbers(&self) -> Option<Vec<UInt32>> {
-        if self.notifications_to_send.is_empty() && self.notifications_waiting_for_ack.is_empty() {
+        if self.notifications_to_send.is_empty() {
             None
         } else {
-            let mut available_sequence_numbers: Vec<u32> = Vec::with_capacity(self.notifications_to_send.len() + self.notifications_waiting_for_ack.len());
-            self.notifications_to_send.keys().for_each(|k| available_sequence_numbers.push(*k));
-            self.notifications_waiting_for_ack.keys().for_each(|k| available_sequence_numbers.push(*k));
-            Some(available_sequence_numbers)
+            Some(self.notifications_to_send.keys().cloned().collect())
         }
     }
 
-    fn make_publish_response(&self, publish_request: &PublishRequestEntry, now: &DateTime, notification_message: NotificationMessage) -> PublishResponseEntry {
+    fn make_publish_response(&self, publish_request: &PublishRequestEntry, now: &DateTime, notification_message: NotificationMessage, available_sequence_numbers: Option<Vec<UInt32>>) -> PublishResponseEntry {
         PublishResponseEntry {
             request_id: publish_request.request_id,
             response: SupportedMessage::PublishResponse(PublishResponse {
                 response_header: ResponseHeader::new_timestamped_service_result(now.clone(), &publish_request.request.request_header, Good),
                 subscription_id: self.subscription_id,
-                available_sequence_numbers: self.available_sequence_numbers(),
+                available_sequence_numbers,
                 more_notifications: self.more_notifications,
                 notification_message,
                 results: None,
