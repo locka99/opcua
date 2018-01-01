@@ -32,7 +32,7 @@ impl Thumbprint {
         ByteString::from(&self.value)
     }
 
-    /// Returns the thumbprint as a string using hexdecimal values for each byte
+    /// Returns the thumbprint as a string using hexadecimal values for each byte
     pub fn as_hex_string(&self) -> String {
         let mut hex_string = String::with_capacity(self.value.len() * 2);
         for b in self.value.iter() {
