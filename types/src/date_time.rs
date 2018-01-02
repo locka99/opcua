@@ -1,6 +1,6 @@
 use std::io::{Read, Write};
 
-use chrono::{self, Utc, TimeZone, Timelike, Datelike};
+use chrono::{self, Utc, TimeZone, Datelike, Timelike};
 
 use encoding::*;
 use basic_types::*;
@@ -14,23 +14,11 @@ const MAX_YEAR: UInt16 = 9999;
 
 /// Data type ID 13
 //
-/// Holds a date/time broken down into constituent parts
+/// Holds a date/time. This is a wrapper around the chrono type with extra functionality
+/// for obtaining ticks in OPC UA measurements, endtimes, epoch etc.
 #[derive(PartialEq, Debug, Clone)]
 pub struct DateTime {
-    // Year in full format, e.g. 2016
-    pub year: UInt16,
-    // Month [1,12]
-    pub month: UInt16,
-    // Day of month [1,31]
-    pub day: UInt16,
-    // Hour [0,23]
-    pub hour: UInt16,
-    // Minutes [0,59]
-    pub min: UInt16,
-    // Seconds [0,59]
-    pub sec: UInt16,
-    // Nanoseconds past the second [0 to 10^9 - 1]
-    pub nano_sec: UInt32,
+    pub date_time: chrono::DateTime<Utc>,
 }
 
 /// DateTime encoded as 64-bit signed int
@@ -50,32 +38,75 @@ impl BinaryEncoder<DateTime> for DateTime {
     }
 }
 
-impl From<chrono::DateTime<Utc>> for DateTime {
-    fn from(dt: chrono::DateTime<Utc>) -> Self {
-        DateTime {
-            year: dt.year() as UInt16,
-            month: dt.month() as UInt16,
-            day: dt.day() as UInt16,
-            hour: dt.hour() as UInt16,
-            min: dt.minute() as UInt16,
-            sec: dt.second() as UInt16,
-            nano_sec: (dt.nanosecond() / NANOS_PER_TICK as u32) * NANOS_PER_TICK as u32,
-        }
-    }
-}
-
 impl Default for DateTime {
     fn default() -> Self {
         DateTime::epoch()
     }
 }
 
+// From ymd_hms
+impl From<(UInt16, UInt16, UInt16, UInt16, UInt16, UInt16)> for DateTime {
+    fn from(dt: (UInt16, UInt16, UInt16, UInt16, UInt16, UInt16)) -> Self {
+        let (year, month, day, hour, minute, second) = dt;
+        DateTime::from((year, month, day, hour, minute, second, 0))
+    }
+}
+
+// From ymd_hms
+impl From<(UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt32)> for DateTime {
+    fn from(dt: (UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt32)) -> Self {
+        let (year, month, day, hour, minute, second, nanos) = dt;
+        if month < 1 || month > 12 {
+            panic!("Invalid month");
+        }
+        if day < 1 || day > 31 {
+            panic!("Invalid day");
+        }
+        if hour > 23 {
+            panic!("Invalid hour");
+        }
+        if minute > 59 {
+            panic!("Invalid minute");
+        }
+        if second > 59 {
+            panic!("Invalid second");
+        }
+        if nanos as i64 >= NANOS_PER_SECOND {
+            panic!("Invalid nanosecond");
+        }
+        let dt = Utc.ymd(year as i32, month as u32, day as u32)
+            .and_hms_nano(hour as u32, minute as u32, second as u32, nanos);
+        DateTime::from(dt)
+    }
+}
+
+impl From<chrono::DateTime<Utc>> for DateTime {
+    fn from(date_time: chrono::DateTime<Utc>) -> Self {
+        // OPC UA date time is more granular with nanos, so the value supplied is made granular too
+        let year = date_time.year();
+        let month = date_time.month();
+        let day = date_time.day();
+        let hour = date_time.hour();
+        let minute = date_time.minute();
+        let second = date_time.second();
+        let nanos = (date_time.nanosecond() / NANOS_PER_TICK as u32) * NANOS_PER_TICK as u32;
+        let date_time = Utc.ymd(year, month, day)
+            .and_hms_nano(hour, minute, second, nanos);
+        DateTime { date_time }
+    }
+}
+
 impl From<Int64> for DateTime {
     fn from(value: Int64) -> Self {
-        let secs = value / TICKS_PER_SECOND;
-        let nanos = (value - secs * TICKS_PER_SECOND) * NANOS_PER_TICK;
-        let duration = chrono::Duration::seconds(secs) + chrono::Duration::nanoseconds(nanos);
-        Self::from(Self::epoch_chrono() + duration)
+        if value == i64::max_value() {
+            // Max signifies end times
+            Self::endtimes()
+        } else {
+            let secs = value / TICKS_PER_SECOND;
+            let nanos = (value - secs * TICKS_PER_SECOND) * NANOS_PER_TICK;
+            let duration = chrono::Duration::seconds(secs) + chrono::Duration::nanoseconds(nanos);
+            Self::from(Self::epoch_chrono() + duration)
+        }
     }
 }
 
@@ -87,9 +118,7 @@ impl Into<Int64> for DateTime {
 
 impl Into<chrono::DateTime<Utc>> for DateTime {
     fn into(self) -> chrono::DateTime<Utc> {
-        // Converts from the equivalent chrono type
-        Utc.ymd(self.year as i32, self.month as u32, self.day as u32)
-            .and_hms_nano(self.hour as u32, self.min as u32, self.sec as u32, self.nano_sec as u32)
+        self.as_chrono()
     }
 }
 
@@ -116,7 +145,7 @@ impl DateTime {
 
     /// Constructs from a year, month, day
     pub fn ymd(year: UInt16, month: UInt16, day: UInt16) -> DateTime {
-        DateTime::ymd_hms_nano(year, month, day, 0, 0, 0, 0)
+        DateTime::ymd_hms(year, month, day, 0, 0, 0)
     }
 
     /// Constructs from a year, month, day, hour, minute, second
@@ -127,7 +156,7 @@ impl DateTime {
                    minute: UInt16,
                    second: UInt16)
                    -> DateTime {
-        DateTime::ymd_hms_nano(year, month, day, hour, minute, second, 0)
+        DateTime::from((year, month, day, hour, minute, second))
     }
 
     /// Constructs from a year, month, day, hour, minute, second, nanosecond
@@ -138,39 +167,12 @@ impl DateTime {
                         minute: UInt16,
                         second: UInt16,
                         nanos: UInt32) -> DateTime {
-        if month < 1 || month > 12 {
-            panic!("Invalid month");
-        }
-        if day < 1 || day > 31 {
-            panic!("Invalid day");
-        }
-        if hour > 23 {
-            panic!("Invalid hour");
-        }
-        if minute > 59 {
-            panic!("Invalid minute");
-        }
-        if second > 59 {
-            panic!("Invalid second");
-        }
-        if nanos as i64 >= NANOS_PER_SECOND {
-            panic!("Invalid nanosecond");
-        }
-        DateTime {
-            year,
-            month,
-            day,
-            hour,
-            min: minute,
-            sec: second,
-            nano_sec: (nanos / NANOS_PER_TICK as u32) * NANOS_PER_TICK as u32,
-        }
+        DateTime::from((year, month, day, hour, minute, second, nanos))
     }
 
     /// Returns the time in ticks, of 100 nanosecond intervals
     pub fn ticks(&self) -> i64 {
-        let chrono_time: chrono::DateTime<Utc> = self.clone().into();
-        Self::duration_to_ticks(chrono_time.signed_duration_since(Self::epoch_chrono()))
+        Self::duration_to_ticks(self.date_time.signed_duration_since(Self::epoch_chrono()))
     }
 
     /// To checked ticks. Function returns 0 or MAX_INT64
@@ -184,6 +186,11 @@ impl DateTime {
             return i64::max_value();
         }
         nanos
+    }
+
+    /// Time as chrono
+    pub fn as_chrono(&self) -> chrono::DateTime<Utc> {
+        self.date_time.clone()
     }
 
     /// The OPC UA epoch - Jan 1 1601 00:00:00

@@ -30,7 +30,9 @@ fn endtimes() {
 
 #[test]
 fn time() {
+    use chrono::Datelike;
     let now = DateTime::now();
-    assert!(now.year > 2000 && now.year < 2050);
-    assert!(now.month >= 1 && now.month <= 12);
+    let now = now.as_chrono();
+    assert!(now.year() > 2000 && now.year() < 2050);
+    assert!(now.month() >= 1 && now.month() <= 12);
 }

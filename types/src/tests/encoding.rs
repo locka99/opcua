@@ -107,13 +107,22 @@ fn encode_string_5224() {
 
 #[test]
 fn encoding_datetime() {
-    let mut now = DateTime::now();
-    // Round nanos to the nearest tick to test comparison
-    now.nano_sec = (now.nano_sec / 100) * 100;
+    let now = DateTime::now();
     serialize_test(now);
 
-    // TODO serialize a date below Jan 1 1601 ensure it decodes as epoch
-    // TODO serialize a date after Dec 31 9999 ensure it decodes as endtimes
+    let epoch = DateTime::epoch();
+    serialize_test(epoch);
+
+    let endtimes = DateTime::endtimes();
+    serialize_test(endtimes);
+
+    // serialize a date below Jan 1 1601 ensure it decodes as epoch
+    let before_epoch = DateTime::ymd_hms(1599, 1, 1, 0, 0, 0);
+    serialize_test_expected(before_epoch, DateTime::epoch());
+
+    // serialize a date after Dec 31 9999 ensure it decodes as endtimes
+    let after_endtimes = DateTime::ymd_hms(10000, 1, 1, 0, 0, 0);
+    serialize_test_expected(after_endtimes, DateTime::endtimes());
 }
 
 #[test]
@@ -350,7 +359,7 @@ fn variant() {
     // LocalizedText
     let v = Variant::new(LocalizedText {
         locale: UAString::from("Hello everyone"),
-        text: UAString::from("This text is localized")
+        text: UAString::from("This text is localized"),
     });
     serialize_test(v);
     // ExtensionObject

@@ -154,9 +154,19 @@ impl SubscriptionService {
     }
 
     /// Handles a RepublishRequest
-    pub fn republish(&self, request: RepublishRequest) -> Result<SupportedMessage, StatusCode> {
-        // TODO look for the subscription id and sequence number in the sent items and resend it
-        Ok(self.service_fault(&request.request_header, BadMessageNotAvailable))
+    pub fn republish(&self, session: &mut Session, request: RepublishRequest) -> Result<SupportedMessage, StatusCode> {
+        trace!("Republish {:?}", request);
+        // Look for a matching notification message
+        let result = session.subscriptions.find_notification_message(request.subscription_id, request.retransmit_sequence_number);
+        if let Ok(notification_message) = result {
+            let response = RepublishResponse {
+                response_header: ResponseHeader::new_good(&request.request_header),
+                notification_message,
+            };
+            Ok(SupportedMessage::RepublishResponse(response))
+        } else {
+            Ok(self.service_fault(&request.request_header, result.unwrap_err()))
+        }
     }
 
     /// This function takes the requested values passed in a create / modify and returns revised

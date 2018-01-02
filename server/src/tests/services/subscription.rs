@@ -96,7 +96,7 @@ fn publish_response_subscription() {
     assert_eq!(request_id, response_entry.request_id);
 
     let response: PublishResponse = supported_message_as!(response_entry.response, PublishResponse);
-    assert!(response.available_sequence_numbers.is_some());
+    assert!(response.available_sequence_numbers.is_none());
     assert_eq!(response.subscription_id, subscription_id);
     assert!(response.more_notifications, false);
 
@@ -133,4 +133,13 @@ fn multiple_publish_response_subscription() {
     // Send a publish and expect nothing
     // Tick a change
     // Expect a publish response containing the subscription to be pushed
+}
+
+#[test]
+fn republish() {
+    // TODO try for a notification message known to exist
+
+    // TODO try for a subscription id that does not exist
+
+    // TODO try for a sequence nr that does not exist
 }

@@ -6,7 +6,7 @@ use chrono;
 use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
-use opcua_types::service_types::{PublishRequest, ServiceFault, ResponseHeader};
+use opcua_types::service_types::{PublishRequest, ServiceFault, ResponseHeader, NotificationMessage};
 
 use DateTimeUtc;
 use address_space::types::AddressSpace;
@@ -211,20 +211,36 @@ impl Subscriptions {
     ///
     fn process_subscription_acknowledgements(&mut self, request: &PublishRequest) -> Option<Vec<StatusCode>> {
         trace!("Processing subscription acknowledgements");
-        if request.subscription_acknowledgements.is_some() {
-            let subscription_acknowledgements = request.subscription_acknowledgements.as_ref().unwrap();
+        if let Some(ref subscription_acknowledgements) = request.subscription_acknowledgements {
             let results = subscription_acknowledgements.iter().map(|subscription_acknowledgement| {
                 let subscription_id = subscription_acknowledgement.subscription_id;
                 let subscription = self.subscriptions.get_mut(&subscription_id);
                 if subscription.is_none() {
                     BadSubscriptionIdInvalid
                 } else {
-                    subscription.unwrap().delete_acked_notification_msg(subscription_acknowledgement)
+                    subscription.unwrap().acknowledge_notification(subscription_acknowledgement)
                 }
             }).collect();
             Some(results)
         } else {
             None
+        }
+    }
+
+    /// Finds a notification message in the retransmission queue matching the supplied subscription id
+    /// and sequence number. Returns `BadNoSubscription` or `BadMessageNotAvailable` if a matching
+    /// notification is not found.
+    pub fn find_notification_message(&self, subscription_id: UInt32, sequence_number: UInt32) -> Result<NotificationMessage, StatusCode> {
+        // Look for the subscription
+        if let Some(ref subscription) = self.subscriptions.get(&subscription_id) {
+            // Look for the sequence number
+            if let Some(notification_message) = subscription.find_notification_message(sequence_number) {
+                Ok(notification_message)
+            } else {
+                Err(StatusCode::BadMessageNotAvailable)
+            }
+        } else {
+            Err(StatusCode::BadNoSubscription)
         }
     }
 }

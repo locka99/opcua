@@ -57,7 +57,7 @@ may call them and receive a response.
     * ModifySubscription
     * DeleteSubscriptions
     * Publish
-    * Republish (!). Implemented to always return a service error
+    * Republish
     * SetPublishingMode
 
 Other service calls are unsupported. Calling an unsupported service will terminate the session. 

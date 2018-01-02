@@ -142,7 +142,7 @@ impl MessageHandler {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.subscription_service.republish(request)?)
+                    Some(self.subscription_service.republish(&mut session, request)?)
                 }
             }
             SupportedMessage::BrowseRequest(request) => {

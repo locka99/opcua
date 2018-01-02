@@ -11,6 +11,12 @@ use status_codes::StatusCode::*;
 use node_ids::*;
 
 pub fn serialize_test_and_return<T>(value: T) -> T
+    where T: BinaryEncoder<T> + Debug + PartialEq + Clone
+{
+    serialize_test_and_return_expected(value.clone(), value)
+}
+
+pub fn serialize_test_and_return_expected<T>(value: T, expected_value: T) -> T
     where T: BinaryEncoder<T> + Debug + PartialEq
 {
     // Ask the struct for its byte length
@@ -36,15 +42,22 @@ pub fn serialize_test_and_return<T>(value: T) -> T
 
     let new_value: T = T::decode(&mut stream).unwrap();
     println!("new value = {:?}", new_value);
-    assert_eq!(value, new_value);
+    assert_eq!(expected_value, new_value);
     new_value
 }
 
 pub fn serialize_test<T>(value: T)
-    where T: BinaryEncoder<T> + Debug + PartialEq
+    where T: BinaryEncoder<T> + Debug + PartialEq + Clone
 {
     let _ = serialize_test_and_return(value);
 }
+
+pub fn serialize_test_expected<T>(value: T, expected_value: T)
+    where T: BinaryEncoder<T> + Debug + PartialEq
+{
+    let _ = serialize_test_and_return_expected(value, expected_value);
+}
+
 
 pub fn serialize_and_compare<T>(value: T, expected: &[u8])
     where T: BinaryEncoder<T> + Debug + PartialEq

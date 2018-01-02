@@ -1,4 +1,4 @@
-use std::collections::{HashMap, BTreeMap};
+use std::collections::{HashMap, VecDeque};
 
 use chrono;
 use time;
@@ -104,9 +104,9 @@ pub struct Subscription {
     pub publishing_req_queued: bool,
     // Notifications waiting to be sent in a map by sequence number. A b-tree is used to ensure ordering is
     // by sequence number.
-    notifications_to_send: BTreeMap<UInt32, NotificationMessage>,
-    // Notifications that have been sent but have yet to be acknowledged.
-    notifications_waiting_for_ack: BTreeMap<UInt32, NotificationMessage>,
+    transmission_queue: VecDeque<NotificationMessage>,
+    // Notifications that have been sent but have yet to be acknowledged (retransmission queue)
+    retransmission_queue: HashMap<UInt32, NotificationMessage>,
     // The last monitored item id
     last_monitored_item_id: UInt32,
     // The time that the subscription interval last fired
@@ -135,8 +135,8 @@ impl Subscription {
             publishing_enabled,
             publishing_req_queued: false,
             // Outgoing notifications
-            notifications_to_send: BTreeMap::new(),
-            notifications_waiting_for_ack: BTreeMap::new(),
+            transmission_queue: VecDeque::new(),
+            retransmission_queue: HashMap::new(),
             // Counters for new items
             last_monitored_item_id: 0,
             last_timer_expired_time: chrono::Utc::now(),
@@ -158,7 +158,7 @@ impl Subscription {
                 // Return the status
                 let result = MonitoredItemCreateResult {
                     status_code: Good,
-                    monitored_item_id: monitored_item_id,
+                    monitored_item_id,
                     revised_sampling_interval: monitored_item.sampling_interval,
                     revised_queue_size: monitored_item.queue_size as UInt32,
                     filter_result: ExtensionObject::null(),
@@ -170,7 +170,7 @@ impl Subscription {
                 // Monitored item couldn't be created
                 MonitoredItemCreateResult {
                     status_code: monitored_item.unwrap_err(),
-                    monitored_item_id: monitored_item_id,
+                    monitored_item_id,
                     revised_sampling_interval: 0f64,
                     revised_queue_size: 0,
                     filter_result: ExtensionObject::null(),
@@ -233,6 +233,9 @@ impl Subscription {
     /// Checks the subscription and monitored items for state change, messages. If the tick does
     /// nothing, the function returns None. Otherwise it returns one or more messages in an Vec.
     pub fn tick(&mut self, address_space: &AddressSpace, tick_reason: TickReason, publish_request: &Option<PublishRequestEntry>, publishing_req_queued: bool, now: &DateTimeUtc) -> (Option<PublishResponseEntry>, Option<UpdateStateResult>) {
+        // Remove old notifications awaiting acknowledgement
+        self.remove_stale_notifications_waiting_for_ack();
+
         // Check if the publishing interval has elapsed. Only checks on the tick timer.
         let publishing_interval_elapsed = match tick_reason {
             TickReason::ReceivedPublishRequest => false,
@@ -257,8 +260,8 @@ impl Subscription {
         let items_changed = self.tick_monitored_items(address_space, now, tick_reason);
 
         self.publishing_req_queued = publishing_req_queued;
-        self.notifications_available = !self.notifications_to_send.is_empty();
-        self.more_notifications = !self.notifications_to_send.is_empty();
+        self.notifications_available = !self.transmission_queue.is_empty();
+        self.more_notifications = !self.transmission_queue.is_empty();
 
         // If items have changed or subscription interval elapsed then we may have notifications
         // to send or state to update
@@ -309,11 +312,11 @@ impl Subscription {
             }
         }
         let result = if !monitored_item_notifications.is_empty() {
-            // Create a notification message in the map
+            // Create a notification message and push it onto the queue
             let sequence_number = self.create_sequence_number();
             trace!("Monitored items, seq nr = {}, nr notifications = {}", sequence_number, monitored_item_notifications.len());
             let notification = NotificationMessage::new_data_change(sequence_number, DateTime::now(), monitored_item_notifications);
-            self.notifications_to_send.insert(sequence_number, notification);
+            self.transmission_queue.push_front(notification);
             true
         } else {
             false
@@ -364,8 +367,8 @@ impl Subscription {
     keep_alive_counter: {} lifetime_counter: {}
     message_sent: {}"#,
                        self.subscription_id, self.state, tick_reason, publishing_interval_elapsed, self.publishing_req_queued,
-                       self.publishing_enabled, self.more_notifications, self.notifications_available, self.notifications_to_send.len(),
-                       self.notifications_waiting_for_ack.len(),
+                       self.publishing_enabled, self.more_notifications, self.notifications_available, self.transmission_queue.len(),
+                       self.retransmission_queue.len(),
                        self.keep_alive_counter, self.lifetime_counter, self.message_sent);
             }
         }
@@ -504,12 +507,14 @@ impl Subscription {
         UpdateStateResult::new(0, UpdateStateAction::None)
     }
 
-    pub fn delete_acked_notification_msg(&mut self, subscription_acknowledgement: &SubscriptionAcknowledgement) -> StatusCode {
+    /// Called to acknowledge a notification that the client is no longer interested in.
+    /// The notification is removed from the retransmission queue.
+    pub fn acknowledge_notification(&mut self, subscription_acknowledgement: &SubscriptionAcknowledgement) -> StatusCode {
         if subscription_acknowledgement.subscription_id != self.subscription_id {
             panic!("Code shouldn't call this for wrong subscription_id");
         }
         // Clear notification by sequence number
-        if self.notifications_waiting_for_ack.remove(&subscription_acknowledgement.sequence_number).is_some() {
+        if self.retransmission_queue.remove(&subscription_acknowledgement.sequence_number).is_some() {
             trace!("Removed acknowledged notification {}", subscription_acknowledgement.sequence_number);
             Good
         } else {
@@ -557,25 +562,21 @@ impl Subscription {
 
     /// Returns the oldest notification
     pub fn return_notifications(&mut self, publish_request: &PublishRequestEntry, _: &UpdateStateResult) -> PublishResponseEntry {
-        if self.notifications_to_send.is_empty() {
+        if self.transmission_queue.is_empty() {
             panic!("Should not be trying to return notifications if there are none");
         }
 
-        trace!("return notifications, len = {}", self.notifications_to_send.len());
+        trace!("return notifications, len = {}", self.transmission_queue.len());
         let now = DateTime::now();
 
         // Make a list of available sequence numbers
         let available_sequence_numbers = self.available_sequence_numbers();
 
-        // Find the first notification in the map. The map is ordered so the first item will
-        // be the oldest.
-        let sequence_number = {
-            *self.notifications_to_send.iter().next().unwrap().0
-        };
-        let notification_message = self.notifications_to_send.remove(&sequence_number).unwrap();
+        // Remove the oldest item from the transmission queue
+        let notification_message = self.transmission_queue.pop_back().unwrap();
 
         // Put the entry into the waiting for ack queue for republish
-        self.notifications_waiting_for_ack.insert(sequence_number, notification_message.clone());
+        self.retransmission_queue.insert(notification_message.sequence_number, notification_message.clone());
 
         // Make the response
         let publish_response = self.make_publish_response(publish_request, &now, notification_message, available_sequence_numbers);
@@ -583,12 +584,40 @@ impl Subscription {
         publish_response
     }
 
+    pub fn find_notification_message(&self, sequence_number: UInt32) -> Option<NotificationMessage> {
+        if let Some(ref notification_message) = self.retransmission_queue.get(&sequence_number) {
+            Some((*notification_message).clone())
+        } else {
+            None
+        }
+    }
+
+    /// Purges notifications waiting for acknowledgement if they are considered to be stale
+    fn remove_stale_notifications_waiting_for_ack(&mut self) {
+
+        // TODO "the session shall maintain a retransmission queue size of at least two times the number of publish requests
+        // per session the server supports"
+
+        if !self.retransmission_queue.is_empty() {
+            let now = chrono::Utc::now();
+            // Let the expiration be some reasonable multiple of the publishing interval
+            let expiration_duration = time::Duration::milliseconds((5.0 * self.publishing_interval) as i64);
+            self.retransmission_queue.retain(|_, v| {
+                // Look at the notification message compared to now, if older than some period of time,
+                // erase the message
+                let publish_time = v.publish_time.as_chrono();
+                // Only retain if the publish time is less than the expiration duration
+                now.signed_duration_since(publish_time) < expiration_duration
+            });
+        }
+    }
+
     /// Returns the array of available sequence numbers
     fn available_sequence_numbers(&self) -> Option<Vec<UInt32>> {
-        if self.notifications_to_send.is_empty() {
+        if self.retransmission_queue.is_empty() {
             None
         } else {
-            Some(self.notifications_to_send.keys().cloned().collect())
+            Some(self.retransmission_queue.keys().cloned().collect())
         }
     }
 
