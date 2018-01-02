@@ -569,14 +569,14 @@ impl Subscription {
         trace!("return notifications, len = {}", self.transmission_queue.len());
         let now = DateTime::now();
 
-        // Make a list of available sequence numbers
-        let available_sequence_numbers = self.available_sequence_numbers();
-
         // Remove the oldest item from the transmission queue
         let notification_message = self.transmission_queue.pop_back().unwrap();
 
         // Put the entry into the waiting for ack queue for republish
         self.retransmission_queue.insert(notification_message.sequence_number, notification_message.clone());
+
+        // Make a list of available sequence numbers
+        let available_sequence_numbers = self.available_sequence_numbers();
 
         // Make the response
         let publish_response = self.make_publish_response(publish_request, &now, notification_message, available_sequence_numbers);
