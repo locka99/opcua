@@ -96,7 +96,7 @@ fn publish_response_subscription() {
     assert_eq!(request_id, response_entry.request_id);
 
     let response: PublishResponse = supported_message_as!(response_entry.response, PublishResponse);
-    assert!(response.available_sequence_numbers.is_none());
+    assert!(response.available_sequence_numbers.is_some());
     assert_eq!(response.subscription_id, subscription_id);
     assert!(response.more_notifications, false);
 
