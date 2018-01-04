@@ -14,18 +14,18 @@ use subscriptions::{PublishRequestEntry, PublishResponseEntry};
 use subscriptions::subscription::{Subscription, SubscriptionState, TickReason};
 
 pub struct Subscriptions {
-    // Timeout period for requests in ms
-    publish_request_timeout: i64,
-    /// Subscriptions associated with the session
-    subscriptions: HashMap<UInt32, Subscription>,
-    /// Maximum number of publish requests
-    max_publish_requests: usize,
-    /// Maximum number of items in the retransmission queue
-    max_retransmission_queue: usize,
     /// The publish request queue (requests by the client on the session)
     pub publish_request_queue: VecDeque<PublishRequestEntry>,
     /// The publish response queue
     pub publish_response_queue: Vec<PublishResponseEntry>,
+    // Timeout period for requests in ms
+    publish_request_timeout: i64,
+    /// Subscriptions associated with the session
+    subscriptions: BTreeMap<UInt32, Subscription>,
+    /// Maximum number of publish requests
+    max_publish_requests: usize,
+    /// Maximum number of items in the retransmission queue
+    max_retransmission_queue: usize,
     // Notifications waiting to be sent - subscription id and notification message.
     transmission_queue: VecDeque<(UInt32, NotificationMessage)>,
     // Notifications that have been sent but have yet to be acknowledged (retransmission queue).
@@ -38,11 +38,11 @@ pub struct Subscriptions {
 impl Subscriptions {
     pub fn new(max_publish_requests: usize, publish_request_timeout: i64) -> Subscriptions {
         Subscriptions {
-            publish_request_timeout,
-            subscriptions: HashMap::new(),
-            max_publish_requests,
             publish_request_queue: VecDeque::with_capacity(max_publish_requests),
             publish_response_queue: Vec::with_capacity(max_publish_requests),
+            publish_request_timeout,
+            subscriptions: BTreeMap::new(),
+            max_publish_requests,
             last_sequence_number: 0,
             max_retransmission_queue: max_publish_requests * 2,
             transmission_queue: VecDeque::new(),
@@ -55,16 +55,6 @@ impl Subscriptions {
     /// If the queue is full this call will pop the oldest and generate a service fault
     /// for that before pushing the new one.
     pub fn enqueue_publish_request(&mut self, _: &AddressSpace, request_id: UInt32, request: PublishRequest) -> Result<(), StatusCode> {
-
-        // TODO we need to check subscriptions here that are waiting to publish, starting with the
-        // one waiting longest / priority
-        //
-        // If there is no waiting subscription waiting to publish, the request shall be queued
-        // including expiring old requests and returning the BadTooManyPublishRequests if
-        // there are too many
-        //
-        // else get the subscription ready to publish
-
         // Check if we have too many requests already
         if self.publish_request_queue.len() >= self.max_publish_requests {
             error!("Too many publish requests {} for capacity {}, throwing oldest away", self.publish_request_queue.len(), self.max_publish_requests);
@@ -184,7 +174,7 @@ impl Subscriptions {
 
                 let notification_message = subscription.tick(address_space, tick_reason, publishing_req_queued, &now);
                 if let Some(notification_message) = notification_message {
-                    self.transmission_queue.push_front((subscription_id, notification_message));
+                    self.transmission_queue.push_front((*subscription_id, notification_message));
                     if publish_request_len > 0 {
                         publish_request_len -= 1;
                     }
@@ -219,6 +209,9 @@ impl Subscriptions {
 
                 self.publish_response_queue.push_front(response);
             }
+
+            // Remove old notifications which were unacknowledged
+            self.remove_old_unknowledged_notifications();
         }
 
         Ok(())
@@ -236,11 +229,19 @@ impl Subscriptions {
         if let Some(ref subscription_acknowledgements) = request.subscription_acknowledgements {
             let results = subscription_acknowledgements.iter().map(|subscription_acknowledgement| {
                 let subscription_id = subscription_acknowledgement.subscription_id;
-                let subscription = self.subscriptions.get_mut(&subscription_id);
-                if subscription.is_none() {
-                    BadSubscriptionIdInvalid
+                let sequence_number = subscription_acknowledgement.sequence_number;
+                // Check the subscription id exists
+                if let Some(subscription) = self.subscriptions.get(&subscription_id) {
+                    // Clear notification by its sequence number
+                    if self.retransmission_queue.remove(&sequence_number).is_some() {
+                        Good
+                    } else {
+                        error!("Can't find acknowledged notification with sequence number {}", sequence_number);
+                        BadSequenceNumberUnknown
+                    }
                 } else {
-                    subscription.unwrap().acknowledge_notification(subscription_acknowledgement)
+                    error!("Can't find acknowledged notification subscription id {}", subscription_id);
+                    BadSubscriptionIdInvalid
                 }
             }).collect();
             Some(results)
@@ -302,7 +303,7 @@ impl Subscriptions {
 
     /// Purges notifications waiting for acknowledgement if they exceed the max retransmission queue
     /// size.
-    fn remove_stale_notifications_waiting_for_ack(&mut self) {
+    fn remove_old_unknowledged_notifications(&mut self) {
         if self.retransmission_queue.len() <= self.max_retransmission_queue {
             return;
         }
@@ -311,6 +312,8 @@ impl Subscriptions {
         // notifications.
         let mut remove_count = self.retransmission_queue.len() - self.max_retransmission_queue;
         let mut sequence_numbers_to_remove = Vec::with_capacity(remove_count);
+
+        // BTree means these should iterate in order of insertion, i.e. oldest first
         for (idx, (k, _)) in self.retransmission_queue.iter().enumerate() {
             if idx > remove_count {
                 break;
