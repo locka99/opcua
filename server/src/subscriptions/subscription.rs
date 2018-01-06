@@ -244,13 +244,19 @@ impl Subscription {
 
             match update_state_result.update_state_action {
                 UpdateStateAction::None => {
+                    if notification_message.is_some() {
+                        trace!("Notification message was being discarded for a do-nothing");
+                    }
                     // Send nothing
                     None
                 }
                 UpdateStateAction::ReturnKeepAlive => {
+                    if notification_message.is_some() {
+                        trace!("Notification message was being discarded for a keep alive");
+                    }
                     // Send a keep alive
                     Some(NotificationMessage {
-                        sequence_number,
+                        sequence_number: 0,
                         publish_time: now.clone(),
                         notification_data: None,
                     })
@@ -288,9 +294,7 @@ impl Subscription {
         }
         if !monitored_item_notifications.is_empty() {
             // Create a notification message and push it onto the queue
-            let sequence_number = self.create_sequence_number();
-            trace!("Monitored items, seq nr = {}, nr notifications = {}", sequence_number, monitored_item_notifications.len());
-            let notification = NotificationMessage::new_data_change(sequence_number, DateTime::now(), monitored_item_notifications);
+            let notification = NotificationMessage::new_data_change(0, DateTime::now(), monitored_item_notifications);
             (Some(notification), false)
         } else {
             (None, false)

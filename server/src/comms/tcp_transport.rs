@@ -2,6 +2,7 @@
 //! session creation and dispatching of messages via message handler.
 //!
 use std;
+use std::collections::VecDeque;
 use std::net::{TcpStream, Shutdown};
 use std::io::{Read, Write, Cursor, ErrorKind};
 use std::sync::{Arc, RwLock};
@@ -21,7 +22,7 @@ use comms::secure_channel_service::SecureChannelService;
 use server_state::ServerState;
 use services::message_handler::MessageHandler;
 use session::Session;
-use subscriptions::subscription::SubscriptionEvent;
+use subscriptions::subscriptions::SubscriptionEvent;
 use subscriptions::subscription::TickReason;
 use address_space::types::AddressSpace;
 
@@ -35,7 +36,7 @@ pub enum TransportState {
     New,
     WaitingHello,
     ProcessMessages,
-    Finished
+    Finished,
 }
 
 /// This is the thing that handles input and output for the open connection associated with the
@@ -287,7 +288,7 @@ impl TcpTransport {
             // Check if there are publish responses to send for transmission
             if !session.subscriptions.publish_response_queue.is_empty() {
                 trace!("Sending publish responses to session thread");
-                let mut publish_responses = Vec::with_capacity(session.subscriptions.publish_response_queue.len());
+                let mut publish_responses = VecDeque::with_capacity(session.subscriptions.publish_response_queue.len());
                 publish_responses.append(&mut session.subscriptions.publish_response_queue);
                 drop(session);
                 let sent = subscription_timer_tx.send(SubscriptionEvent::PublishResponses(publish_responses));

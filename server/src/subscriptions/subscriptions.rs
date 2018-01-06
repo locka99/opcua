@@ -21,7 +21,7 @@ use subscriptions::subscription::{Subscription, SubscriptionState, TickReason};
 /// be transferable
 #[derive(Clone, Debug, PartialEq)]
 pub enum SubscriptionEvent {
-    PublishResponses(Vec<PublishResponseEntry>),
+    PublishResponses(VecDeque<PublishResponseEntry>),
 }
 
 
@@ -186,6 +186,9 @@ impl Subscriptions {
 
                 let notification_message = subscription.tick(address_space, tick_reason, publishing_req_queued, &now);
                 if let Some(notification_message) = notification_message {
+                    // Give the notification message a sequence number
+                    notification_message.sequence_number = self.create_sequence_number();
+                    // Push onto the transmission queue
                     self.transmission_queue.push_front((*subscription_id, notification_message));
                     if publish_request_len > 0 {
                         publish_request_len -= 1;
