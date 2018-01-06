@@ -7,17 +7,29 @@ use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
 use opcua_types::service_types::{PublishRequest, ServiceFault, ResponseHeader, NotificationMessage};
+use opcua_types::SupportedMessage::PublishResponse;
+
+use constants;
 
 use DateTimeUtc;
 use address_space::types::AddressSpace;
 use subscriptions::{PublishRequestEntry, PublishResponseEntry};
 use subscriptions::subscription::{Subscription, SubscriptionState, TickReason};
 
+
+/// Subscription events are passed between the timer thread and the session thread so must
+/// be transferable
+#[derive(Clone, Debug, PartialEq)]
+pub enum SubscriptionEvent {
+    PublishResponses(Vec<PublishResponseEntry>),
+}
+
+
 pub struct Subscriptions {
     /// The publish request queue (requests by the client on the session)
     pub publish_request_queue: VecDeque<PublishRequestEntry>,
     /// The publish response queue
-    pub publish_response_queue: Vec<PublishResponseEntry>,
+    pub publish_response_queue: VecDeque<PublishResponseEntry>,
     // Timeout period for requests in ms
     publish_request_timeout: i64,
     /// Subscriptions associated with the session
@@ -39,7 +51,7 @@ impl Subscriptions {
     pub fn new(max_publish_requests: usize, publish_request_timeout: i64) -> Subscriptions {
         Subscriptions {
             publish_request_queue: VecDeque::with_capacity(max_publish_requests),
-            publish_response_queue: Vec::with_capacity(max_publish_requests),
+            publish_response_queue: VecDeque::with_capacity(max_publish_requests),
             publish_request_timeout,
             subscriptions: BTreeMap::new(),
             max_publish_requests,
@@ -184,8 +196,8 @@ impl Subscriptions {
 
         // Now for each publish request, produce a publish response for each notification message waiting
 
-        let mut handled_requests = Vec::with_capacity(publish_request_queue.len());
-        let mut publish_responses = Vec::with_capacity(publish_request_queue.len());
+        let mut handled_requests = Vec::with_capacity(self.publish_request_queue.len());
+        let mut publish_responses = Vec::with_capacity(self.publish_request_queue.len());
 
         // Extract notification message with the next available publish request
 
@@ -194,11 +206,11 @@ impl Subscriptions {
 
             // Iterate through all publish requests or until transmission queue is empty
             while !self.transmission_queue.is_empty() {
-                if publish_request_queue.is_empty() {
+                if self.publish_request_queue.is_empty() {
                     break;
                 }
 
-                let publish_request = publish_request_queue.pop_back().unwrap();
+                let publish_request = self.publish_request_queue.pop_back().unwrap();
 
                 // Get the oldest notification to send
                 let (subscription_id, notification_message) = self.transmission_queue.pop_back().unwrap();

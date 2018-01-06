@@ -6,21 +6,12 @@ use time;
 use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
-use opcua_types::service_types::{TimestampsToReturn, NotificationMessage, MonitoredItemCreateRequest, MonitoredItemCreateResult, MonitoredItemModifyRequest, MonitoredItemModifyResult, SubscriptionAcknowledgement};
+use opcua_types::service_types::{TimestampsToReturn, NotificationMessage, MonitoredItemCreateRequest, MonitoredItemCreateResult, MonitoredItemModifyRequest, MonitoredItemModifyResult};
 
 use constants;
-
 use DateTimeUtc;
 use subscriptions::monitored_item::MonitoredItem;
-use subscriptions::{PublishRequestEntry, PublishResponseEntry};
 use address_space::address_space::AddressSpace;
-
-/// Subscription events are passed between the timer thread and the session thread so must
-/// be transferable
-#[derive(Clone, Debug, PartialEq)]
-pub enum SubscriptionEvent {
-    PublishResponses(Vec<PublishResponseEntry>),
-}
 
 /// The state of the subscription
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -40,6 +31,12 @@ struct SubscriptionStateParams {
     pub publishing_interval_elapsed: bool,
 }
 
+#[derive(Debug)]
+pub enum UpdateStateAction {
+    None,
+    ReturnKeepAlive,
+    ReturnNotifications,
+}
 
 #[derive(Debug)]
 pub struct UpdateStateResult {
@@ -232,7 +229,7 @@ impl Subscription {
 
         // If items have changed or subscription interval elapsed then we may have notifications
         // to send or state to update
-        let result = if items_changed || publishing_interval_elapsed || publish_request_queued {
+        let result = if notification_message.is_some() || publishing_interval_elapsed || publishing_req_queued {
             let notifications_available = notification_message.is_some();
 
             let subscription_state_params = SubscriptionStateParams {
@@ -252,20 +249,17 @@ impl Subscription {
                 }
                 UpdateStateAction::ReturnKeepAlive => {
                     // Send a keep alive
-                    NotificationMessage {
+                    Some(NotificationMessage {
                         sequence_number,
                         publish_time: now.clone(),
                         notification_data: None,
-                    }
+                    })
                 }
                 UpdateStateAction::ReturnNotifications => {
                     // Send the notification message
                     notification_message
                 }
             }
-
-
-            notification_message
         } else {
             None
         };
@@ -455,7 +449,7 @@ impl Subscription {
                         self.start_publishing_timer();
                         self.keep_alive_counter -= 1;
                         return UpdateStateResult::new(16, UpdateStateAction::None);
-                    } else if !self.publishing_req_queued && (self.keep_alive_counter == 1 || (self.keep_alive_counter > 1 && self.publishing_enabled && p.notifications_available)) {
+                    } else if !p.publishing_req_queued && (self.keep_alive_counter == 1 || (self.keep_alive_counter > 1 && self.publishing_enabled && p.notifications_available)) {
                         // State #17
                         self.start_publishing_timer();
                         self.state = SubscriptionState::Late;
