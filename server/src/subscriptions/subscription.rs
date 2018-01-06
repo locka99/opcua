@@ -257,7 +257,7 @@ impl Subscription {
                     // Send a keep alive
                     Some(NotificationMessage {
                         sequence_number: 0,
-                        publish_time: now.clone(),
+                        publish_time: DateTime::from(now.clone()),
                         notification_data: None,
                     })
                 }

@@ -6,8 +6,7 @@ use chrono;
 use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
-use opcua_types::service_types::{PublishRequest, ServiceFault, ResponseHeader, NotificationMessage};
-use opcua_types::SupportedMessage::PublishResponse;
+use opcua_types::service_types::{PublishRequest, PublishResponse, ServiceFault, ResponseHeader, NotificationMessage};
 
 use constants;
 
@@ -117,7 +116,7 @@ impl Subscriptions {
             return;
         }
 
-        let mut publish_responses = Vec::with_capacity(self.publish_request_queue.len());
+        let mut publish_responses = VecDeque::with_capacity(self.publish_request_queue.len());
 
         // Remove publish requests that have expired
         let publish_request_timeout = self.publish_request_timeout;
@@ -217,10 +216,12 @@ impl Subscriptions {
 
                 // Get the oldest notification to send
                 let (subscription_id, notification_message) = self.transmission_queue.pop_back().unwrap();
+                let more_notifications = !self.transmission_queue.is_empty();
+
                 self.retransmission_queue.insert(notification_message.sequence_number, (subscription_id, notification_message.clone()));
 
                 let available_sequence_numbers = self.available_sequence_numbers();
-                let response = self.make_publish_response(publish_request, now, notification_message, available_sequence_numbers);
+                let response = self.make_publish_response(&publish_request, subscription_id, &now, notification_message, more_notifications, available_sequence_numbers);
 
                 self.publish_response_queue.push_front(response);
             }
@@ -274,14 +275,14 @@ impl Subscriptions {
         }
     }
 
-    fn make_publish_response(&self, publish_request: &PublishRequestEntry, now: &DateTime, notification_message: NotificationMessage, available_sequence_numbers: Option<Vec<UInt32>>) -> PublishResponseEntry {
+    fn make_publish_response(&self, publish_request: &PublishRequestEntry, subscription_id: UInt32, now: &DateTime, notification_message: NotificationMessage, more_notifications: bool, available_sequence_numbers: Option<Vec<UInt32>>) -> PublishResponseEntry {
         PublishResponseEntry {
             request_id: publish_request.request_id,
             response: SupportedMessage::PublishResponse(PublishResponse {
                 response_header: ResponseHeader::new_timestamped_service_result(now.clone(), &publish_request.request.request_header, Good),
-                subscription_id: self.subscription_id,
+                subscription_id,
                 available_sequence_numbers,
-                more_notifications: self.more_notifications,
+                more_notifications,
                 notification_message,
                 results: None,
                 diagnostic_infos: None,
