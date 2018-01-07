@@ -24,7 +24,7 @@ pub enum SubscriptionState {
 }
 
 #[derive(Debug)]
-struct SubscriptionStateParams {
+pub struct SubscriptionStateParams {
     pub notifications_available: bool,
     pub more_notifications: bool,
     pub publishing_req_queued: bool,

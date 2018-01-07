@@ -133,7 +133,7 @@ impl Subscriptions {
             let expiration_time = timestamp + timeout_d;
             if *now >= expiration_time {
                 debug!("Publish request {} has expired - timestamp = {:?}, expiration hint = {}, expiration time = {:?}, time now = {:?}, ", request_header.request_handle, timestamp, timeout, expiration_time, now);
-                publish_responses.push(PublishResponseEntry {
+                publish_responses.push_front(PublishResponseEntry {
                     request_id: request.request_id,
                     response: SupportedMessage::ServiceFault(ServiceFault {
                         response_header: ResponseHeader::new_timestamped_service_result(DateTime::now(), &request.request.request_header, BadTimeout),
@@ -176,15 +176,15 @@ impl Subscriptions {
                 // Subscription is dead so remove it
                 self.subscriptions.remove(&subscription_id);
             } else {
-                let subscription = self.subscriptions.get_mut(subscription_id).unwrap();
-                let publishing_req_queued = publish_request_len > 0;
-
-                // Now tick the subscription to see if it has any notifications. If there are
-                // notifications then the publish response will be associated with his subscription
-                // and ready to go.
-
-                let notification_message = subscription.tick(address_space, tick_reason, publishing_req_queued, &now);
-                if let Some(notification_message) = notification_message {
+                let notification_message = {
+                    let publishing_req_queued = publish_request_len > 0;
+                    let subscription = self.subscriptions.get_mut(subscription_id).unwrap();
+                    // Now tick the subscription to see if it has any notifications. If there are
+                    // notifications then the publish response will be associated with his subscription
+                    // and ready to go.
+                    subscription.tick(address_space, tick_reason, publishing_req_queued, &now)
+                };
+                if let Some(mut notification_message) = notification_message {
                     // Give the notification message a sequence number
                     notification_message.sequence_number = self.create_sequence_number();
                     // Push onto the transmission queue
@@ -196,39 +196,27 @@ impl Subscriptions {
             }
         });
 
-        // Now for each publish request, produce a publish response for each notification message waiting
+        // Iterate through notifications in the transmission making publish responses until either
+        // the transmission queue or publish request queue becomes empty
 
-        let mut handled_requests = Vec::with_capacity(self.publish_request_queue.len());
-        let mut publish_responses = Vec::with_capacity(self.publish_request_queue.len());
+        while !self.transmission_queue.is_empty() && !self.publish_request_queue.is_empty() {
+            let publish_request = self.publish_request_queue.pop_back().unwrap();
 
-        // Extract notification message with the next available publish request
+            // Get the oldest notification to send
+            let (subscription_id, notification_message) = self.transmission_queue.pop_back().unwrap();
+            let more_notifications = !self.transmission_queue.is_empty();
 
-        // TODO
-        if !self.publish_request_queue.is_empty() {
+            // The notification to be sent now goes into the retransmission queue
+            self.retransmission_queue.insert(notification_message.sequence_number, (subscription_id, notification_message.clone()));
 
-            // Iterate through all publish requests or until transmission queue is empty
-            while !self.transmission_queue.is_empty() {
-                if self.publish_request_queue.is_empty() {
-                    break;
-                }
-
-                let publish_request = self.publish_request_queue.pop_back().unwrap();
-
-                // Get the oldest notification to send
-                let (subscription_id, notification_message) = self.transmission_queue.pop_back().unwrap();
-                let more_notifications = !self.transmission_queue.is_empty();
-
-                self.retransmission_queue.insert(notification_message.sequence_number, (subscription_id, notification_message.clone()));
-
-                let available_sequence_numbers = self.available_sequence_numbers();
-                let response = self.make_publish_response(&publish_request, subscription_id, &now, notification_message, more_notifications, available_sequence_numbers);
-
-                self.publish_response_queue.push_front(response);
-            }
-
-            // Remove old notifications which were unacknowledged
-            self.remove_old_unknowledged_notifications();
+            // Make a publish response and queue it
+            let available_sequence_numbers = self.available_sequence_numbers();
+            let response = self.make_publish_response(&publish_request, subscription_id, &now, notification_message, more_notifications, available_sequence_numbers);
+            self.publish_response_queue.push_front(response);
         }
+
+        // Clean up the retransmission queue
+        self.remove_old_unknowledged_notifications();
 
         Ok(())
     }
@@ -275,11 +263,12 @@ impl Subscriptions {
         }
     }
 
-    fn make_publish_response(&self, publish_request: &PublishRequestEntry, subscription_id: UInt32, now: &DateTime, notification_message: NotificationMessage, more_notifications: bool, available_sequence_numbers: Option<Vec<UInt32>>) -> PublishResponseEntry {
+    fn make_publish_response(&self, publish_request: &PublishRequestEntry, subscription_id: UInt32, now: &DateTimeUtc, notification_message: NotificationMessage, more_notifications: bool, available_sequence_numbers: Option<Vec<UInt32>>) -> PublishResponseEntry {
+        let now = DateTime::from(now.clone());
         PublishResponseEntry {
             request_id: publish_request.request_id,
             response: SupportedMessage::PublishResponse(PublishResponse {
-                response_header: ResponseHeader::new_timestamped_service_result(now.clone(), &publish_request.request.request_header, Good),
+                response_header: ResponseHeader::new_timestamped_service_result(now, &publish_request.request.request_header, Good),
                 subscription_id,
                 available_sequence_numbers,
                 more_notifications,
@@ -308,7 +297,7 @@ impl Subscriptions {
         if let Some(ref subscription) = self.subscriptions.get(&subscription_id) {
             // Look for the sequence number
             if let Some(ref notification_message) = self.retransmission_queue.get(&sequence_number) {
-                Some(notification_message.1.clone())
+                Ok(notification_message.1.clone())
             } else {
                 Err(StatusCode::BadMessageNotAvailable)
             }
@@ -326,16 +315,20 @@ impl Subscriptions {
 
         // Compare number of items in retransmission queue to max permissible and remove the older
         // notifications.
-        let mut remove_count = self.retransmission_queue.len() - self.max_retransmission_queue;
+        let remove_count = self.retransmission_queue.len() - self.max_retransmission_queue;
         let mut sequence_numbers_to_remove = Vec::with_capacity(remove_count);
 
         // BTree means these should iterate in order of insertion, i.e. oldest first
-        for (idx, (k, _)) in self.retransmission_queue.iter().enumerate() {
-            if idx > remove_count {
+        for (k, _) in &self.retransmission_queue {
+            if sequence_numbers_to_remove.len() > remove_count {
                 break;
             }
             sequence_numbers_to_remove.push(*k);
         }
-        sequence_numbers_to_remove.for_each(|k| self.retransmission_queue.remove(&k));
+
+        // Remove expired sequence numbers from the retransmission queue
+        for sequence_number in sequence_numbers_to_remove {
+            let _ = self.retransmission_queue.remove(&sequence_number);
+        }
     }
 }
