@@ -31,7 +31,7 @@ pub struct SubscriptionStateParams {
     pub publishing_interval_elapsed: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum UpdateStateAction {
     None,
     ReturnKeepAlive,

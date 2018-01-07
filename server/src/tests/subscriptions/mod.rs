@@ -1,5 +1,6 @@
 use prelude::*;
 use subscriptions::PublishRequestEntry;
+use subscriptions::subscription::SubscriptionStateParams;
 
 const DEFAULT_LIFETIME_COUNT: UInt32 = 300;
 const DEFAULT_KEEPALIVE_COUNT: UInt32 = 100;
@@ -17,7 +18,7 @@ fn make_publish_request() -> PublishRequestEntry {
         request: PublishRequest {
             request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
             subscription_acknowledgements: None,
-        }
+        },
     }
 }
 
@@ -30,13 +31,18 @@ fn basic_subscription() {
 #[test]
 fn update_state_3() {
     let mut s = make_subscription(SubscriptionState::Creating);
-    let publish_request = None;
 
     // Test #3 - state changes from Creating -> Normal
-    let publishing_timer_expired = false;
     let tick_reason = TickReason::TickTimerFired;
 
-    let update_state_result = s.update_state(tick_reason, &publish_request, publishing_timer_expired);
+    let p = SubscriptionStateParams {
+        notifications_available: true,
+        more_notifications: false,
+        publishing_req_queued: true,
+        publishing_interval_elapsed: false,
+    };
+
+    let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, 3);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
@@ -52,10 +58,6 @@ fn update_state_4() {
 
     let mut s = make_subscription(SubscriptionState::Normal);
 
-    let publish_request = Some(make_publish_request());
-    let tick_reason = TickReason::ReceivedPublishRequest;
-    let publishing_timer_expired = false;
-
     // Receive Publish Request
     //    &&
     //    (
@@ -64,10 +66,17 @@ fn update_state_4() {
     //            (PublishingEnabled == TRUE
     //                && MoreNotifications == FALSE)
     //    )
+    let tick_reason = TickReason::ReceivedPublishRequest;
+    let p = SubscriptionStateParams {
+        notifications_available: true,
+        more_notifications: false,
+        publishing_req_queued: true,
+        publishing_interval_elapsed: false,
+    };
 
     s.publishing_enabled = false;
 
-    let update_state_result = s.update_state(tick_reason, &publish_request, publishing_timer_expired);
+    let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, 4);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);

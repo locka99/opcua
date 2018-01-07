@@ -92,7 +92,7 @@ fn publish_response_subscription() {
     assert!(!session.subscriptions.publish_response_queue.is_empty());
 
     // Expect to see our publish response containing a
-    let response_entry = session.subscriptions.publish_response_queue.pop().unwrap();
+    let response_entry = session.subscriptions.publish_response_queue.pop_back().unwrap();
     assert_eq!(request_id, response_entry.request_id);
 
     let response: PublishResponse = supported_message_as!(response_entry.response, PublishResponse);
