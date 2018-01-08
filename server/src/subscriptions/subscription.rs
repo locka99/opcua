@@ -79,12 +79,14 @@ pub struct Subscription {
     /// A value that contains the number of consecutive publishing timer expirations without Client
     /// activity before the Subscription is terminated.
     pub lifetime_counter: UInt32,
+    /// Keep alive counter decrements when there are no notifications to publish and when it expires
+    /// requests to send an empty notification as a keep alive event
+    pub keep_alive_counter: UInt32,
     /// boolean value that is set to true to mean that either a NotificationMessage or a keep-alive
     /// Message has been sent on the Subscription. It is a flag that is used to ensure that either
     /// a NotificationMessage or a keep-alive Message is sent out the first time the publishing timer
     /// expires.
     pub message_sent: bool,
-    pub keep_alive_counter: UInt32,
 
     /// The parameter that requests publishing to be enabled or disabled.
     pub publishing_enabled: bool,

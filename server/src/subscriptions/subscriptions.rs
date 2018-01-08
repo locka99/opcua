@@ -15,7 +15,6 @@ use address_space::types::AddressSpace;
 use subscriptions::{PublishRequestEntry, PublishResponseEntry};
 use subscriptions::subscription::{Subscription, SubscriptionState, TickReason};
 
-
 /// Subscription events are passed between the timer thread and the session thread so must
 /// be transferable
 #[derive(Clone, Debug, PartialEq)]
@@ -23,7 +22,15 @@ pub enum SubscriptionEvent {
     PublishResponses(VecDeque<PublishResponseEntry>),
 }
 
-
+/// The `Subscriptions` manages zero or more subscriptions, pairing publish requests coming from
+/// the client with notifications coming from the subscriptions. Therefore the subscriptions has
+/// an incoming queue of publish requests and an outgoing queue of publish responses. The transport
+/// layer adds to the one and removes from the other.
+///
+/// Subscriptions are processed inside `tick()` which is called periodically from a timer. Each
+/// tick produces notifications which are ready to publish via a transmission queue. Once a
+/// notification is published, it is held in a retransmission queue until it is acknowledged by the
+/// client, or purged.
 pub struct Subscriptions {
     /// The publish request queue (requests by the client on the session)
     pub publish_request_queue: VecDeque<PublishRequestEntry>,
@@ -37,12 +44,14 @@ pub struct Subscriptions {
     max_publish_requests: usize,
     /// Maximum number of items in the retransmission queue
     max_retransmission_queue: usize,
-    // Notifications waiting to be sent - subscription id and notification message.
+    // Notifications waiting to be sent - Value is subscription id and notification message.
     transmission_queue: VecDeque<(UInt32, NotificationMessage)>,
     // Notifications that have been sent but have yet to be acknowledged (retransmission queue).
     // Key is sequence number. Value is subscription id and notification message
     retransmission_queue: BTreeMap<UInt32, (UInt32, NotificationMessage)>,
-    /// The value that records the value of the sequence number used in NotificationMessages.
+    /// The value that records the value of the sequence number used in a `NotificationMessage`.
+    /// This value increments as each notification is added to the transmission queue and the value
+    /// is stored in the notification. Sequence numbers wrap.
     last_sequence_number: UInt32,
 }
 
@@ -107,45 +116,6 @@ impl Subscriptions {
 
     pub fn get_mut(&mut self, subscription_id: UInt32) -> Option<&mut Subscription> {
         self.subscriptions.get_mut(&subscription_id)
-    }
-
-    /// Iterates through the existing queued publish requests and creates a timeout
-    /// publish response any that have expired.
-    pub fn expire_stale_publish_requests(&mut self, now: &DateTimeUtc) {
-        if self.publish_request_queue.is_empty() {
-            return;
-        }
-
-        let mut publish_responses = VecDeque::with_capacity(self.publish_request_queue.len());
-
-        // Remove publish requests that have expired
-        let publish_request_timeout = self.publish_request_timeout;
-        self.publish_request_queue.retain(|ref request| {
-            let request_header = &request.request.request_header;
-            let timestamp: DateTimeUtc = request_header.timestamp.clone().into();
-            let timeout = if request_header.timeout_hint > 0 && (request_header.timeout_hint as i64) < publish_request_timeout {
-                request_header.timeout_hint as i64
-            } else {
-                publish_request_timeout
-            };
-            let timeout_d = time::Duration::milliseconds(timeout);
-            // The request has timed out if the timestamp plus hint exceeds the input time
-            let expiration_time = timestamp + timeout_d;
-            if *now >= expiration_time {
-                debug!("Publish request {} has expired - timestamp = {:?}, expiration hint = {}, expiration time = {:?}, time now = {:?}, ", request_header.request_handle, timestamp, timeout, expiration_time, now);
-                publish_responses.push_front(PublishResponseEntry {
-                    request_id: request.request_id,
-                    response: SupportedMessage::ServiceFault(ServiceFault {
-                        response_header: ResponseHeader::new_timestamped_service_result(DateTime::now(), &request.request.request_header, BadTimeout),
-                    }),
-                });
-                false
-            } else {
-                true
-            }
-        });
-        // Queue responses for each expired request
-        self.publish_response_queue.append(&mut publish_responses);
     }
 
     /// The tick causes the subscription manager to iterate through individual subscriptions calling tick
@@ -219,6 +189,45 @@ impl Subscriptions {
         self.remove_old_unknowledged_notifications();
 
         Ok(())
+    }
+
+    /// Iterates through the existing queued publish requests and creates a timeout
+    /// publish response any that have expired.
+    pub fn expire_stale_publish_requests(&mut self, now: &DateTimeUtc) {
+        if self.publish_request_queue.is_empty() {
+            return;
+        }
+
+        let mut publish_responses = VecDeque::with_capacity(self.publish_request_queue.len());
+
+        // Remove publish requests that have expired
+        let publish_request_timeout = self.publish_request_timeout;
+        self.publish_request_queue.retain(|ref request| {
+            let request_header = &request.request.request_header;
+            let timestamp: DateTimeUtc = request_header.timestamp.clone().into();
+            let timeout = if request_header.timeout_hint > 0 && (request_header.timeout_hint as i64) < publish_request_timeout {
+                request_header.timeout_hint as i64
+            } else {
+                publish_request_timeout
+            };
+            let timeout_d = time::Duration::milliseconds(timeout);
+            // The request has timed out if the timestamp plus hint exceeds the input time
+            let expiration_time = timestamp + timeout_d;
+            if *now >= expiration_time {
+                debug!("Publish request {} has expired - timestamp = {:?}, expiration hint = {}, expiration time = {:?}, time now = {:?}, ", request_header.request_handle, timestamp, timeout, expiration_time, now);
+                publish_responses.push_front(PublishResponseEntry {
+                    request_id: request.request_id,
+                    response: SupportedMessage::ServiceFault(ServiceFault {
+                        response_header: ResponseHeader::new_timestamped_service_result(DateTime::now(), &request.request.request_header, BadTimeout),
+                    }),
+                });
+                false
+            } else {
+                true
+            }
+        });
+        // Queue responses for each expired request
+        self.publish_response_queue.append(&mut publish_responses);
     }
 
     /// Deletes the acknowledged notifications, returning a list of status code for each according
