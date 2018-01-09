@@ -1,5 +1,4 @@
 use prelude::*;
-use subscriptions::PublishRequestEntry;
 use subscriptions::subscription::SubscriptionStateParams;
 
 const DEFAULT_LIFETIME_COUNT: UInt32 = 300;
@@ -156,12 +155,12 @@ fn update_state_7() {
     let p = SubscriptionStateParams {
         notifications_available: true,
         more_notifications: false,
-        publishing_req_queued: false,
+        publishing_req_queued: true,
         publishing_interval_elapsed: true,
     };
 
     s.message_sent = false;
-    s.publishing_enabled = true;
+    s.publishing_enabled = false;
 
     let update_state_result = s.update_state(tick_reason, p);
 

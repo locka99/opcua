@@ -244,7 +244,7 @@ impl Subscriptions {
                 let subscription_id = subscription_acknowledgement.subscription_id;
                 let sequence_number = subscription_acknowledgement.sequence_number;
                 // Check the subscription id exists
-                if let Some(subscription) = self.subscriptions.get(&subscription_id) {
+                if self.subscriptions.get(&subscription_id).is_some() {
                     // Clear notification by its sequence number
                     if self.retransmission_queue.remove(&sequence_number).is_some() {
                         Good
@@ -303,7 +303,7 @@ impl Subscriptions {
     /// notification is not found.
     pub fn find_notification_message(&self, subscription_id: UInt32, sequence_number: UInt32) -> Result<NotificationMessage, StatusCode> {
         // Look for the subscription
-        if let Some(ref subscription) = self.subscriptions.get(&subscription_id) {
+        if self.subscriptions.get(&subscription_id).is_some() {
             // Look for the sequence number
             if let Some(ref notification_message) = self.retransmission_queue.get(&sequence_number) {
                 Ok(notification_message.1.clone())
