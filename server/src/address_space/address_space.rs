@@ -182,7 +182,7 @@ impl AddressSpace {
         // State OPC UA Part 5 12.6, Valid states are
         //     State (Server_ServerStatus_State)
         if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerStatus_State) {
-            let server_state = server_state.clone();
+            let _server_state = server_state.clone();
             // Used to return the current time of the server, i.e. now
             let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Result<Option<DataValue>, StatusCode> {
                 // let server_state =  trace_read_lock_unwrap!(server_state);
