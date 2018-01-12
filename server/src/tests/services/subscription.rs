@@ -179,9 +179,59 @@ fn multiple_publish_response_subscription() {
 
 #[test]
 fn republish() {
-    // TODO try for a notification message known to exist
+    opcua_core::init_logging();
 
-    // TODO try for a subscription id that does not exist
+    // Create a session
+    let st = ServiceTest::new();
+    let (mut server_state, mut session) = st.get_server_state_and_session();
 
-    // TODO try for a sequence nr that does not exist
+    // Create a subscription with a monitored item
+    let ss = SubscriptionService::new();
+
+    // Create subscription
+    let subscription_id = {
+        let request = create_subscription_request();
+        debug!("{:#?}", request);
+        let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(&mut server_state, &mut session, request).unwrap(), CreateSubscriptionResponse);
+        debug!("{:#?}", response);
+        response.subscription_id
+    };
+
+    let sequence_number = 222;
+
+    // Add a notification to the subscriptions retransmission queue
+    {
+        let monitored_item_notifications = vec![];
+        let notification = NotificationMessage::new_data_change(sequence_number, DateTime::now(), monitored_item_notifications);
+        session.subscriptions.retransmission_queue().insert(sequence_number, (subscription_id, notification));
+    }
+
+    // try for a notification message known to exist
+    let request = RepublishRequest {
+        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+        subscription_id,
+        retransmit_sequence_number: sequence_number,
+    };
+    let response = ss.republish(&mut session, request).unwrap();
+    trace!("republish response {:#?}", response);
+    let response: RepublishResponse = supported_message_as!(response, RepublishResponse);
+    assert_eq!(response.notification_message.sequence_number, sequence_number);
+
+    // try for a subscription id that does not exist, expect service fault
+    let request = RepublishRequest {
+        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+        subscription_id: subscription_id + 1,
+        retransmit_sequence_number: sequence_number,
+    };
+    let response: ServiceFault = supported_message_as!(ss.republish(&mut session, request).unwrap(), ServiceFault);
+    assert_eq!(response.response_header.service_result, StatusCode::BadNoSubscription);
+
+    // try for a sequence nr that does not exist
+    let request = RepublishRequest {
+        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+        subscription_id: subscription_id,
+        retransmit_sequence_number: sequence_number + 1,
+    };
+    let response: ServiceFault = supported_message_as!(ss.republish(&mut session, request).unwrap(), ServiceFault);
+    assert_eq!(response.response_header.service_result, StatusCode::BadMessageNotAvailable);
 }

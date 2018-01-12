@@ -70,11 +70,19 @@ impl Subscriptions {
         }
     }
 
+    #[cfg(test)]
+    pub fn retransmission_queue(&mut self) -> &mut BTreeMap<UInt32, (UInt32, NotificationMessage)> {
+        &mut self.retransmission_queue
+    }
+
     /// Places a new publish request onto the queue of publish requests.
     ///
     /// If the queue is full this call will pop the oldest and generate a service fault
     /// for that before pushing the new one.
     pub fn enqueue_publish_request(&mut self, _: &AddressSpace, request_id: UInt32, request: PublishRequest) -> Result<(), StatusCode> {
+        // Acknowledge anything to be acknowledged
+        let _ = self.process_subscription_acknowledgements(&request);
+
         // Check if we have too many requests already
         if self.publish_request_queue.len() >= self.max_publish_requests {
             error!("Too many publish requests {} for capacity {}, throwing oldest away", self.publish_request_queue.len(), self.max_publish_requests);
