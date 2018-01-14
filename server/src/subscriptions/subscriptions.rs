@@ -8,8 +8,6 @@ use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
 use opcua_types::service_types::{PublishRequest, PublishResponse, ServiceFault, ResponseHeader, NotificationMessage};
 
-use constants;
-
 use DateTimeUtc;
 use address_space::types::AddressSpace;
 use subscriptions::{PublishRequestEntry, PublishResponseEntry};
@@ -21,6 +19,33 @@ use subscriptions::subscription::{Subscription, SubscriptionState, TickReason};
 pub enum SubscriptionEvent {
     PublishResponses(VecDeque<PublishResponseEntry>),
 }
+
+/// Incrementing sequence number
+pub struct SequenceNumber {
+    last_number: UInt32,
+}
+
+impl SequenceNumber {
+    /// Sequence numbers wrap when they exceed this value
+    const SEQUENCE_NUMBER_WRAPAROUND: u32 = 4294966271;
+
+    pub fn new() -> SequenceNumber {
+        SequenceNumber {
+            last_number: 0
+        }
+    }
+
+    /// Returns the next sequence number which is usually one more than the last one but can wrap
+    pub fn next_number(&mut self) -> UInt32 {
+        self.last_number += 1;
+        // Sequence number should wrap if it exceeds this value - part 6
+        if self.last_number > Self::SEQUENCE_NUMBER_WRAPAROUND {
+            self.last_number = 1;
+        }
+        self.last_number
+    }
+}
+
 
 /// The `Subscriptions` manages zero or more subscriptions, pairing publish requests coming from
 /// the client with notifications coming from the subscriptions. Therefore the subscriptions has
@@ -52,7 +77,7 @@ pub struct Subscriptions {
     /// The value that records the value of the sequence number used in a `NotificationMessage`.
     /// This value increments as each notification is added to the transmission queue and the value
     /// is stored in the notification. Sequence numbers wrap.
-    last_sequence_number: UInt32,
+    sequence_number: SequenceNumber,
 }
 
 impl Subscriptions {
@@ -63,7 +88,7 @@ impl Subscriptions {
             publish_request_timeout,
             subscriptions: BTreeMap::new(),
             max_publish_requests,
-            last_sequence_number: 0,
+            sequence_number: SequenceNumber::new(),
             max_retransmission_queue: max_publish_requests * 2,
             transmission_queue: VecDeque::new(),
             retransmission_queue: BTreeMap::new(),
@@ -165,7 +190,7 @@ impl Subscriptions {
                 if let Some(mut notification_message) = notification_message {
                     trace!("Subscription {} produced a notification message", subscription_id);
                     // Give the notification message a sequence number
-                    notification_message.sequence_number = self.create_sequence_number();
+                    notification_message.sequence_number = self.sequence_number.next_number();
                     // Push onto the transmission queue
                     self.transmission_queue.push_front((*subscription_id, notification_message));
                     if publish_request_len > 0 {
@@ -186,11 +211,12 @@ impl Subscriptions {
             let (subscription_id, notification_message) = self.transmission_queue.pop_back().unwrap();
             let more_notifications = !self.transmission_queue.is_empty();
 
-            // The notification to be sent now goes into the retransmission queue
+            // Get a list of available sequence numbers
+            let available_sequence_numbers = self.available_sequence_numbers(subscription_id);
+
+            // The notification to be sent is now put into the retransmission queue
             self.retransmission_queue.insert(notification_message.sequence_number, (subscription_id, notification_message.clone()));
 
-            // Make a publish response and queue it
-            let available_sequence_numbers = self.available_sequence_numbers();
             let response = self.make_publish_response(&publish_request, subscription_id, &now, notification_message, more_notifications, available_sequence_numbers);
             self.publish_response_queue.push_front(response);
         }
@@ -273,12 +299,18 @@ impl Subscriptions {
         }
     }
 
-    /// Returns the array of available sequence numbers
-    fn available_sequence_numbers(&self) -> Option<Vec<UInt32>> {
+    /// Returns the array of available sequence numbers for the specified subscription
+    fn available_sequence_numbers(&self, subscription_id: UInt32) -> Option<Vec<UInt32>> {
         if self.retransmission_queue.is_empty() {
             None
         } else {
-            Some(self.retransmission_queue.keys().cloned().collect())
+            // Find the notifications matching this subscription id in the retransmission queue
+            let sequence_numbers: Vec<UInt32> = self.retransmission_queue.iter().filter(|&(_, v)| v.0 == subscription_id).map(|(k, _)| *k).collect();
+            if sequence_numbers.is_empty() {
+                None
+            } else {
+                Some(sequence_numbers)
+            }
         }
     }
 
@@ -296,16 +328,6 @@ impl Subscriptions {
                 diagnostic_infos: None,
             }),
         }
-    }
-
-    /// Return the next sequence number
-    fn create_sequence_number(&mut self) -> UInt32 {
-        self.last_sequence_number += 1;
-        // Sequence number should wrap if it exceeds this value - part 6
-        if self.last_sequence_number > constants::SEQUENCE_NUMBER_WRAPAROUND {
-            self.last_sequence_number = 1;
-        }
-        self.last_sequence_number
     }
 
     /// Finds a notification message in the retransmission queue matching the supplied subscription id
