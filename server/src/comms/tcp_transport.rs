@@ -22,7 +22,7 @@ use comms::secure_channel_service::SecureChannelService;
 use server_state::ServerState;
 use services::message_handler::MessageHandler;
 use session::Session;
-use subscriptions::subscriptions::SubscriptionEvent;
+use subscriptions::PublishResponseEntry;
 use subscriptions::subscription::TickReason;
 use address_space::types::AddressSpace;
 
@@ -37,6 +37,13 @@ pub enum TransportState {
     WaitingHello,
     ProcessMessages,
     Finished,
+}
+
+/// Subscription events are passed between the timer thread and the session thread so must
+/// be transferable
+#[derive(Clone, Debug, PartialEq)]
+enum SubscriptionEvent {
+    PublishResponses(VecDeque<PublishResponseEntry>),
 }
 
 /// This is the thing that handles input and output for the open connection associated with the

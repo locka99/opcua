@@ -87,7 +87,6 @@ pub struct Subscription {
     /// a NotificationMessage or a keep-alive Message is sent out the first time the publishing timer
     /// expires.
     pub message_sent: bool,
-
     /// The parameter that requests publishing to be enabled or disabled.
     pub publishing_enabled: bool,
     // The last monitored item id

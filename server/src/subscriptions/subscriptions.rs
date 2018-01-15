@@ -13,13 +13,6 @@ use address_space::types::AddressSpace;
 use subscriptions::{PublishRequestEntry, PublishResponseEntry};
 use subscriptions::subscription::{Subscription, SubscriptionState, TickReason};
 
-/// Subscription events are passed between the timer thread and the session thread so must
-/// be transferable
-#[derive(Clone, Debug, PartialEq)]
-pub enum SubscriptionEvent {
-    PublishResponses(VecDeque<PublishResponseEntry>),
-}
-
 /// Incrementing sequence number
 pub struct SequenceNumber {
     last_number: UInt32,
@@ -209,7 +202,9 @@ impl Subscriptions {
 
             // Get the oldest notification to send
             let (subscription_id, notification_message) = self.transmission_queue.pop_back().unwrap();
-            let more_notifications = !self.transmission_queue.is_empty();
+
+            // Search the transmission queue for more notifications from this same subscription
+            let more_notifications = self.more_notifications(subscription_id);
 
             // Get a list of available sequence numbers
             let available_sequence_numbers = self.available_sequence_numbers(subscription_id);
@@ -297,6 +292,13 @@ impl Subscriptions {
         } else {
             None
         }
+    }
+
+    /// Searches the transmission queue to see if there are more notifications for the specified
+    /// subscription id
+    fn more_notifications(&self, subscription_id: UInt32) -> bool {
+        // At least one match means more notifications
+        self.transmission_queue.iter().find(|v| v.0 == subscription_id).is_some()
     }
 
     /// Returns the array of available sequence numbers for the specified subscription
