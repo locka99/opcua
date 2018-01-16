@@ -2,6 +2,7 @@
 //! session creation and dispatching of messages via message handler.
 //!
 use std;
+use std::collections::VecDeque;
 use std::net::{TcpStream, Shutdown};
 use std::io::{Read, Write, Cursor, ErrorKind};
 use std::sync::{Arc, RwLock};
@@ -21,7 +22,7 @@ use comms::secure_channel_service::SecureChannelService;
 use server_state::ServerState;
 use services::message_handler::MessageHandler;
 use session::Session;
-use subscriptions::subscription::SubscriptionEvent;
+use subscriptions::PublishResponseEntry;
 use subscriptions::subscription::TickReason;
 use address_space::types::AddressSpace;
 
@@ -35,7 +36,14 @@ pub enum TransportState {
     New,
     WaitingHello,
     ProcessMessages,
-    Finished
+    Finished,
+}
+
+/// Subscription events are passed between the timer thread and the session thread so must
+/// be transferable
+#[derive(Clone, Debug, PartialEq)]
+enum SubscriptionEvent {
+    PublishResponses(VecDeque<PublishResponseEntry>),
 }
 
 /// This is the thing that handles input and output for the open connection associated with the
@@ -274,20 +282,21 @@ impl TcpTransport {
         let subscription_timer = timer::Timer::new();
         let subscription_timer_guard = subscription_timer.schedule_repeating(time::Duration::milliseconds(constants::SUBSCRIPTION_TIMER_RATE_MS), move || {
             let mut session = trace_write_lock_unwrap!(session);
+            let now = Utc::now();
 
             // Request queue might contain stale publish requests
-            session.expire_stale_publish_requests(&Utc::now());
+            session.expire_stale_publish_requests(&now);
 
             // Process subscriptions
             {
                 let address_space = trace_read_lock_unwrap!(address_space);
-                let _ = session.tick_subscriptions(&address_space, TickReason::TickTimerFired);
+                let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
             }
 
             // Check if there are publish responses to send for transmission
             if !session.subscriptions.publish_response_queue.is_empty() {
                 trace!("Sending publish responses to session thread");
-                let mut publish_responses = Vec::with_capacity(session.subscriptions.publish_response_queue.len());
+                let mut publish_responses = VecDeque::with_capacity(session.subscriptions.publish_response_queue.len());
                 publish_responses.append(&mut session.subscriptions.publish_response_queue);
                 drop(session);
                 let sent = subscription_timer_tx.send(SubscriptionEvent::PublishResponses(publish_responses));

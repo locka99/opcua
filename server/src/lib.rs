@@ -58,9 +58,6 @@ pub mod constants {
     /// Default, "well known address for TCP discovery server
     //pub const DEFAULT_OPC_UA_DISCOVERY_SERVER_PORT: u16 = 4840;
 
-    /// Sequence numbers wrap when they exceed this value
-    pub const SEQUENCE_NUMBER_WRAPAROUND: u32 = 4294966271;
-
     // Internally controlled values
 
     /// Minimum publishing interval for subscriptions

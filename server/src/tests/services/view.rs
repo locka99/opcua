@@ -249,7 +249,7 @@ fn translate_browse_paths_to_node_ids() {
 
         let results = result.results.unwrap();
         assert_eq!(results.len(), 1);
-        let r1 = &results[0];
+        let _r1 = &results[0];
         /*
         let targets = r1.targets.as_ref().unwrap();
         assert_eq!(targets.len(), 1);
