@@ -282,14 +282,15 @@ impl TcpTransport {
         let subscription_timer = timer::Timer::new();
         let subscription_timer_guard = subscription_timer.schedule_repeating(time::Duration::milliseconds(constants::SUBSCRIPTION_TIMER_RATE_MS), move || {
             let mut session = trace_write_lock_unwrap!(session);
+            let now = Utc::now();
 
             // Request queue might contain stale publish requests
-            session.expire_stale_publish_requests(&Utc::now());
+            session.expire_stale_publish_requests(&now);
 
             // Process subscriptions
             {
                 let address_space = trace_read_lock_unwrap!(address_space);
-                let _ = session.tick_subscriptions(&address_space, TickReason::TickTimerFired);
+                let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
             }
 
             // Check if there are publish responses to send for transmission

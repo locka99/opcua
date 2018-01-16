@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use chrono::{DateTime, Utc};
+use chrono;
 
 use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
@@ -9,6 +9,7 @@ use opcua_types::service_types::PublishRequest;
 use opcua_core::comms::secure_channel::SecureChannel;
 use opcua_core::crypto::X509;
 
+use DateTimeUtc;
 use address_space::address_space::AddressSpace;
 use subscriptions::subscriptions::Subscriptions;
 use subscriptions::subscription::TickReason;
@@ -69,7 +70,7 @@ pub struct Session {
     /// Indicates if the session has received an ActivateSession
     pub activated: bool,
     /// Time that session was terminated, helps with recovering sessions, or clearing them out
-    terminated_at: DateTime<Utc>,
+    terminated_at: DateTimeUtc,
     /// Flag indicating session is actually terminated
     terminated: bool,
     /// Internal value used to create new session ids.
@@ -87,7 +88,7 @@ impl Session {
             activated: false,
             terminate_session: false,
             terminated: false,
-            terminated_at: Utc::now(),
+            terminated_at: chrono::Utc::now(),
             client_certificate: None,
             security_policy_uri: String::new(),
             authentication_token: NodeId::null(),
@@ -114,7 +115,7 @@ impl Session {
             activated: false,
             terminate_session: false,
             terminated: false,
-            terminated_at: Utc::now(),
+            terminated_at: chrono::Utc::now(),
             client_certificate: None,
             security_policy_uri: String::new(),
             authentication_token: NodeId::null(),
@@ -141,7 +142,7 @@ impl Session {
 
     pub fn set_terminated(&mut self) {
         self.terminated = true;
-        self.terminated_at = Utc::now();
+        self.terminated_at = chrono::Utc::now();
     }
 
     pub fn diagnostics(&self) -> &SessionDiagnostics {
@@ -152,13 +153,13 @@ impl Session {
         self.subscriptions.enqueue_publish_request(address_space, request_id, request)
     }
 
-    pub fn tick_subscriptions(&mut self, address_space: &AddressSpace, reason: TickReason) -> Result<(), StatusCode> {
-        self.subscriptions.tick(address_space, reason)
+    pub fn tick_subscriptions(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, reason: TickReason) -> Result<(), StatusCode> {
+        self.subscriptions.tick(now, address_space, reason)
     }
 
     /// Iterates through the existing queued publish requests and creates a timeout
     /// publish response any that have expired.
-    pub fn expire_stale_publish_requests(&mut self, now: &DateTime<Utc>) {
+    pub fn expire_stale_publish_requests(&mut self, now: &DateTimeUtc) {
         self.subscriptions.expire_stale_publish_requests(now);
     }
 

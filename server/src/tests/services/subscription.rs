@@ -1,4 +1,8 @@
+use std::ops::Add;
+
 use prelude::*;
+
+use chrono::Utc;
 
 use opcua_core;
 
@@ -101,6 +105,9 @@ fn publish_response_subscription() {
         // let result = response.results.unwrap()[0].monitored_item_id;
     }
 
+    // Put the subscription into normal state
+    session.subscriptions.get_mut(subscription_id).unwrap().state = SubscriptionState::Normal;
+
     // Send a publish and expect a publish response containing the subscription
     let notification_message = {
         let request_id = 1001;
@@ -117,7 +124,8 @@ fn publish_response_subscription() {
         assert!(!session.subscriptions.publish_request_queue.is_empty());
 
         // Tick subscriptions to trigger a change
-        let _ = session.tick_subscriptions(&address_space, TickReason::TickTimerFired);
+        let now = Utc::now().add(chrono::Duration::seconds(2));
+        let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
 
         // Ensure publish request was processed into a publish response
         assert_eq!(session.subscriptions.publish_request_queue.len(), 0);
@@ -146,7 +154,7 @@ fn publish_response_subscription() {
     // We expect the notification to contain one data change notification referring to
     // the monitored item.
 
-    let data_change = notification_data[1].decode_inner::<DataChangeNotification>().unwrap();
+    let data_change = notification_data[0].decode_inner::<DataChangeNotification>().unwrap();
     assert!(data_change.monitored_items.is_some());
     let monitored_items = data_change.monitored_items.unwrap();
     assert_eq!(monitored_items.len(), 1);
@@ -157,7 +165,7 @@ fn publish_response_subscription() {
     assert_eq!(monitored_item_notification.client_handle, 1);
 
     // We expect the queue to be empty, because we got an immediate response
-    assert!(!session.subscriptions.publish_response_queue.is_empty());
+    assert!(session.subscriptions.publish_response_queue.is_empty());
 }
 
 #[test]

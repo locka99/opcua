@@ -336,9 +336,8 @@ impl Subscription {
             use log::LogLevel::Trace;
             if log_enabled!(Trace) {
                 trace!(r#"State inputs:
-    subscription_id / state: {} / {:?}
-    tick_reason: {:?}
-    state_params: {:?}
+    subscription_id: {} / state: {:?}
+    tick_reason: {:?} / state_params: {:?}
     publishing_enabled: {}
     keep_alive_counter / lifetime_counter: {} / {}
     message_sent: {}"#,

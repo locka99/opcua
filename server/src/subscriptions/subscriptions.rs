@@ -1,7 +1,6 @@
 use std::collections::{BTreeMap, VecDeque};
 
 use time;
-use chrono;
 
 use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
@@ -148,9 +147,7 @@ impl Subscriptions {
     /// on each in order of priority. In each case this could generate data change notifications. Data change
     /// notifications will be attached to the next available publish response and queued for sending
     /// to the client.
-    pub fn tick(&mut self, address_space: &AddressSpace, tick_reason: TickReason) -> Result<(), StatusCode> {
-        let now = chrono::Utc::now();
-
+    pub fn tick(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, tick_reason: TickReason) -> Result<(), StatusCode> {
         let subscription_ids = {
             let mut subscription_priority: Vec<(u32, u8)> = self.subscriptions.values().map(|v| (v.subscription_id, v.priority)).collect();
             subscription_priority.sort_by(|s1, s2| s1.1.cmp(&s2.1));
@@ -178,7 +175,7 @@ impl Subscriptions {
                     // Now tick the subscription to see if it has any notifications. If there are
                     // notifications then the publish response will be associated with his subscription
                     // and ready to go.
-                    subscription.tick(address_space, tick_reason, publishing_req_queued, &now)
+                    subscription.tick(address_space, tick_reason, publishing_req_queued, now)
                 };
                 if let Some(mut notification_message) = notification_message {
                     trace!("Subscription {} produced a notification message", subscription_id);
@@ -212,7 +209,7 @@ impl Subscriptions {
             // The notification to be sent is now put into the retransmission queue
             self.retransmission_queue.insert(notification_message.sequence_number, (subscription_id, notification_message.clone()));
 
-            let response = self.make_publish_response(&publish_request, subscription_id, &now, notification_message, more_notifications, available_sequence_numbers);
+            let response = self.make_publish_response(&publish_request, subscription_id, now, notification_message, more_notifications, available_sequence_numbers);
             self.publish_response_queue.push_front(response);
         }
 
