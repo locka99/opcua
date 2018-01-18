@@ -18,9 +18,18 @@ use crypto::pkey::PKey;
 use comms::security_header::{SecurityHeader, SymmetricSecurityHeader, AsymmetricSecurityHeader};
 use comms::message_chunk::{MessageChunkHeader, MessageChunkType, MessageChunk};
 
+#[derive(Debug, PartialEq)]
+pub enum Role {
+    Unknown,
+    Client,
+    Server,
+}
+
 /// Holds all of the security information related to this session
 #[derive(Debug)]
 pub struct SecureChannel {
+    // The side of the secure channel that this role belongs to, client or server
+    role: Role,
     /// The security policy for the connection, None or Encryption/Signing settings
     security_policy: SecurityPolicy,
     /// The security mode for the connection, None, Sign, SignAndEncrypt
@@ -52,6 +61,7 @@ pub struct SecureChannel {
 impl Into<SecureChannel> for (SecurityPolicy, MessageSecurityMode) {
     fn into(self) -> SecureChannel {
         SecureChannel {
+            role: Role::Unknown,
             security_policy: self.0,
             security_mode: self.1,
             secure_channel_id: 0,
@@ -76,7 +86,7 @@ impl SecureChannel {
         (SecurityPolicy::None, MessageSecurityMode::None).into()
     }
 
-    pub fn new(certificate_store: Arc<Mutex<CertificateStore>>) -> SecureChannel {
+    pub fn new(certificate_store: Arc<Mutex<CertificateStore>>, role: Role) -> SecureChannel {
         let (cert, private_key) = {
             let certificate_store = certificate_store.lock().unwrap();
             if let Ok((cert, pkey)) = certificate_store.read_own_cert_and_pkey() {
@@ -87,6 +97,7 @@ impl SecureChannel {
             }
         };
         SecureChannel {
+            role,
             security_mode: MessageSecurityMode::None,
             security_policy: SecurityPolicy::None,
             secure_channel_id: 0,
@@ -101,6 +112,10 @@ impl SecureChannel {
             local_keys: None,
             remote_keys: None,
         }
+    }
+
+    pub fn is_client_role(&self) -> bool {
+        self.role == Role::Client
     }
 
     pub fn set_cert(&mut self, cert: Option<X509>) {

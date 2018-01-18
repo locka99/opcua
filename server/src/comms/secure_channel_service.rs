@@ -84,9 +84,8 @@ impl SecureChannelService {
         match request.request_type {
             SecurityTokenRequestType::Issue => {
                 trace!("Request type == Issue");
+                // check to see if renew has been called before or not
                 if self.secure_channel_state.renew_count > 0 {
-                    // TODO check to see if renew has been called before or not
-                    // error
                     error!("Asked to issue token on session that has called renew before");
                 }
             }
@@ -99,8 +98,8 @@ impl SecureChannelService {
                     return Ok(ServiceFault::new_supported_message(&request.request_header, BadNonceInvalid));
                 }
 
+                // check to see if the secure channel has been issued before or not
                 if !self.secure_channel_state.issued {
-                    // TODO check to see if the secure channel has been issued before or not
                     error!("Asked to renew token on session that has never issued token");
                     return Err(BadUnexpectedError);
                 }

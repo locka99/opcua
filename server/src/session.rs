@@ -6,7 +6,7 @@ use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::service_types::PublishRequest;
 
-use opcua_core::comms::secure_channel::SecureChannel;
+use opcua_core::comms::secure_channel::{SecureChannel, Role};
 use opcua_core::crypto::X509;
 
 use DateTimeUtc;
@@ -119,7 +119,7 @@ impl Session {
             client_certificate: None,
             security_policy_uri: String::new(),
             authentication_token: NodeId::null(),
-            secure_channel: SecureChannel::new(server.certificate_store.clone()),
+            secure_channel: SecureChannel::new(server.certificate_store.clone(), Role::Server),
             session_nonce: ByteString::null(),
             session_timeout: 0f64,
             user_identity: None,

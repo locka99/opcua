@@ -60,6 +60,7 @@ impl Chunker {
         Ok(first_sequence_number + chunks.len() as UInt32 - 1)
     }
 
+
     /// Encodes a message using the supplied sequence number and secure channel info and emits the corresponding chunks
     ///
     /// max_chunk_size refers to the maximum byte length that a chunk should not exceed or 0 for no limit
@@ -76,8 +77,8 @@ impl Chunker {
         let mut message_size = supported_message.byte_len();
         if max_message_size > 0 && message_size > max_message_size {
             warn!("Max message size is {} and message {} exceeds that", max_message_size, message_size);
-            // TODO Client stack should report a BadResponseTooLarge
-            return Err(BadResponseTooLarge);
+            // Client stack should report a BadRequestTooLarge, server BadResponseTooLarge
+            return Err(if secure_channel.is_client_role() { BadRequestTooLarge } else { BadResponseTooLarge });
         }
 
         let node_id = supported_message.node_id();

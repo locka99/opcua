@@ -13,7 +13,7 @@ pub enum MessageType {
     Hello,
     Acknowledge,
     Chunk,
-    Error
+    Error,
 }
 
 pub const MESSAGE_HEADER_LEN: usize = 8;
@@ -188,6 +188,8 @@ impl BinaryEncoder<HelloMessage> for HelloMessage {
 }
 
 impl HelloMessage {
+    const MAX_URL_LEN: usize = 4096;
+
     /// Creates a HEL message
     pub fn new(endpoint_url: &str, send_buffer_size: UInt32, receive_buffer_size: UInt32, max_message_size: UInt32) -> HelloMessage {
         let mut msg = HelloMessage {
@@ -206,7 +208,7 @@ impl HelloMessage {
     pub fn is_endpoint_url_valid(&self) -> bool {
         // TODO check server's endpoints
         if let Some(ref endpoint_url) = self.endpoint_url.value {
-            if endpoint_url.len() > 4096 { false } else { true }
+            if endpoint_url.len() > HelloMessage::MAX_URL_LEN { false } else { true }
         } else {
             true
         }

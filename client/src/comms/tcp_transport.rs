@@ -45,7 +45,7 @@ impl TcpTransport {
             session_state.receive_buffer_size
         };
 
-        let secure_channel = SecureChannel::new(certificate_store);
+        let secure_channel = SecureChannel::new(certificate_store, Role::Client);
 
         TcpTransport {
             session_state,
