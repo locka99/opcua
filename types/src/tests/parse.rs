@@ -62,5 +62,12 @@ fn parse_node_id_guid() {
 
 #[test]
 fn parse_node_id_byte_string() {
-    // TODO bytestring
+    // ByteString (sample bytes comes from OPC UA spec)
+    let node_id = NodeId::from_str("ns=1;b=M/RbKBsRVkePCePcx24oRA==");
+    assert_eq!(node_id.is_ok(), true);
+    let node_id = node_id.unwrap();
+    assert_eq!(node_id.namespace, 1);
+    assert_eq!(node_id.identifier, Identifier::ByteString(ByteString::from_base64("M/RbKBsRVkePCePcx24oRA==").unwrap()));
+    // Turn byte string back to string, compare to original
+    assert_eq!(&node_id.to_string(), "ns=1;b=M/RbKBsRVkePCePcx24oRA==");
 }

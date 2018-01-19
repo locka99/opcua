@@ -1,6 +1,8 @@
 use std::io::{Read, Write};
 use std::fmt;
 
+use base64;
+
 use encoding::{write_i32, BinaryEncoder, EncodingResult, process_encode_io_result, process_decode_io_result};
 use basic_types::Int32;
 use constants;
@@ -178,7 +180,14 @@ impl<'a, T> From<&'a T> for ByteString where T: AsRef<[u8]> + ? Sized {
 
 impl From<Vec<u8>> for ByteString {
     fn from(value: Vec<u8>) -> Self {
+        // Empty bytes will be treated as Some([])
         ByteString { value: Some(value) }
+    }
+}
+
+impl Into<String> for ByteString {
+    fn into(self) -> String {
+        self.as_base64()
     }
 }
 
@@ -202,6 +211,25 @@ impl ByteString {
     /// Test if the string is null or empty
     pub fn is_null_or_empty(&self) -> bool {
         self.value.is_none() || self.value.as_ref().unwrap().is_empty()
+    }
+
+    /// Creates a byte string from a Base64 encoded string
+    pub fn from_base64(data: &str) -> Option<ByteString> {
+        if let Ok(bytes) = base64::decode(data) {
+            Some(Self::from(bytes))
+        } else {
+            None
+        }
+    }
+
+    /// Encodes the bytestring as a Base64 encoded string
+    pub fn as_base64(&self) -> String {
+        // Base64 encodes the byte string so it can be represented as a string
+        if self.value.is_some() {
+            base64::encode(self.value.as_ref().unwrap())
+        } else {
+            base64::encode("")
+        }
     }
 
     /// Creates a nonce - 32 bytes of random data

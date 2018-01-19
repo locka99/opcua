@@ -243,10 +243,12 @@ impl FromStr for NodeId {
                 NodeId::new(namespace, guid.unwrap())
             }
             "b" => {
-                // Parse hex back into bytes
-                // NodeId::new_bytestring(namespace, ByteString::from(decoded_v.as_str()))
-                error!("ByteString parsing needs to be implemented");
-                return Err(BadNodeIdInvalid);
+                // Byte string is encoded as a Base64 value
+                let bytestring = ByteString::from_base64(v.as_str());
+                if bytestring.is_none() {
+                    return Err(BadNodeIdInvalid);
+                }
+                NodeId::new(namespace, bytestring.unwrap())
             }
             _ => {
                 return Err(BadNodeIdInvalid);
@@ -332,12 +334,8 @@ impl NodeId {
                 format!("g={:?}", value)
             }
             Identifier::ByteString(ref value) => {
-                if value.is_null() {
-                    "null".to_string()
-                } else {
-                    // Base64 encode bytes
-                    format!("b=implementme", )
-                }
+                // Base64 encode bytes
+                format!("b={}", value.as_base64())
             }
         });
         result

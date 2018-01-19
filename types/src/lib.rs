@@ -14,6 +14,7 @@ extern crate regex;
 extern crate rand;
 extern crate uuid;
 extern crate url as url_external;
+extern crate base64;
 
 ///Contains constants recognized by OPC UA clients and servers to describe various protocols and
 /// profiles used during communication and encryption.
