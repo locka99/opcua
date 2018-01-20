@@ -82,59 +82,63 @@ impl SubscriptionService {
     /// Handles a DeleteSubscriptionsRequest
     pub fn delete_subscriptions(&self, session: &mut Session, request: DeleteSubscriptionsRequest) -> Result<SupportedMessage, StatusCode> {
         if request.subscription_ids.is_none() {
-            return Ok(self.service_fault(&request.request_header, BadNothingToDo));
+            Ok(self.service_fault(&request.request_header, BadNothingToDo))
         }
-        let results = {
-            let subscription_ids = request.subscription_ids.as_ref().unwrap();
-            let mut results = Vec::with_capacity(subscription_ids.len());
+        else {
+            let results = {
+                let subscription_ids = request.subscription_ids.as_ref().unwrap();
+                let mut results = Vec::with_capacity(subscription_ids.len());
 
-            let subscriptions = &mut session.subscriptions;
-            for subscription_id in subscription_ids {
-                let subscription = subscriptions.remove(*subscription_id);
-                if subscription.is_some() {
-                    results.push(Good);
-                } else {
-                    results.push(BadSubscriptionIdInvalid);
+                let subscriptions = &mut session.subscriptions;
+                for subscription_id in subscription_ids {
+                    let subscription = subscriptions.remove(*subscription_id);
+                    if subscription.is_some() {
+                        results.push(Good);
+                    } else {
+                        results.push(BadSubscriptionIdInvalid);
+                    }
                 }
-            }
-            Some(results)
-        };
-        let diagnostic_infos = None;
-        let response = DeleteSubscriptionsResponse {
-            response_header: ResponseHeader::new_good(&request.request_header),
-            results,
-            diagnostic_infos,
-        };
-        Ok(SupportedMessage::DeleteSubscriptionsResponse(response))
+                Some(results)
+            };
+            let diagnostic_infos = None;
+            let response = DeleteSubscriptionsResponse {
+                response_header: ResponseHeader::new_good(&request.request_header),
+                results,
+                diagnostic_infos,
+            };
+            Ok(SupportedMessage::DeleteSubscriptionsResponse(response))
+        }
     }
 
     /// Handles a SerPublishingModeRequest
     pub fn set_publishing_mode(&self, session: &mut Session, request: SetPublishingModeRequest) -> Result<SupportedMessage, StatusCode> {
         if request.subscription_ids.is_none() {
-            return Ok(self.service_fault(&request.request_header, BadNothingToDo));
+            Ok(self.service_fault(&request.request_header, BadNothingToDo))
         }
-        let results = {
-            let publishing_enabled = request.publishing_enabled;
-            let subscription_ids = request.subscription_ids.as_ref().unwrap();
-            let mut results = Vec::with_capacity(subscription_ids.len());
-            let subscriptions = &mut session.subscriptions;
-            for subscription_id in subscription_ids {
-                if let Some(subscription) = subscriptions.get_mut(*subscription_id) {
-                    subscription.publishing_enabled = publishing_enabled;
-                    results.push(Good);
-                } else {
-                    results.push(BadSubscriptionIdInvalid);
+        else {
+            let results = {
+                let publishing_enabled = request.publishing_enabled;
+                let subscription_ids = request.subscription_ids.as_ref().unwrap();
+                let mut results = Vec::with_capacity(subscription_ids.len());
+                let subscriptions = &mut session.subscriptions;
+                for subscription_id in subscription_ids {
+                    if let Some(subscription) = subscriptions.get_mut(*subscription_id) {
+                        subscription.publishing_enabled = publishing_enabled;
+                        results.push(Good);
+                    } else {
+                        results.push(BadSubscriptionIdInvalid);
+                    }
                 }
-            }
-            Some(results)
-        };
-        let diagnostic_infos = None;
-        let response = SetPublishingModeResponse {
-            response_header: ResponseHeader::new_good(&request.request_header),
-            results,
-            diagnostic_infos,
-        };
-        Ok(SupportedMessage::SetPublishingModeResponse(response))
+                Some(results)
+            };
+            let diagnostic_infos = None;
+            let response = SetPublishingModeResponse {
+                response_header: ResponseHeader::new_good(&request.request_header),
+                results,
+                diagnostic_infos,
+            };
+            Ok(SupportedMessage::SetPublishingModeResponse(response))
+        }
     }
 
     /// Handles a PublishRequest. This is asynchronous, so the response will be sent later on.

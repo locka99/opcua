@@ -18,69 +18,68 @@ impl MonitoredItemService {
     }
 
     pub fn create_monitored_items(&self, session: &mut Session, request: CreateMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
-        let results = if let Some(ref items_to_create) = request.items_to_create {
+        if let Some(ref items_to_create) = request.items_to_create {
             // Find subscription and add items to it
-            let subscription_id = request.subscription_id;
-            if let Some(subscription) = session.subscriptions.get_mut(subscription_id) {
-                Some(subscription.create_monitored_items(request.timestamps_to_return, items_to_create))
+            if let Some(subscription) = session.subscriptions.get_mut(request.subscription_id) {
+                let results = Some(subscription.create_monitored_items(request.timestamps_to_return, items_to_create));
+                let response = CreateMonitoredItemsResponse {
+                    response_header: ResponseHeader::new_good(&request.request_header),
+                    results,
+                    diagnostic_infos: None
+                };
+                Ok(SupportedMessage::CreateMonitoredItemsResponse(response))
             } else {
                 // No matching subscription
-                return Ok(self.service_fault(&request.request_header, BadSubscriptionIdInvalid));
+                Ok(self.service_fault(&request.request_header, BadSubscriptionIdInvalid))
             }
         } else {
             // No items to create so nothing to do
-            return Ok(self.service_fault(&request.request_header, BadNothingToDo));
-        };
-        let response = CreateMonitoredItemsResponse {
-            response_header: ResponseHeader::new_good(&request.request_header),
-            results,
-            diagnostic_infos: None
-        };
-        Ok(SupportedMessage::CreateMonitoredItemsResponse(response))
+            Ok(self.service_fault(&request.request_header, BadNothingToDo))
+        }
     }
 
     pub fn modify_monitored_items(&self, session: &mut Session, request: ModifyMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
-        let results = if let Some(ref items_to_modify) = request.items_to_modify {
+        if let Some(ref items_to_modify) = request.items_to_modify {
             // Find subscription and modify items in it
             let subscription_id = request.subscription_id;
             if let Some(subscription) = session.subscriptions.get_mut(subscription_id) {
-                Some(subscription.modify_monitored_items(request.timestamps_to_return, items_to_modify))
+                let results = Some(subscription.modify_monitored_items(request.timestamps_to_return, items_to_modify));
+                let response = ModifyMonitoredItemsResponse {
+                    response_header: ResponseHeader::new_good(&request.request_header),
+                    results,
+                    diagnostic_infos: None
+                };
+                Ok(SupportedMessage::ModifyMonitoredItemsResponse(response))
             } else {
                 // No matching subscription
-                return Ok(self.service_fault(&request.request_header, BadSubscriptionIdInvalid));
+                Ok(self.service_fault(&request.request_header, BadSubscriptionIdInvalid))
             }
         } else {
             // No items to modify so nothing to do
-            return Ok(self.service_fault(&request.request_header, BadNothingToDo));
-        };
-        let response = ModifyMonitoredItemsResponse {
-            response_header: ResponseHeader::new_good(&request.request_header),
-            results,
-            diagnostic_infos: None
-        };
-        Ok(SupportedMessage::ModifyMonitoredItemsResponse(response))
+            Ok(self.service_fault(&request.request_header, BadNothingToDo))
+        }
     }
 
     pub fn delete_monitored_items(&self, session: &mut Session, request: DeleteMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
-        let results = if let Some(ref items_to_delete) = request.monitored_item_ids {
+        if let Some(ref items_to_delete) = request.monitored_item_ids {
             // Find subscription and delete items from it
             let subscription_id = request.subscription_id;
             if let Some(subscription) = session.subscriptions.get_mut(subscription_id) {
-                Some(subscription.delete_monitored_items(items_to_delete))
+                let results = Some(subscription.delete_monitored_items(items_to_delete));
+                let diagnostic_infos = None;
+                let response = DeleteMonitoredItemsResponse {
+                    response_header: ResponseHeader::new_good(&request.request_header),
+                    results,
+                    diagnostic_infos
+                };
+                Ok(SupportedMessage::DeleteMonitoredItemsResponse(response))
             } else {
                 // No matching subscription
-                return Ok(self.service_fault(&request.request_header, BadSubscriptionIdInvalid));
+                Ok(self.service_fault(&request.request_header, BadSubscriptionIdInvalid))
             }
         } else {
             // No items to modify so nothing to do
-            return Ok(self.service_fault(&request.request_header, BadNothingToDo));
-        };
-        let diagnostic_infos = None;
-        let response = DeleteMonitoredItemsResponse {
-            response_header: ResponseHeader::new_good(&request.request_header),
-            results,
-            diagnostic_infos
-        };
-        Ok(SupportedMessage::DeleteMonitoredItemsResponse(response))
+            Ok(self.service_fault(&request.request_header, BadNothingToDo))
+        }
     }
 }
