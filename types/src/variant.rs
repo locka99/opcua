@@ -4,7 +4,8 @@ use std::convert::Into;
 use encoding::*;
 use constants;
 use basic_types::*;
-use string::*;
+use string::{UAString, XmlElement};
+use byte_string::ByteString;
 use guid::Guid;
 use date_time::DateTime;
 use data_value::DataValue;
@@ -18,7 +19,7 @@ const ARRAY_VALUES_BIT: u8 = 1 << 7;
 #[derive(Debug, Clone, PartialEq)]
 pub struct MultiDimensionArray {
     pub values: Vec<Variant>,
-    pub dimensions: Vec<Int32>
+    pub dimensions: Vec<Int32>,
 }
 
 impl Into<Variant> for Boolean {

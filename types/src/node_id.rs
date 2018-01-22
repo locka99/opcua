@@ -5,6 +5,7 @@ use std::io::{Read, Write};
 use encoding::*;
 use basic_types::*;
 use string::*;
+use byte_string::ByteString;
 use guid::Guid;
 use status_codes::StatusCode;
 use status_codes::StatusCode::BadNodeIdInvalid;

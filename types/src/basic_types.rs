@@ -3,6 +3,7 @@ use std::fmt;
 
 use encoding::*;
 use string::*;
+use byte_string::ByteString;
 use status_codes::StatusCode;
 use status_codes::StatusCode::BadDecodingError;
 use node_id::NodeId;

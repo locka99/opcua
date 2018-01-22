@@ -4,7 +4,8 @@ use std::io::{Read, Write};
 use profiles;
 use encoding::*;
 use basic_types::*;
-use string::{UAString, ByteString};
+use string::UAString;
+use byte_string::ByteString;
 use attribute::AttributeId;
 use data_types::*;
 use date_time::DateTime;
@@ -35,7 +36,7 @@ pub enum UserTokenType {
     // An X509v3 certificate token
     Certificate = 2,
     // Any WS-security defined token
-    IssuedToken = 3
+    IssuedToken = 3,
 }
 
 impl BinaryEncoder<UserTokenType> for UserTokenType {
@@ -87,7 +88,7 @@ pub enum ApplicationType {
     Server = 0,
     Client = 1,
     ClientAndServer = 2,
-    DiscoveryServer = 3
+    DiscoveryServer = 3,
 }
 
 impl BinaryEncoder<ApplicationType> for ApplicationType {
@@ -339,7 +340,7 @@ pub enum TimestampsToReturn {
     Source = 0,
     Server = 1,
     Both = 2,
-    Neither = 3
+    Neither = 3,
 }
 
 impl BinaryEncoder<TimestampsToReturn> for TimestampsToReturn {
@@ -378,7 +379,7 @@ pub enum NodeClass {
     VariableType = 16,
     ReferenceType = 32,
     DataType = 64,
-    View = 128
+    View = 128,
 }
 
 impl BinaryEncoder<NodeClass> for NodeClass {
@@ -516,7 +517,7 @@ impl BinaryEncoder<FilterOperator> for FilterOperator {
 pub enum BrowseDirection {
     Forward = 0,
     Inverse = 1,
-    Both = 2
+    Both = 2,
 }
 
 impl BinaryEncoder<BrowseDirection> for BrowseDirection {
@@ -547,7 +548,7 @@ impl BinaryEncoder<BrowseDirection> for BrowseDirection {
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum SecurityTokenRequestType {
     Issue = 0,
-    Renew = 1
+    Renew = 1,
 }
 
 impl BinaryEncoder<SecurityTokenRequestType> for SecurityTokenRequestType {
@@ -802,7 +803,7 @@ impl ApplicationDescription {
             application_type: ApplicationType::Server,
             gateway_server_uri: UAString::null(),
             discovery_profile_uri: UAString::null(),
-            discovery_urls: None
+            discovery_urls: None,
         }
     }
 }

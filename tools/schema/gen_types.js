@@ -148,6 +148,8 @@ use basic_types::*;
 #[allow(unused_imports)]
 use string::*;
 #[allow(unused_imports)]
+use byte_string::ByteString;
+#[allow(unused_imports)]
 use data_types::*;
 #[allow(unused_imports)]
 use data_value::*;
