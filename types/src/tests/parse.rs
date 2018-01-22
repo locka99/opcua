@@ -3,7 +3,7 @@ use std::str::FromStr;
 use ::*;
 
 #[test]
-fn parse_node_id() {
+fn parse_invalid_node_id() {
     let node_id = NodeId::from_str("ns=99 ;i=35");
     assert_eq!(node_id.is_err(), true);
     let node_id = NodeId::from_str("ns=99;i=x");

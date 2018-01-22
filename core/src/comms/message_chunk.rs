@@ -16,7 +16,7 @@ use comms::message_chunk_info::ChunkInfo;
 pub enum MessageChunkType {
     Message,
     OpenSecureChannel,
-    CloseSecureChannel
+    CloseSecureChannel,
 }
 
 impl MessageChunkType {
@@ -57,32 +57,32 @@ impl BinaryEncoder<MessageChunkHeader> for MessageChunkHeader {
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         if !self.is_valid {
             error!("Cannot write an invalid type");
-            return Ok(0);
+            Ok(0)
+        } else {
+            let message_type = match self.message_type {
+                MessageChunkType::Message => { CHUNK_MESSAGE }
+                MessageChunkType::OpenSecureChannel => {
+                    OPEN_SECURE_CHANNEL_MESSAGE
+                }
+                MessageChunkType::CloseSecureChannel => {
+                    CLOSE_SECURE_CHANNEL_MESSAGE
+                }
+            };
+
+            let is_final: u8 = match self.is_final {
+                MessageIsFinalType::Intermediate => { CHUNK_INTERMEDIATE }
+                MessageIsFinalType::Final => { CHUNK_FINAL }
+                MessageIsFinalType::FinalError => { CHUNK_FINAL_ERROR }
+            };
+
+            let mut size = 0;
+            size += process_encode_io_result(stream.write(&message_type))?;
+            size += write_u8(stream, is_final)?;
+            size += write_u32(stream, self.message_size)?;
+            size += write_u32(stream, self.secure_channel_id)?;
+            assert_eq!(size, self.byte_len());
+            Ok(size)
         }
-
-        let message_type = match self.message_type {
-            MessageChunkType::Message => { CHUNK_MESSAGE }
-            MessageChunkType::OpenSecureChannel => {
-                OPEN_SECURE_CHANNEL_MESSAGE
-            }
-            MessageChunkType::CloseSecureChannel => {
-                CLOSE_SECURE_CHANNEL_MESSAGE
-            }
-        };
-
-        let is_final: u8 = match self.is_final {
-            MessageIsFinalType::Intermediate => { CHUNK_INTERMEDIATE }
-            MessageIsFinalType::Final => { CHUNK_FINAL }
-            MessageIsFinalType::FinalError => { CHUNK_FINAL_ERROR }
-        };
-
-        let mut size = 0;
-        size += process_encode_io_result(stream.write(&message_type))?;
-        size += write_u8(stream, is_final)?;
-        size += write_u32(stream, self.message_size)?;
-        size += write_u32(stream, self.secure_channel_id)?;
-        assert_eq!(size, self.byte_len());
-        Ok(size)
     }
 
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {

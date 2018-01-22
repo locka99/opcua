@@ -490,7 +490,7 @@ impl SecurityPolicy {
             Ok(decrypted_size)
         } else {
             error!("Asymmetric decryption failed");
-            return Err(BadSecurityChecksFailed);
+            Err(BadSecurityChecksFailed)
         }
     }
 

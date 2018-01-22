@@ -54,22 +54,22 @@ impl BinaryEncoder<UAString> for UAString {
         let buf_len = Int32::decode(stream)?;
         // Null string?
         if buf_len == -1 {
-            return Ok(UAString::null());
+            Ok(UAString::null())
         } else if buf_len < -1 {
             error!("String buf length is a negative number {}", buf_len);
-            return Err(BadDecodingError);
+            Err(BadDecodingError)
         } else if buf_len > constants::MAX_STRING_LENGTH as i32 {
             error!("String buf length {} is larger than max string length", buf_len);
-            return Err(BadEncodingLimitsExceeded);
+            Err(BadEncodingLimitsExceeded)
+        } else {
+            // Create the actual UTF8 string
+            let mut string_buf: Vec<u8> = Vec::with_capacity(buf_len as usize);
+            string_buf.resize(buf_len as usize, 0u8);
+            process_decode_io_result(stream.read_exact(&mut string_buf))?;
+            Ok(UAString {
+                value: Some(String::from_utf8(string_buf).unwrap())
+            })
         }
-
-        // Create the actual UTF8 string
-        let mut string_buf: Vec<u8> = Vec::with_capacity(buf_len as usize);
-        string_buf.resize(buf_len as usize, 0u8);
-        process_decode_io_result(stream.read_exact(&mut string_buf))?;
-        Ok(UAString {
-            value: Some(String::from_utf8(string_buf).unwrap())
-        })
     }
 }
 
