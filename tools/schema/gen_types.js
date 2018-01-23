@@ -11,21 +11,49 @@ var types_xml = `${settings.schema_dir}/Opc.Ua.Types.bsd.xml`;
 
 /// Any handwritten types are stripped from the output
 
-var ignored_types =
-    [
-        "ExtensionObject", "DataValue", "LocalizedText", "QualifiedName", "DiagnosticInfo", "Variant",
-        "ExpandedNodeId", "NodeId", "ByteStringNodeId", "GuidNodeId", "StringNodeId", "NumericNodeId",
-        "FourByteNodeId", "TwoByteNodeId", "XmlElement", "Union", "RequestHeader", "ResponseHeader", "ExtensionObject",
-        "Node", "InstanceNode", "TypeNode", "ObjectNode", "ObjectTypeNode", "VariableNode", "VariableTypeNode", "ReferenceTypeNode",
-        "MethodNode", "ViewNode", "DataTypeNode", "ReferenceNode",
-        // Excluded because they use unimplemented enums, or are used by unimplemented services
-        "ModificationInfo", "HistoryModifiedData", "UpdateDataDetails", "UpdateEventDetails", "UpdateStructureDataDetails", "RedundantServerDataType",
-        "ServerStatusDataType", "AxisInformation", "RegisterServer2Request", "RegisterServer2Response", "HistoryData", "HistoryEvent", "HistoryReadDetails",
-        "HistoryEventFieldList", "HistoryReadRequest", "HistoryReadResponse", "HistoryReadResult", "HistoryReadValueId", "HistoryUpdateDetails",
-        "HistoryUpdateRequest", "HistoryUpdateResponse", "HistoryUpdateResult", "SemanticChangeStructureDataType", "SemanticChangeStructureDataType",
-        "ReadAtTimeDetails", "ReadProcessedDetails"
+var ignored_types = [
+    "ExtensionObject", "DataValue", "LocalizedText", "QualifiedName", "DiagnosticInfo", "Variant",
+    "ExpandedNodeId", "NodeId", "ByteStringNodeId", "GuidNodeId", "StringNodeId", "NumericNodeId",
+    "FourByteNodeId", "TwoByteNodeId", "XmlElement", "Union", "RequestHeader", "ResponseHeader",
+    "Node", "InstanceNode", "TypeNode", "ObjectNode", "ObjectTypeNode", "VariableNode", "VariableTypeNode", "ReferenceTypeNode",
+    "MethodNode", "ViewNode", "DataTypeNode", "ReferenceNode",
+    // Excluded because they use unimplemented enums, or are used by unimplemented services
+    "ModificationInfo", "HistoryModifiedData", "UpdateDataDetails", "UpdateEventDetails", "UpdateStructureDataDetails", "RedundantServerDataType",
+    "ServerStatusDataType", "AxisInformation", "RegisterServer2Request", "RegisterServer2Response", "HistoryData", "HistoryEvent", "HistoryReadDetails",
+    "HistoryEventFieldList", "HistoryReadRequest", "HistoryReadResponse", "HistoryReadResult", "HistoryReadValueId", "HistoryUpdateDetails",
+    "HistoryUpdateRequest", "HistoryUpdateResponse", "HistoryUpdateResult", "SemanticChangeStructureDataType", "SemanticChangeStructureDataType",
+    "ReadAtTimeDetails", "ReadProcessedDetails"
+];
 
-    ];
+var basic_types_import_map = {
+    // "basic_types": ["Boolean", "Int32", "UInt32", "Double", "Float", "Int16", "UInt16", "Byte", "SByte"],
+    "string": ["UAString", "XmlElement"],
+    "byte_string": ["ByteString"],
+    "variant": ["Variant"],
+    "basic_types": ["ExtensionObject", "LocalizedText", "QualifiedName", "DiagnosticInfo"],
+    "data_types": ["MessageSecurityMode", "Duration", "UtcTime", "MonitoringMode"],
+    "service_types::impls": ["RequestHeader", "ResponseHeader"],
+    "service_types::enums": ["TimestampsToReturn", "FilterOperator", "BrowseDirection", "NodeClass", "SecurityTokenRequestType", "ApplicationType", "UserTokenType", "DataChangeTrigger"],
+    "node_id": ["NodeId", "ExpandedNodeId"],
+    "data_value": ["DataValue"],
+    "date_time": ["DateTime"],
+    "status_codes": ["StatusCode"]
+};
+// Contains a flattened reverse lookup of the import map
+var basic_types_reverse_import_map = {}
+_.each(basic_types_import_map, function (types, module) {
+    _.each(types, function (type) {
+        basic_types_reverse_import_map[type] = module;
+    })
+})
+
+function massageTypeName(name) {
+    // Replace String with UAString
+    if (name === "String") {
+        return "UAString";
+    }
+    return name;
+}
 
 function convertFieldName(name) {
     // Convert field name to snake case
@@ -52,12 +80,7 @@ fs.readFile(types_xml, function (err, data) {
                     var field_name = convertFieldName(field["$"]["Name"]);
 
                     // Strip namespace off the type
-                    var type = field["$"]["TypeName"].split(":")[1];
-
-                    // Replace String with UAString
-                    if (type === "String") {
-                        type = "UAString";
-                    }
+                    var type = massageTypeName(field["$"]["TypeName"].split(":")[1]);
 
                     // Look for arrays
                     if (_.has(field["$"], "LengthField")) {
@@ -141,51 +164,62 @@ pub use self::impls::*;
     settings.write_to_file(file_path, contents);
 }
 
-function generate_type_imports(structured_types, fields_to_add, fields_to_hide) {
+function generate_type_imports(structured_types, fields_to_add, fields_to_hide, has_message_info) {
     var imports = `use encoding::*;
 #[allow(unused_imports)]
 use basic_types::*;
-#[allow(unused_imports)]
-use string::*;
-#[allow(unused_imports)]
-use byte_string::ByteString;
-#[allow(unused_imports)]
-use data_types::*;
-#[allow(unused_imports)]
-use data_value::*;
-#[allow(unused_imports)]
-use date_time::*;
-#[allow(unused_imports)]
-use node_id::*;
-#[allow(unused_imports)]
-use service_types::enums::*;
-#[allow(unused_imports)]
-use variant::*;
-#[allow(unused_imports)]
-use service_types::impls::*;
-#[allow(unused_imports)]
-use node_ids::ObjectId;
-#[allow(unused_imports)]
-use status_codes::StatusCode;
 `;
 
-    var types = {};
+    if (has_message_info) {
+        imports += `use service_types::impls::MessageInfo;
+use node_ids::ObjectId;
+`;
+    }
 
-    // Make a set of the types that need to be imported. Generated types will be explicitly imported, other types
-    // will be
+    // Basic types are any which are hand written
+    var basic_types_to_import = {}
+
+    // Service types are other generated types
+    var service_types_used = {};
+
+    // Make a set of the types that need to be imported. Referenced types are either handwritten or
+    // other generated files so according to which they are, we build up a couple of tables.
     _.each(fields_to_add, function (field) {
         if (!_.includes(fields_to_hide, field.name)) {
             var type = _.find(structured_types, {name: field.contained_type});
             if (type) {
-                types[type.name] = type.name;
+                // Machine generated type
+                service_types_used[type.name] = type.name;
+            }
+            else if (_.has(basic_types_reverse_import_map, field.contained_type)) {
+                // Handwritten type - use module lookup to figure where its implemented
+                var type = massageTypeName(field.contained_type);
+                var module = basic_types_reverse_import_map[field.contained_type];
+                if (!_.has(basic_types_to_import, module)) {
+                    basic_types_to_import[module] = {};
+                }
+                basic_types_to_import[module][type] = type;
             }
         }
     });
 
-    _.each(types, function (key, value) {
-        imports += `use service_types::${key};
+    // Hand written imports
+    var basic_type_imports = "";
+    _.each(basic_types_to_import, function (types, module) {
+        _.each(types, function (type) {
+            basic_type_imports += `use ${module}::${type};
+`
+        });
+    });
+    imports += basic_type_imports;
+
+    // Service type imports
+    var service_type_imports = "";
+    _.each(service_types_used, function (value, key) {
+        service_type_imports += `use service_types::${key};
 `;
     });
+    imports += service_type_imports;
 
     return imports;
 }
@@ -193,6 +227,8 @@ use status_codes::StatusCode;
 function generate_structured_type_file(structured_types, structured_type) {
     var file_name = _.snakeCase(structured_type.name) + ".rs";
     var file_path = `${settings.rs_types_dir}/${file_name}`;
+
+    var has_message_info = _.has(structured_type, "base_type") && structured_type.base_type === "ua:ExtensionObject";
 
     console.log("Creating structured type file - " + file_path);
 
@@ -202,7 +238,7 @@ function generate_structured_type_file(structured_types, structured_type) {
 use std::io::{Read, Write};
 
 `;
-    contents += generate_type_imports(structured_types, structured_type.fields_to_add, structured_type.fields_to_hide);
+    contents += generate_type_imports(structured_types, structured_type.fields_to_add, structured_type.fields_to_hide, has_message_info);
     contents += "\n";
 
     if (_.has(structured_type, "documentation")) {
@@ -220,7 +256,7 @@ pub struct ${structured_type.name} {
 
 `;
 
-    if (_.has(structured_type, "base_type") && structured_type.base_type === "ua:ExtensionObject") {
+    if (has_message_info) {
         contents += `impl MessageInfo for ${structured_type.name} {
     fn object_id(&self) -> ObjectId {
         ObjectId::${structured_type.name}_Encoding_DefaultBinary
