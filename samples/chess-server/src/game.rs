@@ -315,8 +315,8 @@ impl Game {
         result.push(' ');
 
         // Disabling en passant.
-        if self.en_passant.is_some() {
-            let (rank, file) = *self.en_passant.as_ref().unwrap();
+        if let Some(ref en_passant) = self.en_passant {
+            let (rank, file) = *en_passant;
             result.push(file.as_char());
             result.push(rank.as_char());
         } else {

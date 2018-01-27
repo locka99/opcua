@@ -173,8 +173,8 @@ impl ServerState {
     }
 
     pub fn server_certificate_as_byte_string(&self) -> ByteString {
-        if self.server_certificate.is_some() {
-            self.server_certificate.as_ref().unwrap().as_byte_string()
+        if let Some(ref server_certificate) = self.server_certificate {
+            server_certificate.as_byte_string()
         } else {
             ByteString::null()
         }

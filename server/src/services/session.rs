@@ -70,8 +70,7 @@ impl SessionService {
             let max_request_message_size = constants::MAX_REQUEST_MESSAGE_SIZE;
 
             // Calculate a signature (assuming there is a pkey)
-            let server_signature = if server_state.server_pkey.is_some() {
-                let pkey = server_state.server_pkey.as_ref().unwrap();
+            let server_signature = if let Some(ref pkey) = server_state.server_pkey {
                 crypto::create_signature_data(pkey, security_policy, &request.client_certificate, &request.client_nonce)?
             } else {
                 SignatureData::null()

@@ -58,8 +58,8 @@ fn connect(session: &mut Session) -> Result<(), StatusCode> {
     // Print the values out
     println!("Values from server:");
     for data_value in data_values.iter() {
-        if data_value.value.is_some() {
-            println!("Value = {:?}", data_value.value.as_ref().unwrap());
+        if let Some(ref value) = data_value.value {
+            println!("Value = {:?}", value);
         } else {
             println!("Value not found, error: {}", data_value.status.as_ref().unwrap().description());
         }

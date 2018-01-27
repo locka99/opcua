@@ -137,9 +137,8 @@ impl BinaryEncoder<NodeClass> for NodeClass {
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         // All enums are Int32
         let value = read_i32(stream)?;
-        let result = NodeClass::from_i32(value);
-        if result.is_some() {
-            Ok(result.unwrap())
+        if let Some(result) = NodeClass::from_i32(value) {
+            Ok(result)
         } else {
             error!("Don't know what node class {} is", value);
             Err(BadNodeClassInvalid)

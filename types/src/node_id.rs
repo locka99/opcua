@@ -209,11 +209,9 @@ impl FromStr for NodeId {
         }
         let captures = captures.unwrap();
 
-        let ns = captures.name("ns");
-
         // Check namespace (optional)
-        let namespace = if ns.is_some() {
-            let parse_result = ns.unwrap().as_str().parse::<UInt16>();
+        let namespace = if let Some(ns) = captures.name("ns") {
+            let parse_result = ns.as_str().parse::<UInt16>();
             if parse_result.is_err() {
                 return Err(BadNodeIdInvalid);
             }

@@ -336,8 +336,8 @@ impl ServerConfig {
                 false
             }
         });
-        if endpoint.is_some() {
-            Some(endpoint.unwrap().1)
+        if let Some(endpoint) = endpoint {
+            Some(endpoint.1)
         } else {
             None
         }

@@ -78,7 +78,7 @@ impl TcpTransport {
 
         debug!("Connecting to {:?}", url);
         let host = url.host_str().unwrap();
-        let port = if url.port().is_some() { url.port().unwrap() } else { 4840 };
+        let port = if let Some(port) = url.port() { port } else { 4840 };
 
         let stream = TcpStream::connect((host, port));
         if stream.is_err() {
@@ -242,10 +242,9 @@ impl TcpTransport {
             for message in messages {
                 match message {
                     Message::MessageChunk(chunk) => {
-                        let result = self.process_chunk(chunk)?;
-                        if result.is_some() {
+                        if let Some(result) = self.process_chunk(chunk)? {
                             // TODO check the response request_handle to see if it matches our request
-                            return Ok(result.unwrap());
+                            return Ok(result);
                         }
                     }
                     Message::Error(error_message) => {

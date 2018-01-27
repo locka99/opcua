@@ -85,9 +85,8 @@ macro_rules! node_impl {
 macro_rules! find_attribute_value_mandatory {
     ( $sel:expr, $attribute_id: ident, $variant_type: ident ) => {
         {
-            let result = find_attribute_value_optional!($sel, $attribute_id, $variant_type);
-            if result.is_some() {
-                result.unwrap()
+            if let Some(result) = find_attribute_value_optional!($sel, $attribute_id, $variant_type) {
+                result
             }
             else {
                 panic!("Mandatory attribute {:?} is missing", AttributeId::$attribute_id);

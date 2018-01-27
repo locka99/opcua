@@ -302,9 +302,8 @@ impl AddressSpace {
 
             for node_id in &matching_nodes {
                 // Iterate current set of nodes and put the results into next
-                let result = self.follow_relative_path(&node_id, relative_path_element);
-                if result.is_some() {
-                    next_matching_nodes.append(&mut result.unwrap());
+                if let Some(mut result) = self.follow_relative_path(&node_id, relative_path_element) {
+                    next_matching_nodes.append(&mut result);
                 }
             }
 
@@ -505,9 +504,7 @@ impl AddressSpace {
 
     /// Find and filter references that refer to the specified node.
     fn find_references(&self, reference_map: &HashMap<NodeId, Vec<Reference>>, node_id: &NodeId, reference_filter: Option<(ReferenceTypeId, bool)>) -> Option<Vec<Reference>> {
-        let node_references = reference_map.get(node_id);
-        if node_references.is_some() {
-            let node_references = node_references.as_ref().unwrap();
+        if let Some(ref node_references) = reference_map.get(node_id) {
             let result = self.filter_references_by_type(node_references, reference_filter);
             if result.is_empty() {
                 None
@@ -536,28 +533,24 @@ impl AddressSpace {
         let inverse_ref_idx: usize;
         match browse_direction {
             BrowseDirection::Forward => {
-                let forward_references = self.find_references_from(node_id, reference_filter);
-                if forward_references.is_some() {
-                    references.append(&mut forward_references.unwrap());
+                if let Some(mut forward_references) = self.find_references_from(node_id, reference_filter) {
+                    references.append(&mut forward_references);
                 }
                 inverse_ref_idx = references.len();
             }
             BrowseDirection::Inverse => {
                 inverse_ref_idx = 0;
-                let inverse_references = self.find_references_to(node_id, reference_filter);
-                if inverse_references.is_some() {
-                    references.append(&mut inverse_references.unwrap());
+                if let Some(mut inverse_references) = self.find_references_to(node_id, reference_filter) {
+                    references.append(&mut inverse_references);
                 }
             }
             BrowseDirection::Both => {
-                let forward_references = self.find_references_from(node_id, reference_filter);
-                if forward_references.is_some() {
-                    references.append(&mut forward_references.unwrap());
+                if let Some(mut forward_references) = self.find_references_from(node_id, reference_filter) {
+                    references.append(&mut forward_references);
                 }
                 inverse_ref_idx = references.len();
-                let inverse_references = self.find_references_to(node_id, reference_filter);
-                if inverse_references.is_some() {
-                    references.append(&mut inverse_references.unwrap());
+                if let Some(mut inverse_references) = self.find_references_to(node_id, reference_filter) {
+                    references.append(&mut inverse_references);
                 }
             }
         }

@@ -448,9 +448,8 @@ impl SecurityPolicy {
             error!("Signature mismatch");
 
             // For debugging / unit testing purposes we might have a their_key to see the source of the error
-            if their_key.is_some() {
+            if let Some(their_key) = their_key {
                 // Calculate the signature using their key, see what we were expecting versus theirs
-                let their_key = their_key.unwrap();
                 let mut their_signature = vec![0u8; their_key.size()];
                 self.asymmetric_sign(&their_key, data, &mut their_signature[..])?;
                 trace!("Using their_key, signature should be {:?}", &their_signature);

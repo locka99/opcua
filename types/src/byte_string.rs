@@ -115,8 +115,8 @@ impl ByteString {
     /// Encodes the bytestring as a Base64 encoded string
     pub fn as_base64(&self) -> String {
         // Base64 encodes the byte string so it can be represented as a string
-        if self.value.is_some() {
-            base64::encode(self.value.as_ref().unwrap())
+        if let Some(ref value) = self.value {
+            base64::encode(value)
         } else {
             base64::encode("")
         }

@@ -20,9 +20,7 @@ const NUM_ATTRIBUTES: usize = 22;
 macro_rules! find_attribute_mandatory {
     ( $sel:expr, $attr: ident ) => {
         let attribute_id = AttributeId::$attr;
-        let attribute = $sel.find_attribute(&attribute_id);
-        if attribute.is_some() {
-            let attribute = attribute.unwrap();
+        if let Some(attribute) = $sel.find_attribute(&attribute_id) {
             if let Attribute::$attr(value) = attribute.clone() {
                 return value;
             }
