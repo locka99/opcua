@@ -10,7 +10,21 @@ pub struct MonitoredItem {
     /// Attribute id to monitor
     pub attribute_id: AttributeId,
     /// Numeric range for array monitoring
-    pub index_range: NumericRange,
+    pub index_range: Option<NumericRange>,
+    /// Last value of the item
+    pub value: DataValue,
+}
+
+impl MonitoredItem {
+    pub fn new() -> MonitoredItem {
+        MonitoredItem {
+            id: 0,
+            node_id: NodeId::null(),
+            attribute_id: AttributeId::Value,
+            index_range: None,
+            value: DataValue::null(),
+        }
+    }
 }
 
 pub struct Subscription {
@@ -35,7 +49,7 @@ impl Subscription {
             max_notifications_per_publish: 0,
             publishing_enabled: true,
             priority: 0,
-            monitored_items: Vec::with_capacity(32)
+            monitored_items: Vec::with_capacity(32),
         }
     }
 
