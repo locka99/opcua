@@ -1,6 +1,10 @@
 use std::result::Result;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::str::FromStr;
+
+use time;
+use timer;
 
 use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
@@ -87,6 +91,23 @@ impl SessionState {
     }
 }
 
+
+struct SubscriptionState {
+    /// Subscriptions
+    pub subscriptions: HashMap<UInt32, Subscription>,
+    /// Subscription timer
+    pub subscription_timer: Option<(timer::Timer, timer::Guard)>,
+}
+
+impl SubscriptionState {
+    pub fn new() -> SubscriptionState {
+        SubscriptionState {
+            subscriptions: HashMap::new(),
+            subscription_timer: None,
+        }
+    }
+}
+
 /// A session of the client. The session is associated with an endpoint and
 /// maintains a state when it is active.
 pub struct Session {
@@ -96,6 +117,8 @@ pub struct Session {
     session_info: SessionInfo,
     /// Runtime state of the session, reset if disconnected
     session_state: Arc<Mutex<SessionState>>,
+    /// Subscriptions state
+    subscription_state: SubscriptionState,
     /// Transport layer
     transport: TcpTransport,
 }
@@ -113,11 +136,13 @@ impl Session {
     pub fn new(application_description: ApplicationDescription, certificate_store: Arc<Mutex<CertificateStore>>, session_info: SessionInfo) -> Session {
         let session_state = Arc::new(Mutex::new(SessionState::new()));
         let transport = TcpTransport::new(certificate_store, session_state.clone());
+        let subscription_state = SubscriptionState::new();
         Session {
             application_description,
-            session_state,
-            transport,
             session_info,
+            session_state,
+            subscription_state,
+            transport,
         }
     }
 
@@ -419,7 +444,7 @@ impl Session {
     /// supplied subscription struct. The initial values imply the requested interval, lifetime 
     /// and keepalive and the value returned in the response are the revised values. The
     /// subscription id is also returned in the response.
-    pub fn create_subscription(&mut self, mut subscription: Subscription) -> Result<Subscription, StatusCode> {
+    pub fn create_subscription(&mut self, subscription: Subscription) -> Result<UInt32, StatusCode> {
         if subscription.is_valid() {
             error!("Subscription id must be 0, or the subscription is considered already created");
             Err(BadInvalidArgument)
@@ -436,12 +461,17 @@ impl Session {
             let response = self.send_request(SupportedMessage::CreateSubscriptionRequest(request))?;
             if let SupportedMessage::CreateSubscriptionResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
-                subscription.subscription_id = response.subscription_id;
+
+                let subscription_id = response.subscription_id;
+                let mut subscription = subscription;
+                subscription.subscription_id = subscription_id;
                 // Update the subscription with the actual revised values
                 subscription.publishing_interval = response.revised_publishing_interval;
                 subscription.lifetime_count = response.revised_lifetime_count;
                 subscription.max_keep_alive_count = response.revised_max_keep_alive_count;
-                Ok(subscription)
+                self.subscription_state.subscriptions.insert(subscription_id, subscription);
+
+                Ok(subscription_id)
             } else {
                 Err(Self::process_unexpected_response(response))
             }
@@ -449,26 +479,31 @@ impl Session {
     }
 
     // modify subscription
-    pub fn modify_subscription(&mut self, subscription: &mut Subscription) -> Result<(), StatusCode> {
-        if !subscription.is_valid() {
+    pub fn modify_subscription(&mut self, subscription_id: UInt32, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte) -> Result<(), StatusCode> {
+        if subscription_id == 0 {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
+            Err(BadInvalidArgument)
+        } else if !self.subscription_state.subscriptions.contains_key(&subscription_id) {
+            error!("Subscription id does not exist");
             Err(BadInvalidArgument)
         } else {
             let request = ModifySubscriptionRequest {
                 request_header: self.make_request_header(),
-                subscription_id: subscription.subscription_id,
-                requested_publishing_interval: subscription.publishing_interval,
-                requested_lifetime_count: subscription.lifetime_count,
-                requested_max_keep_alive_count: subscription.max_keep_alive_count,
-                max_notifications_per_publish: subscription.max_notifications_per_publish,
-                priority: subscription.priority,
+                subscription_id,
+                requested_publishing_interval: publishing_interval,
+                requested_lifetime_count: lifetime_count,
+                requested_max_keep_alive_count: max_keep_alive_count,
+                max_notifications_per_publish,
+                priority,
             };
             let response = self.send_request(SupportedMessage::ModifySubscriptionRequest(request))?;
             if let SupportedMessage::ModifySubscriptionResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
-                subscription.publishing_interval = response.revised_publishing_interval;
-                subscription.lifetime_count = response.revised_lifetime_count;
-                subscription.max_keep_alive_count = response.revised_max_keep_alive_count;
+                if let Some(ref mut subscription) = self.subscription_state.subscriptions.get_mut(&subscription_id) {
+                    subscription.publishing_interval = response.revised_publishing_interval;
+                    subscription.lifetime_count = response.revised_lifetime_count;
+                    subscription.max_keep_alive_count = response.revised_max_keep_alive_count;
+                }
                 Ok(())
             } else {
                 Err(Self::process_unexpected_response(response))
@@ -477,20 +512,22 @@ impl Session {
     }
 
     /// Removes a subscription using its subscription id
-    pub fn delete_subscription(&mut self, subscription: &mut Subscription) -> Result<DeleteSubscriptionsResponse, StatusCode> {
-        if !subscription.is_valid() {
+    pub fn delete_subscription(&mut self, subscription_id: UInt32) -> Result<DeleteSubscriptionsResponse, StatusCode> {
+        if subscription_id == 0 {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
+            Err(BadInvalidArgument)
+        } else if !self.subscription_state.subscriptions.contains_key(&subscription_id) {
+            error!("Subscription id does not exist");
             Err(BadInvalidArgument)
         } else {
             let request = DeleteSubscriptionsRequest {
                 request_header: self.make_request_header(),
-                subscription_ids: Some(vec![subscription.subscription_id]),
+                subscription_ids: Some(vec![subscription_id]),
             };
             let response = self.send_request(SupportedMessage::DeleteSubscriptionsRequest(request))?;
             if let SupportedMessage::DeleteSubscriptionsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
-                subscription.subscription_id = 0;
-                subscription.monitored_items.clear();
+                self.subscription_state.subscriptions.remove(&subscription_id);
                 Ok(response)
             } else {
                 Err(Self::process_unexpected_response(response))
@@ -566,6 +603,7 @@ impl Session {
         }
     }
 
+    // Sends a publish request containing any acknowledgements
     pub fn publish(&mut self, subscription_acknowledgements: Vec<SubscriptionAcknowledgement>) -> Result<PublishResponse, StatusCode> {
         let request = PublishRequest {
             request_header: self.make_request_header(),
@@ -671,22 +709,23 @@ impl Session {
 
     fn make_publish_timer(&mut self) {
         // Publish timer will continuously issue publish requests to the server
+        let timer = timer::Timer::new();
+        let timer_guard = timer.schedule_repeating(time::Duration::milliseconds(50i64), move || {
+            // On timer, send a publish request with optional
+            //   Acknowledgements
 
-        // On timer, send a publish request with optional
-        //   Acknowledgements
+            // Receive response
 
-        // Receive response
+            // Terminate timer if
+            //   BadSessionIdInvalid
+            //   BadNoSubscription
+            //   BadTooManyPublishRequests
 
-        // Terminate timer if
-        //   BadSessionIdInvalid
-        //   BadNoSubscription
-        //   BadTooManyPublishRequests
+            // Update subscriptions based on response
 
-        // Update subscriptions based on response
-
-        // Queue acknowledgements for next request
-
-        // Then reset timer for next call,
+            // Queue acknowledgements for next request
+        });
+        self.subscription_state.subscription_timer = Some((timer, timer_guard));
     }
 
     /// Process the service result, i.e. where the request "succeeded" but the response
@@ -720,11 +759,13 @@ impl Session {
     }
 
     fn issue_or_renew_secure_channel(&mut self, request_type: SecurityTokenRequestType) -> Result<(), StatusCode> {
+        const REQUESTED_LIFETIME: UInt32 = 60000; // TODO
+
         let client_nonce = ByteString::nonce();
         self.transport.secure_channel.set_local_nonce(client_nonce.as_ref());
 
         let security_mode = self.transport.secure_channel.security_mode();
-        let requested_lifetime = 60000; // TODO
+        let requested_lifetime = REQUESTED_LIFETIME;
         let request = OpenSecureChannelRequest {
             request_header: self.make_request_header(),
             client_protocol_version: 0,

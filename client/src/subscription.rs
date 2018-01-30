@@ -56,4 +56,10 @@ impl Subscription {
     pub fn is_valid(&self) -> bool {
         self.subscription_id != 0
     }
+
+    pub fn create_monitored_items() {}
+
+    pub fn modify_monitored_items() {}
+
+    pub fn delete_monitored_items() {}
 }

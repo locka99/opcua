@@ -9,6 +9,8 @@ extern crate chrono;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde;
+extern crate timer;
+extern crate time;
 
 extern crate opcua_types;
 extern crate opcua_core;
