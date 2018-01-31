@@ -16,7 +16,7 @@ use opcua_core::crypto::{SecurityPolicy, CertificateStore, X509, PKey};
 
 use client;
 use comms::tcp_transport::TcpTransport;
-use subscription::Subscription;
+use subscription::{Subscription, MonitoredItem};
 
 /// Information about the server endpoint, security policy, security mode and user identity that the session will
 /// will use to establish a connection.
@@ -444,37 +444,36 @@ impl Session {
     /// supplied subscription struct. The initial values imply the requested interval, lifetime 
     /// and keepalive and the value returned in the response are the revised values. The
     /// subscription id is also returned in the response.
-    pub fn create_subscription(&mut self, subscription: Subscription) -> Result<UInt32, StatusCode> {
-        if subscription.is_valid() {
-            error!("Subscription id must be 0, or the subscription is considered already created");
-            Err(BadInvalidArgument)
-        } else {
-            let request = CreateSubscriptionRequest {
-                request_header: self.make_request_header(),
-                requested_publishing_interval: subscription.publishing_interval,
-                requested_lifetime_count: subscription.lifetime_count,
-                requested_max_keep_alive_count: subscription.max_keep_alive_count,
-                max_notifications_per_publish: subscription.max_notifications_per_publish,
-                publishing_enabled: subscription.publishing_enabled,
-                priority: subscription.priority,
+    pub fn create_subscription(&mut self, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte, publishing_enabled: Boolean) -> Result<UInt32, StatusCode> {
+        let request = CreateSubscriptionRequest {
+            request_header: self.make_request_header(),
+            requested_publishing_interval: publishing_interval,
+            requested_lifetime_count: lifetime_count,
+            requested_max_keep_alive_count: max_keep_alive_count,
+            max_notifications_per_publish,
+            publishing_enabled,
+            priority,
+        };
+        let response = self.send_request(SupportedMessage::CreateSubscriptionRequest(request))?;
+        if let SupportedMessage::CreateSubscriptionResponse(response) = response {
+            Self::process_service_result(&response.response_header)?;
+
+            let subscription_id = response.subscription_id;
+            let subscription = Subscription {
+                subscription_id,
+                publishing_interval: response.revised_publishing_interval,
+                lifetime_count: response.revised_lifetime_count,
+                max_keep_alive_count: response.revised_max_keep_alive_count,
+                max_notifications_per_publish,
+                publishing_enabled,
+                priority,
+                monitored_items: HashMap::new(),
             };
-            let response = self.send_request(SupportedMessage::CreateSubscriptionRequest(request))?;
-            if let SupportedMessage::CreateSubscriptionResponse(response) = response {
-                Self::process_service_result(&response.response_header)?;
+            self.subscription_state.subscriptions.insert(subscription_id, subscription);
 
-                let subscription_id = response.subscription_id;
-                let mut subscription = subscription;
-                subscription.subscription_id = subscription_id;
-                // Update the subscription with the actual revised values
-                subscription.publishing_interval = response.revised_publishing_interval;
-                subscription.lifetime_count = response.revised_lifetime_count;
-                subscription.max_keep_alive_count = response.revised_max_keep_alive_count;
-                self.subscription_state.subscriptions.insert(subscription_id, subscription);
-
-                Ok(subscription_id)
-            } else {
-                Err(Self::process_unexpected_response(response))
-            }
+            Ok(subscription_id)
+        } else {
+            Err(Self::process_unexpected_response(response))
         }
     }
 
@@ -536,21 +535,34 @@ impl Session {
     }
 
     /// Create monitored items request
-    pub fn create_monitored_items(&mut self, subscription: &mut Subscription, items_to_create: Vec<MonitoredItemCreateRequest>) -> Result<CreateMonitoredItemsResponse, StatusCode> {
-        if !subscription.is_valid() {
+    pub fn create_monitored_items(&mut self, subscription_id: UInt32, items_to_create: Vec<MonitoredItemCreateRequest>) -> Result<CreateMonitoredItemsResponse, StatusCode> {
+        if subscription_id == 0 {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
+            Err(BadInvalidArgument)
+        } else if !self.subscription_state.subscriptions.contains_key(&subscription_id) {
+            error!("Subscription id does not exist");
             Err(BadInvalidArgument)
         } else {
             let request = CreateMonitoredItemsRequest {
                 request_header: self.make_request_header(),
-                subscription_id: subscription.subscription_id,
+                subscription_id,
                 timestamps_to_return: TimestampsToReturn::Both,
                 items_to_create: Some(items_to_create),
             };
             let response = self.send_request(SupportedMessage::CreateMonitoredItemsRequest(request))?;
             if let SupportedMessage::CreateMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
-                // TODO Create monitored items on the subscription
+                if let Some(ref results) = response.results {
+                    if let Some(ref mut subscription) = self.subscription_state.subscriptions.get_mut(&subscription_id) {
+                        results.iter().for_each(|r| {
+                            let mut monitored_item = MonitoredItem::new();
+                            monitored_item.id = r.monitored_item_id;
+                            monitored_item.sampling_interval = r.revised_sampling_interval;
+                            monitored_item.queue_size = r.revised_queue_size;
+                            subscription.monitored_items.insert(monitored_item.id, monitored_item);
+                        });
+                    }
+                }
                 Ok(response)
             } else {
                 Err(Self::process_unexpected_response(response))
@@ -559,21 +571,30 @@ impl Session {
     }
 
     /// Modifies monitored items in the subscription
-    pub fn modify_monitored_items(&mut self, subscription: &mut Subscription, items_to_modify: Vec<MonitoredItemModifyRequest>) -> Result<ModifyMonitoredItemsResponse, StatusCode> {
-        if !subscription.is_valid() {
+    pub fn modify_monitored_items(&mut self, subscription_id: UInt32, items_to_modify: Vec<MonitoredItemModifyRequest>) -> Result<ModifyMonitoredItemsResponse, StatusCode> {
+        if subscription_id == 0 {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
+            Err(BadInvalidArgument)
+        } else if !self.subscription_state.subscriptions.contains_key(&subscription_id) {
+            error!("Subscription id does not exist");
             Err(BadInvalidArgument)
         } else {
             let request = ModifyMonitoredItemsRequest {
                 request_header: self.make_request_header(),
-                subscription_id: subscription.subscription_id,
+                subscription_id,
                 timestamps_to_return: TimestampsToReturn::Both,
                 items_to_modify: Some(items_to_modify),
             };
             let response = self.send_request(SupportedMessage::ModifyMonitoredItemsRequest(request))?;
             if let SupportedMessage::ModifyMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
-                // TODO Modify monitored items in the subscription
+                if let Some(ref results) = response.results {
+                    if let Some(ref mut subscription) = self.subscription_state.subscriptions.get_mut(&subscription_id) {
+                        results.iter().for_each(|r| {
+                            // TODO Modify monitored items on the subscription
+                        });
+                    }
+                }
                 Ok(response)
             } else {
                 Err(Self::process_unexpected_response(response))
@@ -582,20 +603,29 @@ impl Session {
     }
 
     /// Deletes monitored items from the subscription
-    pub fn delete_monitored_items(&mut self, subscription: &mut Subscription, monitored_item_ids: Vec<UInt32>) -> Result<DeleteMonitoredItemsResponse, StatusCode> {
-        if !subscription.is_valid() {
+    pub fn delete_monitored_items(&mut self, subscription_id: UInt32, monitored_item_ids: Vec<UInt32>) -> Result<DeleteMonitoredItemsResponse, StatusCode> {
+        if subscription_id == 0 {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
+            Err(BadInvalidArgument)
+        } else if !self.subscription_state.subscriptions.contains_key(&subscription_id) {
+            error!("Subscription id does not exist");
             Err(BadInvalidArgument)
         } else {
             let request = DeleteMonitoredItemsRequest {
                 request_header: self.make_request_header(),
-                subscription_id: subscription.subscription_id,
+                subscription_id,
                 monitored_item_ids: Some(monitored_item_ids),
             };
             let response = self.send_request(SupportedMessage::DeleteMonitoredItemsRequest(request))?;
             if let SupportedMessage::DeleteMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
-                // TODO Delete monitored items from the subscription
+                if let Some(ref results) = response.results {
+                    if let Some(ref mut subscription) = self.subscription_state.subscriptions.get_mut(&subscription_id) {
+                        results.iter().for_each(|r| {
+                            // TODO Delete monitored items on the subscription
+                        });
+                    }
+                }
                 Ok(response)
             } else {
                 Err(Self::process_unexpected_response(response))
