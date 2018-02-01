@@ -579,6 +579,9 @@ impl Session {
             error!("Subscription id does not exist");
             Err(BadInvalidArgument)
         } else {
+            let monitored_item_ids: Vec<UInt32> = items_to_modify.iter().map(|i| i.monitored_item_id).collect();
+
+
             let request = ModifyMonitoredItemsRequest {
                 request_header: self.make_request_header(),
                 subscription_id,
@@ -590,8 +593,12 @@ impl Session {
                 Self::process_service_result(&response.response_header)?;
                 if let Some(ref results) = response.results {
                     if let Some(ref mut subscription) = self.subscription_state.subscriptions.get_mut(&subscription_id) {
-                        results.iter().for_each(|r| {
-                            // TODO Modify monitored items on the subscription
+                        // Update the monitored items with the revised info from the server
+                        monitored_item_ids.iter().zip(results.iter()).for_each(|(monitored_item_id, r)| {
+                            if let Some(ref mut monitored_item) = subscription.monitored_items.get_mut(&monitored_item_id) {
+                                monitored_item.sampling_interval = r.revised_sampling_interval;
+                                monitored_item.queue_size = r.revised_queue_size;
+                            }
                         });
                     }
                 }
@@ -614,15 +621,16 @@ impl Session {
             let request = DeleteMonitoredItemsRequest {
                 request_header: self.make_request_header(),
                 subscription_id,
-                monitored_item_ids: Some(monitored_item_ids),
+                monitored_item_ids: Some(monitored_item_ids.clone()),
             };
             let response = self.send_request(SupportedMessage::DeleteMonitoredItemsRequest(request))?;
             if let SupportedMessage::DeleteMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 if let Some(ref results) = response.results {
                     if let Some(ref mut subscription) = self.subscription_state.subscriptions.get_mut(&subscription_id) {
-                        results.iter().for_each(|r| {
-                            // TODO Delete monitored items on the subscription
+                        // Remove monitored items
+                        monitored_item_ids.iter().for_each(|monitored_item_id| {
+                            subscription.monitored_items.remove(&monitored_item_id);
                         });
                     }
                 }
