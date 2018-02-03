@@ -3,9 +3,6 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::str::FromStr;
 
-use time;
-use timer;
-
 use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
@@ -17,6 +14,7 @@ use opcua_core::crypto::{SecurityPolicy, CertificateStore, X509, PKey};
 use client;
 use comms::tcp_transport::TcpTransport;
 use subscription::{Subscription, MonitoredItem};
+use subscription_state::SubscriptionState;
 
 /// Information about the server endpoint, security policy, security mode and user identity that the session will
 /// will use to establish a connection.
@@ -87,23 +85,6 @@ impl SessionState {
             max_message_size: MAX_BUFFER_SIZE,
             last_request_handle: 1,
             authentication_token: NodeId::null(),
-        }
-    }
-}
-
-
-struct SubscriptionState {
-    /// Subscriptions
-    pub subscriptions: HashMap<UInt32, Subscription>,
-    /// Subscription timer
-    pub subscription_timer: Option<(timer::Timer, timer::Guard)>,
-}
-
-impl SubscriptionState {
-    pub fn new() -> SubscriptionState {
-        SubscriptionState {
-            subscriptions: HashMap::new(),
-            subscription_timer: None,
         }
     }
 }
@@ -272,7 +253,7 @@ impl Session {
                 let server_nonce = self.transport.secure_channel.remote_nonce_as_byte_string();
                 let server_cert = self.transport.secure_channel.remote_cert_as_byte_string();
                 // Create a signature data
-                let session_state = self.session_state.lock().unwrap();
+                // let session_state = self.session_state.lock().unwrap();
                 if self.session_info.client_pkey.is_none() {
                     error!("Cannot create client signature - no pkey!");
                     return Err(BadUnexpectedError);
@@ -626,7 +607,7 @@ impl Session {
             let response = self.send_request(SupportedMessage::DeleteMonitoredItemsRequest(request))?;
             if let SupportedMessage::DeleteMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
-                if let Some(ref results) = response.results {
+                if let Some(_) = response.results {
                     if let Some(ref mut subscription) = self.subscription_state.subscriptions.get_mut(&subscription_id) {
                         // Remove monitored items
                         monitored_item_ids.iter().for_each(|monitored_item_id| {
@@ -743,27 +724,6 @@ impl Session {
                 BadUnknownResponse
             }
         }
-    }
-
-    fn make_publish_timer(&mut self) {
-        // Publish timer will continuously issue publish requests to the server
-        let timer = timer::Timer::new();
-        let timer_guard = timer.schedule_repeating(time::Duration::milliseconds(50i64), move || {
-            // On timer, send a publish request with optional
-            //   Acknowledgements
-
-            // Receive response
-
-            // Terminate timer if
-            //   BadSessionIdInvalid
-            //   BadNoSubscription
-            //   BadTooManyPublishRequests
-
-            // Update subscriptions based on response
-
-            // Queue acknowledgements for next request
-        });
-        self.subscription_state.subscription_timer = Some((timer, timer_guard));
     }
 
     /// Process the service result, i.e. where the request "succeeded" but the response

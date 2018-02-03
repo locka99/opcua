@@ -21,6 +21,7 @@ pub mod config;
 pub mod client;
 pub mod session;
 pub mod subscription;
+pub mod subscription_state;
 
 pub mod prelude {
     pub use opcua_types::status_codes::StatusCode;
@@ -30,6 +31,7 @@ pub mod prelude {
     pub use config::*;
     pub use session::*;
     pub use subscription::*;
+    pub use subscription_state::*;
 }
 
 #[cfg(test)]
