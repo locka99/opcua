@@ -14,7 +14,7 @@ byteorder = "0.5"
 chrono = "0.4"
 rand = "0.3"
 regex = "0.2"
-lazy_static = "0.2"
+lazy_static = "1.0"
 url = "1.6"
 base64 = "~0.6.0"
 uuid = { version = "0.5", features = ["v4"] }

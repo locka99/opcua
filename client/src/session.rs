@@ -448,6 +448,7 @@ impl Session {
                 max_notifications_per_publish,
                 publishing_enabled,
                 priority,
+                change_callback: None,
                 monitored_items: HashMap::new(),
             };
             self.subscription_state.subscriptions.insert(subscription_id, subscription);

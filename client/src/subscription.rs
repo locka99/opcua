@@ -19,6 +19,8 @@ pub struct MonitoredItem {
     pub index_range: Option<NumericRange>,
     /// Last value of the item
     pub value: DataValue,
+    /// Monitored item's handle. Used internally - not modifiable
+    handle: UInt32,
 }
 
 impl MonitoredItem {
@@ -31,6 +33,7 @@ impl MonitoredItem {
             attribute_id: AttributeId::Value,
             index_range: None,
             value: DataValue::null(),
+            handle: 0,
         }
     }
 }
@@ -43,6 +46,9 @@ pub struct Subscription {
     pub max_notifications_per_publish: UInt32,
     pub publishing_enabled: Boolean,
     pub priority: Byte,
+    /// The change callback will be what is called if any monitored item changes within a cycle.
+    /// The monitored item is referenced by its id
+    pub change_callback: Option<Box<FnOnce(&Vec<UInt32>) + Send + 'static>>,
     /// A list of monitored items associated with the subscription
     pub monitored_items: HashMap<UInt32, MonitoredItem>,
 }
@@ -57,6 +63,7 @@ impl Subscription {
             max_notifications_per_publish: 0,
             publishing_enabled: true,
             priority: 0,
+            change_callback: None,
             monitored_items: HashMap::new(),
         }
     }
