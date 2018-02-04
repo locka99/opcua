@@ -6,7 +6,7 @@ var opcua = require("node-opcua");
 var server = new opcua.OPCUAServer({
     securityPolicies: [opcua.SecurityPolicy.None],
     securityModes: [opcua.MessageSecurityMode.NONE],
-    port: 1234, // the port of the listening socket of the server
+    port: 4855, // the port of the listening socket of the server
     resourcePath: "", // this path will be added to the endpoint resource name
     buildInfo: {
         productName: "Node OPCUA Server",

@@ -6,11 +6,14 @@ use timer;
 
 use opcua_types::UInt32;
 use opcua_types::status_codes::StatusCode;
+use opcua_types::service_types::SubscriptionAcknowledgement;
 
 use session::Session;
 use subscription::*;
 
 pub struct SubscriptionState {
+    /// Unacknowledged
+    subscription_acknowledgements: Vec<SubscriptionAcknowledgement>,
     /// Subscriptions
     pub subscriptions: HashMap<UInt32, Subscription>,
     /// Subscription timer
@@ -20,61 +23,71 @@ pub struct SubscriptionState {
 impl SubscriptionState {
     pub fn new() -> SubscriptionState {
         SubscriptionState {
+            subscription_acknowledgements: Vec::new(),
             subscriptions: HashMap::new(),
             subscription_timer: None,
         }
     }
 
     fn subscription_timer(session: &mut Session) {
+        if !session.subscription_state.subscriptions.is_empty() {
+            // On timer, send a publish request with optional
+            //   Acknowledgements
+            let subscription_acknowledgements = session.subscription_state.subscription_acknowledgements.drain(..).collect();
 
-        // On timer, send a publish request with optional
-        //   Acknowledgements
-        let subscription_acknowledgements = Vec::new();
+            // Receive response
+            match session.publish(subscription_acknowledgements) {
+                Ok(response) => {
+                    // Update subscriptions based on response
 
-        // Receive response
-        match session.publish(subscription_acknowledgements) {
-            Ok(response) => {
-                // Update subscriptions based on response
-                // Queue acknowledgements for next request
 
-                let notification_message = response.notification_message;
-                let data_change_notifications = notification_message.data_change_notifications();
+                    // Queue acknowledgements for next request
+                    let notification_message = response.notification_message;
 
-                data_change_notifications.iter().for_each(|n| {
-                    if let Some(ref monitored_items) = n.monitored_items {
-                        monitored_items.iter().for_each(|i| {
-                            if i.client_handle == 1000 {
-                                // TODO
-                                trace!("xxxx");
-                            }
-                            // use i.client_handle to find monitored item and store i.value
-                        });
-                    }
-                });
+                    // Queue an acknowledgement for this request
+                    session.subscription_state.subscription_acknowledgements.push(SubscriptionAcknowledgement {
+                        subscription_id: response.subscription_id,
+                        sequence_number: notification_message.sequence_number,
+                    });
 
-                //pub available_sequence_numbers: Option<Vec<UInt32>>,
-                //pub more_notifications: Boolean,
-                //pub notification_message: NotificationMessage,
-                //pub results: Option<Vec<StatusCode>>,
-                //pub diagnostic_infos: Option<Vec<DiagnosticInfo>>,
-            }
-            Err(status_code) => {
-                // Terminate timer if
-                match status_code {
-                    StatusCode::BadSessionIdInvalid => {
-                        //   BadSessionIdInvalid
-                        trace!("Subscription timer received BadSessionIdInvalid error code");
-                    }
-                    StatusCode::BadNoSubscription => {
-                        //   BadNoSubscription
-                        trace!("Subscription timer received BadNoSubscription error code");
-                    }
-                    StatusCode::BadTooManyPublishRequests => {
-                        //   BadTooManyPublishRequests
-                        trace!("Subscription timer received BadTooManyPublishRequests error code");
-                    }
-                    _ => {
-                        trace!("Subscription timer received error code {:?}", status_code);
+                    // Process data change notifications
+                    let data_change_notifications = notification_message.data_change_notifications();
+                    data_change_notifications.iter().for_each(|n| {
+                        if let Some(ref monitored_items) = n.monitored_items {
+                            monitored_items.iter().for_each(|i| {
+                                if i.client_handle == 1000 {
+                                    // TODO
+                                    trace!("xxxx");
+                                }
+                                // use i.client_handle to find monitored item and store i.value
+                            });
+                        }
+                    });
+
+                    //pub available_sequence_numbers: Option<Vec<UInt32>>,
+                    //pub more_notifications: Boolean,
+                    //pub notification_message: NotificationMessage,
+                    //pub results: Option<Vec<StatusCode>>,
+                    //pub diagnostic_infos: Option<Vec<DiagnosticInfo>>,
+                }
+                Err(status_code) => {
+                    // Terminate timer if
+                    match status_code {
+                        StatusCode::BadSessionIdInvalid => {
+                            //   BadSessionIdInvalid
+                            trace!("Subscription timer received BadSessionIdInvalid error code");
+                        }
+                        StatusCode::BadNoSubscription => {
+                            //   BadNoSubscription
+                            trace!("Subscription timer received BadNoSubscription error code");
+                        }
+                        StatusCode::BadTooManyPublishRequests => {
+                            //   BadTooManyPublishRequests
+                            trace!("Subscription timer received BadTooManyPublishRequests error code");
+                        }
+                        _ => {
+                            trace!("Subscription timer received error code {:?}", status_code);
+                        }
                     }
                 }
             }

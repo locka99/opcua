@@ -99,7 +99,7 @@ pub struct Session {
     /// Runtime state of the session, reset if disconnected
     session_state: Arc<Mutex<SessionState>>,
     /// Subscriptions state
-    subscription_state: SubscriptionState,
+    pub subscription_state: SubscriptionState,
     /// Transport layer
     transport: TcpTransport,
 }
