@@ -6,25 +6,25 @@ use opcua_types::*;
 
 pub struct MonitoredItem {
     /// This is the monitored item's id within the subscription
-    pub id: UInt32,
+    id: UInt32,
     /// Queue size
-    pub queue_size: UInt32,
+    queue_size: UInt32,
     /// Sampling interval
-    pub sampling_interval: Double,
+    sampling_interval: Double,
     /// Monitored item's node id
-    pub node_id: NodeId,
+    node_id: NodeId,
     /// Attribute id to monitor
-    pub attribute_id: AttributeId,
+    attribute_id: AttributeId,
     /// Numeric range for array monitoring
-    pub index_range: Option<NumericRange>,
+    index_range: Option<NumericRange>,
     /// Last value of the item
-    pub value: DataValue,
+    value: DataValue,
     /// Monitored item's handle. Used internally - not modifiable
     handle: UInt32,
 }
 
 impl MonitoredItem {
-    pub fn new() -> MonitoredItem {
+    pub fn new(handle: UInt32) -> MonitoredItem {
         MonitoredItem {
             id: 0,
             queue_size: 0,
@@ -33,8 +33,37 @@ impl MonitoredItem {
             attribute_id: AttributeId::Value,
             index_range: None,
             value: DataValue::null(),
-            handle: 0,
+            handle,
         }
+    }
+
+    pub fn id(&self) -> UInt32 {
+        self.id
+    }
+
+    pub fn set_id(&mut self, value: UInt32) {
+        self.id = value;
+    }
+
+    pub fn handle(&self) -> UInt32 {
+        self.handle
+    }
+
+    pub fn sampling_interval(&self) -> Double {
+        self.sampling_interval
+    }
+
+    pub fn set_sampling_interval(&mut self, value: Double) {
+        self.sampling_interval = value;
+    }
+
+
+    pub fn queue_size(&self) -> UInt32 {
+        self.queue_size
+    }
+
+    pub fn set_queue_size(&mut self, value: UInt32) {
+        self.queue_size = value;
     }
 }
 

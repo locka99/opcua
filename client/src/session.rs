@@ -100,6 +100,8 @@ pub struct Session {
     session_state: Arc<Mutex<SessionState>>,
     /// Subscriptions state
     pub subscription_state: SubscriptionState,
+    /// Next monitored item handle
+    last_monitored_item_handle: UInt32,
     /// Transport layer
     transport: TcpTransport,
 }
@@ -124,6 +126,7 @@ impl Session {
             session_state,
             subscription_state,
             transport,
+            last_monitored_item_handle: 0,
         }
     }
 
@@ -517,31 +520,39 @@ impl Session {
     }
 
     /// Create monitored items request
-    pub fn create_monitored_items(&mut self, subscription_id: UInt32, items_to_create: Vec<MonitoredItemCreateRequest>) -> Result<CreateMonitoredItemsResponse, StatusCode> {
+    pub fn create_monitored_items(&mut self, subscription_id: UInt32, mut items_to_create: Vec<MonitoredItemCreateRequest>) -> Result<CreateMonitoredItemsResponse, StatusCode> {
         if subscription_id == 0 {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
             Err(BadInvalidArgument)
         } else if !self.subscription_state.subscriptions.contains_key(&subscription_id) {
             error!("Subscription id does not exist");
             Err(BadInvalidArgument)
+        } else if items_to_create.is_empty() {
+            error!("Nothing to do!");
+            Err(BadNothingToDo)
         } else {
+            // Assign each item a unique client handle
+            items_to_create.iter_mut().for_each(|i| {
+                self.last_monitored_item_handle += 1;
+                i.requested_parameters.client_handle = self.last_monitored_item_handle;
+            });
             let request = CreateMonitoredItemsRequest {
                 request_header: self.make_request_header(),
                 subscription_id,
                 timestamps_to_return: TimestampsToReturn::Both,
-                items_to_create: Some(items_to_create),
+                items_to_create: Some(items_to_create.clone()),
             };
             let response = self.send_request(SupportedMessage::CreateMonitoredItemsRequest(request))?;
             if let SupportedMessage::CreateMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 if let Some(ref results) = response.results {
                     if let Some(ref mut subscription) = self.subscription_state.subscriptions.get_mut(&subscription_id) {
-                        results.iter().for_each(|r| {
-                            let mut monitored_item = MonitoredItem::new();
-                            monitored_item.id = r.monitored_item_id;
-                            monitored_item.sampling_interval = r.revised_sampling_interval;
-                            monitored_item.queue_size = r.revised_queue_size;
-                            subscription.monitored_items.insert(monitored_item.id, monitored_item);
+                        items_to_create.iter().zip(results).for_each(|(i, r)| {
+                            let mut monitored_item = MonitoredItem::new(i.requested_parameters.client_handle);
+                            monitored_item.set_id(r.monitored_item_id);
+                            monitored_item.set_sampling_interval(r.revised_sampling_interval);
+                            monitored_item.set_queue_size(r.revised_queue_size);
+                            subscription.monitored_items.insert(monitored_item.id(), monitored_item);
                         });
                     }
                 }
@@ -578,8 +589,8 @@ impl Session {
                         // Update the monitored items with the revised info from the server
                         monitored_item_ids.iter().zip(results.iter()).for_each(|(monitored_item_id, r)| {
                             if let Some(ref mut monitored_item) = subscription.monitored_items.get_mut(&monitored_item_id) {
-                                monitored_item.sampling_interval = r.revised_sampling_interval;
-                                monitored_item.queue_size = r.revised_queue_size;
+                                monitored_item.set_sampling_interval(r.revised_sampling_interval);
+                                monitored_item.set_queue_size(r.revised_queue_size);
                             }
                         });
                     }
