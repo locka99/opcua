@@ -1,5 +1,4 @@
 use std::result::Result;
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::str::FromStr;
 
@@ -13,7 +12,7 @@ use opcua_core::crypto::{SecurityPolicy, CertificateStore, X509, PKey};
 
 use client;
 use comms::tcp_transport::TcpTransport;
-use subscription::{Subscription, MonitoredItem};
+use subscription::Subscription;
 use subscription_state::SubscriptionState;
 
 /// Information about the server endpoint, security policy, security mode and user identity that the session will
@@ -441,22 +440,14 @@ impl Session {
         let response = self.send_request(SupportedMessage::CreateSubscriptionRequest(request))?;
         if let SupportedMessage::CreateSubscriptionResponse(response) = response {
             Self::process_service_result(&response.response_header)?;
-
-            let subscription_id = response.subscription_id;
-            let subscription = Subscription {
-                subscription_id,
-                publishing_interval: response.revised_publishing_interval,
-                lifetime_count: response.revised_lifetime_count,
-                max_keep_alive_count: response.revised_max_keep_alive_count,
-                max_notifications_per_publish,
-                publishing_enabled,
-                priority,
-                change_callback: None,
-                monitored_items: HashMap::new(),
-            };
-            self.subscription_state.subscriptions.insert(subscription_id, subscription);
-
-            Ok(subscription_id)
+            let subscription = Subscription::new(response.subscription_id, response.revised_publishing_interval,
+                                                 response.revised_lifetime_count,
+                                                 response.revised_max_keep_alive_count,
+                                                 max_notifications_per_publish,
+                                                 publishing_enabled,
+                                                 priority);
+            self.subscription_state.add_subscription(subscription);
+            Ok(response.subscription_id)
         } else {
             Err(Self::process_unexpected_response(response))
         }
@@ -467,7 +458,7 @@ impl Session {
         if subscription_id == 0 {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
             Err(BadInvalidArgument)
-        } else if !self.subscription_state.subscriptions.contains_key(&subscription_id) {
+        } else if !self.subscription_state.subscription_exists(subscription_id) {
             error!("Subscription id does not exist");
             Err(BadInvalidArgument)
         } else {
@@ -483,11 +474,12 @@ impl Session {
             let response = self.send_request(SupportedMessage::ModifySubscriptionRequest(request))?;
             if let SupportedMessage::ModifySubscriptionResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
-                if let Some(ref mut subscription) = self.subscription_state.subscriptions.get_mut(&subscription_id) {
-                    subscription.publishing_interval = response.revised_publishing_interval;
-                    subscription.lifetime_count = response.revised_lifetime_count;
-                    subscription.max_keep_alive_count = response.revised_max_keep_alive_count;
-                }
+                self.subscription_state.modify_subscription(subscription_id,
+                                                            response.revised_publishing_interval,
+                                                            response.revised_lifetime_count,
+                                                            response.revised_max_keep_alive_count,
+                                                            max_notifications_per_publish,
+                                                            priority);
                 Ok(())
             } else {
                 Err(Self::process_unexpected_response(response))
@@ -500,7 +492,7 @@ impl Session {
         if subscription_id == 0 {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
             Err(BadInvalidArgument)
-        } else if !self.subscription_state.subscriptions.contains_key(&subscription_id) {
+        } else if !self.subscription_state.subscription_exists(subscription_id) {
             error!("Subscription id does not exist");
             Err(BadInvalidArgument)
         } else {
@@ -511,7 +503,7 @@ impl Session {
             let response = self.send_request(SupportedMessage::DeleteSubscriptionsRequest(request))?;
             if let SupportedMessage::DeleteSubscriptionsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
-                self.subscription_state.subscriptions.remove(&subscription_id);
+                self.subscription_state.delete_subscription(subscription_id);
                 Ok(response)
             } else {
                 Err(Self::process_unexpected_response(response))
@@ -524,7 +516,7 @@ impl Session {
         if subscription_id == 0 {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
             Err(BadInvalidArgument)
-        } else if !self.subscription_state.subscriptions.contains_key(&subscription_id) {
+        } else if !self.subscription_state.subscription_exists(subscription_id) {
             error!("Subscription id does not exist");
             Err(BadInvalidArgument)
         } else if items_to_create.is_empty() {
@@ -546,15 +538,7 @@ impl Session {
             if let SupportedMessage::CreateMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 if let Some(ref results) = response.results {
-                    if let Some(ref mut subscription) = self.subscription_state.subscriptions.get_mut(&subscription_id) {
-                        items_to_create.iter().zip(results).for_each(|(i, r)| {
-                            let mut monitored_item = MonitoredItem::new(i.requested_parameters.client_handle);
-                            monitored_item.set_id(r.monitored_item_id);
-                            monitored_item.set_sampling_interval(r.revised_sampling_interval);
-                            monitored_item.set_queue_size(r.revised_queue_size);
-                            subscription.monitored_items.insert(monitored_item.id(), monitored_item);
-                        });
-                    }
+                    self.subscription_state.insert_monitored_items(subscription_id, items_to_create.iter().zip(results));
                 }
                 Ok(response)
             } else {
@@ -568,7 +552,7 @@ impl Session {
         if subscription_id == 0 {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
             Err(BadInvalidArgument)
-        } else if !self.subscription_state.subscriptions.contains_key(&subscription_id) {
+        } else if !self.subscription_state.subscription_exists(subscription_id) {
             error!("Subscription id does not exist");
             Err(BadInvalidArgument)
         } else {
@@ -585,15 +569,7 @@ impl Session {
             if let SupportedMessage::ModifyMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 if let Some(ref results) = response.results {
-                    if let Some(ref mut subscription) = self.subscription_state.subscriptions.get_mut(&subscription_id) {
-                        // Update the monitored items with the revised info from the server
-                        monitored_item_ids.iter().zip(results.iter()).for_each(|(monitored_item_id, r)| {
-                            if let Some(ref mut monitored_item) = subscription.monitored_items.get_mut(&monitored_item_id) {
-                                monitored_item.set_sampling_interval(r.revised_sampling_interval);
-                                monitored_item.set_queue_size(r.revised_queue_size);
-                            }
-                        });
-                    }
+                    self.subscription_state.modify_monitored_items(subscription_id, monitored_item_ids.iter().zip(results.iter()));
                 }
                 Ok(response)
             } else {
@@ -607,7 +583,7 @@ impl Session {
         if subscription_id == 0 {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
             Err(BadInvalidArgument)
-        } else if !self.subscription_state.subscriptions.contains_key(&subscription_id) {
+        } else if !self.subscription_state.subscription_exists(subscription_id) {
             error!("Subscription id does not exist");
             Err(BadInvalidArgument)
         } else {
@@ -620,12 +596,7 @@ impl Session {
             if let SupportedMessage::DeleteMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 if let Some(_) = response.results {
-                    if let Some(ref mut subscription) = self.subscription_state.subscriptions.get_mut(&subscription_id) {
-                        // Remove monitored items
-                        monitored_item_ids.iter().for_each(|monitored_item_id| {
-                            subscription.monitored_items.remove(&monitored_item_id);
-                        });
-                    }
+                    self.subscription_state.delete_monitored_items(subscription_id, monitored_item_ids.iter());
                 }
                 Ok(response)
             } else {

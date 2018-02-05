@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use time;
 use timer;
 
-use opcua_types::UInt32;
+use opcua_types::{UInt32, Double, Byte};
 use opcua_types::status_codes::StatusCode;
 use opcua_types::service_types::SubscriptionAcknowledgement;
 
@@ -14,8 +14,8 @@ use subscription::*;
 pub struct SubscriptionState {
     /// Unacknowledged
     subscription_acknowledgements: Vec<SubscriptionAcknowledgement>,
-    /// Subscriptions
-    pub subscriptions: HashMap<UInt32, Subscription>,
+    /// Subscriptions (key = subscription_id)
+    subscriptions: HashMap<UInt32, Subscription>,
     /// Subscription timer
     pub subscription_timer: Option<(timer::Timer, timer::Guard)>,
 }
@@ -29,6 +29,46 @@ impl SubscriptionState {
         }
     }
 
+    pub fn subscription_exists(&self, subscription_id: UInt32) -> bool {
+        self.subscriptions.contains_key(&subscription_id)
+    }
+
+    pub fn add_subscription(&mut self, subscription: Subscription) {
+        self.subscriptions.insert(subscription.subscription_id(), subscription);
+    }
+
+    pub fn modify_subscription(&mut self, subscription_id: UInt32, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte) {
+        if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
+            subscription.set_publishing_interval(publishing_interval);
+            subscription.set_lifetime_count(lifetime_count);
+            subscription.set_max_keep_alive_count(max_keep_alive_count);
+            subscription.set_max_notifications_per_publish(max_notifications_per_publish);
+            subscription.set_priority(priority);
+        }
+    }
+
+    pub fn insert_monitored_items<I>(&mut self, subscription_id: UInt32, items_to_create: I) where I: IntoIterator {
+        if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
+            subscription.insert_monitored_items(items_to_create);
+        }
+    }
+
+    pub fn modify_monitored_items<I>(&mut self, subscription_id: UInt32, items_to_modify: I) where I: IntoIterator {
+        if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
+            subscription.modify_monitored_items(items_to_modify);
+        }
+    }
+
+    pub fn delete_monitored_items<I>(&mut self, subscription_id: UInt32, items_to_delete: I) where I: IntoIterator {
+        if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
+            subscription.delete_monitored_items(items_to_delete);
+        }
+    }
+
+    pub fn delete_subscription(&mut self, subscription_id: UInt32) {
+        self.subscriptions.remove(&subscription_id);
+    }
+
     fn subscription_timer(session: &mut Session) {
         if !session.subscription_state.subscriptions.is_empty() {
             // On timer, send a publish request with optional
@@ -39,7 +79,6 @@ impl SubscriptionState {
             match session.publish(subscription_acknowledgements) {
                 Ok(response) => {
                     // Update subscriptions based on response
-
 
                     // Queue acknowledgements for next request
                     let notification_message = response.notification_message;

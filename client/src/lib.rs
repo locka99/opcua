@@ -4,8 +4,6 @@
 
 #[macro_use]
 extern crate log;
-#[macro_use]
-extern crate lazy_static;
 extern crate url;
 extern crate chrono;
 #[macro_use]
