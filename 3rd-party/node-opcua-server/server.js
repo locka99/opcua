@@ -4,8 +4,8 @@ var opcua = require("node-opcua");
 
 // Let's create an instance of OPCUAServer
 var server = new opcua.OPCUAServer({
-    securityPolicies: [opcua.SecurityPolicy.None],
-    securityModes: [opcua.MessageSecurityMode.NONE],
+    securityPolicies: [opcua.SecurityPolicy.None, opcua.SecurityPolicy.Basic128Rsa15, opcua.SecurityPolicy.Basic256, opcua.SecurityPolicy.Basic256Sha256],
+    securityModes: [opcua.MessageSecurityMode.NONE, opcua.MessageSecurityMode.SIGN, opcua.MessageSecurityMode.SIGNANDENCRYPT],
     port: 4855, // the port of the listening socket of the server
     resourcePath: "", // this path will be added to the endpoint resource name
     buildInfo: {
@@ -100,10 +100,10 @@ function post_initialize() {
 
     construct_my_address_space(server);
     server.start(function () {
-        console.log("Server is now listening ... ( press CTRL+C to stop)");
-        console.log("port ", server.endpoints[0].port);
-        var endpointUrl = server.endpoints[0].endpointDescriptions()[0].endpointUrl;
-        console.log(" the primary server endpoint url is ", endpointUrl);
+        console.log("Server is now listening on these endpoints... ( press CTRL+C to stop)");
+        server.endpoints[0].endpointDescriptions().forEach(function (endpoint) {
+            console.log(endpoint.endpointUrl, endpoint.securityMode.toString(), endpoint.securityPolicyUri.toString());
+        });
     });
 }
 server.initialize(post_initialize);
