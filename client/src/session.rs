@@ -1,17 +1,16 @@
-use std::result::Result;
-use std::sync::{Arc, Mutex};
-use std::str::FromStr;
-
-use opcua_types::*;
-use opcua_types::status_codes::StatusCode;
-use opcua_types::status_codes::StatusCode::*;
-use opcua_types::service_types::*;
-use opcua_types::node_ids::ObjectId;
-use opcua_core::crypto;
-use opcua_core::crypto::{SecurityPolicy, CertificateStore, X509, PKey};
-
 use client;
 use comms::tcp_transport::TcpTransport;
+use opcua_core::crypto;
+use opcua_core::crypto::{CertificateStore, PKey, SecurityPolicy, X509};
+use opcua_types::*;
+use opcua_types::node_ids::ObjectId;
+use opcua_types::service_types::*;
+use opcua_types::status_codes::StatusCode;
+use opcua_types::status_codes::StatusCode::*;
+use std::result::Result;
+use std::str::FromStr;
+use std::sync::{Arc, Mutex};
+use subscription;
 use subscription::Subscription;
 use subscription_state::SubscriptionState;
 
@@ -538,7 +537,16 @@ impl Session {
             if let SupportedMessage::CreateMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 if let Some(ref results) = response.results {
-                    self.subscription_state.insert_monitored_items(subscription_id, items_to_create.iter().zip(results));
+                    // Set the items in our internal state
+                    let items_to_create: Vec<subscription::CreateMonitoredItem> = items_to_create.iter().zip(results).map(|(i, r)| {
+                        subscription::CreateMonitoredItem {
+                            id: r.monitored_item_id,
+                            client_handle: i.requested_parameters.client_handle,
+                            queue_size: r.revised_queue_size,
+                            sampling_interval: r.revised_sampling_interval,
+                        }
+                    }).collect();
+                    self.subscription_state.insert_monitored_items(subscription_id, items_to_create);
                 }
                 Ok(response)
             } else {
@@ -569,7 +577,15 @@ impl Session {
             if let SupportedMessage::ModifyMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 if let Some(ref results) = response.results {
-                    self.subscription_state.modify_monitored_items(subscription_id, monitored_item_ids.iter().zip(results.iter()));
+                    // Set the items in our internal state
+                    let items_to_modify: Vec<subscription::ModifyMonitoredItem> = monitored_item_ids.iter().zip(results.iter()).map(|(id, r)| {
+                        subscription::ModifyMonitoredItem {
+                            id: *id,
+                            queue_size: r.revised_queue_size,
+                            sampling_interval: r.revised_sampling_interval,
+                        }
+                    }).collect();
+                    self.subscription_state.modify_monitored_items(subscription_id, items_to_modify);
                 }
                 Ok(response)
             } else {
@@ -596,7 +612,7 @@ impl Session {
             if let SupportedMessage::DeleteMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 if let Some(_) = response.results {
-                    self.subscription_state.delete_monitored_items(subscription_id, monitored_item_ids.iter());
+                    self.subscription_state.delete_monitored_items(subscription_id, monitored_item_ids);
                 }
                 Ok(response)
             } else {

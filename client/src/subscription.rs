@@ -1,8 +1,20 @@
+use opcua_types::*;
 use std::collections::HashMap;
 
-use opcua_types::*;
-
 // This file will hold functionality related to creating a subscription and monitoring items
+
+pub struct CreateMonitoredItem {
+    pub id: UInt32,
+    pub client_handle: UInt32,
+    pub sampling_interval: Double,
+    pub queue_size: UInt32,
+}
+
+pub struct ModifyMonitoredItem {
+    pub id: UInt32,
+    pub sampling_interval: Double,
+    pub queue_size: UInt32,
+}
 
 pub struct MonitoredItem {
     /// This is the monitored item's id within the subscription
@@ -24,7 +36,7 @@ pub struct MonitoredItem {
 }
 
 impl MonitoredItem {
-    pub fn new(handle: UInt32) -> MonitoredItem {
+    pub fn new(client_handle: UInt32) -> MonitoredItem {
         MonitoredItem {
             id: 0,
             queue_size: 0,
@@ -33,7 +45,7 @@ impl MonitoredItem {
             attribute_id: AttributeId::Value,
             index_range: None,
             value: DataValue::null(),
-            client_handle: handle,
+            client_handle,
         }
     }
 
@@ -63,6 +75,14 @@ impl MonitoredItem {
 
     pub fn set_queue_size(&mut self, value: UInt32) {
         self.queue_size = value;
+    }
+
+    pub fn value(&self) -> DataValue {
+        self.value.clone()
+    }
+
+    pub fn set_value(&mut self, value: DataValue) {
+        self.value = value
     }
 }
 
@@ -130,13 +150,12 @@ impl Subscription {
 
     pub fn publishing_enabled(&self) -> Boolean { self.publishing_enabled }
 
-    pub fn insert_monitored_items<I>(&mut self, items_to_create: I) where I: IntoIterator {
-        items_to_create.into_iter().for_each(|i| {
-            let mut monitored_item = MonitoredItem::new(i.0.requested_parameters.client_handle);
-            let r = i.1;
-            monitored_item.set_id(r.monitored_item_id);
-            monitored_item.set_sampling_interval(r.revised_sampling_interval);
-            monitored_item.set_queue_size(r.revised_queue_size);
+    pub fn insert_monitored_items(&mut self, items_to_create: Vec<CreateMonitoredItem>) {
+        items_to_create.iter().for_each(|i| {
+            let mut monitored_item = MonitoredItem::new(i.client_handle);
+            monitored_item.set_id(i.id);
+            monitored_item.set_sampling_interval(i.sampling_interval);
+            monitored_item.set_queue_size(i.queue_size);
 
             let client_handle = monitored_item.client_handle();
             let monitored_item_id = monitored_item.id();
@@ -145,17 +164,17 @@ impl Subscription {
         });
     }
 
-    pub fn modify_monitored_items<I>(&mut self, items_to_modify: I) where I: IntoIterator {
-        items_to_modify.into_iter().for_each(|(monitored_item_id, r)| {
-            if let Some(ref mut monitored_item) = self.monitored_items.get_mut(&monitored_item_id) {
-                monitored_item.set_sampling_interval(r.revised_sampling_interval);
-                monitored_item.set_queue_size(r.revised_queue_size);
+    pub fn modify_monitored_items(&mut self, items_to_modify: Vec<ModifyMonitoredItem>) {
+        items_to_modify.into_iter().for_each(|i| {
+            if let Some(ref mut monitored_item) = self.monitored_items.get_mut(&i.id) {
+                monitored_item.set_sampling_interval(i.sampling_interval);
+                monitored_item.set_queue_size(i.queue_size);
             }
         });
     }
 
-    pub fn delete_monitored_items<I>(&self, items_to_delete: I) where I: IntoIterator {
-        items_to_delete.into_iter().for_each(|id| {
+    pub fn delete_monitored_items(&mut self, items_to_delete: Vec<UInt32>) {
+        items_to_delete.iter().for_each(|id| {
             // Remove the monitored item and the client handle / id entry
             if let Some(monitored_item) = self.monitored_items.remove(&id) {
                 let _ = self.client_handles.remove(&monitored_item.client_handle());

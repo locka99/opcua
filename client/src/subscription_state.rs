@@ -1,15 +1,12 @@
+use opcua_types::{Byte, Double, UInt32};
+use opcua_types::service_types::SubscriptionAcknowledgement;
+use opcua_types::status_codes::StatusCode;
+use session::Session;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-
+use subscription::*;
 use time;
 use timer;
-
-use opcua_types::{UInt32, Double, Byte};
-use opcua_types::status_codes::StatusCode;
-use opcua_types::service_types::SubscriptionAcknowledgement;
-
-use session::Session;
-use subscription::*;
 
 pub struct SubscriptionState {
     /// Unacknowledged
@@ -47,19 +44,19 @@ impl SubscriptionState {
         }
     }
 
-    pub fn insert_monitored_items<I>(&mut self, subscription_id: UInt32, items_to_create: I) where I: IntoIterator {
+    pub fn insert_monitored_items(&mut self, subscription_id: UInt32, items_to_create: Vec<CreateMonitoredItem>) {
         if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
             subscription.insert_monitored_items(items_to_create);
         }
     }
 
-    pub fn modify_monitored_items<I>(&mut self, subscription_id: UInt32, items_to_modify: I) where I: IntoIterator {
+    pub fn modify_monitored_items(&mut self, subscription_id: UInt32, items_to_modify: Vec<ModifyMonitoredItem>) {
         if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
             subscription.modify_monitored_items(items_to_modify);
         }
     }
 
-    pub fn delete_monitored_items<I>(&mut self, subscription_id: UInt32, items_to_delete: I) where I: IntoIterator {
+    pub fn delete_monitored_items(&mut self, subscription_id: UInt32, items_to_delete: Vec<UInt32>) {
         if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
             subscription.delete_monitored_items(items_to_delete);
         }
