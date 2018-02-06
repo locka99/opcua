@@ -4,10 +4,9 @@ extern crate opcua_types;
 extern crate opcua_core;
 extern crate opcua_client;
 
+use opcua_client::prelude::*;
 use std::path::PathBuf;
 use std::str::FromStr;
-
-use opcua_client::prelude::*;
 
 fn main() {
     // Optional - enable OPC UA logging
@@ -39,6 +38,33 @@ fn main() {
         }
     } else {
         println!("ERROR: Sample client cannot create a session!");
+    }
+}
+
+fn subscribe(session: &mut Session) -> Result<(), StatusCode> {
+    // Connect & activate the session.
+    let _ = session.connect_and_activate_session()?;
+
+    // Create a subscription
+    let subscription_id = session.create_subscription(1f64, 10, 30, 0, 0, true)?;
+    // TODO set callback for subscription
+
+    let items_to_create = vec![
+        MonitoredItemCreateRequest::new(ReadValueId::read_value(NodeId::new_string(2, "v1")), MonitoringMode::Reporting, MonitoringParameters {
+            client_handle: 0,
+            sampling_interval: 0f64,
+            filter: ExtensionObject::null(),
+            queue_size: 1,
+            discard_oldest: true,
+        }),
+    ];
+
+    let _ = session.create_monitored_items(subscription_id, items_to_create)?;
+
+    loop {
+        // Main thread has nothing to do - just wait for publish events to roll in
+        use std::thread;
+        thread::sleep_ms(1000)
     }
 }
 
