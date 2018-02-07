@@ -111,7 +111,8 @@ pub struct Subscription {
 }
 
 impl Subscription {
-    pub fn new(subscription_id: UInt32, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, publishing_enabled: Boolean, priority: Byte) -> Subscription {
+    pub fn new<F>(subscription_id: UInt32, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, publishing_enabled: Boolean, priority: Byte, callback: F) -> Subscription
+        where F: FnOnce(&Vec<UInt32>) + Send + 'static {
         Subscription {
             subscription_id,
             publishing_interval,
@@ -120,7 +121,7 @@ impl Subscription {
             max_notifications_per_publish,
             publishing_enabled,
             priority,
-            change_callback: None,
+            change_callback: Some(Box::new(callback)),
             monitored_items: HashMap::new(),
             client_handles: HashMap::new(),
         }

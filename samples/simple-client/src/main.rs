@@ -5,10 +5,17 @@ extern crate opcua_core;
 extern crate opcua_client;
 
 use opcua_client::prelude::*;
+use std::collections::HashSet;
+use std::env;
 use std::path::PathBuf;
 use std::str::FromStr;
 
 fn main() {
+    // This simple client will fetch values and exist or if --subscribe is passed on the command line
+    // it will subscribe to values and run indefinitely, printing out changes to the values.
+    let args: HashSet<String> = env::args().collect();
+    let subscribe_flag = args.contains("--subscribe");
+
     // Optional - enable OPC UA logging
     opcua_core::init_logging();
 
@@ -32,53 +39,70 @@ fn main() {
     if let Ok(session) = client.new_session(&endpoints) {
         let mut session = session.lock().unwrap();
         // Connect and do something with the server
-        let result = connect(&mut session);
-        if result.is_err() {
-            println!("ERROR: Got an error while creating the default session - {:?}", result.unwrap_err().description());
+        if let Err(result) = session.connect_and_activate_session() {
+            println!("ERROR: Got an error while creating the default session - {:?}", result.description());
+        }
+        // The --subscribe arg decides if code should subscribe to values, or just fetch those
+        // values and exit
+        let result = if subscribe_flag {
+            subscribe(&mut session)
+        } else {
+            read_values(&mut session)
+        };
+        if let Err(result) = result {
+            println!("ERROR: Got an error while performing action - {:?}", result.description());
         }
     } else {
         println!("ERROR: Sample client cannot create a session!");
     }
 }
 
+fn nodes_to_monitor() -> Vec<ReadValueId> {
+    vec![
+        ReadValueId::read_value(NodeId::new_string(2, "v1")),
+        ReadValueId::read_value(NodeId::new_string(2, "v2")),
+        ReadValueId::read_value(NodeId::new_string(2, "v3")),
+        ReadValueId::read_value(NodeId::new_string(2, "v4")),
+    ]
+}
+
 fn subscribe(session: &mut Session) -> Result<(), StatusCode> {
-    // Connect & activate the session.
-    let _ = session.connect_and_activate_session()?;
-
     // Create a subscription
-    let subscription_id = session.create_subscription(1f64, 10, 30, 0, 0, true)?;
-    // TODO set callback for subscription
+    println!("Creating subscription");
 
-    let items_to_create = vec![
-        MonitoredItemCreateRequest::new(ReadValueId::read_value(NodeId::new_string(2, "v1")), MonitoringMode::Reporting, MonitoringParameters {
+    let subscription_id = session.create_subscription(1f64, 10, 30, 0, 0, true, |items| {
+        println!("Got changes to items {:?}", items);
+    })?;
+    println!("Subscription id = {}", subscription_id);
+
+    // Make requests for the items to create
+    let read_nodes = nodes_to_monitor();
+    let items_to_create: Vec<MonitoredItemCreateRequest> = read_nodes.into_iter().map(|read_node| {
+        MonitoredItemCreateRequest::new(read_node, MonitoringMode::Reporting, MonitoringParameters {
             client_handle: 0,
             sampling_interval: 0f64,
             filter: ExtensionObject::null(),
             queue_size: 1,
             discard_oldest: true,
-        }),
-    ];
+        })
+    }).collect();
 
-    let _ = session.create_monitored_items(subscription_id, items_to_create)?;
+    println!("Creating monitored items");
+    let response = session.create_monitored_items(subscription_id, items_to_create)?;
+    println!("Creating monitored items {:?}", response);
 
+    // Loops for ever. The publish thread should feed change values into our callback
     loop {
         // Main thread has nothing to do - just wait for publish events to roll in
         use std::thread;
-        thread::sleep_ms(1000)
+        use std::time;
+        thread::sleep(time::Duration::from_millis(1000));
     }
 }
 
-fn connect(session: &mut Session) -> Result<(), StatusCode> {
-    // Connect & activate the session.
-    let _ = session.connect_and_activate_session()?;
-
+fn read_values(session: &mut Session) -> Result<(), StatusCode> {
     // Fetch some values from the sample server
-    let read_nodes = vec![
-        ReadValueId::read_value(NodeId::new_string(2, "v1")),
-        ReadValueId::read_value(NodeId::new_string(2, "v2")),
-        ReadValueId::read_value(NodeId::new_string(2, "v3")),
-        ReadValueId::read_value(NodeId::new_string(2, "v4")),
-    ];
+    let read_nodes = nodes_to_monitor();
     let data_values = session.read_nodes(&read_nodes)?.unwrap();
 
     // Print the values out

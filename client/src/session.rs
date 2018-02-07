@@ -426,7 +426,8 @@ impl Session {
     /// supplied subscription struct. The initial values imply the requested interval, lifetime 
     /// and keepalive and the value returned in the response are the revised values. The
     /// subscription id is also returned in the response.
-    pub fn create_subscription(&mut self, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte, publishing_enabled: Boolean) -> Result<UInt32, StatusCode> {
+    pub fn create_subscription<F>(&mut self, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte, publishing_enabled: Boolean, callback: F)
+                                  -> Result<UInt32, StatusCode> where F: FnOnce(&Vec<UInt32>) + Send + 'static {
         let request = CreateSubscriptionRequest {
             request_header: self.make_request_header(),
             requested_publishing_interval: publishing_interval,
@@ -444,7 +445,8 @@ impl Session {
                                                  response.revised_max_keep_alive_count,
                                                  max_notifications_per_publish,
                                                  publishing_enabled,
-                                                 priority);
+                                                 priority,
+                                                 callback);
             self.subscription_state.add_subscription(subscription);
             Ok(response.subscription_id)
         } else {
