@@ -16,6 +16,7 @@ use subscription_state::SubscriptionState;
 
 /// Information about the server endpoint, security policy, security mode and user identity that the session will
 /// will use to establish a connection.
+#[derive(Debug)]
 pub struct SessionInfo {
     /// The endpoint
     pub endpoint: EndpointDescription,
@@ -97,11 +98,13 @@ pub struct Session {
     /// Runtime state of the session, reset if disconnected
     session_state: Arc<Mutex<SessionState>>,
     /// Subscriptions state
-    pub subscription_state: SubscriptionState,
-    /// Next monitored item handle
-    last_monitored_item_handle: UInt32,
+    subscription_state: Arc<Mutex<SubscriptionState>>,
+    /// Unacknowledged
+    subscription_acknowledgements: Vec<SubscriptionAcknowledgement>,
     /// Transport layer
     transport: TcpTransport,
+    /// Next monitored item handle
+    last_monitored_item_handle: UInt32,
 }
 
 impl Drop for Session {
@@ -117,12 +120,13 @@ impl Session {
     pub fn new(application_description: ApplicationDescription, certificate_store: Arc<Mutex<CertificateStore>>, session_info: SessionInfo) -> Session {
         let session_state = Arc::new(Mutex::new(SessionState::new()));
         let transport = TcpTransport::new(certificate_store, session_state.clone());
-        let subscription_state = SubscriptionState::new();
+        let subscription_state = Arc::new(Mutex::new(SubscriptionState::new()));
         Session {
             application_description,
             session_info,
             session_state,
             subscription_state,
+            subscription_acknowledgements: Vec::new(),
             transport,
             last_monitored_item_handle: 0,
         }
@@ -447,7 +451,11 @@ impl Session {
                                                  publishing_enabled,
                                                  priority,
                                                  callback);
-            self.subscription_state.add_subscription(subscription);
+
+            {
+                let mut subscription_state = self.subscription_state.lock().unwrap();
+                subscription_state.add_subscription(subscription);
+            }
             Ok(response.subscription_id)
         } else {
             Err(Self::process_unexpected_response(response))
@@ -459,7 +467,7 @@ impl Session {
         if subscription_id == 0 {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
             Err(BadInvalidArgument)
-        } else if !self.subscription_state.subscription_exists(subscription_id) {
+        } else if !self.subscription_exists(subscription_id) {
             error!("Subscription id does not exist");
             Err(BadInvalidArgument)
         } else {
@@ -475,12 +483,13 @@ impl Session {
             let response = self.send_request(SupportedMessage::ModifySubscriptionRequest(request))?;
             if let SupportedMessage::ModifySubscriptionResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
-                self.subscription_state.modify_subscription(subscription_id,
-                                                            response.revised_publishing_interval,
-                                                            response.revised_lifetime_count,
-                                                            response.revised_max_keep_alive_count,
-                                                            max_notifications_per_publish,
-                                                            priority);
+                let mut subscription_state = self.subscription_state.lock().unwrap();
+                subscription_state.modify_subscription(subscription_id,
+                                                       response.revised_publishing_interval,
+                                                       response.revised_lifetime_count,
+                                                       response.revised_max_keep_alive_count,
+                                                       max_notifications_per_publish,
+                                                       priority);
                 Ok(())
             } else {
                 Err(Self::process_unexpected_response(response))
@@ -493,7 +502,7 @@ impl Session {
         if subscription_id == 0 {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
             Err(BadInvalidArgument)
-        } else if !self.subscription_state.subscription_exists(subscription_id) {
+        } else if !self.subscription_exists(subscription_id) {
             error!("Subscription id does not exist");
             Err(BadInvalidArgument)
         } else {
@@ -504,7 +513,10 @@ impl Session {
             let response = self.send_request(SupportedMessage::DeleteSubscriptionsRequest(request))?;
             if let SupportedMessage::DeleteSubscriptionsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
-                self.subscription_state.delete_subscription(subscription_id);
+                {
+                    let mut subscription_state = self.subscription_state.lock().unwrap();
+                    subscription_state.delete_subscription(subscription_id);
+                }
                 Ok(response)
             } else {
                 Err(Self::process_unexpected_response(response))
@@ -517,7 +529,7 @@ impl Session {
         if subscription_id == 0 {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
             Err(BadInvalidArgument)
-        } else if !self.subscription_state.subscription_exists(subscription_id) {
+        } else if !self.subscription_exists(subscription_id) {
             error!("Subscription id does not exist");
             Err(BadInvalidArgument)
         } else if items_to_create.is_empty() {
@@ -548,7 +560,10 @@ impl Session {
                             sampling_interval: r.revised_sampling_interval,
                         }
                     }).collect();
-                    self.subscription_state.insert_monitored_items(subscription_id, items_to_create);
+                    {
+                        let mut subscription_state = self.subscription_state.lock().unwrap();
+                        subscription_state.insert_monitored_items(subscription_id, items_to_create);
+                    }
                 }
                 Ok(response)
             } else {
@@ -562,7 +577,7 @@ impl Session {
         if subscription_id == 0 {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
             Err(BadInvalidArgument)
-        } else if !self.subscription_state.subscription_exists(subscription_id) {
+        } else if !self.subscription_exists(subscription_id) {
             error!("Subscription id does not exist");
             Err(BadInvalidArgument)
         } else {
@@ -587,7 +602,10 @@ impl Session {
                             sampling_interval: r.revised_sampling_interval,
                         }
                     }).collect();
-                    self.subscription_state.modify_monitored_items(subscription_id, items_to_modify);
+                    {
+                        let mut subscription_state = self.subscription_state.lock().unwrap();
+                        subscription_state.modify_monitored_items(subscription_id, items_to_modify);
+                    }
                 }
                 Ok(response)
             } else {
@@ -601,7 +619,7 @@ impl Session {
         if subscription_id == 0 {
             error!("Subscription id must be non-zero, or the subscription is considered invalid");
             Err(BadInvalidArgument)
-        } else if !self.subscription_state.subscription_exists(subscription_id) {
+        } else if !self.subscription_exists(subscription_id) {
             error!("Subscription id does not exist");
             Err(BadInvalidArgument)
         } else {
@@ -614,13 +632,20 @@ impl Session {
             if let SupportedMessage::DeleteMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 if let Some(_) = response.results {
-                    self.subscription_state.delete_monitored_items(subscription_id, monitored_item_ids);
+                    let mut subscription_state = self.subscription_state.lock().unwrap();
+                    subscription_state.delete_monitored_items(subscription_id, monitored_item_ids);
                 }
                 Ok(response)
             } else {
                 Err(Self::process_unexpected_response(response))
             }
         }
+    }
+
+    // Test if the subscription by id exists
+    fn subscription_exists(&self, subscription_id: UInt32) -> bool {
+        let subscription_state = self.subscription_state.lock().unwrap();
+        subscription_state.subscription_exists(subscription_id)
     }
 
     // Sends a publish request containing any acknowledgements
@@ -779,6 +804,79 @@ impl Session {
             Ok(())
         } else {
             Err(Self::process_unexpected_response(response))
+        }
+    }
+
+    /// Function that handles subscription
+    pub fn subscription_timer(&mut self) {
+        println!("Subscription timer -------------------------------------------------------");
+        let have_subscriptions = {
+            let mut subscription_state = self.subscription_state.lock().unwrap();
+            !subscription_state.is_empty()
+        };
+
+        if have_subscriptions {
+            // On timer, send a publish request with optional
+            //   Acknowledgements
+            let subscription_acknowledgements = self.subscription_acknowledgements.drain(..).collect();
+
+            // Receive response
+            trace!("Publish request");
+            match self.publish(subscription_acknowledgements) {
+                Ok(response) => {
+                    trace!("PublishResponse");
+                    // Update subscriptions based on response
+
+                    // Queue acknowledgements for next request
+                    let notification_message = response.notification_message;
+
+                    // Queue an acknowledgement for this request
+                    self.subscription_acknowledgements.push(SubscriptionAcknowledgement {
+                        subscription_id: response.subscription_id,
+                        sequence_number: notification_message.sequence_number,
+                    });
+
+                    // Process data change notifications
+                    let data_change_notifications = notification_message.data_change_notifications();
+                    data_change_notifications.iter().for_each(|n| {
+                        if let Some(ref monitored_items) = n.monitored_items {
+                            monitored_items.iter().for_each(|i| {
+                                if i.client_handle == 1000 {
+                                    // TODO
+                                    trace!("xxxx");
+                                }
+                                // use i.client_handle to find monitored item and store i.value
+                            });
+                        }
+                    });
+
+                    //pub available_sequence_numbers: Option<Vec<UInt32>>,
+                    //pub more_notifications: Boolean,
+                    //pub notification_message: NotificationMessage,
+                    //pub results: Option<Vec<StatusCode>>,
+                    //pub diagnostic_infos: Option<Vec<DiagnosticInfo>>,
+                }
+                Err(status_code) => {
+                    // Terminate timer if
+                    match status_code {
+                        StatusCode::BadSessionIdInvalid => {
+                            //   BadSessionIdInvalid
+                            trace!("Subscription timer received BadSessionIdInvalid error code");
+                        }
+                        StatusCode::BadNoSubscription => {
+                            //   BadNoSubscription
+                            trace!("Subscription timer received BadNoSubscription error code");
+                        }
+                        StatusCode::BadTooManyPublishRequests => {
+                            //   BadTooManyPublishRequests
+                            trace!("Subscription timer received BadTooManyPublishRequests error code");
+                        }
+                        _ => {
+                            trace!("Subscription timer received error code {:?}", status_code);
+                        }
+                    }
+                }
+            }
         }
     }
 }

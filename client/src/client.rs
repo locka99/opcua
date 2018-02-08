@@ -1,19 +1,25 @@
-use std::sync::{Arc, Mutex};
-use std::str::FromStr;
-
-use opcua_types::{UAString, ByteString, LocalizedText, MessageSecurityMode};
+use config::{ANONYMOUS_USER_TOKEN_ID, ClientConfig, ClientEndpoint};
+use opcua_core::crypto::{CertificateStore, PKey, SecurityPolicy, X509};
+use opcua_types::{ByteString, LocalizedText, MessageSecurityMode, UAString};
 use opcua_types::{is_opc_ua_binary_url, server_url_from_endpoint_url, url_matches, url_matches_except_host};
+use opcua_types::service_types::{ApplicationDescription, ApplicationType, EndpointDescription};
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::BadUnexpectedError;
-use opcua_types::service_types::{ApplicationDescription, ApplicationType, EndpointDescription};
-use opcua_core::crypto::{SecurityPolicy, CertificateStore, X509, PKey};
-
-use config::{ClientConfig, ClientEndpoint, ANONYMOUS_USER_TOKEN_ID};
 use session::{Session, SessionInfo};
+use std::str::FromStr;
+use std::sync::{Arc, Mutex};
+use time;
+use timer;
 
+#[derive(Debug)]
 pub enum IdentityToken {
     Anonymous,
     UserName(String, String),
+}
+
+struct SessionEntry {
+    session: Arc<Mutex<Session>>,
+    subscription_timer: Option<(timer::Timer, timer::Guard)>,
 }
 
 /// The client-side OPC UA state. A client can have a description, multiple open sessions
@@ -23,7 +29,7 @@ pub struct Client {
     config: ClientConfig,
     /// A list of sessions made by the client. They are protected since a session may or may not be
     /// running on an independent thread.
-    sessions: Vec<Arc<Mutex<Session>>>,
+    sessions: Vec<SessionEntry>,
     /// Certificate store is where certificates go.
     certificate_store: Arc<Mutex<CertificateStore>>,
 }
@@ -95,6 +101,8 @@ impl Client {
         self.new_session_from_info(session_info)
     }
 
+    const SUBSCRIPTION_TIMER_INTERVAL: i64 = 50i64;
+
     /// Creates an ad hoc new `Session` using the specified endpoint url, security policy and mode.
     pub fn new_session_from_info<T>(&mut self, session_info: T) -> Result<Arc<Mutex<Session>>, String> where T: Into<SessionInfo> {
         let session_info = session_info.into();
@@ -102,7 +110,20 @@ impl Client {
             Err(format!("Endpoint url {}, is not a valid / supported url", session_info.endpoint.endpoint_url))
         } else {
             let session = Arc::new(Mutex::new(Session::new(self.application_description(), self.certificate_store.clone(), session_info)));
-            self.sessions.push(session.clone());
+            // Set up a timer for the session to process subscriptions
+            let subscription_timer = {
+                let timer = timer::Timer::new();
+                let session = session.clone();
+                let timer_guard = timer.schedule_repeating(time::Duration::milliseconds(Self::SUBSCRIPTION_TIMER_INTERVAL), move || {
+                    let mut session = session.lock().unwrap();
+                    session.subscription_timer();
+                });
+                Some((timer, timer_guard))
+            };
+            self.sessions.push(SessionEntry {
+                session: session.clone(),
+                subscription_timer,
+            });
             Ok(session)
         }
     }
@@ -220,7 +241,6 @@ impl Client {
         }
         None
     }
-
 
     fn client_identity_token(&self, user_token_id: &str) -> Option<IdentityToken> {
         if user_token_id == ANONYMOUS_USER_TOKEN_ID {
