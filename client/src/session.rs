@@ -164,6 +164,7 @@ impl Session {
 
     /// Disconnect from the server
     pub fn disconnect(&mut self) {
+        let _ = self.delete_all_subscriptions();
         let _ = self.close_secure_channel();
         self.transport.disconnect();
     }
@@ -431,7 +432,7 @@ impl Session {
     /// and keepalive and the value returned in the response are the revised values. The
     /// subscription id is also returned in the response.
     pub fn create_subscription<F>(&mut self, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte, publishing_enabled: Boolean, callback: F)
-                                  -> Result<UInt32, StatusCode> where F: FnOnce(&Vec<UInt32>) + Send + 'static {
+                                  -> Result<UInt32, StatusCode> where F: FnOnce(&Vec<&subscription::MonitoredItem>) + Send + 'static {
         let request = CreateSubscriptionRequest {
             request_header: self.make_request_header(),
             requested_publishing_interval: publishing_interval,
@@ -524,6 +525,36 @@ impl Session {
         }
     }
 
+    /// Removes all subscriptions, assuming there are any to remove
+    pub fn delete_all_subscriptions(&mut self) -> Result<DeleteSubscriptionsResponse, StatusCode> {
+        let subscription_ids = {
+            let mut subscription_state = self.subscription_state.lock().unwrap();
+            subscription_state.subscription_ids()
+        };
+        if subscription_ids.is_none() {
+            // No subscriptions
+            Err(BadNothingToDo)
+        } else {
+            // Send a delete request holding all the subscription ides that we wish to delete
+            let request = DeleteSubscriptionsRequest {
+                request_header: self.make_request_header(),
+                subscription_ids,
+            };
+            let response = self.send_request(SupportedMessage::DeleteSubscriptionsRequest(request))?;
+            if let SupportedMessage::DeleteSubscriptionsResponse(response) = response {
+                Self::process_service_result(&response.response_header)?;
+                {
+                    // Clear out all subscriptions, assuming the delete worked
+                    let mut subscription_state = self.subscription_state.lock().unwrap();
+                    subscription_state.delete_all_subscriptions();
+                }
+                Ok(response)
+            } else {
+                Err(Self::process_unexpected_response(response))
+            }
+        }
+    }
+
     /// Create monitored items request
     pub fn create_monitored_items(&mut self, subscription_id: UInt32, mut items_to_create: Vec<MonitoredItemCreateRequest>) -> Result<CreateMonitoredItemsResponse, StatusCode> {
         if subscription_id == 0 {
@@ -556,6 +587,7 @@ impl Session {
                         subscription::CreateMonitoredItem {
                             id: r.monitored_item_id,
                             client_handle: i.requested_parameters.client_handle,
+                            item_to_monitor: i.item_to_monitor.clone(),
                             queue_size: r.revised_queue_size,
                             sampling_interval: r.revised_sampling_interval,
                         }
@@ -829,26 +861,20 @@ impl Session {
 
                     // Queue acknowledgements for next request
                     let notification_message = response.notification_message;
+                    let subscription_id = response.subscription_id;
 
                     // Queue an acknowledgement for this request
                     self.subscription_acknowledgements.push(SubscriptionAcknowledgement {
-                        subscription_id: response.subscription_id,
+                        subscription_id,
                         sequence_number: notification_message.sequence_number,
                     });
 
                     // Process data change notifications
                     let data_change_notifications = notification_message.data_change_notifications();
-                    data_change_notifications.iter().for_each(|n| {
-                        if let Some(ref monitored_items) = n.monitored_items {
-                            monitored_items.iter().for_each(|i| {
-                                if i.client_handle == 1000 {
-                                    // TODO
-                                    trace!("xxxx");
-                                }
-                                // use i.client_handle to find monitored item and store i.value
-                            });
-                        }
-                    });
+                    if !data_change_notifications.is_empty() {
+                        let mut subscription_state = self.subscription_state.lock().unwrap();
+                        subscription_state.subscription_data_change(subscription_id, data_change_notifications);
+                    }
 
                     //pub available_sequence_numbers: Option<Vec<UInt32>>,
                     //pub more_notifications: Boolean,

@@ -1,4 +1,5 @@
 use opcua_types::*;
+use opcua_types::service_types::{DataChangeNotification, ReadValueId};
 use std::collections::HashMap;
 
 // This file will hold functionality related to creating a subscription and monitoring items
@@ -6,8 +7,9 @@ use std::collections::HashMap;
 pub struct CreateMonitoredItem {
     pub id: UInt32,
     pub client_handle: UInt32,
-    pub sampling_interval: Double,
+    pub item_to_monitor: ReadValueId,
     pub queue_size: UInt32,
+    pub sampling_interval: Double,
 }
 
 pub struct ModifyMonitoredItem {
@@ -16,23 +18,20 @@ pub struct ModifyMonitoredItem {
     pub queue_size: UInt32,
 }
 
+#[derive(Debug)]
 pub struct MonitoredItem {
     /// This is the monitored item's id within the subscription
     id: UInt32,
+    /// Monitored item's handle. Used internally - not modifiable
+    client_handle: UInt32,
+    // Item to monitor
+    item_to_monitor: ReadValueId,
     /// Queue size
     queue_size: UInt32,
     /// Sampling interval
     sampling_interval: Double,
-    /// Monitored item's node id
-    node_id: NodeId,
-    /// Attribute id to monitor
-    attribute_id: AttributeId,
-    /// Numeric range for array monitoring
-    index_range: Option<NumericRange>,
     /// Last value of the item
     value: DataValue,
-    /// Monitored item's handle. Used internally - not modifiable
-    client_handle: UInt32,
 }
 
 impl MonitoredItem {
@@ -41,9 +40,12 @@ impl MonitoredItem {
             id: 0,
             queue_size: 0,
             sampling_interval: 0.0,
-            node_id: NodeId::null(),
-            attribute_id: AttributeId::Value,
-            index_range: None,
+            item_to_monitor: ReadValueId {
+                node_id: NodeId::null(),
+                attribute_id: 0,
+                index_range: UAString::null(),
+                data_encoding: QualifiedName::null(),
+            },
             value: DataValue::null(),
             client_handle,
         }
@@ -60,6 +62,9 @@ impl MonitoredItem {
     pub fn client_handle(&self) -> UInt32 {
         self.client_handle
     }
+
+    pub fn item_to_monitor(&self) -> ReadValueId { self.item_to_monitor.clone() }
+
 
     pub fn sampling_interval(&self) -> Double {
         self.sampling_interval
@@ -80,10 +85,6 @@ impl MonitoredItem {
     pub fn value(&self) -> DataValue {
         self.value.clone()
     }
-
-    pub fn set_value(&mut self, value: DataValue) {
-        self.value = value
-    }
 }
 
 pub struct Subscription {
@@ -103,7 +104,7 @@ pub struct Subscription {
     priority: Byte,
     /// The change callback will be what is called if any monitored item changes within a cycle.
     /// The monitored item is referenced by its id
-    change_callback: Option<Box<FnOnce(&Vec<UInt32>) + Send + 'static>>,
+    change_callback: Option<Box<FnOnce(&Vec<&MonitoredItem>) + Send + 'static>>,
     /// A map of monitored items associated with the subscription (key = monitored_item_id)
     monitored_items: HashMap<UInt32, MonitoredItem>,
     /// A map of client handle to monitored item id
@@ -112,7 +113,7 @@ pub struct Subscription {
 
 impl Subscription {
     pub fn new<F>(subscription_id: UInt32, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, publishing_enabled: Boolean, priority: Byte, callback: F) -> Subscription
-        where F: FnOnce(&Vec<UInt32>) + Send + 'static {
+        where F: FnOnce(&Vec<&MonitoredItem>) + Send + 'static {
         Subscription {
             subscription_id,
             publishing_interval,
@@ -181,5 +182,19 @@ impl Subscription {
                 let _ = self.client_handles.remove(&monitored_item.client_handle());
             }
         })
+    }
+
+    pub fn data_change(&mut self, data_change_notifications: Vec<DataChangeNotification>) {
+        for n in data_change_notifications {
+            if let Some(monitored_items) = n.monitored_items {
+                for i in monitored_items {
+                    if let Some(monitored_item_id) = self.client_handles.get(&i.client_handle) {
+                        let monitored_item = self.monitored_items.get_mut(&monitored_item_id).unwrap();
+                        monitored_item.value = i.value;
+                        // use i.client_handle to find monitored item and store i.value
+                    }
+                }
+            }
+        }
     }
 }

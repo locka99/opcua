@@ -1,4 +1,5 @@
 use opcua_types::{Byte, Double, UInt32};
+use opcua_types::service_types::DataChangeNotification;
 use std::collections::HashMap;
 use subscription::*;
 
@@ -15,6 +16,14 @@ impl SubscriptionState {
     }
 
     pub fn is_empty(&self) -> bool { self.subscriptions.is_empty() }
+
+    pub fn subscription_ids(&self) -> Option<Vec<UInt32>> {
+        if self.subscriptions.is_empty() {
+            None
+        } else {
+            Some(self.subscriptions.keys().map(|k| *k).collect())
+        }
+    }
 
     pub fn subscription_exists(&self, subscription_id: UInt32) -> bool {
         self.subscriptions.contains_key(&subscription_id)
@@ -36,6 +45,16 @@ impl SubscriptionState {
 
     pub fn delete_subscription(&mut self, subscription_id: UInt32) {
         self.subscriptions.remove(&subscription_id);
+    }
+
+    pub fn delete_all_subscriptions(&mut self) {
+        self.subscriptions.clear();
+    }
+
+    pub fn subscription_data_change(&mut self, subscription_id: UInt32, data_change_notifications: Vec<DataChangeNotification>) {
+        if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
+            subscription.data_change(data_change_notifications);
+        }
     }
 
     pub fn insert_monitored_items(&mut self, subscription_id: UInt32, items_to_create: Vec<CreateMonitoredItem>) {

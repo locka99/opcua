@@ -34,6 +34,20 @@ pub struct Client {
     certificate_store: Arc<Mutex<CertificateStore>>,
 }
 
+impl Drop for Client {
+    fn drop(&mut self) {
+        for session in self.sessions.iter_mut() {
+            // Remove the timer from the session - has a reference to session
+            session.subscription_timer = None;
+            // Disconnect
+            let mut session = session.session.lock().unwrap();
+            if session.is_connected() {
+                session.disconnect()
+            }
+        }
+    }
+}
+
 impl Client {
     /// Creates a new `Client` instance. The application name and uri are supplied as arguments to
     /// this call and are passed to each session that connects hereafter.
