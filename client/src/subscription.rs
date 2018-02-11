@@ -65,6 +65,7 @@ impl MonitoredItem {
 
     pub fn item_to_monitor(&self) -> ReadValueId { self.item_to_monitor.clone() }
 
+    pub fn set_item_to_monitor(&mut self, item_to_monitor: ReadValueId) { self.item_to_monitor = item_to_monitor; }
 
     pub fn sampling_interval(&self) -> Double {
         self.sampling_interval
@@ -174,6 +175,7 @@ impl Subscription {
             monitored_item.set_id(i.id);
             monitored_item.set_sampling_interval(i.sampling_interval);
             monitored_item.set_queue_size(i.queue_size);
+            monitored_item.set_item_to_monitor(i.item_to_monitor.clone());
 
             let client_handle = monitored_item.client_handle();
             let monitored_item_id = monitored_item.id();

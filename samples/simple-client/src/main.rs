@@ -12,7 +12,7 @@ use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
 // This simple client will fetch values and exit, or if --subscribe is passed on the command line
-// it will subscribe to values and run indefinitely, printing out changes to the values.
+// it will subscribe to values and run indefinitely, printing out changes to those values.
 
 fn main() {
     // Optional - enable OPC UA logging
@@ -79,6 +79,15 @@ fn nodes_to_monitor() -> Vec<ReadValueId> {
     ]
 }
 
+fn print_value(read_value_id: &ReadValueId, data_value: &DataValue) {
+    let node_id = read_value_id.node_id.to_string();
+    if let Some(ref value) = data_value.value {
+        println!("Item \"{}\", Value = {:?}", node_id, value);
+    } else {
+        println!("Item \"{}\", Value not found, error: {}", node_id, data_value.status.as_ref().unwrap().description());
+    }
+}
+
 fn subscribe(session: Arc<Mutex<Session>>) -> Result<(), StatusCode> {
     // Create a subscription
     println!("Creating subscription");
@@ -86,9 +95,12 @@ fn subscribe(session: Arc<Mutex<Session>>) -> Result<(), StatusCode> {
     {
         let mut session = session.lock().unwrap();
         let subscription_id = session.create_subscription(1f64, 10, 30, 0, 0, true, DataChangeCallback::new(|items| {
-            println!("Got changes to items {:?}", items);
+            println!("Data change from server:");
+            items.iter().for_each(|item| {
+                print_value(&item.item_to_monitor(), &item.value());
+            });
         }))?;
-        println!("Subscription id = {}", subscription_id);
+        println!("Created a subscription with id = {}", subscription_id);
 
         // Make requests for the items to create
         let read_nodes = nodes_to_monitor();
@@ -101,10 +113,8 @@ fn subscribe(session: Arc<Mutex<Session>>) -> Result<(), StatusCode> {
                 discard_oldest: true,
             })
         }).collect();
-
         println!("Creating monitored items");
-        let response = session.create_monitored_items(subscription_id, items_to_create)?;
-        println!("Creating monitored items {:?}", response);
+        let _ = session.create_monitored_items(subscription_id, items_to_create)?;
     }
 
     // Loops for ever. The publish thread will call the callback with changes on the variables
@@ -137,13 +147,9 @@ fn read_values(session: Arc<Mutex<Session>>) -> Result<(), StatusCode> {
 
     // Print the values out
     println!("Values from server:");
-    for data_value in data_values.iter() {
-        if let Some(ref value) = data_value.value {
-            println!("Value = {:?}", value);
-        } else {
-            println!("Value not found, error: {}", data_value.status.as_ref().unwrap().description());
-        }
-    }
+    read_nodes.iter().zip(data_values.iter()).for_each(|i| {
+        print_value(i.0, i.1);
+    });
 
     Ok(())
 }
