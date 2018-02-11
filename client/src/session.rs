@@ -11,7 +11,7 @@ use std::result::Result;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use subscription;
-use subscription::Subscription;
+use subscription::{DataChangeCallback, Subscription};
 use subscription_state::SubscriptionState;
 
 /// Information about the server endpoint, security policy, security mode and user identity that the session will
@@ -431,8 +431,8 @@ impl Session {
     /// supplied subscription struct. The initial values imply the requested interval, lifetime 
     /// and keepalive and the value returned in the response are the revised values. The
     /// subscription id is also returned in the response.
-    pub fn create_subscription<F>(&mut self, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte, publishing_enabled: Boolean, callback: F)
-                                  -> Result<UInt32, StatusCode> where F: FnOnce(&Vec<&subscription::MonitoredItem>) + Send + 'static {
+    pub fn create_subscription(&mut self, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte, publishing_enabled: Boolean, callback: DataChangeCallback)
+                               -> Result<UInt32, StatusCode> {
         let request = CreateSubscriptionRequest {
             request_header: self.make_request_header(),
             requested_publishing_interval: publishing_interval,
@@ -841,13 +841,14 @@ impl Session {
 
     /// Function that handles subscription
     pub fn subscription_timer(&mut self) {
-        println!("Subscription timer -------------------------------------------------------");
         let have_subscriptions = {
             let mut subscription_state = self.subscription_state.lock().unwrap();
             !subscription_state.is_empty()
         };
 
         if have_subscriptions {
+            trace!("Subscription timer has subscriptions and is sending a publish");
+
             // On timer, send a publish request with optional
             //   Acknowledgements
             let subscription_acknowledgements = self.subscription_acknowledgements.drain(..).collect();

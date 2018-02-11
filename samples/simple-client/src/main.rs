@@ -85,9 +85,9 @@ fn subscribe(session: Arc<Mutex<Session>>) -> Result<(), StatusCode> {
 
     {
         let mut session = session.lock().unwrap();
-        let subscription_id = session.create_subscription(1f64, 10, 30, 0, 0, true, |items| {
+        let subscription_id = session.create_subscription(1f64, 10, 30, 0, 0, true, DataChangeCallback::new(|items| {
             println!("Got changes to items {:?}", items);
-        })?;
+        }))?;
         println!("Subscription id = {}", subscription_id);
 
         // Make requests for the items to create

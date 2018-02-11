@@ -1,6 +1,6 @@
 use opcua_types::*;
 use opcua_types::service_types::{DataChangeNotification, ReadValueId};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 // This file will hold functionality related to creating a subscription and monitoring items
 
@@ -87,6 +87,23 @@ impl MonitoredItem {
     }
 }
 
+/// This is the data cjamhe callback that clients register to receive item change notifications
+pub struct DataChangeCallback {
+    cb: Box<Fn(Vec<&MonitoredItem>) + Send + 'static>
+}
+
+impl DataChangeCallback {
+    pub fn new<CB>(cb: CB) -> DataChangeCallback where CB: Fn(Vec<&MonitoredItem>) + Send + 'static {
+        DataChangeCallback {
+            cb: Box::new(cb)
+        }
+    }
+
+    pub fn call(&self, data_change_items: Vec<&MonitoredItem>) {
+        (self.cb)(data_change_items);
+    }
+}
+
 pub struct Subscription {
     /// Subscription id, supplied by server
     subscription_id: UInt32,
@@ -104,7 +121,7 @@ pub struct Subscription {
     priority: Byte,
     /// The change callback will be what is called if any monitored item changes within a cycle.
     /// The monitored item is referenced by its id
-    change_callback: Option<Box<FnOnce(&Vec<&MonitoredItem>) + Send + 'static>>,
+    data_change_callback: Option<DataChangeCallback>,
     /// A map of monitored items associated with the subscription (key = monitored_item_id)
     monitored_items: HashMap<UInt32, MonitoredItem>,
     /// A map of client handle to monitored item id
@@ -112,8 +129,7 @@ pub struct Subscription {
 }
 
 impl Subscription {
-    pub fn new<F>(subscription_id: UInt32, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, publishing_enabled: Boolean, priority: Byte, callback: F) -> Subscription
-        where F: FnOnce(&Vec<&MonitoredItem>) + Send + 'static {
+    pub fn new(subscription_id: UInt32, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, publishing_enabled: Boolean, priority: Byte, data_change_callback: DataChangeCallback) -> Subscription {
         Subscription {
             subscription_id,
             publishing_interval,
@@ -122,7 +138,7 @@ impl Subscription {
             max_notifications_per_publish,
             publishing_enabled,
             priority,
-            change_callback: Some(Box::new(callback)),
+            data_change_callback: Some(data_change_callback),
             monitored_items: HashMap::new(),
             client_handles: HashMap::new(),
         }
@@ -184,17 +200,39 @@ impl Subscription {
         })
     }
 
+    fn monitored_item_id_from_handle(&self, client_handle: UInt32) -> Option<UInt32> {
+        if let Some(monitored_item_id) = self.client_handles.get(&client_handle) {
+            Some(*monitored_item_id)
+        } else {
+            None
+        }
+    }
+
     pub fn data_change(&mut self, data_change_notifications: Vec<DataChangeNotification>) {
+        let mut monitored_item_ids = HashSet::new();
         for n in data_change_notifications {
             if let Some(monitored_items) = n.monitored_items {
                 for i in monitored_items {
-                    if let Some(monitored_item_id) = self.client_handles.get(&i.client_handle) {
-                        let monitored_item = self.monitored_items.get_mut(&monitored_item_id).unwrap();
-                        monitored_item.value = i.value;
-                        // use i.client_handle to find monitored item and store i.value
-                    }
+                    let monitored_item_id = {
+                        let monitored_item_id = self.monitored_item_id_from_handle(i.client_handle);
+                        if monitored_item_id.is_none() {
+                            continue;
+                        }
+                        *monitored_item_id.as_ref().unwrap()
+                    };
+
+                    let monitored_item = self.monitored_items.get_mut(&monitored_item_id).unwrap();
+                    monitored_item.value = i.value;
+                    monitored_item_ids.insert(monitored_item_id);
                 }
             }
+        }
+
+        if !monitored_item_ids.is_empty() && self.data_change_callback.is_some() {
+            let data_change_items: Vec<&MonitoredItem> = monitored_item_ids.iter()
+                .map(|id| self.monitored_items.get(&id).unwrap()).collect();
+            // Call the call back with the changes we collected
+            self.data_change_callback.as_ref().unwrap().call(data_change_items);
         }
     }
 }
