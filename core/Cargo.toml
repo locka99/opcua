@@ -1,6 +1,6 @@
 [package]
 name = "opcua-core"
-version = "0.2.0"
+version = "0.3.0" # OPCUARustVersion
 description = "Core components for OPC UA used by client and server"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"
@@ -21,7 +21,7 @@ serde_yaml = "0.7"
 
 [dependencies.opcua-types]
 path = "../types"
-version = "0.2.0"
+version = "0.3.0" # OPCUARustVersion
 
 [dev-dependencies]
 tempdir = "0.3"

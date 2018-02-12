@@ -16,7 +16,8 @@ The code is licenced under [MPL-2.0](https://opensource.org/licenses/MPL-2.0). L
 
 ## OPC UA Binary Transport Protocol
 
-This implementation will implement the opc.tcp:// binary format. It will **not** implement OPC UA over XML. XML hasn't see much adoption so this is no great impediment. Binary over https:// might happen at a later time.
+This implementation will implement the opc.tcp:// binary format. It will **not** implement OPC UA over XML. XML hasn't
+see much adoption so this is no great impediment. Binary over https:// might happen at a later time.
 
 ## Server
 
@@ -27,8 +28,7 @@ The server shall implement the OPC UA capabilities:
 
 ### Services
 
-The following services are supported fully, partially (marked with a *) or as a stub / work in progress (marked !). That means a client
-may call them and receive a response. 
+The following services are supported:
 
 * Discovery service set
     * GetEndpoints
@@ -48,7 +48,7 @@ may call them and receive a response.
     * TranslateBrowsePathsToNodeIds
 
 * MonitoredItem service set
-    * CreateMonitoredItems. Data change filter including dead band filtering. 
+    * CreateMonitoredItems - Data change filter including dead band filtering. 
     * ModifyMonitoredItems
     * DeleteMonitoredItems
 
@@ -109,8 +109,15 @@ Currently the following are not supported
 
 ## Client
 
-The client shall mirror the functionality in the server but currently only supports synchronous calls to the server, 
-and does not support subscriptions or monitoring of data.
+The client shall mirror the functionality in the server providing an API to connect to a server and call its services.
+
+Other features
+
+* Configuration can be set in code or read from a YAML file
+* Can discover endpoints from a discovery server
+* Supports the creation of subscriptions and monitored items
+* Supports anonymous and user/password authentication
+* Crypto support is WORK IN PROGRESS - 95% 
 
 # Building and testing
 
@@ -148,7 +155,7 @@ build the entire workspace from the top like so:
 
 ```bash
 cd opcua
-cargo build --all
+cargo build
 ```
 
 ## Simple Server
@@ -362,7 +369,6 @@ Implemented:
 Work in progress:
 
 * Multiple chunks
-* Signing and encryption of chunks. 
 
 Eventually:
 
@@ -379,11 +385,12 @@ Implemented:
 
 * Base client behaviour facet
 * Attribute read / write
+* Discovery
+* Subscriptions / monitored items + datachange callback 
 
 Eventually:
 
 * Core client facet (crypto, security policy)
-* Datachange subscriber
 * Error recovery state (i.e. ability to reconnect and re-establish state after disconnect)
 
 ## Major 3rd party dependencies

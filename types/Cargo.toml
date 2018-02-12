@@ -1,6 +1,6 @@
 [package]
 name = "opcua-types"
-version = "0.2.0"
+version = "0.3.0" # OPCUARustVersion
 description = "OPC UA types and constants"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"
