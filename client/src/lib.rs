@@ -16,12 +16,12 @@ extern crate opcua_types;
 extern crate opcua_core;
 
 mod comms;
+mod subscription;
+mod subscription_state;
 
 pub mod config;
 pub mod client;
 pub mod session;
-pub mod subscription;
-pub mod subscription_state;
 
 pub mod prelude {
     pub use opcua_types::status_codes::StatusCode;
@@ -30,8 +30,7 @@ pub mod prelude {
     pub use client::*;
     pub use config::*;
     pub use session::*;
-    pub use subscription::*;
-    pub use subscription_state::*;
+    pub use subscription::{MonitoredItem, DataChangeCallback};
 }
 
 #[cfg(test)]

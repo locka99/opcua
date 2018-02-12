@@ -18,6 +18,16 @@ pub struct ModifyMonitoredItem {
     pub queue_size: UInt32,
 }
 
+pub trait WritableMonitoredItem {
+    fn set_id(&mut self, value: UInt32);
+
+    fn set_item_to_monitor(&mut self, item_to_monitor: ReadValueId);
+
+    fn set_sampling_interval(&mut self, value: Double);
+
+    fn set_queue_size(&mut self, value: UInt32);
+}
+
 #[derive(Debug)]
 pub struct MonitoredItem {
     /// This is the monitored item's id within the subscription
@@ -32,6 +42,22 @@ pub struct MonitoredItem {
     sampling_interval: Double,
     /// Last value of the item
     value: DataValue,
+}
+
+impl WritableMonitoredItem for MonitoredItem {
+    fn set_id(&mut self, value: UInt32) {
+        self.id = value;
+    }
+
+    fn set_item_to_monitor(&mut self, item_to_monitor: ReadValueId) { self.item_to_monitor = item_to_monitor; }
+
+    fn set_sampling_interval(&mut self, value: Double) {
+        self.sampling_interval = value;
+    }
+
+    fn set_queue_size(&mut self, value: UInt32) {
+        self.queue_size = value;
+    }
 }
 
 impl MonitoredItem {
@@ -55,32 +81,18 @@ impl MonitoredItem {
         self.id
     }
 
-    pub fn set_id(&mut self, value: UInt32) {
-        self.id = value;
-    }
-
     pub fn client_handle(&self) -> UInt32 {
         self.client_handle
     }
 
     pub fn item_to_monitor(&self) -> ReadValueId { self.item_to_monitor.clone() }
 
-    pub fn set_item_to_monitor(&mut self, item_to_monitor: ReadValueId) { self.item_to_monitor = item_to_monitor; }
-
     pub fn sampling_interval(&self) -> Double {
         self.sampling_interval
     }
 
-    pub fn set_sampling_interval(&mut self, value: Double) {
-        self.sampling_interval = value;
-    }
-
     pub fn queue_size(&self) -> UInt32 {
         self.queue_size
-    }
-
-    pub fn set_queue_size(&mut self, value: UInt32) {
-        self.queue_size = value;
     }
 
     pub fn value(&self) -> DataValue {
@@ -88,18 +100,21 @@ impl MonitoredItem {
     }
 }
 
-/// This is the data cjamhe callback that clients register to receive item change notifications
+/// This is the data change callback that clients register to receive item change notifications
 pub struct DataChangeCallback {
+    /// The actual call back
     cb: Box<Fn(Vec<&MonitoredItem>) + Send + 'static>
 }
 
 impl DataChangeCallback {
+    /// Constructs a callback from the supplied function
     pub fn new<CB>(cb: CB) -> DataChangeCallback where CB: Fn(Vec<&MonitoredItem>) + Send + 'static {
         DataChangeCallback {
             cb: Box::new(cb)
         }
     }
 
+    /// Calls the call back with the data change items
     pub fn call(&self, data_change_items: Vec<&MonitoredItem>) {
         (self.cb)(data_change_items);
     }
