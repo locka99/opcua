@@ -92,9 +92,13 @@ fn subscribe(session: Arc<Mutex<Session>>) -> Result<(), StatusCode> {
     // Create a subscription
     println!("Creating subscription");
 
+    // This scope is important - we don't want to session to be locked when the code hits the
+    // loop below
     {
         let mut session = session.lock().unwrap();
-        let subscription_id = session.create_subscription(1f64, 10, 30, 0, 0, true, DataChangeCallback::new(|items| {
+
+        // Creates our subscription - one update every 5 seconds
+        let subscription_id = session.create_subscription(5f64, 10, 30, 0, 0, true, DataChangeCallback::new(|items| {
             println!("Data change from server:");
             items.iter().for_each(|item| {
                 print_value(&item.item_to_monitor(), &item.value());
@@ -102,7 +106,7 @@ fn subscribe(session: Arc<Mutex<Session>>) -> Result<(), StatusCode> {
         }))?;
         println!("Created a subscription with id = {}", subscription_id);
 
-        // Make requests for the items to create
+        // Create some monitored items
         let read_nodes = nodes_to_monitor();
         let items_to_create: Vec<MonitoredItemCreateRequest> = read_nodes.into_iter().map(|read_node| {
             MonitoredItemCreateRequest::new(read_node, MonitoringMode::Reporting, MonitoringParameters {
@@ -113,11 +117,10 @@ fn subscribe(session: Arc<Mutex<Session>>) -> Result<(), StatusCode> {
                 discard_oldest: true,
             })
         }).collect();
-        println!("Creating monitored items");
         let _ = session.create_monitored_items(subscription_id, items_to_create)?;
     }
 
-    // Loops for ever. The publish thread will call the callback with changes on the variables
+    // Loops forever. The publish thread will call the callback with changes on the variables
     loop {
         {
             // Break the loop if connection goes down
