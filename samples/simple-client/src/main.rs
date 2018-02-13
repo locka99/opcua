@@ -145,7 +145,7 @@ fn read_values(session: Arc<Mutex<Session>>) -> Result<(), StatusCode> {
     let read_nodes = nodes_to_monitor();
     let data_values = {
         let mut session = session.lock().unwrap();
-        session.read_nodes(&read_nodes)?.unwrap()
+        session.read_nodes(read_nodes.clone())?.unwrap()
     };
 
     // Print the values out

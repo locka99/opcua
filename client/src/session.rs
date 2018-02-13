@@ -346,10 +346,10 @@ impl Session {
     }
 
     /// Sends a BrowseRequest to the server
-    pub fn browse(&mut self, nodes_to_browse: &[BrowseDescription]) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
+    pub fn browse(&mut self, nodes_to_browse: Vec<BrowseDescription>) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
         if nodes_to_browse.is_empty() {
-            error!("Cannot browse without any nodes to browse");
-            Err(BadInvalidArgument)
+            error!("browse() was not supplied with any nodes to browse");
+            Err(BadNothingToDo)
         } else {
             let request = BrowseRequest {
                 request_header: self.make_request_header(),
@@ -359,7 +359,7 @@ impl Session {
                     view_version: 0,
                 },
                 requested_max_references_per_node: 1000,
-                nodes_to_browse: Some(nodes_to_browse.to_vec()),
+                nodes_to_browse: Some(nodes_to_browse),
             };
             let response = self.send_request(SupportedMessage::BrowseRequest(request))?;
             if let SupportedMessage::BrowseResponse(response) = response {
@@ -372,14 +372,14 @@ impl Session {
     }
 
     /// Sends a BrowseNextRequest to the server
-    pub fn browse_next(&mut self, release_continuation_points: bool, continuation_points: &[ByteString]) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
+    pub fn browse_next(&mut self, release_continuation_points: bool, continuation_points: Vec<ByteString>) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
         if continuation_points.is_empty() {
-            error!("Cannot browse next without any continuation points");
-            Err(BadInvalidArgument)
+            error!("browse_next() was not supplied with any continuation points");
+            Err(BadNothingToDo)
         } else {
             let request = BrowseNextRequest {
                 request_header: self.make_request_header(),
-                continuation_points: Some(continuation_points.to_vec()),
+                continuation_points: Some(continuation_points),
                 release_continuation_points,
             };
             let response = self.send_request(SupportedMessage::BrowseNextRequest(request))?;
@@ -393,37 +393,49 @@ impl Session {
     }
 
     /// Sends a ReadRequest to the server
-    pub fn read_nodes(&mut self, nodes_to_read: &[ReadValueId]) -> Result<Option<Vec<DataValue>>, StatusCode> {
-        debug!("read_nodes requested to read nodes {:?}", nodes_to_read);
-        let request = ReadRequest {
-            request_header: self.make_request_header(),
-            max_age: 1f64,
-            timestamps_to_return: TimestampsToReturn::Server,
-            nodes_to_read: Some(nodes_to_read.to_vec()),
-        };
-        trace!("ReadRequest = {:#?}", request);
-        let response = self.send_request(SupportedMessage::ReadRequest(request))?;
-        if let SupportedMessage::ReadResponse(response) = response {
-            trace!("ReadResponse = {:#?}", response);
-            Self::process_service_result(&response.response_header)?;
-            Ok(response.results)
+    pub fn read_nodes(&mut self, nodes_to_read: Vec<ReadValueId>) -> Result<Option<Vec<DataValue>>, StatusCode> {
+        if nodes_to_read.is_empty() {
+            // No subscriptions
+            error!("read_nodes() was not supplied with any nodes to read");
+            Err(BadNothingToDo)
         } else {
-            Err(Self::process_unexpected_response(response))
+            debug!("read_nodes requested to read nodes {:?}", nodes_to_read);
+            let request = ReadRequest {
+                request_header: self.make_request_header(),
+                max_age: 1f64,
+                timestamps_to_return: TimestampsToReturn::Server,
+                nodes_to_read: Some(nodes_to_read),
+            };
+            trace!("ReadRequest = {:#?}", request);
+            let response = self.send_request(SupportedMessage::ReadRequest(request))?;
+            if let SupportedMessage::ReadResponse(response) = response {
+                trace!("ReadResponse = {:#?}", response);
+                Self::process_service_result(&response.response_header)?;
+                Ok(response.results)
+            } else {
+                Err(Self::process_unexpected_response(response))
+            }
         }
     }
 
     /// Sends a WriteRequest to the server
-    pub fn write_value(&mut self, nodes_to_write: &[WriteValue]) -> Result<Option<Vec<StatusCode>>, StatusCode> {
-        let request = WriteRequest {
-            request_header: self.make_request_header(),
-            nodes_to_write: Some(nodes_to_write.to_vec()),
-        };
-        let response = self.send_request(SupportedMessage::WriteRequest(request))?;
-        if let SupportedMessage::WriteResponse(response) = response {
-            Self::process_service_result(&response.response_header)?;
-            Ok(response.results)
+    pub fn write_value(&mut self, nodes_to_write: Vec<WriteValue>) -> Result<Option<Vec<StatusCode>>, StatusCode> {
+        if nodes_to_write.is_empty() {
+            // No subscriptions
+            error!("write_value() was not supplied with any nodes to write");
+            Err(BadNothingToDo)
         } else {
-            Err(Self::process_unexpected_response(response))
+            let request = WriteRequest {
+                request_header: self.make_request_header(),
+                nodes_to_write: Some(nodes_to_write),
+            };
+            let response = self.send_request(SupportedMessage::WriteRequest(request))?;
+            if let SupportedMessage::WriteResponse(response) = response {
+                Self::process_service_result(&response.response_header)?;
+                Ok(response.results)
+            } else {
+                Err(Self::process_unexpected_response(response))
+            }
         }
     }
 
@@ -466,10 +478,10 @@ impl Session {
     // modify subscription
     pub fn modify_subscription(&mut self, subscription_id: UInt32, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte) -> Result<(), StatusCode> {
         if subscription_id == 0 {
-            error!("Subscription id must be non-zero, or the subscription is considered invalid");
+            error!("modify_subscription() subscription id must be non-zero, or the subscription is considered invalid");
             Err(BadInvalidArgument)
         } else if !self.subscription_exists(subscription_id) {
-            error!("Subscription id does not exist");
+            error!("modify_subscription() subscription id does not exist");
             Err(BadInvalidArgument)
         } else {
             let request = ModifySubscriptionRequest {
@@ -499,12 +511,12 @@ impl Session {
     }
 
     /// Removes a subscription using its subscription id
-    pub fn delete_subscription(&mut self, subscription_id: UInt32) -> Result<DeleteSubscriptionsResponse, StatusCode> {
+    pub fn delete_subscription(&mut self, subscription_id: UInt32) -> Result<StatusCode, StatusCode> {
         if subscription_id == 0 {
-            error!("Subscription id must be non-zero, or the subscription is considered invalid");
+            error!("delete_subscription() subscription id must be non-zero, or the subscription is considered invalid");
             Err(BadInvalidArgument)
         } else if !self.subscription_exists(subscription_id) {
-            error!("Subscription id does not exist");
+            error!("delete_subscription() subscription id does not exist");
             Err(BadInvalidArgument)
         } else {
             let request = DeleteSubscriptionsRequest {
@@ -518,7 +530,7 @@ impl Session {
                     let mut subscription_state = self.subscription_state.lock().unwrap();
                     subscription_state.delete_subscription(subscription_id);
                 }
-                Ok(response)
+                Ok(response.results.as_ref().unwrap()[0])
             } else {
                 Err(Self::process_unexpected_response(response))
             }
@@ -526,13 +538,14 @@ impl Session {
     }
 
     /// Removes all subscriptions, assuming there are any to remove
-    pub fn delete_all_subscriptions(&mut self) -> Result<DeleteSubscriptionsResponse, StatusCode> {
+    pub fn delete_all_subscriptions(&mut self) -> Result<Vec<StatusCode>, StatusCode> {
         let subscription_ids = {
             let mut subscription_state = self.subscription_state.lock().unwrap();
             subscription_state.subscription_ids()
         };
         if subscription_ids.is_none() {
             // No subscriptions
+            warn!("delete_all_subscriptions() called where there were no subscriptions");
             Err(BadNothingToDo)
         } else {
             // Send a delete request holding all the subscription ides that we wish to delete
@@ -548,7 +561,34 @@ impl Session {
                     let mut subscription_state = self.subscription_state.lock().unwrap();
                     subscription_state.delete_all_subscriptions();
                 }
-                Ok(response)
+                Ok(response.results.unwrap())
+            } else {
+                Err(Self::process_unexpected_response(response))
+            }
+        }
+    }
+
+    /// Sets the publishing mode for one or more subscriptions
+    pub fn set_publishing_mode(&mut self, publishing_enabled: Boolean, subscription_ids: Vec<UInt32>) -> Result<Vec<StatusCode>, StatusCode> {
+        if subscription_ids.is_empty() {
+            // No subscriptions
+            error!("set_publishing_mode() no subscription ids were provided");
+            Err(BadNothingToDo)
+        } else {
+            let request = SetPublishingModeRequest {
+                request_header: self.make_request_header(),
+                publishing_enabled,
+                subscription_ids: Some(subscription_ids.clone()),
+            };
+            let response = self.send_request(SupportedMessage::SetPublishingModeRequest(request))?;
+            if let SupportedMessage::SetPublishingModeResponse(response) = response {
+                Self::process_service_result(&response.response_header)?;
+                {
+                    // Clear out all subscriptions, assuming the delete worked
+                    let mut subscription_state = self.subscription_state.lock().unwrap();
+                    subscription_state.set_publishing_mode(publishing_enabled, subscription_ids);
+                }
+                Ok(response.results.unwrap())
             } else {
                 Err(Self::process_unexpected_response(response))
             }
@@ -556,15 +596,15 @@ impl Session {
     }
 
     /// Create monitored items request
-    pub fn create_monitored_items(&mut self, subscription_id: UInt32, mut items_to_create: Vec<MonitoredItemCreateRequest>) -> Result<CreateMonitoredItemsResponse, StatusCode> {
+    pub fn create_monitored_items(&mut self, subscription_id: UInt32, mut items_to_create: Vec<MonitoredItemCreateRequest>) -> Result<Vec<MonitoredItemCreateResult>, StatusCode> {
         if subscription_id == 0 {
-            error!("Subscription id must be non-zero, or the subscription is considered invalid");
+            error!("create_monitored_items() subscription id must be non-zero, or the subscription is considered invalid");
             Err(BadInvalidArgument)
         } else if !self.subscription_exists(subscription_id) {
-            error!("Subscription id does not exist");
+            error!("create_monitored_items subscription id does not exist");
             Err(BadInvalidArgument)
         } else if items_to_create.is_empty() {
-            error!("Nothing to do!");
+            error!("create_monitored_items() called with no items to create");
             Err(BadNothingToDo)
         } else {
             // Assign each item a unique client handle
@@ -597,7 +637,7 @@ impl Session {
                         subscription_state.insert_monitored_items(subscription_id, items_to_create);
                     }
                 }
-                Ok(response)
+                Ok(response.results.unwrap())
             } else {
                 Err(Self::process_unexpected_response(response))
             }
@@ -605,17 +645,18 @@ impl Session {
     }
 
     /// Modifies monitored items in the subscription
-    pub fn modify_monitored_items(&mut self, subscription_id: UInt32, items_to_modify: Vec<MonitoredItemModifyRequest>) -> Result<ModifyMonitoredItemsResponse, StatusCode> {
+    pub fn modify_monitored_items(&mut self, subscription_id: UInt32, items_to_modify: Vec<MonitoredItemModifyRequest>) -> Result<Vec<MonitoredItemModifyResult>, StatusCode> {
         if subscription_id == 0 {
-            error!("Subscription id must be non-zero, or the subscription is considered invalid");
+            error!("modify_monitored_items() subscription id must be non-zero, or the subscription is considered invalid");
             Err(BadInvalidArgument)
         } else if !self.subscription_exists(subscription_id) {
-            error!("Subscription id does not exist");
+            error!("modify_monitored_items() subscription id does not exist");
             Err(BadInvalidArgument)
+        } else if items_to_modify.is_empty() {
+            error!("modify_monitored_items() called with no items to modify");
+            Err(BadNothingToDo)
         } else {
             let monitored_item_ids: Vec<UInt32> = items_to_modify.iter().map(|i| i.monitored_item_id).collect();
-
-
             let request = ModifyMonitoredItemsRequest {
                 request_header: self.make_request_header(),
                 subscription_id,
@@ -639,7 +680,7 @@ impl Session {
                         subscription_state.modify_monitored_items(subscription_id, items_to_modify);
                     }
                 }
-                Ok(response)
+                Ok(response.results.unwrap())
             } else {
                 Err(Self::process_unexpected_response(response))
             }
@@ -647,27 +688,30 @@ impl Session {
     }
 
     /// Deletes monitored items from the subscription
-    pub fn delete_monitored_items(&mut self, subscription_id: UInt32, monitored_item_ids: Vec<UInt32>) -> Result<DeleteMonitoredItemsResponse, StatusCode> {
+    pub fn delete_monitored_items(&mut self, subscription_id: UInt32, items_to_delete: Vec<UInt32>) -> Result<Vec<StatusCode>, StatusCode> {
         if subscription_id == 0 {
-            error!("Subscription id must be non-zero, or the subscription is considered invalid");
+            error!("delete_monitored_items() subscription id must be non-zero, or the subscription is considered invalid");
             Err(BadInvalidArgument)
         } else if !self.subscription_exists(subscription_id) {
-            error!("Subscription id does not exist");
+            error!("delete_monitored_items() subscription id does not exist");
             Err(BadInvalidArgument)
+        } else if items_to_delete.is_empty() {
+            error!("delete_monitored_items() called with no items to delete");
+            Err(BadNothingToDo)
         } else {
             let request = DeleteMonitoredItemsRequest {
                 request_header: self.make_request_header(),
                 subscription_id,
-                monitored_item_ids: Some(monitored_item_ids.clone()),
+                monitored_item_ids: Some(items_to_delete.clone()),
             };
             let response = self.send_request(SupportedMessage::DeleteMonitoredItemsRequest(request))?;
             if let SupportedMessage::DeleteMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 if let Some(_) = response.results {
                     let mut subscription_state = self.subscription_state.lock().unwrap();
-                    subscription_state.delete_monitored_items(subscription_id, monitored_item_ids);
+                    subscription_state.delete_monitored_items(subscription_id, items_to_delete);
                 }
-                Ok(response)
+                Ok(response.results.unwrap())
             } else {
                 Err(Self::process_unexpected_response(response))
             }
@@ -681,7 +725,7 @@ impl Session {
     }
 
     // Sends a publish request containing any acknowledgements
-    pub fn publish(&mut self, subscription_acknowledgements: Vec<SubscriptionAcknowledgement>) -> Result<PublishResponse, StatusCode> {
+    fn publish(&mut self, subscription_acknowledgements: Vec<SubscriptionAcknowledgement>) -> Result<PublishResponse, StatusCode> {
         let request = PublishRequest {
             request_header: self.make_request_header(),
             subscription_acknowledgements: if subscription_acknowledgements.is_empty() { None } else { Some(subscription_acknowledgements) },
@@ -695,7 +739,7 @@ impl Session {
         }
     }
 
-    pub fn send_request(&mut self, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
+    fn send_request(&mut self, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
         match request {
             SupportedMessage::OpenSecureChannelRequest(_) | SupportedMessage::CloseSecureChannelRequest(_) => {}
             _ => {
@@ -707,7 +751,7 @@ impl Session {
         self.transport.send_request(request)
     }
 
-    pub fn async_send_request(&mut self, request: SupportedMessage) -> Result<UInt32, StatusCode> {
+    fn async_send_request(&mut self, request: SupportedMessage) -> Result<UInt32, StatusCode> {
         match request {
             SupportedMessage::OpenSecureChannelRequest(_) | SupportedMessage::CloseSecureChannelRequest(_) => {}
             _ => {

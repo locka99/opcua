@@ -184,6 +184,8 @@ impl Subscription {
 
     pub fn publishing_enabled(&self) -> Boolean { self.publishing_enabled }
 
+    pub fn set_publishing_enabled(&mut self, publishing_enabled: Boolean) { self.publishing_enabled = publishing_enabled; }
+
     pub fn insert_monitored_items(&mut self, items_to_create: Vec<CreateMonitoredItem>) {
         items_to_create.iter().for_each(|i| {
             let mut monitored_item = MonitoredItem::new(i.client_handle);

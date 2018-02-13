@@ -1,4 +1,4 @@
-use opcua_types::{Byte, Double, UInt32};
+use opcua_types::{Boolean, Byte, Double, UInt32};
 use opcua_types::service_types::DataChangeNotification;
 use std::collections::HashMap;
 use subscription::*;
@@ -49,6 +49,14 @@ impl SubscriptionState {
 
     pub fn delete_all_subscriptions(&mut self) {
         self.subscriptions.clear();
+    }
+
+    pub fn set_publishing_mode(&mut self, publishing_enabled: Boolean, subscription_ids: Vec<UInt32>) {
+        subscription_ids.iter().for_each(|subscription_id| {
+            if let Some(ref mut subscription) = self.subscriptions.get_mut(subscription_id) {
+                subscription.set_publishing_enabled(publishing_enabled);
+            }
+        });
     }
 
     pub fn subscription_data_change(&mut self, subscription_id: UInt32, data_change_notifications: Vec<DataChangeNotification>) {
