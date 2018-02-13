@@ -1,24 +1,23 @@
-use std;
-use std::io::{Read, Write};
-
-use profiles;
-use encoding::*;
-use basic_types::*;
-use string::UAString;
-use byte_string::ByteString;
 use attribute::AttributeId;
+use basic_types::*;
+use byte_string::ByteString;
 use data_types::*;
-use date_time::DateTime;
 use data_value::DataValue;
+use date_time::DateTime;
+use encoding::*;
 use node_id::NodeId;
-use variant::Variant;
-use supported_message::SupportedMessage;
-use status_codes::StatusCode;
-use status_codes::StatusCode::*;
 use node_ids::ObjectId;
-use service_types::{DataChangeFilter, ApplicationType, DataChangeTrigger, AnonymousIdentityToken, UserNameIdentityToken, UserTokenType, SignatureData, ReadValueId, EndpointDescription, ServiceFault};
+use profiles;
+use service_types::{AnonymousIdentityToken, ApplicationType, DataChangeFilter, DataChangeTrigger, EndpointDescription, ReadValueId, ServiceFault, SignatureData, UserNameIdentityToken, UserTokenType};
 use service_types::{MonitoredItemCreateRequest, MonitoringParameters};
 use service_types::ApplicationDescription;
+use status_codes::StatusCode;
+use status_codes::StatusCode::*;
+use std;
+use std::io::{Read, Write};
+use string::UAString;
+use supported_message::SupportedMessage;
+use variant::Variant;
 
 /// Implemented by messages
 pub trait MessageInfo {
@@ -444,12 +443,17 @@ impl UserNameIdentityToken {
     }
 }
 
-impl ReadValueId {
-    pub fn read_value(node_id: NodeId) -> ReadValueId {
+impl<'a> From<&'a NodeId> for ReadValueId {
+    fn from(node_id: &'a NodeId) -> Self {
+        Self::from(node_id.clone())
+    }
+}
+
+impl From<NodeId> for ReadValueId {
+    fn from(node_id: NodeId) -> Self {
         ReadValueId {
             node_id,
             attribute_id: AttributeId::Value as UInt32,
-            // Value
             index_range: UAString::null(),
             data_encoding: QualifiedName::null(),
         }
@@ -494,6 +498,18 @@ impl ApplicationDescription {
             gateway_server_uri: UAString::null(),
             discovery_profile_uri: UAString::null(),
             discovery_urls: None,
+        }
+    }
+}
+
+impl MonitoringParameters {
+    pub fn default() -> MonitoringParameters {
+        MonitoringParameters {
+            client_handle: 0,
+            sampling_interval: -1f64,
+            filter: ExtensionObject::null(),
+            queue_size: 1,
+            discard_oldest: true,
         }
     }
 }

@@ -72,10 +72,10 @@ fn main() {
 
 fn nodes_to_monitor() -> Vec<ReadValueId> {
     vec![
-        ReadValueId::read_value(NodeId::new_string(2, "v1")),
-        ReadValueId::read_value(NodeId::new_string(2, "v2")),
-        ReadValueId::read_value(NodeId::new_string(2, "v3")),
-        ReadValueId::read_value(NodeId::new_string(2, "v4")),
+        ReadValueId::from(NodeId::from((2, "v1"))),
+        ReadValueId::from(NodeId::from((2, "v2"))),
+        ReadValueId::from(NodeId::from((2, "v3"))),
+        ReadValueId::from(NodeId::from((2, "v4"))),
     ]
 }
 
@@ -109,13 +109,7 @@ fn subscribe(session: Arc<Mutex<Session>>) -> Result<(), StatusCode> {
         // Create some monitored items
         let read_nodes = nodes_to_monitor();
         let items_to_create: Vec<MonitoredItemCreateRequest> = read_nodes.into_iter().map(|read_node| {
-            MonitoredItemCreateRequest::new(read_node, MonitoringMode::Reporting, MonitoringParameters {
-                client_handle: 0,
-                sampling_interval: 0f64,
-                filter: ExtensionObject::null(),
-                queue_size: 1,
-                discard_oldest: true,
-            })
+            MonitoredItemCreateRequest::new(read_node, MonitoringMode::Reporting, MonitoringParameters::default())
         }).collect();
         let _ = session.create_monitored_items(subscription_id, items_to_create)?;
     }

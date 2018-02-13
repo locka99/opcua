@@ -1,15 +1,15 @@
-use std;
-use std::str::FromStr;
-use std::io::{Read, Write};
-
-use encoding::*;
 use basic_types::*;
-use string::*;
 use byte_string::ByteString;
+use encoding::*;
 use guid::Guid;
+use node_ids::{ObjectId, ReferenceTypeId};
 use status_codes::StatusCode;
 use status_codes::StatusCode::BadNodeIdInvalid;
-use node_ids::{ObjectId, ReferenceTypeId};
+use std;
+use std::io::{Read, Write};
+use std::str::FromStr;
+use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
+use string::*;
 
 /// The kind of identifier, numeric, string, guid or byte
 #[derive(Eq, PartialEq, Clone, Debug, Hash)]
@@ -263,7 +263,11 @@ impl Into<String> for NodeId {
     }
 }
 
-use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+impl<'a> From<(UInt16, &'a str)> for NodeId {
+    fn from(v: (UInt16, &'a str)) -> Self {
+        Self::new(v.0, UAString::from(v.1))
+    }
+}
 
 static NEXT_NODE_ID_NUMERIC: AtomicUsize = ATOMIC_USIZE_INIT;
 
@@ -276,7 +280,7 @@ impl NodeId {
 
     /// Construct a string node id
     pub fn new_string(namespace: UInt16, value: &str) -> NodeId {
-        Self::new(namespace, UAString::from(value))
+        Self::from((namespace, value))
     }
 
     /// Test if the node id is null, i.e. 0 namespace and 0 identifier
