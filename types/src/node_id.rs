@@ -20,39 +20,39 @@ pub enum Identifier {
     ByteString(ByteString),
 }
 
-impl Into<Identifier> for Int32 {
-    fn into(self) -> Identifier {
-        Identifier::Numeric(self as u32)
+impl From<Int32> for Identifier {
+    fn from(v: Int32) -> Self {
+        Identifier::Numeric(v as u32)
     }
 }
 
-impl Into<Identifier> for UInt32 {
-    fn into(self) -> Identifier {
-        Identifier::Numeric(self)
+impl From<UInt32> for Identifier {
+    fn from(v: UInt32) -> Self {
+        Identifier::Numeric(v as u32)
     }
 }
 
-impl Into<Identifier> for String {
-    fn into(self) -> Identifier {
-        Identifier::String(UAString::from(self))
+impl From<String> for Identifier {
+    fn from(v: String) -> Self {
+        Identifier::from(UAString::from(v))
     }
 }
 
-impl Into<Identifier> for UAString {
-    fn into(self) -> Identifier {
-        Identifier::String(self)
+impl From<UAString> for Identifier {
+    fn from(v: UAString) -> Self {
+        Identifier::String(v)
     }
 }
 
-impl Into<Identifier> for Guid {
-    fn into(self) -> Identifier {
-        Identifier::Guid(self)
+impl From<Guid> for Identifier {
+    fn from(v: Guid) -> Self {
+        Identifier::Guid(v)
     }
 }
 
-impl Into<Identifier> for ByteString {
-    fn into(self) -> Identifier {
-        Identifier::ByteString(self)
+impl From<ByteString> for Identifier {
+    fn from(v: ByteString) -> Self {
+        Identifier::ByteString(v)
     }
 }
 
@@ -511,10 +511,10 @@ impl<'a> Into<ExpandedNodeId> for &'a NodeId {
     }
 }
 
-impl Into<ExpandedNodeId> for NodeId {
-    fn into(self) -> ExpandedNodeId {
+impl From<NodeId> for ExpandedNodeId {
+    fn from(v: NodeId) -> Self {
         ExpandedNodeId {
-            node_id: self,
+            node_id: v,
             namespace_uri: UAString::null(),
             server_index: 0,
         }

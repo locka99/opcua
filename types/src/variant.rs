@@ -1,17 +1,16 @@
-use std::io::{Read, Write};
-use std::convert::Into;
-
-use encoding::*;
-use constants;
 use basic_types::*;
-use string::{UAString, XmlElement};
 use byte_string::ByteString;
-use guid::Guid;
-use date_time::DateTime;
+use constants;
 use data_value::DataValue;
-use node_id::{NodeId, ExpandedNodeId};
-use status_codes::StatusCode;
+use date_time::DateTime;
+use encoding::*;
+use guid::Guid;
+use node_id::{ExpandedNodeId, NodeId};
 use node_ids::DataTypeId;
+use status_codes::StatusCode;
+use std::convert::Into;
+use std::io::{Read, Write};
+use string::{UAString, XmlElement};
 
 const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
 const ARRAY_VALUES_BIT: u8 = 1 << 7;
@@ -22,92 +21,136 @@ pub struct MultiDimensionArray {
     pub dimensions: Vec<Int32>,
 }
 
-impl Into<Variant> for Boolean {
-    fn into(self) -> Variant { Variant::Boolean(self) }
+impl From<Boolean> for Variant {
+    fn from(v: Boolean) -> Self {
+        Variant::Boolean(v)
+    }
 }
 
-impl Into<Variant> for Byte {
-    fn into(self) -> Variant { Variant::Byte(self) }
+impl From<Byte> for Variant {
+    fn from(v: Byte) -> Self {
+        Variant::Byte(v)
+    }
 }
 
-impl Into<Variant> for SByte {
-    fn into(self) -> Variant { Variant::SByte(self) }
+impl From<SByte> for Variant {
+    fn from(v: SByte) -> Self {
+        Variant::SByte(v)
+    }
 }
 
-impl Into<Variant> for Int16 {
-    fn into(self) -> Variant { Variant::Int16(self) }
+impl From<Int16> for Variant {
+    fn from(v: Int16) -> Self {
+        Variant::Int16(v)
+    }
 }
 
-impl Into<Variant> for UInt16 {
-    fn into(self) -> Variant { Variant::UInt16(self) }
+impl From<UInt16> for Variant {
+    fn from(v: UInt16) -> Self {
+        Variant::UInt16(v)
+    }
 }
 
-impl Into<Variant> for Int32 {
-    fn into(self) -> Variant { Variant::Int32(self) }
+impl From<Int32> for Variant {
+    fn from(v: Int32) -> Self {
+        Variant::Int32(v)
+    }
 }
 
-impl Into<Variant> for UInt32 {
-    fn into(self) -> Variant { Variant::UInt32(self) }
+impl From<UInt32> for Variant {
+    fn from(v: UInt32) -> Self {
+        Variant::UInt32(v)
+    }
 }
 
-impl Into<Variant> for Int64 {
-    fn into(self) -> Variant { Variant::Int64(self) }
+impl From<Int64> for Variant {
+    fn from(v: Int64) -> Self {
+        Variant::Int64(v)
+    }
 }
 
-impl Into<Variant> for UInt64 {
-    fn into(self) -> Variant { Variant::UInt64(self) }
+impl From<UInt64> for Variant {
+    fn from(v: UInt64) -> Self {
+        Variant::UInt64(v)
+    }
 }
 
-impl Into<Variant> for Float {
-    fn into(self) -> Variant { Variant::Float(self) }
+impl From<Float> for Variant {
+    fn from(v: Float) -> Self {
+        Variant::Float(v)
+    }
 }
 
-impl Into<Variant> for Double {
-    fn into(self) -> Variant { Variant::Double(self) }
+impl From<Double> for Variant {
+    fn from(v: Double) -> Self {
+        Variant::Double(v)
+    }
 }
 
-impl Into<Variant> for UAString {
-    fn into(self) -> Variant { Variant::String(self) }
+impl From<UAString> for Variant {
+    fn from(v: UAString) -> Self {
+        Variant::String(v)
+    }
 }
 
-impl Into<Variant> for DateTime {
-    fn into(self) -> Variant { Variant::DateTime(self) }
+impl From<DateTime> for Variant {
+    fn from(v: DateTime) -> Self {
+        Variant::DateTime(v)
+    }
 }
 
-impl Into<Variant> for Guid {
-    fn into(self) -> Variant { Variant::Guid(self) }
+impl From<Guid> for Variant {
+    fn from(v: Guid) -> Self {
+        Variant::Guid(v)
+    }
 }
 
-impl Into<Variant> for StatusCode {
-    fn into(self) -> Variant { Variant::StatusCode(self) }
+impl From<StatusCode> for Variant {
+    fn from(v: StatusCode) -> Self {
+        Variant::StatusCode(v)
+    }
 }
 
-impl Into<Variant> for ByteString {
-    fn into(self) -> Variant { Variant::ByteString(self) }
+impl From<ByteString> for Variant {
+    fn from(v: ByteString) -> Self {
+        Variant::ByteString(v)
+    }
 }
 
-impl Into<Variant> for QualifiedName {
-    fn into(self) -> Variant { Variant::QualifiedName(Box::new(self)) }
+impl From<QualifiedName> for Variant {
+    fn from(v: QualifiedName) -> Self {
+        Variant::QualifiedName(Box::new(v))
+    }
 }
 
-impl Into<Variant> for LocalizedText {
-    fn into(self) -> Variant { Variant::LocalizedText(Box::new(self)) }
+impl From<LocalizedText> for Variant {
+    fn from(v: LocalizedText) -> Self {
+        Variant::LocalizedText(Box::new(v))
+    }
 }
 
-impl Into<Variant> for NodeId {
-    fn into(self) -> Variant { Variant::NodeId(Box::new(self)) }
+impl From<NodeId> for Variant {
+    fn from(v: NodeId) -> Self {
+        Variant::NodeId(Box::new(v))
+    }
 }
 
-impl Into<Variant> for ExpandedNodeId {
-    fn into(self) -> Variant { Variant::ExpandedNodeId(Box::new(self)) }
+impl From<ExpandedNodeId> for Variant {
+    fn from(v: ExpandedNodeId) -> Self {
+        Variant::ExpandedNodeId(Box::new(v))
+    }
 }
 
-impl Into<Variant> for ExtensionObject {
-    fn into(self) -> Variant { Variant::ExtensionObject(Box::new(self)) }
+impl From<ExtensionObject> for Variant {
+    fn from(v: ExtensionObject) -> Self {
+        Variant::ExtensionObject(Box::new(v))
+    }
 }
 
-impl Into<Variant> for DataValue {
-    fn into(self) -> Variant { Variant::DataValue(Box::new(self)) }
+impl From<DataValue> for Variant {
+    fn from(v: DataValue) -> Self {
+        Variant::DataValue(Box::new(v))
+    }
 }
 
 /// A Variant holds all primitive types, including single and multi dimensional arrays and

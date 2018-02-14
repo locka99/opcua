@@ -43,7 +43,6 @@ impl ServiceFault {
     }
 }
 
-
 // RequestHeader = 389,
 #[derive(Debug, Clone, PartialEq)]
 pub struct RequestHeader {
@@ -502,8 +501,8 @@ impl ApplicationDescription {
     }
 }
 
-impl MonitoringParameters {
-    pub fn default() -> MonitoringParameters {
+impl Default for MonitoringParameters {
+    fn default() -> Self {
         MonitoringParameters {
             client_handle: 0,
             sampling_interval: -1f64,
