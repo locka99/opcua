@@ -459,6 +459,12 @@ impl From<NodeId> for ReadValueId {
     }
 }
 
+impl<'a> From<(UInt16, &'a str)> for ReadValueId {
+    fn from(v: (UInt16, &'a str)) -> Self {
+        Self::from(NodeId::from(v))
+    }
+}
+
 impl AnonymousIdentityToken {
     pub fn new() -> AnonymousIdentityToken {
         AnonymousIdentityToken {
