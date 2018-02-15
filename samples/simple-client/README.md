@@ -1,8 +1,21 @@
-This sample client:
+To run this sample:
 
-1. Reads a configuration file
-2. Connects to the default endpoint defined within it
-3. Reads values v1, v2, v3, v4 
-4. Terminates
+1. Launch either the `samples/simple-server`, or `3rd-party/node-opcua-server`. Both servers expose the same variables. 
+2. a) `cargo run`, or b) `cargo run -- --subscribe`
 
-You may test it by first running the simple-server and then using simple-client to connect to it.
+Without an argument the client will connect to the server, read and print out the current values of v1, v2, v3 v4 and terminate. 
+
+With the `--subscribe` argument the client will connect to the server, create a subscription and monitor changes on v1, 
+v2, v3, v4 and continue to print out changes without terminating.
+
+## Crypto
+
+Crypto is not supported client side yet so the text below is a placeholder for when it does....
+
+At startup the client will check for, and if necessary create a `pki/` folder. It will create a certificate 
+for itself if one does not exist already. When the client connects to a server over a signed or signed/encrypted
+connection it will present this server. Servers usually reject certs they do not recognise. Refer to the `simple-server` 
+doc to trust the client.
+
+The client's `client.conf` is set up to automatically trust the server's certificate so you do not need to do anything
+special client side.

@@ -8,7 +8,8 @@ Essentially it does the following.
 2. Adds variables v1, v2, v3 and v4 to the address space and hooks them up so their values change
 3. Launches server, accepting connections on the configured endpoints.
 
-Two variables v1 and v2 are updated from within a timer proc. Two variables v3 and v4 are polled from getter methods. This demonstrates two ways you can hook up variables with values.
+Two variables v1 and v2 are updated from within a timer proc. Two variables v3 and v4 are polled from getter methods.
+This demonstrates two ways you can hook up variables with values.
 
 ## Crypto
 
