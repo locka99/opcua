@@ -3,20 +3,21 @@
 //!
 //! Use simple-server to understand a terse and simple example.
 
-extern crate log;
 extern crate chrono;
-extern crate rand;
-
-extern crate opcua_types;
+extern crate futures;
+extern crate hyper;
+extern crate log;
 extern crate opcua_core;
 extern crate opcua_server;
+extern crate opcua_types;
+extern crate rand;
 
+use opcua_server::prelude::*;
+use rand::Rng;
 //use std::sync::{Arc, Mutex};
 use std::path::PathBuf;
 
-use opcua_server::prelude::*;
-
-use rand::Rng;
+mod http;
 
 fn main() {
     // This enables logging via env_logger & log crate macros. If you don't need logging or want
@@ -31,6 +32,9 @@ fn main() {
 
     // Add dynamically changing scalar values
     let dynamic_scalar_timers = add_dynamic_scalar_variables(&mut server);
+
+    // Start the http server, used for metrics
+    http::run_http_server();
 
     // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
     server.run();

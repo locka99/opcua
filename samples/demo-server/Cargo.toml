@@ -7,6 +7,8 @@ authors = ["Adam Lock <locka99@gmail.com>"]
 chrono = "0.4"
 log = "0.3"
 rand = "0.3"
+futures = "0.1.14"
+hyper = "0.11.2"
 
 [dependencies.opcua-types]
 path = "../../types"
