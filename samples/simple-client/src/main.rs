@@ -1,8 +1,8 @@
 //! This is a sample OPC UA Client that connects to the specified server, fetches some
 //! values before exiting.
-extern crate opcua_types;
-extern crate opcua_core;
 extern crate opcua_client;
+extern crate opcua_core;
+extern crate opcua_types;
 
 use opcua_client::prelude::*;
 use std::collections::HashSet;
@@ -27,16 +27,19 @@ fn main() {
     let mut client = Client::new(ClientConfig::load(&PathBuf::from("../client.conf")).unwrap());
 
     // Ask the server associated with the default endpoint for its list of endpoints
-    let endpoints = client.get_server_endpoints();
-    if endpoints.is_err() {
-        println!("ERROR: Can't get endpoints for server, error - {:?}", endpoints.unwrap_err().description());
-        return;
-    }
-    let endpoints = endpoints.unwrap();
-    println!("Server has these endpoints:");
-    for e in &endpoints {
-        println!("  {} - {:?} / {:?}", e.endpoint_url, SecurityPolicy::from_str(e.security_policy_uri.as_ref()).unwrap(), e.security_mode);
-    }
+    let endpoints = match client.get_server_endpoints() {
+        Result::Err(status_code) => {
+            println!("ERROR: Can't get endpoints for server, error - {:?}", status_code.description());
+            return;
+        }
+        Result::Ok(endpoints) => {
+            println!("Server has these endpoints:");
+            for e in &endpoints {
+                println!("  {} - {:?} / {:?}", e.endpoint_url, SecurityPolicy::from_str(e.security_policy_uri.as_ref()).unwrap(), e.security_mode);
+            }
+            endpoints
+        }
+    };
 
     // Create a session to the default endpoint. It has to match one received from the get_endpoints call
     if let Ok(session) = client.new_session(&endpoints) {

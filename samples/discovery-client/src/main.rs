@@ -1,11 +1,13 @@
 //! This is a sample that calls find servers on a OPC UA discovery server
 extern crate clap;
-
-extern crate opcua_types;
-extern crate opcua_core;
 extern crate opcua_client;
+extern crate opcua_core;
+extern crate opcua_types;
+
+use std::str::FromStr;
 
 use opcua_client::prelude::*;
+use opcua_types::url::is_opc_ua_binary_url;
 
 fn main() {
     // Optional - enable OPC UA logging
@@ -39,6 +41,25 @@ fn main() {
             if let Some(ref discovery_urls) = server.discovery_urls {
                 for discovery_url in discovery_urls {
                     println!("  {}", discovery_url);
+                    if is_opc_ua_binary_url(discovery_url.as_ref()) {
+                        // Try to talk with it and get some endpoints
+                        let client_config = ClientConfig::new("discovery-client", "urn:discovery-client");
+                        let client = Client::new(client_config);
+
+                        // Ask the server associated with the default endpoint for its list of endpoints
+                        match client.get_server_endpoints_from_url(discovery_url.as_ref()) {
+                            Result::Err(status_code) => {
+                                println!("    ERROR: Can't get endpoints for this server url, error - {:?}", status_code.description());
+                                continue;
+                            }
+                            Result::Ok(endpoints) => {
+                                println!("    Server has these endpoints:");
+                                for e in &endpoints {
+                                    println!("      {} - {:?} / {:?}", e.endpoint_url, SecurityPolicy::from_str(e.security_policy_uri.as_ref()).unwrap(), e.security_mode);
+                                }
+                            }
+                        }
+                    }
                 }
             } else {
                 println!("  No discovery urls for this server");
