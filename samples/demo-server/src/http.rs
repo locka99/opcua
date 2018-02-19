@@ -25,27 +25,28 @@ impl Service for Diagnostics {
             }
             (&Method::Get, "/metrics") => {
                 // Raw JSON - TODO this should be using serde
-                response.set_body(r#"{
-                    "server": {
-                        "application_name": "foo"
-                        "application_uri": "urn:foo"
-                    },
-                    "sessions": [
-                        {
-                            "id": 1,
-                            "client_name": "bar",
-                            "client_ip"; "123.333.333.333",
-                            "connected_endpoint": {}
-                            "subscriptions": [
-                                {
-                                    "id": 100,
-                                    "monitored_items": [
-                                    ]
-                                }
-                            ]
-                        }
+                response.set_body(
+                    r#"{
+    "server": {
+        "application_name": "foo"
+        "application_uri": "urn:foo"
+    },
+    "sessions": [
+        {
+            "id": 1,
+            "client_name": "bar",
+            "client_ip"; "123.333.333.333",
+            "connected_endpoint": {}
+            "subscriptions": [
+                {
+                    "id": 100,
+                    "monitored_items": [
                     ]
-                }"#);
+                }
+            ]
+        }
+    ]
+}"#);
             }
             _ => {
                 response.set_status(StatusCode::NotFound);

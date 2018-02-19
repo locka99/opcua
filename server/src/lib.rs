@@ -1,28 +1,26 @@
 //! The OPC UA Server module contains all server side functionality - address space, service implementations, server
 //! side authentications, sessions etc.
 
-#[macro_use]
-extern crate serde_derive;
-extern crate serde;
-extern crate rand;
-
+extern crate chrono;
 #[macro_use]
 extern crate log;
-
-extern crate time;
-extern crate chrono;
-extern crate timer;
-
-extern crate opcua_types;
+extern crate opcua_client;
 #[macro_use]
 extern crate opcua_core;
-extern crate opcua_client;
+extern crate opcua_types;
+extern crate rand;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+extern crate time;
+extern crate timer;
 
 type DateTimeUtc = chrono::DateTime<chrono::Utc>;
 
 mod services;
 mod comms;
 mod session;
+mod server_metrics;
 
 pub mod server;
 pub mod server_state;

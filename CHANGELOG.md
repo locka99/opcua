@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3 (Upcoming) 
+## 0.3
   - General
     - Numerous enhancements
     - Replace a lot of conventional loops with iterators using filter, find, map, collect etc.
@@ -33,6 +33,7 @@
     - simple-client now has a --subscribe arg to exercise new subscription APIs
     - New sample discovery-client demonstrates a client which calls a discovery server
     - New sample demo-server tests all standard OPC UA variant types. It will grow to add more in time.
+    - Some http server stubbing done to allow metrics to be published. Not functional.
   
 ## 0.2 
   - server side crypto / pki architecture

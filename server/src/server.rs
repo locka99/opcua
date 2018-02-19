@@ -1,33 +1,32 @@
-//! The server module defines types related to the server, it's current running state
+//! The server module defines types related to the server, its current running state
 //! and end point information.
 
-use std::net::{TcpListener, TcpStream};
-use std::sync::{Arc, Mutex, RwLock};
-use std::thread;
-
-use time;
-use timer;
-
-use opcua_types::*;
-use opcua_types::service_types::ServerState as ServerStateType;
-
-use opcua_core::prelude::*;
-use opcua_core::config::Config;
-
-use constants;
 use address_space::types::AddressSpace;
 use comms::tcp_transport::*;
 use config::ServerConfig;
-use server_state::{ServerState, ServerDiagnostics};
-use session::Session;
-use util::PollingAction;
+use constants;
+use opcua_core::config::Config;
+use opcua_core::prelude::*;
+use opcua_types::service_types::ServerState as ServerStateType;
+use server_metrics::ServerMetrics;
+use server_state::{ServerDiagnostics, ServerState};
 use services::message_handler::MessageHandler;
+use session::Session;
+use std::net::{TcpListener, TcpStream};
+use std::sync::{Arc, Mutex, RwLock};
+use std::thread;
+use time;
+use timer;
+use util::PollingAction;
 
 /// The Server represents a running instance of OPC UA. There can be more than one server running
 /// at a time providing they do not share the same thread or listen on the same ports.
 pub struct Server {
     /// Certificate store for certs
     pub certificate_store: Arc<Mutex<CertificateStore>>,
+    /// Server metrics - diagnostics and anything else that someone might be interested in that
+    /// describes the current state of the server
+    pub server_metrics: Arc<Mutex<ServerMetrics>>,
     /// The server state is everything that sessions share that can possibly change
     pub server_state: Arc<RwLock<ServerState>>,
     /// Address space
@@ -94,12 +93,17 @@ impl Server {
             address_space.set_server_state(server_state.clone());
         }
 
+        // Server metrics
+
+        let server_metrics = Arc::new(Mutex::new(ServerMetrics::new()));
+
         let certificate_store = Arc::new(Mutex::new(certificate_store));
         Server {
             server_state,
+            server_metrics,
             address_space,
             certificate_store,
-            connections: Vec::new()
+            connections: Vec::new(),
         }
     }
 
