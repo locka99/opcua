@@ -34,6 +34,7 @@ fn main() {
     let dynamic_scalar_timers = add_dynamic_scalar_variables(&mut server);
 
     // Start the http server, used for metrics
+    // TODO http server needs access to diagnostics / connection info on the server
     http::run_http_server();
 
     // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate

@@ -1,22 +1,18 @@
-use std::sync::{Arc, Mutex};
-use std::ops::Range;
-use std::io::{Cursor, Write};
-
 use chrono;
-
+use comms::message_chunk::{MessageChunk, MessageChunkHeader, MessageChunkType};
+use comms::security_header::{AsymmetricSecurityHeader, SecurityHeader, SymmetricSecurityHeader};
+use crypto::aeskey::AesKey;
+use crypto::CertificateStore;
+use crypto::pkey::PKey;
+use crypto::SecurityPolicy;
+use crypto::x509::X509;
 use opcua_types::*;
+use opcua_types::service_types::ChannelSecurityToken;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
-use opcua_types::service_types::ChannelSecurityToken;
-
-use crypto::SecurityPolicy;
-use crypto::CertificateStore;
-use crypto::x509::X509;
-use crypto::aeskey::AesKey;
-use crypto::pkey::PKey;
-
-use comms::security_header::{SecurityHeader, SymmetricSecurityHeader, AsymmetricSecurityHeader};
-use comms::message_chunk::{MessageChunkHeader, MessageChunkType, MessageChunk};
+use std::io::{Cursor, Write};
+use std::ops::Range;
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug, PartialEq)]
 pub enum Role {
@@ -739,7 +735,7 @@ impl SecureChannel {
             let private_key = self.private_key.as_ref().unwrap();
             let decrypted_size = security_policy.asymmetric_decrypt(private_key, &src[encrypted_range.clone()], &mut decrypted_tmp)?;
             trace!("Decrypted bytes = {} compared to encrypted range {}", decrypted_size, encrypted_size);
-            Self::log_crypto_data("Decrypted Bytes = ", &decrypted_tmp[..decrypted_size]);
+            // Self::log_crypto_data("Decrypted Bytes = ", &decrypted_tmp[..decrypted_size]);
 
             let verification_key_signature_size = verification_key.size();
             trace!("Verification key size = {}", verification_key_signature_size);
@@ -754,7 +750,7 @@ impl SecureChannel {
             // The signed range is from 0 to the end of the plaintext except for key size
             let signed_range_dst = 0..signature_dst_offset;
 
-            Self::log_crypto_data("Decrypted data = ", &dst[..signature_range_dst.end]);
+            // Self::log_crypto_data("Decrypted data = ", &dst[..signature_range_dst.end]);
 
             // Verify signature (contained encrypted portion) using verification key
             trace!("Verifying signature range {:?} with signature at {:?}", signed_range_dst, signature_range_dst);
