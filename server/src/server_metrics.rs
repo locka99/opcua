@@ -1,3 +1,4 @@
+#[derive(Serialize)]
 pub struct ServerMetrics {}
 
 impl ServerMetrics {

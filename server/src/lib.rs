@@ -20,8 +20,8 @@ type DateTimeUtc = chrono::DateTime<chrono::Utc>;
 mod services;
 mod comms;
 mod session;
-mod server_metrics;
 
+pub mod server_metrics;
 pub mod server;
 pub mod server_state;
 pub mod subscriptions;

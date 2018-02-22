@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4 (aspirational)
+
+These are just aspirational ideas
+
+  - Fix crypto client side - the code is nearly there
+  - Fix subscription publish lost notifications
+  - Tokio / futures for either server, client or both
+  - Http web monitor / metrics for server
+  - Diagnostics
+  - Session restore after disconnect in server
+  - Session restore after disconnect in client
+  - Integration tests where client connects to server, does something
+
 ## 0.3
   - General
     - Numerous enhancements

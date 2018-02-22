@@ -11,6 +11,10 @@ extern crate opcua_core;
 extern crate opcua_server;
 extern crate opcua_types;
 extern crate rand;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_json;
 
 use opcua_server::prelude::*;
 use rand::Rng;
@@ -34,8 +38,7 @@ fn main() {
     let dynamic_scalar_timers = add_dynamic_scalar_variables(&mut server);
 
     // Start the http server, used for metrics
-    // TODO http server needs access to diagnostics / connection info on the server
-    http::run_http_server();
+    http::run_http_server(server.server_metrics.clone());
 
     // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
     server.run();

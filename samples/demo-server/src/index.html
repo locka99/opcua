@@ -5,16 +5,57 @@
     <title>Server Diagnostics</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 </head>
-<body>
+<body onload="requestMetrics()">
 <script>
-    // JQuery request to "/metrics"
+    function requestMetrics() {
+        // JQuery request to "/metrics"
+        $.getJSON(
+            "/metrics"
+        ).done(function (json) {
+            fillMetrics(json);
+        });
+    }
+
+    function fillMetrics(json) {
+        var html = "";
+
+        html += "<h2>Server</h2>"
+        html += "<div><span>Server name:</span><span>" + json["server"]["application_name"] + "</span></div>";
+        html += "<div><span>Server URI:</span><span>" + json["server"]["application_uri"] + "</span></div>";
+        // uptime
+        // ip address etc.
+
+        // Sessions
+        var sessions = json["sessions"];
+        if (sessions.length == 0) {
+            html += "<p>No sessions</p>";
+        }
+        else {
+            for (var i = 0; i < sessions.length; ++i) {
+                var session = sessions[i];
+                html += "<h2>Session " + session["id"] + "</h2>";
+                html += "<div><span>Client name:</span><span>" + session["client_name"] + "</span></div>";
+                html += "<div><span>Client IP:</span><span>" + session["client_ip"] + "</span></div>";
+
+                // Subscriptions
+                var subscriptions = session["subscriptions"];
+                if (subscriptions.length == 0) {
+                    html += "<p>No subscriptions</p>";
+                }
+                else {
+                    for (var j = 0; j < subscriptions.length; ++j) {
+                        var subscription = subscriptions[j];
+                        html += "<h3>Subscription " + subscription["id"] + "</h3>";
+                    }
+                }
+            }
+        }
+        $("#metrics").html(html);
+    }
 </script>
 <h1>Server diagnostics</h1>
-<p>TODO This page will allow you to browse</p>
-<ol>
-    <li>Configuration of server - endpoints etc.</li>
-    <li>List of open / disconnected connection</li>
-    <li>List of subscriptions per connection</li>
-</ol>
+
+<div id="metrics"></div>
+
 </body>
 </html>
