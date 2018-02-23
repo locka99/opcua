@@ -1,30 +1,27 @@
 //! The TCP transport module handles receiving and sending of binary data in chunks, handshake,
 //! session creation and dispatching of messages via message handler.
 //!
-use std;
-use std::collections::VecDeque;
-use std::net::{TcpStream, Shutdown};
-use std::io::{Read, Write, Cursor, ErrorKind};
-use std::sync::{Arc, RwLock};
-use std::sync::mpsc::{self, Receiver};
-
-use timer;
+use address_space::types::AddressSpace;
 use chrono::Utc;
-use time;
-
+use comms::secure_channel_service::SecureChannelService;
+use constants;
+use opcua_core::prelude::*;
 use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
-use opcua_core::prelude::*;
-
-use constants;
-use comms::secure_channel_service::SecureChannelService;
 use server_state::ServerState;
 use services::message_handler::MessageHandler;
 use session::Session;
+use std;
+use std::collections::VecDeque;
+use std::io::{Cursor, ErrorKind, Read, Write};
+use std::net::{Shutdown, TcpStream};
+use std::sync::{Arc, RwLock};
+use std::sync::mpsc::{self, Receiver};
 use subscriptions::PublishResponseEntry;
 use subscriptions::subscription::TickReason;
-use address_space::types::AddressSpace;
+use time;
+use timer;
 
 // TODO these need to go, and use session settings
 const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;
@@ -100,7 +97,7 @@ impl TcpTransport {
         let hello_timeout = {
             let hello_timeout = {
                 let server_state = trace_read_lock_unwrap!(self.server_state);
-                let server_config = trace_lock_unwrap!(server_state.config);
+                let server_config = trace_read_lock_unwrap!(server_state.config);
                 server_config.tcp_config.hello_timeout as i64
             };
             time::Duration::seconds(hello_timeout)

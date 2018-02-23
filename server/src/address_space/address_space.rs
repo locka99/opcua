@@ -1,22 +1,18 @@
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex, RwLock};
-
-use chrono::Utc;
-
-use opcua_types::*;
-use opcua_types::status_codes::StatusCode;
-use opcua_types::status_codes::StatusCode::*;
-use opcua_types::node_ids::*;
-use opcua_types::service_types::{BrowseDirection, ServerDiagnosticsSummaryDataType, RelativePath, RelativePathElement};
-
-use server_state::ServerState;
-use constants;
-use DateTimeUtc;
-
+use address_space::AttrFnGetter;
+use address_space::node::{Node, NodeType};
 use address_space::object::Object;
 use address_space::variable::Variable;
-use address_space::node::{Node, NodeType};
-use address_space::AttrFnGetter;
+use chrono::Utc;
+use constants;
+use DateTimeUtc;
+use opcua_types::*;
+use opcua_types::node_ids::*;
+use opcua_types::service_types::{BrowseDirection, RelativePath, RelativePathElement, ServerDiagnosticsSummaryDataType};
+use opcua_types::status_codes::StatusCode;
+use opcua_types::status_codes::StatusCode::*;
+use server_state::ServerState;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex, RwLock};
 
 /// The `NodeId` is the target node. The reference is held in a list by the source node.
 /// The target node does not need to exist.
@@ -82,7 +78,7 @@ impl AddressSpace {
         // ServerCapabilities
         {
             let server_state = trace_read_lock_unwrap!(server_state);
-            let server_config = trace_lock_unwrap!(server_state.config);
+            let server_config = trace_read_lock_unwrap!(server_state.config);
             self.set_value_by_variable_id(Server_ServerCapabilities_MaxArrayLength, Variant::UInt32(server_config.max_array_length));
             self.set_value_by_variable_id(Server_ServerCapabilities_MaxStringLength, Variant::UInt32(server_config.max_string_length));
             self.set_value_by_variable_id(Server_ServerCapabilities_MaxByteStringLength, Variant::UInt32(server_config.max_byte_string_length));

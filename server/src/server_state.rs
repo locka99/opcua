@@ -1,19 +1,16 @@
 //! The server module defines types related to the server, it's current running state
 //! and end point information.
 
-use std::sync::{Arc, Mutex};
-
+use config::{ServerConfig, ServerEndpoint};
+use opcua_core::prelude::*;
 use opcua_types::*;
-use opcua_types::status_codes::StatusCode;
-use opcua_types::status_codes::StatusCode::*;
 use opcua_types::node_ids::ObjectId;
 use opcua_types::profiles;
-use opcua_types::service_types::{EndpointDescription, UserTokenPolicy, ApplicationDescription, UserTokenType, ApplicationType, UserNameIdentityToken, X509IdentityToken};
+use opcua_types::service_types::{ApplicationDescription, ApplicationType, EndpointDescription, UserNameIdentityToken, UserTokenPolicy, UserTokenType, X509IdentityToken};
 use opcua_types::service_types::ServerState as ServerStateType;
-
-use opcua_core::prelude::*;
-
-use config::{ServerEndpoint, ServerConfig};
+use opcua_types::status_codes::StatusCode;
+use opcua_types::status_codes::StatusCode::*;
+use std::sync::{Arc, RwLock};
 
 const TOKEN_POLICY_ANONYMOUS: &'static str = "anonymous";
 const TOKEN_POLICY_USER_PASS_PLAINTEXT: &'static str = "userpass_plaintext";
@@ -48,7 +45,7 @@ pub struct ServerState {
     /// The list of servers (by urn)
     pub servers: Vec<String>,
     /// Server configuration
-    pub config: Arc<Mutex<ServerConfig>>,
+    pub config: Arc<RwLock<ServerConfig>>,
     /// Server public certificate read from config location or null if there is none
     pub server_certificate: Option<X509>,
     /// Server private key pair
@@ -85,14 +82,14 @@ impl ServerState {
             }
         }
         // Return the endpoints
-        let config = self.config.lock().unwrap();
+        let config = trace_read_lock_unwrap!(self.config);
         Some(config.endpoints.iter().map(|(_, e)| {
             self.new_endpoint_description(&config, e, true)
         }).collect())
     }
 
     pub fn endpoint_exists(&self, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> bool {
-        let config = self.config.lock().unwrap();
+        let config = trace_read_lock_unwrap!(self.config);
         config.find_endpoint(endpoint_url, security_policy, security_mode).is_some()
     }
 
@@ -101,7 +98,7 @@ impl ServerState {
     /// to contain at least one result.
     pub fn new_endpoint_descriptions(&self, endpoint_url: &str) -> Option<Vec<EndpointDescription>> {
         debug!("find_endpoint, url = {}", endpoint_url);
-        let config = self.config.lock().unwrap();
+        let config = trace_read_lock_unwrap!(self.config);
         let base_endpoint_url = config.base_endpoint_url();
         let endpoints: Vec<EndpointDescription> = config.endpoints.iter().filter(|&(_, e)| {
             // Test end point's security_policy_uri and matching url
@@ -193,7 +190,7 @@ impl ServerState {
     /// that ActivateSession would expect from a service call.
     pub fn authenticate_endpoint(&self, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode, user_identity_token: &ExtensionObject) -> StatusCode {
         // Get security from endpoint url
-        let config = self.config.lock().unwrap();
+        let config = trace_read_lock_unwrap!(self.config);
         if let Some(endpoint) = config.find_endpoint(endpoint_url, security_policy, security_mode) {
             // Now validate the user identity token
             if user_identity_token.is_null() || user_identity_token.is_empty() {

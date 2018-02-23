@@ -1,22 +1,19 @@
-use std::sync::{Arc, Mutex, RwLock};
-
+use address_space::address_space::AddressSpace;
+use opcua_core::crypto::CertificateStore;
 use opcua_types::*;
+use opcua_types::service_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
-use opcua_types::service_types::*;
-
-use opcua_core::crypto::CertificateStore;
-
-use address_space::address_space::AddressSpace;
+use server_metrics::ServerMetrics;
 use server_state::ServerState;
-use session::Session;
-
 use services::attribute::AttributeService;
 use services::discovery::DiscoveryService;
 use services::monitored_item::MonitoredItemService;
 use services::session::SessionService;
 use services::subscription::SubscriptionService;
 use services::view::ViewService;
+use session::Session;
+use std::sync::{Arc, Mutex, RwLock};
 
 /// Processes and dispatches messages for handling
 pub struct MessageHandler {
@@ -24,6 +21,8 @@ pub struct MessageHandler {
     certificate_store: Arc<Mutex<CertificateStore>>,
     /// Server state
     server_state: Arc<RwLock<ServerState>>,
+    /// Server metrics
+    server_metrics: Arc<RwLock<ServerMetrics>>,
     /// Address space
     address_space: Arc<RwLock<AddressSpace>>,
     /// Session state
@@ -43,10 +42,11 @@ pub struct MessageHandler {
 }
 
 impl MessageHandler {
-    pub fn new(certificate_store: Arc<Mutex<CertificateStore>>, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>) -> MessageHandler {
+    pub fn new(certificate_store: Arc<Mutex<CertificateStore>>, server_state: Arc<RwLock<ServerState>>, server_metrics: Arc<RwLock<ServerMetrics>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>) -> MessageHandler {
         MessageHandler {
             certificate_store,
             server_state,
+            server_metrics,
             session,
             address_space,
             attribute_service: AttributeService::new(),

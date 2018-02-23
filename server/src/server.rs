@@ -26,7 +26,7 @@ pub struct Server {
     pub certificate_store: Arc<Mutex<CertificateStore>>,
     /// Server metrics - diagnostics and anything else that someone might be interested in that
     /// describes the current state of the server
-    pub server_metrics: Arc<Mutex<ServerMetrics>>,
+    pub server_metrics: Arc<RwLock<ServerMetrics>>,
     /// The server state is everything that sessions share that can possibly change
     pub server_state: Arc<RwLock<ServerState>>,
     /// Address space
@@ -59,7 +59,7 @@ impl Server {
         if server_certificate.is_none() || server_pkey.is_none() {
             error!("Server is missing its application instance certificate and/or its private key. Encrypted endpoints will not function correctly.")
         }
-        let config = Arc::new(Mutex::new(config.clone()));
+        let config = Arc::new(RwLock::new(config.clone()));
 
         let server_state = ServerState {
             application_uri,
@@ -95,16 +95,21 @@ impl Server {
 
         // Server metrics
 
-        let server_metrics = Arc::new(Mutex::new(ServerMetrics::new()));
+        let server_metrics = Arc::new(RwLock::new(ServerMetrics::new()));
 
         let certificate_store = Arc::new(Mutex::new(certificate_store));
-        Server {
+        let server = Server {
             server_state,
-            server_metrics,
+            server_metrics: server_metrics.clone(),
             address_space,
             certificate_store,
             connections: Vec::new(),
-        }
+        };
+
+        let mut server_metrics = trace_write_lock_unwrap!(server_metrics);
+        server_metrics.set_server_info(&server);
+
+        server
     }
 
     // Terminates the running server
@@ -117,7 +122,7 @@ impl Server {
     pub fn run(&mut self) {
         let (host, port, _, discovery_server_url) = {
             let server_state = trace_read_lock_unwrap!(self.server_state);
-            let config = trace_lock_unwrap!(server_state.config);
+            let config = trace_read_lock_unwrap!(server_state.config);
             (config.tcp_config.host.clone(), config.tcp_config.port, server_state.base_endpoint.clone(), config.discovery_server_url.clone())
         };
         let sock_addr = (host.as_str(), port);
@@ -125,7 +130,7 @@ impl Server {
 
         {
             let server_state = trace_read_lock_unwrap!(self.server_state);
-            let config = trace_lock_unwrap!(server_state.config);
+            let config = trace_read_lock_unwrap!(server_state.config);
 
             info!("OPC UA Server: {}", server_state.application_name);
             info!("Supported endpoints:");
@@ -192,7 +197,7 @@ impl Server {
             let timer = timer::Timer::new();
             let timer_guard = timer.schedule_repeating(time::Duration::minutes(5i64), move || {
                 let server_state = trace_read_lock_unwrap!(server_state);
-                let config = trace_lock_unwrap!(server_state.config);
+                let config = trace_read_lock_unwrap!(server_state.config);
                 // TODO - open a secure channel to discovery server, and register the endpoints of this server
                 // with the discovery server
                 trace!("Discovery server registration stub is triggering for {}", config.base_endpoint_url());
@@ -221,7 +226,7 @@ impl Server {
             Arc::new(RwLock::new(Session::new(self)))
         };
         let address_space = self.address_space.clone();
-        let message_handler = MessageHandler::new(self.certificate_store.clone(), self.server_state.clone(), session.clone(), address_space.clone());
+        let message_handler = MessageHandler::new(self.certificate_store.clone(), self.server_state.clone(), self.server_metrics.clone(), session.clone(), address_space.clone());
         TcpTransport::new(self.server_state.clone(), session, address_space, message_handler)
     }
 
