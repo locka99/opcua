@@ -3,7 +3,6 @@
 
 use config::{ServerConfig, ServerEndpoint};
 use opcua_core::prelude::*;
-use opcua_types::*;
 use opcua_types::node_ids::ObjectId;
 use opcua_types::profiles;
 use opcua_types::service_types::{ApplicationDescription, ApplicationType, EndpointDescription, UserNameIdentityToken, UserTokenPolicy, UserTokenType, X509IdentityToken};

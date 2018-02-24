@@ -4,7 +4,6 @@ use opcua_types::*;
 use opcua_types::service_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
-use server_metrics::ServerMetrics;
 use server_state::ServerState;
 use services::attribute::AttributeService;
 use services::discovery::DiscoveryService;
@@ -21,8 +20,6 @@ pub struct MessageHandler {
     certificate_store: Arc<Mutex<CertificateStore>>,
     /// Server state
     server_state: Arc<RwLock<ServerState>>,
-    /// Server metrics
-    server_metrics: Arc<RwLock<ServerMetrics>>,
     /// Address space
     address_space: Arc<RwLock<AddressSpace>>,
     /// Session state
@@ -42,11 +39,10 @@ pub struct MessageHandler {
 }
 
 impl MessageHandler {
-    pub fn new(certificate_store: Arc<Mutex<CertificateStore>>, server_state: Arc<RwLock<ServerState>>, server_metrics: Arc<RwLock<ServerMetrics>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>) -> MessageHandler {
+    pub fn new(certificate_store: Arc<Mutex<CertificateStore>>, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>) -> MessageHandler {
         MessageHandler {
             certificate_store,
             server_state,
-            server_metrics,
             session,
             address_space,
             attribute_service: AttributeService::new(),

@@ -56,27 +56,9 @@ impl ServerMetrics {
         server_config.user_tokens.clear();
 
         self.server_config = Some(server_config.clone());
-        self.add_session();
     }
 
-    pub fn update_from_server_state(&mut self, server_state: &server_state::ServerState) {
+    pub fn update_from_server_state(&mut self, _server_state: &server_state::ServerState) {
         // TODO update the metrics using the sessions and subscriptions in this file.
-    }
-
-    pub fn add_session(&mut self) { // , _session: session::Session) {
-        self.sessions.insert(1, Session {
-            id: 1,
-            client_name: String::from("bar"),
-            client_ip: String::from("123.0.0.1"),
-            subscriptions: vec![
-                Subscription {
-                    id: 100,
-                }
-            ],
-        });
-    }
-
-    pub fn remove_session(&mut self, subscription_id: u32) {
-        self.sessions.remove(&subscription_id);
     }
 }

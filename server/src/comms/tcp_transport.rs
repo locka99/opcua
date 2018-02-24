@@ -6,7 +6,6 @@ use chrono::Utc;
 use comms::secure_channel_service::SecureChannelService;
 use constants;
 use opcua_core::prelude::*;
-use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
 use server_state::ServerState;

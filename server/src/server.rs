@@ -226,7 +226,7 @@ impl Server {
             Arc::new(RwLock::new(Session::new(self)))
         };
         let address_space = self.address_space.clone();
-        let message_handler = MessageHandler::new(self.certificate_store.clone(), self.server_state.clone(), self.server_metrics.clone(), session.clone(), address_space.clone());
+        let message_handler = MessageHandler::new(self.certificate_store.clone(), self.server_state.clone(), session.clone(), address_space.clone());
         TcpTransport::new(self.server_state.clone(), session, address_space, message_handler)
     }
 
