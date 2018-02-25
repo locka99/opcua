@@ -82,15 +82,27 @@ impl ServerMetrics {
 
     pub fn update_from_connections(&mut self, connections: &Vec<TcpTransport>) {
         self.sessions.clear();
-        connections.iter().for_each(|_c| {
-            self.sessions.insert(0, Session {
-                id: 0,
+        connections.iter().for_each(|c| {
+            let session_id = {
+                let session = c.session();
+                let session = session.read().unwrap();
+                // TODO
+                0
+            };
+
+            // session.subscriptions.iterate ...
+
+            let sessions_metric = Session {
+                id: session_id,
                 // creation time
                 // state
                 client_name: String::from("fixme"),
                 client_ip: String::from("fixme"),
                 subscriptions: Vec::new(),
-            });
+            };
+
+
+            self.sessions.insert(0, sessions_metric);
         });
     }
 }
