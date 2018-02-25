@@ -2,7 +2,9 @@
 //! to see what is happening in the server. State is updated by the server as sessions are added, removed,
 //! and when subscriptions / monitored items are added, removed.
 
+use comms::tcp_transport::TcpTransport;
 use config;
+use opcua_types::DateTime;
 use server;
 use server_state;
 use session;
@@ -11,13 +13,17 @@ use std::collections::BTreeMap;
 
 #[derive(Serialize)]
 pub struct ServerMetrics {
-    pub server: Option<Server>,
+    pub server: Server,
     pub server_config: Option<config::ServerConfig>,
     pub sessions: BTreeMap<u32, Session>,
 }
 
 #[derive(Serialize)]
-pub struct Server {}
+pub struct Server {
+    pub start_time: String,
+    pub uptime_ms: i64,
+
+}
 
 #[derive(Serialize)]
 pub struct Session {
@@ -41,7 +47,10 @@ impl ServerMetrics {
     pub fn new() -> ServerMetrics {
         // Sample metrics
         ServerMetrics {
-            server: Some(Server {}),
+            server: Server {
+                start_time: String::new(),
+                uptime_ms: 0,
+            },
             server_config: None,
             sessions: BTreeMap::new(),
         }
@@ -54,11 +63,34 @@ impl ServerMetrics {
         // For security, blank out user tokens
         let mut server_config = server_config.clone();
         server_config.user_tokens.clear();
-
+        server_config.user_tokens.insert(String::new(), config::ServerUserToken {
+            user: String::from("User identity tokens have been removed"),
+            pass: None,
+        });
         self.server_config = Some(server_config.clone());
     }
 
-    pub fn update_from_server_state(&mut self, _server_state: &server_state::ServerState) {
-        // TODO update the metrics using the sessions and subscriptions in this file.
+    pub fn update_from_server_state(&mut self, server_state: &server_state::ServerState) {
+        let start_time = &server_state.start_time;
+        let now = DateTime::now();
+
+        self.server.start_time = start_time.as_chrono().to_rfc2822();
+
+        let elapsed = now.as_chrono().signed_duration_since(start_time.as_chrono());
+        self.server.uptime_ms = elapsed.num_milliseconds();
+    }
+
+    pub fn update_from_connections(&mut self, connections: &Vec<TcpTransport>) {
+        self.sessions.clear();
+        connections.iter().for_each(|_c| {
+            self.sessions.insert(0, Session {
+                id: 0,
+                // creation time
+                // state
+                client_name: String::from("fixme"),
+                client_ip: String::from("fixme"),
+                subscriptions: Vec::new(),
+            });
+        });
     }
 }
