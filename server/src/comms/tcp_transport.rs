@@ -81,21 +81,28 @@ impl TcpTransport {
         }
     }
 
-    pub fn run(&mut self, mut stream: TcpStream) {
+    pub fn run(connection: Arc<RwLock<TcpTransport>>, mut stream: TcpStream) {
         // ENTRY POINT TO ALL OF OPC
 
         let session_start_time = Utc::now();
         info!("Session started {}", session_start_time);
 
-        let (subscription_timer, subscription_timer_guard, subscription_timer_rx) = self.start_subscription_timer();
+        let (subscription_timer, subscription_timer_guard, subscription_timer_rx) = {
+            let mut connection = trace_write_lock_unwrap!(connection);
+            connection.start_subscription_timer()
+        };
 
         // Waiting for hello
-        self.transport_state = TransportState::WaitingHello;
+        {
+            let mut connection = trace_write_lock_unwrap!(connection);
+            connection.transport_state = TransportState::WaitingHello;
+        }
 
         // Hello timeout
         let hello_timeout = {
             let hello_timeout = {
-                let server_state = trace_read_lock_unwrap!(self.server_state);
+                let connection = trace_read_lock_unwrap!(connection);
+                let server_state = trace_read_lock_unwrap!(connection.server_state);
                 let server_config = trace_read_lock_unwrap!(server_state.config);
                 server_config.tcp_config.hello_timeout as i64
             };
@@ -119,14 +126,14 @@ impl TcpTransport {
 
         loop {
             // Check for abort
-            {
-                let server_state = trace_read_lock_unwrap!(self.server_state);
+            let transport_state = {
+                let connection = trace_read_lock_unwrap!(connection);
+                let server_state = trace_read_lock_unwrap!(connection.server_state);
                 if server_state.abort {
                     break;
                 }
-            }
-
-            let transport_state = self.transport_state.clone();
+                connection.transport_state.clone()
+            };
 
             // Session waits a configurable time for a hello and terminates if it fails to receive it
             let now = Utc::now();
@@ -145,7 +152,8 @@ impl TcpTransport {
                         trace!("Got {} PublishResponse messages to send", publish_responses.len());
                         for publish_response in publish_responses {
                             trace!("<-- Sending a Publish Response{}, {:?}", publish_response.request_id, &publish_response.response);
-                            let _ = self.send_response(publish_response.request_id, &publish_response.response, &mut out_buf_stream);
+                            let mut connection = trace_write_lock_unwrap!(connection);
+                            let _ = connection.send_response(publish_response.request_id, &publish_response.response, &mut out_buf_stream);
                         }
                         Self::write_output(&mut out_buf_stream, &mut stream);
                     }
@@ -182,7 +190,8 @@ impl TcpTransport {
                     TransportState::WaitingHello => {
                         debug!("Processing HELLO");
                         if let Message::Hello(hello) = message {
-                            let result = self.process_hello(hello, &mut out_buf_stream);
+                            let mut connection = trace_write_lock_unwrap!(connection);
+                            let result = connection.process_hello(hello, &mut out_buf_stream);
                             if result.is_err() {
                                 session_status_code = result.unwrap_err();
                             }
@@ -193,7 +202,8 @@ impl TcpTransport {
                     TransportState::ProcessMessages => {
                         debug!("Processing message");
                         if let Message::MessageChunk(chunk) = message {
-                            let result = self.process_chunk(chunk, &mut out_buf_stream);
+                            let mut connection = trace_write_lock_unwrap!(connection);
+                            let result = connection.process_chunk(chunk, &mut out_buf_stream);
                             if result.is_err() {
                                 session_status_code = result.unwrap_err();
                             }
@@ -214,7 +224,8 @@ impl TcpTransport {
             // Some handlers might wish to send their message and terminate, in which case this is
             // done here.
             {
-                let session = trace_read_lock_unwrap!(self.session);
+                let connection = trace_write_lock_unwrap!(connection);
+                let session = trace_read_lock_unwrap!(connection.session);
                 if session.terminate_session {
                     session_status_code = BadConnectionClosed;
                 }
@@ -246,13 +257,17 @@ impl TcpTransport {
         let _ = stream.shutdown(Shutdown::Both);
 
         // Session state
-        self.transport_state = TransportState::Finished;
+        {
+            let mut connection = trace_write_lock_unwrap!(connection);
+            connection.transport_state = TransportState::Finished;
+        }
 
         let session_duration = Utc::now().signed_duration_since(session_start_time);
         info!("Session is finished {:?}", session_duration);
 
         {
-            let mut session = trace_write_lock_unwrap!(self.session);
+            let connection = trace_read_lock_unwrap!(connection);
+            let mut session = trace_write_lock_unwrap!(connection.session);
             session.set_terminated();
         }
     }

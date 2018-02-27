@@ -4,22 +4,26 @@ use hyper;
 use hyper::{Method, StatusCode};
 use hyper::header::ContentType;
 use hyper::server::{Http, NewService, Request, Response, Service};
+use opcua_server::server::Connections;
 use opcua_server::server_metrics::ServerMetrics;
 use opcua_server::server_state::ServerState;
 use serde_json;
 use std::io;
 use std::sync::{Arc, RwLock};
+use std::thread;
 
 /// This is our metrics service, the thing called to handle requests coming from hyper
 struct MetricsService {
     server_state: Arc<RwLock<ServerState>>,
+    connections: Arc<RwLock<Connections>>,
     server_metrics: Arc<RwLock<ServerMetrics>>,
 }
 
 impl MetricsService {
-    fn new(server_state: Arc<RwLock<ServerState>>, server_metrics: Arc<RwLock<ServerMetrics>>) -> MetricsService {
+    fn new(server_state: Arc<RwLock<ServerState>>, connections: Arc<RwLock<Connections>>, server_metrics: Arc<RwLock<ServerMetrics>>) -> MetricsService {
         MetricsService {
             server_state,
+            connections,
             server_metrics,
         }
     }
@@ -45,9 +49,16 @@ impl Service for MetricsService {
                 use std::ops::Deref;
                 // Send metrics data as json
                 let json = {
-                    let server_state = self.server_state.read().unwrap();
                     let mut server_metrics = self.server_metrics.write().unwrap();
-                    server_metrics.update_from_server_state(&server_state);
+                    {
+                        let server_state = self.server_state.read().unwrap();
+                        server_metrics.update_from_server_state(&server_state);
+                    }
+                    {
+                        let connections = self.connections.read().unwrap();
+                        let connections = connections.deref();
+                        server_metrics.update_from_connections(connections);
+                    }
                     serde_json::to_string_pretty(server_metrics.deref()).unwrap()
                 };
                 response.headers_mut().set(ContentType::json());
@@ -63,7 +74,8 @@ impl Service for MetricsService {
 
 struct MetricsServiceFactory {
     server_state: Arc<RwLock<ServerState>>,
-    server_metrics: Arc<RwLock<ServerMetrics>>
+    connections: Arc<RwLock<Connections>>,
+    server_metrics: Arc<RwLock<ServerMetrics>>,
 }
 
 impl NewService for MetricsServiceFactory {
@@ -73,18 +85,21 @@ impl NewService for MetricsServiceFactory {
     type Instance = MetricsService;
 
     fn new_service(&self) -> io::Result<Self::Instance> {
-        Ok(MetricsService::new(self.server_state.clone(), self.server_metrics.clone()))
+        Ok(MetricsService::new(self.server_state.clone(), self.connections.clone(), self.server_metrics.clone()))
     }
 }
 
 /// Runs an http server on the specified binding address, serving out the supplied server metrics
-pub fn run_http_server(address: &str, server_state: Arc<RwLock<ServerState>>, server_metrics: Arc<RwLock<ServerMetrics>>) {
-    // info!("HTTP server is running on {} to provide OPC UA server metrics", address);
+pub fn run_http_server(address: &str, server_state: Arc<RwLock<ServerState>>, connections: Arc<RwLock<Connections>>, server_metrics: Arc<RwLock<ServerMetrics>>) -> thread::JoinHandle<()> {
     let address = address.parse().unwrap();
-    let metrics_factory = MetricsServiceFactory {
-        server_state,
-        server_metrics,
-    };
-    let server = Http::new().bind(&address, metrics_factory).unwrap();
-    server.run().unwrap();
+    thread::spawn(move || {
+        // info!("HTTP server is running on {} to provide OPC UA server metrics", address);
+        let metrics_factory = MetricsServiceFactory {
+            server_state,
+            connections,
+            server_metrics,
+        };
+        let server = Http::new().bind(&address, metrics_factory).unwrap();
+        server.run().unwrap();
+    })
 }

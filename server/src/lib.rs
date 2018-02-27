@@ -18,9 +18,9 @@ extern crate timer;
 type DateTimeUtc = chrono::DateTime<chrono::Utc>;
 
 mod services;
-mod comms;
 mod session;
 
+pub mod comms;
 pub mod server_metrics;
 pub mod server;
 pub mod server_state;

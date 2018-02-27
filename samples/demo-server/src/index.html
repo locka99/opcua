@@ -19,33 +19,46 @@
     function fillMetrics(json) {
         var html = "";
 
-        html += "<h2>Server</h2>"
-        html += "<div><span>Server name:</span><span>" + json["server_config"]["application_name"] + "</span></div>";
-        html += "<div><span>Server URI:</span><span>" + json["server_config"]["application_uri"] + "</span></div>";
-        // uptime
+        html += "<h1>Server</h1>";
+
+        var server = json["server"];
+        var config = json["config"];
+
+        html += "<table>";
+        html += "<tr><td>Server name:</td><td>" + config["application_name"] + "</td></tr>";
+        html += "<tr><td>Server URI:</td><td>" + config["application_uri"] + "</td></tr>";
+        html += "<tr><td>Start Time</td><td>" + new Date(server["start_time"]).toString() + "</td></tr>";
+        html += "<tr><td>Uptime (MS)</td><td>" + server["uptime_ms"] + "</td></tr>";
         // ip address etc.
+        html += "</table>";
 
         // Sessions
-        var sessions = json["sessions"];
-        if (sessions.length == 0) {
-            html += "<p>No sessions</p>";
+        var connections = json["connections"];
+        html += "<h1>Connection</h1>";
+        if (connections.length === 0) {
+            html += "<p>No connection</p>";
         }
         else {
-            for (var i = 0; i < sessions.length; ++i) {
-                var session = sessions[i];
-                html += "<h2>Session " + session["id"] + "</h2>";
-                html += "<div><span>Client name:</span><span>" + session["client_name"] + "</span></div>";
-                html += "<div><span>Client IP:</span><span>" + session["client_ip"] + "</span></div>";
+            for (var i = 0; i < connections.length; ++i) {
+                var connection = connections[i];
+                html += "<h2>Connection " + connection["id"] + "</h2>";
+                html += "<table>";
+                html += "<tr><td>Client name:</td><td>" + connection["client_name"] + "</td></tr>";
+                html += "<tr><td>Client IP:</td><td>" + connection["client_ip"] + "</td></tr>";
+                html += "</table>";
 
                 // Subscriptions
-                var subscriptions = session["subscriptions"];
-                if (subscriptions.length == 0) {
+                var subscriptions = connection["subscriptions"];
+                if (subscriptions.length === 0) {
                     html += "<p>No subscriptions</p>";
                 }
                 else {
                     for (var j = 0; j < subscriptions.length; ++j) {
                         var subscription = subscriptions[j];
+                        html += "<h2>Subscriptions</h2>";
                         html += "<h3>Subscription " + subscription["id"] + "</h3>";
+                        html += "<table>";
+                        html += "</table>";
                     }
                 }
             }
@@ -53,9 +66,10 @@
         $("#metrics").html(html);
     }
 </script>
-<h1>Server diagnostics</h1>
 
-<div id="metrics"></div>
+<div id="metrics"><span>Please wait...</span></div>
+
+<div><span><a href="#" onclick="requestMetrics()">Reload</a></span></div>
 
 </body>
 </html>

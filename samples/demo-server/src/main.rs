@@ -35,7 +35,7 @@ fn main() {
     let dynamic_scalar_timers = add_dynamic_scalar_variables(&mut server);
 
     // Start the http server, used for metrics
-    http::run_http_server("127.0.0.1:8585", server.server_state.clone(), server.server_metrics.clone());
+    http::run_http_server("127.0.0.1:8585", server.server_state.clone(), server.connections.clone(), server.server_metrics.clone());
 
     // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
     server.run();

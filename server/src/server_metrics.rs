@@ -2,32 +2,27 @@
 //! to see what is happening in the server. State is updated by the server as sessions are added, removed,
 //! and when subscriptions / monitored items are added, removed.
 
-use comms::tcp_transport::TcpTransport;
 use config;
 use opcua_types::DateTime;
 use server;
 use server_state;
-use session;
-use std::collections::BTreeMap;
-
 
 #[derive(Serialize)]
 pub struct ServerMetrics {
     pub server: Server,
-    pub server_config: Option<config::ServerConfig>,
-    pub sessions: BTreeMap<u32, Session>,
+    pub config: Option<config::ServerConfig>,
+    pub connections: Vec<Connection>,
 }
 
 #[derive(Serialize)]
 pub struct Server {
     pub start_time: String,
     pub uptime_ms: i64,
-
 }
 
 #[derive(Serialize)]
-pub struct Session {
-    pub id: u32,
+pub struct Connection {
+    pub id: String,
     // creation time
     // state
     pub client_name: String,
@@ -51,8 +46,8 @@ impl ServerMetrics {
                 start_time: String::new(),
                 uptime_ms: 0,
             },
-            server_config: None,
-            sessions: BTreeMap::new(),
+            config: None,
+            connections: Vec::new(),
         }
     }
 
@@ -61,48 +56,50 @@ impl ServerMetrics {
         let server_config = trace_read_lock_unwrap!(server_state.config);
 
         // For security, blank out user tokens
-        let mut server_config = server_config.clone();
-        server_config.user_tokens.clear();
-        server_config.user_tokens.insert(String::new(), config::ServerUserToken {
+        let mut config = server_config.clone();
+        config.user_tokens.clear();
+        config.user_tokens.insert(String::new(), config::ServerUserToken {
             user: String::from("User identity tokens have been removed"),
             pass: None,
         });
-        self.server_config = Some(server_config.clone());
+        self.config = Some(config.clone());
     }
 
     pub fn update_from_server_state(&mut self, server_state: &server_state::ServerState) {
         let start_time = &server_state.start_time;
         let now = DateTime::now();
 
-        self.server.start_time = start_time.as_chrono().to_rfc2822();
+        self.server.start_time = start_time.as_chrono().to_rfc3339();
 
         let elapsed = now.as_chrono().signed_duration_since(start_time.as_chrono());
         self.server.uptime_ms = elapsed.num_milliseconds();
     }
 
-    pub fn update_from_connections(&mut self, connections: &Vec<TcpTransport>) {
-        self.sessions.clear();
-        connections.iter().for_each(|c| {
-            let session_id = {
-                let session = c.session();
-                let session = session.read().unwrap();
-                // TODO
-                0
-            };
+    pub fn update_from_connections(&mut self, connections: &server::Connections) {
+        self.connections = connections.iter().map(|c| {
+            let connection = trace_read_lock_unwrap!(c);
+
+
+            let session = connection.session();
+            let session = trace_read_lock_unwrap!(session);
+
+            let subscriptions = Vec::new();
+            /*            let subscriptions = session.subscriptions.iter().map(|subscription| {
+                            Subscription {
+                                id: 0
+                            }
+                        }).collect(); */
 
             // session.subscriptions.iterate ...
-
-            let sessions_metric = Session {
+            let session_id = session.session_id.to_string();
+            Connection {
                 id: session_id,
                 // creation time
                 // state
                 client_name: String::from("fixme"),
                 client_ip: String::from("fixme"),
-                subscriptions: Vec::new(),
-            };
-
-
-            self.sessions.insert(0, sessions_metric);
-        });
+                subscriptions,
+            }
+        }).collect();
     }
 }

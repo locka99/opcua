@@ -19,6 +19,8 @@ use time;
 use timer;
 use util::PollingAction;
 
+pub type Connections = Vec<Arc<RwLock<TcpTransport>>>;
+
 /// The Server represents a running instance of OPC UA. There can be more than one server running
 /// at a time providing they do not share the same thread or listen on the same ports.
 pub struct Server {
@@ -32,7 +34,7 @@ pub struct Server {
     /// Address space
     pub address_space: Arc<RwLock<AddressSpace>>,
     /// List of open connections
-    pub connections: Vec<Arc<Mutex<TcpTransport>>>,
+    pub connections: Arc<RwLock<Connections>>,
 }
 
 impl Server {
@@ -103,7 +105,7 @@ impl Server {
             server_metrics: server_metrics.clone(),
             address_space,
             certificate_store,
-            connections: Vec::new(),
+            connections: Arc::new(RwLock::new(Vec::new())),
         };
 
         let mut server_metrics = trace_write_lock_unwrap!(server_metrics);
@@ -178,10 +180,11 @@ impl Server {
 
     fn remove_dead_connections(&mut self) {
         // Go through all connections, removing those that have terminated
-        self.connections.retain(|connection| {
+        let mut connections = trace_write_lock_unwrap!(self.connections);
+        connections.retain(|connection| {
             // Try to obtain the lock on the transport and the session and check if session is terminated
             // if it is, then we'll use its termination status to sweep it out.
-            let mut lock = connection.try_lock();
+            let mut lock = connection.try_read();
             if let Ok(ref mut connection) = lock {
                 !connection.terminated()
             } else {
@@ -235,10 +238,13 @@ impl Server {
         trace!("Connection thread spawning");
 
         // Spawn a thread for the connection
-        let connection = Arc::new(Mutex::new(self.new_transport()));
-        self.connections.push(connection.clone());
+        let connection = Arc::new(RwLock::new(self.new_transport()));
+        {
+            let mut connections = trace_write_lock_unwrap!(self.connections);
+            connections.push(connection.clone());
+        }
         thread::spawn(move || {
-            connection.lock().unwrap().run(stream);
+            TcpTransport::run(connection, stream);
             info!("Session thread is terminated");
         });
     }
