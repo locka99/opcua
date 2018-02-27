@@ -1,16 +1,13 @@
-use std::collections::{BTreeMap, VecDeque};
-
-use time;
-
+use address_space::types::AddressSpace;
+use DateTimeUtc;
 use opcua_types::*;
+use opcua_types::service_types::{NotificationMessage, PublishRequest, PublishResponse, ResponseHeader, ServiceFault};
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
-use opcua_types::service_types::{PublishRequest, PublishResponse, ServiceFault, ResponseHeader, NotificationMessage};
-
-use DateTimeUtc;
-use address_space::types::AddressSpace;
+use std::collections::{BTreeMap, VecDeque};
 use subscriptions::{PublishRequestEntry, PublishResponseEntry};
 use subscriptions::subscription::{Subscription, SubscriptionState, TickReason};
+use time;
 
 /// Incrementing sequence number
 pub struct SequenceNumber {
@@ -125,6 +122,10 @@ impl Subscriptions {
 
     pub fn len(&self) -> usize {
         self.subscriptions.len()
+    }
+
+    pub fn subscriptions(&self) -> &BTreeMap<UInt32, Subscription> {
+        &self.subscriptions
     }
 
     pub fn contains(&self, subscription_id: UInt32) -> bool {

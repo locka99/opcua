@@ -33,10 +33,14 @@ pub struct Connection {
 #[derive(Serialize)]
 pub struct Subscription {
     id: u32,
-    // interval
-    // publishing enabled
-    // monitored items
+    priority: u8,
+    publishing_enabled: bool,
+    publishing_interval: f64,
+    monitored_items: Vec<MonitoredItem>,
 }
+
+#[derive(Serialize)]
+pub struct MonitoredItem {}
 
 impl ServerMetrics {
     pub fn new() -> ServerMetrics {
@@ -79,16 +83,19 @@ impl ServerMetrics {
         self.connections = connections.iter().map(|c| {
             let connection = trace_read_lock_unwrap!(c);
 
-
             let session = connection.session();
             let session = trace_read_lock_unwrap!(session);
 
-            let subscriptions = Vec::new();
-            /*            let subscriptions = session.subscriptions.iter().map(|subscription| {
-                            Subscription {
-                                id: 0
-                            }
-                        }).collect(); */
+            let subscriptions = session.subscriptions.subscriptions().iter().map(|subscription| {
+                let subscription = subscription.1;
+                Subscription {
+                    id: subscription.subscription_id,
+                    priority: subscription.priority,
+                    publishing_enabled: subscription.publishing_enabled,
+                    publishing_interval: subscription.publishing_interval,
+                    monitored_items: Vec::new(),
+                }
+            }).collect();
 
             // session.subscriptions.iterate ...
             let session_id = session.session_id.to_string();
