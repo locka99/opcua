@@ -14,7 +14,7 @@ use session::Session;
 use std;
 use std::collections::VecDeque;
 use std::io::{Cursor, ErrorKind, Read, Write};
-use std::net::{Shutdown, TcpStream};
+use std::net::{Shutdown, SocketAddr, TcpStream};
 use std::sync::{Arc, RwLock};
 use std::sync::mpsc::{self, Receiver};
 use subscriptions::PublishResponseEntry;
@@ -42,6 +42,15 @@ enum SubscriptionEvent {
     PublishResponses(VecDeque<PublishResponseEntry>),
 }
 
+pub trait Transport {
+    // Get the current state of the transport
+    fn state(&self) -> TransportState;
+    /// Gets the session associated with the transport
+    fn session(&self) -> Arc<RwLock<Session>>;
+    /// Returns the address of the client (peer) of this connection
+    fn client_address(&self) -> Option<SocketAddr>;
+}
+
 /// This is the thing that handles input and output for the open connection associated with the
 /// session.
 pub struct TcpTransport {
@@ -53,6 +62,8 @@ pub struct TcpTransport {
     address_space: Arc<RwLock<AddressSpace>>,
     /// The current transport state
     transport_state: TransportState,
+    /// Client address
+    client_address: Option<SocketAddr>,
     /// Secure channel handler
     secure_channel_service: SecureChannelService,
     /// Message handler
@@ -65,6 +76,20 @@ pub struct TcpTransport {
     last_received_sequence_number: UInt32,
 }
 
+impl Transport for TcpTransport {
+    fn state(&self) -> TransportState {
+        self.transport_state.clone()
+    }
+
+    fn session(&self) -> Arc<RwLock<Session>> {
+        self.session.clone()
+    }
+
+    fn client_address(&self) -> Option<SocketAddr> {
+        self.client_address
+    }
+}
+
 impl TcpTransport {
     pub fn new(server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, message_handler: MessageHandler) -> TcpTransport {
         let secure_channel_service = SecureChannelService::new();
@@ -73,6 +98,7 @@ impl TcpTransport {
             session,
             address_space,
             transport_state: TransportState::New,
+            client_address: None,
             message_handler,
             secure_channel_service,
             client_protocol_version: 0,
@@ -83,6 +109,12 @@ impl TcpTransport {
 
     pub fn run(connection: Arc<RwLock<TcpTransport>>, mut stream: TcpStream) {
         // ENTRY POINT TO ALL OF OPC
+
+        // Store the address of the client
+        {
+            let mut connection = trace_write_lock_unwrap!(connection);
+            connection.client_address = Some(stream.peer_addr().unwrap());
+        }
 
         let session_start_time = Utc::now();
         info!("Session started {}", session_start_time);
@@ -317,10 +349,6 @@ impl TcpTransport {
             }
         });
         (subscription_timer, subscription_timer_guard, subscription_timer_rx)
-    }
-
-    pub fn session(&self) -> Arc<RwLock<Session>> {
-        self.session.clone()
     }
 
     fn write_output(buffer_stream: &mut Cursor<Vec<u8>>, stream: &mut Write) {

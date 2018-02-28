@@ -1,20 +1,16 @@
-use std::collections::VecDeque;
-
-use chrono;
-
-use opcua_types::*;
-use opcua_types::status_codes::StatusCode;
-use opcua_types::service_types::PublishRequest;
-
-use opcua_core::comms::secure_channel::{SecureChannel, Role};
-use opcua_core::crypto::X509;
-
-use DateTimeUtc;
 use address_space::address_space::AddressSpace;
-use subscriptions::subscriptions::Subscriptions;
-use subscriptions::subscription::TickReason;
-use server::Server;
+use chrono;
 use continuation_point::BrowseContinuationPoint;
+use DateTimeUtc;
+use opcua_core::comms::secure_channel::{Role, SecureChannel};
+use opcua_core::crypto::X509;
+use opcua_types::*;
+use opcua_types::service_types::PublishRequest;
+use opcua_types::status_codes::StatusCode;
+use server::Server;
+use std::collections::VecDeque;
+use subscriptions::subscription::TickReason;
+use subscriptions::subscriptions::Subscriptions;
 
 /// Session info holds information about a session created by CreateSession service
 #[derive(Clone)]
@@ -70,9 +66,9 @@ pub struct Session {
     /// Indicates if the session has received an ActivateSession
     pub activated: bool,
     /// Time that session was terminated, helps with recovering sessions, or clearing them out
-    terminated_at: DateTimeUtc,
+    pub terminated_at: DateTimeUtc,
     /// Flag indicating session is actually terminated
-    terminated: bool,
+    pub terminated: bool,
     /// Internal value used to create new session ids.
     last_session_id: UInt32,
 }

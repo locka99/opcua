@@ -2,6 +2,7 @@
 //! to see what is happening in the server. State is updated by the server as sessions are added, removed,
 //! and when subscriptions / monitored items are added, removed.
 
+use comms::tcp_transport::Transport;
 use config;
 use opcua_types::DateTime;
 use server;
@@ -25,8 +26,11 @@ pub struct Connection {
     pub id: String,
     // creation time
     // state
-    pub client_name: String,
-    pub client_ip: String,
+    pub client_address: String,
+    pub transport_state: String,
+    pub session_activated: bool,
+    pub session_terminated: bool,
+    pub session_terminated_at: String,
     pub subscriptions: Vec<Subscription>,
 }
 
@@ -100,7 +104,7 @@ impl ServerMetrics {
                     let monitored_item = monitored_item_pair.1;
                     MonitoredItem {
                         id: monitored_item.monitored_item_id,
-                        item_to_monitor: String::from("todo"),
+                        item_to_monitor: format!("{:?}", monitored_item.item_to_monitor, ),
                         monitoring_mode: monitored_item.monitoring_mode as u32,
                         client_handle: monitored_item.client_handle,
                         sampling_interval: monitored_item.sampling_interval,
@@ -122,8 +126,19 @@ impl ServerMetrics {
                 id: session_id,
                 // creation time
                 // state
-                client_name: String::from("fixme"),
-                client_ip: String::from("fixme"),
+                client_address: if connection.client_address().is_some() {
+                    format!("{:?}", connection.client_address().as_ref().unwrap())
+                } else {
+                    String::new()
+                },
+                transport_state: format!("{:?}", connection.state()),
+                session_activated: session.activated,
+                session_terminated: session.terminated,
+                session_terminated_at: if session.terminated {
+                    session.terminated_at.to_rfc3339()
+                } else {
+                    String::new()
+                },
                 subscriptions,
             }
         }).collect();
