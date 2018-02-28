@@ -40,7 +40,13 @@ pub struct Subscription {
 }
 
 #[derive(Serialize)]
-pub struct MonitoredItem {}
+pub struct MonitoredItem {
+    id: u32,
+    item_to_monitor: String,
+    monitoring_mode: u32,
+    client_handle: u32,
+    sampling_interval: f64,
+}
 
 impl ServerMetrics {
     pub fn new() -> ServerMetrics {
@@ -86,14 +92,27 @@ impl ServerMetrics {
             let session = connection.session();
             let session = trace_read_lock_unwrap!(session);
 
-            let subscriptions = session.subscriptions.subscriptions().iter().map(|subscription| {
-                let subscription = subscription.1;
+            let subscriptions = session.subscriptions.subscriptions().iter().map(|subscription_pair| {
+                let subscription = subscription_pair.1;
+
+                // Monitored items
+                let monitored_items = subscription.monitored_items.iter().map(|monitored_item_pair| {
+                    let monitored_item = monitored_item_pair.1;
+                    MonitoredItem {
+                        id: monitored_item.monitored_item_id,
+                        item_to_monitor: String::from("todo"),
+                        monitoring_mode: monitored_item.monitoring_mode as u32,
+                        client_handle: monitored_item.client_handle,
+                        sampling_interval: monitored_item.sampling_interval,
+                    }
+                }).collect();
+
                 Subscription {
                     id: subscription.subscription_id,
                     priority: subscription.priority,
                     publishing_enabled: subscription.publishing_enabled,
                     publishing_interval: subscription.publishing_interval,
-                    monitored_items: Vec::new(),
+                    monitored_items,
                 }
             }).collect();
 
