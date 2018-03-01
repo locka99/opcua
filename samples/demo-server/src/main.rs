@@ -4,21 +4,17 @@
 //! Use simple-server to understand a terse and simple example.
 
 extern crate chrono;
-extern crate futures;
-extern crate hyper;
 extern crate log;
 extern crate opcua_core;
 extern crate opcua_server;
 extern crate opcua_types;
 extern crate rand;
-extern crate serde;
-extern crate serde_json;
 
+
+use opcua_server::http;
 use opcua_server::prelude::*;
 use rand::Rng;
 use std::path::PathBuf;
-
-mod http;
 
 fn main() {
     // This enables logging via env_logger & log crate macros. If you don't need logging or want

@@ -79,6 +79,7 @@ impl ServerMetrics {
         self.config = Some(config.clone());
     }
 
+    // Update the server state metrics (uptime etc.)
     pub fn update_from_server_state(&mut self, server_state: &server_state::ServerState) {
         let start_time = &server_state.start_time;
         let now = DateTime::now();
@@ -89,6 +90,7 @@ impl ServerMetrics {
         self.server.uptime_ms = elapsed.num_milliseconds();
     }
 
+    // Update the connection metrics which includes susbcriptions and monitored items
     pub fn update_from_connections(&mut self, connections: &server::Connections) {
         self.connections = connections.iter().map(|c| {
             let connection = trace_read_lock_unwrap!(c);
@@ -96,6 +98,7 @@ impl ServerMetrics {
             let session = connection.session();
             let session = trace_read_lock_unwrap!(session);
 
+            // Subscriptions
             let subscriptions = session.subscriptions.subscriptions().iter().map(|subscription_pair| {
                 let subscription = subscription_pair.1;
 

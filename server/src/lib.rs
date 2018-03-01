@@ -2,6 +2,8 @@
 //! side authentications, sessions etc.
 
 extern crate chrono;
+extern crate futures;
+extern crate hyper;
 #[macro_use]
 extern crate log;
 extern crate opcua_client;
@@ -12,6 +14,7 @@ extern crate rand;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate serde_json;
 extern crate time;
 extern crate timer;
 
@@ -29,6 +32,7 @@ pub mod config;
 pub mod address_space;
 pub mod util;
 pub mod continuation_point;
+pub mod http;
 
 pub mod prelude {
     pub use opcua_types::status_codes::StatusCode;
