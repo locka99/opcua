@@ -43,8 +43,11 @@
                 var connection = connections[i];
                 html += "<h2>Connection " + connection["id"] + "</h2>";
                 html += "<table>";
-                html += "<tr><td>Client name:</td><td>" + connection["client_name"] + "</td></tr>";
-                html += "<tr><td>Client IP:</td><td>" + connection["client_ip"] + "</td></tr>";
+                html += "<tr><td>Client address:</td><td>" + connection["client_address"] + "</td></tr>";
+                html += "<tr><td>Transport state:</td><td>" + connection["transport_state"] + "</td></tr>";
+                html += "<tr><td>Session activated:</td><td>" + connection["session_activated"] + "</td></tr>";
+                html += "<tr><td>Session terminated:</td><td>" + connection["session_terminated"] + "</td></tr>";
+                html += "<tr><td>Session terminated at:</td><td>" + connection["session_terminated_at"] + "</td></tr>";
                 html += "</table>";
 
                 // Subscriptions
@@ -58,7 +61,27 @@
                         html += "<h2>Subscriptions</h2>";
                         html += "<h3>Subscription " + subscription["id"] + "</h3>";
                         html += "<table>";
+                        html += "<tr><td>Priority:</td><td>" + subscription["priority"] + "</td></tr>";
+                        html += "<tr><td>Publishing enabled:</td><td>" + subscription["publishing_enabled"] + "</td></tr>";
+                        html += "<tr><td>Publish interval:</td><td>" + subscription["publishing_interval"] + "</td></tr>";
                         html += "</table>";
+
+                        var monitored_items = subscription["monitored_items"];
+                        if (monitored_items.length === 0) {
+                            html += "<p>No monitored items</p>";
+                        }
+                        else {
+                            for (var k = 0; k < monitored_items.length; ++k) {
+                                var monitored_item = monitored_items[k];
+                                html += "<h4>Item " + monitored_item["id"] + "</h4>";
+                                html += "<table>";
+                                html += "<tr><td>Item to monitor:</td><td>" + monitored_item["item_to_monitor"] + "</td></tr>";
+                                html += "<tr><td>Monitoring mode:</td><td>" + monitored_item["monitoring_mode"] + "</td></tr>";
+                                html += "<tr><td>Client handle:</td><td>" + monitored_item["client_handle"] + "</td></tr>";
+                                html += "<tr><td>Sampling interval:</td><td>" + monitored_item["sampling_interval"] + "</td></tr>";
+                                html += "</table>";
+                            }
+                        }
                     }
                 }
             }
@@ -66,6 +89,8 @@
         $("#metrics").html(html);
     }
 </script>
+
+<div><span><a href="#" onclick="requestMetrics()">Reload</a></span></div>
 
 <div id="metrics"><span>Please wait...</span></div>
 
