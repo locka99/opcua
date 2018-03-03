@@ -1,15 +1,13 @@
+use chrono::{DateTime, Utc};
+// Integration tests are asynchronous so futures will be used
+use opcua_client::prelude::*;
+use opcua_core;
+use opcua_server;
+use opcua_server::prelude::*;
 use std::collections::BTreeMap;
-use std::thread;
 use std::sync::mpsc;
 use std::sync::mpsc::channel;
-
-// Integration tests are asynchronous so futures will be used
-use futures;
-
-use opcua_core;
-use opcua_client::prelude::*;
-use opcua_server::prelude::*;
-use opcua_server;
+use std::thread;
 
 fn new_client_server() -> (Client, Server) {
     opcua_core::init_logging();
@@ -75,7 +73,7 @@ fn new_client_server() -> (Client, Server) {
             String::from("sample_user"),
             ClientUserToken {
                 user: String::from("sample"),
-                password: String::from("sample1")
+                password: String::from("sample1"),
             });
 
 
@@ -90,93 +88,129 @@ fn new_client_server() -> (Client, Server) {
 }
 
 enum ClientCommand {
-
+    Quit
 }
 
 enum ClientResponse {
-    Quit
+    Starting,
+    Finished,
 }
 
-enum ServerCommand {}
+enum ServerCommand {
+    Quit
+}
 
 enum ServerResponse {
-    Quit
+    Starting,
+    Finished,
 }
 
-fn perform_test<CT, ST>(client_test: CT, server_test: ST)
-    where CT: FnOnce(&mpsc::Sender<ClientResponse>, &Client) + Send + 'static,
-          ST: FnOnce(&mpsc::Sender<ServerResponse>, &Server) + Send + 'static {
+fn perform_test<CT, ST>(client_test: Option<CT>, server_test: ST)
+    where CT: FnOnce(&mpsc::Sender<ClientResponse>, &mpsc::Receiver<ClientCommand>, &Client) + Send + 'static,
+          ST: FnOnce(&mpsc::Sender<ServerResponse>, &mpsc::Receiver<ServerCommand>, &Server) + Send + 'static {
     let (client, server) = new_client_server();
 
-    // Now spawn a couple of threads to house the client and server.
-    let (tx_client_to_main, rx_client_to_main) = channel();
-    let (tx_server_to_main, rx_server_to_main) = channel();
+    // Spawn the CLIENT thread
+    let (tx_client, rx_main_client) = {
+        let (tx_client, rx_client) = channel();
+        let (tx_main, rx_main_client) = channel();
 
-    let (tx_server_to_client, rx_server_to_client) = channel();
-    let (tx_client_to_server, rx_client_to_server) = channel();
+        thread::spawn(move || {
+            if let Some(client_test) = client_test {
+                // Client thread
+                trace!("Running client test");
+                client_test(&tx_main, &rx_client, &client);
+            } else {
+                trace!("No client test");
+            }
+            let _ = tx_main.send(ClientResponse::Finished);
+        });
+        (tx_client, rx_main_client)
+    };
 
-    thread::spawn(move || {
-        if client_test.is_some() {
-            let client_test = client_test.unwrap();
-            client_test();
-        }
-        // Client thread
-        client_test(&tx_client_to_main, & rx_main_to_client, &client);
-        let _ = tx_client.send(ClientResponse::Quit);
-    });
+    // Spawn the SERVER thread
+    let (tx_server, rx_main_server) = {
+        let (tx_server, rx_server) = channel();
+        let (tx_main, rx_main_server) = channel();
 
-    let (tx_main_to_server, rx_main_to_server) = channel();
-    thread::spawn(move || {
-        // Server thread
-        server_test(&tx_server, &server);
-        let _ = tx_server.send(ServerResponse::Quit);
-    });
+        thread::spawn(move || {
+            // Server thread
+            trace!("Running server test");
+            server_test(&tx_main, &rx_server, &server);
+            let _ = tx_main.send(ServerResponse::Finished);
+        });
+        (tx_server, rx_main_server)
+    };
+
+
+    let start_time = Utc::now();
 
     // Loop until either the client or the server has quit
-    loop {
-        if let Ok(response) = rx_client_to_main.try_recv() {
+    let mut client_has_finished = false;
+    let mut server_has_finished = false;
+    let mut test_timeout = false;
+
+    while !client_has_finished || !server_has_finished {
+
+        // Timeout test
+        if !test_timeout {
+            let now = Utc::now();
+            let elapsed = now.signed_duration_since(start_time.clone());
+            if elapsed.num_milliseconds() > 30000 {
+                let _ = tx_client.send(ClientCommand::Quit);
+                let _ = tx_server.send(ServerCommand::Quit);
+                test_timeout = true;
+                panic!("Test timed out after {} ms", elapsed.num_milliseconds());
+            }
+        }
+
+        if let Ok(response) = rx_main_client.try_recv() {
             match response {
-                ClientResponse::Quit => {
-                    trace!("Client quit");
-                    break;
+                ClientResponse::Starting => {
+                    trace!("Client test is starting");
+                }
+                ClientResponse::Finished => {
+                    trace!("Client test finished");
+                    client_has_finished = true;
                 }
             }
         }
-        if let Ok(response) = rx_server_to_main.try_recv() {
+        if let Ok(response) = rx_main_server.try_recv() {
             match response {
-                ServerResponse::Quit => {
-                    trace!("Server quit");
-                    break;
+                ServerResponse::Starting => {
+                    trace!("Client test is starting");
+                }
+                ServerResponse::Finished => {
+                    trace!("Server test finished");
+                    server_has_finished = true;
                 }
             }
         }
     }
 
     // TODO process the result
-
     trace!("test complete")
 }
 
 
 #[test]
 fn connect() {
-    perform_test(|tx_client, rx_client, client| {
+    let client_test = |tx_client: &mpsc::Sender<ClientResponse>, rx_client: &mpsc::Receiver<ClientCommand>, client: &Client| {
         trace!("Hello from client");
+        let _ = tx_client.send(ClientResponse::Starting);
+    };
 
-        // Wait for server to say its ready
-
-        //let session = client.new_session_default().unwrap();
-        //let session = session.lock().unwrap();
-        //session.connect_and_activate_session().unwrap();
-    }, |tx_server, rx_server, server| {
+    let server_test = |tx_server: &mpsc::Sender<ServerResponse>, rx_server: &mpsc::Receiver<ServerCommand>, server: &Server| {
         trace!("Hello from server");
-
+        let _ = tx_server.send(ServerResponse::Starting);
         // Server runs on its own thread
         thread::spawn(|| {
             // Client thread
-            server.run();
+            //server.run();
         });
-    });
+    };
+
+    perform_test(Some(client_test), server_test);
 }
 
 #[test]

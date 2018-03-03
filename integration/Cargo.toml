@@ -1,0 +1,25 @@
+[package]
+name = "opcua-integration"
+version = "0.3.0" # OPCUARustVersion
+authors = ["Adam Lock <locka99@gmail.com>"]
+
+[dependencies]
+futures = "0.1"
+log = "0.3.6"
+chrono = "0.4"
+
+[dependencies.opcua-types]
+path = "../types"
+version = "0.3.0" # OPCUARustVersion
+
+[dependencies.opcua-core]
+path = "../core"
+version = "0.3.0" # OPCUARustVersion
+
+[dependencies.opcua-server]
+path = "../server"
+version = "0.3.0" # OPCUARustVersion
+
+[dependencies.opcua-client]
+path = "../client"
+version = "0.3.0" # OPCUARustVersion

@@ -471,6 +471,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "opcua-integration"
+version = "0.3.0"
+dependencies = [
+ "chrono 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "opcua-client 0.3.0",
+ "opcua-core 0.3.0",
+ "opcua-server 0.3.0",
+ "opcua-types 0.3.0",
+]
+
+[[package]]
 name = "opcua-server"
 version = "0.3.0"
 dependencies = [
