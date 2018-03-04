@@ -5,6 +5,7 @@ use opcua_core;
 use opcua_server;
 use opcua_server::prelude::*;
 use std::collections::BTreeMap;
+use std::sync::{Arc, RwLock};
 use std::sync::mpsc;
 use std::sync::mpsc::channel;
 use std::thread;
@@ -106,8 +107,8 @@ enum ServerResponse {
 }
 
 fn perform_test<CT, ST>(client_test: Option<CT>, server_test: ST)
-    where CT: FnOnce(&mpsc::Sender<ClientResponse>, &mpsc::Receiver<ClientCommand>, &Client) + Send + 'static,
-          ST: FnOnce(&mpsc::Sender<ServerResponse>, &mpsc::Receiver<ServerCommand>, &Server) + Send + 'static {
+    where CT: FnOnce(&mpsc::Sender<ClientResponse>, &mpsc::Receiver<ClientCommand>, Client) + Send + 'static,
+          ST: FnOnce(&mpsc::Sender<ServerResponse>, &mpsc::Receiver<ServerCommand>, Server) + Send + 'static {
     let (client, server) = new_client_server();
 
     // Spawn the CLIENT thread
@@ -119,7 +120,7 @@ fn perform_test<CT, ST>(client_test: Option<CT>, server_test: ST)
             if let Some(client_test) = client_test {
                 // Client thread
                 trace!("Running client test");
-                client_test(&tx_main, &rx_client, &client);
+                client_test(&tx_main, &rx_client, client);
             } else {
                 trace!("No client test");
             }
@@ -136,7 +137,7 @@ fn perform_test<CT, ST>(client_test: Option<CT>, server_test: ST)
         thread::spawn(move || {
             // Server thread
             trace!("Running server test");
-            server_test(&tx_main, &rx_server, &server);
+            server_test(&tx_main, &rx_server, server);
             let _ = tx_main.send(ServerResponse::Finished);
         });
         (tx_server, rx_main_server)
@@ -195,18 +196,19 @@ fn perform_test<CT, ST>(client_test: Option<CT>, server_test: ST)
 
 #[test]
 fn connect() {
-    let client_test = |tx_client: &mpsc::Sender<ClientResponse>, rx_client: &mpsc::Receiver<ClientCommand>, client: &Client| {
+    let client_test = |tx_client: &mpsc::Sender<ClientResponse>, rx_client: &mpsc::Receiver<ClientCommand>, _client: Client| {
         trace!("Hello from client");
         let _ = tx_client.send(ClientResponse::Starting);
     };
 
-    let server_test = |tx_server: &mpsc::Sender<ServerResponse>, rx_server: &mpsc::Receiver<ServerCommand>, server: &Server| {
+    let server_test = |tx_server: &mpsc::Sender<ServerResponse>, rx_server: &mpsc::Receiver<ServerCommand>, server: Server| {
         trace!("Hello from server");
         let _ = tx_server.send(ServerResponse::Starting);
+
         // Server runs on its own thread
         thread::spawn(|| {
             // Client thread
-            //server.run();
+            // server.run();
         });
     };
 

@@ -99,7 +99,7 @@ pub fn run_http_server(address: &str, server_state: Arc<RwLock<ServerState>>, co
             connections,
             server_metrics,
         };
-        let server = Http::new().bind(&address, metrics_factory).unwrap();
-        server.run().unwrap();
+        let http_server = Http::new().bind(&address, metrics_factory).unwrap();
+        http_server.run().unwrap();
     })
 }

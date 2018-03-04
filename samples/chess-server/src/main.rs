@@ -1,12 +1,11 @@
-extern crate uci;
 extern crate opcua_server;
-
-use std::env;
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::path::PathBuf;
+extern crate uci;
 
 use opcua_server::prelude::*;
+use std::env;
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex, RwLock};
+use std::thread;
 
 mod game;
 
@@ -43,7 +42,7 @@ fn main() {
     let game = Arc::new(Mutex::new(game::Game::new(&engine_path)));
 
     // Create an OPC UA server with sample configuration and default node set
-    let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
+    let server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
 
     {
         let mut address_space = server.address_space.write().unwrap();
@@ -102,7 +101,7 @@ fn main() {
     });
 
     // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
-    server.run();
+    Server::run(Arc::new(RwLock::new(server)));
 }
 
 fn update_board_state(game: &game::Game, address_space: &mut AddressSpace) {

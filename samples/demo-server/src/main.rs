@@ -10,11 +10,11 @@ extern crate opcua_server;
 extern crate opcua_types;
 extern crate rand;
 
-
 use opcua_server::http;
 use opcua_server::prelude::*;
 use rand::Rng;
 use std::path::PathBuf;
+use std::sync::{Arc, RwLock};
 
 fn main() {
     // This enables logging via env_logger & log crate macros. If you don't need logging or want
@@ -34,7 +34,7 @@ fn main() {
     http::run_http_server("127.0.0.1:8585", server.server_state.clone(), server.connections.clone(), server.server_metrics.clone());
 
     // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
-    server.run();
+    Server::run(Arc::new(RwLock::new(server)));
 
     // This explicit drop statement prevents the compiler complaining that update_timers is unused.
     drop(dynamic_scalar_timers);

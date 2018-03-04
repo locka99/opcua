@@ -1,16 +1,15 @@
 //! This is a simple server for OPC UA. Our sample creates a server with the default settings
 //! adds some variables to the address space and the listeners for connections. It also has
 //! a timer that updates those variables so anything monitoring variables sees the values changing.
-extern crate log;
 extern crate chrono;
-extern crate opcua_types;
+extern crate log;
 extern crate opcua_core;
 extern crate opcua_server;
-
-use std::sync::{Arc, Mutex};
-use std::path::PathBuf;
+extern crate opcua_types;
 
 use opcua_server::prelude::*;
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex, RwLock};
 
 fn main() {
     // This enables logging via env_logger & log crate macros. If you don't need logging or want
@@ -24,7 +23,7 @@ fn main() {
     let update_timers = add_example_variables(&mut server);
 
     // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
-    server.run();
+    Server::run(Arc::new(RwLock::new(server)));
 
     // This explicit drop statement prevents the compiler complaining that update_timers is unused.
     drop(update_timers);

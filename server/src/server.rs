@@ -120,10 +120,12 @@ impl Server {
         server_state.abort = true;
     }
 
-    /// Runs the server
-    pub fn run(&mut self) {
+    /// Runs the server. Note server is supplied protected by a lock allowing access to the server
+    /// to be shared.
+    pub fn run(server: Arc<RwLock<Server>>) {
         let (host, port, _, discovery_server_url) = {
-            let server_state = trace_read_lock_unwrap!(self.server_state);
+            let server = trace_read_lock_unwrap!(server);
+            let server_state = trace_read_lock_unwrap!(server.server_state);
             let config = trace_read_lock_unwrap!(server_state.config);
             (config.tcp_config.host.clone(), config.tcp_config.port, server_state.base_endpoint.clone(), config.discovery_server_url.clone())
         };
@@ -131,7 +133,8 @@ impl Server {
         let listener = TcpListener::bind(&sock_addr).unwrap();
 
         {
-            let server_state = trace_read_lock_unwrap!(self.server_state);
+            let server = trace_read_lock_unwrap!(server);
+            let server_state = trace_read_lock_unwrap!(server.server_state);
             let config = trace_read_lock_unwrap!(server_state.config);
 
             info!("OPC UA Server: {}", server_state.application_name);
@@ -147,27 +150,31 @@ impl Server {
             }
         }
 
-        let discovery_server_timer = self.start_discovery_server_registration_timer(discovery_server_url);
+        let discovery_server_timer = {
+            let mut server = trace_write_lock_unwrap!(server);
+            server.start_discovery_server_registration_timer(discovery_server_url)
+        };
 
         info!("Waiting for Connection");
 
         // This iterator runs forever, just accept()'ing the next incoming connection.
         for stream in listener.incoming() {
-            if self.is_abort() {
+            let mut server = trace_write_lock_unwrap!(server);
+            if server.is_abort() {
                 info!("Server is aborting");
                 break;
             }
             info!("Handling new connection {:?}", stream);
             match stream {
                 Ok(stream) => {
-                    self.handle_connection(stream);
+                    server.handle_connection(stream);
                 }
                 Err(err) => {
                     warn!("Got an error on stream {:?}", err);
                 }
             }
             // Clear out dead sessions
-            self.remove_dead_connections();
+            server.remove_dead_connections();
         }
 
         drop(discovery_server_timer);
