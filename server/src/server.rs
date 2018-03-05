@@ -12,7 +12,7 @@ use server_metrics::ServerMetrics;
 use server_state::{ServerDiagnostics, ServerState};
 use services::message_handler::MessageHandler;
 use session::Session;
-use std::net::{TcpListener, TcpStream};
+use tokio::net::TcpListener;
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use time;
@@ -158,7 +158,7 @@ impl Server {
         info!("Waiting for Connection");
 
         // This iterator runs forever, just accept()'ing the next incoming connection.
-        for stream in listener.incoming() {
+        for stream in listener.incoming().for_each(|socket| {
             let mut server = trace_write_lock_unwrap!(server);
             if server.is_abort() {
                 info!("Server is aborting");
@@ -173,8 +173,20 @@ impl Server {
                     warn!("Got an error on stream {:?}", err);
                 }
             }
+         });
+
+        loop  {
+            let mut server = trace_write_lock_unwrap!(server);
+            if server.is_abort() {
+                info!("Server is aborting");
+                break;
+            }
+
             // Clear out dead sessions
             server.remove_dead_connections();
+
+            // Sleep for a bit
+            thread::sleep(time::Duration::from_millis(1000));
         }
 
         drop(discovery_server_timer);
