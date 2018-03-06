@@ -12,11 +12,12 @@ use server_metrics::ServerMetrics;
 use server_state::{ServerDiagnostics, ServerState};
 use services::message_handler::MessageHandler;
 use session::Session;
-use tokio::net::TcpListener;
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use time;
 use timer;
+use tokio::executor::current_thread;
+use tokio::net::{TcpListener, TcpStream};
 use util::PollingAction;
 
 pub type Connections = Vec<Arc<RwLock<TcpTransport>>>;
@@ -157,25 +158,37 @@ impl Server {
 
         info!("Waiting for Connection");
 
-        // This iterator runs forever, just accept()'ing the next incoming connection.
-        for stream in listener.incoming().for_each(|socket| {
-            let mut server = trace_write_lock_unwrap!(server);
-            if server.is_abort() {
-                info!("Server is aborting");
-                break;
-            }
-            info!("Handling new connection {:?}", stream);
-            match stream {
-                Ok(stream) => {
-                    server.handle_connection(stream);
-                }
-                Err(err) => {
-                    warn!("Got an error on stream {:?}", err);
-                }
-            }
-         });
+        // This is the tokio server task that listens for connections and handles new sockets
+        let server_task = {
+            let server = server.clone();
+            listener.incoming()
+                .for_each(move |socket| {
+                    let mut server = trace_write_lock_unwrap!(server);
+                    if server.is_abort() {
+                        info!("Server is aborting");
+                        break;
+                    }
+                    info!("Handling new connection {:?}", socket);
+                    match stream {
+                        Ok(stream) => {
+                            server.handle_connection(socket);
+                        }
+                        Err(err) => {
+                            warn!("Got an error on stream {:?}", err);
+                        }
+                    }
+                })
+                .map_err(|err| {
+                    error!("Accept error = {:?}", err);
+                })
+        }
 
-        loop  {
+        current_thread::run(|_| {
+            current_thread::spawn(server_task);
+        });
+
+        // This is our server's main house keeping / quit loop
+        loop {
             let mut server = trace_write_lock_unwrap!(server);
             if server.is_abort() {
                 info!("Server is aborting");
@@ -253,7 +266,7 @@ impl Server {
     }
 
     /// Handles the incoming request
-    fn handle_connection(&mut self, stream: TcpStream) {
+    fn handle_connection(&mut self, socket: TcpStream) {
         trace!("Connection thread spawning");
 
         // Spawn a thread for the connection
@@ -263,7 +276,7 @@ impl Server {
             connections.push(connection.clone());
         }
         thread::spawn(move || {
-            TcpTransport::run(connection, stream);
+            TcpTransport::run(connection, socket);
             info!("Session thread is terminated");
         });
     }

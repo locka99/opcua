@@ -14,13 +14,14 @@ use session::Session;
 use std;
 use std::collections::VecDeque;
 use std::io::{Cursor, ErrorKind, Read, Write};
-use std::net::{Shutdown, SocketAddr, TcpStream};
 use std::sync::{Arc, RwLock};
 use std::sync::mpsc::{self, Receiver};
 use subscriptions::PublishResponseEntry;
 use subscriptions::subscription::TickReason;
 use time;
 use timer;
+// use std::net::{Shutdown, SocketAddr, TcpStream};
+use tokio::net::TcpStream;
 
 // TODO these need to go, and use session settings
 const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;
