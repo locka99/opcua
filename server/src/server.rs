@@ -163,12 +163,12 @@ impl Server {
             let server = server.clone();
             listener.incoming()
                 .for_each(move |socket| {
+                    info!("Handling new connection {:?}", socket);
                     let mut server = trace_write_lock_unwrap!(server);
                     if server.is_abort() {
                         info!("Server is aborting");
-                        break;
+                        return;
                     }
-                    info!("Handling new connection {:?}", socket);
                     match stream {
                         Ok(stream) => {
                             server.handle_connection(socket);
@@ -192,6 +192,7 @@ impl Server {
             let mut server = trace_write_lock_unwrap!(server);
             if server.is_abort() {
                 info!("Server is aborting");
+                // TODO break tokio
                 break;
             }
 
@@ -275,6 +276,7 @@ impl Server {
             let mut connections = trace_write_lock_unwrap!(self.connections);
             connections.push(connection.clone());
         }
+
         thread::spawn(move || {
             TcpTransport::run(connection, socket);
             info!("Session thread is terminated");

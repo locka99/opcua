@@ -14,13 +14,14 @@ use session::Session;
 use std;
 use std::collections::VecDeque;
 use std::io::{Cursor, ErrorKind, Read, Write};
+use std::net::{Shutdown, SocketAddr};
 use std::sync::{Arc, RwLock};
 use std::sync::mpsc::{self, Receiver};
 use subscriptions::PublishResponseEntry;
 use subscriptions::subscription::TickReason;
 use time;
 use timer;
-// use std::net::{Shutdown, SocketAddr, TcpStream};
+use tokio::executor::current_thread;
 use tokio::net::TcpStream;
 
 // TODO these need to go, and use session settings
@@ -109,7 +110,22 @@ impl TcpTransport {
     }
 
     pub fn run(connection: Arc<RwLock<TcpTransport>>, mut stream: TcpStream) {
+
+        // TOKIO Split the socket into a read / write portion
+        let (mut read, mut write) = stream.split();
+
         // ENTRY POINT TO ALL OF OPC
+
+        // TOKIO tasks for reading / writing data from the input
+
+        // Future for read has associated callback to store chunk when it's received and
+        // when complete message is finished to concatenate it together and process it.
+
+        // Write future writes chunks pending to be sent
+
+        // TOKIO tasks must simulate the loop below, maintaining state and timing out on HELO
+        // or inactivity.
+
 
         // Store the address of the client
         {
@@ -157,152 +173,278 @@ impl TcpTransport {
 
         let mut message_buffer = MessageBuffer::new(RECEIVE_BUFFER_SIZE);
 
-        loop {
+
+        let mut header = [0u8; 12];
+        let connection = read.read_exact(&mut header).and_then(|socket, buf| {
             // Check for abort
             let transport_state = {
                 let connection = trace_read_lock_unwrap!(connection);
                 let server_state = trace_read_lock_unwrap!(connection.server_state);
                 if server_state.abort {
-                    break;
+                    return Err(());
                 }
                 connection.transport_state.clone()
             };
 
-            // Session waits a configurable time for a hello and terminates if it fails to receive it
-            let now = Utc::now();
-            if transport_state == TransportState::WaitingHello {
-                if now.signed_duration_since(session_start_time) > hello_timeout {
-                    error!("Session timed out waiting for hello");
-                    session_status_code = BadTimeout;
-                    break;
-                }
-            }
+            // Inspect the header here
+            match transport_state {
+                TransportState::WaitingHello => {
+                    // We expect the buf to contain a hello
 
-            // Process subscription timer events
-            if let Ok(result) = subscription_timer_rx.try_recv() {
-                match result {
-                    SubscriptionEvent::PublishResponses(publish_responses) => {
-                        trace!("Got {} PublishResponse messages to send", publish_responses.len());
-                        for publish_response in publish_responses {
-                            trace!("<-- Sending a Publish Response{}, {:?}", publish_response.request_id, &publish_response.response);
-                            let mut connection = trace_write_lock_unwrap!(connection);
-                            let _ = connection.send_response(publish_response.request_id, &publish_response.response, &mut out_buf_stream);
+                    // TODO New timeout future here
+                    let now = Utc::now();
+                    /* if transport_state == TransportState::WaitingHello {
+                        if now.signed_duration_since(session_start_time) > hello_timeout {
+                            error!("Session timed out waiting for hello");
+                            session_status_code = BadTimeout;
+                            break;
                         }
-                        Self::write_output(&mut out_buf_stream, &mut stream);
                     }
+                    */
+
+                    Ok(())
+                }
+                TransportState::ProcessMessages => {
+                    // process the chunk
+
+
+                    // TODO Read the remaining bytes of the message into the in_buffer
+
+                    /*
+                    // Try to read, using timeout as a polling mechanism
+                    let bytes_read_result = stream.read(&mut in_buf);
+                    if bytes_read_result.is_err() {
+                        let error = bytes_read_result.unwrap_err();
+                        match error.kind() {
+                            ErrorKind::TimedOut | ErrorKind::WouldBlock => {
+                                continue;
+                            }
+                            kind => {
+                                error!("Read error - kind = {:?}, {:?}", kind, error);
+                                break;
+                            }
+                        }
+                    }
+
+                    let result = message_buffer.store_bytes(&in_buf[0..bytes_read]);
+                    if result.is_err() {
+                        session_status_code = result.unwrap_err();
+                        break;
+                    }
+                    let messages = result.unwrap();
+                    for message in messages {
+                        match transport_state {
+                            TransportState::WaitingHello => {
+                                debug!("Processing HELLO");
+                                if let Message::Hello(hello) = message {
+                                    let mut connection = trace_write_lock_unwrap!(connection);
+                                    let result = connection.process_hello(hello, &mut out_buf_stream);
+                                    if result.is_err() {
+                                        session_status_code = result.unwrap_err();
+                                    }
+                                } else {
+                                    session_status_code = BadCommunicationError;
+                                }
+                            }
+                            TransportState::ProcessMessages => {
+                                debug!("Processing message");
+                                if let Message::MessageChunk(chunk) = message {
+                                    let mut connection = trace_write_lock_unwrap!(connection);
+                                    let result = connection.process_chunk(chunk, &mut out_buf_stream);
+                                    if result.is_err() {
+                                        session_status_code = result.unwrap_err();
+                                    }
+                                } else {
+                                    session_status_code = BadCommunicationError;
+                                }
+                            }
+                            _ => {
+                                error!("Unknown sesion state, aborting");
+                                session_status_code = BadUnexpectedError;
+                            }
+                        };
+                    }
+
+                    // Anything to write?
+                    Self::write_output(&mut out_buf_stream, &mut stream);
+
+                    // Some handlers might wish to send their message and terminate, in which case this is
+                    // done here.
+                    {
+                        let connection = trace_write_lock_unwrap!(connection);
+                        let session = trace_read_lock_unwrap!(connection.session);
+                        if session.terminate_session {
+                            session_status_code = BadConnectionClosed;
+                        }
+                    }
+
+                    // Terminate the session?
+                    if !session_status_code.is_good() {
+                        break;
+                    }
+                    */
+
+
+                    Ok(())
+                }
+                _ => {
+                    error!("Unknown sesion state, aborting");
+                    //...
+                    Err(())
                 }
             }
+        });
 
-            // Try to read, using timeout as a polling mechanism
-            let bytes_read_result = stream.read(&mut in_buf);
-            if bytes_read_result.is_err() {
-                let error = bytes_read_result.unwrap_err();
-                match error.kind() {
-                    ErrorKind::TimedOut | ErrorKind::WouldBlock => {
+        current_thread::spawn(connection);
+
+        /*
+                loop {
+                    // Check for abort
+                    let transport_state = {
+                        let connection = trace_read_lock_unwrap!(connection);
+                        let server_state = trace_read_lock_unwrap!(connection.server_state);
+                        if server_state.abort {
+                            break;
+                        }
+                        connection.transport_state.clone()
+                    };
+
+                    // Session waits a configurable time for a hello and terminates if it fails to receive it
+                    let now = Utc::now();
+                    if transport_state == TransportState::WaitingHello {
+                        if now.signed_duration_since(session_start_time) > hello_timeout {
+                            error!("Session timed out waiting for hello");
+                            session_status_code = BadTimeout;
+                            break;
+                        }
+                    }
+
+                    // Process subscription timer events
+                    if let Ok(result) = subscription_timer_rx.try_recv() {
+                        match result {
+                            SubscriptionEvent::PublishResponses(publish_responses) => {
+                                trace!("Got {} PublishResponse messages to send", publish_responses.len());
+                                for publish_response in publish_responses {
+                                    trace!("<-- Sending a Publish Response{}, {:?}", publish_response.request_id, &publish_response.response);
+                                    let mut connection = trace_write_lock_unwrap!(connection);
+                                    let _ = connection.send_response(publish_response.request_id, &publish_response.response, &mut out_buf_stream);
+                                }
+                                Self::write_output(&mut out_buf_stream, &mut stream);
+                            }
+                        }
+                    }
+
+                    // Try to read, using timeout as a polling mechanism
+                    let bytes_read_result = stream.read(&mut in_buf);
+                    if bytes_read_result.is_err() {
+                        let error = bytes_read_result.unwrap_err();
+                        match error.kind() {
+                            ErrorKind::TimedOut | ErrorKind::WouldBlock => {
+                                continue;
+                            }
+                            kind => {
+                                error!("Read error - kind = {:?}, {:?}", kind, error);
+                                break;
+                            }
+                        }
+                    }
+                    let bytes_read = bytes_read_result.unwrap();
+                    if bytes_read == 0 {
                         continue;
                     }
-                    kind => {
-                        error!("Read error - kind = {:?}, {:?}", kind, error);
+
+                    let result = message_buffer.store_bytes(&in_buf[0..bytes_read]);
+                    if result.is_err() {
+                        session_status_code = result.unwrap_err();
+                        break;
+                    }
+                    let messages = result.unwrap();
+                    for message in messages {
+                        match transport_state {
+                            TransportState::WaitingHello => {
+                                debug!("Processing HELLO");
+                                if let Message::Hello(hello) = message {
+                                    let mut connection = trace_write_lock_unwrap!(connection);
+                                    let result = connection.process_hello(hello, &mut out_buf_stream);
+                                    if result.is_err() {
+                                        session_status_code = result.unwrap_err();
+                                    }
+                                } else {
+                                    session_status_code = BadCommunicationError;
+                                }
+                            }
+                            TransportState::ProcessMessages => {
+                                debug!("Processing message");
+                                if let Message::MessageChunk(chunk) = message {
+                                    let mut connection = trace_write_lock_unwrap!(connection);
+                                    let result = connection.process_chunk(chunk, &mut out_buf_stream);
+                                    if result.is_err() {
+                                        session_status_code = result.unwrap_err();
+                                    }
+                                } else {
+                                    session_status_code = BadCommunicationError;
+                                }
+                            }
+                            _ => {
+                                error!("Unknown sesion state, aborting");
+                                session_status_code = BadUnexpectedError;
+                            }
+                        };
+                    }
+
+                    // Anything to write?
+                    Self::write_output(&mut out_buf_stream, &mut stream);
+
+                    // Some handlers might wish to send their message and terminate, in which case this is
+                    // done here.
+                    {
+                        let connection = trace_write_lock_unwrap!(connection);
+                        let session = trace_read_lock_unwrap!(connection.session);
+                        if session.terminate_session {
+                            session_status_code = BadConnectionClosed;
+                        }
+                    }
+
+                    // Terminate the session?
+                    if !session_status_code.is_good() {
                         break;
                     }
                 }
-            }
-            let bytes_read = bytes_read_result.unwrap();
-            if bytes_read == 0 {
-                continue;
-            }
+                drop(subscription_timer_guard);
+                drop(subscription_timer);
 
-            let result = message_buffer.store_bytes(&in_buf[0..bytes_read]);
-            if result.is_err() {
-                session_status_code = result.unwrap_err();
-                break;
-            }
-            let messages = result.unwrap();
-            for message in messages {
-                match transport_state {
-                    TransportState::WaitingHello => {
-                        debug!("Processing HELLO");
-                        if let Message::Hello(hello) = message {
-                            let mut connection = trace_write_lock_unwrap!(connection);
-                            let result = connection.process_hello(hello, &mut out_buf_stream);
-                            if result.is_err() {
-                                session_status_code = result.unwrap_err();
-                            }
-                        } else {
-                            session_status_code = BadCommunicationError;
-                        }
-                    }
-                    TransportState::ProcessMessages => {
-                        debug!("Processing message");
-                        if let Message::MessageChunk(chunk) = message {
-                            let mut connection = trace_write_lock_unwrap!(connection);
-                            let result = connection.process_chunk(chunk, &mut out_buf_stream);
-                            if result.is_err() {
-                                session_status_code = result.unwrap_err();
-                            }
-                        } else {
-                            session_status_code = BadCommunicationError;
-                        }
+                // As a final act, the session sends a status code to the client if one should be sent
+                match session_status_code {
+                    Good | BadConnectionClosed => {
+                        info!("Session terminating normally, session_status_code = {:?}", session_status_code);
                     }
                     _ => {
-                        error!("Unknown sesion state, aborting");
-                        session_status_code = BadUnexpectedError;
+                        warn!("Sending session terminating error {:?}", session_status_code);
+                        out_buf_stream.set_position(0);
+                        let error = ErrorMessage::from_status_code(session_status_code);
+                        let _ = error.encode(&mut out_buf_stream);
+                        Self::write_output(&mut out_buf_stream, &mut stream);
                     }
-                };
-            }
-
-            // Anything to write?
-            Self::write_output(&mut out_buf_stream, &mut stream);
-
-            // Some handlers might wish to send their message and terminate, in which case this is
-            // done here.
-            {
-                let connection = trace_write_lock_unwrap!(connection);
-                let session = trace_read_lock_unwrap!(connection.session);
-                if session.terminate_session {
-                    session_status_code = BadConnectionClosed;
                 }
-            }
+                // Close socket
+                info!("Terminating socket");
+                let _ = stream.shutdown(Shutdown::Both);
 
-            // Terminate the session?
-            if !session_status_code.is_good() {
-                break;
-            }
-        }
-        drop(subscription_timer_guard);
-        drop(subscription_timer);
+                // Session state
+                {
+                    let mut connection = trace_write_lock_unwrap!(connection);
+                    connection.transport_state = TransportState::Finished;
+                }
 
-        // As a final act, the session sends a status code to the client if one should be sent
-        match session_status_code {
-            Good | BadConnectionClosed => {
-                info!("Session terminating normally, session_status_code = {:?}", session_status_code);
-            }
-            _ => {
-                warn!("Sending session terminating error {:?}", session_status_code);
-                out_buf_stream.set_position(0);
-                let error = ErrorMessage::from_status_code(session_status_code);
-                let _ = error.encode(&mut out_buf_stream);
-                Self::write_output(&mut out_buf_stream, &mut stream);
-            }
-        }
-        // Close socket
-        info!("Terminating socket");
-        let _ = stream.shutdown(Shutdown::Both);
+                let session_duration = Utc::now().signed_duration_since(session_start_time);
+                info!("Session is finished {:?}", session_duration);
 
-        // Session state
-        {
-            let mut connection = trace_write_lock_unwrap!(connection);
-            connection.transport_state = TransportState::Finished;
-        }
-
-        let session_duration = Utc::now().signed_duration_since(session_start_time);
-        info!("Session is finished {:?}", session_duration);
-
-        {
-            let connection = trace_read_lock_unwrap!(connection);
-            let mut session = trace_write_lock_unwrap!(connection.session);
-            session.set_terminated();
-        }
+                {
+                    let connection = trace_read_lock_unwrap!(connection);
+                    let mut session = trace_write_lock_unwrap!(connection.session);
+                    session.set_terminated();
+                }
+                */
     }
 
     /// Test if the connection is terminated
