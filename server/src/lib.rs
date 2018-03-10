@@ -18,6 +18,7 @@ extern crate serde_json;
 extern crate time;
 extern crate timer;
 extern crate tokio;
+extern crate tokio_io;
 
 type DateTimeUtc = chrono::DateTime<chrono::Utc>;
 

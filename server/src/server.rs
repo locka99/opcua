@@ -1,6 +1,17 @@
 //! The server module defines types related to the server, its current running state
 //! and end point information.
 
+use std::sync::{Arc, Mutex, RwLock};
+use std::net::{SocketAddr, IpAddr, Ipv4Addr};
+use std::str::FromStr;
+use std::thread;
+
+use time;
+use timer;
+use futures::Stream;
+use tokio::executor::current_thread;
+use tokio::net::{TcpListener, TcpStream};
+
 use address_space::types::AddressSpace;
 use comms::tcp_transport::*;
 use config::ServerConfig;
@@ -12,12 +23,6 @@ use server_metrics::ServerMetrics;
 use server_state::{ServerDiagnostics, ServerState};
 use services::message_handler::MessageHandler;
 use session::Session;
-use std::sync::{Arc, Mutex, RwLock};
-use std::thread;
-use time;
-use timer;
-use tokio::executor::current_thread;
-use tokio::net::{TcpListener, TcpStream};
 use util::PollingAction;
 
 pub type Connections = Vec<Arc<RwLock<TcpTransport>>>;
@@ -131,6 +136,7 @@ impl Server {
             (config.tcp_config.host.clone(), config.tcp_config.port, server_state.base_endpoint.clone(), config.discovery_server_url.clone())
         };
         let sock_addr = (host.as_str(), port);
+        let sock_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::from_str(&host).unwrap()), port);
         let listener = TcpListener::bind(&sock_addr).unwrap();
 
         {
@@ -169,8 +175,8 @@ impl Server {
                         info!("Server is aborting");
                         return;
                     }
-                    match stream {
-                        Ok(stream) => {
+                    match socket {
+                        Ok(socket) => {
                             server.handle_connection(socket);
                         }
                         Err(err) => {
@@ -181,7 +187,7 @@ impl Server {
                 .map_err(|err| {
                     error!("Accept error = {:?}", err);
                 })
-        }
+        };
 
         current_thread::run(|_| {
             current_thread::spawn(server_task);
