@@ -8,8 +8,9 @@ use std::thread;
 
 use time;
 use timer;
-use futures::Stream;
-use tokio::executor::current_thread;
+use futures::{Future, Stream};
+use tokio::prelude::*;
+use tokio::runtime::Runtime;
 use tokio::net::{TcpListener, TcpStream};
 
 use address_space::types::AddressSpace;
@@ -41,6 +42,8 @@ pub struct Server {
     pub address_space: Arc<RwLock<AddressSpace>>,
     /// List of open connections
     pub connections: Arc<RwLock<Connections>>,
+    /// Tokio runtime
+    runtime: Option<Runtime>,
 }
 
 impl Server {
@@ -112,6 +115,7 @@ impl Server {
             address_space,
             certificate_store,
             connections: Arc::new(RwLock::new(Vec::new())),
+            runtime: None,
         };
 
         let mut server_metrics = trace_write_lock_unwrap!(server_metrics);
@@ -124,39 +128,48 @@ impl Server {
     pub fn abort(&mut self) {
         let mut server_state = trace_write_lock_unwrap!(self.server_state);
         server_state.abort = true;
+        let mut runtime = self.runtime.unwrap();
+        self.runtime = None;
+        runtime.shutdown_now();
     }
+
+    // Log information about the endpoints on this server
+    fn log_endpoint_info(&self) {
+        let server_state = trace_read_lock_unwrap!(self.server_state);
+        let config = trace_read_lock_unwrap!(server_state.config);
+        info!("OPC UA Server: {}", server_state.application_name);
+        info!("Supported endpoints:");
+        for (id, endpoint) in &config.endpoints {
+            let users: Vec<String> = endpoint.user_token_ids.iter().map(|id| id.clone()).collect();
+            let users = users.join(", ");
+            info!("Endpoint \"{}\": {}", id, endpoint.path);
+            info!("  Security Mode:    {}", endpoint.security_mode);
+            info!("  Security Policy:  {}", endpoint.security_policy);
+            info!("  Supported user tokens - {}", users);
+        }
+    }
+
+
 
     /// Runs the server. Note server is supplied protected by a lock allowing access to the server
     /// to be shared.
     pub fn run(server: Arc<RwLock<Server>>) {
-        let (host, port, _, discovery_server_url) = {
-            let server = trace_read_lock_unwrap!(server);
-            let server_state = trace_read_lock_unwrap!(server.server_state);
-            let config = trace_read_lock_unwrap!(server_state.config);
-            (config.tcp_config.host.clone(), config.tcp_config.port, server_state.base_endpoint.clone(), config.discovery_server_url.clone())
-        };
-        let sock_addr = (host.as_str(), port);
-        let sock_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::from_str(&host).unwrap()), port);
-        let listener = TcpListener::bind(&sock_addr).unwrap();
-
+        // Debug endpoints
         {
             let server = trace_read_lock_unwrap!(server);
-            let server_state = trace_read_lock_unwrap!(server.server_state);
-            let config = trace_read_lock_unwrap!(server_state.config);
-
-            info!("OPC UA Server: {}", server_state.application_name);
-            info!("Supported endpoints:");
-            for (id, endpoint) in &config.endpoints {
-                let users: Vec<String> = endpoint.user_token_ids.iter().map(|id| id.clone()).collect();
-                let users = users.join(", ");
-
-                info!("Endpoint \"{}\": {}", id, endpoint.path);
-                info!("  Security Mode:    {}", endpoint.security_mode);
-                info!("  Security Policy:  {}", endpoint.security_policy);
-                info!("  Supported user tokens - {}", users);
-            }
+            server.log_endpoint_info();
         }
 
+        // Get the 
+        let (sock_addr, discovery_server_url) = {
+            let server = trace_read_lock_unwrap!(server);
+            let server_state = trace_read_lock_unwrap!(server.server_state);
+            let config = trace_read_lock_unwrap!(server_state.config);
+            let sock_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::from_str(&config.tcp_config.host).unwrap()), config.tcp_config.port);
+            (sock_addr, config.discovery_server_url.clone())
+        };
+
+        // TODO this needs to be a repeating tokio task
         let discovery_server_timer = {
             let mut server = trace_write_lock_unwrap!(server);
             server.start_discovery_server_registration_timer(discovery_server_url)
@@ -165,48 +178,34 @@ impl Server {
         info!("Waiting for Connection");
 
         // This is the tokio server task that listens for connections and handles new sockets
+        let listener = TcpListener::bind(&sock_addr).unwrap();
         let server_task = {
             let server = server.clone();
             listener.incoming()
                 .for_each(move |socket| {
+                    // Clear out dead sessions
                     info!("Handling new connection {:?}", socket);
                     let mut server = trace_write_lock_unwrap!(server);
                     if server.is_abort() {
                         info!("Server is aborting");
-                        return;
                     }
-                    match socket {
-                        Ok(socket) => {
-                            server.handle_connection(socket);
-                        }
-                        Err(err) => {
-                            warn!("Got an error on stream {:?}", err);
-                        }
+                    else {
+                        server.remove_dead_connections();
+                        server.handle_connection(socket);
                     }
-                })
+                    Ok(())
+                 })
                 .map_err(|err| {
                     error!("Accept error = {:?}", err);
                 })
         };
 
-        current_thread::run(|_| {
-            current_thread::spawn(server_task);
-        });
-
-        // This is our server's main house keeping / quit loop
-        loop {
-            let mut server = trace_write_lock_unwrap!(server);
-            if server.is_abort() {
-                info!("Server is aborting");
-                // TODO break tokio
-                break;
-            }
-
-            // Clear out dead sessions
-            server.remove_dead_connections();
-
-            // Sleep for a bit
-            thread::sleep(time::Duration::from_millis(1000));
+        let mut runtime = Runtime::new().unwrap();
+        runtime.spawn(server_task);
+        
+        {
+            let server = trace_read_lock_unwrap!(server);
+            server.runtime = Some(runtime);
         }
 
         drop(discovery_server_timer);

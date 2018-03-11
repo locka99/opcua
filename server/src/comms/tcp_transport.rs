@@ -4,7 +4,7 @@
 
 use std;
 use std::collections::VecDeque;
-use std::io::{Cursor, ErrorKind, Read, Write};
+use std::io::{Cursor, Read, Write};
 use std::net::SocketAddr;
 use std::sync::{Arc, RwLock};
 use std::sync::mpsc::{self, Receiver};
@@ -17,10 +17,8 @@ use chrono::Utc;
 use time;
 use timer;
 use futures::Future;
-use tokio::executor::current_thread;
 use tokio::net::TcpStream;
 use tokio_io::io;
-use tokio_io::AsyncRead;
 
 use address_space::types::AddressSpace;
 use comms::secure_channel_service::SecureChannelService;
@@ -167,7 +165,7 @@ impl TcpTransport {
 
         // Short timeout makes it work like a polling loop
         let polling_timeout: std::time::Duration = std::time::Duration::from_millis(50);
-        let _ = stream.set_read_timeout(Some(polling_timeout));
+//        let _ = stream.set_read_timeout(Some(polling_timeout));
         let _ = stream.set_nodelay(true);
 
         let mut in_buf = vec![0u8; RECEIVE_BUFFER_SIZE];
@@ -189,7 +187,7 @@ impl TcpTransport {
                     let connection = trace_read_lock_unwrap!(connection);
                     let server_state = trace_read_lock_unwrap!(connection.server_state);
                     if server_state.abort {
-                        return Err(());
+                        return; //Err(());
                     }
                     connection.transport_state.clone()
                 };
@@ -210,7 +208,7 @@ impl TcpTransport {
                         }
                         */
 
-                        Ok(())
+//                      Ok(())
                     }
                     TransportState::ProcessMessages => {
                         // process the chunk
@@ -293,17 +291,18 @@ impl TcpTransport {
                         */
 
 
-                        Ok(())
+//                       Ok(())
                     }
                     _ => {
                         error!("Unknown sesion state, aborting");
                         //...
-                        Err(())
+//                      Err(())
                     }
                 }
+                Ok(())
             });
 
-        current_thread::spawn(connection);
+       // current_thread::spawn(connection);
 
         /*
                 loop {
