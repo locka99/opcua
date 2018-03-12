@@ -9,7 +9,6 @@ use std::thread;
 use time;
 use timer;
 use futures::{Future, Stream};
-use tokio::prelude::*;
 use tokio::runtime::Runtime;
 use tokio::net::{TcpListener, TcpStream};
 
@@ -42,8 +41,6 @@ pub struct Server {
     pub address_space: Arc<RwLock<AddressSpace>>,
     /// List of open connections
     pub connections: Arc<RwLock<Connections>>,
-    /// Tokio runtime
-    runtime: Option<Runtime>,
 }
 
 impl Server {
@@ -115,22 +112,12 @@ impl Server {
             address_space,
             certificate_store,
             connections: Arc::new(RwLock::new(Vec::new())),
-            runtime: None,
         };
 
         let mut server_metrics = trace_write_lock_unwrap!(server_metrics);
         server_metrics.set_server_info(&server);
 
         server
-    }
-
-    // Terminates the running server
-    pub fn abort(&mut self) {
-        let mut server_state = trace_write_lock_unwrap!(self.server_state);
-        server_state.abort = true;
-        let mut runtime = self.runtime.unwrap();
-        self.runtime = None;
-        runtime.shutdown_now();
     }
 
     // Log information about the endpoints on this server
@@ -148,7 +135,6 @@ impl Server {
             info!("  Supported user tokens - {}", users);
         }
     }
-
 
 
     /// Runs the server. Note server is supplied protected by a lock allowing access to the server
@@ -188,27 +174,32 @@ impl Server {
                     let mut server = trace_write_lock_unwrap!(server);
                     if server.is_abort() {
                         info!("Server is aborting");
-                    }
-                    else {
+                    } else {
                         server.remove_dead_connections();
                         server.handle_connection(socket);
                     }
                     Ok(())
-                 })
+                })
                 .map_err(|err| {
                     error!("Accept error = {:?}", err);
                 })
         };
 
+        // Create a Tokio runtime for our connection listener task
         let mut runtime = Runtime::new().unwrap();
         runtime.spawn(server_task);
-        
-        {
-            let server = trace_read_lock_unwrap!(server);
-            server.runtime = Some(runtime);
-        }
+        runtime.shutdown_on_idle().wait().unwrap();
 
         drop(discovery_server_timer);
+    }
+
+    // Terminates the running server
+    pub fn abort(&mut self) {
+        let mut server_state = trace_write_lock_unwrap!(self.server_state);
+        server_state.abort = true;
+
+        // TODO - if the server is running we want to open a socket to it to stimulate it to
+        // close down
     }
 
     fn is_abort(&mut self) -> bool {
