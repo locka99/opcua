@@ -9,6 +9,7 @@ use std::thread;
 use time;
 use timer;
 use futures::{Future, Stream};
+use tokio;
 use tokio::net::{TcpListener, TcpStream};
 
 use address_space::types::AddressSpace;
@@ -185,9 +186,7 @@ impl Server {
         };
 
         // Create a Tokio runtime for our connection listener task
-        let mut runtime = Runtime::new().unwrap();
-        runtime.spawn(server_task);
-        runtime.shutdown_on_idle().wait().unwrap();
+        tokio::run(server_task);
 
         drop(discovery_server_timer);
     }

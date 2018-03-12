@@ -17,9 +17,9 @@ use chrono::Utc;
 use time;
 use timer;
 use futures::Future;
+use tokio;
 use tokio::net::TcpStream;
 use tokio_io::io;
-use tokio::executor::current_thread;
 
 use address_space::types::AddressSpace;
 use comms::secure_channel_service::SecureChannelService;
@@ -180,10 +180,21 @@ impl TcpTransport {
         let mut message_buffer = MessageBuffer::new(RECEIVE_BUFFER_SIZE);
 
 
+        let buf = vec![0; 5];
+
+        let connection_task = io::read_exact(stream, buf)
+            .and_then(|(socket, buf)| {
+                io::write_all(socket, buf)
+            })
+            .then(|_| Ok(())); // Just discard the socket and buffer
+
+        // Spawn a new task that processes the socket:
+        tokio::spawn(connection_task);
+
+
         // This is our future for reading data from the client
         let mut in_buf = vec![0u8; 8192];
-        in_buf.clear();
-        let connection = io::read(stream, in_buf)
+        let connection_task = io::read(stream, in_buf)
             .map_err(|err| {
                 error!("Transport IO error {:?}", err);
                 err
@@ -239,11 +250,13 @@ impl TcpTransport {
                 }
 
                 // TODO Write messages
+                // io::write_all(socket, outgoing_buf)
 
                 Ok((socket, header))
-            });
+            })
+            .then(|_: Result<(TcpStream, Vec<u8>), std::io::Error>| Ok(()));
 
-        current_thread::spawn(connection);
+        tokio::spawn(connection_task);
 
         /*
                 loop {
