@@ -9,7 +9,6 @@ use std::thread;
 use time;
 use timer;
 use futures::{Future, Stream};
-use tokio::runtime::Runtime;
 use tokio::net::{TcpListener, TcpStream};
 
 use address_space::types::AddressSpace;

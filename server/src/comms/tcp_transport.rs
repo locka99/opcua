@@ -180,9 +180,15 @@ impl TcpTransport {
         let mut message_buffer = MessageBuffer::new(RECEIVE_BUFFER_SIZE);
 
 
-        let mut in_buf = vec![0u8; 12];
-        let connection = io::read_to_end(stream, in_buf)
-            .and_then(|(socket, header)| {
+        // This is our future for reading data from the client
+        let mut in_buf = vec![0u8; 8192];
+        in_buf.clear();
+        let connection = io::read(stream, in_buf)
+            .map_err(|err| {
+                error!("Transport IO error {:?}", err);
+                err
+            })
+            .and_then(|(socket, header, bytes_read)| {
                 // Check for abort
                 let transport_state = {
                     let connection = trace_read_lock_unwrap!(connection);
@@ -193,7 +199,7 @@ impl TcpTransport {
                     connection.transport_state.clone()
                 };
 
-                let result = message_buffer.store_bytes(&in_buf[0..bytes_read]);
+                let result = message_buffer.store_bytes(&in_buf[..bytes_read]);
                 if result.is_err() {
                     session_status_code = result.unwrap_err();
                 } else {
