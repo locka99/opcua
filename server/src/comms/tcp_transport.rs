@@ -362,24 +362,20 @@ impl TcpTransport {
                 */
 
                 // Abort
-                err
-            });
-
-            let loop_iteration_task = terminate_task.map_err(|_| {
-                // Loop::Break(connection_state)
+                Loop::Break(connection_state)
             }).and_then(|_| {
                 // Continue or abort
                 let connection = trace_read_lock_unwrap!(connection);
                 let server_state = trace_read_lock_unwrap!(connection.server_state);
                 if server_state.abort {
                     // Property abort command
-                    Loop::Break(connection_state)
+                    Ok(Loop::Break(connection_state))
                 } else {
-                    Loop::Continue(connection_state)
+                    Ok(Loop::Continue(connection_state))
                 }
             });
 
-            loop_iteration_task
+            terminate_task
         });
 
         tokio::spawn(looping_task);
