@@ -167,22 +167,20 @@ impl Server {
         let listener = TcpListener::bind(&sock_addr).unwrap();
         let server_task = {
             let server = server.clone();
-            listener.incoming()
-                .for_each(move |socket| {
-                    // Clear out dead sessions
-                    info!("Handling new connection {:?}", socket);
-                    let mut server = trace_write_lock_unwrap!(server);
-                    if server.is_abort() {
-                        info!("Server is aborting");
-                    } else {
-                        server.remove_dead_connections();
-                        server.handle_connection(socket);
-                    }
-                    Ok(())
-                })
-                .map_err(|err| {
-                    error!("Accept error = {:?}", err);
-                })
+            listener.incoming().for_each(move |socket| {
+                // Clear out dead sessions
+                info!("Handling new connection {:?}", socket);
+                let mut server = trace_write_lock_unwrap!(server);
+                if server.is_abort() {
+                    info!("Server is aborting");
+                } else {
+                    server.remove_dead_connections();
+                    server.handle_connection(socket);
+                }
+                Ok(())
+            }).map_err(|err| {
+                error!("Accept error = {:?}", err);
+            })
         };
 
         // Create a Tokio runtime for our connection listener task

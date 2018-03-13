@@ -4,9 +4,9 @@
 
 use std;
 use std::collections::VecDeque;
-use std::io::{Cursor, Read, Write};
+use std::io::{Cursor, Write, ErrorKind};
 use std::net::SocketAddr;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 use std::sync::mpsc::{self, Receiver};
 
 use opcua_core::prelude::*;
@@ -17,6 +17,7 @@ use chrono::Utc;
 use time;
 use timer;
 use futures::Future;
+use futures::future::{loop_fn, Loop};
 use tokio;
 use tokio::net::TcpStream;
 use tokio_io::io;
@@ -43,6 +44,12 @@ pub enum TransportState {
     Finished,
 }
 
+
+struct ConnectionState {
+    pub connection: Arc<RwLock<TcpTransport>>,
+    pub message_buffer: MessageBuffer,
+}
+
 /// Subscription events are passed between the timer thread and the session thread so must
 /// be transferable
 #[derive(Clone, Debug, PartialEq)]
@@ -53,6 +60,10 @@ enum SubscriptionEvent {
 pub trait Transport {
     // Get the current state of the transport
     fn state(&self) -> TransportState;
+    /// Gets the session status
+    fn session_status(&self) -> StatusCode;
+    /// Sets the session status
+    fn set_session_status(&mut self, session_status: StatusCode);
     /// Gets the session associated with the transport
     fn session(&self) -> Arc<RwLock<Session>>;
     /// Returns the address of the client (peer) of this connection
@@ -64,6 +75,8 @@ pub trait Transport {
 pub struct TcpTransport {
     // Server state, address space etc.
     server_state: Arc<RwLock<ServerState>>,
+    // Session status code - Good, BadInvalid etc.
+    session_status: StatusCode,
     // Session state - open sessions, tokens etc
     session: Arc<RwLock<Session>>,
     /// Address space
@@ -89,6 +102,15 @@ impl Transport for TcpTransport {
         self.transport_state.clone()
     }
 
+
+    fn session_status(&self) -> StatusCode {
+        self.session_status
+    }
+
+    fn set_session_status(&mut self, session_status: StatusCode) {
+        self.session_status = session_status
+    }
+
     fn session(&self) -> Arc<RwLock<Session>> {
         self.session.clone()
     }
@@ -104,6 +126,7 @@ impl TcpTransport {
         TcpTransport {
             server_state,
             session,
+            session_status: Good,
             address_space,
             transport_state: TransportState::New,
             client_address: None,
@@ -115,7 +138,7 @@ impl TcpTransport {
         }
     }
 
-    pub fn run(connection: Arc<RwLock<TcpTransport>>, mut stream: TcpStream) {
+    pub fn run(connection: Arc<RwLock<TcpTransport>>, socket: TcpStream) {
 
         // TOKIO Split the socket into a read / write portion
         // let (mut read, mut write) = stream.split();
@@ -132,15 +155,15 @@ impl TcpTransport {
         // TOKIO tasks must simulate the loop below, maintaining state and timing out on HELO
         // or inactivity.
 
+        let session_start_time = Utc::now();
+        info!("Session started {}", session_start_time);
 
         // Store the address of the client
         {
             let mut connection = trace_write_lock_unwrap!(connection);
-            connection.client_address = Some(stream.peer_addr().unwrap());
+            connection.client_address = Some(socket.peer_addr().unwrap());
+            connection.transport_state = TransportState::WaitingHello;
         }
-
-        let session_start_time = Utc::now();
-        info!("Session started {}", session_start_time);
 
         let (subscription_timer, subscription_timer_guard, subscription_timer_rx) = {
             let mut connection = trace_write_lock_unwrap!(connection);
@@ -148,11 +171,6 @@ impl TcpTransport {
         };
 
         // Waiting for hello
-        {
-            let mut connection = trace_write_lock_unwrap!(connection);
-            connection.transport_state = TransportState::WaitingHello;
-        }
-
         // Hello timeout
         let hello_timeout = {
             let hello_timeout = {
@@ -165,52 +183,47 @@ impl TcpTransport {
         };
 
         // Short timeout makes it work like a polling loop
-        let polling_timeout: std::time::Duration = std::time::Duration::from_millis(50);
+//        let polling_timeout: std::time::Duration = std::time::Duration::from_millis(50);
 //        let _ = stream.set_read_timeout(Some(polling_timeout));
-        let _ = stream.set_nodelay(true);
-
-        let mut in_buf = vec![0u8; RECEIVE_BUFFER_SIZE];
-        let mut out_buf_stream = Cursor::new(vec![0u8; SEND_BUFFER_SIZE]);
+//        let _ = socket.set_nodelay(true);
 
         // Format of OPC UA TCP is defined in OPC UA Part 6 Chapter 7
         // Basic startup is a HELLO,  OpenSecureChannel, begin
 
-        let mut session_status_code = Good;
+        // It is asynchronous so the basic flow is this
 
-        let mut message_buffer = MessageBuffer::new(RECEIVE_BUFFER_SIZE);
+        // 1. Read bytes
+        // 2. Store bytes in a buffer
+        // 3. Process any chunks (messages) that can be extracted from buffer
+        // 4. Send outgoing messages
+        // 5. Terminate if necessary
+        // 6. Go to 1
 
-
-        let buf = vec![0; 5];
-
-        let connection_task = io::read_exact(stream, buf)
-            .and_then(|(socket, buf)| {
-                io::write_all(socket, buf)
-            })
-            .then(|_| Ok(())); // Just discard the socket and buffer
-
-        // Spawn a new task that processes the socket:
-        tokio::spawn(connection_task);
-
-
-        // This is our future for reading data from the client
-        let mut in_buf = vec![0u8; 8192];
-        let connection_task = io::read(stream, in_buf)
-            .map_err(|err| {
+        let connection_state = ConnectionState {
+            connection: connection.clone(),
+            message_buffer: MessageBuffer::new(RECEIVE_BUFFER_SIZE),
+        };
+        let looping_task = loop_fn(connection_state, |connection_state| {
+            let in_buf = vec![0u8; RECEIVE_BUFFER_SIZE];
+            let read_task = io::read(socket, in_buf).map_err(|err| {
                 error!("Transport IO error {:?}", err);
                 err
-            })
-            .and_then(|(socket, header, bytes_read)| {
+            }).and_then(move |(socket, in_buf, bytes_read)| {
                 // Check for abort
                 let transport_state = {
                     let connection = trace_read_lock_unwrap!(connection);
                     let server_state = trace_read_lock_unwrap!(connection.server_state);
                     if server_state.abort {
-                        return Ok((socket, header));
+                        return Err(std::io::Error::from(ErrorKind::ConnectionAborted));
                     }
                     connection.transport_state.clone()
                 };
 
-                let result = message_buffer.store_bytes(&in_buf[..bytes_read]);
+                let mut out_buf_stream = Cursor::new(vec![0u8; SEND_BUFFER_SIZE]);
+
+                let result = connection_state.message_buffer.store_bytes(&in_buf[..bytes_read]);
+
+                let mut session_status_code = Good;
                 if result.is_err() {
                     session_status_code = result.unwrap_err();
                 } else {
@@ -249,153 +262,94 @@ impl TcpTransport {
                     }
                 }
 
-                // TODO Write messages
-                // io::write_all(socket, outgoing_buf)
+                // Update the session status
+                {
+                    let mut connection = trace_write_lock_unwrap!(connection);
+                    connection.set_session_status(session_status_code);
+                }
 
-                Ok((socket, header))
-            })
-            .then(|_: Result<(TcpStream, Vec<u8>), std::io::Error>| Ok(()));
+                Ok((connection, socket, out_buf_stream))
+            });
 
-        tokio::spawn(connection_task);
+            let write_task = read_task.and_then(|(connection, socket, out_buf_stream)| {
+                // Anything to write?
+                // TODO
+                // Self::write_output(&mut out_buf_stream, &mut socket);
 
-        /*
-                loop {
-                    // Check for abort
-                    let transport_state = {
-                        let connection = trace_read_lock_unwrap!(connection);
-                        let server_state = trace_read_lock_unwrap!(connection.server_state);
-                        if server_state.abort {
-                            break;
+                /*
+                // Process subscription timer events
+                if let Ok(result) = subscription_timer_rx.try_recv() {
+                    match result {
+                        SubscriptionEvent::PublishResponses(publish_responses) => {
+                            trace!("Got {} PublishResponse messages to send", publish_responses.len());
+                            for publish_response in publish_responses {
+                                trace!("<-- Sending a Publish Response{}, {:?}", publish_response.request_id, &publish_response.response);
+                                let mut connection = trace_write_lock_unwrap!(connection);
+                                let _ = connection.send_response(publish_response.request_id, &publish_response.response, &mut out_buf_stream);
+                            }
+                            Self::write_output(&mut out_buf_stream, &mut socket);
                         }
-                        connection.transport_state.clone()
-                    };
-
-                    // Session waits a configurable time for a hello and terminates if it fails to receive it
-                    let now = Utc::now();
-                    if transport_state == TransportState::WaitingHello {
-                        if now.signed_duration_since(session_start_time) > hello_timeout {
-                            error!("Session timed out waiting for hello");
-                            session_status_code = BadTimeout;
-                            break;
-                        }
-                    }
-
-                    // Process subscription timer events
-                    if let Ok(result) = subscription_timer_rx.try_recv() {
-                        match result {
-                            SubscriptionEvent::PublishResponses(publish_responses) => {
-                                trace!("Got {} PublishResponse messages to send", publish_responses.len());
-                                for publish_response in publish_responses {
-                                    trace!("<-- Sending a Publish Response{}, {:?}", publish_response.request_id, &publish_response.response);
-                                    let mut connection = trace_write_lock_unwrap!(connection);
-                                    let _ = connection.send_response(publish_response.request_id, &publish_response.response, &mut out_buf_stream);
-                                }
-                                Self::write_output(&mut out_buf_stream, &mut stream);
-                            }
-                        }
-                    }
-
-                    // Try to read, using timeout as a polling mechanism
-                    let bytes_read_result = stream.read(&mut in_buf);
-                    if bytes_read_result.is_err() {
-                        let error = bytes_read_result.unwrap_err();
-                        match error.kind() {
-                            ErrorKind::TimedOut | ErrorKind::WouldBlock => {
-                                continue;
-                            }
-                            kind => {
-                                error!("Read error - kind = {:?}, {:?}", kind, error);
-                                break;
-                            }
-                        }
-                    }
-                    let bytes_read = bytes_read_result.unwrap();
-                    if bytes_read == 0 {
-                        continue;
-                    }
-
-                    let result = message_buffer.store_bytes(&in_buf[0..bytes_read]);
-                    if result.is_err() {
-                        session_status_code = result.unwrap_err();
-                        break;
-                    }
-                    let messages = result.unwrap();
-                    for message in messages {
-                        match transport_state {
-                            TransportState::WaitingHello => {
-                                debug!("Processing HELLO");
-                                if let Message::Hello(hello) = message {
-                                    let mut connection = trace_write_lock_unwrap!(connection);
-                                    let result = connection.process_hello(hello, &mut out_buf_stream);
-                                    if result.is_err() {
-                                        session_status_code = result.unwrap_err();
-                                    }
-                                } else {
-                                    session_status_code = BadCommunicationError;
-                                }
-                            }
-                            TransportState::ProcessMessages => {
-                                debug!("Processing message");
-                                if let Message::MessageChunk(chunk) = message {
-                                    let mut connection = trace_write_lock_unwrap!(connection);
-                                    let result = connection.process_chunk(chunk, &mut out_buf_stream);
-                                    if result.is_err() {
-                                        session_status_code = result.unwrap_err();
-                                    }
-                                } else {
-                                    session_status_code = BadCommunicationError;
-                                }
-                            }
-                            _ => {
-                                error!("Unknown sesion state, aborting");
-                                session_status_code = BadUnexpectedError;
-                            }
-                        };
-                    }
-
-                    // Anything to write?
-                    Self::write_output(&mut out_buf_stream, &mut stream);
-
-                    // Some handlers might wish to send their message and terminate, in which case this is
-                    // done here.
-                    {
-                        let connection = trace_write_lock_unwrap!(connection);
-                        let session = trace_read_lock_unwrap!(connection.session);
-                        if session.terminate_session {
-                            session_status_code = BadConnectionClosed;
-                        }
-                    }
-
-                    // Terminate the session?
-                    if !session_status_code.is_good() {
-                        break;
                     }
                 }
+                */
+
+                Ok((connection, socket))
+            });
+
+            let check_for_errors_task = write_task.and_then(|(connection, socket)| {
+                // Some handlers might wish to send their message and terminate, in which case this is
+                // done here.
+                let terminate_session = {
+                    let connection = trace_write_lock_unwrap!(connection);
+                    let session = trace_read_lock_unwrap!(connection.session);
+                    if session.terminate_session {
+                        connection.set_session_status(BadConnectionClosed);
+                    }
+                    !connection.session_status().is_good()
+                };
+
+                // Terminate the session?
+                if terminate_session {
+                    Err(std::io::Error::from(ErrorKind::ConnectionAborted))
+                } else {
+                    Ok(())
+                }
+            });
+
+            let terminate_task = check_for_errors_task.map_err(move |err| {
+                /*
+                TODO
                 drop(subscription_timer_guard);
                 drop(subscription_timer);
+                */
 
                 // As a final act, the session sends a status code to the client if one should be sent
+                let connection = trace_write_lock_unwrap!(connection);
+                let session_status_code = connection.session_status();
                 match session_status_code {
                     Good | BadConnectionClosed => {
                         info!("Session terminating normally, session_status_code = {:?}", session_status_code);
                     }
                     _ => {
                         warn!("Sending session terminating error {:?}", session_status_code);
+                        let mut out_buf_stream = Cursor::new(vec![0u8; SEND_BUFFER_SIZE]);
                         out_buf_stream.set_position(0);
                         let error = ErrorMessage::from_status_code(session_status_code);
                         let _ = error.encode(&mut out_buf_stream);
-                        Self::write_output(&mut out_buf_stream, &mut stream);
+// TODO                            Self::write_output(&mut out_buf_stream, &mut socket);
                     }
                 }
+
+                /*
                 // Close socket
                 info!("Terminating socket");
-                let _ = stream.shutdown(Shutdown::Both);
+                let _ = socket.shutdown(Shutdown::Both);
 
-                // Session state
-                {
-                    let mut connection = trace_write_lock_unwrap!(connection);
-                    connection.transport_state = TransportState::Finished;
-                }
+                    // Session state
+                    {
+                        let mut connection = trace_write_lock_unwrap!(connection);
+                        connection.transport_state = TransportState::Finished;
+                    }
 
                 let session_duration = Utc::now().signed_duration_since(session_start_time);
                 info!("Session is finished {:?}", session_duration);
@@ -406,6 +360,29 @@ impl TcpTransport {
                     session.set_terminated();
                 }
                 */
+
+                // Abort
+                err
+            });
+
+            let loop_iteration_task = terminate_task.map_err(|_| {
+                // Loop::Break(connection_state)
+            }).and_then(|_| {
+                // Continue or abort
+                let connection = trace_read_lock_unwrap!(connection);
+                let server_state = trace_read_lock_unwrap!(connection.server_state);
+                if server_state.abort {
+                    // Property abort command
+                    Loop::Break(connection_state)
+                } else {
+                    Loop::Continue(connection_state)
+                }
+            });
+
+            loop_iteration_task
+        });
+
+        tokio::spawn(looping_task);
     }
 
     /// Test if the connection is terminated
