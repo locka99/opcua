@@ -24,9 +24,10 @@ mod services;
 mod session;
 
 pub mod comms;
-pub mod server_metrics;
+pub mod metrics;
 pub mod server;
-pub mod server_state;
+pub mod state;
+pub mod diagnostics;
 pub mod subscriptions;
 pub mod config;
 pub mod address_space;

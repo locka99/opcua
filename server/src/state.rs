@@ -1,7 +1,8 @@
 //! The server module defines types related to the server, it's current running state
 //! and end point information.
 
-use config::{ServerConfig, ServerEndpoint};
+use std::sync::{Arc, RwLock};
+
 use opcua_core::prelude::*;
 use opcua_types::node_ids::ObjectId;
 use opcua_types::profiles;
@@ -9,20 +10,12 @@ use opcua_types::service_types::{ApplicationDescription, ApplicationType, Endpoi
 use opcua_types::service_types::ServerState as ServerStateType;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
-use std::sync::{Arc, RwLock};
+
+use config::{ServerConfig, ServerEndpoint};
+use diagnostics::ServerDiagnostics;
 
 const TOKEN_POLICY_ANONYMOUS: &'static str = "anonymous";
 const TOKEN_POLICY_USER_PASS_PLAINTEXT: &'static str = "userpass_plaintext";
-
-#[derive(Clone)]
-/// Structure that captures diagnostics information for the server
-pub struct ServerDiagnostics {}
-
-impl ServerDiagnostics {
-    pub fn new() -> ServerDiagnostics {
-        ServerDiagnostics {}
-    }
-}
 
 /// Server state is any state associated with the server as a whole that individual sessions might
 /// be interested in. That includes configuration info etc.

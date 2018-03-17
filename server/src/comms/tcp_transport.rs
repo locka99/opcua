@@ -8,7 +8,7 @@ use constants;
 use opcua_core::prelude::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
-use server_state::ServerState;
+use state::ServerState;
 use services::message_handler::MessageHandler;
 use session::Session;
 use std;

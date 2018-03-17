@@ -2,15 +2,18 @@
 //! to see what is happening in the server. State is updated by the server as sessions are added, removed,
 //! and when subscriptions / monitored items are added, removed.
 
+use opcua_types::DateTime;
+
 use comms::tcp_transport::Transport;
 use config;
-use opcua_types::DateTime;
 use server;
-use server_state;
+use diagnostics::ServerDiagnostics;
+use state::ServerState;
 
 #[derive(Serialize)]
 pub struct ServerMetrics {
     pub server: Server,
+    pub diagnostics: ServerDiagnostics,
     pub config: Option<config::ServerConfig>,
     pub connections: Vec<Connection>,
 }
@@ -60,6 +63,7 @@ impl ServerMetrics {
                 start_time: String::new(),
                 uptime_ms: 0,
             },
+            diagnostics: ServerDiagnostics::new(),
             config: None,
             connections: Vec::new(),
         }
@@ -80,11 +84,12 @@ impl ServerMetrics {
     }
 
     // Update the server state metrics (uptime etc.)
-    pub fn update_from_server_state(&mut self, server_state: &server_state::ServerState) {
+    pub fn update_from_server_state(&mut self, server_state: &ServerState) {
         let start_time = &server_state.start_time;
         let now = DateTime::now();
 
         self.server.start_time = start_time.as_chrono().to_rfc3339();
+        self.diagnostics = server_state.diagnostics.clone();
 
         let elapsed = now.as_chrono().signed_duration_since(start_time.as_chrono());
         self.server.uptime_ms = elapsed.num_milliseconds();

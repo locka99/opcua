@@ -4,7 +4,7 @@ use opcua_types::*;
 use opcua_types::service_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
-use server_state::ServerState;
+use state::ServerState;
 use services::attribute::AttributeService;
 use services::discovery::DiscoveryService;
 use services::monitored_item::MonitoredItemService;

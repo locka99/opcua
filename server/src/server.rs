@@ -1,15 +1,17 @@
 //! The server module defines types related to the server, its current running state
 //! and end point information.
 
+use opcua_core::config::Config;
+use opcua_core::prelude::*;
+use opcua_types::service_types::ServerState as ServerStateType;
+
 use address_space::types::AddressSpace;
 use comms::tcp_transport::*;
 use config::ServerConfig;
 use constants;
-use opcua_core::config::Config;
-use opcua_core::prelude::*;
-use opcua_types::service_types::ServerState as ServerStateType;
-use server_metrics::ServerMetrics;
-use server_state::{ServerDiagnostics, ServerState};
+use metrics::ServerMetrics;
+use state::ServerState;
+use diagnostics::ServerDiagnostics;
 use services::message_handler::MessageHandler;
 use session::Session;
 use std::net::{TcpListener, TcpStream};

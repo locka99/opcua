@@ -10,7 +10,7 @@ use opcua_core::crypto::SecurityPolicy;
 use opcua_core::crypto::CertificateStore;
 
 use constants;
-use server_state::ServerState;
+use state::ServerState;
 use session::Session;
 use services::Service;
 
