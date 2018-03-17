@@ -54,7 +54,7 @@ pub struct ServerState {
     /// Sets the abort flag that terminates the associated server
     pub abort: bool,
     /// Diagnostic information
-    pub diagnostics: ServerDiagnostics,
+    pub diagnostics: Arc<RwLock<ServerDiagnostics>>,
 }
 
 impl ServerState {

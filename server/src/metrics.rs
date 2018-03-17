@@ -89,7 +89,12 @@ impl ServerMetrics {
         let now = DateTime::now();
 
         self.server.start_time = start_time.as_chrono().to_rfc3339();
-        self.diagnostics = server_state.diagnostics.clone();
+
+        // Take a snapshot of the diagnostics
+        {
+            let diagnostics = trace_read_lock_unwrap!(server_state.diagnostics);
+            self.diagnostics = diagnostics.clone();
+        }
 
         let elapsed = now.as_chrono().signed_duration_since(start_time.as_chrono());
         self.server.uptime_ms = elapsed.num_milliseconds();

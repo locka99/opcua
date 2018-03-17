@@ -4,7 +4,7 @@ use subscriptions::subscription::Subscription;
 use session::Session;
 
 /// Structure that captures diagnostics information for the server
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Debug)]
 pub struct ServerDiagnostics {
     pub session_count: UInt32,
     pub session_count_cumulative: UInt32,
@@ -40,3 +40,4 @@ impl ServerDiagnostics {
         self.subscription_count -= 1;
     }
 }
+
