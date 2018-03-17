@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
 
 use chrono;
 use time;
@@ -12,6 +13,7 @@ use constants;
 use DateTimeUtc;
 use subscriptions::monitored_item::MonitoredItem;
 use address_space::address_space::AddressSpace;
+use diagnostics::ServerDiagnostics;
 
 /// The state of the subscription
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -59,8 +61,9 @@ pub enum TickReason {
     TickTimerFired,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Subscription {
+    /// Subscription id
     pub subscription_id: UInt32,
     /// Publishing interval
     pub publishing_interval: Duration,
@@ -93,11 +96,20 @@ pub struct Subscription {
     last_monitored_item_id: UInt32,
     // The time that the subscription interval last fired
     last_timer_expired_time: DateTimeUtc,
+    /// Server diagnostics to track creation / destruction / modification of the subscription
+    diagnostics: Arc<RwLock<ServerDiagnostics>>,
+}
+
+impl Drop for Subscription {
+    fn drop(&mut self) {
+        let mut diagnostics = trace_write_lock_unwrap!(self.diagnostics);
+        diagnostics.on_destroy_subscription(self);
+    }
 }
 
 impl Subscription {
-    pub fn new(subscription_id: UInt32, publishing_enabled: bool, publishing_interval: Double, lifetime_count: UInt32, keep_alive_count: UInt32, priority: Byte) -> Subscription {
-        Subscription {
+    pub fn new(diagnostics: Arc<RwLock<ServerDiagnostics>>, subscription_id: UInt32, publishing_enabled: bool, publishing_interval: Double, lifetime_count: UInt32, keep_alive_count: UInt32, priority: Byte) -> Subscription {
+        let subscription = Subscription {
             subscription_id,
             publishing_interval,
             priority,
@@ -113,7 +125,13 @@ impl Subscription {
             // Counters for new items
             last_monitored_item_id: 0,
             last_timer_expired_time: chrono::Utc::now(),
+            diagnostics,
+        };
+        {
+            let mut diagnostics = trace_write_lock_unwrap!(subscription.diagnostics);
+            diagnostics.on_create_subscription(&subscription);
         }
+        subscription
     }
 
     /// Creates monitored items on the specified subscription, returning the creation results

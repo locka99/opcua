@@ -1,19 +1,22 @@
+use std::sync::{Arc, RwLock};
+
 use prelude::*;
 use subscriptions::subscription::SubscriptionStateParams;
+use diagnostics::ServerDiagnostics;
 
 const DEFAULT_LIFETIME_COUNT: UInt32 = 300;
 const DEFAULT_KEEPALIVE_COUNT: UInt32 = 100;
 
 fn make_subscription(state: SubscriptionState) -> Subscription {
     let subscription_interval = 1000f64;
-    let mut result = Subscription::new(0, true, subscription_interval, DEFAULT_LIFETIME_COUNT, DEFAULT_KEEPALIVE_COUNT, 0);
+    let mut result = Subscription::new(Arc::new(RwLock::new(ServerDiagnostics::new())), 0, true, subscription_interval, DEFAULT_LIFETIME_COUNT, DEFAULT_KEEPALIVE_COUNT, 0);
     result.state = state;
     result
 }
 
 #[test]
 fn basic_subscription() {
-    let s = Subscription::new(0, true, 1000f64, DEFAULT_LIFETIME_COUNT, DEFAULT_KEEPALIVE_COUNT, 0);
+    let s = Subscription::new(Arc::new(RwLock::new(ServerDiagnostics::new())), 0, true, 1000f64, DEFAULT_LIFETIME_COUNT, DEFAULT_KEEPALIVE_COUNT, 0);
     assert_eq!(s.state, SubscriptionState::Creating);
 }
 

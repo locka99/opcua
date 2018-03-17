@@ -1,30 +1,25 @@
-use address_space::address_space::AddressSpace;
+use std::collections::VecDeque;
+use std::sync::{Arc, RwLock};
+
 use chrono;
-use continuation_point::BrowseContinuationPoint;
-use DateTimeUtc;
+
 use opcua_core::comms::secure_channel::{Role, SecureChannel};
 use opcua_core::crypto::X509;
 use opcua_types::*;
 use opcua_types::service_types::PublishRequest;
 use opcua_types::status_codes::StatusCode;
+
+use address_space::address_space::AddressSpace;
+use continuation_point::BrowseContinuationPoint;
+use diagnostics::ServerDiagnostics;
+use DateTimeUtc;
 use server::Server;
-use std::collections::VecDeque;
 use subscriptions::subscription::TickReason;
 use subscriptions::subscriptions::Subscriptions;
 
 /// Session info holds information about a session created by CreateSession service
 #[derive(Clone)]
 pub struct SessionInfo {}
-
-/// Structure that captures diagnostics information for the session
-#[derive(Clone)]
-pub struct SessionDiagnostics {}
-
-impl SessionDiagnostics {
-    pub fn new() -> SessionDiagnostics {
-        SessionDiagnostics {}
-    }
-}
 
 const MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE: usize = 100;
 const PUBLISH_REQUEST_TIMEOUT: i64 = 30000;
@@ -62,7 +57,7 @@ pub struct Session {
     /// Browse continuation points (oldest to newest)
     browse_continuation_points: VecDeque<BrowseContinuationPoint>,
     /// Diagnostics associated with the session
-    diagnostics: SessionDiagnostics,
+    diagnostics: Arc<RwLock<ServerDiagnostics>>,
     /// Indicates if the session has received an ActivateSession
     pub activated: bool,
     /// Time that session was terminated, helps with recovering sessions, or clearing them out
@@ -73,12 +68,19 @@ pub struct Session {
     last_session_id: UInt32,
 }
 
+impl Drop for Session {
+    fn drop(&mut self) {
+        let mut diagnostics = trace_write_lock_unwrap!(self.diagnostics);
+        diagnostics.on_destroy_session(self);
+    }
+}
+
 impl Session {
     #[cfg(test)]
     pub fn new_no_certificate_store(secure_channel: SecureChannel) -> Session {
         let max_publish_requests = MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE;
         let max_browse_continuation_points = super::constants::MAX_BROWSE_CONTINUATION_POINTS;
-        Session {
+        let session = Session {
             subscriptions: Subscriptions::new(max_publish_requests, PUBLISH_REQUEST_TIMEOUT),
             session_id: NodeId::null(),
             activated: false,
@@ -97,15 +99,26 @@ impl Session {
             endpoint_url: UAString::null(),
             max_browse_continuation_points,
             browse_continuation_points: VecDeque::with_capacity(max_browse_continuation_points),
-            diagnostics: SessionDiagnostics::new(),
+            diagnostics: Arc::new(RwLock::new(ServerDiagnostics::new())),
             last_session_id: 0,
+        };
+        {
+            let mut diagnostics = trace_write_lock_unwrap!(session.diagnostics);
+            diagnostics.on_create_session(&session);
         }
+        session
     }
 
     pub fn new(server: &Server) -> Session {
         let max_publish_requests = MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE;
         let max_browse_continuation_points = super::constants::MAX_BROWSE_CONTINUATION_POINTS;
-        Session {
+
+        let diagnostics = {
+            let server_state = trace_read_lock_unwrap!(server.server_state);
+            server_state.diagnostics.clone()
+        };
+
+        let session = Session {
             subscriptions: Subscriptions::new(max_publish_requests, PUBLISH_REQUEST_TIMEOUT),
             session_id: NodeId::null(),
             activated: false,
@@ -124,9 +137,14 @@ impl Session {
             endpoint_url: UAString::null(),
             max_browse_continuation_points,
             browse_continuation_points: VecDeque::with_capacity(max_browse_continuation_points),
-            diagnostics: SessionDiagnostics::new(),
+            diagnostics,
             last_session_id: 0,
+        };
+        {
+            let mut diagnostics = trace_write_lock_unwrap!(session.diagnostics);
+            diagnostics.on_create_session(&session);
         }
+        session
     }
 
     pub fn next_session_id(&mut self) -> NodeId {
@@ -139,10 +157,6 @@ impl Session {
     pub fn set_terminated(&mut self) {
         self.terminated = true;
         self.terminated_at = chrono::Utc::now();
-    }
-
-    pub fn diagnostics(&self) -> &SessionDiagnostics {
-        &self.diagnostics
     }
 
     pub fn enqueue_publish_request(&mut self, address_space: &AddressSpace, request_id: UInt32, request: PublishRequest) -> Result<(), StatusCode> {

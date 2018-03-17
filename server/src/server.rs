@@ -12,19 +12,20 @@ use futures::{Future, Stream};
 use tokio;
 use tokio::net::{TcpListener, TcpStream};
 
+use opcua_types::service_types::ServerState as ServerStateType;
+use opcua_core::config::Config;
+use opcua_core::prelude::*;
+
 use address_space::types::AddressSpace;
 use comms::tcp_transport::*;
 use config::ServerConfig;
 use constants;
-use opcua_core::config::Config;
-use opcua_core::prelude::*;
-use opcua_types::service_types::ServerState as ServerStateType;
-use server_metrics::ServerMetrics;
-use server_state::{ServerDiagnostics, ServerState};
+use metrics::ServerMetrics;
+use state::ServerState;
+use diagnostics::ServerDiagnostics;
 use services::message_handler::MessageHandler;
 use session::Session;
 use util::PollingAction;
-
 pub type Connections = Vec<Arc<RwLock<TcpTransport>>>;
 
 /// The Server represents a running instance of OPC UA. There can be more than one server running
@@ -59,7 +60,7 @@ impl Server {
         let servers = vec![config.application_uri.clone()];
         let base_endpoint = format!("opc.tcp://{}:{}", config.tcp_config.host, config.tcp_config.port);
         let max_subscriptions = config.max_subscriptions as usize;
-        let diagnostics = ServerDiagnostics::new();
+        let diagnostics = Arc::new(RwLock::new(ServerDiagnostics::new()));
         // TODO max string, byte string and array lengths
 
         // Security, pki auto create cert

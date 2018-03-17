@@ -1,6 +1,6 @@
 use comms::tcp_transport::Transport;
 use prelude::*;
-use server_state::ServerState;
+use state::ServerState;
 use session::Session;
 use std::sync::{Arc, RwLock, RwLockWriteGuard};
 use tests::*;

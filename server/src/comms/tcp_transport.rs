@@ -6,7 +6,7 @@ use std;
 use std::collections::VecDeque;
 use std::io::{Cursor, Write, ErrorKind};
 use std::net::SocketAddr;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 use std::sync::mpsc::{self, Receiver};
 
 use opcua_core::prelude::*;
@@ -25,7 +25,7 @@ use tokio_io::io;
 use address_space::types::AddressSpace;
 use comms::secure_channel_service::SecureChannelService;
 use constants;
-use server_state::ServerState;
+use state::ServerState;
 use services::message_handler::MessageHandler;
 use session::Session;
 use subscriptions::PublishResponseEntry;

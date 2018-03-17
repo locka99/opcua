@@ -6,7 +6,7 @@ use opcua_types::status_codes::StatusCode::*;
 use opcua_types::service_types::*;
 
 use subscriptions::subscription::Subscription;
-use server_state::ServerState;
+use state::ServerState;
 use session::Session;
 use services::Service;
 use address_space::address_space::AddressSpace;
@@ -34,7 +34,7 @@ impl SubscriptionService {
 
             // Create a new subscription
             let publishing_enabled = request.publishing_enabled;
-            let subscription = Subscription::new(subscription_id, publishing_enabled, revised_publishing_interval, revised_lifetime_count, revised_max_keep_alive_count, request.priority);
+            let subscription = Subscription::new(server_state.diagnostics.clone(), subscription_id, publishing_enabled, revised_publishing_interval, revised_lifetime_count, revised_max_keep_alive_count, request.priority);
             subscriptions.insert(subscription_id, subscription);
 
             // Create the response
@@ -83,8 +83,7 @@ impl SubscriptionService {
     pub fn delete_subscriptions(&self, session: &mut Session, request: DeleteSubscriptionsRequest) -> Result<SupportedMessage, StatusCode> {
         if request.subscription_ids.is_none() {
             Ok(self.service_fault(&request.request_header, BadNothingToDo))
-        }
-        else {
+        } else {
             let results = {
                 let subscription_ids = request.subscription_ids.as_ref().unwrap();
                 let mut results = Vec::with_capacity(subscription_ids.len());
@@ -114,8 +113,7 @@ impl SubscriptionService {
     pub fn set_publishing_mode(&self, session: &mut Session, request: SetPublishingModeRequest) -> Result<SupportedMessage, StatusCode> {
         if request.subscription_ids.is_none() {
             Ok(self.service_fault(&request.request_header, BadNothingToDo))
-        }
-        else {
+        } else {
             let results = {
                 let publishing_enabled = request.publishing_enabled;
                 let subscription_ids = request.subscription_ids.as_ref().unwrap();

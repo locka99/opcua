@@ -10,7 +10,7 @@ use opcua_types::node_ids::*;
 use opcua_types::service_types::{BrowseDirection, RelativePath, RelativePathElement, ServerDiagnosticsSummaryDataType};
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
-use server_state::ServerState;
+use state::ServerState;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
 
