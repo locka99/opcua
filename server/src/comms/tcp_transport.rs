@@ -18,7 +18,6 @@ use time;
 use timer;
 use futures::Future;
 use futures::future::{loop_fn, Loop};
-use tokio;
 use tokio::net::TcpStream;
 use tokio_io::io;
 
@@ -44,11 +43,6 @@ pub enum TransportState {
     Finished,
 }
 
-
-struct ConnectionState {
-    pub connection: Arc<RwLock<TcpTransport>>,
-    pub message_buffer: MessageBuffer,
-}
 
 /// Subscription events are passed between the timer thread and the session thread so must
 /// be transferable
@@ -199,16 +193,34 @@ impl TcpTransport {
         // 5. Terminate if necessary
         // 6. Go to 1
 
+
+        struct ConnectionState {
+            pub connection: Arc<RwLock<TcpTransport>>,
+            pub message_buffer: MessageBuffer,
+            pub socket: TcpStream,
+            pub in_buf: Vec<u8>,
+            pub bytes_read: usize,
+            pub out_buf_stream: Cursor<Vec<u8>>,
+
+        }
+
         let connection_state = ConnectionState {
             connection: connection.clone(),
             message_buffer: MessageBuffer::new(RECEIVE_BUFFER_SIZE),
+            socket,
+            in_buf: vec![0u8; RECEIVE_BUFFER_SIZE],
+            bytes_read: 0,
+            out_buf_stream: Cursor::new(vec![0u8; SEND_BUFFER_SIZE]),
         };
+
         let looping_task = loop_fn(connection_state, |connection_state| {
-            let in_buf = vec![0u8; RECEIVE_BUFFER_SIZE];
-            let read_task = io::read(socket, in_buf).map_err(|err| {
+            io::read(connection_state.socket, connection_state.in_buf).map_err(|err| {
                 error!("Transport IO error {:?}", err);
                 err
-            }).and_then(move |(socket, in_buf, bytes_read)| {
+            }).map(move |(socket, in_buf, bytes_read)| {
+                connection_state.bytes_read = bytes_read;
+                connection_state
+            }).and_then(|connection_state| {
                 // Check for abort
                 let transport_state = {
                     let connection = trace_read_lock_unwrap!(connection);
@@ -219,9 +231,7 @@ impl TcpTransport {
                     connection.transport_state.clone()
                 };
 
-                let mut out_buf_stream = Cursor::new(vec![0u8; SEND_BUFFER_SIZE]);
-
-                let result = connection_state.message_buffer.store_bytes(&in_buf[..bytes_read]);
+                let result = connection_state.message_buffer.store_bytes(&connection_state.in_buf[..connection_state.bytes_read]);
 
                 let mut session_status_code = Good;
                 if result.is_err() {
@@ -234,7 +244,7 @@ impl TcpTransport {
                                 debug!("Processing HELLO");
                                 if let Message::Hello(hello) = message {
                                     let mut connection = trace_write_lock_unwrap!(connection);
-                                    let result = connection.process_hello(hello, &mut out_buf_stream);
+                                    let result = connection.process_hello(hello, &mut connection_state.out_buf_stream);
                                     if result.is_err() {
                                         session_status_code = result.unwrap_err();
                                     }
@@ -246,7 +256,7 @@ impl TcpTransport {
                                 debug!("Processing message");
                                 if let Message::MessageChunk(chunk) = message {
                                     let mut connection = trace_write_lock_unwrap!(connection);
-                                    let result = connection.process_chunk(chunk, &mut out_buf_stream);
+                                    let result = connection.process_chunk(chunk, &mut connection_state.out_buf_stream);
                                     if result.is_err() {
                                         session_status_code = result.unwrap_err();
                                     }
@@ -268,10 +278,8 @@ impl TcpTransport {
                     connection.set_session_status(session_status_code);
                 }
 
-                Ok((connection, socket, out_buf_stream))
-            });
-
-            let write_task = read_task.and_then(|(connection, socket, out_buf_stream)| {
+                Ok(connection_state)
+            }).and_then(|connection_state| {
                 // Anything to write?
                 // TODO
                 // Self::write_output(&mut out_buf_stream, &mut socket);
@@ -293,14 +301,12 @@ impl TcpTransport {
                 }
                 */
 
-                Ok((connection, socket))
-            });
-
-            let check_for_errors_task = write_task.and_then(|(connection, socket)| {
+                Ok(connection_state)
+            }).and_then(|connection_state| {
                 // Some handlers might wish to send their message and terminate, in which case this is
                 // done here.
                 let terminate_session = {
-                    let connection = trace_write_lock_unwrap!(connection);
+                    let mut connection = trace_write_lock_unwrap!(connection_state.connection);
                     let session = trace_read_lock_unwrap!(connection.session);
                     if session.terminate_session {
                         connection.set_session_status(BadConnectionClosed);
@@ -312,60 +318,11 @@ impl TcpTransport {
                 if terminate_session {
                     Err(std::io::Error::from(ErrorKind::ConnectionAborted))
                 } else {
-                    Ok(())
+                    Ok(connection_state)
                 }
-            });
-
-            let terminate_task = check_for_errors_task.map_err(move |err| {
-                /*
-                TODO
-                drop(subscription_timer_guard);
-                drop(subscription_timer);
-                */
-
-                // As a final act, the session sends a status code to the client if one should be sent
-                let connection = trace_write_lock_unwrap!(connection);
-                let session_status_code = connection.session_status();
-                match session_status_code {
-                    Good | BadConnectionClosed => {
-                        info!("Session terminating normally, session_status_code = {:?}", session_status_code);
-                    }
-                    _ => {
-                        warn!("Sending session terminating error {:?}", session_status_code);
-                        let mut out_buf_stream = Cursor::new(vec![0u8; SEND_BUFFER_SIZE]);
-                        out_buf_stream.set_position(0);
-                        let error = ErrorMessage::from_status_code(session_status_code);
-                        let _ = error.encode(&mut out_buf_stream);
-// TODO                            Self::write_output(&mut out_buf_stream, &mut socket);
-                    }
-                }
-
-                /*
-                // Close socket
-                info!("Terminating socket");
-                let _ = socket.shutdown(Shutdown::Both);
-
-                    // Session state
-                    {
-                        let mut connection = trace_write_lock_unwrap!(connection);
-                        connection.transport_state = TransportState::Finished;
-                    }
-
-                let session_duration = Utc::now().signed_duration_since(session_start_time);
-                info!("Session is finished {:?}", session_duration);
-
-                {
-                    let connection = trace_read_lock_unwrap!(connection);
-                    let mut session = trace_write_lock_unwrap!(connection.session);
-                    session.set_terminated();
-                }
-                */
-
-                // Abort
-                Loop::Break(connection_state)
-            }).and_then(|_| {
+            }).and_then(|connection_state| {
                 // Continue or abort
-                let connection = trace_read_lock_unwrap!(connection);
+                let connection = trace_read_lock_unwrap!(connection_state.connection);
                 let server_state = trace_read_lock_unwrap!(connection.server_state);
                 if server_state.abort {
                     // Property abort command
@@ -373,12 +330,55 @@ impl TcpTransport {
                 } else {
                     Ok(Loop::Continue(connection_state))
                 }
-            });
+            })
 
-            terminate_task
+            /*.or_else(|err| {
+            /*
+            TODO
+            drop(subscription_timer_guard);
+            drop(subscription_timer);
+            */
+
+            // As a final act, the session sends a status code to the client if one should be sent
+            let connection = trace_write_lock_unwrap!(connection);
+            let session_status_code = connection.session_status();
+            match session_status_code {
+                Good | BadConnectionClosed => {
+                    info!("Session terminating normally, session_status_code = {:?}", session_status_code);
+                }
+                _ => {
+                    warn!("Sending session terminating error {:?}", session_status_code);
+                    let mut out_buf_stream = Cursor::new(vec![0u8; SEND_BUFFER_SIZE]);
+                    out_buf_stream.set_position(0);
+                    let error = ErrorMessage::from_status_code(session_status_code);
+                    let _ = error.encode(&mut out_buf_stream);
+// TODO                            Self::write_output(&mut out_buf_stream, &mut socket);
+                }
+            }
+
+            /*
+            // Close socket
+            info!("Terminating socket");
+            let _ = socket.shutdown(Shutdown::Both);
+
+                // Session state
+                {
+                    let mut connection = trace_write_lock_unwrap!(connection);
+                    connection.transport_state = TransportState::Finished;
+                }
+
+            let session_duration = Utc::now().signed_duration_since(session_start_time);
+            info!("Session is finished {:?}", session_duration);
+
+            {
+                let connection = trace_read_lock_unwrap!(connection);
+                let mut session = trace_write_lock_unwrap!(connection.session);
+                session.set_terminated();
+            }
+            */
+            // Abort
+        }) */
         });
-
-        tokio::spawn(looping_task);
     }
 
     /// Test if the connection is terminated
