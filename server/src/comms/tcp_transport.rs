@@ -89,6 +89,8 @@ pub struct TcpTransport {
     last_sent_sequence_number: UInt32,
     /// Last decoded sequence number
     last_received_sequence_number: UInt32,
+    /// Subscription timer
+    subscription_events: VecDeque<SubscriptionEvent>,
 }
 
 struct ConnectionState {
@@ -138,6 +140,7 @@ impl TcpTransport {
             client_protocol_version: 0,
             last_sent_sequence_number: 0,
             last_received_sequence_number: 0,
+            subscription_events: VecDeque::new(),
         }
     }
 
@@ -167,10 +170,11 @@ impl TcpTransport {
             connection.transport_state = TransportState::WaitingHello;
         }
 
-        let (subscription_timer, subscription_timer_guard, subscription_timer_rx) = {
+        // Start the subscription timer
+        {
             let mut connection = trace_write_lock_unwrap!(connection);
             connection.start_subscription_timer()
-        };
+        }
 
         // Waiting for hello
         // Hello timeout
@@ -306,13 +310,17 @@ impl TcpTransport {
                 // Self::write_output(&mut out_buf_stream, &mut socket);
 
                 // Process subscription timer events
-                if let Ok(result) = subscription_timer_rx.try_recv() {
-                    match result {
+                let subscription_event = {
+                    let mut connection = trace_write_lock_unwrap!(connection_state.connection);
+                    connection.receive_subscription_event()
+                };
+                if let Some(subscription_event) = subscription_event {
+                    match subscription_event {
                         SubscriptionEvent::PublishResponses(publish_responses) => {
                             trace!("Got {} PublishResponse messages to send", publish_responses.len());
                             for publish_response in publish_responses {
                                 trace!("<-- Sending a Publish Response{}, {:?}", publish_response.request_id, &publish_response.response);
-                                let mut connection = trace_write_lock_unwrap!(connection);
+                                let mut connection = trace_write_lock_unwrap!(connection_state.connection);
 // TODO                                let _ = connection.send_response(publish_response.request_id, &publish_response.response, &mut out_buf_stream);
                             }
 // TODO                            Self::write_output(&mut out_buf_stream, &mut socket);
@@ -388,7 +396,6 @@ impl TcpTransport {
                     Ok(Loop::Break(session_status))
                 }
             })
-
         });
     }
 
@@ -402,7 +409,7 @@ impl TcpTransport {
     }
 
     /// Start the subscription timer to service subscriptions
-    fn start_subscription_timer(&mut self) -> (timer::Timer, timer::Guard, Receiver<SubscriptionEvent>) {
+    fn start_subscription_timer(&mut self) {
         let (subscription_timer_tx, subscription_timer_rx) = mpsc::channel();
 
         let session = self.session.clone();
@@ -436,7 +443,22 @@ impl TcpTransport {
                 }
             }
         });
-        (subscription_timer, subscription_timer_guard, subscription_timer_rx)
+    }
+
+    fn stop_subscription_timer(&mut self) {
+        // Just drop the timers
+    }
+
+    fn receive_subscription_event(&mut self) -> Option<SubscriptionEvent> {
+//        if let Some((_, _, ref mut subscription_timer_rx)) = self.subscription_timer {
+//            if let Ok(event) = subscription_timer_rx.try_recv() {
+//                Some(event)
+//            } else {
+//                None
+//            }
+//        } else {
+        None
+//        }
     }
 
     fn write_output(buffer_stream: &mut Cursor<Vec<u8>>, stream: &mut Write) {
