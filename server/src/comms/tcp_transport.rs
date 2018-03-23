@@ -19,7 +19,9 @@ use timer;
 use futures::Future;
 use futures::future::{loop_fn, Loop};
 use tokio::net::TcpStream;
+use tokio_io::{AsyncRead, AsyncWrite};
 use tokio_io::io;
+use tokio_io::io::{ReadHalf, WriteHalf};
 
 use address_space::types::AddressSpace;
 use comms::secure_channel_service::SecureChannelService;
@@ -96,7 +98,8 @@ pub struct TcpTransport {
 struct ConnectionState {
     pub connection: Arc<RwLock<TcpTransport>>,
     pub message_buffer: MessageBuffer,
-    pub socket: TcpStream,
+    pub reader: ReadHalf<TcpStream>,
+    pub writer: WriteHalf<TcpStream>,
     pub in_buf: Vec<u8>,
     pub bytes_read: usize,
     pub out_buf_stream: Cursor<Vec<u8>>,
@@ -106,7 +109,6 @@ impl Transport for TcpTransport {
     fn state(&self) -> TransportState {
         self.transport_state.clone()
     }
-
 
     fn session_status(&self) -> StatusCode {
         self.session_status
@@ -145,7 +147,6 @@ impl TcpTransport {
     }
 
     pub fn run(connection: Arc<RwLock<TcpTransport>>, socket: TcpStream) {
-
         // TOKIO Split the socket into a read / write portion
         // let (mut read, mut write) = stream.split();
 
@@ -196,11 +197,12 @@ impl TcpTransport {
         // Format of OPC UA TCP is defined in OPC UA Part 6 Chapter 7
         // Basic startup is a HELLO,  OpenSecureChannel, begin
 
-
+        let (reader, writer) = socket.split();
         let connection_state = ConnectionState {
             connection: connection.clone(),
             message_buffer: MessageBuffer::new(RECEIVE_BUFFER_SIZE),
-            socket,
+            reader,
+            writer,
             in_buf: vec![0u8; RECEIVE_BUFFER_SIZE],
             bytes_read: 0,
             out_buf_stream: Cursor::new(vec![0u8; SEND_BUFFER_SIZE]),
@@ -228,18 +230,20 @@ impl TcpTransport {
             let message_buffer = connection_state.message_buffer;
             let out_buf_stream = connection_state.out_buf_stream;
             let mut in_buf = connection_state.in_buf;
-            let socket = connection_state.socket;
+            let reader = connection_state.reader;
+            let writer = connection_state.writer;
 
-            io::read(socket, in_buf).map_err(|err| {
+            io::read(reader, in_buf).map_err(|err| {
                 error!("Transport IO error {:?}", err);
                 // err
                 BadCommunicationError
-            }).map(move |(socket, in_buf, bytes_read)| {
+            }).map(move |(reader, in_buf, bytes_read)| {
                 // Build a new connection state
                 ConnectionState {
                     connection,
                     message_buffer,
-                    socket,
+                    reader,
+                    writer,
                     in_buf,
                     bytes_read,
                     out_buf_stream,
