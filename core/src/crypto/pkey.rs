@@ -164,7 +164,7 @@ impl PKey {
         if let Ok(mut signer) = sign::Signer::new(message_digest, &self.value) {
             signer.pkey_ctx_mut().set_rsa_padding(padding.into()).unwrap();
             if signer.update(data).is_ok() {
-                let result = signer.finish();
+                let result = signer.sign_to_vec();
                 if let Ok(result) = result {
                     trace!("Signature result, len {} = {:?}, copying to signature len {}", result.len(), result, signature.len());
                     signature.copy_from_slice(&result);
@@ -183,7 +183,7 @@ impl PKey {
         if let Ok(mut verifier) = sign::Verifier::new(message_digest, &self.value) {
             verifier.pkey_ctx_mut().set_rsa_padding(padding.into()).unwrap();
             if verifier.update(data).is_ok() {
-                let result = verifier.finish(signature);
+                let result = verifier.verify(signature);
                 if let Ok(result) = result {
                     trace!("Key verified = {:?}", result);
                     return Ok(result);

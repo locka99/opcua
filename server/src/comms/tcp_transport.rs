@@ -19,7 +19,7 @@ use timer;
 use futures::Future;
 use futures::future::{loop_fn, Loop};
 use tokio::net::TcpStream;
-use tokio_io::{AsyncRead, AsyncWrite};
+use tokio_io::AsyncRead;
 use tokio_io::io;
 use tokio_io::io::{ReadHalf, WriteHalf};
 

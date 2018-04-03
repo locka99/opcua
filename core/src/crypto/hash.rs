@@ -56,7 +56,7 @@ fn hmac_vec(digest: hash::MessageDigest, key: &[u8], data: &[u8]) -> Vec<u8> {
     let pkey = pkey::PKey::hmac(key).unwrap();
     let mut signer = sign::Signer::new(digest, &pkey).unwrap();
     signer.update(data).unwrap();
-    signer.finish().unwrap()
+    signer.sign_to_vec().unwrap()
 }
 
 fn hmac(digest: hash::MessageDigest, key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), StatusCode> {
