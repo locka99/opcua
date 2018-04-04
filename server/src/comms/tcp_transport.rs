@@ -223,13 +223,13 @@ impl TcpTransport {
         // 4. Send outgoing messages
         // 5. Terminate if necessary
         // 6. Go to 1
-        let looping_task = loop_fn(connection_state, |mut connection_state| {
+        let looping_task = loop_fn(connection_state, |connection_state| {
 
             // Stuff is taken out of connection state because it is partially consumed by io::read
             let connection = connection_state.connection;
             let message_buffer = connection_state.message_buffer;
             let out_buf_stream = connection_state.out_buf_stream;
-            let mut in_buf = connection_state.in_buf;
+            let in_buf = connection_state.in_buf;
             let reader = connection_state.reader;
             let writer = connection_state.writer;
 
@@ -308,11 +308,6 @@ impl TcpTransport {
 
                 Ok(connection_state)
             }).and_then(|mut connection_state| {
-                // Anything to write?
-
-                // TODO
-                // Self::write_output(&mut out_buf_stream, &mut socket);
-
                 // Process subscription timer events
                 let subscription_event = {
                     let mut connection = trace_write_lock_unwrap!(connection_state.connection);
@@ -325,12 +320,14 @@ impl TcpTransport {
                             for publish_response in publish_responses {
                                 trace!("<-- Sending a Publish Response{}, {:?}", publish_response.request_id, &publish_response.response);
                                 let mut connection = trace_write_lock_unwrap!(connection_state.connection);
-// TODO                                let _ = connection.send_response(publish_response.request_id, &publish_response.response, &mut out_buf_stream);
+                                let _ = connection.send_response(publish_response.request_id, &publish_response.response, &mut connection_state.out_buf_stream);
                             }
-// TODO                            Self::write_output(&mut out_buf_stream, &mut socket);
                         }
                     }
                 }
+
+                // Write any output
+                let _ = Self::write_output(&mut connection_state);
 
                 Ok(connection_state)
             }).and_then(|mut connection_state| {
@@ -367,11 +364,13 @@ impl TcpTransport {
                         }
                         _ => {
                             warn!("Sending session terminating error {:?}", session_status);
-                            let mut out_buf_stream = Cursor::new(vec![0u8; SEND_BUFFER_SIZE]);
-                            out_buf_stream.set_position(0);
-                            let error = ErrorMessage::from_status_code(session_status);
-                            let _ = error.encode(&mut out_buf_stream);
-// TODO                            Self::write_output(&mut out_buf_stream, &mut socket);
+                            {
+                                let out_buf_stream = &mut connection_state.out_buf_stream;
+                                out_buf_stream.set_position(0);
+                                let error = ErrorMessage::from_status_code(session_status);
+                                let _ = error.encode(out_buf_stream);
+                            }
+                            let _ = Self::write_output(&mut connection_state);
                         }
                     }
 
@@ -379,6 +378,7 @@ impl TcpTransport {
                     // Close socket
                     info!("Terminating socket");
                     let _ = socket.shutdown(Shutdown::Both);
+                    */
 
                         // Session state
                         {
@@ -394,7 +394,6 @@ impl TcpTransport {
                         let mut session = trace_write_lock_unwrap!(connection.session);
                         session.set_terminated();
                     }
-                    */
 
                     // Abort
                     Ok(Loop::Break(session_status))
@@ -465,34 +464,40 @@ impl TcpTransport {
 //        }
     }
 
-    fn write_output(buffer_stream: &mut Cursor<Vec<u8>>, stream: &mut Write) {
-        //
-        if buffer_stream.position() == 0 {
-            return;
-        }
+    fn write_output(connection_state: &mut ConnectionState) -> std::io::Result<usize> {
+        if connection_state.out_buf_stream.position() == 0 {
+            Ok(0)
+        } else {
+            let result = {
+                let out_buf_stream = &connection_state.out_buf_stream;
+                let bytes_to_write = out_buf_stream.position() as usize;
+                let buffer_slice = &out_buf_stream.get_ref()[0..bytes_to_write];
 
-        // Scope to avoid immutable/mutable borrow issues
-        {
-            let bytes_to_write = buffer_stream.position() as usize;
-            let buffer_slice = &buffer_stream.get_ref()[0..bytes_to_write];
+                trace!("Writing {} bytes to client", buffer_slice.len());
+                // log_buffer("Writing bytes to client:", buffer_slice);
 
-            trace!("Writing {} bytes to client", buffer_slice.len());
-            // log_buffer("Writing bytes to client:", buffer_slice);
-
-            let result = stream.write(buffer_slice);
-            if result.is_err() {
-                error!("Error writing bytes - {:?}", result.unwrap_err());
-            } else {
-                let bytes_written = result.unwrap();
-                if bytes_to_write != bytes_written {
-                    error!("Error writing bytes - bytes_to_write = {}, bytes_written = {}", bytes_to_write, bytes_written);
-                } else {
-                    trace!("Bytes written = {}", bytes_written);
+                let result = connection_state.writer.write(&buffer_slice);
+                match result {
+                    Err(err) => {
+                        error!("Error writing bytes - {:?}", err);
+                        Err(err)
+                    }
+                    Ok(bytes_written) => {
+                        if bytes_to_write != bytes_written {
+                            error!("Error writing bytes - bytes_to_write = {}, bytes_written = {}", bytes_to_write, bytes_written);
+                        } else {
+                            trace!("Bytes written = {}", bytes_written);
+                        }
+                        Ok(bytes_written)
+                    }
                 }
-            }
-            // let _ = stream.flush();
+            };
+
+            // AND THEN clear the buffer
+            connection_state.out_buf_stream.set_position(0);
+
+            result
         }
-        buffer_stream.set_position(0);
     }
 
     fn process_hello<W: Write>(&mut self, hello: HelloMessage, out_stream: &mut W) -> std::result::Result<(), StatusCode> {
