@@ -137,7 +137,7 @@ latest packages via `pacman -Syuu`.
 Once MSYS2 has installed & updated you must install the MingW 64-bit compiler toolchain and OpenSSL packages.
 
 ```bash
-pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb mingw-w64-x86_64-pkg-config openssl openssl-devel pkg-config
+pacman -S gcc mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb mingw-w64-x86_64-pkg-config openssl openssl-devel pkg-config
 ```
 
 Now ensure that these ensure both Rust and MinGW64 binaries are on your PATH and you should be ready:
