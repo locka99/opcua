@@ -13,6 +13,7 @@ use opcua_core::prelude::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
 
+use chrono;
 use chrono::Utc;
 use time;
 use timer;
@@ -44,7 +45,6 @@ pub enum TransportState {
     ProcessMessages,
     Finished,
 }
-
 
 /// Subscription events are passed between the timer thread and the session thread so must
 /// be transferable
@@ -103,6 +103,7 @@ struct ConnectionState {
     pub in_buf: Vec<u8>,
     pub bytes_read: usize,
     pub out_buf_stream: Cursor<Vec<u8>>,
+    pub session_start_time: chrono::DateTime<Utc>,
 }
 
 impl Transport for TcpTransport {
@@ -197,6 +198,9 @@ impl TcpTransport {
         // Format of OPC UA TCP is defined in OPC UA Part 6 Chapter 7
         // Basic startup is a HELLO,  OpenSecureChannel, begin
 
+        let session_start_time = Utc::now();
+        info!("Session started {}", session_start_time);
+
         let (reader, writer) = socket.split();
         let connection_state = ConnectionState {
             connection: connection.clone(),
@@ -206,6 +210,7 @@ impl TcpTransport {
             in_buf: vec![0u8; RECEIVE_BUFFER_SIZE],
             bytes_read: 0,
             out_buf_stream: Cursor::new(vec![0u8; SEND_BUFFER_SIZE]),
+            session_start_time,
         };
 
         Self::execution_loop(connection_state);
@@ -232,6 +237,7 @@ impl TcpTransport {
             let in_buf = connection_state.in_buf;
             let reader = connection_state.reader;
             let writer = connection_state.writer;
+            let session_start_time = connection_state.session_start_time;
 
             io::read(reader, in_buf).map_err(|err| {
                 error!("Transport IO error {:?}", err);
@@ -247,6 +253,7 @@ impl TcpTransport {
                     in_buf,
                     bytes_read,
                     out_buf_stream,
+                    session_start_time,
                 }
             }).and_then(|mut connection_state| {
                 // Check for abort
@@ -380,17 +387,17 @@ impl TcpTransport {
                     let _ = socket.shutdown(Shutdown::Both);
                     */
 
-                        // Session state
-                        {
-                            let mut connection = trace_write_lock_unwrap!(connection);
-                            connection.transport_state = TransportState::Finished;
-                        }
+                    // Session state
+                    {
+                        let mut connection = trace_write_lock_unwrap!(connection_state.connection);
+                        connection.transport_state = TransportState::Finished;
+                    }
 
-                    let session_duration = Utc::now().signed_duration_since(session_start_time);
+                    let session_duration = Utc::now().signed_duration_since(connection_state.session_start_time);
                     info!("Session is finished {:?}", session_duration);
 
                     {
-                        let connection = trace_read_lock_unwrap!(connection);
+                        let connection = trace_read_lock_unwrap!(connection_state.connection);
                         let mut session = trace_write_lock_unwrap!(connection.session);
                         session.set_terminated();
                     }
