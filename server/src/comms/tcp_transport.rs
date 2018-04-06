@@ -103,6 +103,7 @@ struct ConnectionState {
     pub in_buf: Vec<u8>,
     pub bytes_read: usize,
     pub out_buf_stream: Cursor<Vec<u8>>,
+    pub hello_timeout: f64,
     pub session_start_time: chrono::DateTime<Utc>,
 }
 
@@ -190,11 +191,6 @@ impl TcpTransport {
             time::Duration::seconds(hello_timeout)
         };
 
-        // Short timeout makes it work like a polling loop
-//        let polling_timeout: std::time::Duration = std::time::Duration::from_millis(50);
-//        let _ = stream.set_read_timeout(Some(polling_timeout));
-//        let _ = socket.set_nodelay(true);
-
         // Format of OPC UA TCP is defined in OPC UA Part 6 Chapter 7
         // Basic startup is a HELLO,  OpenSecureChannel, begin
 
@@ -210,6 +206,7 @@ impl TcpTransport {
             in_buf: vec![0u8; RECEIVE_BUFFER_SIZE],
             bytes_read: 0,
             out_buf_stream: Cursor::new(vec![0u8; SEND_BUFFER_SIZE]),
+            hello_timeout,
             session_start_time,
         };
 
@@ -228,7 +225,7 @@ impl TcpTransport {
         // 4. Send outgoing messages
         // 5. Terminate if necessary
         // 6. Go to 1
-        let looping_task = loop_fn(connection_state, |connection_state| {
+        let _looping_task = loop_fn(connection_state, |connection_state| {
 
             // Stuff is taken out of connection state because it is partially consumed by io::read
             let connection = connection_state.connection;
@@ -237,8 +234,14 @@ impl TcpTransport {
             let in_buf = connection_state.in_buf;
             let reader = connection_state.reader;
             let writer = connection_state.writer;
+            let hello_timeout = connection_state.hello_timeout;
             let session_start_time = connection_state.session_start_time;
 
+            // TODO test for a hello timeout
+
+            // TODO test for a received publish
+
+            // Read and process bytes from the stream
             io::read(reader, in_buf).map_err(|err| {
                 error!("Transport IO error {:?}", err);
                 // err
@@ -253,6 +256,7 @@ impl TcpTransport {
                     in_buf,
                     bytes_read,
                     out_buf_stream,
+                    hello_timeout,
                     session_start_time,
                 }
             }).and_then(|mut connection_state| {
@@ -380,12 +384,6 @@ impl TcpTransport {
                             let _ = Self::write_output(&mut connection_state);
                         }
                     }
-
-                    /*
-                    // Close socket
-                    info!("Terminating socket");
-                    let _ = socket.shutdown(Shutdown::Both);
-                    */
 
                     // Session state
                     {

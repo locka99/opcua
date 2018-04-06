@@ -22,21 +22,21 @@ impl ServerDiagnostics {
         }
     }
 
-    pub fn on_create_session(&mut self, session: &Session) {
+    pub fn on_create_session(&mut self, _session: &Session) {
         self.session_count += 1;
         self.session_count_cumulative += 1;
     }
 
-    pub fn on_destroy_session(&mut self, session: &Session) {
+    pub fn on_destroy_session(&mut self, _session: &Session) {
         self.session_count -= 1;
     }
 
-    pub fn on_create_subscription(&mut self, subscription: &Subscription) {
+    pub fn on_create_subscription(&mut self, _subscription: &Subscription) {
         self.subscription_count += 1;
         self.subscription_count_cumulative += 1;
     }
 
-    pub fn on_destroy_subscription(&mut self, subscription: &Subscription) {
+    pub fn on_destroy_subscription(&mut self, _subscription: &Subscription) {
         self.subscription_count -= 1;
     }
 }

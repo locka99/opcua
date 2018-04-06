@@ -58,7 +58,7 @@ fn publish_with_no_subscriptions() {
 
     // Create a session
     let st = ServiceTest::new();
-    let (mut server_state, mut session) = st.get_server_state_and_session();
+    let (_, mut session) = st.get_server_state_and_session();
     let address_space = st.get_address_space();
 
     let request = PublishRequest {

@@ -95,7 +95,7 @@ enum ClientCommand {
 
 enum ClientResponse {
     Starting,
-    Ready,
+    // Ready,
     Finished,
 }
 
