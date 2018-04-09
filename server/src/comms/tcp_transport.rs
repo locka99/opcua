@@ -7,7 +7,7 @@ use std::collections::VecDeque;
 use std::io::{Cursor, Write};
 use std::net::SocketAddr;
 use std::sync::{Arc, RwLock};
-use std::sync::mpsc::{self, Receiver};
+use std::sync::mpsc::{self};
 
 use opcua_core::prelude::*;
 use opcua_types::status_codes::StatusCode;
@@ -97,13 +97,13 @@ pub struct TcpTransport {
 
 struct ConnectionState {
     pub connection: Arc<RwLock<TcpTransport>>,
-    pub message_buffer: MessageBuffer,
+    pub read_buffer: MessageBuffer,
+    pub send_buffer: Cursor<Vec<u8>>,
     pub reader: ReadHalf<TcpStream>,
     pub writer: WriteHalf<TcpStream>,
     pub in_buf: Vec<u8>,
     pub bytes_read: usize,
-    pub out_buf_stream: Cursor<Vec<u8>>,
-    pub hello_timeout: f64,
+    pub hello_timeout: chrono::Duration,
     pub session_start_time: chrono::DateTime<Utc>,
 }
 
@@ -154,7 +154,7 @@ impl TcpTransport {
 
         // ENTRY POINT TO ALL OF OPC
 
-        // TOKIO tasks for reading / writing data from the input
+        // TOKIO tasks for reading data from the input
 
         // Future for read has associated callback to store chunk when it's received and
         // when complete message is finished to concatenate it together and process it.
@@ -179,6 +179,9 @@ impl TcpTransport {
             connection.start_subscription_timer()
         }
 
+        let session_start_time = Utc::now();
+        info!("Session started {}", session_start_time);
+
         // Waiting for hello
         // Hello timeout
         let hello_timeout = {
@@ -194,18 +197,15 @@ impl TcpTransport {
         // Format of OPC UA TCP is defined in OPC UA Part 6 Chapter 7
         // Basic startup is a HELLO,  OpenSecureChannel, begin
 
-        let session_start_time = Utc::now();
-        info!("Session started {}", session_start_time);
-
         let (reader, writer) = socket.split();
         let connection_state = ConnectionState {
             connection: connection.clone(),
-            message_buffer: MessageBuffer::new(RECEIVE_BUFFER_SIZE),
+            read_buffer: MessageBuffer::new(RECEIVE_BUFFER_SIZE),
+            bytes_read: 0,
+            send_buffer: Cursor::new(vec![0u8; SEND_BUFFER_SIZE]),
             reader,
             writer,
             in_buf: vec![0u8; RECEIVE_BUFFER_SIZE],
-            bytes_read: 0,
-            out_buf_stream: Cursor::new(vec![0u8; SEND_BUFFER_SIZE]),
             hello_timeout,
             session_start_time,
         };
@@ -229,8 +229,8 @@ impl TcpTransport {
 
             // Stuff is taken out of connection state because it is partially consumed by io::read
             let connection = connection_state.connection;
-            let message_buffer = connection_state.message_buffer;
-            let out_buf_stream = connection_state.out_buf_stream;
+            let read_buffer = connection_state.read_buffer;
+            let send_buffer = connection_state.send_buffer;
             let in_buf = connection_state.in_buf;
             let reader = connection_state.reader;
             let writer = connection_state.writer;
@@ -238,8 +238,12 @@ impl TcpTransport {
             let session_start_time = connection_state.session_start_time;
 
             // TODO test for a hello timeout
+            // if state == HELLO & now - session_start_time > hello_timeout {
+            //   Ok(Loop::Break(session_status))
+            // }
 
             // TODO test for a received publish
+            // mpsc::receive a publish response
 
             // Read and process bytes from the stream
             io::read(reader, in_buf).map_err(|err| {
@@ -250,12 +254,12 @@ impl TcpTransport {
                 // Build a new connection state
                 ConnectionState {
                     connection,
-                    message_buffer,
+                    read_buffer,
+                    bytes_read,
+                    send_buffer,
                     reader,
                     writer,
                     in_buf,
-                    bytes_read,
-                    out_buf_stream,
                     hello_timeout,
                     session_start_time,
                 }
@@ -270,7 +274,7 @@ impl TcpTransport {
                     connection.transport_state.clone()
                 };
 
-                let result = connection_state.message_buffer.store_bytes(&connection_state.in_buf[..connection_state.bytes_read]);
+                let result = connection_state.read_buffer.store_bytes(&connection_state.in_buf[..connection_state.bytes_read]);
 
                 let mut session_status_code = Good;
                 if result.is_err() {
@@ -283,7 +287,7 @@ impl TcpTransport {
                                 debug!("Processing HELLO");
                                 if let Message::Hello(hello) = message {
                                     let mut connection = trace_write_lock_unwrap!(connection_state.connection);
-                                    let result = connection.process_hello(hello, &mut connection_state.out_buf_stream);
+                                    let result = connection.process_hello(hello, &mut connection_state.send_buffer);
                                     if result.is_err() {
                                         session_status_code = result.unwrap_err();
                                     }
@@ -295,7 +299,7 @@ impl TcpTransport {
                                 debug!("Processing message");
                                 if let Message::MessageChunk(chunk) = message {
                                     let mut connection = trace_write_lock_unwrap!(connection_state.connection);
-                                    let result = connection.process_chunk(chunk, &mut connection_state.out_buf_stream);
+                                    let result = connection.process_chunk(chunk, &mut connection_state.send_buffer);
                                     if result.is_err() {
                                         session_status_code = result.unwrap_err();
                                     }
@@ -331,7 +335,7 @@ impl TcpTransport {
                             for publish_response in publish_responses {
                                 trace!("<-- Sending a Publish Response{}, {:?}", publish_response.request_id, &publish_response.response);
                                 let mut connection = trace_write_lock_unwrap!(connection_state.connection);
-                                let _ = connection.send_response(publish_response.request_id, &publish_response.response, &mut connection_state.out_buf_stream);
+                                let _ = connection.send_response(publish_response.request_id, &publish_response.response, &mut connection_state.send_buffer);
                             }
                         }
                     }
@@ -376,7 +380,7 @@ impl TcpTransport {
                         _ => {
                             warn!("Sending session terminating error {:?}", session_status);
                             {
-                                let out_buf_stream = &mut connection_state.out_buf_stream;
+                                let out_buf_stream = &mut connection_state.send_buffer;
                                 out_buf_stream.set_position(0);
                                 let error = ErrorMessage::from_status_code(session_status);
                                 let _ = error.encode(out_buf_stream);
@@ -470,11 +474,11 @@ impl TcpTransport {
     }
 
     fn write_output(connection_state: &mut ConnectionState) -> std::io::Result<usize> {
-        if connection_state.out_buf_stream.position() == 0 {
+        if connection_state.send_buffer.position() == 0 {
             Ok(0)
         } else {
             let result = {
-                let out_buf_stream = &connection_state.out_buf_stream;
+                let out_buf_stream = &connection_state.send_buffer;
                 let bytes_to_write = out_buf_stream.position() as usize;
                 let buffer_slice = &out_buf_stream.get_ref()[0..bytes_to_write];
 
@@ -499,7 +503,7 @@ impl TcpTransport {
             };
 
             // AND THEN clear the buffer
-            connection_state.out_buf_stream.set_position(0);
+            connection_state.send_buffer.set_position(0);
 
             result
         }
