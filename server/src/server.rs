@@ -126,6 +126,7 @@ impl Server {
         let server_state = trace_read_lock_unwrap!(self.server_state);
         let config = trace_read_lock_unwrap!(server_state.config);
         info!("OPC UA Server: {}", server_state.application_name);
+        info!("Base url: {}", server_state.base_endpoint);
         info!("Supported endpoints:");
         for (id, endpoint) in &config.endpoints {
             let users: Vec<String> = endpoint.user_token_ids.iter().map(|id| id.clone()).collect();
