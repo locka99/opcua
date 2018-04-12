@@ -19,6 +19,7 @@ use time;
 use timer;
 use futures::Future;
 use futures::future::{loop_fn, Loop};
+use tokio;
 use tokio::net::TcpStream;
 use tokio_io::AsyncRead;
 use tokio_io::io;
@@ -225,7 +226,7 @@ impl TcpTransport {
         // 4. Send outgoing messages
         // 5. Terminate if necessary
         // 6. Go to 1
-        let _looping_task = loop_fn(connection_state, |connection_state| {
+        let looping_task = loop_fn(connection_state, |connection_state| {
 
             // Stuff is taken out of connection state because it is partially consumed by io::read
             let connection = connection_state.connection;
@@ -248,9 +249,9 @@ impl TcpTransport {
             // Read and process bytes from the stream
             io::read(reader, in_buf).map_err(|err| {
                 error!("Transport IO error {:?}", err);
-                // err
                 BadCommunicationError
             }).map(move |(reader, in_buf, bytes_read)| {
+                trace!("Read {} bytes", bytes_read);
                 // Build a new connection state
                 ConnectionState {
                     connection,
@@ -274,9 +275,8 @@ impl TcpTransport {
                     connection.transport_state.clone()
                 };
 
-                let result = connection_state.read_buffer.store_bytes(&connection_state.in_buf[..connection_state.bytes_read]);
-
                 let mut session_status_code = Good;
+                let result = connection_state.read_buffer.store_bytes(&connection_state.in_buf[..connection_state.bytes_read]);
                 if result.is_err() {
                     session_status_code = result.unwrap_err();
                 } else {
@@ -408,7 +408,9 @@ impl TcpTransport {
                     Ok(Loop::Break(session_status))
                 }
             })
-        });
+        }).map_err(|err| ()).map(|r| ());
+        // Spawn the looping task
+        tokio::spawn(looping_task);
     }
 
     /// Test if the connection is terminated

@@ -4,7 +4,6 @@
 use std::sync::{Arc, Mutex, RwLock};
 use std::net::{SocketAddr, IpAddr, Ipv4Addr};
 use std::str::FromStr;
-use std::thread;
 
 use time;
 use timer;
@@ -271,9 +270,7 @@ impl Server {
             connections.push(connection.clone());
         }
 
-        thread::spawn(move || {
-            TcpTransport::run(connection, socket);
-            info!("Session thread is terminated");
-        });
+        // Run adds a session task to the tokio session
+        TcpTransport::run(connection, socket);
     }
 }
