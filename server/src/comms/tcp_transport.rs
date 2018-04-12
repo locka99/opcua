@@ -214,6 +214,31 @@ impl TcpTransport {
         Self::execution_loop(connection_state);
     }
 
+    fn is_hello_timeout(connection_state: &ConnectionState) -> bool {
+        // Check if the session has waited in the hello state for more than the hello timeout period
+        let transport_state = {
+            let connection = trace_read_lock_unwrap!(connection_state.connection);
+            let server_state = trace_read_lock_unwrap!(connection.server_state);
+            connection.transport_state.clone()
+        };
+        let timeout = if transport_state == TransportState::WaitingHello {
+            let now = Utc::now();
+            // Check if the time now exceeds the hello time
+            if now.signed_duration_since(connection_state.session_start_time.clone()).num_milliseconds() > connection_state.hello_timeout.num_milliseconds() {
+                let session_status_code = BadTimeout;
+                {
+                    let mut connection = trace_write_lock_unwrap!(connection_state.connection);
+                    connection.set_session_status(session_status_code);
+                }
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+        timeout
+    }
 
     /// This is an asynchronous execution loop run through Tokio's runtime. Each task in the chain
     /// is executed in order asynchronously from a loop that aborts when
@@ -227,7 +252,15 @@ impl TcpTransport {
         // 5. Terminate if necessary
         // 6. Go to 1
         let looping_task = loop_fn(connection_state, |connection_state| {
-
+            // Check if the session has waited in the hello state for more than the hello timeout period
+            /* if Self::is_hello_timeout(&connection_state) {
+                let session_status_code = BadTimeout;
+                {
+                    let mut connection = trace_write_lock_unwrap!(connection_state.connection);
+                    connection.set_session_status(session_status_code);
+                }
+                Loop::Break(session_status_code)
+            } else { */
             // Stuff is taken out of connection state because it is partially consumed by io::read
             let connection = connection_state.connection;
             let read_buffer = connection_state.read_buffer;
@@ -237,11 +270,6 @@ impl TcpTransport {
             let writer = connection_state.writer;
             let hello_timeout = connection_state.hello_timeout;
             let session_start_time = connection_state.session_start_time;
-
-            // TODO test for a hello timeout
-            // if state == HELLO & now - session_start_time > hello_timeout {
-            //   Ok(Loop::Break(session_status))
-            // }
 
             // TODO test for a received publish
             // mpsc::receive a publish response
@@ -270,7 +298,7 @@ impl TcpTransport {
                     let connection = trace_read_lock_unwrap!(connection_state.connection);
                     let server_state = trace_read_lock_unwrap!(connection.server_state);
                     if server_state.abort {
-                        return Err(BadCommunicationError); // std::io::Error::from(ErrorKind::ConnectionAborted));
+                        return Err(BadCommunicationError);
                     }
                     connection.transport_state.clone()
                 };
@@ -367,10 +395,10 @@ impl TcpTransport {
                     Ok(Loop::Continue(connection_state))
                 } else {
                     /*
-                    TODO
-                    drop(subscription_timer_guard);
-                    drop(subscription_timer);
-                    */
+                TODO
+                drop(subscription_timer_guard);
+                drop(subscription_timer);
+                */
 
                     // As a final act, the session sends a status code to the client if one should be sent
                     match session_status {
@@ -408,6 +436,7 @@ impl TcpTransport {
                     Ok(Loop::Break(session_status))
                 }
             })
+//            }
         }).map_err(|err| ()).map(|r| ());
         // Spawn the looping task
         tokio::spawn(looping_task);
