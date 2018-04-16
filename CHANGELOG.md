@@ -1,17 +1,19 @@
 # Changelog
 
-## 0.4 (aspirational)
-
 These are just aspirational ideas
 
   - Fix crypto client side - the code is nearly there
   - Fix subscription publish lost notifications
-  - Tokio / futures for either server, client or both
-  - Http web monitor / metrics for server
   - Diagnostics
   - Session restore after disconnect in server
   - Session restore after disconnect in client
   - Integration tests where client connects to server, does something
+
+## 0.4
+  - The server network implementation uses tokio and futures. This should allow the server to scale
+    to allow a larger number of connections. At present the futures work through the default pool which
+    can be changed in time.
+  - The server provides a basic web monitor / metrics interface which can be enabled
 
 ## 0.3
   - General

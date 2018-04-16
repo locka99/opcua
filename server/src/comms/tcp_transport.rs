@@ -220,10 +220,12 @@ impl TcpTransport {
             hello_timeout,
             session_start_time,
         };
+        let main_loop = Self::make_looping_task(connection_state);
 
         let hello_state = HelloState {
             connection: connection.clone(),
         };
+        let hello_timeout_loop = Self::make_hello_timeout_loop(hello_state);
 
         let (subscription_tx, subscription_rx) = mpsc::channel::<SubscriptionEvent>();
         let subscription_state = SubscriptionState {
@@ -231,39 +233,73 @@ impl TcpTransport {
             subscription_rx,
             subscription_tx,
         };
+        let subscription_loop = Self::make_subscription_loop(subscription_state);
 
-        // Spawn the looping task
-        tokio::spawn(Self::make_looping_task(connection_state));
+        // let subscription_loop = Self::make_subscription_loop
+
+        // Spawn the tasks we need to run
+        tokio::spawn(main_loop);
+        tokio::spawn(hello_timeout_loop);
+        tokio::spawn(subscription_loop);
     }
 
-    fn is_hello_timeout(connection_state: &ConnectionState) -> bool {
-        // Check if the session has waited in the hello state for more than the hello timeout period
-        let transport_state = {
-            let connection = trace_read_lock_unwrap!(connection_state.connection);
-            let server_state = trace_read_lock_unwrap!(connection.server_state);
-            connection.transport_state.clone()
-        };
-        let timeout = if transport_state == TransportState::WaitingHello {
-            let now = Utc::now();
-            // Check if the time now exceeds the hello time
-            if now.signed_duration_since(connection_state.session_start_time.clone()).num_milliseconds() > connection_state.hello_timeout.num_milliseconds() {
+    fn is_hello_timeout(state: &HelloState) -> bool {
+        /*        // Check if the session has waited in the hello state for more than the hello timeout period
+                let transport_state = {
+                    let connection = trace_read_lock_unwrap!(state.connection);
+                    let server_state = trace_read_lock_unwrap!(connection.server_state);
+                    connection.transport_state.clone()
+                };
+                let timeout = if transport_state == TransportState::WaitingHello {
+                    let now = Utc::now();
+                    // Check if the time now exceeds the hello time
+                    if now.signed_duration_since(state.session_start_time.clone()).num_milliseconds() > state.hello_timeout.num_milliseconds() {
+                        let session_status_code = BadTimeout;
+                        {
+                            let mut connection = trace_write_lock_unwrap!(state.connection);
+                            connection.set_session_status(session_status_code);
+                        }
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                };
+                timeout
+                */
+        false
+    }
+
+    fn make_hello_timeout_loop(state: HelloState) -> Box<Future<Item=(), Error=()> + std::marker::Send> {
+        let looping_task = loop_fn(state, |state| {
+            // Check if the session has waited in the hello state for more than the hello timeout period
+            if Self::is_hello_timeout(&state) {
                 let session_status_code = BadTimeout;
                 {
-                    let mut connection = trace_write_lock_unwrap!(connection_state.connection);
+                    let mut connection = trace_write_lock_unwrap!(state.connection);
                     connection.set_session_status(session_status_code);
                 }
-                true
+                Ok(Loop::Break(session_status_code))
             } else {
-                false
+                Ok(Loop::Continue(state))
             }
-        } else {
-            false
-        };
-        timeout
+        }).map(|r| ());
+        Box::new(looping_task)
+    }
+
+    fn make_subscription_loop(state: SubscriptionState) -> Box<Future<Item=(), Error=()> + std::marker::Send> {
+        let looping_task = loop_fn(state, |state| {
+            // TODO
+            // if !abort, receive event
+            // put event on the queue
+            Ok(Loop::Break(state))
+        }).map(|r| ());
+        Box::new(looping_task)
     }
 
     // TODO change to impl Trait pattern when that language feature becomes a thing in stable
-    fn make_looping_task(connection_state: ConnectionState) -> Box<Future<Item=(), Error=()> + std::marker::Send> {
+    fn make_looping_task(state: ConnectionState) -> Box<Future<Item=(), Error=()> + std::marker::Send> {
 
         // 1. Read bytes
         // 2. Store bytes in a buffer
@@ -271,16 +307,7 @@ impl TcpTransport {
         // 4. Send outgoing messages
         // 5. Terminate if necessary
         // 6. Go to 1
-        let looping_task = loop_fn(connection_state, |connection_state| {
-            // Check if the session has waited in the hello state for more than the hello timeout period
-            /*            if Self::is_hello_timeout(&connection_state) {
-                            let session_status_code = BadTimeout;
-                            {
-                                let mut connection = trace_write_lock_unwrap!(connection_state.connection);
-                                connection.set_session_status(session_status_code);
-                            }
-                            Ok(Loop::Break(session_status_code))
-                        } else { */
+        let looping_task = loop_fn(state, |connection_state| {
             // Stuff is taken out of connection state because it is partially consumed by io::read
             let connection = connection_state.connection;
             let read_buffer = connection_state.read_buffer;
@@ -464,7 +491,6 @@ impl TcpTransport {
                     Ok(Loop::Break(session_status))
                 }
             })
-//            }
         }).map_err(|err| ()).map(|r| ());
         Box::new(looping_task)
     }
