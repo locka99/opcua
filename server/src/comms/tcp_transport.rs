@@ -108,6 +108,16 @@ struct ConnectionState {
     pub session_start_time: chrono::DateTime<Utc>,
 }
 
+struct HelloState {
+    pub connection: Arc<RwLock<TcpTransport>>,
+}
+
+struct SubscriptionState {
+    pub connection: Arc<RwLock<TcpTransport>>,
+    pub subscription_rx: mpsc::Receiver<SubscriptionEvent>,
+    pub subscription_tx: mpsc::Sender<SubscriptionEvent>,
+}
+
 impl Transport for TcpTransport {
     fn state(&self) -> TransportState {
         self.transport_state.clone()
@@ -211,7 +221,19 @@ impl TcpTransport {
             session_start_time,
         };
 
-        Self::execution_loop(connection_state);
+        let hello_state = HelloState {
+            connection: connection.clone(),
+        };
+
+        let (subscription_tx, subscription_rx) = mpsc::channel::<SubscriptionEvent>();
+        let subscription_state = SubscriptionState {
+            connection: connection.clone(),
+            subscription_rx,
+            subscription_tx,
+        };
+
+        // Spawn the looping task
+        tokio::spawn(Self::make_looping_task(connection_state));
     }
 
     fn is_hello_timeout(connection_state: &ConnectionState) -> bool {
@@ -240,10 +262,8 @@ impl TcpTransport {
         timeout
     }
 
-    /// This is an asynchronous execution loop run through Tokio's runtime. Each task in the chain
-    /// is executed in order asynchronously from a loop that aborts when
-    fn execution_loop(connection_state: ConnectionState) {
-        // It is asynchronous so the basic flow is this
+    // TODO change to impl Trait pattern when that language feature becomes a thing in stable
+    fn make_looping_task(connection_state: ConnectionState) -> Box<Future<Item=(), Error=()> + std::marker::Send> {
 
         // 1. Read bytes
         // 2. Store bytes in a buffer
@@ -253,14 +273,14 @@ impl TcpTransport {
         // 6. Go to 1
         let looping_task = loop_fn(connection_state, |connection_state| {
             // Check if the session has waited in the hello state for more than the hello timeout period
-            /* if Self::is_hello_timeout(&connection_state) {
-                let session_status_code = BadTimeout;
-                {
-                    let mut connection = trace_write_lock_unwrap!(connection_state.connection);
-                    connection.set_session_status(session_status_code);
-                }
-                Loop::Break(session_status_code)
-            } else { */
+            /*            if Self::is_hello_timeout(&connection_state) {
+                            let session_status_code = BadTimeout;
+                            {
+                                let mut connection = trace_write_lock_unwrap!(connection_state.connection);
+                                connection.set_session_status(session_status_code);
+                            }
+                            Ok(Loop::Break(session_status_code))
+                        } else { */
             // Stuff is taken out of connection state because it is partially consumed by io::read
             let connection = connection_state.connection;
             let read_buffer = connection_state.read_buffer;
@@ -352,9 +372,17 @@ impl TcpTransport {
                 Ok(connection_state)
             }).and_then(|mut connection_state| {
                 // Process subscription timer events
-                let subscription_event = {
-                    let mut connection = trace_write_lock_unwrap!(connection_state.connection);
-                    connection.receive_subscription_event()
+
+//                if let Ok(event) = connection_state.subscription_timer_rx.try_recv() {
+//                    Some(event)
+//                } else {
+//                    None
+//                };
+
+                let subscription_event: Option<SubscriptionEvent> = {
+                    //let mut connection = trace_write_lock_unwrap!(connection_state.connection);
+                    //connection.receive_subscription_event()
+                    None
                 };
                 if let Some(subscription_event) = subscription_event {
                     match subscription_event {
@@ -438,8 +466,7 @@ impl TcpTransport {
             })
 //            }
         }).map_err(|err| ()).map(|r| ());
-        // Spawn the looping task
-        tokio::spawn(looping_task);
+        Box::new(looping_task)
     }
 
     /// Test if the connection is terminated
@@ -490,18 +517,6 @@ impl TcpTransport {
 
     fn stop_subscription_timer(&mut self) {
         // Just drop the timers
-    }
-
-    fn receive_subscription_event(&mut self) -> Option<SubscriptionEvent> {
-//        if let Some((_, _, ref mut subscription_timer_rx)) = self.subscription_timer {
-//            if let Ok(event) = subscription_timer_rx.try_recv() {
-//                Some(event)
-//            } else {
-//                None
-//            }
-//        } else {
-        None
-//        }
     }
 
     fn write_output(connection_state: &mut ConnectionState) -> std::io::Result<usize> {
