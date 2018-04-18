@@ -19,6 +19,7 @@ extern crate time;
 extern crate timer;
 extern crate tokio;
 extern crate tokio_io;
+extern crate tokio_timer;
 
 type DateTimeUtc = chrono::DateTime<chrono::Utc>;
 
@@ -80,7 +81,7 @@ pub mod constants {
     /// Sampling interval in MS used internally to poll subscriptions. The more finegrained this is
     /// the more often subscriptions will be checked to see if their subscription interval has elapsed
     /// therefore the value should be < min sampling interval
-    pub const SUBSCRIPTION_TIMER_RATE_MS: i64 = 100;
+    pub const SUBSCRIPTION_TIMER_RATE_MS: u64 = 100;
     /// Time in MS that a session will timeout after with inactivity
     pub const SESSION_TIMEOUT: f64 = 50000f64;
     /// Maximum size in bytes that a request message is allowed to be

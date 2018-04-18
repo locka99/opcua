@@ -1,15 +1,15 @@
 //! The server module defines types related to the server, its current running state
 //! and end point information.
 
+use std;
 use std::sync::{Arc, Mutex, RwLock};
 use std::net::{SocketAddr, IpAddr, Ipv4Addr};
 use std::str::FromStr;
 
-use time;
-use timer;
 use futures::{Future, Stream};
 use tokio;
 use tokio::net::{TcpListener, TcpStream};
+use tokio_timer;
 
 use opcua_types::service_types::ServerState as ServerStateType;
 use opcua_core::config::Config;
@@ -25,6 +25,7 @@ use diagnostics::ServerDiagnostics;
 use services::message_handler::MessageHandler;
 use session::Session;
 use util::PollingAction;
+
 pub type Connections = Vec<Arc<RwLock<TcpTransport>>>;
 
 /// The Server represents a running instance of OPC UA. There can be more than one server running
@@ -102,10 +103,11 @@ impl Server {
         }
 
         // Server metrics
-
         let server_metrics = Arc::new(RwLock::new(ServerMetrics::new()));
 
+        // Cert store
         let certificate_store = Arc::new(Mutex::new(certificate_store));
+
         let server = Server {
             server_state,
             server_metrics: server_metrics.clone(),
@@ -163,11 +165,12 @@ impl Server {
         };
 
         info!("Waiting for Connection");
-
-        // This is the tokio server task that listens for connections and handles new sockets
-        let listener = TcpListener::bind(&sock_addr).unwrap();
-        let server_task = {
+        // This is the main tokio task
+        tokio::run({
             let server = server.clone();
+
+            // TODO spawn a discovery registration timer here, remove the old code
+            let listener = TcpListener::bind(&sock_addr).unwrap();
             listener.incoming().for_each(move |socket| {
                 // Clear out dead sessions
                 info!("Handling new connection {:?}", socket);
@@ -182,10 +185,7 @@ impl Server {
             }).map_err(|err| {
                 error!("Accept error = {:?}", err);
             })
-        };
-
-        // Create a Tokio runtime for our connection listener task
-        tokio::run(server_task);
+        });
 
         drop(discovery_server_timer);
     }
@@ -220,20 +220,20 @@ impl Server {
     }
 
     /// Start a timer that triggers every 5 minutes and causes the server to register itself with a discovery server
-    fn start_discovery_server_registration_timer(&self, discovery_server_url: Option<String>) -> Option<(timer::Timer, timer::Guard)> {
-        if discovery_server_url.is_some() {
+    fn start_discovery_server_registration_timer(&self, discovery_server_url: Option<String>) {
+        if let Some(discovery_server_url) = discovery_server_url {
             let server_state = self.server_state.clone();
-            let timer = timer::Timer::new();
-            let timer_guard = timer.schedule_repeating(time::Duration::minutes(5i64), move || {
-                let server_state = trace_read_lock_unwrap!(server_state);
-                let config = trace_read_lock_unwrap!(server_state.config);
-                // TODO - open a secure channel to discovery server, and register the endpoints of this server
-                // with the discovery server
-                trace!("Discovery server registration stub is triggering for {}", config.base_endpoint_url());
-            });
-            Some((timer, timer_guard))
-        } else {
-            None
+            let interval_timer = tokio_timer::Timer::default()
+                .interval(std::time::Duration::from_secs(5 * 60))
+                .for_each(move |_| {
+                    let server_state = trace_read_lock_unwrap!(server_state);
+                    let config = trace_read_lock_unwrap!(server_state.config);
+                    // TODO - open a secure channel to discovery server, and register the endpoints of this server
+                    // with the discovery server
+                    trace!("Discovery server registration stub is triggering for {}", config.base_endpoint_url());
+                    Ok(())
+                });
+            tokio::spawn(interval_timer.map_err(|_| ()));
         }
     }
 
