@@ -15,8 +15,9 @@ use opcua_types::status_codes::StatusCode::*;
 
 use chrono;
 use chrono::Utc;
+use futures::Stream;
 use futures::Future;
-use futures::future::{loop_fn, Loop};
+use futures::future::{self, loop_fn, Loop};
 use tokio;
 use tokio::net::TcpStream;
 use tokio_io::AsyncRead;
@@ -38,7 +39,7 @@ const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;
 const SEND_BUFFER_SIZE: usize = 1024 * 64;
 const MAX_MESSAGE_SIZE: usize = 1024 * 64;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TransportState {
     New,
     WaitingHello,
@@ -56,6 +57,10 @@ enum SubscriptionEvent {
 pub trait Transport {
     // Get the current state of the transport
     fn state(&self) -> TransportState;
+    // Test if the transport is finished
+    fn is_finished(&self) -> bool {
+        self.state() == TransportState::Finished
+    }
     /// Gets the session status
     fn session_status(&self) -> StatusCode;
     /// Sets the session status
@@ -91,36 +96,48 @@ pub struct TcpTransport {
     last_sent_sequence_number: UInt32,
     /// Last decoded sequence number
     last_received_sequence_number: UInt32,
-    /// Subscription timer
-    subscription_events: VecDeque<SubscriptionEvent>,
 }
 
 struct ConnectionState {
+    /// The associated connection
     pub connection: Arc<RwLock<TcpTransport>>,
+    /// The messages buffer
     pub read_buffer: MessageBuffer,
+    /// The send buffer
     pub send_buffer: Cursor<Vec<u8>>,
+    /// Reading portion of socket
     pub reader: ReadHalf<TcpStream>,
+    /// Writing portion of socket
     pub writer: WriteHalf<TcpStream>,
+    /// Raw bytes in buffer
     pub in_buf: Vec<u8>,
+    /// Bytes read in buffer
     pub bytes_read: usize,
+    /// Session start time
     pub session_start_time: chrono::DateTime<Utc>,
+    /// Receiver of subscription events
+    pub subscription_rx: mpsc::Receiver<SubscriptionEvent>,
 }
 
 struct HelloState {
+    /// The associated connection
     pub connection: Arc<RwLock<TcpTransport>>,
+    /// Session start time
     pub session_start_time: chrono::DateTime<Utc>,
-    pub hello_timeout: std::time::Duration,
+    /// Hello timeout duration, i.e. how long a session is waiting for the hello before it times out
+    pub hello_timeout: chrono::Duration,
 }
 
 struct SubscriptionState {
+    /// The associated connection
     pub connection: Arc<RwLock<TcpTransport>>,
-    pub subscription_rx: mpsc::Receiver<SubscriptionEvent>,
+    /// The subscription event transmitter
     pub subscription_tx: mpsc::Sender<SubscriptionEvent>,
 }
 
 impl Transport for TcpTransport {
     fn state(&self) -> TransportState {
-        self.transport_state.clone()
+        self.transport_state
     }
 
     fn session_status(&self) -> StatusCode {
@@ -155,7 +172,6 @@ impl TcpTransport {
             client_protocol_version: 0,
             last_sent_sequence_number: 0,
             last_received_sequence_number: 0,
-            subscription_events: VecDeque::new(),
         }
     }
 
@@ -188,10 +204,13 @@ impl TcpTransport {
         let session_start_time = Utc::now();
         info!("Session started {}", session_start_time);
 
+        // Make a channel for subscriptions
+        let (subscription_tx, subscription_rx) = mpsc::channel::<SubscriptionEvent>();
+
         // Make the connection state - this handles the general loop that reads bytes, writes bytes
         // turns bytes into chunks, messages, processes the messages
         let (reader, writer) = socket.split();
-        let connection_state = ConnectionState {
+        let main_loop = Self::make_looping_task(ConnectionState {
             connection: connection.clone(),
             read_buffer: MessageBuffer::new(RECEIVE_BUFFER_SIZE),
             bytes_read: 0,
@@ -200,8 +219,8 @@ impl TcpTransport {
             writer,
             in_buf: vec![0u8; RECEIVE_BUFFER_SIZE],
             session_start_time,
-        };
-        let main_loop = Self::make_looping_task(connection_state);
+            subscription_rx,
+        });
 
         // Make the hello state & loop - this handles testing if the connection has been in the hello
         // state for too long, in which case it signals an abort.
@@ -210,38 +229,33 @@ impl TcpTransport {
                 let connection = trace_read_lock_unwrap!(connection);
                 let server_state = trace_read_lock_unwrap!(connection.server_state);
                 let server_config = trace_read_lock_unwrap!(server_state.config);
-                server_config.tcp_config.hello_timeout as u64
+                server_config.tcp_config.hello_timeout as i64
             };
-            std::time::Duration::from_secs(hello_timeout)
+            chrono::Duration::seconds(hello_timeout)
         };
-        let hello_state = HelloState {
+        let hello_timeout_timer_task = Self::make_hello_timeout_timer_task(HelloState {
             connection: connection.clone(),
             hello_timeout,
             session_start_time,
-        };
-        let hello_timeout_loop = Self::make_hello_timeout_loop(hello_state);
+        });
 
         // Make the subscription state & loop - this handles subscription events
-        let (subscription_tx, subscription_rx) = mpsc::channel::<SubscriptionEvent>();
-        let subscription_state = SubscriptionState {
+        let subscription_timer_task = Self::make_subscription_timer_task(SubscriptionState {
             connection: connection.clone(),
-            subscription_rx,
             subscription_tx,
-        };
-        let subscription_loop = Self::make_subscription_loop(subscription_state);
+        });
 
         // Spawn the tasks we need to run
         tokio::spawn(main_loop);
-        tokio::spawn(hello_timeout_loop);
-        tokio::spawn(subscription_loop);
+        tokio::spawn(hello_timeout_timer_task);
+        tokio::spawn(subscription_timer_task);
     }
 
     fn is_hello_timeout(state: &HelloState) -> bool {
         // Check if the session has waited in the hello state for more than the hello timeout period
         let transport_state = {
             let connection = trace_read_lock_unwrap!(state.connection);
-            let server_state = trace_read_lock_unwrap!(connection.server_state);
-            connection.transport_state.clone()
+            connection.state()
         };
         let timeout = if transport_state == TransportState::WaitingHello {
             let now = Utc::now();
@@ -257,32 +271,35 @@ impl TcpTransport {
         timeout
     }
 
-    fn make_hello_timeout_loop(state: HelloState) -> Box<Future<Item=(), Error=()> + std::marker::Send> {
-        let looping_task = loop_fn(state, |state| {
-            // Check if the session has waited in the hello state for more than the hello timeout period
-            if Self::is_hello_timeout(&state) {
-                let session_status_code = BadTimeout;
-                {
-                    let mut connection = trace_write_lock_unwrap!(state.connection);
-                    connection.set_session_status(session_status_code);
+
+    fn make_hello_timeout_timer_task(state: HelloState) -> Box<Future<Item=(), Error=()> + std::marker::Send> {
+        let timer = tokio_timer::Timer::default()
+            .interval(std::time::Duration::from_millis(constants::SUBSCRIPTION_TIMER_RATE_MS))
+            .take_while(|_| {
+                // TODO check if connection is finished
+                future::ok(true)
+            })
+            .for_each(move |_| {
+                if Self::is_hello_timeout(&state) {
+                    // Check if the session has waited in the hello state for more than the hello timeout period
+                    let session_status_code = BadTimeout;
+                    {
+                        let mut connection = trace_write_lock_unwrap!(state.connection);
+                        connection.set_session_status(session_status_code);
+                    }
                 }
-                Ok(Loop::Break(session_status_code))
-            } else {
-                Ok(Loop::Continue(state))
-            }
-        }).map(|r| ());
-        Box::new(looping_task)
+                Ok(())
+            }).map_err(|_| ());
+        Box::new(timer)
     }
 
     /// Start the subscription timer to service subscriptions
-    fn make_subscription_timer(state: SubscriptionState) -> Box<Future<Item=(), Error=()> + std::marker::Send> {
-        let (subscription_timer_tx, subscription_timer_rx) = mpsc::channel();
-
+    fn make_subscription_timer_task(state: SubscriptionState) -> Box<Future<Item=(), Error=()> + std::marker::Send> {
         // Creates a repeating interval future that checks subscriptions.
         let timer = tokio_timer::Timer::default()
             .interval(std::time::Duration::from_millis(constants::SUBSCRIPTION_TIMER_RATE_MS))
-            .for_each(move |state: SubscriptionState| {
-                let mut connection = trace_write_lock_unwrap!(state.connection);
+            .for_each(move |_| {
+                let connection = trace_read_lock_unwrap!(state.connection);
                 let mut session = trace_write_lock_unwrap!(connection.session);
 
                 let now = Utc::now();
@@ -302,14 +319,13 @@ impl TcpTransport {
                     let mut publish_responses = VecDeque::with_capacity(session.subscriptions.publish_response_queue.len());
                     publish_responses.append(&mut session.subscriptions.publish_response_queue);
                     drop(session);
-                    let sent = subscription_timer_tx.send(SubscriptionEvent::PublishResponses(publish_responses));
+                    let sent = state.subscription_tx.send(SubscriptionEvent::PublishResponses(publish_responses));
                     if sent.is_err() {
                         error!("Can't send publish responses, err = {}", sent.unwrap_err());
                     }
                 }
-
-                Ok(state)
-            });
+                Ok(())
+            }).map_err(|_| ());
         Box::new(timer)
     }
 
@@ -331,6 +347,7 @@ impl TcpTransport {
             let reader = connection_state.reader;
             let writer = connection_state.writer;
             let session_start_time = connection_state.session_start_time;
+            let subscription_rx = connection_state.subscription_rx;
 
             // TODO test for a received publish
             // mpsc::receive a publish response
@@ -351,80 +368,71 @@ impl TcpTransport {
                     writer,
                     in_buf,
                     session_start_time,
+                    subscription_rx,
                 }
             }).and_then(|mut connection_state| {
                 // Check for abort
                 let transport_state = {
                     let connection = trace_read_lock_unwrap!(connection_state.connection);
-                    let server_state = trace_read_lock_unwrap!(connection.server_state);
-                    if server_state.abort {
+                    if connection.is_server_abort() {
                         return Err(BadCommunicationError);
                     }
                     connection.transport_state.clone()
                 };
-
-                let mut session_status_code = Good;
-                let result = connection_state.read_buffer.store_bytes(&connection_state.in_buf[..connection_state.bytes_read]);
-                if result.is_err() {
-                    session_status_code = result.unwrap_err();
-                } else {
-                    let messages = result.unwrap();
-                    for message in messages {
-                        match transport_state {
-                            TransportState::WaitingHello => {
-                                debug!("Processing HELLO");
-                                if let Message::Hello(hello) = message {
-                                    let mut connection = trace_write_lock_unwrap!(connection_state.connection);
-                                    let result = connection.process_hello(hello, &mut connection_state.send_buffer);
-                                    if result.is_err() {
-                                        session_status_code = result.unwrap_err();
+                if connection_state.bytes_read > 0 {
+                    let mut session_status_code = Good;
+                    let result = connection_state.read_buffer.store_bytes(&connection_state.in_buf[..connection_state.bytes_read]);
+                    if result.is_err() {
+                        session_status_code = result.unwrap_err();
+                    } else {
+                        let messages = result.unwrap();
+                        for message in messages {
+                            match transport_state {
+                                TransportState::WaitingHello => {
+                                    debug!("Processing HELLO");
+                                    if let Message::Hello(hello) = message {
+                                        let mut connection = trace_write_lock_unwrap!(connection_state.connection);
+                                        let result = connection.process_hello(hello, &mut connection_state.send_buffer);
+                                        if result.is_err() {
+                                            session_status_code = result.unwrap_err();
+                                        }
+                                    } else {
+                                        session_status_code = BadCommunicationError;
                                     }
-                                } else {
-                                    session_status_code = BadCommunicationError;
                                 }
-                            }
-                            TransportState::ProcessMessages => {
-                                debug!("Processing message");
-                                if let Message::MessageChunk(chunk) = message {
-                                    let mut connection = trace_write_lock_unwrap!(connection_state.connection);
-                                    let result = connection.process_chunk(chunk, &mut connection_state.send_buffer);
-                                    if result.is_err() {
-                                        session_status_code = result.unwrap_err();
+                                TransportState::ProcessMessages => {
+                                    debug!("Processing message");
+                                    if let Message::MessageChunk(chunk) = message {
+                                        let mut connection = trace_write_lock_unwrap!(connection_state.connection);
+                                        let result = connection.process_chunk(chunk, &mut connection_state.send_buffer);
+                                        if result.is_err() {
+                                            session_status_code = result.unwrap_err();
+                                        }
+                                    } else {
+                                        session_status_code = BadCommunicationError;
                                     }
-                                } else {
-                                    session_status_code = BadCommunicationError;
                                 }
-                            }
-                            _ => {
-                                error!("Unknown sesion state, aborting");
-                                session_status_code = BadUnexpectedError;
-                            }
-                        };
+                                _ => {
+                                    error!("Unknown sesion state, aborting");
+                                    session_status_code = BadUnexpectedError;
+                                }
+                            };
+                        }
                     }
-                }
 
-                // Update the session status
-                {
-                    let mut connection = trace_write_lock_unwrap!(connection_state.connection);
-                    connection.set_session_status(session_status_code);
+                    // Update the session status
+                    {
+                        let mut connection = trace_write_lock_unwrap!(connection_state.connection);
+                        connection.set_session_status(session_status_code);
+                    }
+                } else {
+                    // 0 bytes were read
+                    // trace!("zero bytes read");
                 }
-
                 Ok(connection_state)
             }).and_then(|mut connection_state| {
                 // Process subscription timer events
-
-//                if let Ok(event) = connection_state.subscription_timer_rx.try_recv() {
-//                    Some(event)
-//                } else {
-//                    None
-//                };
-
-                let subscription_event: Option<SubscriptionEvent> = {
-                    //let mut connection = trace_write_lock_unwrap!(connection_state.connection);
-                    //connection.receive_subscription_event()
-                    None
-                };
-                if let Some(subscription_event) = subscription_event {
+                if let Ok(subscription_event) = connection_state.subscription_rx.try_recv() {
                     match subscription_event {
                         SubscriptionEvent::PublishResponses(publish_responses) => {
                             trace!("Got {} PublishResponse messages to send", publish_responses.len());
@@ -436,10 +444,8 @@ impl TcpTransport {
                         }
                     }
                 }
-
                 // Write any output
                 let _ = Self::write_output(&mut connection_state);
-
                 Ok(connection_state)
             }).and_then(|mut connection_state| {
                 // Some handlers might wish to send their message and terminate, in which case this is
@@ -498,7 +504,7 @@ impl TcpTransport {
                     Ok(Loop::Break(session_status))
                 }
             })
-        }).map_err(|err| ()).map(|r| ());
+        }).map_err(|_| ()).map(|_| ());
         Box::new(looping_task)
     }
 
@@ -509,6 +515,12 @@ impl TcpTransport {
         } else {
             false
         }
+    }
+
+    /// Test if the connection should abort
+    pub fn is_server_abort(&self) -> bool {
+        let server_state = trace_read_lock_unwrap!(self.server_state);
+        server_state.abort
     }
 
     fn write_output(connection_state: &mut ConnectionState) -> std::io::Result<usize> {

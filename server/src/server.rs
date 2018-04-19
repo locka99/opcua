@@ -1,11 +1,11 @@
 //! The server module defines types related to the server, its current running state
 //! and end point information.
 
-use std;
 use std::sync::{Arc, Mutex, RwLock};
 use std::net::{SocketAddr, IpAddr, Ipv4Addr};
 use std::str::FromStr;
 
+use chrono;
 use futures::{Future, Stream};
 use tokio;
 use tokio::net::{TcpListener, TcpStream};
@@ -158,16 +158,16 @@ impl Server {
             (sock_addr, config.discovery_server_url.clone())
         };
 
-        // TODO this needs to be a repeating tokio task
-        let discovery_server_timer = {
-            let mut server = trace_write_lock_unwrap!(server);
-            server.start_discovery_server_registration_timer(discovery_server_url)
-        };
-
         info!("Waiting for Connection");
         // This is the main tokio task
         tokio::run({
             let server = server.clone();
+
+            // Start a timer that registers the server with a discovery server
+            {
+                let server = trace_write_lock_unwrap!(server);
+                server.start_discovery_server_registration_timer(discovery_server_url)
+            }
 
             // TODO spawn a discovery registration timer here, remove the old code
             let listener = TcpListener::bind(&sock_addr).unwrap();
@@ -186,8 +186,6 @@ impl Server {
                 error!("Accept error = {:?}", err);
             })
         });
-
-        drop(discovery_server_timer);
     }
 
     // Terminates the running server
@@ -221,10 +219,10 @@ impl Server {
 
     /// Start a timer that triggers every 5 minutes and causes the server to register itself with a discovery server
     fn start_discovery_server_registration_timer(&self, discovery_server_url: Option<String>) {
-        if let Some(discovery_server_url) = discovery_server_url {
+        if let Some(_discovery_server_url) = discovery_server_url {
             let server_state = self.server_state.clone();
             let interval_timer = tokio_timer::Timer::default()
-                .interval(std::time::Duration::from_secs(5 * 60))
+                .interval(chrono::Duration::seconds(5).to_std().unwrap())
                 .for_each(move |_| {
                     let server_state = trace_read_lock_unwrap!(server_state);
                     let config = trace_read_lock_unwrap!(server_state.config);
