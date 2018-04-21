@@ -1,29 +1,20 @@
 //! The TCP transport module handles receiving and sending of binary data in chunks, handshake,
 //! session creation and dispatching of messages via message handler.
 //!
-
 use std;
 use std::collections::VecDeque;
-use std::io::{Cursor, Write};
-use std::net::SocketAddr;
+use std::io::{Cursor, ErrorKind, Read, Write};
+use std::net::{Shutdown, SocketAddr, TcpStream};
 use std::sync::{Arc, RwLock};
-use std::sync::mpsc::{self};
+use std::sync::mpsc::{self, Receiver};
 
-use opcua_core::prelude::*;
+use time;
+use timer;
+use chrono::Utc;
+
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
-
-use chrono;
-use chrono::Utc;
-use futures::Stream;
-use futures::Future;
-use futures::future::{self, loop_fn, Loop};
-use tokio;
-use tokio::net::TcpStream;
-use tokio_io::AsyncRead;
-use tokio_io::io;
-use tokio_io::io::{ReadHalf, WriteHalf};
-use tokio_timer;
+use opcua_core::prelude::*;
 
 use address_space::types::AddressSpace;
 use comms::secure_channel_service::SecureChannelService;
