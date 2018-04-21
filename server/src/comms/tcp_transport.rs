@@ -3,18 +3,26 @@
 //!
 use std;
 use std::collections::VecDeque;
-use std::io::{Cursor, ErrorKind, Read, Write};
-use std::net::{Shutdown, SocketAddr, TcpStream};
+use std::io::{Cursor, Write};
+use std::net::SocketAddr;
 use std::sync::{Arc, RwLock};
-use std::sync::mpsc::{self, Receiver};
+use std::sync::mpsc::{self};
 
-use time;
-use timer;
-use chrono::Utc;
-
+use opcua_core::prelude::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
-use opcua_core::prelude::*;
+
+use chrono;
+use chrono::Utc;
+use futures::Stream;
+use futures::Future;
+use futures::future::{self, loop_fn, Loop};
+use tokio;
+use tokio::net::TcpStream;
+use tokio_io::AsyncRead;
+use tokio_io::io;
+use tokio_io::io::{ReadHalf, WriteHalf};
+use tokio_timer;
 
 use address_space::types::AddressSpace;
 use comms::secure_channel_service::SecureChannelService;
