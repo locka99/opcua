@@ -1,19 +1,19 @@
 # Changelog
 
-These are just aspirational ideas
-
+NOT DONE but would be nice if they were
   - Fix crypto client side - the code is nearly there
   - Fix subscription publish lost notifications
   - Diagnostics
+  - Implement discovery server registration in server
   - Session restore after disconnect in server
   - Session restore after disconnect in client
   - Integration tests where client connects to server, does something
 
 ## 0.4
-  - The server network implementation uses tokio and futures. This should allow the server to scale
-    to allow a larger number of connections. At present the futures work through the default pool which
-    can be changed in time.
-  - The server provides a basic web monitor / metrics interface which can be enabled
+  - Server side
+    - The server network io has been changed to use tokio and futures. This makes the IO more asynchronous and should
+      allow it to scale to a larger number of connections.
+    - The server provides a basic web monitor / metrics interface which can be enabled through code.
 
 ## 0.3
   - General
