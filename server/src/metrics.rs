@@ -4,7 +4,7 @@
 
 use opcua_types::DateTime;
 
-use comms::tcp_transport::Transport;
+use comms::transport::Transport;
 use config;
 use server;
 use diagnostics::ServerDiagnostics;

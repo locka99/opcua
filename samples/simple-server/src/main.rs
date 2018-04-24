@@ -58,7 +58,9 @@ fn add_example_variables(server: &mut Server) -> Vec<PollingAction> {
     // OPC UA for Rust allows you to push or pull values from a variable so here are examples
     // of each method.
 
-    // 1) Push. This code will use a timer to set the values on variable v1 & v2 on an interval
+    // 1) Push. This code will use a timer to set the values on variable v1 & v2 on an interval.
+    //    Note you could use any timer mechanism you like for this, e.g. spawning tokio timer would
+    //    work too
     let timers = {
         let address_space = server.address_space.clone();
         let mut v1_counter: Int32 = 0;

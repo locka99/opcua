@@ -1,8 +1,9 @@
-use comms::tcp_transport::Transport;
+use std::sync::{Arc, RwLock, RwLockWriteGuard};
+
 use prelude::*;
 use state::ServerState;
 use session::Session;
-use std::sync::{Arc, RwLock, RwLockWriteGuard};
+use comms::transport::Transport;
 use tests::*;
 
 struct ServiceTest {

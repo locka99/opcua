@@ -17,6 +17,7 @@ use opcua_core::prelude::*;
 
 use address_space::types::AddressSpace;
 use comms::tcp_transport::*;
+use comms::transport::Transport;
 use config::ServerConfig;
 use constants;
 use metrics::ServerMetrics;
@@ -210,7 +211,7 @@ impl Server {
             // if it is, then we'll use its termination status to sweep it out.
             let mut lock = connection.try_read();
             if let Ok(ref mut connection) = lock {
-                !connection.terminated()
+                !connection.is_session_terminated()
             } else {
                 true
             }

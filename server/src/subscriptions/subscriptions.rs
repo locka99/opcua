@@ -89,6 +89,19 @@ impl Subscriptions {
         &mut self.retransmission_queue
     }
 
+    /// Takes the publish responses which are queued for the client and returns them to the caller,
+    /// or returns None if there are none to process.
+    pub fn take_publish_responses(&mut self) -> Option<VecDeque<PublishResponseEntry>> {
+        if self.publish_response_queue.is_empty() {
+            None
+        } else {
+            // Take the publish responses from the subscriptions
+            let mut publish_responses = VecDeque::with_capacity(self.publish_response_queue.len());
+            publish_responses.append(&mut self.publish_response_queue);
+            Some(publish_responses)
+        }
+    }
+
     /// Places a new publish request onto the queue of publish requests.
     ///
     /// If the queue is full this call will pop the oldest and generate a service fault

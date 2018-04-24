@@ -4,8 +4,8 @@ use timer;
 /// This is a convenience for a polling action. This struct starts a repeating timer that calls
 /// an action repeatedly.
 pub struct PollingAction {
-    pub timer: timer::Timer,
-    pub timer_guard: timer::Guard,
+    timer: timer::Timer,
+    timer_guard: timer::Guard,
 }
 
 impl PollingAction {

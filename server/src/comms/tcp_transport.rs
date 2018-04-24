@@ -25,6 +25,7 @@ use tokio_timer;
 
 use address_space::types::AddressSpace;
 use comms::secure_channel_service::SecureChannelService;
+use comms::transport::*;
 use constants;
 use state::ServerState;
 use services::message_handler::MessageHandler;
@@ -37,36 +38,17 @@ const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;
 const SEND_BUFFER_SIZE: usize = 1024 * 64;
 const MAX_MESSAGE_SIZE: usize = 1024 * 64;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum TransportState {
-    New,
-    WaitingHello,
-    ProcessMessages,
-    Finished,
-}
-
-/// Subscription events are passed between the timer thread and the session thread so must
-/// be transferable
-#[derive(Clone, Debug, PartialEq)]
-enum SubscriptionEvent {
-    PublishResponses(VecDeque<PublishResponseEntry>),
-}
-
-pub trait Transport {
-    // Get the current state of the transport
-    fn state(&self) -> TransportState;
-    // Test if the transport is finished
-    fn is_finished(&self) -> bool {
-        self.state() == TransportState::Finished
+macro_rules! connection_finished_test {
+    ( $connection:expr ) => {
+        {
+            let connection = trace_read_lock_unwrap!($connection);
+            let finished = connection.is_finished();
+            if finished {
+                debug!("task is dropping as connection is finished");
+            }
+            future::ok(!finished)
+        }
     }
-    /// Gets the session status
-    fn session_status(&self) -> StatusCode;
-    /// Sets the session status
-    fn set_session_status(&mut self, session_status: StatusCode);
-    /// Gets the session associated with the transport
-    fn session(&self) -> Arc<RwLock<Session>>;
-    /// Returns the address of the client (peer) of this connection
-    fn client_address(&self) -> Option<SocketAddr>;
 }
 
 /// This is the thing that handles input and output for the open connection associated with the
@@ -192,6 +174,23 @@ impl Transport for TcpTransport {
 
     fn client_address(&self) -> Option<SocketAddr> {
         self.client_address
+    }
+
+    // Terminates the connection and the session
+    fn terminate_session(&mut self, status_code: StatusCode) {
+        self.transport_state = TransportState::Finished;
+        self.set_session_status(status_code);
+        let mut session = trace_write_lock_unwrap!(self.session);
+        session.set_terminated();
+    }
+
+    /// Test if the connection is terminated
+    fn is_session_terminated(&self) -> bool {
+        if let Ok(ref session) = self.session.try_read() {
+            session.terminated()
+        } else {
+            false
+        }
     }
 }
 
@@ -396,7 +395,7 @@ impl TcpTransport {
 
                     {
                         let mut connection = trace_write_lock_unwrap!(connection_state.connection);
-                        connection.terminate(session_status);
+                        connection.terminate_session(session_status);
                     }
                     Ok(Loop::Break(connection_state))
                 }
@@ -405,7 +404,7 @@ impl TcpTransport {
             info!("An error occurred, terminating the connection");
             {
                 let mut connection = trace_write_lock_unwrap!(connection);
-                connection.terminate(status_code);
+                connection.terminate_session(status_code);
             }
             ()
         }).map(|_| ());
@@ -444,15 +443,9 @@ impl TcpTransport {
         tokio::spawn(tokio_timer::Timer::default()
             .interval(chrono::Duration::milliseconds(constants::HELLO_TIMEOUT_POLL_MS).to_std().unwrap())
             .take_while(move |_| {
-                let connection = trace_read_lock_unwrap!(connection_for_take_while);
                 // Loop terminates when session goes past waiting for its hello
-                match connection.state() {
-                    TransportState::New | TransportState::WaitingHello => future::ok(true),
-                    _ => {
-                        debug!("hello timeout poll task is dropping");
-                        future::ok(false)
-                    }
-                }
+                let connection = trace_read_lock_unwrap!(connection_for_take_while);
+                future::ok(!connection.has_received_hello())
             })
             .for_each(move |_| {
                 // Check if the session has waited in the hello state for more than the hello timeout period
@@ -466,11 +459,8 @@ impl TcpTransport {
                     if now.signed_duration_since(state.session_start_time.clone()).num_milliseconds() > state.hello_timeout.num_milliseconds() {
                         // Check if the session has waited in the hello state for more than the hello timeout period
                         info!("Session has been waiting for a hello for more than the timeout period and will now close");
-                        let session_status_code = BadTimeout;
-                        {
-                            let mut connection = trace_write_lock_unwrap!(state.connection);
-                            connection.set_session_status(session_status_code);
-                        }
+                        let mut connection = trace_write_lock_unwrap!(state.connection);
+                        connection.terminate_session(BadTimeout);
                     }
                 }
                 Ok(())
@@ -479,6 +469,12 @@ impl TcpTransport {
 
     /// Start the subscription timer to service subscriptions
     fn spawn_subscriptions_task(connection_state: &ConnectionState) {
+        /// Subscription events are passed sent from the monitor task to the receiver
+        #[derive(Clone, Debug, PartialEq)]
+        enum SubscriptionEvent {
+            PublishResponses(VecDeque<PublishResponseEntry>),
+        }
+
         // Make a channel for subscriptions
         let (subscription_tx, subscription_rx) = mpsc::unbounded::<SubscriptionEvent>();
 
@@ -500,12 +496,7 @@ impl TcpTransport {
             let monitor_task = tokio_timer::Timer::default()
                 .interval(chrono::Duration::milliseconds(constants::SUBSCRIPTION_TIMER_RATE_MS).to_std().unwrap())
                 .take_while(move |_| {
-                    let connection = trace_read_lock_unwrap!(connection_for_take_while);
-                    let finished = connection.is_finished();
-                    if finished {
-                        debug!("subscription monitor task is dropping as connection is finished");
-                    }
-                    future::ok(!finished)
+                    connection_finished_test!(connection_for_take_while)
                 })
                 .for_each(move |_| {
                     trace!("subscriptions poll");
@@ -524,11 +515,7 @@ impl TcpTransport {
                     }
 
                     // Check if there are publish responses to send for transmission
-                    if !session.subscriptions.publish_response_queue.is_empty() {
-                        let mut publish_responses = VecDeque::with_capacity(session.subscriptions.publish_response_queue.len());
-                        publish_responses.append(&mut session.subscriptions.publish_response_queue);
-                        drop(session);
-
+                    if let Some(publish_responses) = session.subscriptions.take_publish_responses() {
                         match subscription_tx.unbounded_send(SubscriptionEvent::PublishResponses(publish_responses)) {
                             Err(error) => {
                                 error!("Can't send publish responses, err = {}", error);
@@ -562,12 +549,7 @@ impl TcpTransport {
 
             tokio::spawn(subscription_rx
                 .take_while(move |_| {
-                    let connection = trace_read_lock_unwrap!(connection_for_take_while);
-                    let finished = connection.is_finished();
-                    if finished {
-                        debug!("subscription publish task is dropping as connection is finished");
-                    }
-                    future::ok(!finished)
+                    connection_finished_test!(connection_for_take_while)
                 })
                 .for_each(move |subscription_event| {
                     println!("RECV subscription event");
@@ -586,22 +568,6 @@ impl TcpTransport {
                     }
                     Ok(())
                 }));
-        }
-    }
-
-    pub fn terminate(&mut self, status_code: StatusCode) {
-        self.transport_state = TransportState::Finished;
-        self.set_session_status(status_code);
-        let mut session = trace_write_lock_unwrap!(self.session);
-        session.set_terminated();
-    }
-
-    /// Test if the connection is terminated
-    pub fn terminated(&self) -> bool {
-        if let Ok(ref session) = self.session.try_read() {
-            session.terminated()
-        } else {
-            false
         }
     }
 
