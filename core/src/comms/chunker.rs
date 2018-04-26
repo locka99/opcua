@@ -40,6 +40,7 @@ impl Chunker {
         let secure_channel_id = secure_channel.secure_channel_id();
 
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
+        let mut expected_request_id: UInt32 = 0;
         for (i, chunk) in chunks.iter().enumerate() {
             let chunk_info = chunk.chunk_info(secure_channel)?;
 
@@ -54,12 +55,19 @@ impl Chunker {
             let expected_sequence_number = first_sequence_number + i as UInt32;
             if sequence_number != expected_sequence_number {
                 error!("Chunk sequence number of {} is not the expected value of {}, idx {}", sequence_number, expected_sequence_number, i);
-                return Err(BadSequenceNumberInvalid);
+                return Err(BadSecurityChecksFailed);
+            }
+
+            // Check the request id against the first chunk's request id
+            if i == 0 {
+                expected_request_id = chunk_info.sequence_header.request_id;
+            } else if chunk_info.sequence_header.request_id != expected_request_id {
+                error!("Chunk sequence number of {} has a request id {} which is not the expected value of {}, idx {}", sequence_number, chunk_info.sequence_header.request_id, expected_request_id, i);
+                return Err(BadSecurityChecksFailed);
             }
         }
         Ok(first_sequence_number + chunks.len() as UInt32 - 1)
     }
-
 
     /// Encodes a message using the supplied sequence number and secure channel info and emits the corresponding chunks
     ///
@@ -119,9 +127,7 @@ impl Chunker {
     /// Decodes a series of chunks to create a message. The message must be of a `SupportedMessage`
     /// type otherwise an error will occur.
     pub fn decode(chunks: &Vec<MessageChunk>, secure_channel: &SecureChannel, expected_node_id: Option<NodeId>) -> std::result::Result<SupportedMessage, StatusCode> {
-        // TODO all chunks should be verified first
-
-        // Validate the data and calculate the size first
+        // Calculate the size of data held in all chunks
         let mut data_size: usize = 0;
         for (i, chunk) in chunks.iter().enumerate() {
             let chunk_info = chunk.chunk_info(secure_channel)?;
@@ -134,14 +140,14 @@ impl Chunker {
             if chunk_info.message_header.is_final != expected_is_final {
                 return Err(BadDecodingError);
             }
-            // TODO sequence numbers expected to be consecutive
-            // TODO request number should be the same
+            // Calculate how much space data is in the chunk
             let body_start = chunk_info.body_offset;
             let body_end = body_start + chunk_info.body_length;
             data_size += chunk.data[body_start..body_end].len();
         }
 
-        // Read the data into a contiguous buffer. The assumption is the data is encrypted / verified by now
+        // Read the data into a contiguous buffer. The assumption is the data is decrypted / verified by now
+        // TODO this buffer should be externalized so it is not allocated each time
         let mut data = Vec::with_capacity(data_size);
         for chunk in chunks.iter() {
             let chunk_info = chunk.chunk_info(secure_channel)?;
