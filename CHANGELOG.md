@@ -1,13 +1,13 @@
 # Changelog
 
-NOT DONE but would be nice if they were
+ASPIRATIONAL - a short list of things that would be nice to implement
   - Fix crypto client side - the code is nearly there
   - Fix subscription publish lost notifications
   - Diagnostics
   - Implement discovery server registration in server
   - Session restore after disconnect in server
   - Session restore after disconnect in client
-  - Integration tests where client connects to server, does something
+  - Integration tests where client connects to server, does something to test basic functionality
 
 ## 0.4
   - Server side

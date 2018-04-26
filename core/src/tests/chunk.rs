@@ -55,6 +55,18 @@ fn set_chunk_sequence_number(chunk: &mut MessageChunk, secure_channel: &SecureCh
     old_sequence_number
 }
 
+fn set_chunk_request_id(chunk: &mut MessageChunk, secure_channel: &SecureChannel, request_id: UInt32) -> UInt32 {
+    // Read the sequence header
+    let mut chunk_info = chunk.chunk_info(&secure_channel).unwrap();
+    let old_request_id = chunk_info.sequence_header.request_id;
+    chunk_info.sequence_header.request_id = request_id;
+    // Write the sequence header out again with new value
+    let mut stream = Cursor::new(&mut chunk.data[..]);
+    stream.set_position(chunk_info.sequence_header_offset as u64);
+    let _ = chunk_info.sequence_header.encode(&mut stream);
+    old_request_id
+}
+
 fn make_large_read_response() -> SupportedMessage {
     let results = (0..10000).map(|i| DataValue::new(i as UInt32)).collect();
     SupportedMessage::ReadResponse(ReadResponse {
@@ -135,13 +147,35 @@ fn max_message_size() {
     assert_eq!(err, BadResponseTooLarge);
 }
 
-/// Encode a large message and then verify the chunks are sequential. Also test code throws error for non-sequential
-/// chunks
+/// Encode a large message and then ensure verification throws error for secure channel id mismatch
 #[test]
-fn validate_chunks() {
+fn validate_chunks_secure_channel_id() {
     let _ = Test::setup();
 
     let mut secure_channel = SecureChannel::new_no_certificate_store();
+    let response = make_large_read_response();
+
+    // Create a very large message
+    let sequence_number = 1000;
+    let request_id = 100;
+    let chunks = Chunker::encode(sequence_number, request_id, 0, MIN_CHUNK_SIZE, &secure_channel, &response).unwrap();
+    assert!(chunks.len() > 1);
+
+    // Expect this to work
+    let _ = Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap();
+
+    // Test secure channel id mismatch
+    let old_secure_channel_id = secure_channel.secure_channel_id();
+    secure_channel.set_secure_channel_id(old_secure_channel_id + 1);
+    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), BadSecureChannelIdInvalid);
+}
+
+/// Encode a large message and then ensure verification throws error for non-consecutive sequence numbers
+#[test]
+fn validate_chunks_sequence_number() {
+    let _ = Test::setup();
+
+    let secure_channel = SecureChannel::new_no_certificate_store();
     let response = make_large_read_response();
 
     // Create a very large message
@@ -154,20 +188,36 @@ fn validate_chunks() {
     let result = Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap();
     assert_eq!(sequence_number + chunks.len() as UInt32 - 1, result);
 
-    // Test secure channel id mismatch
-    let old_secure_channel_id = secure_channel.secure_channel_id();
-    secure_channel.set_secure_channel_id(old_secure_channel_id + 1);
-    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), BadSecureChannelIdInvalid);
-    secure_channel.set_secure_channel_id(old_secure_channel_id);
-
     // Hack one of the chunks to alter its seq id
     let old_sequence_nr = set_chunk_sequence_number(&mut chunks[0], &secure_channel, 1001);
-    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), BadSequenceNumberInvalid);
+    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), BadSecurityChecksFailed);
 
     // Hack the nth
     set_chunk_sequence_number(&mut chunks[0], &secure_channel, old_sequence_nr);
     let _ = set_chunk_sequence_number(&mut chunks[5], &secure_channel, 1008);
-    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), BadSequenceNumberInvalid);
+    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), BadSecurityChecksFailed);
+}
+
+/// Encode a large message and ensure verification throws error for request id mismatches
+#[test]
+fn validate_chunks_request_id() {
+    let _ = Test::setup();
+
+    let secure_channel = SecureChannel::new_no_certificate_store();
+    let response = make_large_read_response();
+
+    // Create a very large message
+    let sequence_number = 1000;
+    let request_id = 100;
+    let mut chunks = Chunker::encode(sequence_number, request_id, 0, MIN_CHUNK_SIZE, &secure_channel, &response).unwrap();
+    assert!(chunks.len() > 1);
+
+    // Expect this to work
+    let _ = Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap();
+
+    // Hack the request id so first chunk request id says 101 while the rest say 100
+    let _ = set_chunk_request_id(&mut chunks[0], &secure_channel, 101);
+    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), BadSecurityChecksFailed);
 }
 
 /// Test creating a request, encoding it and decoding it.
