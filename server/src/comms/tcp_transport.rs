@@ -495,12 +495,19 @@ impl TcpTransport {
             // Clone the connection so the take_while predicate has its own instance
             let connection_for_take_while = state.connection.clone();
 
+            // The standard "wheel" used by the Tokio timer has tick duration of of 100ms which
+            // screws up when the interval is also 100ms. Therefore, build a higher precision timer with
+            // a smaller tick rate.
+            let timer = tokio_timer::wheel()
+                .tick_duration(std::time::Duration::from_millis(constants::SUBSCRIPTION_TIMER_RATE_MS as u64 / 2))
+                .build();
+
             // Interval for the timer.
             let interval_duration = chrono::Duration::milliseconds(constants::SUBSCRIPTION_TIMER_RATE_MS).to_std().unwrap();
             debug!("interval for subscription timer is {:?}", interval_duration);
 
             // Creates a repeating interval future that checks subscriptions.
-            let monitor_task = tokio_timer::Timer::default()
+            let monitor_task = timer
                 .interval(interval_duration)
                 .take_while(move |_| {
                     connection_finished_test!(connection_for_take_while)

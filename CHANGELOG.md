@@ -10,6 +10,8 @@ ASPIRATIONAL - a short list of things that would be nice to implement
   - Integration tests where client connects to server, does something to test basic functionality
 
 ## 0.4
+  - General
+    - More rigorous security checks
   - Server side
     - The server network io has been changed to use tokio and futures. This makes the IO more asynchronous and should
       allow it to scale to a larger number of connections.
