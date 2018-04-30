@@ -245,7 +245,7 @@ impl TcpTransport {
             session_start_time,
         };
 
-        // Spawn the hello task
+        // Spawn the hello timeout task
         Self::spawn_hello_timeout_task(&connection_state);
         // Spawn the subscription processing task
         Self::spawn_subscriptions_task(&connection_state);
@@ -438,10 +438,12 @@ impl TcpTransport {
             session_start_time: connection_state.session_start_time.clone(),
         };
 
+        let interval_duration = chrono::Duration::milliseconds(constants::HELLO_TIMEOUT_POLL_MS).to_std().unwrap();
+
         // Clone the connection so the take_while predicate has its own instance
         let connection_for_take_while = state.connection.clone();
         tokio::spawn(tokio_timer::Timer::default()
-            .interval(chrono::Duration::milliseconds(constants::HELLO_TIMEOUT_POLL_MS).to_std().unwrap())
+            .interval(interval_duration)
             .take_while(move |_| {
                 // Loop terminates when session goes past waiting for its hello
                 let connection = trace_read_lock_unwrap!(connection_for_take_while);
@@ -474,6 +476,7 @@ impl TcpTransport {
         enum SubscriptionEvent {
             PublishResponses(VecDeque<PublishResponseEntry>),
         }
+        debug!("spawn_subscriptions_task ");
 
         // Make a channel for subscriptions
         let (subscription_tx, subscription_rx) = mpsc::unbounded::<SubscriptionEvent>();
@@ -492,14 +495,17 @@ impl TcpTransport {
             // Clone the connection so the take_while predicate has its own instance
             let connection_for_take_while = state.connection.clone();
 
+            // Interval for the timer.
+            let interval_duration = chrono::Duration::milliseconds(constants::SUBSCRIPTION_TIMER_RATE_MS).to_std().unwrap();
+            debug!("interval for subscription timer is {:?}", interval_duration);
+
             // Creates a repeating interval future that checks subscriptions.
             let monitor_task = tokio_timer::Timer::default()
-                .interval(chrono::Duration::milliseconds(constants::SUBSCRIPTION_TIMER_RATE_MS).to_std().unwrap())
+                .interval(interval_duration)
                 .take_while(move |_| {
                     connection_finished_test!(connection_for_take_while)
                 })
                 .for_each(move |_| {
-                    trace!("subscriptions poll");
                     let connection = trace_read_lock_unwrap!(state.connection);
                     let mut session = trace_write_lock_unwrap!(connection.session);
 
