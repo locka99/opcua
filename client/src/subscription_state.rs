@@ -1,6 +1,8 @@
+use std::collections::HashMap;
+
 use opcua_types::{Boolean, Byte, Double, UInt32};
 use opcua_types::service_types::DataChangeNotification;
-use std::collections::HashMap;
+
 use subscription::*;
 
 pub struct SubscriptionState {

@@ -228,6 +228,12 @@ impl SupportedMessage {
             ObjectId::DeleteMonitoredItemsResponse_Encoding_DefaultBinary => {
                 SupportedMessage::DeleteMonitoredItemsResponse(DeleteMonitoredItemsResponse::decode(stream)?)
             }
+            ObjectId::RegisterServerRequest_Encoding_DefaultBinary => {
+                SupportedMessage::RegisterServerRequest(RegisterServerRequest::decode(stream)?)
+            }
+            ObjectId::RegisterServerResponse_Encoding_DefaultBinary => {
+                SupportedMessage::RegisterServerResponse(RegisterServerResponse::decode(stream)?)
+            }
             _ => {
                 debug!("decoding unsupported for object id {:?}", object_id);
                 SupportedMessage::Invalid(object_id)
@@ -251,6 +257,8 @@ supported_messages![
     GetEndpointsResponse,
     FindServersRequest,
     FindServersResponse,
+    RegisterServerRequest,
+    RegisterServerResponse,
     // Session service
     CreateSessionRequest,
     CreateSessionResponse,

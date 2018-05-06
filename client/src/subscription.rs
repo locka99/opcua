@@ -1,6 +1,7 @@
+use std::collections::{HashMap, HashSet};
+
 use opcua_types::*;
 use opcua_types::service_types::{DataChangeNotification, ReadValueId};
-use std::collections::{HashMap, HashSet};
 
 // This file will hold functionality related to creating a subscription and monitoring items
 

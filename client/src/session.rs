@@ -339,8 +339,13 @@ impl Session {
             request_header: self.make_request_header(),
             server,
         };
-
-        Ok(())
+        let response = self.send_request(SupportedMessage::RegisterServerRequest(request))?;
+        if let SupportedMessage::RegisterServerResponse(response) = response {
+            Self::process_service_result(&response.response_header)?;
+            Ok(())
+        } else {
+            Err(Self::process_unexpected_response(response))
+        }
     }
 
     /// Sends a GetEndpoints request to the server
