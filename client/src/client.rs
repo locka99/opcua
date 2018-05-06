@@ -1,15 +1,18 @@
-use config::{ANONYMOUS_USER_TOKEN_ID, ClientConfig, ClientEndpoint};
+use std::str::FromStr;
+use std::sync::{Arc, Mutex};
+
+use time;
+use timer;
+
 use opcua_core::crypto::{CertificateStore, PKey, SecurityPolicy, X509};
 use opcua_types::{ByteString, LocalizedText, MessageSecurityMode, UAString};
 use opcua_types::{is_opc_ua_binary_url, server_url_from_endpoint_url, url_matches, url_matches_except_host};
-use opcua_types::service_types::{ApplicationDescription, ApplicationType, EndpointDescription};
+use opcua_types::service_types::{ApplicationDescription, ApplicationType, EndpointDescription, RegisteredServer};
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::BadUnexpectedError;
+
+use config::{ANONYMOUS_USER_TOKEN_ID, ClientConfig, ClientEndpoint};
 use session::{Session, SessionInfo};
-use std::str::FromStr;
-use std::sync::{Arc, Mutex};
-use time;
-use timer;
 
 #[derive(Debug)]
 pub enum IdentityToken {
@@ -206,6 +209,31 @@ impl Client {
                     error!("Cannot find servers on discovery server {} - check this error - {:?}", discovery_endpoint_url, result);
                     Err(result)
                 }
+            } else {
+                let result = connected.unwrap_err();
+                error!("Cannot connect to {} - check this error - {:?}", discovery_endpoint_url, result);
+                Err(result)
+            }
+        } else {
+            let result = BadUnexpectedError;
+            error!("Cannot create a sesion to {} - check if url is malformed", discovery_endpoint_url);
+            Err(result)
+        }
+    }
+
+    /// Called by servers who want to register themselves with a discovery server. The server is a
+    /// client to the discovery server in this use. Normal clients do not need to call this function.
+    pub fn register_server<T>(&mut self, discovery_endpoint_url: T, server: RegisteredServer) -> Result<(), StatusCode> where T: Into<String> {
+        let discovery_endpoint_url = discovery_endpoint_url.into();
+        debug!("Creating a temporary session to discovery server {}", discovery_endpoint_url);
+        let endpoint = Self::make_endpoint_description(&discovery_endpoint_url);
+        let session = self.new_session_from_info(endpoint);
+        if let Ok(session) = session {
+            let mut session = session.lock().unwrap();
+            let connected = session.connect();
+            if let Ok(_) = connected {
+                // Find me some some servers
+                session.register_server(discovery_endpoint_url.clone(), server)
             } else {
                 let result = connected.unwrap_err();
                 error!("Cannot connect to {} - check this error - {:?}", discovery_endpoint_url, result);

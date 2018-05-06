@@ -321,6 +321,28 @@ impl Session {
         }
     }
 
+    pub fn register_server<T>(&mut self, discovery_endpoint_url: T, server: RegisteredServer) -> Result<(), StatusCode> where T: Into<String> {
+        /*
+        let server = RegisteredServer {
+            server_uri: UAString,
+            product_uri: UAString,
+            server_names: Option<Vec<LocalizedText>>,
+            server_type: ApplicationType,
+            gateway_server_uri: UAString,
+            discovery_urls: Option<Vec<UAString>>,
+            semaphore_file_path: UAString,
+            is_online: Boolean,
+        };
+        */
+
+        let request = RegisterServerRequest {
+            request_header: self.make_request_header(),
+            server,
+        };
+
+        Ok(())
+    }
+
     /// Sends a GetEndpoints request to the server
     pub fn get_endpoints(&mut self) -> Result<Vec<EndpointDescription>, StatusCode> {
         debug!("Fetching end points...");
@@ -440,7 +462,7 @@ impl Session {
     }
 
     /// Sends a CreateSubscriptionRequest request to the server. A subscription is described by the
-    /// supplied subscription struct. The initial values imply the requested interval, lifetime 
+    /// supplied subscription struct. The initial values imply the requested interval, lifetime
     /// and keepalive and the value returned in the response are the revised values. The
     /// subscription id is also returned in the response.
     pub fn create_subscription(&mut self, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte, publishing_enabled: Boolean, callback: DataChangeCallback)
@@ -763,7 +785,7 @@ impl Session {
         self.transport.async_send_request(request)
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
 
     fn user_identity_token(&self) -> Result<ExtensionObject, StatusCode> {
         let user_token_type = match self.session_info.user_identity_token {

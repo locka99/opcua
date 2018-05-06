@@ -20,11 +20,12 @@ use comms::tcp_transport::*;
 use comms::transport::Transport;
 use config::ServerConfig;
 use constants;
-use metrics::ServerMetrics;
-use state::ServerState;
 use diagnostics::ServerDiagnostics;
+use discovery;
+use metrics::ServerMetrics;
 use services::message_handler::MessageHandler;
 use session::Session;
+use state::ServerState;
 use util::PollingAction;
 
 pub type Connections = Vec<Arc<RwLock<TcpTransport>>>;
@@ -170,7 +171,6 @@ impl Server {
                 server.start_discovery_server_registration_timer(discovery_server_url)
             }
 
-            // TODO spawn a discovery registration timer here, remove the old code
             let listener = TcpListener::bind(&sock_addr).unwrap();
             listener.incoming().for_each(move |socket| {
                 // Clear out dead sessions
@@ -220,19 +220,25 @@ impl Server {
 
     /// Start a timer that triggers every 5 minutes and causes the server to register itself with a discovery server
     fn start_discovery_server_registration_timer(&self, discovery_server_url: Option<String>) {
-        if let Some(_discovery_server_url) = discovery_server_url {
-            let server_state = self.server_state.clone();
+        if let Some(discovery_server_url) = discovery_server_url {
+            info!("Server has set a discovery server url {} which will be used to register the server", discovery_server_url);
+
+            let endpoints = {
+                let server_state = self.server_state.clone();
+                let server_state = trace_read_lock_unwrap!(server_state);
+                let config = trace_read_lock_unwrap!(server_state.config);
+                config.endpoints.clone()
+            };
+
             let interval_timer = tokio_timer::Timer::default()
                 .interval(chrono::Duration::seconds(5).to_std().unwrap())
                 .for_each(move |_| {
-                    let server_state = trace_read_lock_unwrap!(server_state);
-                    let config = trace_read_lock_unwrap!(server_state.config);
-                    // TODO - open a secure channel to discovery server, and register the endpoints of this server
-                    // with the discovery server
-                    trace!("Discovery server registration stub is triggering for {}", config.base_endpoint_url());
+                    discovery::register_discover_server(&discovery_server_url, &endpoints);
                     Ok(())
                 });
             tokio::spawn(interval_timer.map_err(|_| ()));
+        } else {
+            info!("Server has not set a discovery server url, so no registration will happen");
         }
     }
 
