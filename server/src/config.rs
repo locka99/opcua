@@ -35,7 +35,7 @@ impl ServerUserToken {
     pub fn new_user_pass<T>(user: T, pass: T) -> Self where T: Into<String> {
         ServerUserToken {
             user: user.into(),
-            pass: Some(pass.into())
+            pass: Some(pass.into()),
         }
     }
 
@@ -190,6 +190,8 @@ pub struct ServerConfig {
     pub tcp_config: TcpConfig,
     /// User tokens
     pub user_tokens: BTreeMap<String, ServerUserToken>,
+    /// discovery endpoint url which may or may not be the same as the service endpoints below.
+    pub discovery_url: String,
     /// Endpoints supported by the server
     pub endpoints: BTreeMap<String, ServerEndpoint>,
     /// Maximum number of subscriptions in a session
@@ -237,12 +239,15 @@ impl Config for ServerConfig {
 
 impl ServerConfig {
     pub fn new<T>(application_name: T, user_tokens: BTreeMap<String, ServerUserToken>, endpoints: BTreeMap<String, ServerEndpoint>) -> Self where T: Into<String> {
-        let hostname = "127.0.0.1".to_string();
+        let host = "127.0.0.1".to_string();
+        let port = constants::DEFAULT_RUST_OPC_UA_SERVER_PORT;
 
         let application_name = application_name.into();
         let application_uri = format!("urn:{}", application_name);
         let product_uri = format!("urn:{}", application_name);
         let pki_dir = PathBuf::from("./pki");
+        let discovery_server_url = Some(constants::DEFAULT_DISCOVERY_SERVER_URL.to_string());
+        let discovery_url = format!("opc.tcp://{}:{}/", host, port);
 
         ServerConfig {
             application_name,
@@ -250,13 +255,14 @@ impl ServerConfig {
             product_uri,
             pki_dir,
             create_sample_keypair: false,
-            discovery_server_url: None,
+            discovery_server_url,
             tcp_config: TcpConfig {
-                host: hostname,
-                port: constants::DEFAULT_RUST_OPC_UA_SERVER_PORT,
+                host,
+                port,
                 hello_timeout: constants::DEFAULT_HELLO_TIMEOUT_SECONDS,
             },
             user_tokens,
+            discovery_url,
             endpoints,
             max_array_length: opcua_types_constants::MAX_ARRAY_LENGTH,
             max_string_length: opcua_types_constants::MAX_STRING_LENGTH,

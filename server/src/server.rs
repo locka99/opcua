@@ -244,18 +244,12 @@ impl Server {
     fn start_discovery_server_registration_timer(&self, discovery_server_url: Option<String>) {
         if let Some(discovery_server_url) = discovery_server_url {
             info!("Server has set a discovery server url {} which will be used to register the server", discovery_server_url);
-
-            let endpoints = {
-                let server_state = self.server_state.clone();
-                let server_state = trace_read_lock_unwrap!(server_state);
-                let config = trace_read_lock_unwrap!(server_state.config);
-                config.endpoints.clone()
-            };
-
+            let server_state = self.server_state.clone();
             let interval_timer = tokio_timer::Timer::default()
                 .interval(chrono::Duration::seconds(5).to_std().unwrap())
                 .for_each(move |_| {
-                    discovery::register_discover_server(&discovery_server_url, &endpoints);
+                    let server_state = trace_read_lock_unwrap!(server_state);
+                    discovery::register_discover_server(&discovery_server_url, &server_state);
                     Ok(())
                 });
             tokio::spawn(interval_timer.map_err(|_| ()));

@@ -6,7 +6,7 @@ use std::sync::{Arc, RwLock};
 use opcua_core::prelude::*;
 use opcua_types::node_ids::ObjectId;
 use opcua_types::profiles;
-use opcua_types::service_types::{ApplicationDescription, ApplicationType, EndpointDescription, UserNameIdentityToken, UserTokenPolicy, UserTokenType, X509IdentityToken};
+use opcua_types::service_types::{ApplicationDescription, RegisteredServer, ApplicationType, EndpointDescription, UserNameIdentityToken, UserTokenPolicy, UserTokenType, X509IdentityToken};
 use opcua_types::service_types::ServerState as ServerStateType;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
@@ -132,20 +132,20 @@ impl ServerState {
                 application_uri: self.application_uri.clone(),
                 product_uri: self.product_uri.clone(),
                 application_name: self.application_name.clone(),
-                application_type: ApplicationType::Server,
-                gateway_server_uri: UAString::null(),
+                application_type: self.application_type(),
+                gateway_server_uri: self.gateway_server_uri(),
                 discovery_profile_uri: UAString::null(),
-                discovery_urls: None,
+                discovery_urls: self.discovery_urls(),
             }, self.server_certificate_as_byte_string())
         } else {
             (ApplicationDescription {
                 application_uri: UAString::null(),
                 product_uri: UAString::null(),
                 application_name: LocalizedText::null(),
-                application_type: ApplicationType::Server,
-                gateway_server_uri: UAString::null(),
+                application_type: self.application_type(),
+                gateway_server_uri: self.gateway_server_uri(),
                 discovery_profile_uri: UAString::null(),
-                discovery_urls: None,
+                discovery_urls: self.discovery_urls(),
             }, ByteString::null())
         };
 
@@ -161,11 +161,47 @@ impl ServerState {
         }
     }
 
+    pub fn discovery_urls(&self) -> Option<Vec<UAString>> {
+        let config = trace_read_lock_unwrap!(self.config);
+        if config.discovery_url.is_empty() {
+            None
+        } else {
+            Some(vec![UAString::from(config.discovery_url.as_ref())])
+        }
+    }
+
+    pub fn application_type(&self) -> ApplicationType { ApplicationType::Server }
+
+    pub fn gateway_server_uri(&self) -> UAString { UAString::null() }
+
+    pub fn is_running(&self) -> bool { self.state == ServerStateType::Running }
+
     pub fn server_certificate_as_byte_string(&self) -> ByteString {
         if let Some(ref server_certificate) = self.server_certificate {
             server_certificate.as_byte_string()
         } else {
             ByteString::null()
+        }
+    }
+
+    pub fn registered_server(&self) -> RegisteredServer {
+        let server_uri = UAString::from("");
+        let product_uri = self.product_uri.clone();
+        let gateway_server_uri = self.gateway_server_uri();
+        let discovery_urls = self.discovery_urls();
+        let server_type = self.application_type();
+        let is_online = self.is_running();
+        let server_names = Some(vec![self.application_name.clone()]);
+        // Server names
+        RegisteredServer {
+            server_uri,
+            product_uri,
+            server_names,
+            server_type,
+            gateway_server_uri,
+            discovery_urls,
+            semaphore_file_path: UAString::null(),
+            is_online,
         }
     }
 
