@@ -16,7 +16,6 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate time;
-extern crate timer;
 extern crate tokio;
 extern crate tokio_io;
 extern crate tokio_timer;

@@ -1,22 +1,26 @@
-use time;
-use timer;
+use std;
+
+use futures::Future;
+use futures::Stream;
+use tokio;
+use tokio_timer;
 
 /// This is a convenience for a polling action. This struct starts a repeating timer that calls
 /// an action repeatedly.
-pub struct PollingAction {
-    timer: timer::Timer,
-    timer_guard: timer::Guard,
-}
+pub struct PollingAction {}
 
 impl PollingAction {
-    pub fn new<F>(interval_ms: u32, action: F) -> PollingAction
-        where F: 'static + FnMut() + Send
+    pub fn spawn<F>(interval_ms: u32, action: F) -> PollingAction
+        where F: 'static + Fn() + Send
     {
-        let timer = timer::Timer::new();
-        let timer_guard = timer.schedule_repeating(time::Duration::milliseconds(interval_ms as i64), action);
-        PollingAction {
-            timer,
-            timer_guard,
-        }
+        let f = tokio_timer::Timer::default()
+            .interval(std::time::Duration::from_millis(interval_ms as u64))
+            .for_each(move |_| {
+                action();
+                Ok(())
+            })
+            .map_err(|_| ());
+        let _ = tokio::spawn(f);
+        PollingAction {}
     }
 }

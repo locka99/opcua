@@ -3,9 +3,11 @@
 
 use std::sync::{Arc, Mutex, RwLock};
 use std::net::{SocketAddr, IpAddr, Ipv4Addr};
+use std::marker::Sync;
 use std::str::FromStr;
 
 use chrono;
+use futures::future;
 use futures::{Future, Stream};
 use tokio;
 use tokio::net::{TcpListener, TcpStream};
@@ -33,6 +35,8 @@ pub type Connections = Vec<Arc<RwLock<TcpTransport>>>;
 /// The Server represents a running instance of OPC UA. There can be more than one server running
 /// at a time providing they do not share the same thread or listen on the same ports.
 pub struct Server {
+    /// List of pending polling actions to add to the server once run is called
+    pending_polling_actions: Vec<(u32, Box<Fn() + Send + Sync + 'static>)>,
     /// Certificate store for certs
     pub certificate_store: Arc<Mutex<CertificateStore>>,
     /// Server metrics - diagnostics and anything else that someone might be interested in that
@@ -82,7 +86,7 @@ impl Server {
             namespaces,
             servers,
             base_endpoint,
-            state: ServerStateType::Running,
+            state: ServerStateType::Shutdown,
             start_time,
             config,
             server_certificate,
@@ -111,6 +115,7 @@ impl Server {
         let certificate_store = Arc::new(Mutex::new(certificate_store));
 
         let server = Server {
+            pending_polling_actions: Vec::new(),
             server_state,
             server_metrics: server_metrics.clone(),
             address_space,
@@ -142,7 +147,7 @@ impl Server {
     }
 
 
-    /// Runs the server. Note server is supplied protected by a lock allowing access to the server
+    /// Starts the server. Note server is supplied protected by a lock allowing access to the server
     /// to be shared.
     pub fn run(server: Arc<RwLock<Server>>) {
         // Debug endpoints
@@ -151,7 +156,7 @@ impl Server {
             server.log_endpoint_info();
         }
 
-        // Get the 
+        // Get the address and discovery url
         let (sock_addr, discovery_server_url) = {
             let server = trace_read_lock_unwrap!(server);
             let server_state = trace_read_lock_unwrap!(server.server_state);
@@ -164,27 +169,44 @@ impl Server {
         // This is the main tokio task
         tokio::run({
             let server = server.clone();
+            let server_for_listener = server.clone();
 
-            // Start a timer that registers the server with a discovery server
-            {
-                let server = trace_write_lock_unwrap!(server);
-                server.start_discovery_server_registration_timer(discovery_server_url)
-            }
-
-            let listener = TcpListener::bind(&sock_addr).unwrap();
-            listener.incoming().for_each(move |socket| {
-                // Clear out dead sessions
-                info!("Handling new connection {:?}", socket);
+            // Put the server into a running state
+            future::lazy(move || {
                 let mut server = trace_write_lock_unwrap!(server);
-                if server.is_abort() {
-                    info!("Server is aborting");
-                } else {
-                    server.remove_dead_connections();
-                    server.handle_connection(socket);
+
+                // Running
+                {
+                    let mut server_state = trace_write_lock_unwrap!(server.server_state);
+                    server_state.start_time = DateTime::now();
+                    server_state.state = ServerStateType::Running;
                 }
-                Ok(())
-            }).map_err(|err| {
-                error!("Accept error = {:?}", err);
+
+                // Start a timer that registers the server with a discovery server
+                server.start_discovery_server_registration_timer(discovery_server_url);
+                // Start any pending polling action timers
+                server.start_pending_polling_actions();
+
+                future::ok(())
+            }).and_then(move |_| {
+
+                // Listen for connections
+                let listener = TcpListener::bind(&sock_addr).unwrap();
+                listener.incoming()
+                    .for_each(move |socket| {
+                        // Clear out dead sessions
+                        info!("Handling new connection {:?}", socket);
+                        let mut server = trace_write_lock_unwrap!(server_for_listener);
+                        if server.is_abort() {
+                            info!("Server is aborting");
+                        } else {
+                            server.remove_dead_connections();
+                            server.handle_connection(socket);
+                        }
+                        Ok(())
+                    }).map_err(|err| {
+                    error!("Accept error = {:?}", err);
+                })
             })
         });
     }
@@ -198,7 +220,7 @@ impl Server {
         // close down
     }
 
-    fn is_abort(&mut self) -> bool {
+    fn is_abort(&self) -> bool {
         let server_state = trace_read_lock_unwrap!(self.server_state);
         server_state.abort
     }
@@ -242,17 +264,34 @@ impl Server {
         }
     }
 
-    /// Creates a polling action that happens continuously on an interval.
-    ///
-    /// The returned PollingAction will ensure the function is called for as long as it is
-    /// in scope. Once the action is dropped, the function will no longer be called.
-    pub fn create_polling_action<F>(&mut self, interval_ms: u32, action: F) -> PollingAction
-        where F: 'static + FnMut() + Send {
-        let mut action = action;
-        PollingAction::new(interval_ms, move || {
-            // Call the provided closure with the address space
-            action();
-        })
+    /// Creates a polling action that happens continuously on an interval while the server
+    /// is running.
+    pub fn add_polling_action<F>(&mut self, interval_ms: u32, action: F)
+        where F: Fn() + Send + Sync + 'static {
+        // If the server is not yet running, the action is queued and is started later
+        let server_state = trace_read_lock_unwrap!(self.server_state);
+        if server_state.state != ServerStateType::Running {
+            self.pending_polling_actions.push((interval_ms, Box::new(action)));
+        } else {
+            // Start the action immediately
+            let _ = PollingAction::spawn(interval_ms, move || {
+                // Call the provided closure with the address space
+                action();
+            });
+        }
+    }
+
+    /// Starts any polling actions which were queued ready to start but not yet
+    fn start_pending_polling_actions(&mut self) {
+        self.pending_polling_actions
+            .drain(..)
+            .for_each(|(interval_ms, action)| {
+                debug!("Starting a pending polling action at rate of {} ms", interval_ms);
+                let _ = PollingAction::spawn(interval_ms, move || {
+                    // Call the provided action
+                    action();
+                });
+            });
     }
 
     pub fn new_transport(&self) -> TcpTransport {

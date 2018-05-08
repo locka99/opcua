@@ -20,17 +20,14 @@ fn main() {
     let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
 
     // Add some variables of our own
-    let update_timers = add_example_variables(&mut server);
+    add_example_variables(&mut server);
 
     // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
     Server::run(Arc::new(RwLock::new(server)));
-
-    // This explicit drop statement prevents the compiler complaining that update_timers is unused.
-    drop(update_timers);
 }
 
 /// Creates some sample variables, and some push / pull examples that update them
-fn add_example_variables(server: &mut Server) -> Vec<PollingAction> {
+fn add_example_variables(server: &mut Server) {
     // These will be the node ids of the new variables
     let v1_node = NodeId::new_string(2, "v1");
     let v2_node = NodeId::new_string(2, "v2");
@@ -59,26 +56,24 @@ fn add_example_variables(server: &mut Server) -> Vec<PollingAction> {
     // of each method.
 
     // 1) Push. This code will use a timer to set the values on variable v1 & v2 on an interval.
-    //    Note you could use any timer mechanism you like for this, e.g. spawning tokio timer would
-    //    work too
-    let timers = {
+    //    Note you could use your timer callbacks you like for this but calling create_polling_action
+    //    means you get the internal implementation.
+    {
+        // Store a counter and a flag in a tuple
+        let data = Arc::new(Mutex::new((0, true)));
         let address_space = server.address_space.clone();
-        let mut v1_counter: Int32 = 0;
-        let mut v2_flag: Boolean = true;
-        vec![
-            server.create_polling_action(250, move || {
-                v1_counter += 1;
-                v2_flag = !v2_flag;
-                let mut address_space = address_space.write().unwrap();
-                let _ = address_space.set_value_by_node_id(&v1_node, Variant::Int32(v1_counter));
-                let _ = address_space.set_value_by_node_id(&v2_node, Variant::Boolean(v2_flag));
-            })
-        ]
-    };
+        server.add_polling_action(250, move || {
+            let mut data = data.lock().unwrap();
+            data.0 += 1;
+            data.1 = !data.1;
+            let mut address_space = address_space.write().unwrap();
+            let _ = address_space.set_value_by_node_id(&v1_node, Variant::Int32(data.0));
+            let _ = address_space.set_value_by_node_id(&v2_node, Variant::Boolean(data.1));
+        });
+    }
 
     // 2) Pull. This code will add getters to v3 & v4 that returns their values by calling
     //    function.
-
     {
         let mut address_space = server.address_space.write().unwrap();
         if let Some(ref mut v) = address_space.find_variable_by_node_id(&v3_node) {
@@ -103,8 +98,4 @@ fn add_example_variables(server: &mut Server) -> Vec<PollingAction> {
             v.set_value_getter(Arc::new(Mutex::new(getter)));
         }
     }
-
-    // Caller must hang onto the timers for as long as they want actions to happen. When timers are
-    // dropped, they no longer fire
-    timers
 }

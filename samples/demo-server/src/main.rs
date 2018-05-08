@@ -28,16 +28,13 @@ fn main() {
     add_static_scalar_variables(&mut server);
 
     // Add dynamically changing scalar values
-    let dynamic_scalar_timers = add_dynamic_scalar_variables(&mut server);
+    add_dynamic_scalar_variables(&mut server);
 
     // Start the http server, used for metrics
     http::run_http_server("127.0.0.1:8585", server.server_state.clone(), server.connections.clone(), server.server_metrics.clone());
 
     // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
     Server::run(Arc::new(RwLock::new(server)));
-
-    // This explicit drop statement prevents the compiler complaining that update_timers is unused.
-    drop(dynamic_scalar_timers);
 }
 
 enum Scalar {
@@ -172,7 +169,7 @@ fn add_static_scalar_variables(server: &mut Server) {
     }
 }
 
-fn add_dynamic_scalar_variables(server: &mut Server) -> Vec<PollingAction> {
+fn add_dynamic_scalar_variables(server: &mut Server) {
     // The address space is guarded so obtain a lock to change it
     {
         let mut address_space = server.address_space.write().unwrap();
@@ -194,18 +191,12 @@ fn add_dynamic_scalar_variables(server: &mut Server) -> Vec<PollingAction> {
         }
     }
 
-    let timers = {
-        let address_space = server.address_space.clone();
-        vec![
-            server.create_polling_action(250, move || {
-                let mut address_space = address_space.write().unwrap();
-                for sn in Scalar::values().iter() {
-                    let node_id = sn.node_id(true);
-                    let _ = address_space.set_value_by_node_id(&node_id, sn.random_value());
-                }
-            })
-        ]
-    };
-
-    timers
+    let address_space = server.address_space.clone();
+    server.add_polling_action(250, move || {
+        let mut address_space = address_space.write().unwrap();
+        for sn in Scalar::values().iter() {
+            let node_id = sn.node_id(true);
+            let _ = address_space.set_value_by_node_id(&node_id, sn.random_value());
+        }
+    });
 }
