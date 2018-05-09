@@ -246,7 +246,7 @@ impl Server {
             info!("Server has set a discovery server url {} which will be used to register the server", discovery_server_url);
             let server_state = self.server_state.clone();
             let interval_timer = tokio_timer::Timer::default()
-                .interval(chrono::Duration::seconds(5).to_std().unwrap())
+                .interval(chrono::Duration::minutes(5).to_std().unwrap())
                 .for_each(move |_| {
                     let server_state = trace_read_lock_unwrap!(server_state);
                     discovery::register_discover_server(&discovery_server_url, &server_state);
