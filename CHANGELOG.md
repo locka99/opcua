@@ -4,7 +4,6 @@ ASPIRATIONAL - a short list of things that would be nice to implement
   - Fix crypto client side - the code is nearly there
   - Fix subscription publish lost notifications
   - Diagnostics
-  - Implement discovery server registration in server
   - Session restore after disconnect in server
   - Session restore after disconnect in client
   - Integration tests where client connects to server, does something to test basic functionality
@@ -16,6 +15,8 @@ ASPIRATIONAL - a short list of things that would be nice to implement
     - The server network io has been changed to use tokio and futures. This makes the IO more asynchronous and should
       allow it to scale to a larger number of connections.
     - The server provides a basic web monitor / metrics interface which can be enabled through code.
+    - Server will register itself periodically with a discovery server if discovery_server_url property is set in the
+      config
 
 ## 0.3
   - General
