@@ -26,7 +26,7 @@ The server shall implement the OPC UA capabilities:
 * http://opcfoundation.org/UA-Profile/Server/Behaviour - base server profile
 * http://opcfoundation.org/UA-Profile/Server/EmbeddedUA - embedded UA profile
 
-### Services
+### Server services
 
 The following services are supported:
 
@@ -51,6 +51,7 @@ The following services are supported:
     * CreateMonitoredItems - Data change filter including dead band filtering. 
     * ModifyMonitoredItems
     * DeleteMonitoredItems
+    * SetMonitoringMode
 
 * Subscription service set
     * CreateSubscription
@@ -67,13 +68,10 @@ Other service calls are unsupported. Calling an unsupported service will termina
 The standard OPC UA address space will be exposed. OPC UA for Rust uses a script to generate code to create and
 populate the standard address space. 
 
-Most of this data is static however some server state variables will reflect the actual state of the server. Not all 
-state in the server is implemented.
-
 ### Configuration
 
-Server uses a configuration file defined in YAML to define the endpoints, encryption modes and user identities it
-supports. The configuration can also be built programmatically.
+Server and client can be configured programmatically or by configuration file. See the `samples/` folder for examples
+of client and server side configuration. The config files are specified in YAML.
 
 ### Encryption modes
 
@@ -97,7 +95,7 @@ The server supports the following user identities
 1. Anonymous/None, i.e. no authentication
 2. User/password - plaintext password only
 
-Identities are defined by configuration
+User/pass identities are defined by configuration
 
 ### Current limitations
 
@@ -109,15 +107,11 @@ Currently the following are not supported
 
 ## Client
 
-The client shall mirror the functionality in the server providing an API to connect to a server and call its services.
+The client shall provide synchrononous and asynchronous calls corresponding to the functionality of the server. It will
+also support these additional calls.
 
-Other features
-
-* Configuration can be set in code or read from a YAML file
-* Can discover endpoints from a discovery server
-* Supports the creation of subscriptions and monitored items
-* Supports anonymous and user/password authentication
-* Crypto support is WORK IN PROGRESS - 95% 
+* FindServers
+* RegisterServer (for servers to register themselves with a discovery server)
 
 # Building and testing
 
@@ -351,9 +345,6 @@ Code should be formatted with the IntelliJ rust plugin, or with rustfmt.
 
 ### Server
 
-The server will work its way through OPC UA profiles from nano to embedded to standard to attain a level of
-functionality acceptable to most consumers of the API. Profiles are defined in "OPC UA Part 7 - Profiles 1.03 Specification"
-
 Implemented:
 
 * Types, project structure, code generation tools, basic connectivity, binary transport format, services framework
@@ -371,17 +362,12 @@ Implemented:
 Work in progress:
 
 * Multiple chunks
-
-Eventually:
-
-* Standard UA Server Profile - Basically embedded + enhanced data change subscription server facet + X509 user token server facet
+* Registration to local discovery server
 
 This [OPC UA link](http://opcfoundation-onlineapplications.org/ProfileReporting/index.htm) provides interactive and descriptive information about
 profiles and relevant test cases.
 
 ### Client
-
-Client development will lag behind server development but will track it to some extent.
 
 Implemented:
 
@@ -406,8 +392,6 @@ Eventually:
 * random - for random number generation in some places
 
 # Testing
-
-## Unit tests
 
 The plan is for unit tests for at least the following
 

@@ -544,6 +544,7 @@ dependencies = [
 name = "opcua-simple-client"
 version = "0.3.0"
 dependencies = [
+ "clap 2.31.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-client 0.3.0",
  "opcua-core 0.3.0",
  "opcua-types 0.3.0",
