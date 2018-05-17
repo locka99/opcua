@@ -1,6 +1,6 @@
 [package]
 name = "opcua-simple-server"
-version = "0.3.0" # OPCUARustVersion
+version = "0.4.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 
 [dependencies]
@@ -9,13 +9,13 @@ log = "0.3"
 
 [dependencies.opcua-types]
 path = "../../types"
-version = "0.3.0" # OPCUARustVersion
+version = "0.4.0" # OPCUARustVersion
 
 [dependencies.opcua-core]
 path = "../../core"
-version = "0.3.0" # OPCUARustVersion
+version = "0.4.0" # OPCUARustVersion
 
 [dependencies.opcua-server]
 path = "../../server"
-version = "0.3.0" # OPCUARustVersion
+version = "0.4.0" # OPCUARustVersion
 

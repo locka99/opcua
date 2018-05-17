@@ -1,6 +1,6 @@
 [package]
 name = "opcua-server"
-version = "0.3.0" # OPCUARustVersion
+version = "0.4.0" # OPCUARustVersion
 description = "OPC UA server API"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"
@@ -25,12 +25,12 @@ hyper = "0.11.2"
 
 [dependencies.opcua-types]
 path = "../types"
-version = "0.3.0" # OPCUARustVersion
+version = "0.4.0" # OPCUARustVersion
 
 [dependencies.opcua-core]
 path = "../core"
-version = "0.3.0" # OPCUARustVersion
+version = "0.4.0" # OPCUARustVersion
 
 [dependencies.opcua-client]
 path = "../client"
-version = "0.3.0" # OPCUARustVersion
+version = "0.4.0" # OPCUARustVersion

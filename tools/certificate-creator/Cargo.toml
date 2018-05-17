@@ -1,6 +1,6 @@
 [package]
 name = "opcua-certificate-creator"
-version = "0.3.0" # OPCUARustVersion
+version = "0.4.0" # OPCUARustVersion
 description = "OPC UA certificate creator"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"
@@ -14,8 +14,8 @@ log = "0.3"
 
 [dependencies.opcua-types]
 path = "../../types"
-version = "0.3.0" # OPCUARustVersion
+version = "0.4.0" # OPCUARustVersion
 
 [dependencies.opcua-core]
 path = "../../core"
-version = "0.3.0" # OPCUARustVersion
+version = "0.4.0" # OPCUARustVersion
