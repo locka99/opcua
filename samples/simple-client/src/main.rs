@@ -6,8 +6,6 @@ extern crate opcua_client;
 extern crate opcua_core;
 extern crate opcua_types;
 
-use std::collections::HashSet;
-use std::env;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
