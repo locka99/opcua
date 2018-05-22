@@ -12,12 +12,12 @@ use services::session::SessionService;
 use services::subscription::SubscriptionService;
 use services::view::ViewService;
 use session::Session;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 
 /// Processes and dispatches messages for handling
 pub struct MessageHandler {
     /// Certificate store for certs
-    certificate_store: Arc<Mutex<CertificateStore>>,
+    certificate_store: Arc<RwLock<CertificateStore>>,
     /// Server state
     server_state: Arc<RwLock<ServerState>>,
     /// Address space
@@ -39,7 +39,7 @@ pub struct MessageHandler {
 }
 
 impl MessageHandler {
-    pub fn new(certificate_store: Arc<Mutex<CertificateStore>>, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>) -> MessageHandler {
+    pub fn new(certificate_store: Arc<RwLock<CertificateStore>>, server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>) -> MessageHandler {
         MessageHandler {
             certificate_store,
             server_state,
@@ -85,7 +85,7 @@ impl MessageHandler {
                 Some(self.discovery_service.get_endpoints(&server_state, request)?)
             }
             SupportedMessage::CreateSessionRequest(request) => {
-                let certificate_store = trace_lock_unwrap!(self.certificate_store);
+                let certificate_store = trace_read_lock_unwrap!(self.certificate_store);
                 Some(self.session_service.create_session(&certificate_store, &mut server_state, &mut session, request)?)
             }
             SupportedMessage::CloseSessionRequest(request) => {

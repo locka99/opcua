@@ -1,5 +1,5 @@
 use std::str::FromStr;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 
 use time;
 use timer;
@@ -21,7 +21,7 @@ pub enum IdentityToken {
 }
 
 struct SessionEntry {
-    session: Arc<Mutex<Session>>,
+    session: Arc<RwLock<Session>>,
     subscription_timer: Option<(timer::Timer, timer::Guard)>,
 }
 
@@ -34,7 +34,7 @@ pub struct Client {
     /// running on an independent thread.
     sessions: Vec<SessionEntry>,
     /// Certificate store is where certificates go.
-    certificate_store: Arc<Mutex<CertificateStore>>,
+    certificate_store: Arc<RwLock<CertificateStore>>,
 }
 
 impl Drop for Client {
@@ -43,7 +43,7 @@ impl Drop for Client {
             // Remove the timer from the session - has a reference to session
             session.subscription_timer = None;
             // Disconnect
-            let mut session = session.session.lock().unwrap();
+            let mut session = trace_write_lock_unwrap!(session.session);
             if session.is_connected() {
                 session.disconnect()
             }
@@ -62,7 +62,7 @@ impl Client {
         Client {
             config,
             sessions: Vec::new(),
-            certificate_store: Arc::new(Mutex::new(certificate_store)),
+            certificate_store: Arc::new(RwLock::new(certificate_store)),
         }
     }
 
@@ -93,14 +93,14 @@ impl Client {
 
     /// Creates a new `Session` using the default endpoint specified in the config. If there is no
     /// default, or the endpoint does not exist, this function will return an error
-    pub fn new_session(&mut self, endpoints: &[EndpointDescription]) -> Result<Arc<Mutex<Session>>, String> {
+    pub fn new_session(&mut self, endpoints: &[EndpointDescription]) -> Result<Arc<RwLock<Session>>, String> {
         let endpoint = self.default_endpoint()?;
         self.new_session_from_endpoint(&endpoint, endpoints)
     }
 
     /// Creates a new `Session` using the endpoint id specified in the config. If there is no
     /// endpoint of that id, this function will return an error
-    pub fn new_session_from_id(&mut self, endpoint_id: &str, endpoints: &[EndpointDescription]) -> Result<Arc<Mutex<Session>>, String> {
+    pub fn new_session_from_id(&mut self, endpoint_id: &str, endpoints: &[EndpointDescription]) -> Result<Arc<RwLock<Session>>, String> {
         let endpoint = {
             let endpoint = self.config.endpoints.get(endpoint_id);
             if endpoint.is_none() {
@@ -113,7 +113,7 @@ impl Client {
 
     /// Creates a new `Session` using the endpoint id referring to an endpoint in the client
     /// configuration. If the named endpoint does not exist oris in error, this function will return an error.
-    pub fn new_session_from_endpoint(&mut self, client_endpoint: &ClientEndpoint, endpoints: &[EndpointDescription]) -> Result<Arc<Mutex<Session>>, String> {
+    pub fn new_session_from_endpoint(&mut self, client_endpoint: &ClientEndpoint, endpoints: &[EndpointDescription]) -> Result<Arc<RwLock<Session>>, String> {
         let session_info = self.session_info_for_endpoint(client_endpoint, endpoints)?;
         self.new_session_from_info(session_info)
     }
@@ -121,18 +121,18 @@ impl Client {
     const SUBSCRIPTION_TIMER_INTERVAL: i64 = 50i64;
 
     /// Creates an ad hoc new `Session` using the specified endpoint url, security policy and mode.
-    pub fn new_session_from_info<T>(&mut self, session_info: T) -> Result<Arc<Mutex<Session>>, String> where T: Into<SessionInfo> {
+    pub fn new_session_from_info<T>(&mut self, session_info: T) -> Result<Arc<RwLock<Session>>, String> where T: Into<SessionInfo> {
         let session_info = session_info.into();
         if !is_opc_ua_binary_url(session_info.endpoint.endpoint_url.as_ref()) {
             Err(format!("Endpoint url {}, is not a valid / supported url", session_info.endpoint.endpoint_url))
         } else {
-            let session = Arc::new(Mutex::new(Session::new(self.application_description(), self.certificate_store.clone(), session_info)));
+            let session = Arc::new(RwLock::new(Session::new(self.application_description(), self.certificate_store.clone(), session_info)));
             // Set up a timer for the session to process subscriptions
             let subscription_timer = {
                 let timer = timer::Timer::new();
                 let session = session.clone();
                 let timer_guard = timer.schedule_repeating(time::Duration::milliseconds(Self::SUBSCRIPTION_TIMER_INTERVAL), move || {
-                    let mut session = session.lock().unwrap();
+                    let mut session = trace_write_lock_unwrap!(session);
                     session.subscription_timer();
                 });
                 Some((timer, timer_guard))
@@ -146,7 +146,7 @@ impl Client {
     }
 
     fn get_client_cert_and_key(&self) -> (Option<X509>, Option<PKey>) {
-        let certificate_store = self.certificate_store.lock().unwrap();
+        let certificate_store = trace_read_lock_unwrap!(self.certificate_store);
         if let Ok((cert, key)) = certificate_store.read_own_cert_and_pkey() {
             (Some(cert), Some(key))
         } else {
@@ -196,7 +196,7 @@ impl Client {
         let endpoint = Self::make_endpoint_description(&discovery_endpoint_url, false);
         let session = self.new_session_from_info(endpoint);
         if let Ok(session) = session {
-            let mut session = session.lock().unwrap();
+            let mut session = trace_write_lock_unwrap!(session);
             // Connect & activate the session.
             let connected = session.connect();
             if let Ok(_) = connected {
@@ -230,7 +230,7 @@ impl Client {
         // TODO discovery server endpoint is expected to be encrypted
         let session = self.new_session_from_info(endpoint);
         if let Ok(session) = session {
-            let mut session = session.lock().unwrap();
+            let mut session = trace_write_lock_unwrap!(session);
             let connected = session.connect();
             if let Ok(_) = connected {
                 // Register with the server

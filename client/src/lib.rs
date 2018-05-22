@@ -13,6 +13,7 @@ extern crate timer;
 extern crate time;
 
 extern crate opcua_types;
+#[macro_use]
 extern crate opcua_core;
 
 mod comms;

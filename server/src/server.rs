@@ -1,7 +1,7 @@
 //! The server module defines types related to the server, its current running state
 //! and end point information.
 
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 use std::net::{SocketAddr, IpAddr, Ipv4Addr};
 use std::marker::Sync;
 use std::str::FromStr;
@@ -38,7 +38,7 @@ pub struct Server {
     /// List of pending polling actions to add to the server once run is called
     pending_polling_actions: Vec<(u32, Box<Fn() + Send + Sync + 'static>)>,
     /// Certificate store for certs
-    pub certificate_store: Arc<Mutex<CertificateStore>>,
+    pub certificate_store: Arc<RwLock<CertificateStore>>,
     /// Server metrics - diagnostics and anything else that someone might be interested in that
     /// describes the current state of the server
     pub server_metrics: Arc<RwLock<ServerMetrics>>,
@@ -112,7 +112,7 @@ impl Server {
         let server_metrics = Arc::new(RwLock::new(ServerMetrics::new()));
 
         // Cert store
-        let certificate_store = Arc::new(Mutex::new(certificate_store));
+        let certificate_store = Arc::new(RwLock::new(certificate_store));
 
         let server = Server {
             pending_polling_actions: Vec::new(),

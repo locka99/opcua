@@ -1,6 +1,6 @@
 use std::net::TcpStream;
 use std::result::Result;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 use std::io::{Read, ErrorKind};
 
 use chrono;
@@ -22,7 +22,7 @@ const DEFAULT_REQUEST_ID: UInt32 = 1000;
 
 pub struct TcpTransport {
     /// Session state
-    session_state: Arc<Mutex<SessionState>>,
+    session_state: Arc<RwLock<SessionState>>,
     /// Currently open stream or none
     stream: Option<TcpStream>,
     /// Message buffer where portions of messages are stored to be built into chunks
@@ -39,9 +39,9 @@ pub struct TcpTransport {
 
 impl TcpTransport {
     /// Create a new TCP transport layer for the session
-    pub fn new(certificate_store: Arc<Mutex<CertificateStore>>, session_state: Arc<Mutex<SessionState>>) -> TcpTransport {
+    pub fn new(certificate_store: Arc<RwLock<CertificateStore>>, session_state: Arc<RwLock<SessionState>>) -> TcpTransport {
         let receive_buffer_size = {
-            let session_state = session_state.lock().unwrap();
+            let session_state = trace_read_lock_unwrap!(session_state);
             session_state.receive_buffer_size
         };
 
@@ -96,7 +96,7 @@ impl TcpTransport {
     pub fn hello(&mut self, endpoint_url: &str) -> Result<(), StatusCode> {
         let msg = {
             let session_state = self.session_state.clone();
-            let session_state = session_state.lock().unwrap();
+            let session_state = trace_read_lock_unwrap!(session_state);
             HelloMessage::new(endpoint_url,
                               session_state.send_buffer_size as UInt32,
                               session_state.receive_buffer_size as UInt32,

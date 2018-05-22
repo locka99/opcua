@@ -1,4 +1,10 @@
 use chrono;
+
+use opcua_types::*;
+use opcua_types::service_types::ChannelSecurityToken;
+use opcua_types::status_codes::StatusCode;
+use opcua_types::status_codes::StatusCode::*;
+
 use comms::message_chunk::{MessageChunk, MessageChunkHeader, MessageChunkType};
 use comms::security_header::{AsymmetricSecurityHeader, SecurityHeader, SymmetricSecurityHeader};
 use crypto::aeskey::AesKey;
@@ -6,13 +12,6 @@ use crypto::CertificateStore;
 use crypto::pkey::PKey;
 use crypto::SecurityPolicy;
 use crypto::x509::X509;
-use opcua_types::*;
-use opcua_types::service_types::ChannelSecurityToken;
-use opcua_types::status_codes::StatusCode;
-use opcua_types::status_codes::StatusCode::*;
-use std::io::{Cursor, Write};
-use std::ops::Range;
-use std::sync::{Arc, Mutex};
 
 #[derive(Debug, PartialEq)]
 pub enum Role {
@@ -82,9 +81,9 @@ impl SecureChannel {
         (SecurityPolicy::None, MessageSecurityMode::None).into()
     }
 
-    pub fn new(certificate_store: Arc<Mutex<CertificateStore>>, role: Role) -> SecureChannel {
+    pub fn new(certificate_store: Arc<RwLock<CertificateStore>>, role: Role) -> SecureChannel {
         let (cert, private_key) = {
-            let certificate_store = certificate_store.lock().unwrap();
+            let certificate_store = certificate_store.read().unwrap();
             if let Ok((cert, pkey)) = certificate_store.read_own_cert_and_pkey() {
                 (Some(cert), Some(pkey))
             } else {

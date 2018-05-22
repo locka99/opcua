@@ -7,21 +7,24 @@ ASPIRATIONAL - a short list of things that would be nice to implement
   - Session restore after disconnect in client
   - Replace openssl for ring + x509 for more (but not total) rust implementation
   - Integration tests where client connects to server, does something to test basic functionality
+  - Use tokio client side. The problem here is that synchronous calls are far easier to work with, and how to make it
+    work with tokio under the covers.
 
 ## 0.4 (IN PROGRESS)
   - General
     - More rigorous security checks
   - Client side
     - (IN PROGRESS) Fix crypto client side - the code is nearly there
+    - Simple client sample takes arguments to change what config to read and to set which endpoint to use.
   - Server side
     - The server network IO is rewritten using tokio and futures. Essentially it moves from each session being a thread
       with synchronous IO to asynchronous IO shared across the same thread. It should be more scalable. The downside
       is writing asynchronous code is a steep learning curve.
-    - Timer API for clients is also rewritten to use tokio timers
-    - The server provides a basic web api which can be enabled through code. See the . demo_server/ sample which
-      enables a server on localhost:8585
-    - (IN PROGRESS) Server will register itself periodically with a discovery server if discovery_server_url property is set in the
-      config
+    - Setting timers to poll/change values is simplified and uses tokio behind the covers
+    - The server provides a basic web api which can be enabled through code. See the demo_server/ sample which
+      starts a server on localhost:8585
+    - (IN PROGRESS) Server will periodically register itself with a discovery server if discovery_server_url property
+      is set in the config
 
 ## 0.3
   - General

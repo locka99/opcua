@@ -8,14 +8,21 @@ extern crate opcua_types;
 
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 
 use clap::{App, Arg};
 
 use opcua_client::prelude::*;
 
-// This simple client will fetch values and exit, or if --subscribe is passed on the command line
-// it will subscribe to values and run indefinitely, printing out changes to those values.
+// This simple client will do the following:
+//
+// 1. Read a configuration file (either default or the one specified using --config)
+// 2. Connect to an OPC UA server
+// 3. Print out its endpoints
+// 4. Connect & create a session on one of those endpoints that match with its config (you can override which using --endpoint-id arg)
+// 5. Either:
+//    a) Read some values and exit
+//    b) Subscribe to values and loop forever printing out their values (using --subscribe)
 
 fn main() {
     let matches = App::new("Simple OPC UA Client")
@@ -64,7 +71,7 @@ fn main() {
         }
     };
 
-    // Create a session to an endpoint
+    // Create a session to an endpoint. If an endpoint id is specified use that
     let session = if let Some(endpoint_id) = endpoint_id {
         client.new_session_from_id(endpoint_id, &endpoints).unwrap()
     } else {
@@ -79,7 +86,7 @@ fn main() {
 
     {
         // Connect to the server
-        let mut session = session.lock().unwrap();
+        let mut session = session.write().unwrap();
         if let Err(result) = session.connect_and_activate_session() {
             println!("ERROR: Got an error while creating the default session - {:?}", result.description());
         }
@@ -88,7 +95,7 @@ fn main() {
     // The --subscribe arg decides if code should subscribe to values, or just fetch those
     // values and exit
     let result = if subscribe_flag {
-        subscribe(session)
+        subscription_loop(session)
     } else {
         read_values(session)
     };
@@ -115,14 +122,14 @@ fn print_value(read_value_id: &ReadValueId, data_value: &DataValue) {
     }
 }
 
-fn subscribe(session: Arc<Mutex<Session>>) -> Result<(), StatusCode> {
+fn subscription_loop(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
     // Create a subscription
     println!("Creating subscription");
 
     // This scope is important - we don't want to session to be locked when the code hits the
     // loop below
     {
-        let mut session = session.lock().unwrap();
+        let mut session = session.write().unwrap();
 
         // Creates our subscription - one update every 5 seconds
         let subscription_id = session.create_subscription(5f64, 10, 30, 0, 0, true, DataChangeCallback::new(|items| {
@@ -145,7 +152,7 @@ fn subscribe(session: Arc<Mutex<Session>>) -> Result<(), StatusCode> {
     loop {
         {
             // Break the loop if connection goes down
-            let session = session.lock().unwrap();
+            let session = session.read().unwrap();
             if !session.is_connected() {
                 println!("Connection to server broke, so terminating");
                 break;
@@ -161,11 +168,11 @@ fn subscribe(session: Arc<Mutex<Session>>) -> Result<(), StatusCode> {
     Ok(())
 }
 
-fn read_values(session: Arc<Mutex<Session>>) -> Result<(), StatusCode> {
+fn read_values(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
     // Fetch some values from the sample server
     let read_nodes = nodes_to_monitor();
     let data_values = {
-        let mut session = session.lock().unwrap();
+        let mut session = session.write().unwrap();
         session.read_nodes(read_nodes.clone())?.unwrap()
     };
 

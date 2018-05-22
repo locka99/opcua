@@ -1,5 +1,7 @@
-use client;
-use comms::tcp_transport::TcpTransport;
+use std::result::Result;
+use std::str::FromStr;
+use std::sync::{Arc, RwLock};
+
 use opcua_core::crypto;
 use opcua_core::crypto::{CertificateStore, PKey, SecurityPolicy, X509};
 use opcua_types::*;
@@ -7,9 +9,9 @@ use opcua_types::node_ids::ObjectId;
 use opcua_types::service_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
-use std::result::Result;
-use std::str::FromStr;
-use std::sync::{Arc, Mutex};
+
+use client;
+use comms::tcp_transport::TcpTransport;
 use subscription;
 use subscription::{DataChangeCallback, Subscription};
 use subscription_state::SubscriptionState;
@@ -96,9 +98,9 @@ pub struct Session {
     /// The session connection info
     session_info: SessionInfo,
     /// Runtime state of the session, reset if disconnected
-    session_state: Arc<Mutex<SessionState>>,
+    session_state: Arc<RwLock<SessionState>>,
     /// Subscriptions state
-    subscription_state: Arc<Mutex<SubscriptionState>>,
+    subscription_state: Arc<RwLock<SubscriptionState>>,
     /// Unacknowledged
     subscription_acknowledgements: Vec<SubscriptionAcknowledgement>,
     /// Transport layer
@@ -117,10 +119,10 @@ impl Drop for Session {
 
 impl Session {
     /// Create a new session.
-    pub fn new(application_description: ApplicationDescription, certificate_store: Arc<Mutex<CertificateStore>>, session_info: SessionInfo) -> Session {
-        let session_state = Arc::new(Mutex::new(SessionState::new()));
+    pub fn new(application_description: ApplicationDescription, certificate_store: Arc<RwLock<CertificateStore>>, session_info: SessionInfo) -> Session {
+        let session_state = Arc::new(RwLock::new(SessionState::new()));
         let transport = TcpTransport::new(certificate_store, session_state.clone());
-        let subscription_state = Arc::new(Mutex::new(SubscriptionState::new()));
+        let subscription_state = Arc::new(RwLock::new(SubscriptionState::new()));
         Session {
             application_description,
             session_info,
@@ -221,7 +223,7 @@ impl Session {
             Self::process_service_result(&response.response_header)?;
 
             let session_state = self.session_state.clone();
-            let mut session_state = session_state.lock().unwrap();
+            let mut session_state = trace_write_lock_unwrap!(session_state);
 
             session_state.authentication_token = response.authentication_token;
             let _ = self.transport.secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce);
@@ -493,7 +495,7 @@ impl Session {
                                                  callback);
 
             {
-                let mut subscription_state = self.subscription_state.lock().unwrap();
+                let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                 subscription_state.add_subscription(subscription);
             }
             Ok(response.subscription_id)
@@ -523,7 +525,7 @@ impl Session {
             let response = self.send_request(SupportedMessage::ModifySubscriptionRequest(request))?;
             if let SupportedMessage::ModifySubscriptionResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
-                let mut subscription_state = self.subscription_state.lock().unwrap();
+                let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                 subscription_state.modify_subscription(subscription_id,
                                                        response.revised_publishing_interval,
                                                        response.revised_lifetime_count,
@@ -554,7 +556,7 @@ impl Session {
             if let SupportedMessage::DeleteSubscriptionsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 {
-                    let mut subscription_state = self.subscription_state.lock().unwrap();
+                    let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                     subscription_state.delete_subscription(subscription_id);
                 }
                 Ok(response.results.as_ref().unwrap()[0])
@@ -567,7 +569,7 @@ impl Session {
     /// Removes all subscriptions, assuming there are any to remove
     pub fn delete_all_subscriptions(&mut self) -> Result<Vec<StatusCode>, StatusCode> {
         let subscription_ids = {
-            let mut subscription_state = self.subscription_state.lock().unwrap();
+            let subscription_state = trace_read_lock_unwrap!(self.subscription_state);
             subscription_state.subscription_ids()
         };
         if subscription_ids.is_none() {
@@ -585,7 +587,7 @@ impl Session {
                 Self::process_service_result(&response.response_header)?;
                 {
                     // Clear out all subscriptions, assuming the delete worked
-                    let mut subscription_state = self.subscription_state.lock().unwrap();
+                    let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                     subscription_state.delete_all_subscriptions();
                 }
                 Ok(response.results.unwrap())
@@ -612,7 +614,7 @@ impl Session {
                 Self::process_service_result(&response.response_header)?;
                 {
                     // Clear out all subscriptions, assuming the delete worked
-                    let mut subscription_state = self.subscription_state.lock().unwrap();
+                    let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                     subscription_state.set_publishing_mode(publishing_enabled, subscription_ids);
                 }
                 Ok(response.results.unwrap())
@@ -660,7 +662,7 @@ impl Session {
                         }
                     }).collect();
                     {
-                        let mut subscription_state = self.subscription_state.lock().unwrap();
+                        let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                         subscription_state.insert_monitored_items(subscription_id, items_to_create);
                     }
                 }
@@ -703,7 +705,7 @@ impl Session {
                         }
                     }).collect();
                     {
-                        let mut subscription_state = self.subscription_state.lock().unwrap();
+                        let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                         subscription_state.modify_monitored_items(subscription_id, items_to_modify);
                     }
                 }
@@ -735,7 +737,7 @@ impl Session {
             if let SupportedMessage::DeleteMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 if let Some(_) = response.results {
-                    let mut subscription_state = self.subscription_state.lock().unwrap();
+                    let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                     subscription_state.delete_monitored_items(subscription_id, items_to_delete);
                 }
                 Ok(response.results.unwrap())
@@ -747,7 +749,7 @@ impl Session {
 
     // Test if the subscription by id exists
     fn subscription_exists(&self, subscription_id: UInt32) -> bool {
-        let subscription_state = self.subscription_state.lock().unwrap();
+        let subscription_state = trace_read_lock_unwrap!(self.subscription_state);
         subscription_state.subscription_exists(subscription_id)
     }
 
@@ -768,7 +770,7 @@ impl Session {
 
     fn send_request(&mut self, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
         match request {
-            SupportedMessage::OpenSecureChannelRequest(_) | SupportedMessage::CloseSecureChannelRequest(_) => {}
+            SupportedMessage::OpenSecureChannelRequest(_) | SupportedMessage::CloseSecureChannelRequest(_) | SupportedMessage::CreateSessionRequest(_) => {}
             _ => {
                 // Make sure secure channel token hasn't expired
                 let _ = self.ensure_secure_channel_token();
@@ -869,7 +871,7 @@ impl Session {
     /// Construct a request header for the session
     fn make_request_header(&mut self) -> RequestHeader {
         let (authentication_token, request_handle, timeout_hint) = {
-            let mut session_state = self.session_state.lock().unwrap();
+            let mut session_state = trace_write_lock_unwrap!(self.session_state);
             session_state.last_request_handle += 1;
             (session_state.authentication_token.clone(), session_state.last_request_handle, session_state.request_timeout)
         };
@@ -913,7 +915,7 @@ impl Session {
     /// Function that handles subscription
     pub fn subscription_timer(&mut self) {
         let have_subscriptions = {
-            let mut subscription_state = self.subscription_state.lock().unwrap();
+            let subscription_state = trace_read_lock_unwrap!(self.subscription_state);
             !subscription_state.is_empty()
         };
 
@@ -944,7 +946,7 @@ impl Session {
                     // Process data change notifications
                     let data_change_notifications = notification_message.data_change_notifications();
                     if !data_change_notifications.is_empty() {
-                        let mut subscription_state = self.subscription_state.lock().unwrap();
+                        let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                         subscription_state.subscription_data_change(subscription_id, data_change_notifications);
                     }
 

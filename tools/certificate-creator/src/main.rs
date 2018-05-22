@@ -1,11 +1,12 @@
-#[macro_use] extern crate clap;
+#[macro_use]
+extern crate clap;
 
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 
 extern crate opcua_core;
 
 use std::path::PathBuf;
-
 use opcua_core::crypto::*;
 
 fn main() {

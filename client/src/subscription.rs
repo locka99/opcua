@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::marker::Sync;
 
 use opcua_types::*;
 use opcua_types::service_types::{DataChangeNotification, ReadValueId};
@@ -104,12 +105,12 @@ impl MonitoredItem {
 /// This is the data change callback that clients register to receive item change notifications
 pub struct DataChangeCallback {
     /// The actual call back
-    cb: Box<Fn(Vec<&MonitoredItem>) + Send + 'static>
+    cb: Box<Fn(Vec<&MonitoredItem>) + Send + Sync + 'static>
 }
 
 impl DataChangeCallback {
     /// Constructs a callback from the supplied function
-    pub fn new<CB>(cb: CB) -> DataChangeCallback where CB: Fn(Vec<&MonitoredItem>) + Send + 'static {
+    pub fn new<CB>(cb: CB) -> DataChangeCallback where CB: Fn(Vec<&MonitoredItem>) + Send + Sync + 'static {
         DataChangeCallback {
             cb: Box::new(cb)
         }
