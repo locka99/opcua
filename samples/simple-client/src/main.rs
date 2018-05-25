@@ -7,6 +7,8 @@ extern crate opcua_core;
 extern crate opcua_types;
 
 use std::sync::{Arc, RwLock};
+use std::str::FromStr;
+use std::path::PathBuf;
 
 use clap::{App, Arg};
 
@@ -25,7 +27,7 @@ use opcua_client::prelude::*;
 fn main() {
     // Read command line arguments
     let (subscribe, config_file, endpoint_id) = {
-        let matches = App::new("Simple OPC UA Client")
+        let m = App::new("Simple OPC UA Client")
             .arg(Arg::with_name("config")
                 .long("config")
                 .help("Sets the configuration file to read settings and endpoints from")
@@ -36,13 +38,14 @@ fn main() {
                 .long("endpoint-id")
                 .help("Sets the endpoint id from the config file to connect to")
                 .takes_value(true)
+                .default_value("")
                 .required(false))
             .arg(Arg::with_name("subscribe")
                 .long("subscribe")
                 .help("Subscribes to values running indefinitely")
                 .required(false))
             .get_matches();
-        (matches.is_present("subscribe"), matches.value_of("config").unwrap(), matches.value_of("id"))
+        (m.is_present("subscribe"), m.value_of("config").unwrap().to_string(), m.value_of("id").unwrap().to_string())
     };
 
     // Optional - enable OPC UA logging
@@ -64,10 +67,10 @@ fn main() {
     endpoints.iter().for_each(|e| println!("  {} - {:?} / {:?}", e.endpoint_url, SecurityPolicy::from_str(e.security_policy_uri.as_ref()).unwrap(), e.security_mode));
 
     // Create a session to an endpoint. If an endpoint id is specified use that
-    let session = if let Some(endpoint_id) = endpoint_id {
-        client.new_session_from_id(endpoint_id, &endpoints).unwrap()
-    } else {
+    let session = if endpoint_id.is_empty() {
         client.new_session(&endpoints).unwrap()
+    } else {
+        client.new_session_from_id(&endpoint_id, &endpoints).unwrap()
     };
 
     // Important - the session you receive is reference counted because it is used by background
