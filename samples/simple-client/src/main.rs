@@ -43,7 +43,7 @@ fn main() {
                 .required(false))
             .get_matches();
         (matches.is_present("subscribe"), matches.value_of("config").unwrap(), matches.value_of("id"))
-    }
+    };
 
     // Optional - enable OPC UA logging
     opcua_core::init_logging();
