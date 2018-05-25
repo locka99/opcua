@@ -6,8 +6,6 @@ extern crate opcua_client;
 extern crate opcua_core;
 extern crate opcua_types;
 
-use std::path::PathBuf;
-use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 
 use clap::{App, Arg};
@@ -25,32 +23,30 @@ use opcua_client::prelude::*;
 //    b) Subscribe to values and loop forever printing out their values (using --subscribe)
 
 fn main() {
-    let matches = App::new("Simple OPC UA Client")
-        .arg(Arg::with_name("config")
-            .long("config")
-            .help("Sets the configuration file to read settings and endpoints from")
-            .takes_value(true)
-            .default_value("../client.conf")
-            .required(false))
-        .arg(Arg::with_name("id")
-            .long("endpoint-id")
-            .help("Sets the endpoint id from the config file to connect to")
-            .takes_value(true)
-            .required(false))
-        .arg(Arg::with_name("subscribe")
-            .long("subscribe")
-            .help("Subscribes to values running indefinitely")
-            .required(false))
-        .get_matches()
-    ;
+    // Read command line arguments
+    let (subscribe, config_file, endpoint_id) = {
+        let matches = App::new("Simple OPC UA Client")
+            .arg(Arg::with_name("config")
+                .long("config")
+                .help("Sets the configuration file to read settings and endpoints from")
+                .takes_value(true)
+                .default_value("../client.conf")
+                .required(false))
+            .arg(Arg::with_name("id")
+                .long("endpoint-id")
+                .help("Sets the endpoint id from the config file to connect to")
+                .takes_value(true)
+                .required(false))
+            .arg(Arg::with_name("subscribe")
+                .long("subscribe")
+                .help("Subscribes to values running indefinitely")
+                .required(false))
+            .get_matches();
+        (matches.is_present("subscribe"), matches.value_of("config").unwrap(), matches.value_of("id"))
+    }
 
     // Optional - enable OPC UA logging
     opcua_core::init_logging();
-
-    // Read command line arguments
-    let subscribe_flag = matches.is_present("subscribe");
-    let config_file = matches.value_of("config").unwrap();
-    let endpoint_id = matches.value_of("id");
 
     // Use the sample client config to set up a client. The sample config has a number of named
     // endpoints one of which is marked as the default.
@@ -62,14 +58,10 @@ fn main() {
             println!("ERROR: Can't get endpoints for server, error - {:?}", status_code.description());
             return;
         }
-        Result::Ok(endpoints) => {
-            println!("Server has these endpoints:");
-            for e in &endpoints {
-                println!("  {} - {:?} / {:?}", e.endpoint_url, SecurityPolicy::from_str(e.security_policy_uri.as_ref()).unwrap(), e.security_mode);
-            }
-            endpoints
-        }
+        Result::Ok(endpoints) => endpoints
     };
+    println!("Server has these endpoints:");
+    endpoints.iter().for_each(|e| println!("  {} - {:?} / {:?}", e.endpoint_url, SecurityPolicy::from_str(e.security_policy_uri.as_ref()).unwrap(), e.security_mode));
 
     // Create a session to an endpoint. If an endpoint id is specified use that
     let session = if let Some(endpoint_id) = endpoint_id {
@@ -94,7 +86,7 @@ fn main() {
 
     // The --subscribe arg decides if code should subscribe to values, or just fetch those
     // values and exit
-    let result = if subscribe_flag {
+    let result = if subscribe {
         subscription_loop(session)
     } else {
         read_values(session)
