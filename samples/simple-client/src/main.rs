@@ -7,7 +7,6 @@ extern crate opcua_core;
 extern crate opcua_types;
 
 use std::sync::{Arc, RwLock};
-use std::str::FromStr;
 use std::path::PathBuf;
 
 use clap::{App, Arg};
