@@ -16,10 +16,8 @@ use opcua_client::prelude::*;
 // This simple client will do the following:
 //
 // 1. Read a configuration file (either default or the one specified using --config)
-// 2. Connect to an OPC UA server
-// 3. Print out its endpoints
-// 4. Connect & create a session on one of those endpoints that match with its config (you can override which using --endpoint-id arg)
-// 5. Either:
+// 2. Connect & create a session on one of those endpoints that match with its config (you can override which using --endpoint-id arg)
+// 3. Either:
 //    a) Read some values and exit
 //    b) Subscribe to values and loop forever printing out their values (using --subscribe)
 
