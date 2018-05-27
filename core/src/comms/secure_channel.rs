@@ -189,13 +189,17 @@ impl SecureChannel {
         match message_type {
             MessageChunkType::OpenSecureChannel => {
                 let asymmetric_security_header = if self.security_policy == SecurityPolicy::None {
+                    trace!("AsymmetricSecurityHeader security policy none");
                     AsymmetricSecurityHeader::none()
                 } else if self.remote_cert.is_none() {
+                    trace!("AsymmetricSecurityHeader security policy none/2");
                     AsymmetricSecurityHeader::none()
                 } else {
                     let receiver_certificate_thumbprint = self.remote_cert.as_ref().unwrap().thumbprint().as_byte_string();
+                    trace!("AsymmetricSecurityHeader security policy from remote");
                     AsymmetricSecurityHeader::new(self.security_policy, self.cert.as_ref().unwrap(), receiver_certificate_thumbprint)
                 };
+                debug!("AsymmetricSecurityHeader = {:?}", asymmetric_security_header);
                 SecurityHeader::Asymmetric(asymmetric_security_header)
             }
             _ => {

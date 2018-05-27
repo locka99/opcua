@@ -1,7 +1,7 @@
 use std::net::TcpStream;
 use std::result::Result;
 use std::sync::{Arc, RwLock};
-use std::io::{Read, ErrorKind};
+use std::io::{Read, Write, ErrorKind};
 
 use chrono;
 
@@ -32,7 +32,7 @@ pub struct TcpTransport {
     /// Last decoded sequence number
     last_received_sequence_number: UInt32,
     /// Secure channel information
-    pub secure_channel: SecureChannel,
+    pub secure_channel: Arc<RwLock<SecureChannel>>,
     /// Last request id, used to track async requests
     last_request_id: UInt32,
 }
@@ -45,7 +45,7 @@ impl TcpTransport {
             session_state.receive_buffer_size
         };
 
-        let secure_channel = SecureChannel::new(certificate_store, Role::Client);
+        let secure_channel = Arc::new(RwLock::new(SecureChannel::new(certificate_store, Role::Client)));
 
         TcpTransport {
             session_state,
@@ -133,13 +133,15 @@ impl TcpTransport {
 
     /// Sets the security token info received from an issue / renew request
     pub fn set_security_token(&mut self, channel_token: ChannelSecurityToken) {
-        self.secure_channel.set_security_token(channel_token);
+        trace!("Setting security token {:?}", channel_token);
+        let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+        secure_channel.set_security_token(channel_token);
     }
 
     /// Test if the secure channel token needs to be renewed. The algorithm determines it needs
     /// to be renewed if the issue period has elapsed by 75% or more.
     pub fn should_renew_security_token(&self) -> bool {
-        let secure_channel = &self.secure_channel;
+        let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
         if secure_channel.token_id() == 0 {
             panic!("Shouldn't be asking this question, if there is no token id at all");
         } else {
@@ -161,14 +163,18 @@ impl TcpTransport {
 
     fn turn_received_chunks_into_message(&mut self, chunks: &Vec<MessageChunk>) -> Result<SupportedMessage, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
-        self.last_received_sequence_number = Chunker::validate_chunks(self.last_received_sequence_number + 1, &self.secure_channel, chunks)?;
+        let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+        self.last_received_sequence_number = Chunker::validate_chunks(self.last_received_sequence_number + 1, &secure_channel, chunks)?;
         // Now decode
-        Chunker::decode(&chunks, &self.secure_channel, None)
+        Chunker::decode(&chunks, &secure_channel, None)
     }
 
     fn process_chunk(&mut self, chunk: MessageChunk) -> Result<Option<SupportedMessage>, StatusCode> {
         // trace!("Got a chunk {:?}", chunk);
-
+        let chunk = {
+            let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+            secure_channel.verify_and_remove_security(&chunk.data)?
+        };
         let message_header = chunk.message_header()?;
         match message_header.is_final {
             MessageIsFinalType::Intermediate => {
@@ -208,8 +214,6 @@ impl TcpTransport {
                 session_status_code = BadTimeout;
                 break;
             }
-
-            // TODO this is practically cut and pasted from server loop and should be common to both
 
             // decode response
             let bytes_read_result = self.stream().read(&mut in_buf);
@@ -299,16 +303,32 @@ impl TcpTransport {
 
         // Turn message to chunk(s)
         // TODO max message size and max chunk size
-        let chunks = Chunker::encode(self.last_sent_sequence_number + 1, request_id, 0, 0, &self.secure_channel, &request)?;
+        let chunks = {
+            let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+            Chunker::encode(self.last_sent_sequence_number + 1, request_id, 0, 0, &secure_channel, &request)?
+        };
 
         // Sequence number monotonically increases per chunk
         self.last_sent_sequence_number += chunks.len() as UInt32;
 
         // Send chunks
-        let stream = self.stream();
+        let max_chunk_size = 32768; // FIXME TODO
+        let mut data = vec![0u8; max_chunk_size + 1024];
         for chunk in chunks {
             trace!("Sending chunk of type {:?}", chunk.message_header()?.message_type);
-            let _ = chunk.encode(stream)?;
+            let size = {
+                let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+                secure_channel.apply_security(&chunk, &mut data)
+            };
+            match size {
+                Ok(size) => {
+                    let stream = self.stream();
+                    let _ = stream.write(&data[..size]);
+                }
+                Err(err) => {
+                    panic!("Applying security to chunk failed - {:?}", err);
+                }
+            }
         }
 
         trace!("Request sent");

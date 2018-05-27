@@ -138,14 +138,18 @@ impl Session {
     pub fn connect(&mut self) -> Result<(), StatusCode> {
         let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
 
+        info!("Connect");
         let security_policy = SecurityPolicy::from_str(self.session_info.endpoint.security_policy_uri.as_ref()).unwrap();
         if security_policy == SecurityPolicy::Unknown {
             Err(BadSecurityPolicyRejected)
         } else {
             {
-                let secure_channel = &mut self.transport.secure_channel;
+                let mut secure_channel = trace_write_lock_unwrap!( self.transport.secure_channel);
                 secure_channel.set_security_policy(security_policy);
                 secure_channel.set_security_mode(self.session_info.endpoint.security_mode);
+                let _ = secure_channel.set_remote_cert_from_byte_string(&self.session_info.endpoint.server_certificate);
+                info!("Security policy = {:?}", security_policy);
+                info!("Security mode = {:?}", self.session_info.endpoint.security_mode);
             }
 
             let _ = self.transport.connect(endpoint_url.as_ref())?;
@@ -195,7 +199,10 @@ impl Session {
         // Get some state stuff
         let endpoint_url = UAString::from(self.session_info.endpoint.endpoint_url.clone());
 
-        let client_nonce = self.transport.secure_channel.local_nonce_as_byte_string();
+        let client_nonce = {
+            let secure_channel = trace_read_lock_unwrap!( self.transport.secure_channel);
+            secure_channel.local_nonce_as_byte_string()
+        };
 
         let server_uri = UAString::null();
         let session_name = UAString::from("Rust OPCUA Client");
@@ -226,8 +233,11 @@ impl Session {
             let mut session_state = trace_write_lock_unwrap!(session_state);
 
             session_state.authentication_token = response.authentication_token;
-            let _ = self.transport.secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce);
-            let _ = self.transport.secure_channel.set_remote_cert_from_byte_string(&response.server_certificate);
+            {
+                let mut secure_channel = trace_write_lock_unwrap!( self.transport.secure_channel);
+                let _ = secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce);
+                let _ = secure_channel.set_remote_cert_from_byte_string(&response.server_certificate);
+            }
             debug!("server nonce is {:?}", response.server_nonce);
 
             // TODO Verify signature using server's public key (from endpoint) comparing with
@@ -254,12 +264,16 @@ impl Session {
             Some(locale_ids)
         };
 
-        let security_policy = self.transport.secure_channel.security_policy();
+        let security_policy = {
+            let secure_channel = trace_read_lock_unwrap!( self.transport.secure_channel);
+            secure_channel.security_policy()
+        };
         let client_signature = match security_policy {
             SecurityPolicy::None => SignatureData::null(),
             _ => {
-                let server_nonce = self.transport.secure_channel.remote_nonce_as_byte_string();
-                let server_cert = self.transport.secure_channel.remote_cert_as_byte_string();
+                let secure_channel = trace_read_lock_unwrap!(self.transport.secure_channel);
+                let server_nonce = secure_channel.remote_nonce_as_byte_string();
+                let server_cert = secure_channel.remote_cert_as_byte_string();
                 // Create a signature data
                 // let session_state = self.session_state.lock().unwrap();
                 if self.session_info.client_pkey.is_none() {
@@ -888,12 +902,20 @@ impl Session {
     }
 
     fn issue_or_renew_secure_channel(&mut self, request_type: SecurityTokenRequestType) -> Result<(), StatusCode> {
+        trace!("issue_or_renew_secure_channel({:?})", request_type);
+
         const REQUESTED_LIFETIME: UInt32 = 60000; // TODO
 
         let client_nonce = ByteString::nonce();
-        self.transport.secure_channel.set_local_nonce(client_nonce.as_ref());
+        let (security_mode, security_policy) = {
+            let mut secure_channel = trace_write_lock_unwrap!( self.transport.secure_channel);
+            secure_channel.set_local_nonce(client_nonce.as_ref());
+            (secure_channel.security_mode(), secure_channel.security_policy())
+        };
+        info!("Making secure channel request");
+        info!("security_mode = {:?}", security_mode);
+        info!("security_policy = {:?}", security_policy);
 
-        let security_mode = self.transport.secure_channel.security_mode();
         let requested_lifetime = REQUESTED_LIFETIME;
         let request = OpenSecureChannelRequest {
             request_header: self.make_request_header(),
@@ -905,6 +927,7 @@ impl Session {
         };
         let response = self.send_request(SupportedMessage::OpenSecureChannelRequest(request))?;
         if let SupportedMessage::OpenSecureChannelResponse(response) = response {
+            debug!("Setting transport's security token");
             self.transport.set_security_token(response.security_token);
             Ok(())
         } else {
