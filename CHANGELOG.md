@@ -13,8 +13,8 @@ ASPIRATIONAL - a short list of things that would be nice to implement
   - General
     - More rigorous security checks
   - Client side
-    - (IN PROGRESS) Add client side support to use encrypted security policies
-    - Simple client sample takes arguments to change what config to read and to set which endpoint to use.
+    - Add client side encryption for security policies & modes other than None
+    - Simple-client sample takes arguments to change what config to read and to set which endpoint to use.
   - Server side
     - (IN PROGRESS) If discovery_server_url property is set in the config the server shall attempt to periodically
       register itself with a discovery server.

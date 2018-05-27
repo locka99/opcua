@@ -150,8 +150,14 @@ impl CertificateStore {
             if !args.alt_host_names.is_empty() {
                 let subject_alternative_name = {
                     let mut subject_alternative_name = SubjectAlternativeName::new();
-                    for alt_host_name in args.alt_host_names.iter() {
-                        subject_alternative_name.dns(alt_host_name);
+                    for (i, alt_host_name) in args.alt_host_names.iter().enumerate() {
+                        if i == 0 {
+                            // The first entry is the application uri
+                            subject_alternative_name.uri(alt_host_name);
+                        } else {
+                            // The remainder are alternate DNS entries
+                            subject_alternative_name.dns(alt_host_name);
+                        }
                     }
                     subject_alternative_name.build(&builder.x509v3_context(None, None)).unwrap()
                 };

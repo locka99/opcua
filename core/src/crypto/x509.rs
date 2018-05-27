@@ -9,7 +9,7 @@ use openssl::nid::Nid;
 
 use chrono::{DateTime, Utc, TimeZone};
 
-use opcua_types::ByteString;
+use opcua_types::{ByteString, UAString};
 use opcua_types::service_types::ApplicationDescription;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
@@ -36,7 +36,7 @@ pub struct X509Data {
 
 impl From<ApplicationDescription> for X509Data {
     fn from(application_description: ApplicationDescription) -> Self {
-        let alt_host_names = Self::alt_host_names();
+        let alt_host_names = Self::alt_host_names(application_description.application_uri.as_ref());
         X509Data {
             key_size: DEFAULT_KEYSIZE,
             common_name: application_description.application_name.to_string(),
@@ -51,8 +51,11 @@ impl From<ApplicationDescription> for X509Data {
 }
 
 impl X509Data {
-    pub fn alt_host_names() -> Vec<String> {
+    pub fn alt_host_names(application_uri: &str) -> Vec<String> {
         let mut result = Vec::new();
+        // The first name is the application uri
+        result.push(application_uri.to_string());
+        // The remainder are alternative dns entries
         result.push("localhost".to_string());
         result.push("127.0.0.1".to_string());
         result.push("::1".to_string());
@@ -69,7 +72,7 @@ impl X509Data {
 
     /// Creates a sample certificate for testing, sample purposes only
     pub fn sample_cert() -> X509Data {
-        let alt_host_names = Self::alt_host_names();
+        let alt_host_names = Self::alt_host_names("urn:OPCUADemo");
         X509Data {
             key_size: 2048,
             common_name: "OPC UA Demo Key".to_string(),
