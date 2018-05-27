@@ -232,6 +232,7 @@ impl Session {
             let session_state = self.session_state.clone();
             let mut session_state = trace_write_lock_unwrap!(session_state);
 
+            // session_state.session_id = response.session_id;
             session_state.authentication_token = response.authentication_token;
             {
                 let mut secure_channel = trace_write_lock_unwrap!( self.transport.secure_channel);
@@ -929,6 +930,11 @@ impl Session {
         if let SupportedMessage::OpenSecureChannelResponse(response) = response {
             debug!("Setting transport's security token");
             self.transport.set_security_token(response.security_token);
+            if security_policy != SecurityPolicy::None && (security_mode == MessageSecurityMode::Sign || security_mode == MessageSecurityMode::SignAndEncrypt) {
+                let mut secure_channel = trace_write_lock_unwrap!( self.transport.secure_channel);
+                secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce);
+                secure_channel.derive_keys();
+            }
             Ok(())
         } else {
             Err(Self::process_unexpected_response(response))
