@@ -10,11 +10,16 @@ use openssl::nid::Nid;
 use chrono::{DateTime, Utc, TimeZone};
 
 use opcua_types::ByteString;
+use opcua_types::service_types::ApplicationDescription;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
 
 use crypto::pkey::PKey;
 use crypto::thumbprint::Thumbprint;
+
+const DEFAULT_KEYSIZE: u32 = 2048;
+const DEFAULT_COUNTRY: &'static str = "IE";
+const DEFAULT_STATE: &'static str = "Dublin";
 
 #[derive(Debug)]
 /// Used to create an X509 cert (and private key)
@@ -29,30 +34,49 @@ pub struct X509Data {
     pub certificate_duration_days: u32,
 }
 
+impl From<ApplicationDescription> for X509Data {
+    fn from(application_description: ApplicationDescription) -> Self {
+        let alt_host_names = Self::alt_host_names();
+        X509Data {
+            key_size: DEFAULT_KEYSIZE,
+            common_name: application_description.application_name.to_string(),
+            organization: application_description.application_name.to_string(),
+            organizational_unit: application_description.application_name.to_string(),
+            country: DEFAULT_COUNTRY.to_string(),
+            state: DEFAULT_STATE.to_string(),
+            alt_host_names,
+            certificate_duration_days: 365,
+        }
+    }
+}
+
 impl X509Data {
+    pub fn alt_host_names() -> Vec<String> {
+        let mut result = Vec::new();
+        result.push("localhost".to_string());
+        result.push("127.0.0.1".to_string());
+        result.push("::1".to_string());
+        // Get the machine name / ip address
+        if let Ok(machine_name) = std::env::var("COMPUTERNAME") {
+            result.push(machine_name);
+        }
+        if let Ok(machine_name) = std::env::var("NAME") {
+            result.push(machine_name);
+        }
+        result
+    }
+
+
     /// Creates a sample certificate for testing, sample purposes only
     pub fn sample_cert() -> X509Data {
-        let alt_host_names = {
-            let mut result = Vec::new();
-            result.push("localhost".to_string());
-            result.push("127.0.0.1".to_string());
-            result.push("::1".to_string());
-            // Get the machine name / ip address
-            if let Ok(machine_name) = std::env::var("COMPUTERNAME") {
-                result.push(machine_name);
-            }
-            if let Ok(machine_name) = std::env::var("NAME") {
-                result.push(machine_name);
-            }
-            result
-        };
+        let alt_host_names = Self::alt_host_names();
         X509Data {
             key_size: 2048,
             common_name: "OPC UA Demo Key".to_string(),
             organization: "OPC UA for Rust".to_string(),
             organizational_unit: "OPC UA for Rust".to_string(),
-            country: "IE".to_string(),
-            state: "Dublin".to_string(),
+            country: DEFAULT_COUNTRY.to_string(),
+            state: DEFAULT_STATE.to_string(),
             alt_host_names,
             certificate_duration_days: 365,
         }

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::collections::{BTreeMap, BTreeSet};
 
-use opcua_types::MessageSecurityMode;
+use opcua_types::{MessageSecurityMode, UAString};
 use opcua_types::constants as opcua_types_constants;
 use opcua_types::url_matches_except_host;
 
@@ -235,6 +235,12 @@ impl Config for ServerConfig {
         }
         valid
     }
+
+    fn application_name(&self) -> UAString { UAString::from(self.application_name.as_ref()) }
+
+    fn application_uri(&self) -> UAString { UAString::from(self.application_uri.as_ref()) }
+
+    fn product_uri(&self) -> UAString { UAString::from(self.product_uri.as_ref()) }
 }
 
 impl ServerConfig {

@@ -4,12 +4,14 @@ use std::sync::{Arc, RwLock};
 use time;
 use timer;
 
-use opcua_core::crypto::{CertificateStore, PKey, SecurityPolicy, X509};
-use opcua_types::{ByteString, LocalizedText, MessageSecurityMode, UAString};
+use opcua_types::{ByteString, MessageSecurityMode, UAString};
 use opcua_types::{is_opc_ua_binary_url, server_url_from_endpoint_url, url_matches, url_matches_except_host};
-use opcua_types::service_types::{ApplicationDescription, ApplicationType, EndpointDescription, RegisteredServer};
+use opcua_types::service_types::{ApplicationDescription, EndpointDescription, RegisteredServer};
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::BadUnexpectedError;
+
+use opcua_core::crypto::{CertificateStore, PKey, SecurityPolicy, X509};
+use opcua_core::config::Config;
 
 use config::{ANONYMOUS_USER_TOKEN_ID, ClientConfig, ClientEndpoint};
 use session::{Session, SessionInfo};
@@ -55,7 +57,9 @@ impl Client {
     /// Creates a new `Client` instance. The application name and uri are supplied as arguments to
     /// this call and are passed to each session that connects hereafter.
     pub fn new(config: ClientConfig) -> Client {
-        let (certificate_store, client_certificate, client_pkey) = CertificateStore::new_with_keypair(&config.pki_dir, config.create_sample_keypair);
+        let application_description = if config.create_sample_keypair { Some(config.application_description()) } else { None };
+
+        let (certificate_store, client_certificate, client_pkey) = CertificateStore::new_with_keypair(&config.pki_dir, application_description);
         if client_certificate.is_none() || client_pkey.is_none() {
             error!("Client is missing its application instance certificate and/or its private key. Encrypted endpoints will not function correctly.")
         }
@@ -68,15 +72,7 @@ impl Client {
 
     /// Returns a filled OPCUA `ApplicationDescription` struct using information from the config
     pub fn application_description(&self) -> ApplicationDescription {
-        ApplicationDescription {
-            application_uri: UAString::from(self.config.application_uri.as_ref()),
-            application_name: LocalizedText::new("", &self.config.application_name),
-            application_type: ApplicationType::Client,
-            product_uri: UAString::from(self.config.product_uri.as_ref()),
-            gateway_server_uri: UAString::null(),
-            discovery_profile_uri: UAString::null(),
-            discovery_urls: None,
-        }
+        self.config.application_description()
     }
 
     /// Gets the default endpoint id

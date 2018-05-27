@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::collections::BTreeMap;
 use std::str::FromStr;
 
-use opcua_types::MessageSecurityMode;
+use opcua_types::{MessageSecurityMode, UAString};
 use opcua_core::config::Config;
 use opcua_core::crypto::SecurityPolicy;
 
@@ -36,7 +36,7 @@ pub struct ClientEndpoint {
     pub security_mode: String,
     /// User id to use with the endpoint
     #[serde(default = "ClientEndpoint::anonymous_id")]
-    pub user_token_id: String
+    pub user_token_id: String,
 }
 
 impl ClientEndpoint {
@@ -46,7 +46,7 @@ impl ClientEndpoint {
             url: url.into(),
             security_policy: SecurityPolicy::None.to_str().into(),
             security_mode: MessageSecurityMode::None.into(),
-            user_token_id: Self::anonymous_id()
+            user_token_id: Self::anonymous_id(),
         }
     }
 
@@ -84,7 +84,7 @@ pub struct ClientConfig {
     /// User tokens
     pub user_tokens: BTreeMap<String, ClientUserToken>,
     /// List of end points
-    pub endpoints: BTreeMap<String, ClientEndpoint>
+    pub endpoints: BTreeMap<String, ClientEndpoint>,
 }
 
 impl Config for ClientConfig {
@@ -119,6 +119,12 @@ impl Config for ClientConfig {
 
         valid
     }
+
+    fn application_name(&self) -> UAString { UAString::from(self.application_name.as_ref()) }
+
+    fn application_uri(&self) -> UAString { UAString::from(self.application_uri.as_ref()) }
+
+    fn product_uri(&self) -> UAString { UAString::from(self.product_uri.as_ref()) }
 }
 
 impl ClientConfig {
@@ -135,7 +141,7 @@ impl ClientConfig {
             preferred_locales: Vec::new(),
             default_endpoint: String::new(),
             user_tokens: BTreeMap::new(),
-            endpoints: BTreeMap::new()
+            endpoints: BTreeMap::new(),
         }
     }
 }

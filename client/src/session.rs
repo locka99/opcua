@@ -225,6 +225,9 @@ impl Session {
             requested_session_timeout: 0f64,
             max_response_message_size: 0,
         };
+
+        debug!("CreateSessionRequest = {:?}", request);
+
         let response = self.send_request(SupportedMessage::CreateSessionRequest(request))?;
         if let SupportedMessage::CreateSessionResponse(response) = response {
             Self::process_service_result(&response.response_header)?;
@@ -232,7 +235,6 @@ impl Session {
             let session_state = self.session_state.clone();
             let mut session_state = trace_write_lock_unwrap!(session_state);
 
-            // session_state.session_id = response.session_id;
             session_state.authentication_token = response.authentication_token;
             {
                 let mut secure_channel = trace_write_lock_unwrap!( self.transport.secure_channel);
@@ -932,7 +934,7 @@ impl Session {
             self.transport.set_security_token(response.security_token);
             if security_policy != SecurityPolicy::None && (security_mode == MessageSecurityMode::Sign || security_mode == MessageSecurityMode::SignAndEncrypt) {
                 let mut secure_channel = trace_write_lock_unwrap!( self.transport.secure_channel);
-                secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce);
+                secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce)?;
                 secure_channel.derive_keys();
             }
             Ok(())

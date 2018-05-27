@@ -70,7 +70,8 @@ impl Server {
         // TODO max string, byte string and array lengths
 
         // Security, pki auto create cert
-        let (certificate_store, server_certificate, server_pkey) = CertificateStore::new_with_keypair(&config.pki_dir, config.create_sample_keypair);
+        let application_description = if config.create_sample_keypair { Some(config.application_description()) } else { None };
+        let (certificate_store, server_certificate, server_pkey) = CertificateStore::new_with_keypair(&config.pki_dir, application_description);
         if server_certificate.is_none() || server_pkey.is_none() {
             error!("Server is missing its application instance certificate and/or its private key. Encrypted endpoints will not function correctly.")
         }

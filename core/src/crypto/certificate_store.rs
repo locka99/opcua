@@ -12,6 +12,7 @@ use openssl::rsa::*;
 use openssl::asn1::*;
 use openssl::hash::*;
 
+use opcua_types::service_types::ApplicationDescription;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
 
@@ -51,7 +52,7 @@ impl CertificateStore {
     }
 
     /// Sets up the certificate store, creates the path to it, and optionally creates a demo cert
-    pub fn new_with_keypair(pki_path: &Path, create_sample_keypair: bool) -> (CertificateStore, Option<X509>, Option<PKey>) {
+    pub fn new_with_keypair(pki_path: &Path, application_description: Option<ApplicationDescription>) -> (CertificateStore, Option<X509>, Option<PKey>) {
         let certificate_store = CertificateStore::new(pki_path);
         let (cert, pkey) = if certificate_store.ensure_pki_path().is_err() {
             error!("Folder for storing certificates cannot be examined so server has no application instance certificate or private key.");
@@ -61,9 +62,9 @@ impl CertificateStore {
             if let Ok((cert, pkey)) = result {
                 (Some(cert), Some(pkey))
             } else {
-                if create_sample_keypair {
+                if let Some(application_description) = application_description {
                     info!("Creating sample application instance certificate and private key");
-                    let result = certificate_store.create_and_store_application_instance_cert(&X509Data::sample_cert(), false);
+                    let result = certificate_store.create_and_store_application_instance_cert(&X509Data::from(application_description), false);
                     if let Err(err) = result {
                         error!("Certificate creation failed, error = {}", err);
                         (None, None)

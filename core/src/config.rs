@@ -6,6 +6,9 @@ use std::io::{Read, Write};
 use serde;
 use serde_yaml;
 
+use opcua_types::{UAString, LocalizedText};
+use opcua_types::service_types::{ApplicationDescription, ApplicationType};
+
 /// A trait that handles the loading / saving and validity of configuration information for a
 /// client and/or server.
 pub trait Config {
@@ -50,4 +53,22 @@ pub trait Config {
     }
 
     fn is_valid(&self) -> bool;
+
+    fn application_name(&self) -> UAString;
+
+    fn application_uri(&self) -> UAString;
+
+    fn product_uri(&self) -> UAString;
+
+    fn application_description(&self) -> ApplicationDescription {
+        ApplicationDescription {
+            application_uri: self.application_uri(),
+            application_name: LocalizedText::new("", self.application_name().as_ref()),
+            application_type: ApplicationType::Client,
+            product_uri: self.product_uri(),
+            gateway_server_uri: UAString::null(),
+            discovery_profile_uri: UAString::null(),
+            discovery_urls: None,
+        }
+    }
 }
