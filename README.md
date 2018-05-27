@@ -75,7 +75,7 @@ of client and server side configuration. The config files are specified in YAML.
 
 ### Encryption modes
 
-The server supports endpoints with the standard message security modes:
+The client & server support endpoints with the standard message security modes:
 
 * None - no encryption
 * Sign - no encryption but messages are digitally signed to ensure integrity
@@ -168,12 +168,11 @@ default endpoint: opc.tcp://localhost:4855
 
 ## Crypto
 
-At present OPC UA for Rust uses OpenSSL bindings for Rust for crypto. The product makes extensive use of various 
-cryptographic algorithms for signing, verifying, encrypting and decrypting data. In addition it needs to be able 
-to create, load and save various file formats for certificates and keys.
+OPC UA for Rust uses cryptographic algorithms for signing, verifying, encrypting and decrypting data. In addition
+it creates, loads and saves certificates and keys.
 
-So we use OpenSSL for the time being. Almost all OpenSSL code is isolated and could be removed if a pure Rust implementation
-of the same functionality becomes viable.
+OpenSSL is used for this purpose although it would be nicer to go to a more pure Rust implementation. To that end
+most of the crypto+OpenSSL code is abstracted to make it somewhat easier to remove in the future.
 
 You are advised to read the OpenSSL [documentation](https://github.com/sfackler/rust-openssl) to set up your 
 environment.

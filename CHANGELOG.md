@@ -5,6 +5,8 @@ ASPIRATIONAL - a short list of things that would be nice to implement
   - Diagnostics
   - Session restore after disconnect in server
   - Session restore after disconnect in client
+  - More security / validation / enforcement around client certs that do not match app descriptions or DNS info
+  - Client side behaviour when server goes down or becomes unreachable
   - Replace openssl for ring + x509 for more (but not total) rust implementation
    - Use tokio client side. The problem here is that synchronous calls are far easier to work with, and how to make it
     work with tokio under the covers.

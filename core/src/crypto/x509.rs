@@ -9,7 +9,7 @@ use openssl::nid::Nid;
 
 use chrono::{DateTime, Utc, TimeZone};
 
-use opcua_types::{ByteString, UAString};
+use opcua_types::ByteString;
 use opcua_types::service_types::ApplicationDescription;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;

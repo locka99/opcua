@@ -54,48 +54,18 @@ fn main() {
     // Use the sample client config to set up a client. The sample config has a number of named
     // endpoints one of which is marked as the default.
     let mut client = Client::new(ClientConfig::load(&PathBuf::from(config_file)).unwrap());
-
-    // Ask the server associated with the default endpoint for its list of endpoints
-    let endpoints = match client.get_server_endpoints() {
-        Result::Err(status_code) => {
-            println!("ERROR: Can't get endpoints for server, error - {:?}", status_code.description());
-            return;
+    let endpoint_id = if !endpoint_id.is_empty() { Some(endpoint_id) } else { None };
+    if let Ok(session) = client.connect_and_activate(endpoint_id) {
+        // The --subscribe arg decides if code should subscribe to values, or just fetch those
+        // values and exit
+        let result = if subscribe {
+            subscription_loop(session)
+        } else {
+            read_values(session)
+        };
+        if let Err(result) = result {
+            println!("ERROR: Got an error while performing action - {:?}", result.description());
         }
-        Result::Ok(endpoints) => endpoints
-    };
-    println!("Server has these endpoints:");
-    endpoints.iter().for_each(|e| println!("  {} - {:?} / {:?}", e.endpoint_url, SecurityPolicy::from_str(e.security_policy_uri.as_ref()).unwrap(), e.security_mode));
-
-    // Create a session to an endpoint. If an endpoint id is specified use that
-    let session = if endpoint_id.is_empty() {
-        client.new_session(&endpoints).unwrap()
-    } else {
-        client.new_session_from_id(&endpoint_id, &endpoints).unwrap()
-    };
-
-    // Important - the session you receive is reference counted because it is used by background
-    // threads. You must only lock the session for as long as you need to use it and you should
-    // release the lock (i.e. drop it) when your need to use it is over. The subscription thread
-    // also needs access to the session to send and receive messages and won't
-    // be able to if your lock is never released.
-
-    {
-        // Connect to the server
-        let mut session = session.write().unwrap();
-        if let Err(result) = session.connect_and_activate_session() {
-            println!("ERROR: Got an error while creating the default session - {:?}", result.description());
-        }
-    }
-
-    // The --subscribe arg decides if code should subscribe to values, or just fetch those
-    // values and exit
-    let result = if subscribe {
-        subscription_loop(session)
-    } else {
-        read_values(session)
-    };
-    if let Err(result) = result {
-        println!("ERROR: Got an error while performing action - {:?}", result.description());
     }
 }
 

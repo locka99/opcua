@@ -75,6 +75,37 @@ impl Client {
         self.config.application_description()
     }
 
+    pub fn connect_and_activate(&mut self, endpoint_id: Option<String>) -> Result<Arc<RwLock<Session>>, StatusCode> {
+        // Ask the server associated with the default endpoint for its list of endpoints
+        let endpoints = match self.get_server_endpoints() {
+            Result::Err(status_code) => {
+                error!("Can't get endpoints for server, error - {:?}", status_code.description());
+                return Err(status_code);
+            }
+            Result::Ok(endpoints) => endpoints
+        };
+
+        info!("Server has these endpoints:");
+        endpoints.iter().for_each(|e| println!("  {} - {:?} / {:?}", e.endpoint_url, SecurityPolicy::from_str(e.security_policy_uri.as_ref()).unwrap(), e.security_mode));
+
+        // Create a session to an endpoint. If an endpoint id is specified use that
+        let session = if let Some(endpoint_id) = endpoint_id {
+            self.new_session_from_id(&endpoint_id, &endpoints).unwrap()
+        } else {
+            self.new_session(&endpoints).unwrap()
+        };
+
+        {
+            // Connect to the server
+            let mut session = session.write().unwrap();
+            if let Err(result) = session.connect_and_activate_session() {
+                error!("Got an error while creating the default session - {:?}", result.description());
+            }
+        }
+
+        Ok(session)
+    }
+
     /// Gets the default endpoint id
     pub fn default_endpoint(&self) -> Result<ClientEndpoint, String> {
         let default_endpoint_id = self.config.default_endpoint.clone();
