@@ -90,16 +90,6 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "chess-server"
-version = "0.4.0"
-dependencies = [
- "opcua-core 0.4.0",
- "opcua-server 0.4.0",
- "opcua-types 0.4.0",
- "uci 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "chrono"
 version = "0.2.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -453,6 +443,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "opcua-chess-server"
+version = "0.4.0"
+dependencies = [
+ "opcua-core 0.4.0",
+ "opcua-server 0.4.0",
+ "opcua-types 0.4.0",
+ "uci 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "opcua-client"
 version = "0.4.0"
 dependencies = [
@@ -516,6 +516,16 @@ dependencies = [
  "opcua-client 0.4.0",
  "opcua-core 0.4.0",
  "opcua-server 0.4.0",
+ "opcua-types 0.4.0",
+]
+
+[[package]]
+name = "opcua-mqtt-client"
+version = "0.4.0"
+dependencies = [
+ "clap 2.31.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "opcua-client 0.4.0",
+ "opcua-core 0.4.0",
  "opcua-types 0.4.0",
 ]
 
