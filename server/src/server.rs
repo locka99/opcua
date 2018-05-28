@@ -5,6 +5,8 @@ use std::sync::{Arc, RwLock};
 use std::net::{SocketAddr, IpAddr, Ipv4Addr};
 use std::marker::Sync;
 use std::str::FromStr;
+use std::time::Instant;
+use std::thread;
 
 use chrono;
 use futures::future;
@@ -247,10 +249,19 @@ impl Server {
             info!("Server has set a discovery server url {} which will be used to register the server", discovery_server_url);
             let server_state = self.server_state.clone();
             let interval_timer = tokio_timer::Timer::default()
-                .interval(chrono::Duration::minutes(5).to_std().unwrap())
+                .interval_at(Instant::now(), chrono::Duration::minutes(5).to_std().unwrap())
                 .for_each(move |_| {
-                    let server_state = trace_read_lock_unwrap!(server_state);
-                    discovery::register_discover_server(&discovery_server_url, &server_state);
+                    // This is going to be spawned in a thread because client side code doesn't use
+                    // tokio yet and we don't want its synchronous code to block other futures.
+                    let server_state = server_state.clone();
+                    let discovery_server_url = discovery_server_url.clone();
+                    let _ = thread::spawn(move || {
+                        use std;
+                        std::panic::catch_unwind(move || {
+                            let server_state = trace_read_lock_unwrap!(server_state);
+                            discovery::register_discover_server(&discovery_server_url, &server_state);
+                        });
+                    });
                     Ok(())
                 });
             tokio::spawn(interval_timer.map_err(|_| ()));

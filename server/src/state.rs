@@ -185,7 +185,7 @@ impl ServerState {
     }
 
     pub fn registered_server(&self) -> RegisteredServer {
-        let server_uri = UAString::from("");
+        let server_uri = self.application_uri.clone();
         let product_uri = self.product_uri.clone();
         let gateway_server_uri = self.gateway_server_uri();
         let discovery_urls = self.discovery_urls();

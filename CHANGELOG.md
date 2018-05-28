@@ -6,9 +6,8 @@ ASPIRATIONAL - a short list of things that would be nice to implement
   - Session restore after disconnect in server
   - Session restore after disconnect in client
   - More security / validation / enforcement around client certs that do not match app descriptions or DNS info
-  - Client side behaviour when server goes down or becomes unreachable
   - Replace openssl for ring + x509 for more (but not total) rust implementation
-   - Use tokio client side. The problem here is that synchronous calls are far easier to work with, and how to make it
+  - Use tokio client side. The problem here is that synchronous calls are far easier to work with, and how to make it
     work with tokio under the covers.
 
 ## 0.4 (IN PROGRESS)
@@ -17,9 +16,12 @@ ASPIRATIONAL - a short list of things that would be nice to implement
   - Client side
     - Add client side encryption for security policies & modes other than None
     - Simple-client sample takes arguments to change what config to read and to set which endpoint to use.
+    - Moved discovery / endpoints / connection into a helper to save writing that in every client
+    - (IN PROGRESS) Better failure behaviour when server goes down or becomes unreachable
   - Server side
-    - (IN PROGRESS) If discovery_server_url property is set in the config the server shall attempt to periodically
-      register itself with a discovery server.
+    - If discovery_server_url property is set in the config the server shall attempt to periodically
+      register itself with a discovery server. Note that the server uses the strongest endpoint to talk to the discovery
+      server so you might have to do some work in the ds pki dir to ensure your server is trusted.
     - The server network IO is rewritten using tokio and futures. Sessions move from being a thread each with its own
       synchronous IO to sharing threads and asynchronous IO. It should be more scalable. The downside is writing
       asynchronous code is a steep learning curve.

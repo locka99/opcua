@@ -1,2 +1,4 @@
-This MQTT client will connect to an OPC UA server and then publish values over MQTT. This demonstrates how you might
-bridge these two similar but orthogonal technologies.
+This sample is not yet implemented.
+
+The intention is to produce an OPC UA client that subscribes to some variables and publishes
+those values to an MQTT broker.

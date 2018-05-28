@@ -20,7 +20,8 @@ pub fn register_discover_server(discovery_server_url: &str, server_state: &Serve
         let registered_server: RegisteredServer = server_state.registered_server();
         let result = client.register_server(discovery_server_url, registered_server);
         if result.is_err() {
-            error!("Cannot register server with discovery server {}", discovery_server_url);
+            error!("Cannot register server with discovery server {}. Check for errors to discover the reason why.", discovery_server_url);
+            error!("One solution you may try is to ensure your server's cert is trusted by the discovery server.");
         }
-    } else {}
+    }
 }

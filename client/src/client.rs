@@ -252,25 +252,36 @@ impl Client {
     /// client to the discovery server in this use. Normal clients do not need to call this function.
     pub fn register_server<T>(&mut self, discovery_endpoint_url: T, server: RegisteredServer) -> Result<(), StatusCode> where T: Into<String> {
         let discovery_endpoint_url = discovery_endpoint_url.into();
-        debug!("Creating a temporary session to discovery server {}", discovery_endpoint_url);
-        let endpoint = Self::make_endpoint_description(&discovery_endpoint_url, true);
-        // TODO discovery server endpoint is expected to be encrypted
-        let session = self.new_session_from_info(endpoint);
-        if let Ok(session) = session {
-            let mut session = trace_write_lock_unwrap!(session);
-            let connected = session.connect();
-            if let Ok(_) = connected {
-                // Register with the server
-                session.register_server(discovery_endpoint_url.clone(), server)
-            } else {
-                let result = connected.unwrap_err();
-                error!("Cannot connect to {} - check this error - {:?}", discovery_endpoint_url, result);
-                Err(result)
-            }
+        // Get a list of endpoints from the discovery server
+        trace!("register_server({}, {:?}", discovery_endpoint_url, server);
+        debug!("Getting endpoints from discovery server {}", discovery_endpoint_url);
+        let endpoints = self.get_server_endpoints_from_url(&discovery_endpoint_url)?;
+        if endpoints.is_empty() {
+            Err(StatusCode::BadUnexpectedError)
         } else {
-            let result = BadUnexpectedError;
-            error!("Cannot create a sesion to {} - check if url is malformed", discovery_endpoint_url);
-            Err(result)
+            // Now choose the strongest endpoint to register through
+            if let Some(endpoint) = endpoints.iter().max_by(|a, b| a.security_level.cmp(&b.security_level)) {
+                debug!("Registering this server via discovery endpoint {:?}", endpoint);
+                let session = self.new_session_from_info(endpoint.clone());
+                if let Ok(session) = session {
+                    let mut session = trace_write_lock_unwrap!(session);
+                    let connected = session.connect();
+                    if let Ok(_) = connected {
+                        // Register with the server
+                        session.register_server(discovery_endpoint_url.clone(), server)
+                    } else {
+                        let result = connected.unwrap_err();
+                        error!("Cannot connect to {} - check this error - {:?}", discovery_endpoint_url, result);
+                        Err(result)
+                    }
+                } else {
+                    error!("Cannot create a sesion to {} - check if url is malformed", discovery_endpoint_url);
+                    Err(BadUnexpectedError)
+                }
+            } else {
+                error!("Can't find an endpoint that we call register server on");
+                Err(BadUnexpectedError)
+            }
         }
     }
 
