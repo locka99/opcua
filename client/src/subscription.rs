@@ -164,27 +164,27 @@ impl Subscription {
 
     pub fn subscription_id(&self) -> UInt32 { self.subscription_id }
 
-    pub fn publishing_interval(&self) -> Double { self.publishing_interval }
+    // pub fn publishing_interval(&self) -> Double { self.publishing_interval }
 
     pub fn set_publishing_interval(&mut self, publishing_interval: Double) { self.publishing_interval = publishing_interval; }
 
-    pub fn lifetime_count(&self) -> UInt32 { self.lifetime_count }
+    // pub fn lifetime_count(&self) -> UInt32 { self.lifetime_count }
 
     pub fn set_lifetime_count(&mut self, lifetime_count: UInt32) { self.lifetime_count = lifetime_count; }
 
-    pub fn max_keep_alive_count(&self) -> UInt32 { self.max_keep_alive_count }
+    // pub fn max_keep_alive_count(&self) -> UInt32 { self.max_keep_alive_count }
 
     pub fn set_max_keep_alive_count(&mut self, max_keep_alive_count: UInt32) { self.max_keep_alive_count = max_keep_alive_count; }
 
-    pub fn max_notifications_per_publish(&self) -> UInt32 { self.max_notifications_per_publish }
+    // pub fn max_notifications_per_publish(&self) -> UInt32 { self.max_notifications_per_publish }
 
     pub fn set_max_notifications_per_publish(&mut self, max_notifications_per_publish: UInt32) { self.max_notifications_per_publish = max_notifications_per_publish; }
 
-    pub fn priority(&self) -> Byte { self.priority }
+    // pub fn priority(&self) -> Byte { self.priority }
 
     pub fn set_priority(&mut self, priority: Byte) { self.priority = priority; }
 
-    pub fn publishing_enabled(&self) -> Boolean { self.publishing_enabled }
+    // pub fn publishing_enabled(&self) -> Boolean { self.publishing_enabled }
 
     pub fn set_publishing_enabled(&mut self, publishing_enabled: Boolean) { self.publishing_enabled = publishing_enabled; }
 

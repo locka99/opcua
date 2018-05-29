@@ -162,10 +162,31 @@ impl Session {
     /// Connects to the server, creates and activates a session
     pub fn connect_and_activate_session(&mut self) -> Result<(), StatusCode> {
         // Reconnect now using the session state
-        let _ = self.connect();
+        let _ = self.connect()?;
         let _ = self.create_session()?;
         let _ = self.activate_session()?;
         Ok(())
+    }
+
+    /// Reconnects to the server and tries to activate the existing session
+    pub fn reconnect_and_activate_session(&mut self) -> Result<(), StatusCode> {
+        // TODO Do nothing if already connected
+        // TODO Check if session is already activated, i.e. has a session_id
+        if self.is_connected() {
+            self.disconnect();
+        }
+
+        let _ = self.connect()?;
+        let activated = self.activate_session();
+        if let Err(error) = activated {
+            // TODO if this doesn't work then we need to
+            // 1) create a new session
+            // 2) activate session
+            // 3) reconstruct all subscriptions and monitored items from their cached values
+            Err(error)
+        } else {
+            Ok(())
+        }
     }
 
     /// Disconnect from the server
@@ -340,20 +361,7 @@ impl Session {
         }
     }
 
-    pub fn register_server<T>(&mut self, discovery_endpoint_url: T, server: RegisteredServer) -> Result<(), StatusCode> where T: Into<String> {
-        /*
-        let server = RegisteredServer {
-            server_uri: UAString,
-            product_uri: UAString,
-            server_names: Option<Vec<LocalizedText>>,
-            server_type: ApplicationType,
-            gateway_server_uri: UAString,
-            discovery_urls: Option<Vec<UAString>>,
-            semaphore_file_path: UAString,
-            is_online: Boolean,
-        };
-        */
-
+    pub fn register_server(&mut self, server: RegisteredServer) -> Result<(), StatusCode> {
         let request = RegisterServerRequest {
             request_header: self.make_request_header(),
             server,
@@ -591,7 +599,6 @@ impl Session {
         };
         if subscription_ids.is_none() {
             // No subscriptions
-            warn!("delete_all_subscriptions() called where there were no subscriptions");
             Err(BadNothingToDo)
         } else {
             // Send a delete request holding all the subscription ides that we wish to delete

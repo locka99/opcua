@@ -203,7 +203,7 @@ impl Client {
         let (client_certificate, client_pkey) = self.get_client_cert_and_key();
 
         // Most of these fields mean nothing when getting endpoints
-        let endpoint = Self::make_endpoint_description(server_url, false);
+        let endpoint = Self::make_endpoint_description(server_url);
         let session_info = SessionInfo {
             endpoint,
             user_identity_token: IdentityToken::Anonymous,
@@ -220,7 +220,7 @@ impl Client {
     pub fn find_servers<T>(&mut self, discovery_endpoint_url: T) -> Result<Vec<ApplicationDescription>, StatusCode> where T: Into<String> {
         let discovery_endpoint_url = discovery_endpoint_url.into();
         debug!("Creating a temporary session to discovery server {}", discovery_endpoint_url);
-        let endpoint = Self::make_endpoint_description(&discovery_endpoint_url, false);
+        let endpoint = Self::make_endpoint_description(&discovery_endpoint_url);
         let session = self.new_session_from_info(endpoint);
         if let Ok(session) = session {
             let mut session = trace_write_lock_unwrap!(session);
@@ -260,7 +260,9 @@ impl Client {
             Err(StatusCode::BadUnexpectedError)
         } else {
             // Now choose the strongest endpoint to register through
-            if let Some(endpoint) = endpoints.iter().max_by(|a, b| a.security_level.cmp(&b.security_level)) {
+            if let Some(endpoint) = endpoints.iter()
+                .filter(|e| self.is_supported_endpoint(*e))
+                .max_by(|a, b| a.security_level.cmp(&b.security_level)) {
                 debug!("Registering this server via discovery endpoint {:?}", endpoint);
                 let session = self.new_session_from_info(endpoint.clone());
                 if let Ok(session) = session {
@@ -268,7 +270,7 @@ impl Client {
                     let connected = session.connect();
                     if let Ok(_) = connected {
                         // Register with the server
-                        session.register_server(discovery_endpoint_url.clone(), server)
+                        session.register_server(server)
                     } else {
                         let result = connected.unwrap_err();
                         error!("Cannot connect to {} - check this error - {:?}", discovery_endpoint_url, result);
@@ -285,17 +287,12 @@ impl Client {
         }
     }
 
-    fn make_endpoint_description(server_url: &str, secure: bool) -> EndpointDescription {
-        // A secure endpoint
-        let (security_mode, security_policy) = if secure {
-            (MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic128Rsa15)
-        } else {
-            (MessageSecurityMode::None, SecurityPolicy::None)
-        };
+    /// Makes an endpoint description from a url, assuming the endpoint to have no encryption
+    fn make_endpoint_description(server_url: &str) -> EndpointDescription {
         EndpointDescription {
             endpoint_url: UAString::from(server_url),
-            security_policy_uri: UAString::from(security_policy.to_uri()),
-            security_mode,
+            security_policy_uri: UAString::from(SecurityPolicy::None.to_uri()),
+            security_mode: MessageSecurityMode::None,
             server: ApplicationDescription::null(),
             security_level: 0,
             server_certificate: ByteString::null(),
@@ -327,6 +324,18 @@ impl Client {
             }
         }
         None
+    }
+
+    /// Determine if we recognize the security of this endpoint
+    fn is_supported_endpoint(&self, endpoint: &EndpointDescription) -> bool {
+        if let Ok(security_policy) = SecurityPolicy::from_str(endpoint.security_policy_uri.as_ref()) {
+            match security_policy {
+                SecurityPolicy::Unknown => false,
+                _ => true
+            }
+        } else {
+            false
+        }
     }
 
     fn client_identity_token(&self, user_token_id: &str) -> Option<IdentityToken> {

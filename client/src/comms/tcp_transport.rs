@@ -118,9 +118,7 @@ impl TcpTransport {
 
     /// Disconnects the stream from the server (if it is connected)
     pub fn disconnect(&mut self) {
-        if self.is_connected() {
-            self.stream = None;
-        }
+        self.stream = None;
         self.last_sent_sequence_number = DEFAULT_SENT_SEQUENCE_NUMBER;
         self.last_received_sequence_number = DEFAULT_RECEIVED_SEQUENCE_NUMBER;
         self.last_request_id = DEFAULT_REQUEST_ID;
@@ -128,6 +126,8 @@ impl TcpTransport {
 
     /// Tests if the transport is connected
     pub fn is_connected(&self) -> bool {
+        // The assumption is that if a read/write fails, the code that called those functions
+        // will set the stream to None if it breaks.
         self.stream.is_some()
     }
 
@@ -217,8 +217,7 @@ impl TcpTransport {
 
             // decode response
             let bytes_read_result = self.stream().read(&mut in_buf);
-            if bytes_read_result.is_err() {
-                let error = bytes_read_result.unwrap_err();
+            if let Err(error) = bytes_read_result {
                 if error.kind() == ErrorKind::TimedOut {
                     continue;
                 }
@@ -227,6 +226,7 @@ impl TcpTransport {
                 // recovery state
 
                 debug!("Read error - kind = {:?}, {:?}", error.kind(), error);
+                self.stream = None;
                 session_status_code = BadUnexpectedError;
                 break;
             }
@@ -322,8 +322,12 @@ impl TcpTransport {
             };
             match size {
                 Ok(size) => {
-                    let stream = self.stream();
-                    let _ = stream.write(&data[..size]);
+                    let bytes_written_result = self.stream.as_ref().unwrap().write(&data[..size]);
+                    if let Err(error) = bytes_written_result {
+                        error!("Error while writing bytes to stream, connection broken, check error {:?}", error);
+                        self.stream = None;
+                        break;
+                    }
                 }
                 Err(err) => {
                     panic!("Applying security to chunk failed - {:?}", err);

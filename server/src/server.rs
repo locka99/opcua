@@ -257,7 +257,7 @@ impl Server {
                     let discovery_server_url = discovery_server_url.clone();
                     let _ = thread::spawn(move || {
                         use std;
-                        std::panic::catch_unwind(move || {
+                        let _ = std::panic::catch_unwind(move || {
                             let server_state = trace_read_lock_unwrap!(server_state);
                             discovery::register_discover_server(&discovery_server_url, &server_state);
                         });
