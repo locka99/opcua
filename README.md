@@ -12,7 +12,40 @@ will support the embedded profile.
 
 The code is licenced under [MPL-2.0](https://opensource.org/licenses/MPL-2.0). Like all open source code, you use this code at your own risk. 
 
-# Feature Support  
+# Samples
+
+If you want to get stuck in, there are a number of samples in the samples/ folder. The `simple-client` and the `simple-server` projects are
+minimal client and server programs respectively.
+
+```bash
+# In one bash
+cd opcua/samples/simple-server
+cargo run
+# In another bash
+cd opcua/samples/simple-client
+cargo run
+```
+
+The full list of samples:
+
+1. `simple-server` - an OPC UA server that adds 4 variables v1, v2, v3 and v4 and updates them from a timer via push and pull mechanisms
+2. `simple-client` - an OPC UA client that connects to a server and requests the values of v1, v2, v3 and v4. It may also subscribe to changes to these values.
+3. `discovery-client` - an OPC UA client that connects to a discovery server and lists the servers registered on it
+4. `chess-server` - an OPC UA server that connects to a chess engine as its back end and updates variables representing the state of the game.
+5. `demo-server` - an OPC UA server that will implements more functionality than the simple server and may become a compliance server in time.
+
+## 3rd-party servers
+
+There are also a couple of node-opcua scripts under 3rd-party which behave in a similar fashion to `simple-client` and
+`simple-server`. 
+
+This allows behaviour to be compared with an independently written OPC UA implementation.
+
+1. `node-opcua-client` - an OPC UA client that connects to a server and subscribes to v1, v2, v3, and v4.
+2. `node-opcua-server` - an OPC UA server that exposes v1, v2, v3 and v4 and changes them from a timer.
+
+
+# OPC UA Feature Support  
 
 ## OPC UA Binary Transport Protocol
 
@@ -65,17 +98,33 @@ Other service calls are unsupported. Calling an unsupported service will termina
 
 ### Address Space / Nodeset
 
-The standard OPC UA address space will be exposed. OPC UA for Rust uses a script to generate code to create and
+The standard OPC UA address space is exposed. OPC UA for Rust uses a script to generate code to create and
 populate the standard address space. 
 
-### Configuration
+### Current limitations
+
+Currently the following are not supported
+
+* Diagnostic info. OPC UA allows for you to ask for diagnostics with any request. None is supplied at this time
+* Session resumption. If your client disconnects, all information is discarded. 
+* Default nodeset is mostly static. Certain fields of server information will contain their default values unless explicitly set.
+
+## Client
+
+The client shall provide synchrononous and asynchronous calls corresponding to the functionality of the server. It will
+also support these additional calls.
+
+* FindServers - to discover servers from a discovery server  
+* RegisterServer - for servers to register themselves with a discovery server
+
+## Configuration
 
 Server and client can be configured programmatically or by configuration file. See the `samples/` folder for examples
 of client and server side configuration. The config files are specified in YAML.
 
-### Encryption modes
+## Encryption modes
 
-The client & server support endpoints with the standard message security modes:
+Server and client support endpoints with the standard message security modes:
 
 * None - no encryption
 * Sign - no encryption but messages are digitally signed to ensure integrity
@@ -88,30 +137,14 @@ The following security policies are supported.
 * Basic256
 * Basic256Rsa256
 
-### User identities 
+## User identities
 
-The server supports the following user identities
+The server and client support the following user identities
 
 1. Anonymous/None, i.e. no authentication
 2. User/password - plaintext password only
 
 User/pass identities are defined by configuration
-
-### Current limitations
-
-Currently the following are not supported
-
-* Diagnostic info. OPC UA allows for you to ask for diagnostics with any request. None is supplied at this time
-* Session resumption. If your client disconnects, all information is discarded.
-* Default nodeset is mostly static. Certain fields of server information will contain their default values unless explicitly set.
-
-## Client
-
-The client shall provide synchrononous and asynchronous calls corresponding to the functionality of the server. It will
-also support these additional calls.
-
-* FindServers
-* RegisterServer (for servers to register themselves with a discovery server)
 
 # Building and testing
 
@@ -140,9 +173,7 @@ Now ensure that these ensure both Rust and MinGW64 binaries are on your PATH and
 set PATH=C:\msys64\mingw64\bin;C:\Users\MyName\.cargo\bin;%PATH%
 ```
 
-Note: It should be possible to build using MSVC but you should read the Rust OpenSSL docs for how to set up your paths properly.
-
-## Layout
+## Workspace Layout
 
 OPC UA for Rust follows the normal Rust conventions. There is a Cargo.toml per module that you may use to build the module and all dependencies. You may also
 build the entire workspace from the top like so:
@@ -152,30 +183,19 @@ cd opcua
 cargo build
 ```
 
-## Simple Server
-
-The crate simple-server demonstrates a server that creates a handful of variables that you can monitor within the address space.
-
-```bash
-cd opcua/samples/simple-server
-cargo run
-```
-
-The sample is designed to be super terse and to demonstrate what you can do with a small amount of code.
-
-default user: sample and password: sample1
-default endpoint: opc.tcp://localhost:4855
-
 ## Crypto
 
 OPC UA for Rust uses cryptographic algorithms for signing, verifying, encrypting and decrypting data. In addition
 it creates, loads and saves certificates and keys.
 
 OpenSSL is used for this purpose although it would be nicer to go to a more pure Rust implementation. To that end
-most of the crypto+OpenSSL code is abstracted to make it somewhat easier to remove in the future.
+most of the crypto+OpenSSL code is abstracted to make it easier to remove in the future.
 
 You are advised to read the OpenSSL [documentation](https://github.com/sfackler/rust-openssl) to set up your 
 environment.
+
+Note: It should be possible to build using MSVC and link to a OpenSSL binary lib but you should read the Rust OpenSSL 
+docs for how to set up your paths properly.
 
 ### Certificate pki structure
 
@@ -201,7 +221,7 @@ the `trusted/` folder to permit connections from that client in future.
 * Likewise, the client shall reject unrecognized servers in the same fashion, and the cert must be moved from the 
 `rejected/` to `trusted/` folder for connection to succeed.
 
-### Certificate creator
+### Certificate creator tool
 
 The `tools/certificate-creator` tool will create a demo public self-signed cert and private key. 
 It can be built from source, or the crate:
@@ -223,7 +243,7 @@ as expiration length, description, country code etc to your requirements.
 
 ## Minimizing code through convention
 
-The API will use convention by default to minimize the amount of code that needs to be written.
+The API will use convention and idiomatic rust minimize and make concise the amount of code that needs to be written.
 
 Here is a minimal, functioning server. 
 
