@@ -13,6 +13,7 @@ trait Service {
 
 pub mod attribute;
 pub mod discovery;
+pub mod method;
 pub mod monitored_item;
 pub mod session;
 pub mod subscription;

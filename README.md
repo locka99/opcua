@@ -362,12 +362,11 @@ Code should be formatted with the IntelliJ rust plugin, or with rustfmt.
 
 ## Implementation plan
 
-### Server
+Client and server will work their ways through OPC UA profiles to the point of usability. But presently they are working
+towards.
 
-Implemented:
-
-* Types, project structure, code generation tools, basic connectivity, binary transport format, services framework
 * Nano Embedded Device Server Profile, which has these main points
+  * UA-TCP binary
   * SecurityPolicy of None (i.e. no encryption / signing)
   * Username / Password support (plaintext)
   * Address space
@@ -375,30 +374,21 @@ Implemented:
   * Session Services (minimum, single session)
   * View Services (basic)
 * Micro Embedded Device Server Profile. This is a bump up from Nano.
+  * UA secure conversation
   * 2 or more sessions
-  * Data change notifications via a subscription. 
-
-Work in progress:
-
-* Multiple chunks
-* Registration to local discovery server
+  * Data change notifications via a subscription.
+* Embedded UA Server Profile
+  * Standard data change notifications via a subscription
+    * Queueing
+    * Deadband filter
+    * ! No CallMethod service
+    * ! No GetMonitoredItems via call
+    * ! No ResendData via call
 
 This [OPC UA link](http://opcfoundation-onlineapplications.org/ProfileReporting/index.htm) provides interactive and descriptive information about
 profiles and relevant test cases.
 
-### Client
-
-Implemented:
-
-* Base client behaviour facet
-* Attribute read / write
-* Discovery
-* Subscriptions / monitored items + datachange callback 
-
-Eventually:
-
-* Core client facet (crypto, security policy)
-* Error recovery state (i.e. ability to reconnect and re-establish state after disconnect)
+See the CHANGELOG.md for changes per version as well as short-term & aspirational wishlist. 
 
 ## Major 3rd party dependencies
 

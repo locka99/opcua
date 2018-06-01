@@ -211,7 +211,7 @@ impl Session {
             request_header: self.make_request_header(),
         };
         // We do not wait for a response because there may not be one. Just return
-        let _ = self.async_send_request(SupportedMessage::CloseSecureChannelRequest(request));
+        let _ = self.async_send_request(request);
         Ok(())
     }
 
@@ -249,7 +249,7 @@ impl Session {
 
         debug!("CreateSessionRequest = {:?}", request);
 
-        let response = self.send_request(SupportedMessage::CreateSessionRequest(request))?;
+        let response = self.send_request(request)?;
         if let SupportedMessage::CreateSessionResponse(response) = response {
             Self::process_service_result(&response.response_header)?;
 
@@ -329,7 +329,7 @@ impl Session {
 
         // trace!("ActivateSessionRequest = {:#?}", request);
 
-        let response = self.send_request(SupportedMessage::ActivateSessionRequest(request))?;
+        let response = self.send_request(request)?;
         if let SupportedMessage::ActivateSessionResponse(response) = response {
             // trace!("ActivateSessionResponse = {:#?}", response);
             Self::process_service_result(&response.response_header)?;
@@ -347,7 +347,7 @@ impl Session {
             locale_ids: None,
             server_uris: None,
         };
-        let response = self.send_request(SupportedMessage::FindServersRequest(request))?;
+        let response = self.send_request(request)?;
         if let SupportedMessage::FindServersResponse(response) = response {
             Self::process_service_result(&response.response_header)?;
             let servers = if let Some(servers) = response.servers {
@@ -366,7 +366,7 @@ impl Session {
             request_header: self.make_request_header(),
             server,
         };
-        let response = self.send_request(SupportedMessage::RegisterServerRequest(request))?;
+        let response = self.send_request(request)?;
         if let SupportedMessage::RegisterServerResponse(response) = response {
             Self::process_service_result(&response.response_header)?;
             Ok(())
@@ -386,7 +386,7 @@ impl Session {
             profile_uris: None,
         };
 
-        let response = self.send_request(SupportedMessage::GetEndpointsRequest(request))?;
+        let response = self.send_request(request)?;
         if let SupportedMessage::GetEndpointsResponse(response) = response {
             Self::process_service_result(&response.response_header)?;
             if response.endpoints.is_none() {
@@ -415,7 +415,7 @@ impl Session {
                 requested_max_references_per_node: 1000,
                 nodes_to_browse: Some(nodes_to_browse),
             };
-            let response = self.send_request(SupportedMessage::BrowseRequest(request))?;
+            let response = self.send_request(request)?;
             if let SupportedMessage::BrowseResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 Ok(response.results)
@@ -436,7 +436,7 @@ impl Session {
                 continuation_points: Some(continuation_points),
                 release_continuation_points,
             };
-            let response = self.send_request(SupportedMessage::BrowseNextRequest(request))?;
+            let response = self.send_request(request)?;
             if let SupportedMessage::BrowseNextResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 Ok(response.results)
@@ -461,7 +461,7 @@ impl Session {
                 nodes_to_read: Some(nodes_to_read),
             };
             trace!("ReadRequest = {:#?}", request);
-            let response = self.send_request(SupportedMessage::ReadRequest(request))?;
+            let response = self.send_request(request)?;
             if let SupportedMessage::ReadResponse(response) = response {
                 trace!("ReadResponse = {:#?}", response);
                 Self::process_service_result(&response.response_header)?;
@@ -483,7 +483,7 @@ impl Session {
                 request_header: self.make_request_header(),
                 nodes_to_write: Some(nodes_to_write),
             };
-            let response = self.send_request(SupportedMessage::WriteRequest(request))?;
+            let response = self.send_request(request)?;
             if let SupportedMessage::WriteResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 Ok(response.results)
@@ -508,7 +508,7 @@ impl Session {
             publishing_enabled,
             priority,
         };
-        let response = self.send_request(SupportedMessage::CreateSubscriptionRequest(request))?;
+        let response = self.send_request(request)?;
         if let SupportedMessage::CreateSubscriptionResponse(response) = response {
             Self::process_service_result(&response.response_header)?;
             let subscription = Subscription::new(response.subscription_id, response.revised_publishing_interval,
@@ -547,7 +547,7 @@ impl Session {
                 max_notifications_per_publish,
                 priority,
             };
-            let response = self.send_request(SupportedMessage::ModifySubscriptionRequest(request))?;
+            let response = self.send_request(request)?;
             if let SupportedMessage::ModifySubscriptionResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
@@ -577,7 +577,7 @@ impl Session {
                 request_header: self.make_request_header(),
                 subscription_ids: Some(vec![subscription_id]),
             };
-            let response = self.send_request(SupportedMessage::DeleteSubscriptionsRequest(request))?;
+            let response = self.send_request(request)?;
             if let SupportedMessage::DeleteSubscriptionsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 {
@@ -606,7 +606,7 @@ impl Session {
                 request_header: self.make_request_header(),
                 subscription_ids,
             };
-            let response = self.send_request(SupportedMessage::DeleteSubscriptionsRequest(request))?;
+            let response = self.send_request(request)?;
             if let SupportedMessage::DeleteSubscriptionsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 {
@@ -633,7 +633,7 @@ impl Session {
                 publishing_enabled,
                 subscription_ids: Some(subscription_ids.clone()),
             };
-            let response = self.send_request(SupportedMessage::SetPublishingModeRequest(request))?;
+            let response = self.send_request(request)?;
             if let SupportedMessage::SetPublishingModeResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 {
@@ -671,7 +671,7 @@ impl Session {
                 timestamps_to_return: TimestampsToReturn::Both,
                 items_to_create: Some(items_to_create.clone()),
             };
-            let response = self.send_request(SupportedMessage::CreateMonitoredItemsRequest(request))?;
+            let response = self.send_request(request)?;
             if let SupportedMessage::CreateMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 if let Some(ref results) = response.results {
@@ -716,7 +716,7 @@ impl Session {
                 timestamps_to_return: TimestampsToReturn::Both,
                 items_to_modify: Some(items_to_modify),
             };
-            let response = self.send_request(SupportedMessage::ModifyMonitoredItemsRequest(request))?;
+            let response = self.send_request(request)?;
             if let SupportedMessage::ModifyMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 if let Some(ref results) = response.results {
@@ -757,7 +757,7 @@ impl Session {
                 subscription_id,
                 monitored_item_ids: Some(items_to_delete.clone()),
             };
-            let response = self.send_request(SupportedMessage::DeleteMonitoredItemsRequest(request))?;
+            let response = self.send_request(request)?;
             if let SupportedMessage::DeleteMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 if let Some(_) = response.results {
@@ -768,6 +768,31 @@ impl Session {
             } else {
                 Err(Self::process_unexpected_response(response))
             }
+        }
+    }
+
+    /// Calls a single method on an object on the server via a call method request.
+    pub fn call_method<T>(&mut self, method: T) -> Result<CallMethodResult, StatusCode> where T: Into<CallMethodRequest> {
+        let methods_to_call = Some(vec![method.into()]);
+        let request = CallRequest {
+            request_header: self.make_request_header(),
+            methods_to_call,
+        };
+        let response = self.send_request(request)?;
+        if let SupportedMessage::CallResponse(response) = response {
+            if let Some(mut results) = response.results {
+                if results.len() != 1 {
+                    error!("Expecting a result from the call to the server, got {} results", results.len());
+                    Err(BadUnexpectedError)
+                } else {
+                    Ok(results.remove(0))
+                }
+            } else {
+                error!("Expecting a result from the call to the server, got nothing");
+                Err(BadUnexpectedError)
+            }
+        } else {
+            Err(Self::process_unexpected_response(response))
         }
     }
 
@@ -783,7 +808,7 @@ impl Session {
             request_header: self.make_request_header(),
             subscription_acknowledgements: if subscription_acknowledgements.is_empty() { None } else { Some(subscription_acknowledgements) },
         };
-        let response = self.send_request(SupportedMessage::PublishRequest(request))?;
+        let response = self.send_request(request)?;
         if let SupportedMessage::PublishResponse(response) = response {
             Self::process_service_result(&response.response_header)?;
             Ok(response)
@@ -792,7 +817,8 @@ impl Session {
         }
     }
 
-    fn send_request(&mut self, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
+    fn send_request<T>(&mut self, request: T) -> Result<SupportedMessage, StatusCode> where T: Into<SupportedMessage> {
+        let request = request.into();
         match request {
             SupportedMessage::OpenSecureChannelRequest(_) | SupportedMessage::CloseSecureChannelRequest(_) | SupportedMessage::CreateSessionRequest(_) => {}
             _ => {
@@ -804,7 +830,8 @@ impl Session {
         self.transport.send_request(request)
     }
 
-    fn async_send_request(&mut self, request: SupportedMessage) -> Result<UInt32, StatusCode> {
+    fn async_send_request<T>(&mut self, request: T) -> Result<UInt32, StatusCode> where T: Into<SupportedMessage> {
+        let request = request.into();
         match request {
             SupportedMessage::OpenSecureChannelRequest(_) | SupportedMessage::CloseSecureChannelRequest(_) => {}
             _ => {

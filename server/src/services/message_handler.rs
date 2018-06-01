@@ -7,6 +7,7 @@ use opcua_types::status_codes::StatusCode::*;
 use state::ServerState;
 use services::attribute::AttributeService;
 use services::discovery::DiscoveryService;
+use services::method::MethodService;
 use services::monitored_item::MonitoredItemService;
 use services::session::SessionService;
 use services::subscription::SubscriptionService;
@@ -28,6 +29,8 @@ pub struct MessageHandler {
     attribute_service: AttributeService,
     /// Discovery service
     discovery_service: DiscoveryService,
+    /// Method service
+    method_service: MethodService,
     /// MonitoredItem service
     monitored_item_service: MonitoredItemService,
     /// Session service
@@ -47,6 +50,7 @@ impl MessageHandler {
             address_space,
             attribute_service: AttributeService::new(),
             discovery_service: DiscoveryService::new(),
+            method_service: MethodService::new(),
             monitored_item_service: MonitoredItemService::new(),
             session_service: SessionService::new(),
             view_service: ViewService::new(),
@@ -195,6 +199,13 @@ impl MessageHandler {
                     Some(response)
                 } else {
                     Some(self.monitored_item_service.delete_monitored_items(&mut session, request)?)
+                }
+            }
+            SupportedMessage::CallRequest(request) => {
+                if let Err(response) = self.validate_request(&mut session, &request.request_header) {
+                    Some(response)
+                } else {
+                    Some(self.method_service.call(&mut session, request)?)
                 }
             }
             _ => {

@@ -9,7 +9,7 @@ use node_id::NodeId;
 use node_ids::ObjectId;
 use profiles;
 use service_types::{AnonymousIdentityToken, ApplicationType, DataChangeFilter, DataChangeTrigger, EndpointDescription, ReadValueId, ServiceFault, SignatureData, UserNameIdentityToken, UserTokenType};
-use service_types::{MonitoredItemCreateRequest, MonitoringParameters};
+use service_types::{MonitoredItemCreateRequest, MonitoringParameters, CallMethodRequest};
 use service_types::ApplicationDescription;
 use status_codes::StatusCode;
 use status_codes::StatusCode::*;
@@ -23,12 +23,6 @@ use variant::Variant;
 pub trait MessageInfo {
     /// The object id associated with the message
     fn object_id(&self) -> ObjectId;
-}
-
-impl Into<SupportedMessage> for ServiceFault {
-    fn into(self) -> SupportedMessage {
-        SupportedMessage::ServiceFault(self)
-    }
 }
 
 impl ServiceFault {
@@ -515,6 +509,16 @@ impl Default for MonitoringParameters {
             filter: ExtensionObject::null(),
             queue_size: 1,
             discard_oldest: true,
+        }
+    }
+}
+
+impl Into<CallMethodRequest> for (NodeId, NodeId, Option<Vec<Variant>>) {
+    fn into(self) -> CallMethodRequest {
+        CallMethodRequest {
+            object_id: self.0,
+            method_id: self.1,
+            input_arguments: self.2,
         }
     }
 }

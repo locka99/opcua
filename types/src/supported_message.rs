@@ -43,11 +43,22 @@ macro_rules! supported_message_as_ref_mut {
     }
 }
 
+macro_rules! impl_into_supported_message {
+    [ $( $i:ident, ) * ] => (impl_into_supported_message![ $( $i ),* ];);
+    [ $( $i:ident ), * ] => {
+        $(
+         impl Into<SupportedMessage> for $i {
+            fn into(self) -> SupportedMessage { SupportedMessage::$i(self) }
+         }
+        )*
+    };
+}
+
 /// This macro helps avoid tedious repetition as new messages are added
 /// The first form just handles the trailing comma after the last entry to save some pointless
 /// editing when new messages are added to the list.
-macro_rules! supported_messages {
-    [ $( $x:ident, ) * ] => (supported_messages![ $( $x ),* ];);
+macro_rules! supported_messages_enum {
+    [ $( $x:ident, ) * ] => (supported_messages_enum![ $( $x ),* ];);
     [ $( $x:ident ), * ] => {
         #[derive(Debug, PartialEq, Clone)]
         pub enum SupportedMessage {
@@ -234,6 +245,12 @@ impl SupportedMessage {
             ObjectId::RegisterServerResponse_Encoding_DefaultBinary => {
                 SupportedMessage::RegisterServerResponse(RegisterServerResponse::decode(stream)?)
             }
+            ObjectId::CallRequest_Encoding_DefaultBinary => {
+                SupportedMessage::CallRequest(CallRequest::decode(stream)?)
+            }
+            ObjectId::CallResponse_Encoding_DefaultBinary => {
+                SupportedMessage::CallResponse(CallResponse::decode(stream)?)
+            }
             _ => {
                 debug!("decoding unsupported for object id {:?}", object_id);
                 SupportedMessage::Invalid(object_id)
@@ -244,7 +261,7 @@ impl SupportedMessage {
 }
 
 // These are all the messages handled into and out of streams by the OPCUA server / client code
-supported_messages![
+supported_messages_enum![
     // A service fault, returned when the service failed
     ServiceFault,
     // Secure channel service
@@ -298,4 +315,67 @@ supported_messages![
     ReadResponse,
     WriteRequest,
     WriteResponse,
+    // Method service
+    CallRequest,
+    CallResponse,
+];
+
+// TODO it would be really nice to generate all this stuff
+impl_into_supported_message![
+    // A service fault, returned when the service failed
+    ServiceFault,
+    // Secure channel service
+    OpenSecureChannelRequest,
+    OpenSecureChannelResponse,
+    CloseSecureChannelRequest,
+    CloseSecureChannelResponse,
+    // Discovery service
+    GetEndpointsRequest,
+    GetEndpointsResponse,
+    FindServersRequest,
+    FindServersResponse,
+    RegisterServerRequest,
+    RegisterServerResponse,
+    // Session service
+    CreateSessionRequest,
+    CreateSessionResponse,
+    CloseSessionRequest,
+    CloseSessionResponse,
+    ActivateSessionRequest,
+    ActivateSessionResponse,
+    // MonitoredItem service
+    CreateMonitoredItemsRequest,
+    CreateMonitoredItemsResponse,
+    ModifyMonitoredItemsRequest,
+    ModifyMonitoredItemsResponse,
+    DeleteMonitoredItemsRequest,
+    DeleteMonitoredItemsResponse,
+    // Subscription service
+    CreateSubscriptionRequest,
+    CreateSubscriptionResponse,
+    ModifySubscriptionRequest,
+    ModifySubscriptionResponse,
+    DeleteSubscriptionsRequest,
+    DeleteSubscriptionsResponse,
+    SetPublishingModeRequest,
+    SetPublishingModeResponse,
+    // View service
+    BrowseRequest,
+    BrowseResponse,
+    BrowseNextRequest,
+    BrowseNextResponse,
+    PublishRequest,
+    PublishResponse,
+    RepublishRequest,
+    RepublishResponse,
+    TranslateBrowsePathsToNodeIdsRequest,
+    TranslateBrowsePathsToNodeIdsResponse,
+    // Attribute service
+    ReadRequest,
+    ReadResponse,
+    WriteRequest,
+    WriteResponse,
+    // Method service
+    CallRequest,
+    CallResponse,
 ];
