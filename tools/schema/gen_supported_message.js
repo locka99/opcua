@@ -19,17 +19,6 @@ use node_id::NodeId;
 use service_types::*;
 use node_ids::ObjectId;
 
-macro_rules! impl_into_supported_message {
-    [ $( $i:ident, ) * ] => (impl_into_supported_message![ $( $i ),* ];);
-    [ $( $i:ident ), * ] => {
-        $(
-         impl Into<SupportedMessage> for $i {
-            fn into(self) -> SupportedMessage { SupportedMessage::$i(self) }
-         }
-        )*
-    };
-}
-
 /// This macro helps avoid tedious repetition as new messages are added
 /// The first form just handles the trailing comma after the last entry to save some pointless
 /// editing when new messages are added to the list.
@@ -68,6 +57,12 @@ macro_rules! supported_messages_enum {
                 panic!("Cannot decode a stream to a supported message type");
             }
         }
+        
+        $(
+        impl Into<SupportedMessage> for $x {
+            fn into(self) -> SupportedMessage { SupportedMessage::$x(self) }
+        }
+        )*
 
         impl SupportedMessage {
             pub fn node_id(&self) -> NodeId {
@@ -115,17 +110,7 @@ supported_messages_enum![
     });
 
     contents += `];
-
-impl_into_supported_message![
 `;
-
-    _.each(message_types, function (message_type) {
-        contents += `    ${message_type},
-`;
-    });
-    contents += `];
-`;
-
 
     settings.write_to_file(file_path, contents);
 }

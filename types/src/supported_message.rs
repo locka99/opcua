@@ -8,17 +8,6 @@ use node_id::NodeId;
 use service_types::*;
 use node_ids::ObjectId;
 
-macro_rules! impl_into_supported_message {
-    [ $( $i:ident, ) * ] => (impl_into_supported_message![ $( $i ),* ];);
-    [ $( $i:ident ), * ] => {
-        $(
-         impl Into<SupportedMessage> for $i {
-            fn into(self) -> SupportedMessage { SupportedMessage::$i(self) }
-         }
-        )*
-    };
-}
-
 /// This macro helps avoid tedious repetition as new messages are added
 /// The first form just handles the trailing comma after the last entry to save some pointless
 /// editing when new messages are added to the list.
@@ -57,6 +46,12 @@ macro_rules! supported_messages_enum {
                 panic!("Cannot decode a stream to a supported message type");
             }
         }
+        
+        $(
+        impl Into<SupportedMessage> for $x {
+            fn into(self) -> SupportedMessage { SupportedMessage::$x(self) }
+        }
+        )*
 
         impl SupportedMessage {
             pub fn node_id(&self) -> NodeId {
@@ -228,56 +223,6 @@ impl SupportedMessage {
 
 // These are all the messages handled into and out of streams by the OPCUA server / client code
 supported_messages_enum![
-    ServiceFault,
-    OpenSecureChannelRequest,
-    OpenSecureChannelResponse,
-    CloseSecureChannelRequest,
-    CloseSecureChannelResponse,
-    GetEndpointsRequest,
-    GetEndpointsResponse,
-    FindServersRequest,
-    FindServersResponse,
-    RegisterServerRequest,
-    RegisterServerResponse,
-    CreateSessionRequest,
-    CreateSessionResponse,
-    CloseSessionRequest,
-    CloseSessionResponse,
-    ActivateSessionRequest,
-    ActivateSessionResponse,
-    CreateMonitoredItemsRequest,
-    CreateMonitoredItemsResponse,
-    ModifyMonitoredItemsRequest,
-    ModifyMonitoredItemsResponse,
-    DeleteMonitoredItemsRequest,
-    DeleteMonitoredItemsResponse,
-    CreateSubscriptionRequest,
-    CreateSubscriptionResponse,
-    ModifySubscriptionRequest,
-    ModifySubscriptionResponse,
-    DeleteSubscriptionsRequest,
-    DeleteSubscriptionsResponse,
-    SetPublishingModeRequest,
-    SetPublishingModeResponse,
-    BrowseRequest,
-    BrowseResponse,
-    BrowseNextRequest,
-    BrowseNextResponse,
-    PublishRequest,
-    PublishResponse,
-    RepublishRequest,
-    RepublishResponse,
-    TranslateBrowsePathsToNodeIdsRequest,
-    TranslateBrowsePathsToNodeIdsResponse,
-    ReadRequest,
-    ReadResponse,
-    WriteRequest,
-    WriteResponse,
-    CallRequest,
-    CallResponse,
-];
-
-impl_into_supported_message![
     ServiceFault,
     OpenSecureChannelRequest,
     OpenSecureChannelResponse,
