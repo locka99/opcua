@@ -16,6 +16,39 @@ extern crate uuid;
 extern crate url as url_external;
 extern crate base64;
 
+#[macro_export]
+macro_rules! supported_message_as {
+    ($v: expr, $i: ident) => {
+        if let SupportedMessage::$i(value) = $v {
+            value
+        } else {
+            panic!("Failed to get a supported message of type {}", stringify!($i));
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! supported_message_as_ref {
+    ($v: expr, $i: ident) => {
+        if let SupportedMessage::$i(ref value) = $v {
+            value
+        } else {
+            panic!("Failed to get a supported message of type {}", stringify!($i));
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! supported_message_as_ref_mut {
+    ($v: expr, $i: ident) => {
+        if let SupportedMessage::$i(ref mut v) = $v {
+            v
+        } else {
+            panic!("Failed to get a supported message of type {}", stringify!($i));
+        }
+    }
+}
+
 ///Contains constants recognized by OPC UA clients and servers to describe various protocols and
 /// profiles used during communication and encryption.
 pub mod profiles {
