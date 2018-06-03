@@ -12,7 +12,7 @@ use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 use string::*;
 
 /// The kind of identifier, numeric, string, guid or byte
-#[derive(Eq, PartialEq, Clone, Debug, Hash)]
+#[derive(Eq, PartialEq, Clone, Debug, Hash, Serialize, Deserialize)]
 pub enum Identifier {
     Numeric(UInt32),
     String(UAString),
@@ -57,7 +57,7 @@ impl From<ByteString> for Identifier {
 }
 
 /// An identifier for a node in the address space of an OPC UA Server.
-#[derive(PartialEq, Eq, Clone, Debug, Hash)]
+#[derive(PartialEq, Eq, Clone, Debug, Hash, Serialize, Deserialize)]
 pub struct NodeId {
     /// The index for a namespace
     pub namespace: UInt16,
@@ -379,7 +379,7 @@ impl NodeId {
 
 /// A NodeId that allows the namespace URI to be specified instead of an index.
 /// Data type ID 18
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct ExpandedNodeId {
     pub node_id: NodeId,
     pub namespace_uri: UAString,

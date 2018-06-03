@@ -8,7 +8,7 @@ use constants;
 use status_codes::StatusCode::{BadDecodingError, BadEncodingLimitsExceeded};
 
 /// A sequence of octets.
-#[derive(Eq, PartialEq, Debug, Clone, Hash)]
+#[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize)]
 pub struct ByteString {
     pub value: Option<Vec<u8>>,
 }

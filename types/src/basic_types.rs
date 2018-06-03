@@ -219,7 +219,7 @@ impl BinaryEncoder<Double> for Double {
 
 /// A name qualified by a namespace.
 /// Data type ID 20
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct QualifiedName {
     /// The namespace index.
     pub namespace_index: UInt16,
@@ -275,7 +275,7 @@ impl QualifiedName {
 
 /// Human readable text with an optional locale identifier
 /// Data type ID 21
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct LocalizedText {
     /// The locale. Omitted from stream if null or empty
     pub locale: UAString,
@@ -360,7 +360,7 @@ impl LocalizedText {
 }
 
 /// Enumeration that holds the kinds of encoding that an ExtensionObject data may be encoded with.
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub enum ExtensionObjectEncoding {
     /// For an extension object with nothing encoded with it
     None,
@@ -372,7 +372,7 @@ pub enum ExtensionObjectEncoding {
 
 /// A structure that contains an application specific data type that may not be recognized by the receiver.
 /// Data type ID 22
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct ExtensionObject {
     pub node_id: NodeId,
     pub body: ExtensionObjectEncoding,

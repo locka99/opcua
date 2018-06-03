@@ -6,7 +6,7 @@ use std::io::{Read, Write};
 
 use encoding::*;
 
-#[derive(PartialEq, Debug, Copy, Clone)]
+#[derive(PartialEq, Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum StatusCode {
     Good = 0,
     GoodSubscriptionTransferred = 0x002D0000,

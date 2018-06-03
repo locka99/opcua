@@ -1,6 +1,8 @@
 use std::io::{Read, Write};
+use std::str::FromStr;
 
 use chrono::{self, Utc, TimeZone, Datelike, Timelike};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use encoding::*;
 use basic_types::*;
@@ -12,13 +14,43 @@ const TICKS_PER_SECOND: i64 = NANOS_PER_SECOND / NANOS_PER_TICK;
 const MIN_YEAR: UInt16 = 1601;
 const MAX_YEAR: UInt16 = 9999;
 
+type UtcDateTime = chrono::DateTime<Utc>;
+
 /// Data type ID 13
 //
 /// Holds a date/time. This is a wrapper around the chrono type with extra functionality
 /// for obtaining ticks in OPC UA measurements, endtimes, epoch etc.
 #[derive(PartialEq, Debug, Clone)]
 pub struct DateTime {
-    pub date_time: chrono::DateTime<Utc>,
+    pub date_time: UtcDateTime,
+}
+
+impl Serialize for DateTime {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        self.date_time.to_string().serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for DateTime {
+    fn deserialize<D>(deserializer: D) -> Result<DateTime, D::Error> where D: Deserializer<'de>,
+    {
+        use serde::de::Error;
+        let result = String::deserialize(deserializer);
+        match result {
+            Ok(date_time) => {
+                if let Ok(date_time) = UtcDateTime::from_str(&date_time) {
+                    Ok(DateTime {
+                        date_time,
+                    })
+                } else {
+                    Err(D::Error::custom("Invalid date / time"))
+                }
+            }
+            Err(err) => {
+                Err(err)
+            }
+        }
+    }
 }
 
 /// DateTime encoded as 64-bit signed int
@@ -80,8 +112,8 @@ impl From<(UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt32)> for DateTime
     }
 }
 
-impl From<chrono::DateTime<Utc>> for DateTime {
-    fn from(date_time: chrono::DateTime<Utc>) -> Self {
+impl From<UtcDateTime> for DateTime {
+    fn from(date_time: UtcDateTime) -> Self {
         // OPC UA date time is more granular with nanos, so the value supplied is made granular too
         let year = date_time.year();
         let month = date_time.month();
@@ -116,8 +148,8 @@ impl Into<Int64> for DateTime {
     }
 }
 
-impl Into<chrono::DateTime<Utc>> for DateTime {
-    fn into(self) -> chrono::DateTime<Utc> {
+impl Into<UtcDateTime> for DateTime {
+    fn into(self) -> UtcDateTime {
         self.as_chrono()
     }
 }
@@ -189,18 +221,18 @@ impl DateTime {
     }
 
     /// Time as chrono
-    pub fn as_chrono(&self) -> chrono::DateTime<Utc> {
+    pub fn as_chrono(&self) -> UtcDateTime {
         self.date_time.clone()
     }
 
     /// The OPC UA epoch - Jan 1 1601 00:00:00
-    fn epoch_chrono() -> chrono::DateTime<Utc> {
+    fn epoch_chrono() -> UtcDateTime {
         Utc.ymd(MIN_YEAR as i32, 1, 1).and_hms(0, 0, 0)
     }
 
     /// The OPC UA endtimes - Dec 31 9999 23:59:59 i.e. the date after which dates are returned as MAX_INT64 ticks
     /// Spec doesn't say what happens in the last second before midnight...
-    fn endtimes_chrono() -> chrono::DateTime<Utc> {
+    fn endtimes_chrono() -> UtcDateTime {
         Utc.ymd(MAX_YEAR as i32, 12, 31).and_hms(23, 59, 59)
     }
 

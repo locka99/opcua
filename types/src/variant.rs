@@ -15,7 +15,7 @@ use string::{UAString, XmlElement};
 const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
 const ARRAY_VALUES_BIT: u8 = 1 << 7;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MultiDimensionArray {
     pub values: Vec<Variant>,
     pub dimensions: Vec<Int32>,
@@ -157,7 +157,7 @@ impl From<DataValue> for Variant {
 /// data values.
 ///
 /// Boxes are used for more complex types to keep the size of this enum down a bit.
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub enum Variant {
     /// Empty type has no value
     Empty,

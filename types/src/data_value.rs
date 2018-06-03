@@ -21,7 +21,7 @@ const HAS_SOURCE_PICOSECONDS: u8 = 0x10;
 const HAS_SERVER_PICOSECONDS: u8 = 0x20;
 
 /// Data type ID 23
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DataValue {
     /// The value. BaseDataType
     /// Not present if the Value bit in the EncodingMask is False.

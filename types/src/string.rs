@@ -14,7 +14,7 @@ use status_codes::StatusCode::{BadDecodingError, BadEncodingLimitsExceeded};
 /// To avoid naming conflict hell, the String type is named UAString.
 ///
 /// Data type ID 12
-#[derive(Eq, PartialEq, Debug, Clone, Hash)]
+#[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize)]
 pub struct UAString {
     pub value: Option<String>,
 }

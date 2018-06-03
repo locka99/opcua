@@ -2,6 +2,8 @@ use std::fmt;
 use std::str::FromStr;
 use std::io::{Read, Write};
 
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 use encoding::*;
 use uuid::Uuid;
 
@@ -10,6 +12,35 @@ use uuid::Uuid;
 #[derive(Eq, PartialEq, Clone, Hash)]
 pub struct Guid {
     uuid: Uuid,
+}
+
+impl Serialize for Guid {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        self.uuid.to_string().serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Guid {
+    fn deserialize<D>(deserializer: D) -> Result<Guid, D::Error> where D: Deserializer<'de>,
+    {
+        use serde::de::Error;
+
+        let result = String::deserialize(deserializer);
+        match result {
+            Ok(uuid) => {
+                if let Ok(uuid) = Uuid::parse_str(&uuid) {
+                    Ok(Guid {
+                        uuid,
+                    })
+                } else {
+                    Err(D::Error::custom("Invalid uuid"))
+                }
+            }
+            Err(err) => {
+                Err(err)
+            }
+        }
+    }
 }
 
 impl fmt::Debug for Guid {
