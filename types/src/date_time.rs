@@ -53,6 +53,12 @@ impl<'de> Deserialize<'de> for DateTime {
     }
 }
 
+impl ToString for DateTime {
+    fn to_string(&self) -> String {
+        self.date_time.to_string()
+    }
+}
+
 /// DateTime encoded as 64-bit signed int
 impl BinaryEncoder<DateTime> for DateTime {
     fn byte_len(&self) -> usize {

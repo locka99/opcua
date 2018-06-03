@@ -43,6 +43,12 @@ impl<'de> Deserialize<'de> for Guid {
     }
 }
 
+impl ToString for Guid {
+    fn to_string(&self) -> String {
+        self.uuid.to_string()
+    }
+}
+
 impl fmt::Debug for Guid {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.uuid.hyphenated())

@@ -18,6 +18,8 @@ extern crate rand;
 extern crate uuid;
 extern crate url as url_external;
 extern crate base64;
+#[cfg(test)]
+extern crate serde_json;
 
 #[macro_export]
 macro_rules! supported_message_as {
