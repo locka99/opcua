@@ -21,11 +21,29 @@ fn serialize_variant() {
     assert_eq!(vs, format!("{{\"Guid\":\"{}\"}}", guid_str));
 
     let dt = DateTime::now();
-    let dt_str = dt.to_string();
+    let ticks = dt.checked_ticks();
     let v = Variant::from(dt);
     let vs = serde_json::to_string(&v).unwrap();
     println!("v = {}", vs);
-    assert_eq!(vs, format!("{{\"DateTime\":\"{}\"}}", dt_str));
+    assert_eq!(vs, format!("{{\"DateTime\":{}}}", ticks));
+}
+
+#[test]
+fn serialize_deserialize_date_time() {
+    let dt1 = DateTime::now();
+    let vs = serde_json::to_string(&dt1).unwrap();
+    println!("date_time = {}", vs);
+    let dt2 = serde_json::from_str::<DateTime>(&vs).unwrap();
+    assert_eq!(dt1, dt2);
+}
+
+#[test]
+fn serialize_deserialize_guid() {
+    let g1 = Guid::new();
+    let vs = serde_json::to_string(&g1).unwrap();
+    println!("guid = {}", vs);
+    let g2: Guid = serde_json::from_str(&vs).unwrap();
+    assert_eq!(g1, g2);
 }
 
 #[test]
@@ -43,5 +61,5 @@ fn serialize_data_value() {
     let dvs = serde_json::to_string(&dv).unwrap();
     println!("dv = {}", dvs);
 
-    assert_eq!(dvs, format!("{{\"value\":{{\"UInt16\":100}},\"status\":\"BadAggregateListMismatch\",\"source_timestamp\":\"{}\",\"source_picoseconds\":123,\"server_timestamp\":\"{}\",\"server_picoseconds\":456}}", source_timestamp.to_string(), server_timestamp.to_string()));
+    assert_eq!(dvs, format!("{{\"value\":{{\"UInt16\":100}},\"status\":\"BadAggregateListMismatch\",\"source_timestamp\":{},\"source_picoseconds\":123,\"server_timestamp\":{},\"server_picoseconds\":456}}", source_timestamp.checked_ticks(), server_timestamp.checked_ticks()));
 }

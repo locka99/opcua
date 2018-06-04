@@ -1,5 +1,4 @@
 use std::io::{Read, Write};
-use std::str::FromStr;
 
 use chrono::{self, Utc, TimeZone, Datelike, Timelike};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -27,29 +26,16 @@ pub struct DateTime {
 
 impl Serialize for DateTime {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        self.date_time.to_string().serialize(serializer)
+        let ticks = self.checked_ticks();
+        ticks.serialize(serializer)
     }
 }
 
 impl<'de> Deserialize<'de> for DateTime {
     fn deserialize<D>(deserializer: D) -> Result<DateTime, D::Error> where D: Deserializer<'de>,
     {
-        use serde::de::Error;
-        let result = String::deserialize(deserializer);
-        match result {
-            Ok(date_time) => {
-                if let Ok(date_time) = UtcDateTime::from_str(&date_time) {
-                    Ok(DateTime {
-                        date_time,
-                    })
-                } else {
-                    Err(D::Error::custom("Invalid date / time"))
-                }
-            }
-            Err(err) => {
-                Err(err)
-            }
-        }
+        let ticks = i64::deserialize(deserializer)?;
+        Ok(DateTime::from(ticks))
     }
 }
 
