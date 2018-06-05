@@ -153,7 +153,7 @@ impl SecureChannelService {
             },
             server_nonce: secure_channel.local_nonce_as_byte_string(),
         };
-        Ok(SupportedMessage::OpenSecureChannelResponse(response))
+        Ok(response.into())
     }
 
     pub fn close_secure_channel(&mut self, _: &SupportedMessage) -> Result<SupportedMessage, StatusCode> {

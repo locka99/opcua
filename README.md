@@ -64,35 +64,38 @@ The server shall implement the OPC UA capabilities:
 The following services are supported:
 
 * Discovery service set
-    * GetEndpoints
+  * GetEndpoints
 
 * Attribute service set
-    * Read
-    * Write
+  * Read
+  * Write
 
 * Session service set
-    * CreateSession
-    * ActivateSession
-    * CloseSession
+  * CreateSession
+  * ActivateSession
+  * CloseSession
 
 * View service set
-    * Browse
-    * BrowseNext
-    * TranslateBrowsePathsToNodeIds
+  * Browse
+  * BrowseNext
+  * TranslateBrowsePathsToNodeIds
 
 * MonitoredItem service set
-    * CreateMonitoredItems - Data change filter including dead band filtering. 
-    * ModifyMonitoredItems
-    * DeleteMonitoredItems
-    * SetMonitoringMode
+  * CreateMonitoredItems - Data change filter including dead band filtering. 
+  * ModifyMonitoredItems
+  * DeleteMonitoredItems
+  * SetMonitoringMode
 
 * Subscription service set
-    * CreateSubscription
-    * ModifySubscription
-    * DeleteSubscriptions
-    * Publish
-    * Republish
-    * SetPublishingMode
+  * CreateSubscription
+  * ModifySubscription
+  * DeleteSubscriptions
+  * Publish
+  * Republish
+  * SetPublishingMode
+    
+* Method service set
+  * Call
 
 Other service calls are unsupported. Calling an unsupported service will terminate the session. 
 

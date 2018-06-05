@@ -1,18 +1,22 @@
-use address_space::AttrFnGetter;
-use address_space::node::{Node, NodeType};
-use address_space::object::Object;
-use address_space::variable::Variable;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex, RwLock};
+
 use chrono::Utc;
-use constants;
-use DateTimeUtc;
+
 use opcua_types::*;
 use opcua_types::node_ids::*;
 use opcua_types::service_types::{BrowseDirection, RelativePath, RelativePathElement, ServerDiagnosticsSummaryDataType};
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
+use opcua_types::service_types::{CallMethodRequest, CallMethodResult};
+
+use address_space::AttrFnGetter;
+use address_space::node::{Node, NodeType};
+use address_space::object::Object;
+use address_space::variable::Variable;
 use state::ServerState;
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex, RwLock};
+use constants;
+use DateTimeUtc;
 
 /// The `NodeId` is the target node. The reference is held in a list by the source node.
 /// The target node does not need to exist.
@@ -31,17 +35,27 @@ impl Reference {
     }
 }
 
+type MethodCallback = Box<Fn(&AddressSpace, &CallMethodRequest) -> CallMethodResult + Send + Sync + 'static>;
+
+#[derive(PartialEq, Eq, Clone, Debug, Hash)]
+struct MethodKey {
+    object_id: NodeId,
+    method_id: NodeId,
+}
+
 /// The address space holds references between nodes. It is populated with some standard nodes
 /// and any that the server implementation chooses to add for itself.
 pub struct AddressSpace {
     /// A map of all the nodes that are part of the address space
-    pub node_map: HashMap<NodeId, NodeType>,
+    node_map: HashMap<NodeId, NodeType>,
     /// A map of references between nodes
-    pub references: HashMap<NodeId, Vec<Reference>>,
+    references: HashMap<NodeId, Vec<Reference>>,
     /// A map of inverse references between nodes
-    pub inverse_references: HashMap<NodeId, Vec<Reference>>,
+    inverse_references: HashMap<NodeId, Vec<Reference>>,
     /// This is the last time that references to nodes were added or removed from the address space.
-    pub last_modified: DateTimeUtc,
+    last_modified: DateTimeUtc,
+    /// Method handlers
+    method_handlers: HashMap<MethodKey, MethodCallback>,
 }
 
 impl AddressSpace {
@@ -52,11 +66,15 @@ impl AddressSpace {
             references: HashMap::new(),
             inverse_references: HashMap::new(),
             last_modified: Utc::now(),
+            method_handlers: HashMap::new(),
         };
         address_space.add_default_nodes();
         address_space
     }
 
+    pub fn last_modified(&self) -> DateTimeUtc {
+        self.last_modified.clone()
+    }
 
     /// Sets values for nodes representing the server.
     pub fn set_server_state(&mut self, server_state: Arc<RwLock<ServerState>>) {
@@ -195,6 +213,21 @@ impl AddressSpace {
             //    ProductName
             //    ProductUri
             //    SoftwareVersion
+        }
+
+        // Server method handlers
+
+        let server_object_id: NodeId = ObjectId::Server.into();
+        {
+            self.register_method_handler(&server_object_id, &MethodId::GetMonitoredItemsMethodType.into(), Box::new(|address_space, request| {
+                debug!("Method handler for GetMonitoredItems");
+                CallMethodResult {
+                    status_code: BadMethodInvalid,
+                    input_argument_results: None,
+                    input_argument_diagnostic_infos: None,
+                    output_arguments: None,
+                }
+            }));
         }
     }
 
@@ -427,6 +460,78 @@ impl AddressSpace {
     /// value was set and false otherwise.
     pub fn set_value_by_variable_id(&mut self, variable_id: VariableId, value: Variant) -> bool {
         self.set_value_by_node_id(&variable_id.into(), value)
+    }
+
+    /// Registers a method callback on the specified object id and method id
+    pub fn register_method_handler(&mut self, object_id: &NodeId, method_id: &NodeId, handler: MethodCallback) -> Option<MethodCallback> {
+        let key = MethodKey {
+            object_id: object_id.clone(),
+            method_id: method_id.clone(),
+        };
+        self.method_handlers.insert(key, handler)
+    }
+
+    /// Calls a method node with the supplied request and expecting a result.
+    ///
+    /// Calls require a registered handler to handle the method. If there is no handler, or if
+    /// the request refers to a non existent object / method, the function will return an error.
+    pub fn call_method(&self, request: &CallMethodRequest) -> CallMethodResult {
+        let object_id = &request.object_id;
+        let method_id = &request.method_id;
+
+        // Get the node...
+        let status_code = if self.find_node(&object_id).is_some() {
+            // Validate that the method id exists and is of type method
+            if let Some(method_node) = self.find_node(&method_id) {
+                match method_node {
+                    NodeType::Method(_) => {
+                        // Get the references of the object
+                        if let Some(references) = self.references.get(&object_id) {
+                            // Ensure the object has the method as a component
+                            if references.iter().find(|r| {
+                                r.reference_type_id == ReferenceTypeId::HasComponent && r.node_id == *method_id
+                            }).is_some() {
+                                // Find the handler for this method call
+                                let key = MethodKey {
+                                    object_id: object_id.clone(),
+                                    method_id: method_id.clone(),
+                                };
+                                if let Some(handler) = self.method_handlers.get(&key) {
+                                    // Call the handler
+                                    trace!("Method call to {:?} on {:?} being handled by a registered handler", method_id, object_id);
+                                    return handler(self, request);
+                                }
+
+                                // TODO we could do a secondary search on a (NodeId::null(), method_id) here
+                                // so that method handler is reusabled for multiple objects
+
+                                error!("Method call to {:?} on {:?} with no handler", method_id, object_id);
+                            } else {
+                                error!("Method call to {:?} on {:?} with no HasComponent reference", method_id, object_id);
+                            }
+                        } else {
+                            error!("Method call to {:?} on {:?} but object has no references", method_id, object_id);
+                        }
+                    }
+                    _ => {
+                        error!("Method call to {:?} on {:?} but the method is not a method node!", method_id, object_id);
+                    }
+                }
+            }
+            BadMethodInvalid
+        } else {
+            error!("Method call to {:?} on {:?} but the node id is not recognized!", method_id, object_id);
+            BadNodeIdUnknown
+        };
+
+        // This is the error response when there is a problem with the object, node or there
+        // is no handler for the object / method
+        CallMethodResult {
+            status_code,
+            input_argument_results: None,
+            input_argument_diagnostic_infos: None,
+            output_arguments: None,
+        }
     }
 
     fn reference_type_matches(&self, r1: ReferenceTypeId, r2: ReferenceTypeId, include_subtypes: bool) -> bool {

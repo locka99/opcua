@@ -27,7 +27,7 @@ impl MonitoredItemService {
                     results,
                     diagnostic_infos: None
                 };
-                Ok(SupportedMessage::CreateMonitoredItemsResponse(response))
+                Ok(response.into())
             } else {
                 // No matching subscription
                 Ok(self.service_fault(&request.request_header, BadSubscriptionIdInvalid))
@@ -49,7 +49,7 @@ impl MonitoredItemService {
                     results,
                     diagnostic_infos: None
                 };
-                Ok(SupportedMessage::ModifyMonitoredItemsResponse(response))
+                Ok(response.into())
             } else {
                 // No matching subscription
                 Ok(self.service_fault(&request.request_header, BadSubscriptionIdInvalid))
@@ -72,7 +72,7 @@ impl MonitoredItemService {
                     results,
                     diagnostic_infos
                 };
-                Ok(SupportedMessage::DeleteMonitoredItemsResponse(response))
+                Ok(response.into())
             } else {
                 // No matching subscription
                 Ok(self.service_fault(&request.request_header, BadSubscriptionIdInvalid))

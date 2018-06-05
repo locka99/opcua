@@ -97,6 +97,8 @@ pub mod constants {
     pub const MAX_HISTORY_CONTINUATION_POINTS: usize = 0;
     /// Maximum query continuation points
     pub const MAX_QUERY_CONTINUATION_POINTS: usize = 0;
+    /// Maximum method calls per request
+    pub const MAX_METHOD_CALLS: usize = 10;
 }
 
 #[cfg(test)]

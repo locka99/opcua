@@ -38,13 +38,13 @@ impl SubscriptionService {
             subscriptions.insert(subscription_id, subscription);
 
             // Create the response
-            SupportedMessage::CreateSubscriptionResponse(CreateSubscriptionResponse {
+            CreateSubscriptionResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
                 subscription_id,
                 revised_publishing_interval,
                 revised_lifetime_count,
                 revised_max_keep_alive_count,
-            })
+            }.into()
         };
         Ok(response)
     }
@@ -76,7 +76,7 @@ impl SubscriptionService {
             }
         };
 
-        Ok(SupportedMessage::ModifySubscriptionResponse(response))
+        Ok(response.into())
     }
 
     /// Handles a DeleteSubscriptionsRequest
@@ -105,7 +105,7 @@ impl SubscriptionService {
                 results,
                 diagnostic_infos,
             };
-            Ok(SupportedMessage::DeleteSubscriptionsResponse(response))
+            Ok(response.into())
         }
     }
 
@@ -135,7 +135,7 @@ impl SubscriptionService {
                 results,
                 diagnostic_infos,
             };
-            Ok(SupportedMessage::SetPublishingModeResponse(response))
+            Ok(response.into())
         }
     }
 
@@ -165,7 +165,7 @@ impl SubscriptionService {
                 response_header: ResponseHeader::new_good(&request.request_header),
                 notification_message,
             };
-            Ok(SupportedMessage::RepublishResponse(response))
+            Ok(response.into())
         } else {
             Ok(self.service_fault(&request.request_header, result.unwrap_err()))
         }

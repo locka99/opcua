@@ -20,6 +20,6 @@ impl BrowseContinuationPoint {
     /// Test if the continuation point valid which is only true if address space has not been
     /// modified since the point was made.
     pub fn is_valid_browse_continuation_point(&self, address_space: &AddressSpace) -> bool {
-        self.address_space_last_modified >= address_space.last_modified
+        self.address_space_last_modified >= address_space.last_modified()
     }
 }

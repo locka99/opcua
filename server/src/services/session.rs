@@ -92,7 +92,7 @@ impl SessionService {
             session.client_certificate = client_certificate;
             session.session_nonce = server_nonce.clone();
 
-            SupportedMessage::CreateSessionResponse(CreateSessionResponse {
+            CreateSessionResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
                 session_id,
                 authentication_token,
@@ -103,7 +103,7 @@ impl SessionService {
                 server_software_certificates: None,
                 server_signature,
                 max_request_message_size,
-            })
+            }.into()
         };
         Ok(response)
     }
@@ -137,12 +137,12 @@ impl SessionService {
             session.activated = true;
             session.session_nonce = server_nonce;
             let diagnostic_infos = None;
-            SupportedMessage::ActivateSessionResponse(ActivateSessionResponse {
+            ActivateSessionResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
                 server_nonce: session.session_nonce.clone(),
                 results: None,
                 diagnostic_infos,
-            })
+            }.into()
         } else {
             self.service_fault(&request.request_header, service_result)
         };
@@ -156,7 +156,7 @@ impl SessionService {
         let response = CloseSessionResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
         };
-        Ok(SupportedMessage::CloseSessionResponse(response))
+        Ok(response.into())
     }
 
     /// Verifies that the supplied client signature was produced by the session's client certificate

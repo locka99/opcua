@@ -17,11 +17,11 @@ ASPIRATIONAL - a short list of things that would be nice to implement
     - Add client side encryption for security policies & modes other than None
     - Simple-client sample takes arguments to change what config to read and to set which endpoint to use.
     - Moved discovery / endpoints / connection into a helper to save writing that in every client
-    - (IN PROGRESS) Better failure behaviour when server goes down or becomes unreachable
+    - Better failure behaviour when server goes down or becomes unreachable
   - Server side
     - If discovery_server_url property is set in the config the server shall attempt to periodically
       register itself with a discovery server. Note that the server uses the strongest endpoint to talk to the discovery
-      server so you might have to do some work in the ds pki dir to ensure your server is trusted.
+      server so you may have to make your discovery server trust the server's public cert.
     - The server network IO is rewritten using tokio and futures. Sessions move from being a thread each with its own
       synchronous IO to sharing threads and asynchronous IO. It should be more scalable. The downside is writing
       asynchronous code is a steep learning curve.
@@ -30,6 +30,7 @@ ASPIRATIONAL - a short list of things that would be nice to implement
     - The server provides a basic web api which can be enabled through code. See the demo_server/ sample which
       starts a server on localhost:8585
     - Finer grained locking around some structures where only read access is required
+    - Implement Method::Call() service. Add a callback framework to address space allowing methods to be implemented.
 
 ## 0.3
   - General

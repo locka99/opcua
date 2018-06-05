@@ -24,7 +24,7 @@ impl DiscoveryService {
             endpoints,
         };
 //        error!("Endpoint response = {:#?}", response);
-        Ok(SupportedMessage::GetEndpointsResponse(response))
+        Ok(response.into())
     }
 }
 

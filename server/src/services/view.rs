@@ -53,7 +53,7 @@ impl ViewService {
             diagnostic_infos,
         };
 
-        Ok(SupportedMessage::BrowseResponse(response))
+        Ok(response.into())
     }
 
     pub fn browse_next(&self, session: &mut Session, address_space: &AddressSpace, request: BrowseNextRequest) -> Result<SupportedMessage, StatusCode> {
@@ -78,7 +78,7 @@ impl ViewService {
                 results,
                 diagnostic_infos,
             };
-            Ok(SupportedMessage::BrowseNextResponse(response))
+            Ok(response.into())
         }
     }
 
@@ -136,7 +136,7 @@ impl ViewService {
             diagnostic_infos: None,
         };
 
-        Ok(SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(response))
+        Ok(response.into())
     }
 
     fn browse_nodes(session: &mut Session, address_space: &AddressSpace, nodes_to_browse: &[BrowseDescription], max_references_per_node: usize) -> Vec<BrowseResult> {
@@ -296,7 +296,7 @@ impl ViewService {
             let continuation_point = ByteString::random(6);
             session.add_browse_continuation_point(BrowseContinuationPoint {
                 id: continuation_point.clone(),
-                address_space_last_modified: address_space.last_modified.clone(),
+                address_space_last_modified: address_space.last_modified(),
                 max_references_per_node,
                 starting_index: ending_index,
                 reference_descriptions: Arc::new(Mutex::new(reference_descriptions.to_vec()))

@@ -4,8 +4,9 @@ use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::service_types::*;
 
+use address_space::address_space::AddressSpace;
 use services::Service;
-use session::Session;
+use constants;
 
 pub struct MethodService {}
 
@@ -16,26 +17,22 @@ impl MethodService {
         MethodService {}
     }
 
-    pub fn call(&self, session: &mut Session, request: CallRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn call(&self, address_space: &AddressSpace, request: CallRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(calls) = request.methods_to_call {
-            // TODO for each call
-            {
-                // get the object id
-                // BadNodeIdUnknown
-
-                // look for the corresponding method id
-                // BadMethodInvalid
-                // BadNodeIdUnknown
-
-                // look up method implementation in some kind of table
-
-                // invoke the method
-
-                // produce a call result
+            if calls.len() >= constants::MAX_METHOD_CALLS {
+                return Ok(self.service_fault(&request.request_header, StatusCode::BadTooManyOperations));
+            } else {
+                let results: Vec<CallMethodResult> = calls.iter().map(|request| {
+                    address_space.call_method(request)
+                }).collect();
+                // Produce response
+                let response = CallResponse {
+                    response_header: ResponseHeader::new_good(&request.request_header),
+                    results: Some(results),
+                    diagnostic_infos: None,
+                };
+                Ok(response.into())
             }
-            // Produce response
-
-            Err(StatusCode::BadNotImplemented)
         } else {
             warn!("Call has nothing to do");
             return Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo));

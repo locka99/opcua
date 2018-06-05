@@ -53,7 +53,7 @@ impl AttributeService {
             diagnostic_infos,
         };
 
-        Ok(SupportedMessage::ReadResponse(response))
+        Ok(response.into())
     }
 
     fn read_node_value(address_space: &AddressSpace, node_to_read: &ReadValueId, timestamps_to_return: TimestampsToReturn) -> DataValue {
@@ -146,7 +146,7 @@ impl AttributeService {
             diagnostic_infos,
         };
 
-        Ok(SupportedMessage::WriteResponse(response))
+        Ok(response.into())
     }
 
     fn write_node_value(address_space: &mut AddressSpace, node_to_write: &WriteValue) -> StatusCode {
