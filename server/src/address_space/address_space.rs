@@ -15,6 +15,7 @@ use address_space::node::{Node, NodeType};
 use address_space::object::Object;
 use address_space::variable::Variable;
 use state::ServerState;
+use session::Session;
 use constants;
 use DateTimeUtc;
 
@@ -35,7 +36,7 @@ impl Reference {
     }
 }
 
-type MethodCallback = Box<Fn(&AddressSpace, &CallMethodRequest) -> CallMethodResult + Send + Sync + 'static>;
+type MethodCallback = Box<Fn(&AddressSpace, &ServerState, &Session, &CallMethodRequest) -> CallMethodResult + Send + Sync + 'static>;
 
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
 struct MethodKey {
@@ -219,7 +220,7 @@ impl AddressSpace {
 
         let server_object_id: NodeId = ObjectId::Server.into();
         {
-            self.register_method_handler(&server_object_id, &MethodId::GetMonitoredItemsMethodType.into(), Box::new(|address_space, request| {
+            self.register_method_handler(&server_object_id, &MethodId::GetMonitoredItemsMethodType.into(), Box::new(|_, _, _, request| {
                 debug!("Method handler for GetMonitoredItems");
                 CallMethodResult {
                     status_code: BadMethodInvalid,
@@ -475,7 +476,7 @@ impl AddressSpace {
     ///
     /// Calls require a registered handler to handle the method. If there is no handler, or if
     /// the request refers to a non existent object / method, the function will return an error.
-    pub fn call_method(&self, request: &CallMethodRequest) -> CallMethodResult {
+    pub fn call_method(&self, server_state: &ServerState, session: &Session, request: &CallMethodRequest) -> CallMethodResult {
         let object_id = &request.object_id;
         let method_id = &request.method_id;
 
@@ -499,7 +500,7 @@ impl AddressSpace {
                                 if let Some(handler) = self.method_handlers.get(&key) {
                                     // Call the handler
                                     trace!("Method call to {:?} on {:?} being handled by a registered handler", method_id, object_id);
-                                    return handler(self, request);
+                                    return handler(self, server_state, session, request);
                                 }
 
                                 // TODO we could do a secondary search on a (NodeId::null(), method_id) here

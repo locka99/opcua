@@ -6,6 +6,8 @@ use opcua_types::service_types::*;
 
 use address_space::address_space::AddressSpace;
 use services::Service;
+use session::Session;
+use state::ServerState;
 use constants;
 
 pub struct MethodService {}
@@ -17,13 +19,13 @@ impl MethodService {
         MethodService {}
     }
 
-    pub fn call(&self, address_space: &AddressSpace, request: CallRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn call(&self, address_space: &AddressSpace, server_state: &ServerState, session: &Session, request: CallRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(calls) = request.methods_to_call {
             if calls.len() >= constants::MAX_METHOD_CALLS {
                 return Ok(self.service_fault(&request.request_header, StatusCode::BadTooManyOperations));
             } else {
                 let results: Vec<CallMethodResult> = calls.iter().map(|request| {
-                    address_space.call_method(request)
+                    address_space.call_method(server_state, session, request)
                 }).collect();
                 // Produce response
                 let response = CallResponse {
