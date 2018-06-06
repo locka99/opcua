@@ -72,3 +72,4 @@ pub mod session;
 pub mod monitored_item;
 pub mod subscription;
 pub mod view;
+pub mod method;

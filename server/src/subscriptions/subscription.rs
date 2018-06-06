@@ -220,6 +220,14 @@ impl Subscription {
         }).collect()
     }
 
+    // Returns two vecs representing the server and client handles for each monitored item.
+    // Called from the GetMonitoredItems impl
+    pub fn get_handles(&self) -> (Vec<UInt32>, Vec<UInt32>) {
+        let server_handles: Vec<UInt32> = self.monitored_items.values().map(|i| i.monitored_item_id).collect();
+        let client_handles: Vec<UInt32> = self.monitored_items.values().map(|i| i.client_handle).collect();
+        (server_handles, client_handles)
+    }
+
     /// Checks the subscription and monitored items for state change, messages. If the tick does
     /// nothing, the function returns None. Otherwise it returns one or more messages in an Vec.
     pub fn tick(&mut self, address_space: &AddressSpace, tick_reason: TickReason, publishing_req_queued: bool, now: &DateTimeUtc) -> Option<NotificationMessage> {

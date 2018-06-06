@@ -25,7 +25,21 @@ impl MethodService {
                 return Ok(self.service_fault(&request.request_header, StatusCode::BadTooManyOperations));
             } else {
                 let results: Vec<CallMethodResult> = calls.iter().map(|request| {
-                    address_space.call_method(server_state, session, request)
+                    trace!("Calling to {:?} on {:?}", request.method_id, request.object_id);
+                    // Call the method via whatever is registered in the address space
+                    match address_space.call_method(server_state, session, request) {
+                        Ok(response) => response,
+                        Err(status_code) => {
+                            // Call didn't work for some reason
+                            error!("Call to {:?} on {:?} failed with status code {:?}", request.method_id, request.object_id, status_code);
+                            CallMethodResult {
+                                status_code,
+                                input_argument_results: None,
+                                input_argument_diagnostic_infos: None,
+                                output_arguments: None,
+                            }
+                        }
+                    }
                 }).collect();
                 // Produce response
                 let response = CallResponse {

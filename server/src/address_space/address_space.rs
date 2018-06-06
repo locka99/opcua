@@ -36,7 +36,7 @@ impl Reference {
     }
 }
 
-type MethodCallback = Box<Fn(&AddressSpace, &ServerState, &Session, &CallMethodRequest) -> CallMethodResult + Send + Sync + 'static>;
+type MethodCallback = Box<Fn(&AddressSpace, &ServerState, &Session, &CallMethodRequest) -> Result<CallMethodResult, StatusCode> + Send + Sync + 'static>;
 
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
 struct MethodKey {
@@ -219,16 +219,44 @@ impl AddressSpace {
         // Server method handlers
 
         let server_object_id: NodeId = ObjectId::Server.into();
-        {
-            self.register_method_handler(&server_object_id, &MethodId::GetMonitoredItemsMethodType.into(), Box::new(|_, _, _, request| {
-                debug!("Method handler for GetMonitoredItems");
-                CallMethodResult {
-                    status_code: BadMethodInvalid,
-                    input_argument_results: None,
-                    input_argument_diagnostic_infos: None,
-                    output_arguments: None,
+        self.register_method_handler(&server_object_id, &MethodId::Server_GetMonitoredItems.into(), Box::new(Self::handle_get_monitored_items));
+    }
+
+    fn handle_get_monitored_items(_: &AddressSpace, _: &ServerState, session: &Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
+        debug!("Method handler for GetMonitoredItems");
+        // Expect arguments:
+        //   subscriptionId: UInt32
+        if let Some(ref input_arguments) = request.input_arguments {
+            if input_arguments.len() == 1 {
+                let arg1 = input_arguments.get(0).unwrap();
+                if let Variant::UInt32(subscription_id) = arg1 {
+                    if let Some(subscription) = session.subscriptions.subscriptions().get(&subscription_id) {
+                        // Response
+                        //   serverHandles: Vec<UInt32>
+                        //   clientHandles: Vec<UInt32>
+                        let (server_handles, client_handles) = subscription.get_handles();
+                        Ok(CallMethodResult {
+                            status_code: Good,
+                            input_argument_results: Some(vec![Good]),
+                            input_argument_diagnostic_infos: None,
+                            output_arguments: Some(vec![server_handles.into(), client_handles.into()]),
+                        })
+                    } else {
+                        // Subscription id does not exist
+                        // Note we could check other sessions for a matching id and return BadUserAccessDenied in that case
+                        Err(BadSubscriptionIdInvalid)
+                    }
+                } else {
+                    // Argument is not the right type
+                    Err(BadInvalidArgument)
                 }
-            }));
+            } else {
+                // Too many args
+                Err(BadTooManyArguments)
+            }
+        } else {
+            // Args are missing
+            Err(BadArgumentsMissing)
         }
     }
 
@@ -472,67 +500,96 @@ impl AddressSpace {
         self.method_handlers.insert(key, handler)
     }
 
+    fn get_object_type_id(&self, object_id: &NodeId) -> Option<NodeId> {
+        if let Some(references) = self.references.get(&object_id) {
+            if let Some(reference) = references.iter().find(|r| {
+                r.reference_type_id == ReferenceTypeId::HasTypeDefinition
+            }) {
+                Some(reference.node_id.clone())
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    fn method_exists_on_object(&self, object_id: &NodeId, method_id: &NodeId) -> bool {
+        // Get the object's type
+        if let Some(object_type_id) = self.get_object_type_id(&object_id) {
+            // Validate that the method id exists on the type
+            if let Some(method_node) = self.find_node(&method_id) {
+                match method_node {
+                    NodeType::Method(_) => {
+                        // Get the references of the object
+                        if let Some(references) = self.references.get(&object_type_id) {
+                            // Ensure the object has the method as a component
+                            if references.iter().find(|r| {
+                                r.reference_type_id == ReferenceTypeId::HasComponent && r.node_id == *method_id
+                            }).is_some() {
+                                true
+                            } else {
+                                error!("Method call to {:?} on {:?} with no HasComponent reference", method_id, object_id);
+                                false
+                            }
+                        } else {
+                            error!("Method call to {:?} on {:?} but object has no references", method_id, object_id);
+                            false
+                        }
+                    }
+                    _ => {
+                        error!("Method call to {:?} on {:?} but method id is not a method", method_id, object_id);
+                        false
+                    }
+                }
+            } else {
+                error!("Method call to {:?} on {:?} but the method id is not recognized!", method_id, object_id);
+                false
+            }
+        } else {
+            error!("Method call to {:?} on {:?} but the object id has no type!", method_id, object_id);
+            false
+        }
+    }
+
     /// Calls a method node with the supplied request and expecting a result.
     ///
     /// Calls require a registered handler to handle the method. If there is no handler, or if
     /// the request refers to a non existent object / method, the function will return an error.
-    pub fn call_method(&self, server_state: &ServerState, session: &Session, request: &CallMethodRequest) -> CallMethodResult {
+    pub fn call_method(&self, server_state: &ServerState, session: &Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
         let object_id = &request.object_id;
         let method_id = &request.method_id;
 
         // Get the node...
         let status_code = if self.find_node(&object_id).is_some() {
-            // Validate that the method id exists and is of type method
-            if let Some(method_node) = self.find_node(&method_id) {
-                match method_node {
-                    NodeType::Method(_) => {
-                        // Get the references of the object
-                        if let Some(references) = self.references.get(&object_id) {
-                            // Ensure the object has the method as a component
-                            if references.iter().find(|r| {
-                                r.reference_type_id == ReferenceTypeId::HasComponent && r.node_id == *method_id
-                            }).is_some() {
-                                // Find the handler for this method call
-                                let key = MethodKey {
-                                    object_id: object_id.clone(),
-                                    method_id: method_id.clone(),
-                                };
-                                if let Some(handler) = self.method_handlers.get(&key) {
-                                    // Call the handler
-                                    trace!("Method call to {:?} on {:?} being handled by a registered handler", method_id, object_id);
-                                    return handler(self, server_state, session, request);
-                                }
+            // Get the object...
+            if self.method_exists_on_object(object_id, method_id) {
 
-                                // TODO we could do a secondary search on a (NodeId::null(), method_id) here
-                                // so that method handler is reusabled for multiple objects
+                // TODO check security - session / user may not have permission to call methods
 
-                                error!("Method call to {:?} on {:?} with no handler", method_id, object_id);
-                            } else {
-                                error!("Method call to {:?} on {:?} with no HasComponent reference", method_id, object_id);
-                            }
-                        } else {
-                            error!("Method call to {:?} on {:?} but object has no references", method_id, object_id);
-                        }
-                    }
-                    _ => {
-                        error!("Method call to {:?} on {:?} but the method is not a method node!", method_id, object_id);
-                    }
+                // Find the handler for this method call
+                let key = MethodKey {
+                    object_id: object_id.clone(),
+                    method_id: method_id.clone(),
+                };
+                if let Some(handler) = self.method_handlers.get(&key) {
+                    // Call the handler
+                    trace!("Method call to {:?} on {:?} being handled by a registered handler", method_id, object_id);
+                    return handler(self, server_state, session, request);
                 }
+
+                // TODO we could do a secondary search on a (NodeId::null(), method_id) here
+                // so that method handler is reusable for multiple objects
+                error!("Method call to {:?} on {:?} with no handler", method_id, object_id);
+                BadMethodInvalid
+            } else {
+                BadMethodInvalid
             }
-            BadMethodInvalid
         } else {
             error!("Method call to {:?} on {:?} but the node id is not recognized!", method_id, object_id);
             BadNodeIdUnknown
         };
-
-        // This is the error response when there is a problem with the object, node or there
-        // is no handler for the object / method
-        CallMethodResult {
-            status_code,
-            input_argument_results: None,
-            input_argument_diagnostic_infos: None,
-            output_arguments: None,
-        }
+        Err(status_code)
     }
 
     fn reference_type_matches(&self, r1: ReferenceTypeId, r2: ReferenceTypeId, include_subtypes: bool) -> bool {
@@ -706,18 +763,10 @@ impl AddressSpace {
     }
 
     pub fn find_node(&self, node_id: &NodeId) -> Option<&NodeType> {
-        if self.node_map.contains_key(node_id) {
-            self.node_map.get(node_id)
-        } else {
-            None
-        }
+        self.node_map.get(node_id)
     }
 
     pub fn find_node_mut(&mut self, node_id: &NodeId) -> Option<&mut NodeType> {
-        if self.node_map.contains_key(node_id) {
-            self.node_map.get_mut(node_id)
-        } else {
-            None
-        }
+        self.node_map.get_mut(node_id)
     }
 }

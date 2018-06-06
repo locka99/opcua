@@ -153,6 +153,13 @@ impl From<DataValue> for Variant {
     }
 }
 
+impl Into<Variant> for Vec<UInt32> {
+    fn into(self) -> Variant {
+        let array: Vec<Variant> = self.iter().map(|v| Variant::from(*v)).collect();
+        Variant::Array(array)
+    }
+}
+
 /// A Variant holds all primitive types, including single and multi dimensional arrays and
 /// data values.
 ///
