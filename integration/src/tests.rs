@@ -1,15 +1,17 @@
-use chrono::Utc;
-// Integration tests are asynchronous so futures will be used
-use opcua_client::prelude::*;
-use opcua_core;
-use opcua_server;
-use opcua_server::prelude::*;
 use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};
 use std::sync::mpsc;
 use std::sync::mpsc::channel;
 use std::thread;
 use std::time;
+
+use chrono::Utc;
+
+// Integration tests are asynchronous so futures will be used
+use opcua_core;
+use opcua_server;
+use opcua_server::prelude::*;
+use opcua_client::prelude::*;
 
 fn new_client_server() -> (Client, Server) {
     opcua_core::init_logging();
@@ -271,12 +273,54 @@ fn get_endpoints() {
     // Connect to server and get a list of endpoints
 }
 
+fn connect_with(identity_token: IdentityToken, security_policy: SecurityPolicy, security_mode: MessageSecurityMode) {
+    // TODO connect establish a connection between the client and the server
+}
+
 #[test]
 fn connect_none_anonymous() {
     // Connect a session using None security policy and anonymous token.
+    connect_with(IdentityToken::Anonymous, SecurityPolicy::None, MessageSecurityMode::None);
 }
 
 #[test]
 fn connect_none_username_password() {
     // Connect a session using None security policy and username/password token
+    connect_with(IdentityToken::UserName("Foo".into(), "Password".into()), SecurityPolicy::None, MessageSecurityMode::None);
+}
+
+#[test]
+fn connect_basic128rsa15_sign() {
+    // Connect a session with Basic128Rsa and Sign
+    connect_with(IdentityToken::Anonymous, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign);
+}
+
+#[test]
+fn connect_basic128rsa15_sign_and_encrypt() {
+    // Connect a session with Basic128Rsa and SignAndEncrypt
+    connect_with(IdentityToken::Anonymous, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt);
+}
+
+#[test]
+fn connect_basic256_sign() {
+    // Connect a session with Basic256 and Sign
+    connect_with(IdentityToken::Anonymous, SecurityPolicy::Basic256, MessageSecurityMode::Sign);
+}
+
+#[test]
+fn connect_basic256_sign_and_encrypt() {
+    // Connect a session with Basic256 and SignAndEncrypt
+    connect_with(IdentityToken::Anonymous, SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt);
+}
+
+#[test]
+fn connect_basic256sha256_sign() {
+    // Connect a session with Basic256Sha256 and Sign
+    connect_with(IdentityToken::Anonymous, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign);
+}
+
+#[test]
+fn connect_basic256sha256_sign_and_encrypt() {
+    // Connect a session with Basic256Sha256 and SignAndEncrypt
+    connect_with(IdentityToken::Anonymous, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt);
 }

@@ -84,8 +84,8 @@ use address_space::types::*;
     var indent = "    ";
     var nodes = ns.data["UANodeSet"];
     if (_.has(nodes, "UAObject")) {
-        _.each(nodes["UAObject"], function (value) {
-            contents += insert_node(indent, "Object", value, "Object::new(&node_id, browse_name, display_name, description)");
+        _.each(nodes["UAObject"], function (node) {
+            contents += insert_node(indent, "Object", node, "Object::new(&node_id, browse_name, display_name, description)");
         });
     }
     if (_.has(nodes, "UAObjectType")) {
@@ -95,24 +95,24 @@ use address_space::types::*;
         });
     }
     if (_.has(nodes, "UADataType")) {
-        _.each(nodes["UADataType"], function (value) {
-            var is_abstract = _.has(value["$"], "IsAbstract") && value["$"]["IsAbstract"] === "true";
-            contents += insert_node(indent, "DataType", value, `DataType::new(&node_id, browse_name, display_name, description, ${is_abstract})`);
+        _.each(nodes["UADataType"], function (node) {
+            var is_abstract = _.has(node["$"], "IsAbstract") && node["$"]["IsAbstract"] === "true";
+            contents += insert_node(indent, "DataType", node, `DataType::new(&node_id, browse_name, display_name, description, ${is_abstract})`);
         });
     }
     if (_.has(nodes, "UAReferenceType")) {
-        _.each(nodes["UAReferenceType"], function (value) {
-            var is_abstract = _.has(value["$"], "IsAbstract") && value["$"]["IsAbstract"] === "true";
-            var inverse_name = _.has(value, "InverseName") ? `Some(LocalizedText::new("", "${value["InverseName"][0]}"))` : "None";
-            var symmetric = _.has(value["$"], "Symmetric") && value["$"]["Symmetric"] === "true";
-            contents += insert_node(indent, "DataType", value, `ReferenceType::new(&node_id, browse_name, display_name, description, ${inverse_name}, ${symmetric}, ${is_abstract})`);
+        _.each(nodes["UAReferenceType"], function (node) {
+            var is_abstract = _.has(node["$"], "IsAbstract") && node["$"]["IsAbstract"] === "true";
+            var inverse_name = _.has(node, "InverseName") ? `Some(LocalizedText::new("", "${node["InverseName"][0]}"))` : "None";
+            var symmetric = _.has(node["$"], "Symmetric") && node["$"]["Symmetric"] === "true";
+            contents += insert_node(indent, "DataType", node, `ReferenceType::new(&node_id, browse_name, display_name, description, ${inverse_name}, ${symmetric}, ${is_abstract})`);
         });
     }
     if (_.has(nodes, "UAVariable")) {
-        _.each(nodes["UAVariable"], function (value) {
+        _.each(nodes["UAVariable"], function (node) {
             var data_type = "DataTypeId::Boolean";
-            if (_.has(value["$"], "DataType")) {
-                data_type = value["$"]["DataType"];
+            if (_.has(node["$"], "DataType")) {
+                data_type = node["$"]["DataType"];
                 if (data_type.startsWith("i=")) {
                     data_type = `DataTypeId::from_u32(${data_type.substr(2)}u32).unwrap()`;
                 }
@@ -124,22 +124,22 @@ use address_space::types::*;
                 console.log("UAVariable has no data type???");
             }
             var data_value = "DataValue::null()";
-            contents += insert_node(indent, "Variable", value, `Variable::new_data_value(&node_id, browse_name, display_name, description, ${data_type}, ${data_value})`);
+            contents += insert_node(indent, "Variable", node, `Variable::new_data_value(&node_id, browse_name, display_name, description, ${data_type}, ${data_value})`);
         });
     }
     if (_.has(nodes, "UAVariableType")) {
-        _.each(nodes["UAVariableType"], function (value) {
-            var is_abstract = _.has(value["$"], "IsAbstract") && value["$"]["IsAbstract"] === "true";
-            var value_rank = _.has(value["$"], "ValueRank") ? value["$"]["ValueRank"] : -1;
-            contents += insert_node(indent, "VariableType", value, `VariableType::new(&node_id, browse_name, display_name, description, ${is_abstract}, ${value_rank})`);
+        _.each(nodes["UAVariableType"], function (node) {
+            var is_abstract = _.has(node["$"], "IsAbstract") && node["$"]["IsAbstract"] === "true";
+            var value_rank = _.has(node["$"], "ValueRank") ? node["$"]["ValueRank"] : -1;
+            contents += insert_node(indent, "VariableType", node, `VariableType::new(&node_id, browse_name, display_name, description, ${is_abstract}, ${value_rank})`);
         });
     }
     if (_.has(nodes, "UAMethod")) {
-        _.each(nodes["UAMethod"], function (value) {
-            var is_abstract = _.has(value["$"], "IsAbstract") && value["$"]["IsAbstract"] === "true";
+        _.each(nodes["UAMethod"], function (node) {
+            var is_abstract = _.has(node["$"], "IsAbstract") && node["$"]["IsAbstract"] === "true";
             var executable = false; // TODO
             var user_executable = false; // TODO
-            contents += insert_node(indent, "Method", value, `Method::new(&node_id, browse_name, display_name, description, ${is_abstract}, ${executable}, ${user_executable})`);
+            contents += insert_node(indent, "Method", node, `Method::new(&node_id, browse_name, display_name, description, ${is_abstract}, ${executable}, ${user_executable})`);
         });
     }
 
@@ -181,43 +181,75 @@ function node_id_ctor(snippet) {
     return `NodeId::new(0, ${snippet.substr(2)})`;
 }
 
-function insert_node(indent, node_type, value, node_ctor) {
+function insert_node(indent, node_type, node, node_ctor) {
     var contents = `${indent}{\n`;
     indent += "    ";
 
     contents += `${indent}// ${node_type}\n`;
 
-    var browse_name = _.has(value["$"], "BrowseName") ? value["$"]["BrowseName"] : "";
+    var browse_name = _.has(node["$"], "BrowseName") ? node["$"]["BrowseName"] : "";
     contents += `${indent}let browse_name = "${browse_name}";\n`;
-    var display_name = _.has(value, "DisplayName") ? value["DisplayName"][0] : "";
+    var display_name = _.has(node, "DisplayName") ? node["DisplayName"][0] : "";
     contents += `${indent}let display_name = "${display_name}";\n`;
-    var description = _.has(value, "Description") ? value["Description"][0] : "";
+    var description = _.has(node, "Description") ? node["Description"][0] : "";
     contents += `${indent}let description = "${description}";\n`;
 
-    contents += `${indent}let node_id = ${node_id_ctor(value["$"]["NodeId"])};\n`;
+    contents += `${indent}let node_id = ${node_id_ctor(node["$"]["NodeId"])};\n`;
     contents += `${indent}let node = ${node_ctor};\n`;
     contents += `${indent}address_space.insert(node);\n`;
 
     // Process references
-    if (_.has(value, "References")) {
-        contents += insert_references(indent, value["References"][0])
+    if (_.has(node, "References")) {
+        contents += insert_references(indent, node["References"][0])
     }
 
     // Organizes
-    if (_.has(value["$"], "ParentNodeId")) {
-        var parent_node_id = node_id_ctor(value["$"]["ParentNodeId"]);
+    if (_.has(node["$"], "ParentNodeId")) {
+        var parent_node_id = node_id_ctor(node["$"]["ParentNodeId"]);
         contents += `${indent}address_space.add_organizes(&${parent_node_id}, &node_id);\n`;
     }
 
     // Process definitions
-    if (_.has(value, "Definition")) {
+    if (_.has(node, "Definition")) {
         // TODO process Fields
     }
 
     // Process values
-    if (_.has(value, "Value")) {
-        // TODO process ListOfLocalizedText
-        // TODO process ListOfExtensionObject
+    if (_.has(node, "Value")) {
+        var value = node["Value"];
+
+        if (_.has(value, "ListOfLocalizedText")) {
+            // TODO process ListOfLocalizedText
+        }
+
+        if (_.has(value, "ListOfExtensionObject")) {
+            // Process ListOfExtensionObject - method args
+            var list = value["ListOfExtensionObject"];
+            _.each(list, function (extension_object) {
+                // TODO on a UAVariable,
+
+                // Create a value consisting an array of extension objects
+
+                // Each extension
+
+                /*
+                    <TypeId>
+                        <Identifier>i=297</Identifier>
+                    </TypeId>
+                    <Body>
+                        <Argument>
+                            <Name>FileHandle</Name>
+                            <DataType>
+                                <Identifier>i=7</Identifier>
+                            </DataType>
+                            <ValueRank>-1</ValueRank>
+                            <ArrayDimensions />
+                            <Description p5:nil="true" xmlns:p5="http://www.w3.org/2001/XMLSchema-instance" />
+                        </Argument>
+                    </Body>
+                */
+            });
+        }
     }
 
     // Process InverseName
