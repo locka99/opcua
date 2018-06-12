@@ -19,6 +19,53 @@ use session::Session;
 use constants;
 use DateTimeUtc;
 
+/// Searches for the specified node by type, expecting it to exist
+macro_rules! expect_and_find_node {
+    ($a: expr, $id: expr, $type: ident) => {
+        if let &NodeType::$type(ref node) = $a.find_node($id).unwrap() {
+            node
+        } else {
+            panic!("There should be a node of id {:?}!", $id);
+        }
+    }
+}
+
+/// Searches for the specified object node, expecting it to exist
+macro_rules! expect_and_find_object {
+    ($a: expr, $id:expr) => {
+        expect_and_find_node!($a, $id, Object)
+    }
+}
+
+/// Tests if the node of the expected type exists
+macro_rules! is_node {
+    ($a: expr, $id: expr, $type: ident) => {
+        if let Some(node) = $a.find_node($id) {
+            if let NodeType::$type(_) = node {
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+}
+
+/// Tests if the object node exists
+macro_rules! is_object {
+    ($a: expr, $id: expr) => {
+        is_node!($a, $id, Object)
+    }
+}
+
+/// Tests if the method node exists
+macro_rules! is_method {
+    ($a: expr, $id: expr) => {
+        is_node!($a, $id, Method)
+    }
+}
+
 /// The `NodeId` is the target node. The reference is held in a list by the source node.
 /// The target node does not need to exist.
 #[derive(Debug, Clone)]
@@ -292,35 +339,19 @@ impl AddressSpace {
     }
 
     pub fn root_folder(&self) -> &Object {
-        if let &NodeType::Object(ref node) = self.find_node(&AddressSpace::root_folder_id()).unwrap() {
-            node
-        } else {
-            panic!("There should be a root node!");
-        }
+        expect_and_find_object!(self, &AddressSpace::root_folder_id())
     }
 
     pub fn objects_folder(&self) -> &Object {
-        if let &NodeType::Object(ref node) = self.find_node(&AddressSpace::objects_folder_id()).unwrap() {
-            node
-        } else {
-            panic!("There should be an objects node!");
-        }
+        expect_and_find_object!(self, &AddressSpace::objects_folder_id())
     }
 
     pub fn types_folder(&self) -> &Object {
-        if let &NodeType::Object(ref node) = self.find_node(&AddressSpace::types_folder_id()).unwrap() {
-            node
-        } else {
-            panic!("There should be a types node!");
-        }
+        expect_and_find_object!(self, &AddressSpace::types_folder_id())
     }
 
     pub fn views_folder(&self) -> &Object {
-        if let &NodeType::Object(ref node) = self.find_node(&AddressSpace::views_folder_id()).unwrap() {
-            node
-        } else {
-            panic!("There should be a views node!");
-        }
+        expect_and_find_object!(self, &AddressSpace::views_folder_id())
     }
 
     pub fn insert<T>(&mut self, node: T) where T: 'static + Into<NodeType> {
@@ -492,16 +523,23 @@ impl AddressSpace {
     }
 
     /// Registers a method callback on the specified object id and method id
-    pub fn register_method_handler(&mut self, object_id: &NodeId, method_id: &NodeId, handler: MethodCallback) -> Option<MethodCallback> {
+    pub fn register_method_handler(&mut self, object_id: &NodeId, method_id: &NodeId, handler: MethodCallback) {
+        // Check the object id and method id actually exist as things in the address space
+        if !is_object!(self, object_id) || !is_method!(self, method_id) {
+            panic!("Invalid id {:?} / {:?} supplied to method handler", object_id, method_id)
+        }
         let key = MethodKey {
             object_id: object_id.clone(),
             method_id: method_id.clone(),
         };
-        self.method_handlers.insert(key, handler)
+        if let Some(_) = self.method_handlers.insert(key, handler) {
+            trace!("Registration replaced a previous callback");
+        }
     }
 
-    fn get_object_type_id(&self, object_id: &NodeId) -> Option<NodeId> {
-        if let Some(references) = self.references.get(&object_id) {
+    /// This finds the type definition (if any corresponding to the input object)
+    fn get_type_id(&self, node_id: &NodeId) -> Option<NodeId> {
+        if let Some(references) = self.references.get(&node_id) {
             if let Some(reference) = references.iter().find(|r| {
                 r.reference_type_id == ReferenceTypeId::HasTypeDefinition
             }) {
@@ -514,42 +552,38 @@ impl AddressSpace {
         }
     }
 
+    /// This gnarly code ensures the object exists, the method exists, the method is a method,
+    /// the object's type definition exists, the method's type definition exists and the object's
+    /// type definition points to the
+    /// method's type definition.
     fn method_exists_on_object(&self, object_id: &NodeId, method_id: &NodeId) -> bool {
         // Get the object's type
-        if let Some(object_type_id) = self.get_object_type_id(&object_id) {
+        if let Some(object_type_id) = self.get_type_id(&object_id) {
             // Validate that the method id exists on the type
-            if let Some(method_node) = self.find_node(&method_id) {
-                match method_node {
-                    NodeType::Method(_) => {
-                        // Get the references of the object
-                        if let Some(references) = self.references.get(&object_type_id) {
-                            // Ensure the object has the method as a component
-                            if references.iter().find(|r| {
-                                r.reference_type_id == ReferenceTypeId::HasComponent && r.node_id == *method_id
-                            }).is_some() {
-                                true
-                            } else {
-                                error!("Method call to {:?} on {:?} with no HasComponent reference", method_id, object_id);
-                                false
-                            }
-                        } else {
-                            error!("Method call to {:?} on {:?} but object has no references", method_id, object_id);
-                            false
-                        }
+            if let Some(references) = self.references.get(&object_type_id) {
+                if let Some(method_type_id) = self.get_type_id(&method_id) {
+                    // Ensure the object type has the method type as a component
+                    if references.iter().find(|r| {
+                        debug!("object_type_id {:?} -> {:?}", object_type_id, r);
+                        r.reference_type_id == ReferenceTypeId::HasComponent && r.node_id == method_type_id
+                    }).is_some() {
+                        // SUCCESS!
+                        return true;
+                    } else {
+                        error!("Method call to {:?} on {:?} with no HasComponent reference", method_id, object_id);
                     }
-                    _ => {
-                        error!("Method call to {:?} on {:?} but method id is not a method", method_id, object_id);
-                        false
-                    }
+                } else {
+                    error!("Method call to {:?} on {:?} but object type has no reference to method type", method_id, object_id);
                 }
             } else {
-                error!("Method call to {:?} on {:?} but the method id is not recognized!", method_id, object_id);
-                false
+                error!("Method call to {:?} on {:?} but the method id has no type definition!", method_id, object_id);
             }
         } else {
-            error!("Method call to {:?} on {:?} but the object id has no type!", method_id, object_id);
-            false
+            error!("Method call to {:?} on {:?} but the object id has no type definition!", method_id, object_id);
         }
+
+        // Failed
+        false
     }
 
     /// Calls a method node with the supplied request and expecting a result.
@@ -557,46 +591,45 @@ impl AddressSpace {
     /// Calls require a registered handler to handle the method. If there is no handler, or if
     /// the request refers to a non existent object / method, the function will return an error.
     pub fn call_method(&self, server_state: &ServerState, session: &Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
-        let object_id = &request.object_id;
-        let method_id = &request.method_id;
+        let (object_id, method_id) = (&request.object_id, &request.method_id);
 
-        // Get the node...
-        let status_code = if self.find_node(&object_id).is_some() {
-            // Get the object...
-            if self.method_exists_on_object(object_id, method_id) {
+        // Handle the call
+        if !is_object!(self, object_id) {
+            error!("Method call to {:?} on {:?} but the node id is not recognized!", method_id, object_id);
+            Err(BadNodeIdUnknown)
+        } else if !is_method!(self, method_id) {
+            error!("Method call to {:?} on {:?} but the method id is not recognized!", method_id, object_id);
+            Err(BadMethodInvalid)
+        } else if !self.method_exists_on_object(object_id, method_id) {
+            error!("Method call to {:?} on {:?} but the method does not exist on the object!", method_id, object_id);
+            Err(BadMethodInvalid)
+        } else {
+            // TODO check security - session / user may not have permission to call methods
 
-                // TODO check security - session / user may not have permission to call methods
-
-                // Find the handler for this method call
-                let key = MethodKey {
-                    object_id: object_id.clone(),
-                    method_id: method_id.clone(),
-                };
-                if let Some(handler) = self.method_handlers.get(&key) {
-                    // Call the handler
-                    trace!("Method call to {:?} on {:?} being handled by a registered handler", method_id, object_id);
-                    return handler(self, server_state, session, request);
-                }
-
+            // Find the handler for this method call
+            let key = MethodKey {
+                object_id: object_id.clone(),
+                method_id: method_id.clone(),
+            };
+            if let Some(handler) = self.method_handlers.get(&key) {
+                // Call the handler
+                trace!("Method call to {:?} on {:?} being handled by a registered handler", method_id, object_id);
+                handler(self, server_state, session, request)
+            } else {
                 // TODO we could do a secondary search on a (NodeId::null(), method_id) here
                 // so that method handler is reusable for multiple objects
-                error!("Method call to {:?} on {:?} with no handler", method_id, object_id);
-                BadMethodInvalid
-            } else {
-                BadMethodInvalid
+                error!("Method call to {:?} on {:?} has no handler, treating as invalid", method_id, object_id);
+                Err(BadMethodInvalid)
             }
-        } else {
-            error!("Method call to {:?} on {:?} but the node id is not recognized!", method_id, object_id);
-            BadNodeIdUnknown
-        };
-        Err(status_code)
+        }
     }
 
     fn reference_type_matches(&self, r1: ReferenceTypeId, r2: ReferenceTypeId, include_subtypes: bool) -> bool {
         if r1 == r2 {
             true
         } else if include_subtypes {
-            // THIS IS AN UGLY HACK. The subtype code should really use walk down the hierchical types in the address space to figure this out
+            // THIS IS AN UGLY HACK. The subtype code should really walk down the hierarchy of
+            // types in the address space to figure this out
             match r1 {
                 ReferenceTypeId::HierarchicalReferences => {
                     match r2 {
