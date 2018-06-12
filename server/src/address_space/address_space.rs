@@ -32,7 +32,7 @@ macro_rules! expect_and_find_node {
 
 /// Searches for the specified object node, expecting it to exist
 macro_rules! expect_and_find_object {
-    ($a: expr, $id:expr) => {
+    ($a: expr, $id: expr) => {
         expect_and_find_node!($a, $id, Object)
     }
 }
@@ -274,32 +274,33 @@ impl AddressSpace {
         // Expect arguments:
         //   subscriptionId: UInt32
         if let Some(ref input_arguments) = request.input_arguments {
-            if input_arguments.len() == 1 {
-                let arg1 = input_arguments.get(0).unwrap();
-                if let Variant::UInt32(subscription_id) = arg1 {
-                    if let Some(subscription) = session.subscriptions.subscriptions().get(&subscription_id) {
-                        // Response
-                        //   serverHandles: Vec<UInt32>
-                        //   clientHandles: Vec<UInt32>
-                        let (server_handles, client_handles) = subscription.get_handles();
-                        Ok(CallMethodResult {
-                            status_code: Good,
-                            input_argument_results: Some(vec![Good]),
-                            input_argument_diagnostic_infos: None,
-                            output_arguments: Some(vec![server_handles.into(), client_handles.into()]),
-                        })
+            match input_arguments.len() {
+                1 => {
+                    let arg1 = input_arguments.get(0).unwrap();
+                    if let Variant::UInt32(subscription_id) = arg1 {
+                        if let Some(subscription) = session.subscriptions.subscriptions().get(&subscription_id) {
+                            // Response
+                            //   serverHandles: Vec<UInt32>
+                            //   clientHandles: Vec<UInt32>
+                            let (server_handles, client_handles) = subscription.get_handles();
+                            Ok(CallMethodResult {
+                                status_code: Good,
+                                input_argument_results: Some(vec![Good]),
+                                input_argument_diagnostic_infos: None,
+                                output_arguments: Some(vec![server_handles.into(), client_handles.into()]),
+                            })
+                        } else {
+                            // Subscription id does not exist
+                            // Note we could check other sessions for a matching id and return BadUserAccessDenied in that case
+                            Err(BadSubscriptionIdInvalid)
+                        }
                     } else {
-                        // Subscription id does not exist
-                        // Note we could check other sessions for a matching id and return BadUserAccessDenied in that case
-                        Err(BadSubscriptionIdInvalid)
+                        // Argument is not the right type
+                        Err(BadInvalidArgument)
                     }
-                } else {
-                    // Argument is not the right type
-                    Err(BadInvalidArgument)
                 }
-            } else {
-                // Too many args
-                Err(BadTooManyArguments)
+                0 => Err(BadArgumentsMissing),
+                _ => Err(BadTooManyArguments),
             }
         } else {
             // Args are missing
@@ -552,38 +553,29 @@ impl AddressSpace {
         }
     }
 
-    /// This gnarly code ensures the object exists, the method exists, the method is a method,
-    /// the object's type definition exists, the method's type definition exists and the object's
-    /// type definition points to the
-    /// method's type definition.
-    fn method_exists_on_object(&self, object_id: &NodeId, method_id: &NodeId) -> bool {
-        // Get the object's type
-        if let Some(object_type_id) = self.get_type_id(&object_id) {
-            // Validate that the method id exists on the type
-            if let Some(references) = self.references.get(&object_type_id) {
-                if let Some(method_type_id) = self.get_type_id(&method_id) {
-                    // Ensure the object type has the method type as a component
-                    if references.iter().find(|r| {
-                        debug!("object_type_id {:?} -> {:?}", object_type_id, r);
-                        r.reference_type_id == ReferenceTypeId::HasComponent && r.node_id == method_type_id
-                    }).is_some() {
-                        // SUCCESS!
-                        return true;
-                    } else {
-                        error!("Method call to {:?} on {:?} with no HasComponent reference", method_id, object_id);
-                    }
-                } else {
-                    error!("Method call to {:?} on {:?} but object type has no reference to method type", method_id, object_id);
-                }
-            } else {
-                error!("Method call to {:?} on {:?} but the method id has no type definition!", method_id, object_id);
-            }
+    /// Test if a reference relationship exists between one node and another node
+    fn has_reference(&self, from_node_id: &NodeId, reference_type: ReferenceTypeId, to_node_id: &NodeId) -> bool {
+        if let Some(references) = self.references.get(&from_node_id) {
+            references.iter().find(|r| {
+                r.reference_type_id == reference_type && r.node_id == *to_node_id
+            }).is_some()
         } else {
-            error!("Method call to {:?} on {:?} but the object id has no type definition!", method_id, object_id);
+            false
         }
+    }
 
-        // Failed
-        false
+    /// Tests if a method exists on a specific object. This will be true if the method id is
+    /// a HasComponent of the object itself, or a HasComponent of the object type
+    fn method_exists_on_object(&self, object_id: &NodeId, method_id: &NodeId) -> bool {
+        // Look for the method first on the object id, else on the object's type
+        if self.has_reference(object_id, ReferenceTypeId::HasComponent, method_id) {
+            true
+        } else if let Some(object_type_id) = self.get_type_id(&object_id) {
+            self.has_reference(&object_type_id, ReferenceTypeId::HasComponent, method_id)
+        } else {
+            error!("Method call to {:?} on {:?} but the method id is not on the object or its object type!", method_id, object_id);
+            false
+        }
     }
 
     /// Calls a method node with the supplied request and expecting a result.

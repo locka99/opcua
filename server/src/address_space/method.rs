@@ -30,6 +30,13 @@ impl Method {
     }
 
     pub fn user_executable(&self) -> Boolean {
-        find_attribute_value_mandatory!(&self.base, UserExecutable, Boolean)
+        // User executable cannot be true unless executable is true
+        if self.executable() {
+            // TODO this should check the current session state to determine if the user
+            // has permissions to execute this method
+            find_attribute_value_mandatory!(&self.base, UserExecutable, Boolean)
+        } else {
+            false
+        }
     }
 }
