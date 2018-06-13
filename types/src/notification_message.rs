@@ -2,6 +2,7 @@
 
 use date_time::DateTime;
 use basic_types::*;
+use extension_object::ExtensionObject;
 use node_ids::ObjectId;
 use service_types::{NotificationMessage, MonitoredItemNotification, DataChangeNotification};
 

@@ -131,6 +131,7 @@ pub mod write_mask {
 pub mod encoding;
 pub mod basic_types;
 pub mod string;
+pub mod extension_object;
 pub mod byte_string;
 pub mod data_value;
 pub mod date_time;
@@ -147,6 +148,7 @@ pub mod url;
 pub use encoding::*;
 pub use basic_types::*;
 pub use string::*;
+pub use extension_object::*;
 pub use byte_string::*;
 pub use data_value::*;
 pub use date_time::*;

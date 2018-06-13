@@ -1,5 +1,6 @@
 use attribute::AttributeId;
 use basic_types::*;
+use extension_object::ExtensionObject;
 use byte_string::ByteString;
 use data_types::*;
 use data_value::DataValue;

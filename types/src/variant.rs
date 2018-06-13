@@ -1,4 +1,5 @@
 use basic_types::*;
+use extension_object::ExtensionObject;
 use byte_string::ByteString;
 use constants;
 use data_value::DataValue;
@@ -8,8 +9,6 @@ use guid::Guid;
 use node_id::{ExpandedNodeId, NodeId};
 use node_ids::DataTypeId;
 use status_codes::StatusCode;
-use std::convert::Into;
-use std::io::{Read, Write};
 use string::{UAString, XmlElement};
 
 const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
@@ -262,19 +261,15 @@ impl BinaryEncoder<Variant> for Variant {
             Variant::Array(ref values) => {
                 // Array length
                 let mut size = 4;
-                // Values
-                for value in values.iter() {
-                    size += Variant::byte_len_variant_value(value);
-                }
+                // Size of each value
+                size += values.iter().map(|v| Variant::byte_len_variant_value(v)).sum::<usize>();
                 size
             }
             Variant::MultiDimensionArray(ref mda) => {
                 // Array length
                 let mut size = 4;
-                // Values
-                for value in mda.values.iter() {
-                    size += Variant::byte_len_variant_value(value);
-                }
+                // Size of each value
+                size += mda.values.iter().map(|v| Variant::byte_len_variant_value(v)).sum::<usize>();
                 // Dimensions (size + num elements)
                 size += 4 + mda.dimensions.len() * 4;
                 size

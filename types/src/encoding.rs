@@ -46,9 +46,7 @@ pub fn process_decode_io_result<T>(result: Result<T>) -> EncodingResult<T> where
 pub fn byte_len_array<T: BinaryEncoder<T>>(values: &Option<Vec<T>>) -> usize {
     let mut size = 4;
     if let &Some(ref values) = values {
-        for value in values.iter() {
-            size += value.byte_len();
-        }
+        size += values.iter().map(|v| v.byte_len()).sum::<usize>();
     }
     size
 }

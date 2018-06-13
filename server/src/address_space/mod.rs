@@ -131,6 +131,8 @@ pub mod variable_type;
 pub mod data_type;
 pub mod view;
 
+mod method_impls;
+
 pub mod access_level {
     pub const CURRENT_READ: u8 = 1;
     pub const CURRENT_WRITE: u8 = 1 << 1;

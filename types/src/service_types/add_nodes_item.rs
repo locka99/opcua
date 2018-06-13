@@ -11,8 +11,8 @@ use node_ids::ObjectId;
 use node_id::ExpandedNodeId;
 use node_id::NodeId;
 use basic_types::QualifiedName;
-use basic_types::ExtensionObject;
 use service_types::enums::NodeClass;
+use extension_object::ExtensionObject;
 
 /// A request to add a node to the server address space.
 #[derive(Debug, Clone, PartialEq)]

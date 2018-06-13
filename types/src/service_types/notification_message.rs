@@ -9,7 +9,7 @@ use basic_types::*;
 use service_types::impls::MessageInfo;
 use node_ids::ObjectId;
 use date_time::DateTime;
-use basic_types::ExtensionObject;
+use extension_object::ExtensionObject;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct NotificationMessage {

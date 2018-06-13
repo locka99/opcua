@@ -10,7 +10,7 @@ use service_types::impls::MessageInfo;
 use node_ids::ObjectId;
 use service_types::impls::RequestHeader;
 use string::UAString;
-use basic_types::ExtensionObject;
+use extension_object::ExtensionObject;
 use service_types::SignatureData;
 use service_types::SignedSoftwareCertificate;
 

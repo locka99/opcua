@@ -14,6 +14,8 @@ use address_space::AttrFnGetter;
 use address_space::node::{Node, NodeType};
 use address_space::object::Object;
 use address_space::variable::Variable;
+use address_space::method_impls;
+
 use state::ServerState;
 use session::Session;
 use constants;
@@ -266,46 +268,7 @@ impl AddressSpace {
         // Server method handlers
 
         let server_object_id: NodeId = ObjectId::Server.into();
-        self.register_method_handler(&server_object_id, &MethodId::Server_GetMonitoredItems.into(), Box::new(Self::handle_get_monitored_items));
-    }
-
-    fn handle_get_monitored_items(_: &AddressSpace, _: &ServerState, session: &Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
-        debug!("Method handler for GetMonitoredItems");
-        // Expect arguments:
-        //   subscriptionId: UInt32
-        if let Some(ref input_arguments) = request.input_arguments {
-            match input_arguments.len() {
-                1 => {
-                    let arg1 = input_arguments.get(0).unwrap();
-                    if let Variant::UInt32(subscription_id) = arg1 {
-                        if let Some(subscription) = session.subscriptions.subscriptions().get(&subscription_id) {
-                            // Response
-                            //   serverHandles: Vec<UInt32>
-                            //   clientHandles: Vec<UInt32>
-                            let (server_handles, client_handles) = subscription.get_handles();
-                            Ok(CallMethodResult {
-                                status_code: Good,
-                                input_argument_results: Some(vec![Good]),
-                                input_argument_diagnostic_infos: None,
-                                output_arguments: Some(vec![server_handles.into(), client_handles.into()]),
-                            })
-                        } else {
-                            // Subscription id does not exist
-                            // Note we could check other sessions for a matching id and return BadUserAccessDenied in that case
-                            Err(BadSubscriptionIdInvalid)
-                        }
-                    } else {
-                        // Argument is not the right type
-                        Err(BadInvalidArgument)
-                    }
-                }
-                0 => Err(BadArgumentsMissing),
-                _ => Err(BadTooManyArguments),
-            }
-        } else {
-            // Args are missing
-            Err(BadArgumentsMissing)
-        }
+        self.register_method_handler(&server_object_id, &MethodId::Server_GetMonitoredItems.into(), Box::new(method_impls::handle_get_monitored_items));
     }
 
     pub fn set_server_diagnostics_summary(&mut self, sds: ServerDiagnosticsSummaryDataType) {

@@ -164,20 +164,13 @@ impl Node for Base {
                 } else {
                     if let &Variant::Array(ref array) = value.value.as_ref().unwrap() {
                         // check that array of variants are all UInt32s
-                        let mut found_non_u32_value = false;
-                        for v in array.iter() {
-                            match v {
-                                &Variant::UInt32(_) => {}
-                                _ => {
-                                    found_non_u32_value = true;
-                                    break;
-                                }
-                            }
-                        }
-                        if found_non_u32_value {
+                        let non_u32_value = array.iter().find(|v| if let &Variant::UInt32(_) = v { false } else { true });
+                        if non_u32_value.is_some() {
                             error!("Array contains non UInt32 values, cannot use as array dimensions");
+                            false
+                        } else {
+                            true
                         }
-                        !found_non_u32_value
                     } else {
                         panic!("The value should be an Array");
                     }
