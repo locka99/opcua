@@ -1,3 +1,5 @@
+use std::io::{Read, Write};
+
 use basic_types::*;
 use extension_object::ExtensionObject;
 use byte_string::ByteString;
