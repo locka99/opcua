@@ -144,6 +144,7 @@ pub mod attribute;
 pub mod supported_message;
 pub mod numeric_range;
 pub mod url;
+pub mod argument;
 
 pub use encoding::*;
 pub use basic_types::*;
@@ -160,6 +161,7 @@ pub use attribute::*;
 pub use supported_message::*;
 pub use numeric_range::*;
 pub use url::*;
+pub use argument::*;
 
 // These mods are not use'd into this mod - too many types
 pub mod service_types;

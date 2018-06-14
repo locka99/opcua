@@ -16,6 +16,20 @@ impl Method {
             (AttributeId::Executable, Variant::Boolean(executable)),
             (AttributeId::UserExecutable, Variant::Boolean(user_executable)),
         ];
+
+        // Optional attributes
+        //
+        // NodeVersion - String
+        //
+        // InputArguments - Argument[]
+        // OutputArguments - Argument[]
+        //
+        // Properties may be defined for methods using HasProperty references.
+        // The InputArguments and OutputArguments both contain an array
+        // of the DataType argument as defined in 8.6. An empty array
+        // or a property that is not provided indicates there are
+        // no input arguments or output arguments for the method.
+
         Method {
             base: Base::new(NodeClass::Method, node_id, browse_name, display_name, description, attributes),
         }

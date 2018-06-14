@@ -216,21 +216,29 @@ function insert_node(indent, node_type, node, node_ctor) {
 
     // Process values
     if (_.has(node, "Value")) {
-        var value = node["Value"];
+        var value = node["Value"][0];
 
         if (_.has(value, "ListOfLocalizedText")) {
             // TODO process ListOfLocalizedText
         }
 
         if (_.has(value, "ListOfExtensionObject")) {
+
             // Process ListOfExtensionObject - method args
-            var list = value["ListOfExtensionObject"];
-            _.each(list, function (extension_object) {
-                // TODO on a UAVariable,
+            var list = value["ListOfExtensionObject"][0];
 
+            contents += `${indent}let extension_objects = vec![
+`;
+            var builder = new xml2js.Builder();
+            _.each(list["ExtensionObject"], function (extension_object) {
                 // Create a value consisting an array of extension objects
+                var node_id = (extension_object["TypeId"][0])["Identifier"][0];
+                var body = extension_object["Body"][0];
 
-                // Each extension
+                console.log("node_id=" + node_id);
+                console.log("body=" + JSON.stringify(body));
+
+                // Each extension object has an Argument type as a payload
 
                 /*
                     <TypeId>
@@ -248,8 +256,32 @@ function insert_node(indent, node_type, node, node_ctor) {
                         </Argument>
                     </Body>
                 */
+
+                var argument = body["Argument"][0];
+                var name = argument["Name"][0];
+                var data_type = (argument["DataType"][0])["Identifier"][0];
+                var value_rank = argument["ValueRank"][0];
+                var array_dimensions = "None";
+                var description = argument["Description"][0];
+
+                contents +=
+                    `${indent}    Variant::from(ExtensionObject::from_encodable(
+${indent}        NodeId::from("${node_id}".to_string()), Argument {
+${indent}            name: UAString::from("${name}"),
+${indent}            data_type: NodeId::from_str("${data_type}"),
+${indent}            value_rank: ${value_rank},
+${indent}            array_dimensions: ${array_dimensions},
+${indent}            description: UAString::from("${description}"),
+${indent}    })),
+`;
             });
+            contents += `${indent}];
+${indent}let extension_objects = Variant::from(extension_objects);
+`;
         }
+        ;
+
+        // Turn the array of variants into a variant itself and set as the datavalue
     }
 
     // Process InverseName
