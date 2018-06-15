@@ -109,6 +109,8 @@ pub struct AddressSpace {
 }
 
 impl AddressSpace {
+    /// Constructs a default address space. That consists of all the nodes in the implementation's
+    /// supported profile.
     pub fn new() -> AddressSpace {
         // Construct the Root folder and the top level nodes
         let mut address_space = AddressSpace {
@@ -122,6 +124,7 @@ impl AddressSpace {
         address_space
     }
 
+    /// Returns the last modified date for the address space
     pub fn last_modified(&self) -> DateTimeUtc {
         self.last_modified.clone()
     }
@@ -271,6 +274,7 @@ impl AddressSpace {
         self.register_method_handler(&server_object_id, &MethodId::Server_GetMonitoredItems.into(), Box::new(method_impls::handle_get_monitored_items));
     }
 
+    /// Updates the server diagnostics data with new values
     pub fn set_server_diagnostics_summary(&mut self, sds: ServerDiagnosticsSummaryDataType) {
         use opcua_types::node_ids::VariableId::*;
         self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_ServerViewCount, Variant::UInt32(sds.server_view_count));
@@ -286,38 +290,47 @@ impl AddressSpace {
         self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount, Variant::UInt32(sds.rejected_requests_count));
     }
 
+    /// Returns the node id for the root folder
     pub fn root_folder_id() -> NodeId {
         ObjectId::RootFolder.into()
     }
 
+    /// Returns the node id for the objects folder
     pub fn objects_folder_id() -> NodeId {
         ObjectId::ObjectsFolder.into()
     }
 
+    /// Returns the node id for the types folder
     pub fn types_folder_id() -> NodeId {
         ObjectId::TypesFolder.into()
     }
 
+    /// Returns the node id for the views folder
     pub fn views_folder_id() -> NodeId {
         ObjectId::ViewsFolder.into()
     }
 
+    /// Returns the root folder
     pub fn root_folder(&self) -> &Object {
         expect_and_find_object!(self, &AddressSpace::root_folder_id())
     }
 
+    /// Returns the objects folder
     pub fn objects_folder(&self) -> &Object {
         expect_and_find_object!(self, &AddressSpace::objects_folder_id())
     }
 
+    /// Returns the types folder
     pub fn types_folder(&self) -> &Object {
         expect_and_find_object!(self, &AddressSpace::types_folder_id())
     }
 
+    /// Returns the views folder
     pub fn views_folder(&self) -> &Object {
         expect_and_find_object!(self, &AddressSpace::views_folder_id())
     }
 
+    /// Inserts a node into the address space node map
     pub fn insert<T>(&mut self, node: T) where T: 'static + Into<NodeType> {
         let node_type = node.into();
         let node_id = node_type.node_id();
@@ -446,7 +459,11 @@ impl AddressSpace {
             let references = reference_map.get_mut(node_id).unwrap();
             references.push(reference);
         } else {
-            reference_map.insert(node_id.clone(), vec![reference]);
+            // Some nodes will have more than one reference, so save some reallocs by reserving
+            // space for some more.
+            let mut references = Vec::with_capacity(8);
+            references.push(reference);
+            reference_map.insert(node_id.clone(), references);
         }
     }
 
@@ -710,16 +727,36 @@ impl AddressSpace {
 
     /// Adds the standard nodeset to the address space
     pub fn add_default_nodes(&mut self) {
+        debug!("populating address space");
+
+        // Reserve space in the maps. The default node set contains just under 2000 values for
+        // nodes, references and inverse references.
+        self.node_map.reserve(2000);
+        self.references.reserve(2000);
+        self.inverse_references.reserve(2000);
+
+        // Run the generated code that will populate the address space with the default nodes
         super::generated::populate_address_space(self);
+        debug!("finished populating address space, number of nodes = {}, number of references = {}, number of reverse references = {}",
+               self.node_map.len(), self.references.len(), self.inverse_references.len());
     }
 
-    pub fn insert_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) {
-        if node_id_from == node_id_to {
-            panic!("Node id from == node id to {:?}", node_id_from);
-        }
-        AddressSpace::add_reference(&mut self.references, node_id_from, Reference::new(reference_type_id, node_id_to));
-        AddressSpace::add_reference(&mut self.inverse_references, node_id_to, Reference::new(reference_type_id, node_id_from));
+    // Inserts a bunch of references between two nodes into the address space
+    pub fn insert_references(&mut self, references: &[(&NodeId, &NodeId, ReferenceTypeId)]) {
+        references.iter().for_each(|reference| {
+            let (node_id_from, node_id_to, reference_type_id) = *reference;
+            if node_id_from == node_id_to {
+                panic!("Node id from == node id to {:?}", node_id_from);
+            }
+            AddressSpace::add_reference(&mut self.references, node_id_from, Reference::new(reference_type_id, node_id_to));
+            AddressSpace::add_reference(&mut self.inverse_references, node_id_to, Reference::new(reference_type_id, node_id_from));
+        });
         self.update_last_modified();
+    }
+
+    /// Inserts a single reference between two nodes in the address space
+    pub fn insert_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) {
+        self.insert_references(&[(node_id_from, node_id_to, reference_type_id)]);
     }
 
     pub fn set_object_type(&mut self, node_id: &NodeId, object_type: ObjectTypeId) {

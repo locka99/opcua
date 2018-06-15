@@ -4,6 +4,8 @@ var xml2js = require("xml2js");
 
 var settings = require("./settings");
 
+var trace = false;
+
 // THIS file will generate the address space
 
 var node_set =
@@ -77,11 +79,15 @@ use address_space::types::*;
 // Parse the xml
 // Create a file with rs
 //   in that file, create a populate_address_space method
+    var indent = "    ";
 
     contents += "#[allow(unused_variables)]\n";
     contents += `pub fn populate_address_space(address_space: &mut AddressSpace) {\n`;
 
-    var indent = "    ";
+    if (trace) {
+        contents += `${indent}trace!("Populating address space with node set ${ns.name}");\n`
+    }
+
     var nodes = ns.data["UANodeSet"];
     if (_.has(nodes, "UAObject")) {
         _.each(nodes["UAObject"], function (node) {
@@ -123,8 +129,7 @@ use address_space::types::*;
             else {
                 console.log("UAVariable has no data type???");
             }
-            var data_value = "DataValue::null()";
-            contents += insert_node(indent, "Variable", node, `Variable::new_data_value(&node_id, browse_name, display_name, description, ${data_type}, ${data_value})`);
+            contents += insert_node(indent, "Variable", node, `Variable::new_data_value(&node_id, browse_name, display_name, description, ${data_type}, data_value)`);
         });
     }
     if (_.has(nodes, "UAVariableType")) {
@@ -187,6 +192,98 @@ function insert_node(indent, node_type, node, node_ctor) {
 
     contents += `${indent}// ${node_type}\n`;
 
+    // Process values
+    if (node_type === "Variable") {
+        var data_value_is_set = false;
+        if (_.has(node, "Value")) {
+            var value = node["Value"][0];
+
+            if (_.has(value, "ListOfLocalizedText")) {
+                // TODO process ListOfLocalizedText
+            }
+
+            if (_.has(value, "ListOfExtensionObject")) {
+
+                // Process ListOfExtensionObject looking for Argument types
+                var list = value["ListOfExtensionObject"][0];
+
+                var var_arguments = [];
+                _.each(list["ExtensionObject"], function (extension_object) {
+                    // Create a value consisting an array of extension objects
+                    var node_id = (extension_object["TypeId"][0])["Identifier"][0];
+                    var body = extension_object["Body"][0];
+
+                    // InputArguments and OutputArguments will have one of these
+                    if (_.has(body, "Argument")) {
+                        // console.log("node_id=" + node_id);
+                        // console.log("body=" + JSON.stringify(body));
+
+                        // Example Argument payload
+                        /*
+                            <TypeId>
+                                <Identifier>i=297</Identifier>
+                            </TypeId>
+                            <Body>
+                                <Argument>
+                                    <Name>FileHandle</Name>
+                                    <DataType>
+                                        <Identifier>i=7</Identifier>
+                                    </DataType>
+                                    <ValueRank>-1</ValueRank>
+                                    <ArrayDimensions />
+                                    <Description p5:nil="true" xmlns:p5="http://www.w3.org/2001/XMLSchema-instance" />
+                                </Argument>
+                            </Body>
+                        */
+
+                        var argument = body["Argument"][0];
+                        var name = argument["Name"][0];
+                        var data_type = (argument["DataType"][0])["Identifier"][0];
+                        var value_rank = argument["ValueRank"][0];
+                        var array_dimensions = "None";
+                        if (value_rank > 1) {
+                            console.log("ERROR: Unsupported array dimensions arg");
+                        }
+                        else if (value_rank == 1) {
+                            console.log("ArrayDimensions is not read - setting dimensions to 0 which means variable length");
+                            array_dimensions = "Some(vec![0])"
+                        }
+                        // var description = argument["Description"][0];
+                        var_arguments.push({
+                            node_id: node_id,
+                            name: name,
+                            data_type: data_type,
+                            value_rank: value_rank,
+                            array_dimensions: array_dimensions,
+                        });
+                    }
+                });
+
+
+                if (var_arguments.length > 0) {
+                    contents += `${indent}let data_value = DataValue::new(vec![\n`;
+                    _.each(var_arguments, function (a) {
+                        contents += `${indent}    Variant::from(ExtensionObject::from_encodable(\n`;
+                        contents += `${indent}        ${node_id_ctor(a.node_id)}, Argument {\n`
+                        contents += `${indent}            name: UAString::from("${a.name}"),\n`
+                        contents += `${indent}            data_type: ${node_id_ctor(a.data_type)},\n`
+                        contents += `${indent}            value_rank: ${a.value_rank},\n`
+                        contents += `${indent}            array_dimensions: ${a.array_dimensions},\n`
+                        contents += `${indent}            description: LocalizedText::new("", ""),\n`
+                        contents += `${indent}        })),\n`
+                    });
+                    contents += `${indent}]);\n`;
+                    data_value_is_set = true;
+                }
+
+                // Turn the array of variants into a variant itself and set as the datavalue
+            }
+        }
+        if (!data_value_is_set) {
+            contents += `${indent}let data_value = DataValue::null();\n`
+        }
+    }
+
     var browse_name = _.has(node["$"], "BrowseName") ? node["$"]["BrowseName"] : "";
     contents += `${indent}let browse_name = "${browse_name}";\n`;
     var display_name = _.has(node, "DisplayName") ? node["DisplayName"][0] : "";
@@ -194,7 +291,13 @@ function insert_node(indent, node_type, node, node_ctor) {
     var description = _.has(node, "Description") ? node["Description"][0] : "";
     contents += `${indent}let description = "${description}";\n`;
 
-    contents += `${indent}let node_id = ${node_id_ctor(node["$"]["NodeId"])};\n`;
+    var node_id = node["$"]["NodeId"];
+    contents += `${indent}let node_id = ${node_id_ctor(node_id)};\n`;
+
+    if (trace) {
+        contents += `${indent}trace!("Inserting node id ${node_id}of type ${node_type}");\n`;
+    }
+
     contents += `${indent}let node = ${node_ctor};\n`;
     contents += `${indent}address_space.insert(node);\n`;
 
@@ -214,76 +317,6 @@ function insert_node(indent, node_type, node, node_ctor) {
         // TODO process Fields
     }
 
-    // Process values
-    if (_.has(node, "Value")) {
-        var value = node["Value"][0];
-
-        if (_.has(value, "ListOfLocalizedText")) {
-            // TODO process ListOfLocalizedText
-        }
-
-        if (_.has(value, "ListOfExtensionObject")) {
-
-            // Process ListOfExtensionObject - method args
-            var list = value["ListOfExtensionObject"][0];
-
-            contents += `${indent}let extension_objects = vec![
-`;
-            var builder = new xml2js.Builder();
-            _.each(list["ExtensionObject"], function (extension_object) {
-                // Create a value consisting an array of extension objects
-                var node_id = (extension_object["TypeId"][0])["Identifier"][0];
-                var body = extension_object["Body"][0];
-
-                console.log("node_id=" + node_id);
-                console.log("body=" + JSON.stringify(body));
-
-                // Each extension object has an Argument type as a payload
-
-                /*
-                    <TypeId>
-                        <Identifier>i=297</Identifier>
-                    </TypeId>
-                    <Body>
-                        <Argument>
-                            <Name>FileHandle</Name>
-                            <DataType>
-                                <Identifier>i=7</Identifier>
-                            </DataType>
-                            <ValueRank>-1</ValueRank>
-                            <ArrayDimensions />
-                            <Description p5:nil="true" xmlns:p5="http://www.w3.org/2001/XMLSchema-instance" />
-                        </Argument>
-                    </Body>
-                */
-
-                var argument = body["Argument"][0];
-                var name = argument["Name"][0];
-                var data_type = (argument["DataType"][0])["Identifier"][0];
-                var value_rank = argument["ValueRank"][0];
-                var array_dimensions = "None";
-                var description = argument["Description"][0];
-
-                contents +=
-                    `${indent}    Variant::from(ExtensionObject::from_encodable(
-${indent}        NodeId::from("${node_id}".to_string()), Argument {
-${indent}            name: UAString::from("${name}"),
-${indent}            data_type: NodeId::from_str("${data_type}"),
-${indent}            value_rank: ${value_rank},
-${indent}            array_dimensions: ${array_dimensions},
-${indent}            description: UAString::from("${description}"),
-${indent}    })),
-`;
-            });
-            contents += `${indent}];
-${indent}let extension_objects = Variant::from(extension_objects);
-`;
-        }
-        ;
-
-        // Turn the array of variants into a variant itself and set as the datavalue
-    }
-
     // Process InverseName
     indent = indent.substr(0, indent.length - 4);
     contents += `${indent}}\n`;
@@ -294,6 +327,7 @@ ${indent}let extension_objects = Variant::from(extension_objects);
 function insert_references(indent, references) {
     var contents = "";
     if (_.has(references, "Reference")) {
+        var node_references = [];
         _.each(references["Reference"], function (reference) {
             // Test if the reference is forward or reverse
             var reference_type = reference["$"]["ReferenceType"];
@@ -305,12 +339,22 @@ function insert_references(indent, references) {
 
             if (reference_type.startsWith("i=")) {
                 // TODO
-                contents += `${indent}// address_space.insert_reference(&${node_id1}, &${node_id2}, ReferenceTypeId::${reference_type});\n`
             }
             else {
-                contents += `${indent}address_space.insert_reference(&${node_id1}, &${node_id2}, ReferenceTypeId::${reference_type});\n`
+                node_references.push({
+                    node_from: node_id1,
+                    node_to: node_id2,
+                    reference_type: `ReferenceTypeId::${reference_type}`
+                })
             }
         });
+        if (node_references.length > 0) {
+            contents += `${indent}address_space.insert_references(&[\n`;
+            _.each(node_references, function (r) {
+                contents += `${indent}    (&${r.node_from}, &${r.node_to}, ${r.reference_type}),\n`;
+            });
+            contents += `${indent}]);\n`;
+        }
     }
     return contents;
 }

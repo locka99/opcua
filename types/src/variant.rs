@@ -161,6 +161,12 @@ impl Into<Variant> for Vec<UInt32> {
     }
 }
 
+impl Into<Variant> for Vec<Variant> {
+    fn into(self) -> Variant {
+        Variant::Array(self)
+    }
+}
+
 /// A Variant holds all primitive types, including single and multi dimensional arrays and
 /// data values.
 ///

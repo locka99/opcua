@@ -26,10 +26,14 @@ impl BinaryEncoder<Argument> for Argument {
         size += self.name.byte_len();
         size += self.data_type.byte_len();
         size += self.value_rank.byte_len();
+
+        // Array dimensions
+        size += 4;
         if self.value_rank > 0 {
             let array_dimensions = self.array_dimensions.as_ref().unwrap();
             size += 4 * array_dimensions.len();
         }
+
         size += self.description.byte_len();
         size
     }
@@ -39,12 +43,17 @@ impl BinaryEncoder<Argument> for Argument {
         size += self.name.encode(stream)?;
         size += self.data_type.encode(stream)?;
         size += self.value_rank.encode(stream)?;
+
         if self.value_rank > 0 {
             let array_dimensions = self.array_dimensions.as_ref().unwrap();
+            size += write_u32(stream, array_dimensions.len() as UInt32)?;
             for d in array_dimensions.iter() {
                 size += d.encode(stream)?;
             }
+        } else {
+            size += write_u32(stream, 0)?;
         }
+
         size += self.description.encode(stream)?;
         Ok(size)
     }
@@ -53,9 +62,15 @@ impl BinaryEncoder<Argument> for Argument {
         let name = UAString::decode(stream)?;
         let data_type = NodeId::decode(stream)?;
         let value_rank = Int32::decode(stream)?;
-        let array_dimensions = if value_rank > 0 {
-            let mut array_dimensions = Vec::with_capacity(value_rank as usize);
-            for i in 0..value_rank {
+
+        let array_dimensions_len = UInt32::decode(stream)?;
+        let array_dimensions = if array_dimensions_len > 0 {
+            if value_rank > 0 && value_rank as UInt32 != array_dimensions_len {
+                panic!("The array dimensions {} of the Argument should match value rank {} and they don't", array_dimensions_len, value_rank);
+            }
+
+            let mut array_dimensions = Vec::with_capacity(array_dimensions_len as usize);
+            for _ in 0..array_dimensions_len {
                 array_dimensions.push(read_u32(stream)?);
             }
             Some(array_dimensions)

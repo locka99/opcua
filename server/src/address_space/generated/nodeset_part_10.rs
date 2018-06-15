@@ -20,9 +20,11 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 3850);
         let node = Object::new(&node_id, browse_name, display_name, description);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 58), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 80), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 58), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 80), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
@@ -33,14 +35,11 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 2400);
         let node = Object::new(&node_id, browse_name, display_name, description);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2401), ReferenceTypeId::HasProperty);
-        // address_space.insert_reference(&NodeId::new(0, 2408), &node_id, ReferenceTypeId::i=52);
-        // address_space.insert_reference(&NodeId::new(0, 2410), &node_id, ReferenceTypeId::i=51);
-        // address_space.insert_reference(&NodeId::new(0, 2414), &node_id, ReferenceTypeId::i=52);
-        // address_space.insert_reference(&NodeId::new(0, 2422), &node_id, ReferenceTypeId::i=52);
-        // address_space.insert_reference(&NodeId::new(0, 2424), &node_id, ReferenceTypeId::i=51);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2307), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 2401), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2307), ReferenceTypeId::HasTypeDefinition),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
@@ -51,14 +50,11 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 2402);
         let node = Object::new(&node_id, browse_name, display_name, description);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2403), ReferenceTypeId::HasProperty);
-        // address_space.insert_reference(&NodeId::new(0, 2410), &node_id, ReferenceTypeId::i=52);
-        // address_space.insert_reference(&NodeId::new(0, 2412), &node_id, ReferenceTypeId::i=51);
-        // address_space.insert_reference(&NodeId::new(0, 2414), &node_id, ReferenceTypeId::i=51);
-        // address_space.insert_reference(&NodeId::new(0, 2416), &node_id, ReferenceTypeId::i=51);
-        // address_space.insert_reference(&NodeId::new(0, 2418), &node_id, ReferenceTypeId::i=52);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2307), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 2403), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2307), ReferenceTypeId::HasTypeDefinition),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
@@ -69,13 +65,11 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 2404);
         let node = Object::new(&node_id, browse_name, display_name, description);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2405), ReferenceTypeId::HasProperty);
-        // address_space.insert_reference(&NodeId::new(0, 2416), &node_id, ReferenceTypeId::i=52);
-        // address_space.insert_reference(&NodeId::new(0, 2418), &node_id, ReferenceTypeId::i=51);
-        // address_space.insert_reference(&NodeId::new(0, 2420), &node_id, ReferenceTypeId::i=51);
-        // address_space.insert_reference(&NodeId::new(0, 2422), &node_id, ReferenceTypeId::i=51);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2307), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 2405), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2307), ReferenceTypeId::HasTypeDefinition),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
@@ -86,13 +80,11 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 2406);
         let node = Object::new(&node_id, browse_name, display_name, description);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2407), ReferenceTypeId::HasProperty);
-        // address_space.insert_reference(&NodeId::new(0, 2408), &node_id, ReferenceTypeId::i=51);
-        // address_space.insert_reference(&NodeId::new(0, 2412), &node_id, ReferenceTypeId::i=52);
-        // address_space.insert_reference(&NodeId::new(0, 2420), &node_id, ReferenceTypeId::i=52);
-        // address_space.insert_reference(&NodeId::new(0, 2424), &node_id, ReferenceTypeId::i=52);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2307), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 2407), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2307), ReferenceTypeId::HasTypeDefinition),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
@@ -103,13 +95,11 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 2408);
         let node = Object::new(&node_id, browse_name, display_name, description);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2409), ReferenceTypeId::HasProperty);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2406), ReferenceTypeId::i=51);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2400), ReferenceTypeId::i=52);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2430), ReferenceTypeId::i=53);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2378), ReferenceTypeId::i=54);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2310), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 2409), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2310), ReferenceTypeId::HasTypeDefinition),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
@@ -120,13 +110,11 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 2410);
         let node = Object::new(&node_id, browse_name, display_name, description);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2411), ReferenceTypeId::HasProperty);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2400), ReferenceTypeId::i=51);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2402), ReferenceTypeId::i=52);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2426), ReferenceTypeId::i=53);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2378), ReferenceTypeId::i=54);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2310), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 2411), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2310), ReferenceTypeId::HasTypeDefinition),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
@@ -137,13 +125,11 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 2412);
         let node = Object::new(&node_id, browse_name, display_name, description);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2413), ReferenceTypeId::HasProperty);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2402), ReferenceTypeId::i=51);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2406), ReferenceTypeId::i=52);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2429), ReferenceTypeId::i=53);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2378), ReferenceTypeId::i=54);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2310), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 2413), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2310), ReferenceTypeId::HasTypeDefinition),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
@@ -154,12 +140,11 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 2414);
         let node = Object::new(&node_id, browse_name, display_name, description);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2415), ReferenceTypeId::HasProperty);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2402), ReferenceTypeId::i=51);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2400), ReferenceTypeId::i=52);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2378), ReferenceTypeId::i=54);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2310), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 2415), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2310), ReferenceTypeId::HasTypeDefinition),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
@@ -170,13 +155,11 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 2416);
         let node = Object::new(&node_id, browse_name, display_name, description);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2417), ReferenceTypeId::HasProperty);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2402), ReferenceTypeId::i=51);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2404), ReferenceTypeId::i=52);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2427), ReferenceTypeId::i=53);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2378), ReferenceTypeId::i=54);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2310), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 2417), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2310), ReferenceTypeId::HasTypeDefinition),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
@@ -187,13 +170,11 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 2418);
         let node = Object::new(&node_id, browse_name, display_name, description);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2419), ReferenceTypeId::HasProperty);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2404), ReferenceTypeId::i=51);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2402), ReferenceTypeId::i=52);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2428), ReferenceTypeId::i=53);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2378), ReferenceTypeId::i=54);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2310), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 2419), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2310), ReferenceTypeId::HasTypeDefinition),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
@@ -204,13 +185,11 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 2420);
         let node = Object::new(&node_id, browse_name, display_name, description);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2421), ReferenceTypeId::HasProperty);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2404), ReferenceTypeId::i=51);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2406), ReferenceTypeId::i=52);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2429), ReferenceTypeId::i=53);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2378), ReferenceTypeId::i=54);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2310), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 2421), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2310), ReferenceTypeId::HasTypeDefinition),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
@@ -221,12 +200,11 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 2422);
         let node = Object::new(&node_id, browse_name, display_name, description);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2423), ReferenceTypeId::HasProperty);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2404), ReferenceTypeId::i=51);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2400), ReferenceTypeId::i=52);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2378), ReferenceTypeId::i=54);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2310), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 2423), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2310), ReferenceTypeId::HasTypeDefinition),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
@@ -237,13 +215,11 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 2424);
         let node = Object::new(&node_id, browse_name, display_name, description);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2425), ReferenceTypeId::HasProperty);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2400), ReferenceTypeId::i=51);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2406), ReferenceTypeId::i=52);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2429), ReferenceTypeId::i=53);
-        // address_space.insert_reference(&node_id, &NodeId::new(0, 2378), ReferenceTypeId::i=54);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2310), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 2425), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2310), ReferenceTypeId::HasTypeDefinition),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
@@ -254,9 +230,11 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 895);
         let node = Object::new(&node_id, browse_name, display_name, description);
         address_space.insert(node);
-        address_space.insert_reference(&NodeId::new(0, 894), &node_id, ReferenceTypeId::HasEncoding);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 8882), ReferenceTypeId::HasDescription);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition);
+        address_space.insert_references(&[
+            (&NodeId::new(0, 894), &node_id, ReferenceTypeId::HasEncoding),
+            (&node_id, &NodeId::new(0, 8882), ReferenceTypeId::HasDescription),
+            (&node_id, &NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition),
+        ]);
     }
     {
         // Object
@@ -266,9 +244,11 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 896);
         let node = Object::new(&node_id, browse_name, display_name, description);
         address_space.insert(node);
-        address_space.insert_reference(&NodeId::new(0, 894), &node_id, ReferenceTypeId::HasEncoding);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 8247), ReferenceTypeId::HasDescription);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition);
+        address_space.insert_references(&[
+            (&NodeId::new(0, 894), &node_id, ReferenceTypeId::HasEncoding),
+            (&node_id, &NodeId::new(0, 8247), ReferenceTypeId::HasDescription),
+            (&node_id, &NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition),
+        ]);
     }
     {
         // ObjectType
@@ -278,36 +258,38 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 2391);
         let node = ObjectType::new(&node_id, browse_name, display_name, description, false);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 3830), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 3835), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2392), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2393), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2394), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2395), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2396), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2397), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2398), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2399), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 3850), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2400), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2402), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2404), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2406), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2408), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2410), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2412), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2414), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2416), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2418), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2420), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2422), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2424), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2426), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2427), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2428), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2429), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2430), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&NodeId::new(0, 2771), &node_id, ReferenceTypeId::HasSubtype);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 3830), ReferenceTypeId::HasComponent),
+            (&node_id, &NodeId::new(0, 3835), ReferenceTypeId::HasComponent),
+            (&node_id, &NodeId::new(0, 2392), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2393), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2394), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2395), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2396), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2397), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2398), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2399), ReferenceTypeId::HasComponent),
+            (&node_id, &NodeId::new(0, 3850), ReferenceTypeId::HasComponent),
+            (&node_id, &NodeId::new(0, 2400), ReferenceTypeId::HasComponent),
+            (&node_id, &NodeId::new(0, 2402), ReferenceTypeId::HasComponent),
+            (&node_id, &NodeId::new(0, 2404), ReferenceTypeId::HasComponent),
+            (&node_id, &NodeId::new(0, 2406), ReferenceTypeId::HasComponent),
+            (&node_id, &NodeId::new(0, 2408), ReferenceTypeId::HasComponent),
+            (&node_id, &NodeId::new(0, 2410), ReferenceTypeId::HasComponent),
+            (&node_id, &NodeId::new(0, 2412), ReferenceTypeId::HasComponent),
+            (&node_id, &NodeId::new(0, 2414), ReferenceTypeId::HasComponent),
+            (&node_id, &NodeId::new(0, 2416), ReferenceTypeId::HasComponent),
+            (&node_id, &NodeId::new(0, 2418), ReferenceTypeId::HasComponent),
+            (&node_id, &NodeId::new(0, 2420), ReferenceTypeId::HasComponent),
+            (&node_id, &NodeId::new(0, 2422), ReferenceTypeId::HasComponent),
+            (&node_id, &NodeId::new(0, 2424), ReferenceTypeId::HasComponent),
+            (&node_id, &NodeId::new(0, 2426), ReferenceTypeId::HasComponent),
+            (&node_id, &NodeId::new(0, 2427), ReferenceTypeId::HasComponent),
+            (&node_id, &NodeId::new(0, 2428), ReferenceTypeId::HasComponent),
+            (&node_id, &NodeId::new(0, 2429), ReferenceTypeId::HasComponent),
+            (&node_id, &NodeId::new(0, 2430), ReferenceTypeId::HasComponent),
+            (&NodeId::new(0, 2771), &node_id, ReferenceTypeId::HasSubtype),
+        ]);
     }
     {
         // ObjectType
@@ -317,8 +299,10 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 2378);
         let node = ObjectType::new(&node_id, browse_name, display_name, description, false);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2379), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&NodeId::new(0, 2311), &node_id, ReferenceTypeId::HasSubtype);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 2379), ReferenceTypeId::HasProperty),
+            (&NodeId::new(0, 2311), &node_id, ReferenceTypeId::HasSubtype),
+        ]);
     }
     {
         // ObjectType
@@ -328,8 +312,10 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 11856);
         let node = ObjectType::new(&node_id, browse_name, display_name, description, false);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 11875), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&NodeId::new(0, 2315), &node_id, ReferenceTypeId::HasSubtype);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 11875), ReferenceTypeId::HasProperty),
+            (&NodeId::new(0, 2315), &node_id, ReferenceTypeId::HasSubtype),
+        ]);
     }
     {
         // ObjectType
@@ -339,8 +325,10 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 3806);
         let node = ObjectType::new(&node_id, browse_name, display_name, description, false);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 3825), ReferenceTypeId::HasComponent);
-        address_space.insert_reference(&NodeId::new(0, 2315), &node_id, ReferenceTypeId::HasSubtype);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 3825), ReferenceTypeId::HasComponent),
+            (&NodeId::new(0, 2315), &node_id, ReferenceTypeId::HasSubtype),
+        ]);
     }
     {
         // DataType
@@ -350,694 +338,852 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 894);
         let node = DataType::new(&node_id, browse_name, display_name, description, false);
         address_space.insert(node);
-        address_space.insert_reference(&NodeId::new(0, 22), &node_id, ReferenceTypeId::HasSubtype);
+        address_space.insert_references(&[
+            (&NodeId::new(0, 22), &node_id, ReferenceTypeId::HasSubtype),
+        ]);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "CurrentState";
         let display_name = "CurrentState";
         let description = "";
         let node_id = NodeId::new(0, 3830);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::LocalizedText, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::LocalizedText, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 3831), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 3833), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2760), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 3831), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 3833), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2760), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "Id";
         let display_name = "Id";
         let description = "";
         let node_id = NodeId::new(0, 3831);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::NodeId, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::NodeId, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 3830), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 3830), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 3830), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "Number";
         let display_name = "Number";
         let description = "";
         let node_id = NodeId::new(0, 3833);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 3830), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 3830), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 3830), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "LastTransition";
         let display_name = "LastTransition";
         let description = "";
         let node_id = NodeId::new(0, 3835);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::LocalizedText, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::LocalizedText, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 3836), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 3838), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 3839), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2767), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 3836), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 3838), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 3839), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2767), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "Id";
         let display_name = "Id";
         let description = "";
         let node_id = NodeId::new(0, 3836);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::NodeId, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::NodeId, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 3835), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 3835), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 3835), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "Number";
         let display_name = "Number";
         let description = "";
         let node_id = NodeId::new(0, 3838);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 3835), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 3835), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 3835), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "TransitionTime";
         let display_name = "TransitionTime";
         let description = "";
         let node_id = NodeId::new(0, 3839);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(294u32).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(294u32).unwrap(), data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 3835), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 3835), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 3835), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "Creatable";
         let display_name = "Creatable";
         let description = "";
         let node_id = NodeId::new(0, 2392);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::Boolean, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::Boolean, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "Deletable";
         let display_name = "Deletable";
         let description = "";
         let node_id = NodeId::new(0, 2393);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::Boolean, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::Boolean, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "AutoDelete";
         let display_name = "AutoDelete";
         let description = "";
         let node_id = NodeId::new(0, 2394);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::Boolean, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::Boolean, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 79), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 79), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "RecycleCount";
         let display_name = "RecycleCount";
         let description = "";
         let node_id = NodeId::new(0, 2395);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::Int32, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::Int32, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "InstanceCount";
         let display_name = "InstanceCount";
         let description = "";
         let node_id = NodeId::new(0, 2396);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "MaxInstanceCount";
         let display_name = "MaxInstanceCount";
         let description = "";
         let node_id = NodeId::new(0, 2397);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "MaxRecycleCount";
         let display_name = "MaxRecycleCount";
         let description = "";
         let node_id = NodeId::new(0, 2398);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "ProgramDiagnostics";
         let display_name = "ProgramDiagnostics";
         let description = "";
         let node_id = NodeId::new(0, 2399);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(894u32).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(894u32).unwrap(), data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 3840), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 3841), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 3842), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 3843), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 3844), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 3845), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 3846), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 3847), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 3848), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 3849), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2380), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 80), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 3840), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 3841), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 3842), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 3843), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 3844), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 3845), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 3846), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 3847), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 3848), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 3849), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2380), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 80), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "CreateSessionId";
         let display_name = "CreateSessionId";
         let description = "";
         let node_id = NodeId::new(0, 3840);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::NodeId, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::NodeId, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2399), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2399), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2399), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "CreateClientName";
         let display_name = "CreateClientName";
         let description = "";
         let node_id = NodeId::new(0, 3841);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::String, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::String, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2399), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2399), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2399), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "InvocationCreationTime";
         let display_name = "InvocationCreationTime";
         let description = "";
         let node_id = NodeId::new(0, 3842);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(294u32).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(294u32).unwrap(), data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2399), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2399), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2399), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "LastTransitionTime";
         let display_name = "LastTransitionTime";
         let description = "";
         let node_id = NodeId::new(0, 3843);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(294u32).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(294u32).unwrap(), data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2399), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2399), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2399), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "LastMethodCall";
         let display_name = "LastMethodCall";
         let description = "";
         let node_id = NodeId::new(0, 3844);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::String, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::String, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2399), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2399), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2399), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "LastMethodSessionId";
         let display_name = "LastMethodSessionId";
         let description = "";
         let node_id = NodeId::new(0, 3845);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::NodeId, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::NodeId, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2399), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2399), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2399), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "LastMethodInputArguments";
         let display_name = "LastMethodInputArguments";
         let description = "";
         let node_id = NodeId::new(0, 3846);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(296u32).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(296u32).unwrap(), data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2399), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2399), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2399), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "LastMethodOutputArguments";
         let display_name = "LastMethodOutputArguments";
         let description = "";
         let node_id = NodeId::new(0, 3847);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(296u32).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(296u32).unwrap(), data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2399), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2399), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2399), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "LastMethodCallTime";
         let display_name = "LastMethodCallTime";
         let description = "";
         let node_id = NodeId::new(0, 3848);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(294u32).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(294u32).unwrap(), data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2399), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2399), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2399), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "LastMethodReturnStatus";
         let display_name = "LastMethodReturnStatus";
         let description = "";
         let node_id = NodeId::new(0, 3849);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(299u32).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(299u32).unwrap(), data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2399), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2399), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2399), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "StateNumber";
         let display_name = "StateNumber";
         let description = "";
         let node_id = NodeId::new(0, 2401);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2400), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2400), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2400), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "StateNumber";
         let display_name = "StateNumber";
         let description = "";
         let node_id = NodeId::new(0, 2403);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2402), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2402), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2402), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "StateNumber";
         let display_name = "StateNumber";
         let description = "";
         let node_id = NodeId::new(0, 2405);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2404), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2404), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2404), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "StateNumber";
         let display_name = "StateNumber";
         let description = "";
         let node_id = NodeId::new(0, 2407);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2406), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2406), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2406), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "TransitionNumber";
         let display_name = "TransitionNumber";
         let description = "";
         let node_id = NodeId::new(0, 2409);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2408), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2408), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2408), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "TransitionNumber";
         let display_name = "TransitionNumber";
         let description = "";
         let node_id = NodeId::new(0, 2411);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2410), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2410), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2410), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "TransitionNumber";
         let display_name = "TransitionNumber";
         let description = "";
         let node_id = NodeId::new(0, 2413);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2412), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2412), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2412), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "TransitionNumber";
         let display_name = "TransitionNumber";
         let description = "";
         let node_id = NodeId::new(0, 2415);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2414), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2414), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2414), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "TransitionNumber";
         let display_name = "TransitionNumber";
         let description = "";
         let node_id = NodeId::new(0, 2417);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2416), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2416), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2416), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "TransitionNumber";
         let display_name = "TransitionNumber";
         let description = "";
         let node_id = NodeId::new(0, 2419);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2418), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2418), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2418), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "TransitionNumber";
         let display_name = "TransitionNumber";
         let description = "";
         let node_id = NodeId::new(0, 2421);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2420), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2420), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2420), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "TransitionNumber";
         let display_name = "TransitionNumber";
         let description = "";
         let node_id = NodeId::new(0, 2423);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2422), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2422), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2422), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "TransitionNumber";
         let display_name = "TransitionNumber";
         let description = "";
         let node_id = NodeId::new(0, 2425);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2424), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2424), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2424), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "IntermediateResult";
         let display_name = "IntermediateResult";
         let description = "";
         let node_id = NodeId::new(0, 2379);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::Boolean, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::Boolean, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2378), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2378), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2378), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "TransitionNumber";
         let display_name = "TransitionNumber";
         let description = "";
         let node_id = NodeId::new(0, 11875);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::UInt32, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 11856), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 11856), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 11856), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "Transition";
         let display_name = "Transition";
         let description = "";
         let node_id = NodeId::new(0, 3825);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::LocalizedText, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::LocalizedText, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 3826), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2767), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 3806), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 3826), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2767), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 3806), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 3806), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "Id";
         let display_name = "Id";
         let description = "";
         let node_id = NodeId::new(0, 3826);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::NodeId, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::NodeId, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 3825), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 3825), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 3825), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "CreateSessionId";
         let display_name = "CreateSessionId";
         let description = "";
         let node_id = NodeId::new(0, 2381);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::NodeId, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::NodeId, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2380), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2380), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2380), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "CreateClientName";
         let display_name = "CreateClientName";
         let description = "";
         let node_id = NodeId::new(0, 2382);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::String, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::String, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2380), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2380), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2380), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "InvocationCreationTime";
         let display_name = "InvocationCreationTime";
         let description = "";
         let node_id = NodeId::new(0, 2383);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(294u32).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(294u32).unwrap(), data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2380), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2380), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2380), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "LastTransitionTime";
         let display_name = "LastTransitionTime";
         let description = "";
         let node_id = NodeId::new(0, 2384);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(294u32).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(294u32).unwrap(), data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2380), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2380), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2380), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "LastMethodCall";
         let display_name = "LastMethodCall";
         let description = "";
         let node_id = NodeId::new(0, 2385);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::String, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::String, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2380), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2380), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2380), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "LastMethodSessionId";
         let display_name = "LastMethodSessionId";
         let description = "";
         let node_id = NodeId::new(0, 2386);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::NodeId, DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::NodeId, data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2380), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2380), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2380), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "LastMethodInputArguments";
         let display_name = "LastMethodInputArguments";
         let description = "";
         let node_id = NodeId::new(0, 2387);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(296u32).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(296u32).unwrap(), data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2380), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2380), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2380), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "LastMethodOutputArguments";
         let display_name = "LastMethodOutputArguments";
         let description = "";
         let node_id = NodeId::new(0, 2388);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(296u32).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(296u32).unwrap(), data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2380), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2380), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2380), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "LastMethodCallTime";
         let display_name = "LastMethodCallTime";
         let description = "";
         let node_id = NodeId::new(0, 2389);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(294u32).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(294u32).unwrap(), data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2380), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2380), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2380), &node_id);
     }
     {
         // Variable
+        let data_value = DataValue::null();
         let browse_name = "LastMethodReturnStatus";
         let display_name = "LastMethodReturnStatus";
         let description = "";
         let node_id = NodeId::new(0, 2390);
-        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(299u32).unwrap(), DataValue::null());
+        let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(299u32).unwrap(), data_value);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2380), &node_id, ReferenceTypeId::HasProperty);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2380), &node_id, ReferenceTypeId::HasProperty),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2380), &node_id);
     }
     {
@@ -1048,17 +1194,19 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 2380);
         let node = VariableType::new(&node_id, browse_name, display_name, description, false, -1);
         address_space.insert(node);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2381), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2382), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2383), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2384), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2385), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2386), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2387), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2388), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2389), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 2390), ReferenceTypeId::HasProperty);
-        address_space.insert_reference(&NodeId::new(0, 63), &node_id, ReferenceTypeId::HasSubtype);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 2381), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2382), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2383), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2384), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2385), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2386), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2387), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2388), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2389), ReferenceTypeId::HasProperty),
+            (&node_id, &NodeId::new(0, 2390), ReferenceTypeId::HasProperty),
+            (&NodeId::new(0, 63), &node_id, ReferenceTypeId::HasSubtype),
+        ]);
     }
     {
         // Method
@@ -1068,9 +1216,10 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 2426);
         let node = Method::new(&node_id, browse_name, display_name, description, false, false, false);
         address_space.insert(node);
-        // address_space.insert_reference(&NodeId::new(0, 2410), &node_id, ReferenceTypeId::i=53);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
@@ -1081,9 +1230,10 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 2427);
         let node = Method::new(&node_id, browse_name, display_name, description, false, false, false);
         address_space.insert(node);
-        // address_space.insert_reference(&NodeId::new(0, 2416), &node_id, ReferenceTypeId::i=53);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
@@ -1094,9 +1244,10 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 2428);
         let node = Method::new(&node_id, browse_name, display_name, description, false, false, false);
         address_space.insert(node);
-        // address_space.insert_reference(&NodeId::new(0, 2418), &node_id, ReferenceTypeId::i=53);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
@@ -1107,11 +1258,10 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 2429);
         let node = Method::new(&node_id, browse_name, display_name, description, false, false, false);
         address_space.insert(node);
-        // address_space.insert_reference(&NodeId::new(0, 2412), &node_id, ReferenceTypeId::i=53);
-        // address_space.insert_reference(&NodeId::new(0, 2420), &node_id, ReferenceTypeId::i=53);
-        // address_space.insert_reference(&NodeId::new(0, 2424), &node_id, ReferenceTypeId::i=53);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
     {
@@ -1122,9 +1272,10 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let node_id = NodeId::new(0, 2430);
         let node = Method::new(&node_id, browse_name, display_name, description, false, false, false);
         address_space.insert(node);
-        // address_space.insert_reference(&NodeId::new(0, 2408), &node_id, ReferenceTypeId::i=53);
-        address_space.insert_reference(&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule);
-        address_space.insert_reference(&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent);
+        address_space.insert_references(&[
+            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
+            (&NodeId::new(0, 2391), &node_id, ReferenceTypeId::HasComponent),
+        ]);
         address_space.add_organizes(&NodeId::new(0, 2391), &node_id);
     }
 }
