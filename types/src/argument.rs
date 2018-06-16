@@ -44,12 +44,20 @@ impl BinaryEncoder<Argument> for Argument {
         size += self.name.encode(stream)?;
         size += self.data_type.encode(stream)?;
         size += self.value_rank.encode(stream)?;
-
+        // Encode the array dimensions
         if self.value_rank > 0 {
-            let array_dimensions = self.array_dimensions.as_ref().unwrap();
-            size += write_u32(stream, array_dimensions.len() as UInt32)?;
-            for d in array_dimensions.iter() {
-                size += d.encode(stream)?;
+            if let Some(ref array_dimensions) = self.array_dimensions {
+                if self.value_rank as usize != array_dimensions.len() {
+                    error!("The array dimensions {} of the Argument should match value rank {} and they don't", array_dimensions.len(), self.value_rank);
+                    return Err(StatusCode::BadDataEncodingInvalid);
+                }
+                size += write_u32(stream, array_dimensions.len() as UInt32)?;
+                for d in array_dimensions.iter() {
+                    size += d.encode(stream)?;
+                }
+            } else {
+                error!("The array dimensions are expected in the Argument matching value rank {} and they aren't", self.value_rank);
+                return Err(StatusCode::BadDataEncodingInvalid);
             }
         } else {
             size += write_u32(stream, 0)?;
@@ -63,7 +71,7 @@ impl BinaryEncoder<Argument> for Argument {
         let name = UAString::decode(stream)?;
         let data_type = NodeId::decode(stream)?;
         let value_rank = Int32::decode(stream)?;
-
+        // Decode array dimensions
         let array_dimensions_len = UInt32::decode(stream)?;
         let array_dimensions = if array_dimensions_len > 0 {
             if value_rank > 0 && value_rank as UInt32 != array_dimensions_len {

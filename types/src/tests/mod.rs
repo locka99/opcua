@@ -8,6 +8,7 @@ use std::cmp::PartialEq;
 use std::io::Cursor;
 
 use ::*;
+use argument::Argument;
 use status_codes::StatusCode::*;
 use node_ids::*;
 

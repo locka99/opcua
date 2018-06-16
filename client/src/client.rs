@@ -145,10 +145,10 @@ impl Client {
         self.new_session_from_info(session_info)
     }
 
-    const SUBSCRIPTION_TIMER_INTERVAL: i64 = 50i64;
-
     /// Creates an ad hoc new `Session` using the specified endpoint url, security policy and mode.
     pub fn new_session_from_info<T>(&mut self, session_info: T) -> Result<Arc<RwLock<Session>>, String> where T: Into<SessionInfo> {
+        const SUBSCRIPTION_TIMER_INTERVAL: i64 = 50i64;
+
         let session_info = session_info.into();
         if !is_opc_ua_binary_url(session_info.endpoint.endpoint_url.as_ref()) {
             Err(format!("Endpoint url {}, is not a valid / supported url", session_info.endpoint.endpoint_url))
@@ -158,7 +158,7 @@ impl Client {
             let subscription_timer = {
                 let timer = timer::Timer::new();
                 let session = session.clone();
-                let timer_guard = timer.schedule_repeating(time::Duration::milliseconds(Self::SUBSCRIPTION_TIMER_INTERVAL), move || {
+                let timer_guard = timer.schedule_repeating(time::Duration::milliseconds(SUBSCRIPTION_TIMER_INTERVAL), move || {
                     let mut session = trace_write_lock_unwrap!(session);
                     session.subscription_timer();
                 });
@@ -338,15 +338,15 @@ impl Client {
         }
     }
 
+    /// Returns an identity token corresponding to the matching user in the configuration. Or None
+    /// if there is no matching token.
     fn client_identity_token(&self, user_token_id: &str) -> Option<IdentityToken> {
         if user_token_id == ANONYMOUS_USER_TOKEN_ID {
             Some(IdentityToken::Anonymous)
+        } else if let Some(token) = self.config.user_tokens.get(user_token_id) {
+            Some(IdentityToken::UserName(token.user.clone(), token.password.clone()))
         } else {
-            if let Some(token) = self.config.user_tokens.get(user_token_id) {
-                Some(IdentityToken::UserName(token.user.clone(), token.password.clone()))
-            } else {
-                None
-            }
+            None
         }
     }
 

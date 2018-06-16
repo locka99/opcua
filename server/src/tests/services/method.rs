@@ -63,7 +63,7 @@ fn call_single(s: &MethodService, address_space: &AddressSpace, server_state: &S
     Ok(response.results.unwrap().remove(0))
 }
 
-// #[test]
+#[test]
 fn call_getmonitoreditems() {
     opcua_core::init_logging();
 
@@ -144,6 +144,7 @@ fn call_getmonitoreditems() {
         let response = call_single(&s, &address_space, &server_state, &session, request).unwrap();
         assert_eq!(response.status_code, Good);
 
+        // There should be two output args, each a vector of UInt32
         let mut result = response.output_arguments.unwrap();
         let server_handles = result.remove(0);
         let client_handles = result.remove(0);

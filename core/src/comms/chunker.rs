@@ -129,7 +129,6 @@ impl Chunker {
     pub fn decode(chunks: &Vec<MessageChunk>, secure_channel: &SecureChannel, expected_node_id: Option<NodeId>) -> std::result::Result<SupportedMessage, StatusCode> {
         // Calculate the size of data held in all chunks
         let mut data_size: usize = 0;
-        let last_sequence_number: UInt32 = 0;
         for (i, chunk) in chunks.iter().enumerate() {
             let chunk_info = chunk.chunk_info(secure_channel)?;
             // The last most chunk is expected to be final, the rest intermediate

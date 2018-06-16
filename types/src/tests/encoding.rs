@@ -1,4 +1,5 @@
 use std::str::FromStr;
+
 use tests::*;
 
 #[test]
@@ -437,4 +438,15 @@ fn diagnostic_info() {
     }));
 
     serialize_test(d.clone());
+}
+
+#[test]
+fn argument() {
+    serialize_test(Argument {
+        name: UAString::from("arg"),
+        data_type: NodeId::null,
+        value_rank: 1,
+        array_dimensions: Some(vec![10]),
+        description: LocalizedText::new("foo", "bar"),
+    });
 }
