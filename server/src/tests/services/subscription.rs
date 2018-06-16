@@ -26,7 +26,7 @@ fn create_subscription_request() -> CreateSubscriptionRequest {
 fn create_monitored_items_request<T>(subscription_id: UInt32, node_id: T) -> CreateMonitoredItemsRequest where T: 'static + Into<NodeId> {
     CreateMonitoredItemsRequest {
         request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
-        subscription_id: subscription_id,
+        subscription_id,
         timestamps_to_return: TimestampsToReturn::Both,
         items_to_create: Some(vec![MonitoredItemCreateRequest {
             item_to_monitor: ReadValueId {
@@ -237,7 +237,7 @@ fn republish() {
     // try for a sequence nr that does not exist
     let request = RepublishRequest {
         request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
-        subscription_id: subscription_id,
+        subscription_id,
         retransmit_sequence_number: sequence_number + 1,
     };
     let response: ServiceFault = supported_message_as!(ss.republish(&mut session, request).unwrap(), ServiceFault);

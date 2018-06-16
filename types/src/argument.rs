@@ -3,6 +3,7 @@ use std::io::{Read, Write};
 use basic_types::{LocalizedText, Int32, UInt32};
 use node_id::NodeId;
 use string::UAString;
+use status_codes::StatusCode;
 use encoding::*;
 
 // From OPC UA Part 3 - Address Space Model 1.03 Specification
@@ -66,9 +67,9 @@ impl BinaryEncoder<Argument> for Argument {
         let array_dimensions_len = UInt32::decode(stream)?;
         let array_dimensions = if array_dimensions_len > 0 {
             if value_rank > 0 && value_rank as UInt32 != array_dimensions_len {
-                panic!("The array dimensions {} of the Argument should match value rank {} and they don't", array_dimensions_len, value_rank);
+                error!("The array dimensions {} of the Argument should match value rank {} and they don't", array_dimensions_len, value_rank);
+                return Err(StatusCode::BadDataEncodingInvalid);
             }
-
             let mut array_dimensions = Vec::with_capacity(array_dimensions_len as usize);
             for _ in 0..array_dimensions_len {
                 array_dimensions.push(read_u32(stream)?);
