@@ -444,7 +444,7 @@ fn diagnostic_info() {
 fn argument() {
     serialize_test(Argument {
         name: UAString::from("arg"),
-        data_type: NodeId::null,
+        data_type: NodeId::null(),
         value_rank: 1,
         array_dimensions: Some(vec![10]),
         description: LocalizedText::new("foo", "bar"),

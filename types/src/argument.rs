@@ -12,6 +12,7 @@ use encoding::*;
 // example used in the input and output argument Properties for Methods. Its elements are described in
 // Table23
 
+#[derive(Clone, Debug, PartialEq)]
 pub struct Argument {
     pub name: UAString,
     pub data_type: NodeId,
@@ -27,14 +28,7 @@ impl BinaryEncoder<Argument> for Argument {
         size += self.name.byte_len();
         size += self.data_type.byte_len();
         size += self.value_rank.byte_len();
-
-        // Array dimensions
-        size += 4;
-        if self.value_rank > 0 {
-            let array_dimensions = self.array_dimensions.as_ref().unwrap();
-            size += 4 * array_dimensions.len();
-        }
-
+        size += byte_len_array(&self.array_dimensions);
         size += self.description.byte_len();
         size
     }
@@ -51,10 +45,7 @@ impl BinaryEncoder<Argument> for Argument {
                     error!("The array dimensions {} of the Argument should match value rank {} and they don't", array_dimensions.len(), self.value_rank);
                     return Err(StatusCode::BadDataEncodingInvalid);
                 }
-                size += write_u32(stream, array_dimensions.len() as UInt32)?;
-                for d in array_dimensions.iter() {
-                    size += d.encode(stream)?;
-                }
+                size += write_array(stream, &self.array_dimensions)?;
             } else {
                 error!("The array dimensions are expected in the Argument matching value rank {} and they aren't", self.value_rank);
                 return Err(StatusCode::BadDataEncodingInvalid);
@@ -78,11 +69,8 @@ impl BinaryEncoder<Argument> for Argument {
                 error!("The array dimensions {} of the Argument should match value rank {} and they don't", array_dimensions_len, value_rank);
                 return Err(StatusCode::BadDataEncodingInvalid);
             }
-            let mut array_dimensions = Vec::with_capacity(array_dimensions_len as usize);
-            for _ in 0..array_dimensions_len {
-                array_dimensions.push(read_u32(stream)?);
-            }
-            Some(array_dimensions)
+            let array_dimensions: Option<Vec<UInt32>> = read_array(stream)?;
+            array_dimensions
         } else {
             None
         };
