@@ -63,17 +63,13 @@ impl BinaryEncoder<Argument> for Argument {
         let data_type = NodeId::decode(stream)?;
         let value_rank = Int32::decode(stream)?;
         // Decode array dimensions
-        let array_dimensions_len = UInt32::decode(stream)?;
-        let array_dimensions = if array_dimensions_len > 0 {
-            if value_rank > 0 && value_rank as UInt32 != array_dimensions_len {
-                error!("The array dimensions {} of the Argument should match value rank {} and they don't", array_dimensions_len, value_rank);
+        let array_dimensions: Option<Vec<UInt32>> = read_array(stream)?;
+        if let Some(ref array_dimensions) = array_dimensions {
+            if value_rank > 0 && value_rank as usize != array_dimensions.len() {
+                error!("The array dimensions {} of the Argument should match value rank {} and they don't", array_dimensions.len(), value_rank);
                 return Err(StatusCode::BadDataEncodingInvalid);
             }
-            let array_dimensions: Option<Vec<UInt32>> = read_array(stream)?;
-            array_dimensions
-        } else {
-            None
-        };
+        }
         let description = LocalizedText::decode(stream)?;
         Ok(Argument {
             name,
