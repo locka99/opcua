@@ -797,34 +797,26 @@ impl Session {
     }
 
     /// Calls GetMonitoredItems via call_method(), putting a sane interface on the input / output
-    /*    pub fn call_get_monitored_items(&mut self, subscription_id: UInt32) -> Result<(Vec<UInt32>, Vec<UInt32>), StatusCode> {
-            let args = Some(vec![subscription_id]);
-            let response = self.call_method((ObjectId::Server.into(), MethodId::Server_GetMonitoredItems.into(), args))?;
-            if let Some(mut result) = response.output_arguments {
-                if result.len() == 2 {
-                    let server_handles = result.remove(0);
-                    let client_handles = result.remove(0);
-                    // Sanity checking
-                    if let Variant::Array(server_handles) = server_handles {
-                        if let Variant::Array(client_handles) = client_handles {
-                            Ok(server_handles, client_handles)
-                        } else {
-                            error!("Expected client handles to be a UInt32 array and it wasn't.");
-                            Err(BadUnexpectedError)
-                        }
-                    } else {
-                        error!("Expected server handles to be a UInt32 array and it wasn't.");
-                        Err(BadUnexpectedError)
-                    }
-                } else {
-                    error!("Expected a result with 2 args and didn't get it.");
-                    Err(BadUnexpectedError)
-                }
+    pub fn call_get_monitored_items(&mut self, subscription_id: UInt32) -> Result<(Vec<UInt32>, Vec<UInt32>), StatusCode> {
+        let args = Some(vec![Variant::from(subscription_id)]);
+        let object_id: NodeId = ObjectId::Server.into();
+        let method_id: NodeId = MethodId::Server_GetMonitoredItems.into();
+        let request: CallMethodRequest = (object_id, method_id, args).into();
+        let response = self.call_method(request)?;
+        if let Some(mut result) = response.output_arguments {
+            if result.len() == 2 {
+                let server_handles = result.remove(0).into_u32_array()?;
+                let client_handles = result.remove(0).into_u32_array()?;
+                Ok((server_handles, client_handles))
             } else {
-                error!("Expected a result and didn't get it.");
+                error!("Expected a result with 2 args and didn't get it.");
                 Err(BadUnexpectedError)
             }
-        } */
+        } else {
+            error!("Expected a result and didn't get it.");
+            Err(BadUnexpectedError)
+        }
+    }
 
     // Test if the subscription by id exists
     fn subscription_exists(&self, subscription_id: UInt32) -> bool {

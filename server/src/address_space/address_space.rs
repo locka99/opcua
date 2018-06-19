@@ -11,7 +11,7 @@ use opcua_types::status_codes::StatusCode::*;
 use opcua_types::service_types::{CallMethodRequest, CallMethodResult};
 
 use address_space::AttrFnGetter;
-use address_space::node::{Node, NodeType};
+use address_space::node::{Node, NodeType, HasNodeId};
 use address_space::object::Object;
 use address_space::variable::Variable;
 use address_space::method_impls;
@@ -79,10 +79,16 @@ pub struct Reference {
 impl Reference {
     pub fn new(reference_type_id: ReferenceTypeId, node_id: &NodeId) -> Reference {
         Reference {
-            reference_type_id: reference_type_id,
+            reference_type_id,
             node_id: node_id.clone(),
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum ReferenceDirection {
+    Forward,
+    Inverse,
 }
 
 type MethodCallback = Box<Fn(&AddressSpace, &ServerState, &Session, &CallMethodRequest) -> Result<CallMethodResult, StatusCode> + Send + Sync + 'static>;
@@ -102,7 +108,7 @@ pub struct AddressSpace {
     references: HashMap<NodeId, Vec<Reference>>,
     /// A map of inverse references between nodes
     inverse_references: HashMap<NodeId, Vec<Reference>>,
-    /// This is the last time that references to nodes were added or removed from the address space.
+    /// This is the last time that nodes or references to nodes were added or removed from the address space.
     last_modified: DateTimeUtc,
     /// Method handlers
     method_handlers: HashMap<MethodKey, MethodCallback>,
@@ -137,11 +143,11 @@ impl AddressSpace {
         {
             let server_state = trace_read_lock_unwrap!(server_state);
             if let Some(ref mut v) = self.find_variable_by_variable_id(Server_NamespaceArray) {
-                v.set_value_direct(&DateTime::now(), Variant::new_string_array(&server_state.namespaces));
+                v.set_value_direct(&DateTime::now(), Variant::from_string_array(&server_state.namespaces));
                 v.set_array_dimensions(&[server_state.namespaces.len() as UInt32]);
             }
             if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerArray) {
-                v.set_value_direct(&DateTime::now(), Variant::new_string_array(&server_state.servers));
+                v.set_value_direct(&DateTime::now(), Variant::from_string_array(&server_state.servers));
                 v.set_array_dimensions(&[server_state.servers.len() as UInt32]);
             }
         }
@@ -198,7 +204,7 @@ impl AddressSpace {
                 //  Security Default ApplicationInstanceCertificate
                 "http://opcfoundation.org/UA-Profile/Server/EmbeddedUA".to_string(),
             ];
-            v.set_value_direct(&DateTime::now(), Variant::new_string_array(&server_profiles));
+            v.set_value_direct(&DateTime::now(), Variant::from_string_array(&server_profiles));
             v.set_array_dimensions(&[server_profiles.len() as UInt32]);
         }
 
@@ -330,15 +336,100 @@ impl AddressSpace {
         expect_and_find_object!(self, &AddressSpace::views_folder_id())
     }
 
-    /// Inserts a node into the address space node map
-    pub fn insert<T>(&mut self, node: T) where T: 'static + Into<NodeType> {
+    /// Inserts a node into the address space node map and its references to other nodes.
+    /// The tuple of references is the node id, reference type id and a bool which is false for
+    /// a forward reference and indicating inverse
+    pub fn insert<T>(&mut self, node: T, references: Option<&[(&NodeId, ReferenceTypeId, ReferenceDirection)]>) where T: 'static + Into<NodeType> {
         let node_type = node.into();
         let node_id = node_type.node_id();
         if self.node_exists(&node_id) {
             panic!("This node {:?} already exists", node_id);
         }
-        self.node_map.insert(node_id, node_type);
+        self.node_map.insert(node_id.clone(), node_type);
+
+        // If references are supplied, add them now
+        if let Some(references) = references {
+            references.iter().for_each(|r| {
+                let (node_id_other, reference_type_id, reference_direction) = r;
+                self.insert_references(&[
+                    match reference_direction {
+                        ReferenceDirection::Forward => (&node_id, node_id_other, *reference_type_id),
+                        ReferenceDirection::Inverse => (node_id_other, &node_id, *reference_type_id),
+                    }]);
+            });
+        }
+
         self.update_last_modified();
+    }
+
+    /// Adds the standard nodeset to the address space
+    pub fn add_default_nodes(&mut self) {
+        debug!("populating address space");
+
+        // Reserve space in the maps. The default node set contains just under 2000 values for
+        // nodes, references and inverse references.
+        self.node_map.reserve(2000);
+        self.references.reserve(2000);
+        self.inverse_references.reserve(2000);
+
+        // Run the generated code that will populate the address space with the default nodes
+        super::generated::populate_address_space(self);
+        debug!("finished populating address space, number of nodes = {}, number of references = {}, number of reverse references = {}",
+               self.node_map.len(), self.references.len(), self.inverse_references.len());
+    }
+
+    // Inserts a bunch of references between two nodes into the address space
+    pub fn insert_references(&mut self, references: &[(&NodeId, &NodeId, ReferenceTypeId)]) {
+        references.iter().for_each(|reference| {
+            let (node_id_from, node_id_to, reference_type_id) = *reference;
+            if node_id_from == node_id_to {
+                panic!("Node id from == node id to {:?}", node_id_from);
+            }
+            AddressSpace::add_reference(&mut self.references, node_id_from, Reference::new(reference_type_id, node_id_to));
+            AddressSpace::add_reference(&mut self.inverse_references, node_id_to, Reference::new(reference_type_id, node_id_from));
+        });
+        self.update_last_modified();
+    }
+
+    /// Inserts a single reference between two nodes in the address space
+    pub fn insert_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) {
+        self.insert_references(&[(node_id_from, node_id_to, reference_type_id)]);
+    }
+
+    pub fn set_object_type(&mut self, node_id: &NodeId, object_type: ObjectTypeId) {
+        self.insert_reference(node_id, &object_type.into(), ReferenceTypeId::HasTypeDefinition);
+    }
+
+    pub fn set_variable_type(&mut self, node_id: &NodeId, variable_type: VariableTypeId) {
+        self.insert_reference(node_id, &variable_type.into(), ReferenceTypeId::HasTypeDefinition);
+    }
+
+    pub fn set_variable_as_property_type(&mut self, node_id: &NodeId) {
+        self.set_variable_type(node_id, VariableTypeId::PropertyType);
+    }
+
+    pub fn add_has_component(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
+        self.insert_reference(node_id_from, node_id_to, ReferenceTypeId::HasComponent);
+    }
+
+    pub fn add_organizes(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
+        self.insert_reference(node_id_from, node_id_to, ReferenceTypeId::Organizes);
+    }
+
+    pub fn add_has_child(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
+        self.insert_reference(node_id_from, node_id_to, ReferenceTypeId::HasChild);
+    }
+
+    pub fn add_has_property(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
+        self.insert_reference(node_id_from, node_id_to, ReferenceTypeId::HasProperty);
+    }
+
+    pub fn find_node(&self, node_id: &NodeId) -> Option<&NodeType> {
+        self.node_map.get(node_id)
+    }
+
+    pub fn find_node_mut(&mut self, node_id: &NodeId) -> Option<&mut NodeType> {
+        self.node_map.get_mut(node_id)
     }
 
     pub fn node_exists(&self, node_id: &NodeId) -> bool {
@@ -412,10 +503,10 @@ impl AddressSpace {
             panic!("Node {:?} already exists", node_id);
         } else {
             // Add a relationship to the parent
-            self.insert(Object::new(&node_id, browse_name, display_name, ""));
-            self.add_organizes(&parent_node_id, &node_id);
-            self.insert_reference(&node_id, &node_type_id.into(), ReferenceTypeId::HasTypeDefinition);
-            self.update_last_modified();
+            self.insert(Object::new(&node_id, browse_name, display_name, ""), Some(&[
+                (&parent_node_id, ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+                (&node_type_id.into(), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+            ]));
             Ok(node_id.clone())
         }
     }
@@ -444,9 +535,9 @@ impl AddressSpace {
     pub fn add_variable(&mut self, variable: Variable, parent_node_id: &NodeId) -> Result<NodeId, ()> {
         let node_id = variable.node_id();
         if !self.node_map.contains_key(&node_id) {
-            self.add_organizes(&parent_node_id, &node_id);
-            self.insert(NodeType::Variable(variable));
-            self.update_last_modified();
+            self.insert(NodeType::Variable(variable), Some(&[
+                (&parent_node_id, ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+            ]));
             Ok(node_id)
         } else {
             Err(())
@@ -723,75 +814,5 @@ impl AddressSpace {
 
     fn update_last_modified(&mut self) {
         self.last_modified = Utc::now();
-    }
-
-    /// Adds the standard nodeset to the address space
-    pub fn add_default_nodes(&mut self) {
-        debug!("populating address space");
-
-        // Reserve space in the maps. The default node set contains just under 2000 values for
-        // nodes, references and inverse references.
-        self.node_map.reserve(2000);
-        self.references.reserve(2000);
-        self.inverse_references.reserve(2000);
-
-        // Run the generated code that will populate the address space with the default nodes
-        super::generated::populate_address_space(self);
-        debug!("finished populating address space, number of nodes = {}, number of references = {}, number of reverse references = {}",
-               self.node_map.len(), self.references.len(), self.inverse_references.len());
-    }
-
-    // Inserts a bunch of references between two nodes into the address space
-    pub fn insert_references(&mut self, references: &[(&NodeId, &NodeId, ReferenceTypeId)]) {
-        references.iter().for_each(|reference| {
-            let (node_id_from, node_id_to, reference_type_id) = *reference;
-            if node_id_from == node_id_to {
-                panic!("Node id from == node id to {:?}", node_id_from);
-            }
-            AddressSpace::add_reference(&mut self.references, node_id_from, Reference::new(reference_type_id, node_id_to));
-            AddressSpace::add_reference(&mut self.inverse_references, node_id_to, Reference::new(reference_type_id, node_id_from));
-        });
-        self.update_last_modified();
-    }
-
-    /// Inserts a single reference between two nodes in the address space
-    pub fn insert_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) {
-        self.insert_references(&[(node_id_from, node_id_to, reference_type_id)]);
-    }
-
-    pub fn set_object_type(&mut self, node_id: &NodeId, object_type: ObjectTypeId) {
-        self.insert_reference(node_id, &object_type.into(), ReferenceTypeId::HasTypeDefinition);
-    }
-
-    pub fn set_variable_type(&mut self, node_id: &NodeId, variable_type: VariableTypeId) {
-        self.insert_reference(node_id, &variable_type.into(), ReferenceTypeId::HasTypeDefinition);
-    }
-
-    pub fn set_variable_as_property_type(&mut self, node_id: &NodeId) {
-        self.set_variable_type(node_id, VariableTypeId::PropertyType);
-    }
-
-    pub fn add_has_component(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
-        self.insert_reference(node_id_from, node_id_to, ReferenceTypeId::HasComponent);
-    }
-
-    pub fn add_organizes(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
-        self.insert_reference(node_id_from, node_id_to, ReferenceTypeId::Organizes);
-    }
-
-    pub fn add_has_child(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
-        self.insert_reference(node_id_from, node_id_to, ReferenceTypeId::HasChild);
-    }
-
-    pub fn add_has_property(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {
-        self.insert_reference(node_id_from, node_id_to, ReferenceTypeId::HasProperty);
-    }
-
-    pub fn find_node(&self, node_id: &NodeId) -> Option<&NodeType> {
-        self.node_map.get(node_id)
-    }
-
-    pub fn find_node_mut(&mut self, node_id: &NodeId) -> Option<&mut NodeType> {
-        self.node_map.get_mut(node_id)
     }
 }

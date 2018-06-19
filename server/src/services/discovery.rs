@@ -23,7 +23,7 @@ impl DiscoveryService {
             response_header: ResponseHeader::new_good(&request.request_header),
             endpoints,
         };
-//        error!("Endpoint response = {:#?}", response);
+        error!("Endpoint response = {:#?}", response);
         Ok(response.into())
     }
 }

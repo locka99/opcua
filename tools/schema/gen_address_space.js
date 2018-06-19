@@ -299,17 +299,32 @@ function insert_node(indent, node_type, node, node_ctor) {
     }
 
     contents += `${indent}let node = ${node_ctor};\n`;
-    contents += `${indent}address_space.insert(node);\n`;
+    contents += `${indent}address_space.insert(node, `;
 
-    // Process references
-    if (_.has(node, "References")) {
-        contents += insert_references(indent, node["References"][0])
-    }
-
-    // Organizes
+    var node_references = [];
+    // Organizes reference
     if (_.has(node["$"], "ParentNodeId")) {
         var parent_node_id = node_id_ctor(node["$"]["ParentNodeId"]);
-        contents += `${indent}address_space.add_organizes(&${parent_node_id}, &node_id);\n`;
+        node_references.push({
+            node_other: parent_node_id,
+            reference_type: "ReferenceTypeId::Organizes",
+            reference_direction: "ReferenceDirection::Inverse",
+        })
+    }
+
+    // Process other references
+    if (_.has(node, "References")) {
+        contents += insert_references(indent, node["References"][0], node_references)
+    }
+
+    if (node_references.length > 0) {
+        contents += "Some(&[\n";
+        _.each(node_references, function (r) {
+            contents += `${indent}    (&${r.node_other}, ${r.reference_type}, ${r.reference_direction}),\n`;
+        });
+        contents += `${indent}]));\n`;
+    } else {
+        contents += "None);\n";
     }
 
     // Process definitions
@@ -324,37 +339,29 @@ function insert_node(indent, node_type, node, node_ctor) {
     return contents;
 }
 
-function insert_references(indent, references) {
+function insert_references(indent, reference_element, node_references) {
     var contents = "";
-    if (_.has(references, "Reference")) {
-        var node_references = [];
-        _.each(references["Reference"], function (reference) {
+    if (_.has(reference_element, "Reference")) {
+        _.each(reference_element["Reference"], function (reference) {
             // Test if the reference is forward or reverse
-            var reference_type = reference["$"]["ReferenceType"];
-            var reference_id = node_id_ctor(reference["_"]);
             var is_forward = !_.has(reference["$"], "IsForward") || reference["$"]["IsForward"] === "true";
 
-            var node_id1 = is_forward ? "node_id" : reference_id;
-            var node_id2 = is_forward ? reference_id : "node_id";
+            var node_other = node_id_ctor(reference["_"]);
+            var reference_type = reference["$"]["ReferenceType"];
+            var reference_direction = is_forward ? "ReferenceDirection::Forward" : "ReferenceDirection::Inverse";
 
             if (reference_type.startsWith("i=")) {
                 // TODO
             }
             else {
                 node_references.push({
-                    node_from: node_id1,
-                    node_to: node_id2,
-                    reference_type: `ReferenceTypeId::${reference_type}`
+                    node_other: node_other,
+                    reference_type: `ReferenceTypeId::${reference_type}`,
+                    reference_direction: reference_direction
                 })
             }
         });
-        if (node_references.length > 0) {
-            contents += `${indent}address_space.insert_references(&[\n`;
-            _.each(node_references, function (r) {
-                contents += `${indent}    (&${r.node_from}, &${r.node_to}, ${r.reference_type}),\n`;
-            });
-            contents += `${indent}]);\n`;
-        }
+
     }
     return contents;
 }

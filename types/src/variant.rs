@@ -564,30 +564,6 @@ impl Variant {
         Variant::MultiDimensionArray(Box::new(MultiDimensionArray { values, dimensions }))
     }
 
-    pub fn new_i32_array(in_values: &[Int32]) -> Variant {
-        let mut values = Vec::with_capacity(in_values.len());
-        for v in in_values {
-            values.push(Variant::Int32(*v));
-        }
-        Variant::Array(values)
-    }
-
-    pub fn new_u32_array(in_values: &[UInt32]) -> Variant {
-        let mut values = Vec::with_capacity(in_values.len());
-        for v in in_values {
-            values.push(Variant::UInt32(*v));
-        }
-        Variant::Array(values)
-    }
-
-    pub fn new_string_array(in_values: &[String]) -> Variant {
-        let mut values = Vec::with_capacity(in_values.len());
-        for v in in_values {
-            values.push(Variant::String(UAString::from(v.as_ref())));
-        }
-        Variant::Array(values)
-    }
-
     /// Tests and returns true if the variant holds a numeric type
     pub fn is_numeric(&self) -> bool {
         match *self {
@@ -597,6 +573,19 @@ impl Variant {
             Variant::Int64(_) | Variant::UInt64(_) |
             Variant::Float(_) | Variant::Double(_) => true,
             _ => false
+        }
+    }
+
+    /// Tests and returns true if the variant is an array containing numeric values
+    pub fn is_numeric_array(&self) -> bool {
+        match *self {
+            Variant::Array(ref values) => {
+                // A non-numeric value means it is not numeric
+                values.iter().find(|v| !v.is_numeric()).is_some()
+            }
+            _ => {
+                false
+            }
         }
     }
 
@@ -622,6 +611,63 @@ impl Variant {
             _ => {
                 None
             }
+        }
+    }
+
+    pub fn from_i32_array(in_values: &[Int32]) -> Variant {
+        let mut values = Vec::with_capacity(in_values.len());
+        for v in in_values {
+            values.push(Variant::Int32(*v));
+        }
+        Variant::Array(values)
+    }
+
+    pub fn from_u32_array(in_values: &[UInt32]) -> Variant {
+        let mut values = Vec::with_capacity(in_values.len());
+        for v in in_values {
+            values.push(Variant::UInt32(*v));
+        }
+        Variant::Array(values)
+    }
+
+    pub fn from_string_array(in_values: &[String]) -> Variant {
+        let mut values = Vec::with_capacity(in_values.len());
+        for v in in_values {
+            values.push(Variant::String(UAString::from(v.as_ref())));
+        }
+        Variant::Array(values)
+    }
+
+    /// Returns an array of UInt32s
+    pub fn into_u32_array(&self) -> Result<Vec<UInt32>, StatusCode> {
+        if self.is_numeric_array() {
+            match *self {
+                Variant::Array(ref values) => {
+                    Ok(values.iter().map(|v| {
+                        match *v {
+                            Variant::UInt32(ref value) => *value,
+                            Variant::SByte(ref value) => *value as u32,
+                            Variant::Byte(ref value) => *value as u32,
+                            Variant::Int16(ref value) => *value as u32,
+                            Variant::UInt16(ref value) => *value as u32,
+                            Variant::Int32(ref value) => *value as u32,
+                            Variant::Int64(ref value) => *value as u32,
+                            Variant::UInt64(ref value) => *value as u32,
+                            Variant::Float(ref value) => *value as u32,
+                            Variant::Double(ref value) => *value as u32,
+                            _ => {
+                                panic!("Expecting a numeric value in the numeric array");
+                            }
+                        }
+                    }).collect::<Vec<UInt32>>())
+                }
+                _ => {
+                    panic!("Not a numeric array");
+                }
+            }
+        } else {
+            error!("Variant is either not an array or does not hold numeric values");
+            Err(StatusCode::BadUnexpectedError)
         }
     }
 

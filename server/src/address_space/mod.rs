@@ -156,7 +156,7 @@ pub mod user_access_level {
 
 pub mod types {
     pub use super::{AttrFnGetter, AttrFnSetter};
-    pub use super::address_space::AddressSpace;
+    pub use super::address_space::{AddressSpace, ReferenceDirection};
     pub use super::data_type::DataType;
     pub use super::object::Object;
     pub use super::variable::Variable;

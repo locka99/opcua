@@ -89,7 +89,7 @@ impl Variable {
     pub fn set_array_dimensions(&mut self, dimensions: &[UInt32]) {
         let now = DateTime::now();
         let _ = self.base.set_attribute_value(AttributeId::ValueRank, Variant::Int32(dimensions.len() as Int32), &now, &now);
-        let _ = self.base.set_attribute_value(AttributeId::ArrayDimensions, Variant::new_u32_array(dimensions), &now, &now);
+        let _ = self.base.set_attribute_value(AttributeId::ArrayDimensions, Variant::from_u32_array(dimensions), &now, &now);
     }
 
     /// Sets the minimum sampling interval

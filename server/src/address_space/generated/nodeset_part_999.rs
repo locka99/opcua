@@ -19,11 +19,10 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "A simple enumerated type used for testing.";
         let node_id = NodeId::new(0, 398);
         let node = DataType::new(&node_id, browse_name, display_name, description, false);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 11886), ReferenceTypeId::HasProperty),
-            (&NodeId::new(0, 29), &node_id, ReferenceTypeId::HasSubtype),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 11886), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+            (&NodeId::new(0, 29), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        ]));
     }
     {
         // Variable
@@ -33,12 +32,11 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "";
         let node_id = NodeId::new(0, 11886);
         let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(7594u32).unwrap(), data_value);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
-            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
-            (&NodeId::new(0, 398), &node_id, ReferenceTypeId::HasProperty),
-        ]);
-        address_space.add_organizes(&NodeId::new(0, 398), &node_id);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 398), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+            (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+            (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+            (&NodeId::new(0, 398), ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
+        ]));
     }
 }

@@ -19,10 +19,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "At the beginning of each interval, retrieve the calculated value from the data points on either side of the requested timestamp.";
         let node_id = NodeId::new(0, 2341);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -31,10 +30,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the average value of the data over the interval.";
         let node_id = NodeId::new(0, 2342);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -43,10 +41,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the time weighted average data over the interval using Interpolated Bounding Values.";
         let node_id = NodeId::new(0, 2343);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -55,10 +52,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the time weighted average data over the interval using Simple Bounding Values.";
         let node_id = NodeId::new(0, 11285);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -67,10 +63,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the total (time integral) of the data over the interval using Interpolated Bounding Values.";
         let node_id = NodeId::new(0, 2344);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -79,10 +74,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the total (time integral) of the data over the interval using Simple Bounding Values.";
         let node_id = NodeId::new(0, 11304);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -91,10 +85,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the minimum raw value in the interval with the timestamp of the start of the interval.";
         let node_id = NodeId::new(0, 2346);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -103,10 +96,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the maximum raw value in the interval with the timestamp of the start of the interval.";
         let node_id = NodeId::new(0, 2347);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -115,10 +107,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the minimum value in the interval and the Timestamp of the minimum value.";
         let node_id = NodeId::new(0, 2348);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -127,10 +118,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the maximum value in the interval and the Timestamp of the maximum value.";
         let node_id = NodeId::new(0, 2349);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -139,10 +129,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the difference between the minimum and maximum Value over the interval.";
         let node_id = NodeId::new(0, 2350);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -151,10 +140,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the minimum value in the interval including the Simple Bounding Values.";
         let node_id = NodeId::new(0, 11286);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -163,10 +151,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the maximum value in the interval including the Simple Bounding Values.";
         let node_id = NodeId::new(0, 11287);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -175,10 +162,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the minimum value with the actual timestamp including the Simple Bounding Values.";
         let node_id = NodeId::new(0, 11305);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -187,10 +173,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the maximum value with the actual timestamp including the Simple Bounding Values.";
         let node_id = NodeId::new(0, 11306);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -199,10 +184,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the difference between the Minimum2 and Maximum2 value over the interval.";
         let node_id = NodeId::new(0, 11288);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -211,10 +195,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the number of Annotations in the interval.";
         let node_id = NodeId::new(0, 2351);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -223,10 +206,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the number of raw values over the interval.";
         let node_id = NodeId::new(0, 2352);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -235,10 +217,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the time a Boolean or numeric was in a zero state using Simple Bounding Values.";
         let node_id = NodeId::new(0, 11307);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -247,10 +228,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the time a Boolean or numeric was in a non-zero state using Simple Bounding Values.";
         let node_id = NodeId::new(0, 11308);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -259,10 +239,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the number of changes between zero and non-zero that a Boolean or Numeric value experienced in the interval.";
         let node_id = NodeId::new(0, 2355);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -271,10 +250,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the value at the beginning of the interval using Interpolated Bounding Values.";
         let node_id = NodeId::new(0, 2357);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -283,10 +261,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the value at the end of the interval using Interpolated Bounding Values.";
         let node_id = NodeId::new(0, 2358);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -295,10 +272,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the difference between the Start and End value in the interval.";
         let node_id = NodeId::new(0, 2359);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -307,10 +283,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the value at the beginning of the interval using Simple Bounding Values.";
         let node_id = NodeId::new(0, 11505);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -319,10 +294,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the value at the end of the interval using Simple Bounding Values.";
         let node_id = NodeId::new(0, 11506);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -331,10 +305,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the difference between the StartBound and EndBound value in the interval.";
         let node_id = NodeId::new(0, 11507);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -343,10 +316,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the total duration of time in the interval during which the data is good.";
         let node_id = NodeId::new(0, 2360);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -355,10 +327,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the total duration of time in the interval during which the data is bad.";
         let node_id = NodeId::new(0, 2361);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -367,10 +338,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the percent of data (0 to 100) in the interval which has a good StatusCode.";
         let node_id = NodeId::new(0, 2362);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -379,10 +349,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the percent of data (0 to 100) in the interval which has a bad StatusCode.";
         let node_id = NodeId::new(0, 2363);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -391,10 +360,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the worst StatusCode of data in the interval.";
         let node_id = NodeId::new(0, 2364);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -403,10 +371,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the worst StatusCode of data in the interval including the Simple Bounding Values.";
         let node_id = NodeId::new(0, 11292);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -415,10 +382,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the standard deviation for the interval for a sample of the population (n-1).";
         let node_id = NodeId::new(0, 11426);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -427,10 +393,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the standard deviation for the interval for a complete population (n) which includes Simple Bounding Values.";
         let node_id = NodeId::new(0, 11427);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -439,10 +404,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the variance for the interval as calculated by the StandardDeviationSample.";
         let node_id = NodeId::new(0, 11428);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // Object
@@ -451,10 +415,9 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "Retrieve the variance for the interval as calculated by the StandardDeviationPopulation which includes Simple Bounding Values.";
         let node_id = NodeId::new(0, 11429);
         let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 2340), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+        ]));
     }
     {
         // ObjectType
@@ -463,14 +426,13 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "";
         let node_id = NodeId::new(0, 11187);
         let node = ObjectType::new(&node_id, browse_name, display_name, description, false);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 11188), ReferenceTypeId::HasProperty),
-            (&node_id, &NodeId::new(0, 11189), ReferenceTypeId::HasProperty),
-            (&node_id, &NodeId::new(0, 11190), ReferenceTypeId::HasProperty),
-            (&node_id, &NodeId::new(0, 11191), ReferenceTypeId::HasProperty),
-            (&NodeId::new(0, 58), &node_id, ReferenceTypeId::HasSubtype),
-        ]);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 11188), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+            (&NodeId::new(0, 11189), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+            (&NodeId::new(0, 11190), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+            (&NodeId::new(0, 11191), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
+            (&NodeId::new(0, 58), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+        ]));
     }
     {
         // Variable
@@ -480,13 +442,12 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "";
         let node_id = NodeId::new(0, 11188);
         let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::Boolean, data_value);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
-            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
-            (&NodeId::new(0, 11187), &node_id, ReferenceTypeId::HasProperty),
-        ]);
-        address_space.add_organizes(&NodeId::new(0, 11187), &node_id);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 11187), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+            (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+            (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+            (&NodeId::new(0, 11187), ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
+        ]));
     }
     {
         // Variable
@@ -496,13 +457,12 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "";
         let node_id = NodeId::new(0, 11189);
         let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::Byte, data_value);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
-            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
-            (&NodeId::new(0, 11187), &node_id, ReferenceTypeId::HasProperty),
-        ]);
-        address_space.add_organizes(&NodeId::new(0, 11187), &node_id);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 11187), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+            (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+            (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+            (&NodeId::new(0, 11187), ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
+        ]));
     }
     {
         // Variable
@@ -512,13 +472,12 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "";
         let node_id = NodeId::new(0, 11190);
         let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::Byte, data_value);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
-            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
-            (&NodeId::new(0, 11187), &node_id, ReferenceTypeId::HasProperty),
-        ]);
-        address_space.add_organizes(&NodeId::new(0, 11187), &node_id);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 11187), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+            (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+            (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+            (&NodeId::new(0, 11187), ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
+        ]));
     }
     {
         // Variable
@@ -528,12 +487,11 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         let description = "";
         let node_id = NodeId::new(0, 11191);
         let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::Boolean, data_value);
-        address_space.insert(node);
-        address_space.insert_references(&[
-            (&node_id, &NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition),
-            (&node_id, &NodeId::new(0, 78), ReferenceTypeId::HasModellingRule),
-            (&NodeId::new(0, 11187), &node_id, ReferenceTypeId::HasProperty),
-        ]);
-        address_space.add_organizes(&NodeId::new(0, 11187), &node_id);
+        address_space.insert(node, Some(&[
+            (&NodeId::new(0, 11187), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
+            (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+            (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
+            (&NodeId::new(0, 11187), ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
+        ]));
     }
 }

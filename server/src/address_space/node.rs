@@ -16,6 +16,16 @@ pub enum NodeType {
     Method(Method),
 }
 
+pub trait HasNodeId {
+    fn node_id(&self) -> NodeId;
+}
+
+impl HasNodeId for NodeType {
+    fn node_id(&self) -> NodeId {
+        self.as_node().node_id()
+    }
+}
+
 impl NodeType {
     pub fn as_node(&self) -> &Node {
         match *self {
@@ -41,10 +51,6 @@ impl NodeType {
             NodeType::DataType(ref mut value) => value,
             NodeType::Method(ref mut value) => value,
         }
-    }
-
-    pub fn node_id(&self) -> NodeId {
-        self.as_node().node_id()
     }
 }
 
