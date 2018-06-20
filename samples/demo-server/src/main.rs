@@ -107,23 +107,23 @@ impl Scalar {
     pub fn random_value(&self) -> Variant {
         let mut rng = rand::thread_rng();
         match *self {
-            Scalar::Boolean => Variant::new(rng.gen::<bool>()),
-            Scalar::Byte => Variant::new(rng.gen::<u8>()),
-            Scalar::SByte => Variant::new(rng.gen::<i8>()),
-            Scalar::Int16 => Variant::new(rng.gen::<i16>()),
-            Scalar::UInt16 => Variant::new(rng.gen::<u16>()),
-            Scalar::Int32 => Variant::new(rng.gen::<i32>()),
-            Scalar::UInt32 => Variant::new(rng.gen::<u32>()),
-            Scalar::Int64 => Variant::new(rng.gen::<i64>()),
-            Scalar::UInt64 => Variant::new(rng.gen::<u64>()),
-            Scalar::Float => Variant::new(rng.gen::<f32>()),
-            Scalar::Double => Variant::new(rng.gen::<f64>()),
+            Scalar::Boolean => rng.gen::<bool>().into(),
+            Scalar::Byte => rng.gen::<u8>().into(),
+            Scalar::SByte => rng.gen::<i8>().into(),
+            Scalar::Int16 => rng.gen::<i16>().into(),
+            Scalar::UInt16 => rng.gen::<u16>().into(),
+            Scalar::Int32 => rng.gen::<i32>().into(),
+            Scalar::UInt32 => rng.gen::<u32>().into(),
+            Scalar::Int64 => rng.gen::<i64>().into(),
+            Scalar::UInt64 => rng.gen::<u64>().into(),
+            Scalar::Float => rng.gen::<f32>().into(),
+            Scalar::Double => rng.gen::<f64>().into(),
             Scalar::String => {
                 let s: String = rng.gen_ascii_chars().take(10).collect();
-                Variant::new(UAString::from(s))
+                UAString::from(s).into()
             }
-            Scalar::DateTime => Variant::new(DateTime::from(rng.gen_range::<i64>(0, DateTime::endtimes_ticks()))),
-            Scalar::Guid => Variant::new(Guid::new()),
+            Scalar::DateTime => DateTime::from(rng.gen_range::<i64>(0, DateTime::endtimes_ticks())).into(),
+            Scalar::Guid => Guid::new().into(),
         }
     }
 
@@ -183,20 +183,20 @@ fn add_dynamic_scalar_variables(server: &mut Server) {
             .add_folder("Scalar", "Scalar", &dynamic_folder_id)
             .unwrap();
 
-        for sn in Scalar::values().iter() {
+        Scalar::values().iter().for_each(|sn| {
             let node_id = sn.node_id(true);
             let name = sn.name();
             let default_value = sn.default_value();
             let _ = address_space.add_variable(Variable::new(&node_id, name, name, &format!("{} value", name), default_value), &scalar_folder_id);
-        }
+        });
     }
 
     let address_space = server.address_space.clone();
     server.add_polling_action(250, move || {
         let mut address_space = address_space.write().unwrap();
-        for sn in Scalar::values().iter() {
+        Scalar::values().iter().for_each(|sn| {
             let node_id = sn.node_id(true);
-            let _ = address_space.set_value_by_node_id(&node_id, sn.random_value());
-        }
+            let _ = address_space.set_variable_value(node_id, sn.random_value());
+        });
     });
 }

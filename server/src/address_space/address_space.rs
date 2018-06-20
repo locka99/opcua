@@ -142,11 +142,11 @@ impl AddressSpace {
         // Server variables
         {
             let server_state = trace_read_lock_unwrap!(server_state);
-            if let Some(ref mut v) = self.find_variable_by_variable_id(Server_NamespaceArray) {
+            if let Some(ref mut v) = self.find_variable(Server_NamespaceArray) {
                 v.set_value_direct(&DateTime::now(), Variant::from_string_array(&server_state.namespaces));
                 v.set_array_dimensions(&[server_state.namespaces.len() as UInt32]);
             }
-            if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerArray) {
+            if let Some(ref mut v) = self.find_variable(Server_ServerArray) {
                 v.set_value_direct(&DateTime::now(), Variant::from_string_array(&server_state.servers));
                 v.set_array_dimensions(&[server_state.servers.len() as UInt32]);
             }
@@ -156,17 +156,17 @@ impl AddressSpace {
         {
             let server_state = trace_read_lock_unwrap!(server_state);
             let server_config = trace_read_lock_unwrap!(server_state.config);
-            self.set_value_by_variable_id(Server_ServerCapabilities_MaxArrayLength, Variant::UInt32(server_config.max_array_length));
-            self.set_value_by_variable_id(Server_ServerCapabilities_MaxStringLength, Variant::UInt32(server_config.max_string_length));
-            self.set_value_by_variable_id(Server_ServerCapabilities_MaxByteStringLength, Variant::UInt32(server_config.max_byte_string_length));
-            self.set_value_by_variable_id(Server_ServerCapabilities_MaxBrowseContinuationPoints, Variant::UInt32(constants::MAX_BROWSE_CONTINUATION_POINTS as UInt32));
-            self.set_value_by_variable_id(Server_ServerCapabilities_MaxHistoryContinuationPoints, Variant::UInt32(constants::MAX_HISTORY_CONTINUATION_POINTS as UInt32));
-            self.set_value_by_variable_id(Server_ServerCapabilities_MaxQueryContinuationPoints, Variant::UInt32(constants::MAX_QUERY_CONTINUATION_POINTS as UInt32));
-            self.set_value_by_variable_id(Server_ServerCapabilities_MinSupportedSampleRate, Variant::Double(constants::MIN_SAMPLING_INTERVAL));
+            self.set_variable_value(Server_ServerCapabilities_MaxArrayLength, server_config.max_array_length as UInt32);
+            self.set_variable_value(Server_ServerCapabilities_MaxStringLength, server_config.max_string_length as UInt32);
+            self.set_variable_value(Server_ServerCapabilities_MaxByteStringLength, server_config.max_byte_string_length as UInt32);
+            self.set_variable_value(Server_ServerCapabilities_MaxBrowseContinuationPoints, constants::MAX_BROWSE_CONTINUATION_POINTS as UInt32);
+            self.set_variable_value(Server_ServerCapabilities_MaxHistoryContinuationPoints, constants::MAX_HISTORY_CONTINUATION_POINTS as UInt32);
+            self.set_variable_value(Server_ServerCapabilities_MaxQueryContinuationPoints, constants::MAX_QUERY_CONTINUATION_POINTS as UInt32);
+            self.set_variable_value(Server_ServerCapabilities_MinSupportedSampleRate, constants::MIN_SAMPLING_INTERVAL as Double);
         }
 
         // Server_ServerCapabilities_ServerProfileArray
-        if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerCapabilities_ServerProfileArray) {
+        if let Some(ref mut v) = self.find_variable(Server_ServerCapabilities_ServerProfileArray) {
             // Declares what the server implements. Subitems are implied by the profile. A subitem
             // marked - is optional to the spec
             let server_profiles = [
@@ -232,7 +232,7 @@ impl AddressSpace {
         // Server_ServerDiagnostics_EnabledFlag
 
         // ServiceLevel - 0-255 worst to best quality of service
-        self.set_value_by_variable_id(Server_ServiceLevel, Variant::Byte(255));
+        self.set_variable_value(Server_ServiceLevel, 255u8);
 
         // Auditing - var
         // ServerDiagnostics
@@ -240,10 +240,10 @@ impl AddressSpace {
         // ServerRedundancy
 
         // Server status
-        self.set_value_by_variable_id(Server_ServerStatus_StartTime, Variant::DateTime(DateTime::now()));
+        self.set_variable_value(Server_ServerStatus_StartTime, DateTime::now());
 
         // Server_ServerStatus_CurrentTime
-        if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerStatus_CurrentTime) {
+        if let Some(ref mut v) = self.find_variable(Server_ServerStatus_CurrentTime) {
             // Used to return the current time of the server, i.e. now
             let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Result<Option<DataValue>, StatusCode> {
                 Ok(Some(DataValue::new(DateTime::now())))
@@ -254,7 +254,7 @@ impl AddressSpace {
 
         // State OPC UA Part 5 12.6, Valid states are
         //     State (Server_ServerStatus_State)
-        if let Some(ref mut v) = self.find_variable_by_variable_id(Server_ServerStatus_State) {
+        if let Some(ref mut v) = self.find_variable(Server_ServerStatus_State) {
             let _server_state = server_state.clone();
             // Used to return the current time of the server, i.e. now
             let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Result<Option<DataValue>, StatusCode> {
@@ -275,25 +275,23 @@ impl AddressSpace {
         }
 
         // Server method handlers
-
-        let server_object_id: NodeId = ObjectId::Server.into();
-        self.register_method_handler(&server_object_id, &MethodId::Server_GetMonitoredItems.into(), Box::new(method_impls::handle_get_monitored_items));
+        self.register_method_handler(ObjectId::Server, MethodId::Server_GetMonitoredItems, Box::new(method_impls::handle_get_monitored_items));
     }
 
     /// Updates the server diagnostics data with new values
     pub fn set_server_diagnostics_summary(&mut self, sds: ServerDiagnosticsSummaryDataType) {
         use opcua_types::node_ids::VariableId::*;
-        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_ServerViewCount, Variant::UInt32(sds.server_view_count));
-        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSessionCount, Variant::UInt32(sds.current_session_count));
-        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSessionCount, Variant::UInt32(sds.cumulated_session_count));
-        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedSessionCount, Variant::UInt32(sds.security_rejected_session_count));
-        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionTimeoutCount, Variant::UInt32(sds.session_timeout_count));
-        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionAbortCount, Variant::UInt32(sds.session_abort_count));
-        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_PublishingIntervalCount, Variant::UInt32(sds.publishing_interval_count));
-        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSubscriptionCount, Variant::UInt32(sds.current_subscription_count));
-        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSubscriptionCount, Variant::UInt32(sds.cumulated_subscription_count));
-        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedRequestsCount, Variant::UInt32(sds.security_rejected_requests_count));
-        self.set_value_by_variable_id(Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount, Variant::UInt32(sds.rejected_requests_count));
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_ServerViewCount, sds.server_view_count as UInt32);
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSessionCount, sds.current_session_count as UInt32);
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSessionCount, sds.cumulated_session_count as UInt32);
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedSessionCount, sds.security_rejected_session_count as UInt32);
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionTimeoutCount, sds.session_timeout_count as UInt32);
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionAbortCount, sds.session_abort_count as UInt32);
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_PublishingIntervalCount, sds.publishing_interval_count as UInt32);
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSubscriptionCount, sds.current_subscription_count as UInt32);
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSubscriptionCount, sds.cumulated_subscription_count as UInt32);
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedRequestsCount, sds.security_rejected_requests_count as UInt32);
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount, sds.rejected_requests_count as UInt32);
     }
 
     /// Returns the node id for the root folder
@@ -339,7 +337,7 @@ impl AddressSpace {
     /// Inserts a node into the address space node map and its references to other nodes.
     /// The tuple of references is the node id, reference type id and a bool which is false for
     /// a forward reference and indicating inverse
-    pub fn insert<T>(&mut self, node: T, references: Option<&[(&NodeId, ReferenceTypeId, ReferenceDirection)]>) where T: 'static + Into<NodeType> {
+    pub fn insert<T>(&mut self, node: T, references: Option<&[(&NodeId, ReferenceTypeId, ReferenceDirection)]>) where T: Into<NodeType> {
         let node_type = node.into();
         let node_id = node_type.node_id();
         if self.node_exists(&node_id) {
@@ -560,8 +558,8 @@ impl AddressSpace {
 
     /// Find and return a variable with the specified node id or return None if it cannot be
     /// found or is not a variable
-    pub fn find_variable_by_node_id(&mut self, node_id: &NodeId) -> Option<&mut Variable> {
-        if let Some(node) = self.find_node_mut(node_id) {
+    pub fn find_variable<N>(&mut self, node_id: N) -> Option<&mut Variable> where N: Into<NodeId> {
+        if let Some(node) = self.find_node_mut(&node_id.into()) {
             if let &mut NodeType::Variable(ref mut variable) = node {
                 Some(variable)
             } else {
@@ -572,14 +570,11 @@ impl AddressSpace {
         }
     }
 
-    /// Find and return a variable with the specified variable id
-    pub fn find_variable_by_variable_id(&mut self, variable_id: VariableId) -> Option<&mut Variable> {
-        self.find_variable_by_node_id(&variable_id.into())
-    }
-
-    /// Set a variable value
-    pub fn set_value_by_node_id(&mut self, node_id: &NodeId, value: Variant) -> bool {
-        if let Some(ref mut variable) = self.find_variable_by_node_id(node_id) {
+    /// Set a variable value from its NodeId. The function will return false if the variable does
+    /// not exist, or the node is not a variable.
+    pub fn set_variable_value<N, V>(&mut self, node_id: N, value: V) -> bool
+        where N: Into<NodeId>, V: Into<Variant> {
+        if let Some(ref mut variable) = self.find_variable(node_id) {
             variable.set_value_direct(&DateTime::now(), value);
             true
         } else {
@@ -587,23 +582,15 @@ impl AddressSpace {
         }
     }
 
-    /// This is a convenience method. It sets a value directly on a variable assuming the supplied
-    /// node id exists in the address space and is a Variable node. The response is true if the
-    /// value was set and false otherwise.
-    pub fn set_value_by_variable_id(&mut self, variable_id: VariableId, value: Variant) -> bool {
-        self.set_value_by_node_id(&variable_id.into(), value)
-    }
-
     /// Registers a method callback on the specified object id and method id
-    pub fn register_method_handler(&mut self, object_id: &NodeId, method_id: &NodeId, handler: MethodCallback) {
+    pub fn register_method_handler<N1, N2>(&mut self, object_id: N1, method_id: N2, handler: MethodCallback) where N1: Into<NodeId>, N2: Into<NodeId> {
         // Check the object id and method id actually exist as things in the address space
-        if !is_object!(self, object_id) || !is_method!(self, method_id) {
+        let object_id = object_id.into();
+        let method_id = method_id.into();
+        if !is_object!(self, &object_id) || !is_method!(self, &method_id) {
             panic!("Invalid id {:?} / {:?} supplied to method handler", object_id, method_id)
         }
-        let key = MethodKey {
-            object_id: object_id.clone(),
-            method_id: method_id.clone(),
-        };
+        let key = MethodKey { object_id, method_id };
         if let Some(_) = self.method_handlers.insert(key, handler) {
             trace!("Registration replaced a previous callback");
         }

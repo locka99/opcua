@@ -154,16 +154,16 @@ impl From<DataValue> for Variant {
     }
 }
 
-impl Into<Variant> for Vec<UInt32> {
-    fn into(self) -> Variant {
-        let array: Vec<Variant> = self.iter().map(|v| Variant::from(*v)).collect();
+impl From<Vec<UInt32>> for Variant {
+    fn from(v: Vec<UInt32>) -> Self {
+        let array: Vec<Variant> = v.iter().map(|v| Variant::from(*v)).collect();
         Variant::Array(array)
     }
 }
 
-impl Into<Variant> for Vec<Variant> {
-    fn into(self) -> Variant {
-        Variant::Array(self)
+impl From<Vec<Variant>> for Variant {
+    fn from(v: Vec<Variant>) -> Self {
+        Variant::Array(v)
     }
 }
 

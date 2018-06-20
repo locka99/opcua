@@ -57,12 +57,12 @@ pub struct SecureChannel {
     local_keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
 }
 
-impl Into<SecureChannel> for (SecurityPolicy, MessageSecurityMode) {
-    fn into(self) -> SecureChannel {
+impl From<(SecurityPolicy, MessageSecurityMode)> for SecureChannel {
+    fn from(v: (SecurityPolicy, MessageSecurityMode)) -> Self {
         SecureChannel {
             role: Role::Unknown,
-            security_policy: self.0,
-            security_mode: self.1,
+            security_policy: v.0,
+            security_mode: v.1,
             secure_channel_id: 0,
             token_id: 0,
             token_created_at: DateTime::now(),

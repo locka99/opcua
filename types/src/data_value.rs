@@ -148,11 +148,17 @@ impl BinaryEncoder<DataValue> for DataValue {
     }
 }
 
+impl From<Variant> for DataValue {
+    fn from(v: Variant) -> Self {
+        DataValue::new(v)
+    }
+}
+
 impl DataValue {
-    pub fn new<T>(value: T) -> DataValue where T: 'static + Into<Variant> {
+    pub fn new<V>(value: V) -> DataValue where V: Into<Variant> {
         let now = DateTime::now();
         DataValue {
-            value: Some(Variant::new(value)),
+            value: Some(value.into()),
             status: Some(Good),
             source_timestamp: Some(now.clone()),
             source_picoseconds: Some(0),

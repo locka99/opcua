@@ -17,7 +17,7 @@ pub struct Variable {
 node_impl!(Variable);
 
 impl Variable {
-    pub fn new<T>(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, value: T) -> Variable where T: 'static + Into<Variant> {
+    pub fn new<V>(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, value: V) -> Variable where V: Into<Variant> {
         let value = DataValue::new(value);
         let data_type = value.value.as_ref().unwrap().data_type();
         if let Some(data_type) = data_type {
@@ -27,7 +27,7 @@ impl Variable {
         }
     }
 
-    pub fn new_with_data_type<T>(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: T) -> Variable where T: 'static + Into<Variant> {
+    pub fn new_with_data_type<V>(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: V) -> Variable where V: Into<Variant> {
         Variable::new_data_value(node_id, browse_name, display_name, description, data_type, DataValue::new(value))
     }
 
@@ -104,10 +104,12 @@ impl Variable {
 
     /// Sets the variable's value but first test to see if it has changed. If the value has not
     /// changed the existing timestamps are preserved. If
-    pub fn set_value_direct(&mut self, now: &DateTime, value: Variant) {
+    pub fn set_value_direct<V>(&mut self, now: &DateTime, value: V) where V: Into<Variant> {
         let mut data_value = self.value();
+
+        let new_value = value.into();
         if let Some(ref existing_value) = data_value.value {
-            if *existing_value == value {
+            if *existing_value == new_value {
                 return;
             }
         }
@@ -115,7 +117,7 @@ impl Variable {
         data_value.server_picoseconds = Some(0);
         data_value.source_timestamp = Some(now.clone());
         data_value.source_picoseconds = Some(0);
-        data_value.value = Some(value);
+        data_value.value = Some(new_value);
         self.set_value(data_value);
     }
 

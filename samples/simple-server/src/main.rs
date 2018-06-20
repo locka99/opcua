@@ -67,8 +67,8 @@ fn add_example_variables(server: &mut Server) {
             data.0 += 1;
             data.1 = !data.1;
             let mut address_space = address_space.write().unwrap();
-            let _ = address_space.set_value_by_node_id(&v1_node, Variant::Int32(data.0));
-            let _ = address_space.set_value_by_node_id(&v2_node, Variant::Boolean(data.1));
+            let _ = address_space.set_variable_value(v1_node.clone(), data.0 as Int32);
+            let _ = address_space.set_variable_value(v2_node.clone(), data.1);
         });
     }
 
@@ -76,7 +76,7 @@ fn add_example_variables(server: &mut Server) {
     //    function.
     {
         let mut address_space = server.address_space.write().unwrap();
-        if let Some(ref mut v) = address_space.find_variable_by_node_id(&v3_node) {
+        if let Some(ref mut v) = address_space.find_variable(v3_node.clone()) {
             // Hello world's counter will increment with each get - slower interval == slower increment
             let mut counter = 0;
             let getter = AttrFnGetter::new(move |_, _| -> Result<Option<DataValue>, StatusCode> {
@@ -86,7 +86,7 @@ fn add_example_variables(server: &mut Server) {
             v.set_value_getter(Arc::new(Mutex::new(getter)));
         }
 
-        if let Some(ref mut v) = address_space.find_variable_by_node_id(&v4_node) {
+        if let Some(ref mut v) = address_space.find_variable(v4_node.clone()) {
             // Sine wave draws 2*PI over course of 10 seconds
             use std::f64::consts;
             use chrono::Utc;
