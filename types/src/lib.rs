@@ -14,7 +14,7 @@ extern crate serde;
 extern crate byteorder;
 extern crate chrono;
 extern crate regex;
-extern crate rand;
+extern crate ring;
 extern crate uuid;
 extern crate url as url_external;
 extern crate base64;

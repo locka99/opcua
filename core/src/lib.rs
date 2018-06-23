@@ -6,7 +6,7 @@ extern crate log;
 extern crate env_logger;
 extern crate chrono;
 extern crate regex;
-extern crate rand;
+extern crate ring;
 extern crate openssl;
 #[cfg(test)]
 extern crate tempdir;

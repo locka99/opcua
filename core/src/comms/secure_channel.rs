@@ -213,10 +213,10 @@ impl SecureChannel {
     /// Creates a nonce for the connection. The nonce should be the same size as the symmetric key
     pub fn create_random_nonce(&mut self) {
         if self.security_policy != SecurityPolicy::None && (self.security_mode == MessageSecurityMode::Sign || self.security_mode == MessageSecurityMode::SignAndEncrypt) {
-            use rand::{self, Rng};
-            let mut rng = rand::thread_rng();
+            use ring::rand::{SystemRandom, SecureRandom};
+            let rng = SystemRandom::new();
             self.local_nonce = vec![0u8; self.security_policy.symmetric_key_size()];
-            rng.fill_bytes(&mut self.local_nonce);
+            rng.fill(&mut self.local_nonce);
         } else {
             self.local_nonce = vec![0u8; 1];
         }

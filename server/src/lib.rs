@@ -10,7 +10,7 @@ extern crate opcua_client;
 #[macro_use]
 extern crate opcua_core;
 extern crate opcua_types;
-extern crate rand;
+extern crate ring;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;

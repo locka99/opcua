@@ -13,16 +13,16 @@ use tests::{make_certificate_store, make_test_cert_1024, make_test_cert_2048};
 
 #[test]
 fn aes_test() {
-    use rand::{self, Rng};
-    let mut rng = rand::thread_rng();
+    use ring::rand::{SystemRandom, SecureRandom};
+    let rng = SystemRandom::new();
 
     // Create a random 128-bit key
     let mut raw_key = [0u8; 16];
-    rng.fill_bytes(&mut raw_key);
+    let _ = rng.fill(&mut raw_key);
 
     // Create a random iv.
     let mut iv = [0u8; 16];
-    rng.fill_bytes(&mut iv);
+    let _ = rng.fill(&mut iv);
 
     let aes_key = AesKey::new(SecurityPolicy::Basic128Rsa15, &raw_key);
 

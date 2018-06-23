@@ -62,7 +62,7 @@ impl BinaryEncoder<ByteString> for ByteString {
     }
 }
 
-impl<'a, T> From<&'a T> for ByteString where T: AsRef<[u8]> + ? Sized {
+impl<'a, T> From<&'a T> for ByteString where T: AsRef<[u8]> + ?Sized {
     fn from(value: &'a T) -> Self {
         Self::from(value.as_ref().to_vec())
     }
@@ -130,10 +130,10 @@ impl ByteString {
     /// Create a byte string with a number of random characters. Can be used to create a nonce or
     /// a similar reason.
     pub fn random(number_of_bytes: usize) -> ByteString {
-        use rand::{self, Rng};
-        let mut rng = rand::thread_rng();
+        use ring::rand::{SystemRandom, SecureRandom};
+        let rng = SystemRandom::new();
         let mut bytes = vec![0u8; number_of_bytes];
-        rng.fill_bytes(&mut bytes);
+        let _ = rng.fill(&mut bytes);
         ByteString::from(bytes)
     }
 }
