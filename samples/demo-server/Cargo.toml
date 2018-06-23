@@ -6,7 +6,7 @@ authors = ["Adam Lock <locka99@gmail.com>"]
 [dependencies]
 chrono = "0.4"
 log = "0.3"
-ring = "0.12.1"
+rand = "0.4"
 
 [dependencies.opcua-types]
 path = "../../types"
