@@ -219,7 +219,7 @@ impl CertificateStore {
         CertificateStore::store_cert(&cert, &public_cert_path, overwrite)?;
 
         // Write the private key
-        let pem = pkey.value.private_key_to_pem().unwrap();
+        let pem = pkey.private_key_to_pem().unwrap();
         info!("Writing private key to {}", private_key_path.display());
         CertificateStore::write_to_file(&pem, &private_key_path, overwrite)?;
 
@@ -233,8 +233,8 @@ impl CertificateStore {
     /// A non `Good` status code indicates a failure in the cert or in some action required in
     /// order to validate it.
     ///
-    pub fn validate_or_reject_application_instance_cert(&self, cert: &X509) -> StatusCode {
-        let result = self.validate_application_instance_cert(cert);
+    pub fn validate_or_reject_application_instance_cert(&self, cert: &X509, hostname: Option<String>, application_description: Option<ApplicationDescription>) -> StatusCode {
+        let result = self.validate_application_instance_cert(cert, hostname, application_description);
         if result.is_bad() {
             match result {
                 BadUnexpectedError | BadSecurityChecksFailed => {
@@ -265,8 +265,8 @@ impl CertificateStore {
             } else {
                 // Compare the buffers
                 trace!("Comparing cert on disk to memory");
-                let der = cert.value.to_der().unwrap();
-                let der2 = cert2.unwrap().value.to_der().unwrap();
+                let der = cert.to_der().unwrap();
+                let der2 = cert2.unwrap().to_der().unwrap();
                 der == der2
             }
         }
@@ -282,7 +282,7 @@ impl CertificateStore {
     /// A non `Good` status code indicates a failure in the cert or in some action required in
     /// order to validate it.
     ///
-    pub fn validate_application_instance_cert(&self, cert: &X509) -> StatusCode {
+    pub fn validate_application_instance_cert(&self, cert: &X509, hostname: Option<String>, application_description: Option<ApplicationDescription>) -> StatusCode {
         let cert_file_name = CertificateStore::cert_file_name(&cert);
         debug!("Validating cert with name on disk {}", cert_file_name);
 
@@ -336,7 +336,22 @@ impl CertificateStore {
                 }
             }
 
-            // Other tests that we might do
+            // Compare the hostname of the cert against the cert supplied
+            if let Some(hostname) = hostname {
+                // TODO
+                // ... host name (client-side only verification of server's host name) BadCertificateHostNameInvalid
+            }
+
+            // Compare the application / product uri to the supplied application description
+            if let Some(application_description) = application_description {
+
+                let application_uri = application_description.application_uri.as_ref();
+
+                // TODO
+                // ... uri BadCertificateUriInvalid The application / product uri should match the application description
+            }
+
+            // Other tests that we might do with trust lists
             // ... issuer
             // ... trust (self-signed, ca etc.)
             // ... revocation
@@ -472,7 +487,7 @@ impl CertificateStore {
     /// A string description of any failure
     ///
     fn store_cert(cert: &X509, path: &Path, overwrite: bool) -> Result<(), String> {
-        let der = cert.value.to_der().unwrap();
+        let der = cert.to_der().unwrap();
         info!("Writing X509 cert to {}", path.display());
         CertificateStore::write_to_file(&der, &path, overwrite)
     }

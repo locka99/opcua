@@ -628,7 +628,7 @@ impl AddressSpace {
         // Look for the method first on the object id, else on the object's type
         if self.has_reference(object_id, ReferenceTypeId::HasComponent, method_id) {
             true
-        } else if let Some(object_type_id) = self.get_type_id(&object_id) {
+        } else if let Some(object_type_id) = self.get_type_id(object_id) {
             self.has_reference(&object_type_id, ReferenceTypeId::HasComponent, method_id)
         } else {
             error!("Method call to {:?} on {:?} but the method id is not on the object or its object type!", method_id, object_id);

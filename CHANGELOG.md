@@ -4,15 +4,16 @@ ASPIRATIONAL - a short list of things that would be nice to implement
   - Fix subscription publish lost notifications
   - Diagnostics
   - Session restore after disconnect in server
-  - Session restore after disconnect in client
+  - Session restore after disconnect in client, i.e. reconnect and resume session first and then try reconnect and recreate session.
   - More security / validation / enforcement around client certs that do not match app descriptions or DNS info
-  - Replace openssl for ring + x509 for more (but not total) rust implementation
+  - Replace openssl with ring + webpki for more (but not total) rust implementation
   - Use tokio client side. The problem here is that synchronous calls are far easier to work with, and how to make it
     work with tokio under the covers.
 
 ## 0.4 (IN PROGRESS)
   - General
     - More rigorous security checks
+    - Changes to codebase for more idiomatic Rust
   - Client side
     - Add client side encryption for security policies & modes other than None
     - Simple-client sample takes arguments to change what config to read and to set which endpoint to use.

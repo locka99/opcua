@@ -105,6 +105,8 @@ pub struct Session {
     subscription_acknowledgements: Vec<SubscriptionAcknowledgement>,
     /// Transport layer
     transport: TcpTransport,
+    /// Certificate store
+    certificate_store: Arc<RwLock<CertificateStore>>,
     /// Next monitored item handle
     last_monitored_item_handle: UInt32,
 }
@@ -121,12 +123,13 @@ impl Session {
     /// Create a new session.
     pub fn new(application_description: ApplicationDescription, certificate_store: Arc<RwLock<CertificateStore>>, session_info: SessionInfo) -> Session {
         let session_state = Arc::new(RwLock::new(SessionState::new()));
-        let transport = TcpTransport::new(certificate_store, session_state.clone());
+        let transport = TcpTransport::new(certificate_store.clone(), session_state.clone());
         let subscription_state = Arc::new(RwLock::new(SubscriptionState::new()));
         Session {
             application_description,
             session_info,
             session_state,
+            certificate_store,
             subscription_state,
             subscription_acknowledgements: Vec::new(),
             transport,
@@ -264,12 +267,12 @@ impl Session {
             }
             debug!("server nonce is {:?}", response.server_nonce);
 
-            // TODO Verify signature using server's public key (from endpoint) comparing with
-            // data made from client certificate and nonce.
-
-            // crypto::verify_signature_data(verification_key, security_policy, server_certificate, client_certificate, client_nonce);
-
             // TODO validate server certificate against endpoint
+            // let application_description = Some(endpoint.application_description.clone());
+            // certificate_store.validate_or_reject_application_instance_cert(response.server_certificate, hostname, applicationdescription);
+
+            // TODO Verify signature using server's public key (from endpoint) comparing with data made from client certificate and nonce.
+            // crypto::verify_signature_data(verification_key, security_policy, server_certificate, client_certificate, client_nonce);
 
             Ok(())
         } else {

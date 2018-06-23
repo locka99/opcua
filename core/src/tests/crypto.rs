@@ -54,9 +54,9 @@ fn aes_test() {
 #[test]
 fn create_cert() {
     let (x509, _) = make_test_cert_1024();
-    let not_before = x509.value.not_before().to_string();
+    let not_before = x509.not_before().unwrap().to_string();
     println!("Not before = {}", not_before);
-    let not_after = x509.value.not_after().to_string();
+    let not_after = x509.not_after().unwrap().to_string();
     println!("Not after = {}", not_after);
 }
 
@@ -118,7 +118,7 @@ fn test_and_reject_application_instance_cert() {
 
     // Make an unrecognized cert
     let (cert, _) = make_test_cert_1024();
-    let result = cert_store.validate_or_reject_application_instance_cert(&cert);
+    let result = cert_store.validate_or_reject_application_instance_cert(&cert, None, None);
     assert!(result.is_bad());
 
     drop(tmp_dir);
@@ -132,7 +132,7 @@ fn test_and_trust_application_instance_cert() {
     let (cert, _) = make_test_cert_1024();
 
     // Simulate user/admin copying cert to the trusted folder
-    let der = cert.value.to_der().unwrap();
+    let der = cert.to_der().unwrap();
     let mut cert_trusted_path = cert_store.trusted_certs_dir();
     cert_trusted_path.push(CertificateStore::cert_file_name(&cert));
     {
@@ -142,7 +142,7 @@ fn test_and_trust_application_instance_cert() {
     }
 
     // Now validate the cert was stored properly
-    let result = cert_store.validate_or_reject_application_instance_cert(&cert);
+    let result = cert_store.validate_or_reject_application_instance_cert(&cert, None, None);
     assert!(result.is_good());
 
     drop(tmp_dir);
@@ -158,7 +158,7 @@ fn test_and_reject_thumbprint_mismatch() {
 
     // Simulate user/admin copying cert to the trusted folder and renaming it to cert2's name,
     // e.g. to trick the cert store to trust an untrusted cert
-    let der = cert.value.to_der().unwrap();
+    let der = cert.to_der().unwrap();
     let mut cert_trusted_path = cert_store.trusted_certs_dir();
     cert_trusted_path.push(CertificateStore::cert_file_name(&cert2));
     {
@@ -167,7 +167,7 @@ fn test_and_reject_thumbprint_mismatch() {
     }
 
     // Now validate the cert was rejected because the thumbprint does not match the one on disk
-    let result = cert_store.validate_or_reject_application_instance_cert(&cert2);
+    let result = cert_store.validate_or_reject_application_instance_cert(&cert2, None, None);
     assert!(result.is_bad());
 
     drop(tmp_dir);

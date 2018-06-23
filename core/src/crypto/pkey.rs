@@ -14,7 +14,7 @@ use opcua_types::status_codes::StatusCode::*;
 #[derive(Copy, Clone)]
 pub enum RsaPadding {
     PKCS1,
-    OAEP
+    OAEP,
 }
 
 impl Into<rsa::Padding> for RsaPadding {
@@ -28,7 +28,7 @@ impl Into<rsa::Padding> for RsaPadding {
 
 /// This is a wrapper around an `OpenSSL` asymmetric key pair
 pub struct PKey {
-    pub value: pkey::PKey,
+    value: pkey::PKey,
 }
 
 impl Debug for PKey {
@@ -44,6 +44,16 @@ unsafe impl Send for PKey {}
 impl PKey {
     pub fn wrap(pkey: pkey::PKey) -> PKey {
         PKey { value: pkey }
+    }
+
+    pub fn from_pem(pem: &[u8]) -> Result<PKey, ()> {
+        if let Ok(value) = pkey::PKey::private_key_from_pem(pem) {
+            Ok(PKey {value})
+        }
+        else {
+            error!("Cannot produce an private key from the data supplied");
+            Err(())
+        }
     }
 
     pub fn new(bit_length: u32) -> PKey {
@@ -90,8 +100,17 @@ impl PKey {
         self.size()
     }
 
+    pub fn private_key_to_pem(&self) -> Result<Vec<u8>, ()> {
+        if let Ok(pem) = self.value.private_key_to_pem() {
+            Ok(pem)
+        } else {
+            error!("Cannot turn private key to PEM");
+            Err(())
+        }
+    }
+
     /// Encrypts data from src to dst using the specified padding and returns the size of encrypted
-    /// data in bytes or an error.
+/// data in bytes or an error.
     pub fn public_encrypt(&self, src: &[u8], dst: &mut [u8], padding: RsaPadding) -> Result<usize, ()> {
         let cipher_text_block_size = self.cipher_text_block_size();
         let plain_text_block_size = self.plain_text_block_size(padding);

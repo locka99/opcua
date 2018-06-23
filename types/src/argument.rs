@@ -23,7 +23,6 @@ pub struct Argument {
 
 impl BinaryEncoder<Argument> for Argument {
     fn byte_len(&self) -> usize {
-        // Length plus the actual length of bytes (if not null)
         let mut size = 0;
         size += self.name.byte_len();
         size += self.data_type.byte_len();

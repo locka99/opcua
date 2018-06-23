@@ -53,7 +53,7 @@ impl SessionService {
         let security_policy = session.secure_channel.security_policy();
         let service_result = if security_policy != SecurityPolicy::None {
             if let Some(ref client_certificate) = client_certificate {
-                certificate_store.validate_or_reject_application_instance_cert(client_certificate)
+                certificate_store.validate_or_reject_application_instance_cert(client_certificate, None, None)
             } else {
                 warn!("Certificate supplied by client is invalid");
                 BadCertificateInvalid

@@ -90,7 +90,7 @@ impl X509Data {
 /// This is a wrapper around the `OpenSSL` `X509` cert
 #[derive(Clone)]
 pub struct X509 {
-    pub value: x509::X509,
+    value: x509::X509,
 }
 
 impl Debug for X509 {
@@ -109,6 +109,16 @@ unsafe impl std::marker::Sync for X509 {}
 impl X509 {
     pub fn wrap(value: x509::X509) -> X509 {
         X509 { value }
+    }
+
+    pub fn from_der(der: &[u8]) -> Result<Self, ()> {
+        if let Ok(value) = x509::X509::from_der(der) {
+            Ok(X509 { value })
+        }
+        else {
+            error!("Cannot produce an x509 cert from the data supplied");
+            Err(())
+        }
     }
 
     pub fn from_byte_string(data: &ByteString) -> Result<X509, StatusCode> {
@@ -213,6 +223,15 @@ impl X509 {
     pub fn not_after(&self) -> Result<DateTime<Utc>, ()> {
         let date = self.value.not_after().to_string();
         Self::parse_asn1_date(&date)
+    }
+
+    pub fn to_der(&self) -> Result<Vec<u8>, ()> {
+        if let Ok(der) = self.value.to_der() {
+            Ok(der)
+        } else {
+            error!("Cannot turn X509 cert to DER");
+            Err(())
+        }
     }
 
     fn parse_asn1_date(date: &str) -> Result<DateTime<Utc>, ()> {
