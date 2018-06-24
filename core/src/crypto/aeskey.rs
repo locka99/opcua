@@ -11,8 +11,8 @@ use crypto::SecurityPolicy;
 
 #[derive(Debug)]
 pub struct AesKey {
-    pub value: Vec<u8>,
-    pub security_policy: SecurityPolicy,
+    value: Vec<u8>,
+    security_policy: SecurityPolicy,
 }
 
 /// This allows key to be transferred between threads
@@ -21,6 +21,10 @@ unsafe impl Send for AesKey {}
 impl AesKey {
     pub fn new(security_policy: SecurityPolicy, value: &[u8]) -> AesKey {
         AesKey { value: value.to_vec(), security_policy }
+    }
+
+    pub fn value(&self) -> &[u8] {
+        &self.value
     }
 
     fn validate_aes_args(cipher: &Cipher, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
