@@ -3,13 +3,16 @@ extern crate rustc_serialize as serialize;
 use std::fs::File;
 use std::io::Write;
 
+use opcua_types::status_codes::StatusCode;
+use opcua_types::service_types::ApplicationDescription;
+
 use crypto::{SecurityPolicy, SHA1_SIZE, SHA256_SIZE};
 use crypto::certificate_store::*;
 use crypto::x509::{X509, X509Data};
 use crypto::pkey::{PKey, RsaPadding};
 use crypto::aeskey::AesKey;
 
-use tests::{make_certificate_store, make_test_cert_1024, make_test_cert_2048};
+use tests::{make_certificate_store, make_test_cert_1024, make_test_cert_2048, APPLICATION_HOSTNAME};
 
 #[test]
 fn aes_test() {
@@ -413,4 +416,36 @@ fn derive_keys_from_nonce_basic128rsa15() {
     assert_eq!(remote_keys.0, remote_signing_key);
     assert_eq!(remote_keys.1.value().to_vec(), remote_encrypting_key);
     assert_eq!(remote_keys.2, remote_iv);
+}
+
+#[test]
+fn certificate_with_hostname_mismatch() {
+    let (cert, key) = make_test_cert_2048();
+    let (tmp_dir, cert_store) = make_certificate_store();
+    let expected_host_name = format!("expected_{}", APPLICATION_HOSTNAME);
+
+    // Create a certificate and ensure that when the hostname does not match, the verification fails
+    // with the correct error
+    let result = cert_store.validate_or_reject_application_instance_cert(&cert, Some(expected_host_name), None);
+    // assert_eq!(result, StatusCode::BadCertificateUriInvalid);
+}
+
+#[test]
+fn certificate_with_application_uri_mismatch() {
+    /*
+    let (cert, key) = make_test_cert_2048();
+
+    let application_description = ApplicationDescription {
+        application_uri: (),
+        product_uri: (),
+        application_name: (),
+        application_type: (),
+        gateway_server_uri: (),
+        discovery_profile_uri: (),
+        discovery_urls: None,
+    };
+
+    // TODO create a certificate and ensure the application uri does not match
+    // verify that the verification of the cert fails with the correct eror
+    */
 }

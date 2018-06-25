@@ -79,6 +79,8 @@ fn make_certificate_store() -> (TempDir, CertificateStore) {
     (tmp_dir, cert_store)
 }
 
+const APPLICATION_HOSTNAME: &'static str = "testhost";
+
 fn make_test_cert(key_size: u32) -> (X509, PKey) {
     let args = X509Data {
         key_size,
@@ -87,7 +89,7 @@ fn make_test_cert(key_size: u32) -> (X509, PKey) {
         organizational_unit: "x.org ops".to_string(),
         country: "EN".to_string(),
         state: "London".to_string(),
-        alt_host_names: vec!["host1".to_string(), "host2".to_string()],
+        alt_host_names: vec![APPLICATION_HOSTNAME.to_string(), "host2".to_string()],
         certificate_duration_days: 60,
     };
     let cert = CertificateStore::create_cert_and_pkey(&args);
