@@ -155,6 +155,7 @@ impl From<Variant> for DataValue {
 }
 
 impl DataValue {
+    /// Creates a data value from the supplied value
     pub fn new<V>(value: V) -> DataValue where V: Into<Variant> {
         let now = DateTime::now();
         DataValue {
@@ -167,16 +168,42 @@ impl DataValue {
         }
     }
 
+    /// Creates an empty DataValue
     pub fn null() -> DataValue {
         let now = DateTime::now();
         DataValue {
             value: None,
-            status: Some(Good),
+            status: Some(StatusCode::BadNoData),
             source_timestamp: Some(now.clone()),
             source_picoseconds: Some(0),
             server_timestamp: Some(now.clone()),
             server_picoseconds: Some(0),
         }
+    }
+
+    /// Sets the value of the data value, updating the timestamps at the same point
+    pub fn set_value<V>(&mut self, value: V, source_timestamp: DateTime, server_timestamp: DateTime) where V: Into<Variant> {
+        self.value = Some(value.into());
+        self.source_timestamp = Some(source_timestamp);
+        self.source_picoseconds = Some(0);
+        self.server_timestamp = Some(server_timestamp);
+        self.server_picoseconds = Some(0);
+    }
+
+    /// Returns the status of the data value or BadNoData
+    /// if there is no status.
+    pub fn status(&self) -> StatusCode {
+        if let Some(ref status) = self.status {
+            *status
+        } else {
+            StatusCode::BadNoData
+        }
+    }
+
+    /// Test if the value held by this data value is known to be good
+    /// Anything other than Good is assumed to be invalid.
+    pub fn is_valid(&self) -> bool {
+        self.status().is_good()
     }
 
     fn encoding_mask(&self) -> Byte {
