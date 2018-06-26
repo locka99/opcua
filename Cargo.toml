@@ -1,2 +1,2 @@
 [workspace]
-members = ["types", "core", "client", "server", "integration", "samples/demo-server", "samples/simple-client", "samples/mqtt-client", "samples/simple-server", "samples/chess-server", "samples/discovery-client", "tools/certificate-creator"]
+members = ["types", "core", "client", "server", "integration", "samples/demo-server", "samples/simple-client", "samples/mqtt-client", "samples/visualize-client", "samples/simple-server", "samples/chess-server", "samples/discovery-client", "tools/certificate-creator"]
