@@ -1,3 +1,4 @@
+//! Symmetric encryption / decryption wrapper.
 use std::marker::Send;
 use std::result::Result;
 

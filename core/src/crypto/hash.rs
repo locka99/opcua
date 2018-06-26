@@ -1,3 +1,5 @@
+//! Hashing functions used for producing and verifying digital signatures
+
 use std::result::Result;
 
 use openssl::pkey;

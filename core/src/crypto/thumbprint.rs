@@ -1,3 +1,4 @@
+//! Functionality for holding a message digest.
 use opcua_types::ByteString;
 
 /// The thumbprint holds a 20 byte representation of a certificate that can be used as a hash,

@@ -1,3 +1,4 @@
+//! Asymmetric encryption / decryption, signing / verification wrapper.
 use std;
 use std::marker::Send;
 use std::fmt::{Debug, Formatter};

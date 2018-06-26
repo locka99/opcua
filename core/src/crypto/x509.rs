@@ -1,3 +1,5 @@
+// X509 certificate wrapper.
+
 use std;
 use std::marker::Send;
 use std::fmt::{Debug, Formatter};
