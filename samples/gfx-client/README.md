@@ -1,0 +1,1 @@
+This is a simple graphical client that connects to a server, subscribes to some values and renders those values in a window.

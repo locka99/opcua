@@ -216,7 +216,7 @@ impl SecureChannel {
             use ring::rand::{SystemRandom, SecureRandom};
             let rng = SystemRandom::new();
             self.local_nonce = vec![0u8; self.security_policy.symmetric_key_size()];
-            rng.fill(&mut self.local_nonce);
+            let _ = rng.fill(&mut self.local_nonce);
         } else {
             self.local_nonce = vec![0u8; 1];
         }

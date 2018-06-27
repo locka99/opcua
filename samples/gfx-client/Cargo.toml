@@ -1,11 +1,11 @@
 [package]
-name = "opcua-visualize-client"
+name = "opcua-gfx-client"
 version = "0.4.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 
 [dependencies]
 clap = "2.27"
-nannou = "0.7.0"
+conrod = { version = "0.60", features = ["winit", "glium"] }
 
 [dependencies.opcua-types]
 path = "../../types"

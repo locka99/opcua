@@ -34,6 +34,8 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
     - Finer grained locking around some structures where only read access is required
     - Implement Method::Call() service and GetMonitoredItems. Add a callback framework to address space allowing 
       other methods to be implemented.
+   - Samples
+    - gfx-client is a graphical client that shows values from its subscription
 
 ## 0.3
   - General
