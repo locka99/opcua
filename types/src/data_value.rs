@@ -190,13 +190,16 @@ impl DataValue {
         self.server_picoseconds = Some(0);
     }
 
-    /// Returns the status of the data value or BadNoData
+    /// Returns the status of the data value or Good
     /// if there is no status.
     pub fn status(&self) -> StatusCode {
         if let Some(ref status) = self.status {
             *status
         } else {
-            StatusCode::BadNoData
+            // TODO - for monitored items, it's probably a good idea to make the return type
+            // an Option<StatusCode> and allow the caller to figure what to do in that case because
+            // the previous status may apply in that case
+            StatusCode::Good
         }
     }
 

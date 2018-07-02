@@ -1,5 +1,6 @@
 //! This is a simple client with a graphical front end that monitors and displays values from
-//! a server.
+//! a server. The files are read from a monitored_items.txt which should be in the working
+//! directory that the program is run from.
 
 extern crate clap;
 extern crate conrod;
@@ -115,12 +116,22 @@ fn main() {
 }
 
 fn nodes_to_monitor() -> Vec<ReadValueId> {
-    vec![
-        ReadValueId::from(NodeId::from((2, "v1"))),
-        ReadValueId::from(NodeId::from((2, "v2"))),
-        ReadValueId::from(NodeId::from((2, "v3"))),
-        ReadValueId::from(NodeId::from((2, "v4"))),
-    ]
+    use std::io::{BufReader, BufRead};
+    use std::fs::File;
+    use std::str::FromStr;
+    if let Ok(f) = File::open("./monitored_items.txt") {
+        let f = BufReader::new(f);
+        let mut result = Vec::new();
+        for line in f.lines().map(|l| l.unwrap()) {
+            if line.len() > 0 {
+                result.push(ReadValueId::from(NodeId::from_str(&line).unwrap()));
+            }
+        }
+        result
+    }
+    else {
+        panic!("Can't open monitored_items file")
+    }
 }
 
 fn subscription_loop(session: Arc<RwLock<Session>>, state: Arc<RwLock<ConnectionState>>) -> Result<(), StatusCode> {
@@ -289,6 +300,7 @@ fn draw_cells(model: &mut UiModel, ui: &mut Ui) {
 
         // Turn the value into a string to render it
         let (x, y) = (col as f64 * (CELL_WIDTH + PADDING), row as f64 * (CELL_HEIGHT + PADDING));
+        println!("col = {}, row = {}, x = {}, y = {}", col, row, x, y);
 
         // Create / update the cell and its state
         if let Some(id) = id_map.get(node_id) {
