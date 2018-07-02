@@ -16,7 +16,7 @@ use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
 
 use crypto::x509::{X509, X509Data};
-use crypto::pkey::PKey;
+use crypto::pkey::PrivateKey;
 
 /// The name that the server/client's application instance certificate is expected to be
 const OWN_CERTIFICATE_NAME: &'static str = "cert.der";
@@ -51,7 +51,7 @@ impl CertificateStore {
     }
 
     /// Sets up the certificate store, creates the path to it, and optionally creates a demo cert
-    pub fn new_with_keypair(pki_path: &Path, application_description: Option<ApplicationDescription>) -> (CertificateStore, Option<X509>, Option<PKey>) {
+    pub fn new_with_keypair(pki_path: &Path, application_description: Option<ApplicationDescription>) -> (CertificateStore, Option<X509>, Option<PrivateKey>) {
         let certificate_store = CertificateStore::new(pki_path);
         let (cert, pkey) = if certificate_store.ensure_pki_path().is_err() {
             error!("Folder for storing certificates cannot be examined so server has no application instance certificate or private key.");
@@ -90,7 +90,7 @@ impl CertificateStore {
     ///
     /// In particular, application instance cert requires subjectAltName to specify alternate
     /// hostnames / ip addresses that the host runs on.
-    pub fn create_cert_and_pkey(args: &X509Data) -> Result<(X509, PKey), String> {
+    pub fn create_cert_and_pkey(args: &X509Data) -> Result<(X509, PrivateKey), String> {
         // Create a public / private keypair
         let pkey = {
             let rsa = Rsa::generate(args.key_size).unwrap();
@@ -138,9 +138,10 @@ impl CertificateStore {
 
             // Random serial number
             {
-                use openssl::bn::{BigNum, MSB_MAYBE_ZERO};
+                use openssl::bn::BigNum;
+                use openssl::bn::MsbOption;
                 let mut serial = BigNum::new().unwrap();
-                serial.rand(128, MSB_MAYBE_ZERO, false).unwrap();
+                serial.rand(128, MsbOption::MAYBE_ZERO, false).unwrap();
                 let serial = serial.to_asn1_integer().unwrap();
                 let _ = builder.set_serial_number(&serial);
             }
@@ -169,18 +170,18 @@ impl CertificateStore {
             builder.build()
         };
 
-        Ok((X509::wrap(cert), PKey::wrap(pkey)))
+        Ok((X509::wrap(cert), PrivateKey::wrap_private_key(pkey)))
     }
 
     /// Reads a private key from a path on disk disk
-    pub fn read_pkey(path: &Path) -> Result<PKey, String> {
+    pub fn read_pkey(path: &Path) -> Result<PrivateKey, String> {
         if let Ok(pkey_info) = metadata(path) {
             if let Ok(mut f) = File::open(&path) {
                 let mut buffer = Vec::with_capacity(pkey_info.len() as usize);
                 let _ = f.read_to_end(&mut buffer);
                 drop(f);
                 if let Ok(pkey) = pkey::PKey::private_key_from_pem(&buffer) {
-                    return Ok(PKey::wrap(pkey));
+                    return Ok(PrivateKey::wrap_private_key(pkey));
                 }
             }
         }
@@ -188,7 +189,7 @@ impl CertificateStore {
     }
 
     /// Reads the store's own certificate and private key
-    pub fn read_own_cert_and_pkey(&self) -> Result<(X509, PKey), String> {
+    pub fn read_own_cert_and_pkey(&self) -> Result<(X509, PrivateKey), String> {
         let own_cert_path = self.own_cert_path();
         if let Ok(cert) = CertificateStore::read_cert(&own_cert_path) {
             let own_private_key_path = self.own_private_key_path();
@@ -205,7 +206,7 @@ impl CertificateStore {
     /// This function will use the supplied arguments to create an Application Instance Certificate
     /// consisting of a X509v3 certificate and public/private key pair. The cert (including pubkey)
     /// and private key will be written to disk under the pki path.
-    pub fn create_and_store_application_instance_cert(&self, args: &X509Data, overwrite: bool) -> Result<(X509, PKey), String> {
+    pub fn create_and_store_application_instance_cert(&self, args: &X509Data, overwrite: bool) -> Result<(X509, PrivateKey), String> {
         // Create the cert and corresponding private key
         let (cert, pkey) = CertificateStore::create_cert_and_pkey(args)?;
 
@@ -329,25 +330,26 @@ impl CertificateStore {
             if self.check_time {
                 use chrono::Utc;
                 let now = Utc::now();
-                let time_status_code = cert.is_time_valid(&now);
-                if time_status_code.is_bad() {
-                    return time_status_code;
+                let status_code = cert.is_time_valid(&now);
+                if status_code.is_bad() {
+                    return status_code;
                 }
             }
 
             // Compare the hostname of the cert against the cert supplied
             if let Some(hostname) = hostname {
-                // TODO
-                // ... host name (client-side only verification of server's host name) BadCertificateHostNameInvalid
+                let status_code = cert.is_hostname_valid(&hostname);
+                if status_code.is_bad() {
+                    return status_code;
+                }
             }
 
             // Compare the application / product uri to the supplied application description
             if let Some(application_description) = application_description {
-
-                let application_uri = application_description.application_uri.as_ref();
-
-                // TODO
-                // ... uri BadCertificateUriInvalid The application / product uri should match the application description
+                let status_code = cert.is_application_uri_valid(application_description.application_uri.as_ref());
+                if status_code.is_bad() {
+                    return status_code;
+                }
             }
 
             // Other tests that we might do with trust lists

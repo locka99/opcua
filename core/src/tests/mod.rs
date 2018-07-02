@@ -10,7 +10,7 @@ use opcua_types::service_types::*;
 
 use comms::secure_channel::SecureChannel;
 
-use crypto::pkey::PKey;
+use crypto::pkey::PrivateKey;
 use crypto::x509::{X509, X509Data};
 use crypto::certificate_store::*;
 use crypto::security_policy::SecurityPolicy;
@@ -79,9 +79,11 @@ fn make_certificate_store() -> (TempDir, CertificateStore) {
     (tmp_dir, cert_store)
 }
 
+const APPLICATION_URI: &'static str = "urn:testapplication";
 const APPLICATION_HOSTNAME: &'static str = "testhost";
 
-fn make_test_cert(key_size: u32) -> (X509, PKey) {
+
+fn make_test_cert(key_size: u32) -> (X509, PrivateKey) {
     let args = X509Data {
         key_size,
         common_name: "x".to_string(),
@@ -89,18 +91,18 @@ fn make_test_cert(key_size: u32) -> (X509, PKey) {
         organizational_unit: "x.org ops".to_string(),
         country: "EN".to_string(),
         state: "London".to_string(),
-        alt_host_names: vec![APPLICATION_HOSTNAME.to_string(), "host2".to_string()],
+        alt_host_names: vec![APPLICATION_URI.to_string(), APPLICATION_HOSTNAME.to_string()],
         certificate_duration_days: 60,
     };
     let cert = CertificateStore::create_cert_and_pkey(&args);
     cert.unwrap()
 }
 
-fn make_test_cert_1024() -> (X509, PKey) { make_test_cert(1024) }
+fn make_test_cert_1024() -> (X509, PrivateKey) { make_test_cert(1024) }
 
-fn make_test_cert_2048() -> (X509, PKey) { make_test_cert(2048) }
+fn make_test_cert_2048() -> (X509, PrivateKey) { make_test_cert(2048) }
 
-fn make_test_cert_4096() -> (X509, PKey) { make_test_cert(4096) }
+fn make_test_cert_4096() -> (X509, PrivateKey) { make_test_cert(4096) }
 
 fn make_open_secure_channel_response() -> OpenSecureChannelResponse {
     OpenSecureChannelResponse {

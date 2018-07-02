@@ -13,7 +13,7 @@ use comms::message_chunk::{MessageChunk, MessageChunkHeader, MessageChunkType};
 use comms::security_header::{AsymmetricSecurityHeader, SecurityHeader, SymmetricSecurityHeader};
 use crypto::aeskey::AesKey;
 use crypto::CertificateStore;
-use crypto::pkey::PKey;
+use crypto::pkey::{PrivateKey, PublicKey, KeySize};
 use crypto::SecurityPolicy;
 use crypto::x509::X509;
 
@@ -44,7 +44,7 @@ pub struct SecureChannel {
     /// Our certificate
     cert: Option<X509>,
     /// Our private key
-    private_key: Option<PKey>,
+    private_key: Option<PrivateKey>,
     /// Their certificate
     remote_cert: Option<X509>,
     /// Their nonce provided by open secure channel
@@ -133,7 +133,7 @@ impl SecureChannel {
         self.remote_cert.clone()
     }
 
-    pub fn set_private_key(&mut self, private_key: Option<PKey>) {
+    pub fn set_private_key(&mut self, private_key: Option<PrivateKey>) {
         self.private_key = private_key;
     }
 
@@ -510,7 +510,7 @@ impl SecureChannel {
     ///
     /// Note, that normally we do not have "their" key but for testing purposes and forensics, we
     /// might have the key
-    pub fn verify_and_remove_security_forensic(&mut self, src: &[u8], their_key: Option<PKey>) -> Result<MessageChunk, StatusCode> {
+    pub fn verify_and_remove_security_forensic(&mut self, src: &[u8], their_key: Option<PrivateKey>) -> Result<MessageChunk, StatusCode> {
         // Get message & security header from data
         let (message_header, security_header, encrypted_data_offset) = {
             let mut stream = Cursor::new(&src);
@@ -705,7 +705,7 @@ impl SecureChannel {
         Ok(padding_range)
     }
 
-    fn asymmetric_decrypt_and_verify(&self, security_policy: SecurityPolicy, verification_key: &PKey, receiver_thumbprint: ByteString, src: &[u8], encrypted_range: Range<usize>, their_key: Option<PKey>, dst: &mut [u8]) -> Result<usize, StatusCode> {
+    fn asymmetric_decrypt_and_verify(&self, security_policy: SecurityPolicy, verification_key: &PublicKey, receiver_thumbprint: ByteString, src: &[u8], encrypted_range: Range<usize>, their_key: Option<PrivateKey>, dst: &mut [u8]) -> Result<usize, StatusCode> {
         // Asymmetric encrypt requires the caller supply the security policy
         match security_policy {
             SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => {}

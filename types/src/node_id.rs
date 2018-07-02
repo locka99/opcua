@@ -263,6 +263,35 @@ impl Into<String> for NodeId {
     }
 }
 
+impl ToString for NodeId {
+    fn to_string(&self) -> String {
+        let mut result = String::new();
+        if self.namespace != 0 {
+            result.push_str(&format!("ns={};", self.namespace));
+        }
+        result.push_str(&match self.identifier {
+            Identifier::Numeric(ref value) => {
+                format!("i={}", value)
+            }
+            Identifier::String(ref value) => {
+                if value.is_null() {
+                    "null".to_string()
+                } else {
+                    format!("s={}", value.as_ref())
+                }
+            }
+            Identifier::Guid(ref value) => {
+                format!("g={:?}", value)
+            }
+            Identifier::ByteString(ref value) => {
+                // Base64 encode bytes
+                format!("b={}", value.as_base64())
+            }
+        });
+        result
+    }
+}
+
 impl<'a> From<(UInt16, &'a str)> for NodeId {
     fn from(v: (UInt16, &'a str)) -> Self {
         Self::new(v.0, UAString::from(v.1))
@@ -315,33 +344,6 @@ impl NodeId {
             Identifier::Numeric(id) if self.namespace == 0 => ReferenceTypeId::from_u32(id),
             _ => Err(())
         }
-    }
-
-    pub fn to_string(&self) -> String {
-        let mut result = String::new();
-        if self.namespace != 0 {
-            result.push_str(&format!("ns={};", self.namespace));
-        }
-        result.push_str(&match self.identifier {
-            Identifier::Numeric(ref value) => {
-                format!("i={}", value)
-            }
-            Identifier::String(ref value) => {
-                if value.is_null() {
-                    "null".to_string()
-                } else {
-                    format!("s={}", value.as_ref())
-                }
-            }
-            Identifier::Guid(ref value) => {
-                format!("g={:?}", value)
-            }
-            Identifier::ByteString(ref value) => {
-                // Base64 encode bytes
-                format!("b={}", value.as_base64())
-            }
-        });
-        result
     }
 
     /// Test if the node id is numeric

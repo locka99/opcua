@@ -6,7 +6,6 @@ use std::fmt::{Debug, Formatter};
 use std::result::Result;
 
 use openssl::x509;
-use openssl::nid;
 use openssl::nid::Nid;
 
 use chrono::{DateTime, Utc, TimeZone};
@@ -16,7 +15,7 @@ use opcua_types::service_types::ApplicationDescription;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
 
-use crypto::pkey::PKey;
+use crypto::pkey::PublicKey;
 use crypto::thumbprint::Thumbprint;
 
 const DEFAULT_KEYSIZE: u32 = 2048;
@@ -116,8 +115,7 @@ impl X509 {
     pub fn from_der(der: &[u8]) -> Result<Self, ()> {
         if let Ok(value) = x509::X509::from_der(der) {
             Ok(X509 { value })
-        }
-        else {
+        } else {
             error!("Cannot produce an x509 cert from the data supplied");
             Err(())
         }
@@ -141,9 +139,9 @@ impl X509 {
         ByteString::from(&der)
     }
 
-    pub fn public_key(&self) -> Result<PKey, StatusCode> {
+    pub fn public_key(&self) -> Result<PublicKey, StatusCode> {
         if let Ok(pkey) = self.value.public_key() {
-            let pkey = PKey::wrap(pkey);
+            let pkey = PublicKey::wrap_public_key(pkey);
             Ok(pkey)
         } else {
             error!("Can't obtain public key from certificate");
@@ -169,9 +167,11 @@ impl X509 {
     }
 
     pub fn common_name(&self) -> Result<String, ()> {
-        self.get_subject_entry(nid::COMMONNAME)
+        self.get_subject_entry(Nid::COMMONNAME)
     }
 
+    /// Tests if the certificate is valid for the supplied time using the not before and not
+    /// after values on the cert.
     pub fn is_time_valid(&self, now: &DateTime<Utc>) -> StatusCode {
         // Issuer time
         let not_before = self.not_before();
@@ -202,6 +202,60 @@ impl X509 {
         Good
     }
 
+    /// Tests if the supplied hostname matches any of the dns alt subject name entries on the cert
+    pub fn is_hostname_valid(&self, hostname: &str) -> StatusCode {
+        trace!("is_hostname_valid against {} on cert", hostname);
+        if let Some(ref alt_names) = self.value.subject_alt_names() {
+            // Look through alt names for a matching dns entry
+            let found = alt_names.iter().find(|n| {
+                if let Some(dns) = n.dnsname() {
+                    dns == hostname
+                } else {
+                    false
+                }
+            });
+            if found.is_some() {
+                Good
+            } else {
+                error!("Cannot find a matching hostname for input {}", hostname);
+                BadCertificateHostNameInvalid
+            }
+        } else {
+            error!("Cert has no subject alt names at all");
+            // No alt names
+            BadCertificateHostNameInvalid
+        }
+    }
+
+    /// Tests if the supplied application uri matches the uri alt subject name entry on the cert
+    pub fn is_application_uri_valid(&self, application_uri: &str) -> StatusCode {
+        trace!("is_application_uri_valid against {} on cert", application_uri);
+        // expecting the first subject alternative name to be a uri that matches with the supplied
+        // application uri
+        if let Some(ref alt_names) = self.value.subject_alt_names() {
+            if alt_names.len() >= 0 {
+                if let Some(cert_application_uri) = alt_names[0].uri() {
+                    if cert_application_uri == application_uri {
+                        Good
+                    } else {
+                        error!("Cert application uri {} does not match supplied uri {}", cert_application_uri, application_uri);
+                        BadCertificateUriInvalid
+                    }
+                } else {
+                    error!("Cert's first subject alt name is not a uri and cannot be compared");
+                    BadCertificateUriInvalid
+                }
+            } else {
+                error!("Cert has zero subject alt names");
+                BadCertificateUriInvalid
+            }
+        } else {
+            error!("Cert has no subject alt names at all");
+            // No alt names
+            BadCertificateUriInvalid
+        }
+    }
+
     /// OPC UA Part 6 MessageChunk structure
     ///
     /// The thumbprint is the SHA1 digest of the DER form of the certificate. The hash is 160 bits
@@ -209,9 +263,9 @@ impl X509 {
     ///
     /// The thumbprint might be used by the server / client for look-up purposes.
     pub fn thumbprint(&self) -> Thumbprint {
-        use openssl::hash::{MessageDigest, hash2};
+        use openssl::hash::{MessageDigest, hash};
         let der = self.value.to_der().unwrap();
-        let digest = hash2(MessageDigest::sha1(), &der).unwrap();
+        let digest = hash(MessageDigest::sha1(), &der).unwrap();
         Thumbprint::new(&digest)
     }
 

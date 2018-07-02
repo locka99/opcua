@@ -425,6 +425,30 @@ impl Default for Variant {
     }
 }
 
+/// This implementation is mainly for debugging / convenience purposes, to eliminate some of the
+/// noise in common types from using the Debug trait.
+impl ToString for Variant {
+    fn to_string(&self) -> String {
+        match self {
+            &Variant::SByte(v) => format!("{}", v),
+            &Variant::Byte(v) => format!("{}", v),
+            &Variant::Int16(v) => format!("{}", v),
+            &Variant::UInt16(v) => format!("{}", v),
+            &Variant::Int32(v) => format!("{}", v),
+            &Variant::UInt32(v) => format!("{}", v),
+            &Variant::Int64(v) => format!("{}", v),
+            &Variant::UInt64(v) => format!("{}", v),
+            &Variant::Float(v) => format!("{}", v),
+            &Variant::Double(v) => format!("{}", v),
+            &Variant::Boolean(v) => format!("{}", v),
+            &Variant::String(ref v) => v.to_string(),
+            &Variant::Guid(ref v) => v.to_string(),
+            &Variant::DateTime(ref v) => v.to_string(),
+            value => format!("{:?}", value)
+        }
+    }
+}
+
 impl Variant {
     pub fn new<T>(value: T) -> Variant where T: 'static + Into<Variant> {
         value.into()

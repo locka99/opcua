@@ -40,8 +40,8 @@ pub struct ServerState {
     pub config: Arc<RwLock<ServerConfig>>,
     /// Server public certificate read from config location or null if there is none
     pub server_certificate: Option<X509>,
-    /// Server private key pair
-    pub server_pkey: Option<PKey>,
+    /// Server private key
+    pub server_pkey: Option<PrivateKey>,
     /// The next subscription id - subscriptions are shared across the whole server. Initial value
     /// is a random u32.
     pub last_subscription_id: UInt32,

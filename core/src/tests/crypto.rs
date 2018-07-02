@@ -4,15 +4,14 @@ use std::fs::File;
 use std::io::Write;
 
 use opcua_types::status_codes::StatusCode;
-use opcua_types::service_types::ApplicationDescription;
 
 use crypto::{SecurityPolicy, SHA1_SIZE, SHA256_SIZE};
 use crypto::certificate_store::*;
 use crypto::x509::{X509, X509Data};
-use crypto::pkey::{PKey, RsaPadding};
+use crypto::pkey::{PrivateKey, KeySize, RsaPadding};
 use crypto::aeskey::AesKey;
 
-use tests::{make_certificate_store, make_test_cert_1024, make_test_cert_2048, APPLICATION_HOSTNAME};
+use tests::{make_certificate_store, make_test_cert_1024, make_test_cert_2048, APPLICATION_URI, APPLICATION_HOSTNAME};
 
 #[test]
 fn aes_test() {
@@ -176,7 +175,7 @@ fn test_and_reject_thumbprint_mismatch() {
     drop(tmp_dir);
 }
 
-fn test_asymmetric_encrypt_and_decrypt(cert: &X509, key: &PKey, security_policy: SecurityPolicy, plaintext_size: usize) {
+fn test_asymmetric_encrypt_and_decrypt(cert: &X509, key: &PrivateKey, security_policy: SecurityPolicy, plaintext_size: usize) {
     let mut plaintext = vec![0u8; plaintext_size];
     for i in 0..plaintext_size {
         plaintext[i] = (i % 256) as u8;
@@ -232,7 +231,8 @@ fn calculate_cipher_text_size() {
 
 #[test]
 fn calculate_cipher_text_size2() {
-    let (_, pkey) = make_test_cert_1024();
+    let (cert, private_key) = make_test_cert_1024();
+    let public_key = cert.public_key().unwrap();
 
     // The cipher text size function should report exactly the same value as the value returned
     // by encrypting bytes. This is especially important on boundary values.
@@ -241,9 +241,9 @@ fn calculate_cipher_text_size2() {
             let src = vec![127u8; src_len];
 
             // Encrypt the bytes to a dst buffer of the expected size with padding
-            let expected_size = pkey.calculate_cipher_text_size(src_len, *padding);
+            let expected_size = private_key.calculate_cipher_text_size(src_len, *padding);
             let mut dst = vec![0u8; expected_size];
-            let actual_size = pkey.public_encrypt(&src, &mut dst, *padding).unwrap();
+            let actual_size = public_key.public_encrypt(&src, &mut dst, *padding).unwrap();
             if expected_size != actual_size {
                 println!("Expected size {} != actual size {} for src length {}", expected_size, actual_size, src_len);
                 assert_eq!(expected_size, actual_size);
@@ -251,7 +251,7 @@ fn calculate_cipher_text_size2() {
 
             // Decrypt to be sure the data is same as input
             let mut src2 = vec![0u8; expected_size];
-            let src2_len = pkey.private_decrypt(&dst, &mut src2, *padding).unwrap();
+            let src2_len = private_key.private_decrypt(&dst, &mut src2, *padding).unwrap();
             assert_eq!(src_len, src2_len);
             assert_eq!(&src[..], &src[..src2_len]);
         }
@@ -260,38 +260,41 @@ fn calculate_cipher_text_size2() {
 
 #[test]
 fn sign_verify_sha1() {
-    let (_, pkey) = make_test_cert_2048();
+    let (cert, private_key) = make_test_cert_2048();
+    let public_key = cert.public_key().unwrap();
 
     let msg = b"Mary had a little lamb";
     let msg2 = b"It's fleece was white as snow";
     let mut signature = [0u8; 256];
-    let signed_len = pkey.sign_hmac_sha1(msg, &mut signature).unwrap();
+    let signed_len = private_key.sign_hmac_sha1(msg, &mut signature).unwrap();
 
     assert_eq!(signed_len, 256);
-    assert!(pkey.verify_hmac_sha1(msg, &signature).unwrap());
-    assert!(!pkey.verify_hmac_sha1(msg2, &signature).unwrap());
+    assert!(public_key.verify_hmac_sha1(msg, &signature).unwrap());
+    assert!(!public_key.verify_hmac_sha1(msg2, &signature).unwrap());
 
-    assert!(!pkey.verify_hmac_sha1(msg, &signature[..signature.len() - 1]).unwrap());
+    assert!(!public_key.verify_hmac_sha1(msg, &signature[..signature.len() - 1]).unwrap());
     signature[0] = !signature[0]; // bitwise not
-    assert!(!pkey.verify_hmac_sha1(msg, &signature).unwrap());
+    assert!(!public_key.verify_hmac_sha1(msg, &signature).unwrap());
 }
 
 #[test]
 fn sign_verify_sha256() {
-    let (_, pkey) = make_test_cert_2048();
+    let (cert, private_key) = make_test_cert_2048();
 
     let msg = b"Mary had a little lamb";
     let msg2 = b"It's fleece was white as snow";
     let mut signature = [0u8; 256];
-    let signed_len = pkey.sign_hmac_sha256(msg, &mut signature).unwrap();
+    let signed_len = private_key.sign_hmac_sha256(msg, &mut signature).unwrap();
 
     assert_eq!(signed_len, 256);
-    assert!(pkey.verify_hmac_sha256(msg, &signature).unwrap());
-    assert!(!pkey.verify_hmac_sha256(msg2, &signature).unwrap());
+    let public_key = cert.public_key().unwrap();
 
-    assert!(!pkey.verify_hmac_sha256(msg, &signature[..signature.len() - 1]).unwrap());
+    assert!(public_key.verify_hmac_sha256(msg, &signature).unwrap());
+    assert!(!public_key.verify_hmac_sha256(msg2, &signature).unwrap());
+
+    assert!(!public_key.verify_hmac_sha256(msg, &signature[..signature.len() - 1]).unwrap());
     signature[0] = !signature[0]; // bitwise not
-    assert!(!pkey.verify_hmac_sha256(msg, &signature).unwrap());
+    assert!(!public_key.verify_hmac_sha256(msg, &signature).unwrap());
 }
 
 #[test]
@@ -420,32 +423,29 @@ fn derive_keys_from_nonce_basic128rsa15() {
 
 #[test]
 fn certificate_with_hostname_mismatch() {
-    let (cert, key) = make_test_cert_2048();
-    let (tmp_dir, cert_store) = make_certificate_store();
-    let expected_host_name = format!("expected_{}", APPLICATION_HOSTNAME);
+    let (cert, _) = make_test_cert_2048();
+    let wrong_host_name = format!("expected_{}", APPLICATION_HOSTNAME);
 
     // Create a certificate and ensure that when the hostname does not match, the verification fails
     // with the correct error
-    let result = cert_store.validate_or_reject_application_instance_cert(&cert, Some(expected_host_name), None);
-    // assert_eq!(result, StatusCode::BadCertificateUriInvalid);
+    let result = cert.is_hostname_valid(&wrong_host_name);
+    assert_eq!(result, StatusCode::BadCertificateHostNameInvalid);
+
+    // Create a certificate and ensure that when the hostname does  match, the verification succeeds
+    let result = cert.is_hostname_valid(APPLICATION_HOSTNAME);
+    assert_eq!(result, StatusCode::Good);
 }
+
 
 #[test]
 fn certificate_with_application_uri_mismatch() {
-    /*
-    let (cert, key) = make_test_cert_2048();
+    let (cert, _) = make_test_cert_2048();
 
-    let application_description = ApplicationDescription {
-        application_uri: (),
-        product_uri: (),
-        application_name: (),
-        application_type: (),
-        gateway_server_uri: (),
-        discovery_profile_uri: (),
-        discovery_urls: None,
-    };
+    // Compare the certificate to the wrong application uri in the description, expect error
+    let result = cert.is_application_uri_valid("urn:WrongURI");
+    assert_eq!(result, StatusCode::BadCertificateUriInvalid);
 
-    // TODO create a certificate and ensure the application uri does not match
-    // verify that the verification of the cert fails with the correct eror
-    */
+    // Compare the certificate to the correct application uri in the description, expect success
+    let result = cert.is_application_uri_valid(APPLICATION_URI);
+    assert_eq!(result, StatusCode::Good);
 }

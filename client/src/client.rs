@@ -12,7 +12,7 @@ use opcua_types::service_types::{ApplicationDescription, EndpointDescription, Re
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::BadUnexpectedError;
 
-use opcua_core::crypto::{CertificateStore, PKey, SecurityPolicy, X509};
+use opcua_core::crypto::{CertificateStore, PrivateKey, SecurityPolicy, X509};
 use opcua_core::config::Config;
 
 use config::{ANONYMOUS_USER_TOKEN_ID, ClientConfig, ClientEndpoint};
@@ -174,7 +174,7 @@ impl Client {
         }
     }
 
-    fn get_client_cert_and_key(&self) -> (Option<X509>, Option<PKey>) {
+    fn get_client_cert_and_key(&self) -> (Option<X509>, Option<PrivateKey>) {
         let certificate_store = trace_read_lock_unwrap!(self.certificate_store);
         if let Ok((cert, key)) = certificate_store.read_own_cert_and_pkey() {
             (Some(cert), Some(key))

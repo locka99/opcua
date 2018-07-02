@@ -306,21 +306,7 @@ fn draw_cells(model: &mut UiModel, ui: &mut Ui) {
         if let Some(id) = id_map.get(node_id) {
             let valid = value.is_valid();
             let value = if let Some(ref value) = value.value {
-                match value {
-                    Variant::SByte(v) => format!("{}", v),
-                    Variant::Byte(v) => format!("{}", v),
-                    Variant::Int16(v) => format!("{}", v),
-                    Variant::UInt16(v) => format!("{}", v),
-                    Variant::Int32(v) => format!("{}", v),
-                    Variant::UInt32(v) => format!("{}", v),
-                    Variant::Int64(v) => format!("{}", v),
-                    Variant::UInt64(v) => format!("{}", v),
-                    Variant::Float(v) => format!("{}", v),
-                    Variant::Double(v) => format!("{}", v),
-                    Variant::Boolean(v) => format!("{}", v),
-                    Variant::String(ref v) => v.as_ref().to_string(),
-                    value => format!("{:?}", value)
-                }
+                value.to_string()
             } else {
                 "None".to_string()
             };

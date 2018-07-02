@@ -71,7 +71,7 @@ pub fn concat_data_and_nonce(data: &[u8], nonce: &[u8]) -> Vec<u8> {
 }
 
 /// Creates a `SignatureData` object by signing the supplied certificate and nonce with a pkey
-pub fn create_signature_data(signing_key: &PKey, security_policy: SecurityPolicy, contained_cert: &ByteString, nonce: &ByteString) -> Result<SignatureData, StatusCode> {
+pub fn create_signature_data(signing_key: &PrivateKey, security_policy: SecurityPolicy, contained_cert: &ByteString, nonce: &ByteString) -> Result<SignatureData, StatusCode> {
     let (algorithm, signature) = if contained_cert.is_null() || nonce.is_null() {
         (UAString::null(), ByteString::null())
     } else {

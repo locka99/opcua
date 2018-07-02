@@ -6,7 +6,7 @@ use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 
 use opcua_core::crypto;
-use opcua_core::crypto::{CertificateStore, PKey, SecurityPolicy, X509};
+use opcua_core::crypto::{CertificateStore, PrivateKey, SecurityPolicy, X509};
 use opcua_types::*;
 use opcua_types::node_ids::{ObjectId, MethodId};
 use opcua_types::service_types::*;
@@ -32,7 +32,7 @@ pub struct SessionInfo {
     /// Client certificate
     pub client_certificate: Option<X509>,
     /// Client private key
-    pub client_pkey: Option<PKey>,
+    pub client_pkey: Option<PrivateKey>,
 }
 
 impl Into<SessionInfo> for EndpointDescription {

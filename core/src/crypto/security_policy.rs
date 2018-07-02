@@ -10,7 +10,7 @@ use opcua_types::status_codes::StatusCode::*;
 
 use crypto::{SHA1_SIZE, SHA256_SIZE};
 use crypto::aeskey::AesKey;
-use crypto::pkey::{PKey, RsaPadding};
+use crypto::pkey::{PrivateKey, PublicKey, RsaPadding, KeySize};
 use crypto::hash;
 
 /// URI supplied for the None security policy
@@ -413,7 +413,7 @@ impl SecurityPolicy {
 
     /// Produce a signature of the data using an asymmetric key. Stores the signature in the supplied
     /// `signature` buffer. Returns the size of the signature within that buffer.
-    pub fn asymmetric_sign(&self, signing_key: &PKey, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
+    pub fn asymmetric_sign(&self, signing_key: &PrivateKey, data: &[u8], signature: &mut [u8]) -> Result<usize, StatusCode> {
         let result = match *self {
             SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => {
                 signing_key.sign_hmac_sha1(data, signature)?
@@ -431,7 +431,7 @@ impl SecurityPolicy {
     /// Verifies a signature of the data using an asymmetric key. In a debugging scenario, the
     /// signing key can also be supplied so that the supplied signature can be compared to a freshly
     /// generated signature.
-    pub fn asymmetric_verify_signature(&self, verification_key: &PKey, data: &[u8], signature: &[u8], their_key: Option<PKey>) -> Result<(), StatusCode> {
+    pub fn asymmetric_verify_signature(&self, verification_key: &PublicKey, data: &[u8], signature: &[u8], their_private_key: Option<PrivateKey>) -> Result<(), StatusCode> {
         // Asymmetric verify signature against supplied certificate
         let result = match *self {
             SecurityPolicy::Basic128Rsa15 | SecurityPolicy::Basic256 => {
@@ -450,7 +450,7 @@ impl SecurityPolicy {
             error!("Signature mismatch");
 
             // For debugging / unit testing purposes we might have a their_key to see the source of the error
-            if let Some(their_key) = their_key {
+            if let Some(their_key) = their_private_key {
                 // Calculate the signature using their key, see what we were expecting versus theirs
                 let mut their_signature = vec![0u8; their_key.size()];
                 self.asymmetric_sign(&their_key, data, &mut their_signature[..])?;
@@ -473,7 +473,7 @@ impl SecurityPolicy {
     }
     /// Encrypts a message using the supplied encryption key, returns the encrypted size. Destination
     /// buffer must be large enough to hold encrypted bytes including any padding.
-    pub fn asymmetric_encrypt(&self, encryption_key: &PKey, src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
+    pub fn asymmetric_encrypt(&self, encryption_key: &PublicKey, src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
         let padding = self.padding();
         if let Ok(encrypted_size) = encryption_key.public_encrypt(src, dst, padding) {
             Ok(encrypted_size)
@@ -485,7 +485,7 @@ impl SecurityPolicy {
     /// Decrypts a message whose thumbprint matches the x509 cert and private key pair.
     ///
     /// Returns the number of decrypted bytes
-    pub fn asymmetric_decrypt(&self, decryption_key: &PKey, src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
+    pub fn asymmetric_decrypt(&self, decryption_key: &PrivateKey, src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
         let padding = self.padding();
         if let Ok(decrypted_size) = decryption_key.private_decrypt(src, dst, padding) {
             Ok(decrypted_size)
