@@ -170,14 +170,13 @@ impl DataValue {
 
     /// Creates an empty DataValue
     pub fn null() -> DataValue {
-        let now = DateTime::now();
         DataValue {
             value: None,
-            status: Some(StatusCode::BadNoData),
-            source_timestamp: Some(now.clone()),
-            source_picoseconds: Some(0),
-            server_timestamp: Some(now.clone()),
-            server_picoseconds: Some(0),
+            status: None,
+            source_timestamp: None,
+            source_picoseconds: None,
+            server_timestamp: None,
+            server_picoseconds: None,
         }
     }
 
