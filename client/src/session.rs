@@ -1,3 +1,6 @@
+//! Session functionality for the current connection including async
+//! wrappers around client side requests to server.
+
 use std::result::Result;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};

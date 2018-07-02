@@ -1,3 +1,5 @@
+//! Subscription and monitored item tracking.
+
 use std::collections::{HashMap, HashSet};
 use std::marker::Sync;
 

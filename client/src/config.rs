@@ -1,3 +1,5 @@
+//! Client configuration data.
+
 use std;
 use std::path::PathBuf;
 use std::collections::BTreeMap;

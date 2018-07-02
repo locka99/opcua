@@ -1,3 +1,5 @@
+//! Client setup and session creation.
+
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 
