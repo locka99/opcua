@@ -4,6 +4,8 @@ use url_external::Url;
 
 use constants::DEFAULT_OPC_UA_SERVER_PORT;
 
+pub const OPC_TCP_SCHEME: &'static str = "opc.tcp";
+
 pub fn opc_url_from_str(s: &str) -> Result<Url, ()> {
     let url = Url::parse(s);
     if let Ok(mut url) = url {
@@ -71,9 +73,22 @@ pub fn server_url_from_endpoint_url(endpoint_url: &str) -> std::result::Result<S
 
 pub fn is_opc_ua_binary_url(url: &str) -> bool {
     if let Ok(url) = opc_url_from_str(url) {
-        url.scheme() == "opc.tcp"
+        url.scheme() == OPC_TCP_SCHEME
     } else {
         false
+    }
+}
+
+pub fn hostname_from_url(url: &str) -> Result<String, ()> {
+    // Validate and split out the endpoint we have
+    if let Ok(url) = Url::parse(url) {
+        if let Some(host) = url.host_str() {
+            Ok(host.to_string())
+        } else {
+            Err(())
+        }
+    } else {
+        Err(())
     }
 }
 

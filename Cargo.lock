@@ -721,7 +721,6 @@ name = "opcua-certificate-creator"
 version = "0.4.0"
 dependencies = [
  "clap 2.31.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "log 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-core 0.4.0",
  "opcua-types 0.4.0",
 ]

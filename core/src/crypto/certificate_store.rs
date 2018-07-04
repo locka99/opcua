@@ -35,8 +35,15 @@ const REJECTED_CERTS_DIR: &'static str = "rejected";
 /// The certificate store manages the storage of a server/client's own certificate & private key
 /// and the trust / rejection of certificates from the other end.
 pub struct CertificateStore {
+    /// Path to the certificate store on disk.
     pub pki_path: PathBuf,
+    /// Timestamps of the cert are normally checked on the cert to ensure it cannot be used before
+    /// or after its limits, but this check can be disabled.
     pub check_time: bool,
+    /// Ordinarily an unknown cert will be dropped into the rejected folder, but it can be dropped
+    /// into the trusted folder if this flag is set. Certs in the trusted folder must still pass
+    /// validity checks.
+    pub trust_unknown_certs: bool,
 }
 
 impl CertificateStore {
@@ -47,6 +54,7 @@ impl CertificateStore {
         CertificateStore {
             pki_path: pki_path.to_path_buf(),
             check_time: true,
+            trust_unknown_certs: false,
         }
     }
 
@@ -233,8 +241,8 @@ impl CertificateStore {
     /// A non `Good` status code indicates a failure in the cert or in some action required in
     /// order to validate it.
     ///
-    pub fn validate_or_reject_application_instance_cert(&self, cert: &X509, hostname: Option<String>, application_description: Option<ApplicationDescription>) -> StatusCode {
-        let result = self.validate_application_instance_cert(cert, hostname, application_description);
+    pub fn validate_or_reject_application_instance_cert(&self, cert: &X509, hostname: Option<&str>, application_uri: Option<&str>) -> StatusCode {
+        let result = self.validate_application_instance_cert(cert, hostname, application_uri);
         if result.is_bad() {
             match result {
                 BadUnexpectedError | BadSecurityChecksFailed => {
@@ -242,6 +250,7 @@ impl CertificateStore {
                 }
                 _ => {
                     // Store result in rejected folder
+                    // TODO this appears to be redundant if cert is already in rejected dir
                     let _ = self.store_rejected_cert(cert);
                 }
             }
@@ -282,7 +291,7 @@ impl CertificateStore {
     /// A non `Good` status code indicates a failure in the cert or in some action required in
     /// order to validate it.
     ///
-    pub fn validate_application_instance_cert(&self, cert: &X509, hostname: Option<String>, application_description: Option<ApplicationDescription>) -> StatusCode {
+    pub fn validate_application_instance_cert(&self, cert: &X509, hostname: Option<&str>, application_uri: Option<&str>) -> StatusCode {
         let cert_file_name = CertificateStore::cert_file_name(&cert);
         debug!("Validating cert with name on disk {}", cert_file_name);
 
@@ -315,9 +324,16 @@ impl CertificateStore {
             // Check if cert is in the trusted folder
             if !cert_path.exists() {
                 // ... trust checks based on ca could be added here to add cert straight to trust folder
-                warn!("Certificate {} is unknown and untrusted so it will be stored in rejected directory", cert_file_name);
-                let _ = self.store_rejected_cert(cert);
-                return BadCertificateUntrusted;
+                if self.trust_unknown_certs {
+                    // Put the unknown cert into the trusted folder
+                    warn!("Certificate {} is unknown but policy will store it into the trusted directory", cert_file_name);
+                    let _ = self.store_trusted_cert(cert);
+                    // Note that we drop through and still check the cert for validity
+                } else {
+                    warn!("Certificate {} is unknown and untrusted so it will be stored in rejected directory", cert_file_name);
+                    let _ = self.store_rejected_cert(cert);
+                    return BadCertificateUntrusted;
+                }
             }
 
             // Read the cert from the trusted folder to make sure it matches the one supplied
@@ -338,15 +354,15 @@ impl CertificateStore {
 
             // Compare the hostname of the cert against the cert supplied
             if let Some(hostname) = hostname {
-                let status_code = cert.is_hostname_valid(&hostname);
+                let status_code = cert.is_hostname_valid(hostname);
                 if status_code.is_bad() {
                     return status_code;
                 }
             }
 
             // Compare the application / product uri to the supplied application description
-            if let Some(application_description) = application_description {
-                let status_code = cert.is_application_uri_valid(application_description.application_uri.as_ref());
+            if let Some(application_uri) = application_uri {
+                let status_code = cert.is_application_uri_valid(application_uri);
                 if status_code.is_bad() {
                     return status_code;
                 }
@@ -424,14 +440,14 @@ impl CertificateStore {
     }
 
     /// Get path to application instance certificate
-    fn own_cert_path(&self) -> PathBuf {
+    pub fn own_cert_path(&self) -> PathBuf {
         let mut path = self.own_cert_dir();
         path.push(OWN_CERTIFICATE_NAME);
         path
     }
 
     /// Get path to application instance private key
-    fn own_private_key_path(&self) -> PathBuf {
+    pub fn own_private_key_path(&self) -> PathBuf {
         let mut path = self.private_key_dir();
         path.push(OWN_PRIVATE_KEY_NAME);
         path
@@ -476,6 +492,22 @@ impl CertificateStore {
         // Store the cert in the rejected folder where untrusted certs go
         let cert_file_name = CertificateStore::cert_file_name(&cert);
         let mut cert_path = self.rejected_certs_dir();
+        cert_path.push(&cert_file_name);
+        CertificateStore::store_cert(cert, &cert_path, true)?;
+        Ok(cert_path)
+    }
+
+    /// Writes a cert to the trusted directory. If the write succeeds, the function
+    /// returns a path to the written file.
+    ///
+    /// # Errors
+    ///
+    /// A string description of any failure
+    ///
+    fn store_trusted_cert(&self, cert: &X509) -> Result<PathBuf, String> {
+        // Store the cert in the rejected folder where untrusted certs go
+        let cert_file_name = CertificateStore::cert_file_name(&cert);
+        let mut cert_path = self.trusted_certs_dir();
         cert_path.push(&cert_file_name);
         CertificateStore::store_cert(cert, &cert_path, true)?;
         Ok(cert_path)

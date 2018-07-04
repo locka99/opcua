@@ -12,12 +12,11 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
 
 ## 0.4 (IN PROGRESS)
   - General
-    - More rigorous security checks server side
+    - More rigorous security checks server side and new client side certificate checking
     - Changes to codebase for more idiomatic Rust
+    - Certificate creator tool has new arguments to set application uri and control alternate DNS names
   - Client side
-    - Add client side encryption for security policies & modes other than None. At present the client
-      doesn't validate the server's cert as stringently as it should.
-    - Simple-client sample takes arguments to change what config to read and to set which endpoint to use.
+    - Add client side encryption for security policies & modes other than None.
     - Moved discovery / endpoints / connection into a helper to save writing that in every client
     - Better failure behaviour when server goes down or becomes unreachable
   - Server side
@@ -35,7 +34,9 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
     - Implement Method::Call() service and GetMonitoredItems. Add a callback framework to address space allowing 
       other methods to be implemented.
    - Samples
-    - gfx-client is a graphical client that shows values from its subscription
+    - simple-client now takes arguments to change what config to read and to set which endpoint to use.
+    - gfx-client is a simple graphical client that subscribes to values and renders them. May not work on all platforms.
+    - mqtt-client is work in progress.
 
 ## 0.3
   - General

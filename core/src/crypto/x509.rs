@@ -31,13 +31,15 @@ pub struct X509Data {
     pub organizational_unit: String,
     pub country: String,
     pub state: String,
+    /// A list of host names. The first hostname is expected to be the application uri. The remainder are dns host names.
+    /// Therefore there should be a minimum of 2 entries.
     pub alt_host_names: Vec<String>,
     pub certificate_duration_days: u32,
 }
 
 impl From<ApplicationDescription> for X509Data {
     fn from(application_description: ApplicationDescription) -> Self {
-        let alt_host_names = Self::alt_host_names(application_description.application_uri.as_ref());
+        let alt_host_names = Self::alt_host_names(application_description.application_uri.as_ref(), false, true);
         X509Data {
             key_size: DEFAULT_KEYSIZE,
             common_name: application_description.application_name.to_string(),
@@ -52,15 +54,9 @@ impl From<ApplicationDescription> for X509Data {
 }
 
 impl X509Data {
-    pub fn alt_host_names(application_uri: &str) -> Vec<String> {
-        let mut result = Vec::new();
-        // The first name is the application uri
-        result.push(application_uri.to_string());
-        // The remainder are alternative dns entries
-        result.push("localhost".to_string());
-        result.push("127.0.0.1".to_string());
-        result.push("::1".to_string());
-        // Get the machine name / ip address
+    /// Gets a list of possible dns hostnames for this device
+    pub fn computer_hostnames() -> Vec<String> {
+        let mut result = Vec::with_capacity(2);
         if let Ok(machine_name) = std::env::var("COMPUTERNAME") {
             result.push(machine_name);
         }
@@ -70,10 +66,27 @@ impl X509Data {
         result
     }
 
+    /// Creates a list of uri + DNS hostnames using the supplied arguments
+    pub fn alt_host_names(application_uri: &str, add_localhost: bool, add_computer_name: bool) -> Vec<String> {
+        // The first name is the application uri
+        let mut result = vec![application_uri.to_string()];
+        // The remainder are alternative dns entries
+        if add_localhost {
+            result.push("localhost".to_string());
+            result.push("127.0.0.1".to_string());
+            result.push("::1".to_string());
+        }
+        // Get the machine name / ip address
+        if add_computer_name {
+            let mut computer_hostnames = Self::computer_hostnames();
+            computer_hostnames.drain(..).for_each(|h| result.push(h));
+        }
+        result
+    }
 
     /// Creates a sample certificate for testing, sample purposes only
     pub fn sample_cert() -> X509Data {
-        let alt_host_names = Self::alt_host_names("urn:OPCUADemo");
+        let alt_host_names = Self::alt_host_names("urn:OPCUADemo", true, true);
         X509Data {
             key_size: 2048,
             common_name: "OPC UA Demo Key".to_string(),
@@ -205,16 +218,19 @@ impl X509 {
     /// Tests if the supplied hostname matches any of the dns alt subject name entries on the cert
     pub fn is_hostname_valid(&self, hostname: &str) -> StatusCode {
         trace!("is_hostname_valid against {} on cert", hostname);
+        // Look through alt subject names for a matching dns entry
         if let Some(ref alt_names) = self.value.subject_alt_names() {
-            // Look through alt names for a matching dns entry
-            let found = alt_names.iter().find(|n| {
+            // Skip the application uri
+            let found = alt_names.iter().skip(1).find(|n| {
                 if let Some(dns) = n.dnsname() {
-                    dns == hostname
+                    // Case insensitive comparison
+                    dns.eq_ignore_ascii_case(hostname)
                 } else {
                     false
                 }
             });
             if found.is_some() {
+                info!("Certificate host name {} is good", hostname);
                 Good
             } else {
                 error!("Cannot find a matching hostname for input {}", hostname);
@@ -230,12 +246,13 @@ impl X509 {
     /// Tests if the supplied application uri matches the uri alt subject name entry on the cert
     pub fn is_application_uri_valid(&self, application_uri: &str) -> StatusCode {
         trace!("is_application_uri_valid against {} on cert", application_uri);
-        // expecting the first subject alternative name to be a uri that matches with the supplied
+        // Expecting the first subject alternative name to be a uri that matches with the supplied
         // application uri
         if let Some(ref alt_names) = self.value.subject_alt_names() {
-            if alt_names.len() >= 0 {
+            if alt_names.len() > 0 {
                 if let Some(cert_application_uri) = alt_names[0].uri() {
                     if cert_application_uri == application_uri {
+                        info!("Certificate application uri {} is good", application_uri);
                         Good
                     } else {
                         error!("Cert application uri {} does not match supplied uri {}", cert_application_uri, application_uri);

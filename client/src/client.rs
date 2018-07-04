@@ -61,10 +61,16 @@ impl Client {
     pub fn new(config: ClientConfig) -> Client {
         let application_description = if config.create_sample_keypair { Some(config.application_description()) } else { None };
 
-        let (certificate_store, client_certificate, client_pkey) = CertificateStore::new_with_keypair(&config.pki_dir, application_description);
+        let (mut certificate_store, client_certificate, client_pkey) = CertificateStore::new_with_keypair(&config.pki_dir, application_description);
         if client_certificate.is_none() || client_pkey.is_none() {
             error!("Client is missing its application instance certificate and/or its private key. Encrypted endpoints will not function correctly.")
         }
+
+        // Clients may choose to auto trust servers to save some messing around with rejected certs
+        if config.trust_server_certs {
+            certificate_store.trust_unknown_certs = true;
+        }
+
         Client {
             config,
             sessions: Vec::new(),
@@ -77,7 +83,7 @@ impl Client {
         self.config.application_description()
     }
 
-    pub fn connect_and_activate(&mut self, endpoint_id: Option<String>) -> Result<Arc<RwLock<Session>>, StatusCode> {
+    pub fn connect_and_activate(&mut self, endpoint_id: Option<&str>) -> Result<Arc<RwLock<Session>>, StatusCode> {
         // Ask the server associated with the default endpoint for its list of endpoints
         let endpoints = match self.get_server_endpoints() {
             Result::Err(status_code) => {
@@ -92,7 +98,7 @@ impl Client {
 
         // Create a session to an endpoint. If an endpoint id is specified use that
         let session = if let Some(endpoint_id) = endpoint_id {
-            self.new_session_from_id(&endpoint_id, &endpoints).unwrap()
+            self.new_session_from_id(endpoint_id, &endpoints).unwrap()
         } else {
             self.new_session(&endpoints).unwrap()
         };

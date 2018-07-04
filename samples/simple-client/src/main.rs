@@ -47,7 +47,7 @@ fn main() {
     // Use the sample client config to set up a client. The sample config has a number of named
     // endpoints one of which is marked as the default.
     let mut client = Client::new(ClientConfig::load(&PathBuf::from(config_file)).unwrap());
-    let endpoint_id = if !endpoint_id.is_empty() { Some(endpoint_id) } else { None };
+    let endpoint_id: Option<&str> = if !endpoint_id.is_empty() { Some(&endpoint_id) } else { None };
     if let Ok(session) = client.connect_and_activate(endpoint_id) {
         // The --subscribe arg decides if code should subscribe to values, or just fetch those
         // values and exit

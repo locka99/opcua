@@ -158,9 +158,9 @@ impl Session {
                 info!("Security mode = {:?}", self.session_info.endpoint.security_mode);
             }
 
-            let _ = self.transport.connect(endpoint_url.as_ref())?;
-            let _ = self.transport.hello(endpoint_url.as_ref())?;
-            let _ = self.open_secure_channel()?;
+            self.transport.connect(endpoint_url.as_ref())?;
+            self.transport.hello(endpoint_url.as_ref())?;
+            self.open_secure_channel()?;
             Ok(())
         }
     }
@@ -168,9 +168,9 @@ impl Session {
     /// Connects to the server, creates and activates a session
     pub fn connect_and_activate_session(&mut self) -> Result<(), StatusCode> {
         // Reconnect now using the session state
-        let _ = self.connect()?;
-        let _ = self.create_session()?;
-        let _ = self.activate_session()?;
+        self.connect()?;
+        self.create_session()?;
+        self.activate_session()?;
         Ok(())
     }
 
@@ -182,7 +182,7 @@ impl Session {
             self.disconnect();
         }
 
-        let _ = self.connect()?;
+        self.connect()?;
         let activated = self.activate_session();
         if let Err(error) = activated {
             // TODO if this doesn't work then we need to
@@ -270,17 +270,45 @@ impl Session {
             }
             debug!("server nonce is {:?}", response.server_nonce);
 
-            // TODO validate server certificate against endpoint
-            // let application_description = Some(endpoint.application_description.clone());
-            // certificate_store.validate_or_reject_application_instance_cert(response.server_certificate, hostname, applicationdescription);
+            // The server certificate is validated if the policy requires it
+            let security_policy = self.security_policy();
+            let cert_status_code = if security_policy != SecurityPolicy::None {
+                if let Ok(server_certificate) = crypto::X509::from_byte_string(&response.server_certificate) {
+                    // Validate server certificate against hostname and application_uri
+                    let hostname = hostname_from_url(self.session_info.endpoint.endpoint_url.as_ref()).map_err(|_| BadUnexpectedError)?;
+                    let application_uri = self.session_info.endpoint.server.application_uri.as_ref();
 
-            // TODO Verify signature using server's public key (from endpoint) comparing with data made from client certificate and nonce.
-            // crypto::verify_signature_data(verification_key, security_policy, server_certificate, client_certificate, client_nonce);
+                    let mut certificate_store = trace_write_lock_unwrap!(self.certificate_store);
+                    let result = certificate_store.validate_or_reject_application_instance_cert(&server_certificate, None, None);// Some(&hostname), Some(application_uri));
+                    if result.is_bad() {
+                        result
+                    } else {
+                        Good
+                    }
+                } else {
+                    error!("Server did not supply a valid X509 certificate");
+                    BadCertificateInvalid
+                }
+            } else {
+                Good
+            };
 
-            Ok(())
+            if !cert_status_code.is_good() {
+                error!("Server's certificate was rejected");
+                Err(cert_status_code)
+            } else {
+                // TODO Verify signature using server's public key (from endpoint) comparing with data made from client certificate and nonce.
+                // crypto::verify_signature_data(verification_key, security_policy, server_certificate, client_certificate, client_nonce);
+                Ok(())
+            }
         } else {
             Err(Self::process_unexpected_response(response))
         }
+    }
+
+    fn security_policy(&self) -> SecurityPolicy {
+        let secure_channel = trace_read_lock_unwrap!( self.transport.secure_channel);
+        secure_channel.security_policy()
     }
 
     /// Sends an ActivateSession request to the server
@@ -294,10 +322,7 @@ impl Session {
             Some(locale_ids)
         };
 
-        let security_policy = {
-            let secure_channel = trace_read_lock_unwrap!( self.transport.secure_channel);
-            secure_channel.security_policy()
-        };
+        let security_policy = self.security_policy();
         let client_signature = match security_policy {
             SecurityPolicy::None => SignatureData::null(),
             _ => {

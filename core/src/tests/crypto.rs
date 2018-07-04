@@ -434,6 +434,12 @@ fn certificate_with_hostname_mismatch() {
     // Create a certificate and ensure that when the hostname does  match, the verification succeeds
     let result = cert.is_hostname_valid(APPLICATION_HOSTNAME);
     assert_eq!(result, StatusCode::Good);
+
+    // Try a few times with different case
+    let result = cert.is_hostname_valid(&APPLICATION_HOSTNAME.to_string().to_uppercase());
+    assert_eq!(result, StatusCode::Good);
+    let result = cert.is_hostname_valid(&APPLICATION_HOSTNAME.to_string().to_lowercase());
+    assert_eq!(result, StatusCode::Good);
 }
 
 
