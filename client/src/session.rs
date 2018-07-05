@@ -279,7 +279,7 @@ impl Session {
                     let application_uri = self.session_info.endpoint.server.application_uri.as_ref();
 
                     let mut certificate_store = trace_write_lock_unwrap!(self.certificate_store);
-                    let result = certificate_store.validate_or_reject_application_instance_cert(&server_certificate, None, None);// Some(&hostname), Some(application_uri));
+                    let result = certificate_store.validate_or_reject_application_instance_cert(&server_certificate, Some(&hostname), Some(application_uri));
                     if result.is_bad() {
                         result
                     } else {
@@ -996,12 +996,13 @@ impl Session {
 
         const REQUESTED_LIFETIME: UInt32 = 60000; // TODO
 
-        let client_nonce = ByteString::nonce();
-        let (security_mode, security_policy) = {
+        let (security_mode, security_policy, client_nonce) = {
             let mut secure_channel = trace_write_lock_unwrap!( self.transport.secure_channel);
+            let client_nonce = secure_channel.security_policy().nonce();
             secure_channel.set_local_nonce(client_nonce.as_ref());
-            (secure_channel.security_mode(), secure_channel.security_policy())
+            (secure_channel.security_mode(), secure_channel.security_policy(), client_nonce)
         };
+
         info!("Making secure channel request");
         info!("security_mode = {:?}", security_mode);
         info!("security_policy = {:?}", security_policy);

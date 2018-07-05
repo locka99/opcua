@@ -350,6 +350,15 @@ fn sign_hmac_sha256() {
 }
 
 #[test]
+fn generate_nonce() {
+    // Generate a random nonce through the function and ensure it is the expected length
+    assert!(SecurityPolicy::None.nonce().is_null());
+    assert_eq!(SecurityPolicy::Basic128Rsa15.nonce().as_ref().len(), 16);
+    assert_eq!(SecurityPolicy::Basic256.nonce().as_ref().len(), 32);
+    assert_eq!(SecurityPolicy::Basic256Sha256.nonce().as_ref().len(), 32);
+}
+
+#[test]
 fn derive_keys_from_nonce() {
     // Create a pair of "random" nonces.
     let nonce1 = vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f];
@@ -424,7 +433,7 @@ fn derive_keys_from_nonce_basic128rsa15() {
 #[test]
 fn certificate_with_hostname_mismatch() {
     let (cert, _) = make_test_cert_2048();
-    let wrong_host_name = format!("expected_{}", APPLICATION_HOSTNAME);
+    let wrong_host_name = format!("wrong_{}", APPLICATION_HOSTNAME);
 
     // Create a certificate and ensure that when the hostname does not match, the verification fails
     // with the correct error

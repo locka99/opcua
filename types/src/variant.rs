@@ -639,26 +639,17 @@ impl Variant {
     }
 
     pub fn from_i32_array(in_values: &[Int32]) -> Variant {
-        let mut values = Vec::with_capacity(in_values.len());
-        for v in in_values {
-            values.push(Variant::Int32(*v));
-        }
+        let values = in_values.iter().map(|v| Variant::from(*v)).collect();
         Variant::Array(values)
     }
 
     pub fn from_u32_array(in_values: &[UInt32]) -> Variant {
-        let mut values = Vec::with_capacity(in_values.len());
-        for v in in_values {
-            values.push(Variant::UInt32(*v));
-        }
+        let values = in_values.iter().map(|v| Variant::from(*v)).collect();
         Variant::Array(values)
     }
 
     pub fn from_string_array(in_values: &[String]) -> Variant {
-        let mut values = Vec::with_capacity(in_values.len());
-        for v in in_values {
-            values.push(Variant::String(UAString::from(v.as_ref())));
-        }
+        let values = in_values.iter().map(|v| Variant::from(v.as_ref())).collect();
         Variant::Array(values)
     }
 

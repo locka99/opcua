@@ -212,6 +212,7 @@ impl X509 {
             return BadCertificateInvalid;
         }
 
+        info!("Certificate is valid for this time");
         Good
     }
 

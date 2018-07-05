@@ -7,6 +7,7 @@ use openssl::hash as openssl_hash;
 
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
+use opcua_types::ByteString;
 
 use crypto::{SHA1_SIZE, SHA256_SIZE};
 use crypto::aeskey::AesKey;
@@ -331,6 +332,19 @@ impl SecurityPolicy {
         }
     }
 
+    /// Creates a random nonce in a bytestring with a length appropriate for the policy
+    pub fn nonce(&self) -> ByteString {
+        match *self {
+            SecurityPolicy::None => ByteString::null(),
+            SecurityPolicy::Basic128Rsa15 |
+            SecurityPolicy::Basic256 |
+            SecurityPolicy::Basic256Sha256 => ByteString::random(self.symmetric_key_size()),
+            _ => {
+                panic!("Can't make a nonce because key size is unknown");
+            }
+        }
+    }
+
     pub fn from_uri(uri: &str) -> SecurityPolicy {
         match uri {
             SECURITY_POLICY_NONE_URI => SecurityPolicy::None,
@@ -505,7 +519,7 @@ impl SecurityPolicy {
                 hash::hmac_sha1(key, data, signature)
             }
             SecurityPolicy::Basic256Sha256 => {
-                // HMAC SHA-256                
+                // HMAC SHA-256
                 hash::hmac_sha256(key, data, signature)
             }
             _ => {
