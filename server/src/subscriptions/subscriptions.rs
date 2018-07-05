@@ -107,9 +107,6 @@ impl Subscriptions {
     /// If the queue is full this call will pop the oldest and generate a service fault
     /// for that before pushing the new one.
     pub fn enqueue_publish_request(&mut self, _: &AddressSpace, request_id: UInt32, request: PublishRequest) -> Result<(), StatusCode> {
-        // Acknowledge anything to be acknowledged
-        let _ = self.process_subscription_acknowledgements(&request);
-
         // Check if we have too many requests already
         if self.publish_request_queue.len() >= self.max_publish_requests {
             error!("Too many publish requests {} for capacity {}, throwing oldest away", self.publish_request_queue.len(), self.max_publish_requests);
@@ -223,7 +220,10 @@ impl Subscriptions {
             // The notification to be sent is now put into the retransmission queue
             self.retransmission_queue.insert(notification_message.sequence_number, (subscription_id, notification_message.clone()));
 
-            let response = self.make_publish_response(&publish_request, subscription_id, now, notification_message, more_notifications, available_sequence_numbers);
+            // Acknowledge results
+            let results = self.process_subscription_acknowledgements(&publish_request.request);
+
+            let response = self.make_publish_response(&publish_request, subscription_id, now, notification_message, more_notifications, available_sequence_numbers, results);
             self.publish_response_queue.push_front(response);
         }
 
@@ -327,7 +327,7 @@ impl Subscriptions {
         }
     }
 
-    fn make_publish_response(&self, publish_request: &PublishRequestEntry, subscription_id: UInt32, now: &DateTimeUtc, notification_message: NotificationMessage, more_notifications: bool, available_sequence_numbers: Option<Vec<UInt32>>) -> PublishResponseEntry {
+    fn make_publish_response(&self, publish_request: &PublishRequestEntry, subscription_id: UInt32, now: &DateTimeUtc, notification_message: NotificationMessage, more_notifications: bool, available_sequence_numbers: Option<Vec<UInt32>>, results: Option<Vec<StatusCode>>) -> PublishResponseEntry {
         let now = DateTime::from(now.clone());
         PublishResponseEntry {
             request_id: publish_request.request_id,
@@ -337,7 +337,7 @@ impl Subscriptions {
                 available_sequence_numbers,
                 more_notifications,
                 notification_message,
-                results: None,
+                results,
                 diagnostic_infos: None,
             }),
         }
