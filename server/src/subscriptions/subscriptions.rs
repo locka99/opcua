@@ -363,26 +363,25 @@ impl Subscriptions {
     /// Purges notifications waiting for acknowledgement if they exceed the max retransmission queue
     /// size.
     fn remove_old_unknowledged_notifications(&mut self) {
-        if self.retransmission_queue.len() <= self.max_retransmission_queue {
-            return;
-        }
+        if self.retransmission_queue.len() > self.max_retransmission_queue {
 
-        // Compare number of items in retransmission queue to max permissible and remove the older
-        // notifications.
-        let remove_count = self.retransmission_queue.len() - self.max_retransmission_queue;
-        let mut sequence_numbers_to_remove = Vec::with_capacity(remove_count);
+            // Compare number of items in retransmission queue to max permissible and remove the older
+            // notifications.
+            let remove_count = self.retransmission_queue.len() - self.max_retransmission_queue;
 
-        // BTree means these should iterate in order of insertion, i.e. oldest first
-        for (k, _) in &self.retransmission_queue {
-            if sequence_numbers_to_remove.len() > remove_count {
-                break;
-            }
-            sequence_numbers_to_remove.push(*k);
-        }
+            // Iterate the map, taking the sequence nr of each notification to remove
+            let sequence_nrs_to_remove = self.retransmission_queue.
+                iter().
+                take(remove_count).
+                map(|v| *v.0).
+                collect::<Vec<_>>();
 
-        // Remove expired sequence numbers from the retransmission queue
-        for sequence_number in sequence_numbers_to_remove {
-            let _ = self.retransmission_queue.remove(&sequence_number);
+            // Remove in order of insertion, i.e. oldest first
+            sequence_nrs_to_remove.
+                iter().
+                for_each(|n| {
+                    self.retransmission_queue.remove(n);
+                });
         }
     }
 }
