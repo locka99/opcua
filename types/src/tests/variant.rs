@@ -107,3 +107,33 @@ fn variant_i32_array() {
     }
 }
 
+#[test]
+fn variant_invalid_array() {
+    let v = Variant::Array(vec![Variant::from(10), Variant::from("hello")]);
+    assert!(v.is_array());
+    assert!(!v.is_numeric_array());
+    assert!(!v.is_valid());
+}
+
+#[test]
+fn variant_multi_dimensional_array() {
+    let v = Variant::from(MultiDimensionArray::new(vec![Variant::from(10)], vec![1]));
+    assert!(v.is_array());
+    assert!(v.is_numeric_array());
+    assert!(v.is_valid());
+
+    let v = Variant::from(MultiDimensionArray::new(vec![Variant::from(10), Variant::from(10)], vec![2]));
+    assert!(v.is_array());
+    assert!(v.is_numeric_array());
+    assert!(v.is_valid());
+
+    let v = Variant::from(MultiDimensionArray::new(vec![Variant::from(10), Variant::from(10)], vec![1, 2]));
+    assert!(v.is_array());
+    assert!(v.is_numeric_array());
+    assert!(v.is_valid());
+
+    let v = Variant::from(MultiDimensionArray::new(vec![Variant::from(10), Variant::from(10)], vec![1, 2, 3]));
+    assert!(v.is_array());
+    assert!(v.is_numeric_array());
+    assert!(!v.is_valid());
+}

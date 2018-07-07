@@ -218,6 +218,12 @@ impl From<Vec<Variant>> for Variant {
     }
 }
 
+impl From<MultiDimensionArray> for Variant {
+    fn from(v: MultiDimensionArray) -> Self {
+        Variant::MultiDimensionArray(Box::new(v))
+    }
+}
+
 /// A Variant holds all primitive types, including single and multi dimensional arrays and
 /// data values.
 ///
@@ -293,6 +299,19 @@ pub struct MultiDimensionArray {
 impl MultiDimensionArray {
     pub fn new(values: Vec<Variant>, dimensions: Vec<Int32>) -> MultiDimensionArray {
         MultiDimensionArray { values, dimensions }
+    }
+
+    pub fn is_valid_dimensions(&self) -> bool {
+        // Check that the array dimensions match the length of the array
+        let mut length: usize = 1;
+        for d in &self.dimensions {
+            // Check for invalid dimensions
+            if *d <= 0 {
+                return false;
+            }
+            length *= *d as usize;
+        }
+        length == self.values.len()
     }
 }
 
@@ -706,8 +725,24 @@ impl Variant {
         }
     }
 
+    fn array_is_expected_type(values: &[Variant], expected_type_id: VariantTypeId) -> bool {
+        if values.is_empty() {
+            true
+        } else {
+            // Ensure all elements are the expected type
+            values.iter().find(|v| {
+                if v.type_id() != expected_type_id {
+                    error!("Variant array's type is expected to be {:?} but found another type {:?} in it too", expected_type_id, v.type_id());
+                    true
+                } else {
+                    false
+                }
+            }).is_none()
+        }
+    }
+
     /// Test that the vector of variants are all of the same type
-    fn array_is_same_type(values: &Vec<Variant>, numeric_only: bool) -> bool {
+    fn array_is_same_type(values: &[Variant], numeric_only: bool) -> bool {
         if values.is_empty() {
             true
         } else {
@@ -720,15 +755,7 @@ impl Variant {
                 error!("Variant array contains nested array {:?}", expected_type_id);
                 false
             } else {
-                // Ensure all elements are the same as the first
-                values.iter().skip(1).find(|v| {
-                    if v.type_id() != expected_type_id {
-                        error!("Variant array's first element is {:?} but found another type {:?} in it too", expected_type_id, v.type_id());
-                        true
-                    } else {
-                        false
-                    }
-                }).is_none()
+                Self::array_is_expected_type(&values[1..], expected_type_id)
             }
         }
     }
@@ -747,15 +774,7 @@ impl Variant {
                     true
                 } else {
                     // Check that the array dimensions match the length of the array
-                    let mut length: usize = 1;
-                    for d in &mda.dimensions {
-                        // Check for invalid dimensions
-                        if *d <= 0 {
-                            return false;
-                        }
-                        length *= *d as usize;
-                    }
-                    if length != mda.values.len() {
+                    if !mda.is_valid_dimensions() {
                         false
                     } else {
                         // Check values are all the same type
