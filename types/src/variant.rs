@@ -686,7 +686,7 @@ impl Variant {
     }
 
     pub fn new_multi_dimension_array(values: Vec<Variant>, dimensions: Vec<Int32>) -> Variant {
-        Variant::MultiDimensionArray(Box::new(MultiDimensionArray { values, dimensions }))
+        Variant::from(MultiDimensionArray::new(values, dimensions))
     }
 
     /// Tests and returns true if the variant holds a numeric type
