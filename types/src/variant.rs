@@ -16,10 +16,49 @@ use string::{UAString, XmlElement};
 const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
 const ARRAY_VALUES_BIT: u8 = 1 << 7;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct MultiDimensionArray {
-    pub values: Vec<Variant>,
-    pub dimensions: Vec<Int32>,
+/// The variant type id is the type of the variant without its payload.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum VariantTypeId {
+    Empty,
+    Boolean,
+    SByte,
+    Byte,
+    Int16,
+    UInt16,
+    Int32,
+    UInt32,
+    Int64,
+    UInt64,
+    Float,
+    Double,
+    String,
+    DateTime,
+    Guid,
+    StatusCode,
+    ByteString,
+    XmlElement,
+    QualifiedName,
+    LocalizedText,
+    NodeId,
+    ExpandedNodeId,
+    ExtensionObject,
+    DataValue,
+    Array,
+    MultiDimensionArray,
+}
+
+impl VariantTypeId {
+    /// Tests and returns true if the variant holds a numeric type
+    pub fn is_numeric(&self) -> bool {
+        match *self {
+            VariantTypeId::SByte | VariantTypeId::Byte |
+            VariantTypeId::Int16 | VariantTypeId::UInt16 |
+            VariantTypeId::Int32 | VariantTypeId::UInt32 |
+            VariantTypeId::Int64 | VariantTypeId::UInt64 |
+            VariantTypeId::Float | VariantTypeId::Double => true,
+            _ => false
+        }
+    }
 }
 
 impl From<Boolean> for Variant {
@@ -85,6 +124,18 @@ impl From<Float> for Variant {
 impl From<Double> for Variant {
     fn from(v: Double) -> Self {
         Variant::Double(v)
+    }
+}
+
+impl<'a> From<&'a str> for Variant {
+    fn from(value: &'a str) -> Self {
+        Variant::String(UAString::from(value))
+    }
+}
+
+impl From<String> for Variant {
+    fn from(value: String) -> Self {
+        Variant::String(UAString::from(value))
     }
 }
 
@@ -231,6 +282,18 @@ pub enum Variant {
     /// Higher rank dimensions are serialized first. For example an array with dimensions [2,2,2] is written in this order:
     /// [0,0,0], [0,0,1], [0,1,0], [0,1,1], [1,0,0], [1,0,1], [1,1,0], [1,1,1]
     MultiDimensionArray(Box<MultiDimensionArray>),
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MultiDimensionArray {
+    pub values: Vec<Variant>,
+    pub dimensions: Vec<Int32>,
+}
+
+impl MultiDimensionArray {
+    pub fn new(values: Vec<Variant>, dimensions: Vec<Int32>) -> MultiDimensionArray {
+        MultiDimensionArray { values, dimensions }
+    }
 }
 
 impl BinaryEncoder<Variant> for Variant {
@@ -407,18 +470,6 @@ impl BinaryEncoder<Variant> for Variant {
     }
 }
 
-impl<'a> From<&'a str> for Variant {
-    fn from(value: &'a str) -> Self {
-        Variant::String(UAString::from(value))
-    }
-}
-
-impl From<String> for Variant {
-    fn from(value: String) -> Self {
-        Variant::String(UAString::from(value))
-    }
-}
-
 impl Default for Variant {
     fn default() -> Self {
         Variant::Empty
@@ -584,6 +635,37 @@ impl Variant {
         Ok(result)
     }
 
+    pub fn type_id(&self) -> VariantTypeId {
+        match *self {
+            Variant::Empty => VariantTypeId::Empty,
+            Variant::Boolean(_) => VariantTypeId::Boolean,
+            Variant::SByte(_) => VariantTypeId::SByte,
+            Variant::Byte(_) => VariantTypeId::Byte,
+            Variant::Int16(_) => VariantTypeId::Int16,
+            Variant::UInt16(_) => VariantTypeId::UInt16,
+            Variant::Int32(_) => VariantTypeId::Int32,
+            Variant::UInt32(_) => VariantTypeId::UInt32,
+            Variant::Int64(_) => VariantTypeId::Int64,
+            Variant::UInt64(_) => VariantTypeId::UInt64,
+            Variant::Float(_) => VariantTypeId::Float,
+            Variant::Double(_) => VariantTypeId::Double,
+            Variant::String(_) => VariantTypeId::String,
+            Variant::DateTime(_) => VariantTypeId::DateTime,
+            Variant::Guid(_) => VariantTypeId::Guid,
+            Variant::ByteString(_) => VariantTypeId::ByteString,
+            Variant::XmlElement(_) => VariantTypeId::XmlElement,
+            Variant::NodeId(_) => VariantTypeId::NodeId,
+            Variant::ExpandedNodeId(_) => VariantTypeId::ExpandedNodeId,
+            Variant::StatusCode(_) => VariantTypeId::StatusCode,
+            Variant::QualifiedName(_) => VariantTypeId::QualifiedName,
+            Variant::LocalizedText(_) => VariantTypeId::LocalizedText,
+            Variant::ExtensionObject(_) => VariantTypeId::ExtensionObject,
+            Variant::DataValue(_) => VariantTypeId::DataValue,
+            Variant::Array(_) => VariantTypeId::Array,
+            Variant::MultiDimensionArray(_) => VariantTypeId::MultiDimensionArray,
+        }
+    }
+
     pub fn new_multi_dimension_array(values: Vec<Variant>, dimensions: Vec<Int32>) -> Variant {
         Variant::MultiDimensionArray(Box::new(MultiDimensionArray { values, dimensions }))
     }
@@ -600,15 +682,89 @@ impl Variant {
         }
     }
 
+    /// Test if the variant holds an array
+    pub fn is_array(&self) -> bool {
+        match *self {
+            Variant::Array(_) | Variant::MultiDimensionArray(_) => true,
+            _ => false
+        }
+    }
+
     /// Tests and returns true if the variant is an array containing numeric values
     pub fn is_numeric_array(&self) -> bool {
+        // A non-numeric value in the array means it is not numeric
         match *self {
             Variant::Array(ref values) => {
-                // A non-numeric value means it is not numeric
-                values.iter().find(|v| !v.is_numeric()).is_some()
+                Self::array_is_same_type(values, true)
+            }
+            Variant::MultiDimensionArray(ref mda) => {
+                Self::array_is_same_type(&mda.values, true)
             }
             _ => {
                 false
+            }
+        }
+    }
+
+    /// Test that the vector of variants are all of the same type
+    fn array_is_same_type(values: &Vec<Variant>, numeric_only: bool) -> bool {
+        if values.is_empty() {
+            true
+        } else {
+            let expected_type_id = values.get(0).unwrap().type_id();
+            if numeric_only && !expected_type_id.is_numeric() {
+                // Caller only wants numeric types
+                false
+            } else if expected_type_id == VariantTypeId::Array || expected_type_id == VariantTypeId::MultiDimensionArray {
+                // Nested arrays are explicitly NOT allowed
+                error!("Variant array contains nested array {:?}", expected_type_id);
+                false
+            } else {
+                // Ensure all elements are the same as the first
+                values.iter().skip(1).find(|v| {
+                    if v.type_id() != expected_type_id {
+                        error!("Variant array's first element is {:?} but found another type {:?} in it too", expected_type_id, v.type_id());
+                        true
+                    } else {
+                        false
+                    }
+                }).is_none()
+            }
+        }
+    }
+
+    /// Tests that the variant is in a valid state. In particular for arrays ensuring that the
+    /// values are all acceptable and for a multi dimensional array that the dimensions equal
+    /// the actual values.
+    pub fn is_valid(&self) -> bool {
+        match *self {
+            Variant::Array(ref values) => {
+                Self::array_is_same_type(values, false)
+            }
+            Variant::MultiDimensionArray(ref mda) => {
+                if mda.values.is_empty() && mda.dimensions.is_empty() {
+                    // Check values all the same type
+                    true
+                } else {
+                    // Check that the array dimensions match the length of the array
+                    let mut length: usize = 1;
+                    for d in &mda.dimensions {
+                        // Check for invalid dimensions
+                        if *d <= 0 {
+                            return false;
+                        }
+                        length *= *d as usize;
+                    }
+                    if length != mda.values.len() {
+                        false
+                    } else {
+                        // Check values are all the same type
+                        Self::array_is_same_type(&mda.values, false)
+                    }
+                }
+            }
+            _ => {
+                true
             }
         }
     }

@@ -2,6 +2,7 @@ mod encoding;
 mod date_time;
 mod parse;
 mod serialize;
+mod variant;
 
 use std::fmt::Debug;
 use std::cmp::PartialEq;
