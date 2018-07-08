@@ -770,7 +770,6 @@ impl Variant {
             }
             Variant::MultiDimensionArray(ref mda) => {
                 if mda.values.is_empty() && mda.dimensions.is_empty() {
-                    // Check values all the same type
                     true
                 } else {
                     // Check that the array dimensions match the length of the array

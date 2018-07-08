@@ -11,7 +11,12 @@ pub fn register_discover_server(discovery_server_url: &str, server_state: &Serve
     // find_servers on it
 
     trace!("Discovery server registration stub is triggering for {}", discovery_server_url);
-    let mut client = Client::new(ClientConfig::new("DiscoveryClient", "urn:DiscoveryClient"));
+    let server_config = trace_read_lock_unwrap!(server_state.config);
+
+    // Client's pki dir must match server's
+    let mut config = ClientConfig::new("DiscoveryClient", "urn:DiscoveryClient");
+    config.pki_dir = server_config.pki_dir.clone();
+    let mut client = Client::new(config);
 
     let servers = client.find_servers(discovery_server_url);
     if let Ok(servers) = servers {
