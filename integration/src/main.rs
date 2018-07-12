@@ -12,5 +12,5 @@ fn main() {
     panic!("I do not do anything, run with cargo test");
 }
 
-#[cfg(test)]
+#[cfg(all(test, integration))]
 mod tests;

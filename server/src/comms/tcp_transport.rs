@@ -289,6 +289,7 @@ impl TcpTransport {
                     connection.is_server_abort()
                 };
                 if is_server_abort {
+                    info!("Transport is terminating because server has aborted");
                     return Err((connection_state.connection.clone(), BadCommunicationError));
                 }
 

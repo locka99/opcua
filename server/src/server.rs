@@ -9,8 +9,9 @@ use std::time::Instant;
 use std::thread;
 
 use chrono;
-use futures::future;
 use futures::{Future, Stream};
+use futures::future;
+use futures::sync::mpsc::{unbounded, UnboundedSender};
 use tokio;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_timer;
@@ -149,6 +150,41 @@ impl Server {
         }
     }
 
+    fn get_socket_address(&self) -> SocketAddr {
+        let server_state = trace_read_lock_unwrap!(self.server_state);
+        let config = trace_read_lock_unwrap!(server_state.config);
+        SocketAddr::new(IpAddr::V4(Ipv4Addr::from_str(&config.tcp_config.host).unwrap()), config.tcp_config.port)
+    }
+
+    // This timer will poll the server to see if it has aborted. If it has it will signal the tx_abort
+    // so that the main listener loop can be broken.
+    fn start_abort_poll(server: Arc<RwLock<Server>>, tx_abort: UnboundedSender<()>) {
+        let future = tokio_timer::Timer::default()
+            .interval(chrono::Duration::milliseconds(1000).to_std().unwrap())
+            .take_while(move |_| {
+                let abort = {
+                    let mut server = trace_write_lock_unwrap!(server);
+                    if server.is_abort() {
+                        // Check if there are any open sessions
+                        server.remove_dead_connections();
+                        // Abort when all connections are down
+                        let connections = trace_write_lock_unwrap!(server.connections);
+                        connections.is_empty()
+                    }
+                    else {
+                        false
+                    }
+                };
+                if abort {
+                    info!("Server has aborted so, sending a command to break the listen loop");
+                    tx_abort.unbounded_send(()).unwrap();
+                }
+                future::ok(!abort)
+            })
+            .for_each(|_| { Ok(()) })
+            .map_err(|_| {});
+        tokio::spawn(future);
+    }
 
     /// Starts the server. Note server is supplied protected by a lock allowing access to the server
     /// to be shared.
@@ -162,11 +198,14 @@ impl Server {
         // Get the address and discovery url
         let (sock_addr, discovery_server_url) = {
             let server = trace_read_lock_unwrap!(server);
+            let sock_addr = server.get_socket_address();
             let server_state = trace_read_lock_unwrap!(server.server_state);
             let config = trace_read_lock_unwrap!(server_state.config);
-            let sock_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::from_str(&config.tcp_config.host).unwrap()), config.tcp_config.port);
             (sock_addr, config.discovery_server_url.clone())
         };
+
+        // These are going to be used to abort the thread via the completion pack
+        let (tx_abort, rx_abort) = unbounded::<()>();
 
         info!("Waiting for Connection");
         // This is the main tokio task
@@ -176,34 +215,37 @@ impl Server {
 
             // Put the server into a running state
             future::lazy(move || {
-                let mut server = trace_write_lock_unwrap!(server);
-
-                // Running
                 {
-                    let mut server_state = trace_write_lock_unwrap!(server.server_state);
-                    server_state.start_time = DateTime::now();
-                    server_state.state = ServerStateType::Running;
-                }
+                    let mut server = trace_write_lock_unwrap!(server);
 
-                // Start a timer that registers the server with a discovery server
-                server.start_discovery_server_registration_timer(discovery_server_url);
-                // Start any pending polling action timers
-                server.start_pending_polling_actions();
+                    // Running
+                    {
+                        let mut server_state = trace_write_lock_unwrap!(server.server_state);
+                        server_state.start_time = DateTime::now();
+                        server_state.state = ServerStateType::Running;
+                    }
+
+                    // Start a timer that registers the server with a discovery server
+                    server.start_discovery_server_registration_timer(discovery_server_url);
+                    // Start any pending polling action timers
+                    server.start_pending_polling_actions();
+                }
+                // Start a server abort task loop
+                Self::start_abort_poll(server, tx_abort);
 
                 future::ok(())
             }).and_then(move |_| {
-
+                use completion_pact::stream_completion_pact;
                 // Listen for connections
                 let listener = TcpListener::bind(&sock_addr).unwrap();
-                listener.incoming()
+                stream_completion_pact(listener.incoming(), rx_abort)
                     .for_each(move |socket| {
                         // Clear out dead sessions
                         info!("Handling new connection {:?}", socket);
                         let mut server = trace_write_lock_unwrap!(server_for_listener);
                         if server.is_abort() {
-                            info!("Server is aborting");
+                            info!("Server is aborting so it will not accept new connections");
                         } else {
-                            server.remove_dead_connections();
                             server.handle_connection(socket);
                         }
                         Ok(())
@@ -212,15 +254,26 @@ impl Server {
                 })
             })
         });
+
+        info!("Server has stopped");
     }
 
-    // Terminates the running server
+    // Sets a flag telling the running server to abort. The abort will happen asynchronously after
+    // all sessions have disconnected.
     pub fn abort(&mut self) {
-        let mut server_state = trace_write_lock_unwrap!(self.server_state);
-        server_state.abort = true;
+        use std::net::TcpStream;
 
-        // TODO - if the server is running we want to open a socket to it to stimulate it to
+        info!("Server has been instructed to abort");
+        {
+            let mut server_state = trace_write_lock_unwrap!(self.server_state);
+            server_state.abort = true;
+        }
+
+        // If the server is running we want to open a socket to it to stimulate it to respond and
         // close down
+        let socket_addr = self.get_socket_address();
+        let _ = TcpStream::connect(socket_addr);
+        info!("Sent a connect command to cause server to abort");
     }
 
     fn is_abort(&self) -> bool {
@@ -228,6 +281,7 @@ impl Server {
         server_state.abort
     }
 
+    /// Strip out dead connections, i.e those which have disconnected
     fn remove_dead_connections(&mut self) {
         // Go through all connections, removing those that have terminated
         let mut connections = trace_write_lock_unwrap!(self.connections);

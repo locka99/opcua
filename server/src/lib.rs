@@ -25,6 +25,7 @@ type DateTimeUtc = chrono::DateTime<chrono::Utc>;
 mod services;
 mod session;
 mod discovery;
+mod completion_pact;
 
 pub mod comms;
 pub mod metrics;
