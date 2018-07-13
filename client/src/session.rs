@@ -116,9 +116,10 @@ pub struct Session {
 
 impl Drop for Session {
     fn drop(&mut self) {
-        if self.is_connected() {
-            self.disconnect();
-        }
+// This panics in local discovery server call from server registration
+//        if self.is_connected() {
+//            self.disconnect();
+//        }
     }
 }
 

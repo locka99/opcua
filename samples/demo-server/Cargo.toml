@@ -19,4 +19,4 @@ version = "0.4.0" # OPCUARustVersion
 [dependencies.opcua-server]
 path = "../../server"
 version = "0.4.0" # OPCUARustVersion
-
+features = ["http"]

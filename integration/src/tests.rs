@@ -14,8 +14,6 @@ use opcua_server;
 use opcua_server::prelude::*;
 use opcua_client::prelude::*;
 
-const ENDPOINT_URL: &'static str = "opc.tcp://127.0.0.1:4855/";
-
 const ENDPOINT_ID_NONE: &'static str = "sample_none";
 const ENDPOINT_ID_BASIC128RSA15_SIGN_ENCRYPT: &'static str = "sample_basic128rsa15_signencrypt";
 const ENDPOINT_ID_BASIC128RSA15_SIGN: &'static str = "sample_basic128rsa15_sign";
@@ -23,6 +21,18 @@ const ENDPOINT_ID_BASIC256_SIGN_ENCRYPT: &'static str = "sample_basic256_signenc
 const ENDPOINT_ID_BASIC256_SIGN: &'static str = "sample_basic256_sign";
 const ENDPOINT_ID_BASIC256SHA256_SIGN_ENCRYPT: &'static str = "sample_basic256sha256_signencrypt";
 const ENDPOINT_ID_BASIC256SHA256_SIGN: &'static str = "sample_basic256sha256_sign";
+
+
+fn hostname() -> String {
+    // To avoid certificate trouble, use the computer's own name for tne endpoint
+    let mut names = opcua_core::crypto::X509Data::computer_hostnames();
+    if names.is_empty() { "localhost".to_string() } else { names.remove(0) }
+}
+
+fn endpoint_url() -> String {
+    // To avoid certificate trouble, use the computer's own name for tne endpoint
+    format!("opc.tcp://{}:4855", hostname())
+}
 
 fn new_client_server() -> (Client, Server) {
     let endpoint_path = "/";
@@ -49,13 +59,22 @@ fn new_client_server() -> (Client, Server) {
         endpoints.insert("basic256sha256_sign_encrypt".to_string(), ServerEndpoint::new_basic256sha256_sign_encrypt(endpoint_path, &user_token_ids));
 
         let mut config = ServerConfig::new("integration_server", user_tokens, endpoints);
-        config.discovery_url = ENDPOINT_URL.to_string();
+        config.discovery_url = endpoint_url();
         config.create_sample_keypair = true;
         config.pki_dir = PathBuf::from("./pki-server");
         config.discovery_server_url = None;
+        config.tcp_config.host = hostname();
 
         // Create an OPC UA server with sample configuration and default node set
-        Server::new(config)
+        let server = Server::new(config);
+
+        // Allow untrusted access to the server
+        {
+            let mut certificate_store = server.certificate_store.write().unwrap();
+            certificate_store.trust_unknown_certs = true;
+        }
+
+        server
     };
 
     let client = {
@@ -63,43 +82,43 @@ fn new_client_server() -> (Client, Server) {
 
         let mut endpoints = BTreeMap::new();
         endpoints.insert(String::from(ENDPOINT_ID_NONE), ClientEndpoint {
-            url: String::from(ENDPOINT_URL),
+            url: endpoint_url(),
             security_policy: String::from(SecurityPolicy::None.to_str()),
             security_mode: String::from(MessageSecurityMode::None),
             user_token_id: anonymous_id.to_string(),
         });
         endpoints.insert(String::from(ENDPOINT_ID_BASIC128RSA15_SIGN_ENCRYPT), ClientEndpoint {
-            url: String::from(ENDPOINT_URL),
+            url: endpoint_url(),
             security_policy: String::from(SecurityPolicy::Basic128Rsa15.to_str()),
             security_mode: String::from(MessageSecurityMode::SignAndEncrypt),
             user_token_id: anonymous_id.to_string(),
         });
         endpoints.insert(String::from(ENDPOINT_ID_BASIC128RSA15_SIGN), ClientEndpoint {
-            url: String::from(ENDPOINT_URL),
+            url: endpoint_url(),
             security_policy: String::from(SecurityPolicy::Basic128Rsa15.to_str()),
             security_mode: String::from(MessageSecurityMode::Sign),
             user_token_id: anonymous_id.to_string(),
         });
         endpoints.insert(String::from(ENDPOINT_ID_BASIC256_SIGN_ENCRYPT), ClientEndpoint {
-            url: String::from(ENDPOINT_URL),
+            url: endpoint_url(),
             security_policy: String::from(SecurityPolicy::Basic256.to_str()),
             security_mode: String::from(MessageSecurityMode::SignAndEncrypt),
             user_token_id: anonymous_id.to_string(),
         });
         endpoints.insert(String::from(ENDPOINT_ID_BASIC256_SIGN), ClientEndpoint {
-            url: String::from(ENDPOINT_URL),
+            url: endpoint_url(),
             security_policy: String::from(SecurityPolicy::Basic256.to_str()),
             security_mode: String::from(MessageSecurityMode::Sign),
             user_token_id: anonymous_id.to_string(),
         });
         endpoints.insert(String::from(ENDPOINT_ID_BASIC256SHA256_SIGN_ENCRYPT), ClientEndpoint {
-            url: String::from(ENDPOINT_URL),
+            url: endpoint_url(),
             security_policy: String::from(SecurityPolicy::Basic256Sha256.to_str()),
             security_mode: String::from(MessageSecurityMode::SignAndEncrypt),
             user_token_id: anonymous_id.to_string(),
         });
         endpoints.insert(String::from(ENDPOINT_ID_BASIC256SHA256_SIGN), ClientEndpoint {
-            url: String::from(ENDPOINT_URL),
+            url: endpoint_url(),
             security_policy: String::from(SecurityPolicy::Basic256Sha256.to_str()),
             security_mode: String::from(MessageSecurityMode::Sign),
             user_token_id: anonymous_id.to_string(),
@@ -118,6 +137,7 @@ fn new_client_server() -> (Client, Server) {
         config.endpoints = endpoints;
         config.user_tokens = user_tokens;
         config.default_endpoint = ENDPOINT_ID_NONE.to_string();
+        config.trust_server_certs = true;
 
         Client::new(config)
     };
@@ -284,7 +304,7 @@ fn connect_with(endpoint_id: &str) {
     opcua_core::init_logging();
 
     let endpoint_id = endpoint_id.to_string();
-        let client_test = move |rx_client_command: &mpsc::Receiver<ClientCommand>, tx_client_response: &mpsc::Sender<ClientResponse>, mut client: Client| {
+    let client_test = move |rx_client_command: &mpsc::Receiver<ClientCommand>, tx_client_response: &mpsc::Sender<ClientResponse>, mut client: Client| {
         // Connect to the server
         info!("Client will try to connect to endpoint {}", endpoint_id);
         let session = client.connect_and_activate(Some(&endpoint_id));

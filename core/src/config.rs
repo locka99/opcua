@@ -11,8 +11,8 @@ use opcua_types::service_types::{ApplicationDescription, ApplicationType};
 
 /// A trait that handles the loading / saving and validity of configuration information for a
 /// client and/or server.
-pub trait Config {
-    fn save(&self, path: &Path) -> Result<(), ()> where Self: serde::Serialize {
+pub trait Config: serde::Serialize {
+    fn save(&self, path: &Path) -> Result<(), ()> {
         if self.is_valid() {
             let s = serde_yaml::to_string(&self).unwrap();
             if let Ok(mut f) = File::create(path) {

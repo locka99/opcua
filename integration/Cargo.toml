@@ -5,6 +5,8 @@ authors = ["Adam Lock <locka99@gmail.com>"]
 
 [features]
 default = []
+
+# Integration is not built by default
 integration = []
 
 [dependencies]

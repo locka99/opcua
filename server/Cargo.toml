@@ -9,6 +9,10 @@ keywords = ["opcua","opc","ua"]
 categories = ["embedded","network-programming"]
 readme = "../README.md"
 
+[features]
+default = []
+http = ["hyper"]
+
 [dependencies]
 log = "0.3"
 time = "0.1"
@@ -21,7 +25,10 @@ tokio = "0.1"
 tokio-io = "0.1"
 tokio-timer = "0.1"
 futures = "0.1"
-hyper = "0.11.2"
+
+[dependencies.hyper]
+version = "0.11.2"
+optional = true
 
 [dependencies.opcua-types]
 path = "../types"

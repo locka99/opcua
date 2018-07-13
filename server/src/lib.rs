@@ -3,13 +3,10 @@
 
 extern crate chrono;
 extern crate futures;
+#[cfg(feature = "http")]
 extern crate hyper;
 #[macro_use]
 extern crate log;
-extern crate opcua_client;
-#[macro_use]
-extern crate opcua_core;
-extern crate opcua_types;
 extern crate ring;
 extern crate serde;
 #[macro_use]
@@ -19,6 +16,11 @@ extern crate time;
 extern crate tokio;
 extern crate tokio_io;
 extern crate tokio_timer;
+
+extern crate opcua_client;
+#[macro_use]
+extern crate opcua_core;
+extern crate opcua_types;
 
 type DateTimeUtc = chrono::DateTime<chrono::Utc>;
 
@@ -37,6 +39,7 @@ pub mod config;
 pub mod address_space;
 pub mod util;
 pub mod continuation_point;
+#[cfg(feature = "http")]
 pub mod http;
 
 pub mod prelude {

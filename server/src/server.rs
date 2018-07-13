@@ -2,9 +2,8 @@
 //! and end point information.
 
 use std::sync::{Arc, RwLock};
-use std::net::{SocketAddr, IpAddr, Ipv4Addr};
+use std::net::SocketAddr;
 use std::marker::Sync;
-use std::str::FromStr;
 use std::time::Instant;
 use std::thread;
 
@@ -150,10 +149,17 @@ impl Server {
         }
     }
 
-    fn get_socket_address(&self) -> SocketAddr {
+    fn get_socket_address(&self) -> Option<SocketAddr> {
+        use std::net::ToSocketAddrs;
         let server_state = trace_read_lock_unwrap!(self.server_state);
         let config = trace_read_lock_unwrap!(server_state.config);
-        SocketAddr::new(IpAddr::V4(Ipv4Addr::from_str(&config.tcp_config.host).unwrap()), config.tcp_config.port)
+        // Resolve this host / port to an address (or not)
+        let address = format!("{}:{}", config.tcp_config.host, config.tcp_config.port);
+        if let Ok(mut addrs_iter) = address.to_socket_addrs() {
+            addrs_iter.next()
+        } else {
+            None
+        }
     }
 
     // This timer will poll the server to see if it has aborted. If it has it will signal the tx_abort
@@ -170,8 +176,7 @@ impl Server {
                         // Abort when all connections are down
                         let connections = trace_write_lock_unwrap!(server.connections);
                         connections.is_empty()
-                    }
-                    else {
+                    } else {
                         false
                     }
                 };
@@ -203,6 +208,12 @@ impl Server {
             let config = trace_read_lock_unwrap!(server_state.config);
             (sock_addr, config.discovery_server_url.clone())
         };
+
+        if sock_addr.is_none() {
+            error!("Cannot resolve server address, check configuration of server");
+            return;
+        }
+        let sock_addr = sock_addr.unwrap();
 
         // These are going to be used to abort the thread via the completion pack
         let (tx_abort, rx_abort) = unbounded::<()>();
@@ -261,19 +272,9 @@ impl Server {
     // Sets a flag telling the running server to abort. The abort will happen asynchronously after
     // all sessions have disconnected.
     pub fn abort(&mut self) {
-        use std::net::TcpStream;
-
         info!("Server has been instructed to abort");
-        {
-            let mut server_state = trace_write_lock_unwrap!(self.server_state);
-            server_state.abort = true;
-        }
-
-        // If the server is running we want to open a socket to it to stimulate it to respond and
-        // close down
-        let socket_addr = self.get_socket_address();
-        let _ = TcpStream::connect(socket_addr);
-        info!("Sent a connect command to cause server to abort");
+        let mut server_state = trace_write_lock_unwrap!(self.server_state);
+        server_state.abort = true;
     }
 
     fn is_abort(&self) -> bool {

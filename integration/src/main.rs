@@ -8,9 +8,15 @@ extern crate opcua_server;
 extern crate opcua_types;
 
 fn main() {
-    trace!("Needs to be run with cargo test");
-    panic!("I do not do anything, run with cargo test");
+    eprintln!(r#"Needs to be run with "cargo test --features integration -- --test-threads=1""#);
 }
 
-#[cfg(all(test, integration))]
+#[cfg(not(feature = "integration"))]
+#[test]
+fn integration_tests_disabled() {
+    eprintln!(r#"Needs to be run with "cargo test --features integration -- --test-threads=1""#);
+}
+
+#[cfg(feature = "integration")]
+#[cfg(test)]
 mod tests;
