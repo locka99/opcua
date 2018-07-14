@@ -272,7 +272,9 @@ impl TcpTransport {
                 error!("Transport IO error {:?}", err);
                 (connection_for_err, BadCommunicationError)
             }).map(move |(reader, in_buf, bytes_read)| {
-                trace!("Read {} bytes", bytes_read);
+                if bytes_read > 0 {
+                    trace!("Read {} bytes", bytes_read);
+                }
                 // Build a new connection state
                 ConnectionState {
                     connection,

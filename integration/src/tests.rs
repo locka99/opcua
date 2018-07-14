@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};
 use std::sync::mpsc;
+use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 use std::path::PathBuf;
 use std::sync::mpsc::channel;
 use std::thread;
@@ -22,6 +23,70 @@ const ENDPOINT_ID_BASIC256_SIGN: &'static str = "sample_basic256_sign";
 const ENDPOINT_ID_BASIC256SHA256_SIGN_ENCRYPT: &'static str = "sample_basic256sha256_signencrypt";
 const ENDPOINT_ID_BASIC256SHA256_SIGN: &'static str = "sample_basic256sha256_sign";
 
+#[test]
+fn hello_timeout() {
+    // For this test we want to set the hello timeout to a low value for the sake of speed.
+}
+
+#[test]
+fn get_endpoints() {
+    // Connect to server and get a list of endpoints
+}
+
+#[test]
+fn connect_none() {
+    // Connect a session using None security policy and anonymous token.
+    connect_with(next_port_offset(), ENDPOINT_ID_NONE);
+}
+
+#[test]
+fn connect_none_username_password() {
+    // Connect a session using None security policy and username/password token
+    // connect_with(ENDPOINT_ID_);
+}
+
+#[test]
+fn connect_basic128rsa15_sign() {
+    // Connect a session with Basic128Rsa and Sign
+    connect_with(next_port_offset(), ENDPOINT_ID_BASIC128RSA15_SIGN);
+}
+
+#[test]
+fn connect_basic128rsa15_sign_and_encrypt() {
+    // Connect a session with Basic128Rsa and SignAndEncrypt
+    connect_with(next_port_offset(), ENDPOINT_ID_BASIC128RSA15_SIGN_ENCRYPT);
+}
+
+#[test]
+fn connect_basic256_sign() {
+    // Connect a session with Basic256 and Sign
+    connect_with(next_port_offset(), ENDPOINT_ID_BASIC256_SIGN);
+}
+
+#[test]
+fn connect_basic256_sign_and_encrypt() {
+    // Connect a session with Basic256 and SignAndEncrypt
+    connect_with(next_port_offset(), ENDPOINT_ID_BASIC256_SIGN_ENCRYPT);
+}
+
+#[test]
+fn connect_basic256sha256_sign() {
+    // Connect a session with Basic256Sha256 and Sign
+    connect_with(next_port_offset(), ENDPOINT_ID_BASIC256SHA256_SIGN);
+}
+
+#[test]
+fn connect_basic256sha256_sign_and_encrypt() {
+    // Connect a session with Basic256Sha256 and SignAndEncrypt
+    connect_with(next_port_offset(), ENDPOINT_ID_BASIC256SHA256_SIGN_ENCRYPT);
+}
+
+static NEXT_PORT_OFFSET: AtomicUsize = ATOMIC_USIZE_INIT;
+
+fn next_port_offset() -> u16 {
+    // hand out an incrementing port so tests can be run in parallel without interfering with each other
+    NEXT_PORT_OFFSET.fetch_add(1, Ordering::SeqCst) as u16
+}
 
 fn hostname() -> String {
     // To avoid certificate trouble, use the computer's own name for tne endpoint
@@ -29,120 +94,95 @@ fn hostname() -> String {
     if names.is_empty() { "localhost".to_string() } else { names.remove(0) }
 }
 
-fn endpoint_url() -> String {
+fn endpoint_url(port_offset: u16) -> String {
     // To avoid certificate trouble, use the computer's own name for tne endpoint
-    format!("opc.tcp://{}:4855", hostname())
+    format!("opc.tcp://{}:{}", hostname(), 4855u16 + port_offset)
 }
 
-fn new_client_server() -> (Client, Server) {
+fn new_server(port_offset: u16) -> Server {
     let endpoint_path = "/";
 
     // Both client server define this
+    let anonymous_id = opcua_server::prelude::ANONYMOUS_USER_TOKEN_ID.to_string();
+
+    // Create user tokens - anonymous and a sample user
+    let mut user_tokens = BTreeMap::new();
+    let sample_user_id = "sample".to_string();
+    user_tokens.insert(sample_user_id.clone(), ServerUserToken::new_user_pass("sample", "sample1"));
+    let user_token_ids = vec![anonymous_id, sample_user_id];
+
+    // Create endpoints in every configuration
+    let mut endpoints = BTreeMap::new();
+    endpoints.insert("none".to_string(), ServerEndpoint::new_none(endpoint_path, &user_token_ids));
+    endpoints.insert("basic128rsa15_sign".to_string(), ServerEndpoint::new_basic128rsa15_sign(endpoint_path, &user_token_ids));
+    endpoints.insert("basic128rsa15_sign_encrypt".to_string(), ServerEndpoint::new_basic128rsa15_sign_encrypt(endpoint_path, &user_token_ids));
+    endpoints.insert("basic256_sign".to_string(), ServerEndpoint::new_basic256_sign(endpoint_path, &user_token_ids));
+    endpoints.insert("basic256_sign_encrypt".to_string(), ServerEndpoint::new_basic256_sign_encrypt(endpoint_path, &user_token_ids));
+    endpoints.insert("basic256sha256_sign".to_string(), ServerEndpoint::new_basic256sha256_sign(endpoint_path, &user_token_ids));
+    endpoints.insert("basic256sha256_sign_encrypt".to_string(), ServerEndpoint::new_basic256sha256_sign_encrypt(endpoint_path, &user_token_ids));
+
+    let mut config = ServerConfig::new("integration_server", user_tokens, endpoints);
+    config.discovery_url = endpoint_url(port_offset);
+    config.create_sample_keypair = true;
+    config.pki_dir = PathBuf::from("./pki-server");
+    config.discovery_server_url = None;
+    config.tcp_config.host = hostname();
+    config.tcp_config.port = 4855 + port_offset;
+
+    // Create an OPC UA server with sample configuration and default node set
+    let server = Server::new(config);
+
+    // Allow untrusted access to the server
+    {
+        let mut certificate_store = server.certificate_store.write().unwrap();
+        certificate_store.trust_unknown_certs = true;
+    }
+    server
+}
+
+fn new_client(port_offset: u16) -> Client {
+    let mut config = ClientConfig::new("integration_client", "x");
     let anonymous_id = opcua_server::prelude::ANONYMOUS_USER_TOKEN_ID;
 
-    // Create some endpoints
-    let server = {
-        let mut user_tokens = BTreeMap::new();
-        let sample_user_id = "sample";
-        user_tokens.insert(sample_user_id.to_string(), ServerUserToken::new_user_pass("sample", "sample1"));
-
-        let user_token_ids = vec![anonymous_id.to_string(), sample_user_id.to_string()];
-
-        // Create endpoints in every configuration
-        let mut endpoints = BTreeMap::new();
-        endpoints.insert("none".to_string(), ServerEndpoint::new_none(endpoint_path, &user_token_ids));
-        endpoints.insert("basic128rsa15_sign".to_string(), ServerEndpoint::new_basic128rsa15_sign(endpoint_path, &user_token_ids));
-        endpoints.insert("basic128rsa15_sign_encrypt".to_string(), ServerEndpoint::new_basic128rsa15_sign_encrypt(endpoint_path, &user_token_ids));
-        endpoints.insert("basic256_sign".to_string(), ServerEndpoint::new_basic256_sign(endpoint_path, &user_token_ids));
-        endpoints.insert("basic256_sign_encrypt".to_string(), ServerEndpoint::new_basic256_sign_encrypt(endpoint_path, &user_token_ids));
-        endpoints.insert("basic256sha256_sign".to_string(), ServerEndpoint::new_basic256sha256_sign(endpoint_path, &user_token_ids));
-        endpoints.insert("basic256sha256_sign_encrypt".to_string(), ServerEndpoint::new_basic256sha256_sign_encrypt(endpoint_path, &user_token_ids));
-
-        let mut config = ServerConfig::new("integration_server", user_tokens, endpoints);
-        config.discovery_url = endpoint_url();
-        config.create_sample_keypair = true;
-        config.pki_dir = PathBuf::from("./pki-server");
-        config.discovery_server_url = None;
-        config.tcp_config.host = hostname();
-
-        // Create an OPC UA server with sample configuration and default node set
-        let server = Server::new(config);
-
-        // Allow untrusted access to the server
-        {
-            let mut certificate_store = server.certificate_store.write().unwrap();
-            certificate_store.trust_unknown_certs = true;
-        }
-
-        server
-    };
-
-    let client = {
-        let mut config = ClientConfig::new("integration_client", "x");
-
-        let mut endpoints = BTreeMap::new();
-        endpoints.insert(String::from(ENDPOINT_ID_NONE), ClientEndpoint {
-            url: endpoint_url(),
-            security_policy: String::from(SecurityPolicy::None.to_str()),
-            security_mode: String::from(MessageSecurityMode::None),
-            user_token_id: anonymous_id.to_string(),
+    let mut endpoints = BTreeMap::new();
+    // Make some endpoints
+    [
+        (ENDPOINT_ID_NONE, SecurityPolicy::None, MessageSecurityMode::None, anonymous_id),
+        (ENDPOINT_ID_BASIC128RSA15_SIGN_ENCRYPT, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt, anonymous_id),
+        (ENDPOINT_ID_BASIC128RSA15_SIGN, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign, anonymous_id),
+        (ENDPOINT_ID_BASIC256_SIGN_ENCRYPT, SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt, anonymous_id),
+        (ENDPOINT_ID_BASIC256_SIGN, SecurityPolicy::Basic256, MessageSecurityMode::Sign, anonymous_id),
+        (ENDPOINT_ID_BASIC256SHA256_SIGN_ENCRYPT, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, anonymous_id),
+        (ENDPOINT_ID_BASIC256SHA256_SIGN, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign, anonymous_id),
+    ].iter().for_each(|v| {
+        endpoints.insert(v.0.to_string(), ClientEndpoint {
+            url: endpoint_url(port_offset),
+            security_policy: v.1.into(),
+            security_mode: v.2.into(),
+            user_token_id: v.3.to_string(),
         });
-        endpoints.insert(String::from(ENDPOINT_ID_BASIC128RSA15_SIGN_ENCRYPT), ClientEndpoint {
-            url: endpoint_url(),
-            security_policy: String::from(SecurityPolicy::Basic128Rsa15.to_str()),
-            security_mode: String::from(MessageSecurityMode::SignAndEncrypt),
-            user_token_id: anonymous_id.to_string(),
-        });
-        endpoints.insert(String::from(ENDPOINT_ID_BASIC128RSA15_SIGN), ClientEndpoint {
-            url: endpoint_url(),
-            security_policy: String::from(SecurityPolicy::Basic128Rsa15.to_str()),
-            security_mode: String::from(MessageSecurityMode::Sign),
-            user_token_id: anonymous_id.to_string(),
-        });
-        endpoints.insert(String::from(ENDPOINT_ID_BASIC256_SIGN_ENCRYPT), ClientEndpoint {
-            url: endpoint_url(),
-            security_policy: String::from(SecurityPolicy::Basic256.to_str()),
-            security_mode: String::from(MessageSecurityMode::SignAndEncrypt),
-            user_token_id: anonymous_id.to_string(),
-        });
-        endpoints.insert(String::from(ENDPOINT_ID_BASIC256_SIGN), ClientEndpoint {
-            url: endpoint_url(),
-            security_policy: String::from(SecurityPolicy::Basic256.to_str()),
-            security_mode: String::from(MessageSecurityMode::Sign),
-            user_token_id: anonymous_id.to_string(),
-        });
-        endpoints.insert(String::from(ENDPOINT_ID_BASIC256SHA256_SIGN_ENCRYPT), ClientEndpoint {
-            url: endpoint_url(),
-            security_policy: String::from(SecurityPolicy::Basic256Sha256.to_str()),
-            security_mode: String::from(MessageSecurityMode::SignAndEncrypt),
-            user_token_id: anonymous_id.to_string(),
-        });
-        endpoints.insert(String::from(ENDPOINT_ID_BASIC256SHA256_SIGN), ClientEndpoint {
-            url: endpoint_url(),
-            security_policy: String::from(SecurityPolicy::Basic256Sha256.to_str()),
-            security_mode: String::from(MessageSecurityMode::Sign),
-            user_token_id: anonymous_id.to_string(),
-        });
+    });
 
-        let mut user_tokens = BTreeMap::new();
-        user_tokens.insert(
-            String::from("sample_user"),
-            ClientUserToken {
-                user: String::from("sample"),
-                password: String::from("sample1"),
-            });
-        config.pki_dir = PathBuf::from("./pki-client");
-        config.create_sample_keypair = true;
-        config.trust_server_certs = true;
-        config.endpoints = endpoints;
-        config.user_tokens = user_tokens;
-        config.default_endpoint = ENDPOINT_ID_NONE.to_string();
-        config.trust_server_certs = true;
+    let mut user_tokens = BTreeMap::new();
+    user_tokens.insert(
+        String::from("sample_user"),
+        ClientUserToken {
+            user: String::from("sample"),
+            password: String::from("sample1"),
+        });
+    config.pki_dir = PathBuf::from("./pki-client");
+    config.create_sample_keypair = true;
+    config.trust_server_certs = true;
+    config.endpoints = endpoints;
+    config.user_tokens = user_tokens;
+    config.default_endpoint = ENDPOINT_ID_NONE.to_string();
+    config.trust_server_certs = true;
 
-        Client::new(config)
-    };
+    Client::new(config)
+}
 
-    (client, server)
+fn new_client_server(port_offset: u16) -> (Client, Server) {
+    (new_client(port_offset), new_server(port_offset))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -170,10 +210,10 @@ enum ServerResponse {
     Finished,
 }
 
-fn perform_test<CT, ST>(client_test: Option<CT>, server_test: ST)
+fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: ST)
     where CT: FnOnce(&mpsc::Receiver<ClientCommand>, &mpsc::Sender<ClientResponse>, Client) + Send + 'static,
           ST: FnOnce(&mpsc::Receiver<ServerCommand>, &mpsc::Sender<ServerResponse>, Server) + Send + 'static {
-    let (client, server) = new_client_server();
+    let (client, server) = new_client_server(port_offset);
 
     // Spawn the CLIENT thread
     let (client_thread, tx_client_command, rx_client_response) = {
@@ -188,7 +228,7 @@ fn perform_test<CT, ST>(client_test: Option<CT>, server_test: ST)
                 assert_eq!(msg, ClientCommand::Start);
 
                 // Client is ready
-                tx_client_response.send(ClientResponse::Ready);
+                let _ = tx_client_response.send(ClientResponse::Ready);
 
                 // Client test will run
                 trace!("Running client test");
@@ -224,20 +264,16 @@ fn perform_test<CT, ST>(client_test: Option<CT>, server_test: ST)
 
     let mut client_has_finished = false;
     let mut server_has_finished = false;
-    let mut test_timeout = false;
 
     // Loop until either the client or the server has quit, or the timeout limit is reached
     while !client_has_finished || !server_has_finished {
         // Timeout test
-        if !test_timeout {
-            let now = Utc::now();
-            let elapsed = now.signed_duration_since(start_time.clone());
-            if elapsed.num_milliseconds() > timeout {
-                let _ = tx_client_command.send(ClientCommand::Quit);
-                let _ = tx_server_command.send(ServerCommand::Quit);
-                test_timeout = true;
-                panic!("Test timed out after {} ms", elapsed.num_milliseconds());
-            }
+        let now = Utc::now();
+        let elapsed = now.signed_duration_since(start_time.clone());
+        if elapsed.num_milliseconds() > timeout {
+            let _ = tx_client_command.send(ClientCommand::Quit);
+            let _ = tx_server_command.send(ServerCommand::Quit);
+            panic!("Test timed out after {} ms", elapsed.num_milliseconds());
         }
 
         // Check for a client response
@@ -290,17 +326,7 @@ fn perform_test<CT, ST>(client_test: Option<CT>, server_test: ST)
     trace!("test complete")
 }
 
-#[test]
-fn hello_timeout() {
-    // For this test we want to set the hello timeout to a low value for the sake of speed.
-}
-
-#[test]
-fn get_endpoints() {
-    // Connect to server and get a list of endpoints
-}
-
-fn connect_with(endpoint_id: &str) {
+fn connect_with(port_offset: u16, endpoint_id: &str) {
     opcua_core::init_logging();
 
     let endpoint_id = endpoint_id.to_string();
@@ -344,55 +370,5 @@ fn connect_with(endpoint_id: &str) {
         }
     };
 
-    perform_test(Some(client_test), server_test);
-}
-
-#[test]
-fn connect_none() {
-    // Connect a session using None security policy and anonymous token.
-    connect_with(ENDPOINT_ID_NONE);
-}
-
-#[test]
-fn connect_none_username_password() {
-    // Connect a session using None security policy and username/password token
-    // connect_with(ENDPOINT_ID_);
-}
-
-#[test]
-fn connect_basic128rsa15_sign() {
-    // Connect a session with Basic128Rsa and Sign
-    connect_with(ENDPOINT_ID_BASIC128RSA15_SIGN_ENCRYPT);
-}
-
-#[test]
-fn connect_basic128rsa15_sign_and_encrypt() {
-    // Connect a session with Basic128Rsa and SignAndEncrypt
-    // connect_with(IdentityToken::Anonymous, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt);
-}
-
-#[test]
-fn connect_basic256_sign() {
-    // Connect a session with Basic256 and Sign
-    connect_with(ENDPOINT_ID_BASIC256_SIGN);
-}
-
-#[test]
-fn connect_basic256_sign_and_encrypt() {
-    // Connect a session with Basic256 and SignAndEncrypt
-    connect_with(ENDPOINT_ID_BASIC256_SIGN_ENCRYPT);
-//    connect_with(IdentityToken::Anonymous, SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt);
-}
-
-#[test]
-fn connect_basic256sha256_sign() {
-    // Connect a session with Basic256Sha256 and Sign
-    connect_with(ENDPOINT_ID_BASIC256SHA256_SIGN_ENCRYPT);
-//    connect_with(IdentityToken::Anonymous, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign);
-}
-
-#[test]
-fn connect_basic256sha256_sign_and_encrypt() {
-    // Connect a session with Basic256Sha256 and SignAndEncrypt
-//    connect_with(IdentityToken::Anonymous, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt);
+    perform_test(port_offset, Some(client_test), server_test);
 }

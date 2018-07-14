@@ -213,6 +213,12 @@ impl FromStr for SecurityPolicy {
     }
 }
 
+impl From<SecurityPolicy> for String {
+    fn from(v: SecurityPolicy) -> String {
+        v.to_str().to_string()
+    }
+}
+
 impl SecurityPolicy {
     pub fn to_uri(&self) -> &'static str {
         match *self {
