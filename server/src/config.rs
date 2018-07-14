@@ -67,50 +67,67 @@ pub struct ServerEndpoint {
     pub user_token_ids: BTreeSet<String>,
 }
 
+/// Convenience method to make an endpoint from a tuple
+impl<'a> From<(&'a str, SecurityPolicy, MessageSecurityMode, &'a [&'a str])> for ServerEndpoint {
+    fn from(v: (&'a str, SecurityPolicy, MessageSecurityMode, &'a [&'a str])) -> ServerEndpoint {
+        ServerEndpoint {
+            path: v.0.into(),
+            security_policy: v.1.to_string(),
+            security_mode: v.2.to_string(),
+            security_level: Self::security_level(v.1),
+            user_token_ids: v.3.iter().map(|id| id.to_string()).collect(),
+        }
+    }
+}
+
 impl ServerEndpoint {
-    pub fn new<T>(path: T, user_token_ids: &[String], security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> Self where T: Into<String> {
-        let security_level = match security_policy {
+    pub fn new<T>(path: T, security_policy: SecurityPolicy, security_mode: MessageSecurityMode, user_token_ids: &[String]) -> Self where T: Into<String> {
+        ServerEndpoint {
+            path: path.into(),
+            security_policy: security_policy.to_string(),
+            security_mode: security_mode.to_string(),
+            security_level: Self::security_level(security_policy),
+            user_token_ids: user_token_ids.iter().map(|id| id.clone()).collect(),
+        }
+    }
+
+    /// Recommends a security level for the supplied security policy
+    pub fn security_level(security_policy: SecurityPolicy) -> u8 {
+        match security_policy {
             SecurityPolicy::None => 1,
             SecurityPolicy::Basic128Rsa15 => 2,
             SecurityPolicy::Basic256 => 3,
             SecurityPolicy::Basic256Sha256 => 4,
             _ => 0
-        };
-        ServerEndpoint {
-            path: path.into(),
-            security_policy: security_policy.to_string(),
-            security_mode: security_mode.to_string(),
-            security_level,
-            user_token_ids: user_token_ids.iter().map(|id| id.clone()).collect(),
         }
     }
 
     pub fn new_none<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
-        Self::new(path, user_token_ids, SecurityPolicy::None, MessageSecurityMode::None)
+        Self::new(path, SecurityPolicy::None, MessageSecurityMode::None, user_token_ids)
     }
 
     pub fn new_basic128rsa15_sign<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
-        Self::new(path, user_token_ids, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign)
+        Self::new(path, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign, user_token_ids)
     }
 
     pub fn new_basic128rsa15_sign_encrypt<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
-        Self::new(path, user_token_ids, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt)
+        Self::new(path, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt, user_token_ids)
     }
 
     pub fn new_basic256_sign<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
-        Self::new(path, user_token_ids, SecurityPolicy::Basic256, MessageSecurityMode::Sign)
+        Self::new(path, SecurityPolicy::Basic256, MessageSecurityMode::Sign, user_token_ids)
     }
 
     pub fn new_basic256_sign_encrypt<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
-        Self::new(path, user_token_ids, SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt)
+        Self::new(path, SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt, user_token_ids)
     }
 
     pub fn new_basic256sha256_sign<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
-        Self::new(path, user_token_ids, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign)
+        Self::new(path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign, user_token_ids)
     }
 
     pub fn new_basic256sha256_sign_encrypt<T>(path: T, user_token_ids: &[String]) -> Self where T: Into<String> {
-        Self::new(path, user_token_ids, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt)
+        Self::new(path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, user_token_ids)
     }
 
     pub fn is_valid(&self, id: &str, user_tokens: &BTreeMap<String, ServerUserToken>) -> bool {

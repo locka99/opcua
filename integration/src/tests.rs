@@ -12,8 +12,11 @@ use chrono::Utc;
 // Integration tests are asynchronous so futures will be used
 use opcua_core;
 use opcua_server;
+use opcua_types::*;
+use opcua_server::config::{ServerEndpoint, ServerConfig};
 use opcua_server::prelude::*;
 use opcua_client::prelude::*;
+use opcua_client::config::{ClientConfig, ClientUserToken};
 
 const ENDPOINT_ID_NONE: &'static str = "sample_none";
 const ENDPOINT_ID_BASIC128RSA15_SIGN_ENCRYPT: &'static str = "sample_basic128rsa15_signencrypt";
@@ -103,23 +106,26 @@ fn new_server(port_offset: u16) -> Server {
     let endpoint_path = "/";
 
     // Both client server define this
-    let anonymous_id = opcua_server::prelude::ANONYMOUS_USER_TOKEN_ID.to_string();
+    let anonymous_id = opcua_server::prelude::ANONYMOUS_USER_TOKEN_ID;
+    let sample_user_id = "sample";
 
     // Create user tokens - anonymous and a sample user
     let mut user_tokens = BTreeMap::new();
-    let sample_user_id = "sample".to_string();
-    user_tokens.insert(sample_user_id.clone(), ServerUserToken::new_user_pass("sample", "sample1"));
+    user_tokens.insert(sample_user_id.to_string(), ServerUserToken::new_user_pass("sample", "sample1"));
     let user_token_ids = vec![anonymous_id, sample_user_id];
 
     // Create endpoints in every configuration
-    let mut endpoints = BTreeMap::new();
-    endpoints.insert("none".to_string(), ServerEndpoint::new_none(endpoint_path, &user_token_ids));
-    endpoints.insert("basic128rsa15_sign".to_string(), ServerEndpoint::new_basic128rsa15_sign(endpoint_path, &user_token_ids));
-    endpoints.insert("basic128rsa15_sign_encrypt".to_string(), ServerEndpoint::new_basic128rsa15_sign_encrypt(endpoint_path, &user_token_ids));
-    endpoints.insert("basic256_sign".to_string(), ServerEndpoint::new_basic256_sign(endpoint_path, &user_token_ids));
-    endpoints.insert("basic256_sign_encrypt".to_string(), ServerEndpoint::new_basic256_sign_encrypt(endpoint_path, &user_token_ids));
-    endpoints.insert("basic256sha256_sign".to_string(), ServerEndpoint::new_basic256sha256_sign(endpoint_path, &user_token_ids));
-    endpoints.insert("basic256sha256_sign_encrypt".to_string(), ServerEndpoint::new_basic256sha256_sign_encrypt(endpoint_path, &user_token_ids));
+    let endpoints = [
+        ("none", endpoint_path, SecurityPolicy::None, MessageSecurityMode::None, &user_token_ids),
+        ("basic128rsa15_sign", endpoint_path, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign, &user_token_ids),
+        ("basic128rsa15_sign_encrypt", endpoint_path, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
+        ("basic256_sign", endpoint_path, SecurityPolicy::Basic256, MessageSecurityMode::Sign, &user_token_ids),
+        ("basic256_sign_encrypt", endpoint_path, SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
+        ("basic256sha256_sign", endpoint_path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign, &user_token_ids),
+        ("basic256sha256_sign_encrypt", endpoint_path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
+    ].iter().map(|v| {
+        (v.0.to_string(), ServerEndpoint::from((v.1, v.2, v.3, &v.4[..])))
+    }).collect::<BTreeMap<_, _>>();
 
     let mut config = ServerConfig::new("integration_server", user_tokens, endpoints);
     config.discovery_url = endpoint_url(port_offset);
@@ -137,6 +143,10 @@ fn new_server(port_offset: u16) -> Server {
         let mut certificate_store = server.certificate_store.write().unwrap();
         certificate_store.trust_unknown_certs = true;
     }
+
+    // Populate the address space with some variables
+
+
     server
 }
 
@@ -144,9 +154,8 @@ fn new_client(port_offset: u16) -> Client {
     let mut config = ClientConfig::new("integration_client", "x");
     let anonymous_id = opcua_server::prelude::ANONYMOUS_USER_TOKEN_ID;
 
-    let mut endpoints = BTreeMap::new();
     // Make some endpoints
-    [
+    let endpoints = [
         (ENDPOINT_ID_NONE, SecurityPolicy::None, MessageSecurityMode::None, anonymous_id),
         (ENDPOINT_ID_BASIC128RSA15_SIGN_ENCRYPT, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt, anonymous_id),
         (ENDPOINT_ID_BASIC128RSA15_SIGN, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign, anonymous_id),
@@ -154,22 +163,19 @@ fn new_client(port_offset: u16) -> Client {
         (ENDPOINT_ID_BASIC256_SIGN, SecurityPolicy::Basic256, MessageSecurityMode::Sign, anonymous_id),
         (ENDPOINT_ID_BASIC256SHA256_SIGN_ENCRYPT, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, anonymous_id),
         (ENDPOINT_ID_BASIC256SHA256_SIGN, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign, anonymous_id),
-    ].iter().for_each(|v| {
-        endpoints.insert(v.0.to_string(), ClientEndpoint {
+    ].iter().map(|v| {
+        (v.0.to_string(), ClientEndpoint {
             url: endpoint_url(port_offset),
             security_policy: v.1.into(),
             security_mode: v.2.into(),
             user_token_id: v.3.to_string(),
-        });
-    });
+        })
+    }).collect::<BTreeMap<_, _>>();
 
-    let mut user_tokens = BTreeMap::new();
-    user_tokens.insert(
-        String::from("sample_user"),
-        ClientUserToken {
-            user: String::from("sample"),
-            password: String::from("sample1"),
-        });
+    let user_tokens = vec![
+        ("sample_user".to_string(), ClientUserToken::new("sample", "sample1")),
+    ].into_iter().collect::<BTreeMap<_, _>>();
+
     config.pki_dir = PathBuf::from("./pki-client");
     config.create_sample_keypair = true;
     config.trust_server_certs = true;
