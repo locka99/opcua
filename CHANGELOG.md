@@ -15,7 +15,6 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
     - Changes to codebase for more idiomatic Rust, e.g. replacing lots of loops with iterators, providing
       `Into<Foo>` implementations instead of a multitude of constructors.
     - Certificate creator tool has new arguments to set application uri and control alternate DNS names.
-    - New integration testing framework. Disabled by default, but when enabled allows client/server scenerios to be tested.
   - Client side
     - Implements client side encryption for security policies & modes other than None.
     - Moved discovery / endpoints / connection into a helper to save writing that in every client.
@@ -42,6 +41,11 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
     - `gfx-client` is a new graphical client that subscribes to values and renders them. May not work on all platforms, 
        especially wayland on some Linux dists.
     - `mqtt-client` is work in progress client that will publish to mqtt.
+   - Testing
+    - More unit tests
+    - `integration` is a new integration testing suite that allows the code to create a server and then connect to it
+      from a client. Due to the overhead and some other issues, this has to be started manually and is not part of the 
+      standard `cargo test`. Refer to `integration/README.md`.
 
 ## 0.3
   - General
