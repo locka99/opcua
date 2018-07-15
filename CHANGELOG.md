@@ -1,42 +1,47 @@
 # Changelog
 
 ASPIRATIONAL - a short list of things that would be nice to implement in the near future
-  - Fix subscription publish lost notifications
-  - Diagnostics
-  - Session restore after disconnect in server
+  - Fix subscription publish lost notifications.
+  - Diagnostics.
+  - Session restore after disconnect in server.
   - Session restore after disconnect in client, i.e. reconnect and resume session first and then try reconnect and recreate session.
-  - More security / validation / enforcement around client certs that do not match app descriptions or DNS info
-  - Replace openssl with ring + webpki for more (but not total) rust implementation
+  - Replace openssl with ring + webpki for more (but not total) rust implementation.
   - Use tokio client side. The problem here is that synchronous calls are far easier to work with, and how to make it
     work with tokio under the covers.
 
 ## 0.4 (IN PROGRESS)
   - General
-    - More rigorous security checks server side and new client side certificate checking
-    - Changes to codebase for more idiomatic Rust
-    - Certificate creator tool has new arguments to set application uri and control alternate DNS names
+    - More rigorous security checks server side and new client side certificate checking.
+    - Changes to codebase for more idiomatic Rust, e.g. replacing lots of loops with iterators, providing
+      `Into<Foo>` implementations instead of a multitude of constructors.
+    - Certificate creator tool has new arguments to set application uri and control alternate DNS names.
+    - New integration testing framework. Disabled by default, but when enabled allows client/server scenerios to be tested.
   - Client side
-    - Add client side encryption for security policies & modes other than None.
-    - Moved discovery / endpoints / connection into a helper to save writing that in every client
-    - Better failure behaviour when server goes down or becomes unreachable
+    - Implements client side encryption for security policies & modes other than None.
+    - Moved discovery / endpoints / connection into a helper to save writing that in every client.
+    - Better failure behaviour when server goes down or becomes unreachable.
+    - Client crypto validates the server's cert to its hostname and rejects if it does not match.
   - Server side
-    - The server network IO is rewritten using tokio and futures. Sessions move from being a thread each with its own
-      synchronous IO to sharing threads and asynchronous IO. It should be more scalable. The downside is writing
+    - The server network IO has been rewritten using `tokio` and `futures`. Sessions have moved from being per-thread 
+      to being asynchronous tasks on the tokio / futures framework. It should be more scalable. The downside is writing
       asynchronous code is a steep learning curve.
-    - If discovery_server_url property is set in the config the server shall attempt to periodically
-      register itself with a discovery server. Note that the server uses the strongest endpoint to talk to the discovery
+    - Hostname resolution works. Previously endpoints had to be an IP address.
+    - If the `discovery_server_url` property is set in the configuration, the server will periodically
+      register itself with that discovery server. Note that the server uses the strongest endpoint to talk to the discovery
       server so you may have to make your discovery server trust the server's public cert.
     - Setting timers to poll/change values is simplified and uses tokio behind the covers. This should also be more
-      efficient.
-    - The server provides a basic web api which can be enabled through code. See the demo_server/ sample which
-      starts a server on localhost:8585
-    - Finer grained locking around some structures where only read access is required
-    - Implement Method::Call() service and GetMonitoredItems. Add a callback framework to address space allowing 
-      other methods to be implemented.
+      efficient, however note that tokio_timer uses a "wheel" system with a 100ms granularity - any lower than this 
+      and things go haywire and consume a lot of CPU.
+    - The server api provides a basic web api which can be enabled through code and the compile feature `http`.
+      See the demo_server/ sample which starts a server on localhost:8585
+    - Finer grained locking has been used around access to structures where only read access is required
+    - The server implements the OPC UA `Method::Call()` service and `GetMonitoredItems`. Add a callback framework to 
+      address space allowing other methods to be implemented.
    - Samples
-    - simple-client now takes arguments to change what config to read and to set which endpoint to use.
-    - gfx-client is a simple graphical client that subscribes to values and renders them. May not work on all platforms.
-    - mqtt-client is work in progress.
+    - `simple-client` now takes arguments to change what config to read and to set which endpoint to use.
+    - `gfx-client` is a new graphical client that subscribes to values and renders them. May not work on all platforms, 
+       especially wayland on some Linux dists.
+    - `mqtt-client` is work in progress client that will publish to mqtt.
 
 ## 0.3
   - General
