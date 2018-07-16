@@ -4,16 +4,15 @@
 use std::sync::{Arc, RwLock};
 use std::net::SocketAddr;
 use std::marker::Sync;
-use std::time::Instant;
+use std::time::{Instant, Duration};
 use std::thread;
 
-use chrono;
 use futures::{Future, Stream};
 use futures::future;
 use futures::sync::mpsc::{unbounded, UnboundedSender};
 use tokio;
 use tokio::net::{TcpListener, TcpStream};
-use tokio_timer;
+use tokio_timer::Interval;
 
 use opcua_types::service_types::ServerState as ServerStateType;
 use opcua_core::config::Config;
@@ -165,8 +164,7 @@ impl Server {
     // This timer will poll the server to see if it has aborted. If it has it will signal the tx_abort
     // so that the main listener loop can be broken.
     fn start_abort_poll(server: Arc<RwLock<Server>>, tx_abort: UnboundedSender<()>) {
-        let future = tokio_timer::Timer::default()
-            .interval(chrono::Duration::milliseconds(1000).to_std().unwrap())
+        let task = Interval::new(Instant::now(), Duration::from_millis(1000))
             .take_while(move |_| {
                 let abort = {
                     let mut server = trace_write_lock_unwrap!(server);
@@ -188,7 +186,7 @@ impl Server {
             })
             .for_each(|_| { Ok(()) })
             .map_err(|_| {});
-        tokio::spawn(future);
+        tokio::spawn(task);
     }
 
     /// Starts the server. Note server is supplied protected by a lock allowing access to the server
@@ -216,13 +214,14 @@ impl Server {
         let sock_addr = sock_addr.unwrap();
 
         // These are going to be used to abort the thread via the completion pack
-        let (tx_abort, rx_abort) = unbounded::<()>();
 
         info!("Waiting for Connection");
         // This is the main tokio task
         tokio::run({
             let server = server.clone();
             let server_for_listener = server.clone();
+
+            let (tx_abort, rx_abort) = unbounded::<()>();
 
             // Put the server into a running state
             future::lazy(move || {
@@ -303,8 +302,7 @@ impl Server {
         if let Some(discovery_server_url) = discovery_server_url {
             info!("Server has set a discovery server url {} which will be used to register the server", discovery_server_url);
             let server_state = self.server_state.clone();
-            let interval_timer = tokio_timer::Timer::default()
-                .interval_at(Instant::now(), chrono::Duration::minutes(5).to_std().unwrap())
+            let task = Interval::new(Instant::now(), Duration::from_millis(5 * 60 * 1000))
                 .for_each(move |_| {
                     // This is going to be spawned in a thread because client side code doesn't use
                     // tokio yet and we don't want its synchronous code to block other futures.
@@ -314,12 +312,14 @@ impl Server {
                         use std;
                         let _ = std::panic::catch_unwind(move || {
                             let server_state = trace_read_lock_unwrap!(server_state);
-                            discovery::register_discover_server(&discovery_server_url, &server_state);
+                            if server_state.is_running() {
+                                discovery::register_discover_server(&discovery_server_url, &server_state);
+                            }
                         });
                     });
                     Ok(())
-                });
-            tokio::spawn(interval_timer.map_err(|_| ()));
+                }).map_err(|_| ());
+            tokio::spawn(task);
         } else {
             info!("Server has not set a discovery server url, so no registration will happen");
         }

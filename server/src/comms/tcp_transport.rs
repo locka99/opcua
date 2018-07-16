@@ -5,6 +5,7 @@ use std;
 use std::collections::VecDeque;
 use std::io::{Cursor, Write};
 use std::net::SocketAddr;
+use std::time::{Instant, Duration};
 use std::sync::{Arc, RwLock, Mutex};
 
 use opcua_core::prelude::*;
@@ -21,7 +22,7 @@ use tokio::net::TcpStream;
 use tokio_io::AsyncRead;
 use tokio_io::io;
 use tokio_io::io::{ReadHalf, WriteHalf};
-use tokio_timer;
+use tokio_timer::Interval;
 
 use address_space::types::AddressSpace;
 use comms::secure_channel_service::SecureChannelService;
@@ -441,35 +442,34 @@ impl TcpTransport {
             session_start_time: connection_state.session_start_time.clone(),
         };
 
-        let interval_duration = chrono::Duration::milliseconds(constants::HELLO_TIMEOUT_POLL_MS).to_std().unwrap();
 
         // Clone the connection so the take_while predicate has its own instance
         let connection_for_take_while = state.connection.clone();
-        tokio::spawn(tokio_timer::Timer::default()
-            .interval(interval_duration)
-            .take_while(move |_| {
-                // Loop terminates when session goes past waiting for its hello
-                let connection = trace_read_lock_unwrap!(connection_for_take_while);
-                future::ok(!connection.has_received_hello())
-            })
-            .for_each(move |_| {
-                // Check if the session has waited in the hello state for more than the hello timeout period
-                let transport_state = {
-                    let connection = trace_read_lock_unwrap!(state.connection);
-                    connection.state()
-                };
-                if transport_state == TransportState::WaitingHello {
-                    // Check if the time elapsed since the session started exceeds the hello timeout
-                    let now = Utc::now();
-                    if now.signed_duration_since(state.session_start_time.clone()).num_milliseconds() > state.hello_timeout.num_milliseconds() {
-                        // Check if the session has waited in the hello state for more than the hello timeout period
-                        info!("Session has been waiting for a hello for more than the timeout period and will now close");
-                        let mut connection = trace_write_lock_unwrap!(state.connection);
-                        connection.terminate_session(BadTimeout);
+        tokio::spawn(
+            Interval::new(Instant::now(), Duration::from_millis(constants::HELLO_TIMEOUT_POLL_MS))
+                .take_while(move |_| {
+                    // Loop terminates when session goes past waiting for its hello
+                    let connection = trace_read_lock_unwrap!(connection_for_take_while);
+                    future::ok(!connection.has_received_hello())
+                })
+                .for_each(move |_| {
+                    // Check if the session has waited in the hello state for more than the hello timeout period
+                    let transport_state = {
+                        let connection = trace_read_lock_unwrap!(state.connection);
+                        connection.state()
+                    };
+                    if transport_state == TransportState::WaitingHello {
+                        // Check if the time elapsed since the session started exceeds the hello timeout
+                        let now = Utc::now();
+                        if now.signed_duration_since(state.session_start_time.clone()).num_milliseconds() > state.hello_timeout.num_milliseconds() {
+                            // Check if the session has waited in the hello state for more than the hello timeout period
+                            info!("Session has been waiting for a hello for more than the timeout period and will now close");
+                            let mut connection = trace_write_lock_unwrap!(state.connection);
+                            connection.terminate_session(BadTimeout);
+                        }
                     }
-                }
-                Ok(())
-            }).map_err(|_| ()));
+                    Ok(())
+                }).map_err(|_| ()));
     }
 
     /// Start the subscription timer to service subscriptions
@@ -498,20 +498,9 @@ impl TcpTransport {
             // Clone the connection so the take_while predicate has its own instance
             let connection_for_take_while = state.connection.clone();
 
-            // The standard "wheel" used by the Tokio timer has tick duration of of 100ms which
-            // screws up when the interval is also 100ms. Therefore, build a higher precision timer with
-            // a smaller tick rate.
-            let timer = tokio_timer::wheel()
-                .tick_duration(std::time::Duration::from_millis(constants::SUBSCRIPTION_TIMER_RATE_MS as u64 / 2))
-                .build();
-
-            // Interval for the timer.
-            let interval_duration = chrono::Duration::milliseconds(constants::SUBSCRIPTION_TIMER_RATE_MS).to_std().unwrap();
-            debug!("interval for subscription timer is {:?}", interval_duration);
-
             // Creates a repeating interval future that checks subscriptions.
-            let monitor_task = timer
-                .interval(interval_duration)
+            let interval_duration = Duration::from_millis(constants::SUBSCRIPTION_TIMER_RATE_MS);
+            let task = Interval::new(Instant::now(), interval_duration)
                 .take_while(move |_| {
                     connection_finished_test!(connection_for_take_while)
                 })
@@ -543,7 +532,7 @@ impl TcpTransport {
                     }
                     Ok(())
                 }).map_err(|_| ());
-            tokio::spawn(monitor_task);
+            tokio::spawn(task);
         }
 
         // Create the receiving task - this takes publish responses and sends them back to the client

@@ -23,7 +23,7 @@ serde_json = "1.0"
 ring = "0.12.1"
 tokio = "0.1"
 tokio-io = "0.1"
-tokio-timer = "0.1"
+tokio-timer = "0.2"
 futures = "0.1"
 
 [dependencies.hyper]

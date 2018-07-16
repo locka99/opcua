@@ -37,7 +37,7 @@ impl<S, C> Stream for CompletionPact<S, C>
             Err(_) |
             Ok(Async::Ready(Some(_))) => {
                 // We are done, forget us
-                Ok(Async::Ready(None)) // <<<<<< (3)
+                Ok(Async::Ready(None))
             }
             Ok(Async::NotReady) => {
                 self.stream.poll()

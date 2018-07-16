@@ -17,17 +17,17 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
     - Certificate creator tool has new arguments to set application uri and control alternate DNS names.
   - Client side
     - Implements client side encryption for security policies & modes other than None.
-    - Moved discovery / endpoints / connection into a helper to save writing that in every client.
+    - Moved discovery / endpoints / connection into a helper fn
     - Better failure behaviour when server goes down or becomes unreachable.
-    - Client crypto validates the server's cert to its hostname and rejects if it does not match.
+    - Client validates the server's cert to its hostname and application uri and rejects if it does not match.
   - Server side
     - The server network IO has been rewritten using `tokio` and `futures`. Sessions have moved from being per-thread 
       to being asynchronous tasks on the tokio / futures framework. It should be more scalable. The downside is writing
       asynchronous code is a steep learning curve.
     - Hostname resolution works. Previously endpoints had to be an IP address.
     - If the `discovery_server_url` property is set in the configuration, the server will periodically
-      register itself with that discovery server. Note that the server uses the strongest endpoint to talk to the discovery
-      server so you may have to make your discovery server trust the server's public cert.
+      register itself with that discovery server. You may have to make your discovery server trust your server's 
+      public cert for registration to succeed.
     - Setting timers to poll/change values is simplified and uses tokio behind the covers. This should also be more
       efficient, however note that tokio_timer uses a "wheel" system with a 100ms granularity - any lower than this 
       and things go haywire and consume a lot of CPU.
@@ -41,11 +41,13 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
     - `gfx-client` is a new graphical client that subscribes to values and renders them. May not work on all platforms, 
        especially wayland on some Linux dists.
     - `mqtt-client` is work in progress client that will publish to mqtt.
+   - Certificate creator
+    - Now sets the application uri and alt hostnames properly and has new arguments to control how alt hostnames are
+      added.
    - Testing
     - More unit tests
     - `integration` is a new integration testing suite that allows the code to create a server and then connect to it
-      from a client. Due to the overhead and some other issues, this has to be started manually and is not part of the 
-      standard `cargo test`. Refer to `integration/README.md`.
+      from a client. This has to be run manually and is not part of the standard `cargo test`. Refer to `integration/README.md`.
 
 ## 0.3
   - General

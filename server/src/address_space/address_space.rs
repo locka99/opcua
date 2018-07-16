@@ -519,7 +519,7 @@ impl AddressSpace {
         self.add_folder_with_id(&NodeId::next_numeric(), browse_name, display_name, parent_node_id)
     }
 
-    /// Adds a list of varables to the specified parent node
+    /// Adds a list of variables to the specified parent node
     pub fn add_variables(&mut self, variables: Vec<Variable>, parent_node_id: &NodeId) -> Vec<Result<NodeId, ()>> {
         let mut result = Vec::with_capacity(variables.len());
         for variable in variables {

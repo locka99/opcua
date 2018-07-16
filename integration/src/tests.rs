@@ -1,5 +1,5 @@
 use std::collections::BTreeMap;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 use std::sync::mpsc;
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 use std::path::PathBuf;
@@ -102,6 +102,8 @@ fn endpoint_url(port_offset: u16) -> String {
     format!("opc.tcp://{}:{}", hostname(), 4855u16 + port_offset)
 }
 
+fn v1_node_id() -> NodeId { NodeId::new_string(2, "v1") }
+
 fn new_server(port_offset: u16) -> Server {
     let endpoint_path = "/";
 
@@ -145,7 +147,28 @@ fn new_server(port_offset: u16) -> Server {
     }
 
     // Populate the address space with some variables
+    let v1_node = v1_node_id();
+    {
+        let mut address_space = server.address_space.write().unwrap();
 
+        // Create a sample folder under objects folder
+        let sample_folder_id = address_space
+            .add_folder("Sample", "Sample", &AddressSpace::objects_folder_id())
+            .unwrap();
+
+        // Add variables
+        let _ = address_space.add_variables(
+            vec![Variable::new(&v1_node, "v1", "v1", "v1 variable", 0 as Int32)],
+            &sample_folder_id);
+
+        // Register a getter for the variable
+        if let Some(ref mut v) = address_space.find_variable(v1_node.clone()) {
+            let getter = AttrFnGetter::new(move |_, _| -> Result<Option<DataValue>, StatusCode> {
+                Ok(Some(DataValue::new(100)))
+            });
+            v.set_value_getter(Arc::new(Mutex::new(getter)));
+        }
+    }
 
     server
 }

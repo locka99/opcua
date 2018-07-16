@@ -75,7 +75,9 @@ pub struct SessionState {
     pub max_message_size: usize,
     /// The next handle to assign to a request
     pub last_request_handle: UInt32,
-    /// The authentication token negotiated with the server (if any)
+    /// The session's id - used for diagnostic info
+    pub session_id: NodeId,
+    /// The sesion authentication token, used for session activation
     pub authentication_token: NodeId,
 }
 
@@ -88,6 +90,7 @@ impl SessionState {
             receive_buffer_size: RECEIVE_BUFFER_SIZE,
             max_message_size: MAX_BUFFER_SIZE,
             last_request_handle: 1,
+            session_id: NodeId::null(),
             authentication_token: NodeId::null(),
         }
     }
@@ -116,6 +119,7 @@ pub struct Session {
 
 impl Drop for Session {
     fn drop(&mut self) {
+
 // This panics in local discovery server call from server registration
 //        if self.is_connected() {
 //            self.disconnect();
@@ -124,7 +128,8 @@ impl Drop for Session {
 }
 
 impl Session {
-    /// Create a new session.
+    /// Create a new session from the supplied application description, certificate store and session
+    /// information.
     pub fn new(application_description: ApplicationDescription, certificate_store: Arc<RwLock<CertificateStore>>, session_info: SessionInfo) -> Session {
         let session_state = Arc::new(RwLock::new(SessionState::new()));
         let transport = TcpTransport::new(certificate_store.clone(), session_state.clone());
@@ -141,10 +146,53 @@ impl Session {
         }
     }
 
-    /// Connects to the server (if possible) using the configured session arguments
+    /// Connects to the server, creates and activates a session. If there
+    /// is a failure, it will be communicated by the status code in the result.
+    pub fn connect_and_activate_session(&mut self) -> Result<(), StatusCode> {
+        // Reconnect now using the session state
+        self.connect()?;
+        self.create_session()?;
+        self.activate_session()?;
+        Ok(())
+    }
+
+    /// Reconnects to the server and tries to activate the existing session. If there
+    /// is a failure, it will be communicated by the status code in the result.
+    pub fn reconnect_and_activate_session(&mut self) -> Result<(), StatusCode> {
+        let have_authentication_token = {
+            let mut session_state = trace_read_lock_unwrap!(self.session_state);
+            !session_state.authentication_token.is_null()
+        };
+        // Do nothing if already connected / activated
+        if self.is_connected() {
+            error!("Reconnect is going to do nothing because already connected");
+            Err(StatusCode::BadUnexpectedError)
+        } else if !have_authentication_token {
+            // Cannot activate a session without an authentication token
+            error!("No session was previously created.");
+            Err(StatusCode::BadUnexpectedError)
+        } else {
+            self.connect()?;
+
+            if let Err(error) = self.activate_session() {
+                // Perhaps the server went down and lost all its state?
+                // In that instance, the fall back here should be:
+                //
+                // 1) create a new session
+                // 2) activate session
+                // 3) reconstruct all subscriptions and monitored items from their client side cached values
+                // TODO create session, activate and recreate all the subscriptions and monitored items
+                Err(error)
+            } else {
+                Ok(())
+            }
+        }
+    }
+
+    /// Connects to the server (if possible) using the configured session arguments. If there
+    /// is a failure, it will be communicated by the status code in the result.
     pub fn connect(&mut self) -> Result<(), StatusCode> {
         let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
-
         info!("Connect");
         let security_policy = SecurityPolicy::from_str(self.session_info.endpoint.security_policy_uri.as_ref()).unwrap();
         if security_policy == SecurityPolicy::Unknown {
@@ -166,37 +214,7 @@ impl Session {
         }
     }
 
-    /// Connects to the server, creates and activates a session
-    pub fn connect_and_activate_session(&mut self) -> Result<(), StatusCode> {
-        // Reconnect now using the session state
-        self.connect()?;
-        self.create_session()?;
-        self.activate_session()?;
-        Ok(())
-    }
-
-    /// Reconnects to the server and tries to activate the existing session
-    pub fn reconnect_and_activate_session(&mut self) -> Result<(), StatusCode> {
-        // TODO Do nothing if already connected
-        // TODO Check if session is already activated, i.e. has a session_id
-        if self.is_connected() {
-            self.disconnect();
-        }
-
-        self.connect()?;
-        let activated = self.activate_session();
-        if let Err(error) = activated {
-            // TODO if this doesn't work then we need to
-            // 1) create a new session
-            // 2) activate session
-            // 3) reconstruct all subscriptions and monitored items from their cached values
-            Err(error)
-        } else {
-            Ok(())
-        }
-    }
-
-    /// Disconnect from the server
+    /// Disconnect from the server. Disconnect
     pub fn disconnect(&mut self) {
         let _ = self.delete_all_subscriptions();
         let _ = self.close_secure_channel();
@@ -222,8 +240,10 @@ impl Session {
         Ok(())
     }
 
-    /// Sends a CreateSession request to the server
-    pub fn create_session(&mut self) -> Result<(), StatusCode> {
+    /// Sends a CreateSession request to the server. Returns the session id of the created session.
+    /// Internally, the session will store the authentication token which is used for requests
+    /// subsequent to this create session call.
+    pub fn create_session(&mut self) -> Result<NodeId, StatusCode> {
         // Get some state stuff
         let endpoint_url = UAString::from(self.session_info.endpoint.endpoint_url.clone());
 
@@ -263,6 +283,7 @@ impl Session {
             let session_state = self.session_state.clone();
             let mut session_state = trace_write_lock_unwrap!(session_state);
 
+            session_state.session_id = response.session_id;
             session_state.authentication_token = response.authentication_token;
             {
                 let mut secure_channel = trace_write_lock_unwrap!( self.transport.secure_channel);
@@ -300,7 +321,7 @@ impl Session {
             } else {
                 // TODO Verify signature using server's public key (from endpoint) comparing with data made from client certificate and nonce.
                 // crypto::verify_signature_data(verification_key, security_policy, server_certificate, client_certificate, client_nonce);
-                Ok(())
+                Ok(session_state.session_id.clone())
             }
         } else {
             Err(Self::process_unexpected_response(response))
@@ -973,7 +994,8 @@ impl Session {
         }
     }
 
-    /// Construct a request header for the session
+    /// Construct a request header for the session. All requests after create session are expected
+    /// to supply an authentication token.
     fn make_request_header(&mut self) -> RequestHeader {
         let (authentication_token, request_handle, timeout_hint) = {
             let mut session_state = trace_write_lock_unwrap!(self.session_state);
