@@ -131,66 +131,8 @@ impl Server {
         server
     }
 
-    // Log information about the endpoints on this server
-    fn log_endpoint_info(&self) {
-        let server_state = trace_read_lock_unwrap!(self.server_state);
-        let config = trace_read_lock_unwrap!(server_state.config);
-        info!("OPC UA Server: {}", server_state.application_name);
-        info!("Base url: {}", server_state.base_endpoint);
-        info!("Supported endpoints:");
-        for (id, endpoint) in &config.endpoints {
-            let users: Vec<String> = endpoint.user_token_ids.iter().map(|id| id.clone()).collect();
-            let users = users.join(", ");
-            info!("Endpoint \"{}\": {}", id, endpoint.path);
-            info!("  Security Mode:    {}", endpoint.security_mode);
-            info!("  Security Policy:  {}", endpoint.security_policy);
-            info!("  Supported user tokens - {}", users);
-        }
-    }
-
-    fn get_socket_address(&self) -> Option<SocketAddr> {
-        use std::net::ToSocketAddrs;
-        let server_state = trace_read_lock_unwrap!(self.server_state);
-        let config = trace_read_lock_unwrap!(server_state.config);
-        // Resolve this host / port to an address (or not)
-        let address = format!("{}:{}", config.tcp_config.host, config.tcp_config.port);
-        if let Ok(mut addrs_iter) = address.to_socket_addrs() {
-            addrs_iter.next()
-        } else {
-            None
-        }
-    }
-
-    // This timer will poll the server to see if it has aborted. If it has it will signal the tx_abort
-    // so that the main listener loop can be broken.
-    fn start_abort_poll(server: Arc<RwLock<Server>>, tx_abort: UnboundedSender<()>) {
-        let task = Interval::new(Instant::now(), Duration::from_millis(1000))
-            .take_while(move |_| {
-                let abort = {
-                    let mut server = trace_write_lock_unwrap!(server);
-                    if server.is_abort() {
-                        // Check if there are any open sessions
-                        server.remove_dead_connections();
-                        // Abort when all connections are down
-                        let connections = trace_write_lock_unwrap!(server.connections);
-                        connections.is_empty()
-                    } else {
-                        false
-                    }
-                };
-                if abort {
-                    info!("Server has aborted so, sending a command to break the listen loop");
-                    tx_abort.unbounded_send(()).unwrap();
-                }
-                future::ok(!abort)
-            })
-            .for_each(|_| { Ok(()) })
-            .map_err(|_| {});
-        tokio::spawn(task);
-    }
-
-    /// Starts the server. Note server is supplied protected by a lock allowing access to the server
-    /// to be shared.
+    /// Starts the server up which involves creating some timers before listening for and handling
+    /// connections.
     pub fn run(server: Arc<RwLock<Server>>) {
         // Debug endpoints
         {
@@ -297,6 +239,67 @@ impl Server {
         });
     }
 
+    // Log information about the endpoints on this server
+    fn log_endpoint_info(&self) {
+        let server_state = trace_read_lock_unwrap!(self.server_state);
+        let config = trace_read_lock_unwrap!(server_state.config);
+        info!("OPC UA Server: {}", server_state.application_name);
+        info!("Base url: {}", server_state.base_endpoint);
+        info!("Supported endpoints:");
+        for (id, endpoint) in &config.endpoints {
+            let users: Vec<String> = endpoint.user_token_ids.iter().map(|id| id.clone()).collect();
+            let users = users.join(", ");
+            info!("Endpoint \"{}\": {}", id, endpoint.path);
+            info!("  Security Mode:    {}", endpoint.security_mode);
+            info!("  Security Policy:  {}", endpoint.security_policy);
+            info!("  Supported user tokens - {}", users);
+        }
+    }
+
+    fn get_socket_address(&self) -> Option<SocketAddr> {
+        use std::net::ToSocketAddrs;
+        let server_state = trace_read_lock_unwrap!(self.server_state);
+        let config = trace_read_lock_unwrap!(server_state.config);
+        // Resolve this host / port to an address (or not)
+        let address = format!("{}:{}", config.tcp_config.host, config.tcp_config.port);
+        if let Ok(mut addrs_iter) = address.to_socket_addrs() {
+            addrs_iter.next()
+        } else {
+            None
+        }
+    }
+
+    // This timer will poll the server to see if it has aborted. If it has it will signal the tx_abort
+    // so that the main listener loop can be broken.
+    fn start_abort_poll(server: Arc<RwLock<Server>>, tx_abort: UnboundedSender<()>) {
+        let task = Interval::new(Instant::now(), Duration::from_millis(1000))
+            .take_while(move |_| {
+                let abort = {
+                    let mut server = trace_write_lock_unwrap!(server);
+                    if server.is_abort() {
+                        // Check if there are any open sessions
+                        server.remove_dead_connections();
+                        // Abort when all connections are down
+                        let connections = trace_write_lock_unwrap!(server.connections);
+                        connections.is_empty()
+                    } else {
+                        false
+                    }
+                };
+                if abort {
+                    info!("Server has aborted so, sending a command to break the listen loop");
+                    tx_abort.unbounded_send(()).unwrap();
+                }
+                future::ok(!abort)
+            })
+            .for_each(|_| { Ok(()) })
+            .map_err(|err| {
+                error!("Abort poll error = {:?}", err);
+            });
+
+        tokio::spawn(task);
+    }
+
     /// Start a timer that triggers every 5 minutes and causes the server to register itself with a discovery server
     fn start_discovery_server_registration_timer(&self, discovery_server_url: Option<String>) {
         if let Some(discovery_server_url) = discovery_server_url {
@@ -318,7 +321,10 @@ impl Server {
                         });
                     });
                     Ok(())
-                }).map_err(|_| ());
+                })
+                .map_err(|err| {
+                    error!("Discovery server registration error = {:?}", err);
+                });
             tokio::spawn(task);
         } else {
             info!("Server has not set a discovery server url, so no registration will happen");
