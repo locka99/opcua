@@ -364,6 +364,11 @@ fn connect_with(port_offset: u16, endpoint_id: &str) {
         info!("Client will try to connect to endpoint {}", endpoint_id);
         let session = client.connect_and_activate(Some(&endpoint_id));
         assert!(session.is_ok());
+
+        // Read the variable
+        let v = v1_node_id();
+        // session.
+
     };
 
     let server_test = |rx_server_command: &mpsc::Receiver<ServerCommand>, tx_server_response: &mpsc::Sender<ServerResponse>, server: Server| {

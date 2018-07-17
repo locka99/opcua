@@ -227,7 +227,6 @@ impl Server {
             future::lazy(move || {
                 {
                     let mut server = trace_write_lock_unwrap!(server);
-
                     // Running
                     {
                         let mut server_state = trace_write_lock_unwrap!(server.server_state);
@@ -259,9 +258,10 @@ impl Server {
                             server.handle_connection(socket);
                         }
                         Ok(())
-                    }).map_err(|err| {
-                    error!("Accept error = {:?}", err);
-                })
+                    })
+                    .map_err(|err| {
+                        error!("Accept error = {:?}", err);
+                    })
             })
         });
 
