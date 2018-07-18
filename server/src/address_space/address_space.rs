@@ -142,11 +142,11 @@ impl AddressSpace {
         // Server variables
         {
             let server_state = trace_read_lock_unwrap!(server_state);
-            if let Some(ref mut v) = self.find_variable(Server_NamespaceArray) {
+            if let Some(ref mut v) = self.find_variable_mut(Server_NamespaceArray) {
                 v.set_value_direct(&DateTime::now(), Variant::from_string_array(&server_state.namespaces));
                 v.set_array_dimensions(&[server_state.namespaces.len() as UInt32]);
             }
-            if let Some(ref mut v) = self.find_variable(Server_ServerArray) {
+            if let Some(ref mut v) = self.find_variable_mut(Server_ServerArray) {
                 v.set_value_direct(&DateTime::now(), Variant::from_string_array(&server_state.servers));
                 v.set_array_dimensions(&[server_state.servers.len() as UInt32]);
             }
@@ -166,7 +166,7 @@ impl AddressSpace {
         }
 
         // Server_ServerCapabilities_ServerProfileArray
-        if let Some(ref mut v) = self.find_variable(Server_ServerCapabilities_ServerProfileArray) {
+        if let Some(ref mut v) = self.find_variable_mut(Server_ServerCapabilities_ServerProfileArray) {
             // Declares what the server implements. Subitems are implied by the profile. A subitem
             // marked - is optional to the spec
             let server_profiles = [
@@ -243,7 +243,7 @@ impl AddressSpace {
         self.set_variable_value(Server_ServerStatus_StartTime, DateTime::now());
 
         // Server_ServerStatus_CurrentTime
-        if let Some(ref mut v) = self.find_variable(Server_ServerStatus_CurrentTime) {
+        if let Some(ref mut v) = self.find_variable_mut(Server_ServerStatus_CurrentTime) {
             // Used to return the current time of the server, i.e. now
             let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Result<Option<DataValue>, StatusCode> {
                 Ok(Some(DataValue::new(DateTime::now())))
@@ -254,7 +254,7 @@ impl AddressSpace {
 
         // State OPC UA Part 5 12.6, Valid states are
         //     State (Server_ServerStatus_State)
-        if let Some(ref mut v) = self.find_variable(Server_ServerStatus_State) {
+        if let Some(ref mut v) = self.find_variable_mut(Server_ServerStatus_State) {
             let _server_state = server_state.clone();
             // Used to return the current time of the server, i.e. now
             let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Result<Option<DataValue>, StatusCode> {
@@ -558,8 +558,23 @@ impl AddressSpace {
 
     /// Find and return a variable with the specified node id or return None if it cannot be
     /// found or is not a variable
-    pub fn find_variable<N>(&mut self, node_id: N) -> Option<&mut Variable> where N: Into<NodeId> {
-        if let Some(node) = self.find_node_mut(&node_id.into()) {
+    pub fn find_variable<N>(&self, node_id: N) -> Option<&Variable> where N: Into<NodeId> {
+        if let Some(node) = self.node_map.get(&node_id.into()) {
+            if let &NodeType::Variable(ref variable) = node {
+                Some(variable)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+
+    /// Find and return a variable with the specified node id or return None if it cannot be
+    /// found or is not a variable
+    pub fn find_variable_mut<N>(&mut self, node_id: N) -> Option<&mut Variable> where N: Into<NodeId> {
+        if let Some(node) = self.node_map.get_mut(&node_id.into()) {
             if let &mut NodeType::Variable(ref mut variable) = node {
                 Some(variable)
             } else {
@@ -574,11 +589,21 @@ impl AddressSpace {
     /// not exist, or the node is not a variable.
     pub fn set_variable_value<N, V>(&mut self, node_id: N, value: V) -> bool
         where N: Into<NodeId>, V: Into<Variant> {
-        if let Some(ref mut variable) = self.find_variable(node_id) {
+        if let Some(ref mut variable) = self.find_variable_mut(node_id) {
             variable.set_value_direct(&DateTime::now(), value);
             true
         } else {
             false
+        }
+    }
+
+    /// Gets a variable value with the supplied NodeId. The function will return Err if the
+    /// NodeId does not exist or is not a variable.
+    pub fn get_variable_value<N>(&self, node_id: N) -> Result<DataValue, ()> where N: Into<NodeId> {
+        if let Some(ref variable) = self.find_variable(node_id) {
+            Ok(variable.value())
+        } else {
+            Err(())
         }
     }
 

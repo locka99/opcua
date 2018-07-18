@@ -32,6 +32,12 @@ impl From<UInt32> for Identifier {
     }
 }
 
+impl<'a> From<&'a str> for Identifier {
+    fn from(v: &'a str) -> Self {
+        Identifier::from(UAString::from(v.to_string()))
+    }
+}
+
 impl From<String> for Identifier {
     fn from(v: String) -> Self {
         Identifier::from(UAString::from(v))

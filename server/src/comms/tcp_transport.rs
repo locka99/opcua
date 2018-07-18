@@ -442,34 +442,37 @@ impl TcpTransport {
             session_start_time: connection_state.session_start_time.clone(),
         };
 
-
         // Clone the connection so the take_while predicate has its own instance
         let connection_for_take_while = state.connection.clone();
-        tokio::spawn(
-            Interval::new(Instant::now(), Duration::from_millis(constants::HELLO_TIMEOUT_POLL_MS))
-                .take_while(move |_| {
-                    // Loop terminates when session goes past waiting for its hello
-                    let connection = trace_read_lock_unwrap!(connection_for_take_while);
-                    future::ok(!connection.has_received_hello())
-                })
-                .for_each(move |_| {
-                    // Check if the session has waited in the hello state for more than the hello timeout period
-                    let transport_state = {
-                        let connection = trace_read_lock_unwrap!(state.connection);
-                        connection.state()
-                    };
-                    if transport_state == TransportState::WaitingHello {
-                        // Check if the time elapsed since the session started exceeds the hello timeout
-                        let now = Utc::now();
-                        if now.signed_duration_since(state.session_start_time.clone()).num_milliseconds() > state.hello_timeout.num_milliseconds() {
-                            // Check if the session has waited in the hello state for more than the hello timeout period
-                            info!("Session has been waiting for a hello for more than the timeout period and will now close");
-                            let mut connection = trace_write_lock_unwrap!(state.connection);
-                            connection.terminate_session(BadTimeout);
-                        }
+        let task = Interval::new(Instant::now(), Duration::from_millis(constants::HELLO_TIMEOUT_POLL_MS))
+            .take_while(move |_| {
+                // Terminates when session is no longer waiting for a hello or connection is done
+                let connection = trace_read_lock_unwrap!(connection_for_take_while);
+                let kill_timer = connection.has_received_hello() || connection.is_finished();
+                if kill_timer {
+                    debug!("Hello timeout timer is being stopped");
+                }
+                future::ok(!kill_timer)
+            })
+            .for_each(move |_| {
+                // Check if the session has waited in the hello state for more than the hello timeout period
+                let transport_state = {
+                    let connection = trace_read_lock_unwrap!(state.connection);
+                    connection.state()
+                };
+                if transport_state == TransportState::WaitingHello {
+                    // Check if the time elapsed since the session started exceeds the hello timeout
+                    let now = Utc::now();
+                    if now.signed_duration_since(state.session_start_time.clone()).num_milliseconds() > state.hello_timeout.num_milliseconds() {
+                        // Check if the session has waited in the hello state for more than the hello timeout period
+                        info!("Session has been waiting for a hello for more than the timeout period and will now close");
+                        let mut connection = trace_write_lock_unwrap!(state.connection);
+                        connection.terminate_session(BadTimeout);
                     }
-                    Ok(())
-                }).map_err(|_| ()));
+                }
+                Ok(())
+            }).map_err(|_| ());
+        tokio::spawn(task);
     }
 
     /// Start the subscription timer to service subscriptions

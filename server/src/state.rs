@@ -174,6 +174,8 @@ impl ServerState {
 
     pub fn gateway_server_uri(&self) -> UAString { UAString::null() }
 
+    pub fn is_abort(&self) -> bool { self.abort }
+
     pub fn is_running(&self) -> bool { self.state == ServerStateType::Running }
 
     pub fn server_certificate_as_byte_string(&self) -> ByteString {

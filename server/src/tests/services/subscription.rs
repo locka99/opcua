@@ -172,7 +172,7 @@ fn publish_response_subscription() {
 fn multiple_publish_response_subscription() {
     // Create a session
     let st = ServiceTest::new();
-    let (server_state, _) = st.get_server_state_and_session();
+    let (_server_state, _) = st.get_server_state_and_session();
 
     // Create a subscription with a monitored item
     let _ss = SubscriptionService::new();

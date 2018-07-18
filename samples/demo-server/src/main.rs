@@ -30,6 +30,9 @@ fn main() {
     // Add dynamically changing scalar values
     add_dynamic_scalar_variables(&mut server);
 
+    // Add some control switches
+    add_control_switches(&mut server);
+
     // Start the http server, used for metrics
     http::run_http_server("127.0.0.1:8585", server.server_state.clone(), server.connections.clone(), server.server_metrics.clone());
 
@@ -147,6 +150,45 @@ impl Scalar {
     }
 }
 
+fn add_control_switches(server: &mut Server) {
+    // The address space is guarded so obtain a lock to change it
+    let abort_node_id = NodeId::new(2u16, "abort");
+    {
+        let mut address_space = server.address_space.write().unwrap();
+
+        let folder_id = address_space
+            .add_folder("Control", "Control", &AddressSpace::objects_folder_id())
+            .unwrap();
+
+        let mut variable = Variable::new(&abort_node_id, "Abort", "Abort", "Abort", Variant::Boolean(false));
+        variable.set_writable();
+        let _ = address_space.add_variable(variable, &folder_id);
+    }
+
+    let server_state = server.server_state.clone();
+    let address_space = server.address_space.clone();
+    server.add_polling_action(250, move || {
+        let address_space = address_space.read().unwrap();
+
+        // Test for abort flag
+        let abort = if let Ok(v) = address_space.get_variable_value(abort_node_id.clone()) {
+            match v.value {
+                Some(Variant::Boolean(v)) => v,
+                _ => {
+                    panic!("Abort value should be true or false");
+                }
+            }
+        } else {
+            panic!("Abort value should be in address space");
+        };
+        // Check if abort has been set to true, in which case abort
+        if abort {
+            let mut server_state = server_state.write().unwrap();
+            server_state.abort = true;
+        }
+    });
+}
+
 /// Creates some sample variables, and some push / pull examples that update them
 fn add_static_scalar_variables(server: &mut Server) {
     // The address space is guarded so obtain a lock to change it
@@ -157,7 +199,7 @@ fn add_static_scalar_variables(server: &mut Server) {
         .unwrap();
 
     // Create a folder under static folder
-    let scalar_folder_id = address_space
+    let folder_id = address_space
         .add_folder("Scalar", "Scalar", &static_folder_id)
         .unwrap();
 
@@ -165,7 +207,7 @@ fn add_static_scalar_variables(server: &mut Server) {
         let node_id = sn.node_id(false);
         let name = sn.name();
         let default_value = sn.default_value();
-        let _ = address_space.add_variable(Variable::new(&node_id, name, name, &format!("{} value", name), default_value), &scalar_folder_id);
+        let _ = address_space.add_variable(Variable::new(&node_id, name, name, &format!("{} value", name), default_value), &folder_id);
     }
 }
 
@@ -174,13 +216,13 @@ fn add_dynamic_scalar_variables(server: &mut Server) {
     {
         let mut address_space = server.address_space.write().unwrap();
 
-        let dynamic_folder_id = address_space
+        let folder_id = address_space
             .add_folder("Dynamic", "Dynamic", &AddressSpace::objects_folder_id())
             .unwrap();
 
         // Create a folder under static folder
         let scalar_folder_id = address_space
-            .add_folder("Scalar", "Scalar", &dynamic_folder_id)
+            .add_folder("Scalar", "Scalar", &folder_id)
             .unwrap();
 
         Scalar::values().iter().for_each(|sn| {

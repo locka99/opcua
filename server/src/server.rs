@@ -216,11 +216,12 @@ impl Server {
         info!("Server has been instructed to abort");
         let mut server_state = trace_write_lock_unwrap!(self.server_state);
         server_state.abort = true;
+        server_state.state = ServerStateType::Shutdown;
     }
 
     fn is_abort(&self) -> bool {
         let server_state = trace_read_lock_unwrap!(self.server_state);
-        server_state.abort
+        server_state.is_abort()
     }
 
     /// Strip out dead connections, i.e those which have disconnected
@@ -337,11 +338,14 @@ impl Server {
         where F: Fn() + Send + Sync + 'static {
         // If the server is not yet running, the action is queued and is started later
         let server_state = trace_read_lock_unwrap!(self.server_state);
-        if server_state.state != ServerStateType::Running {
+        if server_state.is_abort() {
+            error!("Polling action added when server is aborting");
+            // DO NOTHING
+        } else if server_state.state != ServerStateType::Running {
             self.pending_polling_actions.push((interval_ms, Box::new(action)));
         } else {
             // Start the action immediately
-            let _ = PollingAction::spawn(interval_ms, move || {
+            let _ = PollingAction::spawn(self.server_state.clone(), interval_ms, move || {
                 // Call the provided closure with the address space
                 action();
             });
@@ -350,11 +354,12 @@ impl Server {
 
     /// Starts any polling actions which were queued ready to start but not yet
     fn start_pending_polling_actions(&mut self) {
+        let server_state = self.server_state.clone();
         self.pending_polling_actions
             .drain(..)
             .for_each(|(interval_ms, action)| {
                 debug!("Starting a pending polling action at rate of {} ms", interval_ms);
-                let _ = PollingAction::spawn(interval_ms, move || {
+                let _ = PollingAction::spawn(server_state.clone(), interval_ms, move || {
                     // Call the provided action
                     action();
                 });
