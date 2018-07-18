@@ -76,7 +76,7 @@ fn add_example_variables(server: &mut Server) {
     //    function.
     {
         let mut address_space = server.address_space.write().unwrap();
-        if let Some(ref mut v) = address_space.find_variable(v3_node.clone()) {
+        if let Some(ref mut v) = address_space.find_variable_mut(v3_node.clone()) {
             // Hello world's counter will increment with each get - slower interval == slower increment
             let mut counter = 0;
             let getter = AttrFnGetter::new(move |_, _| -> Result<Option<DataValue>, StatusCode> {
@@ -86,7 +86,7 @@ fn add_example_variables(server: &mut Server) {
             v.set_value_getter(Arc::new(Mutex::new(getter)));
         }
 
-        if let Some(ref mut v) = address_space.find_variable(v4_node.clone()) {
+        if let Some(ref mut v) = address_space.find_variable_mut(v4_node.clone()) {
             // Sine wave draws 2*PI over course of 10 seconds
             use std::f64::consts;
             use chrono::Utc;
