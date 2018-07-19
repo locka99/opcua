@@ -560,7 +560,6 @@ impl TcpTransport {
                     connection_finished_test!(connection_for_take_while)
                 })
                 .for_each(move |subscription_event| {
-                    println!("RECV subscription event");
                     // Process publish response events
                     match subscription_event {
                         SubscriptionEvent::PublishResponses(publish_responses) => {

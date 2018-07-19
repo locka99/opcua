@@ -1,4 +1,4 @@
-use opcua_types::{UInt32, NodeId, QualifiedName, LocalizedText, AttributeId, DataValue};
+use opcua_types::{NodeId, QualifiedName, LocalizedText, AttributeId, DataValue, WriteMask};
 use opcua_types::service_types::NodeClass;
 use opcua_types::status_codes::StatusCode;
 
@@ -62,10 +62,10 @@ pub trait Node {
     fn browse_name(&self) -> QualifiedName;
     fn display_name(&self) -> LocalizedText;
     fn description(&self) -> Option<LocalizedText>;
-    fn write_mask(&self) -> Option<UInt32>;
-    fn set_write_mask(&mut self, write_mask: UInt32);
-    fn user_write_mask(&self) -> Option<UInt32>;
-    fn set_user_write_mask(&mut self, write_mask: UInt32);
+    fn write_mask(&self) -> Option<WriteMask>;
+    fn set_write_mask(&mut self, write_mask: WriteMask);
+    fn user_write_mask(&self) -> Option<WriteMask>;
+    fn set_user_write_mask(&mut self, write_mask: WriteMask);
     fn find_attribute(&self, attribute_id: AttributeId) -> Option<DataValue>;
     fn set_attribute(&mut self, attribute_id: AttributeId, value: DataValue) -> Result<(), StatusCode>;
 }

@@ -6,8 +6,7 @@ use opcua_types::node_ids::DataTypeId;
 use address_space::base::Base;
 use address_space::node::Node;
 use address_space::{AttributeGetter, AttributeSetter};
-use address_space::access_level;
-use address_space::user_access_level;
+use address_space::{AccessLevel, UserAccessLevel};
 
 #[derive(Debug)]
 pub struct Variable {
@@ -41,12 +40,12 @@ impl Variable {
     pub fn new_data_value(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: DataValue) -> Variable {
         // Mandatory
         let historizing = false;
-        let access_level = access_level::CURRENT_READ;
-        let user_access_level = user_access_level::CURRENT_READ;
+        let access_level = AccessLevel::CURRENT_READ;
+        let user_access_level = UserAccessLevel::CURRENT_READ;
         let value_rank = -1;
         let attributes = vec![
-            (AttributeId::UserAccessLevel, Variant::Byte(user_access_level)),
-            (AttributeId::AccessLevel, Variant::Byte(access_level)),
+            (AttributeId::UserAccessLevel, Variant::Byte(user_access_level.bits)),
+            (AttributeId::AccessLevel, Variant::Byte(access_level.bits)),
             (AttributeId::DataType, Variant::new::<NodeId>(data_type.into())),
             (AttributeId::ValueRank, Variant::Int32(value_rank)),
             (AttributeId::Historizing, Variant::Boolean(historizing))
@@ -122,40 +121,47 @@ impl Variable {
     }
 
     pub fn is_readable(&self) -> bool {
-        (self.access_level() & access_level::CURRENT_READ) != 0
+        self.access_level().contains(AccessLevel::CURRENT_READ)
     }
 
     pub fn is_writable(&self) -> bool {
-        (self.access_level() & access_level::CURRENT_WRITE) != 0
+        self.access_level().contains(AccessLevel::CURRENT_WRITE)
     }
 
-    pub fn set_writable(&mut self) {
-        let access_level = self.access_level() & access_level::CURRENT_WRITE;
-        self.set_user_access_level(access_level);
+    pub fn set_writable(&mut self, writable: bool) {
+        let mut access_level = self.access_level();
+        if writable {
+            access_level.insert(AccessLevel::CURRENT_WRITE);
+        } else {
+            access_level.remove(AccessLevel::CURRENT_WRITE);
+        }
+        self.set_access_level(access_level);
     }
 
-    pub fn set_access_level(&mut self, access_level: Byte) {
-        let _ = self.base.set_attribute(AttributeId::AccessLevel, DataValue::new(access_level));
+    pub fn set_access_level(&mut self, access_level: AccessLevel) {
+        let _ = self.base.set_attribute(AttributeId::AccessLevel, DataValue::new(access_level.bits));
     }
 
-    pub fn access_level(&self) -> Byte {
-        find_attribute_value_mandatory!(&self.base, AccessLevel, Byte)
+    pub fn access_level(&self) -> AccessLevel {
+        let bits = find_attribute_value_mandatory!(&self.base, AccessLevel, Byte);
+        AccessLevel::from_bits_truncate(bits)
     }
 
     pub fn is_user_readable(&self) -> bool {
-        (self.user_access_level() & user_access_level::CURRENT_READ) != 0
+        self.user_access_level().contains(UserAccessLevel::CURRENT_READ)
     }
 
     pub fn is_user_writable(&self) -> bool {
-        (self.user_access_level() & user_access_level::CURRENT_WRITE) != 0
+        self.user_access_level().contains(UserAccessLevel::CURRENT_WRITE)
     }
 
-    pub fn set_user_access_level(&mut self, user_access_level: Byte) {
-        let _ = self.base.set_attribute(AttributeId::UserAccessLevel, DataValue::new(user_access_level));
+    pub fn set_user_access_level(&mut self, user_access_level: UserAccessLevel) {
+        let _ = self.base.set_attribute(AttributeId::UserAccessLevel, DataValue::new(user_access_level.bits));
     }
 
-    pub fn user_access_level(&self) -> Byte {
-        find_attribute_value_mandatory!(&self.base, UserAccessLevel, Byte)
+    pub fn user_access_level(&self) -> UserAccessLevel {
+        let bits = find_attribute_value_mandatory!(&self.base, UserAccessLevel, Byte);
+        UserAccessLevel::from_bits_truncate(bits)
     }
 
     pub fn value_rank(&self) -> Int32 {

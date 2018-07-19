@@ -6,7 +6,7 @@ use opcua_types::status_codes::StatusCode::*;
 use opcua_types::service_types::*;
 
 use services::Service;
-use address_space::access_level;
+use address_space::AccessLevel;
 use address_space::address_space::AddressSpace;
 use address_space::node::NodeType;
 
@@ -116,7 +116,7 @@ impl AttributeService {
     fn is_readable(node: &NodeType) -> bool {
         // Check for access level, user access level
         if let NodeType::Variable(ref node) = *node {
-            if node.access_level() & access_level::CURRENT_READ == 0 {
+            if !node.access_level().contains(AccessLevel::CURRENT_READ) {
                 return false;
             }
         }
@@ -178,39 +178,39 @@ impl AttributeService {
     }
 
     fn is_writable(node: &NodeType, attribute_id: AttributeId) -> bool {
-        use opcua_types::write_mask;
+        use opcua_types::WriteMask;
 
         if let Some(write_mask) = node.as_node().write_mask() {
             match attribute_id {
                 AttributeId::Value => {
                     // Variable types test writability using the access level
                     if let NodeType::Variable(ref node) = *node {
-                        node.access_level() & access_level::CURRENT_WRITE != 0
+                        node.access_level().contains(AccessLevel::CURRENT_WRITE)
                     } else {
-                        write_mask & write_mask::VALUE_FOR_VARIABLE_TYPE != 0
+                        write_mask.contains(WriteMask::VALUE_FOR_VARIABLE_TYPE)
                     }
                 }
-                AttributeId::NodeId => write_mask & write_mask::NODE_ID != 0,
-                AttributeId::NodeClass => write_mask & write_mask::NODE_CLASS != 0,
-                AttributeId::BrowseName => write_mask & write_mask::BROWSE_NAME != 0,
-                AttributeId::DisplayName => write_mask & write_mask::DISPLAY_NAME != 0,
-                AttributeId::Description => write_mask & write_mask::DESCRIPTION != 0,
-                AttributeId::WriteMask => write_mask & write_mask::WRITE_MASK != 0,
-                AttributeId::UserWriteMask => write_mask & write_mask::USER_WRITE_MASK != 0,
-                AttributeId::IsAbstract => write_mask & write_mask::IS_ABSTRACT != 0,
-                AttributeId::Symmetric => write_mask & write_mask::SYMMETRIC != 0,
-                AttributeId::InverseName => write_mask & write_mask::INVERSE_NAME != 0,
-                AttributeId::ContainsNoLoops => write_mask & write_mask::CONTAINS_NO_LOOPS != 0,
-                AttributeId::EventNotifier => write_mask & write_mask::EVENT_NOTIFIER != 0,
-                AttributeId::DataType => write_mask & write_mask::DATA_TYPE != 0,
-                AttributeId::ValueRank => write_mask & write_mask::VALUE_RANK != 0,
-                AttributeId::ArrayDimensions => write_mask & write_mask::ARRAY_DIMENSTIONS != 0,
-                AttributeId::AccessLevel => write_mask & write_mask::ACCESS_LEVEL != 0,
-                AttributeId::UserAccessLevel => write_mask & write_mask::USER_ACCESS_LEVEL != 0,
-                AttributeId::MinimumSamplingInterval => write_mask & write_mask::MINIMUM_SAMPLING_INTERVAL != 0,
-                AttributeId::Historizing => write_mask & write_mask::HISTORIZING != 0,
-                AttributeId::Executable => write_mask & write_mask::EXECUTABLE != 0,
-                AttributeId::UserExecutable => write_mask & write_mask::USER_EXECUTABLE != 0,
+                AttributeId::NodeId => write_mask.contains(WriteMask::NODE_ID),
+                AttributeId::NodeClass => write_mask.contains(WriteMask::NODE_CLASS),
+                AttributeId::BrowseName => write_mask.contains(WriteMask::BROWSE_NAME),
+                AttributeId::DisplayName => write_mask.contains(WriteMask::DISPLAY_NAME),
+                AttributeId::Description => write_mask.contains(WriteMask::DESCRIPTION),
+                AttributeId::WriteMask => write_mask.contains(WriteMask::WRITE_MASK),
+                AttributeId::UserWriteMask => write_mask.contains(WriteMask::USER_WRITE_MASK),
+                AttributeId::IsAbstract => write_mask.contains(WriteMask::IS_ABSTRACT),
+                AttributeId::Symmetric => write_mask.contains(WriteMask::SYMMETRIC),
+                AttributeId::InverseName => write_mask.contains(WriteMask::INVERSE_NAME),
+                AttributeId::ContainsNoLoops => write_mask.contains(WriteMask::CONTAINS_NO_LOOPS),
+                AttributeId::EventNotifier => write_mask.contains(WriteMask::EVENT_NOTIFIER),
+                AttributeId::DataType => write_mask.contains(WriteMask::DATA_TYPE),
+                AttributeId::ValueRank => write_mask.contains(WriteMask::VALUE_RANK),
+                AttributeId::ArrayDimensions => write_mask.contains(WriteMask::ARRAY_DIMENSTIONS),
+                AttributeId::AccessLevel => write_mask.contains(WriteMask::ACCESS_LEVEL),
+                AttributeId::UserAccessLevel => write_mask.contains(WriteMask::USER_ACCESS_LEVEL),
+                AttributeId::MinimumSamplingInterval => write_mask.contains(WriteMask::MINIMUM_SAMPLING_INTERVAL),
+                AttributeId::Historizing => write_mask.contains(WriteMask::HISTORIZING),
+                AttributeId::Executable => write_mask.contains(WriteMask::EXECUTABLE),
+                AttributeId::UserExecutable => write_mask.contains(WriteMask::USER_EXECUTABLE),
             }
         } else {
             true

@@ -95,20 +95,28 @@ impl Node for Base {
         }
     }
 
-    fn write_mask(&self) -> Option<UInt32> {
-        find_attribute_value_optional!(self, WriteMask, UInt32)
+    fn write_mask(&self) -> Option<WriteMask> {
+        if let Some(write_mask) = find_attribute_value_optional!(self, WriteMask, UInt32) {
+            Some(WriteMask::from_bits_truncate(write_mask))
+        } else {
+            None
+        }
     }
 
-    fn set_write_mask(&mut self, write_mask: UInt32) {
-        let _ = self.set_attribute(AttributeId::WriteMask, DataValue::new(write_mask as UInt32));
+    fn set_write_mask(&mut self, write_mask: WriteMask) {
+        let _ = self.set_attribute(AttributeId::WriteMask, DataValue::new(write_mask.bits()));
     }
 
-    fn user_write_mask(&self) -> Option<UInt32> {
-        find_attribute_value_optional!(self, UserWriteMask, UInt32)
+    fn user_write_mask(&self) -> Option<WriteMask> {
+        if let Some(write_mask) = find_attribute_value_optional!(self, UserWriteMask, UInt32) {
+            Some(WriteMask::from_bits_truncate(write_mask))
+        } else {
+            None
+        }
     }
 
-    fn set_user_write_mask(&mut self, write_mask: UInt32) {
-        let _ = self.set_attribute(AttributeId::UserWriteMask, DataValue::new(write_mask as UInt32));
+    fn set_user_write_mask(&mut self, write_mask: WriteMask) {
+        let _ = self.set_attribute(AttributeId::UserWriteMask, DataValue::new(write_mask.bits()));
     }
 
     fn find_attribute(&self, attribute_id: AttributeId) -> Option<DataValue> {

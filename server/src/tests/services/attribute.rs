@@ -1,7 +1,9 @@
 use super::*;
+
+use opcua_types::WriteMask;
+
 use services::attribute::AttributeService;
-use address_space::access_level;
-use opcua_types::write_mask;
+use address_space::AccessLevel;
 
 fn read_value(node_id: &NodeId, attribute_id: AttributeId) -> ReadValueId {
     ReadValueId {
@@ -111,25 +113,25 @@ fn write_test() {
             match i {
                 1 => {
                     // Add IsAbstract to WriteMask
-                    let _ = node.as_mut_node().set_attribute(AttributeId::WriteMask, DataValue::new(write_mask::IS_ABSTRACT as UInt32)).unwrap();
+                    node.as_mut_node().set_write_mask(WriteMask::IS_ABSTRACT);
                 }
                 2 => {
                     // No write access
-                    let _ = node.as_mut_node().set_attribute(AttributeId::AccessLevel, DataValue::new(0 as Byte)).unwrap();
+                    let _ = node.as_mut_node().set_attribute(AttributeId::AccessLevel, DataValue::new(0u8)).unwrap();
                 }
                 6 => {
-                    node.as_mut_node().set_write_mask(write_mask::ACCESS_LEVEL);
+                    node.as_mut_node().set_write_mask(WriteMask::ACCESS_LEVEL);
                 }
                 _ => {
                     // Write access
-                    let _ = node.as_mut_node().set_attribute(AttributeId::AccessLevel, DataValue::new(access_level::CURRENT_WRITE as Byte)).unwrap();
+                    let _ = node.as_mut_node().set_attribute(AttributeId::AccessLevel, DataValue::new(AccessLevel::CURRENT_WRITE.bits())).unwrap();
                 }
             }
         }
 
         // change HasEncoding node with write access so response can be compared to HasChild which will be left alone
         let node = address_space.find_node_mut(&ReferenceTypeId::HasEncoding.into()).unwrap();
-        node.as_mut_node().set_write_mask(write_mask::IS_ABSTRACT);
+        node.as_mut_node().set_write_mask(WriteMask::IS_ABSTRACT);
 
         node_ids
     };

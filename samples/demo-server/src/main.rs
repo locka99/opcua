@@ -161,7 +161,7 @@ fn add_control_switches(server: &mut Server) {
             .unwrap();
 
         let mut variable = Variable::new(&abort_node_id, "Abort", "Abort", "Abort", Variant::Boolean(false));
-        variable.set_writable();
+        variable.set_writable(true);
         let _ = address_space.add_variable(variable, &folder_id);
     }
 
@@ -169,7 +169,6 @@ fn add_control_switches(server: &mut Server) {
     let address_space = server.address_space.clone();
     server.add_polling_action(250, move || {
         let address_space = address_space.read().unwrap();
-
         // Test for abort flag
         let abort = if let Ok(v) = address_space.get_variable_value(abort_node_id.clone()) {
             match v.value {

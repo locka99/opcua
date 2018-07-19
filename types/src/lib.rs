@@ -9,6 +9,8 @@ extern crate log;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
+extern crate bitflags;
+#[macro_use]
 extern crate serde_derive;
 extern crate serde;
 extern crate byteorder;
@@ -79,53 +81,55 @@ pub mod constants {
 }
 
 /// Write mask bits
-pub mod write_mask {
-    /// Indicates if the AccessLevel Attribute is writable.
-    pub const ACCESS_LEVEL: u32 = 1 << 0;
-    /// Indicates if the ArrayDimensions Attribute is writable.
-    pub const ARRAY_DIMENSTIONS: u32 = 1 << 1;
-    ///Indicates if the BrowseName Attribute is writable.
-    pub const BROWSE_NAME: u32 = 1 << 2;
-    /// Indicates if the ContainsNoLoops Attribute is writable.
-    pub const CONTAINS_NO_LOOPS: u32 = 1 << 3;
-    /// Indicates if the DataType Attribute is writable.
-    pub const DATA_TYPE: u32 = 1 << 4;
-    /// Indicates if the Description Attribute is writable.
-    pub const DESCRIPTION: u32 = 1 << 5;
-    /// Indicates if the DisplayName Attribute is writable.
-    pub const DISPLAY_NAME: u32 = 1 << 6;
-    /// Indicates if the EventNotifier Attribute is writable.
-    pub const EVENT_NOTIFIER: u32 = 1 << 7;
-    /// Indicates if the Executable Attribute is writable.
-    pub const EXECUTABLE: u32 = 1 << 8;
-    /// Indicates if the Historizing Attribute is writable.
-    pub const HISTORIZING: u32 = 1 << 9;
-    /// Indicates if the InverseName Attribute is writable.
-    pub const INVERSE_NAME: u32 = 1 << 10;
-    /// Indicates if the IsAbstract Attribute is writable.
-    pub const IS_ABSTRACT: u32 = 1 << 11;
-    /// Indicates if the MinimumSamplingInterval Attribute is writable.
-    pub const MINIMUM_SAMPLING_INTERVAL: u32 = 1 << 12;
-    /// Indicates if the NodeClass Attribute is writable.
-    pub const NODE_CLASS: u32 = 1 << 13;
-    /// Indicates if the NodeId Attribute is writable.
-    pub const NODE_ID: u32 = 1 << 14;
-    /// Indicates if the Symmetric Attribute is writable.
-    pub const SYMMETRIC: u32 = 1 << 15;
-    /// Indicates if the UserAccessLevel Attribute is writable.
-    pub const USER_ACCESS_LEVEL: u32 = 1 << 16;
-    /// Indicates if the UserExecutable Attribute is writable.
-    pub const USER_EXECUTABLE: u32 = 1 << 17;
-    /// Indicates if the UserWriteMask Attribute is writable.
-    pub const USER_WRITE_MASK: u32 = 1 << 18;
-    /// Indicates if the ValueRank Attribute is writable.
-    pub const VALUE_RANK: u32 = 1 << 19;
-    /// Indicates if the WriteMask Attribute is writable.
-    pub const WRITE_MASK: u32 = 1 << 20;
-    /// Indicates if the Value Attribute is writable for a VariableType. It does not apply for Variables
-    /// since this is handled by the AccessLevel and UserAccessLevel Attributes for the Variable.
-    /// For Variables this bit shall be set to 0.
-    pub const VALUE_FOR_VARIABLE_TYPE: u32 = 1 << 21;
+bitflags! {
+    pub struct WriteMask: u32 {
+        /// Indicates if the AccessLevel Attribute is writable.
+        const ACCESS_LEVEL = 1 << 0;
+        /// Indicates if the ArrayDimensions Attribute is writable.
+        const ARRAY_DIMENSTIONS = 1 << 1;
+        ///Indicates if the BrowseName Attribute is writable.
+        const BROWSE_NAME = 1 << 2;
+        /// Indicates if the ContainsNoLoops Attribute is writable.
+        const CONTAINS_NO_LOOPS = 1 << 3;
+        /// Indicates if the DataType Attribute is writable.
+        const DATA_TYPE = 1 << 4;
+        /// Indicates if the Description Attribute is writable.
+        const DESCRIPTION = 1 << 5;
+        /// Indicates if the DisplayName Attribute is writable.
+        const DISPLAY_NAME = 1 << 6;
+        /// Indicates if the EventNotifier Attribute is writable.
+        const EVENT_NOTIFIER = 1 << 7;
+        /// Indicates if the Executable Attribute is writable.
+        const EXECUTABLE = 1 << 8;
+        /// Indicates if the Historizing Attribute is writable.
+        const HISTORIZING = 1 << 9;
+        /// Indicates if the InverseName Attribute is writable.
+        const INVERSE_NAME = 1 << 10;
+        /// Indicates if the IsAbstract Attribute is writable.
+        const IS_ABSTRACT = 1 << 11;
+        /// Indicates if the MinimumSamplingInterval Attribute is writable.
+        const MINIMUM_SAMPLING_INTERVAL = 1 << 12;
+        /// Indicates if the NodeClass Attribute is writable.
+        const NODE_CLASS = 1 << 13;
+        /// Indicates if the NodeId Attribute is writable.
+        const NODE_ID = 1 << 14;
+        /// Indicates if the Symmetric Attribute is writable.
+        const SYMMETRIC = 1 << 15;
+        /// Indicates if the UserAccessLevel Attribute is writable.
+        const USER_ACCESS_LEVEL = 1 << 16;
+        /// Indicates if the UserExecutable Attribute is writable.
+        const USER_EXECUTABLE = 1 << 17;
+        /// Indicates if the UserWriteMask Attribute is writable.
+        const USER_WRITE_MASK = 1 << 18;
+        /// Indicates if the ValueRank Attribute is writable.
+        const VALUE_RANK = 1 << 19;
+        /// Indicates if the WriteMask Attribute is writable.
+        const WRITE_MASK = 1 << 20;
+        /// Indicates if the Value Attribute is writable for a VariableType. It does not apply for Variables
+        /// since this is handled by the AccessLevel and UserAccessLevel Attributes for the Variable.
+        /// For Variables this bit shall be set to 0.
+        const VALUE_FOR_VARIABLE_TYPE = 1 << 21;
+    }
 }
 
 pub mod encoding;

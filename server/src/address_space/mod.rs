@@ -65,10 +65,10 @@ macro_rules! node_impl {
             fn browse_name(&self) -> QualifiedName { self.base.browse_name() }
             fn display_name(&self) -> LocalizedText { self.base.display_name() }
             fn description(&self) -> Option<LocalizedText> { self.base.description() }
-            fn write_mask(&self) -> Option<UInt32> { self.base.write_mask() }
-            fn set_write_mask(&mut self, write_mask: UInt32) { self.base.set_write_mask(write_mask) }
-            fn user_write_mask(&self) -> Option<UInt32> { self.base.user_write_mask() }
-            fn set_user_write_mask(&mut self, write_mask: UInt32) { self.base.set_user_write_mask(write_mask) }
+            fn write_mask(&self) -> Option<WriteMask> { self.base.write_mask() }
+            fn set_write_mask(&mut self, write_mask: WriteMask) { self.base.set_write_mask(write_mask) }
+            fn user_write_mask(&self) -> Option<WriteMask> { self.base.user_write_mask() }
+            fn set_user_write_mask(&mut self, write_mask: WriteMask) { self.base.set_user_write_mask(write_mask) }
             fn find_attribute(&self, attribute_id: AttributeId) -> Option<DataValue> { self.base.find_attribute(attribute_id) }
             fn set_attribute(&mut self, attribute_id: AttributeId, value: DataValue) -> Result<(), StatusCode> { self.base.set_attribute(attribute_id, value) }
         }
@@ -133,25 +133,29 @@ pub mod view;
 
 mod method_impls;
 
-pub mod access_level {
-    pub const CURRENT_READ: u8 = 1;
-    pub const CURRENT_WRITE: u8 = 1 << 1;
-    // These can be uncommented if they become used
-    //pub const HISTORY_READ: u8 = 1 << 2;
-    //pub const HISTORY_WRITE: u8 = 1 << 3;
-    //pub const SEMANTIC_CHANGE: u8 = 1 << 4;
-    //pub const STATUS_WRITE: u8 = 1 << 5;
-    //pub const TIMESTAMP_WRITE: u8 = 1 << 6;
+bitflags! {
+    pub struct AccessLevel: u8 {
+        const CURRENT_READ = 1;
+        const CURRENT_WRITE = 2;
+        // These can be uncommented if they become used
+        // const HISTORY_READ = 4;
+        // const HISTORY_WRITE = 8;
+        // const SEMANTIC_CHANGE = 16;
+        // const STATUS_WRITE = 32;
+        // const TIMESTAMP_WRITE = 64;
+    }
 }
 
-pub mod user_access_level {
-    pub const CURRENT_READ: u8 = 1;
-    pub const CURRENT_WRITE: u8 = 1 << 1;
-    // These can be uncommented if they become used
-    //pub const HISTORY_READ: u8 = 1 << 2;
-    //pub const HISTORY_WRITE: u8 = 1 << 3;
-    //pub const STATUS_WRITE: u8 = 1 << 5;
-    //pub const TIMESTAMP_WRITE: u8 = 1 << 6;
+bitflags! {
+    pub struct UserAccessLevel: u8 {
+        const CURRENT_READ = 1;
+        const CURRENT_WRITE = 2;
+        // These can be uncommented if they become used
+        // const HISTORY_READ = 4;
+        // const HISTORY_WRITE = 8;
+        // const STATUS_WRITE = 32;
+        // const TIMESTAMP_WRITE = 64;
+    }
 }
 
 pub mod types {

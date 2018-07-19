@@ -21,6 +21,7 @@ lazy_static = "1.0"
 url = "1.6"
 base64 = "~0.6.0"
 uuid = { version = "0.5", features = ["v4"] }
+bitflags = "1.0"
 
 [dev-dependencies]
 tempdir = "0.3"

@@ -162,7 +162,7 @@ fn new_server(port_offset: u16) -> Server {
             &sample_folder_id);
 
         // Register a getter for the variable
-        if let Some(ref mut v) = address_space.find_variable(v1_node.clone()) {
+        if let Some(ref mut v) = address_space.find_variable_mut(v1_node.clone()) {
             let getter = AttrFnGetter::new(move |_, _| -> Result<Option<DataValue>, StatusCode> {
                 Ok(Some(DataValue::new(100)))
             });
