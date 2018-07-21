@@ -36,7 +36,7 @@ impl BinaryEncoder<UAString> for UAString {
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        // Strings are uncoded as UTF8 chars preceded by an Int32 length. A -1 indicates a null string
+        // Strings are encoded as UTF8 chars preceded by an Int32 length. A -1 indicates a null string
         if self.value.is_none() {
             write_i32(stream, -1)
         } else {

@@ -360,29 +360,31 @@ impl LocalizedText {
 
 // Data type ID 24 is in variant.rs
 
-#[allow(non_snake_case)]
-mod DiagnosticInfoMask {
-    pub const HAS_SYMBOLIC_ID: u8 = 0x01;
-    pub const HAS_NAMESPACE: u8 = 0x02;
-    pub const HAS_LOCALIZED_TEXT: u8 = 0x04;
-    pub const HAS_LOCALE: u8 = 0x08;
-    pub const HAS_ADDITIONAL_INFO: u8 = 0x10;
-    pub const HAS_INNER_STATUS_CODE: u8 = 0x20;
-    pub const HAS_INNER_DIAGNOSTIC_INFO: u8 = 0x40;
+bitflags! {
+    pub struct DiagnosticInfoMask: u8 {
+        const HAS_SYMBOLIC_ID = 0x01;
+        const HAS_NAMESPACE = 0x02;
+        const HAS_LOCALIZED_TEXT = 0x04;
+        const HAS_LOCALE = 0x08;
+        const HAS_ADDITIONAL_INFO = 0x10;
+        const HAS_INNER_STATUS_CODE = 0x20;
+        const HAS_INNER_DIAGNOSTIC_INFO = 0x40;
+    }
 }
 
-#[allow(non_snake_case)]
-pub mod DiagnosticFlags {
-    pub const SERVICE_LEVEL_SYMBOLIC_ID: u32 = 1;
-    pub const SERVICE_LEVEL_LOCALIZED_TEXT: u32 = 1 << 1;
-    pub const SERVICE_LEVEL_ADDITIONAL_INFO: u32 = 1 << 2;
-    pub const SERVICE_LEVEL_INNER_STATUS_CODE: u32 = 1 << 3;
-    pub const SERVICE_LEVEL_INNER_DIAGNOSTICS: u32 = 1 << 4;
-    pub const OPERATIONS_LEVEL_SYMBOLIC_ID: u32 = 1 << 5;
-    pub const OPERATIONS_LEVEL_LOCALIZED_TEXT: u32 = 1 << 6;
-    pub const OPERATIONS_LEVEL_ADDITIONAL_INFO: u32 = 1 << 8;
-    pub const OPERATIONS_LEVEL_INNER_STATUS_CODE: u32 = 1 << 9;
-    pub const OPERATIONS_LEVEL_INNER_DIAGNOSTICS: u32 = 1 << 10;
+bitflags! {
+    pub struct DiagnosticFlags: u32 {
+        const SERVICE_LEVEL_SYMBOLIC_ID = 1;
+        const SERVICE_LEVEL_LOCALIZED_TEXT = 1 << 1;
+        const SERVICE_LEVEL_ADDITIONAL_INFO = 1 << 2;
+        const SERVICE_LEVEL_INNER_STATUS_CODE = 1 << 3;
+        const SERVICE_LEVEL_INNER_DIAGNOSTICS = 1 << 4;
+        const OPERATIONS_LEVEL_SYMBOLIC_ID = 1 << 5;
+        const OPERATIONS_LEVEL_LOCALIZED_TEXT = 1 << 6;
+        const OPERATIONS_LEVEL_ADDITIONAL_INFO = 1 << 8;
+        const OPERATIONS_LEVEL_INNER_STATUS_CODE = 1 << 9;
+        const OPERATIONS_LEVEL_INNER_DIAGNOSTICS = 1 << 10;
+    }
 }
 
 /// Data type ID 25
@@ -398,7 +400,6 @@ pub struct DiagnosticInfo {
     pub localized_text: Option<Int32>,
     /// Detailed application specific diagnostic information.
     pub additional_info: Option<UAString>,
-
     /// A status code provided by an underlying system.
     pub inner_status_code: Option<StatusCode>,
     /// Diagnostic info associated with the inner status code.
@@ -442,7 +443,7 @@ impl BinaryEncoder<DiagnosticInfo> for DiagnosticInfo {
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let mut size: usize = 0;
-        size += write_u8(stream, self.encoding_mask())?;
+        size += write_u8(stream, self.encoding_mask().bits)?;
         if let Some(ref symbolic_id) = self.symbolic_id {
             // Write symbolic id
             size += write_i32(stream, *symbolic_id)?;
@@ -475,33 +476,34 @@ impl BinaryEncoder<DiagnosticInfo> for DiagnosticInfo {
     }
 
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let encoding_mask = Byte::decode(stream)?;
+        let encoding_mask = DiagnosticInfoMask::from_bits_truncate(Byte::decode(stream)?);
         let mut diagnostic_info = DiagnosticInfo::new();
-        if encoding_mask & DiagnosticInfoMask::HAS_SYMBOLIC_ID != 0 {
+
+        if encoding_mask.contains(DiagnosticInfoMask::HAS_SYMBOLIC_ID) {
             // Read symbolic id
             diagnostic_info.symbolic_id = Some(Int32::decode(stream)?);
         }
-        if encoding_mask & DiagnosticInfoMask::HAS_NAMESPACE != 0 {
+        if encoding_mask.contains(DiagnosticInfoMask::HAS_NAMESPACE) {
             // Read namespace
             diagnostic_info.namespace_uri = Some(Int32::decode(stream)?);
         }
-        if encoding_mask & DiagnosticInfoMask::HAS_LOCALE != 0 {
+        if encoding_mask.contains(DiagnosticInfoMask::HAS_LOCALE) {
             // Read locale
             diagnostic_info.locale = Some(Int32::decode(stream)?);
         }
-        if encoding_mask & DiagnosticInfoMask::HAS_LOCALIZED_TEXT != 0 {
+        if encoding_mask.contains(DiagnosticInfoMask::HAS_LOCALIZED_TEXT) {
             // Read localized text
             diagnostic_info.localized_text = Some(Int32::decode(stream)?);
         }
-        if encoding_mask & DiagnosticInfoMask::HAS_ADDITIONAL_INFO != 0 {
+        if encoding_mask.contains(DiagnosticInfoMask::HAS_ADDITIONAL_INFO) {
             // Read Additional info
             diagnostic_info.additional_info = Some(UAString::decode(stream)?);
         }
-        if encoding_mask & DiagnosticInfoMask::HAS_INNER_STATUS_CODE != 0 {
+        if encoding_mask.contains(DiagnosticInfoMask::HAS_INNER_STATUS_CODE) {
             // Read inner status code
             diagnostic_info.inner_status_code = Some(StatusCode::decode(stream)?);
         }
-        if encoding_mask & DiagnosticInfoMask::HAS_INNER_DIAGNOSTIC_INFO != 0 {
+        if encoding_mask.contains(DiagnosticInfoMask::HAS_INNER_DIAGNOSTIC_INFO) {
             // Read inner diagnostic info
             diagnostic_info.inner_diagnostic_info = Some(Box::new(DiagnosticInfo::decode(stream)?));
         }
@@ -522,8 +524,8 @@ impl DiagnosticInfo {
         }
     }
 
-    pub fn encoding_mask(&self) -> u8 {
-        let mut encoding_mask: u8 = 0;
+    pub fn encoding_mask(&self) -> DiagnosticInfoMask {
+        let mut encoding_mask = DiagnosticInfoMask::empty();
         if self.symbolic_id.is_some() {
             encoding_mask |= DiagnosticInfoMask::HAS_SYMBOLIC_ID;
         }

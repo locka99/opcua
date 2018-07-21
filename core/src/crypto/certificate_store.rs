@@ -48,8 +48,8 @@ pub struct CertificateStore {
 
 impl CertificateStore {
     /// Sets up the certificate store to the specified PKI directory.
-    /// It is not a good idea to be pointing more than one instance of this struct at the same path
-    /// on disk.
+    /// It is a bad idea to have more than one running instance pointing to the same path
+    /// location on disk.
     pub fn new(pki_path: &Path) -> CertificateStore {
         CertificateStore {
             pki_path: pki_path.to_path_buf(),

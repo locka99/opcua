@@ -160,6 +160,7 @@ impl Subscriptions {
     /// to the client.
     pub fn tick(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, tick_reason: TickReason) -> Result<(), StatusCode> {
         let subscription_ids = {
+            // Sort subscriptions by priority
             let mut subscription_priority: Vec<(u32, u8)> = self.subscriptions.values().map(|v| (v.subscription_id, v.priority)).collect();
             subscription_priority.sort_by(|s1, s2| s1.1.cmp(&s2.1));
             subscription_priority.iter().map(|s| s.0).collect::<Vec<u32>>()
@@ -228,7 +229,7 @@ impl Subscriptions {
         }
 
         // Clean up the retransmission queue
-        self.remove_old_unknowledged_notifications();
+        self.remove_old_unacknowledged_notifications();
 
         Ok(())
     }
@@ -362,9 +363,8 @@ impl Subscriptions {
 
     /// Purges notifications waiting for acknowledgement if they exceed the max retransmission queue
     /// size.
-    fn remove_old_unknowledged_notifications(&mut self) {
+    fn remove_old_unacknowledged_notifications(&mut self) {
         if self.retransmission_queue.len() > self.max_retransmission_queue {
-
             // Compare number of items in retransmission queue to max permissible and remove the older
             // notifications.
             let remove_count = self.retransmission_queue.len() - self.max_retransmission_queue;

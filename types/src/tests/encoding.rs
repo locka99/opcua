@@ -408,22 +408,22 @@ fn diagnostic_info() {
 
     d.symbolic_id = Some(25);
 
-    assert_eq!(d.encoding_mask(), 0x1);
+    assert_eq!(d.encoding_mask().bits(), 0x1);
 
     d.namespace_uri = Some(100);
-    assert_eq!(d.encoding_mask(), 0x3);
+    assert_eq!(d.encoding_mask().bits(), 0x3);
 
     d.localized_text = Some(120);
-    assert_eq!(d.encoding_mask(), 0x7);
+    assert_eq!(d.encoding_mask().bits(), 0x7);
 
     d.locale = Some(110);
-    assert_eq!(d.encoding_mask(), 0xf);
+    assert_eq!(d.encoding_mask().bits(), 0xf);
 
     d.additional_info = Some(UAString::from("Hello world"));
-    assert_eq!(d.encoding_mask(), 0x1f);
+    assert_eq!(d.encoding_mask().bits(), 0x1f);
 
     d.inner_status_code = Some(BadArgumentsMissing);
-    assert_eq!(d.encoding_mask(), 0x3f);
+    assert_eq!(d.encoding_mask().bits(), 0x3f);
 
     serialize_test(d.clone());
 

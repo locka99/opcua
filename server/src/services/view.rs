@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
-use opcua_types::node_ids::{ReferenceTypeId};
+use opcua_types::node_ids::ReferenceTypeId;
 use opcua_types::service_types::*;
 
 use address_space::address_space::AddressSpace;
@@ -14,12 +14,17 @@ use continuation_point::BrowseContinuationPoint;
 
 // Bits that control the reference description coming back from browse()
 
-const RESULT_MASK_REFERENCE_TYPE: UInt32 = 1;
-const RESULT_MASK_IS_FORWARD: UInt32 = 1 << 1;
-const RESULT_MASK_NODE_CLASS: UInt32 = 1 << 2;
-const RESULT_MASK_BROWSE_NAME: UInt32 = 1 << 3;
-const RESULT_MASK_DISPLAY_NAME: UInt32 = 1 << 4;
-const RESULT_MASK_TYPE_DEFINITION: UInt32 = 1 << 5;
+bitflags! {
+    pub struct BrowseDescriptionResultMask: u32 {
+        const RESULT_MASK_REFERENCE_TYPE = 1;
+        const RESULT_MASK_IS_FORWARD = 1 << 1;
+        const RESULT_MASK_NODE_CLASS = 1 << 2;
+        const RESULT_MASK_BROWSE_NAME = 1 << 3;
+        const RESULT_MASK_DISPLAY_NAME = 1 << 4;
+        const RESULT_MASK_TYPE_DEFINITION = 1 << 5;
+    }
+}
+
 
 pub struct ViewService {}
 
@@ -148,7 +153,7 @@ impl ViewService {
                 BrowseResult {
                     status_code: browse_result.unwrap_err(),
                     continuation_point: ByteString::null(),
-                    references: None
+                    references: None,
                 }
             }
         }).collect()
@@ -175,7 +180,7 @@ impl ViewService {
 
         let (references, inverse_ref_idx) = address_space.find_references_by_direction(&node_to_browse.node_id, node_to_browse.browse_direction, reference_type_id);
 
-        let result_mask = node_to_browse.result_mask;
+        let result_mask = BrowseDescriptionResultMask::from_bits_truncate(node_to_browse.result_mask);
         let node_class_mask = node_to_browse.node_class_mask;
 
         // Construct descriptions for each reference
@@ -202,33 +207,33 @@ impl ViewService {
             }
 
             // Prepare the values to put into the struct according to the result mask
-            let reference_type_id = if result_mask & RESULT_MASK_REFERENCE_TYPE != 0 {
+            let reference_type_id = if result_mask.contains(BrowseDescriptionResultMask::RESULT_MASK_REFERENCE_TYPE) {
                 reference.reference_type_id.into()
             } else {
                 NodeId::null()
             };
-            let is_forward = if result_mask & RESULT_MASK_IS_FORWARD != 0 {
+            let is_forward = if result_mask.contains(BrowseDescriptionResultMask::RESULT_MASK_IS_FORWARD) {
                 idx < inverse_ref_idx
             } else {
                 true
             };
 
-            let target_node_class = if result_mask & RESULT_MASK_NODE_CLASS != 0 {
+            let target_node_class = if result_mask.contains(BrowseDescriptionResultMask::RESULT_MASK_NODE_CLASS) {
                 target_node_class
             } else {
                 NodeClass::Unspecified
             };
-            let browse_name = if result_mask & RESULT_MASK_BROWSE_NAME != 0 {
+            let browse_name = if result_mask.contains(BrowseDescriptionResultMask::RESULT_MASK_BROWSE_NAME) {
                 target_node.browse_name().clone()
             } else {
                 QualifiedName::null()
             };
-            let display_name = if result_mask & RESULT_MASK_DISPLAY_NAME != 0 {
+            let display_name = if result_mask.contains(BrowseDescriptionResultMask::RESULT_MASK_DISPLAY_NAME) {
                 target_node.display_name().clone()
             } else {
                 LocalizedText::null()
             };
-            let type_definition = if result_mask & RESULT_MASK_TYPE_DEFINITION != 0 {
+            let type_definition = if result_mask.contains(BrowseDescriptionResultMask::RESULT_MASK_TYPE_DEFINITION) {
                 // Type definition NodeId of the TargetNode. Type definitions are only available
                 // for the NodeClasses Object and Variable. For all other NodeClasses a null NodeId
                 // shall be returned.
@@ -299,7 +304,7 @@ impl ViewService {
                 address_space_last_modified: address_space.last_modified(),
                 max_references_per_node,
                 starting_index: ending_index,
-                reference_descriptions: Arc::new(Mutex::new(reference_descriptions.to_vec()))
+                reference_descriptions: Arc::new(Mutex::new(reference_descriptions.to_vec())),
             });
             (reference_descriptions_slice, continuation_point)
         } else {
@@ -309,7 +314,7 @@ impl ViewService {
         BrowseResult {
             status_code: Good,
             continuation_point,
-            references: Some(reference_descriptions)
+            references: Some(reference_descriptions),
         }
     }
 }
