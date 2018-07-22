@@ -159,7 +159,7 @@ fn subscription_loop(session: Arc<RwLock<Session>>, state: Arc<RwLock<Connection
                 MonitoredItemCreateRequest::new(read_node, MonitoringMode::Reporting, MonitoringParameters::default())
             }).collect()
         };
-        let _ = session.create_monitored_items(subscription_id, items_to_create)?;
+        let _ = session.create_monitored_items(subscription_id, &items_to_create)?;
     }
 
     // Loops forever. The publish thread will call the callback with changes on the variables

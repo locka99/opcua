@@ -53,7 +53,7 @@ impl SubscriptionState {
         self.subscriptions.clear();
     }
 
-    pub fn set_publishing_mode(&mut self, publishing_enabled: Boolean, subscription_ids: Vec<UInt32>) {
+    pub fn set_publishing_mode(&mut self, publishing_enabled: Boolean, subscription_ids: &[UInt32]) {
         subscription_ids.iter().for_each(|subscription_id| {
             if let Some(ref mut subscription) = self.subscriptions.get_mut(subscription_id) {
                 subscription.set_publishing_enabled(publishing_enabled);
@@ -61,25 +61,25 @@ impl SubscriptionState {
         });
     }
 
-    pub fn subscription_data_change(&mut self, subscription_id: UInt32, data_change_notifications: Vec<DataChangeNotification>) {
+    pub fn subscription_data_change(&mut self, subscription_id: UInt32, data_change_notifications: &[DataChangeNotification]) {
         if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
             subscription.data_change(data_change_notifications);
         }
     }
 
-    pub fn insert_monitored_items(&mut self, subscription_id: UInt32, items_to_create: Vec<CreateMonitoredItem>) {
+    pub fn insert_monitored_items(&mut self, subscription_id: UInt32, items_to_create: &[CreateMonitoredItem]) {
         if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
             subscription.insert_monitored_items(items_to_create);
         }
     }
 
-    pub fn modify_monitored_items(&mut self, subscription_id: UInt32, items_to_modify: Vec<ModifyMonitoredItem>) {
+    pub fn modify_monitored_items(&mut self, subscription_id: UInt32, items_to_modify: &[ModifyMonitoredItem]) {
         if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
             subscription.modify_monitored_items(items_to_modify);
         }
     }
 
-    pub fn delete_monitored_items(&mut self, subscription_id: UInt32, items_to_delete: Vec<UInt32>) {
+    pub fn delete_monitored_items(&mut self, subscription_id: UInt32, items_to_delete: &[UInt32]) {
         if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
             subscription.delete_monitored_items(items_to_delete);
         }

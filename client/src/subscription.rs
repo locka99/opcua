@@ -190,7 +190,7 @@ impl Subscription {
 
     pub fn set_publishing_enabled(&mut self, publishing_enabled: Boolean) { self.publishing_enabled = publishing_enabled; }
 
-    pub fn insert_monitored_items(&mut self, items_to_create: Vec<CreateMonitoredItem>) {
+    pub fn insert_monitored_items(&mut self, items_to_create: &[CreateMonitoredItem]) {
         items_to_create.iter().for_each(|i| {
             let mut monitored_item = MonitoredItem::new(i.client_handle);
             monitored_item.set_id(i.id);
@@ -205,7 +205,7 @@ impl Subscription {
         });
     }
 
-    pub fn modify_monitored_items(&mut self, items_to_modify: Vec<ModifyMonitoredItem>) {
+    pub fn modify_monitored_items(&mut self, items_to_modify: &[ModifyMonitoredItem]) {
         items_to_modify.into_iter().for_each(|i| {
             if let Some(ref mut monitored_item) = self.monitored_items.get_mut(&i.id) {
                 monitored_item.set_sampling_interval(i.sampling_interval);
@@ -214,7 +214,7 @@ impl Subscription {
         });
     }
 
-    pub fn delete_monitored_items(&mut self, items_to_delete: Vec<UInt32>) {
+    pub fn delete_monitored_items(&mut self, items_to_delete: &[UInt32]) {
         items_to_delete.iter().for_each(|id| {
             // Remove the monitored item and the client handle / id entry
             if let Some(monitored_item) = self.monitored_items.remove(&id) {
@@ -231,10 +231,10 @@ impl Subscription {
         }
     }
 
-    pub fn data_change(&mut self, data_change_notifications: Vec<DataChangeNotification>) {
+    pub fn data_change(&mut self, data_change_notifications: &[DataChangeNotification]) {
         let mut monitored_item_ids = HashSet::new();
         for n in data_change_notifications {
-            if let Some(monitored_items) = n.monitored_items {
+            if let Some(ref monitored_items) = n.monitored_items {
                 for i in monitored_items {
                     let monitored_item_id = {
                         let monitored_item_id = self.monitored_item_id_from_handle(i.client_handle);
@@ -245,7 +245,7 @@ impl Subscription {
                     };
 
                     let monitored_item = self.monitored_items.get_mut(&monitored_item_id).unwrap();
-                    monitored_item.value = i.value;
+                    monitored_item.value = i.value.clone();
                     monitored_item_ids.insert(monitored_item_id);
                 }
             }

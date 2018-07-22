@@ -224,7 +224,7 @@ enum ClientCommand {
 enum ClientResponse {
     Starting,
     Ready,
-    Finished,
+    Finished(bool),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -236,12 +236,12 @@ enum ServerCommand {
 enum ServerResponse {
     Starting,
     Ready,
-    Finished,
+    Finished(bool),
 }
 
 fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: ST)
-    where CT: FnOnce(&mpsc::Receiver<ClientCommand>, &mpsc::Sender<ClientResponse>, Client) + Send + 'static,
-          ST: FnOnce(&mpsc::Receiver<ServerCommand>, &mpsc::Sender<ServerResponse>, Server) + Send + 'static {
+    where CT: FnOnce(mpsc::Receiver<ClientCommand>, Client) + Send + 'static,
+          ST: FnOnce(mpsc::Receiver<ServerCommand>, Server) + Send + 'static {
     let (client, server) = new_client_server(port_offset);
 
     // Spawn the CLIENT thread
@@ -249,9 +249,10 @@ fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: 
         // Create channels for client command and response
         let (tx_client_command, rx_client_command) = channel::<ClientCommand>();
         let (tx_client_response, rx_client_response) = channel::<ClientResponse>();
+
         let client_thread = thread::spawn(move || {
             info!("Client test thread is running");
-            if let Some(client_test) = client_test {
+            let result = if let Some(client_test) = client_test {
                 // Wait for start command so we know server is ready
                 let msg = rx_client_command.recv().unwrap();
                 assert_eq!(msg, ClientCommand::Start);
@@ -261,12 +262,19 @@ fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: 
 
                 // Client test will run
                 trace!("Running client test");
+
                 let _ = tx_client_response.send(ClientResponse::Starting);
-                client_test(&rx_client_command, &tx_client_response, client);
+
+                // TODO this should be inside a catch_unwind but putting the rx_ inside triggers
+                // a compiler error because the tx_ sits on the other side
+
+                client_test(rx_client_command, client);
+                true
             } else {
                 trace!("No client test");
-            }
-            let _ = tx_client_response.send(ClientResponse::Finished);
+                true
+            };
+            let _ = tx_client_response.send(ClientResponse::Finished(result));
         });
         (client_thread, tx_client_command, rx_client_response)
     };
@@ -281,8 +289,9 @@ fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: 
             trace!("Running server test");
             let _ = tx_server_response.send(ServerResponse::Starting);
             let _ = tx_server_response.send(ServerResponse::Ready);
-            server_test(&rx_server_command, &tx_server_response, server);
-            let _ = tx_server_response.send(ServerResponse::Finished);
+            // TODO catch_unwind
+            server_test(rx_server_command, server);
+            let _ = tx_server_response.send(ServerResponse::Finished(true));
         });
         (server_thread, tx_server_command, rx_server_response)
     };
@@ -292,7 +301,9 @@ fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: 
     let timeout = 30000;
 
     let mut client_has_finished = false;
+    let mut client_success = false;
     let mut server_has_finished = false;
+    let mut server_success = false;
 
     // Loop until either the client or the server has quit, or the timeout limit is reached
     while !client_has_finished || !server_has_finished {
@@ -314,10 +325,10 @@ fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: 
                 ClientResponse::Ready => {
                     info!("Client is ready");
                 }
-                ClientResponse::Finished => {
+                ClientResponse::Finished(success) => {
                     info!("Client test finished");
+                    client_success = success;
                     client_has_finished = true;
-
                     if !server_has_finished {
                         info!("Telling the server to quit");
                         let _ = tx_server_command.send(ServerCommand::Quit);
@@ -337,8 +348,9 @@ fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: 
                     // Tell the client to start
                     let _ = tx_client_command.send(ClientCommand::Start);
                 }
-                ServerResponse::Finished => {
+                ServerResponse::Finished(success) => {
                     info!("Server test finished");
+                    server_success = success;
                     server_has_finished = true;
                 }
             }
@@ -351,7 +363,9 @@ fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: 
     let _ = client_thread.join();
     let _ = server_thread.join();
 
-    // TODO process the result
+    assert!(client_success);
+    assert!(server_success);
+
     trace!("test complete")
 }
 
@@ -359,19 +373,24 @@ fn connect_with(port_offset: u16, endpoint_id: &str) {
     opcua_core::init_logging();
 
     let endpoint_id = endpoint_id.to_string();
-    let client_test = move |rx_client_command: &mpsc::Receiver<ClientCommand>, tx_client_response: &mpsc::Sender<ClientResponse>, mut client: Client| {
+    let client_test = move |rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client| {
         // Connect to the server
         info!("Client will try to connect to endpoint {}", endpoint_id);
-        let session = client.connect_and_activate(Some(&endpoint_id));
-        assert!(session.is_ok());
+        let session = client.connect_and_activate(Some(&endpoint_id)).unwrap();
 
         // Read the variable
-        let v = v1_node_id();
-        // session.
+        let mut values = {
+            let mut session = session.write().unwrap();
+            let read_nodes = vec![ReadValueId::from(v1_node_id())];
+            session.read_nodes(&read_nodes).unwrap().unwrap()
+        };
+        assert_eq!(values.len(), 1);
 
+        let value = values.remove(0).value;
+        assert_eq!(value, Some(Variant::from(100)));
     };
 
-    let server_test = |rx_server_command: &mpsc::Receiver<ServerCommand>, tx_server_response: &mpsc::Sender<ServerResponse>, server: Server| {
+    let server_test = |rx_server_command: mpsc::Receiver<ServerCommand>, server: Server| {
         trace!("Hello from server");
         // Wrap the server - a little juggling is required to give one rc
         // to a thread while holding onto one.

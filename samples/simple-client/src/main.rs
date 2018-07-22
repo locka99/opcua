@@ -103,7 +103,7 @@ fn subscription_loop(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
         let items_to_create: Vec<MonitoredItemCreateRequest> = read_nodes.into_iter().map(|read_node| {
             MonitoredItemCreateRequest::new(read_node, MonitoringMode::Reporting, MonitoringParameters::default())
         }).collect();
-        let _ = session.create_monitored_items(subscription_id, items_to_create)?;
+        let _ = session.create_monitored_items(subscription_id, &items_to_create)?;
     }
 
     // Loops forever. The publish thread will call the callback with changes on the variables
@@ -131,7 +131,7 @@ fn read_values(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
     let read_nodes = nodes_to_monitor();
     let data_values = {
         let mut session = session.write().unwrap();
-        session.read_nodes(read_nodes.clone())?.unwrap()
+        session.read_nodes(&read_nodes)?.unwrap()
     };
 
     // Print the values out
