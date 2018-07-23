@@ -3,18 +3,21 @@
 //! a timer that updates those variables so anything monitoring variables sees the values changing.
 extern crate chrono;
 extern crate log;
+
 extern crate opcua_core;
 extern crate opcua_server;
 extern crate opcua_types;
+extern crate opcua_console_logging;
 
-use opcua_server::prelude::*;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock};
+
+use opcua_server::prelude::*;
 
 fn main() {
     // This enables logging via env_logger & log crate macros. If you don't need logging or want
     // to implement your own, omit this line.
-    opcua_core::init_logging();
+    opcua_console_logging::init();
 
     // Create an OPC UA server with sample configuration and default node set
     let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());

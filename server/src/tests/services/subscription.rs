@@ -4,8 +4,6 @@ use prelude::*;
 
 use chrono::Utc;
 
-use opcua_core;
-
 use services::subscription::SubscriptionService;
 use services::monitored_item::MonitoredItemService;
 
@@ -54,8 +52,6 @@ fn create_modify_destroy_subscription() {
 
 #[test]
 fn publish_with_no_subscriptions() {
-    opcua_core::init_logging();
-
     // Create a session
     let st = ServiceTest::new();
     let (_, mut session) = st.get_server_state_and_session();
@@ -76,8 +72,6 @@ fn publish_with_no_subscriptions() {
 
 #[test]
 fn publish_response_subscription() {
-    opcua_core::init_logging();
-
     // Create a session
     let st = ServiceTest::new();
     let (mut server_state, mut session) = st.get_server_state_and_session();
@@ -187,8 +181,6 @@ fn multiple_publish_response_subscription() {
 
 #[test]
 fn republish() {
-    opcua_core::init_logging();
-
     // Create a session
     let st = ServiceTest::new();
     let (mut server_state, mut session) = st.get_server_state_and_session();

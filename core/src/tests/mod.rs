@@ -146,7 +146,6 @@ struct Test;
 
 impl Test {
     pub fn setup() -> Test {
-        ::init_logging();
         Test {}
     }
 }

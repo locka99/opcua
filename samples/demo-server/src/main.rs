@@ -5,21 +5,27 @@
 
 extern crate chrono;
 extern crate log;
+extern crate rand;
+
 extern crate opcua_core;
 extern crate opcua_server;
 extern crate opcua_types;
-extern crate rand;
+extern crate opcua_console_logging;
+
+use std::path::PathBuf;
+use std::sync::{Arc, RwLock};
+use std::iter::repeat;
+
+use rand::Rng;
+use rand::distributions::Alphanumeric;
 
 use opcua_server::http;
 use opcua_server::prelude::*;
-use rand::Rng;
-use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
 
 fn main() {
     // This enables logging via env_logger & log crate macros. If you don't need logging or want
     // to implement your own, omit this line.
-    opcua_core::init_logging();
+    opcua_console_logging::init();
 
     // Create an OPC UA server with sample configuration and default node set
     let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
@@ -122,7 +128,7 @@ impl Scalar {
             Scalar::Float => rng.gen::<f32>().into(),
             Scalar::Double => rng.gen::<f64>().into(),
             Scalar::String => {
-                let s: String = rng.gen_ascii_chars().take(10).collect();
+                let s = repeat(()).take(10).map(|_| rng.sample(Alphanumeric)).collect::<String>();
                 UAString::from(s).into()
             }
             Scalar::DateTime => DateTime::from(rng.gen_range::<i64>(0, DateTime::endtimes_ticks())).into(),

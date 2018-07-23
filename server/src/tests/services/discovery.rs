@@ -1,4 +1,3 @@
-use opcua_core;
 use opcua_types::UAString;
 
 use super::*;
@@ -6,8 +5,6 @@ use services::discovery::DiscoveryService;
 
 #[test]
 fn get_endpoints() {
-    opcua_core::init_logging();
-
     let st = ServiceTest::new();
     let (mut server_state, _) = st.get_server_state_and_session();
 

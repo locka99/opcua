@@ -5,8 +5,6 @@ use server::Server;
 
 #[test]
 fn anonymous_user_token() {
-    opcua_core::init_logging();
-
     let config = ServerConfig::new_sample();
     let server = Server::new(config);
     let server_state = server.server_state.read().unwrap();
@@ -42,8 +40,6 @@ fn make_user_name_identity_token(user: &str, pass: &[u8]) -> ExtensionObject {
 
 #[test]
 fn user_name_pass_token() {
-    opcua_core::init_logging();
-
     let config = ServerConfig::new_sample();
     let server = Server::new(config);
     let server_state = server.server_state.read().unwrap();

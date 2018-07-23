@@ -5,6 +5,7 @@ extern crate clap;
 extern crate opcua_client;
 extern crate opcua_core;
 extern crate opcua_types;
+extern crate opcua_console_logging;
 
 use std::sync::{Arc, RwLock};
 use std::path::PathBuf;
@@ -41,7 +42,7 @@ fn main() {
     };
 
     // Optional - enable OPC UA logging
-    opcua_core::init_logging();
+    opcua_console_logging::init();
 
     // Use the sample client config to set up a client. The sample config has a number of named
     // endpoints one of which is marked as the default.

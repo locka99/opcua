@@ -1,4 +1,3 @@
-use opcua_core;
 use opcua_types::status_codes::StatusCode::*;
 use opcua_types::service_types::{CallRequest, CallResponse, CallMethodRequest, CallMethodResult};
 use opcua_types::node_ids::{ObjectId, MethodId};
@@ -65,8 +64,6 @@ fn call_single(s: &MethodService, address_space: &AddressSpace, server_state: &S
 
 #[test]
 fn call_getmonitoreditems() {
-    opcua_core::init_logging();
-
     let st = ServiceTest::new();
 
     let s = MethodService::new();

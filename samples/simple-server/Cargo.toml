@@ -19,3 +19,6 @@ version = "0.4.0" # OPCUARustVersion
 path = "../../server"
 version = "0.4.0" # OPCUARustVersion
 
+[dependencies.opcua-console-logging]
+path = "../../console-logging"
+version = "0.4.0" # OPCUARustVersion

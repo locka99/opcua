@@ -10,9 +10,6 @@ use opcua_client::prelude::*;
 use opcua_types::url::is_opc_ua_binary_url;
 
 fn main() {
-    // Optional - enable OPC UA logging
-    //opcua_core::init_logging();
-
     // Read the argument
     let url = {
         use clap::*;

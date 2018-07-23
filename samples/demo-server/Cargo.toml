@@ -6,7 +6,7 @@ authors = ["Adam Lock <locka99@gmail.com>"]
 [dependencies]
 chrono = "0.4"
 log = "0.3"
-rand = "0.4"
+rand = "0.5"
 
 [dependencies.opcua-types]
 path = "../../types"
@@ -20,3 +20,7 @@ version = "0.4.0" # OPCUARustVersion
 path = "../../server"
 version = "0.4.0" # OPCUARustVersion
 features = ["http"]
+
+[dependencies.opcua-console-logging]
+path = "../../console-logging"
+version = "0.4.0" # OPCUARustVersion

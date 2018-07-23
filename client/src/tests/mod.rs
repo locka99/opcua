@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use std::collections::BTreeMap;
 
 use opcua_core::config::Config;
-use opcua_core;
 use opcua_types::MessageSecurityMode;
 use opcua_core::crypto::SecurityPolicy;
 
@@ -86,7 +85,6 @@ fn client_sample_config() {
 
 #[test]
 fn client_config() {
-    let _ = opcua_core::init_logging();
     let path = make_test_file("client_config.yaml");
     println!("Client path = {:?}", path);
     let config = default_sample_config();
@@ -102,7 +100,6 @@ fn client_config() {
 
 #[test]
 fn client_invalid_security_policy_config() {
-    let _ = opcua_core::init_logging();
     let mut config = default_sample_config();
     // Security policy is wrong
     config.endpoints = BTreeMap::new();
@@ -120,7 +117,6 @@ fn client_invalid_security_policy_config() {
 
 #[test]
 fn client_invalid_security_mode_config() {
-    let _ = opcua_core::init_logging();
     let mut config = default_sample_config();
     // Message security mode is wrong
     config.endpoints = BTreeMap::new();
@@ -137,7 +133,6 @@ fn client_invalid_security_mode_config() {
 
 #[test]
 fn client_anonymous_user_tokens_id() {
-    let _ = opcua_core::init_logging();
     let mut config = default_sample_config();
     // id anonymous is reserved
     config.user_tokens = BTreeMap::new();

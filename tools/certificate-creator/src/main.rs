@@ -4,10 +4,10 @@ extern crate clap;
 extern crate opcua_core;
 
 use std::path::PathBuf;
+
 use opcua_core::crypto::*;
 
 fn main() {
-    // opcua_core::init_logging();
     if let Ok((args, overwrite, path)) = parse_x509_args() {
         println!("Creating certificate...");
 

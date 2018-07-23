@@ -370,8 +370,6 @@ fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: 
 }
 
 fn connect_with(port_offset: u16, endpoint_id: &str) {
-    opcua_core::init_logging();
-
     let endpoint_id = endpoint_id.to_string();
     let client_test = move |rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client| {
         // Connect to the server
