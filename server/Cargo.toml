@@ -14,7 +14,7 @@ default = []
 http = ["hyper"]
 
 [dependencies]
-log = "0.3"
+log = "0.4"
 time = "0.1"
 chrono = "0.4"
 serde = "1.0"

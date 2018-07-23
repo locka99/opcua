@@ -359,7 +359,7 @@ impl Subscription {
 
         // Extra state debugging
         {
-            use log::LogLevel::Trace;
+            use log::Level::Trace;
             if log_enabled!(Trace) {
                 trace!(r#"State inputs:
     subscription_id: {} / state: {:?}

@@ -85,7 +85,7 @@ pub mod debug {
     pub fn log_buffer(message: &str, buf: &[u8]) {
         use log;
         // No point doing anything unless debug level is on
-        if !log_enabled!(log::LogLevel::Trace) {
+        if !log_enabled!(log::Level::Trace) {
             return;
         }
 

@@ -10,6 +10,6 @@ categories = ["embedded","network-programming"]
 readme = "../README.md"
 
 [dependencies]
-log = "0.3"
-env_logger = "0.4"
+log = "0.4"
+env_logger = "0.5"
 chrono = "0.4"

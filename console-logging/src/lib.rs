@@ -3,6 +3,8 @@ extern crate chrono;
 #[macro_use]
 extern crate log;
 
+use std::io::Write;
+
 pub fn init() {
     use std::env;
 
@@ -19,24 +21,24 @@ pub fn init() {
     // env_logger/RUST_LOG is used by cargo and other rust tools so console fills with garbage from
     // other processes  when we're only interested in our own garbage!
     let result = {
-        let mut builder = env_logger::LogBuilder::new();
-        builder.format(|record: &log::LogRecord| {
+        let mut builder = env_logger::Builder::new();
+        builder.format(|buf, record| {
             use chrono;
             let now = chrono::Utc::now();
             let time_fmt = now.format("%Y-%m-%d %H:%M:%S%.3f");
 
             match record.metadata().level() {
-                log::LogLevel::Error => {
-                    format!("{} - {}{}{} - {} - {}", time_fmt, ANSI_ERROR, record.level(), ANSI_RESET, record.location().module_path(), record.args())
+                log::Level::Error => {
+                    writeln!(buf, "{} - {}{}{} - {}", time_fmt, ANSI_ERROR, record.level(), ANSI_RESET, record.args())
                 }
-                log::LogLevel::Warn => {
-                    format!("{} - {}{}{} - {} - {}", time_fmt, ANSI_WARN, record.level(), ANSI_RESET, record.location().module_path(), record.args())
+                log::Level::Warn => {
+                    writeln!(buf, "{} - {}{}{} - {}", time_fmt, ANSI_WARN, record.level(), ANSI_RESET, record.args())
                 }
-                log::LogLevel::Info => {
-                    format!("{} - {}{}{} - {} - {}", time_fmt, ANSI_INFO, record.level(), ANSI_RESET, record.location().module_path(), record.args())
+                log::Level::Info => {
+                    writeln!(buf, "{} - {}{}{} - {}", time_fmt, ANSI_INFO, record.level(), ANSI_RESET, record.args())
                 }
                 _ => {
-                    format!("{} - {} - {} - {}", time_fmt, record.level(), record.location().module_path(), record.args())
+                    writeln!(buf, "{} - {} - {}", time_fmt, record.level(), record.args())
                 }
             }
         });
@@ -49,9 +51,5 @@ pub fn init() {
         builder.parse(&filters);
         builder.init()
     };
-    if result.is_err() {
-        eprintln!("Logger error, check error = {}", result.unwrap_err());
-    } else {
-        info!("Logging is enabled, use RUST_OPCUA_LOG environment variable to control filtering, logging level");
-    }
+    info!("Logging is enabled, use RUST_OPCUA_LOG environment variable to control filtering, logging level");
 }
