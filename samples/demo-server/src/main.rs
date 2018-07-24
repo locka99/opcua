@@ -6,6 +6,7 @@
 extern crate chrono;
 extern crate log;
 extern crate rand;
+extern crate log4rs;
 
 extern crate opcua_core;
 extern crate opcua_server;
@@ -23,9 +24,8 @@ use opcua_server::http;
 use opcua_server::prelude::*;
 
 fn main() {
-    // This enables logging via env_logger & log crate macros. If you don't need logging or want
-    // to implement your own, omit this line.
-    opcua_console_logging::init();
+    // More powerful logging that a console logger
+    log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
 
     // Create an OPC UA server with sample configuration and default node set
     let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());

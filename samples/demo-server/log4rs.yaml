@@ -1,0 +1,26 @@
+refresh_rate: 30 seconds
+appenders:
+  stdout:
+    kind: console
+  opcua:
+    kind: file
+    path: "log/opcua.log"
+    encoder:
+      pattern: "{d} - {m}{n}"
+root:
+  level: warn
+  appenders:
+    - stdout
+loggers:
+  opcua_core:
+    level: info
+    appenders:
+      - opcua
+  opcua_server:
+    level: debug
+    appenders:
+      - opcua
+  opcua_client:
+    level: debug
+    appenders:
+      - opcua
