@@ -34,14 +34,14 @@
 
         // Sessions
         var connections = json["connections"];
-        html += "<h1>Connection</h1>";
+        html += "<h1>Client connections</h1>";
         if (connections.length === 0) {
-            html += "<p>No connection</p>";
+            html += "<p>No connections</p>";
         }
         else {
             for (var i = 0; i < connections.length; ++i) {
                 var connection = connections[i];
-                html += "<h2>Connection " + connection["id"] + "</h2>";
+                html += "<h2>Client " + connection["id"] + "</h2>";
                 html += "<table>";
                 html += "<tr><td>Client address:</td><td>" + connection["client_address"] + "</td></tr>";
                 html += "<tr><td>Transport state:</td><td>" + connection["transport_state"] + "</td></tr>";
