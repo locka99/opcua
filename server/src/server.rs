@@ -225,7 +225,7 @@ impl Server {
     }
 
     /// Strip out dead connections, i.e those which have disconnected
-    fn remove_dead_connections(&mut self) {
+    fn remove_dead_connections(&self) -> bool {
         // Go through all connections, removing those that have terminated
         let mut connections = trace_write_lock_unwrap!(self.connections);
         connections.retain(|connection| {
@@ -238,6 +238,7 @@ impl Server {
                 true
             }
         });
+        connections.is_empty()
     }
 
     // Log information about the endpoints on this server
@@ -276,16 +277,11 @@ impl Server {
         let task = Interval::new(Instant::now(), Duration::from_millis(1000))
             .take_while(move |_| {
                 let abort = {
-                    let mut server = trace_write_lock_unwrap!(server);
-                    if server.is_abort() {
-                        // Check if there are any open sessions
-                        server.remove_dead_connections();
-                        // Abort when all connections are down
-                        let connections = trace_write_lock_unwrap!(server.connections);
-                        connections.is_empty()
-                    } else {
-                        false
-                    }
+                    // Check if there are any open sessions
+                    let server = trace_read_lock_unwrap!(server);
+                    let has_open_connections = server.remove_dead_connections();
+                    // Predicate breaks take_while on abort & no open connections
+                    server.is_abort() && !has_open_connections
                 };
                 if abort {
                     info!("Server has aborted so, sending a command to break the listen loop");
