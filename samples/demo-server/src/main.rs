@@ -24,7 +24,7 @@ use opcua_server::http;
 use opcua_server::prelude::*;
 
 fn main() {
-    // More powerful logging that a console logger
+    // More powerful logging than a console logger
     log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
 
     // Create an OPC UA server with sample configuration and default node set
@@ -36,7 +36,7 @@ fn main() {
     // Add dynamically changing scalar values
     add_dynamic_scalar_variables(&mut server);
 
-    // Add some control switches
+    // Add some control switches, e.g. abort flag
     add_control_switches(&mut server);
 
     // Start the http server, used for metrics
