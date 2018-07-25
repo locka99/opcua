@@ -8,8 +8,6 @@ pub struct View {
 
 node_impl!(View);
 
-// NodeClass::View
-
 impl View {
     pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, event_notifier: Boolean, contains_no_loops: Boolean) -> View {
         // Mandatory

@@ -1,3 +1,8 @@
+use std;
+use std::io::{Read, Write};
+use std::str::FromStr;
+use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
+
 use basic_types::*;
 use byte_string::ByteString;
 use encoding::*;
@@ -5,10 +10,6 @@ use guid::Guid;
 use node_ids::{ObjectId, ReferenceTypeId};
 use status_codes::StatusCode;
 use status_codes::StatusCode::BadNodeIdInvalid;
-use std;
-use std::io::{Read, Write};
-use std::str::FromStr;
-use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 use string::*;
 
 /// The kind of identifier, numeric, string, guid or byte

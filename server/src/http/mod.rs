@@ -1,3 +1,7 @@
+use std::io;
+use std::sync::{Arc, RwLock};
+use std::thread;
+
 use futures;
 use futures::future::Future;
 use hyper;
@@ -8,9 +12,6 @@ use serde_json;
 use server::Connections;
 use metrics::ServerMetrics;
 use state::ServerState;
-use std::io;
-use std::sync::{Arc, RwLock};
-use std::thread;
 
 /// This is our metrics service, the thing called to handle requests coming from hyper
 struct MetricsService {

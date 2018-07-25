@@ -1,8 +1,8 @@
-use chrono;
-
 use std::io::{Cursor, Write};
 use std::ops::Range;
 use std::sync::{Arc, RwLock};
+
+use chrono;
 
 use opcua_types::*;
 use opcua_types::service_types::ChannelSecurityToken;
