@@ -90,26 +90,26 @@ impl SocketWriter {
     pub fn new(write_half: WriteHalf<TcpStream>) -> SocketWriter {
         SocketWriter {
             write_half,
-            buffer: Cursor::new(vec![0u8; SEND_BUFFER_SIZE]),
+                buffer: Cursor::new(vec![0u8; SEND_BUFFER_SIZE]),
+            }
         }
-    }
 
-    pub fn clear_buffer(&mut self) {
-        self.buffer.set_position(0);
-    }
+        pub fn clear_buffer(&mut self) {
+            self.buffer.set_position(0);
+        }
 
-    pub fn encode_error_message(&mut self, status_code: StatusCode) {
-        let error = ErrorMessage::from_status_code(status_code);
-        let _ = error.encode(&mut self.buffer);
-    }
+        pub fn encode_error_message(&mut self, status_code: StatusCode) {
+            let error = ErrorMessage::from_status_code(status_code);
+            let _ = error.encode(&mut self.buffer);
+        }
 
-    pub fn write(&mut self) -> std::io::Result<usize> {
-        if self.buffer.position() == 0 {
-            Ok(0)
-        } else {
-            let result = {
-                let out_buf_stream = &self.buffer;
-                let bytes_to_write = out_buf_stream.position() as usize;
+        pub fn write(&mut self) -> std::io::Result<usize> {
+            if self.buffer.position() == 0 {
+                Ok(0)
+            } else {
+                let result = {
+                    let out_buf_stream = &self.buffer;
+                    let bytes_to_write = out_buf_stream.position() as usize;
                 let buffer_slice = &out_buf_stream.get_ref()[0..bytes_to_write];
 
                 trace!("Writing {} bytes to client", buffer_slice.len());

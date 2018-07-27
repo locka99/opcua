@@ -176,13 +176,13 @@ fn monitored_item_data_change_filter() {
     assert_eq!(monitored_item.notification_queue.len(), 0);
 
     // Expect first call to always succeed
-    assert_eq!(monitored_item.tick(&address_space, &now, TickReason::TickTimerFired), true);
+    assert_eq!(monitored_item.tick(&address_space, &now, false), true);
 
     // Expect one item in its queue
     assert_eq!(monitored_item.notification_queue.len(), 1);
 
-    // Expect false on next tick, with the same value
-    assert_eq!(monitored_item.tick(&address_space, &now, TickReason::TickTimerFired), false);
+    // Expect false on next tick, with the same value because no subscription timer has fired
+    assert_eq!(monitored_item.tick(&address_space, &now, false), false);
     assert_eq!(monitored_item.notification_queue.len(), 1);
 
     // adjust variable value
@@ -194,7 +194,9 @@ fn monitored_item_data_change_filter() {
         panic!("Expected a variable, didn't get one!!");
     }
 
-    assert_eq!(monitored_item.tick(&address_space, &now, TickReason::TickTimerFired), true);
+    // Expect change but only when subscription timer elapsed
+    assert_eq!(monitored_item.tick(&address_space, &now, false), false);
+    assert_eq!(monitored_item.tick(&address_space, &now, true), true);
     assert_eq!(monitored_item.notification_queue.len(), 2);
 }
 
@@ -219,7 +221,7 @@ fn populate_monitored_item(discard_oldest: bool) -> MonitoredItem {
 }
 
 fn assert_first_notification_is_i32(monitored_item: &mut MonitoredItem, value: i32) {
-    assert_eq!(monitored_item.remove_first_notification_message().unwrap().value.value.unwrap(), Variant::Int32(value));
+    assert_eq!(monitored_item.oldest_notification_message().unwrap().value.value.unwrap(), Variant::Int32(value));
 }
 
 #[test]

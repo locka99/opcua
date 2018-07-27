@@ -14,7 +14,6 @@ use constants;
 
 use DateTimeUtc;
 use address_space::address_space::AddressSpace;
-use subscriptions::subscription::TickReason;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum FilterType {
@@ -95,35 +94,39 @@ impl MonitoredItem {
     /// the subscriptions and controls the rate.
     ///
     /// Function returns true if a notification message was added to the queue
-    pub fn tick(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, reason: TickReason) -> bool {
-        let check_value = if self.sampling_interval > 0f64 {
-            // Compare sample interval
-            let sampling_interval = time::Duration::milliseconds(self.sampling_interval as i64);
-            let elapsed = (*now).signed_duration_since(self.last_sample_time);
-            elapsed >= sampling_interval
-        } else if self.sampling_interval == 0f64 {
-            // Fastest possible rate, i.e. tick quantum
-            true
-        } else if self.sampling_interval < 0f64 {
-            // If the subscription interval elapsed, then this monitored item is evaluated
-            reason == TickReason::TickTimerFired
-        } else {
-            // Always check on the first tick
-            self.last_data_value.is_none()
-        };
-
-        // Test the value (or don't)
-        if !check_value {
-            return false;
-        }
-
-        // Test if monitoring
+    pub fn tick(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, subscription_interval_elapsed: bool) -> bool {
         if self.monitoring_mode == MonitoringMode::Disabled {
-            return false;
+            false
+        } else {
+            let check_value = if self.last_data_value.is_none() {
+                // Always check on the first tick
+                true
+            } else if self.sampling_interval < 0f64 {
+                // -1 means use the subscription rate so if the subscription interval elapsed,
+                // then this monitored item is evaluated otherwise it won't be.
+                subscription_interval_elapsed
+            } else if self.sampling_interval == 0f64 {
+                // Fastest possible rate, i.e. tick quantum
+                true
+            } else {
+                // Compare sample interval to the time elapsed
+                let sampling_interval = time::Duration::milliseconds(self.sampling_interval as i64);
+                let elapsed = now.signed_duration_since(self.last_sample_time);
+                elapsed >= sampling_interval
+            };
+            // Test the value (or don't)
+            if check_value {
+                // Indicate a change if reporting is enabled
+                let changed = self.check_value(address_space, now);
+                self.monitoring_mode == MonitoringMode::Reporting && changed
+            } else {
+                false
+            }
         }
+    }
 
+    fn check_value(&mut self, address_space: &AddressSpace, now: &DateTimeUtc) -> bool {
         self.last_sample_time = *now;
-
         if let Some(node) = address_space.find_node(&self.item_to_monitor.node_id) {
             let node = node.as_node();
             let attribute_id = AttributeId::from_u32(self.item_to_monitor.attribute_id);
@@ -219,7 +222,7 @@ impl MonitoredItem {
     }
 
     /// Gets the oldest notification message from the notification queue
-    pub fn remove_first_notification_message(&mut self) -> Option<MonitoredItemNotification> {
+    pub fn oldest_notification_message(&mut self) -> Option<MonitoredItemNotification> {
         if self.notification_queue.is_empty() {
             None
         } else {
@@ -230,7 +233,7 @@ impl MonitoredItem {
     }
 
     /// Gets all the notification messages from the queue
-    pub fn remove_all_notification_messages(&mut self) -> Option<Vec<MonitoredItemNotification>> {
+    pub fn all_notification_messages(&mut self) -> Option<Vec<MonitoredItemNotification>> {
         if self.notification_queue.is_empty() {
             None
         } else {
@@ -242,7 +245,7 @@ impl MonitoredItem {
 
     /// Gets the last notification (and discards the remainder to prevent out of sequence events) from
     /// the notification queue.
-    pub fn remove_last_notification_message(&mut self) -> Option<MonitoredItemNotification> {
+    pub fn latest_notification_message(&mut self) -> Option<MonitoredItemNotification> {
         let result = self.notification_queue.pop_back();
         if result.is_some() {
             self.queue_overflow = false;
