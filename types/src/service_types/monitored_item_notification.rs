@@ -10,7 +10,7 @@ use service_types::impls::MessageInfo;
 use node_ids::ObjectId;
 use data_value::DataValue;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MonitoredItemNotification {
     pub client_handle: UInt32,
     pub value: DataValue,

@@ -42,6 +42,8 @@ var basic_types_import_map = {
     "status_codes": ["StatusCode"]
 };
 
+var serde_supported_types = ["ReadValueId", "DataChangeFilter", "MonitoredItemNotification"];
+
 // Contains a flattened reverse lookup of the import map
 var basic_types_reverse_import_map = {}
 _.each(basic_types_import_map, function (types, module) {
@@ -246,9 +248,16 @@ use std::io::{Read, Write};
     if (_.has(structured_type, "documentation")) {
         contents += `/// ${structured_type.documentation}\n`;
     }
-    contents += `#[derive(Debug, Clone, PartialEq)]
+
+    var derivations = "Debug, Clone, PartialEq";
+    if (_.includes(serde_supported_types, structured_type.name)) {
+        derivations += ", Serialize";
+    }
+
+    contents += `#[derive(${derivations})]
 pub struct ${structured_type.name} {
 `;
+
     _.each(structured_type.fields_to_add, function (field) {
         if (!_.includes(structured_type.fields_to_hide, field.name)) {
             contents += `    pub ${field.name}: ${field.type},\n`;

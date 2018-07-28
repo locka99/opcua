@@ -16,7 +16,7 @@ use address_space::address_space::AddressSpace;
 use diagnostics::ServerDiagnostics;
 
 /// The state of the subscription
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize)]
 pub enum SubscriptionState {
     Closed,
     Creating,
@@ -85,7 +85,7 @@ pub enum TickReason {
     TickTimerFired,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Subscription {
     /// Subscription id
     pub subscription_id: UInt32,
@@ -120,7 +120,9 @@ pub struct Subscription {
     last_monitored_item_id: UInt32,
     // The time that the subscription interval last fired
     last_timer_expired_time: DateTimeUtc,
+
     /// Server diagnostics to track creation / destruction / modification of the subscription
+    #[serde(skip)]
     diagnostics: Arc<RwLock<ServerDiagnostics>>,
 }
 
@@ -284,7 +286,6 @@ impl Subscription {
         // to send or state to update
         let notifications_available = notification_message.is_some();
         let result = if notifications_available || publishing_interval_elapsed || publishing_req_queued {
-
             let subscription_state_params = SubscriptionStateParams {
                 publishing_req_queued,
                 notifications_available,

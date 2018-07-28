@@ -7,6 +7,7 @@ use opcua_types::DateTime;
 use comms::transport::Transport;
 use config;
 use server;
+use subscriptions::subscription::Subscription;
 use diagnostics::ServerDiagnostics;
 use state::ServerState;
 
@@ -35,24 +36,6 @@ pub struct Connection {
     pub session_terminated: bool,
     pub session_terminated_at: String,
     pub subscriptions: Vec<Subscription>,
-}
-
-#[derive(Serialize)]
-pub struct Subscription {
-    id: u32,
-    priority: u8,
-    publishing_enabled: bool,
-    publishing_interval: f64,
-    monitored_items: Vec<MonitoredItem>,
-}
-
-#[derive(Serialize)]
-pub struct MonitoredItem {
-    id: u32,
-    item_to_monitor: String,
-    monitoring_mode: u32,
-    client_handle: u32,
-    sampling_interval: f64,
 }
 
 impl ServerMetrics {
@@ -110,27 +93,7 @@ impl ServerMetrics {
 
             // Subscriptions
             let subscriptions = session.subscriptions.subscriptions().iter().map(|subscription_pair| {
-                let subscription = subscription_pair.1;
-
-                // Monitored items
-                let monitored_items = subscription.monitored_items.iter().map(|monitored_item_pair| {
-                    let monitored_item = monitored_item_pair.1;
-                    MonitoredItem {
-                        id: monitored_item.monitored_item_id,
-                        item_to_monitor: format!("{:?}", monitored_item.item_to_monitor, ),
-                        monitoring_mode: monitored_item.monitoring_mode as u32,
-                        client_handle: monitored_item.client_handle,
-                        sampling_interval: monitored_item.sampling_interval,
-                    }
-                }).collect();
-
-                Subscription {
-                    id: subscription.subscription_id,
-                    priority: subscription.priority,
-                    publishing_enabled: subscription.publishing_enabled,
-                    publishing_interval: subscription.publishing_interval,
-                    monitored_items,
-                }
+                subscription_pair.1.clone()
             }).collect();
 
             // session.subscriptions.iterate ...

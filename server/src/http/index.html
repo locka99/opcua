@@ -59,26 +59,33 @@
                     for (var j = 0; j < subscriptions.length; ++j) {
                         var subscription = subscriptions[j];
                         html += "<h2>Subscriptions</h2>";
-                        html += "<h3>Subscription " + subscription["id"] + "</h3>";
+                        html += "<h3>Subscription " + subscription.subscription_id + "</h3>";
                         html += "<table>";
-                        html += "<tr><td>Priority:</td><td>" + subscription["priority"] + "</td></tr>";
-                        html += "<tr><td>Publishing enabled:</td><td>" + subscription["publishing_enabled"] + "</td></tr>";
-                        html += "<tr><td>Publish interval:</td><td>" + subscription["publishing_interval"] + "</td></tr>";
+                        html += "<tr><td>Priority:</td><td>" + subscription.priority + "</td></tr>";
+                        html += "<tr><td>Publishing enabled:</td><td>" + subscription.publishing_enabled + "</td></tr>";
+                        html += "<tr><td>Publishing interval:</td><td>" + subscription.publishing_interval + "ms</td></tr>";
+                        html += "<tr><td>Last Timer Expiration:</td><td>" + subscription.last_timer_expired_time + "</td></tr>";
                         html += "</table>";
 
-                        var monitored_items = subscription["monitored_items"];
+                        var monitored_items = subscription.monitored_items;
                         if (monitored_items.length === 0) {
                             html += "<p>No monitored items</p>";
                         }
                         else {
                             for (var k = 0; k < monitored_items.length; ++k) {
-                                var monitored_item = monitored_items[k];
-                                html += "<h4>Item " + monitored_item["id"] + "</h4>";
+                                var item = monitored_items[k];
+                                html += "<h4>Item " + item.monitored_item_id + "</h4>";
                                 html += "<table>";
-                                html += "<tr><td>Item to monitor:</td><td>" + monitored_item["item_to_monitor"] + "</td></tr>";
-                                html += "<tr><td>Monitoring mode:</td><td>" + monitored_item["monitoring_mode"] + "</td></tr>";
-                                html += "<tr><td>Client handle:</td><td>" + monitored_item["client_handle"] + "</td></tr>";
-                                html += "<tr><td>Sampling interval:</td><td>" + monitored_item["sampling_interval"] + "</td></tr>";
+                                html += "<tr><td>Item to monitor:</td><td>" + JSON.stringify(item.item_to_monitor) + "</td></tr>";
+                                html += "<tr><td>Monitoring mode:</td><td>" + item.monitoring_mode + "</td></tr>";
+                                html += "<tr><td>Client handle:</td><td>" + item.client_handle + "</td></tr>";
+                                html += "<tr><td>Filter:</td><td>" + item.filter + "</td></tr>";
+                                html += "<tr><td>Sampling interval:</td><td>" + item.sampling_interval + "ms</td></tr>";
+                                html += "<tr><td>Discard Oldest:</td><td>" + item.discard_oldest + "</td></tr>";
+                                html += "<tr><td>Queue Size:</td><td>" + item.queue_size + "</td></tr>";
+                                html += "<tr><td>Timestamps to return:</td><td>" + item.timestamps_to_return + "</td></tr>";
+                                html += "<tr><td>Last Sample Time:</td><td>" + item.last_sample_time + "</td></tr>";
+                                html += "<tr><td>Last Value:</td><td>" + JSON.stringify(item.last_data_value) + "</td></tr>";
                                 html += "</table>";
                             }
                         }

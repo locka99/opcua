@@ -77,7 +77,7 @@ impl BinaryEncoder<ApplicationType> for ApplicationType {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize)]
 pub enum TimestampsToReturn {
     Source = 0,
     Server = 1,
@@ -166,7 +166,7 @@ impl NodeClass {
 }
 
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize)]
 pub enum DataChangeTrigger {
     Status = 0,
     StatusValue = 1,

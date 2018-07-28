@@ -12,7 +12,7 @@ use node_id::NodeId;
 use string::UAString;
 use basic_types::QualifiedName;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ReadValueId {
     pub node_id: NodeId,
     pub attribute_id: UInt32,

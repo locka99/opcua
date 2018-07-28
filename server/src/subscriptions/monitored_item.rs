@@ -15,7 +15,7 @@ use constants;
 use DateTimeUtc;
 use address_space::address_space::AddressSpace;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum FilterType {
     None,
     DataChangeFilter(DataChangeFilter),
@@ -37,7 +37,7 @@ impl FilterType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MonitoredItem {
     pub monitored_item_id: UInt32,
     pub item_to_monitor: ReadValueId,

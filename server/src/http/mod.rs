@@ -10,6 +10,7 @@ use hyper::header::ContentType;
 use hyper::server::{Http, NewService, Request, Response, Service};
 use serde_json;
 use server::Connections;
+
 use metrics::ServerMetrics;
 use state::ServerState;
 

@@ -105,7 +105,7 @@ pub type Duration = Double;
 /// UtcTime = 294,
 pub type UtcTime = DateTime;
 
-#[derive(Debug, Clone, PartialEq, Copy)]
+#[derive(Debug, Clone, PartialEq, Copy, Serialize)]
 pub enum MonitoringMode {
     Disabled = 0,
     Sampling = 1,
