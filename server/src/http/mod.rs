@@ -3,6 +3,7 @@ use std::sync::{Arc, RwLock};
 use std::thread;
 
 use futures;
+use futures::{Poll, Async};
 use futures::future::Future;
 use hyper;
 use hyper::{Method, StatusCode};
@@ -91,17 +92,42 @@ impl NewService for MetricsServiceFactory {
     }
 }
 
+struct HttpQuit {
+    server_state: Arc<RwLock<ServerState>>
+}
+
+impl Future for HttpQuit {
+    type Item = ();
+    type Error = ();
+
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        let abort = {
+            let server_state = trace_read_lock_unwrap!(self.server_state);
+            server_state.is_abort()
+        };
+        if abort {
+            Ok(Async::Ready(()))
+        } else {
+            Ok(Async::NotReady)
+        }
+    }
+}
+
 /// Runs an http server on the specified binding address, serving out the supplied server metrics
 pub fn run_http_server(address: &str, server_state: Arc<RwLock<ServerState>>, connections: Arc<RwLock<Connections>>, server_metrics: Arc<RwLock<ServerMetrics>>) -> thread::JoinHandle<()> {
     let address = address.parse().unwrap();
     thread::spawn(move || {
-        // info!("HTTP server is running on {} to provide OPC UA server metrics", address);
+        // This polling action will quit the http server when the OPC UA server aborts
+        let server_should_quit = HttpQuit { server_state: server_state.clone() };
+
+        info!("HTTP server is running on {} to provide OPC UA server metrics", address);
         let metrics_factory = MetricsServiceFactory {
             server_state,
             connections,
             server_metrics,
         };
         let http_server = Http::new().bind(&address, metrics_factory).unwrap();
-        http_server.run().unwrap();
+        http_server.run_until(server_should_quit).unwrap();
+        info!("HTTP server has stopped");
     })
 }

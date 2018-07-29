@@ -18,38 +18,109 @@
         });
     }
 
+    function attribute_id_string(attribute_id) {
+        switch (attribute_id) {
+            case 1:
+                return "NodeId";
+            case 2:
+                return "NodeClass";
+            case 3:
+                return "BrowseName";
+            case 4:
+                return "DisplayName";
+            case 5:
+                return "Description";
+            case 6:
+                return "WriteMask";
+            case 7:
+                return "UserWriteMask";
+            case 8:
+                return "IsAbstract";
+            case 9:
+                return "Symmetric";
+            case 10:
+                return "InverseName";
+            case 11:
+                return "ContainsNoLoops";
+            case 12:
+                return "EventNotifier";
+            case 13:
+                return "Value";
+            case 14:
+                return "DataType";
+            case 15:
+                return "ValueRank";
+            case 16:
+                return "ArrayDimensions";
+            case 17:
+                return "AccessLevel";
+            case 18:
+                return "UserAccessLevel";
+            case 19:
+                return "MinimumSamplingInterval";
+            case 20:
+                return "Historizing";
+            case 21:
+                return "Executable";
+            case 22:
+                return "UserExecutable";
+            default:
+                return "Unknown";
+        }
+    }
+
+    function node_id_str(node_id) {
+        var identifier = node_id.identifier;
+        if (identifier["String"]) {
+            return `ns=${node_id.namespace};s=${identifier["String"].value}`;
+        }
+        else if (identifier["Numeric"]) {
+            return `ns=${node_id.namespace};i=${identifier["Numeric"]}`;
+        }
+        else if (identifier["Guid"]) {
+            return `ns=${node_id.namespace};g=${identifier["Guid"].value}`;
+        }
+        else if (identifier["ByteString"]) {
+            return `ns=${node_id.namespace};b=......`;
+        }
+        else {
+            return `Invalid node id`
+        }
+    }
+
     function fillMetrics(json) {
         var html = "";
 
-        html += "<h1>Server</h1>";
+        html += `<h1 class='server'>Server</h1>`;
 
         var server = json["server"];
         var config = json["config"];
 
-        html += "<table>";
-        html += "<tr><td>Server name:</td><td>" + config["application_name"] + "</td></tr>";
-        html += "<tr><td>Server URI:</td><td>" + config["application_uri"] + "</td></tr>";
-        html += "<tr><td>Start Time</td><td>" + new Date(server["start_time"]).toString() + "</td></tr>";
-        html += "<tr><td>Uptime (MS)</td><td>" + server["uptime_ms"] + "</td></tr>";
+        html += `<table>
+<tr><td>Server name:</td><td>${config["application_name"]}</td></tr>
+<tr><td>Server URI:</td><td>${config["application_uri"]}</td></tr>
+<tr><td>Start Time</td><td>${new Date(server["start_time"]).toString()}</td></tr>
+<tr><td>Uptime (MS)</td><td>${server["uptime_ms"]}</td></tr>
+</table>
+`;
         // ip address etc.
-        html += "</table>";
 
         // Sessions
         var connections = json["connections"];
-        html += "<h1>Client connections</h1>";
+        html += "<h1 class='connections'>Client connections</h1>";
         if (connections.length === 0) {
             html += "<p>No connections</p>";
         }
         else {
             connections.forEach(function (connection) {
-                html += "<h2>Client " + connection["id"] + "</h2>";
-                html += "<table>";
-                html += "<tr><td>Client address:</td><td>" + connection["client_address"] + "</td></tr>";
-                html += "<tr><td>Transport state:</td><td>" + connection["transport_state"] + "</td></tr>";
-                html += "<tr><td>Session activated:</td><td>" + connection["session_activated"] + "</td></tr>";
-                html += "<tr><td>Session terminated:</td><td>" + connection["session_terminated"] + "</td></tr>";
-                html += "<tr><td>Session terminated at:</td><td>" + connection["session_terminated_at"] + "</td></tr>";
-                html += "</table>";
+                html += `<h2>Client${connection["id"]}</h2>
+<table>
+<tr><td>Client address:</td><td>${connection["client_address"]}</td></tr>
+<tr><td>Transport state:</td><td>${connection["transport_state"]}</td></tr>
+<tr><td>Session activated:</td><td>${connection["session_activated"]}</td></tr>
+<tr><td>Session terminated:</td><td>${connection["session_terminated"]}</td></tr>
+<tr><td>Session terminated at:</td><td>${connection["session_terminated_at"]}</td></tr>
+</table>`;
 
                 // Subscriptions
                 var subscriptions = connection["subscriptions"];
@@ -58,14 +129,14 @@
                 }
                 else {
                     subscriptions.forEach(function (subscription) {
-                        html += "<h2>Subscriptions</h2>";
-                        html += "<h3>Subscription " + subscription.subscription_id + "</h3>";
-                        html += "<table>";
-                        html += "<tr><td>Priority:</td><td>" + subscription.priority + "</td></tr>";
-                        html += "<tr><td>Publishing enabled:</td><td>" + subscription.publishing_enabled + "</td></tr>";
-                        html += "<tr><td>Publishing interval:</td><td>" + subscription.publishing_interval + "ms</td></tr>";
-                        html += "<tr><td>Last Timer Expiration:</td><td>" + subscription.last_timer_expired_time + "</td></tr>";
-                        html += "</table>";
+                        html += `<h2 class='subscriptions'>Subscriptions</h2>
+<h3>Subscription ${subscription.subscription_id}</h3>
+<table>
+<tr><td>Priority:</td><td>${subscription.priority}</td></tr>
+<tr><td>Publishing enabled:</td><td>${subscription.publishing_enabled}</td></tr>
+<tr><td>Publishing interval:</td><td>${subscription.publishing_interval}ms</td></tr>
+<tr><td>Last Timer Expiration:</td><td>${subscription.last_timer_expired_time}</td></tr>
+</table>`;
 
                         var monitored_items = subscription.monitored_items;
                         if (monitored_items.length === 0) {
@@ -74,19 +145,19 @@
                         else {
                             Object.keys(monitored_items).forEach(function (key) {
                                 var item = monitored_items[key];
-                                html += "<h4>Item " + item.monitored_item_id + "</h4>";
-                                html += "<table>";
-                                html += "<tr><td>Item to monitor:</td><td>" + JSON.stringify(item.item_to_monitor) + "</td></tr>";
-                                html += "<tr><td>Monitoring mode:</td><td>" + item.monitoring_mode + "</td></tr>";
-                                html += "<tr><td>Client handle:</td><td>" + item.client_handle + "</td></tr>";
-                                html += "<tr><td>Filter:</td><td>" + item.filter + "</td></tr>";
-                                html += "<tr><td>Sampling interval:</td><td>" + item.sampling_interval + "ms</td></tr>";
-                                html += "<tr><td>Discard Oldest:</td><td>" + item.discard_oldest + "</td></tr>";
-                                html += "<tr><td>Queue Size:</td><td>" + item.queue_size + "</td></tr>";
-                                html += "<tr><td>Timestamps to return:</td><td>" + item.timestamps_to_return + "</td></tr>";
-                                html += "<tr><td>Last Sample Time:</td><td>" + item.last_sample_time + "</td></tr>";
-                                html += "<tr><td>Last Value:</td><td>" + JSON.stringify(item.last_data_value) + "</td></tr>";
-                                html += "</table>";
+                                html += `<h4 class='monitoreditems'>Item ${item.monitored_item_id}</h4>
+<table>
+<tr><td>Item to monitor:</td><td>${node_id_str(item.item_to_monitor.node_id)} / ${attribute_id_string(item.item_to_monitor.attribute_id)}</td></tr>
+<tr><td>Monitoring mode:</td><td>${item.monitoring_mode}</td></tr>
+<tr><td>Client handle:</td><td>${item.client_handle}</td></tr>
+<tr><td>Filter:</td><td>${item.filter}</td></tr>
+<tr><td>Sampling interval:</td><td>${item.sampling_interval}ms</td></tr>
+<tr><td>Discard Oldest:</td><td>${item.discard_oldest}</td></tr>
+<tr><td>Queue Size:</td><td>${item.queue_size}</td></tr>
+<tr><td>Timestamps to return:</td><td>${item.timestamps_to_return}</td></tr>
+<tr><td>Last Sample Time:</td><td>${item.last_sample_time}</td></tr>
+<tr><td>Last Value:</td><td>${JSON.stringify(item.last_data_value)}</td></tr>
+</table>`;
                             });
                         }
                     });
