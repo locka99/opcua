@@ -93,7 +93,9 @@ impl ServerMetrics {
 
             // Subscriptions
             let subscriptions = session.subscriptions.subscriptions().iter().map(|subscription_pair| {
-                subscription_pair.1.clone()
+                let mut subscription = subscription_pair.1.clone();
+                subscription.diagnostics_on_drop = false;
+                subscription
             }).collect();
 
             // session.subscriptions.iterate ...

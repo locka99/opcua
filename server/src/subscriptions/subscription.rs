@@ -120,16 +120,20 @@ pub struct Subscription {
     last_monitored_item_id: UInt32,
     // The time that the subscription interval last fired
     last_timer_expired_time: DateTimeUtc,
-
     /// Server diagnostics to track creation / destruction / modification of the subscription
     #[serde(skip)]
     diagnostics: Arc<RwLock<ServerDiagnostics>>,
+    /// Stops the subscription calling diagnostics on drop
+    #[serde(skip)]
+    pub diagnostics_on_drop: bool
 }
 
 impl Drop for Subscription {
     fn drop(&mut self) {
-        let mut diagnostics = trace_write_lock_unwrap!(self.diagnostics);
-        diagnostics.on_destroy_subscription(self);
+        if self.diagnostics_on_drop {
+            let mut diagnostics = trace_write_lock_unwrap!(self.diagnostics);
+            diagnostics.on_destroy_subscription(self);
+        }
     }
 }
 
@@ -152,6 +156,7 @@ impl Subscription {
             last_monitored_item_id: 0,
             last_timer_expired_time: chrono::Utc::now(),
             diagnostics,
+            diagnostics_on_drop: true
         };
         {
             let mut diagnostics = trace_write_lock_unwrap!(subscription.diagnostics);

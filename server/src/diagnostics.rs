@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use opcua_types::UInt32;
 
 use subscriptions::subscription::Subscription;
@@ -8,7 +10,7 @@ use session::Session;
 pub struct ServerDiagnostics {
     pub session_count: UInt32,
     pub session_count_cumulative: UInt32,
-    pub subscription_count: UInt32,
+    pub active_subscriptions: HashSet<UInt32>,
     pub subscription_count_cumulative: UInt32,
 }
 
@@ -17,7 +19,7 @@ impl ServerDiagnostics {
         ServerDiagnostics {
             session_count: 0,
             session_count_cumulative: 0,
-            subscription_count: 0,
+            active_subscriptions: HashSet::new(),
             subscription_count_cumulative: 0,
         }
     }
@@ -31,13 +33,13 @@ impl ServerDiagnostics {
         self.session_count -= 1;
     }
 
-    pub fn on_create_subscription(&mut self, _subscription: &Subscription) {
-        self.subscription_count += 1;
+    pub fn on_create_subscription(&mut self, subscription: &Subscription) {
+        self.active_subscriptions.insert(subscription.subscription_id);
         self.subscription_count_cumulative += 1;
     }
 
-    pub fn on_destroy_subscription(&mut self, _subscription: &Subscription) {
-        self.subscription_count -= 1;
+    pub fn on_destroy_subscription(&mut self, subscription: &Subscription) {
+        let _ = self.active_subscriptions.remove(&subscription.subscription_id);
     }
 }
 

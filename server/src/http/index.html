@@ -6,6 +6,8 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 </head>
 <body onload="requestMetrics()">
+<style>
+</style>
 <script>
     function requestMetrics() {
         // JQuery request to "/metrics"
@@ -39,8 +41,7 @@
             html += "<p>No connections</p>";
         }
         else {
-            for (var i = 0; i < connections.length; ++i) {
-                var connection = connections[i];
+            connections.forEach(function (connection) {
                 html += "<h2>Client " + connection["id"] + "</h2>";
                 html += "<table>";
                 html += "<tr><td>Client address:</td><td>" + connection["client_address"] + "</td></tr>";
@@ -56,8 +57,7 @@
                     html += "<p>No subscriptions</p>";
                 }
                 else {
-                    for (var j = 0; j < subscriptions.length; ++j) {
-                        var subscription = subscriptions[j];
+                    subscriptions.forEach(function (subscription) {
                         html += "<h2>Subscriptions</h2>";
                         html += "<h3>Subscription " + subscription.subscription_id + "</h3>";
                         html += "<table>";
@@ -72,8 +72,8 @@
                             html += "<p>No monitored items</p>";
                         }
                         else {
-                            for (var k = 0; k < monitored_items.length; ++k) {
-                                var item = monitored_items[k];
+                            Object.keys(monitored_items).forEach(function (key) {
+                                var item = monitored_items[key];
                                 html += "<h4>Item " + item.monitored_item_id + "</h4>";
                                 html += "<table>";
                                 html += "<tr><td>Item to monitor:</td><td>" + JSON.stringify(item.item_to_monitor) + "</td></tr>";
@@ -87,11 +87,11 @@
                                 html += "<tr><td>Last Sample Time:</td><td>" + item.last_sample_time + "</td></tr>";
                                 html += "<tr><td>Last Value:</td><td>" + JSON.stringify(item.last_data_value) + "</td></tr>";
                                 html += "</table>";
-                            }
+                            });
                         }
-                    }
+                    });
                 }
-            }
+            });
         }
         $("#metrics").html(html);
     }
