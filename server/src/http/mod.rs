@@ -1,94 +1,60 @@
-use std::io;
 use std::sync::{Arc, RwLock};
 use std::thread;
 
-use futures;
 use futures::{Poll, Async};
 use futures::future::Future;
-use hyper;
-use hyper::{Method, StatusCode};
-use hyper::header::ContentType;
-use hyper::server::{Http, NewService, Request, Response, Service};
-use serde_json;
+use hyper::{Server, Request, Response, Body};
+use hyper::service::service_fn_ok;
+use hyper::rt;
 use server::Connections;
 
 use metrics::ServerMetrics;
 use state::ServerState;
 
 /// This is our metrics service, the thing called to handle requests coming from hyper
-struct MetricsService {
+#[derive(Clone)]
+struct HttpState {
     server_state: Arc<RwLock<ServerState>>,
     connections: Arc<RwLock<Connections>>,
     server_metrics: Arc<RwLock<ServerMetrics>>,
 }
 
-impl MetricsService {
-    fn new(server_state: Arc<RwLock<ServerState>>, connections: Arc<RwLock<Connections>>, server_metrics: Arc<RwLock<ServerMetrics>>) -> MetricsService {
-        MetricsService {
-            server_state,
-            connections,
-            server_metrics,
+fn http(state: &HttpState, req: Request<Body>) -> Response<Body> {
+    let mut builder = Response::builder();
+    match (req.method(), req.uri().path()) {
+        (&Method::GET, "/") => {
+            let content = include_str!("index.html");
+            builder
+                .body(content.into())
+                .unwrap()
         }
-    }
-}
-
-impl Service for MetricsService {
-    // boilerplate hooking up hyper's server types
-    type Request = Request;
-    type Response = Response;
-    type Error = hyper::Error;
-
-    // The future representing the eventual Response the call will resolve to
-    type Future = Box<Future<Item=Self::Response, Error=Self::Error>>;
-
-    fn call(&self, req: Request) -> Self::Future {
-        let mut response = Response::new();
-        match (req.method(), req.path()) {
-            (&Method::Get, "/") => {
-                let content = include_str!("index.html");
-                response.set_body(content);
-            }
-            (&Method::Get, "/metrics") => {
-                use std::ops::Deref;
-                // Send metrics data as json
-                let json = {
-                    let mut server_metrics = self.server_metrics.write().unwrap();
-                    {
-                        let server_state = self.server_state.read().unwrap();
-                        server_metrics.update_from_server_state(&server_state);
-                    }
-                    {
-                        let connections = self.connections.read().unwrap();
-                        let connections = connections.deref();
-                        server_metrics.update_from_connections(connections);
-                    }
-                    serde_json::to_string_pretty(server_metrics.deref()).unwrap()
-                };
-                response.headers_mut().set(ContentType::json());
-                response.set_body(json);
-            }
-            _ => {
-                response.set_status(StatusCode::NotFound);
-            }
+        (&Method::GET, "/metrics") => {
+            use std::ops::Deref;
+            // Send metrics data as json
+            let json = {
+                let mut server_metrics = state.server_metrics.write().unwrap();
+                {
+                    let server_state = state.server_state.read().unwrap();
+                    server_metrics.update_from_server_state(&server_state);
+                }
+                {
+                    let connections = state.connections.read().unwrap();
+                    let connections = connections.deref();
+                    server_metrics.update_from_connections(connections);
+                }
+                serde_json::to_string_pretty(server_metrics.deref()).unwrap()
+            };
+            builder
+                .header(hyper::header::CONTENT_TYPE, "text/json")
+                .body(json.into())
+                .unwrap()
         }
-        Box::new(futures::future::ok(response))
-    }
-}
-
-struct MetricsServiceFactory {
-    server_state: Arc<RwLock<ServerState>>,
-    connections: Arc<RwLock<Connections>>,
-    server_metrics: Arc<RwLock<ServerMetrics>>,
-}
-
-impl NewService for MetricsServiceFactory {
-    type Request = Request;
-    type Response = Response;
-    type Error = hyper::Error;
-    type Instance = MetricsService;
-
-    fn new_service(&self) -> io::Result<Self::Instance> {
-        Ok(MetricsService::new(self.server_state.clone(), self.connections.clone(), self.server_metrics.clone()))
+        _ => {
+            builder
+                .status(StatusCode::NOT_FOUND)
+                .body(Body::empty())
+                .unwrap()
+        }
     }
 }
 
@@ -120,14 +86,26 @@ pub fn run_http_server(address: &str, server_state: Arc<RwLock<ServerState>>, co
         // This polling action will quit the http server when the OPC UA server aborts
         let server_should_quit = HttpQuit { server_state: server_state.clone() };
 
-        info!("HTTP server is running on {} to provide OPC UA server metrics", address);
-        let metrics_factory = MetricsServiceFactory {
+        let http_state = HttpState {
             server_state,
             connections,
             server_metrics,
         };
-        let http_server = Http::new().bind(&address, metrics_factory).unwrap();
-        http_server.run_until(server_should_quit).unwrap();
+
+        info!("HTTP server is running on {} to provide OPC UA server metrics", address);
+        let new_service = move || {
+            let http_state = http_state.clone();
+            service_fn_ok(move |req| http(&http_state, req))
+        };
+
+        let http_server = Server::bind(&address)
+            .serve(new_service)
+            .map_err(|e| error!("Http server error: {}", e));
+
+        rt::run(http_server);
+
+        // http_server.run_until(server_should_quit).unwrap();
+
         info!("HTTP server has stopped");
     })
 }
