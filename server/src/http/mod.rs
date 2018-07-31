@@ -3,11 +3,13 @@ use std::thread;
 
 use futures::{Poll, Async};
 use futures::future::Future;
-use hyper::{Server, Request, Response, Body};
+use hyper;
+use hyper::{Server, Request, Response, Body, Method, StatusCode};
 use hyper::service::service_fn_ok;
 use hyper::rt;
-use server::Connections;
+use serde_json;
 
+use server::Connections;
 use metrics::ServerMetrics;
 use state::ServerState;
 
