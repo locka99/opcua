@@ -1,6 +1,8 @@
 # Changelog
 
 ASPIRATIONAL - a short list of things that would be nice to implement in the near future
+  - Rust 2018. From 0.5 onwards, the project will move to Rust 2018. That generally means removing extern crate
+    keywords, cleaning up match statements, simplified futures and other improvements. 
   - Fix subscription publish lost notifications.
   - Diagnostics.
   - Session restore after disconnect in server.
@@ -15,6 +17,7 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
     - Changes to codebase for more idiomatic Rust, e.g. replacing lots of loops with iterators, providing
       `Into<Foo>` implementations instead of a multitude of constructors.
     - Certificate creator tool has new arguments to set application uri and control alternate DNS names.
+    - Updates to various dependencies.
   - Client side
     - Implements client side encryption for security policies & modes other than None.
     - Moved discovery / endpoints / connection into a helper fn
@@ -33,7 +36,7 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
       and things go haywire and consume a lot of CPU.
     - The server api provides a basic web api which can be enabled through code and the compile feature `http`.
       See the demo_server/ sample which starts a server on localhost:8585
-    - Finer grained locking has been used around access to structures where only read access is required
+    - Finer grained locking has been used around access to structures where only read access is required.
     - The server implements the OPC UA `Method::Call()` service and `GetMonitoredItems`. Add a callback framework to 
       address space allowing other methods to be implemented.
    - Samples
@@ -45,7 +48,7 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
     - Now sets the application uri and alt hostnames properly and has new arguments to control how alt hostnames are
       added.
    - Testing
-    - More unit tests
+    - More unit tests.
     - `integration` is a new integration testing suite that allows the code to create a server and then connect to it
       from a client. This has to be run manually and is not part of the standard `cargo test`. Refer to `integration/README.md`.
 
