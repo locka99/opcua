@@ -1,24 +1,28 @@
 use std::io::{Read, Write};
 
+use ::StatusCodeBits;
 use encoding::*;
 use basic_types::*;
 use date_time::*;
 use variant::Variant;
-use status_codes::StatusCode;
 use status_codes::StatusCode::Good;
 
-/// False if the Value is Null.
-const HAS_VALUE: u8 = 0x1;
-/// False if the StatusCode is Good.
-const HAS_STATUS: u8 = 0x2;
-/// False if the Source Timestamp is DateTime.MinValue.
-const HAS_SOURCE_TIMESTAMP: u8 = 0x4;
-/// False if the Server Timestamp is DateTime.MinValue.
-const HAS_SERVER_TIMESTAMP: u8 = 0x8;
-/// False if the Source Picoseconds is 0.
-const HAS_SOURCE_PICOSECONDS: u8 = 0x10;
-/// False if the Server Picoseconds is 0.
-const HAS_SERVER_PICOSECONDS: u8 = 0x20;
+bitflags! {
+    struct DataValueFlags: u8 {
+        /// False if the Value is Null.
+        const HAS_VALUE = 0x1;
+        /// False if the StatusCode is Good.
+        const HAS_STATUS = 0x2;
+        /// False if the Source Timestamp is DateTime.MinValue.
+        const HAS_SOURCE_TIMESTAMP = 0x4;
+        /// False if the Server Timestamp is DateTime.MinValue.
+        const HAS_SERVER_TIMESTAMP = 0x8;
+        /// False if the Source Picoseconds is 0.
+        const HAS_SOURCE_PICOSECONDS = 0x10;
+        /// False if the Server Picoseconds is 0.
+        const HAS_SERVER_PICOSECONDS = 0x20;
+    }
+}
 
 /// Data type ID 23
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -28,7 +32,8 @@ pub struct DataValue {
     pub value: Option<Variant>,
     /// The status associated with the value.
     /// Not present if the StatusCode bit in the EncodingMask is False
-    pub status: Option<StatusCode>,
+    /// Note we don't use StatusCode enum because extra bits can be set on the value
+    pub status: Option<UInt32>,
     /// The source timestamp associated with the value.
     /// Not present if the SourceTimestamp bit in the EncodingMask is False.
     pub source_timestamp: Option<DateTime>,
@@ -49,21 +54,21 @@ impl BinaryEncoder<DataValue> for DataValue {
     fn byte_len(&self) -> usize {
         let mut size = 1;
         let encoding_mask = self.encoding_mask();
-        if encoding_mask & HAS_VALUE != 0 {
+        if encoding_mask.contains(DataValueFlags::HAS_VALUE) {
             size += self.value.as_ref().unwrap().byte_len();
         }
-        if encoding_mask & HAS_STATUS != 0 {
+        if encoding_mask.contains(DataValueFlags::HAS_STATUS) {
             size += self.status.as_ref().unwrap().byte_len();
         }
-        if encoding_mask & HAS_SOURCE_TIMESTAMP != 0 {
+        if encoding_mask.contains(DataValueFlags::HAS_SOURCE_TIMESTAMP) {
             size += self.source_timestamp.as_ref().unwrap().byte_len();
-            if encoding_mask & HAS_SOURCE_PICOSECONDS != 0 {
+            if encoding_mask.contains(DataValueFlags::HAS_SOURCE_PICOSECONDS) {
                 size += self.source_picoseconds.as_ref().unwrap().byte_len();
             }
         }
-        if encoding_mask & HAS_SERVER_TIMESTAMP != 0 {
+        if encoding_mask.contains(DataValueFlags::HAS_SERVER_TIMESTAMP) {
             size += self.server_timestamp.as_ref().unwrap().byte_len();
-            if encoding_mask & HAS_SERVER_PICOSECONDS != 0 {
+            if encoding_mask.contains(DataValueFlags::HAS_SERVER_PICOSECONDS) {
                 size += self.server_picoseconds.as_ref().unwrap().byte_len();
             }
         }
@@ -74,23 +79,23 @@ impl BinaryEncoder<DataValue> for DataValue {
         let mut size = 0;
 
         let encoding_mask = self.encoding_mask();
-        size += encoding_mask.encode(stream)?;
+        size += encoding_mask.bits.encode(stream)?;
 
-        if encoding_mask & HAS_VALUE != 0 {
+        if encoding_mask.contains(DataValueFlags::HAS_VALUE) {
             size += self.value.as_ref().unwrap().encode(stream)?;
         }
-        if encoding_mask & HAS_STATUS != 0 {
+        if encoding_mask.contains(DataValueFlags::HAS_STATUS) {
             size += self.status.as_ref().unwrap().encode(stream)?;
         }
-        if encoding_mask & HAS_SOURCE_TIMESTAMP != 0 {
+        if encoding_mask.contains(DataValueFlags::HAS_SOURCE_TIMESTAMP) {
             size += self.source_timestamp.as_ref().unwrap().encode(stream)?;
-            if encoding_mask & HAS_SOURCE_PICOSECONDS != 0 {
+            if encoding_mask.contains(DataValueFlags::HAS_SOURCE_PICOSECONDS) {
                 size += self.source_picoseconds.as_ref().unwrap().encode(stream)?;
             }
         }
-        if encoding_mask & HAS_SERVER_TIMESTAMP != 0 {
+        if encoding_mask.contains(DataValueFlags::HAS_SERVER_TIMESTAMP) {
             size += self.server_timestamp.as_ref().unwrap().encode(stream)?;
-            if encoding_mask & HAS_SERVER_PICOSECONDS != 0 {
+            if encoding_mask.contains(DataValueFlags::HAS_SERVER_PICOSECONDS) {
                 size += self.server_picoseconds.as_ref().unwrap().encode(stream)?;
             }
         }
@@ -98,40 +103,40 @@ impl BinaryEncoder<DataValue> for DataValue {
     }
 
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let encoding_mask = Byte::decode(stream)?;
+        let encoding_mask = DataValueFlags::from_bits_truncate(Byte::decode(stream)?);
 
         // Value
-        let value = if encoding_mask & HAS_VALUE != 0 {
+        let value = if encoding_mask.contains(DataValueFlags::HAS_VALUE) {
             Some(Variant::decode(stream)?)
         } else {
             None
         };
 
         // Status
-        let status = if encoding_mask & HAS_STATUS != 0 {
-            Some(StatusCode::decode(stream)?)
+        let status = if encoding_mask.contains(DataValueFlags::HAS_STATUS) {
+            Some(UInt32::decode(stream)?)
         } else {
             None
         };
 
         // Source timestamp
-        let source_timestamp = if encoding_mask & HAS_SOURCE_TIMESTAMP != 0 {
+        let source_timestamp = if encoding_mask.contains(DataValueFlags::HAS_SOURCE_TIMESTAMP) {
             Some(DateTime::decode(stream)?)
         } else {
             None
         };
-        let source_picoseconds = if encoding_mask & HAS_SOURCE_PICOSECONDS != 0 {
+        let source_picoseconds = if encoding_mask.contains(DataValueFlags::HAS_SOURCE_PICOSECONDS) {
             Some(Int16::decode(stream)?)
         } else {
             None
         };
         // Server timestamp
-        let server_timestamp = if encoding_mask & HAS_SERVER_TIMESTAMP != 0 {
+        let server_timestamp = if encoding_mask.contains(DataValueFlags::HAS_SERVER_TIMESTAMP) {
             Some(DateTime::decode(stream)?)
         } else {
             None
         };
-        let server_picoseconds = if encoding_mask & HAS_SERVER_PICOSECONDS != 0 {
+        let server_picoseconds = if encoding_mask.contains(DataValueFlags::HAS_SERVER_PICOSECONDS) {
             Some(Int16::decode(stream)?)
         } else {
             None
@@ -160,7 +165,7 @@ impl DataValue {
         let now = DateTime::now();
         DataValue {
             value: Some(value.into()),
-            status: Some(Good),
+            status: Some(Good as UInt32),
             source_timestamp: Some(now.clone()),
             source_picoseconds: Some(0),
             server_timestamp: Some(now.clone()),
@@ -189,43 +194,39 @@ impl DataValue {
         self.server_picoseconds = Some(0);
     }
 
-    /// Returns the status of the data value or Good
-    /// if there is no status.
-    pub fn status(&self) -> StatusCode {
+    /// Returns the status code as a UInt32
+    pub fn status(&self) -> UInt32 {
         if let Some(ref status) = self.status {
             *status
         } else {
-            // TODO - for monitored items, it's probably a good idea to make the return type
-            // an Option<StatusCode> and allow the caller to figure what to do in that case because
-            // the previous status may apply in that case
-            StatusCode::Good
+            0
         }
     }
 
     /// Test if the value held by this data value is known to be good
     /// Anything other than Good is assumed to be invalid.
     pub fn is_valid(&self) -> bool {
-        self.status().is_good()
+        (self.status() & StatusCodeBits::STATUS_MASK.bits) == 0
     }
 
-    fn encoding_mask(&self) -> Byte {
-        let mut encoding_mask: Byte = 0;
+    fn encoding_mask(&self) -> DataValueFlags {
+        let mut encoding_mask = DataValueFlags::empty();
         if self.value.is_some() {
-            encoding_mask |= HAS_VALUE;
+            encoding_mask |= DataValueFlags::HAS_VALUE;
         }
         if self.status.is_some() {
-            encoding_mask |= HAS_STATUS;
+            encoding_mask |= DataValueFlags::HAS_STATUS;
         }
         if self.source_timestamp.is_some() {
-            encoding_mask |= HAS_SOURCE_TIMESTAMP;
+            encoding_mask |= DataValueFlags::HAS_SOURCE_TIMESTAMP;
             if self.source_picoseconds.is_some() {
-                encoding_mask |= HAS_SOURCE_PICOSECONDS;
+                encoding_mask |= DataValueFlags::HAS_SOURCE_PICOSECONDS;
             }
         }
         if self.server_timestamp.is_some() {
-            encoding_mask |= HAS_SERVER_TIMESTAMP;
+            encoding_mask |= DataValueFlags::HAS_SERVER_TIMESTAMP;
             if self.server_picoseconds.is_some() {
-                encoding_mask |= HAS_SERVER_PICOSECONDS;
+                encoding_mask |= DataValueFlags::HAS_SERVER_PICOSECONDS;
             }
         }
         encoding_mask

@@ -62,21 +62,21 @@ fn read_test() {
         let results = response.results.unwrap();
 
         // 1. a variable
-        assert_eq!(results[0].status.as_ref().unwrap(), &Good);
+        assert_eq!(results[0].status.as_ref().unwrap(), &(Good as u32));
         assert_eq!(results[0].value.as_ref().unwrap(), &Variant::Int32(0));
 
         // 2. an attribute other than value (access level)
-        assert_eq!(results[1].status.as_ref().unwrap(), &Good);
+        assert_eq!(results[1].status.as_ref().unwrap(), &(Good as u32));
         assert_eq!(results[1].value.as_ref().unwrap(), &Variant::Byte(1));
 
         // 3. a variable without the required attribute
-        assert_eq!(results[2].status.as_ref().unwrap(), &BadAttributeIdInvalid);
+        assert_eq!(results[2].status.as_ref().unwrap(), &(BadAttributeIdInvalid as u32));
 
         // 4. a variable with no read access
-        assert_eq!(results[3].status.as_ref().unwrap(), &BadNotReadable);
+        assert_eq!(results[3].status.as_ref().unwrap(), &(BadNotReadable as u32));
 
         // 5. Non existent
-        assert_eq!(results[4].status.as_ref().unwrap(), &BadNodeIdUnknown);
+        assert_eq!(results[4].status.as_ref().unwrap(), &(BadNodeIdUnknown as u32));
     }
 
 

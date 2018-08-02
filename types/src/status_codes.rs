@@ -5,6 +5,7 @@ use std;
 use std::io::{Read, Write};
 
 use encoding::*;
+use StatusCodeBits;
 
 #[derive(PartialEq, Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum StatusCode {
@@ -236,6 +237,13 @@ pub enum StatusCode {
     BadTooManyArguments = 0x80E50000,
     BadSecurityModeInsufficient = 0x80E60000,
     BadCertificateChainIncomplete = 0x810D0000,
+}
+
+
+impl Into<u32> for StatusCode {
+    fn into(self) -> u32 {
+        self as u32
+    }
 }
 
 impl BinaryEncoder<StatusCode> for StatusCode {
@@ -739,8 +747,9 @@ impl StatusCode {
     }
 
     /// Takes an OPC UA status code as a UInt32 and returns the matching StatusCode, assuming there is one
+    /// Note that this is lossy since any bits associated with the status code will be ignored.
     pub fn from_u32(code: u32) -> std::result::Result<StatusCode, ()> {
-        match code {
+        match code & StatusCodeBits::STATUS_MASK.bits {
             0 => Ok(StatusCode::Good),
             0x002D0000 => Ok(StatusCode::GoodSubscriptionTransferred),
             0x002E0000 => Ok(StatusCode::GoodCompletesAsynchronously),
@@ -971,6 +980,10 @@ impl StatusCode {
             0x810D0000 => Ok(StatusCode::BadCertificateChainIncomplete),
             _ => Err(())
         }
+    }
+    
+    pub fn with_bits(&self, bits: StatusCodeBits) -> u32 {
+        bits.bits & *self as u32
     }
 
     /// Takes an OPC UA status code as a string and returns the matching StatusCode - assuming there is one

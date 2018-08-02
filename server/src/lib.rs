@@ -76,10 +76,6 @@ pub mod constants {
     pub const MIN_PUBLISHING_INTERVAL: Double = 0.05f64;
     /// Minimum sampling interval in seconds allowed by clients on subscriptions or monitored_items
     pub const MIN_SAMPLING_INTERVAL: Double = 0.05f64;
-    /// Default data change queue size
-    pub const DEFAULT_DATA_CHANGE_QUEUE_SIZE: usize = 1;
-    /// Minimum data change queue allowed by clients on monitored items
-    pub const MIN_DATA_CHANGE_QUEUE_SIZE: usize = 1;
     /// Maximum data change queue allowed by clients on monitored items
     pub const MAX_DATA_CHANGE_QUEUE_SIZE: usize = 10;
     /// The default size of preallocated vecs of monitored items per subscription

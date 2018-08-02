@@ -22,14 +22,10 @@ const BOARD_SQUARES: [&'static str; 64] = [
     "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
 ];
 
-#[cfg(any(not(windows)))]
 fn default_engine_path() -> String {
-    String::from("stockfish")
-}
-
-#[cfg(any(windows))]
-fn default_engine_path() -> String {
-    String::from("stockfish_8_x32.exe")
+    // This is the default chess engine that will be launched absent of one being passed on the
+    // command line.
+    String::from(if cfg!(windows) { "stockfish_9_x32.exe" } else { "stockfish" })
 }
 
 fn main() {

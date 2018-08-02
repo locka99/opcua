@@ -345,9 +345,9 @@ impl Subscription {
         let mut monitored_item_notifications = Vec::new();
         for (_, monitored_item) in &mut self.monitored_items {
             if monitored_item.tick(address_space, now, publishing_interval_elapsed) {
-                // Take the monitored item's latest notification
-                if let Some(notification_message) = monitored_item.latest_notification_message() {
-                    monitored_item_notifications.push(notification_message);
+                // Take all of the monitored item's pending notifications
+                if let Some(mut messages) = monitored_item.all_notification_messages() {
+                    monitored_item_notifications.append(&mut messages);
                 }
             }
         }
@@ -426,7 +426,6 @@ impl Subscription {
                 // State #2
                 // CreateSubscription fails, return negative response
                 // Handled in message handler
-
                 // State #3
                 self.state = SubscriptionState::Normal;
                 self.message_sent = false;

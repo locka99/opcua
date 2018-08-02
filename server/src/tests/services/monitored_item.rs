@@ -68,11 +68,11 @@ fn data_change_filter_test() {
     assert_eq!(filter.compare(&v1, &v2, None), true);
 
     // Change v1 status
-    v1.status = Some(Good);
+    v1.status = Some(Good as u32);
     assert_eq!(filter.compare(&v1, &v2, None), false);
 
     // Change v2 status
-    v2.status = Some(Good);
+    v2.status = Some(Good as u32);
     assert_eq!(filter.compare(&v1, &v2, None), true);
 
     // Change value - but since trigger is status, this should not matter

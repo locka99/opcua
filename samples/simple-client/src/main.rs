@@ -77,7 +77,7 @@ fn print_value(read_value_id: &ReadValueId, data_value: &DataValue) {
     if let Some(ref value) = data_value.value {
         println!("Item \"{}\", Value = {:?}", node_id, value);
     } else {
-        println!("Item \"{}\", Value not found, error: {}", node_id, data_value.status.as_ref().unwrap().description());
+        println!("Item \"{}\", Value not found, error: {}", node_id, data_value.status.as_ref().unwrap());
     }
 }
 

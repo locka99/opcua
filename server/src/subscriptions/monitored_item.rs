@@ -47,6 +47,8 @@ pub struct MonitoredItem {
     pub filter: FilterType,
     pub discard_oldest: Boolean,
     pub queue_size: usize,
+    /// The notification queue is arranged from oldest to newest, i.e. pop front gets the oldest
+    /// message, pop back gets the most recent.
     pub notification_queue: VecDeque<MonitoredItemNotification>,
     pub queue_overflow: bool,
     timestamps_to_return: TimestampsToReturn,
@@ -106,7 +108,8 @@ impl MonitoredItem {
                 // then this monitored item is evaluated otherwise it won't be.
                 subscription_interval_elapsed
             } else if self.sampling_interval == 0f64 {
-                // Fastest possible rate, i.e. tick quantum
+                // 0 means fastest practical rate, i.e. the tick quantum itself
+                // 0 is also used for clients subscribing for events.
                 true
             } else {
                 // Compare sample interval to the time elapsed
@@ -138,20 +141,19 @@ impl MonitoredItem {
             let data_value = node.find_attribute(attribute_id);
             if let Some(mut data_value) = data_value {
                 // Test for data change
-                let data_change = if self.last_data_value.is_none() {
-                    // There is no previous check so yes it changed
+                let data_change = if let Some(ref last_data_value) = self.last_data_value {
+                    // If there is a filter on the monitored item then the filter determines
+                    // if the value is considered to have changed, otherwise it is a straight
+                    // equality test.
+                    if let FilterType::DataChangeFilter(ref filter) = self.filter {
+                        !filter.compare(&data_value, last_data_value, None)
+                    } else {
+                        data_value.value != last_data_value.value
+                    }
+                } else {
+                    // There is no previous data value so yes consider it changed
                     trace!("No last data value so item has changed, node {:?}", self.item_to_monitor.node_id);
                     true
-                } else {
-                    match self.filter {
-                        FilterType::None => {
-                            data_value.value != self.last_data_value.as_ref().unwrap().value
-                        }
-                        FilterType::DataChangeFilter(ref filter) => {
-                            // Use filter to compare values
-                            !filter.compare(&data_value, self.last_data_value.as_ref().unwrap(), None)
-                        }
-                    }
                 };
                 if data_change {
                     trace!("Data change on item -, node {:?}, data_value = {:?}", self.item_to_monitor.node_id, data_value);
@@ -200,9 +202,9 @@ impl MonitoredItem {
     }
 
     /// Enqueues a notification message for the monitored item
-    pub fn enqueue_notification_message(&mut self, notification: MonitoredItemNotification) {
+    pub fn enqueue_notification_message(&mut self, mut notification: MonitoredItemNotification) {
         // test for overflow
-        self.queue_overflow = if self.notification_queue.len() == self.queue_size {
+        let overflow = if self.notification_queue.len() == self.queue_size {
             trace!("Data change overflow, node {:?}", self.item_to_monitor.node_id);
             // Overflow behaviour
             if self.discard_oldest {
@@ -217,7 +219,13 @@ impl MonitoredItem {
         } else {
             false
         };
-        // Add to end
+        if overflow {
+            // Set the overflow bit on the data value's status
+            let mut status_code = notification.value.status();
+            status_code = status_code | StatusCodeBits::OVERFLOW.bits();
+            notification.value.status = Some(status_code);
+            self.queue_overflow = true;
+        }
         self.notification_queue.push_back(notification);
     }
 
@@ -232,17 +240,6 @@ impl MonitoredItem {
         }
     }
 
-    /// Gets all the notification messages from the queue
-    pub fn all_notification_messages(&mut self) -> Option<Vec<MonitoredItemNotification>> {
-        if self.notification_queue.is_empty() {
-            None
-        } else {
-            // Removes all the queued notifications to the output
-            self.queue_overflow = false;
-            Some(self.notification_queue.drain(..).collect())
-        }
-    }
-
     /// Gets the last notification (and discards the remainder to prevent out of sequence events) from
     /// the notification queue.
     pub fn latest_notification_message(&mut self) -> Option<MonitoredItemNotification> {
@@ -254,11 +251,23 @@ impl MonitoredItem {
         result
     }
 
+    /// Retrieves all the notification messages from the queue, oldest to newest
+    pub fn all_notification_messages(&mut self) -> Option<Vec<MonitoredItemNotification>> {
+        if self.notification_queue.is_empty() {
+            None
+        } else {
+            // Removes all the queued notifications to the output
+            self.queue_overflow = false;
+            Some(self.notification_queue.drain(..).collect())
+        }
+    }
+
     /// Takes the requested sampling interval value supplied by client and ensures it is within
     /// the range supported by the server
     fn sanitize_sampling_interval(requested_sampling_interval: Double) -> Double {
         if requested_sampling_interval < 0.0 {
-            // Defaults to the subscription's publishing interval
+            // From spec "any negative number is interpreted as -1"
+            // -1 means monitored item's sampling interval defaults to the subscription's publishing interval
             -1.0
         } else if requested_sampling_interval == 0.0 || requested_sampling_interval < constants::MIN_SAMPLING_INTERVAL {
             constants::MIN_SAMPLING_INTERVAL
@@ -270,11 +279,16 @@ impl MonitoredItem {
     /// Takes the requested queue size and ensures it is within the range supported by the server
     fn sanitize_queue_size(requested_queue_size: usize) -> usize {
         if requested_queue_size == 0 {
-            constants::DEFAULT_DATA_CHANGE_QUEUE_SIZE
+            // For data monitored items 0 -> 1
+            1
+            // Future - for event monitored items, queue size should be the default queue size for event notifications
         } else if requested_queue_size == 1 {
-            constants::MIN_DATA_CHANGE_QUEUE_SIZE
+            1
+            // Future - for event monitored items, the minimum queue size the server requires for event notifications
         } else if requested_queue_size > constants::MAX_DATA_CHANGE_QUEUE_SIZE {
             constants::MAX_DATA_CHANGE_QUEUE_SIZE
+            // Future - for event monitored items MaxUInt32 returns the maximum queue size the server support
+            // for event notifications
         } else {
             requested_queue_size
         }

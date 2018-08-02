@@ -35,8 +35,9 @@ use std;
 use std::io::{Read, Write};
 
 use encoding::*;
+use StatusCodeBits;
 
-#[derive(PartialEq, Debug, Copy, Clone)]
+#[derive(PartialEq, Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum StatusCode {
 `);
         _.each(status_codes, function (data) {
@@ -44,6 +45,13 @@ pub enum StatusCode {
         });
         rs_out.write(
             `}
+
+
+impl Into<u32> for StatusCode {
+    fn into(self) -> u32 {
+        self as u32
+    }
+}
 
 impl BinaryEncoder<StatusCode> for StatusCode {
     fn byte_len(&self) -> usize {
@@ -104,8 +112,9 @@ impl StatusCode {
 
         rs_out.write(`
     /// Takes an OPC UA status code as a UInt32 and returns the matching StatusCode, assuming there is one
+    /// Note that this is lossy since any bits associated with the status code will be ignored.
     pub fn from_u32(code: u32) -> std::result::Result<StatusCode, ()> {
-        match code {
+        match code & StatusCodeBits::STATUS_MASK.bits {
 `);
         _.each(status_codes, function (data) {
             rs_out.write(`            ${data.hex_code} => Ok(StatusCode::${data.var_name}),\n`);
@@ -113,6 +122,10 @@ impl StatusCode {
         rs_out.write(
             `            _ => Err(())
         }
+    }
+    
+    pub fn with_bits(&self, bits: StatusCodeBits) -> u32 {
+        bits.bits & *self as u32
     }
 
     /// Takes an OPC UA status code as a string and returns the matching StatusCode - assuming there is one

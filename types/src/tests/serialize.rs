@@ -52,7 +52,7 @@ fn serialize_data_value() {
     let server_timestamp = DateTime::now();
     let dv = DataValue {
         value: Some(Variant::from(100u16)),
-        status: Some(StatusCode::BadAggregateListMismatch),
+        status: Some(StatusCode::BadAggregateListMismatch.into()),
         source_timestamp: Some(source_timestamp.clone()),
         source_picoseconds: Some(123),
         server_timestamp: Some(server_timestamp.clone()),
@@ -61,5 +61,5 @@ fn serialize_data_value() {
     let dvs = serde_json::to_string(&dv).unwrap();
     println!("dv = {}", dvs);
 
-    assert_eq!(dvs, format!("{{\"value\":{{\"UInt16\":100}},\"status\":\"BadAggregateListMismatch\",\"source_timestamp\":{},\"source_picoseconds\":123,\"server_timestamp\":{},\"server_picoseconds\":456}}", source_timestamp.checked_ticks(), server_timestamp.checked_ticks()));
+    assert_eq!(dvs, format!("{{\"value\":{{\"UInt16\":100}},\"status\":2161377280,\"source_timestamp\":{},\"source_picoseconds\":123,\"server_timestamp\":{},\"server_picoseconds\":456}}", source_timestamp.checked_ticks(), server_timestamp.checked_ticks()));
 }

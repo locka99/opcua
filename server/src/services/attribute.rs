@@ -71,10 +71,10 @@ impl AttributeService {
                 if let Some(attribute) = node.as_node().find_attribute(attribute_id) {
                     let is_readable = Self::is_readable(&node);
                     if !is_readable {
-                        result_value.status = Some(BadNotReadable)
+                        result_value.status = Some(BadNotReadable.into())
                     } else if !node_to_read.index_range.is_null() {
                         // Index ranges are not supported
-                        result_value.status = Some(BadNotReadable);
+                        result_value.status = Some(BadNotReadable.into());
                     } else {
                         // Result value is clone from the attribute
                         result_value.value = attribute.value.clone();
@@ -100,15 +100,15 @@ impl AttributeService {
                         }
                     }
                 } else {
-                    result_value.status = Some(BadAttributeIdInvalid);
+                    result_value.status = Some(BadAttributeIdInvalid.into());
                 }
             } else {
                 warn!("Attribute id {} is invalid", node_to_read.attribute_id);
-                result_value.status = Some(BadAttributeIdInvalid);
+                result_value.status = Some(BadAttributeIdInvalid.into());
             }
         } else {
             warn!("Cannot find node id {:?}", node_to_read.node_id);
-            result_value.status = Some(BadNodeIdUnknown);
+            result_value.status = Some(BadNodeIdUnknown.into());
         }
         result_value
     }

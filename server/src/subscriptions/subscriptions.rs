@@ -113,8 +113,8 @@ impl Subscriptions {
             let _oldest_publish_request = self.publish_request_queue.pop_back().unwrap();
             Err(BadTooManyPublishRequests)
         } else {
-            // Add to the start of the queue - older items are popped from the end
-            self.publish_request_queue.push_front(PublishRequestEntry {
+            // Add to the back of the queue - older items are popped from the front
+            self.publish_request_queue.push_back(PublishRequestEntry {
                 request_id,
                 request,
             });
@@ -123,7 +123,7 @@ impl Subscriptions {
     }
 
     pub fn dequeue_publish_request(&mut self) -> Option<PublishRequestEntry> {
-        self.publish_request_queue.pop_back()
+        self.publish_request_queue.pop_front()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -194,7 +194,7 @@ impl Subscriptions {
                     // Give the notification message a sequence number
                     notification_message.sequence_number = self.sequence_number.next_number();
                     // Push onto the transmission queue
-                    self.transmission_queue.push_front((*subscription_id, notification_message));
+                    self.transmission_queue.push_back((*subscription_id, notification_message));
                     if publish_request_len > 0 {
                         publish_request_len -= 1;
                     }
@@ -207,10 +207,10 @@ impl Subscriptions {
 
         while !self.transmission_queue.is_empty() && !self.publish_request_queue.is_empty() {
             debug!("Pairing a notification from the transmission queue to a publish request");
-            let publish_request = self.publish_request_queue.pop_back().unwrap();
+            let publish_request = self.publish_request_queue.pop_front().unwrap();
 
             // Get the oldest notification to send
-            let (subscription_id, notification_message) = self.transmission_queue.pop_back().unwrap();
+            let (subscription_id, notification_message) = self.transmission_queue.pop_front().unwrap();
 
             // Search the transmission queue for more notifications from this same subscription
             let more_notifications = self.more_notifications(subscription_id);
@@ -225,7 +225,7 @@ impl Subscriptions {
             let results = self.process_subscription_acknowledgements(&publish_request.request);
 
             let response = self.make_publish_response(&publish_request, subscription_id, now, notification_message, more_notifications, available_sequence_numbers, results);
-            self.publish_response_queue.push_front(response);
+            self.publish_response_queue.push_back(response);
         }
 
         // Clean up the retransmission queue
@@ -258,7 +258,7 @@ impl Subscriptions {
             let expiration_time = timestamp + timeout_d;
             if *now >= expiration_time {
                 debug!("Publish request {} has expired - timestamp = {:?}, expiration hint = {}, expiration time = {:?}, time now = {:?}, ", request_header.request_handle, timestamp, timeout, expiration_time, now);
-                publish_responses.push_front(PublishResponseEntry {
+                publish_responses.push_back(PublishResponseEntry {
                     request_id: request.request_id,
                     response: SupportedMessage::ServiceFault(ServiceFault {
                         response_header: ResponseHeader::new_timestamped_service_result(DateTime::now(), &request.request.request_header, BadTimeout),
