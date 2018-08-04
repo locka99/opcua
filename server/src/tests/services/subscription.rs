@@ -65,7 +65,7 @@ fn publish_with_no_subscriptions() {
     // Publish and expect a service fault BadNoSubscription
     let request_id = 1001;
     let ss = SubscriptionService::new();
-    let response = ss.publish(&mut session, request_id, &address_space, request).unwrap().unwrap();
+    let response = ss.async_publish(&mut session, request_id, &address_space, request).unwrap().unwrap();
     let response: ServiceFault = supported_message_as!(response, ServiceFault);
     assert_eq!(response.response_header.service_result, StatusCode::BadNoSubscription);
 }
@@ -112,7 +112,7 @@ fn publish_response_subscription() {
         debug!("PublishRequest {:#?}", request);
 
         // Don't expect a response right away
-        let response = ss.publish(&mut session, request_id, &address_space, request).unwrap();
+        let response = ss.async_publish(&mut session, request_id, &address_space, request).unwrap();
         assert!(response.is_none());
 
         assert!(!session.subscriptions.publish_request_queue.is_empty());
@@ -197,14 +197,14 @@ fn republish() {
         response.subscription_id
     };
 
-    let sequence_number = 222;
-
     // Add a notification to the subscriptions retransmission queue
-    {
+    let sequence_number = {
         let monitored_item_notifications = vec![];
-        let notification = NotificationMessage::new_data_change(sequence_number, DateTime::now(), monitored_item_notifications);
-        session.subscriptions.retransmission_queue().insert(sequence_number, (subscription_id, notification));
-    }
+        let notification = NotificationMessage::data_change(DateTime::now(), monitored_item_notifications);
+        let sequence_number = notification.sequence_number;
+        session.subscriptions.retransmission_queue().insert(notification.sequence_number, (subscription_id, notification));
+        sequence_number
+    };
 
     // try for a notification message known to exist
     let request = RepublishRequest {
@@ -215,7 +215,7 @@ fn republish() {
     let response = ss.republish(&mut session, request).unwrap();
     trace!("republish response {:#?}", response);
     let response: RepublishResponse = supported_message_as!(response, RepublishResponse);
-    assert_eq!(response.notification_message.sequence_number, sequence_number);
+    assert!(response.notification_message.sequence_number != 0);
 
     // try for a subscription id that does not exist, expect service fault
     let request = RepublishRequest {

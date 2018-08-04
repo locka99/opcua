@@ -211,7 +211,7 @@ impl MonitoredItem {
                 // Throw away oldest item (the one at the start) to make space at the end
                 let _ = self.notification_queue.pop_front();
             } else {
-                // Remove the last notification
+                // Remove the latest notification
                 self.notification_queue.pop_back();
             }
             // Overflow only affects queues > 1 element

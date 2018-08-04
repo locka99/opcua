@@ -135,7 +135,10 @@ impl MessageHandler {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)
                 } else {
-                    self.subscription_service.publish(&mut session, request_id, &address_space, request)?
+                    // Unlike other calls which return immediately, this one is asynchronous - the
+                    // request is queued and the response will come back out of sequence some time in
+                    // the future.
+                    self.subscription_service.async_publish(&mut session, request_id, &address_space, request)?
                 }
             }
             SupportedMessage::RepublishRequest(request) => {

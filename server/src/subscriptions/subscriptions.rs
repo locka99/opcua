@@ -9,33 +9,6 @@ use subscriptions::{PublishRequestEntry, PublishResponseEntry};
 use subscriptions::subscription::{Subscription, SubscriptionState, TickReason};
 use time;
 
-/// Incrementing sequence number
-pub struct SequenceNumber {
-    last_number: UInt32,
-}
-
-impl SequenceNumber {
-    /// Sequence numbers wrap when they exceed this value
-    const SEQUENCE_NUMBER_WRAPAROUND: u32 = 4294966271;
-
-    pub fn new() -> SequenceNumber {
-        SequenceNumber {
-            last_number: 0
-        }
-    }
-
-    /// Returns the next sequence number which is usually one more than the last one but can wrap
-    pub fn next_number(&mut self) -> UInt32 {
-        self.last_number += 1;
-        // Sequence number should wrap if it exceeds this value - part 6
-        if self.last_number > Self::SEQUENCE_NUMBER_WRAPAROUND {
-            self.last_number = 1;
-        }
-        self.last_number
-    }
-}
-
-
 /// The `Subscriptions` manages zero or more subscriptions, pairing publish requests coming from
 /// the client with notifications coming from the subscriptions. Therefore the subscriptions has
 /// an incoming queue of publish requests and an outgoing queue of publish responses. The transport
@@ -56,6 +29,8 @@ pub struct Subscriptions {
     subscriptions: BTreeMap<UInt32, Subscription>,
     /// Maximum number of publish requests
     max_publish_requests: usize,
+    /// Maxmimum number of items in the transmission queue
+    max_transmission_queue: usize,
     /// Maximum number of items in the retransmission queue
     max_retransmission_queue: usize,
     // Notifications waiting to be sent - Value is subscription id and notification message.
@@ -63,10 +38,6 @@ pub struct Subscriptions {
     // Notifications that have been sent but have yet to be acknowledged (retransmission queue).
     // Key is sequence number. Value is subscription id and notification message
     retransmission_queue: BTreeMap<UInt32, (UInt32, NotificationMessage)>,
-    /// The value that records the value of the sequence number used in a `NotificationMessage`.
-    /// This value increments as each notification is added to the transmission queue and the value
-    /// is stored in the notification. Sequence numbers wrap.
-    sequence_number: SequenceNumber,
 }
 
 impl Subscriptions {
@@ -77,7 +48,7 @@ impl Subscriptions {
             publish_request_timeout,
             subscriptions: BTreeMap::new(),
             max_publish_requests,
-            sequence_number: SequenceNumber::new(),
+            max_transmission_queue: max_publish_requests * 2,
             max_retransmission_queue: max_publish_requests * 2,
             transmission_queue: VecDeque::new(),
             retransmission_queue: BTreeMap::new(),
@@ -109,21 +80,16 @@ impl Subscriptions {
     pub fn enqueue_publish_request(&mut self, _: &AddressSpace, request_id: UInt32, request: PublishRequest) -> Result<(), StatusCode> {
         // Check if we have too many requests already
         if self.publish_request_queue.len() >= self.max_publish_requests {
-            error!("Too many publish requests {} for capacity {}, throwing oldest away", self.publish_request_queue.len(), self.max_publish_requests);
-            let _oldest_publish_request = self.publish_request_queue.pop_back().unwrap();
+            error!("Too many publish requests {} for capacity {}", self.publish_request_queue.len(), self.max_publish_requests);
             Err(BadTooManyPublishRequests)
         } else {
-            // Add to the back of the queue - older items are popped from the front
-            self.publish_request_queue.push_back(PublishRequestEntry {
+            // Add to the front of the queue - older items are popped from the back
+            self.publish_request_queue.push_front(PublishRequestEntry {
                 request_id,
                 request,
             });
             Ok(())
         }
-    }
-
-    pub fn dequeue_publish_request(&mut self) -> Option<PublishRequestEntry> {
-        self.publish_request_queue.pop_front()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -207,10 +173,10 @@ impl Subscriptions {
 
         while !self.transmission_queue.is_empty() && !self.publish_request_queue.is_empty() {
             debug!("Pairing a notification from the transmission queue to a publish request");
-            let publish_request = self.publish_request_queue.pop_front().unwrap();
+            let publish_request = self.publish_request_queue.pop_back().unwrap();
 
             // Get the oldest notification to send
-            let (subscription_id, notification_message) = self.transmission_queue.pop_front().unwrap();
+            let (subscription_id, notification_message) = self.transmission_queue.pop_back().unwrap();
 
             // Search the transmission queue for more notifications from this same subscription
             let more_notifications = self.more_notifications(subscription_id);
@@ -283,23 +249,25 @@ impl Subscriptions {
     fn process_subscription_acknowledgements(&mut self, request: &PublishRequest) -> Option<Vec<StatusCode>> {
         trace!("Processing subscription acknowledgements");
         if let Some(ref subscription_acknowledgements) = request.subscription_acknowledgements {
-            let results = subscription_acknowledgements.iter().map(|subscription_acknowledgement| {
-                let subscription_id = subscription_acknowledgement.subscription_id;
-                let sequence_number = subscription_acknowledgement.sequence_number;
-                // Check the subscription id exists
-                if self.subscriptions.get(&subscription_id).is_some() {
-                    // Clear notification by its sequence number
-                    if self.retransmission_queue.remove(&sequence_number).is_some() {
-                        Good
+            let results = subscription_acknowledgements.iter()
+                .map(|subscription_acknowledgement| {
+                    let subscription_id = subscription_acknowledgement.subscription_id;
+                    let sequence_number = subscription_acknowledgement.sequence_number;
+                    // Check the subscription id exists
+                    if self.subscriptions.get(&subscription_id).is_some() {
+                        // Clear notification by its sequence number
+                        if self.retransmission_queue.remove(&sequence_number).is_some() {
+                            Good
+                        } else {
+                            error!("Can't find acknowledged notification with sequence number {}", sequence_number);
+                            BadSequenceNumberUnknown
+                        }
                     } else {
-                        error!("Can't find acknowledged notification with sequence number {}", sequence_number);
-                        BadSequenceNumberUnknown
+                        error!("Can't find acknowledged notification subscription id {}", subscription_id);
+                        BadSubscriptionIdInvalid
                     }
-                } else {
-                    error!("Can't find acknowledged notification subscription id {}", subscription_id);
-                    BadSubscriptionIdInvalid
-                }
-            }).collect();
+                })
+                .collect();
             Some(results)
         } else {
             None
@@ -313,13 +281,16 @@ impl Subscriptions {
         self.transmission_queue.iter().find(|v| v.0 == subscription_id).is_some()
     }
 
-    /// Returns the array of available sequence numbers for the specified subscription
+    /// Returns the array of available sequence numbers in the retransmission queue for the specified subscription
     fn available_sequence_numbers(&self, subscription_id: UInt32) -> Option<Vec<UInt32>> {
         if self.retransmission_queue.is_empty() {
             None
         } else {
             // Find the notifications matching this subscription id in the retransmission queue
-            let sequence_numbers: Vec<UInt32> = self.retransmission_queue.iter().filter(|&(_, v)| v.0 == subscription_id).map(|(k, _)| *k).collect();
+            let sequence_numbers: Vec<UInt32> = self.retransmission_queue.iter()
+                .filter(|&(_, v)| v.0 == subscription_id)
+                .map(|(k, _)| *k)
+                .collect();
             if sequence_numbers.is_empty() {
                 None
             } else {
@@ -370,16 +341,14 @@ impl Subscriptions {
             let remove_count = self.retransmission_queue.len() - self.max_retransmission_queue;
 
             // Iterate the map, taking the sequence nr of each notification to remove
-            let sequence_nrs_to_remove = self.retransmission_queue.
-                iter().
-                take(remove_count).
-                map(|v| *v.0).
-                collect::<Vec<_>>();
+            let sequence_nrs_to_remove = self.retransmission_queue.iter()
+                .take(remove_count)
+                .map(|v| *v.0)
+                .collect::<Vec<_>>();
 
             // Remove in order of insertion, i.e. oldest first
-            sequence_nrs_to_remove.
-                iter().
-                for_each(|n| {
+            sequence_nrs_to_remove.iter()
+                .for_each(|n| {
                     self.retransmission_queue.remove(n);
                 });
         }

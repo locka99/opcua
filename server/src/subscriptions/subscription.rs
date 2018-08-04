@@ -125,7 +125,7 @@ pub struct Subscription {
     diagnostics: Arc<RwLock<ServerDiagnostics>>,
     /// Stops the subscription calling diagnostics on drop
     #[serde(skip)]
-    pub diagnostics_on_drop: bool
+    pub diagnostics_on_drop: bool,
 }
 
 impl Drop for Subscription {
@@ -156,7 +156,7 @@ impl Subscription {
             last_monitored_item_id: 0,
             last_timer_expired_time: chrono::Utc::now(),
             diagnostics,
-            diagnostics_on_drop: true
+            diagnostics_on_drop: true,
         };
         {
             let mut diagnostics = trace_write_lock_unwrap!(subscription.diagnostics);
@@ -314,11 +314,7 @@ impl Subscription {
                         trace!("Notification message was being discarded for a keep alive");
                     }
                     // Send a keep alive
-                    Some(NotificationMessage {
-                        sequence_number: 0,
-                        publish_time: DateTime::from(now.clone()),
-                        notification_data: None,
-                    })
+                    Some(NotificationMessage::keep_alive(DateTime::from(now.clone())))
                 }
                 UpdateStateAction::ReturnNotifications => {
                     // Send the notification message
@@ -353,7 +349,7 @@ impl Subscription {
         }
         if !monitored_item_notifications.is_empty() {
             // Create a notification message and push it onto the queue
-            let notification = NotificationMessage::new_data_change(0, DateTime::now(), monitored_item_notifications);
+            let notification = NotificationMessage::data_change(DateTime::now(), monitored_item_notifications);
             (Some(notification), false)
         } else {
             (None, false)
