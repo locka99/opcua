@@ -319,7 +319,7 @@ impl X509 {
         };
         let result = Utc.datetime_from_str(date, "%b %d %H:%M:%S %Y");
         if result.is_err() {
-            println!("Error = {:?}", result.unwrap_err());
+            error!("Error = {:?}", result.unwrap_err());
             Err(())
         } else {
             Ok(result.unwrap())
