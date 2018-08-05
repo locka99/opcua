@@ -135,11 +135,8 @@ fn publish_response_subscription() {
         assert_eq!(response.subscription_id, subscription_id);
         assert!(response.available_sequence_numbers.is_none());
 
-        // We expect the notification to have a sequence number of 1
         response.notification_message
     };
-    assert_eq!(notification_message.sequence_number, 1);
-    assert!(notification_message.notification_data.is_some());
 
     // We expect to have one notification
     let notification_data = notification_message.notification_data.as_ref().unwrap();
@@ -154,9 +151,12 @@ fn publish_response_subscription() {
     assert_eq!(monitored_items.len(), 1);
 
     // We expect the notification to be about handle 1
-
     let monitored_item_notification = &monitored_items[0];
     assert_eq!(monitored_item_notification.client_handle, 1);
+
+    // We expect the notification to have a non-zero sequence
+    assert!(notification_message.sequence_number > 0);
+    assert!(notification_message.notification_data.is_some());
 
     // We expect the queue to be empty, because we got an immediate response
     assert!(session.subscriptions.publish_response_queue.is_empty());

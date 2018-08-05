@@ -155,12 +155,10 @@ impl Subscriptions {
                     // and ready to go.
                     subscription.tick(address_space, tick_reason, publishing_req_queued, now)
                 };
-                if let Some(mut notification_message) = notification_message {
+                if let Some(notification_message) = notification_message {
                     debug!("Subscription {} produced a notification message", subscription_id);
-                    // Give the notification message a sequence number
-                    notification_message.sequence_number = self.sequence_number.next_number();
                     // Push onto the transmission queue
-                    self.transmission_queue.push_back((*subscription_id, notification_message));
+                    self.transmission_queue.push_front((*subscription_id, notification_message));
                     if publish_request_len > 0 {
                         publish_request_len -= 1;
                     }

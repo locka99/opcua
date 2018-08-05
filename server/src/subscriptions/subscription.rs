@@ -116,6 +116,8 @@ pub struct Subscription {
     pub message_sent: bool,
     /// The parameter that requests publishing to be enabled or disabled.
     pub publishing_enabled: bool,
+    /// The next sequence number to be sent
+    next_sequence_number: UInt32,
     // The last monitored item id
     last_monitored_item_id: UInt32,
     // The time that the subscription interval last fired
@@ -153,6 +155,7 @@ impl Subscription {
             message_sent: false,
             publishing_enabled,
             // Counters for new items
+            next_sequence_number: 1,
             last_monitored_item_id: 0,
             last_timer_expired_time: chrono::Utc::now(),
             diagnostics,
@@ -314,7 +317,7 @@ impl Subscription {
                         trace!("Notification message was being discarded for a keep alive");
                     }
                     // Send a keep alive
-                    Some(NotificationMessage::keep_alive(DateTime::from(now.clone())))
+                    Some(NotificationMessage::keep_alive(self.next_sequence_number, DateTime::from(now.clone())))
                 }
                 UpdateStateAction::ReturnNotifications => {
                     // Send the notification message
@@ -334,6 +337,8 @@ impl Subscription {
         result
     }
 
+
+
     /// Iterate through the monitored items belonging to the subscription, calling tick on each in turn.
     /// The function returns true if any of the monitored items due to the subscription interval
     /// elapsing, or their own interval elapsing.
@@ -349,7 +354,12 @@ impl Subscription {
         }
         if !monitored_item_notifications.is_empty() {
             // Create a notification message and push it onto the queue
-            let notification = NotificationMessage::data_change(DateTime::now(), monitored_item_notifications);
+            let notification = NotificationMessage::data_change(self.next_sequence_number, DateTime::now(), monitored_item_notifications);
+            let self.next_sequence_number = if self.next_sequence_number == std::u32::MAX {
+                1
+            } else {
+                self.next_sequence_number + 1
+            };
             (Some(notification), false)
         } else {
             (None, false)

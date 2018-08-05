@@ -15,11 +15,6 @@ lazy_static! {
 impl NotificationMessage {
     fn next_sequence_number() -> UInt32 {
         let sequence_number = { *SEQUENCE_NUMBER.lock().unwrap() };
-        let sequence_number = if sequence_number == std::u32::MAX {
-            1
-        } else {
-            sequence_number + 1
-        };
         *SEQUENCE_NUMBER.lock().unwrap() = sequence_number;
         sequence_number
     }

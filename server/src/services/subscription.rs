@@ -140,7 +140,7 @@ impl SubscriptionService {
     }
 
     /// Handles a PublishRequest. This is asynchronous, so the response will be sent later on.
-    pub fn async_publish(&self, session: &mut Session, request_id: UInt32, address_space: &AddressSpace, request: PublishRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn async_publish(&self, session: &mut Session, request_id: UInt32, address_space: &AddressSpace, request: PublishRequest) -> Result<Option<SupportedMessage>, StatusCode> {
         trace!("--> Receive a PublishRequest {:?}", request);
         if session.subscriptions.is_empty() {
             Ok(Some(self.service_fault(&request.request_header, BadNoSubscription)))
