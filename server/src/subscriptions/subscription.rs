@@ -338,7 +338,6 @@ impl Subscription {
     }
 
 
-
     /// Iterate through the monitored items belonging to the subscription, calling tick on each in turn.
     /// The function returns true if any of the monitored items due to the subscription interval
     /// elapsing, or their own interval elapsing.
@@ -353,9 +352,10 @@ impl Subscription {
             }
         }
         if !monitored_item_notifications.is_empty() {
+            use std;
             // Create a notification message and push it onto the queue
             let notification = NotificationMessage::data_change(self.next_sequence_number, DateTime::now(), monitored_item_notifications);
-            let self.next_sequence_number = if self.next_sequence_number == std::u32::MAX {
+            self.next_sequence_number = if self.next_sequence_number == std::u32::MAX {
                 1
             } else {
                 self.next_sequence_number + 1
