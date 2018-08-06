@@ -102,14 +102,14 @@ fn update_state_5() {
     };
 
     s.publishing_enabled = true;
-    s.lifetime_counter = 1;
+    s.current_lifetime_count = 1;
 
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::Normal5);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnNotifications);
     assert_eq!(s.state, SubscriptionState::Normal);
-    assert_eq!(s.lifetime_counter, s.max_lifetime_count);
+    assert_eq!(s.current_lifetime_count, s.max_lifetime_count);
     assert_eq!(s.message_sent, true);
 
     // TODO ensure deleted acknowledged notification msgs
@@ -133,7 +133,7 @@ fn update_state_6() {
     };
 
     s.publishing_enabled = true;
-    s.lifetime_counter = 3; // Expect this to be reset
+    s.current_lifetime_count = 3; // Expect this to be reset
 
     let update_state_result = s.update_state(tick_reason, p);
 
@@ -141,7 +141,7 @@ fn update_state_6() {
     assert_eq!(update_state_result.handled_state, HandledState::IntervalElapsed6);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnNotifications);
     assert_eq!(s.state, SubscriptionState::Normal);
-    assert_eq!(s.lifetime_counter, 299);
+    assert_eq!(s.current_lifetime_count, 299);
     assert_eq!(s.message_sent, true);
 }
 
@@ -170,7 +170,7 @@ fn update_state_7() {
     assert_eq!(update_state_result.handled_state, HandledState::IntervalElapsed7);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnKeepAlive);
     assert_eq!(s.state, SubscriptionState::Normal);
-    assert_eq!(s.lifetime_counter, 299);
+    assert_eq!(s.current_lifetime_count, 299);
     assert_eq!(s.message_sent, true);
 
     // TODO Repeat with publishing enabled true and notifications available false
@@ -219,14 +219,14 @@ fn update_state_9() {
 
     s.message_sent = true;
     s.publishing_enabled = false;
-    s.keep_alive_counter = 3;
+    s.current_keep_alive_count = 3;
 
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::IntervalElapsed9);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
     assert_eq!(s.state, SubscriptionState::KeepAlive);
-    assert_eq!(s.keep_alive_counter, s.max_keep_alive_count);
+    assert_eq!(s.current_keep_alive_count, s.max_keep_alive_count);
 }
 
 #[test]
@@ -346,7 +346,7 @@ fn update_state_15() {
         publishing_interval_elapsed: true,
     };
 
-    s.keep_alive_counter = 1;
+    s.current_keep_alive_count = 1;
     s.publishing_enabled = false;
 
     let update_state_result = s.update_state(tick_reason, p);
@@ -354,14 +354,14 @@ fn update_state_15() {
     assert_eq!(update_state_result.handled_state, HandledState::KeepAlive15);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnKeepAlive);
     assert_eq!(s.state, SubscriptionState::KeepAlive);
-    assert_eq!(s.keep_alive_counter, s.max_keep_alive_count);
+    assert_eq!(s.current_keep_alive_count, s.max_keep_alive_count);
 }
 
 #[test]
 fn update_state_16() {
     let mut s = make_subscription(SubscriptionState::KeepAlive);
 
-    s.keep_alive_counter = 5;
+    s.current_keep_alive_count = 5;
     s.publishing_enabled = false;
 
     let tick_reason = TickReason::TickTimerFired;
@@ -377,7 +377,7 @@ fn update_state_16() {
     assert_eq!(update_state_result.handled_state, HandledState::KeepAlive16);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
     assert_eq!(s.state, SubscriptionState::KeepAlive);
-    assert_eq!(s.keep_alive_counter, 4);
+    assert_eq!(s.current_keep_alive_count, 4);
 }
 
 #[test]
@@ -392,12 +392,12 @@ fn update_state_17() {
         publishing_interval_elapsed: true,
     };
 
-    s.keep_alive_counter = 1;
+    s.current_keep_alive_count = 1;
 
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::KeepAlive17);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
     assert_eq!(s.state, SubscriptionState::Late);
-    assert_eq!(s.keep_alive_counter, 1);
+    assert_eq!(s.current_keep_alive_count, 1);
 }

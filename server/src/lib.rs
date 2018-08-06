@@ -91,8 +91,10 @@ pub mod constants {
     pub const SESSION_TIMEOUT: f64 = 50000f64;
     /// Maximum size in bytes that a request message is allowed to be
     pub const MAX_REQUEST_MESSAGE_SIZE: u32 = 32768;
+    /// Default keep alive count
+    pub const DEFAULT_KEEP_ALIVE_COUNT: u32 = 100;
     /// Maxmimum keep alive count
-    pub const MAX_KEEP_ALIVE_COUNT: u32 = 30;
+    pub const MAX_KEEP_ALIVE_COUNT: u32 = 30000;
     /// Maximum browse continuation points
     pub const MAX_BROWSE_CONTINUATION_POINTS: usize = 10;
     /// Maximum history continuation points

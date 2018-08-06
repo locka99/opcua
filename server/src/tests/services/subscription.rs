@@ -50,6 +50,54 @@ fn create_modify_destroy_subscription() {
     // TODO Create a subscription, modify it, destroy it
 }
 
+fn keepalive_test(keep_alive: UInt32, lifetime: UInt32, expected_keep_alive: UInt32, expected_lifetime: UInt32) {
+    let st = ServiceTest::new();
+    let (mut server_state, mut session) = st.get_server_state_and_session();
+    let address_space = st.get_address_space();
+
+    // Create a subscription with a monitored item
+    let ss = SubscriptionService::new();
+
+    // Create subscription
+    let request = CreateSubscriptionRequest {
+        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+        requested_publishing_interval: 100f64,
+        requested_lifetime_count: lifetime,
+        requested_max_keep_alive_count: keep_alive,
+        max_notifications_per_publish: 5,
+        publishing_enabled: true,
+        priority: 0,
+    };
+    let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(&mut server_state, &mut session, request).unwrap(), CreateSubscriptionResponse);
+    debug!("{:#?}", response);
+
+    assert_eq!(response.revised_lifetime_count, expected_lifetime);
+    assert_eq!(response.revised_max_keep_alive_count, expected_keep_alive);
+    assert!(response.revised_lifetime_count >= 3 * response.revised_max_keep_alive_count);
+}
+
+#[test]
+fn test_revised_keep_alive_lifetime_counts() {
+    // Test that the keep alive and lifetime counts are correctly revised from their inputs
+    use ::constants::{DEFAULT_KEEP_ALIVE_COUNT, MAX_KEEP_ALIVE_COUNT};
+    const MAX_LIFETIME_COUNT: UInt32 = 3 * MAX_KEEP_ALIVE_COUNT;
+    const DEFAULT_LIFE_COUNT: UInt32 = 3 * DEFAULT_KEEP_ALIVE_COUNT;
+
+    // Expect defaults to hold true
+    keepalive_test(0, 0, DEFAULT_KEEP_ALIVE_COUNT, DEFAULT_LIFE_COUNT);
+    keepalive_test(0, (DEFAULT_KEEP_ALIVE_COUNT * 3) - 1, DEFAULT_KEEP_ALIVE_COUNT, DEFAULT_LIFE_COUNT);
+
+    // Expect lifetime to be 3 * keep alive
+    keepalive_test(1, 3, 1, 3);
+    keepalive_test(1, 4, 1, 4);
+    keepalive_test(1, 2, 1, 3);
+    keepalive_test(DEFAULT_KEEP_ALIVE_COUNT, 2, DEFAULT_KEEP_ALIVE_COUNT, DEFAULT_LIFE_COUNT);
+
+    // Expect max values to be honoured
+    keepalive_test(MAX_KEEP_ALIVE_COUNT, 0, MAX_KEEP_ALIVE_COUNT, MAX_LIFETIME_COUNT);
+    keepalive_test(MAX_KEEP_ALIVE_COUNT + 1, 0, MAX_KEEP_ALIVE_COUNT, MAX_LIFETIME_COUNT);
+}
+
 #[test]
 fn publish_with_no_subscriptions() {
     // Create a session
@@ -159,6 +207,12 @@ fn publish_response_subscription() {
 
     // We expect the queue to be empty, because we got an immediate response
     assert!(session.subscriptions.publish_response_queue.is_empty());
+}
+
+#[test]
+fn publish_keep_alive() {
+    // TODO we want to create a subscription with a known keep alive value and ensure
+    // that after consecutive empty ticks we get back a keep alive.
 }
 
 #[test]

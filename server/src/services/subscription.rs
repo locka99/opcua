@@ -34,7 +34,14 @@ impl SubscriptionService {
 
             // Create a new subscription
             let publishing_enabled = request.publishing_enabled;
-            let subscription = Subscription::new(server_state.diagnostics.clone(), subscription_id, publishing_enabled, revised_publishing_interval, revised_lifetime_count, revised_max_keep_alive_count, request.priority);
+            let subscription = Subscription::new(
+                server_state.diagnostics.clone(),
+                subscription_id,
+                publishing_enabled,
+                revised_publishing_interval,
+                revised_lifetime_count,
+                revised_max_keep_alive_count,
+                request.priority);
             subscriptions.insert(subscription_id, subscription);
 
             // Create the response
@@ -66,6 +73,8 @@ impl SubscriptionService {
             subscription.max_keep_alive_count = revised_max_keep_alive_count;
             subscription.max_lifetime_count = revised_lifetime_count;
             subscription.priority = request.priority;
+            subscription.reset_lifetime_counter();
+            subscription.reset_keep_alive_counter();
             // ...max_notifications_per_publish??
 
             ModifySubscriptionResponse {
@@ -122,6 +131,7 @@ impl SubscriptionService {
                 for subscription_id in subscription_ids {
                     if let Some(subscription) = subscriptions.get_mut(*subscription_id) {
                         subscription.publishing_enabled = publishing_enabled;
+                        subscription.reset_lifetime_counter();
                         results.push(Good);
                     } else {
                         results.push(BadSubscriptionIdInvalid);
@@ -161,6 +171,7 @@ impl SubscriptionService {
         // Look for a matching notification message
         let result = session.subscriptions.find_notification_message(request.subscription_id, request.retransmit_sequence_number);
         if let Ok(notification_message) = result {
+            session.reset_subscription_lifetime_counter(request.subscription_id);
             let response = RepublishResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
                 notification_message,
@@ -181,12 +192,17 @@ impl SubscriptionService {
         };
         let revised_max_keep_alive_count = if requested_max_keep_alive_count > server_state.max_keep_alive_count {
             server_state.max_keep_alive_count
+        } else if requested_max_keep_alive_count == 0 {
+            server_state.default_keep_alive_count
         } else {
             requested_max_keep_alive_count
         };
-        let min_keep_alive_count = revised_max_keep_alive_count * 3;
-        let revised_lifetime_count = if requested_lifetime_count < min_keep_alive_count {
-            min_keep_alive_count
+        // Lifetime count must exceed keep alive count by at least a multiple of
+        let min_lifetime_count = revised_max_keep_alive_count * 3;
+        let revised_lifetime_count = if requested_lifetime_count < min_lifetime_count {
+            min_lifetime_count
+        } else if requested_lifetime_count > server_state.max_lifetime_count {
+            server_state.max_lifetime_count
         } else {
             requested_lifetime_count
         };

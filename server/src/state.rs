@@ -49,8 +49,12 @@ pub struct ServerState {
     pub max_subscriptions: usize,
     /// Minimum publishing interval
     pub min_publishing_interval: Duration,
+    /// Default keep alive count
+    pub default_keep_alive_count: UInt32,
     /// Maxmimum keep alive count
     pub max_keep_alive_count: UInt32,
+    /// Maximum lifetime count (3 times as large as max keep alive)
+    pub max_lifetime_count: UInt32,
     /// Sets the abort flag that terminates the associated server
     pub abort: bool,
     /// Diagnostic information

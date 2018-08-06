@@ -167,6 +167,13 @@ impl Session {
         self.subscriptions.tick(now, address_space, reason)
     }
 
+    /// Reset the lifetime counter on the subscription, e.g. because a service references the
+    /// subscription.
+    pub fn reset_subscription_lifetime_counter(&mut self, subscription_id: UInt32) {
+        if let Some(subscription) = self.subscriptions.get_mut(subscription_id) {
+            subscription.reset_lifetime_counter();
+        }
+    }
     /// Iterates through the existing queued publish requests and creates a timeout
     /// publish response any that have expired.
     pub fn expire_stale_publish_requests(&mut self, now: &DateTimeUtc) {

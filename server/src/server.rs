@@ -96,7 +96,9 @@ impl Server {
             last_subscription_id: 0,
             max_subscriptions,
             min_publishing_interval: constants::MIN_PUBLISHING_INTERVAL,
+            default_keep_alive_count: constants::DEFAULT_KEEP_ALIVE_COUNT,
             max_keep_alive_count: constants::MAX_KEEP_ALIVE_COUNT,
+            max_lifetime_count: constants::MAX_KEEP_ALIVE_COUNT * 3,
             diagnostics,
             abort: false,
         };

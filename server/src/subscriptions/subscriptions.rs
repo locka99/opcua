@@ -29,8 +29,6 @@ pub struct Subscriptions {
     subscriptions: BTreeMap<UInt32, Subscription>,
     /// Maximum number of publish requests
     max_publish_requests: usize,
-    /// Maxmimum number of items in the transmission queue
-    max_transmission_queue: usize,
     /// Maximum number of items in the retransmission queue
     max_retransmission_queue: usize,
     // Notifications waiting to be sent - Value is subscription id and notification message.
@@ -48,7 +46,6 @@ impl Subscriptions {
             publish_request_timeout,
             subscriptions: BTreeMap::new(),
             max_publish_requests,
-            max_transmission_queue: max_publish_requests * 2,
             max_retransmission_queue: max_publish_requests * 2,
             transmission_queue: VecDeque::new(),
             retransmission_queue: BTreeMap::new(),
@@ -318,7 +315,7 @@ impl Subscriptions {
     /// notification is not found.
     pub fn find_notification_message(&self, subscription_id: UInt32, sequence_number: UInt32) -> Result<NotificationMessage, StatusCode> {
         // Look for the subscription
-        if self.subscriptions.get(&subscription_id).is_some() {
+        if let Some(_) = self.subscriptions.get(&subscription_id) {
             // Look for the sequence number
             if let Some(ref notification_message) = self.retransmission_queue.get(&sequence_number) {
                 Ok(notification_message.1.clone())
