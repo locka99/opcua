@@ -89,7 +89,7 @@ pub enum TickReason {
 pub struct Subscription {
     /// Subscription id
     pub subscription_id: UInt32,
-    /// Publishing interval
+    /// Publishing interval in milliseconds
     pub publishing_interval: Duration,
     /// The lifetime count reset value
     pub max_lifetime_count: UInt32,
@@ -140,7 +140,7 @@ impl Drop for Subscription {
 }
 
 impl Subscription {
-    pub fn new(diagnostics: Arc<RwLock<ServerDiagnostics>>, subscription_id: UInt32, publishing_enabled: bool, publishing_interval: Double, lifetime_count: UInt32, keep_alive_count: UInt32, priority: Byte) -> Subscription {
+    pub fn new(diagnostics: Arc<RwLock<ServerDiagnostics>>, subscription_id: UInt32, publishing_enabled: bool, publishing_interval: Duration, lifetime_count: UInt32, keep_alive_count: UInt32, priority: Byte) -> Subscription {
         let subscription = Subscription {
             subscription_id,
             publishing_interval,
@@ -278,7 +278,7 @@ impl Subscription {
             } else {
                 // Look at the last expiration time compared to now and see if it matches
                 // or exceeds the publishing interval
-                let publishing_interval = time::Duration::milliseconds(self.publishing_interval as i64);
+                let publishing_interval = super::duration_from_ms(self.publishing_interval);
                 if now.signed_duration_since(self.last_timer_expired_time) >= publishing_interval {
                     self.last_timer_expired_time = *now;
                     true
@@ -343,22 +343,22 @@ impl Subscription {
     }
 
     /// Iterate through the monitored items belonging to the subscription, calling tick on each in turn.
-    /// The function returns true if any of the monitored items due to the subscription interval
-    /// elapsing, or their own interval elapsing.
+    /// The function returns notifications and a more_notifications boolean.
     fn tick_monitored_items(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, publishing_interval_elapsed: bool) -> (Option<NotificationMessage>, bool) {
-        let mut monitored_item_notifications = Vec::new();
+        let mut all_notification_messages = Vec::new();
         for (_, monitored_item) in &mut self.monitored_items {
             if monitored_item.tick(address_space, now, publishing_interval_elapsed) {
                 // Take all of the monitored item's pending notifications
-                if let Some(mut messages) = monitored_item.all_notification_messages() {
-                    monitored_item_notifications.append(&mut messages);
+                if let Some(mut notification_messages) = monitored_item.all_notification_messages() {
+                    all_notification_messages.append(&mut notification_messages);
                 }
             }
         }
-        if !monitored_item_notifications.is_empty() {
+        if !all_notification_messages.is_empty() {
             use std;
             // Create a notification message and push it onto the queue
-            let notification = NotificationMessage::data_change(self.next_sequence_number, DateTime::now(), monitored_item_notifications);
+            let notification = NotificationMessage::data_change(self.next_sequence_number, DateTime::now(), all_notification_messages);
+            // Advance next sequence number
             self.next_sequence_number = if self.next_sequence_number == std::u32::MAX {
                 1
             } else {

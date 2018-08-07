@@ -96,7 +96,7 @@ impl MonitoredItem {
     /// the subscriptions and controls the rate.
     ///
     /// Function returns true if a notification message was added to the queue
-    pub fn tick(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, subscription_interval_elapsed: bool) -> bool {
+    pub fn tick(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, publishing_interval_elapsed: bool) -> bool {
         if self.monitoring_mode == MonitoringMode::Disabled {
             false
         } else {
@@ -104,16 +104,16 @@ impl MonitoredItem {
                 // Always check on the first tick
                 true
             } else if self.sampling_interval < 0f64 {
-                // -1 means use the subscription rate so if the subscription interval elapsed,
+                // -1 means use the subscription publishing interval so if the publishing interval elapsed,
                 // then this monitored item is evaluated otherwise it won't be.
-                subscription_interval_elapsed
+                publishing_interval_elapsed
             } else if self.sampling_interval == 0f64 {
                 // 0 means fastest practical rate, i.e. the tick quantum itself
                 // 0 is also used for clients subscribing for events.
                 true
             } else {
                 // Compare sample interval to the time elapsed
-                let sampling_interval = time::Duration::milliseconds(self.sampling_interval as i64);
+                let sampling_interval = super::duration_from_ms(self.sampling_interval);
                 let elapsed = now.signed_duration_since(self.last_sample_time);
                 elapsed >= sampling_interval
             };

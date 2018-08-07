@@ -17,6 +17,15 @@ pub struct PublishResponseEntry {
     pub response: SupportedMessage,
 }
 
+use time;
+
+/// This converts an OPC UA Duration into a time duration used for testing for interval elapsed
+fn duration_from_ms(d: f64) -> time::Duration {
+    // TODO duration is a floating point number of mills so really it should be scaled to micros
+    // or nanos
+    time::Duration::milliseconds(d as i64)
+}
+
 pub mod subscriptions;
 pub mod subscription;
 pub mod monitored_item;
