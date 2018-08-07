@@ -759,13 +759,10 @@ impl AddressSpace {
         } else {
             // Filter by type
             let (reference_type_id, include_subtypes) = reference_filter.unwrap();
-            let mut result = Vec::new();
-            for reference in references {
-                if self.reference_type_matches(reference_type_id, reference.reference_type_id, include_subtypes) {
-                    result.push(reference.clone());
-                }
-            }
-            result
+            references.iter()
+                .filter(|r| self.reference_type_matches(reference_type_id, r.reference_type_id, include_subtypes))
+                .map(|r| r.clone())
+                .collect::<Vec<Reference>>()
         }
     }
 
