@@ -208,17 +208,15 @@ impl Subscriptions {
         let publish_request_timeout = self.publish_request_timeout;
         self.publish_request_queue.retain(|ref request| {
             let request_header = &request.request.request_header;
-            let timestamp: DateTimeUtc = request_header.timestamp.clone().into();
-            let timeout = if request_header.timeout_hint > 0 && (request_header.timeout_hint as i64) < publish_request_timeout {
+            let request_timestamp: DateTimeUtc = request_header.timestamp.clone().into();
+            let publish_request_timeout = time::Duration::milliseconds(if request_header.timeout_hint > 0 && (request_header.timeout_hint as i64) < publish_request_timeout {
                 request_header.timeout_hint as i64
             } else {
                 publish_request_timeout
-            };
-            let timeout_d = time::Duration::milliseconds(timeout);
+            });
             // The request has timed out if the timestamp plus hint exceeds the input time
-            let expiration_time = timestamp + timeout_d;
-            if *now >= expiration_time {
-                debug!("Publish request {} has expired - timestamp = {:?}, expiration hint = {}, expiration time = {:?}, time now = {:?}, ", request_header.request_handle, timestamp, timeout, expiration_time, now);
+            if now.signed_duration_since(request_timestamp) > publish_request_timeout {
+                debug!("Publish request {} has expired - timestamp = {:?}, expiration hint = {}, publish timeout = {:?}, time now = {:?}, ", request_header.request_handle, request_timestamp, request_timestamp, publish_request_timeout, now);
                 publish_responses.push_back(PublishResponseEntry {
                     request_id: request.request_id,
                     response: SupportedMessage::ServiceFault(ServiceFault {

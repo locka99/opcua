@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 use chrono;
-use time;
 
 use opcua_types::*;
 use opcua_types::status_codes::StatusCode;

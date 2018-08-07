@@ -2,7 +2,6 @@ use std::result::Result;
 use std::collections::VecDeque;
 
 use chrono;
-use time;
 
 use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
