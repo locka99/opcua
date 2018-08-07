@@ -12,7 +12,7 @@ use opcua_types::service_types::{TimestampsToReturn, NotificationMessage, Monito
 use constants;
 use DateTimeUtc;
 use subscriptions::monitored_item::MonitoredItem;
-use address_space::address_space::AddressSpace;
+use address_space::AddressSpace;
 use diagnostics::ServerDiagnostics;
 
 /// The state of the subscription

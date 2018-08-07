@@ -1,5 +1,5 @@
-//! The OPC UA Server module contains all server side functionality - address space, service implementations, server
-//! side authentications, sessions etc.
+//! The OPC UA Server module contains all server side functionality - address space, services,
+//! server security, session management, local discovery server registration and subscriptions.
 
 extern crate chrono;
 extern crate futures;
@@ -72,18 +72,18 @@ pub mod constants {
 
     // Internally controlled values
 
+    /// The polling interval in millis on subscriptions and monitored items. The more
+    /// finegrained this is, the more often subscriptions will be checked for changes. The minimum
+    /// publish interval cannot be less than this.
+    pub const SUBSCRIPTION_TIMER_RATE_MS: u64 = 100;
     /// Minimum publishing interval for subscriptions
-    pub const MIN_PUBLISHING_INTERVAL: Double = 0.05f64;
-    /// Minimum sampling interval in seconds allowed by clients on subscriptions or monitored_items
-    pub const MIN_SAMPLING_INTERVAL: Double = 0.05f64;
+    pub const MIN_PUBLISHING_INTERVAL: Double = (SUBSCRIPTION_TIMER_RATE_MS as f64) / 1000.0;
+    /// Minimum sampling interval on monitored items
+    pub const MIN_SAMPLING_INTERVAL: Double = (SUBSCRIPTION_TIMER_RATE_MS as f64) / 1000.0;
     /// Maximum data change queue allowed by clients on monitored items
     pub const MAX_DATA_CHANGE_QUEUE_SIZE: usize = 10;
     /// The default size of preallocated vecs of monitored items per subscription
     pub const DEFAULT_MONITORED_ITEM_CAPACITY: usize = 100;
-    /// Sampling interval in MS used internally to poll subscriptions. The more finegrained this is
-    /// the more often subscriptions will be checked to see if their subscription interval has elapsed
-    /// therefore the value should be < min sampling interval
-    pub const SUBSCRIPTION_TIMER_RATE_MS: u64 = 100;
     /// Interval to check for HELLO timeout in millis. This can be fairly coarse because it's not
     /// something that requires huge accuracy.
     pub const HELLO_TIMEOUT_POLL_MS: u64 = 500;
@@ -92,7 +92,7 @@ pub mod constants {
     /// Maximum size in bytes that a request message is allowed to be
     pub const MAX_REQUEST_MESSAGE_SIZE: u32 = 32768;
     /// Default keep alive count
-    pub const DEFAULT_KEEP_ALIVE_COUNT: u32 = 100;
+    pub const DEFAULT_KEEP_ALIVE_COUNT: u32 = 10;
     /// Maxmimum keep alive count
     pub const MAX_KEEP_ALIVE_COUNT: u32 = 30000;
     /// Maximum browse continuation points

@@ -171,3 +171,5 @@ pub mod types {
     pub use super::view::View;
     pub use super::node::{Node, NodeType};
 }
+
+pub use self::address_space::AddressSpace;

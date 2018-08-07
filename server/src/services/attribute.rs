@@ -7,7 +7,7 @@ use opcua_types::service_types::*;
 
 use services::Service;
 use address_space::AccessLevel;
-use address_space::address_space::AddressSpace;
+use address_space::AddressSpace;
 use address_space::node::NodeType;
 
 pub struct AttributeService {}

@@ -1,9 +1,10 @@
 //! This type and the use of it is adapted from an answer on this discussion.
+//!
 //! https://stackoverflow.com/questions/42462441/how-to-cleanly-break-tokio-core-event-loop-and-futuresstream-in-rust
 //!
-//! Basically the problem is that tokio's event
-//! in order to provide a way to signal the listener loop to abort if necessary.
-
+//! The problem is that tokio's stream listener `for_each` will run forever and there is no
+//! way to break out of it. The solution is to wrap their future inside another which checks for
+//! a complete signal. And that's what this does.
 use futures::{Async, Stream, Poll};
 
 pub struct CompletionPact<S, C>

@@ -1,4 +1,4 @@
-use address_space::address_space::AddressSpace;
+use address_space::AddressSpace;
 use opcua_core::crypto::CertificateStore;
 use opcua_types::*;
 use opcua_types::service_types::*;

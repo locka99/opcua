@@ -4,7 +4,7 @@ use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::service_types::*;
 
-use address_space::address_space::AddressSpace;
+use address_space::AddressSpace;
 use services::Service;
 use session::Session;
 use state::ServerState;

@@ -7,7 +7,7 @@ use opcua_types::status_codes::StatusCode::*;
 use opcua_types::node_ids::ReferenceTypeId;
 use opcua_types::service_types::*;
 
-use address_space::address_space::AddressSpace;
+use address_space::AddressSpace;
 use session::Session;
 use services::Service;
 use continuation_point::BrowseContinuationPoint;

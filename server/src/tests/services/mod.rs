@@ -7,10 +7,10 @@ use comms::transport::Transport;
 use tests::*;
 
 struct ServiceTest {
-    server: Server,
-    server_state: Arc<RwLock<ServerState>>,
-    address_space: Arc<RwLock<AddressSpace>>,
-    session: Arc<RwLock<Session>>,
+    pub server: Server,
+    pub server_state: Arc<RwLock<ServerState>>,
+    pub address_space: Arc<RwLock<AddressSpace>>,
+    pub session: Arc<RwLock<Session>>,
 }
 
 impl ServiceTest {
@@ -30,10 +30,6 @@ impl ServiceTest {
 
     pub fn get_server_state_and_session(&self) -> (RwLockWriteGuard<ServerState>, RwLockWriteGuard<Session>) {
         (self.server_state.write().unwrap(), self.session.write().unwrap())
-    }
-
-    pub fn get_address_space(&self) -> RwLockWriteGuard<AddressSpace> {
-        self.address_space.write().unwrap()
     }
 }
 

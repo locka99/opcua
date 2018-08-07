@@ -9,7 +9,7 @@ use opcua_types::*;
 use opcua_types::service_types::PublishRequest;
 use opcua_types::status_codes::StatusCode;
 
-use address_space::address_space::AddressSpace;
+use address_space::AddressSpace;
 use continuation_point::BrowseContinuationPoint;
 use diagnostics::ServerDiagnostics;
 use DateTimeUtc;

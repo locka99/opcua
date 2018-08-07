@@ -3,7 +3,7 @@ use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
 use opcua_types::service_types::{CallMethodRequest, CallMethodResult};
 
-use address_space::address_space::AddressSpace;
+use address_space::AddressSpace;
 use state::ServerState;
 use session::Session;
 

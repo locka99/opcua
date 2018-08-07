@@ -9,7 +9,7 @@ use subscriptions::subscription::Subscription;
 use state::ServerState;
 use session::Session;
 use services::Service;
-use address_space::address_space::AddressSpace;
+use address_space::AddressSpace;
 
 pub struct SubscriptionService {}
 

@@ -13,7 +13,7 @@ use opcua_types::service_types::{TimestampsToReturn, DataChangeFilter, ReadValue
 use constants;
 
 use DateTimeUtc;
-use address_space::address_space::AddressSpace;
+use address_space::AddressSpace;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum FilterType {
