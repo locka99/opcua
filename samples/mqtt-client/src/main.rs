@@ -87,10 +87,10 @@ fn subscription_loop(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
 
         // Create some monitored items
         let read_nodes = vec![
-            ReadValueId::from(NodeId::from((2, "v1"))),
-            ReadValueId::from(NodeId::from((2, "v2"))),
-            ReadValueId::from(NodeId::from((2, "v3"))),
-            ReadValueId::from(NodeId::from((2, "v4"))),
+            ReadValueId::from(NodeId::new(2, "v1")),
+            ReadValueId::from(NodeId::new(2, "v2")),
+            ReadValueId::from(NodeId::new(2, "v3")),
+            ReadValueId::from(NodeId::new(2, "v4")),
         ];
         let items_to_create: Vec<MonitoredItemCreateRequest> = read_nodes.into_iter().map(|read_node| {
             MonitoredItemCreateRequest::new(read_node, MonitoringMode::Reporting, MonitoringParameters::default())

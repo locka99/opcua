@@ -32,10 +32,10 @@ fn main() {
 /// Creates some sample variables, and some push / pull examples that update them
 fn add_example_variables(server: &mut Server) {
     // These will be the node ids of the new variables
-    let v1_node = NodeId::new_string(2, "v1");
-    let v2_node = NodeId::new_string(2, "v2");
-    let v3_node = NodeId::new_string(2, "v3");
-    let v4_node = NodeId::new_string(2, "v4");
+    let v1_node = NodeId::new(2, "v1");
+    let v2_node = NodeId::new(2, "v2");
+    let v3_node = NodeId::new(2, "v3");
+    let v4_node = NodeId::new(2, "v4");
 
     // The address space is guarded so obtain a lock to change it
     {

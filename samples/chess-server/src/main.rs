@@ -48,10 +48,10 @@ fn main() {
 
         for square in BOARD_SQUARES.iter() {
             let browse_name = square;
-            let node_id = NodeId::new_string(2, square);
+            let node_id = NodeId::new(2, *square);
             let _ = address_space.add_variable(Variable::new(&node_id, browse_name, browse_name, "", 0 as Byte), &board_node_id);
             let browse_name = format!("{}.highlight", square);
-            let node_id = NodeId::new_string(2, &browse_name);
+            let node_id = NodeId::new(2, browse_name.clone());
             let _ = address_space.add_variable(Variable::new(&node_id, &browse_name, &browse_name, "", false), &board_node_id);
         }
 
@@ -104,11 +104,11 @@ fn update_board_state(game: &game::Game, address_space: &mut AddressSpace) {
     for square in BOARD_SQUARES.iter() {
         // Piece on the square
         let square_value = game.square_from_str(square);
-        let node_id = NodeId::new_string(2, square);
+        let node_id = NodeId::new(2, *square);
         let _ = address_space.set_variable_value(node_id, square_value as u8);
 
         // Highlight the square
-        let node_id = NodeId::new_string(2, &format!("{}.highlight", square));
+        let node_id = NodeId::new(2, format!("{}.highlight", square));
         let highlight_square = if let Some(ref last_move) = game.last_move {
             last_move.contains(square)
         } else {

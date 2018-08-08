@@ -41,7 +41,7 @@ fn verify_references_to_many_vars(references: &[ReferenceDescription], expected_
     // Verify that the reference descriptions point at sequential vars
     assert_eq!(references.len(), expected_size);
     for (i, r) in references.iter().enumerate() {
-        let expected_node_id = NodeId::new_string(1, &format!("v{}", i + start_idx));
+        let expected_node_id = NodeId::new(1, format!("v{}", i + start_idx));
         assert_eq!(r.node_id.node_id, expected_node_id);
     }
 }
@@ -199,7 +199,7 @@ fn browse_next() {
         thread::sleep(Duration::from_millis(50));
         {
             let var_name = "xxxx";
-            let node_id = NodeId::new_string(1, var_name);
+            let node_id = NodeId::new(1, var_name);
             let var = Variable::new(&node_id, var_name, var_name, "", 200 as Int32);
             let _ = address_space.add_variable(var, &parent_node_id);
         }

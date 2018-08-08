@@ -239,7 +239,8 @@ impl FromStr for NodeId {
                 NodeId::new(namespace, number.unwrap())
             }
             "s" => {
-                NodeId::new_string(namespace, v.as_str())
+                let v = UAString::from(v.as_str());
+                NodeId::new(namespace, v)
             }
             "g" => {
                 let guid = Guid::from_str(v.as_str());
@@ -305,6 +306,30 @@ impl<'a> From<(UInt16, &'a str)> for NodeId {
     }
 }
 
+impl From<(UInt16, UAString)> for NodeId {
+    fn from(v: (UInt16, UAString)) -> Self {
+        Self::new(v.0, v.1)
+    }
+}
+
+impl From<(UInt16, UInt32)> for NodeId {
+    fn from(v: (UInt16, UInt32)) -> Self {
+        Self::new(v.0, v.1)
+    }
+}
+
+impl From<(UInt16, Guid)> for NodeId {
+    fn from(v: (UInt16, Guid)) -> Self {
+        Self::new(v.0, v.1)
+    }
+}
+
+impl From<(UInt16, ByteString)> for NodeId {
+    fn from(v: (UInt16, ByteString)) -> Self {
+        Self::new(v.0, v.1)
+    }
+}
+
 static NEXT_NODE_ID_NUMERIC: AtomicUsize = ATOMIC_USIZE_INIT;
 
 impl NodeId {
@@ -312,11 +337,6 @@ impl NodeId {
     // UInt32, Guid, ByteString or String
     pub fn new<T>(namespace: UInt16, value: T) -> NodeId where T: 'static + Into<Identifier> {
         NodeId { namespace, identifier: value.into() }
-    }
-
-    /// Construct a string node id
-    pub fn new_string(namespace: UInt16, value: &str) -> NodeId {
-        Self::from((namespace, value))
     }
 
     /// Test if the node id is null, i.e. 0 namespace and 0 identifier

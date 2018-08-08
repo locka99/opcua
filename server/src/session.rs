@@ -174,6 +174,7 @@ impl Session {
             subscription.reset_lifetime_counter();
         }
     }
+
     /// Iterates through the existing queued publish requests and creates a timeout
     /// publish response any that have expired.
     pub fn expire_stale_publish_requests(&mut self, now: &DateTimeUtc) {

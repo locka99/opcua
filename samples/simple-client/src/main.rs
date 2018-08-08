@@ -65,10 +65,10 @@ fn main() {
 
 fn nodes_to_monitor() -> Vec<ReadValueId> {
     vec![
-        ReadValueId::from(NodeId::from((2, "v1"))),
-        ReadValueId::from(NodeId::from((2, "v2"))),
-        ReadValueId::from(NodeId::from((2, "v3"))),
-        ReadValueId::from(NodeId::from((2, "v4"))),
+        ReadValueId::from(NodeId::new(2, "v1")),
+        ReadValueId::from(NodeId::new(2, "v2")),
+        ReadValueId::from(NodeId::new(2, "v3")),
+        ReadValueId::from(NodeId::new(2, "v4")),
     ]
 }
 

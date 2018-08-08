@@ -52,7 +52,7 @@ fn add_many_vars_to_address_space(address_space: &mut AddressSpace, vars_to_add:
     // Add as a bunch of sequential vars to the folder
     let vars: Vec<Variable> = (0..vars_to_add).map(|i| {
         let var_name = format!("v{}", i);
-        let node_id = NodeId::new_string(1, &var_name);
+        let node_id = NodeId::new(1, var_name.clone());
         Variable::new(&node_id, &var_name, &var_name, "", i as Int32)
     }).collect();
 

@@ -102,7 +102,7 @@ fn endpoint_url(port_offset: u16) -> String {
     format!("opc.tcp://{}:{}", hostname(), 4855u16 + port_offset)
 }
 
-fn v1_node_id() -> NodeId { NodeId::new_string(2, "v1") }
+fn v1_node_id() -> NodeId { NodeId::new(2, "v1") }
 
 fn new_server(port_offset: u16) -> Server {
     let endpoint_path = "/";

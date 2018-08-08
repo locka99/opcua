@@ -200,21 +200,19 @@ fn publish_response_subscription() {
 
 #[test]
 fn publish_keep_alive() {
-    // TODO we want to create a subscription with a known keep alive value and ensure
-    // that after consecutive empty ticks we get back a keep alive
+    //do_service_test(|server_state, session, address_space, ss, mis| {
+        // TODO we want to create a subscription with a known keep alive value and ensure
+        // that after consecutive empty ticks we get back a keep alive
+    //})
 }
 
 #[test]
 fn multiple_publish_response_subscription() {
-    // Create a session
-//    let (server_state, session, address_space, ss, mis) = subscription_monitored_item_service();
-//    let server_state = trace_write_lock_unwrap!(server_state);
-//    let session = trace_write_lock_unwrap!(session);
-//    let address_space = trace_read_lock_unwrap!(address_space);
-
-    // Send a publish and expect nothing
-    // Tick a change
-    // Expect a publish response containing the subscription to be pushed
+    //do_service_test(|server_state, session, address_space, ss, mis| {
+        // Send a publish and expect nothing
+        // Tick a change
+        // Expect a publish response containing the subscription to be pushed
+    //})
 }
 
 // TODO acknowledge an unknown seqid

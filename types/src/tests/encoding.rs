@@ -192,7 +192,7 @@ fn node_id_large_id() {
 #[test]
 fn node_id_string_5229() {
     // Sample from OPCUA Part 6 - 5.2.2.9
-    let node_id = NodeId::new_string(1, "Hot水");
+    let node_id = NodeId::new(1, "Hot水");
     assert!(node_id.is_string());
     // NOTE: Example is wrong in 1.0.3, says 'r' instead of 'H'
     let expected_bytes = [0x03, 0x1, 0x0, 0x6, 0x0, 0x0, 0x0, 0x48, 0x6F, 0x74, 0xE6, 0xB0, 0xB4];
@@ -343,7 +343,7 @@ fn variant() {
     // NodeId(NodeId),
     let v = Variant::new::<NodeId>(ObjectId::AddNodesItem_Encoding_DefaultBinary.into());
     serialize_test(v);
-    let v = Variant::new(NodeId::new_string(99, "hello everyone"));
+    let v = Variant::new(NodeId::new(99, "hello everyone"));
     serialize_test(v);
     // ExpandedNodeId
     let v = Variant::new::<ExpandedNodeId>(ObjectId::AddNodesItem_Encoding_DefaultBinary.into());

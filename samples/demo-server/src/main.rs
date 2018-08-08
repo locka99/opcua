@@ -89,7 +89,7 @@ impl Scalar {
         if dynamic {
             name.push_str("Dynamic");
         }
-        NodeId::new_string(2, &name)
+        NodeId::new(2, name)
     }
 
     /// Returns the default value for any particular type

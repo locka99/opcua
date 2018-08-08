@@ -44,7 +44,7 @@ fn read_test() {
             // 4. a variable with no read access
             read_value(&node_ids[3], AttributeId::Value),
             // 5. a non existent variable
-            read_value(&NodeId::new_string(1, "vxxx"), AttributeId::Value),
+            read_value(&NodeId::new(1, "vxxx"), AttributeId::Value),
         ];
         let request = ReadRequest {
             request_header: make_request_header(),
@@ -151,7 +151,7 @@ fn write_test() {
         // 5. a node with some kind other than variable with no write mask
         write_value(&ReferenceTypeId::HasChild.into(), AttributeId::IsAbstract, DataValue::new(false)),
         // 6. a non existent variable
-        write_value(&NodeId::new_string(2, "vxxx"), AttributeId::Value, DataValue::new(100 as Int32)),
+        write_value(&NodeId::new(2, "vxxx"), AttributeId::Value, DataValue::new(100 as Int32)),
         // 7. wrong type for attribute
         write_value(&node_ids[6], AttributeId::AccessLevel, DataValue::new(-1 as SByte)),
     ];

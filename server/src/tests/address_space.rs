@@ -106,7 +106,7 @@ fn find_common_nodes() {
 
 #[test]
 fn object_attributes() {
-    let on = NodeId::new_string(1, "o1");
+    let on = NodeId::new(1, "o1");
     let o = Object::new(&on, "Browse01", "Display01", "xx");
     assert_eq!(o.node_class(), NodeClass::Object);
     assert_eq!(o.node_id(), on);
@@ -120,11 +120,11 @@ fn find_node_by_id() {
     let address_space = make_sample_address_space();
 
     assert!(!address_space.node_exists(&NodeId::null()));
-    assert!(!address_space.node_exists(&NodeId::new_string(11, "v3")));
+    assert!(!address_space.node_exists(&NodeId::new(11, "v3")));
 
-    assert!(address_space.node_exists(&NodeId::new_string(1, "v1")));
+    assert!(address_space.node_exists(&NodeId::new(1, "v1")));
     assert!(address_space.node_exists(&NodeId::new(2, 300)));
-    assert!(address_space.node_exists(&NodeId::new_string(1, "v3")));
+    assert!(address_space.node_exists(&NodeId::new(1, "v3")));
 }
 
 #[test]
