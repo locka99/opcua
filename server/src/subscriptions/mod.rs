@@ -21,9 +21,9 @@ use time;
 
 /// This converts an OPC UA Duration into a time duration used for testing for interval elapsed
 fn duration_from_ms(d: f64) -> time::Duration {
-    // TODO duration is a floating point number of mills so really it should be scaled to micros
-    // or nanos
-    time::Duration::milliseconds(d as i64)
+    // Duration is a floating point number in millis so turn to microseconds for greater accuracy
+    // 1 millisecond = 1000000 microsecond
+    time::Duration::microseconds((d * 1000000f64) as i64)
 }
 
 pub mod subscriptions;
