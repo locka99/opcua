@@ -94,7 +94,7 @@ impl MonitoredItem {
     /// the value is tested immediately. Otherwise, the monitored items sampling interval is enforced
     /// the subscriptions and controls the rate.
     ///
-    /// Function returns true if a notification message was added to the queue
+    /// Function returns true if a notification message was created and should be reported.
     pub fn tick(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, publishing_interval_elapsed: bool) -> bool {
         if self.monitoring_mode == MonitoringMode::Disabled {
             false
@@ -119,8 +119,9 @@ impl MonitoredItem {
             // Test the value (or don't)
             if check_value {
                 // Indicate a change if reporting is enabled
-                let value_has_changed = self.check_value(address_space, now);
-                self.monitoring_mode == MonitoringMode::Reporting && value_has_changed
+                let value_has_changed = self.check_value(address_space, now) && self.monitoring_mode == MonitoringMode::Reporting;
+                // println!("Monitored item using its own interval changed = {}", value_has_changed);
+                value_has_changed
             } else {
                 false
             }

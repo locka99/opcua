@@ -296,10 +296,10 @@ impl Subscription {
                 self.tick_monitored_items(address_space, now, publishing_interval_elapsed)
             }
         };
+        let notifications_available = notification_message.is_some();
 
         // If items have changed or subscription interval elapsed then we may have notifications
         // to send or state to update
-        let notifications_available = notification_message.is_some();
         let result = if notifications_available || publishing_interval_elapsed || publishing_req_queued {
             // Update the internal state of the subscription based on what happened
             let update_state_result = self.update_state(tick_reason, SubscriptionStateParams {
@@ -319,6 +319,7 @@ impl Subscription {
                         self.next_sequence_number -= notification_message.unwrap().sequence_number;
                     }
                     // Send nothing
+                    //println!("do nothing {:?}", update_state_result.handled_state);
                     None
                 }
                 UpdateStateAction::ReturnKeepAlive => {
@@ -355,8 +356,10 @@ impl Subscription {
     fn tick_monitored_items(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, publishing_interval_elapsed: bool) -> (Option<NotificationMessage>, bool) {
         let mut all_notification_messages = Vec::new();
         for (_, monitored_item) in &mut self.monitored_items {
-            if monitored_item.tick(address_space, now, publishing_interval_elapsed) {
-                // Take all of the monitored item's pending notifications
+            // If this returns true then the monitored item wants to report its notification
+            let _ = monitored_item.tick(address_space, now, publishing_interval_elapsed);
+            if publishing_interval_elapsed {
+                // Take some / all of the monitored item's pending notifications
                 if let Some(mut notification_messages) = monitored_item.all_notification_messages() {
                     all_notification_messages.append(&mut notification_messages);
                 }
@@ -555,6 +558,7 @@ impl Subscription {
             }
         }
 
+        // println!("No state handled {:?}, {:?}", tick_reason, p);
         UpdateStateResult::new(HandledState::None0, UpdateStateAction::None)
     }
 
