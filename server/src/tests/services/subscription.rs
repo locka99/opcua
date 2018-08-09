@@ -17,6 +17,12 @@ fn do_service_test<T>(f: T)
     let st = ServiceTest::new();
     let mut server_state = trace_write_lock_unwrap!(st.server_state);
     let mut session = trace_write_lock_unwrap!(st.session);
+
+    {
+        let mut address_space = trace_write_lock_unwrap!(st.address_space);
+        add_many_vars_to_address_space(&mut address_space, 100);
+    }
+
     let address_space = trace_read_lock_unwrap!(st.address_space);
     f(&mut server_state, &mut session, &address_space, SubscriptionService::new(), MonitoredItemService::new());
 }
@@ -33,27 +39,29 @@ fn create_subscription_request(max_keep_alive_count: UInt32, lifetime_count: UIn
     }
 }
 
-fn create_monitored_items_request<T>(subscription_id: UInt32, node_id: T) -> CreateMonitoredItemsRequest where T: 'static + Into<NodeId> {
+fn create_monitored_items_request<T>(subscription_id: UInt32, mut node_id: Vec<T>) -> CreateMonitoredItemsRequest
+    where T: Into<NodeId> {
+    let items_to_create = Some(node_id.drain(..)
+        .map(|i| {
+            let node_id: NodeId = i.into();
+            MonitoredItemCreateRequest {
+                item_to_monitor: node_id.into(),
+                monitoring_mode: MonitoringMode::Reporting,
+                requested_parameters: MonitoringParameters {
+                    client_handle: 1,
+                    sampling_interval: 0.1,
+                    filter: ExtensionObject::null(),
+                    queue_size: 1,
+                    discard_oldest: true,
+                },
+            }
+        })
+        .collect::<Vec<_>>());
     CreateMonitoredItemsRequest {
         request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
         subscription_id,
         timestamps_to_return: TimestampsToReturn::Both,
-        items_to_create: Some(vec![MonitoredItemCreateRequest {
-            item_to_monitor: ReadValueId {
-                node_id: node_id.into(),
-                attribute_id: AttributeId::Value as UInt32,
-                index_range: UAString::null(),
-                data_encoding: QualifiedName::null(),
-            },
-            monitoring_mode: MonitoringMode::Reporting,
-            requested_parameters: MonitoringParameters {
-                client_handle: 1,
-                sampling_interval: 0.1,
-                filter: ExtensionObject::null(),
-                queue_size: 1,
-                discard_oldest: true,
-            },
-        }]),
+        items_to_create,
     }
 }
 
@@ -105,7 +113,6 @@ fn publish_with_no_subscriptions() {
             request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
             subscription_acknowledgements: None, // Option<Vec<SubscriptionAcknowledgement>>,
         };
-
         // Publish and expect a service fault BadNoSubscription
         let request_id = 1001;
         let response = ss.async_publish(session, request_id, &address_space, request).unwrap().unwrap();
@@ -128,7 +135,7 @@ fn publish_response_subscription() {
 
         // Create a monitored item
         {
-            let request = create_monitored_items_request(subscription_id, VariableId::Server_ServerStatus_CurrentTime);
+            let request = create_monitored_items_request(subscription_id, vec![VariableId::Server_ServerStatus_CurrentTime]);
             debug!("CreateMonitoredItemsRequest {:#?}", request);
             let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(session, request).unwrap(), CreateMonitoredItemsResponse);
             debug!("CreateMonitoredItemsResponse {:#?}", response);
@@ -200,18 +207,82 @@ fn publish_response_subscription() {
 
 #[test]
 fn publish_keep_alive() {
-    //do_service_test(|server_state, session, address_space, ss, mis| {
-        // TODO we want to create a subscription with a known keep alive value and ensure
-        // that after consecutive empty ticks we get back a keep alive
-    //})
+    do_service_test(|server_state, session, address_space, ss, mis| {
+        // Create subscription
+        let subscription_id = {
+            let request = create_subscription_request(0, 0);
+            debug!("{:#?}", request);
+            let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state, session, request).unwrap(), CreateSubscriptionResponse);
+            debug!("{:#?}", response);
+            response.subscription_id
+        };
+
+        // Create a monitored item
+        {
+            let request = create_monitored_items_request(subscription_id, vec![
+                (1, "v1"),
+                (1, "v1"),
+            ]);
+            debug!("CreateMonitoredItemsRequest {:#?}", request);
+            let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(session, request).unwrap(), CreateMonitoredItemsResponse);
+            debug!("CreateMonitoredItemsResponse {:#?}", response);
+            // let result = response.results.unwrap()[0].monitored_item_id;
+        }
+
+        // Disable publishing to force a keep-alive
+        {
+            let subscription = session.subscriptions.get_mut(subscription_id).unwrap();
+            subscription.state = SubscriptionState::Normal;
+            subscription.publishing_enabled = false;
+        }
+
+        // Send a publish and expect a keep-alive response
+        let notification_message = {
+            let request_id = 1001;
+            let request = PublishRequest {
+                request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+                subscription_acknowledgements: None, // Option<Vec<SubscriptionAcknowledgement>>,
+            };
+            debug!("PublishRequest {:#?}", request);
+
+            // Don't expect a response right away
+            let response = ss.async_publish(session, request_id, &address_space, request).unwrap();
+            assert!(response.is_none());
+
+            assert!(!session.subscriptions.publish_request_queue.is_empty());
+
+            // Tick subscriptions to trigger a change
+            let now = Utc::now().add(chrono::Duration::seconds(2));
+            let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
+
+            // Ensure publish request was processed into a publish response
+            assert_eq!(session.subscriptions.publish_request_queue.len(), 0);
+            assert_eq!(session.subscriptions.publish_response_queue.len(), 1);
+
+            // Get the response from the queue
+            let response = session.subscriptions.publish_response_queue.pop_back().unwrap().response;
+            let response: PublishResponse = supported_message_as!(response, PublishResponse);
+            debug!("PublishResponse {:#?}", response);
+
+            // We expect the response to contain a non-empty notification
+            assert_eq!(response.more_notifications, false);
+            assert_eq!(response.subscription_id, subscription_id);
+            assert!(response.available_sequence_numbers.is_none());
+            response.notification_message
+        };
+
+        // Expect the notification message to be a keep-alive
+        assert_eq!(notification_message.sequence_number, 1);
+        assert_eq!(notification_message.notification_data, None);
+    })
 }
 
 #[test]
 fn multiple_publish_response_subscription() {
     //do_service_test(|server_state, session, address_space, ss, mis| {
-        // Send a publish and expect nothing
-        // Tick a change
-        // Expect a publish response containing the subscription to be pushed
+    // Send a publish and expect nothing
+    // Tick a change
+    // Expect a publish response containing the subscription to be pushed
     //})
 }
 

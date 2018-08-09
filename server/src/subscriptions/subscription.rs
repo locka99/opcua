@@ -118,7 +118,7 @@ pub struct Subscription {
     /// The next sequence number to be sent
     next_sequence_number: UInt32,
     // The last monitored item id
-    last_monitored_item_id: UInt32,
+    next_monitored_item_id: UInt32,
     // The time that the subscription interval last fired
     last_timer_expired_time: DateTimeUtc,
     /// Server diagnostics to track creation / destruction / modification of the subscription
@@ -155,7 +155,7 @@ impl Subscription {
             publishing_enabled,
             // Counters for new items
             next_sequence_number: 1,
-            last_monitored_item_id: 0,
+            next_monitored_item_id: 1,
             last_timer_expired_time: chrono::Utc::now(),
             diagnostics,
             diagnostics_on_drop: true,
@@ -173,9 +173,9 @@ impl Subscription {
         let mut results = Vec::with_capacity(items_to_create.len());
         // Add items to the subscription if they're not already in its
         for item_to_create in items_to_create {
-            self.last_monitored_item_id += 1;
             // Process items to create here
-            let monitored_item_id = self.last_monitored_item_id;
+            let monitored_item_id = self.next_monitored_item_id;
+            self.next_monitored_item_id += 1;
             // Create a monitored item, if possible
             let monitored_item = MonitoredItem::new(monitored_item_id, timestamps_to_return, item_to_create);
             let result = if let Ok(monitored_item) = monitored_item {
@@ -290,26 +290,33 @@ impl Subscription {
         // Do a tick on monitored items. Note that monitored items normally update when the interval
         // elapses but they don't have to. So this is called every tick just to catch items with their
         // own intervals.
-        let (notification_message, more_notifications) = self.tick_monitored_items(address_space, now, publishing_interval_elapsed);
+        let (notification_message, more_notifications) = match self.state {
+            SubscriptionState::Closed | SubscriptionState::Creating => (None, false),
+            _ => {
+                self.tick_monitored_items(address_space, now, publishing_interval_elapsed)
+            }
+        };
 
         // If items have changed or subscription interval elapsed then we may have notifications
         // to send or state to update
         let notifications_available = notification_message.is_some();
         let result = if notifications_available || publishing_interval_elapsed || publishing_req_queued {
-            let subscription_state_params = SubscriptionStateParams {
+            // Update the internal state of the subscription based on what happened
+            let update_state_result = self.update_state(tick_reason, SubscriptionStateParams {
                 publishing_req_queued,
                 notifications_available,
                 more_notifications,
                 publishing_interval_elapsed,
-            };
-
-            let update_state_result = self.update_state(tick_reason, subscription_state_params);
+            });
             trace!("subscription tick - update_state_result = {:?}", update_state_result);
 
+            // Now act on the state's action
             match update_state_result.update_state_action {
                 UpdateStateAction::None => {
                     if notifications_available {
                         trace!("Notification message was being ignored for a do-nothing");
+                        // Reset the next sequence number to the discarded notification
+                        self.next_sequence_number -= notification_message.unwrap().sequence_number;
                     }
                     // Send nothing
                     None
@@ -317,6 +324,8 @@ impl Subscription {
                 UpdateStateAction::ReturnKeepAlive => {
                     if notifications_available {
                         trace!("Notification message was being ignored for a keep alive");
+                        // Reset the next sequence number to the discarded notification
+                        self.next_sequence_number -= notification_message.unwrap().sequence_number;
                     }
                     // Send a keep alive
                     debug!("Sending keep alive response");

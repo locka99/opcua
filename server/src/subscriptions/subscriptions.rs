@@ -32,7 +32,7 @@ pub struct Subscriptions {
     /// Maximum number of items in the retransmission queue
     max_retransmission_queue: usize,
     // Notifications waiting to be sent - Value is subscription id and notification message.
-    transmission_queue: VecDeque<(UInt32, NotificationMessage)>,
+    transmission_queue: VecDeque<(UInt32, PublishRequestEntry, NotificationMessage) >,
     // Notifications that have been sent but have yet to be acknowledged (retransmission queue).
     // Key is sequence number. Value is subscription id and notification message
     retransmission_queue: BTreeMap<UInt32, (UInt32, NotificationMessage)>,
@@ -132,12 +132,10 @@ impl Subscriptions {
         // Iterate through all subscriptions. If there is a publish request it will be used to
         // acknowledge notifications and the response to return new notifications.
 
-        let mut publish_request_len = self.publish_request_queue.len();
-
         // Now tick over the subscriptions
-        subscription_ids.iter().for_each(|subscription_id| {
+        for subscription_id in subscription_ids {
             let subscription_state = {
-                let subscription = self.subscriptions.get(subscription_id).unwrap();
+                let subscription = self.subscriptions.get(&subscription_id).unwrap();
                 subscription.state
             };
             if subscription_state == SubscriptionState::Closed {
@@ -145,33 +143,30 @@ impl Subscriptions {
                 self.subscriptions.remove(&subscription_id);
             } else {
                 let notification_message = {
-                    let publishing_req_queued = publish_request_len > 0;
-                    let subscription = self.subscriptions.get_mut(subscription_id).unwrap();
+                    let publishing_req_queued = !self.publish_request_queue.is_empty();
+                    let subscription = self.subscriptions.get_mut(&subscription_id).unwrap();
                     // Now tick the subscription to see if it has any notifications. If there are
                     // notifications then the publish response will be associated with his subscription
                     // and ready to go.
                     subscription.tick(address_space, tick_reason, publishing_req_queued, now)
                 };
                 if let Some(notification_message) = notification_message {
-                    debug!("Subscription {} produced a notification message", subscription_id);
-                    // Push onto the transmission queue
-                    self.transmission_queue.push_front((*subscription_id, notification_message));
-                    if publish_request_len > 0 {
-                        publish_request_len -= 1;
+                    if self.publish_request_queue.is_empty() {
+                        panic!("Should not be returning a notification message if there are no publish request to fill");
                     }
+                    // Consume the publish request and queue the notification onto the transmission queue
+                    debug!("Subscription {} produced a notification message", subscription_id);
+                    let publish_request = self.publish_request_queue.pop_back().unwrap();
+                    self.transmission_queue.push_front((subscription_id, publish_request, notification_message));
                 }
             }
-        });
+        }
 
-        // Iterate through notifications in the transmission making publish responses until either
-        // the transmission queue or publish request queue becomes empty
-
-        while !self.transmission_queue.is_empty() && !self.publish_request_queue.is_empty() {
-            debug!("Pairing a notification from the transmission queue to a publish request");
-            let publish_request = self.publish_request_queue.pop_back().unwrap();
-
+        // Iterate through notifications from oldest to latest in the transmission making publish
+        // responses.
+        while !self.transmission_queue.is_empty() {
             // Get the oldest notification to send
-            let (subscription_id, notification_message) = self.transmission_queue.pop_back().unwrap();
+            let (subscription_id, publish_request, notification_message) = self.transmission_queue.pop_back().unwrap();
 
             // Search the transmission queue for more notifications from this same subscription
             let more_notifications = self.more_notifications(subscription_id);

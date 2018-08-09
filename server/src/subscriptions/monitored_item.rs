@@ -119,14 +119,17 @@ impl MonitoredItem {
             // Test the value (or don't)
             if check_value {
                 // Indicate a change if reporting is enabled
-                let changed = self.check_value(address_space, now);
-                self.monitoring_mode == MonitoringMode::Reporting && changed
+                let value_has_changed = self.check_value(address_space, now);
+                self.monitoring_mode == MonitoringMode::Reporting && value_has_changed
             } else {
                 false
             }
         }
     }
 
+    /// Fetches the most recent value of the monitored item and compares it to the last value.
+    ///
+    /// If the value has changed, the function will return true, false otherwise.
     fn check_value(&mut self, address_space: &AddressSpace, now: &DateTimeUtc) -> bool {
         self.last_sample_time = *now;
         if let Some(node) = address_space.find_node(&self.item_to_monitor.node_id) {
