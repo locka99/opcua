@@ -3,7 +3,10 @@
 
 use std::result::Result;
 use std::str::FromStr;
+use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
+
+use chrono;
 
 use opcua_core::crypto;
 use opcua_core::crypto::{CertificateStore, PrivateKey, SecurityPolicy, X509};
@@ -74,11 +77,18 @@ pub struct SessionState {
     /// Maximum message size
     pub max_message_size: usize,
     /// The next handle to assign to a request
-    pub last_request_handle: UInt32,
+    pub next_request_handle: UInt32,
     /// The session's id - used for diagnostic info
     pub session_id: NodeId,
     /// The sesion authentication token, used for session activation
     pub authentication_token: NodeId,
+    /// Next monitored item client side handle
+    next_monitored_item_handle: UInt32,
+    /// A set of the outstanding publish request handles
+    publish_request_handles: HashSet<UInt32>,
+    /// A flag which tells client to wait for a publish response before sending any new publish
+    /// requests
+    wait_for_publish_response: bool,
 }
 
 impl SessionState {
@@ -89,9 +99,12 @@ impl SessionState {
             send_buffer_size: SEND_BUFFER_SIZE,
             receive_buffer_size: RECEIVE_BUFFER_SIZE,
             max_message_size: MAX_BUFFER_SIZE,
-            last_request_handle: 1,
+            next_request_handle: 1,
             session_id: NodeId::null(),
             authentication_token: NodeId::null(),
+            next_monitored_item_handle: 1000,
+            publish_request_handles: HashSet::new(),
+            wait_for_publish_response: false,
         }
     }
 }
@@ -113,8 +126,6 @@ pub struct Session {
     transport: TcpTransport,
     /// Certificate store
     certificate_store: Arc<RwLock<CertificateStore>>,
-    /// Next monitored item handle
-    last_monitored_item_handle: UInt32,
 }
 
 impl Drop for Session {
@@ -142,7 +153,6 @@ impl Session {
             subscription_state,
             subscription_acknowledgements: Vec::new(),
             transport,
-            last_monitored_item_handle: 0,
         }
     }
 
@@ -713,32 +723,44 @@ impl Session {
             error!("create_monitored_items() called with no items to create");
             Err(BadNothingToDo)
         } else {
+            // Obtain some handles and update state
+            let mut next_monitored_item_handle = {
+                let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                let next_monitored_item_handle = session_state.next_monitored_item_handle;
+                session_state.next_monitored_item_handle += items_to_create.len() as u32;
+                next_monitored_item_handle
+            };
+
             // Assign each item a unique client handle
             let mut items_to_create = items_to_create.to_vec();
             items_to_create.iter_mut().for_each(|i| {
-                self.last_monitored_item_handle += 1;
-                i.requested_parameters.client_handle = self.last_monitored_item_handle;
+                i.requested_parameters.client_handle = next_monitored_item_handle;
+                next_monitored_item_handle += 1;
             });
+
             let request = CreateMonitoredItemsRequest {
                 request_header: self.make_request_header(),
                 subscription_id,
                 timestamps_to_return: TimestampsToReturn::Both,
-                items_to_create: Some(items_to_create.to_vec()),
+                items_to_create: Some(items_to_create.clone()),
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::CreateMonitoredItemsResponse(response) = response {
                 Self::process_service_result(&response.response_header)?;
                 if let Some(ref results) = response.results {
                     // Set the items in our internal state
-                    let items_to_create: Vec<subscription::CreateMonitoredItem> = items_to_create.iter().zip(results).map(|(i, r)| {
-                        subscription::CreateMonitoredItem {
-                            id: r.monitored_item_id,
-                            client_handle: i.requested_parameters.client_handle,
-                            item_to_monitor: i.item_to_monitor.clone(),
-                            queue_size: r.revised_queue_size,
-                            sampling_interval: r.revised_sampling_interval,
-                        }
-                    }).collect();
+                    let items_to_create = items_to_create.iter()
+                        .zip(results)
+                        .map(|(i, r)| {
+                            subscription::CreateMonitoredItem {
+                                id: r.monitored_item_id,
+                                client_handle: i.requested_parameters.client_handle,
+                                item_to_monitor: i.item_to_monitor.clone(),
+                                queue_size: r.revised_queue_size,
+                                sampling_interval: r.revised_sampling_interval,
+                            }
+                        })
+                        .collect::<Vec<subscription::CreateMonitoredItem>>();
                     {
                         let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                         subscription_state.insert_monitored_items(subscription_id, &items_to_create);
@@ -763,7 +785,9 @@ impl Session {
             error!("modify_monitored_items() called with no items to modify");
             Err(BadNothingToDo)
         } else {
-            let monitored_item_ids: Vec<UInt32> = items_to_modify.iter().map(|i| i.monitored_item_id).collect();
+            let monitored_item_ids = items_to_modify.iter()
+                .map(|i| i.monitored_item_id)
+                .collect::<Vec<UInt32>>();
             let request = ModifyMonitoredItemsRequest {
                 request_header: self.make_request_header(),
                 subscription_id,
@@ -775,13 +799,16 @@ impl Session {
                 Self::process_service_result(&response.response_header)?;
                 if let Some(ref results) = response.results {
                     // Set the items in our internal state
-                    let items_to_modify: Vec<subscription::ModifyMonitoredItem> = monitored_item_ids.iter().zip(results.iter()).map(|(id, r)| {
-                        subscription::ModifyMonitoredItem {
-                            id: *id,
-                            queue_size: r.revised_queue_size,
-                            sampling_interval: r.revised_sampling_interval,
-                        }
-                    }).collect();
+                    let items_to_modify = monitored_item_ids.iter()
+                        .zip(results.iter())
+                        .map(|(id, r)| {
+                            subscription::ModifyMonitoredItem {
+                                id: *id,
+                                queue_size: r.revised_queue_size,
+                                sampling_interval: r.revised_sampling_interval,
+                            }
+                        })
+                        .collect::<Vec<subscription::ModifyMonitoredItem>>();
                     {
                         let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                         subscription_state.modify_monitored_items(subscription_id, &items_to_modify);
@@ -878,34 +905,35 @@ impl Session {
         subscription_state.subscription_exists(subscription_id)
     }
 
-    // Sends a publish request containing any acknowledgements
-    fn publish(&mut self, subscription_acknowledgements: &[SubscriptionAcknowledgement]) -> Result<PublishResponse, StatusCode> {
+    /// Sends a publish request containing acknowledgements for previous notifications.
+    /// TODO this function needs to be refactored as an asynchronous operation.
+    fn async_publish(&mut self, subscription_acknowledgements: &[SubscriptionAcknowledgement]) -> Result<UInt32, StatusCode> {
         let request = PublishRequest {
             request_header: self.make_request_header(),
             subscription_acknowledgements: if subscription_acknowledgements.is_empty() { None } else { Some(subscription_acknowledgements.to_vec()) },
         };
-        let response = self.send_request(request)?;
-        if let SupportedMessage::PublishResponse(response) = response {
-            Self::process_service_result(&response.response_header)?;
-            Ok(response)
-        } else {
-            Err(Self::process_unexpected_response(response))
+        let request_handle = self.async_send_request(request)?;
+        {
+            // Store the request handle so a publish response (or error) can be associated with the request later
+            let mut session_state = trace_write_lock_unwrap!(self.session_state);
+            session_state.publish_request_handles.insert(request_handle);
         }
+        Ok(request_handle)
     }
 
+    /// Synchronously sends a request. The return value is the response to the request
     fn send_request<T>(&mut self, request: T) -> Result<SupportedMessage, StatusCode> where T: Into<SupportedMessage> {
-        let request = request.into();
-        match request {
-            SupportedMessage::OpenSecureChannelRequest(_) | SupportedMessage::CloseSecureChannelRequest(_) | SupportedMessage::CreateSessionRequest(_) => {}
-            _ => {
-                // Make sure secure channel token hasn't expired
-                let _ = self.ensure_secure_channel_token();
-            }
-        }
         // Send the request
-        self.transport.send_request(request)
+        let request_handle = self.async_send_request(request)?;
+        // Wait for the response
+        let request_timeout = {
+            let session_state = trace_read_lock_unwrap!(self.session_state);
+            session_state.request_timeout
+        };
+        self.wait_for_response(request_handle, request_timeout)
     }
 
+    /// Asynchronously sends a request. The return value is the request handle of the request
     fn async_send_request<T>(&mut self, request: T) -> Result<UInt32, StatusCode> where T: Into<SupportedMessage> {
         let request = request.into();
         match request {
@@ -916,10 +944,55 @@ impl Session {
             }
         }
         // Send the request
-        self.transport.async_send_request(request)
+        let request_handle = request.request_handle();
+        let _ = self.transport.async_send_request(request)?;
+        Ok(request_handle)
+    }
+
+    /// Asks the session to poll, which basically allows clients who are doing nothing but receiving
+    /// notifications to receive them.
+    pub fn poll(&mut self) {
+        // TODO timeout
+        let _ = self.wait_for_response(0, 5000);
     }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
+
+     fn wait_for_response(&mut self, request_handle: UInt32, request_timeout: UInt32) -> Result<SupportedMessage, StatusCode> {
+        // Receive messages until the one expected comes back. Publish responses will be consumed
+        // silently.
+        let start = chrono::Utc::now();
+        loop {
+            // Note that theoretically, there might be one slow response and then another so the timeout
+            // period could be exceeded by nearly double in the worst case, e.g. timeout is 10s,
+            // first response (not ours) takes 9.9s and then we wait another 9.9s for the message
+            // that is ours. Now the timeout was 19.8s. Should we error even though we eventually
+            // got the message outside the timeout?
+            let response = self.transport.wait_for_response(request_timeout)?;
+            let response_request_handle = response.request_handle();
+
+            let now = chrono::Utc::now();
+            let request_duration = now.signed_duration_since(start);
+            if request_duration.num_milliseconds() >= request_timeout as i64 {
+                return Err(BadTimeout);
+            }
+            // Compare the handle of the response to the expected handle
+            if response_request_handle == request_handle {
+                // Straight match so return
+                return Ok(response);
+            }
+            // Check if it is a pending publish request
+            let is_publish_request = {
+                let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                session_state.publish_request_handles.remove(&response_request_handle)
+            };
+            if is_publish_request {
+                self.handle_publish_response(response);
+            } else {
+                error!("Received a response from server which does not match any existing request handle {}", response_request_handle);
+            }
+        }
+    }
 
     fn user_identity_token(&self) -> Result<ExtensionObject, StatusCode> {
         let user_token_type = match self.session_info.user_identity_token {
@@ -1000,8 +1073,9 @@ impl Session {
     fn make_request_header(&mut self) -> RequestHeader {
         let (authentication_token, request_handle, timeout_hint) = {
             let mut session_state = trace_write_lock_unwrap!(self.session_state);
-            session_state.last_request_handle += 1;
-            (session_state.authentication_token.clone(), session_state.last_request_handle, session_state.request_timeout)
+            let next_request_handle = session_state.next_request_handle;
+            session_state.next_request_handle += 1;
+            (session_state.authentication_token.clone(), next_request_handle, session_state.request_timeout)
         };
         let request_header = RequestHeader {
             authentication_token,
@@ -1057,69 +1131,82 @@ impl Session {
 
     /// Function that handles subscription
     pub fn subscription_timer(&mut self) {
+        // Only sent a publish if there are subscriptions (& in future events)
         let have_subscriptions = {
             let subscription_state = trace_read_lock_unwrap!(self.subscription_state);
             !subscription_state.is_empty()
         };
-
-        if have_subscriptions {
+        // Server may have throttled publish requests
+        let wait_for_publish_response = {
+            let session_state = trace_read_lock_unwrap!(self.session_state);
+            session_state.wait_for_publish_response
+        };
+        if have_subscriptions && !wait_for_publish_response {
             trace!("Subscription timer has subscriptions and is sending a publish");
-
-            // On timer, send a publish request with optional
-            //   Acknowledgements
+            // Send a publish request with any acknowledgements
             let subscription_acknowledgements = self.subscription_acknowledgements.drain(..).collect::<Vec<SubscriptionAcknowledgement>>();
+            let _ = self.async_publish(&subscription_acknowledgements);
+        }
+    }
 
-            // Receive response
-            trace!("Publish request");
-            match self.publish(&subscription_acknowledgements) {
-                Ok(response) => {
-                    trace!("PublishResponse");
-                    // Update subscriptions based on response
+    /// This is the handler for asynchronous publish responses. It maintains the acknowledegements
+    /// to be sent and sends the data change notifications to the client for processing.
+    fn handle_publish_response(&mut self, response: SupportedMessage) {
+        let mut wait_for_publish_response = false;
 
-                    // Queue acknowledgements for next request
-                    let notification_message = response.notification_message;
-                    let subscription_id = response.subscription_id;
+        match response {
+            SupportedMessage::PublishResponse(response) => {
+                trace!("PublishResponse");
+                // Update subscriptions based on response
+                // Queue acknowledgements for next request
+                let notification_message = response.notification_message;
+                let subscription_id = response.subscription_id;
 
-                    // Queue an acknowledgement for this request
-                    self.subscription_acknowledgements.push(SubscriptionAcknowledgement {
-                        subscription_id,
-                        sequence_number: notification_message.sequence_number,
-                    });
+                // Queue an acknowledgement for this request
+                self.subscription_acknowledgements.push(SubscriptionAcknowledgement {
+                    subscription_id,
+                    sequence_number: notification_message.sequence_number,
+                });
 
-                    // Process data change notifications
-                    let data_change_notifications = notification_message.data_change_notifications();
-                    if !data_change_notifications.is_empty() {
-                        let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
-                        subscription_state.subscription_data_change(subscription_id, &data_change_notifications);
-                    }
-
-                    //pub available_sequence_numbers: Option<Vec<UInt32>>,
-                    //pub more_notifications: Boolean,
-                    //pub notification_message: NotificationMessage,
-                    //pub results: Option<Vec<StatusCode>>,
-                    //pub diagnostic_infos: Option<Vec<DiagnosticInfo>>,
+                // Process data change notifications
+                let data_change_notifications = notification_message.data_change_notifications();
+                if !data_change_notifications.is_empty() {
+                    let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
+                    subscription_state.subscription_data_change(subscription_id, &data_change_notifications);
                 }
-                Err(status_code) => {
-                    // Terminate timer if
-                    match status_code {
-                        StatusCode::BadSessionIdInvalid => {
-                            //   BadSessionIdInvalid
-                            trace!("Subscription timer received BadSessionIdInvalid error code");
-                        }
-                        StatusCode::BadNoSubscription => {
-                            //   BadNoSubscription
-                            trace!("Subscription timer received BadNoSubscription error code");
-                        }
-                        StatusCode::BadTooManyPublishRequests => {
-                            //   BadTooManyPublishRequests
-                            trace!("Subscription timer received BadTooManyPublishRequests error code");
-                        }
-                        _ => {
-                            trace!("Subscription timer received error code {:?}", status_code);
-                        }
+            }
+            SupportedMessage::ServiceFault(response) => {
+                // Terminate timer if
+                let service_result = response.response_header.service_result;
+                match service_result {
+                    StatusCode::BadSessionIdInvalid => {
+                        //   BadSessionIdInvalid
+                        trace!("Subscription timer received BadSessionIdInvalid error code");
+                    }
+                    StatusCode::BadNoSubscription => {
+                        //   BadNoSubscription
+                        trace!("Subscription timer received BadNoSubscription error code");
+                    }
+                    StatusCode::BadTooManyPublishRequests => {
+                        //   BadTooManyPublishRequests
+                        trace!("Subscription timer received BadTooManyPublishRequests error code");
+                        // Turn off publish requests until server says otherwise
+                        wait_for_publish_response = false;
+                    }
+                    _ => {
+                        trace!("Subscription timer received error code {:?}", service_result);
                     }
                 }
             }
+            _ => {
+                panic!("Should not be handling non publish responses from here")
+            }
+        }
+
+        // Turn on/off publish requests
+        {
+            let mut session_state = trace_write_lock_unwrap!(self.session_state);
+            session_state.wait_for_publish_response = wait_for_publish_response;
         }
     }
 }

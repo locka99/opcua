@@ -3,7 +3,6 @@
 ASPIRATIONAL - a short list of things that would be nice to implement in the near future
   - Rust 2018. From 0.5 onwards, the project will move to Rust 2018. That generally means removing extern crate
     keywords, cleaning up match statements, simplified futures and other improvements. 
-  - Fix subscription publish lost notifications.
   - Diagnostics.
   - Session restore after disconnect in server.
   - Session restore after disconnect in client, i.e. reconnect and resume session first and then try reconnect and recreate session.
@@ -22,20 +21,22 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
     - Implements client side encryption for security policies & modes other than None.
     - Moved discovery / endpoints / connection into a helper fn
     - Better failure behaviour when server goes down or becomes unreachable.
+    - Better subscription support
     - Client validates the server's cert to its hostname and application uri and rejects if it does not match.
   - Server side
     - The server network IO has been rewritten using `tokio` and `futures`. Sessions have moved from being per-thread 
       to being asynchronous tasks on the tokio / futures framework. It should be more scalable. The downside is writing
       asynchronous code is a steep learning curve.
     - Hostname resolution works. Previously endpoints had to be an IP address.
+    - Subscriptions are far more reliable than before. 0.3 could drop notifications and had reporting problems when
+      monitored items had their own sampling intervals.
     - If the `discovery_server_url` property is set in the configuration, the server will periodically
       register itself with that discovery server. You may have to make your discovery server trust your server's 
       public cert for registration to succeed.
-    - Setting timers to poll/change values is simplified and uses tokio behind the covers. This should also be more
-      efficient, however note that tokio_timer uses a "wheel" system with a 100ms granularity - any lower than this 
-      and things go haywire and consume a lot of CPU.
-    - The server api provides a basic web api which can be enabled through code and the compile feature `http`.
-      See the demo_server/ sample which starts a server on localhost:8585
+    - Using timers to poll/change values is simplified and now uses tokio timer behind the covers.
+    - The server api provides a basic web server for metrics monitoring which can be enabled through code and the
+      compile feature `http`. This is not support for OPC over http. See the demo_server/ sample which starts a server
+      on localhost:8585
     - Finer grained locking has been used around access to structures where only read access is required.
     - The server implements the OPC UA `Method::Call()` service and `GetMonitoredItems`. Add a callback framework to 
       address space allowing other methods to be implemented.

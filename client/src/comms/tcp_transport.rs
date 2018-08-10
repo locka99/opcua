@@ -196,10 +196,9 @@ impl TcpTransport {
         Ok(Some(message))
     }
 
-    fn wait_for_response(&mut self, request_id: UInt32, request_timeout: UInt32) -> Result<SupportedMessage, StatusCode> {
+    pub fn wait_for_response(&mut self, request_timeout: UInt32) -> Result<SupportedMessage, StatusCode> {
         // This loop terminates when the corresponding response comes back or a timeout occurs
 
-        debug!("Waiting for a response for request id {}", request_id);
         // TODO buffer size
         let mut in_buf = vec![0u8; RECEIVE_BUFFER_SIZE];
 
@@ -209,8 +208,9 @@ impl TcpTransport {
             // Check for a timeout
             let now = chrono::Utc::now();
             let request_duration = now.signed_duration_since(start);
-            if request_duration.num_milliseconds() > request_timeout as i64 {
-                debug!("Time waiting {}ms exceeds timeout {}ms waiting for response from request id {}", request_duration.num_milliseconds(), request_timeout, request_id);
+            if request_duration.num_milliseconds() >= request_timeout as i64 {
+                debug!("Time waiting {}ms exceeds timeout {}ms waiting for response ",
+                       request_duration.num_milliseconds(), request_timeout);
                 session_status_code = BadTimeout;
                 break;
             }
@@ -236,7 +236,6 @@ impl TcpTransport {
             }
             trace!("Bytes read = {}", bytes_read);
 
-            // TODO this is practically cut and pasted from server loop and should be common to both
             let result = self.message_buffer.store_bytes(&in_buf[0..bytes_read]);
             if result.is_err() {
                 session_status_code = result.unwrap_err();
@@ -247,7 +246,6 @@ impl TcpTransport {
                 match message {
                     Message::MessageChunk(chunk) => {
                         if let Some(result) = self.process_chunk(chunk)? {
-                            // TODO check the response request_handle to see if it matches our request
                             return Ok(result);
                         }
                     }
@@ -275,19 +273,13 @@ impl TcpTransport {
         Err(session_status_code)
     }
 
-    pub fn send_request(&mut self, request: SupportedMessage) -> Result<SupportedMessage, StatusCode> {
-        // let request_timeout = request_header.timeout_hint;
-        trace!("Sending a request");
-        let request_timeout = 5000; // TODO
-        let request_id = self.async_send_request(request)?;
-        self.wait_for_response(request_id, request_timeout)
-    }
-
     fn next_request_id(&mut self) -> UInt32 {
         self.last_request_id += 1;
         self.last_request_id
     }
 
+    /// Sends the supplied request asynchronously. The returned value is the request id for the
+    /// chunked message. Higher levels may or may not find it useful.
     pub fn async_send_request(&mut self, request: SupportedMessage) -> Result<UInt32, StatusCode> {
         if !self.is_connected() {
             return Err(BadServerNotConnected);

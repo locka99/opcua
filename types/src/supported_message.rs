@@ -5,6 +5,7 @@ use std::io::{Read, Write};
 
 use encoding::*;
 use node_id::NodeId;
+use basic_types::UInt32;
 use service_types::*;
 use node_ids::ObjectId;
 
@@ -67,6 +68,61 @@ macro_rules! supported_messages_enum {
 }
 
 impl SupportedMessage {
+    pub fn request_handle(&self) -> UInt32 {
+        match *self {
+            SupportedMessage::Invalid(_) => 0,
+            // Requests
+            SupportedMessage::OpenSecureChannelRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::CloseSecureChannelRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::GetEndpointsRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::FindServersRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::RegisterServerRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::CreateSessionRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::CloseSessionRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::ActivateSessionRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::CreateMonitoredItemsRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::ModifyMonitoredItemsRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::DeleteMonitoredItemsRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::CreateSubscriptionRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::ModifySubscriptionRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::DeleteSubscriptionsRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::SetPublishingModeRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::BrowseRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::BrowseNextRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::PublishRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::RepublishRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::ReadRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::WriteRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::CallRequest(ref r) => r.request_header.request_handle,
+            // Responses
+            SupportedMessage::ServiceFault(ref r) => r.response_header.request_handle,
+            SupportedMessage::OpenSecureChannelResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::CloseSecureChannelResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::GetEndpointsResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::FindServersResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::RegisterServerResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::CreateSessionResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::CloseSessionResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::ActivateSessionResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::CreateMonitoredItemsResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::ModifyMonitoredItemsResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::DeleteMonitoredItemsResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::CreateSubscriptionResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::ModifySubscriptionResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::DeleteSubscriptionsResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::SetPublishingModeResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::BrowseResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::BrowseNextResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::PublishResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::RepublishResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::ReadResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::WriteResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::CallResponse(ref r) => r.response_header.request_handle,
+        }
+    }
+
     pub fn decode_by_object_id<S: Read>(stream: &mut S, object_id: ObjectId) -> EncodingResult<Self> {
         trace!("decoding object_id {:?}", object_id);
         let decoded_message = match object_id {
@@ -223,51 +279,53 @@ impl SupportedMessage {
 
 // These are all the messages handled into and out of streams by the OPCUA server / client code
 supported_messages_enum![
-    ServiceFault,
+    // Requests
     OpenSecureChannelRequest,
-    OpenSecureChannelResponse,
     CloseSecureChannelRequest,
-    CloseSecureChannelResponse,
     GetEndpointsRequest,
-    GetEndpointsResponse,
     FindServersRequest,
-    FindServersResponse,
     RegisterServerRequest,
-    RegisterServerResponse,
     CreateSessionRequest,
-    CreateSessionResponse,
     CloseSessionRequest,
-    CloseSessionResponse,
     ActivateSessionRequest,
-    ActivateSessionResponse,
     CreateMonitoredItemsRequest,
-    CreateMonitoredItemsResponse,
     ModifyMonitoredItemsRequest,
-    ModifyMonitoredItemsResponse,
     DeleteMonitoredItemsRequest,
-    DeleteMonitoredItemsResponse,
     CreateSubscriptionRequest,
-    CreateSubscriptionResponse,
     ModifySubscriptionRequest,
-    ModifySubscriptionResponse,
     DeleteSubscriptionsRequest,
-    DeleteSubscriptionsResponse,
     SetPublishingModeRequest,
-    SetPublishingModeResponse,
     BrowseRequest,
-    BrowseResponse,
     BrowseNextRequest,
-    BrowseNextResponse,
     PublishRequest,
-    PublishResponse,
     RepublishRequest,
-    RepublishResponse,
     TranslateBrowsePathsToNodeIdsRequest,
-    TranslateBrowsePathsToNodeIdsResponse,
     ReadRequest,
-    ReadResponse,
     WriteRequest,
-    WriteResponse,
     CallRequest,
+    // Responses
+    ServiceFault,
+    OpenSecureChannelResponse,
+    CloseSecureChannelResponse,
+    GetEndpointsResponse,
+    FindServersResponse,
+    RegisterServerResponse,
+    CreateSessionResponse,
+    CloseSessionResponse,
+    ActivateSessionResponse,
+    CreateMonitoredItemsResponse,
+    ModifyMonitoredItemsResponse,
+    DeleteMonitoredItemsResponse,
+    CreateSubscriptionResponse,
+    ModifySubscriptionResponse,
+    DeleteSubscriptionsResponse,
+    SetPublishingModeResponse,
+    BrowseResponse,
+    BrowseNextResponse,
+    PublishResponse,
+    RepublishResponse,
+    TranslateBrowsePathsToNodeIdsResponse,
+    ReadResponse,
+    WriteResponse,
     CallResponse,
 ];
