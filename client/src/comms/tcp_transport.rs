@@ -1,6 +1,6 @@
 use std::net::TcpStream;
 use std::result::Result;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, RwLock, Mutex};
 use std::io::{Read, Write, ErrorKind};
 
 use chrono;
@@ -35,6 +35,10 @@ pub struct TcpTransport {
     pub secure_channel: Arc<RwLock<SecureChannel>>,
     /// Last request id, used to track async requests
     last_request_id: UInt32,
+    /// Receive buffer for incoming bytes. Note the Arc/Mutex is a workaround of the borrow
+    /// rules that complain about us reading from a mutable stream into a mutable buffer belonging
+    /// to the same instance of Self. It could probably be fixed some other way.
+    receive_buffer: Arc<Mutex<Vec<u8>>>,
 }
 
 impl TcpTransport {
@@ -55,6 +59,7 @@ impl TcpTransport {
             last_received_sequence_number: DEFAULT_RECEIVED_SEQUENCE_NUMBER,
             last_request_id: DEFAULT_REQUEST_ID,
             secure_channel,
+            receive_buffer: Arc::new(Mutex::new(vec![0u8; RECEIVE_BUFFER_SIZE])),
         }
     }
 
@@ -198,12 +203,12 @@ impl TcpTransport {
 
     pub fn wait_for_response(&mut self, request_timeout: UInt32) -> Result<SupportedMessage, StatusCode> {
         // This loop terminates when the corresponding response comes back or a timeout occurs
-
-        // TODO buffer size
-        let mut in_buf = vec![0u8; RECEIVE_BUFFER_SIZE];
-
         let session_status_code;
         let start = chrono::Utc::now();
+
+        let receive_buffer = self.receive_buffer.clone();
+        let mut receive_buffer = trace_lock_unwrap!(receive_buffer);
+
         'message_loop: loop {
             // Check for a timeout
             let now = chrono::Utc::now();
@@ -216,7 +221,7 @@ impl TcpTransport {
             }
 
             // decode response
-            let bytes_read_result = self.stream().read(&mut in_buf);
+            let bytes_read_result = self.stream().read(&mut receive_buffer);
             if let Err(error) = bytes_read_result {
                 if error.kind() == ErrorKind::TimedOut {
                     continue;
@@ -236,7 +241,7 @@ impl TcpTransport {
             }
             trace!("Bytes read = {}", bytes_read);
 
-            let result = self.message_buffer.store_bytes(&in_buf[0..bytes_read]);
+            let result = self.message_buffer.store_bytes(&receive_buffer[0..bytes_read]);
             if result.is_err() {
                 session_status_code = result.unwrap_err();
                 break;
