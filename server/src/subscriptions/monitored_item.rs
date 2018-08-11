@@ -58,8 +58,8 @@ pub struct MonitoredItem {
 impl MonitoredItem {
     pub fn new(monitored_item_id: UInt32, timestamps_to_return: TimestampsToReturn, request: &MonitoredItemCreateRequest) -> Result<MonitoredItem, StatusCode> {
         let filter = FilterType::from_filter(&request.requested_parameters.filter)?;
-        let sampling_interval = MonitoredItem::sanitize_sampling_interval(request.requested_parameters.sampling_interval);
-        let queue_size = MonitoredItem::sanitize_queue_size(request.requested_parameters.queue_size as usize);
+        let sampling_interval = Self::sanitize_sampling_interval(request.requested_parameters.sampling_interval);
+        let queue_size = Self::sanitize_queue_size(request.requested_parameters.queue_size as usize);
         Ok(MonitoredItem {
             monitored_item_id,
             item_to_monitor: request.item_to_monitor.clone(),
@@ -81,10 +81,25 @@ impl MonitoredItem {
     pub fn modify(&mut self, timestamps_to_return: TimestampsToReturn, request: &MonitoredItemModifyRequest) -> Result<(), StatusCode> {
         self.timestamps_to_return = timestamps_to_return;
         self.filter = FilterType::from_filter(&request.requested_parameters.filter)?;
-        self.sampling_interval = MonitoredItem::sanitize_sampling_interval(request.requested_parameters.sampling_interval);
-        self.queue_size = MonitoredItem::sanitize_queue_size(request.requested_parameters.queue_size as usize);
+        self.sampling_interval = Self::sanitize_sampling_interval(request.requested_parameters.sampling_interval);
+        self.queue_size = Self::sanitize_queue_size(request.requested_parameters.queue_size as usize);
         self.client_handle = request.requested_parameters.client_handle;
         self.discard_oldest = request.requested_parameters.discard_oldest;
+
+        // Shrink / grow the notification queue to the new threshold
+        if self.notification_queue.len() > self.queue_size {
+            // Discard old notifications
+            let discard = self.queue_size - self.notification_queue.len();
+            let _ = self.notification_queue.drain(0..discard);
+            // TODO potential edge case with discard oldest behaviour
+            // Shrink the queue
+            self.notification_queue.shrink_to_fit();
+        } else if self.notification_queue.capacity() < self.queue_size {
+            // Reserve space for more elements
+            let extra_capacity = self.queue_size - self.notification_queue.capacity();
+            self.notification_queue.reserve(extra_capacity);
+        }
+
         Ok(())
     }
 
@@ -128,9 +143,11 @@ impl MonitoredItem {
         }
     }
 
-    /// Fetches the most recent value of the monitored item and compares it to the last value.
+    /// Fetches the most recent value of the monitored item from the source and compares
+    /// it to the last value. If the value has changed according to a filter / equality
+    /// check, the latest value and its timestamps will be stored in the monitored item.
     ///
-    /// If the value has changed, the function will return true, false otherwise.
+    /// The function will return true if the value was changed, false otherwise.
     fn check_value(&mut self, address_space: &AddressSpace, now: &DateTimeUtc) -> bool {
         self.last_sample_time = *now;
         if let Some(node) = address_space.find_node(&self.item_to_monitor.node_id) {
