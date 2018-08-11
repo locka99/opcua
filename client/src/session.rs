@@ -84,8 +84,8 @@ pub struct SessionState {
     pub authentication_token: NodeId,
     /// Next monitored item client side handle
     next_monitored_item_handle: UInt32,
-    /// A set of the outstanding publish request handles
-    publish_request_handles: HashSet<UInt32>,
+    /// A set of the outstanding pending requests, represented by their request handle
+    pending_requests: HashSet<UInt32>,
     /// A flag which tells client to wait for a publish response before sending any new publish
     /// requests
     wait_for_publish_response: bool,
@@ -103,7 +103,7 @@ impl SessionState {
             session_id: NodeId::null(),
             authentication_token: NodeId::null(),
             next_monitored_item_handle: 1000,
-            publish_request_handles: HashSet::new(),
+            pending_requests: HashSet::new(),
             wait_for_publish_response: false,
         }
     }
@@ -917,7 +917,7 @@ impl Session {
         {
             // Store the request handle so a publish response (or error) can be associated with the request later
             let mut session_state = trace_write_lock_unwrap!(self.session_state);
-            session_state.publish_request_handles.insert(request_handle);
+            session_state.pending_requests.insert(request_handle);
         }
         Ok(request_handle)
     }
@@ -968,43 +968,29 @@ impl Session {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     // Process any async messages we expect to receive
-    fn poll_async_messages(&mut self) -> Result<UInt32, StatusCode> {
+    fn poll_async_messages(&mut self) -> Result<(), StatusCode> {
+        let request_timeout = DEFAULT_REQUEST_TIMEOUT;
         let pending_responses = {
             let session_state = trace_read_lock_unwrap!(self.session_state);
-            session_state.publish_request_handles.len() > 0
+            session_state.pending_requests.len() > 0
         };
-        let request_timeout = DEFAULT_REQUEST_TIMEOUT;
         if pending_responses {
-            let mut messages_processed = 0;
-            loop {
-                let async_messages_left = {
-                    let mut session_state = trace_write_lock_unwrap!(self.session_state);
-                    session_state.publish_request_handles.len()
-                };
-                if async_messages_left == 0 {
-                    break;
-                }
-
-                debug!("Waiting for response poll_async_messages");
-                let response = self.transport.wait_for_response(request_timeout)?;
-                let response_request_handle = response.request_handle();
-
-                let is_publish_request = {
-                    debug!("is publish req test");
-                    let mut session_state = trace_write_lock_unwrap!(self.session_state);
-                    session_state.publish_request_handles.remove(&response_request_handle)
-                };
-                if is_publish_request {
-                    debug!("handle response");
-                    self.handle_publish_response(response);
-                    messages_processed += 1;
-                } else {
-                    error!("Received a response from server which does not match any existing request handle {}", response_request_handle);
-                }
+            debug!("Waiting for response poll_async_messages");
+            let response = self.transport.wait_for_response(true, request_timeout)?;
+            let response_request_handle = response.request_handle();
+            let is_publish_request = {
+                debug!("is publish req test");
+                let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                session_state.pending_requests.remove(&response_request_handle)
+            };
+            if is_publish_request {
+                debug!("handle response");
+                self.handle_publish_response(response);
+            } else {
+                error!("Received a response from server which does not match any existing request handle {}", response_request_handle);
             }
-            Ok(messages_processed)
-        }
-        else {
+            Ok(())
+        } else {
             debug!("No pending responses so nothing to do");
             Err(BadNothingToDo)
         }
@@ -1023,13 +1009,12 @@ impl Session {
         let start = chrono::Utc::now();
         loop {
             debug!("wait_for_response");
-
             // Note that theoretically, there might be one slow response and then another so the timeout
             // period could be exceeded by nearly double in the worst case, e.g. timeout is 10s,
             // first response (not ours) takes 9.9s and then we wait another 9.9s for the message
             // that is ours. Now the timeout was 19.8s. Should we error even though we eventually
             // got the message outside the timeout?
-            let response = self.transport.wait_for_response(request_timeout)?;
+            let response = self.transport.wait_for_response(false, request_timeout)?;
             let response_request_handle = response.request_handle();
 
             // Compare the handle of the response to the expected handle
@@ -1043,19 +1028,19 @@ impl Session {
                     // Straight match so return
                     Ok(response)
                 };
-            }
-
-            // Check if it is a pending publish request
-            let is_publish_request = {
-                debug!("is publish req test");
-                let mut session_state = trace_write_lock_unwrap!(self.session_state);
-                session_state.publish_request_handles.remove(&response_request_handle)
-            };
-            if is_publish_request {
-                debug!("handle response");
-                self.handle_publish_response(response);
             } else {
-                error!("Received a response from server which does not match any existing request handle {}", response_request_handle);
+                // Check if it is a pending publish request
+                let is_publish_request = {
+                    debug!("is publish req test");
+                    let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                    session_state.pending_requests.remove(&response_request_handle)
+                };
+                if is_publish_request {
+                    debug!("handle response");
+                    self.handle_publish_response(response);
+                } else {
+                    error!("Received a response from server which does not match any existing request handle {}", response_request_handle);
+                }
             }
         }
     }
@@ -1197,7 +1182,7 @@ impl Session {
 
     /// Function that handles subscription
     pub fn subscription_timer(&mut self) {
-        debug!("Subscription timer");
+        error!("Subscription timer");
         // Server may have throttled publish requests
         let wait_for_publish_response = {
             let session_state = trace_read_lock_unwrap!(self.session_state);
@@ -1210,10 +1195,12 @@ impl Session {
 
         trace!("Timer");
         if have_subscriptions && !wait_for_publish_response {
-            debug!("Subscription timer has subscriptions and is sending a publish");
+            error!("Subscription timer has subscriptions and is sending a publish");
             // Send a publish request with any acknowledgements
             let subscription_acknowledgements = self.subscription_acknowledgements.drain(..).collect::<Vec<SubscriptionAcknowledgement>>();
             let _ = self.async_publish(&subscription_acknowledgements);
+        } else {
+            error!("Subscription timer is doing nothing {}, {}", have_subscriptions, !wait_for_publish_response);
         }
         trace!("Timer2");
     }
@@ -1245,7 +1232,7 @@ impl Session {
                 }
             }
             SupportedMessage::ServiceFault(response) => {
-                debug!("ServiceFault");
+                debug!("ServiceFault {:?}", response);
                 // Terminate timer if
                 let service_result = response.response_header.service_result;
                 match service_result {

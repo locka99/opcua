@@ -92,8 +92,8 @@ impl TcpTransport {
         }
 
         debug!("Connected...");
-
         self.stream = Some(stream.unwrap());
+
         Ok(())
     }
 
@@ -201,13 +201,17 @@ impl TcpTransport {
         Ok(Some(message))
     }
 
-    pub fn wait_for_response(&mut self, request_timeout: UInt32) -> Result<SupportedMessage, StatusCode> {
+    pub fn wait_for_response(&mut self, non_blocking: bool, request_timeout: UInt32) -> Result<SupportedMessage, StatusCode> {
         // This loop terminates when the corresponding response comes back or a timeout occurs
         let session_status_code;
         let start = chrono::Utc::now();
 
         let receive_buffer = self.receive_buffer.clone();
         let mut receive_buffer = trace_lock_unwrap!(receive_buffer);
+
+        let mut total_bytes_read = 0;
+
+        let _ = self.stream().set_nonblocking(non_blocking);
 
         'message_loop: loop {
             // Check for a timeout
@@ -223,8 +227,18 @@ impl TcpTransport {
             // decode response
             let bytes_read_result = self.stream().read(&mut receive_buffer);
             if let Err(error) = bytes_read_result {
-                if error.kind() == ErrorKind::TimedOut {
-                    continue;
+                match error.kind() {
+                    ErrorKind::TimedOut => {
+                        continue;
+                    }
+                    ErrorKind::WouldBlock => {
+                        if total_bytes_read == 0 {
+                            return Err(BadNothingToDo);
+                        } else {
+                            continue;
+                        }
+                    }
+                    _ => {}
                 }
 
                 // TODO check for broken socket. if this occurs, the code should go into an error
@@ -240,7 +254,7 @@ impl TcpTransport {
                 continue;
             }
             trace!("Bytes read = {}", bytes_read);
-
+            total_bytes_read += bytes_read;
             let result = self.message_buffer.store_bytes(&receive_buffer[0..bytes_read]);
             if result.is_err() {
                 session_status_code = result.unwrap_err();
