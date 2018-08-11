@@ -1,12 +1,14 @@
 # Introduction
 
-This is an [OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) server / client API implemented in Rust. 
+This is an [OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) server / client API implemented in Rust.
 
-OPC UA is an industry standard for monitoring of data. It's used extensively for embedded devices, industrial control, IoT, 
+See the [CHANGELOG.md](./CHANGELOG.md) for changes per version as well as aspirational / upcoming work.
+
+OPC UA is an industry standard for monitoring of data. It's used extensively for embedded devices, industrial control, IoT,
 etc. - just about anything that has data that something else wants to monitor, control or visualize. 
 
 Rust is a systems programming language and is therefore a natural choice for implementing OPC UA. This implementation 
-will support the embedded profile.  
+supports the embedded, micro and nano profiles but may grow to support features in time.
 
 # License
 
@@ -34,17 +36,6 @@ The full list of samples:
 4. `gfx-client` - an OPC UA client that displays changing values graphically.
 5. `chess-server` - an OPC UA server that connects to a chess engine as its back end and updates variables representing the state of the game.
 6. `demo-server` - an OPC UA server that will implements more functionality than the simple server and may become a compliance server in time.
-
-## 3rd-party servers
-
-There are also a couple of node-opcua scripts under 3rd-party which behave in a similar fashion to `simple-client` and
-`simple-server`. 
-
-This allows behaviour to be compared with an independently written OPC UA implementation.
-
-1. `node-opcua-client` - an OPC UA client that connects to a server and subscribes to v1, v2, v3, and v4.
-2. `node-opcua-server` - an OPC UA server that exposes v1, v2, v3 and v4 and changes them from a timer.
-
 
 # OPC UA Feature Support  
 
@@ -115,11 +106,11 @@ Currently the following are not supported
 
 ## Client
 
-The client shall provide synchrononous and asynchronous calls corresponding to the functionality of the server. It will
+The client shall provide synchronous and asynchronous calls corresponding to the functionality of the server. It will
 also support these additional calls.
 
 * FindServers - to discover servers from a discovery server  
-* RegisterServer - for servers to register themselves with a discovery server
+* RegisterServer - servers that want to register with a discovery server use this client side API to do so
 
 ## Configuration
 
@@ -128,18 +119,9 @@ of client and server side configuration. The config files are specified in YAML.
 
 ## Encryption modes
 
-Server and client support endpoints with the standard message security modes:
+Server and client support endpoints with the standard message security modes - None, Sign, SignAndEncrypt.
 
-* None - no encryption
-* Sign - no encryption but messages are digitally signed to ensure integrity
-* SignAndEncrypt - signed messages which are then encrypted
-
-The following security policies are supported.
-
-* None (no encryption)
-* Basic128Rsa15
-* Basic256
-* Basic256Rsa256
+The following security policies are supported - None, Basic128Rsa15, Basic256, Basic256Rsa256.
 
 ## User identities
 
@@ -192,8 +174,8 @@ cargo build
 OPC UA for Rust uses cryptographic algorithms for signing, verifying, encrypting and decrypting data. In addition
 it creates, loads and saves certificates and keys.
 
-OpenSSL is used for this purpose although it would be nicer to go to a more pure Rust implementation. To that end
-most of the crypto+OpenSSL code is abstracted to make it easier to remove in the future.
+OpenSSL is used for this purpose although it would be nice to go to a pure Rust implementation assuming a crate
+delivers everything required. Most of the crypto+OpenSSL code is abstracted to make it easier to remove in the future.
 
 You are advised to read the OpenSSL [documentation](https://github.com/sfackler/rust-openssl) to set up your 
 environment.
@@ -220,10 +202,13 @@ pki/
 For encrypted connections the following applies:
 
 * The server will reject the first connection from an unrecognized client. It will create a file representing 
-the cert in its the `pki/rejected/` folder and you, the administrator must move the cert to 
-the `trusted/` folder to permit connections from that client in future.
+the cert in its the `pki/rejected/` folder and you, the administrator must move the cert to the `trusted/` folder
+to permit connections from that client in future.
 * Likewise, the client shall reject unrecognized servers in the same fashion, and the cert must be moved from the 
 `rejected/` to `trusted/` folder for connection to succeed.
+* Servers that register with a discovery server may find the discovery server rejects their registration attempts if the
+cert is unrecognized. In that case you must move your server's cert from discovery server's  `rejected` to its
+``trusted` folder, wherever that may be. e.g. on Windows it is under `C:\ProgramData\OPC Foundation\UA\Discovery\pki`
 
 ### Certificate creator tool
 
@@ -267,7 +252,8 @@ fn main() {
 
 This server will accept connections, allow you to browse the address space and subscribe to variables. 
 
-Refer to the `samples/simple-server/` and `samples/simple-client/` examples for something that adds variables to the address space and changes their values.
+Refer to the `samples/simple-server/` and `samples/simple-client/` examples for something that adds variables to the
+address space and changes their values.
 
 ## Type generation from schemas
 
@@ -328,9 +314,6 @@ pub struct ExtensionObject {
 
 Rust enables the `body` payload to be `None`, `ByteString` or `XmlElement` and this is handled during serialization.
 
-Certain enums use Boxed types to avoiding being overly large. e.g. the Variant enum boxes complex values such as DataValue,
-arrays etc. to prevent being too bloated.
-
 ### Lint exceptions for OPC UA
 
 OPC UA has some some really long PascalCase ids, many of which are further broken up by underscores. I've tried converting the 
@@ -352,10 +335,11 @@ pub enum VariableId {
 
 ### Status codes
 
-All status codes will be values within the `StatusCode` enum. Values such as `Good`, `BadUnexpectedError` etc.
+Most uses of a status code will be via a `StatusCode` enum. Values such as `Good`, `BadUnexpectedError` etc.
 
 The enum will also implement `Copy` so that status codes are copy on assign. The enum provides helpers `is_good()`,
-`is_bad()`, `name()` and `description()` for testing and debugging purposes.
+`is_bad()`, `name()` and `description()` for testing and debugging purposes. It also provides functions for turning the
+code into and out of a UInt32 and masking status / info bits.
 
 ## Formatting
 
@@ -392,17 +376,26 @@ towards.
 This [OPC UA link](http://opcfoundation-onlineapplications.org/ProfileReporting/index.htm) provides interactive and descriptive information about
 profiles and relevant test cases.
 
-See the CHANGELOG.md for changes per version as well as short-term & aspirational wishlist. 
-
 ## Major 3rd party dependencies
 
 * log - for logging / auditing
 * openssl - cryptographic functions for signing, certifications and encryption/decryption
 * serde, server_yaml - for processing config files
 * byteorder - for serializing values with the proper endian-ness
+* tokio - for asynchronous IO and timers
 * chrono - for high quality time functions
 * time - for some types that chrono still uses, e.g. Duration
 * random - for random number generation in some places
+
+## 3rd-party servers
+
+There are also a couple of node-opcua scripts under 3rd-party which behave in a similar fashion to `simple-client` and
+`simple-server`.
+
+This allows behaviour to be compared with an independently written OPC UA implementation.
+
+1. `node-opcua-client` - an OPC UA client that connects to a server and subscribes to v1, v2, v3, and v4.
+2. `node-opcua-server` - an OPC UA server that exposes v1, v2, v3 and v4 and changes them from a timer.
 
 # Testing
 

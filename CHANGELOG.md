@@ -18,7 +18,7 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
     - Certificate creator tool has new arguments to set application uri and control alternate DNS names.
     - Updates to various dependencies.
   - Client side
-    - Implements client side encryption for security policies & modes other than None.
+    - Client side encryption
     - Moved discovery / endpoints / connection into a helper fn
     - Better failure behaviour when server goes down or becomes unreachable.
     - Better subscription support
@@ -51,7 +51,8 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
    - Testing
     - More unit tests.
     - `integration` is a new integration testing suite that allows the code to create a server and then connect to it
-      from a client. This has to be run manually and is not part of the standard `cargo test`. Refer to `integration/README.md`.
+      from a client. This has to be run manually and is not part of the standard `cargo test` because tests must be
+      run sequentially. Refer to `integration/README.md`.
 
 ## 0.3
   - General
