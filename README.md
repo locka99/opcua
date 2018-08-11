@@ -381,6 +381,7 @@ profiles and relevant test cases.
 * log - for logging / auditing
 * openssl - cryptographic functions for signing, certifications and encryption/decryption
 * serde, server_yaml - for processing config files
+* clap - used by sample apps & certificate creator for command line argument processing
 * byteorder - for serializing values with the proper endian-ness
 * tokio - for asynchronous IO and timers
 * chrono - for high quality time functions
