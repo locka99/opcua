@@ -1,3 +1,7 @@
+//! Defines the traits and other agnostic properties that all OPC UA transports will share.
+//! Provides a level of abstraction for the server to call through when it doesn't require specific
+//! knowledge of the transport it is using.
+
 use std::net::SocketAddr;
 use std::sync::{Arc, RwLock};
 
@@ -13,6 +17,8 @@ pub enum TransportState {
     Finished,
 }
 
+/// Represents a transport layer, the thing responsible for maintaining an open channel and transferring
+/// data between the server and the client.
 pub trait Transport {
     // Get the current state of the transport
     fn state(&self) -> TransportState;
