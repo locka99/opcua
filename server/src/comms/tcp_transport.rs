@@ -1,6 +1,5 @@
 //! The TCP transport module handles receiving and sending of binary data in chunks, handshake,
 //! session creation and dispatching of messages via message handler.
-//!
 use std;
 use std::collections::VecDeque;
 use std::io::{Cursor, Write};
@@ -87,10 +86,10 @@ struct SocketWriter {
 }
 
 impl SocketWriter {
-    pub fn new(write_half: WriteHalf<TcpStream>) -> SocketWriter {
+    pub fn new(write_half: WriteHalf<TcpStream>, buffer_size: usize) -> SocketWriter {
         SocketWriter {
             write_half,
-                buffer: Cursor::new(vec![0u8; SEND_BUFFER_SIZE]),
+                buffer: Cursor::new(vec![0u8; buffer_size]),
             }
         }
 
@@ -242,7 +241,7 @@ impl TcpTransport {
             bytes_read: 0,
             reader,
             in_buf: vec![0u8; RECEIVE_BUFFER_SIZE],
-            writer: Arc::new(Mutex::new(SocketWriter::new(writer))),
+            writer: Arc::new(Mutex::new(SocketWriter::new(writer, SEND_BUFFER_SIZE))),
             session_start_time,
         };
 
@@ -713,5 +712,3 @@ impl TcpTransport {
         Ok(())
     }
 }
-
-
