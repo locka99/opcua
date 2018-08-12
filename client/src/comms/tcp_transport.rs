@@ -32,6 +32,8 @@ pub struct TcpTransport {
     last_sent_sequence_number: UInt32,
     /// Last decoded sequence number
     last_received_sequence_number: UInt32,
+    /// Flag inidicating abort
+    abort: bool,
     /// Secure channel information
     pub secure_channel: Arc<RwLock<SecureChannel>>,
     /// Last request id, used to track async requests
@@ -204,7 +206,7 @@ impl TcpTransport {
         Ok(Some(message))
     }
 
-    pub fn wait_for_response(&mut self, non_blocking: bool, request_timeout: UInt32) -> Result<SupportedMessage, StatusCode> {
+    pub fn run(&mut self, non_blocking: bool, request_timeout: UInt32) -> Result<SupportedMessage, StatusCode> {
         // This loop terminates when the corresponding response comes back or a timeout occurs
         let session_status_code;
         let start = chrono::Utc::now();
@@ -216,77 +218,91 @@ impl TcpTransport {
 
         let _ = self.stream().set_read_timeout(if non_blocking { Some(time::Duration::from_millis(100)) } else { None });
 
-        'message_loop: loop {
-            // Check for a timeout
-            let now = chrono::Utc::now();
-            let request_duration = now.signed_duration_since(start);
-            if request_duration.num_milliseconds() >= request_timeout as i64 {
-                debug!("Time waiting {}ms exceeds timeout {}ms waiting for response ",
-                       request_duration.num_milliseconds(), request_timeout);
-                session_status_code = BadTimeout;
-                break;
+        'message_loop: while !self.abort {
+            // Send pending request
+            {
+                if let Some(request) = session_state.next_request() {
+                    // Send the request
+                    session_state.add_pending_request(request.request_handle());
+                    self.async_send_request(request);
+                }
             }
 
-            // decode response
-            let bytes_read_result = self.stream().read(&mut receive_buffer);
-            if let Err(error) = bytes_read_result {
-                match error.kind() {
-                    ErrorKind::TimedOut => {
-                        continue;
-                    }
-                    ErrorKind::WouldBlock => {
-                        if total_bytes_read == 0 {
-                            return Err(BadNothingToDo);
-                        } else {
-                            continue;
-                        }
-                    }
-                    _ => {}
+            // Check for pending response
+            {
+
+                // Check for a timeout
+                let now = chrono::Utc::now();
+                let request_duration = now.signed_duration_since(start);
+                if request_duration.num_milliseconds() >= request_timeout as i64 {
+                    debug!("Time waiting {}ms exceeds timeout {}ms waiting for response ",
+                           request_duration.num_milliseconds(), request_timeout);
+                    session_status_code = BadTimeout;
+                    break;
                 }
 
-                // TODO check for broken socket. if this occurs, the code should go into an error
-                // recovery state
-
-                debug!("Read error - kind = {:?}, {:?}", error.kind(), error);
-                self.stream = None;
-                session_status_code = BadUnexpectedError;
-                break;
-            }
-            let bytes_read = bytes_read_result.unwrap();
-            if bytes_read == 0 {
-                continue;
-            }
-            trace!("Bytes read = {}", bytes_read);
-            total_bytes_read += bytes_read;
-            let result = self.message_buffer.store_bytes(&receive_buffer[0..bytes_read]);
-            if result.is_err() {
-                session_status_code = result.unwrap_err();
-                break;
-            }
-            let messages = result.unwrap();
-            for message in messages {
-                match message {
-                    Message::MessageChunk(chunk) => {
-                        if let Some(result) = self.process_chunk(chunk)? {
-                            return Ok(result);
+                // decode response
+                loop {
+                    let bytes_read_result = self.stream().read(&mut receive_buffer);
+                    if let Err(error) = bytes_read_result {
+                        match error.kind() {
+                            ErrorKind::TimedOut => {
+                                continue;
+                            }
+                            ErrorKind::WouldBlock => {
+                                if total_bytes_read == 0 {
+                                    // No bytes read yet
+                                    continue;
+                                } else {}
+                            }
+                            _ => {}
                         }
-                    }
-                    Message::Error(error_message) => {
-                        // TODO if this is an ERROR chunk, then the client should go into an error
-                        // recovery state, dropping the connection and reestablishing it.
-                        session_status_code = if let Ok(status_code) = StatusCode::from_u32(error_message.error) {
-                            status_code
-                        } else {
-                            BadUnexpectedError
-                        };
-                        error!("Expecting a chunk, got an error message {:?}, reason \"{}\"", session_status_code, error_message.reason.as_ref());
-                        break 'message_loop;
-                    }
-                    message => {
-                        // This is not a regular message, or an error so what is happening?
-                        error!("Expecting a chunk, got something that was not a chunk or even an error - {:?}", message);
+
+                        // TODO check for broken socket. if this occurs, the code should go into an error
+                        // recovery state
+
+                        debug!("Read error - kind = {:?}, {:?}", error.kind(), error);
+                        self.stream = None;
                         session_status_code = BadUnexpectedError;
-                        break 'message_loop;
+                        break;
+                    }
+                    let bytes_read = bytes_read_result.unwrap();
+                    if bytes_read == 0 {
+                        continue;
+                    }
+                    trace!("Bytes read = {}", bytes_read);
+                    total_bytes_read += bytes_read;
+                    let result = self.message_buffer.store_bytes(&receive_buffer[0..bytes_read]);
+                    if result.is_err() {
+                        session_status_code = result.unwrap_err();
+                        break;
+                    }
+                    let messages = result.unwrap();
+                    for message in messages {
+                        match message {
+                            Message::MessageChunk(chunk) => {
+                                if let Some(result) = self.process_chunk(chunk)? {
+                                    return Ok(result);
+                                }
+                            }
+                            Message::Error(error_message) => {
+                                // TODO if this is an ERROR chunk, then the client should go into an error
+                                // recovery state, dropping the connection and reestablishing it.
+                                session_status_code = if let Ok(status_code) = StatusCode::from_u32(error_message.error) {
+                                    status_code
+                                } else {
+                                    BadUnexpectedError
+                                };
+                                error!("Expecting a chunk, got an error message {:?}, reason \"{}\"", session_status_code, error_message.reason.as_ref());
+                                break 'message_loop;
+                            }
+                            message => {
+                                // This is not a regular message, or an error so what is happening?
+                                error!("Expecting a chunk, got something that was not a chunk or even an error - {:?}", message);
+                                session_status_code = BadUnexpectedError;
+                                break 'message_loop;
+                            }
+                        }
                     }
                 }
             }
