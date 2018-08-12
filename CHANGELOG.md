@@ -1,14 +1,15 @@
 # Changelog
 
 ASPIRATIONAL - a short list of things that would be nice to implement in the near future
-  - Rust 2018. From 0.5 onwards, the project will move to Rust 2018. That generally means removing extern crate
-    keywords, cleaning up match statements, simplified futures and other improvements. 
-  - Diagnostics.
+  - Rust 2018. Update all `Cargo.toml` files to 2018, clean up code like match statements, extern crates etc. that
+    benefit from the change.
+  - Client code to use tokio. This might involve a significant change to the existing client interface.
+  - Diagnostics
   - Session restore after disconnect in server.
   - Session restore after disconnect in client, i.e. reconnect and resume session first and then try reconnect and recreate session.
-  - Replace openssl with ring + webpki for more (but not total) rust implementation.
-  - Use tokio client side. The problem here is that synchronous calls are far easier to work with, and how to make it
-    work with tokio under the covers.
+  - Replace more OpenSSL with `ring` equivalent functions. Ring doesn't do X509 so code is still
+    dependent on OpenSSL until a drop-in replacement appears - need something which can generate, read and write X509
+    certs, private keys and their corresponding .der, .pem file formats.
 
 ## 0.4 (IN PROGRESS)
   - General
@@ -16,6 +17,7 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
     - Changes to codebase for more idiomatic Rust, e.g. replacing lots of loops with iterators, providing
       `Into<Foo>` implementations instead of a multitude of constructors.
     - Certificate creator tool has new arguments to set application uri and control alternate DNS names.
+    - Various OPC UA correctness fixes
     - Updates to various dependencies.
   - Client side
     - Client side encryption
