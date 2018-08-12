@@ -19,6 +19,7 @@ extern crate opcua_core;
 mod comms;
 mod subscription;
 mod subscription_state;
+mod session_state;
 
 pub mod config;
 pub mod client;

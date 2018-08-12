@@ -11,7 +11,7 @@ use opcua_types::status_codes::StatusCode::*;
 use opcua_types::service_types::ChannelSecurityToken;
 use opcua_core::prelude::*;
 
-use session::SessionState;
+use session_state::SessionState;
 
 // TODO these need to go, and use session settings
 const RECEIVE_BUFFER_SIZE: usize = 1024 * 64;

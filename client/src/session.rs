@@ -3,7 +3,6 @@
 
 use std::result::Result;
 use std::str::FromStr;
-use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
 
 use chrono;
@@ -21,6 +20,7 @@ use comms::tcp_transport::TcpTransport;
 use subscription;
 use subscription::{DataChangeCallback, Subscription};
 use subscription_state::SubscriptionState;
+use session_state::SessionState;
 
 /// Information about the server endpoint, security policy, security mode and user identity that the session will
 /// will use to establish a connection.
@@ -52,62 +52,6 @@ impl Into<SessionInfo> for (EndpointDescription, client::IdentityToken) {
             preferred_locales: Vec::new(),
             client_pkey: None,
             client_certificate: None,
-        }
-    }
-}
-
-const DEFAULT_SESSION_TIMEOUT: u32 = 60 * 1000;
-const DEFAULT_REQUEST_TIMEOUT: u32 = 10 * 1000;
-const SEND_BUFFER_SIZE: usize = 65536;
-const RECEIVE_BUFFER_SIZE: usize = 65536;
-const MAX_BUFFER_SIZE: usize = 65536;
-
-/// Session's state indicates connection status, negotiated times and sizes,
-/// and security tokens.
-pub struct SessionState {
-    /// The request timeout is how long the session will wait from sending a request expecting a response
-    /// if no response is received the rclient will terminate.
-    pub request_timeout: u32,
-    /// Session timeout in milliseconds
-    pub session_timeout: u32,
-    /// Size of the send buffer
-    pub send_buffer_size: usize,
-    /// Size of the
-    pub receive_buffer_size: usize,
-    /// Maximum message size
-    pub max_message_size: usize,
-    /// The next handle to assign to a request
-    pub next_request_handle: UInt32,
-    /// The session's id - used for diagnostic info
-    pub session_id: NodeId,
-    /// The sesion authentication token, used for session activation
-    pub authentication_token: NodeId,
-    /// Next monitored item client side handle
-    next_monitored_item_handle: UInt32,
-    /// A set of the outstanding pending requests, represented by their request handle
-    pending_requests: HashSet<UInt32>,
-    /// Unacknowledged
-    subscription_acknowledgements: Vec<SubscriptionAcknowledgement>,
-    /// A flag which tells client to wait for a publish response before sending any new publish
-    /// requests
-    wait_for_publish_response: bool,
-}
-
-impl SessionState {
-    pub fn new() -> SessionState {
-        SessionState {
-            session_timeout: DEFAULT_SESSION_TIMEOUT,
-            request_timeout: DEFAULT_REQUEST_TIMEOUT,
-            send_buffer_size: SEND_BUFFER_SIZE,
-            receive_buffer_size: RECEIVE_BUFFER_SIZE,
-            max_message_size: MAX_BUFFER_SIZE,
-            next_request_handle: 1,
-            session_id: NodeId::null(),
-            authentication_token: NodeId::null(),
-            next_monitored_item_handle: 1000,
-            pending_requests: HashSet::new(),
-            subscription_acknowledgements: Vec::new(),
-            wait_for_publish_response: false,
         }
     }
 }
@@ -294,7 +238,7 @@ impl Session {
             let session_state = self.session_state.clone();
             let mut session_state = trace_write_lock_unwrap!(session_state);
 
-            session_state.session_id = response.session_id;
+            session_state.set_session_id(response.session_id);
             session_state.authentication_token = response.authentication_token;
             {
                 let mut secure_channel = trace_write_lock_unwrap!( self.transport.secure_channel);
@@ -332,7 +276,7 @@ impl Session {
             } else {
                 // TODO Verify signature using server's public key (from endpoint) comparing with data made from client certificate and nonce.
                 // crypto::verify_signature_data(verification_key, security_policy, server_certificate, client_certificate, client_nonce);
-                Ok(session_state.session_id.clone())
+                Ok(session_state.session_id())
             }
         } else {
             Err(Self::process_unexpected_response(response))
@@ -746,20 +690,14 @@ impl Session {
             error!("create_monitored_items, called with no items to create");
             Err(BadNothingToDo)
         } else {
-            // Obtain some handles and update state
-            let mut next_monitored_item_handle = {
-                let mut session_state = trace_write_lock_unwrap!(self.session_state);
-                let next_monitored_item_handle = session_state.next_monitored_item_handle;
-                session_state.next_monitored_item_handle += items_to_create.len() as u32;
-                next_monitored_item_handle
-            };
-
             // Assign each item a unique client handle
             let mut items_to_create = items_to_create.to_vec();
-            items_to_create.iter_mut().for_each(|i| {
-                i.requested_parameters.client_handle = next_monitored_item_handle;
-                next_monitored_item_handle += 1;
-            });
+            {
+                let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                items_to_create.iter_mut().for_each(|i| {
+                    i.requested_parameters.client_handle = session_state.next_monitored_item_handle();
+                });
+            }
 
             let request = CreateMonitoredItemsRequest {
                 request_header: self.make_request_header(),
@@ -992,7 +930,7 @@ impl Session {
         // expected would cause the stream to block forever. Other threads waiting for a
         // lock on this session would hang too. Moving to tokio and non-blocking
         // IO would require a refactor but would probably fix this.
-         if self.poll_async_messages().is_err() {
+        if self.poll_async_messages().is_err() {
             use std;
             let poll_timeout = 100;
             std::thread::sleep(std::time::Duration::from_millis(poll_timeout as u64));
@@ -1003,7 +941,7 @@ impl Session {
 
     // Process any async messages we expect to receive
     fn poll_async_messages(&mut self) -> Result<(), StatusCode> {
-        let request_timeout = DEFAULT_REQUEST_TIMEOUT;
+        let request_timeout = 10000; // TODO
         let pending_responses = {
             let session_state = trace_read_lock_unwrap!(self.session_state);
             session_state.pending_requests.len() > 0
@@ -1156,22 +1094,8 @@ impl Session {
     /// Construct a request header for the session. All requests after create session are expected
     /// to supply an authentication token.
     fn make_request_header(&mut self) -> RequestHeader {
-        let (authentication_token, request_handle, timeout_hint) = {
-            let mut session_state = trace_write_lock_unwrap!(self.session_state);
-            let next_request_handle = session_state.next_request_handle;
-            session_state.next_request_handle += 1;
-            (session_state.authentication_token.clone(), next_request_handle, session_state.request_timeout)
-        };
-        let request_header = RequestHeader {
-            authentication_token,
-            timestamp: DateTime::now(),
-            request_handle,
-            return_diagnostics: 0,
-            audit_entry_id: UAString::null(),
-            timeout_hint,
-            additional_header: ExtensionObject::null(),
-        };
-        request_header
+        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+        session_state.make_request_header()
     }
 
     fn issue_or_renew_secure_channel(&mut self, request_type: SecurityTokenRequestType) -> Result<(), StatusCode> {
@@ -1229,10 +1153,12 @@ impl Session {
 
         debug!("Timer");
         if have_subscriptions && !wait_for_publish_response {
-            let mut session_state = trace_write_lock_unwrap!(self.session_state);
             error!("Subscription timer has subscriptions and is sending a publish");
-            // Send a publish request with any acknowledgements
-            let subscription_acknowledgements = session_state.subscription_acknowledgements.drain(..).collect::<Vec<SubscriptionAcknowledgement>>();
+            let subscription_acknowledgements = {
+                let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                // Send a publish request with any acknowledgements
+                session_state.subscription_acknowledgements()
+            };
             let _ = self.async_publish(&subscription_acknowledgements);
         } else {
             error!("Subscription timer is doing nothing {}, {}", have_subscriptions, !wait_for_publish_response);
