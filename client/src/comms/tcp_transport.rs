@@ -2,6 +2,7 @@ use std::net::TcpStream;
 use std::result::Result;
 use std::sync::{Arc, RwLock, Mutex};
 use std::io::{Read, Write, ErrorKind};
+use std::time;
 
 use chrono;
 
@@ -84,6 +85,8 @@ impl TcpTransport {
         debug!("Connecting to {:?}", url);
         let host = url.host_str().unwrap();
         let port = if let Some(port) = url.port() { port } else { 4840 };
+
+        // TODO tokio connect
 
         let stream = TcpStream::connect((host, port));
         if stream.is_err() {
@@ -211,7 +214,7 @@ impl TcpTransport {
 
         let mut total_bytes_read = 0;
 
-        let _ = self.stream().set_nonblocking(non_blocking);
+        let _ = self.stream().set_read_timeout(if non_blocking { Some(time::Duration::from_millis(100)) } else { None });
 
         'message_loop: loop {
             // Check for a timeout
