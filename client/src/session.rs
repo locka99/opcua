@@ -86,6 +86,8 @@ pub struct SessionState {
     next_monitored_item_handle: UInt32,
     /// A set of the outstanding pending requests, represented by their request handle
     pending_requests: HashSet<UInt32>,
+    /// Unacknowledged
+    subscription_acknowledgements: Vec<SubscriptionAcknowledgement>,
     /// A flag which tells client to wait for a publish response before sending any new publish
     /// requests
     wait_for_publish_response: bool,
@@ -104,6 +106,7 @@ impl SessionState {
             authentication_token: NodeId::null(),
             next_monitored_item_handle: 1000,
             pending_requests: HashSet::new(),
+            subscription_acknowledgements: Vec::new(),
             wait_for_publish_response: false,
         }
     }
@@ -120,8 +123,6 @@ pub struct Session {
     session_state: Arc<RwLock<SessionState>>,
     /// Subscriptions state
     subscription_state: Arc<RwLock<SubscriptionState>>,
-    /// Unacknowledged
-    subscription_acknowledgements: Vec<SubscriptionAcknowledgement>,
     /// Transport layer
     transport: TcpTransport,
     /// Certificate store
@@ -151,7 +152,6 @@ impl Session {
             session_state,
             certificate_store,
             subscription_state,
-            subscription_acknowledgements: Vec::new(),
             transport,
         }
     }
@@ -1229,9 +1229,10 @@ impl Session {
 
         debug!("Timer");
         if have_subscriptions && !wait_for_publish_response {
+            let mut session_state = trace_write_lock_unwrap!(self.session_state);
             error!("Subscription timer has subscriptions and is sending a publish");
             // Send a publish request with any acknowledgements
-            let subscription_acknowledgements = self.subscription_acknowledgements.drain(..).collect::<Vec<SubscriptionAcknowledgement>>();
+            let subscription_acknowledgements = session_state.subscription_acknowledgements.drain(..).collect::<Vec<SubscriptionAcknowledgement>>();
             let _ = self.async_publish(&subscription_acknowledgements);
         } else {
             error!("Subscription timer is doing nothing {}, {}", have_subscriptions, !wait_for_publish_response);
@@ -1253,10 +1254,13 @@ impl Session {
                 let subscription_id = response.subscription_id;
 
                 // Queue an acknowledgement for this request
-                self.subscription_acknowledgements.push(SubscriptionAcknowledgement {
-                    subscription_id,
-                    sequence_number: notification_message.sequence_number,
-                });
+                {
+                    let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                    session_state.subscription_acknowledgements.push(SubscriptionAcknowledgement {
+                        subscription_id,
+                        sequence_number: notification_message.sequence_number,
+                    });
+                }
 
                 // Process data change notifications
                 let data_change_notifications = notification_message.data_change_notifications();
