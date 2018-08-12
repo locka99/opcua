@@ -21,7 +21,7 @@ use time;
 pub struct Subscriptions {
     /// The publish request queue (requests by the client on the session)
     pub publish_request_queue: VecDeque<PublishRequestEntry>,
-    /// The publish response queue
+    /// The publish response queue arranged oldest to latest
     pub publish_response_queue: VecDeque<PublishResponseEntry>,
     // Timeout period for requests in ms
     publish_request_timeout: i64,
@@ -197,10 +197,12 @@ impl Subscriptions {
             return;
         }
 
-        let mut publish_responses = VecDeque::with_capacity(self.publish_request_queue.len());
-
         // Remove publish requests that have expired
         let publish_request_timeout = self.publish_request_timeout;
+
+        // Create timeout responses for each expired publish request
+        let mut expired_publish_responses = VecDeque::with_capacity(self.publish_request_queue.len());
+
         self.publish_request_queue.retain(|ref request| {
             let request_header = &request.request.request_header;
             let request_timestamp: DateTimeUtc = request_header.timestamp.clone().into();
@@ -212,7 +214,7 @@ impl Subscriptions {
             // The request has timed out if the timestamp plus hint exceeds the input time
             if now.signed_duration_since(request_timestamp) > publish_request_timeout {
                 debug!("Publish request {} has expired - timestamp = {:?}, expiration hint = {}, publish timeout = {:?}, time now = {:?}, ", request_header.request_handle, request_timestamp, request_timestamp, publish_request_timeout, now);
-                publish_responses.push_back(PublishResponseEntry {
+                expired_publish_responses.push_front(PublishResponseEntry {
                     request_id: request.request_id,
                     response: SupportedMessage::ServiceFault(ServiceFault {
                         response_header: ResponseHeader::new_timestamped_service_result(DateTime::now(), &request.request.request_header, BadTimeout),
@@ -224,7 +226,7 @@ impl Subscriptions {
             }
         });
         // Queue responses for each expired request
-        self.publish_response_queue.append(&mut publish_responses);
+        self.publish_response_queue.append(&mut expired_publish_responses);
     }
 
     /// Deletes the acknowledged notifications, returning a list of status code for each according
