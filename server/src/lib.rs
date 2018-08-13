@@ -2,7 +2,6 @@
 //! server security, session management, local discovery server registration and subscriptions.
 
 extern crate chrono;
-extern crate futures;
 #[cfg(feature = "http")]
 extern crate hyper;
 #[macro_use]
@@ -15,6 +14,7 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate time;
+extern crate futures;
 extern crate tokio;
 extern crate tokio_io;
 extern crate tokio_timer;

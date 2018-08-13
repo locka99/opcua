@@ -21,6 +21,12 @@ const DEFAULT_SENT_SEQUENCE_NUMBER: UInt32 = 0;
 const DEFAULT_RECEIVED_SEQUENCE_NUMBER: UInt32 = 0;
 const DEFAULT_REQUEST_ID: UInt32 = 1000;
 
+/// This is the OPC UA TCP client transport layer
+///
+/// At its heart it is a tokio task that runs continuously reading and writing data from the connected
+/// server. Requests are taken from the session state, responses are given to the session state.
+///
+/// Reading and writing are split so they are independent of each other.
 pub struct TcpTransport {
     /// Session state
     session_state: Arc<RwLock<SessionState>>,
@@ -207,6 +213,28 @@ impl TcpTransport {
     }
 
     pub fn run(&mut self, non_blocking: bool, request_timeout: UInt32) -> Result<SupportedMessage, StatusCode> {
+        // Pseudo code
+        let task = session.connect()
+            .and_then(|| {
+                send hello()
+            }).
+            and_then(|| {
+                wait_for_ack()
+            }).
+            and_then(|| {
+                set state
+            }).
+            and_then(|| {
+                // Split listener to read & write
+                send requests
+                receive responses
+            });
+        tokio::run(task);
+        // Set state terminated
+    }
+
+    /*
+
         // This loop terminates when the corresponding response comes back or a timeout occurs
         let session_status_code;
         let start = chrono::Utc::now();
@@ -310,6 +338,7 @@ impl TcpTransport {
         }
         Err(session_status_code)
     }
+ */
 
     fn next_request_id(&mut self) -> UInt32 {
         self.last_request_id += 1;
