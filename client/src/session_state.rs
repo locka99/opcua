@@ -2,6 +2,7 @@ use std::u32;
 use std::collections::{HashSet, HashMap, VecDeque};
 
 use opcua_types::{UInt32, NodeId, UAString, DateTime, ExtensionObject};
+use opcua_types::SupportedMessage;
 use opcua_types::service_types::{RequestHeader, SubscriptionAcknowledgement};
 
 const DEFAULT_SESSION_TIMEOUT: u32 = 60 * 1000;

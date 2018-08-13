@@ -1,9 +1,12 @@
-use std::net::TcpStream;
 use std::result::Result;
 use std::sync::{Arc, RwLock, Mutex};
 use std::io::{Read, Write, ErrorKind};
+use std::net::SocketAddr;
 use std::time;
-
+use tokio::net::TcpStream;
+use tokio_io::{AsyncRead, AsyncWrite};
+use tokio_io::io::{ReadHalf, WriteHalf};
+use futures::Future;
 use chrono;
 
 use opcua_types::status_codes::StatusCode;
@@ -21,6 +24,14 @@ const DEFAULT_SENT_SEQUENCE_NUMBER: UInt32 = 0;
 const DEFAULT_RECEIVED_SEQUENCE_NUMBER: UInt32 = 0;
 const DEFAULT_REQUEST_ID: UInt32 = 1000;
 
+struct ConnectionState {
+    pub session_state: Arc<RwLock<SessionState>>,
+    pub connected: bool,
+    pub finished: bool,
+    pub reader: ReadHalf<TcpStream>,
+    pub writer: WriteHalf<TcpStream>,
+}
+
 /// This is the OPC UA TCP client transport layer
 ///
 /// At its heart it is a tokio task that runs continuously reading and writing data from the connected
@@ -30,15 +41,13 @@ const DEFAULT_REQUEST_ID: UInt32 = 1000;
 pub struct TcpTransport {
     /// Session state
     session_state: Arc<RwLock<SessionState>>,
-    /// Currently open stream or none
-    stream: Option<TcpStream>,
     /// Message buffer where portions of messages are stored to be built into chunks
     message_buffer: MessageBuffer,
     /// Last encoded sequence number
     last_sent_sequence_number: UInt32,
     /// Last decoded sequence number
     last_received_sequence_number: UInt32,
-    /// Flag inidicating abort
+    /// Flag indicating abort
     abort: bool,
     /// Secure channel information
     pub secure_channel: Arc<RwLock<SecureChannel>>,
@@ -62,12 +71,12 @@ impl TcpTransport {
 
         TcpTransport {
             session_state,
-            stream: None,
             message_buffer: MessageBuffer::new(receive_buffer_size),
             last_sent_sequence_number: DEFAULT_SENT_SEQUENCE_NUMBER,
             last_received_sequence_number: DEFAULT_RECEIVED_SEQUENCE_NUMBER,
             last_request_id: DEFAULT_REQUEST_ID,
             secure_channel,
+            abort: false,
             receive_buffer: Arc::new(Mutex::new(vec![0u8; RECEIVE_BUFFER_SIZE])),
         }
     }
@@ -94,47 +103,58 @@ impl TcpTransport {
         let host = url.host_str().unwrap();
         let port = if let Some(port) = url.port() { port } else { 4840 };
 
-        // TODO tokio connect
-
-        let stream = TcpStream::connect((host, port));
-        if stream.is_err() {
-            error!("Could not connect to host {}:{}", host, port);
-            return Err(BadServerNotConnected);
+        let addr = format!("{}:{}", host, port).parse::<SocketAddr>();
+        if addr.is_err() {
+            return Err(BadTcpEndpointUrlInvalid);
         }
+        let addr = addr.unwrap();
 
-        debug!("Connected...");
-        self.stream = Some(stream.unwrap());
+        let stream = TcpStream::connect(&addr)
+            .and_then(|socket| {
+                debug!("Connected...");
 
-        Ok(())
-    }
-
-    /// Sends a hello message to the server
-    pub fn hello(&mut self, endpoint_url: &str) -> Result<(), StatusCode> {
-        let msg = {
-            let session_state = self.session_state.clone();
-            let session_state = trace_read_lock_unwrap!(session_state);
-            HelloMessage::new(endpoint_url,
-                              session_state.send_buffer_size as UInt32,
-                              session_state.receive_buffer_size as UInt32,
-                              session_state.max_message_size as UInt32)
-        };
-        debug!("Sending HEL {:?}", msg);
-        let stream = self.stream();
-        let _ = msg.encode(stream)?;
-
-        // Listen for ACK
-        debug!("Waiting for ack");
-        let ack = AcknowledgeMessage::decode(stream)?;
-
-        // Process ack
-        debug!("Got ACK {:?}", ack);
+                // Make a connection state
+                let (reader, writer) = socket.split();
+                let connection_state = ConnectionState {
+                    session_state: self.session_state.clone(),
+                    connected: false,
+                    finished: false,
+                    reader,
+                    writer,
+                };
+                Ok(connection_state)
+            })
+            .and_then(|mut connection_state| {
+                let msg = {
+                    let session_state = self.session_state.clone();
+                    let session_state = trace_read_lock_unwrap!(session_state);
+                    HelloMessage::new(endpoint_url,
+                                      session_state.send_buffer_size as UInt32,
+                                      session_state.receive_buffer_size as UInt32,
+                                      session_state.max_message_size as UInt32)
+                };
+                debug!("Sending HEL {:?}", msg);
+                let _ = msg.encode(&mut connection_state.writer);
+                debug!("Waiting for ACK");
+                Ok(connection_state)
+            })
+            .and_then(|mut connection_state| {
+                let ack = AcknowledgeMessage::decode(&mut connection_state.reader);
+                // Process ack
+                debug!("Got ACK {:?}", ack);
+                Ok(connection_state)
+            })
+            .map_err(|_| {
+                error!("Could not connect to host {}:{}", host, port);
+            })
+            .map(|_| ());
+        ;
 
         Ok(())
     }
 
     /// Disconnects the stream from the server (if it is connected)
     pub fn disconnect(&mut self) {
-        self.stream = None;
         self.last_sent_sequence_number = DEFAULT_SENT_SEQUENCE_NUMBER;
         self.last_received_sequence_number = DEFAULT_RECEIVED_SEQUENCE_NUMBER;
         self.last_request_id = DEFAULT_REQUEST_ID;
@@ -144,7 +164,8 @@ impl TcpTransport {
     pub fn is_connected(&self) -> bool {
         // The assumption is that if a read/write fails, the code that called those functions
         // will set the stream to None if it breaks.
-        self.stream.is_some()
+        // TODO self.stream.is_some()
+        true
     }
 
     /// Sets the security token info received from an issue / renew request
@@ -171,10 +192,6 @@ impl TcpTransport {
             // Renew the token?
             now.signed_duration_since(created_at) > renew_lifetime
         }
-    }
-
-    fn stream(&mut self) -> &mut TcpStream {
-        self.stream.as_mut().unwrap()
     }
 
     fn turn_received_chunks_into_message(&mut self, chunks: &Vec<MessageChunk>) -> Result<SupportedMessage, StatusCode> {
@@ -213,6 +230,8 @@ impl TcpTransport {
     }
 
     pub fn run(&mut self, non_blocking: bool, request_timeout: UInt32) -> Result<SupportedMessage, StatusCode> {
+        unimplemented!("gone");
+        /*
         // Pseudo code
         let task = session.connect()
             .and_then(|| {
@@ -232,113 +251,114 @@ impl TcpTransport {
         tokio::run(task);
         // Set state terminated
     }
+    */
 
-    /*
+        /*
 
-        // This loop terminates when the corresponding response comes back or a timeout occurs
-        let session_status_code;
-        let start = chrono::Utc::now();
+            // This loop terminates when the corresponding response comes back or a timeout occurs
+            let session_status_code;
+            let start = chrono::Utc::now();
 
-        let receive_buffer = self.receive_buffer.clone();
-        let mut receive_buffer = trace_lock_unwrap!(receive_buffer);
+            let receive_buffer = self.receive_buffer.clone();
+            let mut receive_buffer = trace_lock_unwrap!(receive_buffer);
 
-        let mut total_bytes_read = 0;
+            let mut total_bytes_read = 0;
 
-        let _ = self.stream().set_read_timeout(if non_blocking { Some(time::Duration::from_millis(100)) } else { None });
+            let _ = self.stream().set_read_timeout(if non_blocking { Some(time::Duration::from_millis(100)) } else { None });
 
-        'message_loop: while !self.abort {
-            // Send pending request
-            {
-                if let Some(request) = session_state.next_request() {
-                    // Send the request
-                    session_state.add_pending_request(request.request_handle());
-                    self.async_send_request(request);
-                }
-            }
-
-            // Check for pending response
-            {
-
-                // Check for a timeout
-                let now = chrono::Utc::now();
-                let request_duration = now.signed_duration_since(start);
-                if request_duration.num_milliseconds() >= request_timeout as i64 {
-                    debug!("Time waiting {}ms exceeds timeout {}ms waiting for response ",
-                           request_duration.num_milliseconds(), request_timeout);
-                    session_status_code = BadTimeout;
-                    break;
+            'message_loop: while !self.abort {
+                // Send pending request
+                {
+                    if let Some(request) = session_state.next_request() {
+                        // Send the request
+                        session_state.add_pending_request(request.request_handle());
+                        self.async_send_request(request);
+                    }
                 }
 
-                // decode response
-                loop {
-                    let bytes_read_result = self.stream().read(&mut receive_buffer);
-                    if let Err(error) = bytes_read_result {
-                        match error.kind() {
-                            ErrorKind::TimedOut => {
-                                continue;
-                            }
-                            ErrorKind::WouldBlock => {
-                                if total_bytes_read == 0 {
-                                    // No bytes read yet
+                // Check for pending response
+                {
+
+                    // Check for a timeout
+                    let now = chrono::Utc::now();
+                    let request_duration = now.signed_duration_since(start);
+                    if request_duration.num_milliseconds() >= request_timeout as i64 {
+                        debug!("Time waiting {}ms exceeds timeout {}ms waiting for response ",
+                               request_duration.num_milliseconds(), request_timeout);
+                        session_status_code = BadTimeout;
+                        break;
+                    }
+
+                    // decode response
+                    loop {
+                        let bytes_read_result = self.stream().read(&mut receive_buffer);
+                        if let Err(error) = bytes_read_result {
+                            match error.kind() {
+                                ErrorKind::TimedOut => {
                                     continue;
-                                } else {}
+                                }
+                                ErrorKind::WouldBlock => {
+                                    if total_bytes_read == 0 {
+                                        // No bytes read yet
+                                        continue;
+                                    } else {}
+                                }
+                                _ => {}
                             }
-                            _ => {}
+
+                            // TODO check for broken socket. if this occurs, the code should go into an error
+                            // recovery state
+
+                            debug!("Read error - kind = {:?}, {:?}", error.kind(), error);
+                            self.stream = None;
+                            session_status_code = BadUnexpectedError;
+                            break;
                         }
-
-                        // TODO check for broken socket. if this occurs, the code should go into an error
-                        // recovery state
-
-                        debug!("Read error - kind = {:?}, {:?}", error.kind(), error);
-                        self.stream = None;
-                        session_status_code = BadUnexpectedError;
-                        break;
-                    }
-                    let bytes_read = bytes_read_result.unwrap();
-                    if bytes_read == 0 {
-                        continue;
-                    }
-                    trace!("Bytes read = {}", bytes_read);
-                    total_bytes_read += bytes_read;
-                    let result = self.message_buffer.store_bytes(&receive_buffer[0..bytes_read]);
-                    if result.is_err() {
-                        session_status_code = result.unwrap_err();
-                        break;
-                    }
-                    let messages = result.unwrap();
-                    for message in messages {
-                        match message {
-                            Message::MessageChunk(chunk) => {
-                                if let Some(result) = self.process_chunk(chunk)? {
-                                    return Ok(result);
+                        let bytes_read = bytes_read_result.unwrap();
+                        if bytes_read == 0 {
+                            continue;
+                        }
+                        trace!("Bytes read = {}", bytes_read);
+                        total_bytes_read += bytes_read;
+                        let result = self.message_buffer.store_bytes(&receive_buffer[0..bytes_read]);
+                        if result.is_err() {
+                            session_status_code = result.unwrap_err();
+                            break;
+                        }
+                        let messages = result.unwrap();
+                        for message in messages {
+                            match message {
+                                Message::MessageChunk(chunk) => {
+                                    if let Some(result) = self.process_chunk(chunk)? {
+                                        return Ok(result);
+                                    }
+                                }
+                                Message::Error(error_message) => {
+                                    // TODO if this is an ERROR chunk, then the client should go into an error
+                                    // recovery state, dropping the connection and reestablishing it.
+                                    session_status_code = if let Ok(status_code) = StatusCode::from_u32(error_message.error) {
+                                        status_code
+                                    } else {
+                                        BadUnexpectedError
+                                    };
+                                    error!("Expecting a chunk, got an error message {:?}, reason \"{}\"", session_status_code, error_message.reason.as_ref());
+                                    break 'message_loop;
+                                }
+                                message => {
+                                    // This is not a regular message, or an error so what is happening?
+                                    error!("Expecting a chunk, got something that was not a chunk or even an error - {:?}", message);
+                                    session_status_code = BadUnexpectedError;
+                                    break 'message_loop;
                                 }
                             }
-                            Message::Error(error_message) => {
-                                // TODO if this is an ERROR chunk, then the client should go into an error
-                                // recovery state, dropping the connection and reestablishing it.
-                                session_status_code = if let Ok(status_code) = StatusCode::from_u32(error_message.error) {
-                                    status_code
-                                } else {
-                                    BadUnexpectedError
-                                };
-                                error!("Expecting a chunk, got an error message {:?}, reason \"{}\"", session_status_code, error_message.reason.as_ref());
-                                break 'message_loop;
-                            }
-                            message => {
-                                // This is not a regular message, or an error so what is happening?
-                                error!("Expecting a chunk, got something that was not a chunk or even an error - {:?}", message);
-                                session_status_code = BadUnexpectedError;
-                                break 'message_loop;
-                            }
                         }
                     }
                 }
+                // TODO error recovery state
             }
-            // TODO error recovery state
-        }
-        Err(session_status_code)
+            Err(session_status_code)
+      */
     }
- */
 
     fn next_request_id(&mut self) -> UInt32 {
         self.last_request_id += 1;
@@ -347,7 +367,7 @@ impl TcpTransport {
 
     /// Sends the supplied request asynchronously. The returned value is the request id for the
     /// chunked message. Higher levels may or may not find it useful.
-    pub fn async_send_request(&mut self, request: SupportedMessage) -> Result<UInt32, StatusCode> {
+    fn async_send_request(&mut self, request: SupportedMessage, connection_state: &mut ConnectionState) -> Result<UInt32, StatusCode> {
         if !self.is_connected() {
             return Err(BadServerNotConnected);
         }
@@ -381,7 +401,7 @@ impl TcpTransport {
             };
             match size {
                 Ok(size) => {
-                    let bytes_written_result = self.stream.as_ref().unwrap().write(&data[..size]);
+                    let bytes_written_result = connection_state.writer.write(&data[..size]);
                     if let Err(error) = bytes_written_result {
                         error!("Error while writing bytes to stream, connection broken, check error {:?}", error);
                         self.stream = None;
