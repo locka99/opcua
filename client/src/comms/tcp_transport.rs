@@ -7,6 +7,7 @@ use tokio::net::TcpStream;
 use tokio_io::{AsyncRead, AsyncWrite};
 use tokio_io::io::{ReadHalf, WriteHalf};
 use futures::Future;
+use futures::future::{self, loop_fn, Loop};
 use chrono;
 
 use opcua_types::status_codes::StatusCode;
@@ -144,13 +145,25 @@ impl TcpTransport {
                 debug!("Got ACK {:?}", ack);
                 Ok(connection_state)
             })
+            .and_then(|mut connection_state| {
+                // This is the main processing loop that receives and sends messagesm
+                let looping_task = Self::looping_task(connection_state);
+
+                looping_task
+            })
             .map_err(|_| {
                 error!("Could not connect to host {}:{}", host, port);
             })
             .map(|_| ());
-        ;
-
         Ok(())
+    }
+
+    fn looping_task(connection_state: ConnectionState) -> impl Future {
+        loop_fn(connection_state, move |connection_state| {
+            Ok(Loop::Continue(connection_state))
+        })
+            .map_err(|_| {
+            })
     }
 
     /// Disconnects the stream from the server (if it is connected)
@@ -177,7 +190,7 @@ impl TcpTransport {
 
     /// Test if the secure channel token needs to be renewed. The algorithm determines it needs
     /// to be renewed if the issue period has elapsed by 75% or more.
-    pub fn should_renew_security_token(&self) -> bool {
+    fn should_renew_security_token(&self) -> bool {
         let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
         if secure_channel.token_id() == 0 {
             panic!("Shouldn't be asking this question, if there is no token id at all");
