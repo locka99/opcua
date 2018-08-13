@@ -369,8 +369,8 @@ towards.
   * Standard data change notifications via a subscription
     * Queueing
     * Deadband filter
-    * ! No CallMethod service
-    * ! No GetMonitoredItems via call
+    * CallMethod service
+    * GetMonitoredItems via call
     * ! No ResendData via call
 
 This [OPC UA link](http://opcfoundation-onlineapplications.org/ProfileReporting/index.htm) provides interactive and descriptive information about
@@ -420,7 +420,7 @@ Integration testing shall wait for client and server to be complete. At that poi
 * Connect / disconnect
 * Create session
 * Subscribe to values
-* Encryption (when implemented)
+* Encryption
 
 ## OPC UA test cases
 
