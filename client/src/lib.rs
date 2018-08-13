@@ -9,8 +9,11 @@ extern crate chrono;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde;
-extern crate timer;
 extern crate time;
+extern crate futures;
+extern crate tokio;
+extern crate tokio_io;
+extern crate tokio_timer;
 
 extern crate opcua_types;
 #[macro_use]
@@ -19,6 +22,7 @@ extern crate opcua_core;
 mod comms;
 mod subscription;
 mod subscription_state;
+mod session_state;
 
 pub mod config;
 pub mod client;

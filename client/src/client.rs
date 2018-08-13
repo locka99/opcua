@@ -4,7 +4,6 @@ use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 
 use time;
-use timer;
 
 use opcua_types::{ByteString, MessageSecurityMode, UAString};
 use opcua_types::{is_opc_ua_binary_url, server_url_from_endpoint_url, url_matches, url_matches_except_host};
@@ -26,7 +25,7 @@ pub enum IdentityToken {
 
 struct SessionEntry {
     session: Arc<RwLock<Session>>,
-    subscription_timer: Option<(timer::Timer, timer::Guard)>,
+    // subscription_timer: Option<(timer::Timer, timer::Guard)>,
 }
 
 /// The client-side OPC UA state. A client can have a description, multiple open sessions
@@ -45,7 +44,7 @@ impl Drop for Client {
     fn drop(&mut self) {
         for session in self.sessions.iter_mut() {
             // Remove the timer from the session - has a reference to session
-            session.subscription_timer = None;
+            //session.subscription_timer = None;
             // Disconnect
             let mut session = trace_write_lock_unwrap!(session.session);
             if session.is_connected() {
@@ -163,7 +162,7 @@ impl Client {
         } else {
             let session = Arc::new(RwLock::new(Session::new(self.application_description(), self.certificate_store.clone(), session_info)));
             // Set up a timer for the session to process subscriptions
-            let subscription_timer = {
+            /*let subscription_timer = {
                 let timer = timer::Timer::new();
                 let session = session.clone();
                 let timer_guard = timer.schedule_repeating(time::Duration::milliseconds(SUBSCRIPTION_TIMER_INTERVAL), move || {
@@ -171,10 +170,10 @@ impl Client {
                     session.subscription_timer();
                 });
                 Some((timer, timer_guard))
-            };
+            };*/
             self.sessions.push(SessionEntry {
                 session: session.clone(),
-                subscription_timer,
+                //subscription_timer,
             });
             Ok(session)
         }
