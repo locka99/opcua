@@ -1,7 +1,9 @@
+use std::thread;
 use std::result::Result;
 use std::sync::{Arc, RwLock, Mutex};
 use std::io::{Read, Write};
 use std::net::SocketAddr;
+
 use tokio;
 use tokio::net::TcpStream;
 use tokio_io::{AsyncRead, AsyncWrite};
@@ -26,6 +28,7 @@ const DEFAULT_RECEIVED_SEQUENCE_NUMBER: UInt32 = 0;
 const DEFAULT_REQUEST_ID: UInt32 = 1000;
 
 struct ConnectionState {
+    pub endpoint_url: String,
     pub session_state: Arc<RwLock<SessionState>>,
     pub abort: bool,
     pub connected: bool,
@@ -83,8 +86,76 @@ impl TcpTransport {
         }
     }
 
+    fn connection_task(addr: SocketAddr, endpoint_url: String, session_state: Arc<RwLock<SessionState>>) -> impl Future<Item = (), Error=()> {
+        debug!("Creating a connection task to connect to {} with url {}", addr, endpoint_url);
+        TcpStream::connect(&addr)
+            .and_then(|socket| {
+                debug!("Connected..");
+                // Make a connection state
+                let (reader, writer) = socket.split();
+                let connection_state = ConnectionState {
+                    endpoint_url,
+                    session_state,
+                    connected: false,
+                    finished: false,
+                    abort: false,
+                    reader,
+                    writer,
+                };
+                Ok(connection_state)
+            })
+            .and_then(|mut connection_state| {
+                let msg = {
+                    let session_state = trace_read_lock_unwrap!(connection_state.session_state);
+                    HelloMessage::new(&connection_state.endpoint_url,
+                                      session_state.send_buffer_size as UInt32,
+                                      session_state.receive_buffer_size as UInt32,
+                                      session_state.max_message_size as UInt32)
+                };
+                debug!("Sending HEL {:?}", msg);
+                let _ = msg.encode(&mut connection_state.writer);
+                debug!("Waiting for ACK");
+                Ok(connection_state)
+            })
+            .and_then(|mut connection_state| {
+                let ack = AcknowledgeMessage::decode(&mut connection_state.reader);
+                // Process ack
+                debug!("Got ACK {:?}", ack);
+                Ok(connection_state)
+            })
+            .and_then(|mut connection_state| {
+                // open_secure_channel
+                Ok(connection_state)
+            })
+            .and_then(|mut connection_state| {
+                // This is the main processing loop that receives and sends messages
+                loop_fn(connection_state, move |mut connection_state| {
+                    if connection_state.abort {
+                        debug!("Message processing loop is terminating due to abort");
+                        Ok(Loop::Break(connection_state))
+                    } else {
+                        // If connection broken
+                        // Loop::Break(connection_state)
+
+
+                        // Read / write messages
+                        Ok(Loop::Continue(connection_state))
+                    }
+                })
+            })
+            .and_then(|mut connection_state| {
+                // TODO clean up session state - wipe out all requests, responses
+                // put session state into disconnected
+                Ok(connection_state)
+            })
+            .map_err(move |_| {
+                error!("Could not connect to host {}", addr);
+            })
+            .map(|_| {})
+    }
+
     /// Connects the stream to the specified endpoint
-    pub fn connect(&mut self, endpoint_url: &str) -> Result<(), StatusCode> {
+    pub fn connect(&mut self, endpoint_url: &str) -> Result<thread::JoinHandle<()>, StatusCode> {
         if self.is_connected() {
             panic!("Should not try to connect when already connected");
         }
@@ -110,74 +181,14 @@ impl TcpTransport {
             return Err(BadTcpEndpointUrlInvalid);
         }
 
-        tokio::run({
-            let addr = addr.unwrap();
-            TcpStream::connect(&addr)
-                .and_then(|socket| {
-                    debug!("Connected...");
-                    // Make a connection state
-                    let (reader, writer) = socket.split();
-                    let connection_state = ConnectionState {
-                        session_state: self.session_state.clone(),
-                        connected: false,
-                        finished: false,
-                        abort: false,
-                        reader,
-                        writer,
-                    };
-                    Ok(connection_state)
-                })
-                .and_then(|mut connection_state| {
-                    let msg = {
-                        let session_state = self.session_state.clone();
-                        let session_state = trace_read_lock_unwrap!(session_state);
-                        HelloMessage::new(endpoint_url,
-                                          session_state.send_buffer_size as UInt32,
-                                          session_state.receive_buffer_size as UInt32,
-                                          session_state.max_message_size as UInt32)
-                    };
-                    debug!("Sending HEL {:?}", msg);
-                    let _ = msg.encode(&mut connection_state.writer);
-                    debug!("Waiting for ACK");
-                    Ok(connection_state)
-                })
-                .and_then(|mut connection_state| {
-                    let ack = AcknowledgeMessage::decode(&mut connection_state.reader);
-                    // Process ack
-                    debug!("Got ACK {:?}", ack);
-                    Ok(connection_state)
-                })
-                .and_then(|mut connection_state| {
-                    // open_secure_channel
-                    Ok(connection_state)
-                })
-                .and_then(|mut connection_state| {
-                    // This is the main processing loop that receives and sends messages
-                    loop_fn(connection_state, move |mut connection_state| {
-                        if connection_state.abort {
-                            debug!("Message processing loop is terminating due to abort");
-                            Ok(Loop::Break(connection_state))
-                        } else {
-                            // If connection broken
-                            // Loop::Break(connection_state)
-
-
-                            // Read / write messages
-                            Ok(Loop::Continue(connection_state))
-                        }
-                    })
-                })
-                .and_then(|mut connection_state| {
-                    // TODO clean up session state - wipe out all requests, responses
-                    // put session state into disconnected
-                    Ok(connection_state)
-                })
-                .map_err(|_| {
-                    error!("Could not connect to host {}:{}", host, port);
-                })
-                .map(|_| {})
+        // The connection will be serviced on its own thread. When the thread terminates, the connection
+        // has also terminated.
+        let addr = addr.unwrap();
+        let connection_task = Self::connection_task(addr, endpoint_url.to_string(), self.session_state.clone());
+        let thread = thread::spawn(move || {
+            tokio::run(connection_task);
         });
-        Ok(())
+        Ok(thread)
     }
 
     /// Disconnects the stream from the server (if it is connected)
@@ -258,27 +269,7 @@ impl TcpTransport {
 
     pub fn run(&mut self, non_blocking: bool, request_timeout: UInt32) -> Result<SupportedMessage, StatusCode> {
         unimplemented!("gone");
-        /*
-        // Pseudo code
-        let task = session.connect()
-            .and_then(|| {
-                send hello()
-            }).
-            and_then(|| {
-                wait_for_ack()
-            }).
-            and_then(|| {
-                set state
-            }).
-            and_then(|| {
-                // Split listener to read & write
-                send requests
-                receive responses
-            });
-        tokio::run(task);
-        // Set state terminated
-    }
-    */
+
 
         /*
 

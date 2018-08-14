@@ -162,9 +162,9 @@ impl Session {
                 info!("Security mode = {:?}", self.session_info.endpoint.security_mode);
             }
 
-            self.transport.connect(endpoint_url.as_ref())?;
-            self.transport.hello(endpoint_url.as_ref())?;
-            self.open_secure_channel()?;
+            let _connection = self.transport.connect(endpoint_url.as_ref())?;
+            // TODO this is the connection's thread join handle. Should probably store it and
+            // test it before calling anything
             Ok(())
         }
     }
