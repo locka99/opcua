@@ -960,7 +960,9 @@ impl Session {
                 let request_duration = now.signed_duration_since(start);
                 if request_duration.num_milliseconds() >= request_timeout as i64 {
                     info!("Timeout waiting for response from server");
-                    return Err(BadTimeout)
+                    let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                    session_state.remove_pending_request_timeout(request_handle);
+                    return Err(BadTimeout);
                 }
                 // Check for async responses
                 let _ = self.handle_publish_responses();
@@ -1127,14 +1129,13 @@ impl Session {
         };
         if responses.is_empty() {
             false
-        }
-            else {
-                debug!("Processing {} async messages", responses.len());
-                for response in responses {
-                    self.handle_async_response(response);
-                }
-                true
+        } else {
+            debug!("Processing {} async messages", responses.len());
+            for response in responses {
+                self.handle_async_response(response);
             }
+            true
+        }
     }
 
     /// This is the handler for asynchronous responses which are currently assumed to be publish

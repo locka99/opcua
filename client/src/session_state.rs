@@ -138,13 +138,19 @@ impl SessionState {
     }
 
     pub fn remove_pending_request_timeout(&mut self, request_handle: UInt32, async: bool) {
+        info!("Request with handle {} has timed out and any response will be ignored", request_handle);
         let value = (request_handle, async);
         let _ = self.inflight_requests.remove(&value);
     }
 
-    pub fn add_response(&mut self, response: SupportedMessage, async: bool) {
+    pub fn store_response(&mut self, response: SupportedMessage) {
+        // Remove corresponding request handle from inflight queue, add to responses
         let request_handle = response.request_handle();
-        self.responses.insert(request_handle, (response, async));
+        if let Some(request) = self.inflight_requests.remove(&request_handle) {
+            self.responses.insert(request_handle, (response, request.1));
+        } else {
+            error!("A response with request handle {} doesn't belong to any request and will be ignored", request_handle);
+        }
     }
 
     pub fn async_responses(&mut self) -> Vec<SupportedMessage> {

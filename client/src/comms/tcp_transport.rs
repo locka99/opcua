@@ -7,7 +7,7 @@ use std::net::SocketAddr;
 use tokio;
 use tokio::net::TcpStream;
 use tokio_io::{AsyncRead, AsyncWrite};
-use tokio_io::io::{ReadHalf, WriteHalf};
+use tokio_io::io::{self, ReadHalf, WriteHalf};
 use futures::Future;
 use futures::future::{loop_fn, Loop};
 use chrono;
@@ -30,9 +30,15 @@ const DEFAULT_REQUEST_ID: UInt32 = 1000;
 struct ConnectionState {
     pub endpoint_url: String,
     pub session_state: Arc<RwLock<SessionState>>,
+    /// The messages buffer
+    pub message_buffer: MessageBuffer,
     pub abort: bool,
     pub connected: bool,
     pub finished: bool,
+    /// Raw bytes in buffer
+    pub in_buf: Vec<u8>,
+    /// Bytes read in buffer
+    pub bytes_read: usize,
     pub reader: ReadHalf<TcpStream>,
     pub writer: WriteHalf<TcpStream>,
 }
@@ -46,8 +52,6 @@ struct ConnectionState {
 pub struct TcpTransport {
     /// Session state
     session_state: Arc<RwLock<SessionState>>,
-    /// Message buffer where portions of messages are stored to be built into chunks
-    message_buffer: MessageBuffer,
     /// Last encoded sequence number
     last_sent_sequence_number: UInt32,
     /// Last decoded sequence number
@@ -76,7 +80,6 @@ impl TcpTransport {
 
         TcpTransport {
             session_state,
-            message_buffer: MessageBuffer::new(receive_buffer_size),
             last_sent_sequence_number: DEFAULT_SENT_SEQUENCE_NUMBER,
             last_received_sequence_number: DEFAULT_RECEIVED_SEQUENCE_NUMBER,
             last_request_id: DEFAULT_REQUEST_ID,
@@ -86,19 +89,28 @@ impl TcpTransport {
         }
     }
 
-    fn connection_task(addr: SocketAddr, endpoint_url: String, session_state: Arc<RwLock<SessionState>>) -> impl Future<Item = (), Error=()> {
+    fn connection_task(addr: SocketAddr, endpoint_url: String, session_state: Arc<RwLock<SessionState>>) -> impl Future<Item=(), Error=()> {
         debug!("Creating a connection task to connect to {} with url {}", addr, endpoint_url);
         TcpStream::connect(&addr)
             .and_then(|socket| {
                 debug!("Connected..");
                 // Make a connection state
                 let (reader, writer) = socket.split();
+
+                let receive_buffer_size = {
+                    let session_state = trace_read_lock_unwrap!(session_state);
+                    session_state.receive_buffer_size
+                };
+
                 let connection_state = ConnectionState {
                     endpoint_url,
                     session_state,
                     connected: false,
                     finished: false,
                     abort: false,
+                    message_buffer: MessageBuffer::new(receive_buffer_size),
+                    in_buf: Vec::new(),
+                    bytes_read: 0,
                     reader,
                     writer,
                 };
@@ -129,6 +141,7 @@ impl TcpTransport {
             })
             .and_then(|mut connection_state| {
                 // This is the main processing loop that receives and sends messages
+
                 loop_fn(connection_state, move |mut connection_state| {
                     if connection_state.abort {
                         debug!("Message processing loop is terminating due to abort");
@@ -138,13 +151,66 @@ impl TcpTransport {
                         Ok(Loop::Continue(connection_state))
                     }
                 }).and_then(|mut connection_state| {
+
+                    // The reader is consumed by io:read so we have to rebuild
+                    // connection state, so everything is taken out here.
+                    let reader = connection_state.reader;
+                    let in_buf = connection_state.in_buf;
+                    let message_buffer = connection_state.message_buffer;
+
+                    let endpoint_url = connection_state.endpoint_url;
+                    let session_state = connection_state.session_state;
+                    let writer = connection_state.writer;
+                    let message_buffer = connection_state.message_buffer;
+                    let abort = connection_state.abort;
+                    let finished = connection_state.finished;
+                    let connected = connection_state.connected;
+
+                    // Read and process bytes from the stream
+                    io::read(reader, in_buf).map_err(move |err| {
+                        error!("Transport IO error {:?}", err);
+                        (connection_for_err, BadCommunicationError)
+                    }).map(move |(reader, in_buf, bytes_read)| {
+                        if bytes_read > 0 {
+                            trace!("Read {} bytes", bytes_read);
+                        }
+                        // Build a new connection state
+                        ConnectionState {
+                            endpoint_url,
+                            session_state,
+                            message_buffer,
+                            abort,
+                            finished,
+                            connected,
+                            bytes_read,
+                            reader,
+                            writer,
+                            in_buf,
+                        }
+                    });
                     // Read messages to send
                     Ok(connection_state)
                 }).and_then(|mut connection_state| {
+                    // Store bytes the buffer and try to decode into a message
+                    if connection_state.bytes_read > 0 {
+                        let mut session_status_code = Good;
+                        let result = connection_state.message_buffer.store_bytes(&connection_state.in_buf[..connection_state.bytes_read]);
+                        if result.is_err() {
+                            session_status_code = result.unwrap_err();
+                        } else {
+                            let messages = result.unwrap();
+                            let mut session_state = trace_write_lock_unwrap!(connection_state.session_state);
+                            for message in messages {
+                                // Messages get stored in the responses
+                                session_state.store_response(message);
+                            }
+                        }
+                    }
+
                     // Receive messages
+                    // TODO
                     Ok(connection_state)
                 })
-
             })
             .and_then(|mut connection_state| {
                 // TODO clean up session state - wipe out all requests, responses
