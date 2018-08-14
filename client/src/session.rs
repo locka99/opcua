@@ -1,6 +1,7 @@
 //! Session functionality for the current connection including async
 //! wrappers around client side requests to server.
 
+use std;
 use std::result::Result;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
@@ -21,6 +22,8 @@ use subscription;
 use subscription::{DataChangeCallback, Subscription};
 use subscription_state::SubscriptionState;
 use session_state::SessionState;
+
+const SYNC_POLLING_PERIOD: u64 = 50;
 
 /// Information about the server endpoint, security policy, security mode and user identity that the session will
 /// will use to establish a connection.
@@ -191,7 +194,7 @@ impl Session {
             request_header: self.make_request_header(),
         };
         // We do not wait for a response because there may not be one. Just return
-        let _ = self.async_send_request(request);
+        let _ = self.async_send_request(request, false);
         Ok(())
     }
 
@@ -884,7 +887,7 @@ impl Session {
             request_header: self.make_request_header(),
             subscription_acknowledgements: if subscription_acknowledgements.is_empty() { None } else { Some(subscription_acknowledgements.to_vec()) },
         };
-        let request_handle = self.async_send_request(request)?;
+        let request_handle = self.async_send_request(request, true)?;
         debug!("async_publish, request sent with handle {}", request_handle);
         Ok(request_handle)
     }
@@ -892,17 +895,17 @@ impl Session {
     /// Synchronously sends a request. The return value is the response to the request
     fn send_request<T>(&mut self, request: T) -> Result<SupportedMessage, StatusCode> where T: Into<SupportedMessage> {
         // Send the request
-        let request_handle = self.async_send_request(request)?;
+        let request_handle = self.async_send_request(request, false)?;
         // Wait for the response
         let request_timeout = {
             let session_state = trace_read_lock_unwrap!(self.session_state);
             session_state.request_timeout
         };
-        self.wait_for_response(request_handle, request_timeout)
+        self.wait_for_sync_response(request_handle, request_timeout)
     }
 
     /// Asynchronously sends a request. The return value is the request handle of the request
-    fn async_send_request<T>(&mut self, request: T) -> Result<UInt32, StatusCode> where T: Into<SupportedMessage> {
+    fn async_send_request<T>(&mut self, request: T, async: bool) -> Result<UInt32, StatusCode> where T: Into<SupportedMessage> {
         let request = request.into();
         match request {
             SupportedMessage::OpenSecureChannelRequest(_) | SupportedMessage::CloseSecureChannelRequest(_) => {}
@@ -917,8 +920,8 @@ impl Session {
         // Enqueue the request
         let request_handle = request.request_handle();
         {
-            let session_state = trace_write_lock_unwrap!(self.session_state);
-            session_state.add_request(request);
+            let mut session_state = trace_write_lock_unwrap!(self.session_state);
+            session_state.add_request(request, async);
         }
 
         Ok(request_handle)
@@ -927,51 +930,16 @@ impl Session {
     /// Asks the session to poll, which basically does housekeeping and dispatching of any pending
     /// async responses.
     pub fn poll(&mut self) -> bool {
-        self.process_async_responses()
+        self.handle_publish_responses()
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-
-    // Process any async messages we expect to receive
-    fn poll_async_messages(&mut self) -> Result<(), StatusCode> {
-        let request_timeout = 10000; // TODO
-        let pending_responses = {
-            let session_state = trace_read_lock_unwrap!(self.session_state);
-            session_state.pending_requests.len() > 0
-        };
-        if pending_responses {
-            debug!("Waiting for response poll_async_messages");
-            let response = self.transport.wait_for_response(true, request_timeout)?;
-            let response_request_handle = response.request_handle();
-            let is_publish_request = {
-                debug!("is publish req test");
-                let mut session_state = trace_write_lock_unwrap!(self.session_state);
-                session_state.pending_requests.remove(&response_request_handle)
-            };
-            if is_publish_request {
-                debug!("handle response");
-                self.handle_publish_response(response);
-            } else {
-                error!("Received a response from server which does not match any existing request handle {}", response_request_handle);
-            }
-            Ok(())
-        } else {
-            debug!("No pending responses so nothing to do");
-            Err(BadNothingToDo)
-        }
-    }
-
-    fn process_async_responses(&mut self) -> bool {
-        // TODO test all publish requests, oldest to latest and see if a response has come for each
-        // self.handle_publish_response(response);
-        true
-    }
 
     /// Wait for a response with a matching request handle. If request handle is 0 then no match
     /// is performed and in fact the function is expected to receive no messages except asynchronous
     /// and housekeeping events from the server. A 0 handle will cause the wait to process at most
     /// one async message before returning.
-    fn wait_for_response(&mut self, request_handle: UInt32, request_timeout: UInt32) -> Result<SupportedMessage, StatusCode> {
+    fn wait_for_sync_response(&mut self, request_handle: UInt32, request_timeout: UInt32) -> Result<SupportedMessage, StatusCode> {
         if request_handle == 0 {
             panic!("Request handle must be non zero");
         }
@@ -982,9 +950,8 @@ impl Session {
         loop {
             let response = {
                 let mut session_state = trace_write_lock_unwrap!(self.session_state);
-                session_state.remove_response(request_handle);
+                session_state.remove_response(request_handle, false)
             };
-
             if let Some(response) = response {
                 // Got the response
                 return Ok(response);
@@ -993,11 +960,12 @@ impl Session {
                 let request_duration = now.signed_duration_since(start);
                 if request_duration.num_milliseconds() >= request_timeout as i64 {
                     info!("Timeout waiting for response from server");
-                    Err(BadTimeout)
+                    return Err(BadTimeout)
                 }
-
-                // Check for publish responses
-                let _ = self.process_async_responses();
+                // Check for async responses
+                let _ = self.handle_publish_responses();
+                // Sleep before trying again
+                std::thread::sleep(std::time::Duration::from_millis(SYNC_POLLING_PERIOD));
             }
         }
     }
@@ -1151,9 +1119,28 @@ impl Session {
         debug!("Timer2");
     }
 
-    /// This is the handler for asynchronous publish responses. It maintains the acknowledegements
-    /// to be sent and sends the data change notifications to the client for processing.
-    fn handle_publish_response(&mut self, response: SupportedMessage) {
+    // Process any async messages we expect to receive
+    fn handle_publish_responses(&mut self) -> bool {
+        let responses = {
+            let mut session_state = trace_write_lock_unwrap!(self.session_state);
+            session_state.async_responses()
+        };
+        if responses.is_empty() {
+            false
+        }
+            else {
+                debug!("Processing {} async messages", responses.len());
+                for response in responses {
+                    self.handle_async_response(response);
+                }
+                true
+            }
+    }
+
+    /// This is the handler for asynchronous responses which are currently assumed to be publish
+    /// responses. It maintains the acknowledegements to be sent and sends the data change
+    /// notifications to the client for processing.
+    fn handle_async_response(&mut self, response: SupportedMessage) {
         debug!("handle_publish_response");
         let mut wait_for_publish_response = false;
         match response {

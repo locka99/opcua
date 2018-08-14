@@ -134,18 +134,22 @@ impl TcpTransport {
                         debug!("Message processing loop is terminating due to abort");
                         Ok(Loop::Break(connection_state))
                     } else {
-                        // If connection broken
-                        // Loop::Break(connection_state)
-
-
                         // Read / write messages
                         Ok(Loop::Continue(connection_state))
                     }
+                }).and_then(|mut connection_state| {
+                    // Read messages to send
+                    Ok(connection_state)
+                }).and_then(|mut connection_state| {
+                    // Receive messages
+                    Ok(connection_state)
                 })
+
             })
             .and_then(|mut connection_state| {
                 // TODO clean up session state - wipe out all requests, responses
                 // put session state into disconnected
+                connection_state.finished = true;
                 Ok(connection_state)
             })
             .map_err(move |_| {
@@ -215,7 +219,7 @@ impl TcpTransport {
 
     /// Test if the secure channel token needs to be renewed. The algorithm determines it needs
     /// to be renewed if the issue period has elapsed by 75% or more.
-    fn should_renew_security_token(&self) -> bool {
+    pub fn should_renew_security_token(&self) -> bool {
         let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
         if secure_channel.token_id() == 0 {
             panic!("Shouldn't be asking this question, if there is no token id at all");

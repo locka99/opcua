@@ -69,7 +69,8 @@ pub struct SessionState {
     /// If a response is received for which there is no entry, the response will be discarded.
     inflight_requests: HashSet<(UInt32, bool)>,
     /// A map of incoming responses waiting to be processed
-    responses: HashMap<UInt32, SupportedMessage>,
+    responses: HashMap<UInt32, (SupportedMessage, bool)>,
+
 }
 
 impl SessionState {
@@ -127,7 +128,7 @@ impl SessionState {
         self.requests.push_front((request, async));
     }
 
-     fn next_request(&mut self) -> Option<(SupportedMessage, bool)> {
+    fn next_request(&mut self) -> Option<(SupportedMessage, bool)> {
         self.requests.pop_back()
     }
 
@@ -141,16 +142,31 @@ impl SessionState {
         let _ = self.inflight_requests.remove(&value);
     }
 
-    pub fn add_response(&mut self, response: SupportedMessage) {
+    pub fn add_response(&mut self, response: SupportedMessage, async: bool) {
         let request_handle = response.request_handle();
-        self.responses.insert(request_handle, response);
+        self.responses.insert(request_handle, (response, async));
+    }
+
+    pub fn async_responses(&mut self) -> Vec<SupportedMessage> {
+        // Gather up all request handles
+        let mut async_handles = self.responses.iter()
+            .filter(|(_, v)| v.1)
+            .map(|(k, _)| *k)
+            .collect::<Vec<_>>();
+
+        // Order them from oldest to latest (except if handles wrap)
+        async_handles.sort();
+
+        // Remove each item from the map and return to caller
+        async_handles.iter()
+            .map(|k| self.responses.remove(k).unwrap().0)
+            .collect()
     }
 
     pub fn remove_response(&mut self, request_handle: UInt32, async: bool) -> Option<SupportedMessage> {
         let key = (request_handle, async);
         if let Some(response) = self.responses.remove(&request_handle) {
-            let _ = self.inflight_requests.remove(&key);
-            Some(response)
+            Some(response.0)
         } else {
             None
         }
