@@ -886,11 +886,6 @@ impl Session {
         };
         let request_handle = self.async_send_request(request)?;
         debug!("async_publish, request sent with handle {}", request_handle);
-        {
-            // Store the request handle so a publish response (or error) can be associated with the request later
-            let mut session_state = trace_write_lock_unwrap!(self.session_state);
-            session_state.pending_requests.insert(request_handle);
-        }
         Ok(request_handle)
     }
 
@@ -916,25 +911,23 @@ impl Session {
                 let _ = self.ensure_secure_channel_token();
             }
         }
-        // Send the request
+
+        // TODO should error here if not connected
+
+        // Enqueue the request
         let request_handle = request.request_handle();
-        let _ = self.transport.async_send_request(request)?;
+        {
+            let session_state = trace_write_lock_unwrap!(self.session_state);
+            session_state.add_request(request);
+        }
+
         Ok(request_handle)
     }
 
-    /// Asks the session to poll, which basically allows clients who are doing nothing but receiving
-    /// notifications to receive them.
-    pub fn poll(&mut self) {
-        // This is a dirty hack for a blocking TCP stream - if we have any outstanding publish requests
-        // then we try to read from the stream otherwise do nothing. Trying to read when there is nothing
-        // expected would cause the stream to block forever. Other threads waiting for a
-        // lock on this session would hang too. Moving to tokio and non-blocking
-        // IO would require a refactor but would probably fix this.
-        if self.poll_async_messages().is_err() {
-            use std;
-            let poll_timeout = 100;
-            std::thread::sleep(std::time::Duration::from_millis(poll_timeout as u64));
-        }
+    /// Asks the session to poll, which basically does housekeeping and dispatching of any pending
+    /// async responses.
+    pub fn poll(&mut self) -> bool {
+        self.process_async_responses()
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -968,6 +961,12 @@ impl Session {
         }
     }
 
+    fn process_async_responses(&mut self) -> bool {
+        // TODO test all publish requests, oldest to latest and see if a response has come for each
+        // self.handle_publish_response(response);
+        true
+    }
+
     /// Wait for a response with a matching request handle. If request handle is 0 then no match
     /// is performed and in fact the function is expected to receive no messages except asynchronous
     /// and housekeeping events from the server. A 0 handle will cause the wait to process at most
@@ -976,43 +975,29 @@ impl Session {
         if request_handle == 0 {
             panic!("Request handle must be non zero");
         }
+
         // Receive messages until the one expected comes back. Publish responses will be consumed
         // silently.
         let start = chrono::Utc::now();
         loop {
-            debug!("wait_for_response");
-            // Note that theoretically, there might be one slow response and then another so the timeout
-            // period could be exceeded by nearly double in the worst case, e.g. timeout is 10s,
-            // first response (not ours) takes 9.9s and then we wait another 9.9s for the message
-            // that is ours. Now the timeout was 19.8s. Should we error even though we eventually
-            // got the message outside the timeout?
-            let response = self.transport.wait_for_response(false, request_timeout)?;
-            let response_request_handle = response.request_handle();
+            let response = {
+                let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                session_state.remove_response(request_handle);
+            };
 
-            // Compare the handle of the response to the expected handle
-            if response_request_handle == request_handle {
+            if let Some(response) = response {
+                // Got the response
+                return Ok(response);
+            } else {
                 let now = chrono::Utc::now();
                 let request_duration = now.signed_duration_since(start);
-                return if request_duration.num_milliseconds() >= request_timeout as i64 {
+                if request_duration.num_milliseconds() >= request_timeout as i64 {
                     info!("Timeout waiting for response from server");
                     Err(BadTimeout)
-                } else {
-                    // Straight match so return
-                    Ok(response)
-                };
-            } else {
-                // Check if it is a pending publish request
-                let is_publish_request = {
-                    debug!("is publish req test");
-                    let mut session_state = trace_write_lock_unwrap!(self.session_state);
-                    session_state.pending_requests.remove(&response_request_handle)
-                };
-                if is_publish_request {
-                    debug!("handle response");
-                    self.handle_publish_response(response);
-                } else {
-                    error!("Received a response from server which does not match any existing request handle {}", response_request_handle);
                 }
+
+                // Check for publish responses
+                let _ = self.process_async_responses();
             }
         }
     }
