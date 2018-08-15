@@ -7,10 +7,6 @@ use std::net::SocketAddr;
 use std::time::{Instant, Duration};
 use std::sync::{Arc, RwLock, Mutex};
 
-use opcua_core::prelude::*;
-use opcua_types::status_codes::StatusCode;
-use opcua_types::status_codes::StatusCode::*;
-
 use chrono;
 use chrono::Utc;
 use futures::{Stream, Future};
@@ -22,6 +18,11 @@ use tokio_io::AsyncRead;
 use tokio_io::io;
 use tokio_io::io::{ReadHalf, WriteHalf};
 use tokio_timer::Interval;
+
+use opcua_core::prelude::*;
+use opcua_core::comms::message_writer::MessageWriter;
+use opcua_types::status_codes::StatusCode;
+use opcua_types::status_codes::StatusCode::*;
 
 use address_space::types::AddressSpace;
 use comms::secure_channel_service::SecureChannelService;
@@ -78,69 +79,10 @@ pub struct TcpTransport {
     last_received_sequence_number: UInt32,
 }
 
-struct SocketWriter {
-    /// Writing portion of socket
-    pub write_half: WriteHalf<TcpStream>,
-    /// The send buffer
-    pub buffer: Cursor<Vec<u8>>,
-}
 
-impl SocketWriter {
-    pub fn new(write_half: WriteHalf<TcpStream>, buffer_size: usize) -> SocketWriter {
-        SocketWriter {
-            write_half,
-                buffer: Cursor::new(vec![0u8; buffer_size]),
-            }
-        }
-
-        pub fn clear_buffer(&mut self) {
-            self.buffer.set_position(0);
-        }
-
-        pub fn encode_error_message(&mut self, status_code: StatusCode) {
-            let error = ErrorMessage::from_status_code(status_code);
-            let _ = error.encode(&mut self.buffer);
-        }
-
-        pub fn write(&mut self) -> std::io::Result<usize> {
-            if self.buffer.position() == 0 {
-                Ok(0)
-            } else {
-                let result = {
-                    let out_buf_stream = &self.buffer;
-                    let bytes_to_write = out_buf_stream.position() as usize;
-                let buffer_slice = &out_buf_stream.get_ref()[0..bytes_to_write];
-
-                trace!("Writing {} bytes to client", buffer_slice.len());
-                // log_buffer("Writing bytes to client:", buffer_slice);
-
-                let result = self.write_half.write(&buffer_slice);
-                match result {
-                    Err(err) => {
-                        error!("Error writing bytes - {:?}", err);
-                        Err(err)
-                    }
-                    Ok(bytes_written) => {
-                        if bytes_to_write != bytes_written {
-                            error!("Error writing bytes - bytes_to_write = {}, bytes_written = {}", bytes_to_write, bytes_written);
-                        } else {
-                            trace!("Bytes written = {}", bytes_written);
-                        }
-                        Ok(bytes_written)
-                    }
-                }
-            };
-
-            // AND THEN clear the buffer
-            self.buffer.set_position(0);
-            result
-        }
-    }
-}
-
-struct ConnectionState {
+struct Connection {
     /// The associated connection
-    pub connection: Arc<RwLock<TcpTransport>>,
+    pub transport: Arc<RwLock<TcpTransport>>,
     /// The messages buffer
     pub message_buffer: MessageBuffer,
     /// Reading portion of socket
@@ -150,7 +92,7 @@ struct ConnectionState {
     /// Bytes read in buffer
     pub bytes_read: usize,
     /// Write buffer
-    pub writer: Arc<Mutex<SocketWriter>>,
+    pub writer: Arc<Mutex<MessageWriter>>,
     /// Session start time
     pub session_start_time: chrono::DateTime<Utc>,
 }
@@ -235,20 +177,20 @@ impl TcpTransport {
         let (reader, writer) = socket.split();
 
         // Connection state is maintained for looping through each task
-        let connection_state = ConnectionState {
-            connection: connection.clone(),
+        let connection = Connection {
+            transport: connection.clone(),
             message_buffer: MessageBuffer::new(RECEIVE_BUFFER_SIZE),
             bytes_read: 0,
             reader,
             in_buf: vec![0u8; RECEIVE_BUFFER_SIZE],
-            writer: Arc::new(Mutex::new(SocketWriter::new(writer, SEND_BUFFER_SIZE))),
+            writer: Arc::new(Mutex::new(MessageWriter::new(writer, SEND_BUFFER_SIZE))),
             session_start_time,
         };
 
         // Spawn the hello timeout task
-        Self::spawn_hello_timeout_task(&connection_state);
+        Self::spawn_hello_timeout_task(&connection);
         // Spawn the subscription processing task
-        Self::spawn_subscriptions_task(&connection_state);
+        Self::spawn_subscriptions_task(&connection);
 
         // 1. Read bytes
         // 2. Store bytes in a buffer
@@ -256,16 +198,16 @@ impl TcpTransport {
         // 4. Send outgoing messages
         // 5. Terminate if necessary
         // 6. Go to 1
-        let looping_task = loop_fn(connection_state, move |connection_state| {
+        let looping_task = loop_fn(connection, move |connection| {
 
             // Stuff is taken out of connection state because it is partially consumed by io::read
-            let connection_for_err = connection_state.connection.clone();
-            let connection = connection_state.connection;
-            let message_buffer = connection_state.message_buffer;
-            let in_buf = connection_state.in_buf;
-            let reader = connection_state.reader;
-            let writer = connection_state.writer;
-            let session_start_time = connection_state.session_start_time;
+            let connection_for_err = connection.transport.clone();
+            let connection = connection.transport;
+            let message_buffer = connection.message_buffer;
+            let in_buf = connection.in_buf;
+            let reader = connection.reader;
+            let writer = connection.writer;
+            let session_start_time = connection.session_start_time;
 
             // Read and process bytes from the stream
             io::read(reader, in_buf).map_err(move |err| {
@@ -276,8 +218,8 @@ impl TcpTransport {
                     trace!("Read {} bytes", bytes_read);
                 }
                 // Build a new connection state
-                ConnectionState {
-                    connection,
+                Connection {
+                    transport: connection,
                     message_buffer,
                     bytes_read,
                     reader,
@@ -285,24 +227,25 @@ impl TcpTransport {
                     in_buf,
                     session_start_time,
                 }
-            }).and_then(|mut connection_state| {
+            }).and_then(|mut connection| {
                 let is_server_abort = {
-                    let connection = trace_read_lock_unwrap!(connection_state.connection);
+                    let connection = trace_read_lock_unwrap!(connection.connection);
                     connection.is_server_abort()
                 };
                 if is_server_abort {
                     info!("Transport is terminating because server has aborted");
-                    return Err((connection_state.connection.clone(), BadCommunicationError));
+                    return Err((connection.transport.clone(), BadCommunicationError));
                 }
 
                 let transport_state = {
-                    let connection = trace_read_lock_unwrap!(connection_state.connection);
+                    let connection = trace_read_lock_unwrap!(connection.connection);
                     connection.transport_state.clone()
                 };
 
-                if connection_state.bytes_read > 0 {
+                if connection.bytes_read > 0 {
+                    // Handle the incoming message
                     let mut session_status_code = Good;
-                    let result = connection_state.message_buffer.store_bytes(&connection_state.in_buf[..connection_state.bytes_read]);
+                    let result = connection.message_buffer.store_bytes(&connection.in_buf[..connection.bytes_read]);
                     if result.is_err() {
                         session_status_code = result.unwrap_err();
                     } else {
@@ -312,8 +255,8 @@ impl TcpTransport {
                                 TransportState::WaitingHello => {
                                     debug!("Processing HELLO");
                                     if let Message::Hello(hello) = message {
-                                        let mut connection = trace_write_lock_unwrap!(connection_state.connection);
-                                        let mut writer = trace_lock_unwrap!(connection_state.writer);
+                                        let mut connection = trace_write_lock_unwrap!(connection.connection);
+                                        let mut writer = trace_lock_unwrap!(connection.writer);
                                         let result = connection.process_hello(hello, &mut writer.buffer);
                                         if result.is_err() {
                                             session_status_code = result.unwrap_err();
@@ -325,8 +268,8 @@ impl TcpTransport {
                                 TransportState::ProcessMessages => {
                                     debug!("Processing message");
                                     if let Message::MessageChunk(chunk) = message {
-                                        let mut connection = trace_write_lock_unwrap!(connection_state.connection);
-                                        let mut writer = trace_lock_unwrap!(connection_state.writer);
+                                        let mut connection = trace_write_lock_unwrap!(connection.connection);
+                                        let mut writer = trace_lock_unwrap!(connection.writer);
                                         let result = connection.process_chunk(chunk, &mut writer.buffer);
                                         if result.is_err() {
                                             session_status_code = result.unwrap_err();
@@ -344,23 +287,23 @@ impl TcpTransport {
                     }
                     // Update the session status
                     {
-                        let mut connection = trace_write_lock_unwrap!(connection_state.connection);
+                        let mut connection = trace_write_lock_unwrap!(connection.connection);
                         connection.set_session_status(session_status_code);
                     }
                 }
-                Ok(connection_state)
-            }).and_then(|connection_state| {
+                Ok(connection)
+            }).and_then(|connection| {
                 // Write anything in the out buffer
                 {
-                    let mut writer = trace_lock_unwrap!(connection_state.writer);
+                    let mut writer = trace_lock_unwrap!(connection.writer);
                     let _ = writer.write();
                 }
-                Ok(connection_state)
-            }).and_then(|connection_state| {
+                Ok(connection)
+            }).and_then(|connection| {
                 // Some handlers might wish to send their message and terminate, in which case this is
                 // done here.
                 let session_status = {
-                    let mut connection = trace_write_lock_unwrap!(connection_state.connection);
+                    let mut connection = trace_write_lock_unwrap!(connection.connection);
                     // Terminate may have been set somewhere
                     let terminate_session = {
                         let session = trace_read_lock_unwrap!(connection.session);
@@ -375,7 +318,7 @@ impl TcpTransport {
 
                 // Abort the session?
                 if session_status.is_good() {
-                    Ok(Loop::Continue(connection_state))
+                    Ok(Loop::Continue(connection))
                 } else {
                     // As a final act, the session sends a status code to the client if one should be sent
                     match session_status {
@@ -385,7 +328,7 @@ impl TcpTransport {
                         _ => {
                             warn!("Sending session terminating error {:?}", session_status);
                             {
-                                let mut writer = trace_lock_unwrap!(connection_state.writer);
+                                let mut writer = trace_lock_unwrap!(connection.writer);
                                 writer.clear_buffer();
                                 writer.encode_error_message(session_status);
                                 let _ = writer.write();
@@ -393,14 +336,14 @@ impl TcpTransport {
                         }
                     }
 
-                    let session_duration = Utc::now().signed_duration_since(connection_state.session_start_time);
+                    let session_duration = Utc::now().signed_duration_since(connection.session_start_time);
                     info!("Session is finished {:?}", session_duration);
 
                     {
-                        let mut connection = trace_write_lock_unwrap!(connection_state.connection);
+                        let mut connection = trace_write_lock_unwrap!(connection.connection);
                         connection.terminate_session(session_status);
                     }
-                    Ok(Loop::Break(connection_state))
+                    Ok(Loop::Break(connection))
                 }
             })
         }).map_err(move |(connection, status_code)| {
@@ -417,7 +360,7 @@ impl TcpTransport {
 
     /// Makes the tokio task that looks for a hello timeout event, i.e. the connection is opened
     /// but no hello is received and we need to drop the session
-    fn spawn_hello_timeout_task(connection_state: &ConnectionState) {
+    fn spawn_hello_timeout_task(connection: &Connection) {
         struct HelloState {
             /// The associated connection
             pub connection: Arc<RwLock<TcpTransport>>,
@@ -428,7 +371,7 @@ impl TcpTransport {
         }
         let hello_timeout = {
             let hello_timeout = {
-                let connection = trace_read_lock_unwrap!(connection_state.connection);
+                let connection = trace_read_lock_unwrap!(connection.connection);
                 let server_state = trace_read_lock_unwrap!(connection.server_state);
                 let server_config = trace_read_lock_unwrap!(server_state.config);
                 server_config.tcp_config.hello_timeout as i64
@@ -436,9 +379,9 @@ impl TcpTransport {
             chrono::Duration::seconds(hello_timeout)
         };
         let state = HelloState {
-            connection: connection_state.connection.clone(),
+            connection: connection.transport.clone(),
             hello_timeout,
-            session_start_time: connection_state.session_start_time.clone(),
+            session_start_time: connection.session_start_time.clone(),
         };
 
         // Clone the connection so the take_while predicate has its own instance
@@ -475,7 +418,7 @@ impl TcpTransport {
     }
 
     /// Start the subscription timer to service subscriptions
-    fn spawn_subscriptions_task(connection_state: &ConnectionState) {
+    fn spawn_subscriptions_task(connection: &Connection) {
         /// Subscription events are passed sent from the monitor task to the receiver
         #[derive(Clone, Debug, PartialEq)]
         enum SubscriptionEvent {
@@ -494,7 +437,7 @@ impl TcpTransport {
             }
 
             let state = SubscriptionMonitorState {
-                connection: connection_state.connection.clone(),
+                connection: connection.transport.clone(),
             };
 
             // Clone the connection so the take_while predicate has its own instance
@@ -543,12 +486,12 @@ impl TcpTransport {
                 /// The associated connection
                 pub connection: Arc<RwLock<TcpTransport>>,
                 /// Write buffer
-                pub writer: Arc<Mutex<SocketWriter>>,
+                pub writer: Arc<Mutex<MessageWriter>>,
             }
 
             let state = SubscriptionReceiverState {
-                connection: connection_state.connection.clone(),
-                writer: connection_state.writer.clone(),
+                connection: connection.transport.clone(),
+                writer: connection.writer.clone(),
             };
 
             // Clone the connection so the take_while predicate has its own instance

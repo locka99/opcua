@@ -128,7 +128,7 @@ impl SessionState {
         self.requests.push_front((request, async));
     }
 
-    fn next_request(&mut self) -> Option<(SupportedMessage, bool)> {
+    pub fn next_request(&mut self) -> Option<(SupportedMessage, bool)> {
         self.requests.pop_back()
     }
 
@@ -137,16 +137,21 @@ impl SessionState {
         self.inflight_requests.insert(value);
     }
 
-    pub fn remove_pending_request_timeout(&mut self, request_handle: UInt32, async: bool) {
+    /// Removes a synchronous request which has timed out
+    pub fn remove_pending_request_timeout(&mut self, request_handle: UInt32) {
         info!("Request with handle {} has timed out and any response will be ignored", request_handle);
-        let value = (request_handle, async);
+        let value = (request_handle, false);
         let _ = self.inflight_requests.remove(&value);
     }
 
     pub fn store_response(&mut self, response: SupportedMessage) {
         // Remove corresponding request handle from inflight queue, add to responses
         let request_handle = response.request_handle();
-        if let Some(request) = self.inflight_requests.remove(&request_handle) {
+        // Remove the inflight request
+        // This true / false is slightly clunky.
+        if let Some(request) = self.inflight_requests.take(&(request_handle, true)) {
+            self.responses.insert(request_handle, (response, request.1));
+        } else if let Some(request) = self.inflight_requests.take(&(request_handle, false)) {
             self.responses.insert(request_handle, (response, request.1));
         } else {
             error!("A response with request handle {} doesn't belong to any request and will be ignored", request_handle);
@@ -169,8 +174,7 @@ impl SessionState {
             .collect()
     }
 
-    pub fn remove_response(&mut self, request_handle: UInt32, async: bool) -> Option<SupportedMessage> {
-        let key = (request_handle, async);
+    pub fn remove_response(&mut self, request_handle: UInt32) -> Option<SupportedMessage> {
         if let Some(response) = self.responses.remove(&request_handle) {
             Some(response.0)
         } else {

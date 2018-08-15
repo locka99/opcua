@@ -950,7 +950,7 @@ impl Session {
         loop {
             let response = {
                 let mut session_state = trace_write_lock_unwrap!(self.session_state);
-                session_state.remove_response(request_handle, false)
+                session_state.remove_response(request_handle)
             };
             if let Some(response) = response {
                 // Got the response

@@ -11,6 +11,8 @@ extern crate openssl;
 extern crate tempdir;
 extern crate serde;
 extern crate serde_yaml;
+extern crate tokio;
+extern crate tokio_io;
 
 extern crate opcua_types;
 

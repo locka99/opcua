@@ -24,17 +24,18 @@ pub const MIN_CHUNK_SIZE: usize = 8196;
 
 pub mod chunker;
 pub mod handshake;
-pub mod message_buffer;
+pub mod message_reader;
 pub mod message_chunk;
 pub mod message_chunk_info;
 pub mod secure_channel;
 pub mod security_header;
+pub mod message_writer;
 
 pub mod prelude {
     pub use super::MAX_CHUNK_COUNT;
     pub use super::chunker::*;
     pub use super::handshake::*;
-    pub use super::message_buffer::*;
+    pub use super::message_reader::*;
     pub use super::message_chunk::*;
     pub use super::message_chunk_info::*;
     pub use super::secure_channel::*;
