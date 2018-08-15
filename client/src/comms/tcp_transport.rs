@@ -129,32 +129,35 @@ impl TcpTransport {
         }
     }
 
+    /// This is the main connection task for a connection.
     fn connection_task(addr: SocketAddr, endpoint_url: String, session_state: Arc<RwLock<SessionState>>, secure_channel: Arc<RwLock<SecureChannel>>) -> impl Future<Item=(), Error=()> {
         debug!("Creating a connection task to connect to {} with url {}", addr, endpoint_url);
-        TcpStream::connect(&addr)
-            .and_then(|socket| {
-                debug!("Connected..");
-                // Make a connection
-                let (reader, writer) = socket.split();
-                let (receive_buffer_size, send_buffer_size) = {
-                    let session_state = trace_read_lock_unwrap!(session_state);
-                    (session_state.receive_buffer_size, session_state.send_buffer_size)
-                };
-                let connection = Connection {
-                    endpoint_url,
-                    session_state,
-                    secure_channel,
-                    state: ConnectionState::Running,
-                    abort: false,
-                    receive_buffer: MessageReader::new(receive_buffer_size),
-                    send_buffer: MessageWriter::new(writer, send_buffer_size),
-                    last_received_sequence_number: 0,
-                    in_buf: Vec::new(),
-                    bytes_read: 0,
-                    reader,
-                };
-                Ok(connection)
-            })
+        TcpStream::connect(&addr).map_err(move |err| {
+            error!("Transport IO error {:?}", err);
+            BadCommunicationError
+        }).and_then(|socket| {
+            debug!("Connected..");
+            // Make a connection
+            let (reader, writer) = socket.split();
+            let (receive_buffer_size, send_buffer_size) = {
+                let session_state = trace_read_lock_unwrap!(session_state);
+                (session_state.receive_buffer_size, session_state.send_buffer_size)
+            };
+            let connection = Connection {
+                endpoint_url,
+                session_state,
+                secure_channel,
+                state: ConnectionState::Running,
+                abort: false,
+                receive_buffer: MessageReader::new(receive_buffer_size),
+                send_buffer: MessageWriter::new(writer, send_buffer_size),
+                last_received_sequence_number: 0,
+                in_buf: Vec::new(),
+                bytes_read: 0,
+                reader,
+            };
+            Ok(connection)
+        })
             .and_then(|mut connection| {
                 {
                     let session_state = trace_read_lock_unwrap!(connection.session_state);
@@ -179,98 +182,7 @@ impl TcpTransport {
                 Ok(connection)
             })
             .and_then(|mut connection| {
-                // This is the main processing loop that receives and sends messages
-                loop_fn(connection, |mut connection| {
-                    // The io::read below consumes reader and in_but so we have to rebuild
-                    // the whole connection state, so everything is taken out here.
-                    let endpoint_url = connection.endpoint_url.clone();
-                    let session_state = connection.session_state.clone();
-                    let secure_channel = connection.secure_channel.clone();
-                    let reader = connection.reader;
-                    let in_buf = connection.in_buf;
-                    let last_received_sequence_number = connection.last_received_sequence_number;
-                    let receive_buffer = connection.receive_buffer;
-                    let send_buffer = connection.send_buffer;
-                    let abort = connection.abort;
-                    let state = connection.state;
-                    // Read and process bytes from the stream
-                    io::read(reader, in_buf).map_err(move |err| {
-                        error!("Transport IO error {:?}", err);
-                        BadCommunicationError
-                    }).map(move |(reader, in_buf, bytes_read)| {
-                        if bytes_read > 0 {
-                            trace!("Read {} bytes", bytes_read);
-                        }
-                        // Build a new connection state
-                        Connection {
-                            endpoint_url,
-                            session_state,
-                            secure_channel,
-                            receive_buffer,
-                            send_buffer,
-                            last_received_sequence_number,
-                            abort,
-                            state,
-                            bytes_read,
-                            reader,
-                            in_buf,
-                        }
-                    }).and_then(|mut connection| {
-                        // Store bytes the buffer and try to decode into a message
-                        if connection.bytes_read > 0 {
-                            let mut session_status_code = Good;
-                            let result = connection.receive_buffer.store_bytes(&connection.in_buf[..connection.bytes_read]);
-                            if result.is_err() {
-                                session_status_code = result.unwrap_err();
-                            } else {
-                                let messages = result.unwrap();
-                                let mut session_state = trace_write_lock_unwrap!(connection.session_state);
-                                for message in messages {
-                                    if let Message::MessageChunk(chunk) = message {
-                                        let result = connection.process_chunk(chunk);
-                                        if result.is_err() {
-                                            session_status_code = result.unwrap_err();
-                                        } else if let Some(response) = result.unwrap() {
-                                            // Store the response
-                                            session_state.store_response(response);
-                                        }
-                                    } else {
-                                        error!("Expected a message chunk");
-                                        session_status_code = BadDecodingError;
-                                    }
-                                }
-                            }
-                            if session_status_code.is_bad() {
-                                connection.state = ConnectionState::IOError(session_status_code);
-                            }
-                        }
-                        Ok(connection)
-                    }).and_then(|mut connection| {
-                        // Write messages
-                        let mut session_state = trace_write_lock_unwrap!(connection.session_state);
-                        if let Some((request, async)) = session_state.next_request() {
-                            let request_handle = request.request_handle();
-                            session_state.add_pending_request(request_handle, async);
-                            let _ = connection.send_request(request);
-                        }
-                        Ok(connection)
-                    }).and_then(|mut connection| {
-                        // Write anything in the out buffer
-                        let _ = connection.send_buffer.flush();
-                        Ok(connection)
-                    }).and_then(|mut connection| {
-                        if let ConnectionState::IOError(_) = connection.state {
-                            Ok(Loop::Break(connection))
-                        } else if connection.abort {
-                            debug!("Message processing loop is terminating due to abort");
-                            connection.state = ConnectionState::Aborted;
-                            Ok(Loop::Break(connection))
-                        } else {
-                            // Read / write messages
-                            Ok(Loop::Continue(connection))
-                        }
-                    })
-                })
+                Self::looping_task(connection)
             })
             .and_then(|mut connection| {
                 // TODO clean up session state - wipe out all requests, responses
@@ -279,8 +191,113 @@ impl TcpTransport {
             })
             .map_err(move |_| {
                 error!("Could not connect to host {}", addr);
+                ()
             })
-            .map(|_| {})
+            .map(|_| ())
+    }
+
+    /// This is the main processing loop for the connection. It writes requests and reads responses
+    /// over the socket to the server.
+    fn looping_task(connection: Connection) -> impl Future<Item=Connection, Error=StatusCode> {
+        // This is the main processing loop that receives and sends messages
+        loop_fn(connection, |mut connection| {
+            // The io::read below consumes reader and in_but so we have to rebuild
+            // the whole connection state, so everything is taken out here.
+            let endpoint_url = connection.endpoint_url.clone();
+            let session_state = connection.session_state.clone();
+            let secure_channel = connection.secure_channel.clone();
+            let reader = connection.reader;
+            let in_buf = connection.in_buf;
+            let last_received_sequence_number = connection.last_received_sequence_number;
+            let receive_buffer = connection.receive_buffer;
+            let send_buffer = connection.send_buffer;
+            let abort = connection.abort;
+            let state = connection.state;
+
+            // Read and process bytes from the stream
+            io::read(reader, in_buf).map_err(move |err| {
+                error!("Transport IO error {:?}", err);
+                BadCommunicationError
+            }).map(move |(reader, in_buf, bytes_read)| {
+                if bytes_read > 0 {
+                    trace!("Read {} bytes", bytes_read);
+                }
+                // Build a new connection state
+                Connection {
+                    endpoint_url,
+                    session_state,
+                    secure_channel,
+                    receive_buffer,
+                    send_buffer,
+                    last_received_sequence_number,
+                    abort,
+                    state,
+                    bytes_read,
+                    reader,
+                    in_buf,
+                }
+            }).and_then(|mut connection| {
+                // Store bytes the buffer and try to decode into a message
+                if connection.bytes_read > 0 {
+                    let mut session_status_code = Good;
+                    let result = connection.receive_buffer.store_bytes(&connection.in_buf[..connection.bytes_read]);
+                    if result.is_err() {
+                        session_status_code = result.unwrap_err();
+                    } else {
+                        let messages = result.unwrap();
+                        for message in messages {
+                            if let Message::MessageChunk(chunk) = message {
+                                let result = connection.process_chunk(chunk);
+                                if result.is_err() {
+                                    session_status_code = result.unwrap_err();
+                                } else if let Some(response) = result.unwrap() {
+                                    // Store the response
+                                    let mut session_state = trace_write_lock_unwrap!(connection.session_state);
+                                    session_state.store_response(response);
+                                }
+                            } else {
+                                error!("Expected a message chunk");
+                                session_status_code = BadDecodingError;
+                            }
+                        }
+                    }
+                    if session_status_code.is_bad() {
+                        connection.state = ConnectionState::IOError(session_status_code);
+                    }
+                }
+                Ok(connection)
+            }).and_then(|mut connection| {
+                // Write messages
+                let next_request = {
+                    let mut session_state = trace_write_lock_unwrap!(connection.session_state);
+                    session_state.next_request()
+                };
+                if let Some((request, async)) = next_request {
+                    let request_handle = request.request_handle();
+                    {
+                        let mut session_state = trace_write_lock_unwrap!(connection.session_state);
+                        session_state.add_pending_request(request_handle, async);
+                    }
+                    let _ = connection.send_request(request);
+                }
+                Ok(connection)
+            }).and_then(|mut connection| {
+                // Write anything in the out buffer
+                let _ = connection.send_buffer.flush();
+                Ok(connection)
+            }).and_then(|mut connection| {
+                if let ConnectionState::IOError(_) = connection.state {
+                    Ok(Loop::Break(connection))
+                } else if connection.abort {
+                    debug!("Message processing loop is terminating due to abort");
+                    connection.state = ConnectionState::Aborted;
+                    Ok(Loop::Break(connection))
+                } else {
+                    // Read / write messages
+                    Ok(Loop::Continue(connection))
+                }
+            })
+        })
     }
 
     /// Connects the stream to the specified endpoint
