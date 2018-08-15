@@ -177,14 +177,14 @@ impl TcpTransport {
                 debug!("Got ACK {:?}", ack);
                 Ok(connection)
             })
-            .and_then(|mut connection| {
+            .and_then(|connection| {
                 // TODO open_secure_channel
                 Ok(connection)
             })
-            .and_then(|mut connection| {
+            .and_then(|connection| {
                 Self::looping_task(connection)
             })
-            .and_then(|mut connection| {
+            .and_then(|connection| {
                 // TODO clean up session state - wipe out all requests, responses
                 // put session state into disconnected
                 Ok(connection)
@@ -200,7 +200,7 @@ impl TcpTransport {
     /// over the socket to the server.
     fn looping_task(connection: Connection) -> impl Future<Item=Connection, Error=StatusCode> {
         // This is the main processing loop that receives and sends messages
-        loop_fn(connection, |mut connection| {
+        loop_fn(connection, |connection| {
             // The io::read below consumes reader and in_but so we have to rebuild
             // the whole connection state, so everything is taken out here.
             let endpoint_url = connection.endpoint_url.clone();
@@ -342,8 +342,8 @@ impl TcpTransport {
     pub fn disconnect(&mut self) {
         self.abort = true;
         // Wait for connection to go down
-        if let Some(ref handle) = self.connection {
-            handle.join();
+        if let Some(ref handle) = self.connection.as_ref() {
+            // handle.join(); TODO
         }
     }
 
