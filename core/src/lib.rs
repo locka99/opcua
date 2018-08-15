@@ -21,6 +21,7 @@ pub mod crypto;
 
 // A convenience macro for deadlocks.
 
+/// Tracing macro for obtaining a lock on a `Mutex`.
 #[macro_export]
 macro_rules! trace_lock_unwrap {
     ( $x:expr ) => {
@@ -34,6 +35,7 @@ macro_rules! trace_lock_unwrap {
     }
 }
 
+/// Tracing macro for obtaining a read lock on a `RwLock`.
 #[macro_export]
 macro_rules! trace_read_lock_unwrap {
     ( $x:expr ) => {
@@ -47,6 +49,7 @@ macro_rules! trace_read_lock_unwrap {
     }
 }
 
+/// Tracing macro for obtaining a write lock on a `RwLock`.
 #[macro_export]
 macro_rules! trace_write_lock_unwrap {
     ( $x:expr ) => {
@@ -124,7 +127,7 @@ mod tests;
 
 pub mod config;
 
-/// The prelude mod contains all the things you typically need to access from a client / server.
+/// Contains most of the things that are typically required from a client / server.
 pub mod prelude {
     pub use opcua_types::*;
     pub use opcua_types::status_codes::StatusCode;

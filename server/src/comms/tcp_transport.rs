@@ -1,5 +1,10 @@
 //! The TCP transport module handles receiving and sending of binary data in chunks, handshake,
 //! session creation and dispatching of messages via message handler.
+//!
+//! Internally it uses tokio but the facade is mostly synchronous with the exception of publish
+//! responses. i.e. the client is expected to call and wait for a response to their request.
+//! Publish requests are sent based on the number of subscriptions and the responses / handling are
+//! left to asynchronous event handlers.
 use std;
 use std::collections::VecDeque;
 use std::io::{Write};

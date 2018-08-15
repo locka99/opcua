@@ -1,5 +1,7 @@
-//! Session functionality for the current connection including async
-//! wrappers around client side requests to server.
+//! Session functionality for the current open client connection. This module contains functions
+//! to call for all typically synchronous operations during an OPC UA session. The session
+//! has async functionality too but that is for the purpose of publish requests on subscriptions
+//! and events.
 
 use std;
 use std::result::Result;
@@ -59,8 +61,11 @@ impl Into<SessionInfo> for (EndpointDescription, client::IdentityToken) {
     }
 }
 
-/// A session of the client. The session is associated with an endpoint and
-/// maintains a state when it is active.
+/// An open session of the client. The session is associated with an endpoint and
+/// maintains a state when it is active. The session struct provides functions for all the supported
+/// request types in the API. Note that not all servers may support all client side requests and
+/// calling an unsupported API may cause the connection to be dropped. Clients are expected to know
+/// what they are calling.
 pub struct Session {
     /// The client application's name
     application_description: ApplicationDescription,
