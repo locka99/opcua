@@ -219,9 +219,6 @@ impl TcpTransport {
                 error!("Transport IO error {:?}", err);
                 (transport_for_err, BadCommunicationError)
             }).map(move |(reader, in_buf, bytes_read)| {
-                if bytes_read > 0 {
-                    trace!("Read {} bytes", bytes_read);
-                }
                 // Build a new connection state
                 Connection {
                     transport,
@@ -248,6 +245,7 @@ impl TcpTransport {
                 };
 
                 if connection.bytes_read > 0 {
+                    trace!("Read {} bytes", connection.bytes_read);
                     // Handle the incoming message
                     let mut session_status_code = Good;
                     let result = connection.message_buffer.store_bytes(&connection.in_buf[..connection.bytes_read]);

@@ -47,8 +47,6 @@ struct Connection {
     pub state: ConnectionState,
     /// Raw bytes in buffer
     pub in_buf: Vec<u8>,
-    /// Bytes read in buffer
-    pub bytes_read: usize,
     pub reader: ReadHalf<TcpStream>,
 }
 
@@ -150,7 +148,6 @@ impl TcpTransport {
                 send_buffer: MessageWriter::new(writer, send_buffer_size),
                 last_received_sequence_number: 0,
                 in_buf: Vec::new(),
-                bytes_read: 0,
                 reader,
             };
             Ok(connection)
@@ -177,8 +174,8 @@ impl TcpTransport {
     fn looping_task(connection: Connection) -> impl Future<Item=Connection, Error=StatusCode> {
         // This is the main processing loop that receives and sends messages
         loop_fn(connection, |connection| {
-            // The io::read below consumes reader and in_but so we have to rebuild
-            // the whole connection state, so everything is taken out here.
+            // The io::read() consumes reader and in_buf so everything else in
+            // connection state has to be taken out and put back in afterwards in the map()
             let endpoint_url = connection.endpoint_url.clone();
             let session_state = connection.session_state.clone();
             let secure_channel = connection.secure_channel.clone();
@@ -188,17 +185,13 @@ impl TcpTransport {
             let receive_buffer = connection.receive_buffer;
             let send_buffer = connection.send_buffer;
             let state = connection.state;
-
             // Read and process bytes from the stream
             io::read(reader, in_buf).map_err(move |err| {
                 error!("Transport IO error {:?}", err);
                 BadCommunicationError
             }).map(move |(reader, in_buf, bytes_read)| {
-                if bytes_read > 0 {
-                    trace!("Read {} bytes", bytes_read);
-                }
                 // Build a new connection state
-                Connection {
+                (bytes_read, Connection {
                     endpoint_url,
                     session_state,
                     secure_channel,
@@ -206,15 +199,15 @@ impl TcpTransport {
                     send_buffer,
                     last_received_sequence_number,
                     state,
-                    bytes_read,
                     reader,
                     in_buf,
-                }
-            }).and_then(|mut connection| {
+                })
+            }).and_then(|(bytes_read, mut connection)| {
                 // Store bytes the buffer and try to decode into a message
-                if connection.bytes_read > 0 {
+                if bytes_read > 0 {
+                    trace!("Read {} bytes", bytes_read);
                     let mut session_status_code = Good;
-                    let result = connection.receive_buffer.store_bytes(&connection.in_buf[..connection.bytes_read]);
+                    let result = connection.receive_buffer.store_bytes(&connection.in_buf[..bytes_read]);
                     if result.is_err() {
                         session_status_code = result.unwrap_err();
                     } else {
@@ -226,17 +219,15 @@ impl TcpTransport {
                                     if connection.state != ConnectionState::WaitingForAck {
                                         error!("Got an unexpected ACK");
                                         session_status_code = BadUnexpectedError;
-                                    }
-                                    else {
+                                    } else {
                                         connection.state = ConnectionState::Processing;
                                     }
                                 }
                                 Message::MessageChunk(chunk) => {
-                                    if connection.state != ConnectionState::Processing{
+                                    if connection.state != ConnectionState::Processing {
                                         error!("Got an unexpected message chunk");
                                         session_status_code = BadUnexpectedError;
-                                    }
-                                    else {
+                                    } else {
                                         let result = connection.process_chunk(chunk);
                                         if result.is_err() {
                                             session_status_code = result.unwrap_err();
@@ -248,8 +239,7 @@ impl TcpTransport {
                                     }
                                 }
                                 Message::Error(error) => {
-                                    // TODO if this is an ERROR chunk, then the client should go into an error
-                                    // recovery state, dropping the connection and reestablishing it.
+                                    // TODO client should go into an error recovery state, dropping the connection and reestablishing it.
                                     session_status_code = if let Ok(status_code) = StatusCode::from_u32(error.error) {
                                         status_code
                                     } else {
@@ -259,7 +249,6 @@ impl TcpTransport {
                                 }
                                 _ => {
                                     panic!("Expected a recognized message");
-                                    session_status_code = BadDecodingError;
                                 }
                             }
                         }
