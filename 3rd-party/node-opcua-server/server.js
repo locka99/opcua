@@ -1,7 +1,6 @@
 /*global require,setInterval,console */
 var opcua = require("node-opcua");
 
-
 // Let's create an instance of OPCUAServer
 var server = new opcua.OPCUAServer({
     securityPolicies: [opcua.SecurityPolicy.None, opcua.SecurityPolicy.Basic128Rsa15, opcua.SecurityPolicy.Basic256, opcua.SecurityPolicy.Basic256Sha256],

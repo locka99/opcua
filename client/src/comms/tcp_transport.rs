@@ -166,10 +166,6 @@ impl TcpTransport {
             Ok(connection)
         }).and_then(|connection| {
             Self::looping_task(connection)
-        }).and_then(|connection| {
-            // TODO clean up session state - wipe out all requests, responses
-            // put session state into disconnected
-            Ok(connection)
         }).map_err(move |_| {
             error!("Could not connect to host {}", addr);
             ()
@@ -229,7 +225,7 @@ impl TcpTransport {
                                     debug!("Got ack {:?}", ack);
                                     if connection.state != ConnectionState::WaitingForAck {
                                         error!("Got an unexpected ACK");
-                                        session_status_code == BadUnexpectedError;
+                                        session_status_code = BadUnexpectedError;
                                     }
                                     else {
                                         connection.state = ConnectionState::Processing;
@@ -238,7 +234,7 @@ impl TcpTransport {
                                 Message::MessageChunk(chunk) => {
                                     if connection.state != ConnectionState::Processing{
                                         error!("Got an unexpected message chunk");
-                                        session_status_code == BadUnexpectedError;
+                                        session_status_code = BadUnexpectedError;
                                     }
                                     else {
                                         let result = connection.process_chunk(chunk);
