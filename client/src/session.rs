@@ -123,7 +123,7 @@ impl Session {
     pub fn reconnect_and_activate_session(&mut self) -> Result<(), StatusCode> {
         let have_authentication_token = {
             let mut session_state = trace_read_lock_unwrap!(self.session_state);
-            !session_state.authentication_token.is_null()
+            !session_state.authentication_token().is_null()
         };
         // Do nothing if already connected / activated
         if self.is_connected() {
@@ -169,10 +169,7 @@ impl Session {
                 info!("Security policy = {:?}", security_policy);
                 info!("Security mode = {:?}", self.session_info.endpoint.security_mode);
             }
-
-            let _connection = self.transport.connect(endpoint_url.as_ref())?;
-            // TODO this is the connection's thread join handle. Should probably store it and
-            // test it before calling anything
+            self.transport.connect(endpoint_url.as_ref())?;
             Ok(())
         }
     }
@@ -181,7 +178,7 @@ impl Session {
     pub fn disconnect(&mut self) {
         let _ = self.delete_all_subscriptions();
         let _ = self.close_secure_channel();
-        self.transport.disconnect();
+        self.transport.wait_for_disconnect();
     }
 
     pub fn is_connected(&self) -> bool {
@@ -247,7 +244,7 @@ impl Session {
             let mut session_state = trace_write_lock_unwrap!(session_state);
 
             session_state.set_session_id(response.session_id);
-            session_state.authentication_token = response.authentication_token;
+            session_state.set_authentication_token(response.authentication_token);
             {
                 let mut secure_channel = trace_write_lock_unwrap!( self.transport.secure_channel);
                 let _ = secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce);
@@ -904,7 +901,7 @@ impl Session {
         // Wait for the response
         let request_timeout = {
             let session_state = trace_read_lock_unwrap!(self.session_state);
-            session_state.request_timeout
+            session_state.request_timeout()
         };
         self.wait_for_sync_response(request_handle, request_timeout)
     }
@@ -955,7 +952,7 @@ impl Session {
         loop {
             let response = {
                 let mut session_state = trace_write_lock_unwrap!(self.session_state);
-                session_state.remove_response(request_handle)
+                session_state.take_response(request_handle)
             };
             if let Some(response) = response {
                 // Got the response
@@ -966,7 +963,7 @@ impl Session {
                 if request_duration.num_milliseconds() >= request_timeout as i64 {
                     info!("Timeout waiting for response from server");
                     let mut session_state = trace_write_lock_unwrap!(self.session_state);
-                    session_state.remove_pending_request_timeout(request_handle);
+                    session_state.request_has_timedout(request_handle);
                     return Err(BadTimeout);
                 }
                 // Check for async responses

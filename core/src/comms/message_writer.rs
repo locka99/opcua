@@ -90,7 +90,7 @@ impl MessageWriter {
         &mut self.write_half
     }
 
-    pub fn write_hello_to_buffer(&mut self, endpoint_url: &str, send_buffer_size: UInt32, receive_buffer_size: UInt32, max_message_size: UInt32) {
+    pub fn write_hello_to_buffer(&mut self, endpoint_url: &str, send_buffer_size: usize, receive_buffer_size: usize, max_message_size: usize) {
         let msg = HelloMessage::new(endpoint_url,
                           send_buffer_size,
                           receive_buffer_size,

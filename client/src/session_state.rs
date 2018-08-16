@@ -5,32 +5,37 @@ use opcua_types::{UInt32, NodeId, UAString, DateTime, ExtensionObject};
 use opcua_types::SupportedMessage;
 use opcua_types::service_types::{RequestHeader, SubscriptionAcknowledgement};
 
-const DEFAULT_SESSION_TIMEOUT: u32 = 60 * 1000;
 const DEFAULT_REQUEST_TIMEOUT: u32 = 10 * 1000;
 const SEND_BUFFER_SIZE: usize = 65536;
 const RECEIVE_BUFFER_SIZE: usize = 65536;
 const MAX_BUFFER_SIZE: usize = 65536;
 
+/// A simple handle factory for incrementing sequences of numbers.
 struct Handle {
     next: UInt32,
-    wraps_on: UInt32,
+    first: UInt32,
 }
 
 impl Handle {
+    /// Creates a new handle factory, that starts with the supplied number
     pub fn new(first: UInt32) -> Handle {
         Handle {
             next: first,
-            wraps_on: u32::MAX,
+            first,
         }
     }
 
+    /// Returns the next handle to be issued, internally incrementing each time so the handle
+    /// is always different until it wraps back to the start.
     pub fn next(&mut self) -> UInt32 {
-        if self.next == self.wraps_on {
-            self.next = 1;
+        let next = self.next;
+        // Increment next
+        if self.next == u32::MAX {
+            self.next = self.first;
         } else {
             self.next += 1;
         }
-        self.next
+        next
     }
 }
 
@@ -39,19 +44,17 @@ impl Handle {
 pub struct SessionState {
     /// The request timeout is how long the session will wait from sending a request expecting a response
     /// if no response is received the rclient will terminate.
-    pub request_timeout: u32,
-    /// Session timeout in milliseconds
-    pub session_timeout: u32,
+    request_timeout: u32,
     /// Size of the send buffer
-    pub send_buffer_size: usize,
+    send_buffer_size: usize,
     /// Size of the
-    pub receive_buffer_size: usize,
+    receive_buffer_size: usize,
     /// Maximum message size
-    pub max_message_size: usize,
+    max_message_size: usize,
     /// The session's id - used for diagnostic info
     session_id: NodeId,
     /// The sesion authentication token, used for session activation
-    pub authentication_token: NodeId,
+    authentication_token: NodeId,
     /// The next handle to assign to a request
     request_handle: Handle,
     /// Next monitored item client side handle
@@ -70,13 +73,13 @@ pub struct SessionState {
     inflight_requests: HashSet<(UInt32, bool)>,
     /// A map of incoming responses waiting to be processed
     responses: HashMap<UInt32, (SupportedMessage, bool)>,
-
+    /// Abort flag
+    abort: bool,
 }
 
 impl SessionState {
     pub fn new() -> SessionState {
         SessionState {
-            session_timeout: DEFAULT_SESSION_TIMEOUT,
             request_timeout: DEFAULT_REQUEST_TIMEOUT,
             send_buffer_size: SEND_BUFFER_SIZE,
             receive_buffer_size: RECEIVE_BUFFER_SIZE,
@@ -90,6 +93,7 @@ impl SessionState {
             responses: HashMap::new(),
             subscription_acknowledgements: Vec::new(),
             wait_for_publish_response: false,
+            abort: false,
         }
     }
 
@@ -101,8 +105,40 @@ impl SessionState {
         self.session_id.clone()
     }
 
+    pub fn receive_buffer_size(&self) -> usize {
+        self.receive_buffer_size
+    }
+
+    pub fn max_message_size(&self) -> usize {
+        self.max_message_size
+    }
+
+    pub fn request_timeout(&self) -> u32 {
+        self.request_timeout
+    }
+
+    pub fn send_buffer_size(&self) -> usize {
+        self.send_buffer_size
+    }
+
     pub fn subscription_acknowledgements(&mut self) -> Vec<SubscriptionAcknowledgement> {
         self.subscription_acknowledgements.drain(..).collect()
+    }
+
+    pub fn abort(&mut self) {
+        self.abort = true;
+    }
+
+    pub fn is_abort(&self) -> bool {
+        self.abort
+    }
+
+    pub fn authentication_token(&self) -> &NodeId {
+        &self.authentication_token
+    }
+
+    pub fn set_authentication_token(&mut self, authentication_token: NodeId) {
+        self.authentication_token = authentication_token;
     }
 
     /// Construct a request header for the session. All requests after create session are expected
@@ -128,17 +164,18 @@ impl SessionState {
         self.requests.push_front((request, async));
     }
 
-    pub fn next_request(&mut self) -> Option<(SupportedMessage, bool)> {
-        self.requests.pop_back()
+    pub fn take_request(&mut self) -> Option<(SupportedMessage, bool)> {
+        let request = self.requests.pop_back();
+        if let Some(ref request) = request {
+            // Add the request to the in flight list
+            self.inflight_requests.insert((request.0.request_handle(), request.1));
+        }
+        request
     }
 
-    pub fn add_pending_request(&mut self, request_handle: UInt32, async: bool) {
-        let value = (request_handle, async);
-        self.inflight_requests.insert(value);
-    }
-
-    /// Removes a synchronous request which has timed out
-    pub fn remove_pending_request_timeout(&mut self, request_handle: UInt32) {
+    /// Called when a request times out. Allows the session state to ignore the response if
+    /// a response ever does appear for it.
+    pub fn request_has_timedout(&mut self, request_handle: UInt32) {
         info!("Request with handle {} has timed out and any response will be ignored", request_handle);
         let value = (request_handle, false);
         let _ = self.inflight_requests.remove(&value);
@@ -174,7 +211,7 @@ impl SessionState {
             .collect()
     }
 
-    pub fn remove_response(&mut self, request_handle: UInt32) -> Option<SupportedMessage> {
+    pub fn take_response(&mut self, request_handle: UInt32) -> Option<SupportedMessage> {
         if let Some(response) = self.responses.remove(&request_handle) {
             Some(response.0)
         } else {
