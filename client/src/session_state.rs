@@ -156,14 +156,17 @@ impl SessionState {
         request_header
     }
 
+    /// Returns the next monitored item handle
     pub fn next_monitored_item_handle(&mut self) -> UInt32 {
         self.monitored_item_handle.next()
     }
 
+    /// Called by the session to add a request to be sent
     pub fn add_request(&mut self, request: SupportedMessage, async: bool) {
         self.requests.push_front((request, async));
     }
 
+    /// Called by the connection to take the next pending request
     pub fn take_request(&mut self) -> Option<(SupportedMessage, bool)> {
         let request = self.requests.pop_back();
         if let Some(ref request) = request {
@@ -173,14 +176,15 @@ impl SessionState {
         request
     }
 
-    /// Called when a request times out. Allows the session state to ignore the response if
-    /// a response ever does appear for it.
-    pub fn request_has_timedout(&mut self, request_handle: UInt32) {
+    /// Called when a session's request times out. This call allows the session state to remove
+    /// the request as pending and ignore any response that arrives for it.
+    pub fn request_has_timed_out(&mut self, request_handle: UInt32) {
         info!("Request with handle {} has timed out and any response will be ignored", request_handle);
         let value = (request_handle, false);
         let _ = self.inflight_requests.remove(&value);
     }
 
+    /// Called by the connection to store a response for the consumption of the session.
     pub fn store_response(&mut self, response: SupportedMessage) {
         // Remove corresponding request handle from inflight queue, add to responses
         let request_handle = response.request_handle();
@@ -195,6 +199,8 @@ impl SessionState {
         }
     }
 
+    /// Takes all pending asynchronous responses into a vector sorted oldest to latest and
+    /// returns them to the caller.
     pub fn async_responses(&mut self) -> Vec<SupportedMessage> {
         // Gather up all request handles
         let mut async_handles = self.responses.iter()
@@ -211,6 +217,7 @@ impl SessionState {
             .collect()
     }
 
+    /// Called by the session to take the identified response if one exists, otherwise None
     pub fn take_response(&mut self, request_handle: UInt32) -> Option<SupportedMessage> {
         if let Some(response) = self.responses.remove(&request_handle) {
             Some(response.0)

@@ -4,7 +4,7 @@ use std::io::{Cursor, Write};
 use tokio::net::TcpStream;
 use tokio_io::io::WriteHalf;
 
-use opcua_types::{BinaryEncoder, SupportedMessage, UInt32};
+use opcua_types::{BinaryEncoder, EncodingResult, SupportedMessage, UInt32};
 use opcua_types::status_codes::StatusCode;
 
 use comms::secure_channel::SecureChannel;
@@ -91,19 +91,19 @@ impl MessageWriter {
         &mut self.write_half
     }
 
-    pub fn write_hello(&mut self, endpoint_url: &str, send_buffer_size: usize, receive_buffer_size: usize, max_message_size: usize) {
+    pub fn write_hello(&mut self, endpoint_url: &str, send_buffer_size: usize, receive_buffer_size: usize, max_message_size: usize) -> EncodingResult<usize> {
         let msg = HelloMessage::new(endpoint_url,
-                          send_buffer_size,
-                          receive_buffer_size,
-                          max_message_size);
+                                    send_buffer_size,
+                                    receive_buffer_size,
+                                    max_message_size);
         debug!("Writing HEL {:?}", msg);
-        let _ = msg.encode(&mut self.buffer);
+        msg.encode(&mut self.buffer)
     }
 
-    pub fn write_error(&mut self, status_code: StatusCode) {
+    pub fn write_error(&mut self, status_code: StatusCode) -> EncodingResult<usize> {
         let msg = ErrorMessage::from_status_code(status_code);
         debug!("Writing ERR {:?}", msg);
-        let _ = msg.encode(&mut self.buffer);
+        msg.encode(&mut self.buffer)
     }
 
     pub fn flush(&mut self) -> std::io::Result<usize> {

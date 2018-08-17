@@ -135,7 +135,6 @@ impl Session {
             Err(StatusCode::BadUnexpectedError)
         } else {
             self.connect()?;
-
             if let Err(error) = self.activate_session() {
                 // Perhaps the server went down and lost all its state?
                 // In that instance, the fall back here should be:
@@ -963,7 +962,7 @@ impl Session {
                 if request_duration.num_milliseconds() >= request_timeout as i64 {
                     info!("Timeout waiting for response from server");
                     let mut session_state = trace_write_lock_unwrap!(self.session_state);
-                    session_state.request_has_timedout(request_handle);
+                    session_state.request_has_timed_out(request_handle);
                     return Err(BadTimeout);
                 }
                 // Check for async responses

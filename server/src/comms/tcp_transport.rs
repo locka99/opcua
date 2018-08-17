@@ -333,7 +333,7 @@ impl TcpTransport {
                             {
                                 let mut writer = trace_lock_unwrap!(connection.writer);
                                 writer.clear();
-                                writer.write_error(session_status);
+                                let _ = writer.write_error(session_status);
                                 let _ = writer.flush();
                             }
                         }

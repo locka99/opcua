@@ -156,13 +156,14 @@ impl TcpTransport {
         };
         assert_eq!(addr.port(), port);
         assert!(addr.is_ipv4());
-
         // The connection will be serviced on its own thread. When the thread terminates, the connection
         // has also terminated.
         let connection_task = Self::connection_task(addr, endpoint_url.to_string(),
                                                     self.session_state.clone(), self.secure_channel.clone());
         self.connection = Some(thread::spawn(move || {
+            debug!("Client tokio tasks are starting for connection");
             tokio::run(connection_task);
+            debug!("Client tokio tasks have stopped for connection");
         }));
 
         Ok(())
@@ -242,10 +243,12 @@ impl TcpTransport {
         }).and_then(|mut connection| {
             {
                 let session_state = trace_read_lock_unwrap!(connection.session_state);
-                connection.send_buffer.write_hello(
+                let result = connection.send_buffer.write_hello(
                     &connection.endpoint_url, session_state.send_buffer_size(),
                     session_state.receive_buffer_size(), session_state.max_message_size());
-                let _ = connection.send_buffer.flush();
+                assert!(result.is_ok());
+                let written = connection.send_buffer.flush();
+                assert!(written.is_ok());
             }
             Ok(connection)
         }).and_then(|connection| {
@@ -272,7 +275,7 @@ impl TcpTransport {
             let receive_buffer = connection.receive_buffer;
             let send_buffer = connection.send_buffer;
             let state = connection.state;
-            // Read and process bytes from the stream
+            // Read and process bytes from the tcp stream
             io::read(reader, in_buf).map_err(move |err| {
                 error!("Transport IO error {:?}", err);
                 BadCommunicationError
