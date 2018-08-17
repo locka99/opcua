@@ -332,8 +332,8 @@ impl TcpTransport {
                             warn!("Sending session terminating error {:?}", session_status);
                             {
                                 let mut writer = trace_lock_unwrap!(connection.writer);
-                                writer.clear_buffer();
-                                writer.write_error_msg_to_buffer(session_status);
+                                writer.clear();
+                                writer.write_error(session_status);
                                 let _ = writer.flush();
                             }
                         }

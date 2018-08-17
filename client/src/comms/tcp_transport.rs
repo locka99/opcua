@@ -93,7 +93,7 @@ impl Connection {
         match self.state {
             ConnectionState::WaitingForAck | ConnectionState::Processing => {
                 let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
-                self.send_buffer.write_to_buffer(request, &mut secure_channel)
+                self.send_buffer.write(request, &mut secure_channel)
             }
             _ => Err(BadNotConnected)
         }
@@ -147,14 +147,18 @@ impl TcpTransport {
         let host = url.host_str().unwrap();
         let port = if let Some(port) = url.port() { port } else { 4840 };
 
-        let addr = format!("{}:{}", host, port).parse::<SocketAddr>();
-        if addr.is_err() {
-            return Err(BadTcpEndpointUrlInvalid);
-        }
+        let addr = {
+            let addr = format!("{}:{}", host, port).parse::<SocketAddr>();
+            if addr.is_err() {
+                return Err(BadTcpEndpointUrlInvalid);
+            }
+            addr.unwrap()
+        };
+        assert_eq!(addr.port(), port);
+        assert!(addr.is_ipv4());
 
         // The connection will be serviced on its own thread. When the thread terminates, the connection
         // has also terminated.
-        let addr = addr.unwrap();
         let connection_task = Self::connection_task(addr, endpoint_url.to_string(),
                                                     self.session_state.clone(), self.secure_channel.clone());
         self.connection = Some(thread::spawn(move || {
@@ -238,12 +242,11 @@ impl TcpTransport {
         }).and_then(|mut connection| {
             {
                 let session_state = trace_read_lock_unwrap!(connection.session_state);
-                connection.send_buffer.write_hello_to_buffer(
+                connection.send_buffer.write_hello(
                     &connection.endpoint_url, session_state.send_buffer_size(),
                     session_state.receive_buffer_size(), session_state.max_message_size());
+                let _ = connection.send_buffer.flush();
             }
-            let _ = connection.send_buffer.flush();
-            debug!("Waiting for ACK");
             Ok(connection)
         }).and_then(|connection| {
             Self::looping_task(connection)
@@ -344,13 +347,15 @@ impl TcpTransport {
                 }
                 Ok(connection)
             }).and_then(|mut connection| {
-                // Write messages
-                let request = {
-                    let mut session_state = trace_write_lock_unwrap!(connection.session_state);
-                    session_state.take_request()
-                };
-                if let Some((request, _)) = request {
-                    let _ = connection.send_request(request);
+                // Process any pending requests
+                if connection.state == ConnectionState::Processing {
+                    let request = {
+                        let mut session_state = trace_write_lock_unwrap!(connection.session_state);
+                        session_state.take_request()
+                    };
+                    if let Some((request, _)) = request {
+                        let _ = connection.send_request(request);
+                    }
                 }
                 Ok(connection)
             }).and_then(|mut connection| {

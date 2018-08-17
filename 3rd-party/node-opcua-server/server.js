@@ -11,7 +11,8 @@ var server = new opcua.OPCUAServer({
         productName: "Node OPCUA Server",
         buildNumber: "7658",
         buildDate: new Date(2014, 5, 2)
-    }
+    },
+    // alternateHostname: "127.0.0.1"
 });
 
 function post_initialize() {

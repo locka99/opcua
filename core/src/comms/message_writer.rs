@@ -10,6 +10,7 @@ use opcua_types::status_codes::StatusCode;
 use comms::secure_channel::SecureChannel;
 use comms::chunker::Chunker;
 use comms::handshake::{HelloMessage, ErrorMessage};
+//use debug::log_buffer;
 
 const DEFAULT_REQUEST_ID: UInt32 = 1000;
 const DEFAULT_SENT_SEQUENCE_NUMBER: UInt32 = 0;
@@ -39,7 +40,7 @@ impl MessageWriter {
 
     /// Encodes the message into a series of chunks, encrypts those chunks and writes the
     /// result into the buffer ready to be sent.
-    pub fn write_to_buffer(&mut self, message: SupportedMessage, secure_channel: &mut SecureChannel) -> Result<UInt32, StatusCode> {
+    pub fn write(&mut self, message: SupportedMessage, secure_channel: &mut SecureChannel) -> Result<UInt32, StatusCode> {
         let request_id = self.next_request_id();
 
         trace!("Writing request to buffer");
@@ -82,7 +83,7 @@ impl MessageWriter {
         self.last_request_id
     }
 
-    pub fn clear_buffer(&mut self) {
+    pub fn clear(&mut self) {
         self.buffer.set_position(0);
     }
 
@@ -90,7 +91,7 @@ impl MessageWriter {
         &mut self.write_half
     }
 
-    pub fn write_hello_to_buffer(&mut self, endpoint_url: &str, send_buffer_size: usize, receive_buffer_size: usize, max_message_size: usize) {
+    pub fn write_hello(&mut self, endpoint_url: &str, send_buffer_size: usize, receive_buffer_size: usize, max_message_size: usize) {
         let msg = HelloMessage::new(endpoint_url,
                           send_buffer_size,
                           receive_buffer_size,
@@ -99,7 +100,7 @@ impl MessageWriter {
         let _ = msg.encode(&mut self.buffer);
     }
 
-    pub fn write_error_msg_to_buffer(&mut self, status_code: StatusCode) {
+    pub fn write_error(&mut self, status_code: StatusCode) {
         let msg = ErrorMessage::from_status_code(status_code);
         debug!("Writing ERR {:?}", msg);
         let _ = msg.encode(&mut self.buffer);
@@ -133,9 +134,8 @@ impl MessageWriter {
                     }
                 }
             };
-
-            // AND THEN clear the buffer
-            self.buffer.set_position(0);
+            // Clear the buffer
+            self.clear();
             result
         }
     }
