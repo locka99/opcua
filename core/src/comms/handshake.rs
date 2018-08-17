@@ -195,8 +195,8 @@ impl HelloMessage {
         let mut msg = HelloMessage {
             message_header: MessageHeader::new(MessageType::Hello),
             protocol_version: 0,
-            receive_buffer_size: receive_buffer_size as UInt32,
             send_buffer_size: send_buffer_size as UInt32,
+            receive_buffer_size: receive_buffer_size as UInt32,
             max_message_size: max_message_size as UInt32,
             max_chunk_count: MAX_CHUNK_COUNT as UInt32,
             endpoint_url: UAString::from(endpoint_url),

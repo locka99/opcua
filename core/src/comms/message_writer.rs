@@ -116,6 +116,8 @@ impl MessageWriter {
                 trace!("Writing {} bytes to socket", buffer_slice.len());
                 // log_buffer("Writing bytes to client:", buffer_slice);
                 let result = self.write_half.write(&buffer_slice);
+                let _ = self.write_half.flush();
+
                 match result {
                     Err(err) => {
                         error!("Error writing bytes - {:?}", err);

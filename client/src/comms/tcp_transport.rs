@@ -16,6 +16,7 @@ use futures::Future;
 use futures::future::{loop_fn, Loop};
 use chrono;
 
+use opcua_types::url::OPC_TCP_SCHEME;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
 use opcua_types::service_types::ChannelSecurityToken;
@@ -125,6 +126,89 @@ impl TcpTransport {
         }
     }
 
+    /// Connects the stream to the specified endpoint
+    pub fn connect(&mut self, endpoint_url: &str) -> Result<(), StatusCode> {
+        if self.is_connected() {
+            panic!("Should not try to connect when already connected");
+        }
+
+        use url::Url;
+        // Validate and split out the endpoint we have
+        let result = Url::parse(&endpoint_url);
+        if result.is_err() {
+            return Err(BadTcpEndpointUrlInvalid);
+        }
+        let url = result.unwrap();
+        if url.scheme() != OPC_TCP_SCHEME || !url.has_host() {
+            return Err(BadTcpEndpointUrlInvalid);
+        }
+
+        debug!("Connecting to {:?}", url);
+        let host = url.host_str().unwrap();
+        let port = if let Some(port) = url.port() { port } else { 4840 };
+
+        let addr = format!("{}:{}", host, port).parse::<SocketAddr>();
+        if addr.is_err() {
+            return Err(BadTcpEndpointUrlInvalid);
+        }
+
+        // The connection will be serviced on its own thread. When the thread terminates, the connection
+        // has also terminated.
+        let addr = addr.unwrap();
+        let connection_task = Self::connection_task(addr, endpoint_url.to_string(),
+                                                    self.session_state.clone(), self.secure_channel.clone());
+        self.connection = Some(thread::spawn(move || {
+            tokio::run(connection_task);
+        }));
+
+        Ok(())
+    }
+
+    /// Disconnects the stream from the server (if it is connected)
+    pub fn wait_for_disconnect(&mut self) {
+        // Wait for connection to go down
+        if let Some(ref mut handle) = self.connection.as_mut() {
+            // TODO send a one shot shutdown to the connection
+            //handle.join();
+        }
+        self.connection = None;
+    }
+
+    /// Tests if the transport is connected
+    pub fn is_connected(&self) -> bool {
+        match self.connection {
+            None => false,
+            Some(ref _handle) => true, // TODO depends on try_join
+        }
+    }
+
+    /// Sets the security token info received from an issue / renew request
+    pub fn set_security_token(&mut self, channel_token: ChannelSecurityToken) {
+        trace!("Setting security token {:?}", channel_token);
+        let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+        secure_channel.set_security_token(channel_token);
+    }
+
+    /// Test if the secure channel token needs to be renewed. The algorithm determines it needs
+    /// to be renewed if the issue period has elapsed by 75% or more.
+    pub fn should_renew_security_token(&self) -> bool {
+        let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+        if secure_channel.token_id() == 0 {
+            // panic!("Shouldn't be asking this question, if there is no token id at all");
+            false
+        } else {
+            let now = chrono::Utc::now();
+
+            // Check if secure channel 75% close to expiration in which case send a renew
+            let renew_lifetime = (secure_channel.token_lifetime() * 3) / 4;
+            let created_at = secure_channel.token_created_at().into();
+            let renew_lifetime = chrono::Duration::milliseconds(renew_lifetime as i64);
+
+            // Renew the token?
+            now.signed_duration_since(created_at) > renew_lifetime
+        }
+    }
+
     /// This is the main connection task for a connection.
     fn connection_task(addr: SocketAddr, endpoint_url: String, session_state: Arc<RwLock<SessionState>>, secure_channel: Arc<RwLock<SecureChannel>>) -> impl Future<Item=(), Error=()> {
         debug!("Creating a connection task to connect to {} with url {}", addr, endpoint_url);
@@ -205,7 +289,7 @@ impl TcpTransport {
             }).and_then(|(bytes_read, mut connection)| {
                 // Store bytes the buffer and try to decode into a message
                 if bytes_read > 0 {
-                    trace!("Read {} bytes", bytes_read);
+                    debug!("Read {} bytes", bytes_read);
                     let mut session_status_code = Good;
                     let result = connection.receive_buffer.store_bytes(&connection.in_buf[..bytes_read]);
                     if result.is_err() {
@@ -220,6 +304,7 @@ impl TcpTransport {
                                         error!("Got an unexpected ACK");
                                         session_status_code = BadUnexpectedError;
                                     } else {
+                                        // TODO revise our sizes and other things according to the ACK
                                         connection.state = ConnectionState::Processing;
                                     }
                                 }
@@ -260,11 +345,11 @@ impl TcpTransport {
                 Ok(connection)
             }).and_then(|mut connection| {
                 // Write messages
-                let next_request = {
+                let request = {
                     let mut session_state = trace_write_lock_unwrap!(connection.session_state);
                     session_state.take_request()
                 };
-                if let Some((request, _)) = next_request {
+                if let Some((request, _)) = request {
                     let _ = connection.send_request(request);
                 }
                 Ok(connection)
@@ -290,88 +375,5 @@ impl TcpTransport {
                 }
             })
         })
-    }
-
-    /// Connects the stream to the specified endpoint
-    pub fn connect(&mut self, endpoint_url: &str) -> Result<(), StatusCode> {
-        if self.is_connected() {
-            panic!("Should not try to connect when already connected");
-        }
-
-        use url::Url;
-        // Validate and split out the endpoint we have
-        let result = Url::parse(&endpoint_url);
-        if result.is_err() {
-            return Err(BadTcpEndpointUrlInvalid);
-        }
-        let url = result.unwrap();
-        if url.scheme() != "opc.tcp" || !url.has_host() {
-            return Err(BadTcpEndpointUrlInvalid);
-        }
-
-        debug!("Connecting to {:?}", url);
-        let host = url.host_str().unwrap();
-        let port = if let Some(port) = url.port() { port } else { 4840 };
-
-        let addr = format!("{}:{}", host, port).parse::<SocketAddr>();
-        if addr.is_err() {
-            return Err(BadTcpEndpointUrlInvalid);
-        }
-
-        // The connection will be serviced on its own thread. When the thread terminates, the connection
-        // has also terminated.
-        let addr = addr.unwrap();
-        let connection_task = Self::connection_task(addr, endpoint_url.to_string(),
-                                                    self.session_state.clone(), self.secure_channel.clone());
-        self.connection = Some(thread::spawn(move || {
-            tokio::run(connection_task);
-        }));
-
-        Ok(())
-    }
-
-    /// Disconnects the stream from the server (if it is connected)
-    pub fn wait_for_disconnect(&mut self) {
-        // Wait for connection to go down
-        if let Some(ref mut handle) = self.connection.as_mut() {
-            // TODO send a one shot shutdown to the connection
-            //handle.join();
-        }
-        self.connection = None;
-    }
-
-    /// Tests if the transport is connected
-    pub fn is_connected(&self) -> bool {
-        match self.connection {
-            None => false,
-            Some(ref _handle) => true, // TODO depends on try_join
-        }
-    }
-
-    /// Sets the security token info received from an issue / renew request
-    pub fn set_security_token(&mut self, channel_token: ChannelSecurityToken) {
-        trace!("Setting security token {:?}", channel_token);
-        let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
-        secure_channel.set_security_token(channel_token);
-    }
-
-    /// Test if the secure channel token needs to be renewed. The algorithm determines it needs
-    /// to be renewed if the issue period has elapsed by 75% or more.
-    pub fn should_renew_security_token(&self) -> bool {
-        let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
-        if secure_channel.token_id() == 0 {
-            // panic!("Shouldn't be asking this question, if there is no token id at all");
-            false
-        } else {
-            let now = chrono::Utc::now();
-
-            // Check if secure channel 75% close to expiration in which case send a renew
-            let renew_lifetime = (secure_channel.token_lifetime() * 3) / 4;
-            let created_at = secure_channel.token_created_at().into();
-            let renew_lifetime = chrono::Duration::milliseconds(renew_lifetime as i64);
-
-            // Renew the token?
-            now.signed_duration_since(created_at) > renew_lifetime
-        }
     }
 }
