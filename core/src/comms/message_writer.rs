@@ -1,8 +1,4 @@
-use std;
 use std::io::{Cursor, Write};
-
-use tokio::net::TcpStream;
-use tokio_io::io::WriteHalf;
 
 use opcua_types::{BinaryEncoder, EncodingResult, SupportedMessage, UInt32};
 use opcua_types::status_codes::StatusCode;
@@ -18,8 +14,6 @@ const DEFAULT_SENT_SEQUENCE_NUMBER: UInt32 = 0;
 /// SocketWriter is a wrapper around the writable half of a tokio stream and a buffer which
 /// will be dumped into that stream.
 pub struct MessageWriter {
-    /// Writing portion of socket
-    pub write_half: WriteHalf<TcpStream>,
     /// The send buffer
     pub buffer: Cursor<Vec<u8>>,
     /// The last request id
@@ -29,9 +23,8 @@ pub struct MessageWriter {
 }
 
 impl MessageWriter {
-    pub fn new(write_half: WriteHalf<TcpStream>, buffer_size: usize) -> MessageWriter {
+    pub fn new(buffer_size: usize) -> MessageWriter {
         MessageWriter {
-            write_half,
             buffer: Cursor::new(vec![0u8; buffer_size]),
             last_request_id: DEFAULT_REQUEST_ID,
             last_sent_sequence_number: DEFAULT_SENT_SEQUENCE_NUMBER,
@@ -87,10 +80,6 @@ impl MessageWriter {
         self.buffer.set_position(0);
     }
 
-    pub fn write_half(&mut self) -> &mut WriteHalf<TcpStream> {
-        &mut self.write_half
-    }
-
     pub fn write_hello(&mut self, endpoint_url: &str, send_buffer_size: usize, receive_buffer_size: usize, max_message_size: usize) -> EncodingResult<usize> {
         let msg = HelloMessage::new(endpoint_url,
                                     send_buffer_size,
@@ -106,37 +95,12 @@ impl MessageWriter {
         msg.encode(&mut self.buffer)
     }
 
-    pub fn flush(&mut self) -> std::io::Result<usize> {
-        if self.buffer.position() == 0 {
-            Ok(0)
-        } else {
-            let result = {
-                let out_buf_stream = &self.buffer;
-                let bytes_to_write = out_buf_stream.position() as usize;
-                let buffer_slice = &out_buf_stream.get_ref()[0..bytes_to_write];
-                trace!("Writing {} bytes to socket", buffer_slice.len());
-                // log_buffer("Writing bytes to client:", buffer_slice);
-                let result = self.write_half.write(&buffer_slice);
-                let _ = self.write_half.flush();
+    pub fn has_bytes_to_write(&self) -> bool {
+        self.buffer.position() > 0
+    }
 
-                match result {
-                    Err(err) => {
-                        error!("Error writing bytes - {:?}", err);
-                        Err(err)
-                    }
-                    Ok(bytes_written) => {
-                        if bytes_to_write != bytes_written {
-                            error!("Error writing bytes - bytes_to_write = {}, bytes_written = {}", bytes_to_write, bytes_written);
-                        } else {
-                            trace!("Bytes written = {}", bytes_written);
-                        }
-                        Ok(bytes_written)
-                    }
-                }
-            };
-            // Clear the buffer
-            self.clear();
-            result
-        }
+    pub fn bytes_to_write(&self) -> Vec<u8> {
+        let pos = self.buffer.position() as usize;
+        (self.buffer.get_ref())[0..pos].to_vec()
     }
 }
