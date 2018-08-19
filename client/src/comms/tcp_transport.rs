@@ -5,6 +5,7 @@
 //! session state.
 use std::thread;
 use std::time;
+use std::io::{Cursor, Write};
 use std::result::Result;
 use std::sync::{Arc, RwLock};
 use std::net::SocketAddr;
@@ -12,7 +13,7 @@ use std::net::SocketAddr;
 use tokio;
 use tokio::net::TcpStream;
 use tokio_io::AsyncRead;
-use tokio_io::io::{self, ReadHalf};
+use tokio_io::io::{self, ReadHalf, WriteHalf};
 use futures::Future;
 use futures::future::{loop_fn, Loop};
 use chrono;
@@ -37,8 +38,6 @@ enum ConnectionState {
     Connecting,
     /// Connection success
     Connected,
-    /// Ready to send a HELLO message to the server
-    ReadyToSendHello,
     // Waiting for ACK from the server
     WaitingForAck,
     // Connection is running
@@ -49,7 +48,6 @@ enum ConnectionState {
 
 struct Connection {
     /// The url to connect to
-    pub endpoint_url: String,
     pub session_state: Arc<RwLock<SessionState>>,
     pub secure_channel: Arc<RwLock<SecureChannel>>,
     /// The messages buffer
@@ -264,6 +262,15 @@ impl TcpTransport {
         debug!("Creating a connection task to connect to {} with url {}", addr, endpoint_url);
 
         let connection_state_for_error = connection_state.clone();
+        let connection_state_for_error2 = connection_state.clone();
+
+        let hello_msg = {
+            let session_state = trace_read_lock_unwrap!(session_state);
+            HelloMessage::new(&endpoint_url,
+                              session_state.send_buffer_size(),
+                              session_state.receive_buffer_size(),
+                              session_state.max_message_size())
+        };
 
         set_connection_state!(connection_state, ConnectionState::Connecting);
         TcpStream::connect(&addr).map_err(move |err| {
@@ -272,24 +279,41 @@ impl TcpTransport {
             ()
         }).and_then(move |socket| {
             set_connection_state!(connection_state, ConnectionState::Connected);
-            Self::spawn_looping_task(socket, connection_state, endpoint_url, session_state, secure_channel);
-            Ok(())
+            let (reader, writer) = socket.split();
+            Ok((connection_state, reader, writer))
+        }).and_then(move |(connection_state, reader, writer)| {
+            let mut hello = Cursor::new(Vec::with_capacity(1024));
+            error! {"Sending HELLO"};
+            let size = {
+                debug!("Writing HEL {:?}", hello_msg);
+                hello_msg.encode(&mut hello).unwrap()
+            };
+            let mut hello = hello.into_inner();
+            hello.truncate(size);
+            io::write_all(writer, hello).map_err(move |err| {
+                error!("Cannot send hello to server, err = {:?}", err);
+                set_connection_state!(connection_state_for_error2, ConnectionState::Finished(BadCommunicationError));
+                ()
+            }).map(move |(writer, _)| {
+                (reader, writer)
+            }).and_then(|(reader, writer)| {
+                set_connection_state!(connection_state, ConnectionState::WaitingForAck);
+                Self::spawn_looping_task(reader, writer, connection_state, session_state, secure_channel);
+                Ok(())
+            })
         })
     }
 
     /// This is the main processing loop for the connection. It writes requests and reads responses
     /// over the socket to the server.
-    fn spawn_looping_task(socket: TcpStream, connection_state: Arc<RwLock<ConnectionState>>, endpoint_url: String, session_state: Arc<RwLock<SessionState>>, secure_channel: Arc<RwLock<SecureChannel>>) { //-> impl Future<Item=Connection, Error=StatusCode> {
-        let (reader, writer) = socket.split();
+    fn spawn_looping_task(reader: ReadHalf<TcpStream>, writer: WriteHalf<TcpStream>, connection_state: Arc<RwLock<ConnectionState>>, session_state: Arc<RwLock<SessionState>>, secure_channel: Arc<RwLock<SecureChannel>>) { //-> impl Future<Item=Connection, Error=StatusCode> {
         let (receive_buffer_size, send_buffer_size) = {
             let session_state = trace_read_lock_unwrap!(session_state);
             (session_state.receive_buffer_size(), session_state.send_buffer_size())
         };
 
         // We're here so we're ready to send out a hello
-        set_connection_state!(connection_state, ConnectionState::ReadyToSendHello);
         let connection = Connection {
-            endpoint_url,
             session_state,
             secure_channel,
             state: connection_state,
@@ -303,7 +327,6 @@ impl TcpTransport {
         let looping_task = loop_fn(connection, |connection| {
             // The io::read() consumes reader and in_buf so everything else in
             // connection state has to be taken out and put back in afterwards in the map()
-            let endpoint_url = connection.endpoint_url;
             let session_state = connection.session_state;
             let secure_channel = connection.secure_channel;
             let reader = connection.reader;
@@ -320,7 +343,6 @@ impl TcpTransport {
             }).map(move |(reader, in_buf, bytes_read)| {
                 // Build a new connection state
                 (bytes_read, Connection {
-                    endpoint_url,
                     session_state,
                     secure_channel,
                     receive_buffer,
@@ -390,16 +412,6 @@ impl TcpTransport {
             }).and_then(|mut connection| {
                 // Process any pending requests
                 match connection.state() {
-                    ConnectionState::ReadyToSendHello => {
-                        error! {"Sending HELLO"};
-                        {
-                            let session_state = trace_read_lock_unwrap!(connection.session_state);
-                            let result = connection.send_buffer.write_hello(
-                                &connection.endpoint_url, session_state.send_buffer_size(),
-                                session_state.receive_buffer_size(), session_state.max_message_size());
-                        }
-                        connection.set_state(ConnectionState::WaitingForAck)
-                    }
                     ConnectionState::Processing => {
                         error! {"Sending Request"};
                         let request = {
