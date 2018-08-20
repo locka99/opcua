@@ -1,6 +1,6 @@
 use std;
 use std::fmt::Debug;
-use std::io::{Read, Write, Result};
+use std::io::{Read, Write, Cursor, Result};
 
 use byteorder::{ByteOrder, LittleEndian};
 
@@ -20,6 +20,12 @@ pub trait BinaryEncoder<T> {
     fn encode<S: Write>(&self, _: &mut S) -> EncodingResult<usize>;
     /// Decodes an instance from the read stream.
     fn decode<S: Read>(_: &mut S) -> EncodingResult<T>;
+    // Convenience method for encoding a message straight into an array of bytes
+    fn to_vec(&self) -> Vec<u8> {
+        let mut buffer = Cursor::new(Vec::with_capacity(self.byte_len()));
+        let _ = self.encode(&mut buffer);
+        buffer.into_inner()
+    }
 }
 
 /// Converts an IO encoding error (and logs when in error) into an EncodingResult

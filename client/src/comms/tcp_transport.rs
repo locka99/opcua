@@ -5,7 +5,6 @@
 //! session state.
 use std::thread;
 use std::time;
-use std::io::Cursor;
 use std::result::Result;
 use std::sync::{Arc, RwLock};
 use std::net::SocketAddr;
@@ -266,7 +265,7 @@ impl TcpTransport {
         let connection_state_for_error = connection_state.clone();
         let connection_state_for_error2 = connection_state.clone();
 
-        let hello_msg = {
+        let hello = {
             let session_state = trace_read_lock_unwrap!(session_state);
             HelloMessage::new(&endpoint_url,
                               session_state.send_buffer_size(),
@@ -283,15 +282,8 @@ impl TcpTransport {
             let (reader, writer) = socket.split();
             Ok((connection_state, reader, writer))
         }).and_then(move |(connection_state, reader, writer)| {
-            let mut hello = Cursor::new(Vec::with_capacity(1024));
             error! {"Sending HELLO"};
-            let size = {
-                debug!("Writing HEL {:?}", hello_msg);
-                hello_msg.encode(&mut hello).unwrap()
-            };
-            let mut hello = hello.into_inner();
-            hello.truncate(size);
-            io::write_all(writer, hello).map_err(move |err| {
+            io::write_all(writer, hello.to_vec()).map_err(move |err| {
                 error!("Cannot send hello to server, err = {:?}", err);
                 set_connection_state!(connection_state_for_error2, ConnectionState::Finished(BadCommunicationError));
             }).map(move |(writer, _)| {
