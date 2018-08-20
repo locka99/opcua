@@ -1,11 +1,10 @@
 use std::io::{Cursor, Write};
 
-use opcua_types::{BinaryEncoder, EncodingResult, SupportedMessage, UInt32};
+use opcua_types::{SupportedMessage, UInt32};
 use opcua_types::status_codes::StatusCode;
 
 use comms::secure_channel::SecureChannel;
 use comms::chunker::Chunker;
-use comms::handshake::{HelloMessage, ErrorMessage};
 //use debug::log_buffer;
 
 const DEFAULT_REQUEST_ID: UInt32 = 1000;
@@ -76,31 +75,22 @@ impl MessageWriter {
         self.last_request_id
     }
 
-    pub fn clear(&mut self) {
+    /// Clears the buffer
+    fn clear(&mut self) {
         self.buffer.set_position(0);
     }
 
-    pub fn write_hello(&mut self, endpoint_url: &str, send_buffer_size: usize, receive_buffer_size: usize, max_message_size: usize) -> EncodingResult<usize> {
-        let msg = HelloMessage::new(endpoint_url,
-                                    send_buffer_size,
-                                    receive_buffer_size,
-                                    max_message_size);
-        debug!("Writing HEL {:?}", msg);
-        msg.encode(&mut self.buffer)
-    }
-
-    pub fn write_error(&mut self, status_code: StatusCode) -> EncodingResult<usize> {
-        let msg = ErrorMessage::from_status_code(status_code);
-        debug!("Writing ERR {:?}", msg);
-        msg.encode(&mut self.buffer)
-    }
-
+    /// Tests if there are bytes to write in the stream
     pub fn has_bytes_to_write(&self) -> bool {
         self.buffer.position() > 0
     }
 
-    pub fn bytes_to_write(&self) -> Vec<u8> {
+    /// Yields any results to write, resetting the buffer back afterwards
+    pub fn bytes_to_write(&mut self) -> Vec<u8> {
         let pos = self.buffer.position() as usize;
-        (self.buffer.get_ref())[0..pos].to_vec()
+        let result = (self.buffer.get_ref())[0..pos].to_vec();
+        // Buffer MUST be cleared here, otherwise races are possible
+        self.clear();
+        result
     }
 }

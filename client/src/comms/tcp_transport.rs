@@ -5,7 +5,7 @@
 //! session state.
 use std::thread;
 use std::time;
-use std::io::{Cursor, Write};
+use std::io::Cursor;
 use std::result::Result;
 use std::sync::{Arc, RwLock};
 use std::net::SocketAddr;
@@ -48,7 +48,7 @@ enum ConnectionState {
     Finished(StatusCode),
 }
 
-struct ReadConnection {
+struct ReadState {
     pub state: Arc<RwLock<ConnectionState>>,
     pub session_state: Arc<RwLock<SessionState>>,
     pub secure_channel: Arc<RwLock<SecureChannel>>,
@@ -61,7 +61,7 @@ struct ReadConnection {
     pub in_buf: Vec<u8>,
 }
 
-impl ReadConnection {
+impl ReadState {
     fn turn_received_chunks_into_message(&mut self, chunks: &Vec<MessageChunk>) -> Result<SupportedMessage, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
         let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
@@ -98,7 +98,7 @@ impl ReadConnection {
     }
 }
 
-struct WriteConnection {
+struct WriteState {
     pub state: Arc<RwLock<ConnectionState>>,
     /// The url to connect to
     pub session_state: Arc<RwLock<SessionState>>,
@@ -108,7 +108,7 @@ struct WriteConnection {
     pub send_buffer: MessageWriter,
 }
 
-impl WriteConnection {
+impl WriteState {
     /// Sends the supplied request asynchronously. The returned value is the request id for the
     /// chunked message. Higher levels may or may not find it useful.
     fn send_request(&mut self, request: SupportedMessage) -> Result<UInt32, StatusCode> {
@@ -303,7 +303,7 @@ impl TcpTransport {
         })
     }
 
-    fn read_bytes_task(connection: ReadConnection) -> impl Future<Item=(usize, ReadConnection), Error=StatusCode> {
+    fn read_bytes_task(connection: ReadState) -> impl Future<Item=(usize, ReadState), Error=StatusCode> {
         // The io::read() consumes reader and in_buf so everything else in
         // connection state has to be taken out and put back in afterwards in the map()
         let session_state = connection.session_state;
@@ -318,7 +318,7 @@ impl TcpTransport {
             BadCommunicationError
         }).map(move |(reader, in_buf, bytes_read)| {
             // Build a new connection state
-            (bytes_read, ReadConnection {
+            (bytes_read, ReadState {
                 session_state,
                 secure_channel,
                 receive_buffer,
@@ -330,34 +330,32 @@ impl TcpTransport {
         })
     }
 
-    fn write_bytes_task(connection: WriteConnection) -> impl Future<Item=WriteConnection, Error=StatusCode> {
+    fn write_bytes_task(connection: WriteState) -> impl Future<Item=WriteState, Error=StatusCode> {
         // io::write_all consumes writer which is a pain
         let session_state = connection.session_state;
         let secure_channel = connection.secure_channel;
         let writer = connection.writer;
-        let send_buffer = connection.send_buffer;
         let state = connection.state;
 
-        io::write_all(writer, send_buffer.bytes_to_write()).map_err(move |err| {
+        let mut send_buffer = connection.send_buffer;
+        let bytes_to_write = send_buffer.bytes_to_write();
+
+        io::write_all(writer, bytes_to_write).map_err(move |err| {
             error!("Write IO error {:?}", err);
             BadCommunicationError
         }).map(move |(writer, _)| {
             // Build a new connection state
-            WriteConnection {
+            WriteState {
                 session_state,
                 secure_channel,
                 send_buffer,
                 state,
                 writer,
             }
-        }).and_then(|mut connection| {
-            // Bytes written so clear the buffer
-            connection.send_buffer.clear();
-            Ok(connection)
         })
     }
 
-    fn spawn_reading_task(connection: ReadConnection) {
+    fn spawn_reading_task(connection: ReadState) {
         // This is the main processing loop that receives and sends messages
         let looping_task = loop_fn(connection, |connection| {
             Self::read_bytes_task(connection).and_then(|(bytes_read, mut connection)| {
@@ -417,7 +415,7 @@ impl TcpTransport {
                     }
                 }
                 Ok(connection)
-            }).and_then(|mut connection| {
+            }).and_then(|connection| {
                 let state = connection_state!(connection.state);
                 if let ConnectionState::Finished(_) = state {
                     debug!("Read loop is terminating due to IO error");
@@ -443,7 +441,7 @@ impl TcpTransport {
         tokio::spawn(looping_task);
     }
 
-    fn spawn_writing_task(connection: WriteConnection) {
+    fn spawn_writing_task(connection: WriteState) {
         // This is the main processing loop that receives and sends messages
         let looping_task = loop_fn(connection, |connection| {
             Self::write_bytes_task(connection).and_then(|mut connection| {
@@ -507,7 +505,7 @@ impl TcpTransport {
 
         // Spawn the reading task loop
         {
-            let read_connection = ReadConnection {
+            let read_connection = ReadState {
                 session_state: session_state.clone(),
                 secure_channel: secure_channel.clone(),
                 state: connection_state.clone(),
@@ -521,7 +519,7 @@ impl TcpTransport {
 
         // Spawn the writing task loop
         {
-            let write_connection = WriteConnection {
+            let write_connection = WriteState {
                 session_state,
                 secure_channel,
                 state: connection_state,
