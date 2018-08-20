@@ -289,7 +289,7 @@ impl TcpTransport {
             }).map(move |(writer, _)| {
                 (reader, writer)
             }).and_then(|(reader, writer)| {
-                Self::spawn_looping_task(reader, writer, connection_state, session_state, secure_channel);
+                Self::spawn_looping_tasks(reader, writer, connection_state, session_state, secure_channel);
                 Ok(())
             })
         })
@@ -451,14 +451,6 @@ impl TcpTransport {
                 }
                 Ok(connection)
             }).and_then(|connection| {
-                // Write anything in the out buffer
-                //if connection.send_buffer.has_bytes_to_write() {
-                Self::write_bytes_task(connection)
-                //} else {
-                //    // do nothing
-                //    future::ok(connection)
-                //}
-            }).and_then(|connection| {
                 let state = connection_state!(connection.state);
                 if let ConnectionState::Finished(_) = state {
                     debug!("Write loop is terminating due to IO error");
@@ -486,7 +478,7 @@ impl TcpTransport {
 
     /// This is the main processing loop for the connection. It writes requests and reads responses
     /// over the socket to the server.
-    fn spawn_looping_task(reader: ReadHalf<TcpStream>, writer: WriteHalf<TcpStream>, connection_state: Arc<RwLock<ConnectionState>>, session_state: Arc<RwLock<SessionState>>, secure_channel: Arc<RwLock<SecureChannel>>) { //-> impl Future<Item=Connection, Error=StatusCode> {
+    fn spawn_looping_tasks(reader: ReadHalf<TcpStream>, writer: WriteHalf<TcpStream>, connection_state: Arc<RwLock<ConnectionState>>, session_state: Arc<RwLock<SessionState>>, secure_channel: Arc<RwLock<SecureChannel>>) { //-> impl Future<Item=Connection, Error=StatusCode> {
         let (receive_buffer_size, send_buffer_size) = {
             let session_state = trace_read_lock_unwrap!(session_state);
             (session_state.receive_buffer_size(), session_state.send_buffer_size())
