@@ -1,6 +1,8 @@
 use std::u32;
 use std::collections::{HashSet, HashMap, VecDeque};
 
+use futures::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+
 use opcua_types::{UInt32, NodeId, UAString, DateTime, ExtensionObject};
 use opcua_types::SupportedMessage;
 use opcua_types::service_types::{RequestHeader, SubscriptionAcknowledgement};
@@ -9,6 +11,7 @@ const DEFAULT_REQUEST_TIMEOUT: u32 = 10 * 1000;
 const SEND_BUFFER_SIZE: usize = 65536;
 const RECEIVE_BUFFER_SIZE: usize = 65536;
 const MAX_BUFFER_SIZE: usize = 65536;
+
 
 /// A simple handle factory for incrementing sequences of numbers.
 struct Handle {
@@ -75,6 +78,8 @@ pub struct SessionState {
     responses: HashMap<UInt32, (SupportedMessage, bool)>,
     /// Abort flag
     abort: bool,
+    ///
+    sender: Option<UnboundedSender<SupportedMessage>>,
 }
 
 impl SessionState {
@@ -94,7 +99,15 @@ impl SessionState {
             subscription_acknowledgements: Vec::new(),
             wait_for_publish_response: false,
             abort: false,
+            sender: None
         }
+    }
+
+    // Creates the transmission queue that outgoing requests will be sent over
+    pub fn make_request_channel(&mut self) -> UnboundedReceiver<SupportedMessage> {
+        let (rx, tx) = mpsc::unbounded::<SupportedMessage>();
+        self.sender = Some(tx);
+        rx
     }
 
     pub fn set_session_id(&mut self, session_id: NodeId) {
@@ -163,6 +176,7 @@ impl SessionState {
 
     /// Called by the session to add a request to be sent
     pub fn add_request(&mut self, request: SupportedMessage, async: bool) {
+        self.sender.as_ref().unwrap().
         self.requests.push_front((request, async));
     }
 

@@ -15,6 +15,7 @@ use tokio_io::AsyncRead;
 use tokio_io::io::{self, ReadHalf, WriteHalf};
 use futures::Future;
 use futures::future::{loop_fn, Loop};
+use futures::sync::mpsc::UnboundedReceiver;
 use chrono;
 
 use opcua_types::url::OPC_TCP_SCHEME;
@@ -105,6 +106,7 @@ struct WriteState {
     pub writer: WriteHalf<TcpStream>,
     /// The send buffer
     pub send_buffer: MessageWriter,
+    pub receiver: UnboundedReceiver<SupportedMessage>,
 }
 
 impl WriteState {
@@ -433,28 +435,15 @@ impl TcpTransport {
         tokio::spawn(looping_task);
     }
 
-    fn spawn_writing_task(connection: WriteState) {
-        // This is the main processing loop that receives and sends messages
-        let looping_task = loop_fn(connection, |connection| {
-            Self::write_bytes_task(connection).and_then(|mut connection| {
-                // Process any pending requests
-                let state = connection_state!(connection.state);
-                if state == ConnectionState::Processing {
-                    let request = {
-                        let mut session_state = trace_write_lock_unwrap!(connection.session_state);
-                        session_state.take_request()
-                    };
-                    if let Some((request, _)) = request {
-                        trace! {"Sending Request"};
-                        let _ = connection.send_request(request);
-                    }
-                }
-                Ok(connection)
-            }).and_then(|connection| {
+    fn spawn_writing_task(mut connection: WriteState) {
+        let connection_state = connection.state.clone();
+        // In writing, we wait on outgoing requests, encoding each and writing them out
+        let looping_task = connection.receiver
+            .take_while(move |_| {
                 let state = connection_state!(connection.state);
                 if let ConnectionState::Finished(_) = state {
                     debug!("Write loop is terminating due to IO error");
-                    Ok(Loop::Break(connection))
+                    false
                 } else if {
                     // Test if session wants to abort
                     let session_state = trace_read_lock_unwrap!(connection.session_state);
@@ -462,18 +451,27 @@ impl TcpTransport {
                 } {
                     debug!("Write loop is terminating due to session abort");
                     set_connection_state!(connection.state, ConnectionState::Finished(BadUnexpectedError));
-                    Ok(Loop::Break(connection))
+                    false
                 } else {
                     // Read / write messages
-                    Ok(Loop::Continue(connection))
+                    true
                 }
             })
-        }).map_err(move |e| {
-            error!("Write loop ended with an error {:?}", e);
-        }).map(|_| {
-            error!("Write loop finished");
+            .for_each(move |request| {
+                let state = connection_state!(connection.state);
+                if state == ConnectionState::Processing {
+                    trace! {"Sending Request"};
+                    let _ = connection.send_request(request);
+                } else {
+                    // panic or not, perhaps there is a race
+                }
+                Ok(connection)
+            })
+            .and_then(|connection| {
+                Self::write_bytes_task(connection)
         });
-        tokio::spawn(looping_task);
+
+        tokio::spawn(loopng_task);
     }
 
     /// This is the main processing loop for the connection. It writes requests and reads responses
@@ -482,6 +480,12 @@ impl TcpTransport {
         let (receive_buffer_size, send_buffer_size) = {
             let session_state = trace_read_lock_unwrap!(session_state);
             (session_state.receive_buffer_size(), session_state.send_buffer_size())
+        };
+
+        // Create the receiver that will drive writes
+        let receiver = {
+            let mut session_state = trace_writer_lock_unwrap!(session_state);
+            session_state.make_request_channel()
         };
 
         // At this stage, the HEL has been sent but the ACK has not been received
@@ -509,6 +513,7 @@ impl TcpTransport {
                 state: connection_state,
                 send_buffer: MessageWriter::new(send_buffer_size),
                 writer,
+                receiver,
             };
 
             Self::spawn_writing_task(write_connection);
