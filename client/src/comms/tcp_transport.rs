@@ -13,7 +13,7 @@ use tokio;
 use tokio::net::TcpStream;
 use tokio_io::AsyncRead;
 use tokio_io::io::{self, ReadHalf, WriteHalf};
-use futures::Future;
+use futures::{Future, Stream};
 use futures::future::{loop_fn, Loop};
 use futures::sync::mpsc::UnboundedReceiver;
 use chrono;
@@ -330,6 +330,7 @@ impl TcpTransport {
         let secure_channel = connection.secure_channel;
         let writer = connection.writer;
         let state = connection.state;
+        let receiver = connection.receiver;
 
         let mut send_buffer = connection.send_buffer;
         let bytes_to_write = send_buffer.bytes_to_write();
@@ -345,6 +346,7 @@ impl TcpTransport {
                 send_buffer,
                 state,
                 writer,
+                receiver
             }
         })
     }
@@ -461,7 +463,16 @@ impl TcpTransport {
                 let state = connection_state!(connection.state);
                 if state == ConnectionState::Processing {
                     trace! {"Sending Request"};
+
+                    // Write it to the outgoing buffer
+                    let request_handle = request.request_handle();
                     let _ = connection.send_request(request);
+
+                    //
+                    {
+                        let mut session_state = trace_write_lock_unwrap!(connection.session_state);
+                        session_state.request_was_processed(request_handle);
+                    }
                 } else {
                     // panic or not, perhaps there is a race
                 }
@@ -469,9 +480,9 @@ impl TcpTransport {
             })
             .and_then(|connection| {
                 Self::write_bytes_task(connection)
-        });
+            });
 
-        tokio::spawn(loopng_task);
+        tokio::spawn(looping_task);
     }
 
     /// This is the main processing loop for the connection. It writes requests and reads responses
@@ -482,9 +493,9 @@ impl TcpTransport {
             (session_state.receive_buffer_size(), session_state.send_buffer_size())
         };
 
-        // Create the receiver that will drive writes
+        // Create the message receiver that will drive writes
         let receiver = {
-            let mut session_state = trace_writer_lock_unwrap!(session_state);
+            let mut session_state = trace_write_lock_unwrap!(session_state);
             session_state.make_request_channel()
         };
 

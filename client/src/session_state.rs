@@ -105,7 +105,7 @@ impl SessionState {
 
     // Creates the transmission queue that outgoing requests will be sent over
     pub fn make_request_channel(&mut self) -> UnboundedReceiver<SupportedMessage> {
-        let (rx, tx) = mpsc::unbounded::<SupportedMessage>();
+        let (tx, rx) = mpsc::unbounded::<SupportedMessage>();
         self.sender = Some(tx);
         rx
     }
@@ -176,18 +176,15 @@ impl SessionState {
 
     /// Called by the session to add a request to be sent
     pub fn add_request(&mut self, request: SupportedMessage, async: bool) {
-        self.sender.as_ref().unwrap().
+        self.inflight_requests.insert((request.request_handle(), async));
+        let _ = self.sender.as_ref().unwrap().unbounded_send(request);
         self.requests.push_front((request, async));
     }
 
-    /// Called by the connection to take the next pending request
-    pub fn take_request(&mut self) -> Option<(SupportedMessage, bool)> {
-        let request = self.requests.pop_back();
-        if let Some(ref request) = request {
-            // Add the request to the in flight list
-            self.inflight_requests.insert((request.0.request_handle(), request.1));
-        }
-        request
+    pub fn request_was_processed(&mut self, request_handle: UInt32) {
+        // Don't know if request was async or not, so try removing either.
+        let _ = self.inflight_requests.remove(&(request_handle, false));
+        let _ = self.inflight_requests.remove(&(request_handle, true));
     }
 
     /// Called when a session's request times out. This call allows the session state to remove
