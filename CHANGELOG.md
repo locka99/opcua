@@ -1,9 +1,8 @@
 # Changelog
 
 ASPIRATIONAL - a short list of things that would be nice to implement in the near future
-  - Rust 2018. Update all `Cargo.toml` files to 2018, clean up code like match statements, extern crates etc. that
-    benefit from the change.
-  - Client code to use tokio. This might involve a significant change to the existing client interface.
+  - Rust 2018. Fix all code to the 2018 spec. This will clean up code like match statements, extern crates etc. 
+    that benefit from greater inference.
   - Diagnostics
   - Session restore after disconnect in server.
   - Session restore after disconnect in client, i.e. reconnect and resume session first and then try reconnect and recreate session.
@@ -17,18 +16,19 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
     - Changes to codebase for more idiomatic Rust, e.g. replacing lots of loops with iterators, providing
       `Into<Foo>` implementations instead of a multitude of constructors.
     - Certificate creator tool has new arguments to set application uri and control alternate DNS names.
-    - Various OPC UA correctness fixes
+    - Various OPC UA correctness fixes.
     - Updates to various dependencies.
-  - Client side
+  - Client
+    - Client network IO has been rewritten using `tokio` and `futures`. Note that the client API is still synchronous, 
+      i.e your code calls a function that returns with a result or an error.
     - Client side encryption
     - Moved discovery / endpoints / connection into a helper fn
     - Better failure behaviour when server goes down or becomes unreachable.
-    - Better subscription support
+    - Better subscription support - number of publish requests scale with number of subscriptions
     - Client validates the server's cert to its hostname and application uri and rejects if it does not match.
-  - Server side
-    - The server network IO has been rewritten using `tokio` and `futures`. Sessions have moved from being per-thread 
-      to being asynchronous tasks on the tokio / futures framework. It should be more scalable. The downside is writing
-      asynchronous code is a steep learning curve.
+  - Server
+    - Server network IO has been rewritten using `tokio` and `futures`. Sessions have moved from being per-thread 
+      to being asynchronous tasks on the tokio / futures framework. It should be more scalable. 
     - Hostname resolution works. Previously endpoints had to be an IP address.
     - Subscriptions are far more reliable than before. 0.3 could drop notifications and had reporting problems when
       monitored items had their own sampling intervals.

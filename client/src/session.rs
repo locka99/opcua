@@ -7,8 +7,13 @@ use std;
 use std::result::Result;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
+use std::time::{Instant, Duration};
 
 use chrono;
+
+use tokio_timer::Interval;
+use futures::{Future, Stream};
+use futures::future;
 
 use opcua_core::crypto;
 use opcua_core::crypto::{CertificateStore, PrivateKey, SecurityPolicy, X509};
@@ -169,6 +174,7 @@ impl Session {
                 info!("Security mode = {:?}", self.session_info.endpoint.security_mode);
             }
             self.transport.connect(endpoint_url.as_ref())?;
+            self.open_secure_channel()?;
             Ok(())
         }
     }
@@ -186,6 +192,7 @@ impl Session {
 
     /// Sends an OpenSecureChannel request to the server
     pub fn open_secure_channel(&mut self) -> Result<(), StatusCode> {
+        debug!("open_secure_channel");
         self.issue_or_renew_secure_channel(SecurityTokenRequestType::Issue)
     }
 
@@ -1094,32 +1101,41 @@ impl Session {
         }
     }
 
-    /// Function that handles subscription
-    pub fn subscription_timer(&mut self) {
-        error!("Subscription timer inner");
-        // Server may have throttled publish requests
-        let wait_for_publish_response = {
-            let session_state = trace_read_lock_unwrap!(self.session_state);
-            session_state.wait_for_publish_response
-        };
-        let have_subscriptions = {
-            let subscription_state = trace_read_lock_unwrap!(self.subscription_state);
-            !subscription_state.is_empty()
-        };
-
-        debug!("Timer");
-        if have_subscriptions && !wait_for_publish_response {
-            error!("Subscription timer has subscriptions and is sending a publish");
-            let subscription_acknowledgements = {
-                let mut session_state = trace_write_lock_unwrap!(self.session_state);
-                // Send a publish request with any acknowledgements
-                session_state.subscription_acknowledgements()
-            };
-            let _ = self.async_publish(&subscription_acknowledgements);
-        } else {
-            error!("Subscription timer is doing nothing {}, {}", have_subscriptions, !wait_for_publish_response);
-        }
-        debug!("Timer2");
+    /// Starts a subscription timer for the specified subscription id with the specified
+    /// publish interval. This will send out publish requests at an interval corresponding to the
+    /// number of requests expected back from the server.
+    pub fn start_subscription_timer(&mut self, subscription_id: UInt32, publishing_interval: Double) {
+        let session_state = self.session_state.clone();
+        let subscription_state = self.subscription_state.clone();
+        let f = Interval::new(Instant::now(), Duration::from_millis((1000.0 * publishing_interval) as u64))
+            .take_while(move |_| {
+                let subscription_state = trace_read_lock_unwrap!(subscription_state);
+                // If the subscription id disappears, then the timer should stop
+                let take = subscription_state.subscription_exists(subscription_id);
+                // TODO if the publishing interval changes, then this should stop and a new timer
+                // should be started
+                future::ok(take)
+            })
+            .for_each(move |_| {
+                // Server may have throttled publish requests
+                let wait_for_publish_response = {
+                    let session_state = trace_read_lock_unwrap!(session_state);
+                    session_state.wait_for_publish_response
+                };
+                if !wait_for_publish_response {
+                    debug!("Subscription timer for {} is sending a publish", subscription_id);
+                    let subscription_acknowledgements = {
+                        let mut session_state = trace_write_lock_unwrap!(session_state);
+                        // Send a publish request with any acknowledgements
+                        session_state.subscription_acknowledgements()
+                    };
+                    let _ = self.async_publish(&subscription_acknowledgements);
+                } else {
+                    debug!("Subscription timer is doing nothing, waiting for publish responses");
+                }
+                Ok(())
+            })
+            .map_err(|_| ());
     }
 
     // Process any async messages we expect to receive

@@ -1,5 +1,5 @@
 use std::u32;
-use std::collections::{HashSet, HashMap, VecDeque};
+use std::collections::{HashSet, HashMap};
 
 use futures::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
@@ -67,9 +67,6 @@ pub struct SessionState {
     /// A flag which tells client to wait for a publish response before sending any new publish
     /// requests
     pub wait_for_publish_response: bool,
-    /// Request queue contains messages yet to be sent. Once sent, their request handle will be
-    /// placed in the pending request handles.
-    requests: VecDeque<(SupportedMessage, bool)>,
     /// The requests that are in-flight, defined by their request handle and an async flag. Basically,
     /// the sent requests reside here  until the response returns at which point the entry is removed.
     /// If a response is received for which there is no entry, the response will be discarded.
@@ -93,7 +90,6 @@ impl SessionState {
             session_id: NodeId::null(),
             authentication_token: NodeId::null(),
             monitored_item_handle: Handle::new(1000),
-            requests: VecDeque::new(),
             inflight_requests: HashSet::new(),
             responses: HashMap::new(),
             subscription_acknowledgements: Vec::new(),
@@ -176,29 +172,29 @@ impl SessionState {
 
     /// Called by the session to add a request to be sent
     pub fn add_request(&mut self, request: SupportedMessage, async: bool) {
-        self.inflight_requests.insert((request.request_handle(), async));
+        let request_handle = request.request_handle();
+        debug!("Sending request {:?} to be sent", request);
+        self.inflight_requests.insert((request_handle, async));
         let _ = self.sender.as_ref().unwrap().unbounded_send(request);
-        self.requests.push_front((request, async));
     }
 
     pub fn request_was_processed(&mut self, request_handle: UInt32) {
-        // Don't know if request was async or not, so try removing either.
-        let _ = self.inflight_requests.remove(&(request_handle, false));
-        let _ = self.inflight_requests.remove(&(request_handle, true));
+        debug!("Request {} was processed by the server", request_handle);
     }
 
     /// Called when a session's request times out. This call allows the session state to remove
     /// the request as pending and ignore any response that arrives for it.
     pub fn request_has_timed_out(&mut self, request_handle: UInt32) {
-        info!("Request with handle {} has timed out and any response will be ignored", request_handle);
-        let value = (request_handle, false);
-        let _ = self.inflight_requests.remove(&value);
+        info!("Request {} has timed out and any response will be ignored", request_handle);
+        let _ = self.inflight_requests.remove(&(request_handle, false));
+        let _ = self.inflight_requests.remove(&(request_handle, true));
     }
 
     /// Called by the connection to store a response for the consumption of the session.
     pub fn store_response(&mut self, response: SupportedMessage) {
         // Remove corresponding request handle from inflight queue, add to responses
         let request_handle = response.request_handle();
+        debug!("Response to Request {} has been stored", request_handle);
         // Remove the inflight request
         // This true / false is slightly clunky.
         if let Some(request) = self.inflight_requests.take(&(request_handle, true)) {
@@ -206,7 +202,7 @@ impl SessionState {
         } else if let Some(request) = self.inflight_requests.take(&(request_handle, false)) {
             self.responses.insert(request_handle, (response, request.1));
         } else {
-            error!("A response with request handle {} doesn't belong to any request and will be ignored", request_handle);
+            error!("A response with request handle {} doesn't belong to any request and will be ignored, inflight requests = {:?}", request_handle, self.inflight_requests);
         }
     }
 

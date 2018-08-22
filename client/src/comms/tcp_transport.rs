@@ -6,7 +6,7 @@
 use std::thread;
 use std::time;
 use std::result::Result;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, RwLock, Mutex};
 use std::net::SocketAddr;
 
 use tokio;
@@ -14,7 +14,7 @@ use tokio::net::TcpStream;
 use tokio_io::AsyncRead;
 use tokio_io::io::{self, ReadHalf, WriteHalf};
 use futures::{Future, Stream};
-use futures::future::{loop_fn, Loop};
+use futures::future::{self, loop_fn, Loop};
 use futures::sync::mpsc::UnboundedReceiver;
 use chrono;
 
@@ -103,10 +103,9 @@ struct WriteState {
     /// The url to connect to
     pub session_state: Arc<RwLock<SessionState>>,
     pub secure_channel: Arc<RwLock<SecureChannel>>,
-    pub writer: WriteHalf<TcpStream>,
+    pub writer: Option<WriteHalf<TcpStream>>,
     /// The send buffer
     pub send_buffer: MessageWriter,
-    pub receiver: UnboundedReceiver<SupportedMessage>,
 }
 
 impl WriteState {
@@ -324,30 +323,20 @@ impl TcpTransport {
         })
     }
 
-    fn write_bytes_task(connection: WriteState) -> impl Future<Item=WriteState, Error=StatusCode> {
-        // io::write_all consumes writer which is a pain
-        let session_state = connection.session_state;
-        let secure_channel = connection.secure_channel;
-        let writer = connection.writer;
-        let state = connection.state;
-        let receiver = connection.receiver;
-
-        let mut send_buffer = connection.send_buffer;
-        let bytes_to_write = send_buffer.bytes_to_write();
-
+    fn write_bytes_task(connection: Arc<Mutex<WriteState>>) -> impl Future<Item=(), Error=()> {
+        // io::write_all consumes writer which is a pain, so it is stored as an Option returned
+        // afterwards
+        let (bytes_to_write, writer) = {
+            let mut connection = trace_lock_unwrap!(connection);
+            let bytes_to_write = connection.send_buffer.bytes_to_write();
+            let writer = connection.writer.take();
+            (bytes_to_write, writer.unwrap())
+        };
         io::write_all(writer, bytes_to_write).map_err(move |err| {
             error!("Write IO error {:?}", err);
-            BadCommunicationError
         }).map(move |(writer, _)| {
-            // Build a new connection state
-            WriteState {
-                session_state,
-                secure_channel,
-                send_buffer,
-                state,
-                writer,
-                receiver
-            }
+            let mut connection = trace_lock_unwrap!(connection);
+            connection.writer = Some(writer);
         })
     }
 
@@ -414,7 +403,7 @@ impl TcpTransport {
             }).and_then(|connection| {
                 let state = connection_state!(connection.state);
                 if let ConnectionState::Finished(_) = state {
-                    debug!("Read loop is terminating due to IO error");
+                    debug!("Read loop is terminating due to finished state");
                     Ok(Loop::Break(connection))
                 } else if {
                     // Test if session wants to abort
@@ -437,14 +426,19 @@ impl TcpTransport {
         tokio::spawn(looping_task);
     }
 
-    fn spawn_writing_task(mut connection: WriteState) {
-        let connection_state = connection.state.clone();
+    fn spawn_writing_task(receiver: UnboundedReceiver<SupportedMessage>, connection: WriteState) {
+        let connection = Arc::new(Mutex::new(connection));
+
         // In writing, we wait on outgoing requests, encoding each and writing them out
-        let looping_task = connection.receiver
-            .take_while(move |_| {
+        let looping_task = receiver
+            .map(move |request| {
+                (request, connection.clone())
+            })
+            .take_while(|(_, connection)| {
+                let connection = trace_lock_unwrap!(connection);
                 let state = connection_state!(connection.state);
-                if let ConnectionState::Finished(_) = state {
-                    debug!("Write loop is terminating due to IO error");
+                let take = if let ConnectionState::Finished(_) = state {
+                    debug!("Write loop is terminating due to finished state");
                     false
                 } else if {
                     // Test if session wants to abort
@@ -457,28 +451,40 @@ impl TcpTransport {
                 } else {
                     // Read / write messages
                     true
-                }
+                };
+                future::ok(take)
             })
-            .for_each(move |request| {
-                let state = connection_state!(connection.state);
-                if state == ConnectionState::Processing {
-                    trace! {"Sending Request"};
+            .for_each(|(request, connection)| {
+                {
+                    let mut connection = trace_lock_unwrap!(connection);
+                    let state = connection_state!(connection.state);
+                    if state == ConnectionState::Processing {
+                        trace! {"Sending Request"};
 
-                    // Write it to the outgoing buffer
-                    let request_handle = request.request_handle();
-                    let _ = connection.send_request(request);
+                        let close_connection = if let SupportedMessage::CloseSecureChannelRequest(_) = request {
+                            true
+                        } else {
+                            false
+                        };
 
-                    //
-                    {
-                        let mut session_state = trace_write_lock_unwrap!(connection.session_state);
-                        session_state.request_was_processed(request_handle);
+                        // Write it to the outgoing buffer
+                        let request_handle = request.request_handle();
+                        let _ = connection.send_request(request);
+                        // Indicate the request was processed
+                        {
+                            let mut session_state = trace_write_lock_unwrap!(connection.session_state);
+                            session_state.request_was_processed(request_handle);
+                        }
+
+                        // Connection might be closed now
+                        if close_connection {
+                            info!("Received a close, so closing connection after this send");
+                            set_connection_state!(connection.state, ConnectionState::Finished(Good));
+                        }
+                    } else {
+                        // panic or not, perhaps there is a race
                     }
-                } else {
-                    // panic or not, perhaps there is a race
                 }
-                Ok(connection)
-            })
-            .and_then(|connection| {
                 Self::write_bytes_task(connection)
             });
 
@@ -510,7 +516,7 @@ impl TcpTransport {
                 state: connection_state.clone(),
                 receive_buffer: MessageReader::new(receive_buffer_size),
                 last_received_sequence_number: 0,
-                in_buf: Vec::with_capacity(receive_buffer_size),
+                in_buf: vec![0u8; receive_buffer_size],
                 reader,
             };
             Self::spawn_reading_task(read_connection);
@@ -523,11 +529,10 @@ impl TcpTransport {
                 secure_channel,
                 state: connection_state,
                 send_buffer: MessageWriter::new(send_buffer_size),
-                writer,
-                receiver,
+                writer: Some(writer),
             };
 
-            Self::spawn_writing_task(write_connection);
+            Self::spawn_writing_task(receiver, write_connection);
         }
     }
 }
