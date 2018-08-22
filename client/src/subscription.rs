@@ -166,7 +166,7 @@ impl Subscription {
 
     pub fn subscription_id(&self) -> UInt32 { self.subscription_id }
 
-    // pub fn publishing_interval(&self) -> Double { self.publishing_interval }
+    pub fn publishing_interval(&self) -> Double { self.publishing_interval }
 
     pub fn set_publishing_interval(&mut self, publishing_interval: Double) { self.publishing_interval = publishing_interval; }
 

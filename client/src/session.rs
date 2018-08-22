@@ -11,6 +11,7 @@ use std::time::{Instant, Duration};
 
 use chrono;
 
+use tokio;
 use tokio_timer::Interval;
 use futures::{Future, Stream};
 use futures::future;
@@ -548,10 +549,14 @@ impl Session {
                                                  callback);
 
             {
+                self.start_subscription_timer(&subscription);
+
                 let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                 subscription_state.add_subscription(subscription);
             }
             debug!("create_subscription, created a subscription with id {}", response.subscription_id);
+
+
             Ok(response.subscription_id)
         } else {
             error!("create_subscription failed {:?}", response);
@@ -1104,16 +1109,28 @@ impl Session {
     /// Starts a subscription timer for the specified subscription id with the specified
     /// publish interval. This will send out publish requests at an interval corresponding to the
     /// number of requests expected back from the server.
-    pub fn start_subscription_timer(&mut self, subscription_id: UInt32, publishing_interval: Double) {
+    fn start_subscription_timer(&mut self, subscription: &Subscription) {
+        let subscription_id = subscription.subscription_id();
+        let publishing_interval = subscription.publishing_interval();
+
         let session_state = self.session_state.clone();
         let subscription_state = self.subscription_state.clone();
-        let f = Interval::new(Instant::now(), Duration::from_millis((1000.0 * publishing_interval) as u64))
+
+        let timer = Interval::new(Instant::now(), Duration::from_millis((1000.0 * publishing_interval) as u64))
             .take_while(move |_| {
                 let subscription_state = trace_read_lock_unwrap!(subscription_state);
-                // If the subscription id disappears, then the timer should stop
-                let take = subscription_state.subscription_exists(subscription_id);
-                // TODO if the publishing interval changes, then this should stop and a new timer
-                // should be started
+                let take = if let Some(ref subscription) = subscription_state.get(subscription_id) {
+                    if publishing_interval != subscription.publishing_interval() {
+                        // TODO if the publishing interval changed, then this should stop and a new timer
+                        // should be started
+                        false
+                    } else {
+                        true
+                    }
+                } else {
+                    // Subscription has gone and so should the timer
+                    false
+                };
                 future::ok(take)
             })
             .for_each(move |_| {
@@ -1129,13 +1146,17 @@ impl Session {
                         // Send a publish request with any acknowledgements
                         session_state.subscription_acknowledgements()
                     };
-                    let _ = self.async_publish(&subscription_acknowledgements);
+                    // TODO send publish
+                    // let _ = self.async_publish(&subscription_acknowledgements);
                 } else {
                     debug!("Subscription timer is doing nothing, waiting for publish responses");
                 }
                 Ok(())
             })
+            .map(|_| ())
             .map_err(|_| ());
+
+        // tokio::spawn(timer);
     }
 
     // Process any async messages we expect to receive
