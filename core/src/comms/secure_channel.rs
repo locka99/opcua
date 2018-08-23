@@ -184,6 +184,24 @@ impl SecureChannel {
         self.token_id
     }
 
+    /// Test if the secure channel token needs to be renewed. The algorithm determines it needs
+    /// to be renewed if the issue period has elapsed by 75% or more.
+    pub fn should_renew_security_token(&self) -> bool {
+        if self.token_id() == 0 {
+            // panic!("Shouldn't be asking this question, if there is no token id at all");
+            false
+        } else {
+            let now = chrono::Utc::now();
+
+            // Check if secure channel 75% close to expiration in which case send a renew
+            let renew_lifetime = (self.token_lifetime() * 3) / 4;
+            let created_at = self.token_created_at().into();
+            let renew_lifetime = chrono::Duration::milliseconds(renew_lifetime as i64);
+            // Renew the token?
+            now.signed_duration_since(created_at) > renew_lifetime
+        }
+    }
+
     /// Makes a security header according to the type of message being sent, symmetric or asymmetric
     pub fn make_security_header(&self, message_type: MessageChunkType) -> SecurityHeader {
         match message_type {

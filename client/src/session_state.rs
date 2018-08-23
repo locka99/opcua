@@ -1,17 +1,27 @@
+use std;
 use std::u32;
 use std::collections::{HashSet, HashMap};
+use std::sync::{Arc, RwLock};
 
 use futures::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use chrono;
+
+use opcua_core::comms::secure_channel::SecureChannel;
+use opcua_core::crypto::SecurityPolicy;
 
 use opcua_types::{UInt32, NodeId, UAString, DateTime, ExtensionObject};
-use opcua_types::SupportedMessage;
-use opcua_types::service_types::{RequestHeader, SubscriptionAcknowledgement};
+use opcua_types::*;
+use opcua_types::service_types::*;
+use opcua_types::status_codes::StatusCode;
+use opcua_types::status_codes::StatusCode::*;
 
 const DEFAULT_REQUEST_TIMEOUT: u32 = 10 * 1000;
 const SEND_BUFFER_SIZE: usize = 65536;
 const RECEIVE_BUFFER_SIZE: usize = 65536;
 const MAX_BUFFER_SIZE: usize = 65536;
 
+/// Used for synchronous polling
+const SYNC_POLLING_PERIOD: u64 = 50;
 
 /// A simple handle factory for incrementing sequences of numbers.
 struct Handle {
@@ -45,6 +55,8 @@ impl Handle {
 /// Session's state indicates connection status, negotiated times and sizes,
 /// and security tokens.
 pub struct SessionState {
+    /// Secure channel information
+    secure_channel: Arc<RwLock<SecureChannel>>,
     /// The request timeout is how long the session will wait from sending a request expecting a response
     /// if no response is received the rclient will terminate.
     request_timeout: u32,
@@ -75,13 +87,14 @@ pub struct SessionState {
     responses: HashMap<UInt32, (SupportedMessage, bool)>,
     /// Abort flag
     abort: bool,
-    ///
+    /// This is the queue that messages will be sent onto the transport for sending
     sender: Option<UnboundedSender<SupportedMessage>>,
 }
 
 impl SessionState {
-    pub fn new() -> SessionState {
+    pub fn new(secure_channel: Arc<RwLock<SecureChannel>>) -> SessionState {
         SessionState {
+            secure_channel,
             request_timeout: DEFAULT_REQUEST_TIMEOUT,
             send_buffer_size: SEND_BUFFER_SIZE,
             receive_buffer_size: RECEIVE_BUFFER_SIZE,
@@ -95,7 +108,7 @@ impl SessionState {
             subscription_acknowledgements: Vec::new(),
             wait_for_publish_response: false,
             abort: false,
-            sender: None
+            sender: None,
         }
     }
 
@@ -163,6 +176,134 @@ impl SessionState {
             additional_header: ExtensionObject::null(),
         };
         request_header
+    }
+
+    /// Sends a publish request containing acknowledgements for previous notifications.
+    /// TODO this function needs to be refactored as an asynchronous operation.
+    pub fn async_publish(&mut self, subscription_acknowledgements: &[SubscriptionAcknowledgement]) -> Result<UInt32, StatusCode> {
+        debug!("async_publish with {} subscription acknowledgements", subscription_acknowledgements.len());
+        let request = PublishRequest {
+            request_header: self.make_request_header(),
+            subscription_acknowledgements: if subscription_acknowledgements.is_empty() { None } else { Some(subscription_acknowledgements.to_vec()) },
+        };
+        let request_handle = self.async_send_request(request, true)?;
+        debug!("async_publish, request sent with handle {}", request_handle);
+        Ok(request_handle)
+    }
+
+    /// Synchronously sends a request. The return value is the response to the request
+    pub(crate) fn send_request<T>(&mut self, request: T) -> Result<SupportedMessage, StatusCode> where T: Into<SupportedMessage> {
+        // Send the request
+        let request_handle = self.async_send_request(request, false)?;
+        // Wait for the response
+        let request_timeout = self.request_timeout();
+        self.wait_for_sync_response(request_handle, request_timeout)
+    }
+
+    /// Asynchronously sends a request. The return value is the request handle of the request
+    pub(crate) fn async_send_request<T>(&mut self, request: T, async: bool) -> Result<UInt32, StatusCode> where T: Into<SupportedMessage> {
+        let request = request.into();
+        match request {
+            SupportedMessage::OpenSecureChannelRequest(_) | SupportedMessage::CloseSecureChannelRequest(_) => {}
+            _ => {
+                // Make sure secure channel token hasn't expired
+                let _ = self.ensure_secure_channel_token();
+            }
+        }
+
+        // TODO should error here if not connected
+
+        // Enqueue the request
+        let request_handle = request.request_handle();
+        self.add_request(request, async);
+
+        Ok(request_handle)
+    }
+
+    /// Wait for a response with a matching request handle. If request handle is 0 then no match
+    /// is performed and in fact the function is expected to receive no messages except asynchronous
+    /// and housekeeping events from the server. A 0 handle will cause the wait to process at most
+    /// one async message before returning.
+    fn wait_for_sync_response(&mut self, request_handle: UInt32, request_timeout: UInt32) -> Result<SupportedMessage, StatusCode> {
+        if request_handle == 0 {
+            panic!("Request handle must be non zero");
+        }
+
+        // Receive messages until the one expected comes back. Publish responses will be consumed
+        // silently.
+        let start = chrono::Utc::now();
+        loop {
+            if let Some(response) = self.take_response(request_handle) {
+                // Got the response
+                return Ok(response);
+            } else {
+                let now = chrono::Utc::now();
+                let request_duration = now.signed_duration_since(start);
+                if request_duration.num_milliseconds() >= request_timeout as i64 {
+                    info!("Timeout waiting for response from server");
+                    self.request_has_timed_out(request_handle);
+                    return Err(BadTimeout);
+                }
+                // Sleep before trying again
+                std::thread::sleep(std::time::Duration::from_millis(SYNC_POLLING_PERIOD));
+            }
+        }
+    }
+
+    /// Checks if secure channel token needs to be renewed and renews it
+    fn ensure_secure_channel_token(&mut self) -> Result<(), StatusCode> {
+        let should_renew_security_token = {
+            let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+            secure_channel.should_renew_security_token()
+        };
+        if should_renew_security_token {
+            self.issue_or_renew_secure_channel(SecurityTokenRequestType::Renew)
+        } else {
+            Ok(())
+        }
+    }
+
+    pub(crate) fn issue_or_renew_secure_channel(&mut self, request_type: SecurityTokenRequestType) -> Result<(), StatusCode> {
+        trace!("issue_or_renew_secure_channel({:?})", request_type);
+
+        const REQUESTED_LIFETIME: UInt32 = 60000; // TODO
+
+        let (security_mode, security_policy, client_nonce) = {
+            let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+            let client_nonce = secure_channel.security_policy().nonce();
+            secure_channel.set_local_nonce(client_nonce.as_ref());
+            (secure_channel.security_mode(), secure_channel.security_policy(), client_nonce)
+        };
+
+        info!("Making secure channel request");
+        info!("security_mode = {:?}", security_mode);
+        info!("security_policy = {:?}", security_policy);
+
+        let requested_lifetime = REQUESTED_LIFETIME;
+        let request = OpenSecureChannelRequest {
+            request_header: self.make_request_header(),
+            client_protocol_version: 0,
+            request_type,
+            security_mode,
+            client_nonce,
+            requested_lifetime,
+        };
+        let response = self.send_request(SupportedMessage::OpenSecureChannelRequest(request))?;
+        if let SupportedMessage::OpenSecureChannelResponse(response) = response {
+            debug!("Setting transport's security token");
+            {
+                let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+                secure_channel.set_security_token(response.security_token);
+
+                if security_policy != SecurityPolicy::None && (security_mode == MessageSecurityMode::Sign || security_mode == MessageSecurityMode::SignAndEncrypt) {
+                    secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce)?;
+                    secure_channel.derive_keys();
+                }
+            }
+            Ok(())
+        } else {
+            Err(::process_unexpected_response(response))
+        }
     }
 
     /// Returns the next monitored item handle

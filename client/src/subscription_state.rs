@@ -17,8 +17,6 @@ impl SubscriptionState {
         }
     }
 
-    pub fn is_empty(&self) -> bool { self.subscriptions.is_empty() }
-
     pub fn subscription_ids(&self) -> Option<Vec<UInt32>> {
         if self.subscriptions.is_empty() {
             None

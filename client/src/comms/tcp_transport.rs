@@ -16,12 +16,10 @@ use tokio_io::io::{self, ReadHalf, WriteHalf};
 use futures::{Future, Stream};
 use futures::future::{self, loop_fn, Loop};
 use futures::sync::mpsc::UnboundedReceiver;
-use chrono;
 
 use opcua_types::url::OPC_TCP_SCHEME;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
-use opcua_types::service_types::ChannelSecurityToken;
 use opcua_core::prelude::*;
 use opcua_core::comms::message_writer::MessageWriter;
 
@@ -134,15 +132,14 @@ pub struct TcpTransport {
     /// Session state
     session_state: Arc<RwLock<SessionState>>,
     /// Secure channel information
-    pub secure_channel: Arc<RwLock<SecureChannel>>,
+    secure_channel: Arc<RwLock<SecureChannel>>,
     /// Connection state - what the connection task is doing
     connection_state: Arc<RwLock<ConnectionState>>,
 }
 
 impl TcpTransport {
     /// Create a new TCP transport layer for the session
-    pub fn new(certificate_store: Arc<RwLock<CertificateStore>>, session_state: Arc<RwLock<SessionState>>) -> TcpTransport {
-        let secure_channel = Arc::new(RwLock::new(SecureChannel::new(certificate_store, Role::Client)));
+    pub fn new(secure_channel: Arc<RwLock<SecureChannel>>, session_state: Arc<RwLock<SessionState>>) -> TcpTransport {
         TcpTransport {
             session_state,
             secure_channel,
@@ -229,33 +226,6 @@ impl TcpTransport {
             ConnectionState::NotStarted | ConnectionState::Connecting |
             ConnectionState::Finished(_) => false,
             _ => true,
-        }
-    }
-
-    /// Sets the security token info received from an issue / renew request
-    pub fn set_security_token(&mut self, channel_token: ChannelSecurityToken) {
-        trace!("Setting security token {:?}", channel_token);
-        let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
-        secure_channel.set_security_token(channel_token);
-    }
-
-    /// Test if the secure channel token needs to be renewed. The algorithm determines it needs
-    /// to be renewed if the issue period has elapsed by 75% or more.
-    pub fn should_renew_security_token(&self) -> bool {
-        let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
-        if secure_channel.token_id() == 0 {
-            // panic!("Shouldn't be asking this question, if there is no token id at all");
-            false
-        } else {
-            let now = chrono::Utc::now();
-
-            // Check if secure channel 75% close to expiration in which case send a renew
-            let renew_lifetime = (secure_channel.token_lifetime() * 3) / 4;
-            let created_at = secure_channel.token_created_at().into();
-            let renew_lifetime = chrono::Duration::milliseconds(renew_lifetime as i64);
-
-            // Renew the token?
-            now.signed_duration_since(created_at) > renew_lifetime
         }
     }
 
