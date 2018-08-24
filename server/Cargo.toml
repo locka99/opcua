@@ -8,6 +8,7 @@ license = "MPL-2.0"
 keywords = ["opcua","opc","ua"]
 categories = ["embedded","network-programming"]
 readme = "../README.md"
+documentation = "https://docs.rs/opcua-server/"
 
 [features]
 default = []
