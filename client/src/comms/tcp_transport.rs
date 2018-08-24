@@ -24,6 +24,7 @@ use opcua_core::prelude::*;
 use opcua_core::comms::message_writer::MessageWriter;
 
 use session_state::SessionState;
+use message_queue::MessageQueue;
 
 macro_rules! connection_state {( $s:expr ) => { *trace_read_lock_unwrap!($s) } }
 macro_rules! set_connection_state {( $s:expr, $v:expr ) => { *trace_write_lock_unwrap!($s) = $v } }
@@ -48,8 +49,8 @@ enum ConnectionState {
 
 struct ReadState {
     pub state: Arc<RwLock<ConnectionState>>,
-    pub session_state: Arc<RwLock<SessionState>>,
     pub secure_channel: Arc<RwLock<SecureChannel>>,
+    pub message_queue: Arc<RwLock<MessageQueue>>,
     pub reader: ReadHalf<TcpStream>,
     /// The messages buffer
     pub receive_buffer: MessageReader,
@@ -99,8 +100,8 @@ impl ReadState {
 struct WriteState {
     pub state: Arc<RwLock<ConnectionState>>,
     /// The url to connect to
-    pub session_state: Arc<RwLock<SessionState>>,
     pub secure_channel: Arc<RwLock<SecureChannel>>,
+    pub message_queue: Arc<RwLock<MessageQueue>>,
     pub writer: Option<WriteHalf<TcpStream>>,
     /// The send buffer
     pub send_buffer: MessageWriter,
@@ -135,15 +136,18 @@ pub struct TcpTransport {
     secure_channel: Arc<RwLock<SecureChannel>>,
     /// Connection state - what the connection task is doing
     connection_state: Arc<RwLock<ConnectionState>>,
+    /// Message queue for requests / responses
+    message_queue: Arc<RwLock<MessageQueue>>,
 }
 
 impl TcpTransport {
     /// Create a new TCP transport layer for the session
-    pub fn new(secure_channel: Arc<RwLock<SecureChannel>>, session_state: Arc<RwLock<SessionState>>) -> TcpTransport {
+    pub fn new(secure_channel: Arc<RwLock<SecureChannel>>, session_state: Arc<RwLock<SessionState>>, message_queue: Arc<RwLock<MessageQueue>>) -> TcpTransport {
         TcpTransport {
             session_state,
             secure_channel,
             connection_state: Arc::new(RwLock::new(ConnectionState::NotStarted)),
+            message_queue,
         }
     }
 
@@ -180,7 +184,7 @@ impl TcpTransport {
         // The connection will be serviced on its own thread. When the thread terminates, the connection
         // has also terminated.
         let connection_task = Self::connection_task(addr, self.connection_state.clone(), endpoint_url.to_string(),
-                                                    self.session_state.clone(), self.secure_channel.clone());
+                                                    self.session_state.clone(), self.secure_channel.clone(), self.message_queue.clone());
         let _ = Some(thread::spawn(move || {
             debug!("Client tokio tasks are starting for connection");
             tokio::run(connection_task);
@@ -230,7 +234,7 @@ impl TcpTransport {
     }
 
     /// This is the main connection task for a connection.
-    fn connection_task(addr: SocketAddr, connection_state: Arc<RwLock<ConnectionState>>, endpoint_url: String, session_state: Arc<RwLock<SessionState>>, secure_channel: Arc<RwLock<SecureChannel>>) -> impl Future<Item=(), Error=()> {
+    fn connection_task(addr: SocketAddr, connection_state: Arc<RwLock<ConnectionState>>, endpoint_url: String, session_state: Arc<RwLock<SessionState>>, secure_channel: Arc<RwLock<SecureChannel>>, message_queue: Arc<RwLock<MessageQueue>>) -> impl Future<Item=(), Error=()> {
         debug!("Creating a connection task to connect to {} with url {}", addr, endpoint_url);
 
         let connection_state_for_error = connection_state.clone();
@@ -260,7 +264,7 @@ impl TcpTransport {
             }).map(move |(writer, _)| {
                 (reader, writer)
             }).and_then(|(reader, writer)| {
-                Self::spawn_looping_tasks(reader, writer, connection_state, session_state, secure_channel);
+                Self::spawn_looping_tasks(reader, writer, connection_state, session_state, secure_channel, message_queue);
                 Ok(())
             })
         })
@@ -269,20 +273,20 @@ impl TcpTransport {
     fn read_bytes_task(connection: ReadState) -> impl Future<Item=(usize, ReadState), Error=StatusCode> {
         // The io::read() consumes reader and in_buf so everything else in
         // connection state has to be taken out and put back in afterwards in the map()
-        let session_state = connection.session_state;
         let secure_channel = connection.secure_channel;
         let reader = connection.reader;
         let in_buf = connection.in_buf;
         let last_received_sequence_number = connection.last_received_sequence_number;
         let receive_buffer = connection.receive_buffer;
         let state = connection.state;
+        let message_queue = connection.message_queue;
         io::read(reader, in_buf).map_err(move |err| {
             error!("Read IO error {:?}", err);
             BadCommunicationError
         }).map(move |(reader, in_buf, bytes_read)| {
             // Build a new connection state
             (bytes_read, ReadState {
-                session_state,
+                message_queue,
                 secure_channel,
                 receive_buffer,
                 last_received_sequence_number,
@@ -345,8 +349,8 @@ impl TcpTransport {
                                             session_status_code = result.unwrap_err();
                                         } else if let Some(response) = result.unwrap() {
                                             // Store the response
-                                            let mut session_state = trace_write_lock_unwrap!(connection.session_state);
-                                            session_state.store_response(response);
+                                            let mut message_queue = trace_write_lock_unwrap!(connection.message_queue);
+                                            message_queue.store_response(response);
                                         }
                                     }
                                 }
@@ -375,14 +379,6 @@ impl TcpTransport {
                 if let ConnectionState::Finished(_) = state {
                     debug!("Read loop is terminating due to finished state");
                     Ok(Loop::Break(connection))
-                } else if {
-                    // Test if session wants to abort
-                    let session_state = trace_read_lock_unwrap!(connection.session_state);
-                    session_state.is_abort()
-                } {
-                    debug!("Read loop is terminating due to session abort");
-                    set_connection_state!(connection.state, ConnectionState::Finished(BadUnexpectedError));
-                    Ok(Loop::Break(connection))
                 } else {
                     // Read / write messages
                     Ok(Loop::Continue(connection))
@@ -410,14 +406,6 @@ impl TcpTransport {
                 let take = if let ConnectionState::Finished(_) = state {
                     debug!("Write loop is terminating due to finished state");
                     false
-                } else if {
-                    // Test if session wants to abort
-                    let session_state = trace_read_lock_unwrap!(connection.session_state);
-                    session_state.is_abort()
-                } {
-                    debug!("Write loop is terminating due to session abort");
-                    set_connection_state!(connection.state, ConnectionState::Finished(BadUnexpectedError));
-                    false
                 } else {
                     // Read / write messages
                     true
@@ -442,8 +430,8 @@ impl TcpTransport {
                         let _ = connection.send_request(request);
                         // Indicate the request was processed
                         {
-                            let mut session_state = trace_write_lock_unwrap!(connection.session_state);
-                            session_state.request_was_processed(request_handle);
+                            let mut message_queue = trace_write_lock_unwrap!(connection.message_queue);
+                            message_queue.request_was_processed(request_handle);
                         }
 
                         // Connection might be closed now
@@ -463,7 +451,7 @@ impl TcpTransport {
 
     /// This is the main processing loop for the connection. It writes requests and reads responses
     /// over the socket to the server.
-    fn spawn_looping_tasks(reader: ReadHalf<TcpStream>, writer: WriteHalf<TcpStream>, connection_state: Arc<RwLock<ConnectionState>>, session_state: Arc<RwLock<SessionState>>, secure_channel: Arc<RwLock<SecureChannel>>) { //-> impl Future<Item=Connection, Error=StatusCode> {
+    fn spawn_looping_tasks(reader: ReadHalf<TcpStream>, writer: WriteHalf<TcpStream>, connection_state: Arc<RwLock<ConnectionState>>, session_state: Arc<RwLock<SessionState>>, secure_channel: Arc<RwLock<SecureChannel>>, message_queue: Arc<RwLock<MessageQueue>>) { //-> impl Future<Item=Connection, Error=StatusCode> {
         let (receive_buffer_size, send_buffer_size) = {
             let session_state = trace_read_lock_unwrap!(session_state);
             (session_state.receive_buffer_size(), session_state.send_buffer_size())
@@ -471,8 +459,8 @@ impl TcpTransport {
 
         // Create the message receiver that will drive writes
         let receiver = {
-            let mut session_state = trace_write_lock_unwrap!(session_state);
-            session_state.make_request_channel()
+            let mut message_queue = trace_write_lock_unwrap!(message_queue);
+            message_queue.make_request_channel()
         };
 
         // At this stage, the HEL has been sent but the ACK has not been received
@@ -481,13 +469,13 @@ impl TcpTransport {
         // Spawn the reading task loop
         {
             let read_connection = ReadState {
-                session_state: session_state.clone(),
                 secure_channel: secure_channel.clone(),
                 state: connection_state.clone(),
                 receive_buffer: MessageReader::new(receive_buffer_size),
                 last_received_sequence_number: 0,
                 in_buf: vec![0u8; receive_buffer_size],
                 reader,
+                message_queue: message_queue.clone(),
             };
             Self::spawn_reading_task(read_connection);
         }
@@ -495,11 +483,11 @@ impl TcpTransport {
         // Spawn the writing task loop
         {
             let write_connection = WriteState {
-                session_state,
                 secure_channel,
                 state: connection_state,
                 send_buffer: MessageWriter::new(send_buffer_size),
                 writer: Some(writer),
+                message_queue: message_queue.clone(),
             };
 
             Self::spawn_writing_task(receiver, write_connection);

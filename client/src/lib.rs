@@ -23,6 +23,7 @@ mod comms;
 mod subscription;
 mod subscription_state;
 mod session_state;
+mod message_queue;
 
 pub mod config;
 pub mod client;

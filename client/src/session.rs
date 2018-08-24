@@ -7,11 +7,13 @@ use std::result::Result;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 use std::time::{Instant, Duration};
+use std::thread;
 
 use tokio;
 use tokio_timer::Interval;
 use futures::{Future, Stream};
 use futures::future;
+use futures::sync::mpsc::{unbounded, UnboundedSender};
 
 use opcua_core::comms::secure_channel::{Role, SecureChannel};
 use opcua_core::crypto;
@@ -24,6 +26,7 @@ use opcua_types::status_codes::StatusCode::*;
 
 use client;
 use comms::tcp_transport::TcpTransport;
+use message_queue::MessageQueue;
 use subscription;
 use subscription::{DataChangeCallback, Subscription};
 use subscription_state::SubscriptionState;
@@ -77,12 +80,16 @@ pub struct Session {
     session_state: Arc<RwLock<SessionState>>,
     /// Subscriptions state
     subscription_state: Arc<RwLock<SubscriptionState>>,
+    /// Subscription timer command
+    timer_command_queue: UnboundedSender<SubscriptionTimerCommand>,
     /// Transport layer
     transport: TcpTransport,
     /// Certificate store
     certificate_store: Arc<RwLock<CertificateStore>>,
     /// Secure channel information
     secure_channel: Arc<RwLock<SecureChannel>>,
+    /// Message queue
+    message_queue: Arc<RwLock<MessageQueue>>,
 }
 
 impl Drop for Session {
@@ -95,22 +102,59 @@ impl Drop for Session {
     }
 }
 
+#[derive(Clone, Copy, PartialEq)]
+enum SubscriptionTimerCommand {
+    CreateTimer(UInt32),
+    Quit,
+}
+
 impl Session {
     /// Create a new session from the supplied application description, certificate store and session
     /// information.
     pub fn new(application_description: ApplicationDescription, certificate_store: Arc<RwLock<CertificateStore>>, session_info: SessionInfo) -> Session {
         let secure_channel = Arc::new(RwLock::new(SecureChannel::new(certificate_store.clone(), Role::Client)));
-        let session_state = Arc::new(RwLock::new(SessionState::new(secure_channel.clone())));
-        let transport = TcpTransport::new(secure_channel.clone(), session_state.clone());
+        let message_queue = Arc::new(RwLock::new(MessageQueue::new()));
+        let session_state = Arc::new(RwLock::new(SessionState::new(secure_channel.clone(), message_queue.clone())));
+        let transport = TcpTransport::new(secure_channel.clone(), session_state.clone(), message_queue.clone());
         let subscription_state = Arc::new(RwLock::new(SubscriptionState::new()));
+
+        // Create a thread that will manage subscription timers. Each subscription that is begun,
+        let timer_command_queue = {
+            let subscription_state = subscription_state.clone();
+            let session_state = session_state.clone();
+            let (timer_command_queue, timer_receiver) = unbounded::<SubscriptionTimerCommand>();
+            let _ = thread::spawn(move || {
+                // This listens for timer actions to spawn
+                let timer_task = timer_receiver.take_while(|cmd| {
+                    let take = *cmd != SubscriptionTimerCommand::Quit;
+                    future::ok(take)
+                }).map(move |cmd| {
+                    (cmd, session_state.clone(), subscription_state.clone())
+                }).for_each(|(cmd, session_state, subscription_state)| {
+                    match cmd {
+                        SubscriptionTimerCommand::CreateTimer(subscription_id) => {
+                            let timer_task = Self::make_subscription_timer(subscription_id, session_state, subscription_state);
+                            tokio::spawn(timer_task);
+                        }
+                        _ => {}
+                    }
+                    future::ok(())
+                });
+                tokio::run(timer_task);
+            });
+            timer_command_queue
+        };
+
         Session {
             application_description,
             session_info,
             session_state,
             certificate_store,
             subscription_state,
+            timer_command_queue,
             transport,
             secure_channel,
+            message_queue,
         }
     }
 
@@ -552,10 +596,13 @@ impl Session {
                                                  callback);
 
             {
-                self.start_subscription_timer(&subscription);
-
-                let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
-                subscription_state.add_subscription(subscription);
+                let subscription_id = {
+                    let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
+                    let subscription_id = subscription.subscription_id();
+                    subscription_state.add_subscription(subscription);
+                    subscription_id
+                };
+                let _ = self.timer_command_queue.unbounded_send(SubscriptionTimerCommand::CreateTimer(subscription_id));
             }
             debug!("create_subscription, created a subscription with id {}", response.subscription_id);
 
@@ -961,17 +1008,19 @@ impl Session {
         session_state.make_request_header()
     }
 
-    /// Starts a subscription timer for the specified subscription id with the specified
-    /// publish interval. This will send out publish requests at an interval corresponding to the
-    /// number of requests expected back from the server.
-    fn start_subscription_timer(&mut self, subscription: &Subscription) {
-        let subscription_id = subscription.subscription_id();
-        let publishing_interval = subscription.publishing_interval();
+    fn make_subscription_timer(subscription_id: UInt32, session_state: Arc<RwLock<SessionState>>, subscription_state: Arc<RwLock<SubscriptionState>>) -> impl Future<Item=(), Error=()> {
+        let publishing_interval = {
+            let ss = trace_read_lock_unwrap!(subscription_state);
+            if let Some(subscription) = ss.get(subscription_id) {
+                subscription.publishing_interval()
+            } else {
+                error!("Cannot start timer for subscription id {}, doesn't exist", subscription_id);
+                100.0
+            }
+        };
 
-        let session_state = self.session_state.clone();
-        let subscription_state = self.subscription_state.clone();
-
-        let timer_task = Interval::new(Instant::now(), Duration::from_millis((1000.0 * publishing_interval) as u64))
+        debug!("Publishing interval {}", publishing_interval);
+        Interval::new(Instant::now(), Duration::from_millis(publishing_interval as u64))
             .take_while(move |_| {
                 let subscription_state = trace_read_lock_unwrap!(subscription_state);
                 let take = if let Some(ref subscription) = subscription_state.get(subscription_id) {
@@ -1006,21 +1055,14 @@ impl Session {
                 Ok(())
             })
             .map(|_| ())
-            .map_err(|_| ());
-
-        // TODO there should be a single timer thread that timer tasks can be created and sent to.
-        // TODO One thread per timer is just a hack to make it work for now.
-        use std::thread;
-        let _ = Some(thread::spawn(move || {
-            tokio::run(timer_task);
-        }));
+            .map_err(|_| ())
     }
 
     // Process any async messages we expect to receive
     fn handle_publish_responses(&mut self) -> bool {
         let responses = {
-            let mut session_state = trace_write_lock_unwrap!(self.session_state);
-            session_state.async_responses()
+            let mut message_queue = trace_write_lock_unwrap!(self.message_queue);
+            message_queue.async_responses()
         };
         if responses.is_empty() {
             false
