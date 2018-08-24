@@ -12,7 +12,7 @@ supports the embedded, micro and nano profiles but may grow to support features 
 
 # Code documentation
 
-Theseare generated from the source 
+The documentation is generated from the latest published crates. It may be out of date depending on the development cycle. 
 
 - [Client](https://docs.rs/opcua-client/) - the client-side API.
 - [Server](https://docs.rs/opcua-server/) - the server-side API.
