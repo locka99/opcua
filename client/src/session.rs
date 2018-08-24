@@ -111,7 +111,7 @@ enum SubscriptionTimerCommand {
 impl Session {
     /// Create a new session from the supplied application description, certificate store and session
     /// information.
-    pub fn new(application_description: ApplicationDescription, certificate_store: Arc<RwLock<CertificateStore>>, session_info: SessionInfo) -> Session {
+    pub(crate) fn new(application_description: ApplicationDescription, certificate_store: Arc<RwLock<CertificateStore>>, session_info: SessionInfo) -> Session {
         let secure_channel = Arc::new(RwLock::new(SecureChannel::new(certificate_store.clone(), Role::Client)));
         let message_queue = Arc::new(RwLock::new(MessageQueue::new()));
         let session_state = Arc::new(RwLock::new(SessionState::new(secure_channel.clone(), message_queue.clone())));

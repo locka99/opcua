@@ -25,8 +25,9 @@ struct SessionEntry {
     session: Arc<RwLock<Session>>,
 }
 
-/// The client-side OPC UA state. A client can have a description, multiple open sessions
-/// and a certificate store.
+/// The `Client` defines a connection to a server which can be used to to get end points or establish
+/// a session. It is configured using a `ClientConfig` which defines the server it talks to and other
+/// details such as the location of the certificate store.
 pub struct Client {
     /// Client configuration
     config: ClientConfig,
