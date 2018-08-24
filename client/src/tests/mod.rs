@@ -141,8 +141,7 @@ fn client_anonymous_user_tokens_id() {
         ClientUserToken {
             user: String::new(),
             password: String::new()
-        }
-    );
+        });
     assert!(!config.is_valid());
 }
 

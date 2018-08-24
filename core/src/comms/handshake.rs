@@ -191,13 +191,13 @@ impl HelloMessage {
     const MAX_URL_LEN: usize = 4096;
 
     /// Creates a HEL message
-    pub fn new(endpoint_url: &str, send_buffer_size: UInt32, receive_buffer_size: UInt32, max_message_size: UInt32) -> HelloMessage {
+    pub fn new(endpoint_url: &str, send_buffer_size: usize, receive_buffer_size: usize, max_message_size: usize) -> HelloMessage {
         let mut msg = HelloMessage {
             message_header: MessageHeader::new(MessageType::Hello),
             protocol_version: 0,
-            receive_buffer_size,
-            send_buffer_size,
-            max_message_size,
+            send_buffer_size: send_buffer_size as UInt32,
+            receive_buffer_size: receive_buffer_size as UInt32,
+            max_message_size: max_message_size as UInt32,
             max_chunk_count: MAX_CHUNK_COUNT as UInt32,
             endpoint_url: UAString::from(endpoint_url),
         };

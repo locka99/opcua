@@ -8,6 +8,7 @@ license = "MPL-2.0"
 keywords = ["opcua","opc","ua"]
 categories = ["embedded","network-programming"]
 readme = "../README.md"
+documentation = "https://docs.rs/opcua-core/"
 
 [dependencies]
 log = "0.4"
@@ -17,6 +18,8 @@ regex = "0.2"
 openssl = "0.10"
 serde = "1.0"
 serde_yaml = "0.7"
+tokio = "0.1"
+tokio-io = "0.1"
 
 [dependencies.opcua-types]
 path = "../types"

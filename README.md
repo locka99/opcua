@@ -10,6 +10,15 @@ etc. - just about anything that has data that something else wants to monitor, c
 Rust is a systems programming language and is therefore a natural choice for implementing OPC UA. This implementation 
 supports the embedded, micro and nano profiles but may grow to support features in time.
 
+# Code documentation
+
+Theseare generated from the source 
+
+- [Client](https://docs.rs/opcua-client/) - the client-side API.
+- [Server](https://docs.rs/opcua-server/) - the server-side API.
+- [Core](https://docs.rs/opcua-core/) - core functionality used by client and server.
+- [Types](https://docs.rs/opcua-types/) - structures, requests, responses and enums. 
+
 # License
 
 The code is licenced under [MPL-2.0](https://opensource.org/licenses/MPL-2.0). Like all open source code, you use this code at your own risk. 

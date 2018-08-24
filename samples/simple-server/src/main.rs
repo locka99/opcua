@@ -65,7 +65,7 @@ fn add_example_variables(server: &mut Server) {
         // Store a counter and a flag in a tuple
         let data = Arc::new(Mutex::new((0, true)));
         let address_space = server.address_space.clone();
-        server.add_polling_action(250, move || {
+        server.add_polling_action(300, move || {
             let mut data = data.lock().unwrap();
             data.0 += 1;
             data.1 = !data.1;
@@ -95,7 +95,8 @@ fn add_example_variables(server: &mut Server) {
             use chrono::Utc;
             let start_time = Utc::now();
             let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Result<Option<DataValue>, StatusCode> {
-                let moment = (Utc::now().signed_duration_since(start_time).num_milliseconds() % 10000) as f64 / 10000.0;
+                let elapsed = Utc::now().signed_duration_since(start_time).num_milliseconds();
+                let moment = (elapsed % 10000) as f64 / 10000.0;
                 Ok(Some(DataValue::new((2.0 * consts::PI * moment).sin())))
             });
             v.set_value_getter(Arc::new(Mutex::new(getter)));

@@ -115,8 +115,7 @@ impl ServerState {
                 issued_token_type: UAString::null(),
                 issuer_endpoint_url: UAString::null(),
                 security_policy_uri: UAString::null(),
-            }
-            );
+            });
         }
         if !endpoint.user_token_ids.is_empty() {
             user_identity_tokens.push(UserTokenPolicy {

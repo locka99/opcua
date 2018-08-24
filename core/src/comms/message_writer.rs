@@ -1,0 +1,96 @@
+use std::io::{Cursor, Write};
+
+use opcua_types::{SupportedMessage, UInt32};
+use opcua_types::status_codes::StatusCode;
+
+use comms::secure_channel::SecureChannel;
+use comms::chunker::Chunker;
+//use debug::log_buffer;
+
+const DEFAULT_REQUEST_ID: UInt32 = 1000;
+const DEFAULT_SENT_SEQUENCE_NUMBER: UInt32 = 0;
+
+/// SocketWriter is a wrapper around the writable half of a tokio stream and a buffer which
+/// will be dumped into that stream.
+pub struct MessageWriter {
+    /// The send buffer
+    pub buffer: Cursor<Vec<u8>>,
+    /// The last request id
+    last_request_id: UInt32,
+    /// Last sent sequence number
+    last_sent_sequence_number: UInt32,
+}
+
+impl MessageWriter {
+    pub fn new(buffer_size: usize) -> MessageWriter {
+        MessageWriter {
+            buffer: Cursor::new(vec![0u8; buffer_size]),
+            last_request_id: DEFAULT_REQUEST_ID,
+            last_sent_sequence_number: DEFAULT_SENT_SEQUENCE_NUMBER,
+        }
+    }
+
+    /// Encodes the message into a series of chunks, encrypts those chunks and writes the
+    /// result into the buffer ready to be sent.
+    pub fn write(&mut self, message: SupportedMessage, secure_channel: &mut SecureChannel) -> Result<UInt32, StatusCode> {
+        let request_id = self.next_request_id();
+
+        trace!("Writing request to buffer");
+        // Turn message to chunk(s)
+        // TODO max message size and max chunk size
+        let chunks = {
+            Chunker::encode(self.last_sent_sequence_number + 1, request_id, 0, 0, secure_channel, &message)?
+        };
+
+        // Sequence number monotonically increases per chunk
+        self.last_sent_sequence_number += chunks.len() as UInt32;
+
+        // Send chunks
+        let max_chunk_size = 32768; // FIXME TODO
+        let mut data = vec![0u8; max_chunk_size + 1024];
+        for chunk in chunks {
+            trace!("Sending chunk of type {:?}", chunk.message_header()?.message_type);
+            let size = {
+                secure_channel.apply_security(&chunk, &mut data)
+            };
+            match size {
+                Ok(size) => {
+                    let bytes_written_result = self.buffer.write(&data[..size]);
+                    if let Err(error) = bytes_written_result {
+                        error!("Error while writing bytes to stream, connection broken, check error {:?}", error);
+                        break;
+                    }
+                }
+                Err(err) => {
+                    panic!("Applying security to chunk failed - {:?}", err);
+                }
+            }
+        }
+        trace!("Message written");
+        Ok(request_id)
+    }
+
+    fn next_request_id(&mut self) -> UInt32 {
+        self.last_request_id += 1;
+        self.last_request_id
+    }
+
+    /// Clears the buffer
+    fn clear(&mut self) {
+        self.buffer.set_position(0);
+    }
+
+    /// Tests if there are bytes to write in the stream
+    pub fn has_bytes_to_write(&self) -> bool {
+        self.buffer.position() > 0
+    }
+
+    /// Yields any results to write, resetting the buffer back afterwards
+    pub fn bytes_to_write(&mut self) -> Vec<u8> {
+        let pos = self.buffer.position() as usize;
+        let result = (self.buffer.get_ref())[0..pos].to_vec();
+        // Buffer MUST be cleared here, otherwise races are possible
+        self.clear();
+        result
+    }
+}

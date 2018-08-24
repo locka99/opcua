@@ -17,8 +17,6 @@ impl SubscriptionState {
         }
     }
 
-    pub fn is_empty(&self) -> bool { self.subscriptions.is_empty() }
-
     pub fn subscription_ids(&self) -> Option<Vec<UInt32>> {
         if self.subscriptions.is_empty() {
             None
@@ -29,6 +27,10 @@ impl SubscriptionState {
 
     pub fn subscription_exists(&self, subscription_id: UInt32) -> bool {
         self.subscriptions.contains_key(&subscription_id)
+    }
+
+    pub fn get(&self, subscription_id: UInt32) -> Option<&Subscription> {
+        self.subscriptions.get(&subscription_id)
     }
 
     pub fn add_subscription(&mut self, subscription: Subscription) {
@@ -53,7 +55,7 @@ impl SubscriptionState {
         self.subscriptions.clear();
     }
 
-    pub fn set_publishing_mode(&mut self, publishing_enabled: Boolean, subscription_ids: &[UInt32]) {
+    pub fn set_publishing_mode(&mut self, subscription_ids: &[UInt32], publishing_enabled: Boolean) {
         subscription_ids.iter().for_each(|subscription_id| {
             if let Some(ref mut subscription) = self.subscriptions.get_mut(subscription_id) {
                 subscription.set_publishing_enabled(publishing_enabled);

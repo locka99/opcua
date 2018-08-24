@@ -3,9 +3,6 @@
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 
-use time;
-use timer;
-
 use opcua_types::{ByteString, MessageSecurityMode, UAString};
 use opcua_types::{is_opc_ua_binary_url, server_url_from_endpoint_url, url_matches, url_matches_except_host};
 use opcua_types::service_types::{ApplicationDescription, EndpointDescription, RegisteredServer};
@@ -26,11 +23,11 @@ pub enum IdentityToken {
 
 struct SessionEntry {
     session: Arc<RwLock<Session>>,
-    subscription_timer: Option<(timer::Timer, timer::Guard)>,
 }
 
-/// The client-side OPC UA state. A client can have a description, multiple open sessions
-/// and a certificate store.
+/// The `Client` defines a connection to a server which can be used to to get end points or establish
+/// a session. It is configured using a `ClientConfig` which defines the server it talks to and other
+/// details such as the location of the certificate store.
 pub struct Client {
     /// Client configuration
     config: ClientConfig,
@@ -44,8 +41,6 @@ pub struct Client {
 impl Drop for Client {
     fn drop(&mut self) {
         for session in self.sessions.iter_mut() {
-            // Remove the timer from the session - has a reference to session
-            session.subscription_timer = None;
             // Disconnect
             let mut session = trace_write_lock_unwrap!(session.session);
             if session.is_connected() {
@@ -155,26 +150,13 @@ impl Client {
 
     /// Creates an ad hoc new `Session` using the specified endpoint url, security policy and mode.
     pub fn new_session_from_info<T>(&mut self, session_info: T) -> Result<Arc<RwLock<Session>>, String> where T: Into<SessionInfo> {
-        const SUBSCRIPTION_TIMER_INTERVAL: i64 = 50i64;
-
         let session_info = session_info.into();
         if !is_opc_ua_binary_url(session_info.endpoint.endpoint_url.as_ref()) {
             Err(format!("Endpoint url {}, is not a valid / supported url", session_info.endpoint.endpoint_url))
         } else {
             let session = Arc::new(RwLock::new(Session::new(self.application_description(), self.certificate_store.clone(), session_info)));
-            // Set up a timer for the session to process subscriptions
-            let subscription_timer = {
-                let timer = timer::Timer::new();
-                let session = session.clone();
-                let timer_guard = timer.schedule_repeating(time::Duration::milliseconds(SUBSCRIPTION_TIMER_INTERVAL), move || {
-                    let mut session = trace_write_lock_unwrap!(session);
-                    session.subscription_timer();
-                });
-                Some((timer, timer_guard))
-            };
             self.sessions.push(SessionEntry {
                 session: session.clone(),
-                subscription_timer,
             });
             Ok(session)
         }

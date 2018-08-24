@@ -1,13 +1,21 @@
-//! Session functionality for the current connection including async
-//! wrappers around client side requests to server.
+//! Session functionality for the current open client connection. This module contains functions
+//! to call for all typically synchronous operations during an OPC UA session. The session
+//! has async functionality too but that is for the purpose of publish requests on subscriptions
+//! and events.
 
 use std::result::Result;
 use std::str::FromStr;
-use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
+use std::time::{Instant, Duration};
+use std::thread;
 
-use chrono;
+use tokio;
+use tokio_timer::Interval;
+use futures::{Future, Stream};
+use futures::future;
+use futures::sync::mpsc::{unbounded, UnboundedSender};
 
+use opcua_core::comms::secure_channel::{Role, SecureChannel};
 use opcua_core::crypto;
 use opcua_core::crypto::{CertificateStore, PrivateKey, SecurityPolicy, X509};
 use opcua_types::*;
@@ -18,9 +26,11 @@ use opcua_types::status_codes::StatusCode::*;
 
 use client;
 use comms::tcp_transport::TcpTransport;
+use message_queue::MessageQueue;
 use subscription;
 use subscription::{DataChangeCallback, Subscription};
 use subscription_state::SubscriptionState;
+use session_state::SessionState;
 
 /// Information about the server endpoint, security policy, security mode and user identity that the session will
 /// will use to establish a connection.
@@ -56,61 +66,11 @@ impl Into<SessionInfo> for (EndpointDescription, client::IdentityToken) {
     }
 }
 
-const DEFAULT_SESSION_TIMEOUT: u32 = 60 * 1000;
-const DEFAULT_REQUEST_TIMEOUT: u32 = 10 * 1000;
-const SEND_BUFFER_SIZE: usize = 65536;
-const RECEIVE_BUFFER_SIZE: usize = 65536;
-const MAX_BUFFER_SIZE: usize = 65536;
-
-/// Session's state indicates connection status, negotiated times and sizes,
-/// and security tokens.
-pub struct SessionState {
-    /// The request timeout is how long the session will wait from sending a request expecting a response
-    /// if no response is received the rclient will terminate.
-    pub request_timeout: u32,
-    /// Session timeout in milliseconds
-    pub session_timeout: u32,
-    /// Size of the send buffer
-    pub send_buffer_size: usize,
-    /// Size of the
-    pub receive_buffer_size: usize,
-    /// Maximum message size
-    pub max_message_size: usize,
-    /// The next handle to assign to a request
-    pub next_request_handle: UInt32,
-    /// The session's id - used for diagnostic info
-    pub session_id: NodeId,
-    /// The sesion authentication token, used for session activation
-    pub authentication_token: NodeId,
-    /// Next monitored item client side handle
-    next_monitored_item_handle: UInt32,
-    /// A set of the outstanding publish request handles
-    publish_request_handles: HashSet<UInt32>,
-    /// A flag which tells client to wait for a publish response before sending any new publish
-    /// requests
-    wait_for_publish_response: bool,
-}
-
-impl SessionState {
-    pub fn new() -> SessionState {
-        SessionState {
-            session_timeout: DEFAULT_SESSION_TIMEOUT,
-            request_timeout: DEFAULT_REQUEST_TIMEOUT,
-            send_buffer_size: SEND_BUFFER_SIZE,
-            receive_buffer_size: RECEIVE_BUFFER_SIZE,
-            max_message_size: MAX_BUFFER_SIZE,
-            next_request_handle: 1,
-            session_id: NodeId::null(),
-            authentication_token: NodeId::null(),
-            next_monitored_item_handle: 1000,
-            publish_request_handles: HashSet::new(),
-            wait_for_publish_response: false,
-        }
-    }
-}
-
-/// A session of the client. The session is associated with an endpoint and
-/// maintains a state when it is active.
+/// An open session of the client. The session is associated with an endpoint and
+/// maintains a state when it is active. The session struct provides functions for all the supported
+/// request types in the API. Note that not all servers may support all client side requests and
+/// calling an unsupported API may cause the connection to be dropped. Clients are expected to know
+/// what they are calling.
 pub struct Session {
     /// The client application's name
     application_description: ApplicationDescription,
@@ -120,12 +80,16 @@ pub struct Session {
     session_state: Arc<RwLock<SessionState>>,
     /// Subscriptions state
     subscription_state: Arc<RwLock<SubscriptionState>>,
-    /// Unacknowledged
-    subscription_acknowledgements: Vec<SubscriptionAcknowledgement>,
+    /// Subscription timer command
+    timer_command_queue: UnboundedSender<SubscriptionTimerCommand>,
     /// Transport layer
     transport: TcpTransport,
     /// Certificate store
     certificate_store: Arc<RwLock<CertificateStore>>,
+    /// Secure channel information
+    secure_channel: Arc<RwLock<SecureChannel>>,
+    /// Message queue
+    message_queue: Arc<RwLock<MessageQueue>>,
 }
 
 impl Drop for Session {
@@ -138,21 +102,59 @@ impl Drop for Session {
     }
 }
 
+#[derive(Clone, Copy, PartialEq)]
+enum SubscriptionTimerCommand {
+    CreateTimer(UInt32),
+    Quit,
+}
+
 impl Session {
     /// Create a new session from the supplied application description, certificate store and session
     /// information.
-    pub fn new(application_description: ApplicationDescription, certificate_store: Arc<RwLock<CertificateStore>>, session_info: SessionInfo) -> Session {
-        let session_state = Arc::new(RwLock::new(SessionState::new()));
-        let transport = TcpTransport::new(certificate_store.clone(), session_state.clone());
+    pub(crate) fn new(application_description: ApplicationDescription, certificate_store: Arc<RwLock<CertificateStore>>, session_info: SessionInfo) -> Session {
+        let secure_channel = Arc::new(RwLock::new(SecureChannel::new(certificate_store.clone(), Role::Client)));
+        let message_queue = Arc::new(RwLock::new(MessageQueue::new()));
+        let session_state = Arc::new(RwLock::new(SessionState::new(secure_channel.clone(), message_queue.clone())));
+        let transport = TcpTransport::new(secure_channel.clone(), session_state.clone(), message_queue.clone());
         let subscription_state = Arc::new(RwLock::new(SubscriptionState::new()));
+
+        // Create a thread that will manage subscription timers. Each subscription that is begun,
+        let timer_command_queue = {
+            let subscription_state = subscription_state.clone();
+            let session_state = session_state.clone();
+            let (timer_command_queue, timer_receiver) = unbounded::<SubscriptionTimerCommand>();
+            let _ = thread::spawn(move || {
+                // This listens for timer actions to spawn
+                let timer_task = timer_receiver.take_while(|cmd| {
+                    let take = *cmd != SubscriptionTimerCommand::Quit;
+                    future::ok(take)
+                }).map(move |cmd| {
+                    (cmd, session_state.clone(), subscription_state.clone())
+                }).for_each(|(cmd, session_state, subscription_state)| {
+                    match cmd {
+                        SubscriptionTimerCommand::CreateTimer(subscription_id) => {
+                            let timer_task = Self::make_subscription_timer(subscription_id, session_state, subscription_state);
+                            tokio::spawn(timer_task);
+                        }
+                        _ => {}
+                    }
+                    future::ok(())
+                });
+                tokio::run(timer_task);
+            });
+            timer_command_queue
+        };
+
         Session {
             application_description,
             session_info,
             session_state,
             certificate_store,
             subscription_state,
-            subscription_acknowledgements: Vec::new(),
+            timer_command_queue,
             transport,
+            secure_channel,
+            message_queue,
         }
     }
 
@@ -171,7 +173,7 @@ impl Session {
     pub fn reconnect_and_activate_session(&mut self) -> Result<(), StatusCode> {
         let have_authentication_token = {
             let mut session_state = trace_read_lock_unwrap!(self.session_state);
-            !session_state.authentication_token.is_null()
+            !session_state.authentication_token().is_null()
         };
         // Do nothing if already connected / activated
         if self.is_connected() {
@@ -183,7 +185,6 @@ impl Session {
             Err(StatusCode::BadUnexpectedError)
         } else {
             self.connect()?;
-
             if let Err(error) = self.activate_session() {
                 // Perhaps the server went down and lost all its state?
                 // In that instance, the fall back here should be:
@@ -206,19 +207,18 @@ impl Session {
         info!("Connect");
         let security_policy = SecurityPolicy::from_str(self.session_info.endpoint.security_policy_uri.as_ref()).unwrap();
         if security_policy == SecurityPolicy::Unknown {
+            error!("connect, security policy \"{}\" is unknown", self.session_info.endpoint.security_policy_uri.as_ref());
             Err(BadSecurityPolicyRejected)
         } else {
             {
-                let mut secure_channel = trace_write_lock_unwrap!( self.transport.secure_channel);
+                let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
                 secure_channel.set_security_policy(security_policy);
                 secure_channel.set_security_mode(self.session_info.endpoint.security_mode);
                 let _ = secure_channel.set_remote_cert_from_byte_string(&self.session_info.endpoint.server_certificate);
                 info!("Security policy = {:?}", security_policy);
                 info!("Security mode = {:?}", self.session_info.endpoint.security_mode);
             }
-
             self.transport.connect(endpoint_url.as_ref())?;
-            self.transport.hello(endpoint_url.as_ref())?;
             self.open_secure_channel()?;
             Ok(())
         }
@@ -228,7 +228,7 @@ impl Session {
     pub fn disconnect(&mut self) {
         let _ = self.delete_all_subscriptions();
         let _ = self.close_secure_channel();
-        self.transport.disconnect();
+        self.transport.wait_for_disconnect();
     }
 
     pub fn is_connected(&self) -> bool {
@@ -237,7 +237,11 @@ impl Session {
 
     /// Sends an OpenSecureChannel request to the server
     pub fn open_secure_channel(&mut self) -> Result<(), StatusCode> {
-        self.issue_or_renew_secure_channel(SecurityTokenRequestType::Issue)
+        debug!("open_secure_channel");
+        {
+            let mut session_state = trace_write_lock_unwrap!(self.session_state);
+            session_state.issue_or_renew_secure_channel(SecurityTokenRequestType::Issue)
+        }
     }
 
     /// Sends a CloseSecureChannel request to the server
@@ -246,7 +250,7 @@ impl Session {
             request_header: self.make_request_header(),
         };
         // We do not wait for a response because there may not be one. Just return
-        let _ = self.async_send_request(request);
+        let _ = self.async_send_request(request, false);
         Ok(())
     }
 
@@ -258,7 +262,7 @@ impl Session {
         let endpoint_url = UAString::from(self.session_info.endpoint.endpoint_url.clone());
 
         let client_nonce = {
-            let secure_channel = trace_read_lock_unwrap!( self.transport.secure_channel);
+            let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
             secure_channel.local_nonce_as_byte_string()
         };
 
@@ -288,15 +292,15 @@ impl Session {
 
         let response = self.send_request(request)?;
         if let SupportedMessage::CreateSessionResponse(response) = response {
-            Self::process_service_result(&response.response_header)?;
+            ::process_service_result(&response.response_header)?;
 
             let session_state = self.session_state.clone();
             let mut session_state = trace_write_lock_unwrap!(session_state);
 
-            session_state.session_id = response.session_id;
-            session_state.authentication_token = response.authentication_token;
+            session_state.set_session_id(response.session_id);
+            session_state.set_authentication_token(response.authentication_token);
             {
-                let mut secure_channel = trace_write_lock_unwrap!( self.transport.secure_channel);
+                let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
                 let _ = secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce);
                 let _ = secure_channel.set_remote_cert_from_byte_string(&response.server_certificate);
             }
@@ -331,15 +335,15 @@ impl Session {
             } else {
                 // TODO Verify signature using server's public key (from endpoint) comparing with data made from client certificate and nonce.
                 // crypto::verify_signature_data(verification_key, security_policy, server_certificate, client_certificate, client_nonce);
-                Ok(session_state.session_id.clone())
+                Ok(session_state.session_id())
             }
         } else {
-            Err(Self::process_unexpected_response(response))
+            Err(::process_unexpected_response(response))
         }
     }
 
     fn security_policy(&self) -> SecurityPolicy {
-        let secure_channel = trace_read_lock_unwrap!( self.transport.secure_channel);
+        let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
         secure_channel.security_policy()
     }
 
@@ -358,7 +362,7 @@ impl Session {
         let client_signature = match security_policy {
             SecurityPolicy::None => SignatureData::null(),
             _ => {
-                let secure_channel = trace_read_lock_unwrap!(self.transport.secure_channel);
+                let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
                 let server_nonce = secure_channel.remote_nonce_as_byte_string();
                 let server_cert = secure_channel.remote_cert_as_byte_string();
                 // Create a signature data
@@ -395,10 +399,10 @@ impl Session {
         let response = self.send_request(request)?;
         if let SupportedMessage::ActivateSessionResponse(response) = response {
             // trace!("ActivateSessionResponse = {:#?}", response);
-            Self::process_service_result(&response.response_header)?;
+            ::process_service_result(&response.response_header)?;
             Ok(())
         } else {
-            Err(Self::process_unexpected_response(response))
+            Err(::process_unexpected_response(response))
         }
     }
 
@@ -412,7 +416,7 @@ impl Session {
         };
         let response = self.send_request(request)?;
         if let SupportedMessage::FindServersResponse(response) = response {
-            Self::process_service_result(&response.response_header)?;
+            ::process_service_result(&response.response_header)?;
             let servers = if let Some(servers) = response.servers {
                 servers
             } else {
@@ -420,7 +424,7 @@ impl Session {
             };
             Ok(servers)
         } else {
-            Err(Self::process_unexpected_response(response))
+            Err(::process_unexpected_response(response))
         }
     }
 
@@ -431,16 +435,16 @@ impl Session {
         };
         let response = self.send_request(request)?;
         if let SupportedMessage::RegisterServerResponse(response) = response {
-            Self::process_service_result(&response.response_header)?;
+            ::process_service_result(&response.response_header)?;
             Ok(())
         } else {
-            Err(Self::process_unexpected_response(response))
+            Err(::process_unexpected_response(response))
         }
     }
 
     /// Sends a GetEndpoints request to the server
     pub fn get_endpoints(&mut self) -> Result<Vec<EndpointDescription>, StatusCode> {
-        debug!("Fetching end points...");
+        debug!("get_endpoints");
         let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
         let request = GetEndpointsRequest {
             request_header: self.make_request_header(),
@@ -451,21 +455,24 @@ impl Session {
 
         let response = self.send_request(request)?;
         if let SupportedMessage::GetEndpointsResponse(response) = response {
-            Self::process_service_result(&response.response_header)?;
+            ::process_service_result(&response.response_header)?;
             if response.endpoints.is_none() {
+                debug!("get_endpoints, success but no endpoints");
                 Ok(Vec::new())
             } else {
+                debug!("get_endpoints, success");
                 Ok(response.endpoints.unwrap())
             }
         } else {
-            Err(Self::process_unexpected_response(response))
+            error!("get_endpoints failed {:?}", response);
+            Err(::process_unexpected_response(response))
         }
     }
 
     /// Sends a BrowseRequest to the server
     pub fn browse(&mut self, nodes_to_browse: &[BrowseDescription]) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
         if nodes_to_browse.is_empty() {
-            error!("browse() was not supplied with any nodes to browse");
+            error!("browse, was not supplied with any nodes to browse");
             Err(BadNothingToDo)
         } else {
             let request = BrowseRequest {
@@ -480,10 +487,12 @@ impl Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::BrowseResponse(response) = response {
-                Self::process_service_result(&response.response_header)?;
+                debug!("browse, success");
+                ::process_service_result(&response.response_header)?;
                 Ok(response.results)
             } else {
-                Err(Self::process_unexpected_response(response))
+                error!("browse failed {:?}", response);
+                Err(::process_unexpected_response(response))
             }
         }
     }
@@ -491,7 +500,7 @@ impl Session {
     /// Sends a BrowseNextRequest to the server
     pub fn browse_next(&mut self, release_continuation_points: bool, continuation_points: &[ByteString]) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
         if continuation_points.is_empty() {
-            error!("browse_next() was not supplied with any continuation points");
+            error!("browse_next, was not supplied with any continuation points");
             Err(BadNothingToDo)
         } else {
             let request = BrowseNextRequest {
@@ -501,10 +510,12 @@ impl Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::BrowseNextResponse(response) = response {
-                Self::process_service_result(&response.response_header)?;
+                debug!("browse_next, success");
+                ::process_service_result(&response.response_header)?;
                 Ok(response.results)
             } else {
-                Err(Self::process_unexpected_response(response))
+                error!("browse_next failed {:?}", response);
+                Err(::process_unexpected_response(response))
             }
         }
     }
@@ -513,7 +524,7 @@ impl Session {
     pub fn read_nodes(&mut self, nodes_to_read: &[ReadValueId]) -> Result<Option<Vec<DataValue>>, StatusCode> {
         if nodes_to_read.is_empty() {
             // No subscriptions
-            error!("read_nodes() was not supplied with any nodes to read");
+            error!("read_nodes, was not supplied with any nodes to read");
             Err(BadNothingToDo)
         } else {
             debug!("read_nodes requested to read nodes {:?}", nodes_to_read);
@@ -523,14 +534,14 @@ impl Session {
                 timestamps_to_return: TimestampsToReturn::Server,
                 nodes_to_read: Some(nodes_to_read.to_vec()),
             };
-            trace!("ReadRequest = {:#?}", request);
             let response = self.send_request(request)?;
             if let SupportedMessage::ReadResponse(response) = response {
-                trace!("ReadResponse = {:#?}", response);
-                Self::process_service_result(&response.response_header)?;
+                debug!("read_nodes, success");
+                ::process_service_result(&response.response_header)?;
                 Ok(response.results)
             } else {
-                Err(Self::process_unexpected_response(response))
+                error!("write_value failed {:?}", response);
+                Err(::process_unexpected_response(response))
             }
         }
     }
@@ -548,10 +559,12 @@ impl Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::WriteResponse(response) = response {
-                Self::process_service_result(&response.response_header)?;
+                debug!("write_value, success");
+                ::process_service_result(&response.response_header)?;
                 Ok(response.results)
             } else {
-                Err(Self::process_unexpected_response(response))
+                error!("write_value failed {:?}", response);
+                Err(::process_unexpected_response(response))
             }
         }
     }
@@ -573,7 +586,7 @@ impl Session {
         };
         let response = self.send_request(request)?;
         if let SupportedMessage::CreateSubscriptionResponse(response) = response {
-            Self::process_service_result(&response.response_header)?;
+            ::process_service_result(&response.response_header)?;
             let subscription = Subscription::new(response.subscription_id, response.revised_publishing_interval,
                                                  response.revised_lifetime_count,
                                                  response.revised_max_keep_alive_count,
@@ -583,22 +596,31 @@ impl Session {
                                                  callback);
 
             {
-                let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
-                subscription_state.add_subscription(subscription);
+                let subscription_id = {
+                    let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
+                    let subscription_id = subscription.subscription_id();
+                    subscription_state.add_subscription(subscription);
+                    subscription_id
+                };
+                let _ = self.timer_command_queue.unbounded_send(SubscriptionTimerCommand::CreateTimer(subscription_id));
             }
+            debug!("create_subscription, created a subscription with id {}", response.subscription_id);
+
+
             Ok(response.subscription_id)
         } else {
-            Err(Self::process_unexpected_response(response))
+            error!("create_subscription failed {:?}", response);
+            Err(::process_unexpected_response(response))
         }
     }
 
     // modify subscription
     pub fn modify_subscription(&mut self, subscription_id: UInt32, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte) -> Result<(), StatusCode> {
         if subscription_id == 0 {
-            error!("modify_subscription() subscription id must be non-zero, or the subscription is considered invalid");
+            error!("modify_subscription, subscription id must be non-zero, or the subscription is considered invalid");
             Err(BadInvalidArgument)
         } else if !self.subscription_exists(subscription_id) {
-            error!("modify_subscription() subscription id does not exist");
+            error!("modify_subscription, subscription id does not exist");
             Err(BadInvalidArgument)
         } else {
             let request = ModifySubscriptionRequest {
@@ -612,7 +634,7 @@ impl Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::ModifySubscriptionResponse(response) = response {
-                Self::process_service_result(&response.response_header)?;
+                ::process_service_result(&response.response_header)?;
                 let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                 subscription_state.modify_subscription(subscription_id,
                                                        response.revised_publishing_interval,
@@ -620,9 +642,11 @@ impl Session {
                                                        response.revised_max_keep_alive_count,
                                                        max_notifications_per_publish,
                                                        priority);
+                debug!("modify_subscription success for {}", subscription_id);
                 Ok(())
             } else {
-                Err(Self::process_unexpected_response(response))
+                error!("modify_subscription failed {:?}", response);
+                Err(::process_unexpected_response(response))
             }
         }
     }
@@ -630,10 +654,10 @@ impl Session {
     /// Removes a subscription using its subscription id
     pub fn delete_subscription(&mut self, subscription_id: UInt32) -> Result<StatusCode, StatusCode> {
         if subscription_id == 0 {
-            error!("delete_subscription() subscription id must be non-zero, or the subscription is considered invalid");
+            error!("delete_subscription, subscription id 0 is invalid");
             Err(BadInvalidArgument)
         } else if !self.subscription_exists(subscription_id) {
-            error!("delete_subscription() subscription id does not exist");
+            error!("delete_subscription, subscription id {} does not exist", subscription_id);
             Err(BadInvalidArgument)
         } else {
             let request = DeleteSubscriptionsRequest {
@@ -642,14 +666,16 @@ impl Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::DeleteSubscriptionsResponse(response) = response {
-                Self::process_service_result(&response.response_header)?;
+                ::process_service_result(&response.response_header)?;
                 {
                     let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                     subscription_state.delete_subscription(subscription_id);
                 }
+                debug!("delete_subscription success for {}", subscription_id);
                 Ok(response.results.as_ref().unwrap()[0])
             } else {
-                Err(Self::process_unexpected_response(response))
+                error!("delete_subscription failed {:?}", response);
+                Err(::process_unexpected_response(response))
             }
         }
     }
@@ -662,6 +688,7 @@ impl Session {
         };
         if subscription_ids.is_none() {
             // No subscriptions
+            error!("delete_all_subscriptions, called when there are no subscriptions");
             Err(BadNothingToDo)
         } else {
             // Send a delete request holding all the subscription ides that we wish to delete
@@ -671,24 +698,27 @@ impl Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::DeleteSubscriptionsResponse(response) = response {
-                Self::process_service_result(&response.response_header)?;
+                ::process_service_result(&response.response_header)?;
                 {
                     // Clear out all subscriptions, assuming the delete worked
                     let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                     subscription_state.delete_all_subscriptions();
                 }
+                debug!("delete_all_subscriptions success");
                 Ok(response.results.unwrap())
             } else {
-                Err(Self::process_unexpected_response(response))
+                error!("delete_all_subscriptions failed {:?}", response);
+                Err(::process_unexpected_response(response))
             }
         }
     }
 
     /// Sets the publishing mode for one or more subscriptions
-    pub fn set_publishing_mode(&mut self, publishing_enabled: Boolean, subscription_ids: &[UInt32]) -> Result<Vec<StatusCode>, StatusCode> {
+    pub fn set_publishing_mode(&mut self, subscription_ids: &[UInt32], publishing_enabled: Boolean) -> Result<Vec<StatusCode>, StatusCode> {
+        debug!("set_publishing_mode, for subscriptions {:?}, publishing enabled {}", subscription_ids, publishing_enabled);
         if subscription_ids.is_empty() {
             // No subscriptions
-            error!("set_publishing_mode() no subscription ids were provided");
+            error!("set_publishing_mode, no subscription ids were provided");
             Err(BadNothingToDo)
         } else {
             let request = SetPublishingModeRequest {
@@ -698,45 +728,42 @@ impl Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::SetPublishingModeResponse(response) = response {
-                Self::process_service_result(&response.response_header)?;
+                ::process_service_result(&response.response_header)?;
                 {
                     // Clear out all subscriptions, assuming the delete worked
                     let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
-                    subscription_state.set_publishing_mode(publishing_enabled, subscription_ids);
+                    subscription_state.set_publishing_mode(subscription_ids, publishing_enabled);
                 }
+                debug!("set_publishing_mode success");
                 Ok(response.results.unwrap())
             } else {
-                Err(Self::process_unexpected_response(response))
+                error!("set_publishing_mode failed {:?}", response);
+                Err(::process_unexpected_response(response))
             }
         }
     }
 
     /// Create monitored items request
     pub fn create_monitored_items(&mut self, subscription_id: UInt32, items_to_create: &[MonitoredItemCreateRequest]) -> Result<Vec<MonitoredItemCreateResult>, StatusCode> {
+        debug!("create_monitored_items, for subscription {}, {} items", subscription_id, items_to_create.len());
         if subscription_id == 0 {
-            error!("create_monitored_items() subscription id must be non-zero, or the subscription is considered invalid");
+            error!("create_monitored_items, subscription id 0 is invalid");
             Err(BadInvalidArgument)
         } else if !self.subscription_exists(subscription_id) {
-            error!("create_monitored_items subscription id does not exist");
+            error!("create_monitored_items, subscription id {} does not exist", subscription_id);
             Err(BadInvalidArgument)
         } else if items_to_create.is_empty() {
-            error!("create_monitored_items() called with no items to create");
+            error!("create_monitored_items, called with no items to create");
             Err(BadNothingToDo)
         } else {
-            // Obtain some handles and update state
-            let mut next_monitored_item_handle = {
-                let mut session_state = trace_write_lock_unwrap!(self.session_state);
-                let next_monitored_item_handle = session_state.next_monitored_item_handle;
-                session_state.next_monitored_item_handle += items_to_create.len() as u32;
-                next_monitored_item_handle
-            };
-
             // Assign each item a unique client handle
             let mut items_to_create = items_to_create.to_vec();
-            items_to_create.iter_mut().for_each(|i| {
-                i.requested_parameters.client_handle = next_monitored_item_handle;
-                next_monitored_item_handle += 1;
-            });
+            {
+                let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                items_to_create.iter_mut().for_each(|i| {
+                    i.requested_parameters.client_handle = session_state.next_monitored_item_handle();
+                });
+            }
 
             let request = CreateMonitoredItemsRequest {
                 request_header: self.make_request_header(),
@@ -746,8 +773,9 @@ impl Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::CreateMonitoredItemsResponse(response) = response {
-                Self::process_service_result(&response.response_header)?;
+                ::process_service_result(&response.response_header)?;
                 if let Some(ref results) = response.results {
+                    debug!("create_monitored_items, {} items created", items_to_create.len());
                     // Set the items in our internal state
                     let items_to_create = items_to_create.iter()
                         .zip(results)
@@ -765,24 +793,28 @@ impl Session {
                         let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                         subscription_state.insert_monitored_items(subscription_id, &items_to_create);
                     }
+                } else {
+                    debug!("create_monitored_items, success but no monitored items were created");
                 }
                 Ok(response.results.unwrap())
             } else {
-                Err(Self::process_unexpected_response(response))
+                error!("create_monitored_items failed {:?}", response);
+                Err(::process_unexpected_response(response))
             }
         }
     }
 
     /// Modifies monitored items in the subscription
     pub fn modify_monitored_items(&mut self, subscription_id: UInt32, items_to_modify: &[MonitoredItemModifyRequest]) -> Result<Vec<MonitoredItemModifyResult>, StatusCode> {
+        debug!("modify_monitored_items, for subscription {}, {} items", subscription_id, items_to_modify.len());
         if subscription_id == 0 {
-            error!("modify_monitored_items() subscription id must be non-zero, or the subscription is considered invalid");
+            error!("modify_monitored_items, subscription id 0 is invalid");
             Err(BadInvalidArgument)
         } else if !self.subscription_exists(subscription_id) {
-            error!("modify_monitored_items() subscription id does not exist");
+            error!("modify_monitored_items, subscription id {} does not exist", subscription_id);
             Err(BadInvalidArgument)
         } else if items_to_modify.is_empty() {
-            error!("modify_monitored_items() called with no items to modify");
+            error!("modify_monitored_items, called with no items to modify");
             Err(BadNothingToDo)
         } else {
             let monitored_item_ids = items_to_modify.iter()
@@ -796,7 +828,7 @@ impl Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::ModifyMonitoredItemsResponse(response) = response {
-                Self::process_service_result(&response.response_header)?;
+                ::process_service_result(&response.response_header)?;
                 if let Some(ref results) = response.results {
                     // Set the items in our internal state
                     let items_to_modify = monitored_item_ids.iter()
@@ -814,23 +846,26 @@ impl Session {
                         subscription_state.modify_monitored_items(subscription_id, &items_to_modify);
                     }
                 }
+                debug!("modify_monitored_items, success");
                 Ok(response.results.unwrap())
             } else {
-                Err(Self::process_unexpected_response(response))
+                error!("modify_monitored_items failed {:?}", response);
+                Err(::process_unexpected_response(response))
             }
         }
     }
 
     /// Deletes monitored items from the subscription
     pub fn delete_monitored_items(&mut self, subscription_id: UInt32, items_to_delete: &[UInt32]) -> Result<Vec<StatusCode>, StatusCode> {
+        debug!("delete_monitored_items, subscription {} for {} items", subscription_id, items_to_delete.len());
         if subscription_id == 0 {
-            error!("delete_monitored_items() subscription id must be non-zero, or the subscription is considered invalid");
+            error!("delete_monitored_items, subscription id 0 is invalid");
             Err(BadInvalidArgument)
         } else if !self.subscription_exists(subscription_id) {
-            error!("delete_monitored_items() subscription id does not exist");
+            error!("delete_monitored_items, subscription id {} does not exist", subscription_id);
             Err(BadInvalidArgument)
         } else if items_to_delete.is_empty() {
-            error!("delete_monitored_items() called with no items to delete");
+            error!("delete_monitored_items, called with no items to delete");
             Err(BadNothingToDo)
         } else {
             let request = DeleteMonitoredItemsRequest {
@@ -840,14 +875,16 @@ impl Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::DeleteMonitoredItemsResponse(response) = response {
-                Self::process_service_result(&response.response_header)?;
+                ::process_service_result(&response.response_header)?;
                 if let Some(_) = response.results {
                     let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                     subscription_state.delete_monitored_items(subscription_id, items_to_delete);
                 }
+                debug!("delete_monitored_items, success");
                 Ok(response.results.unwrap())
             } else {
-                Err(Self::process_unexpected_response(response))
+                error!("delete_monitored_items failed {:?}", response);
+                Err(::process_unexpected_response(response))
             }
         }
     }
@@ -873,7 +910,7 @@ impl Session {
                 Err(BadUnexpectedError)
             }
         } else {
-            Err(Self::process_unexpected_response(response))
+            Err(::process_unexpected_response(response))
         }
     }
 
@@ -905,94 +942,25 @@ impl Session {
         subscription_state.subscription_exists(subscription_id)
     }
 
-    /// Sends a publish request containing acknowledgements for previous notifications.
-    /// TODO this function needs to be refactored as an asynchronous operation.
-    fn async_publish(&mut self, subscription_acknowledgements: &[SubscriptionAcknowledgement]) -> Result<UInt32, StatusCode> {
-        let request = PublishRequest {
-            request_header: self.make_request_header(),
-            subscription_acknowledgements: if subscription_acknowledgements.is_empty() { None } else { Some(subscription_acknowledgements.to_vec()) },
-        };
-        let request_handle = self.async_send_request(request)?;
-        {
-            // Store the request handle so a publish response (or error) can be associated with the request later
-            let mut session_state = trace_write_lock_unwrap!(self.session_state);
-            session_state.publish_request_handles.insert(request_handle);
-        }
-        Ok(request_handle)
-    }
-
     /// Synchronously sends a request. The return value is the response to the request
     fn send_request<T>(&mut self, request: T) -> Result<SupportedMessage, StatusCode> where T: Into<SupportedMessage> {
-        // Send the request
-        let request_handle = self.async_send_request(request)?;
-        // Wait for the response
-        let request_timeout = {
-            let session_state = trace_read_lock_unwrap!(self.session_state);
-            session_state.request_timeout
-        };
-        self.wait_for_response(request_handle, request_timeout)
+        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+        session_state.send_request(request)
     }
 
     /// Asynchronously sends a request. The return value is the request handle of the request
-    fn async_send_request<T>(&mut self, request: T) -> Result<UInt32, StatusCode> where T: Into<SupportedMessage> {
-        let request = request.into();
-        match request {
-            SupportedMessage::OpenSecureChannelRequest(_) | SupportedMessage::CloseSecureChannelRequest(_) => {}
-            _ => {
-                // Make sure secure channel token hasn't expired
-                let _ = self.ensure_secure_channel_token();
-            }
-        }
-        // Send the request
-        let request_handle = request.request_handle();
-        let _ = self.transport.async_send_request(request)?;
-        Ok(request_handle)
+    fn async_send_request<T>(&mut self, request: T, async: bool) -> Result<UInt32, StatusCode> where T: Into<SupportedMessage> {
+        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+        session_state.async_send_request(request, async)
     }
 
-    /// Asks the session to poll, which basically allows clients who are doing nothing but receiving
-    /// notifications to receive them.
-    pub fn poll(&mut self) {
-        // TODO timeout
-        let _ = self.wait_for_response(0, 5000);
+    /// Asks the session to poll, which basically does housekeeping and dispatching of any pending
+    /// async responses.
+    pub fn poll(&mut self) -> bool {
+        self.handle_publish_responses()
     }
 
-////////////////////////////////////////////////////////////////////////////////////////////////
-
-     fn wait_for_response(&mut self, request_handle: UInt32, request_timeout: UInt32) -> Result<SupportedMessage, StatusCode> {
-        // Receive messages until the one expected comes back. Publish responses will be consumed
-        // silently.
-        let start = chrono::Utc::now();
-        loop {
-            // Note that theoretically, there might be one slow response and then another so the timeout
-            // period could be exceeded by nearly double in the worst case, e.g. timeout is 10s,
-            // first response (not ours) takes 9.9s and then we wait another 9.9s for the message
-            // that is ours. Now the timeout was 19.8s. Should we error even though we eventually
-            // got the message outside the timeout?
-            let response = self.transport.wait_for_response(request_timeout)?;
-            let response_request_handle = response.request_handle();
-
-            let now = chrono::Utc::now();
-            let request_duration = now.signed_duration_since(start);
-            if request_duration.num_milliseconds() >= request_timeout as i64 {
-                return Err(BadTimeout);
-            }
-            // Compare the handle of the response to the expected handle
-            if response_request_handle == request_handle {
-                // Straight match so return
-                return Ok(response);
-            }
-            // Check if it is a pending publish request
-            let is_publish_request = {
-                let mut session_state = trace_write_lock_unwrap!(self.session_state);
-                session_state.publish_request_handles.remove(&response_request_handle)
-            };
-            if is_publish_request {
-                self.handle_publish_response(response);
-            } else {
-                error!("Received a response from server which does not match any existing request handle {}", response_request_handle);
-            }
-        }
-    }
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     fn user_identity_token(&self) -> Result<ExtensionObject, StatusCode> {
         let user_token_type = match self.session_info.user_identity_token {
@@ -1033,140 +1001,102 @@ impl Session {
         }
     }
 
-    /// Checks if secure channel token needs to be renewed and renews it
-    fn ensure_secure_channel_token(&mut self) -> Result<(), StatusCode> {
-        if self.transport.should_renew_security_token() {
-            self.issue_or_renew_secure_channel(SecurityTokenRequestType::Renew)
-        } else {
-            Ok(())
-        }
-    }
-
-    /// Process a call where the response is not the message corresponding to the request
-    /// but something else such as a service fault.
-    fn process_unexpected_response(response: SupportedMessage) -> StatusCode {
-        match response {
-            SupportedMessage::ServiceFault(service_fault) => {
-                error!("Received a service fault of {:?} for the request", service_fault.response_header.service_result);
-                service_fault.response_header.service_result
-            }
-            _ => {
-                error!("Received an unexpected response to the request");
-                BadUnknownResponse
-            }
-        }
-    }
-
-    /// Process the service result, i.e. where the request "succeeded" but the response
-    /// contains a failure status code.
-    fn process_service_result(response_header: &ResponseHeader) -> Result<(), StatusCode> {
-        if response_header.service_result.is_bad() {
-            info!("Received a bad service result {:?} from the request", response_header.service_result);
-            Err(response_header.service_result)
-        } else {
-            Ok(())
-        }
-    }
-
     /// Construct a request header for the session. All requests after create session are expected
     /// to supply an authentication token.
     fn make_request_header(&mut self) -> RequestHeader {
-        let (authentication_token, request_handle, timeout_hint) = {
-            let mut session_state = trace_write_lock_unwrap!(self.session_state);
-            let next_request_handle = session_state.next_request_handle;
-            session_state.next_request_handle += 1;
-            (session_state.authentication_token.clone(), next_request_handle, session_state.request_timeout)
-        };
-        let request_header = RequestHeader {
-            authentication_token,
-            timestamp: DateTime::now(),
-            request_handle,
-            return_diagnostics: 0,
-            audit_entry_id: UAString::null(),
-            timeout_hint,
-            additional_header: ExtensionObject::null(),
-        };
-        request_header
+        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+        session_state.make_request_header()
     }
 
-    fn issue_or_renew_secure_channel(&mut self, request_type: SecurityTokenRequestType) -> Result<(), StatusCode> {
-        trace!("issue_or_renew_secure_channel({:?})", request_type);
-
-        const REQUESTED_LIFETIME: UInt32 = 60000; // TODO
-
-        let (security_mode, security_policy, client_nonce) = {
-            let mut secure_channel = trace_write_lock_unwrap!( self.transport.secure_channel);
-            let client_nonce = secure_channel.security_policy().nonce();
-            secure_channel.set_local_nonce(client_nonce.as_ref());
-            (secure_channel.security_mode(), secure_channel.security_policy(), client_nonce)
-        };
-
-        info!("Making secure channel request");
-        info!("security_mode = {:?}", security_mode);
-        info!("security_policy = {:?}", security_policy);
-
-        let requested_lifetime = REQUESTED_LIFETIME;
-        let request = OpenSecureChannelRequest {
-            request_header: self.make_request_header(),
-            client_protocol_version: 0,
-            request_type,
-            security_mode,
-            client_nonce,
-            requested_lifetime,
-        };
-        let response = self.send_request(SupportedMessage::OpenSecureChannelRequest(request))?;
-        if let SupportedMessage::OpenSecureChannelResponse(response) = response {
-            debug!("Setting transport's security token");
-            self.transport.set_security_token(response.security_token);
-            if security_policy != SecurityPolicy::None && (security_mode == MessageSecurityMode::Sign || security_mode == MessageSecurityMode::SignAndEncrypt) {
-                let mut secure_channel = trace_write_lock_unwrap!( self.transport.secure_channel);
-                secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce)?;
-                secure_channel.derive_keys();
+    fn make_subscription_timer(subscription_id: UInt32, session_state: Arc<RwLock<SessionState>>, subscription_state: Arc<RwLock<SubscriptionState>>) -> impl Future<Item=(), Error=()> {
+        let publishing_interval = {
+            let ss = trace_read_lock_unwrap!(subscription_state);
+            if let Some(subscription) = ss.get(subscription_id) {
+                subscription.publishing_interval()
+            } else {
+                error!("Cannot start timer for subscription id {}, doesn't exist", subscription_id);
+                100.0
             }
-            Ok(())
+        };
+
+        debug!("Publishing interval {}", publishing_interval);
+        Interval::new(Instant::now(), Duration::from_millis(publishing_interval as u64))
+            .take_while(move |_| {
+                let subscription_state = trace_read_lock_unwrap!(subscription_state);
+                let take = if let Some(ref subscription) = subscription_state.get(subscription_id) {
+                    if publishing_interval != subscription.publishing_interval() {
+                        // TODO if the publishing interval changed, then this should stop and a new timer
+                        // should be started
+                        false
+                    } else {
+                        true
+                    }
+                } else {
+                    // Subscription has gone and so should the timer
+                    false
+                };
+                future::ok(take)
+            })
+            .for_each(move |_| {
+                // Server may have throttled publish requests
+                let wait_for_publish_response = {
+                    let session_state = trace_read_lock_unwrap!(session_state);
+                    session_state.wait_for_publish_response
+                };
+                if !wait_for_publish_response {
+                    debug!("Subscription timer for {} is sending a publish", subscription_id);
+                    let mut session_state = trace_write_lock_unwrap!(session_state);
+                    // Send a publish request with any acknowledgements
+                    let subscription_acknowledgements = session_state.subscription_acknowledgements();
+                    let _ = session_state.async_publish(&subscription_acknowledgements);
+                } else {
+                    debug!("Subscription timer is doing nothing, waiting for publish responses");
+                }
+                Ok(())
+            })
+            .map(|_| ())
+            .map_err(|_| ())
+    }
+
+    // Process any async messages we expect to receive
+    fn handle_publish_responses(&mut self) -> bool {
+        let responses = {
+            let mut message_queue = trace_write_lock_unwrap!(self.message_queue);
+            message_queue.async_responses()
+        };
+        if responses.is_empty() {
+            false
         } else {
-            Err(Self::process_unexpected_response(response))
+            debug!("Processing {} async messages", responses.len());
+            for response in responses {
+                self.handle_async_response(response);
+            }
+            true
         }
     }
 
-    /// Function that handles subscription
-    pub fn subscription_timer(&mut self) {
-        // Only sent a publish if there are subscriptions (& in future events)
-        let have_subscriptions = {
-            let subscription_state = trace_read_lock_unwrap!(self.subscription_state);
-            !subscription_state.is_empty()
-        };
-        // Server may have throttled publish requests
-        let wait_for_publish_response = {
-            let session_state = trace_read_lock_unwrap!(self.session_state);
-            session_state.wait_for_publish_response
-        };
-        if have_subscriptions && !wait_for_publish_response {
-            trace!("Subscription timer has subscriptions and is sending a publish");
-            // Send a publish request with any acknowledgements
-            let subscription_acknowledgements = self.subscription_acknowledgements.drain(..).collect::<Vec<SubscriptionAcknowledgement>>();
-            let _ = self.async_publish(&subscription_acknowledgements);
-        }
-    }
-
-    /// This is the handler for asynchronous publish responses. It maintains the acknowledegements
-    /// to be sent and sends the data change notifications to the client for processing.
-    fn handle_publish_response(&mut self, response: SupportedMessage) {
+    /// This is the handler for asynchronous responses which are currently assumed to be publish
+    /// responses. It maintains the acknowledegements to be sent and sends the data change
+    /// notifications to the client for processing.
+    fn handle_async_response(&mut self, response: SupportedMessage) {
+        debug!("handle_publish_response");
         let mut wait_for_publish_response = false;
-
         match response {
             SupportedMessage::PublishResponse(response) => {
-                trace!("PublishResponse");
+                debug!("PublishResponse");
                 // Update subscriptions based on response
                 // Queue acknowledgements for next request
                 let notification_message = response.notification_message;
                 let subscription_id = response.subscription_id;
 
                 // Queue an acknowledgement for this request
-                self.subscription_acknowledgements.push(SubscriptionAcknowledgement {
-                    subscription_id,
-                    sequence_number: notification_message.sequence_number,
-                });
+                {
+                    let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                    session_state.subscription_acknowledgements.push(SubscriptionAcknowledgement {
+                        subscription_id,
+                        sequence_number: notification_message.sequence_number,
+                    });
+                }
 
                 // Process data change notifications
                 let data_change_notifications = notification_message.data_change_notifications();
@@ -1176,6 +1106,7 @@ impl Session {
                 }
             }
             SupportedMessage::ServiceFault(response) => {
+                debug!("ServiceFault {:?}", response);
                 // Terminate timer if
                 let service_result = response.response_header.service_result;
                 match service_result {

@@ -17,13 +17,13 @@ pub enum Message {
 }
 
 /// The message buffer stores bytes read from the input and speculatively turns them into messages.
-pub struct MessageBuffer {
+pub struct MessageReader {
     in_buffer: Vec<u8>,
 }
 
-impl MessageBuffer {
-    pub fn new(incoming_buffer_size: usize) -> MessageBuffer {
-        MessageBuffer {
+impl MessageReader {
+    pub fn new(incoming_buffer_size: usize) -> MessageReader {
+        MessageReader {
             in_buffer: Vec::with_capacity(incoming_buffer_size),
         }
     }
