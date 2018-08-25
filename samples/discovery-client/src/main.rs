@@ -3,6 +3,7 @@ extern crate clap;
 extern crate opcua_client;
 extern crate opcua_core;
 extern crate opcua_types;
+extern crate opcua_console_logging;
 
 use std::str::FromStr;
 
@@ -26,6 +27,8 @@ fn main() {
     };
 
     println!("Attempting to connect to discovery server {} ...", url);
+    // Optional - enable OPC UA logging
+    opcua_console_logging::init();
 
     // The client API has a simple `find_servers` function that connects and returns servers for us.
     let mut client = Client::new(ClientConfig::new("DiscoveryClient", "urn:DiscoveryClient"));

@@ -892,6 +892,7 @@ version = "0.4.0"
 dependencies = [
  "clap 2.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-client 0.4.0",
+ "opcua-console-logging 0.4.0",
  "opcua-core 0.4.0",
  "opcua-types 0.4.0",
 ]
