@@ -956,7 +956,12 @@ impl Session {
     /// Asks the session to poll, which basically does housekeeping and dispatching of any pending
     /// async responses.
     pub fn poll(&mut self) -> bool {
-        self.handle_publish_responses()
+        let handled_responses = self.handle_publish_responses();
+        if !handled_responses {
+            // Stops client calling this repeatedly
+            thread::sleep(Duration::from_millis(50))
+        }
+        handled_responses
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
