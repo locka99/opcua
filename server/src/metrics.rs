@@ -111,9 +111,9 @@ impl ServerMetrics {
                 },
                 transport_state: format!("{:?}", connection.state()),
                 session_activated: session.activated,
-                session_terminated: session.terminated,
-                session_terminated_at: if session.terminated {
-                    session.terminated_at.to_rfc3339()
+                session_terminated: session.terminated(),
+                session_terminated_at: if session.terminated() {
+                    session.terminated_at().to_rfc3339()
                 } else {
                     String::new()
                 },

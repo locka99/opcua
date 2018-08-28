@@ -51,9 +51,6 @@ macro_rules! connection_finished_test {
         {
             let connection = trace_read_lock_unwrap!($connection);
             let finished = connection.is_finished();
-            if finished {
-                debug!("task is dropping as connection is finished");
-            }
             future::ok(!finished)
         }
     }
@@ -64,8 +61,6 @@ macro_rules! connection_finished_test {
 pub struct TcpTransport {
     // Server state, address space etc.
     server_state: Arc<RwLock<ServerState>>,
-    // Session status code - Good, BadInvalid etc.
-    session_status: StatusCode,
     // Session state - open sessions, tokens etc
     session: Arc<RwLock<Session>>,
     /// Secure channel state
@@ -118,14 +113,6 @@ impl Transport for TcpTransport {
         self.transport_state
     }
 
-    fn session_status(&self) -> StatusCode {
-        self.session_status
-    }
-
-    fn set_session_status(&mut self, session_status: StatusCode) {
-        self.session_status = session_status
-    }
-
     fn session(&self) -> Arc<RwLock<Session>> {
         self.session.clone()
     }
@@ -135,11 +122,12 @@ impl Transport for TcpTransport {
     }
 
     // Terminates the connection and the session
-    fn terminate_session(&mut self, status_code: StatusCode) {
-        self.transport_state = TransportState::Finished;
-        self.set_session_status(status_code);
-        let mut session = trace_write_lock_unwrap!(self.session);
-        session.set_terminated();
+    fn finish(&mut self, status_code: StatusCode) {
+        if !self.is_finished() {
+            self.transport_state = TransportState::Finished(status_code);
+            let mut session = trace_write_lock_unwrap!(self.session);
+            session.set_terminated();
+        }
     }
 
     /// Test if the connection is terminated
@@ -162,7 +150,6 @@ impl TcpTransport {
         TcpTransport {
             server_state,
             session,
-            session_status: Good,
             address_space,
             transport_state: TransportState::New,
             client_address: None,
@@ -227,7 +214,7 @@ impl TcpTransport {
         io::write_all(writer.unwrap(), bytes_to_write).map_err(move |err| {
             error!("Write IO error {:?}", err);
             let mut transport = trace_write_lock_unwrap!(transport);
-            transport.terminate_session(BadCommunicationError);
+            transport.finish(BadCommunicationError);
         }).map(move |(writer, _)| {
             // Build a new connection state
             {
@@ -279,17 +266,17 @@ impl TcpTransport {
             let take = if let SupportedMessage::Invalid(_) = response {
                 error!("Writer is terminating because it received an invalid message");
                 let mut transport = trace_write_lock_unwrap!(transport);
-                transport.terminate_session(BadCommunicationError);
+                transport.finish(BadCommunicationError);
                 false
             } else {
                 let mut transport = trace_write_lock_unwrap!(transport);
                 if transport.is_server_abort() {
                     info!("Writer communication error (abort)");
-                    transport.terminate_session(BadCommunicationError);
+                    transport.finish(BadCommunicationError);
 
                     false
-                } else if transport.session_status().is_bad() {
-                    info!("Writer session status is {:?}, so terminating", transport.session_status());
+                } else if transport.is_finished() {
+                    info!("Writer, transport is finished so terminating");
                     false
                 } else {
                     true
@@ -311,12 +298,12 @@ impl TcpTransport {
                 }
             }
             Self::write_bytes_task(connection).and_then(|connection| {
-                let session_status = {
+                let finished = {
                     let connection = trace_lock_unwrap!(connection);
                     let transport = trace_read_lock_unwrap!(connection.transport);
-                    transport.session_status()
+                    transport.is_finished()
                 };
-                if session_status.is_bad() {
+                if finished {
                     info!("Writer session status is bad is terminating");
                     Err(())
                 } else {
@@ -325,6 +312,8 @@ impl TcpTransport {
             }).map(|_| ())
         }).map_err(|e| {
             info!("Writer terminating due to error {:?}", e);
+        }).map(|_| {
+            info!("Writer is finished");
         });
 
         tokio::spawn(looping_task);
@@ -407,29 +396,29 @@ impl TcpTransport {
                     // Update the session status
                     if session_status_code.is_bad() {
                         let mut transport = trace_write_lock_unwrap!(connection.transport);
-                        transport.terminate_session(session_status_code);
+                        transport.finish(session_status_code);
                     }
                 }
                 Ok(connection)
             }).and_then(|connection| {
                 // Some handlers might wish to send their message and terminate, in which case this is
                 // done here.
-                let session_status = {
-                    let mut transport = trace_write_lock_unwrap!(connection.transport);
+                let finished = {
                     // Terminate may have been set somewhere
-                    let terminate_session = {
+                    let mut transport = trace_write_lock_unwrap!(connection.transport);
+                    let terminate = {
                         let session = trace_read_lock_unwrap!(transport.session);
                         session.terminate_session
                     };
-                    if terminate_session {
-                        transport.terminate_session(BadConnectionClosed);
+                    if terminate {
+                        transport.finish(BadConnectionClosed);
                     }
                     // Other session status
-                    transport.session_status()
+                    transport.is_finished()
                 };
 
                 // Abort the session?
-                if session_status.is_good() {
+                if !finished {
                     Ok(Loop::Continue(connection))
                 } else {
                     Ok(Loop::Break(()))
@@ -439,9 +428,11 @@ impl TcpTransport {
             info!("An error occurred, terminating the connection");
             {
                 let mut transport = trace_write_lock_unwrap!(transport);
-                transport.terminate_session(status_code);
+                transport.finish(status_code);
             }
-        }).map(|_| ());
+        }).map(|_| {
+            info!("Reader is finished");
+        });
 
         tokio::spawn(looping_task);
     }
@@ -497,11 +488,13 @@ impl TcpTransport {
                         // Check if the session has waited in the hello state for more than the hello timeout period
                         info!("Session has been waiting for a hello for more than the timeout period and will now close");
                         let mut transport = trace_write_lock_unwrap!(state.transport);
-                        transport.terminate_session(BadTimeout);
+                        transport.finish(BadTimeout);
                     }
                 }
                 Ok(())
-            }).map_err(|_| ());
+            }).map_err(|_| {}).map(|_| {
+            info!("Hello timeout is finished");
+        });
         tokio::spawn(task);
     }
 
@@ -564,7 +557,9 @@ impl TcpTransport {
                         }
                     }
                     Ok(())
-                }).map_err(|_| ());
+                }).map_err(|_| ()).map(|_| {
+                info!("Subscription monitor is finished");
+            });
             tokio::spawn(task);
         }
 
@@ -599,7 +594,9 @@ impl TcpTransport {
                         }
                     }
                     Ok(())
-                }));
+                }).map(|_| {
+                info!("Subscription receiver is finished")
+            }));
         }
     }
 

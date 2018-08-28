@@ -61,15 +61,16 @@ pub struct Session {
     /// Indicates if the session has received an ActivateSession
     pub activated: bool,
     /// Time that session was terminated, helps with recovering sessions, or clearing them out
-    pub terminated_at: DateTimeUtc,
+    terminated_at: DateTimeUtc,
     /// Flag indicating session is actually terminated
-    pub terminated: bool,
+    terminated: bool,
     /// Internal value used to create new session ids.
     last_session_id: UInt32,
 }
 
 impl Drop for Session {
     fn drop(&mut self) {
+        info!("Session is being dropped");
         let mut diagnostics = trace_write_lock_unwrap!(self.diagnostics);
         diagnostics.on_destroy_session(self);
     }
@@ -128,7 +129,7 @@ impl Session {
             client_certificate: None,
             security_policy_uri: String::new(),
             authentication_token: NodeId::null(),
-            secure_channel:  Arc::new(RwLock::new(SecureChannel::new(server.certificate_store.clone(), Role::Server))),
+            secure_channel: Arc::new(RwLock::new(SecureChannel::new(server.certificate_store.clone(), Role::Server))),
             session_nonce: ByteString::null(),
             session_timeout: 0f64,
             user_identity: None,
@@ -154,7 +155,10 @@ impl Session {
 
     pub fn terminated(&self) -> bool { self.terminated }
 
+    pub fn terminated_at(&self) -> DateTimeUtc { self.terminated_at.clone() }
+
     pub fn set_terminated(&mut self) {
+        info!("Session being set to terminated");
         self.terminated = true;
         self.terminated_at = chrono::Utc::now();
     }
