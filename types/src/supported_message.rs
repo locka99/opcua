@@ -8,6 +8,7 @@ use node_id::NodeId;
 use basic_types::UInt32;
 use service_types::*;
 use node_ids::ObjectId;
+use tcp_types::AcknowledgeMessage;
 
 /// This macro helps avoid tedious repetition as new messages are added
 /// The first form just handles the trailing comma after the last entry to save some pointless
@@ -19,6 +20,8 @@ macro_rules! supported_messages_enum {
         pub enum SupportedMessage {
             /// An invalid request / response of some form
             Invalid(ObjectId),
+            /// Acknowledge message
+            AcknowledgeMessage(AcknowledgeMessage),
             /// Other messages
             $( $x($x), )*
         }
@@ -27,8 +30,9 @@ macro_rules! supported_messages_enum {
             fn byte_len(&self) -> usize {
                 match *self {
                     SupportedMessage::Invalid(object_id) => {
-                        panic!("Unsupported message {:?}", object_id);
+                        panic!("Unsupported message byte_len {:?}", object_id);
                     },
+                    SupportedMessage::AcknowledgeMessage(ref value) => value.byte_len(),
                     $( SupportedMessage::$x(ref value) => value.byte_len(), )*
                 }
             }
@@ -36,8 +40,9 @@ macro_rules! supported_messages_enum {
             fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
                 match *self {
                     SupportedMessage::Invalid(object_id) => {
-                        panic!("Unsupported message {:?}", object_id);
+                        panic!("Unsupported message encode {:?}", object_id);
                     },
+                    SupportedMessage::AcknowledgeMessage(ref value) => value.encode(stream),
                     $( SupportedMessage::$x(ref value) => value.encode(stream), )*
                 }
             }
@@ -58,7 +63,10 @@ macro_rules! supported_messages_enum {
             pub fn node_id(&self) -> NodeId {
                 match *self {
                     SupportedMessage::Invalid(object_id) => {
-                        panic!("Unsupported message {:?}", object_id);
+                        panic!("Unsupported message invalid, node_id {:?}", object_id);
+                    },
+                    SupportedMessage::AcknowledgeMessage(ref value) => {
+                        panic!("Unsupported message node_id {:?}", value);
                     },
                     $( SupportedMessage::$x(ref value) => value.object_id().into(), )*
                 }
@@ -70,7 +78,7 @@ macro_rules! supported_messages_enum {
 impl SupportedMessage {
     pub fn request_handle(&self) -> UInt32 {
         match *self {
-            SupportedMessage::Invalid(_) => 0,
+            SupportedMessage::Invalid(_) | SupportedMessage::AcknowledgeMessage(_) => 0,
             // Requests
             SupportedMessage::OpenSecureChannelRequest(ref r) => r.request_header.request_handle,
             SupportedMessage::CloseSecureChannelRequest(ref r) => r.request_header.request_handle,

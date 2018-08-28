@@ -1,8 +1,8 @@
 use std::io::*;
 
 use opcua_types::*;
+use opcua_types::tcp_types::*;
 
-use comms::handshake::*;
 use comms::secure_channel::*;
 use crypto::SecurityPolicy;
 

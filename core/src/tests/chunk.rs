@@ -1,8 +1,8 @@
 extern crate rustc_serialize as serialize;
 
 use std::io::{Cursor, Write};
+use opcua_types::tcp_types::MIN_CHUNK_SIZE;
 
-use comms::MIN_CHUNK_SIZE;
 use comms::chunker::*;
 use comms::message_chunk::*;
 use comms::secure_channel::*;

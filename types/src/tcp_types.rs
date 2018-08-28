@@ -1,11 +1,26 @@
 use std::io::{Read, Write, Cursor, Result, Error, ErrorKind};
 
-use opcua_types::*;
-use opcua_types::status_codes::StatusCode;
+use basic_types::*;
+use status_codes::StatusCode;
+use string::UAString;
+use encoding::*;
 
-use comms::{MAX_CHUNK_COUNT, MIN_CHUNK_SIZE};
-use comms::{HELLO_MESSAGE, ACKNOWLEDGE_MESSAGE, ERROR_MESSAGE, CHUNK_MESSAGE, OPEN_SECURE_CHANNEL_MESSAGE, CLOSE_SECURE_CHANNEL_MESSAGE};
-use comms::{CHUNK_FINAL, CHUNK_INTERMEDIATE, CHUNK_FINAL_ERROR};
+pub const HELLO_MESSAGE: &'static [u8] = b"HEL";
+pub const ACKNOWLEDGE_MESSAGE: &'static [u8] = b"ACK";
+pub const ERROR_MESSAGE: &'static [u8] = b"ERR";
+pub const CHUNK_MESSAGE: &'static [u8] = b"MSG";
+pub const OPEN_SECURE_CHANNEL_MESSAGE: &'static [u8] = b"OPN";
+pub const CLOSE_SECURE_CHANNEL_MESSAGE: &'static [u8] = b"CLO";
+
+pub const CHUNK_FINAL: u8 = b'F';
+pub const CHUNK_INTERMEDIATE: u8 = b'C';
+pub const CHUNK_FINAL_ERROR: u8 = b'A';
+
+/// This is a constraint in the existing implementation for the time being.
+pub const MAX_CHUNK_COUNT: usize = 1;
+
+/// Minimum size in bytes than any single message chunk can be
+pub const MIN_CHUNK_SIZE: usize = 8196;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum MessageType {
@@ -264,8 +279,6 @@ impl BinaryEncoder<AcknowledgeMessage> for AcknowledgeMessage {
         })
     }
 }
-
-impl AcknowledgeMessage {}
 
 /// Implementation of the ERR message in OPC UA
 #[derive(Debug, Clone, PartialEq)]

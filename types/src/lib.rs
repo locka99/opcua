@@ -180,6 +180,7 @@ pub mod supported_message;
 pub mod numeric_range;
 pub mod url;
 pub mod argument;
+pub mod tcp_types;
 
 pub use encoding::*;
 pub use basic_types::*;

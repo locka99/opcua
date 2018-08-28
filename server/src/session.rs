@@ -39,7 +39,7 @@ pub struct Session {
     /// Authentication token for the session
     pub authentication_token: NodeId,
     /// Secure channel state
-    pub secure_channel: SecureChannel,
+    pub secure_channel: Arc<RwLock<SecureChannel>>,
     /// Session nonce
     pub session_nonce: ByteString,
     /// Session timeout
@@ -90,7 +90,7 @@ impl Session {
             client_certificate: None,
             security_policy_uri: String::new(),
             authentication_token: NodeId::null(),
-            secure_channel,
+            secure_channel: Arc::new(RwLock::new(secure_channel)),
             session_nonce: ByteString::null(),
             session_timeout: 0f64,
             user_identity: None,
@@ -128,7 +128,7 @@ impl Session {
             client_certificate: None,
             security_policy_uri: String::new(),
             authentication_token: NodeId::null(),
-            secure_channel: SecureChannel::new(server.certificate_store.clone(), Role::Server),
+            secure_channel:  Arc::new(RwLock::new(SecureChannel::new(server.certificate_store.clone(), Role::Server))),
             session_nonce: ByteString::null(),
             session_timeout: 0f64,
             user_identity: None,

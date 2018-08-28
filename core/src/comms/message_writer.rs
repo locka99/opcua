@@ -2,6 +2,8 @@ use std::io::{Cursor, Write};
 
 use opcua_types::{SupportedMessage, UInt32};
 use opcua_types::status_codes::StatusCode;
+use opcua_types::tcp_types::AcknowledgeMessage;
+use opcua_types::{BinaryEncoder, EncodingResult};
 
 use comms::secure_channel::SecureChannel;
 use comms::chunker::Chunker;
@@ -30,11 +32,13 @@ impl MessageWriter {
         }
     }
 
+    pub fn write_ack(&mut self, ack: AcknowledgeMessage) -> EncodingResult<usize> {
+        ack.encode(&mut self.buffer)
+    }
+
     /// Encodes the message into a series of chunks, encrypts those chunks and writes the
     /// result into the buffer ready to be sent.
-    pub fn write(&mut self, message: SupportedMessage, secure_channel: &mut SecureChannel) -> Result<UInt32, StatusCode> {
-        let request_id = self.next_request_id();
-
+    pub fn write(&mut self, request_id: UInt32, message: SupportedMessage, secure_channel: &SecureChannel) -> Result<UInt32, StatusCode> {
         trace!("Writing request to buffer");
         // Turn message to chunk(s)
         // TODO max message size and max chunk size
@@ -70,7 +74,7 @@ impl MessageWriter {
         Ok(request_id)
     }
 
-    fn next_request_id(&mut self) -> UInt32 {
+    pub fn next_request_id(&mut self) -> UInt32 {
         self.last_request_id += 1;
         self.last_request_id
     }
@@ -78,11 +82,6 @@ impl MessageWriter {
     /// Clears the buffer
     fn clear(&mut self) {
         self.buffer.set_position(0);
-    }
-
-    /// Tests if there are bytes to write in the stream
-    pub fn has_bytes_to_write(&self) -> bool {
-        self.buffer.position() > 0
     }
 
     /// Yields any results to write, resetting the buffer back afterwards

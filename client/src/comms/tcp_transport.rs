@@ -20,6 +20,8 @@ use futures::sync::mpsc::UnboundedReceiver;
 use opcua_types::url::OPC_TCP_SCHEME;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
+use opcua_types::tcp_types::HelloMessage;
+
 use opcua_core::prelude::*;
 use opcua_core::comms::message_writer::MessageWriter;
 
@@ -114,7 +116,8 @@ impl WriteState {
         match connection_state!(self.state) {
             ConnectionState::Processing => {
                 let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
-                self.send_buffer.write(request, &mut secure_channel)
+                let request_id = self.send_buffer.next_request_id();
+                self.send_buffer.write(request_id, request, &mut secure_channel)
             }
             _ => {
                 panic!("Should not be calling this unless in the processing state");

@@ -50,7 +50,10 @@ impl SessionService {
         };
 
         // Check the client's certificate for validity and acceptance
-        let security_policy = session.secure_channel.security_policy();
+        let security_policy = {
+            let secure_channel = trace_read_lock_unwrap!(session.secure_channel);
+            secure_channel.security_policy()
+        };
         let service_result = if security_policy != SecurityPolicy::None {
             if let Some(ref client_certificate) = client_certificate {
                 certificate_store.validate_or_reject_application_instance_cert(client_certificate, None, None)
@@ -110,8 +113,11 @@ impl SessionService {
 
     pub fn activate_session(&self, server_state: &mut ServerState, session: &mut Session, request: ActivateSessionRequest) -> Result<SupportedMessage, StatusCode> {
         let endpoint_url = session.endpoint_url.as_ref();
-        let security_policy = session.secure_channel.security_policy();
-        let security_mode = session.secure_channel.security_mode();
+
+        let (security_policy, security_mode) = {
+            let secure_channel = trace_read_lock_unwrap!(session.secure_channel);
+            (secure_channel.security_policy(), secure_channel.security_mode())
+        };
 
         let server_nonce = security_policy.nonce();
 
@@ -164,7 +170,10 @@ impl SessionService {
     fn verify_client_signature(server_state: &ServerState, session: &Session, client_signature: &SignatureData) -> StatusCode {
         if let Some(ref client_certificate) = session.client_certificate {
             if let Some(ref server_certificate) = server_state.server_certificate {
-                let security_policy = session.secure_channel.security_policy();
+                let security_policy = {
+                    let secure_channel = trace_read_lock_unwrap!(session.secure_channel);
+                    secure_channel.security_policy()
+                };
                 crypto::verify_signature_data(client_signature, security_policy, client_certificate, server_certificate, &session.session_nonce)
             } else {
                 error!("Client signature verification failed, server has no server certificate");

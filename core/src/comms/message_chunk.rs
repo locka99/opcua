@@ -4,13 +4,15 @@ use std::io::{Read, Write, Cursor};
 use opcua_types::*;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
-
-use comms::{MESSAGE_CHUNK_HEADER_SIZE, CHUNK_MESSAGE, CLOSE_SECURE_CHANNEL_MESSAGE, OPEN_SECURE_CHANNEL_MESSAGE};
-use comms::{CHUNK_INTERMEDIATE, CHUNK_FINAL, CHUNK_FINAL_ERROR};
+use opcua_types::tcp_types::{CHUNK_MESSAGE, CLOSE_SECURE_CHANNEL_MESSAGE, OPEN_SECURE_CHANNEL_MESSAGE};
+use opcua_types::tcp_types::{CHUNK_INTERMEDIATE, CHUNK_FINAL, CHUNK_FINAL_ERROR};
 
 use comms::security_header::{SequenceHeader, SecurityHeader, AsymmetricSecurityHeader, SymmetricSecurityHeader};
 use comms::secure_channel::SecureChannel;
 use comms::message_chunk_info::ChunkInfo;
+
+/// The size of a chunk header, used by several places
+pub const MESSAGE_CHUNK_HEADER_SIZE: usize = 12;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum MessageChunkType {

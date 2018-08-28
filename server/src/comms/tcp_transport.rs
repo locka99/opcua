@@ -7,7 +7,6 @@
 //! left to asynchronous event handlers.
 use std;
 use std::collections::VecDeque;
-use std::io::Write;
 use std::net::SocketAddr;
 use std::time::{Instant, Duration};
 use std::sync::{Arc, RwLock, Mutex};
@@ -17,6 +16,7 @@ use chrono::Utc;
 use futures::{Stream, Future};
 use futures::future::{self, loop_fn, Loop};
 use futures::sync::mpsc;
+use futures::sync::mpsc::{UnboundedSender, UnboundedReceiver, unbounded};
 use tokio;
 use tokio::net::TcpStream;
 use tokio_io::AsyncRead;
@@ -26,8 +26,10 @@ use tokio_timer::Interval;
 
 use opcua_core::prelude::*;
 use opcua_core::comms::message_writer::MessageWriter;
+use opcua_core::comms::secure_channel::SecureChannel;
 use opcua_types::status_codes::StatusCode;
 use opcua_types::status_codes::StatusCode::*;
+use opcua_types::tcp_types::*;
 
 use address_space::types::AddressSpace;
 use comms::secure_channel_service::SecureChannelService;
@@ -66,6 +68,8 @@ pub struct TcpTransport {
     session_status: StatusCode,
     // Session state - open sessions, tokens etc
     session: Arc<RwLock<Session>>,
+    /// Secure channel state
+    secure_channel: Arc<RwLock<SecureChannel>>,
     /// Address space
     address_space: Arc<RwLock<AddressSpace>>,
     /// The current transport state
@@ -78,8 +82,6 @@ pub struct TcpTransport {
     message_handler: MessageHandler,
     /// Client protocol version set during HELLO
     client_protocol_version: UInt32,
-    /// Last encoded sequence number
-    last_sent_sequence_number: UInt32,
     /// Last decoded sequence number
     last_received_sequence_number: UInt32,
 }
@@ -96,15 +98,17 @@ struct ReadState {
     pub in_buf: Vec<u8>,
     /// Bytes read in buffer
     pub bytes_read: usize,
-    /// Write buffer (protected since it might be accessed by publish response / event activity)
-    pub send_buffer: Arc<Mutex<MessageWriter>>,
+    /// Sender of responses
+    pub sender: UnboundedSender<(UInt32, SupportedMessage)>,
 }
 
 struct WriteState {
     /// The associated connection
     pub transport: Arc<RwLock<TcpTransport>>,
+    /// Secure channel state
+    pub secure_channel: Arc<RwLock<SecureChannel>>,
     /// Writing portion of socket
-    pub writer: WriteHalf<TcpStream>,
+    pub writer: Option<WriteHalf<TcpStream>>,
     /// Write buffer (protected since it might be accessed by publish response / event activity)
     pub send_buffer: Arc<Mutex<MessageWriter>>,
 }
@@ -150,6 +154,10 @@ impl Transport for TcpTransport {
 
 impl TcpTransport {
     pub fn new(server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, message_handler: MessageHandler) -> TcpTransport {
+        let secure_channel = {
+            let session = trace_read_lock_unwrap!(session);
+            session.secure_channel.clone()
+        };
         let secure_channel_service = SecureChannelService::new();
         TcpTransport {
             server_state,
@@ -159,9 +167,9 @@ impl TcpTransport {
             transport_state: TransportState::New,
             client_address: None,
             message_handler,
+            secure_channel,
             secure_channel_service,
             client_protocol_version: 0,
-            last_sent_sequence_number: 0,
             last_received_sequence_number: 0,
         }
     }
@@ -175,7 +183,6 @@ impl TcpTransport {
             connection.client_address = Some(socket.peer_addr().unwrap());
             connection.transport_state = TransportState::WaitingHello;
         }
-
         // Spawn the tasks we need to run
         Self::spawn_looping_task(connection, socket);
     }
@@ -187,7 +194,7 @@ impl TcpTransport {
         let receive_buffer = connection.receive_buffer;
         let in_buf = connection.in_buf;
         let reader = connection.reader;
-        let send_buffer = connection.send_buffer;
+        let sender = connection.sender;
 
         // Read and process bytes from the stream
         io::read(reader, in_buf).map_err(move |err| {
@@ -201,30 +208,33 @@ impl TcpTransport {
                 bytes_read,
                 reader,
                 in_buf,
-                send_buffer
+                sender,
             }
         })
     }
 
-    fn write_bytes_task(connection: WriteState) -> impl Future<Item=WriteState, Error=(Arc<RwLock<TcpTransport>>, StatusCode)> {
-        let transport_for_err = connection.transport.clone();
-        let transport = connection.transport;
-        let send_buffer = connection.send_buffer;
-        let writer = connection.writer;
-        let bytes_to_write = {
-            let mut send_buffer = trace_lock_unwrap!(send_buffer);
-            send_buffer.bytes_to_write()
+    fn write_bytes_task(connection: Arc<Mutex<WriteState>>) -> impl Future<Item=Arc<Mutex<WriteState>>, Error=()> {
+        let (writer, bytes_to_write, transport) = {
+            let mut connection = trace_lock_unwrap!(connection);
+            let writer = connection.writer.take();
+            let bytes_to_write = {
+                let mut send_buffer = trace_lock_unwrap!(connection.send_buffer);
+                send_buffer.bytes_to_write()
+            };
+            let transport = connection.transport.clone();
+            (writer, bytes_to_write, transport)
         };
-        io::write_all(writer, bytes_to_write).map_err(move |err| {
+        io::write_all(writer.unwrap(), bytes_to_write).map_err(move |err| {
             error!("Write IO error {:?}", err);
-            (transport_for_err, BadCommunicationError)
+            let mut transport = trace_write_lock_unwrap!(transport);
+            transport.terminate_session(BadCommunicationError);
         }).map(move |(writer, _)| {
             // Build a new connection state
-            WriteState {
-                transport,
-                send_buffer,
-                writer,
+            {
+                let mut connection = trace_lock_unwrap!(connection);
+                connection.writer = Some(writer);
             }
+            connection
         })
     }
 
@@ -232,94 +242,95 @@ impl TcpTransport {
         let session_start_time = Utc::now();
         info!("Session started {}", session_start_time);
 
-        let (reader, writer) = socket.split();
-
         // Spawn the hello timeout task
         Self::spawn_hello_timeout_task(transport.clone(), session_start_time.clone());
 
-        let send_buffer = Arc::new(Mutex::new(MessageWriter::new(SEND_BUFFER_SIZE)));
+        // These should really come from the session
+        let (send_buffer_size, receive_buffer_size) = (SEND_BUFFER_SIZE, RECEIVE_BUFFER_SIZE);
 
-        // Spawn the subscription processing task
-        Self::spawn_subscriptions_task(transport.clone(), send_buffer.clone());
+        // The reader task will send responses, the writer task will receive responses
+        let (tx, rx) = unbounded::<(UInt32, SupportedMessage)>();
+        let send_buffer = Arc::new(Mutex::new(MessageWriter::new(send_buffer_size)));
+        let (reader, writer) = socket.split();
+        let secure_channel = {
+            let transport = trace_read_lock_unwrap!(transport);
+            transport.secure_channel.clone()
+        };
 
         // Spawn reading task
-        Self::spawn_reading_loop_task(reader, transport.clone(), RECEIVE_BUFFER_SIZE, send_buffer.clone());
-        Self::spawn_writing_loop_task(writer, transport.clone(), send_buffer.clone());
+        // Spawn the subscription processing task
+        Self::spawn_subscriptions_task(transport.clone(), tx.clone());
+        Self::spawn_reading_loop_task(reader, tx, transport.clone(), receive_buffer_size);
+        Self::spawn_writing_loop_task(writer, rx, secure_channel.clone(), transport.clone(), send_buffer);
     }
 
-    fn spawn_writing_loop_task(writer: WriteHalf<TcpStream>, transport: Arc<RwLock<TcpTransport>>, send_buffer: Arc<Mutex<MessageWriter>>) {
-        let connection = WriteState {
+    fn spawn_writing_loop_task(writer: WriteHalf<TcpStream>, receiver: UnboundedReceiver<(UInt32, SupportedMessage)>, secure_channel: Arc<RwLock<SecureChannel>>, transport: Arc<RwLock<TcpTransport>>, send_buffer: Arc<Mutex<MessageWriter>>) {
+        let connection = Arc::new(Mutex::new(WriteState {
             transport: transport.clone(),
-            writer,
+            writer: Some(writer),
             send_buffer,
-        };
-        let looping_task = loop_fn(connection, move |connection| {
-            Self::write_bytes_task(connection).and_then(| connection| {
-                let is_server_abort = {
+            secure_channel,
+        }));
+
+        // The writing task waits for messages that are to be sent
+        let looping_task = receiver.map(move |(request_id, response)| {
+            (request_id, response, connection.clone())
+        }).take_while(move |(_, response, _)| {
+            let take = if let SupportedMessage::Invalid(_) = response {
+                error!("Writer is terminating because it received an invalid message");
+                let mut transport = trace_write_lock_unwrap!(transport);
+                transport.terminate_session(BadCommunicationError);
+                false
+            } else {
+                let mut transport = trace_write_lock_unwrap!(transport);
+                if transport.is_server_abort() {
+                    info!("Writer communication error (abort)");
+                    transport.terminate_session(BadCommunicationError);
+
+                    false
+                } else if transport.session_status().is_bad() {
+                    info!("Writer session status is {:?}, so terminating", transport.session_status());
+                    false
+                } else {
+                    true
+                }
+            };
+            future::ok(take)
+        }).for_each(move |(request_id, response, connection)| {
+            {
+                let connection = trace_lock_unwrap!(connection);
+                let mut secure_channel = trace_write_lock_unwrap!(connection.secure_channel);
+                let mut send_buffer = trace_lock_unwrap!(connection.send_buffer);
+                match response {
+                    SupportedMessage::AcknowledgeMessage(ack) => {
+                        let _ = send_buffer.write_ack(ack);
+                    }
+                    msg => {
+                        let _ = send_buffer.write(request_id, msg, &mut secure_channel);
+                    }
+                }
+            }
+            Self::write_bytes_task(connection).and_then(|connection| {
+                let session_status = {
+                    let connection = trace_lock_unwrap!(connection);
                     let transport = trace_read_lock_unwrap!(connection.transport);
-                    transport.is_server_abort()
+                    transport.session_status()
                 };
-                if is_server_abort {
-                    info!("Transport is terminating because server has aborted");
-                    Err((connection.transport.clone(), BadCommunicationError))
+                if session_status.is_bad() {
+                    info!("Writer session status is bad is terminating");
+                    Err(())
                 } else {
                     Ok(connection)
                 }
-            }).and_then(|mut connection| {
-                // Some handlers might wish to send their message and terminate, in which case this is
-                // done here.
-                let session_status = {
-                    let mut transport = trace_write_lock_unwrap!(connection.transport);
-                    // Terminate may have been set somewhere
-                    let terminate_session = {
-                        let session = trace_read_lock_unwrap!(transport.session);
-                        session.terminate_session
-                    };
-                    if terminate_session {
-                        transport.set_session_status(BadConnectionClosed);
-                    }
-                    // Other session status
-                    transport.session_status()
-                };
-
-                // Abort the session?
-                if session_status.is_good() {
-                    Ok(Loop::Continue(connection))
-                } else {
-                    // As a final act, the session sends a status code to the client if one should be sent
-                    match session_status {
-                        Good | BadConnectionClosed => {
-                            info!("Session terminating normally, session_status_code = {:?}", session_status);
-                        }
-                        _ => {
-                            warn!("Sending session terminating error {:?}", session_status);
-                            {
-                                let msg = ErrorMessage::from_status_code(session_status);
-                                debug!("Writing ERR {:?}", msg);
-                                let _ = msg.encode(&mut connection.writer);
-                            }
-                        }
-                    }
-                    info!("Session is finished");
-                    {
-                        let mut transport = trace_write_lock_unwrap!(connection.transport);
-                        transport.terminate_session(session_status);
-                    }
-                    Ok(Loop::Break(()))
-                }
-            })
-        }).map_err(move |(transport, status_code)| {
-            info!("An error occurred, terminating the connection");
-            {
-                let mut transport = trace_write_lock_unwrap!(transport);
-                transport.terminate_session(status_code);
-            }
-        }).map(|_| ());
+            }).map(|_| ())
+        }).map_err(|e| {
+            info!("Writer terminating due to error {:?}", e);
+        });
 
         tokio::spawn(looping_task);
     }
 
-    fn spawn_reading_loop_task(reader: ReadHalf<TcpStream>, transport: Arc<RwLock<TcpTransport>>, receive_buffer_size: usize, send_buffer: Arc<Mutex<MessageWriter>>) {
+    fn spawn_reading_loop_task(reader: ReadHalf<TcpStream>, sender: UnboundedSender<(UInt32, SupportedMessage)>, transport: Arc<RwLock<TcpTransport>>, receive_buffer_size: usize) {
         // Connection state is maintained for looping through each task
         let connection = ReadState {
             transport: transport.clone(),
@@ -327,7 +338,7 @@ impl TcpTransport {
             reader,
             receive_buffer: MessageReader::new(receive_buffer_size),
             in_buf: vec![0u8; receive_buffer_size],
-            send_buffer,
+            sender,
         };
 
         // 1. Read bytes
@@ -366,8 +377,7 @@ impl TcpTransport {
                                     debug!("Processing HELLO");
                                     if let Message::Hello(hello) = message {
                                         let mut transport = trace_write_lock_unwrap!(connection.transport);
-                                        let mut send_buffer = trace_lock_unwrap!(connection.send_buffer);
-                                        let result = transport.process_hello(hello, &mut send_buffer.buffer);
+                                        let result = transport.process_hello(hello, &mut connection.sender);
                                         if result.is_err() {
                                             session_status_code = result.unwrap_err();
                                         }
@@ -379,8 +389,7 @@ impl TcpTransport {
                                     debug!("Processing message");
                                     if let Message::MessageChunk(chunk) = message {
                                         let mut transport = trace_write_lock_unwrap!(connection.transport);
-                                        let mut send_buffer = trace_lock_unwrap!(connection.send_buffer);
-                                        let result = transport.process_chunk(chunk, &mut send_buffer.buffer);
+                                        let result = transport.process_chunk(chunk, &mut connection.sender);
                                         if result.is_err() {
                                             session_status_code = result.unwrap_err();
                                         }
@@ -396,9 +405,9 @@ impl TcpTransport {
                         }
                     }
                     // Update the session status
-                    {
+                    if session_status_code.is_bad() {
                         let mut transport = trace_write_lock_unwrap!(connection.transport);
-                        transport.set_session_status(session_status_code);
+                        transport.terminate_session(session_status_code);
                     }
                 }
                 Ok(connection)
@@ -413,7 +422,7 @@ impl TcpTransport {
                         session.terminate_session
                     };
                     if terminate_session {
-                        transport.set_session_status(BadConnectionClosed);
+                        transport.terminate_session(BadConnectionClosed);
                     }
                     // Other session status
                     transport.session_status()
@@ -432,7 +441,6 @@ impl TcpTransport {
                 let mut transport = trace_write_lock_unwrap!(transport);
                 transport.terminate_session(status_code);
             }
-            ()
         }).map(|_| ());
 
         tokio::spawn(looping_task);
@@ -498,7 +506,7 @@ impl TcpTransport {
     }
 
     /// Start the subscription timer to service subscriptions
-    fn spawn_subscriptions_task(transport: Arc<RwLock<TcpTransport>>, send_buffer: Arc<Mutex<MessageWriter>>) {
+    fn spawn_subscriptions_task(transport: Arc<RwLock<TcpTransport>>, sender: UnboundedSender<(UInt32, SupportedMessage)>) {
         /// Subscription events are passed sent from the monitor task to the receiver
         #[derive(Clone, Debug, PartialEq)]
         enum SubscriptionEvent {
@@ -565,13 +573,10 @@ impl TcpTransport {
             struct SubscriptionReceiverState {
                 /// The associated connection
                 pub transport: Arc<RwLock<TcpTransport>>,
-                /// Write buffer
-                pub send_buffer: Arc<Mutex<MessageWriter>>,
             }
 
             let state = SubscriptionReceiverState {
                 transport: transport.clone(),
-                send_buffer: send_buffer.clone(),
             };
 
             // Clone the connection so the take_while predicate has its own instance
@@ -586,12 +591,10 @@ impl TcpTransport {
                     match subscription_event {
                         SubscriptionEvent::PublishResponses(publish_responses) => {
                             trace!("Got {} PublishResponse messages to send", publish_responses.len());
-                            let mut send_buffer = trace_lock_unwrap!(state.send_buffer);
                             for publish_response in publish_responses {
                                 trace!("<-- Sending a Publish Response{}, {:?}", publish_response.request_id, &publish_response.response);
-                                let mut transport = trace_write_lock_unwrap!(state.transport);
-                                let _ = transport.send_response(publish_response.request_id, &publish_response.response, &mut send_buffer.buffer);
-                                // Messages will be sent by the main loop
+                                // Messages will be sent by the writing task
+                                let _ = sender.unbounded_send((publish_response.request_id, publish_response.response));
                             }
                         }
                     }
@@ -606,7 +609,7 @@ impl TcpTransport {
         server_state.abort
     }
 
-    fn process_hello<W: Write>(&mut self, hello: HelloMessage, out_stream: &mut W) -> std::result::Result<(), StatusCode> {
+    fn process_hello(&mut self, hello: HelloMessage, sender: &mut UnboundedSender<(UInt32, SupportedMessage)>) -> std::result::Result<(), StatusCode> {
         let server_protocol_version = 0;
 
         trace!("Server received HELLO {:?}", hello);
@@ -641,19 +644,19 @@ impl TcpTransport {
         self.client_protocol_version = client_protocol_version;
 
         debug!("Sending ACK");
-        let _ = acknowledge.encode(out_stream);
+        let _ = sender.unbounded_send((0, SupportedMessage::AcknowledgeMessage(acknowledge)));
         Ok(())
     }
 
     fn turn_received_chunks_into_message(&mut self, chunks: &Vec<MessageChunk>) -> std::result::Result<SupportedMessage, StatusCode> {
-        let session = trace_read_lock_unwrap!(self.session);
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
-        self.last_received_sequence_number = Chunker::validate_chunks(self.last_received_sequence_number + 1, &session.secure_channel, chunks)?;
+        let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+        self.last_received_sequence_number = Chunker::validate_chunks(self.last_received_sequence_number + 1, &secure_channel, chunks)?;
         // Now decode
-        Chunker::decode(&chunks, &session.secure_channel, None)
+        Chunker::decode(&chunks, &secure_channel, None)
     }
 
-    fn process_chunk<W: Write>(&mut self, chunk: MessageChunk, out_stream: &mut W) -> std::result::Result<(), StatusCode> {
+    fn process_chunk(&mut self, chunk: MessageChunk, sender: &mut UnboundedSender<(UInt32, SupportedMessage)>) -> std::result::Result<(), StatusCode> {
         let message_header = chunk.message_header()?;
 
         if message_header.is_final == MessageIsFinalType::Intermediate {
@@ -665,28 +668,30 @@ impl TcpTransport {
 
         // Decrypt / verify chunk if necessary
         let chunk = {
-            let mut session = trace_write_lock_unwrap!(self.session);
-            session.secure_channel.verify_and_remove_security(&chunk.data)?
+            let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+            secure_channel.verify_and_remove_security(&chunk.data)?
         };
 
         let in_chunks = vec![chunk];
         let chunk_info = {
-            let session = trace_read_lock_unwrap!(self.session);
-            in_chunks[0].chunk_info(&session.secure_channel)?
+            let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+            in_chunks[0].chunk_info(&secure_channel)?
         };
-        let request_id = chunk_info.sequence_header.request_id;
 
-        let message = self.turn_received_chunks_into_message(&in_chunks)?;
+        let request_id = chunk_info.sequence_header.request_id;
+        let request = self.turn_received_chunks_into_message(&in_chunks)?;
+
+        // Handle the request, and then send the response back to the caller
         let response = match message_header.message_type {
             MessageChunkType::OpenSecureChannel => {
-                let mut session = trace_write_lock_unwrap!(self.session);
-                self.secure_channel_service.open_secure_channel(&mut session.secure_channel, &chunk_info.security_header, self.client_protocol_version, &message)?
+                let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+                self.secure_channel_service.open_secure_channel(&mut secure_channel, &chunk_info.security_header, self.client_protocol_version, &request)?
             }
             MessageChunkType::CloseSecureChannel => {
-                self.secure_channel_service.close_secure_channel(&message)?
+                self.secure_channel_service.close_secure_channel(&request)?
             }
             MessageChunkType::Message => {
-                let response = self.message_handler.handle_message(request_id, message)?;
+                let response = self.message_handler.handle_message(request_id, request)?;
                 if response.is_none() {
                     // No response for the message at this time
                     return Ok(());
@@ -694,44 +699,9 @@ impl TcpTransport {
                 response.unwrap()
             }
         };
-        self.send_response(request_id, &response, out_stream)?;
-        Ok(())
-    }
 
-    fn send_response<W: Write>(&mut self, request_id: UInt32, response: &SupportedMessage, out_stream: &mut W) -> std::result::Result<(), StatusCode> {
-        // Prepare some chunks starting from the sequence number + 1
-        match *response {
-            SupportedMessage::Invalid(object_id) => {
-                panic!("Invalid response with object_id {:?}", object_id);
-            }
-            _ => {
-                // Send the response
-                // Get the request id out of the request
-                // debug!("Response to send: {:?}", response);
-                let sequence_number = self.last_sent_sequence_number + 1;
-                // TODO max message size, max chunk size
-                let max_chunk_size = 64 * 1024;
-                let out_chunks = {
-                    let session = trace_read_lock_unwrap!(self.session);
-                    Chunker::encode(sequence_number, request_id, 0, max_chunk_size, &session.secure_channel, response)?
-                };
-                self.last_sent_sequence_number = sequence_number + out_chunks.len() as UInt32 - 1;
-
-                // Send out any chunks that form the response
-                // debug!("Got some chunks to send {:?}", out_chunks);
-                let mut data = vec![0u8; max_chunk_size + 1024];
-                for out_chunk in &out_chunks {
-                    // Encrypt and sign the chunk if necessary
-                    let session = trace_read_lock_unwrap!(self.session);
-                    let size = session.secure_channel.apply_security(out_chunk, &mut data);
-                    if size.is_ok() {
-                        let _ = out_stream.write(&data[..size.unwrap()]);
-                    } else {
-                        panic!("Applying security to chunk failed - {:?}", size.unwrap_err());
-                    }
-                }
-            }
-        }
+        // Send the response for transmission
+        let _ = sender.unbounded_send((request_id, response));
         Ok(())
     }
 }
