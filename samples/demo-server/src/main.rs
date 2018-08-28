@@ -36,6 +36,9 @@ fn main() {
     // Add dynamically changing scalar values
     add_dynamic_scalar_variables(&mut server);
 
+    // Add some rapidly changing values
+    add_stress_scalar_variables(&mut server);
+
     // Add some control switches, e.g. abort flag
     add_control_switches(&mut server);
 
@@ -245,5 +248,35 @@ fn add_dynamic_scalar_variables(server: &mut Server) {
             let node_id = sn.node_id(true);
             let _ = address_space.set_variable_value(node_id, sn.random_value());
         });
+    });
+}
+
+
+fn add_stress_scalar_variables(server: &mut Server) {
+    // The address space is guarded so obtain a lock to change it
+    {
+        let mut address_space = server.address_space.write().unwrap();
+
+        let folder_id = address_space
+            .add_folder("Stress", "Stress", &AddressSpace::objects_folder_id())
+            .unwrap();
+
+        for i in 0..1000 {
+            let node_id = NodeId::new(2, format!("v{:04}", i));
+            let name = format!("v{:04}", i);
+            let default_value = Variant::Int32(0);
+            let _ = address_space.add_variable(Variable::new(&node_id, &name, &name, &format!("{} value", name), default_value), &folder_id);
+        }
+    }
+
+    let address_space = server.address_space.clone();
+    server.add_polling_action(100, move || {
+        let mut address_space = address_space.write().unwrap();
+        let mut rng = rand::thread_rng();
+        for i in 0..1000 {
+            let node_id = NodeId::new(2, format!("v{:04}", i));
+            let value: Variant = rng.gen::<i32>().into();
+            let _ = address_space.set_variable_value(node_id, value);
+        }
     });
 }
