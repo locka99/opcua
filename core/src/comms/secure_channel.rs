@@ -513,6 +513,9 @@ impl SecureChannel {
             encrypted_size
         } else {
             let size = message_chunk.data.len();
+            if size > dst.len() {
+                panic!("The size of the message chunk {} exceeds the size of the destination buffer {}", size, dst.len())
+            }
             dst[..size].copy_from_slice(&message_chunk.data[..]);
             size
         };

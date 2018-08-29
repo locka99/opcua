@@ -447,6 +447,12 @@ impl TcpTransport {
                     }
                 }
                 Self::write_bytes_task(connection)
+            })
+            .map_err(move |e| {
+                error!("Write loop ended with an error {:?}", e);
+            })
+            .map(|_| {
+                error!("Write loop finished");
             });
 
         tokio::spawn(looping_task);

@@ -16,7 +16,7 @@ const DEFAULT_SENT_SEQUENCE_NUMBER: UInt32 = 0;
 /// will be dumped into that stream.
 pub struct MessageWriter {
     /// The send buffer
-    pub buffer: Cursor<Vec<u8>>,
+    buffer: Cursor<Vec<u8>>,
     /// The last request id
     last_request_id: UInt32,
     /// Last sent sequence number
@@ -50,8 +50,12 @@ impl MessageWriter {
         self.last_sent_sequence_number += chunks.len() as UInt32;
 
         // Send chunks
-        let max_chunk_size = 32768; // FIXME TODO
-        let mut data = vec![0u8; max_chunk_size + 1024];
+
+        // This max chunk size allows the message to be encoded to a chunk with header + encoding
+        // which is just slightly larger in size (up to 1024 bytes).
+        let max_chunk_size = self.buffer.get_ref().len() + 1024;
+        let mut data = vec![0u8; max_chunk_size];
+
         for chunk in chunks {
             trace!("Sending chunk of type {:?}", chunk.message_header()?.message_type);
             let size = {
