@@ -94,11 +94,9 @@ pub struct Session {
 
 impl Drop for Session {
     fn drop(&mut self) {
-
-// This panics in local discovery server call from server registration
-//        if self.is_connected() {
-//            self.disconnect();
-//        }
+        if self.is_connected() {
+            self.disconnect();
+        }
     }
 }
 
@@ -224,13 +222,15 @@ impl Session {
         }
     }
 
-    /// Disconnect from the server. Disconnect
+    /// Disconnect from the server. Disconnect is an explicit command to drop the socket and throw
+    /// away all state information. If you disconnect you cannot reconnect later.
     pub fn disconnect(&mut self) {
         let _ = self.delete_all_subscriptions();
         let _ = self.close_secure_channel();
         self.transport.wait_for_disconnect();
     }
 
+    /// Test if the session is in a connected state
     pub fn is_connected(&self) -> bool {
         self.transport.is_connected()
     }
@@ -238,13 +238,12 @@ impl Session {
     /// Sends an OpenSecureChannel request to the server
     pub fn open_secure_channel(&mut self) -> Result<(), StatusCode> {
         debug!("open_secure_channel");
-        {
-            let mut session_state = trace_write_lock_unwrap!(self.session_state);
-            session_state.issue_or_renew_secure_channel(SecurityTokenRequestType::Issue)
-        }
+        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+        session_state.issue_or_renew_secure_channel(SecurityTokenRequestType::Issue)
     }
 
-    /// Sends a CloseSecureChannel request to the server
+    /// Sends a CloseSecureChannel request to the server which will cause the server to drop
+    /// the connection.
     pub fn close_secure_channel(&mut self) -> Result<(), StatusCode> {
         let request = CloseSecureChannelRequest {
             request_header: self.make_request_header(),

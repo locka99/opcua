@@ -339,7 +339,7 @@ impl SecurityPolicy {
     }
 
     /// Creates a random nonce in a bytestring with a length appropriate for the policy
-    pub fn nonce(&self) -> ByteString {
+    pub fn random_nonce(&self) -> ByteString {
         match *self {
             SecurityPolicy::None => ByteString::null(),
             SecurityPolicy::Basic128Rsa15 |

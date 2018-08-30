@@ -192,7 +192,7 @@ fn add_control_switches(server: &mut Server) {
         // Check if abort has been set to true, in which case abort
         if abort {
             let mut server_state = server_state.write().unwrap();
-            server_state.abort = true;
+            server_state.abort();
         }
     });
 }

@@ -603,7 +603,7 @@ impl TcpTransport {
     /// Test if the connection should abort
     pub fn is_server_abort(&self) -> bool {
         let server_state = trace_read_lock_unwrap!(self.server_state);
-        server_state.abort
+        server_state.is_abort()
     }
 
     fn process_hello(&mut self, hello: HelloMessage, sender: &mut UnboundedSender<(UInt32, SupportedMessage)>) -> std::result::Result<(), StatusCode> {

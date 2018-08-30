@@ -7,7 +7,7 @@ use std::thread;
 use std::time;
 use std::result::Result;
 use std::sync::{Arc, RwLock, Mutex};
-use std::net::SocketAddr;
+use std::net::{SocketAddr, ToSocketAddrs};
 
 use tokio;
 use tokio::net::TcpStream;
@@ -175,12 +175,22 @@ impl TcpTransport {
         let host = url.host_str().unwrap();
         let port = if let Some(port) = url.port() { port } else { 4840 };
 
+        // Resolve the host name into a socket address
         let addr = {
-            let addr = format!("{}:{}", host, port).parse::<SocketAddr>();
-            if addr.is_err() {
+            let addr = format!("{}:{}", host, port);
+            let addrs = addr.to_socket_addrs();
+            if let Ok(mut addrs) = addrs {
+                // Take the first resolved ip addr for the hostname
+                if let Some(addr) = addrs.next() {
+                    addr
+                } else {
+                    error!("Invalid address {}, does not resolve to any socket", addr);
+                    return Err(BadTcpEndpointUrlInvalid);
+                }
+            } else {
+                error!("Invalid address {}, cannot be parsed {:?}", addr, addrs.unwrap_err());
                 return Err(BadTcpEndpointUrlInvalid);
             }
-            addr.unwrap()
         };
         assert_eq!(addr.port(), port);
         assert!(addr.is_ipv4());

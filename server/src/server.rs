@@ -175,7 +175,7 @@ impl Server {
                     {
                         let mut server_state = trace_write_lock_unwrap!(server.server_state);
                         server_state.start_time = DateTime::now();
-                        server_state.state = ServerStateType::Running;
+                        server_state.set_state(ServerStateType::Running);
                     }
 
                     // Start a timer that registers the server with a discovery server
@@ -183,6 +183,7 @@ impl Server {
                     // Start any pending polling action timers
                     server.start_pending_polling_actions();
                 }
+
                 // Start a server abort task loop
                 Self::start_abort_poll(server, tx_abort);
 
@@ -196,7 +197,11 @@ impl Server {
                         // Clear out dead sessions
                         info!("Handling new connection {:?}", socket);
                         let mut server = trace_write_lock_unwrap!(server_for_listener);
-                        if server.is_abort() {
+                        // Check for abort
+                        if {
+                            let server_state = trace_read_lock_unwrap!(server.server_state);
+                            server_state.is_abort()
+                        } {
                             info!("Server is aborting so it will not accept new connections");
                         } else {
                             server.handle_connection(socket);
@@ -204,8 +209,13 @@ impl Server {
                         Ok(())
                     })
                     .map_err(|err| {
-                        error!("Accept error = {:?}", err);
+                        error!("Completion pact, incoming error = {:?}", err);
                     })
+                    .map(|_| {
+                        info!("Completion pact has completed");
+                    })
+            }).map(|_| {
+                info!("Server task is finished");
             })
         });
 
@@ -217,13 +227,7 @@ impl Server {
     pub fn abort(&mut self) {
         info!("Server has been instructed to abort");
         let mut server_state = trace_write_lock_unwrap!(self.server_state);
-        server_state.abort = true;
-        server_state.state = ServerStateType::Shutdown;
-    }
-
-    fn is_abort(&self) -> bool {
-        let server_state = trace_read_lock_unwrap!(self.server_state);
-        server_state.is_abort()
+        server_state.abort();
     }
 
     /// Strip out dead connections, i.e those which have disconnected
@@ -282,8 +286,18 @@ impl Server {
                     // Check if there are any open sessions
                     let server = trace_read_lock_unwrap!(server);
                     let has_open_connections = server.remove_dead_connections();
+                    let server_state = trace_read_lock_unwrap!(server.server_state);
                     // Predicate breaks take_while on abort & no open connections
-                    server.is_abort() && !has_open_connections
+                    if server_state.is_abort() {
+                        if has_open_connections {
+                            debug!("Abort poll is waiting for open connections to terminate");
+                            false
+                        } else {
+                            true
+                        }
+                    } else {
+                        false
+                    }
                 };
                 if abort {
                     info!("Server has aborted so, sending a command to break the listen loop");
@@ -291,7 +305,13 @@ impl Server {
                 }
                 future::ok(!abort)
             })
-            .for_each(|_| { Ok(()) })
+            .for_each(|_| {
+                // DO NOTHING - take_while is where we do stuff
+                Ok(())
+            })
+            .map(|_| {
+                info!("Abort poll task is finished");
+            })
             .map_err(|err| {
                 error!("Abort poll error = {:?}", err);
             });
@@ -304,25 +324,57 @@ impl Server {
         if let Some(discovery_server_url) = discovery_server_url {
             info!("Server has set a discovery server url {} which will be used to register the server", discovery_server_url);
             let server_state = self.server_state.clone();
-            let task = Interval::new(Instant::now(), Duration::from_millis(5 * 60 * 1000))
+            let server_state_for_take = self.server_state.clone();
+
+            let register_duration = Duration::from_secs(5 * 60);
+            let mut last_registered = None;
+
+            // Polling happens fairly quickly so task can terminate on server abort, however
+            // it is looking for the registration duration to have elapsed until it actually does
+            // anything.
+            let task = Interval::new(Instant::now(), Duration::from_millis(1000))
+                .take_while(move |_| {
+                    let server_state = trace_read_lock_unwrap!(server_state_for_take);
+                    future::ok(!server_state.is_abort())
+                })
                 .for_each(move |_| {
-                    // This is going to be spawned in a thread because client side code doesn't use
-                    // tokio yet and we don't want its synchronous code to block other futures.
-                    let server_state = server_state.clone();
-                    let discovery_server_url = discovery_server_url.clone();
-                    let _ = thread::spawn(move || {
-                        use std;
-                        let _ = std::panic::catch_unwind(move || {
-                            let server_state = trace_read_lock_unwrap!(server_state);
-                            if server_state.is_running() {
-                                discovery::register_discover_server(&discovery_server_url, &server_state);
-                            }
+                    // Test if registration needs to happen, i.e. if this is first time around,
+                    // or if duration has elapsed since last attempt.
+                    let now = Instant::now();
+                    let register_server = if let Some(last_registered_time) = last_registered.take() {
+                        if now.duration_since(last_registered_time) > register_duration {
+                            true
+                        } else {
+                            false
+                        }
+                    } else {
+                        true
+                    };
+                    if register_server {
+                        // Even though the client uses tokio internally, the client's API is synchronous
+                        // so the registration will happen on its own thread. The expectation is that
+                        // it will run and either succeed, or it will fail but either way the operation
+                        // will have completed before the next timer fires.
+                        let server_state = server_state.clone();
+                        let discovery_server_url = discovery_server_url.clone();
+                        let _ = thread::spawn(move || {
+                            use std;
+                            let _ = std::panic::catch_unwind(move || {
+                                let server_state = trace_read_lock_unwrap!(server_state);
+                                if server_state.is_running() {
+                                    discovery::register_with_discovery_server(&discovery_server_url, &server_state);
+                                }
+                            });
                         });
-                    });
+                        last_registered = Some(now);
+                    }
                     Ok(())
                 })
+                .map(|_| {
+                    info!("Discovery timer task is finished");
+                })
                 .map_err(|err| {
-                    error!("Discovery server registration error = {:?}", err);
+                    error!("Discovery timer task registration error = {:?}", err);
                 });
             tokio::spawn(task);
         } else {
@@ -339,7 +391,7 @@ impl Server {
         if server_state.is_abort() {
             error!("Polling action added when server is aborting");
             // DO NOTHING
-        } else if server_state.state != ServerStateType::Running {
+        } else if !server_state.is_running() {
             self.pending_polling_actions.push((interval_ms, Box::new(action)));
         } else {
             // Start the action immediately
@@ -368,7 +420,7 @@ impl Server {
         let session = {
             Arc::new(RwLock::new(Session::new(self)))
         };
-        // TODO session should be stored in a sessions list so that disconnected sessions can be reestablished if nece
+        // TODO session should be stored in a sessions list so that disconnected sessions can be reestablished if necessary
         let address_space = self.address_space.clone();
         let message_handler = MessageHandler::new(self.certificate_store.clone(), self.server_state.clone(), session.clone(), address_space.clone());
         TcpTransport::new(self.server_state.clone(), session, address_space, message_handler)

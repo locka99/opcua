@@ -259,7 +259,7 @@ impl SessionState {
 
         let (security_mode, security_policy, client_nonce) = {
             let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
-            let client_nonce = secure_channel.security_policy().nonce();
+            let client_nonce = secure_channel.security_policy().random_nonce();
             secure_channel.set_local_nonce(client_nonce.as_ref());
             (secure_channel.security_mode(), secure_channel.security_policy(), client_nonce)
         };

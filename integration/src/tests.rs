@@ -17,6 +17,7 @@ use opcua_server::config::{ServerEndpoint, ServerConfig};
 use opcua_server::prelude::*;
 use opcua_client::prelude::*;
 use opcua_client::config::{ClientConfig, ClientUserToken};
+use opcua_console_logging;
 
 const ENDPOINT_ID_NONE: &'static str = "sample_none";
 const ENDPOINT_ID_BASIC128RSA15_SIGN_ENCRYPT: &'static str = "sample_basic128rsa15_signencrypt";
@@ -242,6 +243,9 @@ enum ServerResponse {
 fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: ST)
     where CT: FnOnce(mpsc::Receiver<ClientCommand>, Client) + Send + 'static,
           ST: FnOnce(mpsc::Receiver<ServerCommand>, Server) + Send + 'static {
+
+    opcua_console_logging::init();
+
     let (client, server) = new_client_server(port_offset);
 
     // Spawn the CLIENT thread

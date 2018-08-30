@@ -80,7 +80,7 @@ impl SessionService {
             };
 
             // Crypto
-            let server_nonce = security_policy.nonce();
+            let server_nonce = security_policy.random_nonce();
             let server_certificate = server_state.server_certificate_as_byte_string();
             let server_endpoints = Some(endpoints);
 
@@ -119,7 +119,7 @@ impl SessionService {
             (secure_channel.security_policy(), secure_channel.security_mode())
         };
 
-        let server_nonce = security_policy.nonce();
+        let server_nonce = security_policy.random_nonce();
 
         let mut service_result = if !server_state.endpoint_exists(endpoint_url, security_policy, security_mode) {
             // Need an endpoint

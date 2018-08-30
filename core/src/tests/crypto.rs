@@ -352,10 +352,10 @@ fn sign_hmac_sha256() {
 #[test]
 fn generate_nonce() {
     // Generate a random nonce through the function and ensure it is the expected length
-    assert!(SecurityPolicy::None.nonce().is_null());
-    assert_eq!(SecurityPolicy::Basic128Rsa15.nonce().as_ref().len(), 16);
-    assert_eq!(SecurityPolicy::Basic256.nonce().as_ref().len(), 32);
-    assert_eq!(SecurityPolicy::Basic256Sha256.nonce().as_ref().len(), 32);
+    assert!(SecurityPolicy::None.random_nonce().is_null());
+    assert_eq!(SecurityPolicy::Basic128Rsa15.random_nonce().as_ref().len(), 16);
+    assert_eq!(SecurityPolicy::Basic256.random_nonce().as_ref().len(), 32);
+    assert_eq!(SecurityPolicy::Basic256Sha256.random_nonce().as_ref().len(), 32);
 }
 
 #[test]

@@ -25,7 +25,7 @@ impl PollingAction {
             .take_while(move |_| {
                 let server_state = trace_read_lock_unwrap!(server_state);
                 // If the server aborts or is in a failed state, this polling timer will stop
-                let abort = match server_state.state {
+                let abort = match server_state.state() {
                     ServerStateType::Failed |
                     ServerStateType::NoConfiguration |
                     ServerStateType::Shutdown => {

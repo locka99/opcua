@@ -28,8 +28,6 @@ pub struct ServerState {
     pub application_name: LocalizedText,
     /// The protocol, hostname and port formatted as a url, but less the path
     pub base_endpoint: String,
-    //// Current state
-    pub state: ServerStateType,
     /// The time the server started
     pub start_time: DateTime,
     /// The list of namespaces
@@ -55,6 +53,8 @@ pub struct ServerState {
     pub max_keep_alive_count: UInt32,
     /// Maximum lifetime count (3 times as large as max keep alive)
     pub max_lifetime_count: UInt32,
+    //// Current state
+    pub state: ServerStateType,
     /// Sets the abort flag that terminates the associated server
     pub abort: bool,
     /// Diagnostic information
@@ -176,6 +176,18 @@ impl ServerState {
     pub fn application_type(&self) -> ApplicationType { ApplicationType::Server }
 
     pub fn gateway_server_uri(&self) -> UAString { UAString::null() }
+
+    pub fn abort(&mut self) {
+        info!("Server has been told to abort");
+        self.abort = true;
+        self.state = ServerStateType::Shutdown;
+    }
+
+    pub fn state(&self) -> ServerStateType { self.state }
+
+    pub fn set_state(&mut self, state: ServerStateType) {
+        self.state = state;
+    }
 
     pub fn is_abort(&self) -> bool { self.abort }
 

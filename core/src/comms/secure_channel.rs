@@ -188,11 +188,9 @@ impl SecureChannel {
     /// to be renewed if the issue period has elapsed by 75% or more.
     pub fn should_renew_security_token(&self) -> bool {
         if self.token_id() == 0 {
-            // panic!("Shouldn't be asking this question, if there is no token id at all");
             false
         } else {
             let now = chrono::Utc::now();
-
             // Check if secure channel 75% close to expiration in which case send a renew
             let renew_lifetime = (self.token_lifetime() * 3) / 4;
             let created_at = self.token_created_at().into();

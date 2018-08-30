@@ -38,6 +38,7 @@ impl<S, C> Stream for CompletionPact<S, C>
             Err(_) |
             Ok(Async::Ready(Some(_))) => {
                 // We are done, forget us
+                debug!("Completer has triggered, indicating completion of the job");
                 Ok(Async::Ready(None))
             }
             Ok(Async::NotReady) => {

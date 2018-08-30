@@ -219,13 +219,15 @@ impl Client {
             if let Ok(_) = connected {
                 // Find me some some servers
                 let servers = session.find_servers(discovery_endpoint_url.clone());
-                if let Ok(servers) = servers {
+                let result = if let Ok(servers) = servers {
                     Ok(servers)
                 } else {
                     let result = servers.unwrap_err();
                     error!("Cannot find servers on discovery server {} - check this error - {:?}", discovery_endpoint_url, result);
                     Err(result)
-                }
+                };
+                let _ = session.disconnect();
+                result
             } else {
                 let result = connected.unwrap_err();
                 error!("Cannot connect to {} - check this error - {:?}", discovery_endpoint_url, result);
@@ -260,7 +262,9 @@ impl Client {
                     let connected = session.connect();
                     if let Ok(_) = connected {
                         // Register with the server
-                        session.register_server(server)
+                        let result = session.register_server(server);
+                        let _ = session.disconnect();
+                        result
                     } else {
                         let result = connected.unwrap_err();
                         error!("Cannot connect to {} - check this error - {:?}", discovery_endpoint_url, result);
