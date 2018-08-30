@@ -1,7 +1,7 @@
 //! The server module defines types related to the server, its current running state
 //! and end point information.
 
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, RwLock, Mutex};
 use std::net::SocketAddr;
 use std::marker::Sync;
 use std::time::{Instant, Duration};
@@ -326,8 +326,11 @@ impl Server {
             let server_state = self.server_state.clone();
             let server_state_for_take = self.server_state.clone();
 
+            // The registration timer fires on a duration, so make that duration and pretend the
+            // last time it fired was now - duration, so it should instantly fire when polled next.
             let register_duration = Duration::from_secs(5 * 60);
-            let mut last_registered = None;
+            let last_registered = Instant::now() - register_duration;
+            let last_registered = Arc::new(Mutex::new(last_registered));
 
             // Polling happens fairly quickly so task can terminate on server abort, however
             // it is looking for the registration duration to have elapsed until it actually does
@@ -341,16 +344,14 @@ impl Server {
                     // Test if registration needs to happen, i.e. if this is first time around,
                     // or if duration has elapsed since last attempt.
                     let now = Instant::now();
-                    let register_server = if let Some(last_registered_time) = last_registered.take() {
-                        if now.duration_since(last_registered_time) > register_duration {
-                            true
-                        } else {
-                            false
-                        }
-                    } else {
+                    let mut last_registered = trace_lock_unwrap!(last_registered);
+                    let register_server = if now.duration_since(*last_registered) >= register_duration {
                         true
+                    } else {
+                        false
                     };
                     if register_server {
+                        *last_registered = now;
                         // Even though the client uses tokio internally, the client's API is synchronous
                         // so the registration will happen on its own thread. The expectation is that
                         // it will run and either succeed, or it will fail but either way the operation
@@ -366,7 +367,6 @@ impl Server {
                                 }
                             });
                         });
-                        last_registered = Some(now);
                     }
                     Ok(())
                 })
