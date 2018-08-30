@@ -10,7 +10,6 @@ use status_codes::StatusCode;
 // These are standard UA types
 
 /// A two-state logical value (true or false).
-/// Data type ID 1
 pub type Boolean = bool;
 
 impl BinaryEncoder<Boolean> for Boolean {
@@ -29,8 +28,7 @@ impl BinaryEncoder<Boolean> for Boolean {
     }
 }
 
-/// An integer value between −128 and 127.
-/// Data type ID 2
+/// A signed byte integer value between −128 and 127.
 pub type SByte = i8;
 
 impl BinaryEncoder<SByte> for SByte {
@@ -47,8 +45,7 @@ impl BinaryEncoder<SByte> for SByte {
     }
 }
 
-/// An integer value between 0 and 255.
-/// Data type ID 3
+/// An unsigned byt integer value between 0 and 255.
 pub type Byte = u8;
 
 impl BinaryEncoder<Byte> for Byte {
@@ -65,8 +62,7 @@ impl BinaryEncoder<Byte> for Byte {
     }
 }
 
-/// An integer value between −32 768 and 32 767.
-/// Data type ID 4
+/// A signed integer value between −32768 and 32767.
 pub type Int16 = i16;
 
 impl BinaryEncoder<Int16> for Int16 {
@@ -83,8 +79,7 @@ impl BinaryEncoder<Int16> for Int16 {
     }
 }
 
-/// An integer value between 0 and 65 535.
-/// Data type ID 5
+/// An unsigned integer value between 0 and 65535.
 pub type UInt16 = u16;
 
 impl BinaryEncoder<UInt16> for UInt16 {
@@ -101,8 +96,7 @@ impl BinaryEncoder<UInt16> for UInt16 {
     }
 }
 
-/// An integer value between −2 147 483 648 and 2 147 483 647.
-/// Data type ID 6
+/// A signed integer value between −2147483648 and 2147483647.
 pub type Int32 = i32;
 
 impl BinaryEncoder<Int32> for Int32 {
@@ -119,8 +113,7 @@ impl BinaryEncoder<Int32> for Int32 {
     }
 }
 
-/// An integer value between 0 and 4 294 967 295.
-/// Data type ID 7
+/// An unsigned integer value between 0 and 4294967295.
 pub type UInt32 = u32;
 
 impl BinaryEncoder<UInt32> for UInt32 {
@@ -137,8 +130,7 @@ impl BinaryEncoder<UInt32> for UInt32 {
     }
 }
 
-/// An integer value between −9 223 372 036 854 775 808 and 9 223 372 036 854 775 807
-/// Data type ID 8
+/// A signed integer value between −9223372036854775808 and 9223372036854775807.
 pub type Int64 = i64;
 
 impl BinaryEncoder<Int64> for Int64 {
@@ -155,8 +147,7 @@ impl BinaryEncoder<Int64> for Int64 {
     }
 }
 
-/// An integer value between 0 and 18 446 744 073 709 551 615.
-/// Data type ID 9
+/// An unsigned integer value between 0 and 18446744073709551615.
 pub type UInt64 = u64;
 
 impl BinaryEncoder<UInt64> for UInt64 {
@@ -174,7 +165,6 @@ impl BinaryEncoder<UInt64> for UInt64 {
 }
 
 /// An IEEE single precision (32 bit) floating point value.
-/// Data type ID 10
 pub type Float = f32;
 
 impl BinaryEncoder<Float> for Float {
@@ -192,7 +182,6 @@ impl BinaryEncoder<Float> for Float {
 }
 
 /// An IEEE double precision (64 bit) floating point value.
-/// Data type ID 11
 pub type Double = f64;
 
 impl BinaryEncoder<Double> for Double {
@@ -211,11 +200,9 @@ impl BinaryEncoder<Double> for Double {
 
 // NodeId and ExpandedNodeId are in node_id.rs
 
-/// A numeric identifier for a error or condition that is associated with a value or an operation.
-/// Data type ID 19
-
+/// An identifier for a error or condition that is associated with a value or an operation.
+///
 /// A name qualified by a namespace.
-/// Data type ID 20
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct QualifiedName {
     /// The namespace index.
@@ -270,8 +257,7 @@ impl QualifiedName {
     }
 }
 
-/// Human readable text with an optional locale identifier
-/// Data type ID 21
+/// A human readable text with an optional locale identifier.
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct LocalizedText {
     /// The locale. Omitted from stream if null or empty
@@ -387,7 +373,7 @@ bitflags! {
     }
 }
 
-/// Data type ID 25
+/// Diagnostic information.
 #[derive(PartialEq, Debug, Clone)]
 pub struct DiagnosticInfo {
     /// A symbolic name for the status code.

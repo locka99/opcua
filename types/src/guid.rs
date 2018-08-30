@@ -7,8 +7,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use encoding::*;
 use uuid::Uuid;
 
-/// A 16 byte value that can be used as a globally unique identifier.
-/// Data type ID 14
+/// A Guid is a 16 byte Globally Unique Identifier.
 #[derive(Eq, PartialEq, Clone, Hash)]
 pub struct Guid {
     uuid: Uuid,

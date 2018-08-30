@@ -407,7 +407,6 @@ impl NodeId {
 }
 
 /// A NodeId that allows the namespace URI to be specified instead of an index.
-/// Data type ID 18
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct ExpandedNodeId {
     pub node_id: NodeId,

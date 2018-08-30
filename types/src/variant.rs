@@ -227,7 +227,8 @@ impl From<MultiDimensionArray> for Variant {
 /// A Variant holds all primitive types, including single and multi dimensional arrays and
 /// data values.
 ///
-/// Boxes are used for more complex types to keep the size of this enum down a bit.
+/// Boxes are used for more complex types to keep the size of this type down a bit, especially
+/// when used in arrays or on the stack.
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub enum Variant {
     /// Empty type has no value

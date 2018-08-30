@@ -15,9 +15,7 @@ const MAX_YEAR: UInt16 = 9999;
 
 type UtcDateTime = chrono::DateTime<Utc>;
 
-/// Data type ID 13
-//
-/// Holds a date/time. This is a wrapper around the chrono type with extra functionality
+/// A date/time value. This is a wrapper around the chrono type with extra functionality
 /// for obtaining ticks in OPC UA measurements, endtimes, epoch etc.
 #[derive(PartialEq, Debug, Clone)]
 pub struct DateTime {

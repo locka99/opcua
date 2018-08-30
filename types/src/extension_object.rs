@@ -18,8 +18,7 @@ pub enum ExtensionObjectEncoding {
     XmlElement(XmlElement),
 }
 
-/// A structure that contains an application specific data type that may not be recognized by the receiver.
-/// Data type ID 22
+/// An extension object holds a serialized object identified by its node id.
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct ExtensionObject {
     pub node_id: NodeId,
@@ -107,12 +106,12 @@ impl ExtensionObject {
         }
     }
 
-    // Tests for null - node id null
+    /// Tests for null node id.
     pub fn is_null(&self) -> bool {
         self.node_id.is_null()
     }
 
-    // Tests for empty body
+    /// Tests for empty body.
     pub fn is_empty(&self) -> bool {
         match self.body {
             ExtensionObjectEncoding::None => true,

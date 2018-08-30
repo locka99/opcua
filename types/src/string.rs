@@ -6,14 +6,12 @@ use basic_types::Int32;
 use constants;
 use status_codes::StatusCode::{BadDecodingError, BadEncodingLimitsExceeded};
 
-/// A UTF-8 encoded sequence of Unicode characters.
+/// A string containing UTF-8 encoded characters.
 ///
-/// A string can hold a null value, so the string value is optional.
+/// A string can also be a null value, so the string value is optional.
 /// When there is no string, the value is treated as null
 ///
 /// To avoid naming conflict hell, the String type is named UAString.
-///
-/// Data type ID 12
 #[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize)]
 pub struct UAString {
     pub value: Option<String>,
@@ -98,22 +96,21 @@ impl Default for UAString {
 }
 
 impl UAString {
-    /// Returns the length of the string or -1 for null
+    /// Returns the length of the string or -1 for null.
     pub fn len(&self) -> isize {
         if self.value.is_none() { -1 } else { self.value.as_ref().unwrap().len() as isize }
     }
 
-    /// Create a null string (not the same as an empty string)
+    /// Create a null string (not the same as an empty string).
     pub fn null() -> UAString {
         UAString { value: None }
     }
 
-    /// Test if the string is null
+    /// Test if the string is null.
     pub fn is_null(&self) -> bool {
         self.value.is_none()
     }
 }
 
 /// An XML element.
-/// Data type ID 16
 pub type XmlElement = UAString;

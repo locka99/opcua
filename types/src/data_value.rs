@@ -24,7 +24,8 @@ bitflags! {
     }
 }
 
-/// Data type ID 23
+/// A data value is a value of a variable in the OPC UA server and contains information about its
+/// value, status and change timestamps.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DataValue {
     /// The value. BaseDataType

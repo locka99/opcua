@@ -89,18 +89,22 @@ impl Subscriptions {
         }
     }
 
+    /// Tests if there are no subscriptions/
     pub fn is_empty(&self) -> bool {
         self.subscriptions.is_empty()
     }
 
+    /// Returns the length of subscriptions.
     pub fn len(&self) -> usize {
         self.subscriptions.len()
     }
 
+    /// Returns a reference to the collection holding the subscriptions.
     pub fn subscriptions(&self) -> &BTreeMap<UInt32, Subscription> {
         &self.subscriptions
     }
 
+    /// Tests if the subscriptions contain the supplied subscription id.
     pub fn contains(&self, subscription_id: UInt32) -> bool {
         self.subscriptions.contains_key(&subscription_id)
     }
