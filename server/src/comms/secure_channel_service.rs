@@ -94,7 +94,7 @@ impl SecureChannelService {
 
                 // Check for a duplicate nonce. It is invalid for the renew to use the same nonce
                 // as was used for last issue/renew. It doesn't matter when policy is none.
-                if self.secure_channel.security_policy() != SecurityPolicy::None &&
+                if secure_channel.security_policy() != SecurityPolicy::None &&
                     request.client_nonce.as_ref() == &secure_channel.remote_nonce()[..] {
                     error!("Client reused a nonce for a renew");
                     return Ok(ServiceFault::new_supported_message(&request.request_header, BadNonceInvalid));
