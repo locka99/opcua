@@ -10,7 +10,7 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
     dependent on OpenSSL until a drop-in replacement appears - need something which can generate, read and write X509
     certs, private keys and their corresponding .der, .pem file formats.
 
-## 0.4 (IN PROGRESS)
+## 0.4
   - General
     - More rigorous security checks server side and new client side certificate checking.
     - Changes to codebase for more idiomatic Rust, e.g. replacing lots of loops with iterators, providing
