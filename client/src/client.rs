@@ -40,13 +40,14 @@ pub struct Client {
 
 impl Drop for Client {
     fn drop(&mut self) {
-        for session in self.sessions.iter_mut() {
-            // Disconnect
-            let mut session = trace_write_lock_unwrap!(session.session);
-            if session.is_connected() {
-                session.disconnect()
-            }
-        }
+// TODO - this causes panics on unwrap - have to figure the reason out
+//        for session in self.sessions.iter_mut() {
+//            // Disconnect
+//            let mut session = trace_write_lock_unwrap!(session.session);
+//            if session.is_connected() {
+//                session.disconnect()
+//            }
+//        }
     }
 }
 

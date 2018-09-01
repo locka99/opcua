@@ -1,6 +1,6 @@
 [package]
 name = "opcua-client"
-version = "0.4.0" # OPCUARustVersion
+version = "0.4.1" # OPCUARustVersion
 description = "OPC UA client API"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"

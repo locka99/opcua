@@ -822,14 +822,14 @@ name = "opcua-chess-server"
 version = "0.4.0"
 dependencies = [
  "opcua-core 0.4.0",
- "opcua-server 0.4.0",
+ "opcua-server 0.4.1",
  "opcua-types 0.4.0",
  "uci 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "opcua-client"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "chrono 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.23 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -881,7 +881,7 @@ dependencies = [
  "log4rs 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-console-logging 0.4.0",
  "opcua-core 0.4.0",
- "opcua-server 0.4.0",
+ "opcua-server 0.4.1",
  "opcua-types 0.4.0",
  "rand 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -891,7 +891,7 @@ name = "opcua-discovery-client"
 version = "0.4.0"
 dependencies = [
  "clap 2.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "opcua-client 0.4.0",
+ "opcua-client 0.4.1",
  "opcua-console-logging 0.4.0",
  "opcua-core 0.4.0",
  "opcua-types 0.4.0",
@@ -903,7 +903,7 @@ version = "0.4.0"
 dependencies = [
  "clap 2.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "conrod 0.60.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "opcua-client 0.4.0",
+ "opcua-client 0.4.1",
  "opcua-console-logging 0.4.0",
  "opcua-core 0.4.0",
  "opcua-types 0.4.0",
@@ -916,10 +916,10 @@ dependencies = [
  "chrono 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "opcua-client 0.4.0",
+ "opcua-client 0.4.1",
  "opcua-console-logging 0.4.0",
  "opcua-core 0.4.0",
- "opcua-server 0.4.0",
+ "opcua-server 0.4.1",
  "opcua-types 0.4.0",
 ]
 
@@ -928,7 +928,7 @@ name = "opcua-mqtt-client"
 version = "0.4.0"
 dependencies = [
  "clap 2.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "opcua-client 0.4.0",
+ "opcua-client 0.4.1",
  "opcua-console-logging 0.4.0",
  "opcua-core 0.4.0",
  "opcua-types 0.4.0",
@@ -936,14 +936,14 @@ dependencies = [
 
 [[package]]
 name = "opcua-server"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "bitflags 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.12.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "opcua-client 0.4.0",
+ "opcua-client 0.4.1",
  "opcua-core 0.4.0",
  "opcua-types 0.4.0",
  "ring 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -961,7 +961,7 @@ name = "opcua-simple-client"
 version = "0.4.0"
 dependencies = [
  "clap 2.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "opcua-client 0.4.0",
+ "opcua-client 0.4.1",
  "opcua-console-logging 0.4.0",
  "opcua-core 0.4.0",
  "opcua-types 0.4.0",
@@ -975,7 +975,7 @@ dependencies = [
  "log 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-console-logging 0.4.0",
  "opcua-core 0.4.0",
- "opcua-server 0.4.0",
+ "opcua-server 0.4.1",
  "opcua-types 0.4.0",
 ]
 
