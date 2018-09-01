@@ -1,6 +1,6 @@
 [package]
 name = "opcua-simple-client"
-version = "0.4.0" # OPCUARustVersion
+version = "0.5.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 
 [dependencies]
@@ -8,16 +8,16 @@ clap = "2.27"
 
 [dependencies.opcua-types]
 path = "../../types"
-version = "0.4.0" # OPCUARustVersion
+version = "0.5.0" # OPCUARustVersion
 
 [dependencies.opcua-client]
 path = "../../client"
-version = "0.4.0" # OPCUARustVersion
+version = "0.5.0" # OPCUARustVersion
 
 [dependencies.opcua-core]
 path = "../../core"
-version = "0.4.0" # OPCUARustVersion
+version = "0.5.0" # OPCUARustVersion
 
 [dependencies.opcua-console-logging]
 path = "../../console-logging"
-version = "0.4.0" # OPCUARustVersion
+version = "0.5.0" # OPCUARustVersion

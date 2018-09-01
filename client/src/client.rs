@@ -79,6 +79,11 @@ impl Client {
         self.config.application_description()
     }
 
+    /// Connects to the named endpoint and automatically activate a session for that endpoint.
+    ///
+    /// Returns with the session that has been established. Note that session's are protected objects
+    /// that can be called from multiple threads and should only locked for the smallest duration
+    /// necessary.
     pub fn connect_and_activate(&mut self, endpoint_id: Option<&str>) -> Result<Arc<RwLock<Session>>, StatusCode> {
         // Ask the server associated with the default endpoint for its list of endpoints
         let endpoints = match self.get_server_endpoints() {
@@ -204,13 +209,18 @@ impl Client {
         };
         let mut session = Session::new(self.application_description(), self.certificate_store.clone(), session_info);
         let _ = session.connect()?;
-        session.get_endpoints()
+        let result = session.get_endpoints()?;
+        let _ = session.disconnect();
+        Ok(result)
     }
 
-    /// Creates a temporary `Session` to the specified discovery endpoint and returns the server results that it finds
+    /// Called by clients that wish to discover what servers are available from a discovery server.
+    ///
+    /// Creates a temporary `Session` to the specified discovery server and returns with a list of
+    /// available server descriptions.
     pub fn find_servers<T>(&mut self, discovery_endpoint_url: T) -> Result<Vec<ApplicationDescription>, StatusCode> where T: Into<String> {
         let discovery_endpoint_url = discovery_endpoint_url.into();
-        debug!("Creating a temporary session to discovery server {}", discovery_endpoint_url);
+        debug!("find_servers, {}", discovery_endpoint_url);
         let endpoint = Self::make_endpoint_description(&discovery_endpoint_url);
         let session = self.new_session_from_info(endpoint);
         if let Ok(session) = session {
@@ -241,13 +251,22 @@ impl Client {
         }
     }
 
-    /// Called by servers who want to register themselves with a discovery server. The server is a
-    /// client to the discovery server in this use. Normal clients do not need to call this function.
+    /// Called by servers that wish to register themselves with a discovery server.
+    ///
+    /// In this role, the server becomes the client of the discovery server, so it needs to connect
+    /// as a client, query the endpoints, establish a session, register its own endpoints and then
+    /// disconnect.
+    ///
+    /// The implementation of this function looks for the strongest endpoint of the discovery server
+    /// to register itself on. That makes it possible that the discovery server may reject the
+    /// connection if it does not trust the client. In that instance, it is up to the user to do
+    /// whatever is required to make the discovery server trust the registering server. For example
+    /// the standard OPC foundation discovery server will drop the server's cert in a rejected/
+    /// folder and this cert has to be moved to a trusted/certs/ folder.
     pub fn register_server<T>(&mut self, discovery_endpoint_url: T, server: RegisteredServer) -> Result<(), StatusCode> where T: Into<String> {
         let discovery_endpoint_url = discovery_endpoint_url.into();
         // Get a list of endpoints from the discovery server
-        trace!("register_server({}, {:?}", discovery_endpoint_url, server);
-        debug!("Getting endpoints from discovery server {}", discovery_endpoint_url);
+        debug!("register_server({}, {:?}", discovery_endpoint_url, server);
         let endpoints = self.get_server_endpoints_from_url(&discovery_endpoint_url)?;
         if endpoints.is_empty() {
             Err(StatusCode::BadUnexpectedError)

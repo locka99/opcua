@@ -5,7 +5,7 @@ use regex::Regex;
 use basic_types::UInt32;
 use variant::Variant;
 
-/// See OPCUA Part 4 7.22
+/// Numeric range describes a range within an array. See OPCUA Part 4 7.22
 ///
 /// This parameter is defined in Table 159. A formal BNF definition of the numeric range can be
 /// found in Clause A.3.
@@ -72,9 +72,9 @@ fn valid_numeric_ranges() {
         ]), "0:1,2,3,0:4,5,6,7,8,0:9")
     ];
     for vr in valid_ranges {
-        let range = NumericRange::from_str(vr.0);
+        let range = vr.0.parse::<NumericRange>();
         if range.is_err() {
-            println!("Range {} is in error when it should be in ok", vr.0);
+            println!("Range {} is in error when it should be ok", vr.0);
         }
         assert!(range.is_ok());
         assert_eq!(range.unwrap(), vr.1);
@@ -93,7 +93,7 @@ fn invalid_numeric_ranges() {
     ];
     for vr in invalid_ranges {
         println!("vr = {}", vr);
-        let range = NumericRange::from_str(vr);
+        let range = vr.parse::<NumericRange>();
         if range.is_ok() {
             println!("Range {} is ok when it should be in error", vr);
         }

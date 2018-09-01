@@ -10,6 +10,11 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
     dependent on OpenSSL until a drop-in replacement appears - need something which can generate, read and write X509
     certs, private keys and their corresponding .der, .pem file formats.
 
+## 0.5 (WORK IN PROGRESS)
+  - (WIP) Session restore after disconnect in server.
+  - (WIP) Session restore after disconnect in client, i.e. reconnect and resume session first and then try reconnect 
+    and recreate session.
+
 ## 0.4
   - General
     - More rigorous security checks server side and new client side certificate checking.
