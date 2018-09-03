@@ -3,17 +3,20 @@
 ASPIRATIONAL - a short list of things that would be nice to implement in the near future
   - Rust 2018. Fix all code to the 2018 spec. This will clean up code like match statements, extern crates etc. 
     that benefit from greater inference.
-  - Diagnostics
-  - Session restore after disconnect in server.
-  - Session restore after disconnect in client, i.e. reconnect and resume session first and then try reconnect and recreate session.
   - Replace more OpenSSL with `ring` equivalent functions. Ring doesn't do X509 so code is still
     dependent on OpenSSL until a drop-in replacement appears - need something which can generate, read and write X509
     certs, private keys and their corresponding .der, .pem file formats.
 
-## 0.5 (WORK IN PROGRESS)
-  - (WIP) Session restore after disconnect in server.
-  - (WIP) Session restore after disconnect in client, i.e. reconnect and resume session first and then try reconnect 
-    and recreate session.
+## 0.5 (WORK IN PROGRESS - WIP)
+  - (WIP) better documentation both in markdown and for the client / server APIs.
+  - (WIP) Session restore after disconnect in server. The server has to stash sessions that were abnormally disconnected
+    so the session state can be restored if a new connection provides the token.
+  - (WIP) Session restore after disconnect in client, i.e. attempt to reconnect and resume session first and if that
+    fails manually reconstruct the session - subscriptions and monitored items.
+  - (WIP) Diagnostics
+  - (WIP) Tokio codec - investigate if client and server can abstract handshake and chunks behind tokio's higher 
+    level frame based support. In theory, the chunk / hello / ack / err can be read or written atomically, obviating
+    some mess in the TcpTransport layers on client and server.
 
 ## 0.4
   - General
