@@ -1,3 +1,5 @@
+//! Contains the implementation of `DataValue`.
+
 use std::io::{Read, Write};
 
 use ::StatusCodeBits;

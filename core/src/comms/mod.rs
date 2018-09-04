@@ -8,6 +8,7 @@ pub mod message_chunk_info;
 pub mod secure_channel;
 pub mod security_header;
 pub mod message_writer;
+pub mod tcp_codec;
 
 pub mod prelude {
     pub use super::chunker::*;

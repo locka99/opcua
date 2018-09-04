@@ -1,3 +1,5 @@
+//! Contains the implementation of `Guid`.
+
 use std::fmt;
 use std::str::FromStr;
 use std::io::{Read, Write};

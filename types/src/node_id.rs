@@ -1,3 +1,5 @@
+//! Contains the implementation of `NodeId` and `ExpandedNodeId`.
+
 use std;
 use std::io::{Read, Write};
 use std::str::FromStr;

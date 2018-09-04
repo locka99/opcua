@@ -1,3 +1,5 @@
+//! Contains the implementation of `NumericRange`.
+
 use std::str::FromStr;
 
 use regex::Regex;

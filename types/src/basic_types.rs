@@ -1,3 +1,5 @@
+//! Contains definitions of the simple OPC UA scalar types and some others.
+
 use std::io::{Read, Write};
 use std::fmt;
 

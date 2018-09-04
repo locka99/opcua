@@ -21,7 +21,6 @@ use subscriptions::subscriptions::Subscriptions;
 #[derive(Clone)]
 pub struct SessionInfo {}
 
-const MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE: usize = 100;
 const PUBLISH_REQUEST_TIMEOUT: i64 = 30000;
 
 /// The Session is any state maintained between the client and server
@@ -79,10 +78,9 @@ impl Drop for Session {
 impl Session {
     #[cfg(test)]
     pub fn new_no_certificate_store(secure_channel: SecureChannel) -> Session {
-        let max_publish_requests = MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE;
         let max_browse_continuation_points = super::constants::MAX_BROWSE_CONTINUATION_POINTS;
         let session = Session {
-            subscriptions: Subscriptions::new(max_publish_requests, PUBLISH_REQUEST_TIMEOUT),
+            subscriptions: Subscriptions::new(100, PUBLISH_REQUEST_TIMEOUT),
             session_id: NodeId::null(),
             activated: false,
             terminate_session: false,
@@ -111,8 +109,11 @@ impl Session {
     }
 
     pub fn new(server: &Server) -> Session {
-        let max_publish_requests = MAX_DEFAULT_PUBLISH_REQUEST_QUEUE_SIZE;
         let max_browse_continuation_points = super::constants::MAX_BROWSE_CONTINUATION_POINTS;
+        let max_subscriptions = {
+            let server_state = trace_read_lock_unwrap!(server.server_state);
+            server_state.max_subscriptions
+        };
 
         let diagnostics = {
             let server_state = trace_read_lock_unwrap!(server.server_state);
@@ -120,7 +121,7 @@ impl Session {
         };
 
         let session = Session {
-            subscriptions: Subscriptions::new(max_publish_requests, PUBLISH_REQUEST_TIMEOUT),
+            subscriptions: Subscriptions::new(max_subscriptions, PUBLISH_REQUEST_TIMEOUT),
             session_id: NodeId::null(),
             activated: false,
             terminate_session: false,

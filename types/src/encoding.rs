@@ -1,3 +1,6 @@
+//! Contains the `BinaryEncoder` trait and helpers for reading and writing of scalar values and
+//! other primitives.
+
 use std;
 use std::fmt::Debug;
 use std::io::{Read, Write, Cursor, Result};

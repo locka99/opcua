@@ -1,3 +1,5 @@
+//! Contains functions for parsing Urls from strings.
+
 use std;
 
 use url_external::Url;

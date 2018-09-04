@@ -1,3 +1,5 @@
+//! Contains the implementation of `ByteString`.
+
 use std::io::{Read, Write};
 
 use base64;

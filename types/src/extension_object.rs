@@ -1,3 +1,5 @@
+//! Contains the implementation of `ExtensionObject`.
+
 use std::io::{Read, Write, Cursor};
 
 use basic_types::Byte;

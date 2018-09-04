@@ -1,3 +1,5 @@
+//! Contains the implementation of `DataTime`.
+
 use std::io::{Read, Write};
 
 use chrono::{self, Utc, TimeZone, Datelike, Timelike};

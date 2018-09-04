@@ -1,3 +1,5 @@
+//! Contains the implementation of `Variant`.
+
 use std::io::{Read, Write};
 
 use basic_types::*;
@@ -16,7 +18,7 @@ use string::{UAString, XmlElement};
 const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
 const ARRAY_VALUES_BIT: u8 = 1 << 7;
 
-/// The variant type id is the type of the variant without its payload.
+/// The variant type id is the type of the variant but without its payload.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum VariantTypeId {
     Empty,
@@ -224,11 +226,12 @@ impl From<MultiDimensionArray> for Variant {
     }
 }
 
-/// A Variant holds all primitive types, including single and multi dimensional arrays and
-/// data values.
+/// A `Variant` holds all other OPC UA types, including single and multi dimensional arrays,
+/// data values and extension objects.
 ///
-/// Boxes are used for more complex types to keep the size of this type down a bit, especially
-/// when used in arrays or on the stack.
+/// As variants may be passed around a lot on the stack, Boxes are used for more complex types to
+/// keep the size of this type down a bit, especially when used in arrays.
+///
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub enum Variant {
     /// Empty type has no value
@@ -291,6 +294,9 @@ pub enum Variant {
     MultiDimensionArray(Box<MultiDimensionArray>),
 }
 
+/// A multi dimensional array is a vector of values, followed by a vector of sizes of each dimension.
+/// It is expected that the multi-dimensional array is valid, or it might not be encoded or decoded
+/// properly.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MultiDimensionArray {
     pub values: Vec<Variant>,

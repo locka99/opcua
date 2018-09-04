@@ -1,3 +1,5 @@
+//! Contains the implementation of `UAString`.
+
 use std::io::{Read, Write};
 use std::fmt;
 

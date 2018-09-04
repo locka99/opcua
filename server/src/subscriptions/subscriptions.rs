@@ -19,6 +19,8 @@ use time;
 /// notification is published, it is held in a retransmission queue until it is acknowledged by the
 /// client, or purged.
 pub struct Subscriptions {
+    /// Maximum number of subscriptions supported by server
+    max_subscriptions: usize,
     /// The publish request queue (requests by the client on the session)
     pub publish_request_queue: VecDeque<PublishRequestEntry>,
     /// The publish response queue arranged oldest to latest
@@ -27,27 +29,24 @@ pub struct Subscriptions {
     publish_request_timeout: i64,
     /// Subscriptions associated with the session
     subscriptions: BTreeMap<UInt32, Subscription>,
-    /// Maximum number of publish requests
-    max_publish_requests: usize,
-    /// Maximum number of items in the retransmission queue
-    max_retransmission_queue: usize,
     // Notifications waiting to be sent - Value is subscription id and notification message.
-    transmission_queue: VecDeque<(UInt32, PublishRequestEntry, NotificationMessage) >,
+    transmission_queue: VecDeque<(UInt32, PublishRequestEntry, NotificationMessage)>,
     // Notifications that have been sent but have yet to be acknowledged (retransmission queue).
     // Key is sequence number. Value is subscription id and notification message
     retransmission_queue: BTreeMap<UInt32, (UInt32, NotificationMessage)>,
 }
 
+
 impl Subscriptions {
-    pub fn new(max_publish_requests: usize, publish_request_timeout: i64) -> Subscriptions {
+    pub fn new(max_subscriptions: usize, publish_request_timeout: i64) -> Subscriptions {
+        let max_publish_requests = if max_subscriptions > 0 { 2 * max_subscriptions } else { 100 };
         Subscriptions {
+            max_subscriptions,
             publish_request_queue: VecDeque::with_capacity(max_publish_requests),
             publish_response_queue: VecDeque::with_capacity(max_publish_requests),
             publish_request_timeout,
             subscriptions: BTreeMap::new(),
-            max_publish_requests,
-            max_retransmission_queue: max_publish_requests * 2,
-            transmission_queue: VecDeque::new(),
+            transmission_queue: VecDeque::with_capacity(max_publish_requests),
             retransmission_queue: BTreeMap::new(),
         }
     }
@@ -70,14 +69,32 @@ impl Subscriptions {
         }
     }
 
+    /// Returns the maximum number of subscriptions supported
+    pub fn max_subscriptions(&self) -> usize {
+        self.max_subscriptions
+    }
+
+    /// Returns the number of maxmimum publish requests allowable for the current number of subscriptions
+    pub fn max_publish_requests(&self) -> usize {
+        // Allow for two requests per subscription
+        self.subscriptions.len() * 2
+    }
+
     /// Places a new publish request onto the queue of publish requests.
     ///
     /// If the queue is full this call will pop the oldest and generate a service fault
     /// for that before pushing the new one.
     pub fn enqueue_publish_request(&mut self, _: &AddressSpace, request_id: UInt32, request: PublishRequest) -> Result<(), StatusCode> {
         // Check if we have too many requests already
-        if self.publish_request_queue.len() >= self.max_publish_requests {
-            error!("Too many publish requests {} for capacity {}", self.publish_request_queue.len(), self.max_publish_requests);
+        let max_publish_requests = self.max_publish_requests();
+        if self.publish_request_queue.len() >= max_publish_requests {
+            error!("Too many publish requests {} for capacity {}", self.publish_request_queue.len(), max_publish_requests);
+            // Dequeue oldest publish requests until queue has capacity for at least one more
+            let remove_count = self.publish_request_queue.len() - max_publish_requests + 1;
+            debug!("Removing {} publish requests", remove_count);
+            for _ in 0..remove_count {
+                let _ = self.publish_request_queue.pop_back();
+            }
             Err(BadTooManyPublishRequests)
         } else {
             // Add to the front of the queue - older items are popped from the back
@@ -329,10 +346,11 @@ impl Subscriptions {
     /// Purges notifications waiting for acknowledgement if they exceed the max retransmission queue
     /// size.
     fn remove_old_unacknowledged_notifications(&mut self) {
-        if self.retransmission_queue.len() > self.max_retransmission_queue {
+        let max_retransmission_queue = self.max_publish_requests() * 2;
+        if self.retransmission_queue.len() > max_retransmission_queue {
             // Compare number of items in retransmission queue to max permissible and remove the older
             // notifications.
-            let remove_count = self.retransmission_queue.len() - self.max_retransmission_queue;
+            let remove_count = self.retransmission_queue.len() - max_retransmission_queue;
 
             // Iterate the map, taking the sequence nr of each notification to remove
             let sequence_nrs_to_remove = self.retransmission_queue.iter()
