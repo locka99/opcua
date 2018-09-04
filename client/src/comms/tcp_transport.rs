@@ -18,8 +18,8 @@ use futures::future::{self, loop_fn, Loop};
 use futures::sync::mpsc::UnboundedReceiver;
 
 use opcua_types::url::OPC_TCP_SCHEME;
-use opcua_types::status_codes::StatusCode;
-use opcua_types::status_codes::StatusCode::*;
+use opcua_types::status_code::StatusCode;
+use opcua_types::status_code::StatusCode::*;
 use opcua_types::tcp_types::HelloMessage;
 
 use opcua_core::prelude::*;

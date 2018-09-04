@@ -45,7 +45,7 @@ pub mod continuation_point;
 pub mod http;
 
 pub mod prelude {
-    pub use opcua_types::status_codes::StatusCode;
+    pub use opcua_types::status_code::StatusCode;
     pub use opcua_types::service_types::*;
     pub use opcua_core::prelude::*;
     pub use config::*;

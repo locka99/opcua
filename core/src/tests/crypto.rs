@@ -3,7 +3,7 @@ extern crate rustc_serialize as serialize;
 use std::fs::File;
 use std::io::Write;
 
-use opcua_types::status_codes::StatusCode;
+use opcua_types::status_code::StatusCode;
 
 use crypto::{SecurityPolicy, SHA1_SIZE, SHA256_SIZE};
 use crypto::certificate_store::*;

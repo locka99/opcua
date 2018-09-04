@@ -20,7 +20,7 @@ pub use self::security_policy::*;
 
 use opcua_types::{UAString, ByteString};
 use opcua_types::service_types::SignatureData;
-use opcua_types::status_codes::StatusCode;
+use opcua_types::status_code::StatusCode;
 
 // Size of a SHA1 hash value in bytes
 pub const SHA1_SIZE: usize = 20;

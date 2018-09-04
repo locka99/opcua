@@ -5,7 +5,7 @@
 use std::net::SocketAddr;
 use std::sync::{Arc, RwLock};
 
-use opcua_types::status_codes::StatusCode;
+use opcua_types::status_code::StatusCode;
 
 use session::Session;
 

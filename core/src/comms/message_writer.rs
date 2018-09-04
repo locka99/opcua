@@ -1,7 +1,7 @@
 use std::io::{Cursor, Write};
 
 use opcua_types::{SupportedMessage, UInt32};
-use opcua_types::status_codes::StatusCode;
+use opcua_types::status_code::StatusCode;
 use opcua_types::tcp_types::AcknowledgeMessage;
 use opcua_types::{BinaryEncoder, EncodingResult};
 

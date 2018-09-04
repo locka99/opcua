@@ -8,8 +8,8 @@ use opcua_types::node_ids::ObjectId;
 use opcua_types::profiles;
 use opcua_types::service_types::{ApplicationDescription, RegisteredServer, ApplicationType, EndpointDescription, UserNameIdentityToken, UserTokenPolicy, UserTokenType, X509IdentityToken};
 use opcua_types::service_types::ServerState as ServerStateType;
-use opcua_types::status_codes::StatusCode;
-use opcua_types::status_codes::StatusCode::*;
+use opcua_types::status_code::StatusCode;
+use opcua_types::status_code::StatusCode::*;
 
 use config::{ServerConfig, ServerEndpoint};
 use diagnostics::ServerDiagnostics;

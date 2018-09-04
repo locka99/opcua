@@ -27,8 +27,8 @@ use tokio_timer::Interval;
 use opcua_core::prelude::*;
 use opcua_core::comms::message_writer::MessageWriter;
 use opcua_core::comms::secure_channel::SecureChannel;
-use opcua_types::status_codes::StatusCode;
-use opcua_types::status_codes::StatusCode::*;
+use opcua_types::status_code::StatusCode;
+use opcua_types::status_code::StatusCode::*;
 use opcua_types::tcp_types::*;
 
 use address_space::types::AddressSpace;

@@ -5,8 +5,8 @@ use std;
 use std::io::{Read, Write, Cursor};
 
 use opcua_types::*;
-use opcua_types::status_codes::StatusCode;
-use opcua_types::status_codes::StatusCode::*;
+use opcua_types::status_code::StatusCode;
+use opcua_types::status_code::StatusCode::*;
 use opcua_types::tcp_types::{CHUNK_MESSAGE, CLOSE_SECURE_CHANNEL_MESSAGE, OPEN_SECURE_CHANNEL_MESSAGE};
 use opcua_types::tcp_types::{CHUNK_INTERMEDIATE, CHUNK_FINAL, CHUNK_FINAL_ERROR};
 

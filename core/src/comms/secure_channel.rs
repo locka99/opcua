@@ -6,8 +6,8 @@ use chrono;
 
 use opcua_types::*;
 use opcua_types::service_types::ChannelSecurityToken;
-use opcua_types::status_codes::StatusCode;
-use opcua_types::status_codes::StatusCode::*;
+use opcua_types::status_code::StatusCode;
+use opcua_types::status_code::StatusCode::*;
 
 use comms::message_chunk::{MessageChunk, MessageChunkHeader, MessageChunkType};
 use comms::security_header::{AsymmetricSecurityHeader, SecurityHeader, SymmetricSecurityHeader};

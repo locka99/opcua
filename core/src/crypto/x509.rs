@@ -12,8 +12,8 @@ use chrono::{DateTime, Utc, TimeZone};
 
 use opcua_types::ByteString;
 use opcua_types::service_types::ApplicationDescription;
-use opcua_types::status_codes::StatusCode;
-use opcua_types::status_codes::StatusCode::*;
+use opcua_types::status_code::StatusCode;
+use opcua_types::status_code::StatusCode::*;
 
 use crypto::pkey::PublicKey;
 use crypto::thumbprint::Thumbprint;

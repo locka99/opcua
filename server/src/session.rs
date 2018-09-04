@@ -7,7 +7,7 @@ use opcua_core::comms::secure_channel::{Role, SecureChannel};
 use opcua_core::crypto::X509;
 use opcua_types::*;
 use opcua_types::service_types::PublishRequest;
-use opcua_types::status_codes::StatusCode;
+use opcua_types::status_code::StatusCode;
 
 use address_space::AddressSpace;
 use continuation_point::BrowseContinuationPoint;

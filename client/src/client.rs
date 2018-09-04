@@ -6,8 +6,8 @@ use std::sync::{Arc, RwLock};
 use opcua_types::{ByteString, MessageSecurityMode, UAString};
 use opcua_types::{is_opc_ua_binary_url, server_url_from_endpoint_url, url_matches, url_matches_except_host};
 use opcua_types::service_types::{ApplicationDescription, EndpointDescription, RegisteredServer};
-use opcua_types::status_codes::StatusCode;
-use opcua_types::status_codes::StatusCode::BadUnexpectedError;
+use opcua_types::status_code::StatusCode;
+use opcua_types::status_code::StatusCode::BadUnexpectedError;
 
 use opcua_core::crypto::{CertificateStore, PrivateKey, SecurityPolicy, X509};
 use opcua_core::config::Config;

@@ -10,8 +10,8 @@ use opcua_core::crypto::SecurityPolicy;
 use opcua_types::{UInt32, NodeId, UAString, DateTime, ExtensionObject};
 use opcua_types::*;
 use opcua_types::service_types::*;
-use opcua_types::status_codes::StatusCode;
-use opcua_types::status_codes::StatusCode::*;
+use opcua_types::status_code::StatusCode;
+use opcua_types::status_code::StatusCode::*;
 
 use message_queue::MessageQueue;
 

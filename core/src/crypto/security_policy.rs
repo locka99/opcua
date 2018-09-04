@@ -5,8 +5,8 @@ use std::str::FromStr;
 
 use openssl::hash as openssl_hash;
 
-use opcua_types::status_codes::StatusCode;
-use opcua_types::status_codes::StatusCode::*;
+use opcua_types::status_code::StatusCode;
+use opcua_types::status_code::StatusCode::*;
 use opcua_types::ByteString;
 
 use crypto::{SHA1_SIZE, SHA256_SIZE};

@@ -1,6 +1,6 @@
 use opcua_types::{NodeId, QualifiedName, LocalizedText, AttributeId, DataValue, WriteMask};
 use opcua_types::service_types::NodeClass;
-use opcua_types::status_codes::StatusCode;
+use opcua_types::status_code::StatusCode;
 
 use address_space::types::{Object, ObjectType, ReferenceType, Variable, VariableType, View, DataType, Method};
 

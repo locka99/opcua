@@ -5,8 +5,8 @@ use std::result::Result;
 use openssl::symm::{Cipher, Crypter};
 use openssl::symm::Mode;
 
-use opcua_types::status_codes::StatusCode;
-use opcua_types::status_codes::StatusCode::*;
+use opcua_types::status_code::StatusCode;
+use opcua_types::status_code::StatusCode::*;
 
 use crypto::SecurityPolicy;
 

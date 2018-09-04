@@ -4,8 +4,8 @@ use std;
 use std::io::Cursor;
 
 use opcua_types::*;
-use opcua_types::status_codes::StatusCode;
-use opcua_types::status_codes::StatusCode::*;
+use opcua_types::status_code::StatusCode;
+use opcua_types::status_code::StatusCode::*;
 
 use comms::message_chunk::{MessageIsFinalType, MessageChunk, MessageChunkType};
 use comms::secure_channel::SecureChannel;

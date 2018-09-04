@@ -1,4 +1,4 @@
-use opcua_types::status_codes::StatusCode::*;
+use opcua_types::status_code::StatusCode::*;
 use opcua_types::service_types::{CallRequest, CallResponse, CallMethodRequest, CallMethodResult};
 use opcua_types::node_ids::{ObjectId, MethodId};
 

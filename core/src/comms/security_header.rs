@@ -1,7 +1,7 @@
 use std::io::{Read, Write};
 
 use opcua_types::*;
-use opcua_types::status_codes::StatusCode::*;
+use opcua_types::status_code::StatusCode::*;
 use opcua_types::constants;
 
 use crypto::{SecurityPolicy, X509, Thumbprint};

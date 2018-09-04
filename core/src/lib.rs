@@ -131,7 +131,7 @@ pub mod config;
 /// Contains most of the things that are typically required from a client / server.
 pub mod prelude {
     pub use opcua_types::*;
-    pub use opcua_types::status_codes::StatusCode;
+    pub use opcua_types::status_code::StatusCode;
     pub use comms::prelude::*;
     pub use crypto::*;
     pub use config::Config;

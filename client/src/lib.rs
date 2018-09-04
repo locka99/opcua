@@ -31,7 +31,7 @@ pub mod session;
 
 use opcua_types::{SupportedMessage};
 use opcua_types::service_types::ResponseHeader;
-use opcua_types::status_codes::StatusCode;
+use opcua_types::status_code::StatusCode;
 
 /// Process the service result, i.e. where the request "succeeded" but the response
 /// contains a failure status code.
@@ -58,7 +58,7 @@ pub(crate) fn process_unexpected_response(response: SupportedMessage) -> StatusC
 }
 
 pub mod prelude {
-    pub use opcua_types::status_codes::StatusCode;
+    pub use opcua_types::status_code::StatusCode;
     pub use opcua_types::service_types::*;
     pub use opcua_core::prelude::*;
     pub use client::*;

@@ -2,7 +2,7 @@
 
 use std::io::{Read, Write};
 
-use ::StatusCodeBits;
+use status_code::StatusCodeBits;
 use encoding::*;
 use basic_types::*;
 use date_time::*;
@@ -209,7 +209,7 @@ impl DataValue {
     /// Test if the value held by this data value is known to be good
     /// Anything other than Good is assumed to be invalid.
     pub fn is_valid(&self) -> bool {
-        (self.status() & StatusCodeBits::STATUS_MASK.bits) == 0
+        (self.status() & StatusCodeBits::STATUS_MASK.bits()) == 0
     }
 
     fn encoding_mask(&self) -> DataValueFlags {
