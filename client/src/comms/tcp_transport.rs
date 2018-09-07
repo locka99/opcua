@@ -4,18 +4,20 @@
 //! Internally this uses Tokio to process requests and responses supplied by the session via the
 //! session state.
 use std::thread;
-use std::time;
+use std::time::{Duration, Instant};
 use std::result::Result;
 use std::sync::{Arc, RwLock, Mutex};
 use std::net::{SocketAddr, ToSocketAddrs};
 
+use futures::{Future, Stream};
+use futures::future::{self};
+use futures::sync::mpsc::UnboundedReceiver;
 use tokio;
 use tokio::net::TcpStream;
 use tokio_io::AsyncRead;
 use tokio_io::io::{self, ReadHalf, WriteHalf};
-use futures::{Future, Stream};
-use futures::future::{self, loop_fn, Loop};
-use futures::sync::mpsc::UnboundedReceiver;
+use tokio_codec::FramedRead;
+use tokio_timer::Interval;
 
 use opcua_types::url::OPC_TCP_SCHEME;
 use opcua_types::status_code::StatusCode;
@@ -23,6 +25,7 @@ use opcua_types::status_code::StatusCode::*;
 use opcua_types::tcp_types::HelloMessage;
 
 use opcua_core::prelude::*;
+use opcua_core::comms::tcp_codec::{Message, TcpCodec};
 use opcua_core::comms::message_writer::MessageWriter;
 
 use session_state::SessionState;
@@ -53,13 +56,8 @@ struct ReadState {
     pub state: Arc<RwLock<ConnectionState>>,
     pub secure_channel: Arc<RwLock<SecureChannel>>,
     pub message_queue: Arc<RwLock<MessageQueue>>,
-    pub reader: ReadHalf<TcpStream>,
-    /// The messages buffer
-    pub receive_buffer: MessageReader,
     /// Last decoded sequence number
     last_received_sequence_number: UInt32,
-    /// Raw bytes in buffer
-    pub in_buf: Vec<u8>,
 }
 
 impl ReadState {
@@ -216,7 +214,7 @@ impl TcpTransport {
                     // Still waiting for something to happen
                 }
             }
-            thread::sleep(time::Duration::from_millis(WAIT_POLLING_TIMEOUT))
+            thread::sleep(Duration::from_millis(WAIT_POLLING_TIMEOUT))
         }
 
         Ok(())
@@ -233,7 +231,7 @@ impl TcpTransport {
                 }
                 _ => {}
             }
-            thread::sleep(time::Duration::from_millis(WAIT_POLLING_TIMEOUT))
+            thread::sleep(Duration::from_millis(WAIT_POLLING_TIMEOUT))
         }
     }
 
@@ -283,33 +281,6 @@ impl TcpTransport {
         })
     }
 
-    fn read_bytes_task(connection: ReadState) -> impl Future<Item=(usize, ReadState), Error=StatusCode> {
-        // The io::read() consumes reader and in_buf so everything else in
-        // connection state has to be taken out and put back in afterwards in the map()
-        let secure_channel = connection.secure_channel;
-        let reader = connection.reader;
-        let in_buf = connection.in_buf;
-        let last_received_sequence_number = connection.last_received_sequence_number;
-        let receive_buffer = connection.receive_buffer;
-        let state = connection.state;
-        let message_queue = connection.message_queue;
-        io::read(reader, in_buf).map_err(move |err| {
-            error!("Read IO error {:?}", err);
-            BadCommunicationError
-        }).map(move |(reader, in_buf, bytes_read)| {
-            // Build a new connection state
-            (bytes_read, ReadState {
-                message_queue,
-                secure_channel,
-                receive_buffer,
-                last_received_sequence_number,
-                state,
-                reader,
-                in_buf,
-            })
-        })
-    }
-
     fn write_bytes_task(connection: Arc<Mutex<WriteState>>) -> impl Future<Item=(), Error=()> {
         // io::write_all consumes writer which is a pain, so it is stored as an Option returned
         // afterwards
@@ -327,78 +298,101 @@ impl TcpTransport {
         })
     }
 
-    fn spawn_reading_task(connection: ReadState) {
-        // This is the main processing loop that receives and sends messages
-        let looping_task = loop_fn(connection, |connection| {
-            Self::read_bytes_task(connection).and_then(|(bytes_read, mut connection)| {
-                // Store bytes the buffer and try to decode into a message
-                if bytes_read > 0 {
-                    debug!("Read {} bytes", bytes_read);
-                    let mut session_status_code = Good;
-                    let result = connection.receive_buffer.store_bytes(&connection.in_buf[..bytes_read]);
-                    if result.is_err() {
-                        session_status_code = result.unwrap_err();
+
+    fn spawn_finished_monitor_task(state: Arc<RwLock<ConnectionState>>, finished_flag: Arc<RwLock<bool>>) {
+        // This task just spins around waiting for the connection to become finished. When it
+        // does it, sets a flag.
+        let finished_monitor_task = Interval::new(Instant::now(), Duration::from_millis(1000))
+            .take_while(move |_| {
+                let finished = {
+                    let state = connection_state!(state);
+                    if let ConnectionState::Finished(_) = state {
+                        info!("Finished monitor is finished");
+                        true
                     } else {
-                        let messages = result.unwrap();
-                        for message in messages {
-                            match message {
-                                Message::Acknowledge(ack) => {
-                                    debug!("Got ack {:?}", ack);
-                                    if connection_state!(connection.state) != ConnectionState::WaitingForAck {
-                                        error!("Got an unexpected ACK");
-                                        session_status_code = BadUnexpectedError;
-                                    } else {
-                                        // TODO revise our sizes and other things according to the ACK
-                                        set_connection_state!(connection.state, ConnectionState::Processing);
-                                    }
-                                }
-                                Message::MessageChunk(chunk) => {
-                                    if connection_state!(connection.state) != ConnectionState::Processing {
-                                        error!("Got an unexpected message chunk");
-                                        session_status_code = BadUnexpectedError;
-                                    } else {
-                                        let result = connection.process_chunk(chunk);
-                                        if result.is_err() {
-                                            session_status_code = result.unwrap_err();
-                                        } else if let Some(response) = result.unwrap() {
-                                            // Store the response
-                                            let mut message_queue = trace_write_lock_unwrap!(connection.message_queue);
-                                            message_queue.store_response(response);
-                                        }
-                                    }
-                                }
-                                Message::Error(error) => {
-                                    // TODO client should go into an error recovery state, dropping the connection and reestablishing it.
-                                    session_status_code = if let Ok(status_code) = StatusCode::from_u32(error.error) {
-                                        status_code
-                                    } else {
-                                        BadUnexpectedError
-                                    };
-                                    error!("Expecting a chunk, got an error message {:?}, reason \"{}\"", session_status_code, error.reason.as_ref());
-                                }
-                                _ => {
-                                    panic!("Expected a recognized message");
-                                }
-                            }
+                        false
+                    }
+                };
+                if finished {
+                    // Set the flag
+                    let mut finished_flag = trace_write_lock_unwrap!(finished_flag);
+                    *finished_flag = true;
+                }
+                future::ok(!finished)
+            })
+            .for_each(|_| Ok(()))
+            .map_err(|_| ());
+        tokio::spawn(finished_monitor_task);
+    }
+
+    fn spawn_reading_task(reader: ReadHalf<TcpStream>, finished_flag: Arc<RwLock<bool>>, receive_buffer_size: usize, mut connection: ReadState) {
+        // This is the main processing loop that receives and sends messages
+
+        let connection = Arc::new(RwLock::new(connection));
+        let connection_for_terminate = connection.clone();
+
+        // The reader reads frames from the codec, which are messages
+        let framed_reader = FramedRead::new(reader, TcpCodec::new(finished_flag));
+        let looping_task = framed_reader.for_each(move |message| {
+            let mut connection = trace_write_lock_unwrap!(connection);
+            let mut session_status_code = Good;
+            match message {
+                Message::Acknowledge(ack) => {
+                    debug!("Got ack {:?}", ack);
+                    if connection_state!(connection.state) != ConnectionState::WaitingForAck {
+                        error!("Got an unexpected ACK");
+                        session_status_code = BadUnexpectedError;
+                    } else {
+                        // TODO revise our sizes and other things according to the ACK
+                        set_connection_state!(connection.state, ConnectionState::Processing);
+                    }
+                }
+                Message::Chunk(chunk) => {
+                    if connection_state!(connection.state) != ConnectionState::Processing {
+                        error!("Got an unexpected message chunk");
+                        session_status_code = BadUnexpectedError;
+                    } else {
+                        let result = connection.process_chunk(chunk);
+                        if result.is_err() {
+                            session_status_code = result.unwrap_err();
+                        } else if let Some(response) = result.unwrap() {
+                            // Store the response
+                            let mut message_queue = trace_write_lock_unwrap!(connection.message_queue);
+                            message_queue.store_response(response);
                         }
                     }
-                    if session_status_code.is_bad() {
-                        set_connection_state!(connection.state, ConnectionState::Finished(session_status_code));
-                    }
                 }
-                Ok(connection)
-            }).and_then(|connection| {
-                let state = connection_state!(connection.state);
-                if let ConnectionState::Finished(_) = state {
-                    debug!("Read loop is terminating due to finished state");
-                    Ok(Loop::Break(connection))
-                } else {
-                    // Read / write messages
-                    Ok(Loop::Continue(connection))
+                Message::Error(error) => {
+                    // TODO client should go into an error recovery state, dropping the connection and reestablishing it.
+                    session_status_code = if let Ok(status_code) = StatusCode::from_u32(error.error) {
+                        status_code
+                    } else {
+                        BadUnexpectedError
+                    };
+                    error!("Expecting a chunk, got an error message {:?}, reason \"{}\"", session_status_code, error.reason.as_ref());
                 }
-            })
+                _ => {
+                    panic!("Expected a recognized message");
+                }
+            }
+            if session_status_code.is_bad() {
+                set_connection_state!(connection.state, ConnectionState::Finished(session_status_code));
+            }
+            Ok(())
         }).map_err(move |e| {
-            error!("Read loop ended with an error {:?}", e);
+            error!("Read loop error {:?}", e);
+        }).and_then(move |_| {
+            let connection = trace_read_lock_unwrap!(connection_for_terminate);
+            let state = connection_state!(connection.state);
+            if let ConnectionState::Finished(_) = state {
+                debug!("Read loop is terminating due to finished state");
+                Err(())
+            } else {
+                // Read / write messages
+                Ok(())
+            }
+        }).map_err(|_| {
+            error!("Read loop ended with an error");
         }).map(|_| {
             error!("Read loop finished");
         });
@@ -485,18 +479,19 @@ impl TcpTransport {
         // At this stage, the HEL has been sent but the ACK has not been received
         set_connection_state!(connection_state, ConnectionState::WaitingForAck);
 
+        // Abort monitor
+        let finished_flag = Arc::new(RwLock::new(false));
+        Self::spawn_finished_monitor_task(connection_state.clone(), finished_flag.clone());
+
         // Spawn the reading task loop
         {
             let read_connection = ReadState {
                 secure_channel: secure_channel.clone(),
                 state: connection_state.clone(),
-                receive_buffer: MessageReader::new(receive_buffer_size),
                 last_received_sequence_number: 0,
-                in_buf: vec![0u8; receive_buffer_size],
-                reader,
                 message_queue: message_queue.clone(),
             };
-            Self::spawn_reading_task(read_connection);
+            Self::spawn_reading_task(reader, finished_flag, receive_buffer_size, read_connection);
         }
 
         // Spawn the writing task loop

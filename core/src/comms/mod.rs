@@ -2,7 +2,6 @@
 //! and turning those messages into and out of chunks.
 
 pub mod chunker;
-pub mod message_reader;
 pub mod message_chunk;
 pub mod message_chunk_info;
 pub mod secure_channel;
@@ -12,7 +11,7 @@ pub mod tcp_codec;
 
 pub mod prelude {
     pub use super::chunker::*;
-    pub use super::message_reader::*;
+    pub use super::tcp_codec::*;
     pub use super::message_chunk::*;
     pub use super::message_chunk_info::*;
     pub use super::secure_channel::*;

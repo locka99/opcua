@@ -1,3 +1,4 @@
+use std::io;
 
 pub use status_codes::StatusCode;
 
@@ -29,5 +30,11 @@ bitflags! {
         const SEMANTICS_CHANGED       = 0b01000000_00000000;
         // Semantics changed bit 15
         const STRUCTURE_CHANGED       = 0b10000000_00000000;
+    }
+}
+
+impl From<StatusCode> for io::Error {
+    fn from(e: StatusCode) -> io::Error {
+        io::Error::new(io::ErrorKind::Other, format!("StatusCode {:?}", e))
     }
 }
