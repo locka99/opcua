@@ -325,7 +325,7 @@ impl TcpTransport {
         tokio::spawn(finished_monitor_task);
     }
 
-    fn spawn_reading_task(reader: ReadHalf<TcpStream>, finished_flag: Arc<RwLock<bool>>, receive_buffer_size: usize, mut connection: ReadState) {
+    fn spawn_reading_task(reader: ReadHalf<TcpStream>, finished_flag: Arc<RwLock<bool>>, receive_buffer_size: usize, connection: ReadState) {
         // This is the main processing loop that receives and sends messages
 
         let connection = Arc::new(RwLock::new(connection));

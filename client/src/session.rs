@@ -1,8 +1,9 @@
 //! Session functionality for the current open client connection. This module contains functions
-//! to call for all typically synchronous operations during an OPC UA session. The session
-//! has async functionality too but that is for the purpose of publish requests on subscriptions
+//! to call for all typically synchronous operations during an OPC UA session.
+//!
+//! The session also has async functionality but that is reserved for publish requests on subscriptions
 //! and events.
-
+use std::fmt;
 use std::result::Result;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
@@ -31,6 +32,57 @@ use subscription;
 use subscription::{DataChangeCallback, Subscription};
 use subscription_state::SubscriptionState;
 use session_state::SessionState;
+
+/// A callback implemented by a client that wishes to know when a connection to a server connects
+/// or disconnects.
+pub trait ConnectionStatus {
+    fn connected(&mut self);
+    fn disconnected(&mut self);
+}
+
+/// This is the registered callback to receive connection status change notifications
+pub struct ConnectionStatusCallback {
+    cb: Option<Box<ConnectionStatus + Send + Sync + 'static>>,
+}
+
+impl fmt::Debug for ConnectionStatusCallback {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[callback]")
+    }
+}
+
+impl ConnectionStatusCallback {
+    // Constructor
+    pub fn new() -> ConnectionStatusCallback {
+        ConnectionStatusCallback {
+            cb: None
+        }
+    }
+
+    /// Sets the connection status callback to the supplied callback, or clears it if None is supplied
+    /// instead.
+    pub fn set_callback<C>(&mut self, cb: Option<C>) where C: ConnectionStatus + Send + Sync + 'static {
+        self.cb = if let Some(cb) = cb {
+            Some(Box::new(cb))
+        } else {
+            None
+        };
+    }
+
+    /// Fires a connected event, i.e. if there is a callback it calls onto the connected method.
+    fn fire_connected(&mut self) {
+        if let Some(ref mut cb) = self.cb {
+            cb.connected();
+        }
+    }
+
+    /// Fires a disconnected event, i.e. if there is a callback it calls onto the connected method.
+    fn fire_disconnected(&mut self) {
+        if let Some(ref mut cb) = self.cb {
+            cb.connected();
+        }
+    }
+}
 
 /// Information about the server endpoint, security policy, security mode and user identity that the session will
 /// will use to establish a connection.
@@ -69,8 +121,10 @@ impl Into<SessionInfo> for (EndpointDescription, client::IdentityToken) {
 /// An open session of the client. The session is associated with an endpoint and
 /// maintains a state when it is active. The session struct provides functions for all the supported
 /// request types in the API. Note that not all servers may support all client side requests and
-/// calling an unsupported API may cause the connection to be dropped. Clients are expected to know
-/// what they are calling.
+/// calling an unsupported API may cause the connection to be dropped.
+///
+/// Clients are currently expected to know what they are calling. Potentially the server's implemented
+/// profile could be used to abort unsupported requests.
 pub struct Session {
     /// The client application's name
     application_description: ApplicationDescription,
@@ -90,6 +144,8 @@ pub struct Session {
     secure_channel: Arc<RwLock<SecureChannel>>,
     /// Message queue
     message_queue: Arc<RwLock<MessageQueue>>,
+    // Connection status callback
+    connection_status: ConnectionStatusCallback,
 }
 
 impl Drop for Session {
@@ -153,17 +209,24 @@ impl Session {
             transport,
             secure_channel,
             message_queue,
+            connection_status: ConnectionStatusCallback::new(),
         }
     }
 
     /// Connects to the server, creates and activates a session. If there
     /// is a failure, it will be communicated by the status code in the result.
     pub fn connect_and_activate_session(&mut self) -> Result<(), StatusCode> {
-        // Reconnect now using the session state
+        // Connect now using the session state
         self.connect()?;
         self.create_session()?;
         self.activate_session()?;
         Ok(())
+    }
+
+    /// Registers a connection status callback with the session. This will be called if
+    /// connection status changes from connected to disconnected or vice versa.
+    pub fn set_connection_status_callback<C>(&mut self, callback: Option<C>) where C: ConnectionStatus + Send + Sync + 'static {
+        self.connection_status.set_callback(callback);
     }
 
     /// Reconnects to the server and tries to activate the existing session. If there
@@ -218,6 +281,7 @@ impl Session {
             }
             self.transport.connect(endpoint_url.as_ref())?;
             self.open_secure_channel()?;
+            self.connection_status.fire_connected();
             Ok(())
         }
     }
@@ -228,6 +292,7 @@ impl Session {
         let _ = self.delete_all_subscriptions();
         let _ = self.close_secure_channel();
         self.transport.wait_for_disconnect();
+        self.connection_status.fire_disconnected();
     }
 
     /// Test if the session is in a connected state

@@ -14,9 +14,8 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
   - (WIP) Session restore after disconnect in client, i.e. attempt to reconnect and resume session first and if that
     fails manually reconstruct the session - subscriptions and monitored items.
   - (WIP) Diagnostics
-  - (WIP) Tokio codec - investigate if client and server can abstract handshake and chunks behind tokio's higher 
-    level frame based support. In theory, the chunk / hello / ack / err can be read or written atomically, obviating
-    some mess in the TcpTransport layers on client and server.
+  - Tokio codec - use a codec and frame reader to read message chunks.
+  - (WIP) Tokio codec - use a codec and frame writer to write message chunks
 
 ## 0.4
   - General
