@@ -6,6 +6,8 @@ use std::marker::Sync;
 use opcua_types::*;
 use opcua_types::service_types::{DataChangeNotification, ReadValueId};
 
+use callbacks::DataChangeCallback;
+
 // This file will hold functionality related to creating a subscription and monitoring items
 
 pub struct CreateMonitoredItem {
@@ -104,26 +106,6 @@ impl MonitoredItem {
     }
 }
 
-/// This is the data change callback that clients register to receive item change notifications
-pub struct DataChangeCallback {
-    /// The actual call back
-    cb: Box<Fn(Vec<&MonitoredItem>) + Send + Sync + 'static>
-}
-
-impl DataChangeCallback {
-    /// Constructs a callback from the supplied function
-    pub fn new<CB>(cb: CB) -> DataChangeCallback where CB: Fn(Vec<&MonitoredItem>) + Send + Sync + 'static {
-        DataChangeCallback {
-            cb: Box::new(cb)
-        }
-    }
-
-    /// Calls the call back with the data change items
-    pub fn call(&self, data_change_items: Vec<&MonitoredItem>) {
-        (self.cb)(data_change_items);
-    }
-}
-
 pub struct Subscription {
     /// Subscription id, supplied by server
     subscription_id: UInt32,
@@ -149,7 +131,10 @@ pub struct Subscription {
 }
 
 impl Subscription {
-    pub fn new(subscription_id: UInt32, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, publishing_enabled: Boolean, priority: Byte, data_change_callback: DataChangeCallback) -> Subscription {
+    /// Creates a new subscription using the supplied parameters and the supplied data change callback.
+    pub fn new<CB>(subscription_id: UInt32, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, publishing_enabled: Boolean, priority: Byte, data_change_callback: CB)
+                   -> Subscription
+        where CB: Fn(Vec<&MonitoredItem>) + Send + Sync + 'static {
         Subscription {
             subscription_id,
             publishing_interval,
@@ -158,7 +143,7 @@ impl Subscription {
             max_notifications_per_publish,
             publishing_enabled,
             priority,
-            data_change_callback: Some(data_change_callback),
+            data_change_callback: Some(DataChangeCallback::new(data_change_callback)),
             monitored_items: HashMap::new(),
             client_handles: HashMap::new(),
         }

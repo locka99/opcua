@@ -144,13 +144,13 @@ fn subscription_loop(session: Arc<RwLock<Session>>, state: Arc<RwLock<Connection
         let mut session = session.write().unwrap();
 
         // Creates our subscription - one update every 5 seconds
-        let subscription_id = session.create_subscription(5f64, 10, 30, 0, 0, true, DataChangeCallback::new(move |items| {
+        let subscription_id = session.create_subscription(5f64, 10, 30, 0, 0, true, move |items| {
             let mut state = state.write().unwrap();
             items.iter().for_each(|item| {
                 // Each value will be applied to the state so that the UI thread can update it
                 state.values.insert(item.item_to_monitor().node_id.to_string(), item.value().clone());
             });
-        }))?;
+        })?;
         println!("Created a subscription with id = {}", subscription_id);
 
         // Create some monitored items

@@ -3,7 +3,6 @@
 //!
 //! The session also has async functionality but that is reserved for publish requests on subscriptions
 //! and events.
-use std::fmt;
 use std::result::Result;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
@@ -29,60 +28,10 @@ use client;
 use comms::tcp_transport::TcpTransport;
 use message_queue::MessageQueue;
 use subscription;
-use subscription::{DataChangeCallback, Subscription};
+use subscription::{Subscription, MonitoredItem};
 use subscription_state::SubscriptionState;
 use session_state::SessionState;
-
-/// A callback implemented by a client that wishes to know when a connection to a server connects
-/// or disconnects.
-pub trait ConnectionStatus {
-    fn connected(&mut self);
-    fn disconnected(&mut self);
-}
-
-/// This is the registered callback to receive connection status change notifications
-pub struct ConnectionStatusCallback {
-    cb: Option<Box<ConnectionStatus + Send + Sync + 'static>>,
-}
-
-impl fmt::Debug for ConnectionStatusCallback {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[callback]")
-    }
-}
-
-impl ConnectionStatusCallback {
-    // Constructor
-    pub fn new() -> ConnectionStatusCallback {
-        ConnectionStatusCallback {
-            cb: None
-        }
-    }
-
-    /// Sets the connection status callback to the supplied callback, or clears it if None is supplied
-    /// instead.
-    pub fn set_callback<C>(&mut self, cb: Option<C>) where C: ConnectionStatus + Send + Sync + 'static {
-        self.cb = if let Some(cb) = cb {
-            Some(Box::new(cb))
-        } else {
-            None
-        };
-    }
-
-    /// Fires a connected event, i.e. if there is a callback it calls onto the connected method.
-    fn fire_connected(&mut self) {
-        if let Some(ref mut cb) = self.cb {
-            cb.connected();
-        }
-    }
-
-    /// Fires a disconnected event, i.e. if there is a callback it calls onto the connected method.
-    fn fire_disconnected(&mut self) {
-        if let Some(ref mut cb) = self.cb {
-            cb.connected();
-        }
-    }
-}
+use callbacks::{ConnectionStatusCallback};
 
 /// Information about the server endpoint, security policy, security mode and user identity that the session will
 /// will use to establish a connection.
@@ -171,34 +120,7 @@ impl Session {
         let session_state = Arc::new(RwLock::new(SessionState::new(secure_channel.clone(), message_queue.clone())));
         let transport = TcpTransport::new(secure_channel.clone(), session_state.clone(), message_queue.clone());
         let subscription_state = Arc::new(RwLock::new(SubscriptionState::new()));
-
-        // Create a thread that will manage subscription timers. Each subscription that is begun,
-        let timer_command_queue = {
-            let subscription_state = subscription_state.clone();
-            let session_state = session_state.clone();
-            let (timer_command_queue, timer_receiver) = unbounded::<SubscriptionTimerCommand>();
-            let _ = thread::spawn(move || {
-                // This listens for timer actions to spawn
-                let timer_task = timer_receiver.take_while(|cmd| {
-                    let take = *cmd != SubscriptionTimerCommand::Quit;
-                    future::ok(take)
-                }).map(move |cmd| {
-                    (cmd, session_state.clone(), subscription_state.clone())
-                }).for_each(|(cmd, session_state, subscription_state)| {
-                    match cmd {
-                        SubscriptionTimerCommand::CreateTimer(subscription_id) => {
-                            let timer_task = Self::make_subscription_timer(subscription_id, session_state, subscription_state);
-                            tokio::spawn(timer_task);
-                        }
-                        _ => {}
-                    }
-                    future::ok(())
-                });
-                tokio::run(timer_task);
-            });
-            timer_command_queue
-        };
-
+        let timer_command_queue = Self::make_timer_command_queue(session_state.clone(), subscription_state.clone());
         Session {
             application_description,
             session_info,
@@ -225,7 +147,7 @@ impl Session {
 
     /// Registers a connection status callback with the session. This will be called if
     /// connection status changes from connected to disconnected or vice versa.
-    pub fn set_connection_status_callback<C>(&mut self, callback: Option<C>) where C: ConnectionStatus + Send + Sync + 'static {
+    pub fn set_connection_status_callback<CB>(&mut self, callback: Option<CB>) where CB: FnMut(bool) + 'static + Send + Sync {
         self.connection_status.set_callback(callback);
     }
 
@@ -635,8 +557,9 @@ impl Session {
 
     /// Sends a CreateSubscriptionRequest request to the server. The `publishing_interval` is
     /// in milliseconds.
-    pub fn create_subscription(&mut self, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte, publishing_enabled: Boolean, callback: DataChangeCallback)
-                               -> Result<UInt32, StatusCode> {
+    pub fn create_subscription<CB>(&mut self, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte, publishing_enabled: Boolean, callback: CB)
+                                   -> Result<UInt32, StatusCode>
+        where CB: Fn(Vec<&MonitoredItem>) + Send + Sync + 'static {
         let request = CreateSubscriptionRequest {
             request_header: self.make_request_header(),
             requested_publishing_interval: publishing_interval,
@@ -1074,6 +997,35 @@ impl Session {
     fn make_request_header(&mut self) -> RequestHeader {
         let mut session_state = trace_write_lock_unwrap!(self.session_state);
         session_state.make_request_header()
+    }
+
+    /// Spawn a thread that waits on a queue for commands to create new subscription timers, or
+    /// to quit.
+    ///
+    /// Each subscription timer spawned by the thread runs as a timer task associated with a
+    /// subscription. The subscription timer is responsible for publish requests to the server.
+    fn make_timer_command_queue(session_state: Arc<RwLock<SessionState>>, subscription_state: Arc<RwLock<SubscriptionState>>) -> UnboundedSender<SubscriptionTimerCommand> {
+        let (timer_command_queue, timer_receiver) = unbounded::<SubscriptionTimerCommand>();
+        let _ = thread::spawn(move || {
+            // This listens for timer actions to spawn
+            let timer_task = timer_receiver.take_while(|cmd| {
+                let take = *cmd != SubscriptionTimerCommand::Quit;
+                future::ok(take)
+            }).map(move |cmd| {
+                (cmd, session_state.clone(), subscription_state.clone())
+            }).for_each(|(cmd, session_state, subscription_state)| {
+                match cmd {
+                    SubscriptionTimerCommand::CreateTimer(subscription_id) => {
+                        let timer_task = Self::make_subscription_timer(subscription_id, session_state, subscription_state);
+                        tokio::spawn(timer_task);
+                    }
+                    _ => {}
+                }
+                future::ok(())
+            });
+            tokio::run(timer_task);
+        });
+        timer_command_queue
     }
 
     /// Makes a future that publishes requests for the subscription. This code doesn't return "impl Future"

@@ -86,7 +86,8 @@ pub fn run_http_server(address: &str, server_state: Arc<RwLock<ServerState>>, co
     let address = address.parse().unwrap();
     thread::spawn(move || {
         // This polling action will quit the http server when the OPC UA server aborts
-        let server_should_quit = HttpQuit { server_state: server_state.clone() };
+        // TODO the server should consume this and terminate
+        let _server_should_quit = HttpQuit { server_state: server_state.clone() };
 
         let http_state = HttpState {
             server_state,

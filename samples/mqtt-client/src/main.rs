@@ -75,14 +75,14 @@ fn subscription_loop(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
         let mut session = session.write().unwrap();
 
         // Creates our subscription - one update every 5 seconds
-        let subscription_id = session.create_subscription(5f64, 10, 30, 0, 0, true, DataChangeCallback::new(|items| {
+        let subscription_id = session.create_subscription(5f64, 10, 30, 0, 0, true, |items| {
             println!("Data change from server:");
             items.iter().for_each(|item| {
                 print_value(&item.item_to_monitor(), &item.value());
 
                 // TODO publish to mqtt
             });
-        }))?;
+        })?;
         println!("Created a subscription with id = {}", subscription_id);
 
         // Create some monitored items

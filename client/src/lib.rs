@@ -29,8 +29,9 @@ mod message_queue;
 pub mod config;
 pub mod client;
 pub mod session;
+pub mod callbacks;
 
-use opcua_types::{SupportedMessage};
+use opcua_types::SupportedMessage;
 use opcua_types::service_types::ResponseHeader;
 use opcua_types::status_code::StatusCode;
 
@@ -65,7 +66,7 @@ pub mod prelude {
     pub use client::*;
     pub use config::*;
     pub use session::*;
-    pub use subscription::{MonitoredItem, DataChangeCallback};
+    pub use subscription::MonitoredItem;
 }
 
 #[cfg(test)]
