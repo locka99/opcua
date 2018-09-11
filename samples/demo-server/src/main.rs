@@ -14,7 +14,6 @@ extern crate opcua_types;
 extern crate opcua_console_logging;
 
 use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
 use std::iter::repeat;
 
 use rand::Rng;
@@ -46,7 +45,7 @@ fn main() {
     http::run_http_server("127.0.0.1:8585", server.server_state.clone(), server.connections.clone(), server.server_metrics.clone());
 
     // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
-    Server::run(Arc::new(RwLock::new(server)));
+    server.run();
 }
 
 enum Scalar {

@@ -1,3 +1,5 @@
+//! Provides a browse continuation point type for tracking a browse operation initiated by a client.
+
 use std::sync::{Arc, Mutex};
 
 use opcua_types::{ByteString};

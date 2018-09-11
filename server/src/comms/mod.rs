@@ -1,3 +1,6 @@
+//! Provides communication services for the server such as the transport layer and secure
+//! channel implementation
+
 mod secure_channel_service;
 
 pub mod transport;

@@ -26,8 +26,11 @@ struct SessionEntry {
 }
 
 /// The `Client` defines a connection to a server which can be used to to get end points or establish
-/// a session. It is configured using a `ClientConfig` which defines the server it talks to and other
+/// a session. It is configured using a [`ClientConfig`] which defines the server it talks to and other
 /// details such as the location of the certificate store.
+///
+/// [`ClientConfig`]: ../config/struct.ClientConfig.html
+///
 pub struct Client {
     /// Client configuration
     config: ClientConfig,
@@ -51,9 +54,37 @@ impl Drop for Client {
     }
 }
 
+impl From<ClientConfig> for Client {
+    fn from(config: ClientConfig) -> Client {
+        Client::new(config)
+    }
+}
+
 impl Client {
-    /// Creates a new `Client` instance. The application name and uri are supplied as arguments to
+    /// Creates a new [`Client`] instance. The application name and uri are supplied as arguments to
     /// this call and are passed to each session that connects hereafter.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// extern crate opcua_core;
+    /// extern crate opcua_client;
+    /// extern crate opcua_types;
+    ///
+    /// use opcua_client::prelude::*;
+    /// use std::path::PathBuf;
+    ///
+    /// fn main() {
+    ///     let mut client = Client::new(ClientConfig::load(&PathBuf::from("./myclient.conf")).unwrap());
+    ///     if let Ok(session) = client.connect_and_activate(None) {
+    ///         // ..
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// [`Client`]: ./struct.Client.html
+    /// [`ClientConfig`]: ../config/struct.ClientConfig.html
+    ///
     pub fn new(config: ClientConfig) -> Client {
         let application_description = if config.create_sample_keypair { Some(config.application_description()) } else { None };
 
@@ -74,16 +105,26 @@ impl Client {
         }
     }
 
-    /// Returns a filled OPCUA `ApplicationDescription` struct using information from the config
+    /// Returns a filled OPC UA [`ApplicationDescription`]
+    /// struct using information from the config
+    ///
+    /// [`ApplicationDescription`]: ../../opcua_types/service_types/application_description/struct.ApplicationDescription.html
+    ///
     pub fn application_description(&self) -> ApplicationDescription {
         self.config.application_description()
     }
 
-    /// Connects to the named endpoint and automatically activate a session for that endpoint.
+    /// Connects to the named endpoint and creates / activates a [`Session`] for that endpoint.
     ///
-    /// Returns with the session that has been established. Note that session's are protected objects
-    /// that can be called from multiple threads and should only locked for the smallest duration
-    /// necessary.
+    /// Returns with the session that has been established or an error.
+    ///
+    /// Important Note: sessions are protected objects that are shared from multiple threads both
+    /// internally by the API and externally by your code. You should only lock your session
+    /// for the smallest duration necessary and release it thereafter. i.e. scope protect your
+    /// calls.
+    ///
+    /// [`Session`]: ../session/struct.Session.html
+    ///
     pub fn connect_and_activate(&mut self, endpoint_id: Option<&str>) -> Result<Arc<RwLock<Session>>, StatusCode> {
         // Ask the server associated with the default endpoint for its list of endpoints
         let endpoints = match self.get_server_endpoints() {
@@ -95,7 +136,9 @@ impl Client {
         };
 
         info!("Server has these endpoints:");
-        endpoints.iter().for_each(|e| println!("  {} - {:?} / {:?}", e.endpoint_url, SecurityPolicy::from_str(e.security_policy_uri.as_ref()).unwrap(), e.security_mode));
+        endpoints.iter().for_each(|e| println!("  {} - {:?} / {:?}", e.endpoint_url,
+                                               SecurityPolicy::from_str(e.security_policy_uri.as_ref()).unwrap(),
+                                               e.security_mode));
 
         // Create a session to an endpoint. If an endpoint id is specified use that
         let session = if let Some(endpoint_id) = endpoint_id {
@@ -115,7 +158,11 @@ impl Client {
         Ok(session)
     }
 
-    /// Gets the default endpoint id
+    /// Gets the [`ClientEndpoint`] information for the default endpoint, as defined
+    /// by the configuration. If there is no default endpoint, this function will return an error.
+    ///
+    /// [`ClientEndpoint`]: ../config/struct.ClientEndpoint.html
+    ///
     pub fn default_endpoint(&self) -> Result<ClientEndpoint, String> {
         let default_endpoint_id = self.config.default_endpoint.clone();
         if default_endpoint_id.is_empty() {
@@ -127,18 +174,27 @@ impl Client {
         }
     }
 
-    /// Creates a new `Session` using the default endpoint specified in the config. If there is no
-    /// default, or the endpoint does not exist, this function will return an error
+    /// Creates a new [`Session`] using the default endpoint specified in the config. If
+    /// there is no default, or the endpoint does not exist, this function will return an error
+    ///
+    /// [`Session`]: ../session/struct.Session.html
+    ///
     pub fn new_session(&mut self, endpoints: &[EndpointDescription]) -> Result<Arc<RwLock<Session>>, String> {
         let endpoint = self.default_endpoint()?;
         self.new_session_from_endpoint(&endpoint, endpoints)
     }
 
-    /// Creates a new `Session` using the endpoint id specified in the config. If there is no
-    /// endpoint of that id, this function will return an error
-    pub fn new_session_from_id(&mut self, endpoint_id: &str, endpoints: &[EndpointDescription]) -> Result<Arc<RwLock<Session>>, String> {
+    /// Creates a new [`Session`] using the named endpoint id. If there is no
+    /// endpoint of that id in the config, this function will return an error
+    ///
+    /// [`Session`]: ../session/struct.Session.html
+    ///
+    pub fn new_session_from_id<T>(&mut self, endpoint_id: T, endpoints: &[EndpointDescription]) -> Result<Arc<RwLock<Session>>, String>
+        where T: Into<String>
+    {
+        let endpoint_id = endpoint_id.into();
         let endpoint = {
-            let endpoint = self.config.endpoints.get(endpoint_id);
+            let endpoint = self.config.endpoints.get(&endpoint_id);
             if endpoint.is_none() {
                 return Err(format!("Cannot find endpoint with id {}", endpoint_id));
             }
@@ -147,14 +203,23 @@ impl Client {
         self.new_session_from_endpoint(&endpoint, endpoints)
     }
 
-    /// Creates a new `Session` using the endpoint id referring to an endpoint in the client
-    /// configuration. If the named endpoint does not exist oris in error, this function will return an error.
-    pub fn new_session_from_endpoint(&mut self, client_endpoint: &ClientEndpoint, endpoints: &[EndpointDescription]) -> Result<Arc<RwLock<Session>>, String> {
+    /// Creates a new [`Session`] using provided client endpoint and endpoint descriptions.
+    /// If the endpoint does not exist or is in error, this function will return an error.
+    ///
+    /// [`Session`]: ../session/struct.Session.html
+    ///
+    fn new_session_from_endpoint(&mut self, client_endpoint: &ClientEndpoint,
+                                 endpoints: &[EndpointDescription]) -> Result<Arc<RwLock<Session>>, String>
+    {
         let session_info = self.session_info_for_endpoint(client_endpoint, endpoints)?;
         self.new_session_from_info(session_info)
     }
 
-    /// Creates an ad hoc new `Session` using the specified endpoint url, security policy and mode.
+    /// Creates an ad hoc new [`Session`] using the specified endpoint url,
+    /// security policy and mode.
+    ///
+    /// [`Session`]: ../session/struct.Session.html
+    ///
     pub fn new_session_from_info<T>(&mut self, session_info: T) -> Result<Arc<RwLock<Session>>, String> where T: Into<SessionInfo> {
         let session_info = session_info.into();
         if !is_opc_ua_binary_url(session_info.endpoint.endpoint_url.as_ref()) {
@@ -168,6 +233,7 @@ impl Client {
         }
     }
 
+    /// Fetches the client's public certificate and private key from the certificate store.
     fn get_client_cert_and_key(&self) -> (Option<X509>, Option<PrivateKey>) {
         let certificate_store = trace_read_lock_unwrap!(self.certificate_store);
         if let Ok((cert, key)) = certificate_store.read_own_cert_and_pkey() {
@@ -177,12 +243,16 @@ impl Client {
         }
     }
 
-    /// Makes a None/None connection to the server in the default endpoint to obtain a list of
-    /// endpoints
+    /// Connects to the client's default configured endpoint asks the server for a list of
+    /// [`EndpointDescription`] that it hosts. If there is an error, the function will
+    /// return an error.
+    ///
+    /// [`EndpointDescription`]: ../../opcua_types/service_types/endpoint_description/struct.EndpointDescription.html
+    ///
     pub fn get_server_endpoints(&self) -> Result<Vec<EndpointDescription>, StatusCode> {
         if let Ok(default_endpoint) = self.default_endpoint() {
             if let Ok(server_url) = server_url_from_endpoint_url(&default_endpoint.url) {
-                self.get_server_endpoints_from_url(&server_url)
+                self.get_server_endpoints_from_url(server_url)
             } else {
                 error!("Cannot create a server url from the specified endpoint url {}", default_endpoint.url);
                 Err(BadUnexpectedError)
@@ -193,13 +263,21 @@ impl Client {
         }
     }
 
-    /// Makes a None/None connection to the server to obtain a list of endpoints
-    pub fn get_server_endpoints_from_url(&self, server_url: &str) -> Result<Vec<EndpointDescription>, StatusCode> {
+    /// Connects to the specified server_url with a None/None connection and asks for a list of
+    /// [`EndpointDescription`] that it hosts. If there is an error, the function will
+    /// return an error.
+    ///
+    /// [`EndpointDescription`]: ../../opcua_types/service_types/endpoint_description/struct.EndpointDescription.html
+    ///
+    pub fn get_server_endpoints_from_url<T>(&self, server_url: T) -> Result<Vec<EndpointDescription>, StatusCode>
+        where T: Into<String>
+    {
+        let server_url = server_url.into();
         let preferred_locales = Vec::new();
         let (client_certificate, client_pkey) = self.get_client_cert_and_key();
 
         // Most of these fields mean nothing when getting endpoints
-        let endpoint = Self::make_endpoint_description(server_url);
+        let endpoint = Self::make_endpoint_description(&server_url);
         let session_info = SessionInfo {
             endpoint,
             user_identity_token: IdentityToken::Anonymous,
@@ -214,11 +292,14 @@ impl Client {
         Ok(result)
     }
 
-    /// Called by clients that wish to discover what servers are available from a discovery server.
+    /// Connects to a discovery server and asks the server for a list of
+    /// available server [`ApplicationDescription`].
     ///
-    /// Creates a temporary `Session` to the specified discovery server and returns with a list of
-    /// available server descriptions.
-    pub fn find_servers<T>(&mut self, discovery_endpoint_url: T) -> Result<Vec<ApplicationDescription>, StatusCode> where T: Into<String> {
+    /// [`ApplicationDescription`]: ../../opcua_types/service_types/application_description/struct.ApplicationDescription.html
+    ///
+    pub fn find_servers<T>(&mut self, discovery_endpoint_url: T) -> Result<Vec<ApplicationDescription>, StatusCode>
+        where T: Into<String>
+    {
         let discovery_endpoint_url = discovery_endpoint_url.into();
         debug!("find_servers, {}", discovery_endpoint_url);
         let endpoint = Self::make_endpoint_description(&discovery_endpoint_url);
@@ -263,11 +344,13 @@ impl Client {
     /// whatever is required to make the discovery server trust the registering server. For example
     /// the standard OPC foundation discovery server will drop the server's cert in a rejected/
     /// folder and this cert has to be moved to a trusted/certs/ folder.
-    pub fn register_server<T>(&mut self, discovery_endpoint_url: T, server: RegisteredServer) -> Result<(), StatusCode> where T: Into<String> {
+    pub fn register_server<T>(&mut self, discovery_endpoint_url: T,
+                              server: RegisteredServer) -> Result<(), StatusCode>
+        where T: Into<String> {
         let discovery_endpoint_url = discovery_endpoint_url.into();
         // Get a list of endpoints from the discovery server
         debug!("register_server({}, {:?}", discovery_endpoint_url, server);
-        let endpoints = self.get_server_endpoints_from_url(&discovery_endpoint_url)?;
+        let endpoints = self.get_server_endpoints_from_url(discovery_endpoint_url.clone())?;
         if endpoints.is_empty() {
             Err(StatusCode::BadUnexpectedError)
         } else {
@@ -318,26 +401,31 @@ impl Client {
     /// Finds a matching endpoint, one that most closely matches the host, path, security policy
     /// and security mode used as inputs. The function will fallback to omit the host in its
     /// comparison if no exact match is found.
-    pub fn find_server_endpoint(&self, endpoints: &[EndpointDescription], endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> Option<EndpointDescription> {
+    pub fn find_server_endpoint<T>(&self, endpoints: &[EndpointDescription], endpoint_url: T,
+                                   security_policy: SecurityPolicy,
+                                   security_mode: MessageSecurityMode) -> Option<EndpointDescription>
+        where T: Into<String> {
         // Iterate the supplied endpoints looking for the closest match.
         let security_policy_uri = security_policy.to_uri();
+        let endpoint_url = endpoint_url.into();
+
         // Do an exact match first
-        for e in endpoints {
-            if e.security_policy_uri.as_ref() == security_policy_uri &&
+        let result = endpoints.iter().find(|e| {
+            e.security_mode == security_mode &&
+                e.security_policy_uri.as_ref() == security_policy_uri &&
+                url_matches(e.endpoint_url.as_ref(), &endpoint_url)
+        }).map(|e| e.clone());
+
+        // If something was found, return it, otherwise try a fuzzier match, that ignores the hostname.
+        if result.is_some() {
+            result
+        } else {
+            endpoints.iter().find(|e| {
                 e.security_mode == security_mode &&
-                url_matches(e.endpoint_url.as_ref(), endpoint_url) {
-                return Some(e.clone());
-            }
+                    e.security_policy_uri.as_ref() == security_policy_uri &&
+                    url_matches_except_host(e.endpoint_url.as_ref(), &endpoint_url)
+            }).map(|e| e.clone())
         }
-        // Now try a fuzzier match, ignoring the hostname part
-        for e in endpoints {
-            if e.security_policy_uri.as_ref() == security_policy_uri &&
-                e.security_mode == security_mode &&
-                url_matches_except_host(e.endpoint_url.as_ref(), endpoint_url) {
-                return Some(e.clone());
-            }
-        }
-        None
     }
 
     /// Determine if we recognize the security of this endpoint
@@ -354,10 +442,11 @@ impl Client {
 
     /// Returns an identity token corresponding to the matching user in the configuration. Or None
     /// if there is no matching token.
-    fn client_identity_token(&self, user_token_id: &str) -> Option<IdentityToken> {
+    fn client_identity_token<T>(&self, user_token_id: T) -> Option<IdentityToken> where T: Into<String> {
+        let user_token_id = user_token_id.into();
         if user_token_id == ANONYMOUS_USER_TOKEN_ID {
             Some(IdentityToken::Anonymous)
-        } else if let Some(token) = self.config.user_tokens.get(user_token_id) {
+        } else if let Some(token) = self.config.user_tokens.get(&user_token_id) {
             Some(IdentityToken::UserName(token.user.clone(), token.password.clone()))
         } else {
             None
@@ -365,20 +454,24 @@ impl Client {
     }
 
     /// Find an endpoint supplied from the list of endpoints that matches the input criteria
-    pub fn find_matching_endpoint(endpoints: &[EndpointDescription], endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode) -> Option<EndpointDescription> {
+    pub fn find_matching_endpoint<T>(endpoints: &[EndpointDescription],
+                                     endpoint_url: T, security_policy: SecurityPolicy,
+                                     security_mode: MessageSecurityMode) -> Option<EndpointDescription>
+        where T: Into<String>
+    {
+        let endpoint_url = endpoint_url.into();
         if security_policy == SecurityPolicy::Unknown {
             panic!("Can't match against unknown security policy");
         }
-        for e in endpoints.iter() {
-            if security_policy == SecurityPolicy::from_uri(e.security_policy_uri.as_ref()) &&
-                security_mode == e.security_mode &&
-                url_matches_except_host(endpoint_url, e.endpoint_url.as_ref()) {
-                return Some(e.clone());
-            }
-        }
-        None
+        endpoints.iter().find(|e| {
+            // Endpoint matches if the security mode, policy and url match
+            security_mode == e.security_mode &&
+                security_policy == SecurityPolicy::from_uri(e.security_policy_uri.as_ref()) &&
+                url_matches_except_host(&endpoint_url, e.endpoint_url.as_ref())
+        }).map(|e| e.clone())
     }
 
+    /// Creates a [`SessionInfo`](SessionInfo) information from the supplied client endpoint.
     fn session_info_for_endpoint(&self, client_endpoint: &ClientEndpoint, endpoints: &[EndpointDescription]) -> Result<SessionInfo, String> {
         // Enumerate endpoints looking for matching one
         if let Ok(security_policy) = SecurityPolicy::from_str(&client_endpoint.security_policy) {
@@ -386,10 +479,10 @@ impl Client {
             if security_mode != MessageSecurityMode::Invalid {
                 let endpoint_url = client_endpoint.url.clone();
                 // Now find a matching endpoint from those on the server
-                let endpoint = Self::find_matching_endpoint(endpoints, &endpoint_url, security_policy, security_mode);
+                let endpoint = Self::find_matching_endpoint(endpoints, endpoint_url.clone(), security_policy, security_mode);
                 if endpoint.is_none() {
                     Err(format!("Endpoint {}, {:?} / {:?} does not match against any supplied by the server", endpoint_url, security_policy, security_mode))
-                } else if let Some(user_identity_token) = self.client_identity_token(&client_endpoint.user_token_id) {
+                } else if let Some(user_identity_token) = self.client_identity_token(client_endpoint.user_token_id.clone()) {
                     info!("Creating a session for endpoint {}, {:?} / {:?}", endpoint_url, security_policy, security_mode);
                     let preferred_locales = self.config.preferred_locales.clone();
                     let (client_certificate, client_pkey) = self.get_client_cert_and_key();

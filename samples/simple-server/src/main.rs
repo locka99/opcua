@@ -10,7 +10,7 @@ extern crate opcua_types;
 extern crate opcua_console_logging;
 
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex};
 
 use opcua_server::prelude::*;
 
@@ -26,7 +26,7 @@ fn main() {
     add_example_variables(&mut server);
 
     // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
-    Server::run(Arc::new(RwLock::new(server)));
+    server.run();
 }
 
 /// Creates some sample variables, and some push / pull examples that update them

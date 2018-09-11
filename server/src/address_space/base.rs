@@ -16,7 +16,6 @@ const NUM_ATTRIBUTES: usize = 22;
 
 /// This is a sanity saving macro that adds Node trait methods to all types that have a base
 /// member.
-#[macro_export]
 macro_rules! find_attribute_mandatory {
     ( $sel:expr, $attr: ident ) => {
         let attribute_id = AttributeId::$attr;

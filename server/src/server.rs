@@ -1,5 +1,4 @@
-//! The server module defines types related to the server, its current running state
-//! and end point information.
+//! Provides the [`Server`] type and functionality related to it.
 
 use std::sync::{Arc, RwLock, Mutex};
 use std::net::SocketAddr;
@@ -33,8 +32,23 @@ use util::PollingAction;
 
 pub type Connections = Vec<Arc<RwLock<TcpTransport>>>;
 
-/// The Server represents a running instance of OPC UA. There can be more than one server running
+/// The `Server` represents a running instance of OPC UA. There can be more than one server running
 /// at a time providing they do not share the same thread or listen on the same ports.
+///
+/// A `Server` is initialised from a [`ServerConfig`] which determines what port the server
+/// runs on, the endpoints it supports, the identity tokens it supports and so forth.
+///
+/// The server's [`AddressSpace`] is initialised with the default address space values, but may also
+/// be extended with additional nodes representing folders, variables, methods etc.
+///
+/// The server's [`CertificateStore`] manages the server's private key and public certificate. It
+/// also manages public certificates of incoming clients and arranges them into trusted and rejected
+/// collections.
+///
+/// [`ServerConfig`]: ../config/struct.ServerConfig.html
+/// [`AddressSpace`]: ../address_space/address_space/struct.AddressSpace.html
+/// [`CertificateStore`]: ../../opcua_core/crypto/certificate_store/struct.CertificateStore.html
+///
 pub struct Server {
     /// List of pending polling actions to add to the server once run is called
     pending_polling_actions: Vec<(u32, Box<Fn() + Send + Sync + 'static>)>,
@@ -43,7 +57,8 @@ pub struct Server {
     /// Server metrics - diagnostics and anything else that someone might be interested in that
     /// describes the current state of the server
     pub server_metrics: Arc<RwLock<ServerMetrics>>,
-    /// The server state is everything that sessions share that can possibly change
+    /// The server state is everything that sessions share that can possibly change. State
+    /// is initialised from a [`ServerConfig`].
     pub server_state: Arc<RwLock<ServerState>>,
     /// Address space
     pub address_space: Arc<RwLock<AddressSpace>>,
@@ -51,8 +66,17 @@ pub struct Server {
     pub connections: Arc<RwLock<Connections>>,
 }
 
+impl From<ServerConfig> for Server {
+    fn from(config: ServerConfig) -> Server {
+        Server::new(config)
+    }
+}
+
 impl Server {
-    /// Create a new server instance
+    /// Creates a new [`Server`] instance, initialising it from a [`ServerConfig`].
+    ///
+    /// [`Server`]: ./struct.Server.html
+    /// [`ServerConfig`]: ../config/struct.ServerConfig.html
     pub fn new(config: ServerConfig) -> Server {
         if !config.is_valid() {
             panic!("Cannot create a server using an invalid configuration.");
@@ -135,7 +159,12 @@ impl Server {
 
     /// Starts the server up which involves creating some timers before listening for and handling
     /// connections.
-    pub fn run(server: Arc<RwLock<Server>>) {
+    ///
+    /// Calling this function consumes the server and the function will not return until the server
+    /// completes.
+    pub fn run(self) {
+        let server = Arc::new(RwLock::new(self));
+
         // Debug endpoints
         {
             let server = trace_read_lock_unwrap!(server);
@@ -218,7 +247,6 @@ impl Server {
                 info!("Server task is finished");
             })
         });
-
         info!("Server has stopped");
     }
 

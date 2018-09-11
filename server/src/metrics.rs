@@ -1,4 +1,4 @@
-//! The server metrics module maintains a snapshot of server state that can be used by anything that wants
+//! Provides debug metric of server state that can be used by anything that wants
 //! to see what is happening in the server. State is updated by the server as sessions are added, removed,
 //! and when subscriptions / monitored items are added, removed.
 

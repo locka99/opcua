@@ -204,12 +204,11 @@ extern crate opcua_types;
 extern crate opcua_core;
 extern crate opcua_server;
 
-use std::sync::{Arc, RwLock};
-
 use opcua_server::prelude::*;
 
 fn main() {
-    Server::run(Arc::new(RwLock::new(Server::new_default())));
+    let server: Server = ServerConfig::new_sample().into();
+    server.run();
 }
 ```
 

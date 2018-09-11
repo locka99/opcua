@@ -85,12 +85,8 @@ impl Future for HttpQuit {
 pub fn run_http_server(address: &str, server_state: Arc<RwLock<ServerState>>, connections: Arc<RwLock<Connections>>, server_metrics: Arc<RwLock<ServerMetrics>>) -> thread::JoinHandle<()> {
     let address = address.parse().unwrap();
     thread::spawn(move || {
-        // This polling action will quit the http server when the OPC UA server aborts
-        // TODO the server should consume this and terminate
-        let _server_should_quit = HttpQuit { server_state: server_state.clone() };
-
         let http_state = HttpState {
-            server_state,
+            server_state: server_state.clone(),
             connections,
             server_metrics,
         };
@@ -107,6 +103,9 @@ pub fn run_http_server(address: &str, server_state: Arc<RwLock<ServerState>>, co
 
         rt::run(http_server);
 
+        // This polling action will quit the http server when the OPC UA server aborts
+        // TODO the server should consume this and terminate
+        let _server_should_quit = HttpQuit { server_state };
         // http_server.run_until(server_should_quit).unwrap();
 
         info!("HTTP server has stopped");

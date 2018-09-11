@@ -1,3 +1,5 @@
+//! Provides diagnostics structures and functions for gathering information about the running
+//! state of a server.
 use std::collections::HashSet;
 
 use opcua_types::UInt32;
@@ -8,10 +10,10 @@ use session::Session;
 /// Structure that captures diagnostics information for the server
 #[derive(Clone, Serialize, Debug)]
 pub struct ServerDiagnostics {
-    pub session_count: UInt32,
-    pub session_count_cumulative: UInt32,
-    pub active_subscriptions: HashSet<UInt32>,
-    pub subscription_count_cumulative: UInt32,
+    session_count: UInt32,
+    session_count_cumulative: UInt32,
+    active_subscriptions: HashSet<UInt32>,
+    subscription_count_cumulative: UInt32,
 }
 
 impl ServerDiagnostics {

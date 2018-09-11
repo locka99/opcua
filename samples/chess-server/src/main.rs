@@ -4,7 +4,7 @@ extern crate uci;
 use opcua_server::prelude::*;
 use std::env;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 mod game;
@@ -97,7 +97,7 @@ fn main() {
     });
 
     // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
-    Server::run(Arc::new(RwLock::new(server)));
+    server.run();
 }
 
 fn update_board_state(game: &game::Game, address_space: &mut AddressSpace) {

@@ -1,3 +1,5 @@
+//! Provides utility routines for things that might be used in a number of places elsewhere.
+
 use std::time::{Instant, Duration};
 use std::sync::{Arc, RwLock};
 

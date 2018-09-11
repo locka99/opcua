@@ -66,7 +66,7 @@ impl UiModel {
 fn main() {
     // Read command line arguments
     let (config_file, endpoint_id) = {
-        let m = clap::App::new("Simple OPC UA Client")
+        let m = clap::App::new("OPC UA Gfx Client")
             .arg(Arg::with_name("config")
                 .long("config")
                 .help("Sets the configuration file to read settings and endpoints from")

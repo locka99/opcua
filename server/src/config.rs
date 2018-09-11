@@ -1,3 +1,4 @@
+//! Provides configuration settings for the server including serialization and deserialization from file.
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::collections::{BTreeMap, BTreeSet};

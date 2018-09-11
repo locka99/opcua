@@ -39,7 +39,7 @@ impl fmt::Debug for ConnectionStatusCallback {
 
 impl ConnectionStatusCallback {
     // Constructor
-    pub fn new() -> ConnectionStatusCallback {
+    pub(crate) fn new() -> ConnectionStatusCallback {
         ConnectionStatusCallback {
             cb: None
         }
@@ -47,7 +47,7 @@ impl ConnectionStatusCallback {
 
     /// Sets the connection status callback to the supplied callback, or clears it if None is supplied
     /// instead.
-    pub fn set_callback<CB>(&mut self, cb: Option<CB>) where CB: FnMut(bool) + 'static + Send + Sync {
+    pub(crate) fn set_callback<CB>(&mut self, cb: Option<CB>) where CB: FnMut(bool) + 'static + Send + Sync {
         self.cb = if let Some(cb) = cb {
             Some(Box::new(cb))
         } else {

@@ -1,5 +1,4 @@
-//! The server module defines types related to the server, it's current running state
-//! and end point information.
+//! Provides server state information, such as status, configuration, running servers and so on.
 
 use std::sync::{Arc, RwLock};
 

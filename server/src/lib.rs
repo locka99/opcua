@@ -1,6 +1,33 @@
 //! The OPC UA Server module contains all server side functionality - address space, services,
 //! server security, session management, local discovery server registration and subscriptions.
-
+//!
+//! # Usage
+//!
+//! An implementation will usually start by building a [`ServerConfig`], either
+//! from a configuration file, or through code. Then it will construct a [`Server`], initialise
+//! its address space, and then run it.
+//!
+//! [`Server`]: ./server/struct.Server.html
+//! [`ServerConfig`]: ./config/struct.ServerConfig.html
+//!
+//! # Example
+//!
+//! This is a minimal server which runs with the default address space on the default port.
+//! 
+//!  ```rust,no_run
+//!  extern crate opcua_types;
+//!  extern crate opcua_core;
+//!  extern crate opcua_server;
+//! 
+//!  use std::sync::{Arc, RwLock};
+//! 
+//!  use opcua_server::prelude::*;
+//! 
+//!  fn main() {
+//!      let server: Server = ServerConfig::new_sample().into();
+//!      server.run();
+//!  }
+//!  ```
 extern crate chrono;
 #[cfg(feature = "http")]
 extern crate hyper;
@@ -46,6 +73,8 @@ pub mod continuation_point;
 pub mod http;
 
 pub mod prelude {
+    //! Provides a way to use most types and functions commonly used by server implementations from a
+    //! single use statement.
     pub use opcua_types::status_code::StatusCode;
     pub use opcua_types::service_types::*;
     pub use opcua_core::prelude::*;
@@ -58,8 +87,8 @@ pub mod prelude {
     pub use util::*;
 }
 
-/// Constants that govern the internal workings of the server impl.
 pub mod constants {
+    //! Provides constants that govern the internal workings of the server implementation.
     use opcua_types::Double;
 
     /// The default hello timeout period in seconds

@@ -1,4 +1,4 @@
-//! This module holds functionality necessary to access the address space, find nodes, add nodes, change attributes
+//! Provides functionality to create an address space, find nodes, add nodes, change attributes
 //! and values on nodes.
 
 use std::result::Result;
@@ -81,7 +81,6 @@ macro_rules! node_impl {
 
 /// Macro that finds an attribute that is mandatory for the node type and returns its entry.
 /// This macro will trigger a panic if an expected attribute isn't there.
-#[macro_export]
 macro_rules! find_attribute_value_mandatory {
     ( $sel:expr, $attribute_id: ident, $variant_type: ident ) => {
         {
@@ -97,7 +96,6 @@ macro_rules! find_attribute_value_mandatory {
 
 /// Macro that finds an optional attribute returning the attribute in a `Option`, or
 /// `None` if the attribute does not exist.
-#[macro_export]
 macro_rules! find_attribute_value_optional {
     ( $sel:expr, $attribute_id: ident, $variant_type: ident ) => {
         {
