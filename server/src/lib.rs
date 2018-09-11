@@ -19,8 +19,6 @@
 //!  extern crate opcua_core;
 //!  extern crate opcua_server;
 //! 
-//!  use std::sync::{Arc, RwLock};
-//! 
 //!  use opcua_server::prelude::*;
 //! 
 //!  fn main() {
