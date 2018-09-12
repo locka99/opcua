@@ -673,7 +673,7 @@ impl Session {
         };
         if subscription_ids.is_none() {
             // No subscriptions
-            error!("delete_all_subscriptions, called when there are no subscriptions");
+            trace!("delete_all_subscriptions, called when there are no subscriptions");
             Err(BadNothingToDo)
         } else {
             // Send a delete request holding all the subscription ides that we wish to delete

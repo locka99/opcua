@@ -40,15 +40,20 @@ struct UiModel {
     state: Arc<RwLock<ConnectionState>>,
 }
 
+const ERROR_ID: &'static str = "###ERROR###";
+const WIDTH: u32 = 640;
+const HEIGHT: u32 = 480;
+
 impl UiModel {
     pub fn ensure_ids(&mut self, ui: &mut Ui) {
+        let mut id_generator = ui.widget_id_generator();
+        self.ids.insert(String::from(ERROR_ID), id_generator.next());
         let mut names = {
             let state = self.state.read().unwrap();
             state.values.keys().map(|k| k.clone()).collect::<Vec<String>>()
         };
-        let mut id_generator = ui.widget_id_generator();
         names.drain(..).for_each(|name| {
-            if self.ids.get(&name).is_none() {
+            if !self.ids.contains_key(&name) {
                 self.ids.insert(name, id_generator.next());
             }
         });
@@ -91,9 +96,17 @@ fn main() {
     let mut client = Client::new(ClientConfig::load(&PathBuf::from(config_file)).unwrap());
     let endpoint_id: Option<&str> = if !endpoint_id.is_empty() { Some(&endpoint_id) } else { None };
 
+
     if let Ok(session) = client.connect_and_activate(endpoint_id) {
         // Create a shared state object
         let state = Arc::new(RwLock::new(ConnectionState::new()));
+
+        // Construct the UI and ids
+        let mut ui = conrod::UiBuilder::new([WIDTH as f64, HEIGHT as f64]).build();
+        let mut model = UiModel {
+            state: state.clone(),
+            ids: BTreeMap::new(),
+        };
 
         {
             // Spawn a thread for the OPC UA client
@@ -108,11 +121,8 @@ fn main() {
             });
         }
 
-        // Now the UI thread
-        start_ui(UiModel {
-            state: state.clone(),
-            ids: BTreeMap::new(),
-        });
+        // Now start the blocking UI
+        start_ui(ui, model);
     }
 }
 
@@ -129,8 +139,7 @@ fn nodes_to_monitor() -> Vec<ReadValueId> {
             }
         }
         result
-    }
-    else {
+    } else {
         panic!("Can't open monitored_items file")
     }
 }
@@ -143,12 +152,13 @@ fn subscription_loop(session: Arc<RwLock<Session>>, state: Arc<RwLock<Connection
     {
         let mut session = session.write().unwrap();
 
-        // Creates our subscription - one update every 5 seconds
-        let subscription_id = session.create_subscription(5f64, 10, 30, 0, 0, true, move |items| {
+        // Creates our subscription - one update every 2 seconds
+        let subscription_id = session.create_subscription(2000.0, 10, 30, 0, 0, true, move |items| {
             let mut state = state.write().unwrap();
             items.iter().for_each(|item| {
                 // Each value will be applied to the state so that the UI thread can update it
-                state.values.insert(item.item_to_monitor().node_id.to_string(), item.value().clone());
+                let key = item.item_to_monitor().node_id.to_string();
+                state.values.insert(key, item.value().clone());
             });
         })?;
         println!("Created a subscription with id = {}", subscription_id);
@@ -157,36 +167,32 @@ fn subscription_loop(session: Arc<RwLock<Session>>, state: Arc<RwLock<Connection
         let read_nodes = nodes_to_monitor();
         let items_to_create: Vec<MonitoredItemCreateRequest> = {
             read_nodes.into_iter().map(move |read_node| {
+                println!("Monitoring item {:?}", read_node);
                 MonitoredItemCreateRequest::new(read_node, MonitoringMode::Reporting, MonitoringParameters::default())
             }).collect()
         };
-        let _ = session.create_monitored_items(subscription_id, &items_to_create)?;
+        let result = session.create_monitored_items(subscription_id, &items_to_create)?;
+        println!("Created monitored items {:?}", result);
     }
 
     // Loops forever. The publish thread will call the callback with changes on the variables
     loop {
         {
             // Break the loop if connection goes down
-            let session = session.read().unwrap();
+            let mut session = session.write().unwrap();
             if !session.is_connected() {
                 println!("Connection to server broke, so terminating");
                 break;
             }
+            // Main thread has nothing to do - just wait for publish events to roll in
+            session.poll();
         }
-
-        // Main thread has nothing to do - just wait for publish events to roll in
-        use std::thread;
-        use std::time;
-        thread::sleep(time::Duration::from_millis(1000));
     }
 
     Ok(())
 }
 
-fn start_ui(mut model: UiModel) {
-    const WIDTH: u32 = 640;
-    const HEIGHT: u32 = 480;
-
+fn start_ui(mut ui: Ui, mut model: UiModel) {
     // Build the window.
     let mut events_loop = glium::glutin::EventsLoop::new();
     let window = glium::glutin::WindowBuilder::new()
@@ -196,9 +202,6 @@ fn start_ui(mut model: UiModel) {
         .with_vsync(true)
         .with_multisampling(4);
     let display = glium::Display::new(window, context, &events_loop).unwrap();
-
-    // construct our `Ui`.
-    let mut ui = conrod::UiBuilder::new([WIDTH as f64, HEIGHT as f64]).build();
 
     // Add a `Font` to the `Ui`'s `font::Map` from file.
     const FONT_PATH: &'static str = "./assets/fonts/NotoSans/NotoSans-Regular.ttf";
@@ -248,7 +251,7 @@ fn start_ui(mut model: UiModel) {
         }
 
         // Set the widgets.
-        draw_cells(&mut model, &mut ui);
+        draw_cells(&mut ui, &mut model);
 
         // Draw the `Ui` if it has changed.
         if let Some(primitives) = ui.draw_if_changed() {
@@ -261,9 +264,12 @@ fn start_ui(mut model: UiModel) {
     }
 }
 
-fn draw_cells(model: &mut UiModel, ui: &mut Ui) {
+const BAD_COLOUR: (f32, f32, f32) = (1.0, 0.0, 0.0);
+const GOOD_COLOUR: (f32, f32, f32) = (1.0, 1.0, 1.0);
+
+fn draw_cells(ui: &mut Ui, model: &mut UiModel) {
     fn number_cell<'a>(value: &'a str, valid: bool, x: f64, y: f64, w: f64, h: f64) -> widget::Text<'a> {
-        let (r, g, b) = if valid { (1.0, 1.0, 1.0) } else { (1.0, 0.0, 0.0) };
+        let (r, g, b) = if valid { GOOD_COLOUR } else { BAD_COLOUR };
         widget::Text::new(value)
             .w_h(w, h)
             .x_y(x, y)
@@ -272,55 +278,50 @@ fn draw_cells(model: &mut UiModel, ui: &mut Ui) {
     }
 
     model.ensure_ids(ui);
+
     let ui = &mut ui.set_widgets();
-
-    let state = model.state.clone();
-    let state = state.read().unwrap();
-
 
     const CELL_WIDTH: f64 = 100.;
     const CELL_HEIGHT: f64 = 100.;
     const PADDING: f64 = 10.;
 
-    // Make a map from the node if to the widget id
-    let mut id_map = BTreeMap::new();
-    for node_id in state.values.keys() {
-        if let Some(id) = model.id_for(node_id) {
-            id_map.insert(node_id, id);
-        }
-    }
 
-    let mut row = 0;
-    let mut col = 0;
+    // Create text widgets for each value
+    {
+        let state = model.state.read().unwrap();
 
-    const NUM_COLS: i32 = 2;
-
-    // Create / update the widgets
-    for v in &state.values {
-        let (node_id, value) = v;
-
-        // Turn the value into a string to render it
-        let (x, y) = (col as f64 * (CELL_WIDTH + PADDING), row as f64 * (CELL_HEIGHT + PADDING));
-        println!("col = {}, row = {}, x = {}, y = {}", col, row, x, y);
-
-        // Create / update the cell and its state
-        if let Some(id) = id_map.get(node_id) {
-            let valid = value.is_valid();
-            let value = if let Some(ref value) = value.value {
-                value.to_string()
-            } else {
-                "None".to_string()
-            };
-            number_cell(&value, valid, x, y, CELL_WIDTH, CELL_HEIGHT)
-                .set(*id, ui);
-
-            // Go to the next "cell"
-            col = if col == NUM_COLS - 1 {
-                row += 1;
-                0
-            } else {
-                col + 1
-            };
+        // Create / update the widgets
+        if state.values.is_empty() {
+            // For some reason there are no values, so put up an error box to signify an error
+            if let Some(error_id) = model.id_for(&String::from(ERROR_ID)) {
+                widget::Text::new("Waiting for values, check console output with RUST_OPCUA_LOG=debug")
+                    .align_middle_x()
+                    .align_middle_y()
+                    .center_justify()
+                    .rgb(BAD_COLOUR.0, BAD_COLOUR.1, BAD_COLOUR.2).set(error_id, ui)
+            }
+        } else {
+            let num_cols: usize = 2;
+            let start_x = (ui.win_w - (num_cols as f64 * (CELL_WIDTH + PADDING))) / 2.0;
+            let start_y = 0.0;
+            state.values.iter().enumerate().for_each(|(i, v)| {
+                // Create / update the cell and its state
+                let (node_id, value) = v;
+                if let Some(id) = model.ids.get(node_id) {
+                    let valid = value.is_valid();
+                    let value = if let Some(ref value) = value.value {
+                        value.to_string()
+                    } else {
+                        "None".to_string()
+                    };
+                    // Turn the value into a string to render it
+                    let (col, row) = (i % num_cols, i / num_cols);
+                    let (x, y) = (start_x + (col as f64 * (CELL_WIDTH + PADDING)), start_y + row as f64 * (CELL_HEIGHT + PADDING));
+                    number_cell(&value, valid, x, y, CELL_WIDTH, CELL_HEIGHT).set(*id, ui);
+                } else {
+                    println!("No id called {}", node_id);
+                }
+            });
         }
     }
 }
