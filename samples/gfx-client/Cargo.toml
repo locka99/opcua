@@ -5,7 +5,7 @@ authors = ["Adam Lock <locka99@gmail.com>"]
 
 [dependencies]
 clap = "2.27"
-conrod = { version = "0.60", features = ["winit", "glium"] }
+conrod = { version = "0.61", features = ["winit", "glium"] }
 
 [dependencies.opcua-types]
 path = "../../types"
