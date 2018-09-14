@@ -32,7 +32,7 @@ use util::PollingAction;
 
 pub type Connections = Vec<Arc<RwLock<TcpTransport>>>;
 
-/// The `Server` represents a running instance of OPC UA. There can be more than one server running
+/// This represents a running instance of an OPC UA server. There can be more than one server running
 /// at a time providing they do not share the same thread or listen on the same ports.
 ///
 /// A `Server` is initialised from a [`ServerConfig`] which determines what port the server
@@ -157,11 +157,9 @@ impl Server {
         server
     }
 
-    /// Starts the server up which involves creating some timers before listening for and handling
-    /// connections.
-    ///
-    /// Calling this function consumes the server and the function will not return until the server
-    /// completes.
+    /// Runs the server which implies never returning unless there is a serious error. When running
+    /// the server will listen for requests from an incoming clients and will allow them to create
+    /// sessions.
     pub fn run(self) {
         let server = Arc::new(RwLock::new(self));
 

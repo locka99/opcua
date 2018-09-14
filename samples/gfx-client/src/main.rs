@@ -235,10 +235,15 @@ fn start_ui(mut ui: Ui, mut model: UiModel) {
 
         // If there are no new events, wait for one.
         if events.is_empty() {
+            // This code is commented out because I don't know how to post a custom event that
+            // could break the loop when an OPC UA subscription change is received. It would be far
+            // more efficient to do that than spinning around the the 'render loop continuously.
+
 //            events_loop.run_forever(|event| {
 //                events.push(event);
 //                glium::glutin::ControlFlow::Break
 //            });
+
         }
 
         // Process the events.
