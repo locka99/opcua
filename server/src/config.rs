@@ -12,9 +12,9 @@ use opcua_core::config::Config;
 
 use constants;
 
-const DEFAULT_ENDPOINT_PATH: &'static str = "/";
+const DEFAULT_ENDPOINT_PATH: &str = "/";
 
-pub const ANONYMOUS_USER_TOKEN_ID: &'static str = "ANONYMOUS";
+pub const ANONYMOUS_USER_TOKEN_ID: &str = "ANONYMOUS";
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct TcpConfig {

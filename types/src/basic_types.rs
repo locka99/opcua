@@ -465,7 +465,7 @@ impl BinaryEncoder<DiagnosticInfo> for DiagnosticInfo {
 
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
         let encoding_mask = DiagnosticInfoMask::from_bits_truncate(Byte::decode(stream)?);
-        let mut diagnostic_info = DiagnosticInfo::new();
+        let mut diagnostic_info = DiagnosticInfo::default();
 
         if encoding_mask.contains(DiagnosticInfoMask::HAS_SYMBOLIC_ID) {
             // Read symbolic id
@@ -499,8 +499,8 @@ impl BinaryEncoder<DiagnosticInfo> for DiagnosticInfo {
     }
 }
 
-impl DiagnosticInfo {
-    pub fn new() -> DiagnosticInfo {
+impl Default for DiagnosticInfo {
+    fn default() -> Self {
         DiagnosticInfo {
             symbolic_id: None,
             namespace_uri: None,
@@ -511,7 +511,9 @@ impl DiagnosticInfo {
             inner_diagnostic_info: None,
         }
     }
+}
 
+impl DiagnosticInfo {
     pub fn encoding_mask(&self) -> DiagnosticInfoMask {
         let mut encoding_mask = DiagnosticInfoMask::empty();
         if self.symbolic_id.is_some() {

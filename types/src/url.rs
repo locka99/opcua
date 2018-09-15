@@ -1,4 +1,4 @@
-//! Contains functions for parsing Urls from strings.
+//! Provides functions for parsing Urls from strings.
 
 use std;
 
@@ -6,7 +6,7 @@ use url_external::Url;
 
 use constants::DEFAULT_OPC_UA_SERVER_PORT;
 
-pub const OPC_TCP_SCHEME: &'static str = "opc.tcp";
+pub const OPC_TCP_SCHEME: &str = "opc.tcp";
 
 pub fn opc_url_from_str(s: &str) -> Result<Url, ()> {
     let url = Url::parse(s);

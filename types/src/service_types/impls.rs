@@ -238,7 +238,7 @@ impl ResponseHeader {
             timestamp,
             request_handle: request_header.request_handle,
             service_result,
-            service_diagnostics: DiagnosticInfo::new(),
+            service_diagnostics: DiagnosticInfo::default(),
             string_table: None,
             additional_header: ExtensionObject::null(),
         }
@@ -250,7 +250,7 @@ impl ResponseHeader {
             timestamp: DateTime::now(),
             request_handle: 0,
             service_result: Good,
-            service_diagnostics: DiagnosticInfo::new(),
+            service_diagnostics: DiagnosticInfo::default(),
             string_table: None,
             additional_header: ExtensionObject::null(),
         }
@@ -330,29 +330,28 @@ impl DataChangeFilter {
             let v1 = v1.as_f64();
             let v2 = v2.as_f64();
             if v1.is_none() || v2.is_none() {
-                return Ok(false);
-            }
-
-            let v1 = v1.unwrap();
-            let v2 = v2.unwrap();
-
-            if self.deadband_value < 0f64 {
-                return Err(BadDeadbandFilterInvalid);
-            }
-            if self.deadband_type == 1 {
-                Ok(DataChangeFilter::abs_compare(v1, v2, self.deadband_value))
-            } else if self.deadband_type == 2 {
-                if eu_range.is_none() {
-                    return Err(BadDeadbandFilterInvalid);
-                }
-                let (low, high) = eu_range.unwrap();
-                if low >= high {
-                    return Err(BadDeadbandFilterInvalid);
-                }
-                Ok(DataChangeFilter::pct_compare(v1, v2, low, high, self.deadband_value))
+                Ok(false)
             } else {
-                // Type is not recognized
-                return Err(BadDeadbandFilterInvalid);
+                let v1 = v1.unwrap();
+                let v2 = v2.unwrap();
+
+                if self.deadband_value < 0f64 {
+                    Err(BadDeadbandFilterInvalid)
+                } else if self.deadband_type == 1 {
+                    Ok(DataChangeFilter::abs_compare(v1, v2, self.deadband_value))
+                } else if self.deadband_type == 2 {
+                    if eu_range.is_none() {
+                        return Err(BadDeadbandFilterInvalid);
+                    }
+                    let (low, high) = eu_range.unwrap();
+                    if low >= high {
+                        return Err(BadDeadbandFilterInvalid);
+                    }
+                    Ok(DataChangeFilter::pct_compare(v1, v2, low, high, self.deadband_value))
+                } else {
+                    // Type is not recognized
+                    Err(BadDeadbandFilterInvalid)
+                }
             }
         }
     }
@@ -460,8 +459,8 @@ impl<'a> From<(UInt16, &'a str)> for ReadValueId {
     }
 }
 
-impl AnonymousIdentityToken {
-    pub fn new() -> AnonymousIdentityToken {
+impl Default for AnonymousIdentityToken {
+    fn default() -> Self {
         AnonymousIdentityToken {
             policy_id: UAString::from(profiles::SECURITY_USER_TOKEN_POLICY_ANONYMOUS)
         }

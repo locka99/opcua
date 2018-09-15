@@ -19,18 +19,18 @@ use crypto::x509::{X509, X509Data};
 use crypto::pkey::PrivateKey;
 
 /// The name that the server/client's application instance certificate is expected to be
-const OWN_CERTIFICATE_NAME: &'static str = "cert.der";
+const OWN_CERTIFICATE_NAME: &str = "cert.der";
 /// The name that the server/client's application instance private key is expected to be
-const OWN_PRIVATE_KEY_NAME: &'static str = "private.pem";
+const OWN_PRIVATE_KEY_NAME: &str = "private.pem";
 
 /// The directory holding the server/client's application instance cert
-const OWN_CERTIFICATE_DIR: &'static str = "own";
+const OWN_CERTIFICATE_DIR: &str = "own";
 /// The directory holding the server/client's application instance private key
-const OWN_PRIVATE_KEY_DIR: &'static str = "private";
+const OWN_PRIVATE_KEY_DIR: &str = "private";
 /// The directory holding trusted certificates
-const TRUSTED_CERTS_DIR: &'static str = "trusted";
+const TRUSTED_CERTS_DIR: &str = "trusted";
 /// The directory holding rejected certificates
-const REJECTED_CERTS_DIR: &'static str = "rejected";
+const REJECTED_CERTS_DIR: &str = "rejected";
 
 /// The certificate store manages the storage of a server/client's own certificate & private key
 /// and the trust / rejection of certificates from the other end.

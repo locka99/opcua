@@ -217,7 +217,7 @@ fn start_ui(mut ui: Ui, mut model: UiModel) {
     let display = glium::Display::new(window, context, &events_loop).unwrap();
 
     // Add a `Font` to the `Ui`'s `font::Map` from file.
-    const FONT_PATH: &'static str = "./assets/fonts/NotoSans/NotoSans-Regular.ttf";
+    const FONT_PATH: &str = "./assets/fonts/NotoSans/NotoSans-Regular.ttf";
     ui.fonts.insert_from_file(FONT_PATH).unwrap();
 
     // A type used for converting `conrod::render::Primitives` into `Command`s that can be used

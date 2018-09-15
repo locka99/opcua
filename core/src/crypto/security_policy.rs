@@ -15,22 +15,22 @@ use crypto::pkey::{PrivateKey, PublicKey, RsaPadding, KeySize};
 use crypto::hash;
 
 /// URI supplied for the None security policy
-pub const SECURITY_POLICY_NONE_URI: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#None";
+pub const SECURITY_POLICY_NONE_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#None";
 /// URI supplied for the `Basic128Rsa15` security policy
-pub const SECURITY_POLICY_BASIC_128_RSA_15_URI: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#Basic128Rsa15";
+pub const SECURITY_POLICY_BASIC_128_RSA_15_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Basic128Rsa15";
 /// URI supplied for the `Basic256` security policy
-pub const SECURITY_POLICY_BASIC_256_URI: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256";
+pub const SECURITY_POLICY_BASIC_256_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256";
 /// URI supplied for the `Basic256Sha256` security policy
-pub const SECURITY_POLICY_BASIC_256_SHA_256_URI: &'static str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256";
+pub const SECURITY_POLICY_BASIC_256_SHA_256_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256";
 
 /// String used as shorthand in config files, debug etc.for `None` security policy
-pub const SECURITY_POLICY_NONE: &'static str = "None";
+pub const SECURITY_POLICY_NONE: &str = "None";
 /// String used as shorthand in config files, debug etc.for `Basic128Rsa15` security policy
-pub const SECURITY_POLICY_BASIC_128_RSA_15: &'static str = "Basic128Rsa15";
+pub const SECURITY_POLICY_BASIC_128_RSA_15: &str = "Basic128Rsa15";
 /// String used as shorthand in config files, debug etc.for `Basic256` security policy
-pub const SECURITY_POLICY_BASIC_256: &'static str = "Basic256";
+pub const SECURITY_POLICY_BASIC_256: &str = "Basic256";
 /// String used as shorthand in config files, debug etc.for `Basic256Sha256` security policy
-pub const SECURITY_POLICY_BASIC_256_SHA_256: &'static str = "Basic256Sha256";
+pub const SECURITY_POLICY_BASIC_256_SHA_256: &str = "Basic256Sha256";
 
 // These are constants that govern the different encryption / signing modes for OPC UA. In some
 // cases these algorithm string constants will be passed over the wire and code needs to test the
@@ -43,22 +43,22 @@ pub mod basic128rsa15 {
     use crypto::algorithms::*;
 
     /// SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
-    pub const SYMMETRIC_SIGNATURE_ALGORITHM: &'static str = DSIG_HMAC_SHA1;
+    pub const SYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_HMAC_SHA1;
 
     /// SymmetricEncryptionAlgorithm – Aes128 – (http://www.w3.org/2001/04/xmlenc#aes128-cbc).
-    pub const SYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = ENC_AES128_CBC;
+    pub const SYMMETRIC_ENCRYPTION_ALGORITHM: &str = ENC_AES128_CBC;
 
     /// AsymmetricSignatureAlgorithm – RsaSha1 – (http://www.w3.org/2000/09/xmldsig#rsa-sha1).
-    pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &'static str = DSIG_RSA_SHA1;
+    pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_RSA_SHA1;
 
     /// AsymmetricKeyWrapAlgorithm – KwRsa15 – (http://www.w3.org/2001/04/xmlenc#rsa-1_5).
-    pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &'static str = ENC_RSA_15;
+    pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &str = ENC_RSA_15;
 
     /// AsymmetricEncryptionAlgorithm – Rsa15 – (http://www.w3.org/2001/04/xmlenc#rsa-1_5).
-    pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = ENC_RSA_15;
+    pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &str = ENC_RSA_15;
 
     /// KeyDerivationAlgorithm – PSha1 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1).
-    pub const KEY_DERIVATION_ALGORITHM: &'static str = KEY_P_SHA1;
+    pub const KEY_DERIVATION_ALGORITHM: &str = KEY_P_SHA1;
 
     /// DerivedSignatureKeyLength – 128 / 16 bytes.
     pub const DERIVED_SIGNATURE_KEY_LENGTH: usize = 128;
@@ -78,7 +78,7 @@ pub mod basic128rsa15 {
     /// CertificateSignatureAlgorithm – Sha1
     ///
     /// If a certificate or any certificate in the chain is not signed with a hash that is Sha1 or stronger then the certificate shall be rejected.
-    pub const CERTIFICATE_SIGNATURE_ALGORITHM: &'static str = "Sha1";
+    pub const CERTIFICATE_SIGNATURE_ALGORITHM: &str = "Sha1";
 }
 
 /// Security Basic 256
@@ -88,22 +88,22 @@ pub mod basic256 {
     use crypto::algorithms::*;
 
     /// SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
-    pub const SYMMETRIC_SIGNATURE_ALGORITHM: &'static str = DSIG_HMAC_SHA1;
+    pub const SYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_HMAC_SHA1;
 
     /// SymmetricEncryptionAlgorithm – Aes256 – (http://www.w3.org/2001/04/xmlenc#aes256-cbc).
-    pub const SYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = ENC_AES256_CBC;
+    pub const SYMMETRIC_ENCRYPTION_ALGORITHM: &str = ENC_AES256_CBC;
 
     /// AsymmetricSignatureAlgorithm – RsaSha1 – (http://www.w3.org/2000/09/xmldsig#rsa-sha1).
-    pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &'static str = DSIG_RSA_SHA1;
+    pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_RSA_SHA1;
 
     /// AsymmetricKeyWrapAlgorithm – KwRsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p).
-    pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &'static str = ENC_RSA_OAEP_MGF1P;
+    pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &str = ENC_RSA_OAEP_MGF1P;
 
     /// AsymmetricEncryptionAlgorithm – RsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep).
-    pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = ENC_RSA_OAEP;
+    pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &str = ENC_RSA_OAEP;
 
     /// KeyDerivationAlgorithm – PSha1 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1).
-    pub const KEY_DERIVATION_ALGORITHM: &'static str = KEY_P_SHA1;
+    pub const KEY_DERIVATION_ALGORITHM: &str = KEY_P_SHA1;
 
     /// DerivedSignatureKeyLength – 192.
     pub const DERIVED_SIGNATURE_KEY_LENGTH: usize = 192;
@@ -127,7 +127,7 @@ pub mod basic256 {
     /// If a certificate or any certificate in the chain is not signed with a hash that is Sha1 or stronger then the certificate shall be rejected.
     /// Release 1.03 17 OPC Unified Architecture, Part 7
     /// Both Sha1 and Sha256 shall be supported. However, it is recommended to use Sha256 since Sha1 is considered not secure anymore.
-    pub const CERTIFICATE_SIGNATURE_ALGORITHM: &'static str = "Sha256";
+    pub const CERTIFICATE_SIGNATURE_ALGORITHM: &str = "Sha256";
 }
 
 /// Security Basic 256 Sha256
@@ -137,22 +137,22 @@ pub mod basic256sha256 {
     use crypto::algorithms::*;
 
     /// SymmetricSignatureAlgorithm – Hmac_Sha256 – (http://www.w3.org/2000/09/xmldsig#hmac-sha256).
-    pub const SYMMETRIC_SIGNATURE_ALGORITHM: &'static str = DSIG_HMAC_SHA256;
+    pub const SYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_HMAC_SHA256;
 
     /// SymmetricEncryptionAlgorithm – Aes256_CBC – (http://www.w3.org/2001/04/xmlenc#aes256-cbc).
-    pub const SYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = ENC_AES256_CBC;
+    pub const SYMMETRIC_ENCRYPTION_ALGORITHM: &str = ENC_AES256_CBC;
 
     /// AsymmetricSignatureAlgorithm – Rsa_Sha256 – (http://www.w3.org/2001/04/xmldsig#rsa-sha256).
-    pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &'static str = DSIG_RSA_SHA256;
+    pub const ASYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_RSA_SHA256;
 
     /// AsymmetricKeyWrapAlgorithm – KwRsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p).
-    pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &'static str = ENC_RSA_OAEP_MGF1P;
+    pub const ASYMMETRIC_KEY_WRAP_ALGORITHM: &str = ENC_RSA_OAEP_MGF1P;
 
     /// -> AsymmetricEncryptionAlgorithm – Rsa_Oaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep).
-    pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &'static str = ENC_RSA_OAEP;
+    pub const ASYMMETRIC_ENCRYPTION_ALGORITHM: &str = ENC_RSA_OAEP;
 
     /// KeyDerivationAlgorithm – PSHA256 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha256).
-    pub const KEY_DERIVATION_ALGORITHM: &'static str = KEY_P_SHA256;
+    pub const KEY_DERIVATION_ALGORITHM: &str = KEY_P_SHA256;
 
     /// DerivedSignatureKeyLength – 256 / 32 bytes.
     pub const DERIVED_SIGNATURE_KEY_LENGTH: usize = 256;
@@ -176,7 +176,7 @@ pub mod basic256sha256 {
     /// a second application instance certificate, with a larger keysize. Applications shall support
     /// multiple Application Instance Certificates if required by supported Security Polices and use
     /// the certificate that is required for a given security endpoint.
-    pub const CERTIFICATE_SIGNATURE_ALGORITHM: &'static str = "Sha256";
+    pub const CERTIFICATE_SIGNATURE_ALGORITHM: &str = "Sha256";
 }
 
 /// SecurityPolicy implies what encryption and signing algorithms and their relevant key strengths

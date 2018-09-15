@@ -84,7 +84,7 @@ macro_rules! opcua_init_env_logger {
 
 /// Contains debugging utility helper functions
 pub mod debug {
-    pub const SUBSCRIPTION: &'static str = "subscription";
+    pub const SUBSCRIPTION: &str = "subscription";
 
     /// Prints out the content of a slice in hex and visible char format to aid debugging. Format
     /// is similar to corresponding functionality in node-opcua

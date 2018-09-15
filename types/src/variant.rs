@@ -538,7 +538,7 @@ impl Variant {
 
     /// Returns the length of just the value, not the encoding flag
     fn byte_len_variant_value(value: &Variant) -> usize {
-        let size = match *value {
+        match *value {
             Variant::Empty => 0,
             Variant::Boolean(ref value) => value.byte_len(),
             Variant::SByte(ref value) => value.byte_len(),
@@ -567,8 +567,7 @@ impl Variant {
                 error!("Cannot compute length of this type (probably nested array)");
                 0
             }
-        };
-        size
+        }
     }
 
     /// Encodes just the value, not the encoding flag
@@ -778,14 +777,12 @@ impl Variant {
             Variant::MultiDimensionArray(ref mda) => {
                 if mda.values.is_empty() && mda.dimensions.is_empty() {
                     true
-                } else {
+                } else if !mda.is_valid_dimensions() {
                     // Check that the array dimensions match the length of the array
-                    if !mda.is_valid_dimensions() {
-                        false
-                    } else {
-                        // Check values are all the same type
-                        Self::array_is_same_type(&mda.values, false)
-                    }
+                    false
+                } else {
+                    // Check values are all the same type
+                    Self::array_is_same_type(&mda.values, false)
                 }
             }
             _ => {
@@ -899,7 +896,7 @@ impl Variant {
 
     // Gets the encoding mask to write the variant to disk
     fn get_encoding_mask(&self) -> u8 {
-        let encoding_mask = match *self {
+        match *self {
             Variant::Empty => 0,
             Variant::Boolean(_) => DataTypeId::Boolean as u8,
             Variant::SByte(_) => DataTypeId::SByte as u8,
@@ -942,7 +939,6 @@ impl Variant {
                 encoding_mask |= ARRAY_VALUES_BIT | ARRAY_DIMENSIONS_BIT;
                 encoding_mask
             }
-        };
-        encoding_mask
+        }
     }
 }

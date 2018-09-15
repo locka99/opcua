@@ -59,10 +59,10 @@ macro_rules! supported_message_as_ref_mut {
 ///Contains constants recognized by OPC UA clients and servers to describe various protocols and
 /// profiles used during communication and encryption.
 pub mod profiles {
-    pub const TRANSPORT_PROFILE_URI_BINARY: &'static str = "http://opcfoundation.org/UA-Profile/Transport/uatcp-uasc-uabinary";
+    pub const TRANSPORT_PROFILE_URI_BINARY: &str = "http://opcfoundation.org/UA-Profile/Transport/uatcp-uasc-uabinary";
 
-    pub const SECURITY_USER_TOKEN_POLICY_ANONYMOUS: &'static str = "http://opcfoundation.org/UA-Profile/Security/UserToken/Anonymous";
-    pub const SECURITY_USER_TOKEN_POLICY_USERPASS: &'static str = "http://opcfoundation.org/UA-Profile/ Security/UserToken-Server/UserNamePassword";
+    pub const SECURITY_USER_TOKEN_POLICY_ANONYMOUS: &str = "http://opcfoundation.org/UA-Profile/Security/UserToken/Anonymous";
+    pub const SECURITY_USER_TOKEN_POLICY_USERPASS: &str = "http://opcfoundation.org/UA-Profile/ Security/UserToken-Server/UserNamePassword";
 }
 
 pub mod constants {

@@ -7,12 +7,12 @@ use status_codes::StatusCode;
 use string::UAString;
 use encoding::*;
 
-pub const HELLO_MESSAGE: &'static [u8] = b"HEL";
-pub const ACKNOWLEDGE_MESSAGE: &'static [u8] = b"ACK";
-pub const ERROR_MESSAGE: &'static [u8] = b"ERR";
-pub const CHUNK_MESSAGE: &'static [u8] = b"MSG";
-pub const OPEN_SECURE_CHANNEL_MESSAGE: &'static [u8] = b"OPN";
-pub const CLOSE_SECURE_CHANNEL_MESSAGE: &'static [u8] = b"CLO";
+pub const HELLO_MESSAGE: &[u8] = b"HEL";
+pub const ACKNOWLEDGE_MESSAGE: &[u8] = b"ACK";
+pub const ERROR_MESSAGE: &[u8] = b"ERR";
+pub const CHUNK_MESSAGE: &[u8] = b"MSG";
+pub const OPEN_SECURE_CHANNEL_MESSAGE: &[u8] = b"OPN";
+pub const CLOSE_SECURE_CHANNEL_MESSAGE: &[u8] = b"CLO";
 
 pub const CHUNK_FINAL: u8 = b'F';
 pub const CHUNK_INTERMEDIATE: u8 = b'C';
@@ -225,7 +225,7 @@ impl HelloMessage {
     pub fn is_endpoint_url_valid(&self) -> bool {
         // TODO check server's endpoints
         if let Some(ref endpoint_url) = self.endpoint_url.value {
-            if endpoint_url.len() > HelloMessage::MAX_URL_LEN { false } else { true }
+            endpoint_url.len() <= HelloMessage::MAX_URL_LEN
         } else {
             true
         }

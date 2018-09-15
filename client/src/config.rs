@@ -28,6 +28,7 @@ impl ClientUserToken {
     }
 }
 
+/// Describes an endpoint, it's url security policy, mode and user token
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct ClientEndpoint {
     /// Endpoint path

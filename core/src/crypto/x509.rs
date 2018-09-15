@@ -19,8 +19,8 @@ use crypto::pkey::PublicKey;
 use crypto::thumbprint::Thumbprint;
 
 const DEFAULT_KEYSIZE: u32 = 2048;
-const DEFAULT_COUNTRY: &'static str = "IE";
-const DEFAULT_STATE: &'static str = "Dublin";
+const DEFAULT_COUNTRY: &str = "IE";
+const DEFAULT_STATE: &str = "Dublin";
 
 #[derive(Debug)]
 /// Used to create an X509 cert (and private key)

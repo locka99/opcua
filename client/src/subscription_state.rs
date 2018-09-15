@@ -5,7 +5,8 @@ use opcua_types::service_types::DataChangeNotification;
 
 use subscription::*;
 
-pub struct SubscriptionState {
+/// Holds the live subscription state
+pub(crate) struct SubscriptionState {
     /// Subscriptions (key = subscription_id)
     subscriptions: HashMap<UInt32, Subscription>,
 }

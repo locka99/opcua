@@ -13,8 +13,8 @@ use opcua_types::status_code::StatusCode::*;
 use config::{ServerConfig, ServerEndpoint};
 use diagnostics::ServerDiagnostics;
 
-const TOKEN_POLICY_ANONYMOUS: &'static str = "anonymous";
-const TOKEN_POLICY_USER_PASS_PLAINTEXT: &'static str = "userpass_plaintext";
+const TOKEN_POLICY_ANONYMOUS: &str = "anonymous";
+const TOKEN_POLICY_USER_PASS_PLAINTEXT: &str = "userpass_plaintext";
 
 /// Server state is any state associated with the server as a whole that individual sessions might
 /// be interested in. That includes configuration info etc.

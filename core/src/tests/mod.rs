@@ -79,8 +79,8 @@ fn make_certificate_store() -> (TempDir, CertificateStore) {
     (tmp_dir, cert_store)
 }
 
-const APPLICATION_URI: &'static str = "urn:testapplication";
-const APPLICATION_HOSTNAME: &'static str = "testhost";
+const APPLICATION_URI: &str = "urn:testapplication";
+const APPLICATION_HOSTNAME: &str = "testhost";
 
 
 fn make_test_cert(key_size: u32) -> (X509, PrivateKey) {
@@ -110,7 +110,7 @@ fn make_open_secure_channel_response() -> OpenSecureChannelResponse {
             timestamp: DateTime::now(),
             request_handle: 444,
             service_result: BadProtocolVersionUnsupported,
-            service_diagnostics: DiagnosticInfo::new(),
+            service_diagnostics: DiagnosticInfo::default(),
             string_table: None,
             additional_header: ExtensionObject::null(),
         },

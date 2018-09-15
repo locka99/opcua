@@ -40,7 +40,7 @@ pub enum NumericRange {
     /// A range of indices
     Range(UInt32, UInt32),
     /// Multiple ranges contains any mix of Index, Range values - a multiple range containing multiple ranges is invalid
-    MultipleRanges(Vec<NumericRange>)
+    MultipleRanges(Vec<NumericRange>),
 }
 
 // Valid inputs
@@ -123,7 +123,7 @@ impl FromStr for NumericRange {
         } else if parts.len() > 1 {
             // Multi dimensions
             let mut ranges = Vec::with_capacity(MAX_INDICES);
-            for p in parts.iter() {
+            for p in &parts {
                 if let Ok(range) = Self::parse_range(&p) {
                     ranges.push(range);
                 } else {
@@ -182,20 +182,18 @@ impl NumericRange {
                     } else {
                         Err(())
                     }
-                } else {
-                    if let Ok(min) = min.unwrap().as_str().parse::<UInt32>() {
-                        if let Ok(max) = max.unwrap().as_str().parse::<UInt32>() {
-                            if min >= max {
-                                Err(())
-                            } else {
-                                Ok(NumericRange::Range(min, max))
-                            }
-                        } else {
+                } else if let Ok(min) = min.unwrap().as_str().parse::<UInt32>() {
+                    if let Ok(max) = max.unwrap().as_str().parse::<UInt32>() {
+                        if min >= max {
                             Err(())
+                        } else {
+                            Ok(NumericRange::Range(min, max))
                         }
                     } else {
                         Err(())
                     }
+                } else {
+                    Err(())
                 }
             } else {
                 Err(())

@@ -104,6 +104,11 @@ impl Default for UAString {
 }
 
 impl UAString {
+    /// Returns true if the string is null or empty, false otherwise
+    pub fn is_empty(&self) -> bool {
+        if self.value.is_none() { true } else { self.value.as_ref().unwrap().is_empty() }
+    }
+
     /// Returns the length of the string or -1 for null.
     pub fn len(&self) -> isize {
         if self.value.is_none() { -1 } else { self.value.as_ref().unwrap().len() as isize }

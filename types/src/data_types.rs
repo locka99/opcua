@@ -13,9 +13,9 @@ pub type Index = UInt32;
 /// All values, except for 0, are valid. IntegerId = 288,
 pub type IntegerId = UInt32;
 
-pub const MESSAGE_SECURITY_MODE_NONE: &'static str = "None";
-pub const MESSAGE_SECURITY_MODE_SIGN: &'static str = "Sign";
-pub const MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT: &'static str = "SignAndEncrypt";
+pub const MESSAGE_SECURITY_MODE_NONE: &str = "None";
+pub const MESSAGE_SECURITY_MODE_SIGN: &str = "Sign";
+pub const MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT: &str = "SignAndEncrypt";
 
 /// The MessageSecurityMode is an enumeration that specifies what security should be applied to messages exchanges during a Session.
 #[derive(Debug, Clone, PartialEq, PartialOrd, Copy)]

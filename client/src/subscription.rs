@@ -1,4 +1,12 @@
-//! Subscription and monitored item tracking.
+//! Provides subscription and monitored item tracking.
+//!
+//! The structs and functions in this file allow the client to maintain a shadow copy of the
+//! subscription and monitored item state on the server. If the server goes down and the session
+//! needs to be recreated, the client API can reconstruct the subscriptions and monitored item from
+//! its shadow version.
+//!
+//! None of this is for public consumption. The client is expected to recreate state automatically
+//! on a reconnect if necessary.
 
 use std::collections::{HashMap, HashSet};
 use std::marker::Sync;
@@ -8,9 +16,7 @@ use opcua_types::service_types::{DataChangeNotification, ReadValueId};
 
 use callbacks::DataChangeCallback;
 
-// This file will hold functionality related to creating a subscription and monitoring items
-
-pub struct CreateMonitoredItem {
+pub(crate) struct CreateMonitoredItem {
     pub id: UInt32,
     pub client_handle: UInt32,
     pub item_to_monitor: ReadValueId,
@@ -18,13 +24,13 @@ pub struct CreateMonitoredItem {
     pub sampling_interval: Double,
 }
 
-pub struct ModifyMonitoredItem {
+pub(crate) struct ModifyMonitoredItem {
     pub id: UInt32,
     pub sampling_interval: Double,
     pub queue_size: UInt32,
 }
 
-pub trait WritableMonitoredItem {
+pub(crate) trait WritableMonitoredItem {
     fn set_id(&mut self, value: UInt32);
 
     fn set_item_to_monitor(&mut self, item_to_monitor: ReadValueId);
@@ -106,7 +112,7 @@ impl MonitoredItem {
     }
 }
 
-pub struct Subscription {
+pub(crate) struct Subscription {
     /// Subscription id, supplied by server
     subscription_id: UInt32,
     /// Publishing interval in seconds
