@@ -214,7 +214,7 @@ impl DateTime {
 
     /// Time as chrono
     pub fn as_chrono(&self) -> UtcDateTime {
-        self.date_time.clone()
+        self.date_time
     }
 
     /// The OPC UA epoch - Jan 1 1601 00:00:00

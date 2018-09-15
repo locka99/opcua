@@ -277,10 +277,10 @@ impl fmt::Display for LocalizedText {
 impl BinaryEncoder<LocalizedText> for LocalizedText {
     fn byte_len(&self) -> usize {
         let mut size = 1;
-        if self.locale.len() > 0 {
+        if !self.locale.is_empty() {
             size += self.locale.byte_len();
         }
-        if self.text.len() > 0 {
+        if !self.text.is_empty() {
             size += self.text.byte_len();
         }
         size
@@ -293,17 +293,17 @@ impl BinaryEncoder<LocalizedText> for LocalizedText {
         // 0x01    Locale
         // 0x02    Text
         let mut encoding_mask: Byte = 0;
-        if self.locale.len() > 0 {
+        if !self.locale.is_empty() {
             encoding_mask |= 0x1;
         }
-        if self.text.len() > 0 {
+        if !self.text.is_empty() {
             encoding_mask |= 0x2;
         }
         size += encoding_mask.encode(stream)?;
-        if self.locale.len() > 0 {
+        if !self.locale.is_empty() {
             size += self.locale.encode(stream)?;
         }
-        if self.text.len() > 0 {
+        if !self.text.is_empty() {
             size += self.text.encode(stream)?;
         }
         Ok(size)
