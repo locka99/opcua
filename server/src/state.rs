@@ -8,7 +8,6 @@ use opcua_types::profiles;
 use opcua_types::service_types::{ApplicationDescription, RegisteredServer, ApplicationType, EndpointDescription, UserNameIdentityToken, UserTokenPolicy, UserTokenType, X509IdentityToken};
 use opcua_types::service_types::ServerState as ServerStateType;
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 
 use config::{ServerConfig, ServerEndpoint};
 use diagnostics::ServerDiagnostics;
@@ -256,7 +255,7 @@ impl ServerState {
                             } else {
                                 // Garbage in the extension object
                                 error!("User name identity token could not be decoded");
-                                BadIdentityTokenInvalid
+                                StatusCode::BadIdentityTokenInvalid
                             }
                         }
                         ObjectId::X509IdentityToken_Encoding_DefaultBinary => {
@@ -264,26 +263,26 @@ impl ServerState {
                             let result = user_identity_token.decode_inner::<X509IdentityToken>();
                             if let Ok(_) = result {
                                 error!("X509 identity token type is not supported");
-                                BadIdentityTokenRejected
+                                StatusCode::BadIdentityTokenRejected
                             } else {
                                 // Garbage in the extension object
                                 error!("X509 identity token could not be decoded");
-                                BadIdentityTokenInvalid
+                                StatusCode::BadIdentityTokenInvalid
                             }
                         }
                         _ => {
                             error!("User identity token type {:?} is unrecognized", object_id);
-                            BadIdentityTokenInvalid
+                            StatusCode::BadIdentityTokenInvalid
                         }
                     }
                 } else {
                     error!("Cannot read user identity token");
-                    BadIdentityTokenInvalid
+                    StatusCode::BadIdentityTokenInvalid
                 }
             }
         } else {
             error!("Cannot find endpoint that matches path \"{}\", security policy {:?}, and security mode {:?}", endpoint_url, security_policy, security_mode);
-            BadTcpEndpointUrlInvalid
+            StatusCode::BadTcpEndpointUrlInvalid
         }
     }
 
@@ -291,10 +290,10 @@ impl ServerState {
     fn authenticate_anonymous_token(endpoint: &ServerEndpoint) -> StatusCode {
         if endpoint.supports_anonymous() {
             debug!("Anonymous identity is authenticated");
-            Good
+            StatusCode::Good
         } else {
             error!("Endpoint \"{}\" does not support anonymous authentication", endpoint.path);
-            BadIdentityTokenRejected
+            StatusCode::BadIdentityTokenRejected
         }
     }
 
@@ -305,10 +304,10 @@ impl ServerState {
         if !token.encryption_algorithm.is_null() {
             // Plaintext is the only supported algorithm at this time
             error!("Only unencrypted passwords are supported, {:?}", token);
-            BadIdentityTokenInvalid
+            StatusCode::BadIdentityTokenInvalid
         } else if token.user_name.is_null() {
             error!("User identify token supplies no user name");
-            BadIdentityTokenInvalid
+            StatusCode::BadIdentityTokenInvalid
         } else {
             // Iterate ids in endpoint
             for user_token_id in &endpoint.user_token_ids {
@@ -326,15 +325,15 @@ impl ServerState {
                         let valid = result.is_ok();
                         if !valid {
                             error!("Cannot authenticate \"{}\", password is invalid", server_user_token.user);
-                            return BadIdentityTokenRejected;
+                            return StatusCode::BadIdentityTokenRejected;
                         } else {
-                            return Good;
+                            return StatusCode::Good;
                         }
                     }
                 }
             }
             error!("Cannot authenticate \"{}\", user not found for endpoint", token.user_name);
-            BadIdentityTokenRejected
+            StatusCode::BadIdentityTokenRejected
         }
     }
 }

@@ -7,7 +7,6 @@ use openssl::sign;
 use openssl::hash;
 
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 
 use crypto::{SHA1_SIZE, SHA256_SIZE};
 
@@ -75,7 +74,7 @@ pub fn hmac_sha1(key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), St
         }
         _ => {
             error!("Signature buffer length {} is not enough to receive hmac_sha1 signature", signature.len());
-            Err(BadInvalidArgument)
+            Err(StatusCode::BadInvalidArgument)
         }
     }
 }
@@ -99,7 +98,7 @@ pub fn hmac_sha256(key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), 
         }
         _ => {
             error!("Signature buffer length {} is not enough to receive hmac_sha256 signature", signature.len());
-            Err(BadInvalidArgument)
+            Err(StatusCode::BadInvalidArgument)
         }
     }
 }

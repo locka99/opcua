@@ -11,7 +11,6 @@ use opcua_types::{UInt32, NodeId, UAString, DateTime, ExtensionObject};
 use opcua_types::*;
 use opcua_types::service_types::*;
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 
 use message_queue::MessageQueue;
 
@@ -216,7 +215,7 @@ impl SessionState {
                 if request_duration.num_milliseconds() >= request_timeout as i64 {
                     info!("Timeout waiting for response from server");
                     self.request_has_timed_out(request_handle);
-                    return Err(BadTimeout);
+                    return Err(StatusCode::BadTimeout);
                 }
                 // Sleep before trying again
                 std::thread::sleep(std::time::Duration::from_millis(SYNC_POLLING_PERIOD));

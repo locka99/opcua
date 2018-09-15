@@ -4,7 +4,7 @@ use std::fmt;
 use encoding::*;
 use basic_types::*;
 use date_time::*;
-use status_codes::StatusCode::BadMonitoringModeInvalid;
+use status_codes::StatusCode;
 
 /// This primitive data type is a UInt32 that identifies an element of an array.
 pub type Index = UInt32;
@@ -131,7 +131,7 @@ impl BinaryEncoder<MonitoringMode> for MonitoringMode {
             2 => Ok(MonitoringMode::Reporting),
             _ => {
                 error!("Don't know what monitoring mode {} is", value);
-                Err(BadMonitoringModeInvalid)
+                Err(StatusCode::BadMonitoringModeInvalid)
             }
         }
     }

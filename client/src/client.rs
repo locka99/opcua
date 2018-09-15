@@ -7,7 +7,6 @@ use opcua_types::{ByteString, MessageSecurityMode, UAString};
 use opcua_types::{is_opc_ua_binary_url, server_url_from_endpoint_url, url_matches, url_matches_except_host};
 use opcua_types::service_types::{ApplicationDescription, EndpointDescription, RegisteredServer};
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::BadUnexpectedError;
 
 use opcua_core::crypto::{CertificateStore, PrivateKey, SecurityPolicy, X509};
 use opcua_core::config::Config;
@@ -255,11 +254,11 @@ impl Client {
                 self.get_server_endpoints_from_url(server_url)
             } else {
                 error!("Cannot create a server url from the specified endpoint url {}", default_endpoint.url);
-                Err(BadUnexpectedError)
+                Err(StatusCode::BadUnexpectedError)
             }
         } else {
             error!("There is no default endpoint, so cannot get endpoints");
-            Err(BadUnexpectedError)
+            Err(StatusCode::BadUnexpectedError)
         }
     }
 
@@ -326,7 +325,7 @@ impl Client {
                 Err(result)
             }
         } else {
-            let result = BadUnexpectedError;
+            let result = StatusCode::BadUnexpectedError;
             error!("Cannot create a sesion to {} - check if url is malformed", discovery_endpoint_url);
             Err(result)
         }
@@ -375,11 +374,11 @@ impl Client {
                     }
                 } else {
                     error!("Cannot create a sesion to {} - check if url is malformed", discovery_endpoint_url);
-                    Err(BadUnexpectedError)
+                    Err(StatusCode::BadUnexpectedError)
                 }
             } else {
                 error!("Can't find an endpoint that we call register server on");
-                Err(BadUnexpectedError)
+                Err(StatusCode::BadUnexpectedError)
             }
         }
     }

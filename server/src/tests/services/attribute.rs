@@ -62,21 +62,21 @@ fn read_test() {
         let results = response.results.unwrap();
 
         // 1. a variable
-        assert_eq!(results[0].status.as_ref().unwrap(), &(Good as u32));
+        assert_eq!(results[0].status.as_ref().unwrap(), &(StatusCode::Good.bits()));
         assert_eq!(results[0].value.as_ref().unwrap(), &Variant::Int32(0));
 
         // 2. an attribute other than value (access level)
-        assert_eq!(results[1].status.as_ref().unwrap(), &(Good as u32));
+        assert_eq!(results[1].status.as_ref().unwrap(), &(StatusCode::Good.bits()));
         assert_eq!(results[1].value.as_ref().unwrap(), &Variant::Byte(1));
 
         // 3. a variable without the required attribute
-        assert_eq!(results[2].status.as_ref().unwrap(), &(BadAttributeIdInvalid as u32));
+        assert_eq!(results[2].status.as_ref().unwrap(), &(StatusCode::BadAttributeIdInvalid.bits()));
 
         // 4. a variable with no read access
-        assert_eq!(results[3].status.as_ref().unwrap(), &(BadNotReadable as u32));
+        assert_eq!(results[3].status.as_ref().unwrap(), &(StatusCode::BadNotReadable.bits()));
 
         // 5. Non existent
-        assert_eq!(results[4].status.as_ref().unwrap(), &(BadNodeIdUnknown as u32));
+        assert_eq!(results[4].status.as_ref().unwrap(), &(StatusCode::BadNodeIdUnknown.bits()));
     }
 
 
@@ -169,19 +169,19 @@ fn write_test() {
     let results = response.results.unwrap();
 
     // 1. a variable value
-    assert_eq!(results[0], Good);
+    assert_eq!(results[0], StatusCode::Good);
     // 2. a variable with another attribute
-    assert_eq!(results[1], Good);
+    assert_eq!(results[1], StatusCode::Good);
     // 3. a variable value which has no write access
-    assert_eq!(results[2], BadNotWritable);
+    assert_eq!(results[2], StatusCode::BadNotWritable);
     // 4. a node of some kind other than variable
-    assert_eq!(results[3], Good);
+    assert_eq!(results[3], StatusCode::Good);
     // 5. a node with some kind other than variable with no write mask
-    assert_eq!(results[4], BadNotWritable);
+    assert_eq!(results[4], StatusCode::BadNotWritable);
     // 6. a non existent variable
-    assert_eq!(results[5], BadNodeIdUnknown);
+    assert_eq!(results[5], StatusCode::BadNodeIdUnknown);
     // 7. wrong type for attribute
-    assert_eq!(results[6], BadTypeMismatch);
+    assert_eq!(results[6], StatusCode::BadTypeMismatch);
 
     // OTHER POTENTIAL TESTS
 

@@ -5,7 +5,6 @@ use std::io::Cursor;
 
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 
 use comms::message_chunk::{MessageIsFinalType, MessageChunk, MessageChunkType};
 use comms::secure_channel::SecureChannel;
@@ -36,7 +35,7 @@ impl Chunker {
         };
         if first_sequence_number < starting_sequence_number {
             error!("First sequence number of {} is less than last value {}", first_sequence_number, starting_sequence_number);
-            return Err(BadSequenceNumberInvalid);
+            return Err(StatusCode::BadSequenceNumberInvalid);
         }
 
         let secure_channel_id = secure_channel.secure_channel_id();
@@ -49,7 +48,7 @@ impl Chunker {
             // Check the channel id of each chunk
             if secure_channel_id != 0 && chunk_info.message_header.secure_channel_id != secure_channel_id {
                 error!("Secure channel id {} does not match expected id {}", chunk_info.message_header.secure_channel_id, secure_channel_id);
-                return Err(BadSecureChannelIdInvalid);
+                return Err(StatusCode::BadSecureChannelIdInvalid);
             }
 
             // Check the sequence id - should be larger than the last one decoded
@@ -57,7 +56,7 @@ impl Chunker {
             let expected_sequence_number = first_sequence_number + i as UInt32;
             if sequence_number != expected_sequence_number {
                 error!("Chunk sequence number of {} is not the expected value of {}, idx {}", sequence_number, expected_sequence_number, i);
-                return Err(BadSecurityChecksFailed);
+                return Err(StatusCode::BadSecurityChecksFailed);
             }
 
             // Check the request id against the first chunk's request id
@@ -65,7 +64,7 @@ impl Chunker {
                 expected_request_id = chunk_info.sequence_header.request_id;
             } else if chunk_info.sequence_header.request_id != expected_request_id {
                 error!("Chunk sequence number of {} has a request id {} which is not the expected value of {}, idx {}", sequence_number, chunk_info.sequence_header.request_id, expected_request_id, i);
-                return Err(BadSecurityChecksFailed);
+                return Err(StatusCode::BadSecurityChecksFailed);
             }
         }
         Ok(first_sequence_number + chunks.len() as UInt32 - 1)
@@ -88,7 +87,7 @@ impl Chunker {
         if max_message_size > 0 && message_size > max_message_size {
             warn!("Max message size is {} and message {} exceeds that", max_message_size, message_size);
             // Client stack should report a BadRequestTooLarge, server BadResponseTooLarge
-            return Err(if secure_channel.is_client_role() { BadRequestTooLarge } else { BadResponseTooLarge });
+            return Err(if secure_channel.is_client_role() { StatusCode::BadRequestTooLarge } else { StatusCode::BadResponseTooLarge });
         }
 
         let node_id = supported_message.node_id();
@@ -140,7 +139,7 @@ impl Chunker {
                 MessageIsFinalType::Intermediate
             };
             if chunk_info.message_header.is_final != expected_is_final {
-                return Err(BadDecodingError);
+                return Err(StatusCode::BadDecodingError);
             }
             // Calculate how much space data is in the chunk
             let body_start = chunk_info.body_offset;
@@ -185,12 +184,12 @@ impl Chunker {
             };
             if !valid_node_id {
                 error!("The node id read from the stream was not accepted in this context {:?}", node_id);
-                return Err(BadUnexpectedError);
+                return Err(StatusCode::BadUnexpectedError);
             }
             let object_id = node_id.as_object_id();
             if object_id.is_err() {
                 error!("The node {:?} was not an object id", node_id);
-                return Err(BadUnexpectedError);
+                return Err(StatusCode::BadUnexpectedError);
             }
             let object_id = object_id.unwrap();
             trace!("Decoded node id / object id of {:?}", object_id);
@@ -201,12 +200,12 @@ impl Chunker {
         let decoded_message = SupportedMessage::decode_by_object_id(&mut data, object_id);
         if decoded_message.is_err() {
             debug!("Can't decode message {:?}", object_id);
-            return Err(BadServiceUnsupported);
+            return Err(StatusCode::BadServiceUnsupported);
         }
         let decoded_message = decoded_message.unwrap();
         if let SupportedMessage::Invalid(_) = decoded_message {
             debug!("Message {:?} is unsupported", object_id);
-            return Err(BadServiceUnsupported);
+            return Err(StatusCode::BadServiceUnsupported);
         }
 
         // debug!("Returning decoded msg {:?}", decoded_message);

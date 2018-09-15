@@ -3,7 +3,6 @@ use DateTimeUtc;
 use opcua_types::*;
 use opcua_types::service_types::{NotificationMessage, PublishRequest, PublishResponse, ResponseHeader, ServiceFault};
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 use std::collections::{BTreeMap, VecDeque};
 use subscriptions::{PublishRequestEntry, PublishResponseEntry};
 use subscriptions::subscription::{Subscription, SubscriptionState, TickReason};
@@ -95,7 +94,7 @@ impl Subscriptions {
             for _ in 0..remove_count {
                 let _ = self.publish_request_queue.pop_back();
             }
-            Err(BadTooManyPublishRequests)
+            Err(StatusCode::BadTooManyPublishRequests)
         } else {
             // Add to the front of the queue - older items are popped from the back
             self.publish_request_queue.push_front(PublishRequestEntry {
@@ -238,7 +237,7 @@ impl Subscriptions {
                 expired_publish_responses.push_front(PublishResponseEntry {
                     request_id: request.request_id,
                     response: SupportedMessage::ServiceFault(ServiceFault {
-                        response_header: ResponseHeader::new_timestamped_service_result(DateTime::now(), &request.request.request_header, BadTimeout),
+                        response_header: ResponseHeader::new_timestamped_service_result(DateTime::now(), &request.request.request_header, StatusCode::BadTimeout),
                     }),
                 });
                 false
@@ -268,14 +267,14 @@ impl Subscriptions {
                     if self.subscriptions.get(&subscription_id).is_some() {
                         // Clear notification by its sequence number
                         if self.retransmission_queue.remove(&sequence_number).is_some() {
-                            Good
+                            StatusCode::Good
                         } else {
                             error!("Can't find acknowledged notification with sequence number {}", sequence_number);
-                            BadSequenceNumberUnknown
+                            StatusCode::BadSequenceNumberUnknown
                         }
                     } else {
                         error!("Can't find acknowledged notification subscription id {}", subscription_id);
-                        BadSubscriptionIdInvalid
+                        StatusCode::BadSubscriptionIdInvalid
                     }
                 })
                 .collect();
@@ -315,7 +314,7 @@ impl Subscriptions {
         PublishResponseEntry {
             request_id: publish_request.request_id,
             response: SupportedMessage::PublishResponse(PublishResponse {
-                response_header: ResponseHeader::new_timestamped_service_result(now, &publish_request.request.request_header, Good),
+                response_header: ResponseHeader::new_timestamped_service_result(now, &publish_request.request.request_header, StatusCode::Good),
                 subscription_id,
                 available_sequence_numbers,
                 more_notifications,

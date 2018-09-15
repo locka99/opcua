@@ -5,7 +5,7 @@ use std::io::Cursor;
 use tempdir::TempDir;
 
 use opcua_types::*;
-use opcua_types::status_code::StatusCode::*;
+use opcua_types::status_code::StatusCode;
 use opcua_types::service_types::*;
 
 use comms::secure_channel::SecureChannel;
@@ -109,7 +109,7 @@ fn make_open_secure_channel_response() -> OpenSecureChannelResponse {
         response_header: ResponseHeader {
             timestamp: DateTime::now(),
             request_handle: 444,
-            service_result: BadProtocolVersionUnsupported,
+            service_result: StatusCode::BadProtocolVersionUnsupported,
             service_diagnostics: DiagnosticInfo::default(),
             string_table: None,
             additional_header: ExtensionObject::null(),

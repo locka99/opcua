@@ -4,8 +4,7 @@ use std::collections::VecDeque;
 use chrono;
 
 use opcua_types::*;
-use opcua_types::status_code::{StatusCode, StatusCodeBits};
-use opcua_types::status_code::StatusCode::*;
+use opcua_types::status_code::StatusCode;
 use opcua_types::node_ids::ObjectId;
 use opcua_types::service_types::{TimestampsToReturn, DataChangeFilter, ReadValueId, MonitoredItemCreateRequest, MonitoredItemModifyRequest, MonitoredItemNotification};
 
@@ -31,7 +30,7 @@ impl FilterType {
             Ok(FilterType::DataChangeFilter(filter.decode_inner::<DataChangeFilter>()?))
         } else {
             error!("Requested data filter type is not supported, {:?}", filter_type_id);
-            Err(BadFilterNotAllowed)
+            Err(StatusCode::BadFilterNotAllowed)
         }
     }
 }
@@ -242,7 +241,7 @@ impl MonitoredItem {
         if overflow {
             // Set the overflow bit on the data value's status
             let mut status_code = notification.value.status();
-            status_code = status_code | StatusCodeBits::OVERFLOW.bits();
+            status_code = status_code | StatusCode::OVERFLOW.bits();
             notification.value.status = Some(status_code);
             self.queue_overflow = true;
         }

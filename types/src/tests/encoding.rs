@@ -349,7 +349,7 @@ fn variant() {
     let v = Variant::new::<ExpandedNodeId>(ObjectId::AddNodesItem_Encoding_DefaultBinary.into());
     serialize_test(v);
     // StatusCode
-    let v = Variant::new(BadTcpMessageTypeInvalid);
+    let v = Variant::new(StatusCode::BadTcpMessageTypeInvalid);
     serialize_test(v);
     // QualifiedName
     let v = Variant::new(QualifiedName {
@@ -369,7 +369,7 @@ fn variant() {
     // DataValue
     let v = DataValue {
         value: Some(Variant::Double(1000f64)),
-        status: Some(GoodClamped.into()),
+        status: Some(StatusCode::GoodClamped.bits()),
         source_timestamp: Some(DateTime::now()),
         source_picoseconds: Some(333),
         server_timestamp: Some(DateTime::now()),
@@ -422,7 +422,7 @@ fn diagnostic_info() {
     d.additional_info = Some(UAString::from("Hello world"));
     assert_eq!(d.encoding_mask().bits(), 0x1f);
 
-    d.inner_status_code = Some(BadArgumentsMissing);
+    d.inner_status_code = Some(StatusCode::BadArgumentsMissing);
     assert_eq!(d.encoding_mask().bits(), 0x3f);
 
     serialize_test(d.clone());
@@ -433,7 +433,7 @@ fn diagnostic_info() {
         locale: Some(333),
         localized_text: Some(233),
         additional_info: Some(UAString::from("Nested diagnostic")),
-        inner_status_code: Some(Good),
+        inner_status_code: Some(StatusCode::Good),
         inner_diagnostic_info: None,
     }));
 

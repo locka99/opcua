@@ -1,4 +1,4 @@
-use opcua_types::status_code::StatusCode::*;
+use opcua_types::status_code::StatusCode;
 use opcua_types::service_types::{CallRequest, CallResponse, CallMethodRequest, CallMethodResult};
 use opcua_types::node_ids::{ObjectId, MethodId};
 
@@ -75,21 +75,21 @@ fn call_getmonitoreditems() {
     {
         let request = new_call_method_request(NodeId::null(), MethodId::Server_GetMonitoredItems.into(), None);
         let response = call_single(&s, &address_space, &server_state, &session, request).unwrap();
-        assert_eq!(response.status_code, BadNodeIdUnknown);
+        assert_eq!(response.status_code, StatusCode::BadNodeIdUnknown);
     }
 
     // Call without a valid method id
     {
         let request = new_call_method_request(ObjectId::Server.into(), NodeId::null(), None);
         let response = call_single(&s, &address_space, &server_state, &session, request).unwrap();
-        assert_eq!(response.status_code, BadMethodInvalid);
+        assert_eq!(response.status_code, StatusCode::BadMethodInvalid);
     }
 
     // Call without args
     {
         let request = new_call_method_request(ObjectId::Server.into(), MethodId::Server_GetMonitoredItems.into(), None);
         let response = call_single(&s, &address_space, &server_state, &session, request).unwrap();
-        assert_eq!(response.status_code, BadArgumentsMissing);
+        assert_eq!(response.status_code, StatusCode::BadArgumentsMissing);
     }
 
     // Call with too many args
@@ -97,7 +97,7 @@ fn call_getmonitoreditems() {
         let args: Vec<Variant> = vec![100.into(), 100.into()];
         let request = new_call_method_request(ObjectId::Server.into(), MethodId::Server_GetMonitoredItems.into(), Some(args));
         let response = call_single(&s, &address_space, &server_state, &session, request).unwrap();
-        assert_eq!(response.status_code, BadTooManyArguments);
+        assert_eq!(response.status_code, StatusCode::BadTooManyArguments);
     }
 
     // Call with incorrect arg
@@ -105,7 +105,7 @@ fn call_getmonitoreditems() {
         let args: Vec<Variant> = vec![100u8.into()];
         let request = new_call_method_request(ObjectId::Server.into(), MethodId::Server_GetMonitoredItems.into(), Some(args));
         let response = call_single(&s, &address_space, &server_state, &session, request).unwrap();
-        assert_eq!(response.status_code, BadInvalidArgument);
+        assert_eq!(response.status_code, StatusCode::BadInvalidArgument);
     }
 
     // Call with invalid subscription id
@@ -113,7 +113,7 @@ fn call_getmonitoreditems() {
         let args: Vec<Variant> = vec![100u32.into()];
         let request = new_call_method_request(ObjectId::Server.into(), MethodId::Server_GetMonitoredItems.into(), Some(args));
         let response = call_single(&s, &address_space, &server_state, &session, request).unwrap();
-        assert_eq!(response.status_code, BadSubscriptionIdInvalid);
+        assert_eq!(response.status_code, StatusCode::BadSubscriptionIdInvalid);
     }
 
     // Call with valid subscription id
@@ -139,7 +139,7 @@ fn call_getmonitoreditems() {
         let args: Vec<Variant> = vec![subscription_id.into()];
         let request = new_call_method_request(ObjectId::Server.into(), MethodId::Server_GetMonitoredItems.into(), Some(args));
         let response = call_single(&s, &address_space, &server_state, &session, request).unwrap();
-        assert_eq!(response.status_code, Good);
+        assert_eq!(response.status_code, StatusCode::Good);
 
         // There should be two output args, each a vector of UInt32
         let mut result = response.output_arguments.unwrap();

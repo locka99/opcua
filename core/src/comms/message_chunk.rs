@@ -6,7 +6,6 @@ use std::io::{Read, Write, Cursor};
 
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 use opcua_types::tcp_types::{CHUNK_MESSAGE, CLOSE_SECURE_CHANNEL_MESSAGE, OPEN_SECURE_CHANNEL_MESSAGE};
 use opcua_types::tcp_types::{CHUNK_INTERMEDIATE, CHUNK_FINAL, CHUNK_FINAL_ERROR};
 
@@ -151,7 +150,7 @@ impl BinaryEncoder<MessageChunk> for MessageChunk {
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         let result = stream.write(&self.data);
         if result.is_err() {
-            Err(BadEncodingError)
+            Err(StatusCode::BadEncodingError)
         } else {
             Ok(result.unwrap())
         }
@@ -162,12 +161,12 @@ impl BinaryEncoder<MessageChunk> for MessageChunk {
         let chunk_header_result = MessageChunkHeader::decode(in_stream);
         if chunk_header_result.is_err() {
             error!("Cannot decode chunk header {:?}", chunk_header_result.unwrap_err());
-            return Err(BadCommunicationError);
+            return Err(StatusCode::BadCommunicationError);
         }
 
         let chunk_header = chunk_header_result.unwrap();
         if !chunk_header.is_valid {
-            return Err(BadTcpMessageTypeInvalid);
+            return Err(StatusCode::BadTcpMessageTypeInvalid);
         }
 
         // Now make a 

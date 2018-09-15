@@ -8,7 +8,6 @@ use std::io::{Read, Write, Cursor, Result};
 use byteorder::{ByteOrder, LittleEndian};
 
 use status_codes::StatusCode;
-use status_codes::StatusCode::{BadEncodingError, BadDecodingError};
 
 pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
 
@@ -35,7 +34,7 @@ pub trait BinaryEncoder<T> {
 pub fn process_encode_io_result(result: Result<usize>) -> EncodingResult<usize> {
     if result.is_err() {
         trace!("Encoding error - {:?}", result.unwrap_err());
-        Err(BadEncodingError)
+        Err(StatusCode::BadEncodingError)
     } else {
         Ok(result.unwrap())
     }
@@ -45,7 +44,7 @@ pub fn process_encode_io_result(result: Result<usize>) -> EncodingResult<usize> 
 pub fn process_decode_io_result<T>(result: Result<T>) -> EncodingResult<T> where T: Debug {
     if result.is_err() {
         trace!("Decoding error - {:?}", result.unwrap_err());
-        Err(BadDecodingError)
+        Err(StatusCode::BadDecodingError)
     } else {
         Ok(result.unwrap())
     }
@@ -81,7 +80,7 @@ pub fn read_array<S: Read, T: BinaryEncoder<T>>(stream: &mut S) -> EncodingResul
         Ok(None)
     } else if len < -1 {
         error!("Array length is negative value and invalid");
-        Err(BadDecodingError)
+        Err(StatusCode::BadDecodingError)
     } else {
         let mut values: Vec<T> = Vec::with_capacity(len as usize);
         for _ in 0..len {

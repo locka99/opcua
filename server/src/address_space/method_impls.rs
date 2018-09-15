@@ -1,6 +1,5 @@
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 use opcua_types::service_types::{CallMethodRequest, CallMethodResult};
 
 use address_space::AddressSpace;
@@ -24,26 +23,26 @@ pub fn handle_get_monitored_items(_: &AddressSpace, _: &ServerState, session: &S
                         //   clientHandles: Vec<UInt32>
                         let (server_handles, client_handles) = subscription.get_handles();
                         Ok(CallMethodResult {
-                            status_code: Good,
-                            input_argument_results: Some(vec![Good]),
+                            status_code: StatusCode::Good,
+                            input_argument_results: Some(vec![StatusCode::Good]),
                             input_argument_diagnostic_infos: None,
                             output_arguments: Some(vec![server_handles.into(), client_handles.into()]),
                         })
                     } else {
                         // Subscription id does not exist
                         // Note we could check other sessions for a matching id and return BadUserAccessDenied in that case
-                        Err(BadSubscriptionIdInvalid)
+                        Err(StatusCode::BadSubscriptionIdInvalid)
                     }
                 } else {
                     // Argument is not the right type
-                    Err(BadInvalidArgument)
+                    Err(StatusCode::BadInvalidArgument)
                 }
             }
-            0 => Err(BadArgumentsMissing),
-            _ => Err(BadTooManyArguments),
+            0 => Err(StatusCode::BadArgumentsMissing),
+            _ => Err(StatusCode::BadTooManyArguments),
         }
     } else {
         // Args are missing
-        Err(BadArgumentsMissing)
+        Err(StatusCode::BadArgumentsMissing)
     }
 }

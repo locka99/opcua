@@ -22,7 +22,6 @@ use opcua_types::*;
 use opcua_types::node_ids::{ObjectId, MethodId};
 use opcua_types::service_types::*;
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 
 use client;
 use comms::tcp_transport::TcpTransport;
@@ -31,7 +30,7 @@ use subscription;
 use subscription::{Subscription, MonitoredItem};
 use subscription_state::SubscriptionState;
 use session_state::SessionState;
-use callbacks::{ConnectionStatusCallback};
+use callbacks::ConnectionStatusCallback;
 
 /// Information about the server endpoint, security policy, security mode and user identity that the session will
 /// will use to establish a connection.
@@ -191,7 +190,7 @@ impl Session {
         let security_policy = SecurityPolicy::from_str(self.session_info.endpoint.security_policy_uri.as_ref()).unwrap();
         if security_policy == SecurityPolicy::Unknown {
             error!("connect, security policy \"{}\" is unknown", self.session_info.endpoint.security_policy_uri.as_ref());
-            Err(BadSecurityPolicyRejected)
+            Err(StatusCode::BadSecurityPolicyRejected)
         } else {
             {
                 let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
@@ -297,7 +296,7 @@ impl Session {
             let cert_status_code = if security_policy != SecurityPolicy::None {
                 if let Ok(server_certificate) = crypto::X509::from_byte_string(&response.server_certificate) {
                     // Validate server certificate against hostname and application_uri
-                    let hostname = hostname_from_url(self.session_info.endpoint.endpoint_url.as_ref()).map_err(|_| BadUnexpectedError)?;
+                    let hostname = hostname_from_url(self.session_info.endpoint.endpoint_url.as_ref()).map_err(|_| StatusCode::BadUnexpectedError)?;
                     let application_uri = self.session_info.endpoint.server.application_uri.as_ref();
 
                     let mut certificate_store = trace_write_lock_unwrap!(self.certificate_store);
@@ -305,14 +304,14 @@ impl Session {
                     if result.is_bad() {
                         result
                     } else {
-                        Good
+                        StatusCode::Good
                     }
                 } else {
                     error!("Server did not supply a valid X509 certificate");
-                    BadCertificateInvalid
+                    StatusCode::BadCertificateInvalid
                 }
             } else {
-                Good
+                StatusCode::Good
             };
 
             if !cert_status_code.is_good() {
@@ -355,13 +354,13 @@ impl Session {
                 // let session_state = self.session_state.lock().unwrap();
                 if self.session_info.client_pkey.is_none() {
                     error!("Cannot create client signature - no pkey!");
-                    return Err(BadUnexpectedError);
+                    return Err(StatusCode::BadUnexpectedError);
                 } else if server_cert.is_null() {
                     error!("Cannot sign server certificate because server cert is null");
-                    return Err(BadUnexpectedError);
+                    return Err(StatusCode::BadUnexpectedError);
                 } else if server_nonce.is_null() {
                     error!("Cannot sign server certificate because server nonce is null");
-                    return Err(BadUnexpectedError);
+                    return Err(StatusCode::BadUnexpectedError);
                 }
                 let signing_key = self.session_info.client_pkey.as_ref().unwrap();
                 crypto::create_signature_data(signing_key, security_policy, &server_cert, &server_nonce)?
@@ -459,7 +458,7 @@ impl Session {
     pub fn browse(&mut self, nodes_to_browse: &[BrowseDescription]) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
         if nodes_to_browse.is_empty() {
             error!("browse, was not supplied with any nodes to browse");
-            Err(BadNothingToDo)
+            Err(StatusCode::BadNothingToDo)
         } else {
             let request = BrowseRequest {
                 request_header: self.make_request_header(),
@@ -487,7 +486,7 @@ impl Session {
     pub fn browse_next(&mut self, release_continuation_points: bool, continuation_points: &[ByteString]) -> Result<Option<Vec<BrowseResult>>, StatusCode> {
         if continuation_points.is_empty() {
             error!("browse_next, was not supplied with any continuation points");
-            Err(BadNothingToDo)
+            Err(StatusCode::BadNothingToDo)
         } else {
             let request = BrowseNextRequest {
                 request_header: self.make_request_header(),
@@ -511,7 +510,7 @@ impl Session {
         if nodes_to_read.is_empty() {
             // No subscriptions
             error!("read_nodes, was not supplied with any nodes to read");
-            Err(BadNothingToDo)
+            Err(StatusCode::BadNothingToDo)
         } else {
             debug!("read_nodes requested to read nodes {:?}", nodes_to_read);
             let request = ReadRequest {
@@ -537,7 +536,7 @@ impl Session {
         if nodes_to_write.is_empty() {
             // No subscriptions
             error!("write_value() was not supplied with any nodes to write");
-            Err(BadNothingToDo)
+            Err(StatusCode::BadNothingToDo)
         } else {
             let request = WriteRequest {
                 request_header: self.make_request_header(),
@@ -603,10 +602,10 @@ impl Session {
     pub fn modify_subscription(&mut self, subscription_id: UInt32, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte) -> Result<(), StatusCode> {
         if subscription_id == 0 {
             error!("modify_subscription, subscription id must be non-zero, or the subscription is considered invalid");
-            Err(BadInvalidArgument)
+            Err(StatusCode::BadInvalidArgument)
         } else if !self.subscription_exists(subscription_id) {
             error!("modify_subscription, subscription id does not exist");
-            Err(BadInvalidArgument)
+            Err(StatusCode::BadInvalidArgument)
         } else {
             let request = ModifySubscriptionRequest {
                 request_header: self.make_request_header(),
@@ -640,10 +639,10 @@ impl Session {
     pub fn delete_subscription(&mut self, subscription_id: UInt32) -> Result<StatusCode, StatusCode> {
         if subscription_id == 0 {
             error!("delete_subscription, subscription id 0 is invalid");
-            Err(BadInvalidArgument)
+            Err(StatusCode::BadInvalidArgument)
         } else if !self.subscription_exists(subscription_id) {
             error!("delete_subscription, subscription id {} does not exist", subscription_id);
-            Err(BadInvalidArgument)
+            Err(StatusCode::BadInvalidArgument)
         } else {
             let request = DeleteSubscriptionsRequest {
                 request_header: self.make_request_header(),
@@ -674,7 +673,7 @@ impl Session {
         if subscription_ids.is_none() {
             // No subscriptions
             trace!("delete_all_subscriptions, called when there are no subscriptions");
-            Err(BadNothingToDo)
+            Err(StatusCode::BadNothingToDo)
         } else {
             // Send a delete request holding all the subscription ides that we wish to delete
             let request = DeleteSubscriptionsRequest {
@@ -704,7 +703,7 @@ impl Session {
         if subscription_ids.is_empty() {
             // No subscriptions
             error!("set_publishing_mode, no subscription ids were provided");
-            Err(BadNothingToDo)
+            Err(StatusCode::BadNothingToDo)
         } else {
             let request = SetPublishingModeRequest {
                 request_header: self.make_request_header(),
@@ -733,13 +732,13 @@ impl Session {
         debug!("create_monitored_items, for subscription {}, {} items", subscription_id, items_to_create.len());
         if subscription_id == 0 {
             error!("create_monitored_items, subscription id 0 is invalid");
-            Err(BadInvalidArgument)
+            Err(StatusCode::BadInvalidArgument)
         } else if !self.subscription_exists(subscription_id) {
             error!("create_monitored_items, subscription id {} does not exist", subscription_id);
-            Err(BadInvalidArgument)
+            Err(StatusCode::BadInvalidArgument)
         } else if items_to_create.is_empty() {
             error!("create_monitored_items, called with no items to create");
-            Err(BadNothingToDo)
+            Err(StatusCode::BadNothingToDo)
         } else {
             // Assign each item a unique client handle
             let mut items_to_create = items_to_create.to_vec();
@@ -794,13 +793,13 @@ impl Session {
         debug!("modify_monitored_items, for subscription {}, {} items", subscription_id, items_to_modify.len());
         if subscription_id == 0 {
             error!("modify_monitored_items, subscription id 0 is invalid");
-            Err(BadInvalidArgument)
+            Err(StatusCode::BadInvalidArgument)
         } else if !self.subscription_exists(subscription_id) {
             error!("modify_monitored_items, subscription id {} does not exist", subscription_id);
-            Err(BadInvalidArgument)
+            Err(StatusCode::BadInvalidArgument)
         } else if items_to_modify.is_empty() {
             error!("modify_monitored_items, called with no items to modify");
-            Err(BadNothingToDo)
+            Err(StatusCode::BadNothingToDo)
         } else {
             let monitored_item_ids = items_to_modify.iter()
                 .map(|i| i.monitored_item_id)
@@ -845,13 +844,13 @@ impl Session {
         debug!("delete_monitored_items, subscription {} for {} items", subscription_id, items_to_delete.len());
         if subscription_id == 0 {
             error!("delete_monitored_items, subscription id 0 is invalid");
-            Err(BadInvalidArgument)
+            Err(StatusCode::BadInvalidArgument)
         } else if !self.subscription_exists(subscription_id) {
             error!("delete_monitored_items, subscription id {} does not exist", subscription_id);
-            Err(BadInvalidArgument)
+            Err(StatusCode::BadInvalidArgument)
         } else if items_to_delete.is_empty() {
             error!("delete_monitored_items, called with no items to delete");
-            Err(BadNothingToDo)
+            Err(StatusCode::BadNothingToDo)
         } else {
             let request = DeleteMonitoredItemsRequest {
                 request_header: self.make_request_header(),
@@ -887,13 +886,13 @@ impl Session {
             if let Some(mut results) = response.results {
                 if results.len() != 1 {
                     error!("call_method, expecting a result from the call to the server, got {} results", results.len());
-                    Err(BadUnexpectedError)
+                    Err(StatusCode::BadUnexpectedError)
                 } else {
                     Ok(results.remove(0))
                 }
             } else {
                 error!("call_method, expecting a result from the call to the server, got nothing");
-                Err(BadUnexpectedError)
+                Err(StatusCode::BadUnexpectedError)
             }
         } else {
             Err(::process_unexpected_response(response))
@@ -914,11 +913,11 @@ impl Session {
                 Ok((server_handles, client_handles))
             } else {
                 error!("Expected a result with 2 args and didn't get it.");
-                Err(BadUnexpectedError)
+                Err(StatusCode::BadUnexpectedError)
             }
         } else {
             error!("Expected a result and didn't get it.");
-            Err(BadUnexpectedError)
+            Err(StatusCode::BadUnexpectedError)
         }
     }
 
@@ -969,7 +968,7 @@ impl Session {
         // Return the result
         if policy_id.is_none() {
             error!("Cannot find user token type {:?} for this endpoint, cannot connect", user_token_type);
-            Err(BadSecurityPolicyRejected)
+            Err(StatusCode::BadSecurityPolicyRejected)
         } else {
             match self.session_info.user_identity_token {
                 client::IdentityToken::Anonymous => {

@@ -1,7 +1,7 @@
 use std::io::{Read, Write};
 
 use opcua_types::*;
-use opcua_types::status_code::StatusCode::*;
+use opcua_types::status_code::StatusCode;
 use opcua_types::constants;
 
 use crypto::{SecurityPolicy, X509, Thumbprint};
@@ -89,13 +89,13 @@ impl BinaryEncoder<AsymmetricSecurityHeader> for AsymmetricSecurityHeader {
         // validate sender_certificate_length < MaxCertificateSize
         if sender_certificate.value.is_some() && sender_certificate.value.as_ref().unwrap().len() >= constants::MAX_CERTIFICATE_LENGTH as usize {
             error!("Sender certificate exceeds max certificate size");
-            Err(BadDecodingError)
+            Err(StatusCode::BadDecodingError)
         } else {
             // validate receiver_certificate_thumbprint_length == 20
             let thumbprint_len = if receiver_certificate_thumbprint.value.is_some() { receiver_certificate_thumbprint.value.as_ref().unwrap().len() } else { 0 };
             if thumbprint_len > 0 && thumbprint_len != Thumbprint::THUMBPRINT_SIZE {
                 error!("Receiver certificate thumbprint is not 20 bytes long, {} bytes", receiver_certificate_thumbprint.value.as_ref().unwrap().len());
-                Err(BadDecodingError)
+                Err(StatusCode::BadDecodingError)
             } else {
                 Ok(AsymmetricSecurityHeader {
                     security_policy_uri,

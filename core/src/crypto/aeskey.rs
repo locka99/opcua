@@ -6,7 +6,6 @@ use openssl::symm::{Cipher, Crypter};
 use openssl::symm::Mode;
 
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 
 use crypto::SecurityPolicy;
 
@@ -31,12 +30,12 @@ impl AesKey {
     fn validate_aes_args(cipher: &Cipher, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<(), StatusCode> {
         if dst.len() < src.len() + cipher.block_size() {
             error!("Dst buffer is too small {} vs {} + {}", src.len(), dst.len(), cipher.block_size());
-            Err(BadUnexpectedError)
+            Err(StatusCode::BadUnexpectedError)
         } else if iv.len() != 16 && iv.len() != 32 {
             // ... It would be nice to compare iv size to be exact to the key size here (should be the
             // same) but AesKey doesn't tell us that info. Have to check elsewhere
             error!("IV is not an expected size, len = {}", iv.len());
-            Err(BadUnexpectedError)
+            Err(StatusCode::BadUnexpectedError)
         } else if src.len() % 16 != 0 {
             panic!("Block size {} is wrong, check stack", src.len());
         } else {
@@ -79,15 +78,15 @@ impl AesKey {
                     Ok(count + rest)
                 } else {
                     error!("Encryption error during finalize {:?}", result.unwrap_err());
-                    Err(BadUnexpectedError)
+                    Err(StatusCode::BadUnexpectedError)
                 }
             } else {
                 error!("Encryption error during update {:?}", result.unwrap_err());
-                Err(BadUnexpectedError)
+                Err(StatusCode::BadUnexpectedError)
             }
         } else {
             error!("Encryption Error");
-            Err(BadUnexpectedError)
+            Err(StatusCode::BadUnexpectedError)
         }
     }
 

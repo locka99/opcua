@@ -160,7 +160,7 @@ fn browse_next() {
         // Browse next again with same continuation point, expect BadContinuationPointInvalid
         let response = do_browse_next(&vs, &mut session, &address_space, &continuation_point, false);
         let r1 = &response.results.unwrap()[0];
-        assert_eq!(r1.status_code, BadContinuationPointInvalid);
+        assert_eq!(r1.status_code, StatusCode::BadContinuationPointInvalid);
     }
 
     // Browse with 35 expect continuation point cp1
@@ -207,7 +207,7 @@ fn browse_next() {
         // Browsing with the old continuation point should fail
         let response = do_browse_next(&vs, &mut session, &address_space, &continuation_point, false);
         let r1 = &response.results.unwrap()[0];
-        assert_eq!(r1.status_code, BadContinuationPointInvalid);
+        assert_eq!(r1.status_code, StatusCode::BadContinuationPointInvalid);
     }
 }
 

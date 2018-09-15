@@ -7,7 +7,7 @@ use time;
 
 use opcua_types::*;
 use opcua_types::node_ids::{ObjectId, ObjectTypeId, DataTypeId, ReferenceTypeId, VariableId};
-use opcua_types::status_code::StatusCode::*;
+use opcua_types::status_code::StatusCode;
 use opcua_types::service_types::*;
 
 use opcua_core::config::Config;
@@ -137,7 +137,7 @@ pub fn expired_publish_requests() {
     let r1 = &expired_responses[0];
     if let SupportedMessage::ServiceFault(ref response_header) = r1.response {
         assert_eq!(response_header.response_header.request_handle, 2000);
-        assert_eq!(response_header.response_header.service_result, BadTimeout);
+        assert_eq!(response_header.response_header.service_result, StatusCode::BadTimeout);
     } else {
         panic!("Expected service faults for timed out publish requests")
     }

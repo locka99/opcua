@@ -2,7 +2,6 @@ use std::result::Result;
 
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 use opcua_types::service_types::*;
 
 use opcua_core::crypto;
@@ -29,7 +28,7 @@ impl SessionService {
         // Validate the endpoint url
         if request.endpoint_url.is_null() {
             error!("Create session was passed an null endpoint url");
-            return Ok(self.service_fault(&request.request_header, BadTcpEndpointUrlInvalid));
+            return Ok(self.service_fault(&request.request_header, StatusCode::BadTcpEndpointUrlInvalid));
         }
 
         // TODO request.endpoint_url should match hostname of server application certificate
@@ -38,7 +37,7 @@ impl SessionService {
         let endpoints = server_state.new_endpoint_descriptions(request.endpoint_url.as_ref());
         if endpoints.is_none() {
             error!("Create session cannot find matching endpoints");
-            return Ok(self.service_fault(&request.request_header, BadTcpEndpointUrlInvalid));
+            return Ok(self.service_fault(&request.request_header, StatusCode::BadTcpEndpointUrlInvalid));
         }
         let endpoints = endpoints.unwrap();
 
@@ -59,10 +58,10 @@ impl SessionService {
                 certificate_store.validate_or_reject_application_instance_cert(client_certificate, None, None)
             } else {
                 warn!("Certificate supplied by client is invalid");
-                BadCertificateInvalid
+                StatusCode::BadCertificateInvalid
             }
         } else {
-            Good
+            StatusCode::Good
         };
         let response = if service_result.is_bad() {
             self.service_fault(&request.request_header, service_result)
@@ -124,14 +123,14 @@ impl SessionService {
         let mut service_result = if !server_state.endpoint_exists(endpoint_url, security_policy, security_mode) {
             // Need an endpoint
             error!("Endpoint does not exist for requested url & mode {}, {:?} / {:?}", endpoint_url, security_policy, security_mode);
-            BadTcpEndpointUrlInvalid
+            StatusCode::BadTcpEndpointUrlInvalid
         } else if security_policy != SecurityPolicy::None {
             // Crypto see 5.6.3.1 verify the caller is the same caller as create_session by validating
             // signature supplied by the client during the create.
             Self::verify_client_signature(server_state, session, &request.client_signature)
         } else {
             // No cert checks for no security
-            Good
+            StatusCode::Good
         };
 
         // Authenticate the user identity token
@@ -177,11 +176,11 @@ impl SessionService {
                 crypto::verify_signature_data(client_signature, security_policy, client_certificate, server_certificate, &session.session_nonce)
             } else {
                 error!("Client signature verification failed, server has no server certificate");
-                BadUnexpectedError
+                StatusCode::BadUnexpectedError
             }
         } else {
             error!("Client signature verification failed, session has no client certificate");
-            BadUnexpectedError
+            StatusCode::BadUnexpectedError
         }
     }
 }

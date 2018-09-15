@@ -3,7 +3,6 @@ use opcua_core::crypto::CertificateStore;
 use opcua_types::*;
 use opcua_types::service_types::*;
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 use state::ServerState;
 use services::attribute::AttributeService;
 use services::discovery::DiscoveryService;
@@ -68,7 +67,7 @@ impl MessageHandler {
         if session.authentication_token != request_header.authentication_token {
             // Session should terminate
             session.terminate_session = true;
-            Err(ServiceFault::new_supported_message(request_header, BadIdentityTokenRejected))
+            Err(ServiceFault::new_supported_message(request_header, StatusCode::BadIdentityTokenRejected))
         } else {
             Ok(())
         }
@@ -213,7 +212,7 @@ impl MessageHandler {
             }
             _ => {
                 debug!("Message handler does not handle this kind of message {:?}", message);
-                return Err(BadServiceUnsupported);
+                return Err(StatusCode::BadServiceUnsupported);
             }
         };
         Ok(response)

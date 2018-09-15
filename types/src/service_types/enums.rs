@@ -2,7 +2,7 @@ use std::io::{Read, Write};
 
 use encoding::*;
 use basic_types::*;
-use status_codes::StatusCode::*;
+use status_codes::StatusCode;
 
 /// The enumeration for the type of user identity token supported by an endpoint.
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -37,7 +37,7 @@ impl BinaryEncoder<UserTokenType> for UserTokenType {
             3 => Ok(UserTokenType::IssuedToken),
             _ => {
                 error!("Don't know what user token type {} is", user_token_type);
-                Err(BadUnexpectedError)
+                Err(StatusCode::BadUnexpectedError)
             }
         }
     }
@@ -105,7 +105,7 @@ impl BinaryEncoder<TimestampsToReturn> for TimestampsToReturn {
             3 => Ok(TimestampsToReturn::Neither),
             _ => {
                 error!("Don't know what TimestampsToReturn value {} is", value);
-                Err(BadTimestampsToReturnInvalid)
+                Err(StatusCode::BadTimestampsToReturnInvalid)
             }
         }
     }
@@ -141,7 +141,7 @@ impl BinaryEncoder<NodeClass> for NodeClass {
             Ok(result)
         } else {
             error!("Don't know what node class {} is", value);
-            Err(BadNodeClassInvalid)
+            Err(StatusCode::BadNodeClassInvalid)
         }
     }
 }
@@ -192,7 +192,7 @@ impl BinaryEncoder<DataChangeTrigger> for DataChangeTrigger {
             2 => Ok(DataChangeTrigger::StatusValueTimestamp),
             _ => {
                 error!("Don't know what data change trigger {} is", value);
-                Err(BadUnexpectedError)
+                Err(StatusCode::BadUnexpectedError)
             }
         }
     }
@@ -248,7 +248,7 @@ impl BinaryEncoder<FilterOperator> for FilterOperator {
             17 => Ok(FilterOperator::BitwiseOr),
             _ => {
                 error!("Don't know what filter operator {} is", value);
-                Err(BadFilterOperatorInvalid)
+                Err(StatusCode::BadFilterOperatorInvalid)
             }
         }
     }
@@ -280,7 +280,7 @@ impl BinaryEncoder<BrowseDirection> for BrowseDirection {
             2 => Ok(BrowseDirection::Both),
             _ => {
                 error!("Don't know what browse direction {} is", value);
-                Err(BadBrowseDirectionInvalid)
+                Err(StatusCode::BadBrowseDirectionInvalid)
             }
         }
     }
@@ -353,7 +353,7 @@ impl BinaryEncoder<ServerState> for ServerState {
             7 => Ok(ServerState::Unknown),
             _ => {
                 error!("Don't know what server state {} is", value);
-                Err(BadUnexpectedError)
+                Err(StatusCode::BadUnexpectedError)
             }
         }
     }

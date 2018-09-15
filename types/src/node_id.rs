@@ -11,7 +11,6 @@ use encoding::*;
 use guid::Guid;
 use node_ids::{ObjectId, ReferenceTypeId};
 use status_codes::StatusCode;
-use status_codes::StatusCode::BadNodeIdInvalid;
 use string::*;
 
 /// The kind of identifier, numeric, string, guid or byte
@@ -214,7 +213,7 @@ impl FromStr for NodeId {
 
         let captures = RE.captures(s);
         if captures.is_none() {
-            return Err(BadNodeIdInvalid);
+            return Err(StatusCode::BadNodeIdInvalid);
         }
         let captures = captures.unwrap();
 
@@ -222,7 +221,7 @@ impl FromStr for NodeId {
         let namespace = if let Some(ns) = captures.name("ns") {
             let parse_result = ns.as_str().parse::<UInt16>();
             if parse_result.is_err() {
-                return Err(BadNodeIdInvalid);
+                return Err(StatusCode::BadNodeIdInvalid);
             }
             parse_result.unwrap()
         } else {
@@ -236,7 +235,7 @@ impl FromStr for NodeId {
             "i" => {
                 let number = v.as_str().parse::<UInt32>();
                 if number.is_err() {
-                    return Err(BadNodeIdInvalid);
+                    return Err(StatusCode::BadNodeIdInvalid);
                 }
                 NodeId::new(namespace, number.unwrap())
             }
@@ -247,7 +246,7 @@ impl FromStr for NodeId {
             "g" => {
                 let guid = Guid::from_str(v.as_str());
                 if guid.is_err() {
-                    return Err(BadNodeIdInvalid);
+                    return Err(StatusCode::BadNodeIdInvalid);
                 }
                 NodeId::new(namespace, guid.unwrap())
             }
@@ -255,12 +254,12 @@ impl FromStr for NodeId {
                 // Byte string is encoded as a Base64 value
                 let bytestring = ByteString::from_base64(v.as_str());
                 if bytestring.is_none() {
-                    return Err(BadNodeIdInvalid);
+                    return Err(StatusCode::BadNodeIdInvalid);
                 }
                 NodeId::new(namespace, bytestring.unwrap())
             }
             _ => {
-                return Err(BadNodeIdInvalid);
+                return Err(StatusCode::BadNodeIdInvalid);
             }
         };
         Ok(node_id)

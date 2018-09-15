@@ -5,7 +5,6 @@ use chrono;
 
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 use opcua_types::service_types::{TimestampsToReturn, NotificationMessage, MonitoredItemCreateRequest, MonitoredItemCreateResult, MonitoredItemModifyRequest, MonitoredItemModifyResult};
 
 use constants;
@@ -181,7 +180,7 @@ impl Subscription {
             let result = if let Ok(monitored_item) = monitored_item {
                 // Return the status
                 let result = MonitoredItemCreateResult {
-                    status_code: Good,
+                    status_code: StatusCode::Good,
                     monitored_item_id,
                     revised_sampling_interval: monitored_item.sampling_interval,
                     revised_queue_size: monitored_item.queue_size as UInt32,
@@ -220,7 +219,7 @@ impl Subscription {
                 let modify_result = monitored_item.modify(timestamps_to_return, item_to_modify);
                 result.push(if modify_result.is_ok() {
                     MonitoredItemModifyResult {
-                        status_code: Good,
+                        status_code: StatusCode::Good,
                         revised_sampling_interval: monitored_item.sampling_interval,
                         revised_queue_size: monitored_item.queue_size as UInt32,
                         filter_result: ExtensionObject::null(),
@@ -236,7 +235,7 @@ impl Subscription {
             } else {
                 // Item does not exist
                 result.push(MonitoredItemModifyResult {
-                    status_code: BadMonitoredItemIdInvalid,
+                    status_code: StatusCode::BadMonitoredItemIdInvalid,
                     revised_sampling_interval: 0f64,
                     revised_queue_size: 0,
                     filter_result: ExtensionObject::null(),
@@ -252,7 +251,7 @@ impl Subscription {
         items_to_delete.iter().map(|item_to_delete| {
             // Remove the item (or report an error with the id)
             let removed = self.monitored_items.remove(item_to_delete);
-            if removed.is_some() { Good } else { BadMonitoredItemIdInvalid }
+            if removed.is_some() { StatusCode::Good } else { StatusCode::BadMonitoredItemIdInvalid }
         }).collect()
     }
 

@@ -5,7 +5,6 @@ use std::sync::{Arc, Mutex};
 
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 use opcua_types::service_types::*;
 
 use address_space::{AttributeGetter, AttributeSetter};
@@ -192,7 +191,7 @@ impl Node for Base {
             }
         };
         if !type_is_valid {
-            Err(BadTypeMismatch)
+            Err(StatusCode::BadTypeMismatch)
         } else {
             let attribute_idx = Self::attribute_idx(attribute_id);
             if let Some(setter) = self.attribute_setters.get(&attribute_id) {
@@ -227,7 +226,7 @@ impl Base {
             let attribute_idx = Base::attribute_idx(attribute_id);
             attributes[attribute_idx] = Some(DataValue {
                 value: Some(value),
-                status: Some(Good.into()),
+                status: Some(StatusCode::Good.bits()),
                 server_timestamp: Some(now.clone()),
                 server_picoseconds: Some(0),
                 source_timestamp: Some(now.clone()),
@@ -253,7 +252,7 @@ impl Base {
     pub fn set_attribute_value(&mut self, attribute_id: AttributeId, value: Variant, server_timestamp: &DateTime, source_timestamp: &DateTime) -> Result<(), StatusCode> {
         self.set_attribute(attribute_id, DataValue {
             value: Some(value),
-            status: Some(Good.into()),
+            status: Some(StatusCode::Good.bits()),
             server_timestamp: Some(server_timestamp.clone()),
             server_picoseconds: Some(0),
             source_timestamp: Some(source_timestamp.clone()),

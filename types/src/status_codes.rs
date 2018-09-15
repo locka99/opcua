@@ -5,244 +5,270 @@ use std;
 use std::io::{Read, Write};
 
 use encoding::*;
-use status_code::StatusCodeBits;
 
-#[derive(PartialEq, Debug, Copy, Clone, Serialize, Deserialize)]
-pub enum StatusCode {
-    Good = 0,
-    GoodSubscriptionTransferred = 0x002D0000,
-    GoodCompletesAsynchronously = 0x002E0000,
-    GoodOverload = 0x002F0000,
-    GoodClamped = 0x00300000,
-    GoodLocalOverride = 0x00960000,
-    GoodEntryInserted = 0x00A20000,
-    GoodEntryReplaced = 0x00A30000,
-    GoodNoData = 0x00A50000,
-    GoodMoreData = 0x00A60000,
-    GoodCommunicationEvent = 0x00A70000,
-    GoodShutdownEvent = 0x00A80000,
-    GoodCallAgain = 0x00A90000,
-    GoodNonCriticalTimeout = 0x00AA0000,
-    GoodResultsMayBeIncomplete = 0x00BA0000,
-    GoodDataIgnored = 0x00D90000,
-    GoodEdited = 0x00DC0000,
-    GoodPostActionFailed = 0x00DD0000,
-    GoodDependentValueChanged = 0x00E00000,
-    UncertainReferenceOutOfServer = 0x406C0000,
-    UncertainNoCommunicationLastUsableValue = 0x408F0000,
-    UncertainLastUsableValue = 0x40900000,
-    UncertainSubstituteValue = 0x40910000,
-    UncertainInitialValue = 0x40920000,
-    UncertainSensorNotAccurate = 0x40930000,
-    UncertainEngineeringUnitsExceeded = 0x40940000,
-    UncertainSubNormal = 0x40950000,
-    UncertainDataSubNormal = 0x40A40000,
-    UncertainReferenceNotDeleted = 0x40BC0000,
-    UncertainNotAllNodesAvailable = 0x40C00000,
-    UncertainDominantValueChanged = 0x40DE0000,
-    UncertainDependentValueChanged = 0x40E20000,
-    BadUnexpectedError = 0x80010000,
-    BadInternalError = 0x80020000,
-    BadOutOfMemory = 0x80030000,
-    BadResourceUnavailable = 0x80040000,
-    BadCommunicationError = 0x80050000,
-    BadEncodingError = 0x80060000,
-    BadDecodingError = 0x80070000,
-    BadEncodingLimitsExceeded = 0x80080000,
-    BadUnknownResponse = 0x80090000,
-    BadTimeout = 0x800A0000,
-    BadServiceUnsupported = 0x800B0000,
-    BadShutdown = 0x800C0000,
-    BadServerNotConnected = 0x800D0000,
-    BadServerHalted = 0x800E0000,
-    BadNothingToDo = 0x800F0000,
-    BadTooManyOperations = 0x80100000,
-    BadDataTypeIdUnknown = 0x80110000,
-    BadCertificateInvalid = 0x80120000,
-    BadSecurityChecksFailed = 0x80130000,
-    BadCertificateTimeInvalid = 0x80140000,
-    BadCertificateIssuerTimeInvalid = 0x80150000,
-    BadCertificateHostNameInvalid = 0x80160000,
-    BadCertificateUriInvalid = 0x80170000,
-    BadCertificateUseNotAllowed = 0x80180000,
-    BadCertificateIssuerUseNotAllowed = 0x80190000,
-    BadCertificateUntrusted = 0x801A0000,
-    BadCertificateRevocationUnknown = 0x801B0000,
-    BadCertificateIssuerRevocationUnknown = 0x801C0000,
-    BadCertificateRevoked = 0x801D0000,
-    BadCertificateIssuerRevoked = 0x801E0000,
-    BadUserAccessDenied = 0x801F0000,
-    BadIdentityTokenInvalid = 0x80200000,
-    BadIdentityTokenRejected = 0x80210000,
-    BadSecureChannelIdInvalid = 0x80220000,
-    BadInvalidTimestamp = 0x80230000,
-    BadNonceInvalid = 0x80240000,
-    BadSessionIdInvalid = 0x80250000,
-    BadSessionClosed = 0x80260000,
-    BadSessionNotActivated = 0x80270000,
-    BadSubscriptionIdInvalid = 0x80280000,
-    BadRequestHeaderInvalid = 0x802A0000,
-    BadTimestampsToReturnInvalid = 0x802B0000,
-    BadRequestCancelledByClient = 0x802C0000,
-    BadNoCommunication = 0x80310000,
-    BadWaitingForInitialData = 0x80320000,
-    BadNodeIdInvalid = 0x80330000,
-    BadNodeIdUnknown = 0x80340000,
-    BadAttributeIdInvalid = 0x80350000,
-    BadIndexRangeInvalid = 0x80360000,
-    BadIndexRangeNoData = 0x80370000,
-    BadDataEncodingInvalid = 0x80380000,
-    BadDataEncodingUnsupported = 0x80390000,
-    BadNotReadable = 0x803A0000,
-    BadNotWritable = 0x803B0000,
-    BadOutOfRange = 0x803C0000,
-    BadNotSupported = 0x803D0000,
-    BadNotFound = 0x803E0000,
-    BadObjectDeleted = 0x803F0000,
-    BadNotImplemented = 0x80400000,
-    BadMonitoringModeInvalid = 0x80410000,
-    BadMonitoredItemIdInvalid = 0x80420000,
-    BadMonitoredItemFilterInvalid = 0x80430000,
-    BadMonitoredItemFilterUnsupported = 0x80440000,
-    BadFilterNotAllowed = 0x80450000,
-    BadStructureMissing = 0x80460000,
-    BadEventFilterInvalid = 0x80470000,
-    BadContentFilterInvalid = 0x80480000,
-    BadFilterOperandInvalid = 0x80490000,
-    BadContinuationPointInvalid = 0x804A0000,
-    BadNoContinuationPoints = 0x804B0000,
-    BadReferenceTypeIdInvalid = 0x804C0000,
-    BadBrowseDirectionInvalid = 0x804D0000,
-    BadNodeNotInView = 0x804E0000,
-    BadServerUriInvalid = 0x804F0000,
-    BadServerNameMissing = 0x80500000,
-    BadDiscoveryUrlMissing = 0x80510000,
-    BadSempahoreFileMissing = 0x80520000,
-    BadRequestTypeInvalid = 0x80530000,
-    BadSecurityModeRejected = 0x80540000,
-    BadSecurityPolicyRejected = 0x80550000,
-    BadTooManySessions = 0x80560000,
-    BadUserSignatureInvalid = 0x80570000,
-    BadApplicationSignatureInvalid = 0x80580000,
-    BadNoValidCertificates = 0x80590000,
-    BadRequestCancelledByRequest = 0x805A0000,
-    BadParentNodeIdInvalid = 0x805B0000,
-    BadReferenceNotAllowed = 0x805C0000,
-    BadNodeIdRejected = 0x805D0000,
-    BadNodeIdExists = 0x805E0000,
-    BadNodeClassInvalid = 0x805F0000,
-    BadBrowseNameInvalid = 0x80600000,
-    BadBrowseNameDuplicated = 0x80610000,
-    BadNodeAttributesInvalid = 0x80620000,
-    BadTypeDefinitionInvalid = 0x80630000,
-    BadSourceNodeIdInvalid = 0x80640000,
-    BadTargetNodeIdInvalid = 0x80650000,
-    BadDuplicateReferenceNotAllowed = 0x80660000,
-    BadInvalidSelfReference = 0x80670000,
-    BadReferenceLocalOnly = 0x80680000,
-    BadNoDeleteRights = 0x80690000,
-    BadServerIndexInvalid = 0x806A0000,
-    BadViewIdUnknown = 0x806B0000,
-    BadTooManyMatches = 0x806D0000,
-    BadQueryTooComplex = 0x806E0000,
-    BadNoMatch = 0x806F0000,
-    BadMaxAgeInvalid = 0x80700000,
-    BadHistoryOperationInvalid = 0x80710000,
-    BadHistoryOperationUnsupported = 0x80720000,
-    BadWriteNotSupported = 0x80730000,
-    BadTypeMismatch = 0x80740000,
-    BadMethodInvalid = 0x80750000,
-    BadArgumentsMissing = 0x80760000,
-    BadTooManySubscriptions = 0x80770000,
-    BadTooManyPublishRequests = 0x80780000,
-    BadNoSubscription = 0x80790000,
-    BadSequenceNumberUnknown = 0x807A0000,
-    BadMessageNotAvailable = 0x807B0000,
-    BadInsufficientClientProfile = 0x807C0000,
-    BadTcpServerTooBusy = 0x807D0000,
-    BadTcpMessageTypeInvalid = 0x807E0000,
-    BadTcpSecureChannelUnknown = 0x807F0000,
-    BadTcpMessageTooLarge = 0x80800000,
-    BadTcpNotEnoughResources = 0x80810000,
-    BadTcpInternalError = 0x80820000,
-    BadTcpEndpointUrlInvalid = 0x80830000,
-    BadRequestInterrupted = 0x80840000,
-    BadRequestTimeout = 0x80850000,
-    BadSecureChannelClosed = 0x80860000,
-    BadSecureChannelTokenUnknown = 0x80870000,
-    BadSequenceNumberInvalid = 0x80880000,
-    BadConfigurationError = 0x80890000,
-    BadNotConnected = 0x808A0000,
-    BadDeviceFailure = 0x808B0000,
-    BadSensorFailure = 0x808C0000,
-    BadOutOfService = 0x808D0000,
-    BadDeadbandFilterInvalid = 0x808E0000,
-    BadRefreshInProgress = 0x80970000,
-    BadConditionAlreadyDisabled = 0x80980000,
-    BadConditionDisabled = 0x80990000,
-    BadEventIdUnknown = 0x809A0000,
-    BadNoData = 0x809B0000,
-    BadDataLost = 0x809D0000,
-    BadDataUnavailable = 0x809E0000,
-    BadEntryExists = 0x809F0000,
-    BadNoEntryExists = 0x80A00000,
-    BadTimestampNotSupported = 0x80A10000,
-    BadInvalidArgument = 0x80AB0000,
-    BadConnectionRejected = 0x80AC0000,
-    BadDisconnect = 0x80AD0000,
-    BadConnectionClosed = 0x80AE0000,
-    BadInvalidState = 0x80AF0000,
-    BadEndOfStream = 0x80B00000,
-    BadNoDataAvailable = 0x80B10000,
-    BadWaitingForResponse = 0x80B20000,
-    BadOperationAbandoned = 0x80B30000,
-    BadExpectedStreamToBlock = 0x80B40000,
-    BadWouldBlock = 0x80B50000,
-    BadSyntaxError = 0x80B60000,
-    BadMaxConnectionsReached = 0x80B70000,
-    BadRequestTooLarge = 0x80B80000,
-    BadResponseTooLarge = 0x80B90000,
-    BadEventNotAcknowledgeable = 0x80BB0000,
-    BadInvalidTimestampArgument = 0x80BD0000,
-    BadProtocolVersionUnsupported = 0x80BE0000,
-    BadStateNotActive = 0x80BF0000,
-    BadFilterOperatorInvalid = 0x80C10000,
-    BadFilterOperatorUnsupported = 0x80C20000,
-    BadFilterOperandCountMismatch = 0x80C30000,
-    BadFilterElementInvalid = 0x80C40000,
-    BadFilterLiteralInvalid = 0x80C50000,
-    BadIdentityChangeNotSupported = 0x80C60000,
-    BadNotTypeDefinition = 0x80C80000,
-    BadViewTimestampInvalid = 0x80C90000,
-    BadViewParameterMismatch = 0x80CA0000,
-    BadViewVersionInvalid = 0x80CB0000,
-    BadConditionAlreadyEnabled = 0x80CC0000,
-    BadDialogNotActive = 0x80CD0000,
-    BadDialogResponseInvalid = 0x80CE0000,
-    BadConditionBranchAlreadyAcked = 0x80CF0000,
-    BadConditionBranchAlreadyConfirmed = 0x80D00000,
-    BadConditionAlreadyShelved = 0x80D10000,
-    BadConditionNotShelved = 0x80D20000,
-    BadShelvingTimeOutOfRange = 0x80D30000,
-    BadAggregateListMismatch = 0x80D40000,
-    BadAggregateNotSupported = 0x80D50000,
-    BadAggregateInvalidInputs = 0x80D60000,
-    BadBoundNotFound = 0x80D70000,
-    BadBoundNotSupported = 0x80D80000,
-    BadAggregateConfigurationRejected = 0x80DA0000,
-    BadTooManyMonitoredItems = 0x80DB0000,
-    BadDominantValueChanged = 0x80E10000,
-    BadDependentValueChanged = 0x80E30000,
-    BadRequestNotAllowed = 0x80E40000,
-    BadTooManyArguments = 0x80E50000,
-    BadSecurityModeInsufficient = 0x80E60000,
-    BadCertificateChainIncomplete = 0x810D0000,
-}
+bitflags! {
+    pub struct StatusCode: u32 {
+        // The UPPERCASE values are bitflags. The PascalCase values are OPC UA Status codes.
+    
+        // Mask for the status code section
+        const STATUS_MASK = 0xffff_0000;
+        // Mask for the bits section
+        const BIT_MASK = 0x0000_ffff;
 
+        // Flag for an error / uncertain code
+        const IS_ERROR                = 0x8000_0000;
+        const IS_UNCERTAIN            = 0x4000_0000;
 
-impl Into<u32> for StatusCode {
-    fn into(self) -> u32 {
-        self as u32
+        // Historian bits 0:4
+        const HISTORICAL_RAW          = 0x0000_0000;
+        const HISTORICAL_CALCULATED   = 0x0000_0001;
+        const HISTORICAL_INTERPOLATED = 0x0000_0002;
+        const HISTORICAL_RESERVED     = 0x0000_0003;
+        const HISTORICAL_PARTIAL      = 0x0000_0004;
+        const HISTORICAL_EXTRA_DATA   = 0x0000_0008;
+        const HISTORICAL_MULTI_VALUE  = 0x0000_0010;
+        // Overflow bit 7
+        const OVERFLOW                = 0x0000_0080;
+        // Limit bits 8:9
+        const LIMIT_LOW               = 0x0000_0100;
+        const LIMIT_HIGH              = 0x0000_0200;
+        const LIMIT_CONSTANT          = 0x0000_0300;
+        // Info type bits 10:11
+        const LIMIT_DATA_VALUE        = 0x0000_2000;
+        // Semantics changed bit 14
+        const SEMANTICS_CHANGED       = 0x0000_4000;
+        // Semantics changed bit 15
+        const STRUCTURE_CHANGED       = 0x0000_8000;
+    
+        // Actual status codes follow here
+        const Good = 0;
+        const GoodSubscriptionTransferred = 0x002D_0000;
+        const GoodCompletesAsynchronously = 0x002E_0000;
+        const GoodOverload = 0x002F_0000;
+        const GoodClamped = 0x0030_0000;
+        const GoodLocalOverride = 0x0096_0000;
+        const GoodEntryInserted = 0x00A2_0000;
+        const GoodEntryReplaced = 0x00A3_0000;
+        const GoodNoData = 0x00A5_0000;
+        const GoodMoreData = 0x00A6_0000;
+        const GoodCommunicationEvent = 0x00A7_0000;
+        const GoodShutdownEvent = 0x00A8_0000;
+        const GoodCallAgain = 0x00A9_0000;
+        const GoodNonCriticalTimeout = 0x00AA_0000;
+        const GoodResultsMayBeIncomplete = 0x00BA_0000;
+        const GoodDataIgnored = 0x00D9_0000;
+        const GoodEdited = 0x00DC_0000;
+        const GoodPostActionFailed = 0x00DD_0000;
+        const GoodDependentValueChanged = 0x00E0_0000;
+        const UncertainReferenceOutOfServer = 0x406C_0000;
+        const UncertainNoCommunicationLastUsableValue = 0x408F_0000;
+        const UncertainLastUsableValue = 0x4090_0000;
+        const UncertainSubstituteValue = 0x4091_0000;
+        const UncertainInitialValue = 0x4092_0000;
+        const UncertainSensorNotAccurate = 0x4093_0000;
+        const UncertainEngineeringUnitsExceeded = 0x4094_0000;
+        const UncertainSubNormal = 0x4095_0000;
+        const UncertainDataSubNormal = 0x40A4_0000;
+        const UncertainReferenceNotDeleted = 0x40BC_0000;
+        const UncertainNotAllNodesAvailable = 0x40C0_0000;
+        const UncertainDominantValueChanged = 0x40DE_0000;
+        const UncertainDependentValueChanged = 0x40E2_0000;
+        const BadUnexpectedError = 0x8001_0000;
+        const BadInternalError = 0x8002_0000;
+        const BadOutOfMemory = 0x8003_0000;
+        const BadResourceUnavailable = 0x8004_0000;
+        const BadCommunicationError = 0x8005_0000;
+        const BadEncodingError = 0x8006_0000;
+        const BadDecodingError = 0x8007_0000;
+        const BadEncodingLimitsExceeded = 0x8008_0000;
+        const BadUnknownResponse = 0x8009_0000;
+        const BadTimeout = 0x800A_0000;
+        const BadServiceUnsupported = 0x800B_0000;
+        const BadShutdown = 0x800C_0000;
+        const BadServerNotConnected = 0x800D_0000;
+        const BadServerHalted = 0x800E_0000;
+        const BadNothingToDo = 0x800F_0000;
+        const BadTooManyOperations = 0x8010_0000;
+        const BadDataTypeIdUnknown = 0x8011_0000;
+        const BadCertificateInvalid = 0x8012_0000;
+        const BadSecurityChecksFailed = 0x8013_0000;
+        const BadCertificateTimeInvalid = 0x8014_0000;
+        const BadCertificateIssuerTimeInvalid = 0x8015_0000;
+        const BadCertificateHostNameInvalid = 0x8016_0000;
+        const BadCertificateUriInvalid = 0x8017_0000;
+        const BadCertificateUseNotAllowed = 0x8018_0000;
+        const BadCertificateIssuerUseNotAllowed = 0x8019_0000;
+        const BadCertificateUntrusted = 0x801A_0000;
+        const BadCertificateRevocationUnknown = 0x801B_0000;
+        const BadCertificateIssuerRevocationUnknown = 0x801C_0000;
+        const BadCertificateRevoked = 0x801D_0000;
+        const BadCertificateIssuerRevoked = 0x801E_0000;
+        const BadUserAccessDenied = 0x801F_0000;
+        const BadIdentityTokenInvalid = 0x8020_0000;
+        const BadIdentityTokenRejected = 0x8021_0000;
+        const BadSecureChannelIdInvalid = 0x8022_0000;
+        const BadInvalidTimestamp = 0x8023_0000;
+        const BadNonceInvalid = 0x8024_0000;
+        const BadSessionIdInvalid = 0x8025_0000;
+        const BadSessionClosed = 0x8026_0000;
+        const BadSessionNotActivated = 0x8027_0000;
+        const BadSubscriptionIdInvalid = 0x8028_0000;
+        const BadRequestHeaderInvalid = 0x802A_0000;
+        const BadTimestampsToReturnInvalid = 0x802B_0000;
+        const BadRequestCancelledByClient = 0x802C_0000;
+        const BadNoCommunication = 0x8031_0000;
+        const BadWaitingForInitialData = 0x8032_0000;
+        const BadNodeIdInvalid = 0x8033_0000;
+        const BadNodeIdUnknown = 0x8034_0000;
+        const BadAttributeIdInvalid = 0x8035_0000;
+        const BadIndexRangeInvalid = 0x8036_0000;
+        const BadIndexRangeNoData = 0x8037_0000;
+        const BadDataEncodingInvalid = 0x8038_0000;
+        const BadDataEncodingUnsupported = 0x8039_0000;
+        const BadNotReadable = 0x803A_0000;
+        const BadNotWritable = 0x803B_0000;
+        const BadOutOfRange = 0x803C_0000;
+        const BadNotSupported = 0x803D_0000;
+        const BadNotFound = 0x803E_0000;
+        const BadObjectDeleted = 0x803F_0000;
+        const BadNotImplemented = 0x8040_0000;
+        const BadMonitoringModeInvalid = 0x8041_0000;
+        const BadMonitoredItemIdInvalid = 0x8042_0000;
+        const BadMonitoredItemFilterInvalid = 0x8043_0000;
+        const BadMonitoredItemFilterUnsupported = 0x8044_0000;
+        const BadFilterNotAllowed = 0x8045_0000;
+        const BadStructureMissing = 0x8046_0000;
+        const BadEventFilterInvalid = 0x8047_0000;
+        const BadContentFilterInvalid = 0x8048_0000;
+        const BadFilterOperandInvalid = 0x8049_0000;
+        const BadContinuationPointInvalid = 0x804A_0000;
+        const BadNoContinuationPoints = 0x804B_0000;
+        const BadReferenceTypeIdInvalid = 0x804C_0000;
+        const BadBrowseDirectionInvalid = 0x804D_0000;
+        const BadNodeNotInView = 0x804E_0000;
+        const BadServerUriInvalid = 0x804F_0000;
+        const BadServerNameMissing = 0x8050_0000;
+        const BadDiscoveryUrlMissing = 0x8051_0000;
+        const BadSempahoreFileMissing = 0x8052_0000;
+        const BadRequestTypeInvalid = 0x8053_0000;
+        const BadSecurityModeRejected = 0x8054_0000;
+        const BadSecurityPolicyRejected = 0x8055_0000;
+        const BadTooManySessions = 0x8056_0000;
+        const BadUserSignatureInvalid = 0x8057_0000;
+        const BadApplicationSignatureInvalid = 0x8058_0000;
+        const BadNoValidCertificates = 0x8059_0000;
+        const BadRequestCancelledByRequest = 0x805A_0000;
+        const BadParentNodeIdInvalid = 0x805B_0000;
+        const BadReferenceNotAllowed = 0x805C_0000;
+        const BadNodeIdRejected = 0x805D_0000;
+        const BadNodeIdExists = 0x805E_0000;
+        const BadNodeClassInvalid = 0x805F_0000;
+        const BadBrowseNameInvalid = 0x8060_0000;
+        const BadBrowseNameDuplicated = 0x8061_0000;
+        const BadNodeAttributesInvalid = 0x8062_0000;
+        const BadTypeDefinitionInvalid = 0x8063_0000;
+        const BadSourceNodeIdInvalid = 0x8064_0000;
+        const BadTargetNodeIdInvalid = 0x8065_0000;
+        const BadDuplicateReferenceNotAllowed = 0x8066_0000;
+        const BadInvalidSelfReference = 0x8067_0000;
+        const BadReferenceLocalOnly = 0x8068_0000;
+        const BadNoDeleteRights = 0x8069_0000;
+        const BadServerIndexInvalid = 0x806A_0000;
+        const BadViewIdUnknown = 0x806B_0000;
+        const BadTooManyMatches = 0x806D_0000;
+        const BadQueryTooComplex = 0x806E_0000;
+        const BadNoMatch = 0x806F_0000;
+        const BadMaxAgeInvalid = 0x8070_0000;
+        const BadHistoryOperationInvalid = 0x8071_0000;
+        const BadHistoryOperationUnsupported = 0x8072_0000;
+        const BadWriteNotSupported = 0x8073_0000;
+        const BadTypeMismatch = 0x8074_0000;
+        const BadMethodInvalid = 0x8075_0000;
+        const BadArgumentsMissing = 0x8076_0000;
+        const BadTooManySubscriptions = 0x8077_0000;
+        const BadTooManyPublishRequests = 0x8078_0000;
+        const BadNoSubscription = 0x8079_0000;
+        const BadSequenceNumberUnknown = 0x807A_0000;
+        const BadMessageNotAvailable = 0x807B_0000;
+        const BadInsufficientClientProfile = 0x807C_0000;
+        const BadTcpServerTooBusy = 0x807D_0000;
+        const BadTcpMessageTypeInvalid = 0x807E_0000;
+        const BadTcpSecureChannelUnknown = 0x807F_0000;
+        const BadTcpMessageTooLarge = 0x8080_0000;
+        const BadTcpNotEnoughResources = 0x8081_0000;
+        const BadTcpInternalError = 0x8082_0000;
+        const BadTcpEndpointUrlInvalid = 0x8083_0000;
+        const BadRequestInterrupted = 0x8084_0000;
+        const BadRequestTimeout = 0x8085_0000;
+        const BadSecureChannelClosed = 0x8086_0000;
+        const BadSecureChannelTokenUnknown = 0x8087_0000;
+        const BadSequenceNumberInvalid = 0x8088_0000;
+        const BadConfigurationError = 0x8089_0000;
+        const BadNotConnected = 0x808A_0000;
+        const BadDeviceFailure = 0x808B_0000;
+        const BadSensorFailure = 0x808C_0000;
+        const BadOutOfService = 0x808D_0000;
+        const BadDeadbandFilterInvalid = 0x808E_0000;
+        const BadRefreshInProgress = 0x8097_0000;
+        const BadConditionAlreadyDisabled = 0x8098_0000;
+        const BadConditionDisabled = 0x8099_0000;
+        const BadEventIdUnknown = 0x809A_0000;
+        const BadNoData = 0x809B_0000;
+        const BadDataLost = 0x809D_0000;
+        const BadDataUnavailable = 0x809E_0000;
+        const BadEntryExists = 0x809F_0000;
+        const BadNoEntryExists = 0x80A0_0000;
+        const BadTimestampNotSupported = 0x80A1_0000;
+        const BadInvalidArgument = 0x80AB_0000;
+        const BadConnectionRejected = 0x80AC_0000;
+        const BadDisconnect = 0x80AD_0000;
+        const BadConnectionClosed = 0x80AE_0000;
+        const BadInvalidState = 0x80AF_0000;
+        const BadEndOfStream = 0x80B0_0000;
+        const BadNoDataAvailable = 0x80B1_0000;
+        const BadWaitingForResponse = 0x80B2_0000;
+        const BadOperationAbandoned = 0x80B3_0000;
+        const BadExpectedStreamToBlock = 0x80B4_0000;
+        const BadWouldBlock = 0x80B5_0000;
+        const BadSyntaxError = 0x80B6_0000;
+        const BadMaxConnectionsReached = 0x80B7_0000;
+        const BadRequestTooLarge = 0x80B8_0000;
+        const BadResponseTooLarge = 0x80B9_0000;
+        const BadEventNotAcknowledgeable = 0x80BB_0000;
+        const BadInvalidTimestampArgument = 0x80BD_0000;
+        const BadProtocolVersionUnsupported = 0x80BE_0000;
+        const BadStateNotActive = 0x80BF_0000;
+        const BadFilterOperatorInvalid = 0x80C1_0000;
+        const BadFilterOperatorUnsupported = 0x80C2_0000;
+        const BadFilterOperandCountMismatch = 0x80C3_0000;
+        const BadFilterElementInvalid = 0x80C4_0000;
+        const BadFilterLiteralInvalid = 0x80C5_0000;
+        const BadIdentityChangeNotSupported = 0x80C6_0000;
+        const BadNotTypeDefinition = 0x80C8_0000;
+        const BadViewTimestampInvalid = 0x80C9_0000;
+        const BadViewParameterMismatch = 0x80CA_0000;
+        const BadViewVersionInvalid = 0x80CB_0000;
+        const BadConditionAlreadyEnabled = 0x80CC_0000;
+        const BadDialogNotActive = 0x80CD_0000;
+        const BadDialogResponseInvalid = 0x80CE_0000;
+        const BadConditionBranchAlreadyAcked = 0x80CF_0000;
+        const BadConditionBranchAlreadyConfirmed = 0x80D0_0000;
+        const BadConditionAlreadyShelved = 0x80D1_0000;
+        const BadConditionNotShelved = 0x80D2_0000;
+        const BadShelvingTimeOutOfRange = 0x80D3_0000;
+        const BadAggregateListMismatch = 0x80D4_0000;
+        const BadAggregateNotSupported = 0x80D5_0000;
+        const BadAggregateInvalidInputs = 0x80D6_0000;
+        const BadBoundNotFound = 0x80D7_0000;
+        const BadBoundNotSupported = 0x80D8_0000;
+        const BadAggregateConfigurationRejected = 0x80DA_0000;
+        const BadTooManyMonitoredItems = 0x80DB_0000;
+        const BadDominantValueChanged = 0x80E1_0000;
+        const BadDependentValueChanged = 0x80E3_0000;
+        const BadRequestNotAllowed = 0x80E4_0000;
+        const BadTooManyArguments = 0x80E5_0000;
+        const BadSecurityModeInsufficient = 0x80E6_0000;
+        const BadCertificateChainIncomplete = 0x810D_0000;
     }
 }
 
@@ -252,25 +278,23 @@ impl BinaryEncoder<StatusCode> for StatusCode {
     }
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
-        write_u32(stream, *self as u32)
+        write_u32(stream, self.bits())
     }
 
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let code = read_u32(stream)?;
-        let status_code = StatusCode::from_u32(code);
-        if status_code.is_ok() { Ok(status_code.unwrap()) } else { Ok(StatusCode::BadUnexpectedError) }
+        Ok(StatusCode::from_bits_truncate(read_u32(stream)?))
     }
 }
 
 impl StatusCode {
     /// Tests if the status code is bad
     pub fn is_bad(&self) -> bool {
-        ((*self as u32) & 0x80000000) != 0
+        self.contains(StatusCode::IS_ERROR)
     }
 
     /// Tests if the status code is uncertain
     pub fn is_uncertain(&self) -> bool {
-        ((*self as u32) & 0x40000000) != 0
+        self.contains(StatusCode::IS_UNCERTAIN)
     }
 
     /// Tests if the status code is good (i.e. not bad or uncertain)
@@ -509,6 +533,7 @@ impl StatusCode {
             StatusCode::BadTooManyArguments => "BadTooManyArguments",
             StatusCode::BadSecurityModeInsufficient => "BadSecurityModeInsufficient",
             StatusCode::BadCertificateChainIncomplete => "BadCertificateChainIncomplete",
+            _ => "Unrecognized status code",
         }
     }
 
@@ -743,247 +768,14 @@ impl StatusCode {
             StatusCode::BadTooManyArguments => "Too many arguments were provided.",
             StatusCode::BadSecurityModeInsufficient => "The operation is not permitted over the current secure channel.",
             StatusCode::BadCertificateChainIncomplete => "The certificate chain is incomplete.",
+            _ => "Unrecognized status code",
         }
     }
 
     /// Takes an OPC UA status code as a UInt32 and returns the matching StatusCode, assuming there is one
     /// Note that this is lossy since any bits associated with the status code will be ignored.
-    pub fn from_u32(code: u32) -> std::result::Result<StatusCode, ()> {
-        match code & StatusCodeBits::STATUS_MASK.bits() {
-            0 => Ok(StatusCode::Good),
-            0x002D0000 => Ok(StatusCode::GoodSubscriptionTransferred),
-            0x002E0000 => Ok(StatusCode::GoodCompletesAsynchronously),
-            0x002F0000 => Ok(StatusCode::GoodOverload),
-            0x00300000 => Ok(StatusCode::GoodClamped),
-            0x00960000 => Ok(StatusCode::GoodLocalOverride),
-            0x00A20000 => Ok(StatusCode::GoodEntryInserted),
-            0x00A30000 => Ok(StatusCode::GoodEntryReplaced),
-            0x00A50000 => Ok(StatusCode::GoodNoData),
-            0x00A60000 => Ok(StatusCode::GoodMoreData),
-            0x00A70000 => Ok(StatusCode::GoodCommunicationEvent),
-            0x00A80000 => Ok(StatusCode::GoodShutdownEvent),
-            0x00A90000 => Ok(StatusCode::GoodCallAgain),
-            0x00AA0000 => Ok(StatusCode::GoodNonCriticalTimeout),
-            0x00BA0000 => Ok(StatusCode::GoodResultsMayBeIncomplete),
-            0x00D90000 => Ok(StatusCode::GoodDataIgnored),
-            0x00DC0000 => Ok(StatusCode::GoodEdited),
-            0x00DD0000 => Ok(StatusCode::GoodPostActionFailed),
-            0x00E00000 => Ok(StatusCode::GoodDependentValueChanged),
-            0x406C0000 => Ok(StatusCode::UncertainReferenceOutOfServer),
-            0x408F0000 => Ok(StatusCode::UncertainNoCommunicationLastUsableValue),
-            0x40900000 => Ok(StatusCode::UncertainLastUsableValue),
-            0x40910000 => Ok(StatusCode::UncertainSubstituteValue),
-            0x40920000 => Ok(StatusCode::UncertainInitialValue),
-            0x40930000 => Ok(StatusCode::UncertainSensorNotAccurate),
-            0x40940000 => Ok(StatusCode::UncertainEngineeringUnitsExceeded),
-            0x40950000 => Ok(StatusCode::UncertainSubNormal),
-            0x40A40000 => Ok(StatusCode::UncertainDataSubNormal),
-            0x40BC0000 => Ok(StatusCode::UncertainReferenceNotDeleted),
-            0x40C00000 => Ok(StatusCode::UncertainNotAllNodesAvailable),
-            0x40DE0000 => Ok(StatusCode::UncertainDominantValueChanged),
-            0x40E20000 => Ok(StatusCode::UncertainDependentValueChanged),
-            0x80010000 => Ok(StatusCode::BadUnexpectedError),
-            0x80020000 => Ok(StatusCode::BadInternalError),
-            0x80030000 => Ok(StatusCode::BadOutOfMemory),
-            0x80040000 => Ok(StatusCode::BadResourceUnavailable),
-            0x80050000 => Ok(StatusCode::BadCommunicationError),
-            0x80060000 => Ok(StatusCode::BadEncodingError),
-            0x80070000 => Ok(StatusCode::BadDecodingError),
-            0x80080000 => Ok(StatusCode::BadEncodingLimitsExceeded),
-            0x80090000 => Ok(StatusCode::BadUnknownResponse),
-            0x800A0000 => Ok(StatusCode::BadTimeout),
-            0x800B0000 => Ok(StatusCode::BadServiceUnsupported),
-            0x800C0000 => Ok(StatusCode::BadShutdown),
-            0x800D0000 => Ok(StatusCode::BadServerNotConnected),
-            0x800E0000 => Ok(StatusCode::BadServerHalted),
-            0x800F0000 => Ok(StatusCode::BadNothingToDo),
-            0x80100000 => Ok(StatusCode::BadTooManyOperations),
-            0x80110000 => Ok(StatusCode::BadDataTypeIdUnknown),
-            0x80120000 => Ok(StatusCode::BadCertificateInvalid),
-            0x80130000 => Ok(StatusCode::BadSecurityChecksFailed),
-            0x80140000 => Ok(StatusCode::BadCertificateTimeInvalid),
-            0x80150000 => Ok(StatusCode::BadCertificateIssuerTimeInvalid),
-            0x80160000 => Ok(StatusCode::BadCertificateHostNameInvalid),
-            0x80170000 => Ok(StatusCode::BadCertificateUriInvalid),
-            0x80180000 => Ok(StatusCode::BadCertificateUseNotAllowed),
-            0x80190000 => Ok(StatusCode::BadCertificateIssuerUseNotAllowed),
-            0x801A0000 => Ok(StatusCode::BadCertificateUntrusted),
-            0x801B0000 => Ok(StatusCode::BadCertificateRevocationUnknown),
-            0x801C0000 => Ok(StatusCode::BadCertificateIssuerRevocationUnknown),
-            0x801D0000 => Ok(StatusCode::BadCertificateRevoked),
-            0x801E0000 => Ok(StatusCode::BadCertificateIssuerRevoked),
-            0x801F0000 => Ok(StatusCode::BadUserAccessDenied),
-            0x80200000 => Ok(StatusCode::BadIdentityTokenInvalid),
-            0x80210000 => Ok(StatusCode::BadIdentityTokenRejected),
-            0x80220000 => Ok(StatusCode::BadSecureChannelIdInvalid),
-            0x80230000 => Ok(StatusCode::BadInvalidTimestamp),
-            0x80240000 => Ok(StatusCode::BadNonceInvalid),
-            0x80250000 => Ok(StatusCode::BadSessionIdInvalid),
-            0x80260000 => Ok(StatusCode::BadSessionClosed),
-            0x80270000 => Ok(StatusCode::BadSessionNotActivated),
-            0x80280000 => Ok(StatusCode::BadSubscriptionIdInvalid),
-            0x802A0000 => Ok(StatusCode::BadRequestHeaderInvalid),
-            0x802B0000 => Ok(StatusCode::BadTimestampsToReturnInvalid),
-            0x802C0000 => Ok(StatusCode::BadRequestCancelledByClient),
-            0x80310000 => Ok(StatusCode::BadNoCommunication),
-            0x80320000 => Ok(StatusCode::BadWaitingForInitialData),
-            0x80330000 => Ok(StatusCode::BadNodeIdInvalid),
-            0x80340000 => Ok(StatusCode::BadNodeIdUnknown),
-            0x80350000 => Ok(StatusCode::BadAttributeIdInvalid),
-            0x80360000 => Ok(StatusCode::BadIndexRangeInvalid),
-            0x80370000 => Ok(StatusCode::BadIndexRangeNoData),
-            0x80380000 => Ok(StatusCode::BadDataEncodingInvalid),
-            0x80390000 => Ok(StatusCode::BadDataEncodingUnsupported),
-            0x803A0000 => Ok(StatusCode::BadNotReadable),
-            0x803B0000 => Ok(StatusCode::BadNotWritable),
-            0x803C0000 => Ok(StatusCode::BadOutOfRange),
-            0x803D0000 => Ok(StatusCode::BadNotSupported),
-            0x803E0000 => Ok(StatusCode::BadNotFound),
-            0x803F0000 => Ok(StatusCode::BadObjectDeleted),
-            0x80400000 => Ok(StatusCode::BadNotImplemented),
-            0x80410000 => Ok(StatusCode::BadMonitoringModeInvalid),
-            0x80420000 => Ok(StatusCode::BadMonitoredItemIdInvalid),
-            0x80430000 => Ok(StatusCode::BadMonitoredItemFilterInvalid),
-            0x80440000 => Ok(StatusCode::BadMonitoredItemFilterUnsupported),
-            0x80450000 => Ok(StatusCode::BadFilterNotAllowed),
-            0x80460000 => Ok(StatusCode::BadStructureMissing),
-            0x80470000 => Ok(StatusCode::BadEventFilterInvalid),
-            0x80480000 => Ok(StatusCode::BadContentFilterInvalid),
-            0x80490000 => Ok(StatusCode::BadFilterOperandInvalid),
-            0x804A0000 => Ok(StatusCode::BadContinuationPointInvalid),
-            0x804B0000 => Ok(StatusCode::BadNoContinuationPoints),
-            0x804C0000 => Ok(StatusCode::BadReferenceTypeIdInvalid),
-            0x804D0000 => Ok(StatusCode::BadBrowseDirectionInvalid),
-            0x804E0000 => Ok(StatusCode::BadNodeNotInView),
-            0x804F0000 => Ok(StatusCode::BadServerUriInvalid),
-            0x80500000 => Ok(StatusCode::BadServerNameMissing),
-            0x80510000 => Ok(StatusCode::BadDiscoveryUrlMissing),
-            0x80520000 => Ok(StatusCode::BadSempahoreFileMissing),
-            0x80530000 => Ok(StatusCode::BadRequestTypeInvalid),
-            0x80540000 => Ok(StatusCode::BadSecurityModeRejected),
-            0x80550000 => Ok(StatusCode::BadSecurityPolicyRejected),
-            0x80560000 => Ok(StatusCode::BadTooManySessions),
-            0x80570000 => Ok(StatusCode::BadUserSignatureInvalid),
-            0x80580000 => Ok(StatusCode::BadApplicationSignatureInvalid),
-            0x80590000 => Ok(StatusCode::BadNoValidCertificates),
-            0x805A0000 => Ok(StatusCode::BadRequestCancelledByRequest),
-            0x805B0000 => Ok(StatusCode::BadParentNodeIdInvalid),
-            0x805C0000 => Ok(StatusCode::BadReferenceNotAllowed),
-            0x805D0000 => Ok(StatusCode::BadNodeIdRejected),
-            0x805E0000 => Ok(StatusCode::BadNodeIdExists),
-            0x805F0000 => Ok(StatusCode::BadNodeClassInvalid),
-            0x80600000 => Ok(StatusCode::BadBrowseNameInvalid),
-            0x80610000 => Ok(StatusCode::BadBrowseNameDuplicated),
-            0x80620000 => Ok(StatusCode::BadNodeAttributesInvalid),
-            0x80630000 => Ok(StatusCode::BadTypeDefinitionInvalid),
-            0x80640000 => Ok(StatusCode::BadSourceNodeIdInvalid),
-            0x80650000 => Ok(StatusCode::BadTargetNodeIdInvalid),
-            0x80660000 => Ok(StatusCode::BadDuplicateReferenceNotAllowed),
-            0x80670000 => Ok(StatusCode::BadInvalidSelfReference),
-            0x80680000 => Ok(StatusCode::BadReferenceLocalOnly),
-            0x80690000 => Ok(StatusCode::BadNoDeleteRights),
-            0x806A0000 => Ok(StatusCode::BadServerIndexInvalid),
-            0x806B0000 => Ok(StatusCode::BadViewIdUnknown),
-            0x806D0000 => Ok(StatusCode::BadTooManyMatches),
-            0x806E0000 => Ok(StatusCode::BadQueryTooComplex),
-            0x806F0000 => Ok(StatusCode::BadNoMatch),
-            0x80700000 => Ok(StatusCode::BadMaxAgeInvalid),
-            0x80710000 => Ok(StatusCode::BadHistoryOperationInvalid),
-            0x80720000 => Ok(StatusCode::BadHistoryOperationUnsupported),
-            0x80730000 => Ok(StatusCode::BadWriteNotSupported),
-            0x80740000 => Ok(StatusCode::BadTypeMismatch),
-            0x80750000 => Ok(StatusCode::BadMethodInvalid),
-            0x80760000 => Ok(StatusCode::BadArgumentsMissing),
-            0x80770000 => Ok(StatusCode::BadTooManySubscriptions),
-            0x80780000 => Ok(StatusCode::BadTooManyPublishRequests),
-            0x80790000 => Ok(StatusCode::BadNoSubscription),
-            0x807A0000 => Ok(StatusCode::BadSequenceNumberUnknown),
-            0x807B0000 => Ok(StatusCode::BadMessageNotAvailable),
-            0x807C0000 => Ok(StatusCode::BadInsufficientClientProfile),
-            0x807D0000 => Ok(StatusCode::BadTcpServerTooBusy),
-            0x807E0000 => Ok(StatusCode::BadTcpMessageTypeInvalid),
-            0x807F0000 => Ok(StatusCode::BadTcpSecureChannelUnknown),
-            0x80800000 => Ok(StatusCode::BadTcpMessageTooLarge),
-            0x80810000 => Ok(StatusCode::BadTcpNotEnoughResources),
-            0x80820000 => Ok(StatusCode::BadTcpInternalError),
-            0x80830000 => Ok(StatusCode::BadTcpEndpointUrlInvalid),
-            0x80840000 => Ok(StatusCode::BadRequestInterrupted),
-            0x80850000 => Ok(StatusCode::BadRequestTimeout),
-            0x80860000 => Ok(StatusCode::BadSecureChannelClosed),
-            0x80870000 => Ok(StatusCode::BadSecureChannelTokenUnknown),
-            0x80880000 => Ok(StatusCode::BadSequenceNumberInvalid),
-            0x80890000 => Ok(StatusCode::BadConfigurationError),
-            0x808A0000 => Ok(StatusCode::BadNotConnected),
-            0x808B0000 => Ok(StatusCode::BadDeviceFailure),
-            0x808C0000 => Ok(StatusCode::BadSensorFailure),
-            0x808D0000 => Ok(StatusCode::BadOutOfService),
-            0x808E0000 => Ok(StatusCode::BadDeadbandFilterInvalid),
-            0x80970000 => Ok(StatusCode::BadRefreshInProgress),
-            0x80980000 => Ok(StatusCode::BadConditionAlreadyDisabled),
-            0x80990000 => Ok(StatusCode::BadConditionDisabled),
-            0x809A0000 => Ok(StatusCode::BadEventIdUnknown),
-            0x809B0000 => Ok(StatusCode::BadNoData),
-            0x809D0000 => Ok(StatusCode::BadDataLost),
-            0x809E0000 => Ok(StatusCode::BadDataUnavailable),
-            0x809F0000 => Ok(StatusCode::BadEntryExists),
-            0x80A00000 => Ok(StatusCode::BadNoEntryExists),
-            0x80A10000 => Ok(StatusCode::BadTimestampNotSupported),
-            0x80AB0000 => Ok(StatusCode::BadInvalidArgument),
-            0x80AC0000 => Ok(StatusCode::BadConnectionRejected),
-            0x80AD0000 => Ok(StatusCode::BadDisconnect),
-            0x80AE0000 => Ok(StatusCode::BadConnectionClosed),
-            0x80AF0000 => Ok(StatusCode::BadInvalidState),
-            0x80B00000 => Ok(StatusCode::BadEndOfStream),
-            0x80B10000 => Ok(StatusCode::BadNoDataAvailable),
-            0x80B20000 => Ok(StatusCode::BadWaitingForResponse),
-            0x80B30000 => Ok(StatusCode::BadOperationAbandoned),
-            0x80B40000 => Ok(StatusCode::BadExpectedStreamToBlock),
-            0x80B50000 => Ok(StatusCode::BadWouldBlock),
-            0x80B60000 => Ok(StatusCode::BadSyntaxError),
-            0x80B70000 => Ok(StatusCode::BadMaxConnectionsReached),
-            0x80B80000 => Ok(StatusCode::BadRequestTooLarge),
-            0x80B90000 => Ok(StatusCode::BadResponseTooLarge),
-            0x80BB0000 => Ok(StatusCode::BadEventNotAcknowledgeable),
-            0x80BD0000 => Ok(StatusCode::BadInvalidTimestampArgument),
-            0x80BE0000 => Ok(StatusCode::BadProtocolVersionUnsupported),
-            0x80BF0000 => Ok(StatusCode::BadStateNotActive),
-            0x80C10000 => Ok(StatusCode::BadFilterOperatorInvalid),
-            0x80C20000 => Ok(StatusCode::BadFilterOperatorUnsupported),
-            0x80C30000 => Ok(StatusCode::BadFilterOperandCountMismatch),
-            0x80C40000 => Ok(StatusCode::BadFilterElementInvalid),
-            0x80C50000 => Ok(StatusCode::BadFilterLiteralInvalid),
-            0x80C60000 => Ok(StatusCode::BadIdentityChangeNotSupported),
-            0x80C80000 => Ok(StatusCode::BadNotTypeDefinition),
-            0x80C90000 => Ok(StatusCode::BadViewTimestampInvalid),
-            0x80CA0000 => Ok(StatusCode::BadViewParameterMismatch),
-            0x80CB0000 => Ok(StatusCode::BadViewVersionInvalid),
-            0x80CC0000 => Ok(StatusCode::BadConditionAlreadyEnabled),
-            0x80CD0000 => Ok(StatusCode::BadDialogNotActive),
-            0x80CE0000 => Ok(StatusCode::BadDialogResponseInvalid),
-            0x80CF0000 => Ok(StatusCode::BadConditionBranchAlreadyAcked),
-            0x80D00000 => Ok(StatusCode::BadConditionBranchAlreadyConfirmed),
-            0x80D10000 => Ok(StatusCode::BadConditionAlreadyShelved),
-            0x80D20000 => Ok(StatusCode::BadConditionNotShelved),
-            0x80D30000 => Ok(StatusCode::BadShelvingTimeOutOfRange),
-            0x80D40000 => Ok(StatusCode::BadAggregateListMismatch),
-            0x80D50000 => Ok(StatusCode::BadAggregateNotSupported),
-            0x80D60000 => Ok(StatusCode::BadAggregateInvalidInputs),
-            0x80D70000 => Ok(StatusCode::BadBoundNotFound),
-            0x80D80000 => Ok(StatusCode::BadBoundNotSupported),
-            0x80DA0000 => Ok(StatusCode::BadAggregateConfigurationRejected),
-            0x80DB0000 => Ok(StatusCode::BadTooManyMonitoredItems),
-            0x80E10000 => Ok(StatusCode::BadDominantValueChanged),
-            0x80E30000 => Ok(StatusCode::BadDependentValueChanged),
-            0x80E40000 => Ok(StatusCode::BadRequestNotAllowed),
-            0x80E50000 => Ok(StatusCode::BadTooManyArguments),
-            0x80E60000 => Ok(StatusCode::BadSecurityModeInsufficient),
-            0x810D0000 => Ok(StatusCode::BadCertificateChainIncomplete),
-            _ => Err(())
-        }
-    }
-    
-    pub fn with_bits(&self, bits: StatusCodeBits) -> u32 {
-        bits.bits() & *self as u32
+    pub fn from_u32(code: u32) -> Option<StatusCode> {
+        StatusCode::from_bits(code)
     }
 
     /// Takes an OPC UA status code as a string and returns the matching StatusCode - assuming there is one

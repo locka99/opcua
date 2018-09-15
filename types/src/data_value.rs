@@ -2,12 +2,11 @@
 
 use std::io::{Read, Write};
 
-use status_code::StatusCodeBits;
 use encoding::*;
 use basic_types::*;
 use date_time::*;
 use variant::Variant;
-use status_codes::StatusCode::Good;
+use status_codes::StatusCode;
 
 bitflags! {
     struct DataValueFlags: u8 {
@@ -168,7 +167,7 @@ impl DataValue {
         let now = DateTime::now();
         DataValue {
             value: Some(value.into()),
-            status: Some(Good as UInt32),
+            status: Some(StatusCode::Good.bits()),
             source_timestamp: Some(now.clone()),
             source_picoseconds: Some(0),
             server_timestamp: Some(now.clone()),
@@ -209,7 +208,7 @@ impl DataValue {
     /// Test if the value held by this data value is known to be good
     /// Anything other than Good is assumed to be invalid.
     pub fn is_valid(&self) -> bool {
-        (self.status() & StatusCodeBits::STATUS_MASK.bits()) == 0
+        (self.status() & StatusCode::STATUS_MASK.bits()) == 0
     }
 
     fn encoding_mask(&self) -> DataValueFlags {

@@ -10,7 +10,6 @@ use openssl::sign;
 use openssl::hash;
 
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 
 #[derive(Copy, Clone)]
 pub enum RsaPadding {
@@ -137,7 +136,7 @@ impl PrivateKey {
                 }
             }
         }
-        Err(BadUnexpectedError)
+        Err(StatusCode::BadUnexpectedError)
     }
 
     /// Signs the data using RSA-SHA1
@@ -202,7 +201,7 @@ impl PublicKey {
                 }
             }
         }
-        Err(BadUnexpectedError)
+        Err(StatusCode::BadUnexpectedError)
     }
 
     /// Verifies the data using RSA-SHA1

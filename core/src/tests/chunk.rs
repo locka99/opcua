@@ -144,7 +144,7 @@ fn max_message_size() {
 
     // Expect this to fail
     let err = Chunker::encode(sequence_number, request_id, max_message_size - 1, 0, &secure_channel, &response).unwrap_err();
-    assert_eq!(err, BadResponseTooLarge);
+    assert_eq!(err, StatusCode::BadResponseTooLarge);
 }
 
 /// Encode a large message and then ensure verification throws error for secure channel id mismatch
@@ -167,7 +167,7 @@ fn validate_chunks_secure_channel_id() {
     // Test secure channel id mismatch
     let old_secure_channel_id = secure_channel.secure_channel_id();
     secure_channel.set_secure_channel_id(old_secure_channel_id + 1);
-    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), BadSecureChannelIdInvalid);
+    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), StatusCode::BadSecureChannelIdInvalid);
 }
 
 /// Encode a large message and then ensure verification throws error for non-consecutive sequence numbers
@@ -190,12 +190,12 @@ fn validate_chunks_sequence_number() {
 
     // Hack one of the chunks to alter its seq id
     let old_sequence_nr = set_chunk_sequence_number(&mut chunks[0], &secure_channel, 1001);
-    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), BadSecurityChecksFailed);
+    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), StatusCode::BadSecurityChecksFailed);
 
     // Hack the nth
     set_chunk_sequence_number(&mut chunks[0], &secure_channel, old_sequence_nr);
     let _ = set_chunk_sequence_number(&mut chunks[5], &secure_channel, 1008);
-    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), BadSecurityChecksFailed);
+    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), StatusCode::BadSecurityChecksFailed);
 }
 
 /// Encode a large message and ensure verification throws error for request id mismatches
@@ -217,7 +217,7 @@ fn validate_chunks_request_id() {
 
     // Hack the request id so first chunk request id says 101 while the rest say 100
     let _ = set_chunk_request_id(&mut chunks[0], &secure_channel, 101);
-    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), BadSecurityChecksFailed);
+    assert_eq!(Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap_err(), StatusCode::BadSecurityChecksFailed);
 }
 
 /// Test creating a request, encoding it and decoding it.
@@ -293,7 +293,7 @@ fn open_secure_channel_response() {
         _ => { panic!("Not a OpenSecureChannelResponse"); }
     };
     assert_eq!(response.response_header.request_handle, 0);
-    assert_eq!(response.response_header.service_result, Good);
+    assert_eq!(response.response_header.service_result, StatusCode::Good);
     assert_eq!(response.response_header.string_table.is_none(), true);
     assert_eq!(response.server_nonce, ByteString::null());
 }

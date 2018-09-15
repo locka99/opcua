@@ -13,7 +13,6 @@ use openssl::hash::*;
 
 use opcua_types::service_types::ApplicationDescription;
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 
 use crypto::x509::{X509, X509Data};
 use crypto::pkey::PrivateKey;
@@ -245,7 +244,7 @@ impl CertificateStore {
         let result = self.validate_application_instance_cert(cert, hostname, application_uri);
         if result.is_bad() {
             match result {
-                BadUnexpectedError | BadSecurityChecksFailed => {
+                StatusCode::BadUnexpectedError | StatusCode::BadSecurityChecksFailed => {
                     /* DO NOTHING */
                 }
                 _ => {
@@ -301,12 +300,12 @@ impl CertificateStore {
             let mut cert_path = self.rejected_certs_dir();
             if !cert_path.exists() {
                 error!("Path for rejected certificates {} does not exist", cert_path.display());
-                return BadUnexpectedError;
+                return StatusCode::BadUnexpectedError;
             }
             cert_path.push(&cert_file_name);
             if cert_path.exists() {
                 warn!("Certificate {} is untrusted because it resides in the rejected directory", cert_file_name);
-                return BadSecurityChecksFailed;
+                return StatusCode::BadSecurityChecksFailed;
             }
         }
 
@@ -317,7 +316,7 @@ impl CertificateStore {
             let mut cert_path = self.trusted_certs_dir();
             if !cert_path.exists() {
                 error!("Path for rejected certificates {} does not exist", cert_path.display());
-                return BadUnexpectedError;
+                return StatusCode::BadUnexpectedError;
             }
             cert_path.push(&cert_file_name);
 
@@ -332,14 +331,14 @@ impl CertificateStore {
                 } else {
                     warn!("Certificate {} is unknown and untrusted so it will be stored in rejected directory", cert_file_name);
                     let _ = self.store_rejected_cert(cert);
-                    return BadCertificateUntrusted;
+                    return StatusCode::BadCertificateUntrusted;
                 }
             }
 
             // Read the cert from the trusted folder to make sure it matches the one supplied
             if !CertificateStore::ensure_cert_and_file_are_the_same(cert, &cert_path) {
                 error!("Certificate in memory does not match the one on disk {} so cert will automatically be treated as untrusted", cert_path.display());
-                return BadUnexpectedError;
+                return StatusCode::BadUnexpectedError;
             }
 
             // Now inspect the cert not before / after values to ensure its validity
@@ -373,7 +372,7 @@ impl CertificateStore {
             // ... trust (self-signed, ca etc.)
             // ... revocation
         }
-        Good
+        StatusCode::Good
     }
 
     /// Returns a certificate file name from the cert's issuer and thumbprint fields

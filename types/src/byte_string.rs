@@ -7,7 +7,7 @@ use base64;
 use encoding::{write_i32, BinaryEncoder, EncodingResult, process_encode_io_result, process_decode_io_result};
 use basic_types::Int32;
 use constants;
-use status_codes::StatusCode::{BadDecodingError, BadEncodingLimitsExceeded};
+use status_codes::StatusCode;
 
 /// A sequence of octets.
 #[derive(Eq, PartialEq, Debug, Clone, Hash, Serialize, Deserialize)]
@@ -46,10 +46,10 @@ impl BinaryEncoder<ByteString> for ByteString {
         // Null string?
         if buf_len < -1 {
             error!("ByteString buf length is a negative number {}", buf_len);
-            Err(BadDecodingError)
+            Err(StatusCode::BadDecodingError)
         } else if buf_len > constants::MAX_BYTE_STRING_LENGTH as i32 {
             error!("ByteString buf length {} is longer than max byte string length", buf_len);
-            Err(BadEncodingLimitsExceeded)
+            Err(StatusCode::BadEncodingLimitsExceeded)
         } else if buf_len == -1 {
             Ok(ByteString::null())
         } else {

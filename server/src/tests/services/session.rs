@@ -21,11 +21,11 @@ fn anonymous_user_token() {
 
     let result = server_state.authenticate_endpoint("opc.tcp://localhost:4855/x", SecurityPolicy::None, MessageSecurityMode::None, &token);
     trace!("result = {:?}", result);
-    assert_eq!(result, BadTcpEndpointUrlInvalid);
+    assert_eq!(result, StatusCode::BadTcpEndpointUrlInvalid);
 
     let result = server_state.authenticate_endpoint("opc.tcp://localhost:4855/noaccess", SecurityPolicy::None, MessageSecurityMode::None, &token);
     trace!("result = {:?}", result);
-    assert_eq!(result, BadIdentityTokenRejected);
+    assert_eq!(result, StatusCode::BadIdentityTokenRejected);
 }
 
 fn make_user_name_identity_token(user: &str, pass: &[u8]) -> ExtensionObject {
@@ -52,13 +52,13 @@ fn user_name_pass_token() {
     // Invalid tests
     let token = make_user_name_identity_token("samplex", b"sample1");
     let result = server_state.authenticate_endpoint("opc.tcp://localhost:4855/", SecurityPolicy::None, MessageSecurityMode::None, &token);
-    assert_eq!(result, BadIdentityTokenRejected);
+    assert_eq!(result, StatusCode::BadIdentityTokenRejected);
 
     let token = make_user_name_identity_token("sample", b"sample");
     let result = server_state.authenticate_endpoint("opc.tcp://localhost:4855/", SecurityPolicy::None, MessageSecurityMode::None, &token);
-    assert_eq!(result, BadIdentityTokenRejected);
+    assert_eq!(result, StatusCode::BadIdentityTokenRejected);
 
     let token = make_user_name_identity_token("", b"sample");
     let result = server_state.authenticate_endpoint("opc.tcp://localhost:4855/", SecurityPolicy::None, MessageSecurityMode::None, &token);
-    assert_eq!(result, BadIdentityTokenRejected);
+    assert_eq!(result, StatusCode::BadIdentityTokenRejected);
 }

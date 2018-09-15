@@ -319,7 +319,7 @@ impl ErrorMessage {
     pub fn from_status_code(status_code: StatusCode) -> ErrorMessage {
         let mut error = ErrorMessage {
             message_header: MessageHeader::new(MessageType::Error),
-            error: status_code as UInt32,
+            error: status_code.bits(),
             reason: UAString::from(status_code.description()),
         };
         error.message_header.message_size = error.byte_len() as UInt32;

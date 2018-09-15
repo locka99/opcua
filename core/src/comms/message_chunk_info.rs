@@ -3,7 +3,6 @@ use std::io::Cursor;
 
 use opcua_types::BinaryEncoder;
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 
 use crypto::SecurityPolicy;
 use comms::security_header::{SecurityHeader, SequenceHeader};
@@ -43,7 +42,7 @@ impl ChunkInfo {
             let result = AsymmetricSecurityHeader::decode(&mut stream);
             if result.is_err() {
                 error!("chunk_info() can't decode asymmetric security_header, {:?}", result.unwrap_err());
-                return Err(BadCommunicationError);
+                return Err(StatusCode::BadCommunicationError);
             }
             let security_header = result.unwrap();
 
@@ -55,7 +54,7 @@ impl ChunkInfo {
 
             if security_policy == SecurityPolicy::Unknown {
                 error!("Security policy of chunk is unsupported, policy = {:?}", security_header.security_policy_uri);
-                return Err(BadSecurityPolicyRejected);
+                return Err(StatusCode::BadSecurityPolicyRejected);
             }
 
             // Anything related to policy can be worked out here
@@ -64,7 +63,7 @@ impl ChunkInfo {
             let result = SymmetricSecurityHeader::decode(&mut stream);
             if result.is_err() {
                 error!("chunk_info() can't decode symmetric security_header, {:?}", result.unwrap_err());
-                return Err(BadCommunicationError);
+                return Err(StatusCode::BadCommunicationError);
             }
             SecurityHeader::Symmetric(result.unwrap())
         };
@@ -73,7 +72,7 @@ impl ChunkInfo {
         let sequence_header_result = SequenceHeader::decode(&mut stream);
         if sequence_header_result.is_err() {
             error!("Cannot decode sequence header {:?}", sequence_header_result.unwrap_err());
-            return Err(BadCommunicationError);
+            return Err(StatusCode::BadCommunicationError);
         }
         let sequence_header = sequence_header_result.unwrap();
 

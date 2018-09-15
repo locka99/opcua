@@ -2,7 +2,6 @@ use std::result::Result;
 
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 use opcua_types::service_types::*;
 
 use subscriptions::subscription::Subscription;
@@ -24,7 +23,7 @@ impl SubscriptionService {
     pub fn create_subscription(&self, server_state: &mut ServerState, session: &mut Session, request: CreateSubscriptionRequest) -> Result<SupportedMessage, StatusCode> {
         let subscriptions = &mut session.subscriptions;
         let response = if server_state.max_subscriptions > 0 && subscriptions.len() >= server_state.max_subscriptions {
-            self.service_fault(&request.request_header, BadTooManySubscriptions)
+            self.service_fault(&request.request_header, StatusCode::BadTooManySubscriptions)
         } else {
             let subscription_id = server_state.create_subscription_id();
 
@@ -62,7 +61,7 @@ impl SubscriptionService {
         let subscription_id = request.subscription_id;
 
         let response = if !subscriptions.contains(subscription_id) {
-            return Ok(self.service_fault(&request.request_header, BadSubscriptionIdInvalid));
+            return Ok(self.service_fault(&request.request_header, StatusCode::BadSubscriptionIdInvalid));
         } else {
             let subscription = subscriptions.get_mut(subscription_id).unwrap();
 
@@ -91,7 +90,7 @@ impl SubscriptionService {
     /// Handles a DeleteSubscriptionsRequest
     pub fn delete_subscriptions(&self, session: &mut Session, request: DeleteSubscriptionsRequest) -> Result<SupportedMessage, StatusCode> {
         if request.subscription_ids.is_none() {
-            Ok(self.service_fault(&request.request_header, BadNothingToDo))
+            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else {
             let results = {
                 let subscription_ids = request.subscription_ids.as_ref().unwrap();
@@ -101,9 +100,9 @@ impl SubscriptionService {
                 for subscription_id in subscription_ids {
                     let subscription = subscriptions.remove(*subscription_id);
                     if subscription.is_some() {
-                        results.push(Good);
+                        results.push(StatusCode::Good);
                     } else {
-                        results.push(BadSubscriptionIdInvalid);
+                        results.push(StatusCode::BadSubscriptionIdInvalid);
                     }
                 }
                 Some(results)
@@ -121,7 +120,7 @@ impl SubscriptionService {
     /// Handles a SerPublishingModeRequest
     pub fn set_publishing_mode(&self, session: &mut Session, request: SetPublishingModeRequest) -> Result<SupportedMessage, StatusCode> {
         if request.subscription_ids.is_none() {
-            Ok(self.service_fault(&request.request_header, BadNothingToDo))
+            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else {
             let results = {
                 let publishing_enabled = request.publishing_enabled;
@@ -132,9 +131,9 @@ impl SubscriptionService {
                     if let Some(subscription) = subscriptions.get_mut(*subscription_id) {
                         subscription.publishing_enabled = publishing_enabled;
                         subscription.reset_lifetime_counter();
-                        results.push(Good);
+                        results.push(StatusCode::Good);
                     } else {
-                        results.push(BadSubscriptionIdInvalid);
+                        results.push(StatusCode::BadSubscriptionIdInvalid);
                     }
                 }
                 Some(results)
@@ -153,7 +152,7 @@ impl SubscriptionService {
     pub fn async_publish(&self, session: &mut Session, request_id: UInt32, address_space: &AddressSpace, request: PublishRequest) -> Result<Option<SupportedMessage>, StatusCode> {
         trace!("--> Receive a PublishRequest {:?}", request);
         if session.subscriptions.is_empty() {
-            Ok(Some(self.service_fault(&request.request_header, BadNoSubscription)))
+            Ok(Some(self.service_fault(&request.request_header, StatusCode::BadNoSubscription)))
         } else {
             let request_header = request.request_header.clone();
             let result = session.enqueue_publish_request(address_space, request_id, request);

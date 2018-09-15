@@ -2,7 +2,6 @@ use std::result::Result;
 
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 use opcua_types::service_types::{ServiceFault, SecurityTokenRequestType, OpenSecureChannelResponse, ResponseHeader, ChannelSecurityToken};
 
 use opcua_core::comms::prelude::*;
@@ -60,7 +59,7 @@ impl SecureChannelService {
             }
             _ => {
                 error!("message is not an open secure channel request, got {:?}", message);
-                return Err(BadUnexpectedError);
+                return Err(StatusCode::BadUnexpectedError);
             }
         };
 
@@ -70,14 +69,14 @@ impl SecureChannelService {
             }
             _ => {
                 error!("Secure channel request message does not have asymmetric security header");
-                return Err(BadUnexpectedError);
+                return Err(StatusCode::BadUnexpectedError);
             }
         };
 
         // Must compare protocol version to the one from HELLO
         if request.client_protocol_version != client_protocol_version {
             error!("Client sent a different protocol version than it did in the HELLO - {} vs {}", request.client_protocol_version, client_protocol_version);
-            return Ok(ServiceFault::new_supported_message(&request.request_header, BadProtocolVersionUnsupported));
+            return Ok(ServiceFault::new_supported_message(&request.request_header, StatusCode::BadProtocolVersionUnsupported));
         }
 
         // Test the request type
@@ -97,13 +96,13 @@ impl SecureChannelService {
                 if secure_channel.security_policy() != SecurityPolicy::None &&
                     request.client_nonce.as_ref() == &secure_channel.remote_nonce()[..] {
                     error!("Client reused a nonce for a renew");
-                    return Ok(ServiceFault::new_supported_message(&request.request_header, BadNonceInvalid));
+                    return Ok(ServiceFault::new_supported_message(&request.request_header, StatusCode::BadNonceInvalid));
                 }
 
                 // check to see if the secure channel has been issued before or not
                 if !self.secure_channel_state.issued {
                     error!("Asked to renew token on session that has never issued token");
-                    return Err(BadUnexpectedError);
+                    return Err(StatusCode::BadUnexpectedError);
                 }
                 self.secure_channel_state.renew_count += 1;
             }
@@ -117,7 +116,7 @@ impl SecureChannelService {
             }
             _ => {
                 error!("Security mode is invalid");
-                return Ok(ServiceFault::new_supported_message(&request.request_header, BadSecurityModeRejected));
+                return Ok(ServiceFault::new_supported_message(&request.request_header, StatusCode::BadSecurityModeRejected));
             }
         }
 
@@ -160,6 +159,6 @@ impl SecureChannelService {
 
     pub fn close_secure_channel(&mut self, _: &SupportedMessage) -> Result<SupportedMessage, StatusCode> {
         info!("CloseSecureChannelRequest received, session closing");
-        Err(BadConnectionClosed)
+        Err(StatusCode::BadConnectionClosed)
     }
 }

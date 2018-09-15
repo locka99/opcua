@@ -7,7 +7,8 @@ use encoding::*;
 use string::XmlElement;
 use node_id::NodeId;
 use byte_string::ByteString;
-use status_codes::StatusCode::BadDecodingError;
+
+use status_codes::StatusCode;
 
 /// Enumeration that holds the kinds of encoding that an ExtensionObject data may be encoded with.
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
@@ -89,7 +90,7 @@ impl BinaryEncoder<ExtensionObject> for ExtensionObject {
             }
             _ => {
                 error!("Invalid encoding type {} in stream", encoding_type);
-                return Err(BadDecodingError);
+                return Err(StatusCode::BadDecodingError);
             }
         };
         Ok(ExtensionObject {
@@ -145,6 +146,6 @@ impl ExtensionObject {
                 return T::decode(&mut stream);
             }
         }
-        Err(BadDecodingError)
+        Err(StatusCode::BadDecodingError)
     }
 }

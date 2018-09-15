@@ -13,7 +13,6 @@ use chrono::{DateTime, Utc, TimeZone};
 use opcua_types::ByteString;
 use opcua_types::service_types::ApplicationDescription;
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 
 use crypto::pkey::PublicKey;
 use crypto::thumbprint::Thumbprint;
@@ -137,12 +136,12 @@ impl X509 {
     pub fn from_byte_string(data: &ByteString) -> Result<X509, StatusCode> {
         if data.is_null() {
             error!("Can't make certificate from null bytestring");
-            Err(BadCertificateInvalid)
+            Err(StatusCode::BadCertificateInvalid)
         } else if let Ok(cert) = x509::X509::from_der(&data.value.as_ref().unwrap()) {
             Ok(X509::wrap(cert))
         } else {
             error!("Can't make certificate, does bytestring contain .der?");
-            Err(BadCertificateInvalid)
+            Err(StatusCode::BadCertificateInvalid)
         }
     }
 
@@ -158,7 +157,7 @@ impl X509 {
             Ok(pkey)
         } else {
             error!("Can't obtain public key from certificate");
-            Err(BadCertificateInvalid)
+            Err(StatusCode::BadCertificateInvalid)
         }
     }
 
@@ -191,12 +190,12 @@ impl X509 {
         if let Ok(not_before) = not_before {
             if now.lt(&not_before) {
                 error!("Certificate < before date)");
-                return BadCertificateTimeInvalid;
+                return StatusCode::BadCertificateTimeInvalid;
             }
         } else {
             // No before time
             error!("Certificate has no before date");
-            return BadCertificateInvalid;
+            return StatusCode::BadCertificateInvalid;
         }
 
         // Expiration time
@@ -204,16 +203,16 @@ impl X509 {
         if let Ok(not_after) = not_after {
             if now.gt(&not_after) {
                 error!("Certificate has expired (> after date)");
-                return BadCertificateTimeInvalid;
+                return StatusCode::BadCertificateTimeInvalid;
             }
         } else {
             // No after time
             error!("Certificate has no after date");
-            return BadCertificateInvalid;
+            return StatusCode::BadCertificateInvalid;
         }
 
         info!("Certificate is valid for this time");
-        Good
+        StatusCode::Good
     }
 
     /// Tests if the supplied hostname matches any of the dns alt subject name entries on the cert
@@ -232,15 +231,15 @@ impl X509 {
             });
             if found.is_some() {
                 info!("Certificate host name {} is good", hostname);
-                Good
+                StatusCode::Good
             } else {
                 error!("Cannot find a matching hostname for input {}", hostname);
-                BadCertificateHostNameInvalid
+                StatusCode::BadCertificateHostNameInvalid
             }
         } else {
             error!("Cert has no subject alt names at all");
             // No alt names
-            BadCertificateHostNameInvalid
+            StatusCode::BadCertificateHostNameInvalid
         }
     }
 
@@ -254,23 +253,23 @@ impl X509 {
                 if let Some(cert_application_uri) = alt_names[0].uri() {
                     if cert_application_uri == application_uri {
                         info!("Certificate application uri {} is good", application_uri);
-                        Good
+                        StatusCode::Good
                     } else {
                         error!("Cert application uri {} does not match supplied uri {}", cert_application_uri, application_uri);
-                        BadCertificateUriInvalid
+                        StatusCode::BadCertificateUriInvalid
                     }
                 } else {
                     error!("Cert's first subject alt name is not a uri and cannot be compared");
-                    BadCertificateUriInvalid
+                    StatusCode::BadCertificateUriInvalid
                 }
             } else {
                 error!("Cert has zero subject alt names");
-                BadCertificateUriInvalid
+                StatusCode::BadCertificateUriInvalid
             }
         } else {
             error!("Cert has no subject alt names at all");
             // No alt names
-            BadCertificateUriInvalid
+            StatusCode::BadCertificateUriInvalid
         }
     }
 

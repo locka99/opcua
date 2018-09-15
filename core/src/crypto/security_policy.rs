@@ -6,7 +6,6 @@ use std::str::FromStr;
 use openssl::hash as openssl_hash;
 
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 use opcua_types::ByteString;
 
 use crypto::{SHA1_SIZE, SHA256_SIZE};
@@ -477,7 +476,7 @@ impl SecurityPolicy {
                 trace!("Using their_key, signature should be {:?}", &their_signature);
             }
 
-            Err(BadSecurityChecksFailed)
+            Err(StatusCode::BadSecurityChecksFailed)
         }
     }
 
@@ -498,7 +497,7 @@ impl SecurityPolicy {
         if let Ok(encrypted_size) = encryption_key.public_encrypt(src, dst, padding) {
             Ok(encrypted_size)
         } else {
-            Err(BadUnexpectedError)
+            Err(StatusCode::BadUnexpectedError)
         }
     }
 
@@ -511,7 +510,7 @@ impl SecurityPolicy {
             Ok(decrypted_size)
         } else {
             error!("Asymmetric decryption failed");
-            Err(BadSecurityChecksFailed)
+            Err(StatusCode::BadSecurityChecksFailed)
         }
     }
 
@@ -554,7 +553,7 @@ impl SecurityPolicy {
             Ok(verified)
         } else {
             error!("Signature invalid {:?}", signature);
-            Err(BadSecurityChecksFailed)
+            Err(StatusCode::BadSecurityChecksFailed)
         }
     }
 

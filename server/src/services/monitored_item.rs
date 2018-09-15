@@ -2,7 +2,6 @@ use std::result::Result;
 
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 use opcua_types::service_types::*;
 
 use session::Session;
@@ -30,11 +29,11 @@ impl MonitoredItemService {
                 Ok(response.into())
             } else {
                 // No matching subscription
-                Ok(self.service_fault(&request.request_header, BadSubscriptionIdInvalid))
+                Ok(self.service_fault(&request.request_header, StatusCode::BadSubscriptionIdInvalid))
             }
         } else {
             // No items to create so nothing to do
-            Ok(self.service_fault(&request.request_header, BadNothingToDo))
+            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         }
     }
 
@@ -52,11 +51,11 @@ impl MonitoredItemService {
                 Ok(response.into())
             } else {
                 // No matching subscription
-                Ok(self.service_fault(&request.request_header, BadSubscriptionIdInvalid))
+                Ok(self.service_fault(&request.request_header, StatusCode::BadSubscriptionIdInvalid))
             }
         } else {
             // No items to modify so nothing to do
-            Ok(self.service_fault(&request.request_header, BadNothingToDo))
+            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         }
     }
 
@@ -75,11 +74,11 @@ impl MonitoredItemService {
                 Ok(response.into())
             } else {
                 // No matching subscription
-                Ok(self.service_fault(&request.request_header, BadSubscriptionIdInvalid))
+                Ok(self.service_fault(&request.request_header, StatusCode::BadSubscriptionIdInvalid))
             }
         } else {
             // No items to modify so nothing to do
-            Ok(self.service_fault(&request.request_header, BadNothingToDo))
+            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         }
     }
 }

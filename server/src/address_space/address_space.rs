@@ -7,7 +7,6 @@ use opcua_types::*;
 use opcua_types::node_ids::*;
 use opcua_types::service_types::{BrowseDirection, RelativePath, RelativePathElement, ServerDiagnosticsSummaryDataType};
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 use opcua_types::service_types::{CallMethodRequest, CallMethodResult};
 
 use address_space::AttrFnGetter;
@@ -436,12 +435,12 @@ impl AddressSpace {
 
     pub fn find_nodes_relative_path(&self, node_id: &NodeId, relative_path: &RelativePath) -> Result<Vec<NodeId>, StatusCode> {
         if self.find_node(node_id).is_none() {
-            return Err(BadNodeIdUnknown);
+            return Err(StatusCode::BadNodeIdUnknown);
         }
 
         let relative_path_elements = relative_path.elements.as_ref().unwrap();
         if relative_path_elements.is_empty() {
-            return Err(BadNothingToDo);
+            return Err(StatusCode::BadNothingToDo);
         }
 
         let mut matching_nodes = vec![node_id.clone()];
@@ -671,13 +670,13 @@ impl AddressSpace {
         // Handle the call
         if !is_object!(self, object_id) {
             error!("Method call to {:?} on {:?} but the node id is not recognized!", method_id, object_id);
-            Err(BadNodeIdUnknown)
+            Err(StatusCode::BadNodeIdUnknown)
         } else if !is_method!(self, method_id) {
             error!("Method call to {:?} on {:?} but the method id is not recognized!", method_id, object_id);
-            Err(BadMethodInvalid)
+            Err(StatusCode::BadMethodInvalid)
         } else if !self.method_exists_on_object(object_id, method_id) {
             error!("Method call to {:?} on {:?} but the method does not exist on the object!", method_id, object_id);
-            Err(BadMethodInvalid)
+            Err(StatusCode::BadMethodInvalid)
         } else {
             // TODO check security - session / user may not have permission to call methods
 
@@ -694,7 +693,7 @@ impl AddressSpace {
                 // TODO we could do a secondary search on a (NodeId::null(), method_id) here
                 // so that method handler is reusable for multiple objects
                 error!("Method call to {:?} on {:?} has no handler, treating as invalid", method_id, object_id);
-                Err(BadMethodInvalid)
+                Err(StatusCode::BadMethodInvalid)
             }
         }
     }

@@ -13,7 +13,6 @@ use service_types::{AnonymousIdentityToken, ApplicationType, DataChangeFilter, D
 use service_types::{MonitoredItemCreateRequest, MonitoringParameters, CallMethodRequest};
 use service_types::ApplicationDescription;
 use status_codes::StatusCode;
-use status_codes::StatusCode::*;
 use std;
 use std::io::{Read, Write};
 use string::UAString;
@@ -226,7 +225,7 @@ impl BinaryEncoder<ResponseHeader> for ResponseHeader {
 
 impl ResponseHeader {
     pub fn new_good(request_header: &RequestHeader) -> ResponseHeader {
-        ResponseHeader::new_service_result(request_header, Good)
+        ResponseHeader::new_service_result(request_header, StatusCode::Good)
     }
 
     pub fn new_service_result(request_header: &RequestHeader, service_result: StatusCode) -> ResponseHeader {
@@ -249,7 +248,7 @@ impl ResponseHeader {
         ResponseHeader {
             timestamp: DateTime::now(),
             request_handle: 0,
-            service_result: Good,
+            service_result: StatusCode::Good,
             service_diagnostics: DiagnosticInfo::default(),
             string_table: None,
             additional_header: ExtensionObject::null(),
@@ -336,21 +335,21 @@ impl DataChangeFilter {
                 let v2 = v2.unwrap();
 
                 if self.deadband_value < 0f64 {
-                    Err(BadDeadbandFilterInvalid)
+                    Err(StatusCode::BadDeadbandFilterInvalid)
                 } else if self.deadband_type == 1 {
                     Ok(DataChangeFilter::abs_compare(v1, v2, self.deadband_value))
                 } else if self.deadband_type == 2 {
                     if eu_range.is_none() {
-                        return Err(BadDeadbandFilterInvalid);
+                        return Err(StatusCode::BadDeadbandFilterInvalid);
                     }
                     let (low, high) = eu_range.unwrap();
                     if low >= high {
-                        return Err(BadDeadbandFilterInvalid);
+                        return Err(StatusCode::BadDeadbandFilterInvalid);
                     }
                     Ok(DataChangeFilter::pct_compare(v1, v2, low, high, self.deadband_value))
                 } else {
                     // Type is not recognized
-                    Err(BadDeadbandFilterInvalid)
+                    Err(StatusCode::BadDeadbandFilterInvalid)
                 }
             }
         }
@@ -431,7 +430,7 @@ impl UserNameIdentityToken {
         if valid {
             Ok(())
         } else {
-            Err(BadIdentityTokenRejected)
+            Err(StatusCode::BadIdentityTokenRejected)
         }
     }
 }

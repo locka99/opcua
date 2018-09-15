@@ -10,7 +10,7 @@ use std::io::Cursor;
 
 use ::*;
 use argument::Argument;
-use status_codes::StatusCode::*;
+use status_codes::StatusCode;
 use node_ids::*;
 
 pub fn serialize_test_and_return<T>(value: T) -> T

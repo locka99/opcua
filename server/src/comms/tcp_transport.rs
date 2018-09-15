@@ -30,7 +30,6 @@ use opcua_core::comms::message_writer::MessageWriter;
 use opcua_core::comms::tcp_codec::{Message, TcpCodec};
 use opcua_core::comms::secure_channel::SecureChannel;
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 use opcua_types::tcp_types::*;
 
 use address_space::types::AddressSpace;
@@ -186,7 +185,7 @@ impl TcpTransport {
         io::write_all(writer.unwrap(), bytes_to_write).map_err(move |err| {
             error!("Write IO error {:?}", err);
             let mut transport = trace_write_lock_unwrap!(transport);
-            transport.finish(BadCommunicationError);
+            transport.finish(StatusCode::BadCommunicationError);
         }).map(move |(writer, _)| {
             // Build a new connection state
             {
@@ -259,13 +258,13 @@ impl TcpTransport {
             let take = if let SupportedMessage::Invalid(_) = response {
                 error!("Writer is terminating because it received an invalid message");
                 let mut transport = trace_write_lock_unwrap!(transport);
-                transport.finish(BadCommunicationError);
+                transport.finish(StatusCode::BadCommunicationError);
                 false
             } else {
                 let mut transport = trace_write_lock_unwrap!(transport);
                 if transport.is_server_abort() {
                     info!("Writer communication error (abort)");
-                    transport.finish(BadCommunicationError);
+                    transport.finish(StatusCode::BadCommunicationError);
 
                     false
                 } else if transport.is_finished() {
@@ -331,7 +330,7 @@ impl TcpTransport {
                 transport.transport_state.clone()
             };
 
-            let mut session_status_code = Good;
+            let mut session_status_code = StatusCode::Good;
             match transport_state {
                 TransportState::WaitingHello => {
                     if let Message::Hello(hello) = message {
@@ -342,7 +341,7 @@ impl TcpTransport {
                             session_status_code = result.unwrap_err();
                         }
                     } else {
-                        session_status_code = BadCommunicationError;
+                        session_status_code = StatusCode::BadCommunicationError;
                     }
                 }
                 TransportState::ProcessMessages => {
@@ -354,12 +353,12 @@ impl TcpTransport {
                             session_status_code = result.unwrap_err();
                         }
                     } else {
-                        session_status_code = BadCommunicationError;
+                        session_status_code = StatusCode::BadCommunicationError;
                     }
                 }
                 _ => {
                     error!("Unknown sesion state, aborting");
-                    session_status_code = BadUnexpectedError;
+                    session_status_code = StatusCode::BadUnexpectedError;
                 }
             }
             // Update the session status
@@ -383,7 +382,7 @@ impl TcpTransport {
                     session.terminate_session
                 };
                 if terminate {
-                    transport.finish(BadConnectionClosed);
+                    transport.finish(StatusCode::BadConnectionClosed);
                 }
                 // Other session status
                 transport.is_finished()
@@ -456,7 +455,7 @@ impl TcpTransport {
                         // Check if the session has waited in the hello state for more than the hello timeout period
                         info!("Session has been waiting for a hello for more than the timeout period and will now close");
                         let mut transport = trace_write_lock_unwrap!(state.transport);
-                        transport.finish(BadTimeout);
+                        transport.finish(StatusCode::BadTimeout);
                     }
                 }
                 Ok(())
@@ -579,16 +578,16 @@ impl TcpTransport {
 
         trace!("Server received HELLO {:?}", hello);
         if !hello.is_endpoint_url_valid() {
-            return Err(BadTcpEndpointUrlInvalid);
+            return Err(StatusCode::BadTcpEndpointUrlInvalid);
         }
         if !hello.is_valid_buffer_sizes() {
             error!("HELLO buffer sizes are invalid");
-            return Err(BadCommunicationError);
+            return Err(StatusCode::BadCommunicationError);
         }
 
         // Validate protocol version
         if hello.protocol_version > server_protocol_version {
-            return Err(BadProtocolVersionUnsupported);
+            return Err(StatusCode::BadProtocolVersionUnsupported);
         }
 
         let client_protocol_version = hello.protocol_version;

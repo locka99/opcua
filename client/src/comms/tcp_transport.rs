@@ -21,7 +21,6 @@ use tokio_timer::Interval;
 
 use opcua_types::url::OPC_TCP_SCHEME;
 use opcua_types::status_code::StatusCode;
-use opcua_types::status_code::StatusCode::*;
 use opcua_types::tcp_types::HelloMessage;
 
 use opcua_core::prelude::*;
@@ -162,11 +161,11 @@ impl TcpTransport {
         // Validate and split out the endpoint we have
         let result = Url::parse(&endpoint_url);
         if result.is_err() {
-            return Err(BadTcpEndpointUrlInvalid);
+            return Err(StatusCode::BadTcpEndpointUrlInvalid);
         }
         let url = result.unwrap();
         if url.scheme() != OPC_TCP_SCHEME || !url.has_host() {
-            return Err(BadTcpEndpointUrlInvalid);
+            return Err(StatusCode::BadTcpEndpointUrlInvalid);
         }
 
         debug!("Connecting to {:?}", url);
@@ -183,11 +182,11 @@ impl TcpTransport {
                     addr
                 } else {
                     error!("Invalid address {}, does not resolve to any socket", addr);
-                    return Err(BadTcpEndpointUrlInvalid);
+                    return Err(StatusCode::BadTcpEndpointUrlInvalid);
                 }
             } else {
                 error!("Invalid address {}, cannot be parsed {:?}", addr, addrs.unwrap_err());
-                return Err(BadTcpEndpointUrlInvalid);
+                return Err(StatusCode::BadTcpEndpointUrlInvalid);
             }
         };
         assert_eq!(addr.port(), port);
@@ -262,7 +261,7 @@ impl TcpTransport {
         set_connection_state!(connection_state, ConnectionState::Connecting);
         TcpStream::connect(&addr).map_err(move |err| {
             error!("Could not connect to host {}, {:?}", addr, err);
-            set_connection_state!(connection_state_for_error, ConnectionState::Finished(BadCommunicationError));
+            set_connection_state!(connection_state_for_error, ConnectionState::Finished(StatusCode::BadCommunicationError));
         }).and_then(move |socket| {
             set_connection_state!(connection_state, ConnectionState::Connected);
             let (reader, writer) = socket.split();
@@ -271,7 +270,7 @@ impl TcpTransport {
             debug! {"Sending HELLO"};
             io::write_all(writer, hello.to_vec()).map_err(move |err| {
                 error!("Cannot send hello to server, err = {:?}", err);
-                set_connection_state!(connection_state_for_error2, ConnectionState::Finished(BadCommunicationError));
+                set_connection_state!(connection_state_for_error2, ConnectionState::Finished(StatusCode::BadCommunicationError));
             }).map(move |(writer, _)| {
                 (reader, writer)
             }).and_then(|(reader, writer)| {
@@ -335,13 +334,13 @@ impl TcpTransport {
         let framed_reader = FramedRead::new(reader, TcpCodec::new(finished_flag));
         let looping_task = framed_reader.for_each(move |message| {
             let mut connection = trace_write_lock_unwrap!(connection);
-            let mut session_status_code = Good;
+            let mut session_status_code = StatusCode::Good;
             match message {
                 Message::Acknowledge(ack) => {
                     debug!("Got ack {:?}", ack);
                     if connection_state!(connection.state) != ConnectionState::WaitingForAck {
                         error!("Got an unexpected ACK");
-                        session_status_code = BadUnexpectedError;
+                        session_status_code = StatusCode::BadUnexpectedError;
                     } else {
                         // TODO revise our sizes and other things according to the ACK
                         set_connection_state!(connection.state, ConnectionState::Processing);
@@ -350,7 +349,7 @@ impl TcpTransport {
                 Message::Chunk(chunk) => {
                     if connection_state!(connection.state) != ConnectionState::Processing {
                         error!("Got an unexpected message chunk");
-                        session_status_code = BadUnexpectedError;
+                        session_status_code = StatusCode::BadUnexpectedError;
                     } else {
                         let result = connection.process_chunk(chunk);
                         if result.is_err() {
@@ -364,10 +363,10 @@ impl TcpTransport {
                 }
                 Message::Error(error) => {
                     // TODO client should go into an error recovery state, dropping the connection and reestablishing it.
-                    session_status_code = if let Ok(status_code) = StatusCode::from_u32(error.error) {
+                    session_status_code = if let Some(status_code) = StatusCode::from_u32(error.error) {
                         status_code
                     } else {
-                        BadUnexpectedError
+                        StatusCode::BadUnexpectedError
                     };
                     error!("Expecting a chunk, got an error message {:?}, reason \"{}\"", session_status_code, error.reason.as_ref());
                 }
@@ -444,7 +443,7 @@ impl TcpTransport {
                         // Connection might be closed now
                         if close_connection {
                             info!("Received a close, so closing connection after this send");
-                            set_connection_state!(connection.state, ConnectionState::Finished(Good));
+                            set_connection_state!(connection.state, ConnectionState::Finished(StatusCode::Good));
                         }
                     } else {
                         // panic or not, perhaps there is a race

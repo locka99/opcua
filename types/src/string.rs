@@ -5,8 +5,8 @@ use std::fmt;
 
 use encoding::{write_i32, BinaryEncoder, EncodingResult, process_encode_io_result, process_decode_io_result};
 use basic_types::Int32;
+use status_codes::StatusCode;
 use constants;
-use status_codes::StatusCode::{BadDecodingError, BadEncodingLimitsExceeded};
 
 /// A string containing UTF-8 encoded characters.
 ///
@@ -57,10 +57,10 @@ impl BinaryEncoder<UAString> for UAString {
             Ok(UAString::null())
         } else if buf_len < -1 {
             error!("String buf length is a negative number {}", buf_len);
-            Err(BadDecodingError)
+            Err(StatusCode::BadDecodingError)
         } else if buf_len > constants::MAX_STRING_LENGTH as i32 {
             error!("String buf length {} is larger than max string length", buf_len);
-            Err(BadEncodingLimitsExceeded)
+            Err(StatusCode::BadEncodingLimitsExceeded)
         } else {
             // Create the actual UTF8 string
             let mut string_buf: Vec<u8> = Vec::with_capacity(buf_len as usize);
