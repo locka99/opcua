@@ -264,7 +264,7 @@ function insert_node(indent, node_type, node, node_ctor) {
                     contents += `${indent}let data_value = DataValue::new(vec![\n`;
                     _.each(var_arguments, function (a) {
                         contents += `${indent}    Variant::from(ExtensionObject::from_encodable(\n`;
-                        contents += `${indent}        ${node_id_ctor(a.node_id)}, Argument {\n`
+                        contents += `${indent}        ${node_id_ctor(a.node_id)}, &Argument {\n`
                         contents += `${indent}            name: UAString::from("${a.name}"),\n`
                         contents += `${indent}            data_type: ${node_id_ctor(a.data_type)},\n`
                         contents += `${indent}            value_rank: ${a.value_rank},\n`

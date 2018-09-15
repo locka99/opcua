@@ -25,8 +25,7 @@ impl BinaryEncoder<Boolean> for Boolean {
     }
 
     fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let value = if read_u8(stream)? == 1 { true } else { false };
-        Ok(value)
+        Ok(read_u8(stream)? == 1)
     }
 }
 

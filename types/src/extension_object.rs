@@ -124,7 +124,7 @@ impl ExtensionObject {
 
     /// Creates an extension object with the specified node id and the encodable object as its payload.
     /// The body is set to a byte string containing the encoded struct.
-    pub fn from_encodable<N, T>(node_id: N, encodable: T) -> ExtensionObject where N: 'static + Into<NodeId>,
+    pub fn from_encodable<N, T>(node_id: N, encodable: &T) -> ExtensionObject where N: 'static + Into<NodeId>,
                                                                                    T: BinaryEncoder<T> {
         // Serialize to extension object
         let mut stream = Cursor::new(vec![0u8; encodable.byte_len()]);

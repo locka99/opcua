@@ -15,7 +15,7 @@ fn make_address_space() -> AddressSpace {
 
 fn make_create_request(sampling_interval: Duration, queue_size: UInt32) -> MonitoredItemCreateRequest {
     // Encode a filter to an extension object
-    let filter = ExtensionObject::from_encodable(ObjectId::DataChangeFilter_Encoding_DefaultBinary, DataChangeFilter {
+    let filter = ExtensionObject::from_encodable(ObjectId::DataChangeFilter_Encoding_DefaultBinary, &DataChangeFilter {
         trigger: DataChangeTrigger::StatusValueTimestamp,
         deadband_type: 0,
         deadband_value: 0f64,

@@ -13,7 +13,7 @@ fn anonymous_user_token() {
     let token = AnonymousIdentityToken {
         policy_id: UAString::from(SecurityPolicy::None.to_uri())
     };
-    let token = ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary, token);
+    let token = ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary, &token);
 
     let result = server_state.authenticate_endpoint("opc.tcp://localhost:4855/", SecurityPolicy::None, MessageSecurityMode::None, &token);
     trace!("result = {:?}", result);
@@ -35,7 +35,7 @@ fn make_user_name_identity_token(user: &str, pass: &[u8]) -> ExtensionObject {
         password: ByteString::from(pass),
         encryption_algorithm: UAString::null()
     };
-    ExtensionObject::from_encodable(ObjectId::UserNameIdentityToken_Encoding_DefaultBinary, token)
+    ExtensionObject::from_encodable(ObjectId::UserNameIdentityToken_Encoding_DefaultBinary, &token)
 }
 
 #[test]

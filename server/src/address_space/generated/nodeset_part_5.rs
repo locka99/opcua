@@ -3014,7 +3014,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("SubscriptionId"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -3038,7 +3038,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("ServerHandles"),
                     data_type: NodeId::new(0, 7),
                     value_rank: 1,
@@ -3046,7 +3046,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("ClientHandles"),
                     data_type: NodeId::new(0, 7),
                     value_rank: 1,
@@ -3070,7 +3070,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("SubscriptionId"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -3094,7 +3094,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("SubscriptionId"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -3102,7 +3102,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("LifetimeInHours"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -3126,7 +3126,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("RevisedLifetimeInHours"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -3150,7 +3150,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("State"),
                     data_type: NodeId::new(0, 852),
                     value_rank: -1,
@@ -3158,7 +3158,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("EstimatedReturnTime"),
                     data_type: NodeId::new(0, 13),
                     value_rank: -1,
@@ -3166,7 +3166,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("SecondsTillShutdown"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -3174,7 +3174,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Reason"),
                     data_type: NodeId::new(0, 21),
                     value_rank: -1,
@@ -3182,7 +3182,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Restart"),
                     data_type: NodeId::new(0, 1),
                     value_rank: -1,
@@ -5767,7 +5767,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Mode"),
                     data_type: NodeId::new(0, 3),
                     value_rank: -1,
@@ -5791,7 +5791,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -5815,7 +5815,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -5839,7 +5839,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -5847,7 +5847,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Length"),
                     data_type: NodeId::new(0, 6),
                     value_rank: -1,
@@ -5871,7 +5871,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Data"),
                     data_type: NodeId::new(0, 15),
                     value_rank: -1,
@@ -5895,7 +5895,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -5903,7 +5903,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Data"),
                     data_type: NodeId::new(0, 15),
                     value_rank: -1,
@@ -5927,7 +5927,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -5951,7 +5951,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Position"),
                     data_type: NodeId::new(0, 9),
                     value_rank: -1,
@@ -5975,7 +5975,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -5983,7 +5983,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Position"),
                     data_type: NodeId::new(0, 9),
                     value_rank: -1,
@@ -6007,7 +6007,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("DirectoryName"),
                     data_type: NodeId::new(0, 12),
                     value_rank: -1,
@@ -6031,7 +6031,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("DirectoryNodeId"),
                     data_type: NodeId::new(0, 17),
                     value_rank: -1,
@@ -6055,7 +6055,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileName"),
                     data_type: NodeId::new(0, 12),
                     value_rank: -1,
@@ -6063,7 +6063,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("RequestFileOpen"),
                     data_type: NodeId::new(0, 1),
                     value_rank: -1,
@@ -6087,7 +6087,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileNodeId"),
                     data_type: NodeId::new(0, 17),
                     value_rank: -1,
@@ -6095,7 +6095,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -6119,7 +6119,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("ObjectToDelete"),
                     data_type: NodeId::new(0, 17),
                     value_rank: -1,
@@ -6143,7 +6143,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("ObjectToMoveOrCopy"),
                     data_type: NodeId::new(0, 17),
                     value_rank: -1,
@@ -6151,7 +6151,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("TargetDirectory"),
                     data_type: NodeId::new(0, 17),
                     value_rank: -1,
@@ -6159,7 +6159,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("CreateCopy"),
                     data_type: NodeId::new(0, 1),
                     value_rank: -1,
@@ -6167,7 +6167,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("NewName"),
                     data_type: NodeId::new(0, 12),
                     value_rank: -1,
@@ -6191,7 +6191,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("NewNodeId"),
                     data_type: NodeId::new(0, 17),
                     value_rank: -1,
@@ -6275,7 +6275,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Mode"),
                     data_type: NodeId::new(0, 3),
                     value_rank: -1,
@@ -6299,7 +6299,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -6323,7 +6323,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -6347,7 +6347,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -6355,7 +6355,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Length"),
                     data_type: NodeId::new(0, 6),
                     value_rank: -1,
@@ -6379,7 +6379,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Data"),
                     data_type: NodeId::new(0, 15),
                     value_rank: -1,
@@ -6403,7 +6403,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -6411,7 +6411,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Data"),
                     data_type: NodeId::new(0, 15),
                     value_rank: -1,
@@ -6435,7 +6435,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -6459,7 +6459,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Position"),
                     data_type: NodeId::new(0, 9),
                     value_rank: -1,
@@ -6483,7 +6483,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -6491,7 +6491,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Position"),
                     data_type: NodeId::new(0, 9),
                     value_rank: -1,
@@ -6515,7 +6515,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("DirectoryName"),
                     data_type: NodeId::new(0, 12),
                     value_rank: -1,
@@ -6539,7 +6539,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("DirectoryNodeId"),
                     data_type: NodeId::new(0, 17),
                     value_rank: -1,
@@ -6563,7 +6563,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileName"),
                     data_type: NodeId::new(0, 12),
                     value_rank: -1,
@@ -6571,7 +6571,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("RequestFileOpen"),
                     data_type: NodeId::new(0, 1),
                     value_rank: -1,
@@ -6595,7 +6595,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileNodeId"),
                     data_type: NodeId::new(0, 17),
                     value_rank: -1,
@@ -6603,7 +6603,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -6627,7 +6627,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("ObjectToDelete"),
                     data_type: NodeId::new(0, 17),
                     value_rank: -1,
@@ -6651,7 +6651,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("ObjectToMoveOrCopy"),
                     data_type: NodeId::new(0, 17),
                     value_rank: -1,
@@ -6659,7 +6659,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("TargetDirectory"),
                     data_type: NodeId::new(0, 17),
                     value_rank: -1,
@@ -6667,7 +6667,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("CreateCopy"),
                     data_type: NodeId::new(0, 1),
                     value_rank: -1,
@@ -6675,7 +6675,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("NewName"),
                     data_type: NodeId::new(0, 12),
                     value_rank: -1,
@@ -6699,7 +6699,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("NewNodeId"),
                     data_type: NodeId::new(0, 17),
                     value_rank: -1,
@@ -6888,7 +6888,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Mode"),
                     data_type: NodeId::new(0, 3),
                     value_rank: -1,
@@ -6912,7 +6912,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -6936,7 +6936,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -6960,7 +6960,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -6968,7 +6968,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Length"),
                     data_type: NodeId::new(0, 6),
                     value_rank: -1,
@@ -6992,7 +6992,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Data"),
                     data_type: NodeId::new(0, 15),
                     value_rank: -1,
@@ -7016,7 +7016,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -7024,7 +7024,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Data"),
                     data_type: NodeId::new(0, 15),
                     value_rank: -1,
@@ -7048,7 +7048,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -7072,7 +7072,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Position"),
                     data_type: NodeId::new(0, 9),
                     value_rank: -1,
@@ -7096,7 +7096,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -7104,7 +7104,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Position"),
                     data_type: NodeId::new(0, 9),
                     value_rank: -1,
@@ -7293,7 +7293,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Mode"),
                     data_type: NodeId::new(0, 3),
                     value_rank: -1,
@@ -7317,7 +7317,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -7341,7 +7341,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -7365,7 +7365,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -7373,7 +7373,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Length"),
                     data_type: NodeId::new(0, 6),
                     value_rank: -1,
@@ -7397,7 +7397,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Data"),
                     data_type: NodeId::new(0, 15),
                     value_rank: -1,
@@ -7421,7 +7421,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -7429,7 +7429,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Data"),
                     data_type: NodeId::new(0, 15),
                     value_rank: -1,
@@ -7453,7 +7453,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -7477,7 +7477,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Position"),
                     data_type: NodeId::new(0, 9),
                     value_rank: -1,
@@ -7501,7 +7501,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("FileHandle"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -7509,7 +7509,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Position"),
                     data_type: NodeId::new(0, 9),
                     value_rank: -1,
@@ -12530,7 +12530,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("SubscriptionId"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -12553,7 +12553,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("ServerHandles"),
                     data_type: NodeId::new(0, 7),
                     value_rank: 1,
@@ -12561,7 +12561,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("ClientHandles"),
                     data_type: NodeId::new(0, 7),
                     value_rank: 1,
@@ -12584,7 +12584,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("SubscriptionId"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -12607,7 +12607,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("SubscriptionId"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -12615,7 +12615,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("LifetimeInHours"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -12638,7 +12638,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("RevisedLifetimeInHours"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -12661,7 +12661,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
         // Variable
         let data_value = DataValue::new(vec![
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("State"),
                     data_type: NodeId::new(0, 852),
                     value_rank: -1,
@@ -12669,7 +12669,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("EstimatedReturnTime"),
                     data_type: NodeId::new(0, 13),
                     value_rank: -1,
@@ -12677,7 +12677,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("SecondsTillShutdown"),
                     data_type: NodeId::new(0, 7),
                     value_rank: -1,
@@ -12685,7 +12685,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Reason"),
                     data_type: NodeId::new(0, 21),
                     value_rank: -1,
@@ -12693,7 +12693,7 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
                     description: LocalizedText::new("", ""),
                 })),
             Variant::from(ExtensionObject::from_encodable(
-                NodeId::new(0, 297), Argument {
+                NodeId::new(0, 297), &Argument {
                     name: UAString::from("Restart"),
                     data_type: NodeId::new(0, 1),
                     value_rank: -1,
