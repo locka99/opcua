@@ -53,7 +53,7 @@ pub fn process_decode_io_result<T>(result: Result<T>) -> EncodingResult<T> where
 /// Calculates the length in bytes of an array of encoded type
 pub fn byte_len_array<T: BinaryEncoder<T>>(values: &Option<Vec<T>>) -> usize {
     let mut size = 4;
-    if let &Some(ref values) = values {
+    if let Some(ref values) = values {
         size += values.iter().map(|v| v.byte_len()).sum::<usize>();
     }
     size
@@ -62,7 +62,7 @@ pub fn byte_len_array<T: BinaryEncoder<T>>(values: &Option<Vec<T>>) -> usize {
 /// Write an array of the encoded type to stream, preserving distinction between null array and empty array
 pub fn write_array<S: Write, T: BinaryEncoder<T>>(stream: &mut S, values: &Option<Vec<T>>) -> EncodingResult<usize> {
     let mut size = 0;
-    if let &Some(ref values) = values {
+    if let Some(ref values) = values {
         size += write_i32(stream, values.len() as i32)?;
         for value in values.iter() {
             size += value.encode(stream)?;
