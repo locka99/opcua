@@ -84,7 +84,7 @@ pub mod constants {
 bitflags! {
     pub struct WriteMask: u32 {
         /// Indicates if the AccessLevel Attribute is writable.
-        const ACCESS_LEVEL = 1 << 0;
+        const ACCESS_LEVEL = 1;
         /// Indicates if the ArrayDimensions Attribute is writable.
         const ARRAY_DIMENSTIONS = 1 << 1;
         ///Indicates if the BrowseName Attribute is writable.

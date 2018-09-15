@@ -451,7 +451,7 @@ impl BinaryEncoder<Variant> for Variant {
         };
 
         // Read the value(s). If array length was specified, we assume a single or multi dimension array
-        let result = if array_length > 0 {
+        if array_length > 0 {
             // Array length in total cannot exceed max array length
             if array_length > constants::MAX_ARRAY_LENGTH as i32 {
                 return Err(StatusCode::BadEncodingLimitsExceeded);
@@ -491,8 +491,7 @@ impl BinaryEncoder<Variant> for Variant {
         } else {
             // Read a single variant
             Variant::decode_variant_value(stream, element_encoding_mask)
-        };
-        result
+        }
     }
 }
 

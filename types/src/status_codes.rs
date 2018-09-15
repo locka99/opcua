@@ -288,17 +288,17 @@ impl BinaryEncoder<StatusCode> for StatusCode {
 
 impl StatusCode {
     /// Tests if the status code is bad
-    pub fn is_bad(&self) -> bool {
+    pub fn is_bad(self) -> bool {
         self.contains(StatusCode::IS_ERROR)
     }
 
     /// Tests if the status code is uncertain
-    pub fn is_uncertain(&self) -> bool {
+    pub fn is_uncertain(self) -> bool {
         self.contains(StatusCode::IS_UNCERTAIN)
     }
 
     /// Tests if the status code is good (i.e. not bad or uncertain)
-    pub fn is_good(&self) -> bool {
+    pub fn is_good(self) -> bool {
         !self.is_bad() && !self.is_uncertain()
     }
 

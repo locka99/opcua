@@ -155,7 +155,7 @@ pub fn write_f64(stream: &mut Write, value: f64) -> EncodingResult<usize> {
 /// Reads an array of bytes from the stream
 pub fn read_bytes(stream: &mut Read, buf: &mut [u8]) -> EncodingResult<usize> {
     let result = stream.read_exact(buf);
-    let _ = process_decode_io_result(result)?;
+    process_decode_io_result(result)?;
     Ok(buf.len())
 }
 
@@ -163,7 +163,7 @@ pub fn read_bytes(stream: &mut Read, buf: &mut [u8]) -> EncodingResult<usize> {
 pub fn read_u8(stream: &mut Read) -> EncodingResult<u8> {
     let mut buf = [0u8];
     let result = stream.read_exact(&mut buf);
-    let _ = process_decode_io_result(result)?;
+    process_decode_io_result(result)?;
     Ok(buf[0])
 }
 
@@ -171,7 +171,7 @@ pub fn read_u8(stream: &mut Read) -> EncodingResult<u8> {
 pub fn read_i16(stream: &mut Read) -> EncodingResult<i16> {
     let mut buf = [0u8; 2];
     let result = stream.read_exact(&mut buf);
-    let _ = process_decode_io_result(result)?;
+    process_decode_io_result(result)?;
     Ok(LittleEndian::read_i16(&buf))
 }
 
@@ -179,7 +179,7 @@ pub fn read_i16(stream: &mut Read) -> EncodingResult<i16> {
 pub fn read_u16(stream: &mut Read) -> EncodingResult<u16> {
     let mut buf = [0u8; 2];
     let result = stream.read_exact(&mut buf);
-    let _ = process_decode_io_result(result)?;
+    process_decode_io_result(result)?;
     Ok(LittleEndian::read_u16(&buf))
 }
 
@@ -187,7 +187,7 @@ pub fn read_u16(stream: &mut Read) -> EncodingResult<u16> {
 pub fn read_i32(stream: &mut Read) -> EncodingResult<i32> {
     let mut buf = [0u8; 4];
     let result = stream.read_exact(&mut buf);
-    let _ = process_decode_io_result(result)?;
+    process_decode_io_result(result)?;
     Ok(LittleEndian::read_i32(&buf))
 }
 
@@ -195,7 +195,7 @@ pub fn read_i32(stream: &mut Read) -> EncodingResult<i32> {
 pub fn read_u32(stream: &mut Read) -> EncodingResult<u32> {
     let mut buf = [0u8; 4];
     let result = stream.read_exact(&mut buf);
-    let _ = process_decode_io_result(result)?;
+    process_decode_io_result(result)?;
     Ok(LittleEndian::read_u32(&buf))
 }
 
@@ -203,7 +203,7 @@ pub fn read_u32(stream: &mut Read) -> EncodingResult<u32> {
 pub fn read_i64(stream: &mut Read) -> EncodingResult<i64> {
     let mut buf = [0u8; 8];
     let result = stream.read_exact(&mut buf);
-    let _ = process_decode_io_result(result)?;
+    process_decode_io_result(result)?;
     Ok(LittleEndian::read_i64(&buf))
 }
 
@@ -211,7 +211,7 @@ pub fn read_i64(stream: &mut Read) -> EncodingResult<i64> {
 pub fn read_u64(stream: &mut Read) -> EncodingResult<u64> {
     let mut buf = [0u8; 8];
     let result = stream.read_exact(&mut buf);
-    let _ = process_decode_io_result(result)?;
+    process_decode_io_result(result)?;
     Ok(LittleEndian::read_u64(&buf))
 }
 
@@ -219,7 +219,7 @@ pub fn read_u64(stream: &mut Read) -> EncodingResult<u64> {
 pub fn read_f32(stream: &mut Read) -> EncodingResult<f32> {
     let mut buf = [0u8; 4];
     let result = stream.read_exact(&mut buf);
-    let _ = process_decode_io_result(result)?;
+    process_decode_io_result(result)?;
     Ok(LittleEndian::read_f32(&buf))
 }
 
@@ -227,6 +227,6 @@ pub fn read_f32(stream: &mut Read) -> EncodingResult<f32> {
 pub fn read_f64(stream: &mut Read) -> EncodingResult<f64> {
     let mut buf = [0u8; 8];
     let result = stream.read_exact(&mut buf);
-    let _ = process_decode_io_result(result)?;
+    process_decode_io_result(result)?;
     Ok(LittleEndian::read_f64(&buf))
 }
