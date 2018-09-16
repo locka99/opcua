@@ -1,6 +1,8 @@
 //! Contains the implementation of `NodeId` and `ExpandedNodeId`.
 
 use std;
+use std::u32;
+use std::u16;
 use std::io::{Read, Write};
 use std::str::FromStr;
 use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
@@ -126,7 +128,7 @@ impl BinaryEncoder<NodeId> for NodeId {
                     // full node id
                     size += write_u8(stream, 0x2)?;
                     size += write_u16(stream, self.namespace)?;
-                    size += write_u32(stream, *value as u32)?;
+                    size += write_u32(stream, *value)?;
                 }
             }
             Identifier::String(ref value) => {
@@ -154,17 +156,17 @@ impl BinaryEncoder<NodeId> for NodeId {
         let node_id = match identifier {
             0x0 => {
                 let namespace = 0;
-                let value = read_u8(stream)? as u32;
-                NodeId::new(namespace, value)
+                let value = read_u8(stream)?;
+                NodeId::new(namespace, u32::from(value))
             }
             0x1 => {
-                let namespace = read_u8(stream)? as u16;
-                let value = read_u16(stream)? as u32;
-                NodeId::new(namespace, value)
+                let namespace = read_u8(stream)?;
+                let value = read_u16(stream)?;
+                NodeId::new(u16::from(namespace), u32::from(value))
             }
             0x2 => {
                 let namespace = read_u16(stream)?;
-                let value = read_u32(stream)? as u32;
+                let value = read_u32(stream)?;
                 NodeId::new(namespace, value)
             }
             0x3 => {
@@ -442,7 +444,7 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
             Identifier::Numeric(ref value) => {
                 if self.node_id.namespace == 0 && *value <= 255 {
                     // node id fits into 2 bytes when the namespace is 0 and the value <= 255
-                    size += write_u8(stream, data_encoding | 0x0)?;
+                    size += write_u8(stream, data_encoding)?;
                     size += write_u8(stream, *value as u8)?;
                 } else if self.node_id.namespace <= 255 && *value <= 65535 {
                     // node id fits into 4 bytes when namespace <= 255 and value <= 65535
@@ -453,7 +455,7 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
                     // full node id
                     size += write_u8(stream, data_encoding | 0x2)?;
                     size += write_u16(stream, self.node_id.namespace)?;
-                    size += write_u32(stream, *value as u32)?;
+                    size += write_u32(stream, *value)?;
                 }
             }
             Identifier::String(ref value) => {
@@ -487,18 +489,17 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
         let identifier = data_encoding & 0x0f;
         let node_id = match identifier {
             0x0 => {
-                let namespace = 0;
-                let value = read_u8(stream)? as u32;
-                NodeId::new(namespace, value)
+                let value = read_u8(stream)?;
+                NodeId::new(0, u32::from(value))
             }
             0x1 => {
-                let namespace = read_u8(stream)? as u16;
-                let value = read_u16(stream)? as u32;
-                NodeId::new(namespace, value)
+                let namespace = read_u8(stream)?;
+                let value = read_u16(stream)?;
+                NodeId::new(u16::from(namespace), u32::from(value))
             }
             0x2 => {
                 let namespace = read_u16(stream)?;
-                let value = read_u32(stream)? as u32;
+                let value = read_u32(stream)?;
                 NodeId::new(namespace, value)
             }
             0x3 => {

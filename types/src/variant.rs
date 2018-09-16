@@ -418,7 +418,7 @@ impl BinaryEncoder<Variant> for Variant {
                 // Encode array length
                 let mut size = write_i32(stream, mda.values.len() as i32)?;
                 // Encode values
-                for value in mda.values.iter() {
+                for value in &mda.values {
                     size += Variant::encode_variant_value(stream, value)?;
                 }
                 // Encode dimensions length
@@ -751,7 +751,7 @@ impl Variant {
         if values.is_empty() {
             true
         } else {
-            let expected_type_id = values.get(0).unwrap().type_id();
+            let expected_type_id = values[0].type_id();
             if numeric_only && !expected_type_id.is_numeric() {
                 // Caller only wants numeric types
                 false

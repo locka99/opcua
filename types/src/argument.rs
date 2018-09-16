@@ -50,7 +50,7 @@ impl BinaryEncoder<Argument> for Argument {
                 return Err(StatusCode::BadDataEncodingInvalid);
             }
         } else {
-            size += write_u32(stream, 0)?;
+            size += write_u32(stream, 0u32)?;
         }
 
         size += self.description.encode(stream)?;

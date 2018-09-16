@@ -13,6 +13,7 @@ use address_space::node::Node;
 // This should match size of AttributeId
 const NUM_ATTRIBUTES: usize = 22;
 
+/*
 /// This is a sanity saving macro that adds Node trait methods to all types that have a base
 /// member.
 macro_rules! find_attribute_mandatory {
@@ -25,7 +26,7 @@ macro_rules! find_attribute_mandatory {
         }
         panic!("Mandatory attribute {:?} is missing", attribute_id);
     }
-}
+}*/
 
 macro_rules! is_valid_value_type {
     ( $data_value: expr, $variant_type: ident ) => {
