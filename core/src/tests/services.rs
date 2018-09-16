@@ -7,7 +7,7 @@ fn request_header() -> RequestHeader {
         authentication_token: NodeId::null(),
         timestamp: DateTime::now(),
         request_handle: 77,
-        return_diagnostics: 0,
+        return_diagnostics: DiagnosticBits::empty(),
         audit_entry_id: UAString::from("audit entry"),
         timeout_hint: 23456,
         additional_header: ExtensionObject::null(),

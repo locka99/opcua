@@ -6,7 +6,7 @@ use std::io::{Read, Write};
 use encoding::*;
 #[allow(unused_imports)]
 use basic_types::*;
-use basic_types::DiagnosticInfo;
+use diagnostic_info::DiagnosticInfo;
 use service_types::MonitoredItemNotification;
 
 #[derive(Debug, Clone, PartialEq)]

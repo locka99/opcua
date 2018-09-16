@@ -24,8 +24,8 @@ bitflags! {
     }
 }
 
-
-pub struct ViewService {}
+/// The view service. Allows the client to browse the address space of the server.
+pub(crate) struct ViewService;
 
 impl Service for ViewService {}
 

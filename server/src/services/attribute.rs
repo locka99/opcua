@@ -9,7 +9,8 @@ use address_space::AccessLevel;
 use address_space::AddressSpace;
 use address_space::node::NodeType;
 
-pub struct AttributeService {}
+/// The attribute service. Allows attributes to be read and written from the address space.
+pub(crate) struct AttributeService;
 
 impl Service for AttributeService {}
 

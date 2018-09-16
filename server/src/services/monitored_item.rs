@@ -7,7 +7,8 @@ use opcua_types::service_types::*;
 use session::Session;
 use services::Service;
 
-pub struct MonitoredItemService {}
+/// The monitored item service. Allows client to create, modify and delete monitored items on a subscription.
+pub(crate) struct MonitoredItemService;
 
 impl Service for MonitoredItemService {}
 
@@ -24,7 +25,7 @@ impl MonitoredItemService {
                 let response = CreateMonitoredItemsResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
                     results,
-                    diagnostic_infos: None
+                    diagnostic_infos: None,
                 };
                 Ok(response.into())
             } else {
@@ -46,7 +47,7 @@ impl MonitoredItemService {
                 let response = ModifyMonitoredItemsResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
                     results,
-                    diagnostic_infos: None
+                    diagnostic_infos: None,
                 };
                 Ok(response.into())
             } else {
@@ -69,7 +70,7 @@ impl MonitoredItemService {
                 let response = DeleteMonitoredItemsResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
                     results,
-                    diagnostic_infos
+                    diagnostic_infos,
                 };
                 Ok(response.into())
             } else {

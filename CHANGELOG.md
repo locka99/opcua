@@ -8,13 +8,13 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
     certs, private keys and their corresponding .der, .pem file formats.
 
 ## 0.5 (WORK IN PROGRESS - WIP)
-  - (WIP) better documentation both in markdown and for the client / server APIs.
+  - Tokio codec - use a codec and frame reader to read message chunks.
+  - Better documentation both in markdown and for the client / server APIs.
   - (WIP) Session restore after disconnect in server. The server has to stash sessions that were abnormally disconnected
     so the session state can be restored if a new connection provides the token.
   - (WIP) Session restore after disconnect in client, i.e. attempt to reconnect and resume session first and if that
     fails manually reconstruct the session - subscriptions and monitored items.
   - (WIP) Diagnostics
-  - Tokio codec - use a codec and frame reader to read message chunks.
   - (WIP) Tokio codec - use a codec and frame writer to write message chunks
 
 ## 0.4

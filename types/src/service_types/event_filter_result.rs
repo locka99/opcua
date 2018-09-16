@@ -7,7 +7,7 @@ use encoding::*;
 #[allow(unused_imports)]
 use basic_types::*;
 use status_codes::StatusCode;
-use basic_types::DiagnosticInfo;
+use diagnostic_info::DiagnosticInfo;
 use service_types::ContentFilterResult;
 
 #[derive(Debug, Clone, PartialEq)]

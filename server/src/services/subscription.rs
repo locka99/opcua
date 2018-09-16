@@ -10,7 +10,9 @@ use session::Session;
 use services::Service;
 use address_space::AddressSpace;
 
-pub struct SubscriptionService {}
+/// The subscription service. Allows the client to create, modify and delete subscriptions of monitored items
+/// on the server and to request publish of notifications.
+pub(crate) struct SubscriptionService;
 
 impl Service for SubscriptionService {}
 

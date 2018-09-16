@@ -9,7 +9,7 @@ use basic_types::*;
 use service_types::impls::MessageInfo;
 use node_ids::ObjectId;
 use service_types::impls::ResponseHeader;
-use basic_types::DiagnosticInfo;
+use diagnostic_info::DiagnosticInfo;
 use service_types::TransferResult;
 
 #[derive(Debug, Clone, PartialEq)]

@@ -10,7 +10,8 @@ use session::Session;
 use state::ServerState;
 use constants;
 
-pub struct MethodService {}
+/// The method service. Allows a client to call a method on the server.
+pub(crate) struct MethodService;
 
 impl Service for MethodService {}
 

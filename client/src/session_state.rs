@@ -7,7 +7,6 @@ use chrono;
 use opcua_core::comms::secure_channel::SecureChannel;
 use opcua_core::crypto::SecurityPolicy;
 
-use opcua_types::{UInt32, NodeId, UAString, DateTime, ExtensionObject};
 use opcua_types::*;
 use opcua_types::service_types::*;
 use opcua_types::status_code::StatusCode;
@@ -143,7 +142,7 @@ impl SessionState {
             authentication_token: self.authentication_token.clone(),
             timestamp: DateTime::now(),
             request_handle: self.request_handle.next(),
-            return_diagnostics: 0,
+            return_diagnostics: DiagnosticBits::empty(),
             audit_entry_id: UAString::null(),
             timeout_hint: self.request_timeout,
             additional_header: ExtensionObject::null(),

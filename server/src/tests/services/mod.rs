@@ -38,7 +38,7 @@ fn make_request_header() -> RequestHeader {
         authentication_token: NodeId::new(0, 99),
         timestamp: DateTime::now(),
         request_handle: 1,
-        return_diagnostics: 0,
+        return_diagnostics: DiagnosticBits::empty(),
         audit_entry_id: UAString::null(),
         timeout_hint: 123456,
         additional_header: ExtensionObject::null(),

@@ -8,7 +8,7 @@ use encoding::*;
 use basic_types::*;
 use service_types::impls::MessageInfo;
 use node_ids::ObjectId;
-use basic_types::DiagnosticInfo;
+use diagnostic_info::DiagnosticInfo;
 use service_types::ContentFilterElementResult;
 
 #[derive(Debug, Clone, PartialEq)]

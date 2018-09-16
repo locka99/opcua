@@ -240,7 +240,7 @@ fn chunk_open_secure_channel() {
         let request_header = &request.request_header;
         assert_eq!(request_header.timestamp.ticks(), 131284521470690000);
         assert_eq!(request_header.request_handle, 1);
-        assert_eq!(request_header.return_diagnostics, 0);
+        assert!(request_header.return_diagnostics.is_empty());
         assert_eq!(request_header.audit_entry_id.is_null(), true);
         assert_eq!(request_header.timeout_hint, 0);
     }
@@ -307,7 +307,7 @@ fn open_secure_channel() {
             authentication_token: NodeId::new(0, 99),
             timestamp: DateTime::now(),
             request_handle: 1,
-            return_diagnostics: 0,
+            return_diagnostics: DiagnosticBits::empty(),
             audit_entry_id: UAString::null(),
             timeout_hint: 123456,
             additional_header: ExtensionObject::null(),

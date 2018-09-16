@@ -13,7 +13,8 @@ use state::ServerState;
 use session::Session;
 use services::Service;
 
-pub struct SessionService {}
+/// The session service. Allows the client to create, activate and close an authenticated session with the server.
+pub(crate) struct SessionService;
 
 impl Service for SessionService {}
 

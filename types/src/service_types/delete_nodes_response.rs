@@ -10,7 +10,7 @@ use service_types::impls::MessageInfo;
 use node_ids::ObjectId;
 use service_types::impls::ResponseHeader;
 use status_codes::StatusCode;
-use basic_types::DiagnosticInfo;
+use diagnostic_info::DiagnosticInfo;
 
 /// Delete one or more nodes from the server address space.
 #[derive(Debug, Clone, PartialEq)]

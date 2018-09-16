@@ -10,7 +10,7 @@ use service_types::impls::MessageInfo;
 use node_ids::ObjectId;
 use service_types::impls::ResponseHeader;
 use byte_string::ByteString;
-use basic_types::DiagnosticInfo;
+use diagnostic_info::DiagnosticInfo;
 use service_types::QueryDataSet;
 use service_types::ParsingResult;
 use service_types::ContentFilterResult;

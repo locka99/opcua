@@ -8,6 +8,7 @@ use date_time::DateTime;
 use encoding::*;
 use node_id::NodeId;
 use node_ids::ObjectId;
+use diagnostic_info::{DiagnosticBits, DiagnosticInfo};
 use profiles;
 use service_types::{AnonymousIdentityToken, ApplicationType, DataChangeFilter, DataChangeTrigger, EndpointDescription, ReadValueId, ServiceFault, SignatureData, UserNameIdentityToken, UserTokenType};
 use service_types::{MonitoredItemCreateRequest, MonitoringParameters, CallMethodRequest};
@@ -89,7 +90,7 @@ pub struct RequestHeader {
     ///     The contents of the inner diagnostic info structure are determined by other bits in the
     ///     mask. Note that setting this bit could cause multiple levels of nested
     ///     diagnostic info structures to be returned.
-    pub return_diagnostics: UInt32,
+    pub return_diagnostics: DiagnosticBits,
     /// An identifier that identifies the Client’s security audit log entry associated with
     /// this request. An empty string value means that this parameter is not used. The AuditEntryId
     /// typically contains who initiated the action and from where it was initiated.
@@ -117,7 +118,7 @@ impl BinaryEncoder<RequestHeader> for RequestHeader {
         size += self.authentication_token.byte_len();
         size += self.timestamp.byte_len();
         size += self.request_handle.byte_len();
-        size += self.return_diagnostics.byte_len();
+        size += self.return_diagnostics.bits().byte_len();
         size += self.audit_entry_id.byte_len();
         size += self.timeout_hint.byte_len();
         size += self.additional_header.byte_len();
@@ -129,7 +130,7 @@ impl BinaryEncoder<RequestHeader> for RequestHeader {
         size += self.authentication_token.encode(stream)?;
         size += self.timestamp.encode(stream)?;
         size += self.request_handle.encode(stream)?;
-        size += self.return_diagnostics.encode(stream)?;
+        size += self.return_diagnostics.bits().encode(stream)?;
         size += self.audit_entry_id.encode(stream)?;
         size += self.timeout_hint.encode(stream)?;
         size += self.additional_header.encode(stream)?;
@@ -140,7 +141,7 @@ impl BinaryEncoder<RequestHeader> for RequestHeader {
         let authentication_token = NodeId::decode(stream)?;
         let timestamp = UtcTime::decode(stream)?;
         let request_handle = IntegerId::decode(stream)?;
-        let return_diagnostics = UInt32::decode(stream)?;
+        let return_diagnostics = DiagnosticBits::from_bits_truncate(UInt32::decode(stream)?);
         let audit_entry_id = UAString::decode(stream)?;
         let timeout_hint = UInt32::decode(stream)?;
         let additional_header = ExtensionObject::decode(stream)?;
@@ -162,7 +163,7 @@ impl RequestHeader {
             authentication_token: authentication_token.clone(),
             timestamp: timestamp.clone(),
             request_handle,
-            return_diagnostics: 0,
+            return_diagnostics: DiagnosticBits::empty(),
             audit_entry_id: UAString::null(),
             timeout_hint: 0,
             additional_header: ExtensionObject::null(),
