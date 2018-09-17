@@ -42,12 +42,10 @@ impl Variable {
         let historizing = false;
         let access_level = AccessLevel::CURRENT_READ;
         let user_access_level = UserAccessLevel::CURRENT_READ;
-        let value_rank = -1;
-        let attributes = vec![
+        let mut attributes = vec![
             (AttributeId::UserAccessLevel, Variant::Byte(user_access_level.bits)),
             (AttributeId::AccessLevel, Variant::Byte(access_level.bits)),
             (AttributeId::DataType, Variant::new::<NodeId>(data_type.into())),
-            (AttributeId::ValueRank, Variant::Int32(value_rank)),
             (AttributeId::Historizing, Variant::Boolean(historizing))
         ];
 
@@ -55,6 +53,26 @@ impl Variable {
         //
         //    MinimumSamplingInterval
         //    ArrayDimensions
+
+        // If the value is an array, then array dimensions and the value rank will be set
+        let array_dimensions = if let Some(ref value) = value.value {
+            // Get the
+            match value {
+                &Variant::Array(ref values) => vec![values.len() as UInt32],
+                &Variant::MultiDimensionArray(ref values) => {
+                    // Multidimensional arrays encode/decode dimensions with Int32 in Part 6, but arrayDimensions in Part 3
+                    // wants them as UInt32. Go figure... So convert Int32 to UInt32
+                    values.dimensions.iter().map(|v| *v as UInt32).collect::<Vec<UInt32>>()
+                }
+                _ => vec![]
+            }
+        } else {
+            vec![]
+        };
+        attributes.push((AttributeId::ValueRank, Variant::Int32(array_dimensions.len() as Int32)));
+        if !array_dimensions.is_empty() {
+            attributes.push((AttributeId::ArrayDimensions, Variant::from_u32_array(&array_dimensions)));
+        }
 
         let mut result = Variable {
             base: Base::new(NodeClass::Variable, node_id, browse_name, display_name, description, attributes),
