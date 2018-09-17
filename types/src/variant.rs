@@ -887,6 +887,16 @@ impl Variant {
             Variant::QualifiedName(_) => DataTypeId::QualifiedName,
             Variant::LocalizedText(_) => DataTypeId::LocalizedText,
             Variant::DataValue(_) => DataTypeId::DataValue,
+            Variant::Array(ref values) => {
+                if values.is_empty() {
+                    panic!("Can't get the data type of an empty array");
+                } else {
+                    values[0].data_type().unwrap()
+                }
+            }
+            Variant::MultiDimensionArray(_) => {
+                unimplemented!("Implement me");
+            }
             _ => {
                 return None;
             }

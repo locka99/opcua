@@ -29,11 +29,24 @@ fn main() {
     // Create an OPC UA server with sample configuration and default node set
     let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
 
+    let (static_folder_id, dynamic_folder_id) = {
+        let mut address_space = server.address_space.write().unwrap();
+        (
+            address_space
+                .add_folder("Static", "Static", &AddressSpace::objects_folder_id())
+                .unwrap(),
+            address_space
+                .add_folder("Dynamic", "Dynamic", &AddressSpace::objects_folder_id())
+                .unwrap()
+        )
+    };
+
     // Add static scalar values
-    add_static_scalar_variables(&mut server);
+    add_static_scalar_variables(&mut server, &static_folder_id);
 
     // Add dynamically changing scalar values
-    add_dynamic_scalar_variables(&mut server);
+    add_dynamic_scalar_variables(&mut server, &dynamic_folder_id);
+    add_dynamic_array_variables(&mut server, &dynamic_folder_id);
 
     // Add some rapidly changing values
     add_stress_scalar_variables(&mut server);
@@ -197,13 +210,9 @@ fn add_control_switches(server: &mut Server) {
 }
 
 /// Creates some sample variables, and some push / pull examples that update them
-fn add_static_scalar_variables(server: &mut Server) {
+fn add_static_scalar_variables(server: &mut Server, static_folder_id: &NodeId) {
     // The address space is guarded so obtain a lock to change it
     let mut address_space = server.address_space.write().unwrap();
-
-    let static_folder_id = address_space
-        .add_folder("Static", "Static", &AddressSpace::objects_folder_id())
-        .unwrap();
 
     // Create a folder under static folder
     let folder_id = address_space
@@ -218,25 +227,21 @@ fn add_static_scalar_variables(server: &mut Server) {
     }
 }
 
-fn add_dynamic_scalar_variables(server: &mut Server) {
+fn add_dynamic_scalar_variables(server: &mut Server, dynamic_folder_id: &NodeId) {
     // The address space is guarded so obtain a lock to change it
     {
         let mut address_space = server.address_space.write().unwrap();
 
-        let folder_id = address_space
-            .add_folder("Dynamic", "Dynamic", &AddressSpace::objects_folder_id())
-            .unwrap();
-
         // Create a folder under static folder
-        let scalar_folder_id = address_space
-            .add_folder("Scalar", "Scalar", &folder_id)
+        let folder_id = address_space
+            .add_folder("Scalar", "Scalar", &dynamic_folder_id)
             .unwrap();
 
         Scalar::values().iter().for_each(|sn| {
             let node_id = sn.node_id(true);
             let name = sn.name();
             let default_value = sn.default_value();
-            let _ = address_space.add_variable(Variable::new(&node_id, name, name, &format!("{} value", name), default_value), &scalar_folder_id);
+            let _ = address_space.add_variable(Variable::new(&node_id, name, name, &format!("{} value", name), default_value), &folder_id);
         });
     }
 
@@ -250,6 +255,34 @@ fn add_dynamic_scalar_variables(server: &mut Server) {
     });
 }
 
+fn add_dynamic_array_variables(server: &mut Server, dynamic_folder_id: &NodeId) {
+    // The address space is guarded so obtain a lock to change it
+    {
+        let mut address_space = server.address_space.write().unwrap();
+
+        // Create a folder under static folder
+        let folder_id = address_space
+            .add_folder("Array", "Array", &dynamic_folder_id)
+            .unwrap();
+
+        Scalar::values().iter().for_each(|sn| {
+            let node_id = sn.node_id(true);
+            let name = sn.name();
+            let values = (0..100).map(|_| sn.default_value()).collect::<Vec<Variant>>();
+            let _ = address_space.add_variable(Variable::new(&node_id, name, name, &format!("{} value", name), values), &folder_id);
+        });
+    }
+    /*
+        let address_space = server.address_space.clone();
+        server.add_polling_action(250, move || {
+            let mut address_space = address_space.write().unwrap();
+            Scalar::values().iter().for_each(|sn| {
+                let node_id = sn.node_id(true);
+                let _ = address_space.set_variable_value(node_id, sn.random_value());
+            });
+        });
+        */
+}
 
 fn add_stress_scalar_variables(server: &mut Server) {
     // The address space is guarded so obtain a lock to change it
