@@ -864,43 +864,49 @@ impl Variant {
     }
 
     pub fn data_type(&self) -> Option<DataTypeId> {
-        Some(match *self {
-            Variant::Boolean(_) => DataTypeId::Boolean,
-            Variant::SByte(_) => DataTypeId::SByte,
-            Variant::Byte(_) => DataTypeId::Byte,
-            Variant::Int16(_) => DataTypeId::Int16,
-            Variant::UInt16(_) => DataTypeId::UInt16,
-            Variant::Int32(_) => DataTypeId::Int32,
-            Variant::UInt32(_) => DataTypeId::UInt32,
-            Variant::Int64(_) => DataTypeId::Int64,
-            Variant::UInt64(_) => DataTypeId::UInt64,
-            Variant::Float(_) => DataTypeId::Float,
-            Variant::Double(_) => DataTypeId::Double,
-            Variant::String(_) => DataTypeId::String,
-            Variant::DateTime(_) => DataTypeId::DateTime,
-            Variant::Guid(_) => DataTypeId::Guid,
-            Variant::ByteString(_) => DataTypeId::ByteString,
-            Variant::XmlElement(_) => DataTypeId::XmlElement,
-            Variant::NodeId(_) => DataTypeId::NodeId,
-            Variant::ExpandedNodeId(_) => DataTypeId::ExpandedNodeId,
-            Variant::StatusCode(_) => DataTypeId::StatusCode,
-            Variant::QualifiedName(_) => DataTypeId::QualifiedName,
-            Variant::LocalizedText(_) => DataTypeId::LocalizedText,
-            Variant::DataValue(_) => DataTypeId::DataValue,
+        match *self {
+            Variant::Boolean(_) => Some(DataTypeId::Boolean),
+            Variant::SByte(_) => Some(DataTypeId::SByte),
+            Variant::Byte(_) => Some(DataTypeId::Byte),
+            Variant::Int16(_) => Some(DataTypeId::Int16),
+            Variant::UInt16(_) => Some(DataTypeId::UInt16),
+            Variant::Int32(_) => Some(DataTypeId::Int32),
+            Variant::UInt32(_) => Some(DataTypeId::UInt32),
+            Variant::Int64(_) => Some(DataTypeId::Int64),
+            Variant::UInt64(_) => Some(DataTypeId::UInt64),
+            Variant::Float(_) => Some(DataTypeId::Float),
+            Variant::Double(_) => Some(DataTypeId::Double),
+            Variant::String(_) => Some(DataTypeId::String),
+            Variant::DateTime(_) => Some(DataTypeId::DateTime),
+            Variant::Guid(_) => Some(DataTypeId::Guid),
+            Variant::ByteString(_) => Some(DataTypeId::ByteString),
+            Variant::XmlElement(_) => Some(DataTypeId::XmlElement),
+            Variant::NodeId(_) => Some(DataTypeId::NodeId),
+            Variant::ExpandedNodeId(_) => Some(DataTypeId::ExpandedNodeId),
+            Variant::StatusCode(_) => Some(DataTypeId::StatusCode),
+            Variant::QualifiedName(_) => Some(DataTypeId::QualifiedName),
+            Variant::LocalizedText(_) => Some(DataTypeId::LocalizedText),
+            Variant::DataValue(_) => Some(DataTypeId::DataValue),
             Variant::Array(ref values) => {
                 if values.is_empty() {
-                    panic!("Can't get the data type of an empty array");
+                    error!("Can't get the data type of an empty array");
+                    None
                 } else {
-                    values[0].data_type().unwrap()
+                    values[0].data_type()
                 }
             }
-            Variant::MultiDimensionArray(_) => {
-                unimplemented!("Implement me");
+            Variant::MultiDimensionArray(ref mda) => {
+                if mda.values.is_empty() {
+                    error!("Can't get the data type of an empty array");
+                    None
+                } else {
+                    mda.values[0].data_type()
+                }
             }
             _ => {
-                return None;
+                None
             }
-        })
+        }
     }
 
     // Gets the encoding mask to write the variant to disk

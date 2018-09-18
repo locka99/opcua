@@ -143,11 +143,9 @@ impl AddressSpace {
             let server_state = trace_read_lock_unwrap!(server_state);
             if let Some(ref mut v) = self.find_variable_mut(Server_NamespaceArray) {
                 v.set_value_direct(&DateTime::now(), Variant::from_string_array(&server_state.namespaces));
-                v.set_array_dimensions(&[server_state.namespaces.len() as UInt32]);
             }
             if let Some(ref mut v) = self.find_variable_mut(Server_ServerArray) {
                 v.set_value_direct(&DateTime::now(), Variant::from_string_array(&server_state.servers));
-                v.set_array_dimensions(&[server_state.servers.len() as UInt32]);
             }
         }
 
@@ -204,7 +202,6 @@ impl AddressSpace {
                 "http://opcfoundation.org/UA-Profile/Server/EmbeddedUA".to_string(),
             ];
             v.set_value_direct(&DateTime::now(), Variant::from_string_array(&server_profiles));
-            v.set_array_dimensions(&[server_profiles.len() as UInt32]);
         }
 
         // Server_ServerCapabilities_LocaleIdArray

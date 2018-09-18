@@ -94,7 +94,7 @@ macro_rules! find_attribute_value_mandatory {
     }
 }
 
-/// Macro that finds an optional attribute returning the attribute in a `Option`, or
+/// Macro that finds an optional attribute returning the attribute in a `Some`, or
 /// `None` if the attribute does not exist.
 macro_rules! find_attribute_value_optional {
     ( $sel:expr, $attribute_id: ident, $variant_type: ident ) => {

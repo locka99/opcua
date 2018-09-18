@@ -30,12 +30,6 @@ impl Variable {
         Variable::new_data_value(node_id, browse_name, display_name, description, data_type, DataValue::new(value))
     }
 
-    pub fn new_array(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: DataValue, dimensions: &[UInt32]) -> Variable {
-        let mut variable = Variable::new_data_value(node_id, browse_name, display_name, description, data_type, value);
-        variable.set_array_dimensions(dimensions);
-        variable
-    }
-
     /// Constructs a new variable with the specified id, name, type and value
     pub fn new_data_value(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: DataValue) -> Variable {
         // Mandatory
@@ -49,30 +43,37 @@ impl Variable {
             (AttributeId::Historizing, Variant::Boolean(historizing))
         ];
 
-        // Optional attributes can be added through functions
+        // ArrayDimensions attribute depends on the value being an array
         //
-        //    MinimumSamplingInterval
-        //    ArrayDimensions
+        // TODO the code currently doesn't cope with the value being set as an array later on unless
+        // the client caller, sets these values for itself. That should be fixed.
 
         // If the value is an array, then array dimensions and the value rank will be set
         let array_dimensions = if let Some(ref value) = value.value {
             // Get the
             match value {
-                &Variant::Array(ref values) => vec![values.len() as UInt32],
+                &Variant::Array(ref values) => Some(vec![values.len() as UInt32]),
                 &Variant::MultiDimensionArray(ref values) => {
                     // Multidimensional arrays encode/decode dimensions with Int32 in Part 6, but arrayDimensions in Part 3
                     // wants them as UInt32. Go figure... So convert Int32 to UInt32
-                    values.dimensions.iter().map(|v| *v as UInt32).collect::<Vec<UInt32>>()
+                    Some(values.dimensions.iter().map(|v| *v as UInt32).collect::<Vec<UInt32>>())
                 }
-                _ => vec![]
+                _ => None
             }
         } else {
-            vec![]
+            None
         };
-        attributes.push((AttributeId::ValueRank, Variant::Int32(array_dimensions.len() as Int32)));
-        if !array_dimensions.is_empty() {
+        if let Some(array_dimensions) = array_dimensions {
+            attributes.push((AttributeId::ValueRank, Variant::Int32(array_dimensions.len() as Int32)));
             attributes.push((AttributeId::ArrayDimensions, Variant::from_u32_array(&array_dimensions)));
         }
+        else {
+            attributes.push((AttributeId::ValueRank, Variant::Int32(-1)));
+        }
+
+        // Optional attributes can be added through functions
+        //
+        //    MinimumSamplingInterval
 
         let mut result = Variable {
             base: Base::new(NodeClass::Variable, node_id, browse_name, display_name, description, attributes),
@@ -96,17 +97,6 @@ impl Variable {
 
     pub fn set_value_setter(&mut self, setter: Arc<Mutex<AttributeSetter + Send>>) {
         self.base.set_attribute_setter(AttributeId::Value, setter);
-    }
-
-    /// Sets the array dimensions information
-    ///
-    /// Specifies the length of each dimension for an array value. 
-    ///
-    /// A value of 0 in any dimension means length of the dimension is variable.
-    pub fn set_array_dimensions(&mut self, dimensions: &[UInt32]) {
-        let now = DateTime::now();
-        let _ = self.base.set_attribute_value(AttributeId::ValueRank, Variant::Int32(dimensions.len() as Int32), &now, &now);
-        let _ = self.base.set_attribute_value(AttributeId::ArrayDimensions, Variant::from_u32_array(dimensions), &now, &now);
     }
 
     /// Sets the minimum sampling interval
@@ -188,5 +178,15 @@ impl Variable {
 
     pub fn historizing(&self) -> Boolean {
         find_attribute_value_mandatory!(&self.base, Historizing, Boolean)
+    }
+
+    pub fn array_dimensions(&self) -> Option<Vec<UInt32>> {
+        /* let result: Option<Vec<Variant>> = find_attribute_value_optional!(&self.base, ArrayDimensions, Array);
+        if result.is_none() {
+            None
+        } else {
+            Some(result.unwrap().as_ref().clone())
+        } */
+        None // TODO
     }
 }

@@ -176,3 +176,24 @@ fn find_references_to() {
     let references = references.unwrap();
     assert_eq!(references.len(), 1);
 }
+
+
+/// This test is to ensure that adding a Variable with a value of Array to address space sets the
+/// ValueRank and ArrayDimensions attributes correctly.
+#[test]
+fn add_array_as_variable() {
+    let mut address_space = make_sample_address_space();
+
+    // 1 dimensional array with 100 element
+    let node_id = NodeId::new(2, "ExampleArray");
+    let values = (0..100).map(|i| Variant::Int32(i)).collect::<Vec<Variant>>();
+    let _ = address_space.add_variable(Variable::new(&node_id, "x", "x", &"x value", values), &AddressSpace::objects_folder_id());
+
+    // Get the variable node back from the address space, ensure that the ValueRank and ArrayDimensions are correct
+    let v: &Variable = address_space.find_variable(node_id.clone()).unwrap();
+
+    let value_rank = v.value_rank();
+    assert_eq!(value_rank, 1);
+    let array_dimensions = v.array_dimensions();
+    // TODO assert_eq!(array_dimensions, vec![100u32]);
+}
