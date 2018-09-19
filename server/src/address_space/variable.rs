@@ -66,8 +66,7 @@ impl Variable {
         if let Some(array_dimensions) = array_dimensions {
             attributes.push((AttributeId::ValueRank, Variant::Int32(array_dimensions.len() as Int32)));
             attributes.push((AttributeId::ArrayDimensions, Variant::from_u32_array(&array_dimensions)));
-        }
-        else {
+        } else {
             attributes.push((AttributeId::ValueRank, Variant::Int32(-1)));
         }
 
@@ -181,12 +180,21 @@ impl Variable {
     }
 
     pub fn array_dimensions(&self) -> Option<Vec<UInt32>> {
-        /* let result: Option<Vec<Variant>> = find_attribute_value_optional!(&self.base, ArrayDimensions, Array);
-        if result.is_none() {
-            None
+        if let Some(values) = find_attribute_value_optional!(&self.base, ArrayDimensions, Array) {
+            // The expectation is that this Vec<Variant> is a non-zero Vec<UInt32>
+            if values.is_empty() {
+                panic!("Expecting array dimensions, got an empty array");
+            } else {
+                Some(values.iter().map(|v| {
+                    if let Variant::UInt32(ref v) = v {
+                        *v
+                    } else {
+                        panic!("Expecting array dimensions to be UInt32, but got a non UInt32");
+                    }
+                }).collect::<Vec<UInt32>>())
+            }
         } else {
-            Some(result.unwrap().as_ref().clone())
-        } */
-        None // TODO
+            None
+        }
     }
 }

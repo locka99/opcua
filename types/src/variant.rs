@@ -294,6 +294,36 @@ pub enum Variant {
     MultiDimensionArray(Box<MultiDimensionArray>),
 }
 
+/// Tests that the variants in the slice all have the same variant type
+fn array_is_same_type(values: &[Variant], numeric_only: bool) -> bool {
+    if values.is_empty() {
+        true
+    } else {
+        let expected_type_id = values[0].type_id();
+        if numeric_only && !expected_type_id.is_numeric() {
+            // Type isn't numeric, despite being expected to be numeric
+            false
+        } else if expected_type_id == VariantTypeId::Array || expected_type_id == VariantTypeId::MultiDimensionArray {
+            // Nested arrays are explicitly NOT allowed
+            error!("Variant array contains nested array {:?}", expected_type_id);
+            false
+        } else if values.len() > 1 {
+            // Ensure all elements are the expected type
+            values[1..].iter().find(|v| {
+                if v.type_id() != expected_type_id {
+                    error!("Variant array's type is expected to be {:?} but found another type {:?} in it too", expected_type_id, v.type_id());
+                    true
+                } else {
+                    false
+                }
+            }).is_none()
+        } else {
+            // Only contains 1 element
+            true
+        }
+    }
+}
+
 /// A multi dimensional array is a vector of values, followed by a vector of sizes of each dimension.
 /// It is expected that the multi-dimensional array is valid, or it might not be encoded or decoded
 /// properly.
@@ -304,11 +334,19 @@ pub struct MultiDimensionArray {
 }
 
 impl MultiDimensionArray {
-    pub fn new(values: Vec<Variant>, dimensions: Vec<Int32>) -> MultiDimensionArray {
-        MultiDimensionArray { values, dimensions }
+    pub fn new<V, D>(values: V, dimensions: D) -> MultiDimensionArray
+        where V: Into<Vec<Variant>>, D: Into<Vec<Int32>> {
+        MultiDimensionArray {
+            values: values.into(),
+            dimensions: dimensions.into(),
+        }
     }
 
-    pub fn is_valid_dimensions(&self) -> bool {
+    pub fn is_valid(&self) -> bool {
+        self.is_valid_dimensions() && array_is_same_type(&self.values, false)
+    }
+
+    fn is_valid_dimensions(&self) -> bool {
         // Check that the array dimensions match the length of the array
         let mut length: usize = 1;
         for d in &self.dimensions {
@@ -424,8 +462,8 @@ impl BinaryEncoder<Variant> for Variant {
                 // Encode dimensions length
                 size += write_i32(stream, mda.dimensions.len() as i32)?;
                 // Encode dimensions
-                for d in mda.dimensions.iter() {
-                    size += write_i32(stream, *d)?;
+                for dimension in &mda.dimensions {
+                    size += write_i32(stream, *dimension)?;
                 }
                 size
             }
@@ -719,48 +757,13 @@ impl Variant {
         // A non-numeric value in the array means it is not numeric
         match *self {
             Variant::Array(ref values) => {
-                Self::array_is_same_type(values, true)
+                array_is_same_type(values, true)
             }
             Variant::MultiDimensionArray(ref mda) => {
-                Self::array_is_same_type(&mda.values, true)
+                array_is_same_type(&mda.values, true)
             }
             _ => {
                 false
-            }
-        }
-    }
-
-    fn array_is_expected_type(values: &[Variant], expected_type_id: VariantTypeId) -> bool {
-        if values.is_empty() {
-            true
-        } else {
-            // Ensure all elements are the expected type
-            values.iter().find(|v| {
-                if v.type_id() != expected_type_id {
-                    error!("Variant array's type is expected to be {:?} but found another type {:?} in it too", expected_type_id, v.type_id());
-                    true
-                } else {
-                    false
-                }
-            }).is_none()
-        }
-    }
-
-    /// Test that the vector of variants are all of the same type
-    fn array_is_same_type(values: &[Variant], numeric_only: bool) -> bool {
-        if values.is_empty() {
-            true
-        } else {
-            let expected_type_id = values[0].type_id();
-            if numeric_only && !expected_type_id.is_numeric() {
-                // Caller only wants numeric types
-                false
-            } else if expected_type_id == VariantTypeId::Array || expected_type_id == VariantTypeId::MultiDimensionArray {
-                // Nested arrays are explicitly NOT allowed
-                error!("Variant array contains nested array {:?}", expected_type_id);
-                false
-            } else {
-                Self::array_is_expected_type(&values[1..], expected_type_id)
             }
         }
     }
@@ -771,18 +774,10 @@ impl Variant {
     pub fn is_valid(&self) -> bool {
         match *self {
             Variant::Array(ref values) => {
-                Self::array_is_same_type(values, false)
+                array_is_same_type(values, false)
             }
             Variant::MultiDimensionArray(ref mda) => {
-                if mda.values.is_empty() && mda.dimensions.is_empty() {
-                    true
-                } else if !mda.is_valid_dimensions() {
-                    // Check that the array dimensions match the length of the array
-                    false
-                } else {
-                    // Check values are all the same type
-                    Self::array_is_same_type(&mda.values, false)
-                }
+                mda.is_valid()
             }
             _ => {
                 true

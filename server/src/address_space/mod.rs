@@ -100,18 +100,19 @@ macro_rules! find_attribute_value_optional {
     ( $sel:expr, $attribute_id: ident, $variant_type: ident ) => {
         {
             use opcua_types::AttributeId;
-            let attribute_id = AttributeId::$attribute_id;
-            let data_value = $sel.find_attribute(attribute_id);
-
-            let mut result = None;
-            if let Some(data_value) = data_value {
+            if let Some(data_value) = $sel.find_attribute(AttributeId::$attribute_id) {
                 if let Some(value) = data_value.value {
                     if let Variant::$variant_type(value) = value {
-                        result = Some(value);
+                        Some(value)
+                    } else {
+                        None
                     }
+                } else {
+                    None
                 }
+            } else {
+                None
             }
-            result
         }
     }
 }
