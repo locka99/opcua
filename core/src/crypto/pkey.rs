@@ -38,7 +38,7 @@ pub type PublicKey = PKey<pkey::Public>;
 pub type PrivateKey = PKey<pkey::Private>;
 
 impl<T> Debug for PKey<T> {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         // This impl will not write out the key, but it exists to keep structs happy
         // that contain a key as a field
         write!(f, "[pkey]")

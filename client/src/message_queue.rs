@@ -36,10 +36,10 @@ impl MessageQueue {
     }
 
     /// Called by the session to add a request to be sent
-    pub(crate) fn add_request(&mut self, request: SupportedMessage, async: bool) {
+    pub(crate) fn add_request(&mut self, request: SupportedMessage, is_async: bool) {
         let request_handle = request.request_handle();
         trace!("Sending request {:?} to be sent", request);
-        self.inflight_requests.insert((request_handle, async));
+        self.inflight_requests.insert((request_handle, is_async));
         let _ = self.sender.as_ref().unwrap().unbounded_send(request);
     }
 

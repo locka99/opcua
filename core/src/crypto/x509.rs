@@ -107,7 +107,7 @@ pub struct X509 {
 }
 
 impl Debug for X509 {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         // This impl will not write out the cert, and exists to keep derive happy
         // on structs that contain an X509 instance
         write!(f, "[x509]")

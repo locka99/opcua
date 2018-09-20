@@ -8,7 +8,7 @@ use subscription::MonitoredItem;
 /// This is the data change callback that clients register to receive item change notifications
 pub(crate) struct DataChangeCallback {
     /// The actual call back
-    cb: Box<Fn(Vec<&MonitoredItem>) + Send + Sync + 'static>
+    cb: Box<dyn Fn(Vec<&MonitoredItem>) + Send + Sync + 'static>
 }
 
 impl DataChangeCallback {
@@ -28,11 +28,11 @@ impl DataChangeCallback {
 /// This is the registered callback to receive connection status change notifications. The boolean
 /// argument indicates that status has changed from connected to disconnected or vice versa.
 pub(crate) struct ConnectionStatusCallback {
-    cb: Option<Box<FnMut(bool) + 'static + Send + Sync>>,
+    cb: Option<Box<dyn FnMut(bool) + 'static + Send + Sync>>,
 }
 
 impl fmt::Debug for ConnectionStatusCallback {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "[callback]")
     }
 }

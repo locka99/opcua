@@ -27,7 +27,7 @@ impl HasNodeId for NodeType {
 }
 
 impl NodeType {
-    pub fn as_node(&self) -> &Node {
+    pub fn as_node(&self) -> &dyn Node {
         match *self {
             NodeType::Object(ref value) => value,
             NodeType::ObjectType(ref value) => value,
@@ -40,7 +40,7 @@ impl NodeType {
         }
     }
 
-    pub fn as_mut_node(&mut self) -> &mut Node {
+    pub fn as_mut_node(&mut self) -> &mut dyn Node {
         match *self {
             NodeType::Object(ref mut value) => value,
             NodeType::ObjectType(ref mut value) => value,

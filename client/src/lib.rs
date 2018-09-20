@@ -8,8 +8,8 @@ extern crate url;
 extern crate chrono;
 #[macro_use]
 extern crate serde_derive;
-extern crate serde;
-extern crate time;
+
+
 extern crate futures;
 extern crate tokio;
 extern crate tokio_io;

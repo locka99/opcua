@@ -1,6 +1,6 @@
 //! These tests are specifically testing secure channel behaviour of signing, encrypting, decrypting and verifying
 //! chunks containing messages
-extern crate rustc_serialize as serialize;
+
 
 use comms::chunker::*;
 use comms::secure_channel::*;

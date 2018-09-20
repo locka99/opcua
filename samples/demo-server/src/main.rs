@@ -3,15 +3,15 @@
 //!
 //! Use simple-server to understand a terse and simple example.
 
-extern crate chrono;
-extern crate log;
+
+
 extern crate rand;
 extern crate log4rs;
 
-extern crate opcua_core;
+
 extern crate opcua_server;
-extern crate opcua_types;
-extern crate opcua_console_logging;
+
+
 
 use std::path::PathBuf;
 use std::iter::repeat;

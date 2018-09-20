@@ -7,8 +7,8 @@
 //!    b) Subscribe to values and loop forever printing out their values (using --subscribe)
 extern crate clap;
 extern crate opcua_client;
-extern crate opcua_core;
-extern crate opcua_types;
+
+
 extern crate opcua_console_logging;
 
 use std::sync::{Arc, RwLock};

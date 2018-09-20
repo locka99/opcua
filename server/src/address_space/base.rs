@@ -50,13 +50,13 @@ pub struct Base {
     /// Attributes
     attributes: Vec<Option<DataValue>>,
     /// Attribute getters - if None, handled by Base
-    attribute_getters: HashMap<AttributeId, Arc<Mutex<AttributeGetter + Send>>>,
+    attribute_getters: HashMap<AttributeId, Arc<Mutex<dyn AttributeGetter + Send>>>,
     /// Attribute setters - if None, handled by Base
-    attribute_setters: HashMap<AttributeId, Arc<Mutex<AttributeSetter + Send>>>,
+    attribute_setters: HashMap<AttributeId, Arc<Mutex<dyn AttributeSetter + Send>>>,
 }
 
 impl Debug for Base {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         // This impl will not write out the key, but it exists to keep structs happy
         // that contain a key as a field
         write!(f, "Base {{ base: {:?} }}", self.attributes)
@@ -242,11 +242,11 @@ impl Base {
         }
     }
 
-    pub fn set_attribute_getter(&mut self, attribute_id: AttributeId, getter: Arc<Mutex<AttributeGetter + Send>>) {
+    pub fn set_attribute_getter(&mut self, attribute_id: AttributeId, getter: Arc<Mutex<dyn AttributeGetter + Send>>) {
         self.attribute_getters.insert(attribute_id, getter);
     }
 
-    pub fn set_attribute_setter(&mut self, attribute_id: AttributeId, setter: Arc<Mutex<AttributeSetter + Send>>) {
+    pub fn set_attribute_setter(&mut self, attribute_id: AttributeId, setter: Arc<Mutex<dyn AttributeSetter + Send>>) {
         self.attribute_setters.insert(attribute_id, setter);
     }
 

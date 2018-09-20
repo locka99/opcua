@@ -28,7 +28,7 @@ struct StatusCodeVisitor;
 impl<'de> Visitor<'de> for StatusCodeVisitor {
     type Value = u32;
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str("an integer between -2^31 and 2^31")
     }
 

@@ -90,11 +90,11 @@ impl Variable {
         let _ = self.base.set_attribute(AttributeId::Value, value);
     }
 
-    pub fn set_value_getter(&mut self, getter: Arc<Mutex<AttributeGetter + Send>>) {
+    pub fn set_value_getter(&mut self, getter: Arc<Mutex<dyn AttributeGetter + Send>>) {
         self.base.set_attribute_getter(AttributeId::Value, getter);
     }
 
-    pub fn set_value_setter(&mut self, setter: Arc<Mutex<AttributeSetter + Send>>) {
+    pub fn set_value_setter(&mut self, setter: Arc<Mutex<dyn AttributeSetter + Send>>) {
         self.base.set_attribute_setter(AttributeId::Value, setter);
     }
 

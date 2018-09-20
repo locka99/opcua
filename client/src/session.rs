@@ -934,9 +934,9 @@ impl Session {
     }
 
     /// Asynchronously sends a request. The return value is the request handle of the request
-    fn async_send_request<T>(&mut self, request: T, async: bool) -> Result<UInt32, StatusCode> where T: Into<SupportedMessage> {
+    fn async_send_request<T>(&mut self, request: T, is_async: bool) -> Result<UInt32, StatusCode> where T: Into<SupportedMessage> {
         let mut session_state = trace_write_lock_unwrap!(self.session_state);
-        session_state.async_send_request(request, async)
+        session_state.async_send_request(request, is_async)
     }
 
     /// Asks the session to poll, which basically does housekeeping and dispatching of any pending
@@ -1029,7 +1029,7 @@ impl Session {
 
     /// Makes a future that publishes requests for the subscription. This code doesn't return "impl Future"
     /// due to recursive behaviour in the take_while, so instead it returns a boxed future.
-    fn make_subscription_timer(subscription_id: UInt32, session_state: Arc<RwLock<SessionState>>, subscription_state: Arc<RwLock<SubscriptionState>>) -> Box<Future<Item=(), Error=()> + Send> {
+    fn make_subscription_timer(subscription_id: UInt32, session_state: Arc<RwLock<SessionState>>, subscription_state: Arc<RwLock<SubscriptionState>>) -> Box<dyn Future<Item=(), Error=()> + Send> {
         let publishing_interval = {
             let ss = trace_read_lock_unwrap!(subscription_state);
             if let Some(subscription) = ss.get(subscription_id) {

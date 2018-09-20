@@ -2,11 +2,11 @@
 //! adds some variables to the address space and the listeners for connections. It also has
 //! a timer that updates those variables so anything monitoring variables sees the values changing.
 extern crate chrono;
-extern crate log;
 
-extern crate opcua_core;
+
+
 extern crate opcua_server;
-extern crate opcua_types;
+
 extern crate opcua_console_logging;
 
 use std::path::PathBuf;

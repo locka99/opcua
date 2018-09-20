@@ -20,7 +20,7 @@ pub struct UAString {
 }
 
 impl fmt::Display for UAString {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(ref value) = self.value {
             write!(f, "{}", value)
         } else {

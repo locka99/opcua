@@ -6,8 +6,8 @@ extern crate clap;
 #[macro_use]
 extern crate conrod;
 extern crate opcua_client;
-extern crate opcua_core;
-extern crate opcua_types;
+
+
 extern crate opcua_console_logging;
 
 use std::collections::BTreeMap;
@@ -338,7 +338,7 @@ fn draw_ui(ui: &mut Ui, model: &mut UiModel) {
     }
 }
 
-fn value_widget(value: &str, valid: bool, x: f64, y: f64, w: f64, h: f64, _canvas_id: conrod::widget::Id) -> widget::Text {
+fn value_widget(value: &str, valid: bool, x: f64, y: f64, w: f64, h: f64, _canvas_id: conrod::widget::Id) -> widget::Text<'_> {
     let color = if valid { GOOD_COLOUR } else { BAD_COLOUR };
     widget::Text::new(value)
         .x_y(x, y)

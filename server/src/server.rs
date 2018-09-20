@@ -51,7 +51,7 @@ pub type Connections = Vec<Arc<RwLock<TcpTransport>>>;
 ///
 pub struct Server {
     /// List of pending polling actions to add to the server once run is called
-    pending_polling_actions: Vec<(u32, Box<Fn() + Send + Sync + 'static>)>,
+    pending_polling_actions: Vec<(u32, Box<dyn Fn() + Send + Sync + 'static>)>,
     /// Certificate store for certs
     pub certificate_store: Arc<RwLock<CertificateStore>>,
     /// Server metrics - diagnostics and anything else that someone might be interested in that

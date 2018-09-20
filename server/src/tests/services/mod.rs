@@ -28,7 +28,7 @@ impl ServiceTest {
         }
     }
 
-    pub fn get_server_state_and_session(&self) -> (RwLockWriteGuard<ServerState>, RwLockWriteGuard<Session>) {
+    pub fn get_server_state_and_session(&self) -> (RwLockWriteGuard<'_, ServerState>, RwLockWriteGuard<'_, Session>) {
         (self.server_state.write().unwrap(), self.session.write().unwrap())
     }
 }

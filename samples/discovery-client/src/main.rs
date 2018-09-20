@@ -1,7 +1,7 @@
 //! This is a sample that calls find servers on a OPC UA discovery server
 extern crate clap;
 extern crate opcua_client;
-extern crate opcua_core;
+
 extern crate opcua_types;
 extern crate opcua_console_logging;
 

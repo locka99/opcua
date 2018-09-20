@@ -33,8 +33,8 @@ extern crate hyper;
 extern crate log;
 #[macro_use]
 extern crate bitflags;
-extern crate ring;
-extern crate serde;
+
+
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;

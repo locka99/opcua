@@ -4,14 +4,14 @@
 #[macro_use]
 extern crate log;
 extern crate chrono;
-extern crate regex;
+
 extern crate ring;
 extern crate openssl;
 #[cfg(test)]
 extern crate tempdir;
 extern crate serde;
 extern crate serde_yaml;
-extern crate tokio;
+
 extern crate tokio_io;
 extern crate bytes;
 

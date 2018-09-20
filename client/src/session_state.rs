@@ -173,7 +173,7 @@ impl SessionState {
     }
 
     /// Asynchronously sends a request. The return value is the request handle of the request
-    pub(crate) fn async_send_request<T>(&mut self, request: T, async: bool) -> Result<UInt32, StatusCode> where T: Into<SupportedMessage> {
+    pub(crate) fn async_send_request<T>(&mut self, request: T, is_async: bool) -> Result<UInt32, StatusCode> where T: Into<SupportedMessage> {
         let request = request.into();
         match request {
             SupportedMessage::OpenSecureChannelRequest(_) | SupportedMessage::CloseSecureChannelRequest(_) => {}
@@ -187,7 +187,7 @@ impl SessionState {
 
         // Enqueue the request
         let request_handle = request.request_handle();
-        self.add_request(request, async);
+        self.add_request(request, is_async);
 
         Ok(request_handle)
     }
@@ -232,9 +232,9 @@ impl SessionState {
         message_queue.request_has_timed_out(request_handle)
     }
 
-    fn add_request(&mut self, request: SupportedMessage, async: bool) {
+    fn add_request(&mut self, request: SupportedMessage, is_async: bool) {
         let mut message_queue = trace_write_lock_unwrap!(self.message_queue);
-        message_queue.add_request(request, async)
+        message_queue.add_request(request, is_async)
     }
 
     /// Checks if secure channel token needs to be renewed and renews it

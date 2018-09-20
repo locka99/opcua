@@ -90,7 +90,7 @@ pub enum ReferenceDirection {
     Inverse,
 }
 
-type MethodCallback = Box<Fn(&AddressSpace, &ServerState, &Session, &CallMethodRequest) -> Result<CallMethodResult, StatusCode> + Send + Sync + 'static>;
+type MethodCallback = Box<dyn Fn(&AddressSpace, &ServerState, &Session, &CallMethodRequest) -> Result<CallMethodResult, StatusCode> + Send + Sync + 'static>;
 
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
 struct MethodKey {

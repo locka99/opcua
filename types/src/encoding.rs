@@ -91,76 +91,76 @@ pub fn read_array<S: Read, T: BinaryEncoder<T>>(stream: &mut S) -> EncodingResul
 }
 
 /// Writes an unsigned byte to the stream
-pub fn write_u8<T>(stream: &mut Write, value: T) -> EncodingResult<usize> where T: Into<u8> {
+pub fn write_u8<T>(stream: &mut dyn Write, value: T) -> EncodingResult<usize> where T: Into<u8> {
     let buf: [u8; 1] = [value.into()];
     process_encode_io_result(stream.write(&buf))
 }
 
 /// Writes a signed 16-bit value to the stream
-pub fn write_i16<T>(stream: &mut Write, value: T) -> EncodingResult<usize> where T: Into<i16> {
+pub fn write_i16<T>(stream: &mut dyn Write, value: T) -> EncodingResult<usize> where T: Into<i16> {
     let mut buf = [0u8; 2];
     LittleEndian::write_i16(&mut buf, value.into());
     process_encode_io_result(stream.write(&buf))
 }
 
 /// Writes an unsigned 16-bit value to the stream
-pub fn write_u16<T>(stream: &mut Write, value: T) -> EncodingResult<usize> where T: Into<u16> {
+pub fn write_u16<T>(stream: &mut dyn Write, value: T) -> EncodingResult<usize> where T: Into<u16> {
     let mut buf = [0u8; 2];
     LittleEndian::write_u16(&mut buf, value.into());
     process_encode_io_result(stream.write(&buf))
 }
 
 /// Writes a signed 32-bit value to the stream
-pub fn write_i32<T>(stream: &mut Write, value: T) -> EncodingResult<usize> where T: Into<i32> {
+pub fn write_i32<T>(stream: &mut dyn Write, value: T) -> EncodingResult<usize> where T: Into<i32> {
     let mut buf = [0u8; 4];
     LittleEndian::write_i32(&mut buf, value.into());
     process_encode_io_result(stream.write(&buf))
 }
 
 /// Writes an unsigned 32-bit value to the stream
-pub fn write_u32<T>(stream: &mut Write, value: T) -> EncodingResult<usize> where T: Into<u32> {
+pub fn write_u32<T>(stream: &mut dyn Write, value: T) -> EncodingResult<usize> where T: Into<u32> {
     let mut buf = [0u8; 4];
     LittleEndian::write_u32(&mut buf, value.into());
     process_encode_io_result(stream.write(&buf))
 }
 
 /// Writes a signed 64-bit value to the stream
-pub fn write_i64<T>(stream: &mut Write, value: T) -> EncodingResult<usize> where T: Into<i64> {
+pub fn write_i64<T>(stream: &mut dyn Write, value: T) -> EncodingResult<usize> where T: Into<i64> {
     let mut buf = [0u8; 8];
     LittleEndian::write_i64(&mut buf, value.into());
     process_encode_io_result(stream.write(&buf))
 }
 
 /// Writes an unsigned 64-bit value to the stream
-pub fn write_u64<T>(stream: &mut Write, value: T) -> EncodingResult<usize> where T: Into<u64> {
+pub fn write_u64<T>(stream: &mut dyn Write, value: T) -> EncodingResult<usize> where T: Into<u64> {
     let mut buf = [0u8; 8];
     LittleEndian::write_u64(&mut buf, value.into());
     process_encode_io_result(stream.write(&buf))
 }
 
 /// Writes a 32-bit precision value to the stream
-pub fn write_f32<T>(stream: &mut Write, value: T) -> EncodingResult<usize> where T: Into<f32> {
+pub fn write_f32<T>(stream: &mut dyn Write, value: T) -> EncodingResult<usize> where T: Into<f32> {
     let mut buf = [0u8; 4];
     LittleEndian::write_f32(&mut buf, value.into());
     process_encode_io_result(stream.write(&buf))
 }
 
 /// Writes a 64-bit precision value to the stream
-pub fn write_f64<T>(stream: &mut Write, value: T) -> EncodingResult<usize> where T: Into<f64> {
+pub fn write_f64<T>(stream: &mut dyn Write, value: T) -> EncodingResult<usize> where T: Into<f64> {
     let mut buf = [0u8; 8];
     LittleEndian::write_f64(&mut buf, value.into());
     process_encode_io_result(stream.write(&buf))
 }
 
 /// Reads an array of bytes from the stream
-pub fn read_bytes(stream: &mut Read, buf: &mut [u8]) -> EncodingResult<usize> {
+pub fn read_bytes(stream: &mut dyn Read, buf: &mut [u8]) -> EncodingResult<usize> {
     let result = stream.read_exact(buf);
     process_decode_io_result(result)?;
     Ok(buf.len())
 }
 
 /// Read an unsigned byte from the stream
-pub fn read_u8(stream: &mut Read) -> EncodingResult<u8> {
+pub fn read_u8(stream: &mut dyn Read) -> EncodingResult<u8> {
     let mut buf = [0u8];
     let result = stream.read_exact(&mut buf);
     process_decode_io_result(result)?;
@@ -168,7 +168,7 @@ pub fn read_u8(stream: &mut Read) -> EncodingResult<u8> {
 }
 
 /// Read an signed 16-bit value from the stream
-pub fn read_i16(stream: &mut Read) -> EncodingResult<i16> {
+pub fn read_i16(stream: &mut dyn Read) -> EncodingResult<i16> {
     let mut buf = [0u8; 2];
     let result = stream.read_exact(&mut buf);
     process_decode_io_result(result)?;
@@ -176,7 +176,7 @@ pub fn read_i16(stream: &mut Read) -> EncodingResult<i16> {
 }
 
 /// Read an unsigned 16-bit value from the stream
-pub fn read_u16(stream: &mut Read) -> EncodingResult<u16> {
+pub fn read_u16(stream: &mut dyn Read) -> EncodingResult<u16> {
     let mut buf = [0u8; 2];
     let result = stream.read_exact(&mut buf);
     process_decode_io_result(result)?;
@@ -184,7 +184,7 @@ pub fn read_u16(stream: &mut Read) -> EncodingResult<u16> {
 }
 
 /// Read a signed 32-bit value from the stream
-pub fn read_i32(stream: &mut Read) -> EncodingResult<i32> {
+pub fn read_i32(stream: &mut dyn Read) -> EncodingResult<i32> {
     let mut buf = [0u8; 4];
     let result = stream.read_exact(&mut buf);
     process_decode_io_result(result)?;
@@ -192,7 +192,7 @@ pub fn read_i32(stream: &mut Read) -> EncodingResult<i32> {
 }
 
 /// Read an unsigned 32-bit value from the stream
-pub fn read_u32(stream: &mut Read) -> EncodingResult<u32> {
+pub fn read_u32(stream: &mut dyn Read) -> EncodingResult<u32> {
     let mut buf = [0u8; 4];
     let result = stream.read_exact(&mut buf);
     process_decode_io_result(result)?;
@@ -200,7 +200,7 @@ pub fn read_u32(stream: &mut Read) -> EncodingResult<u32> {
 }
 
 /// Read a signed 64-bit value from the stream
-pub fn read_i64(stream: &mut Read) -> EncodingResult<i64> {
+pub fn read_i64(stream: &mut dyn Read) -> EncodingResult<i64> {
     let mut buf = [0u8; 8];
     let result = stream.read_exact(&mut buf);
     process_decode_io_result(result)?;
@@ -208,7 +208,7 @@ pub fn read_i64(stream: &mut Read) -> EncodingResult<i64> {
 }
 
 /// Read an unsigned 64-bit value from the stream
-pub fn read_u64(stream: &mut Read) -> EncodingResult<u64> {
+pub fn read_u64(stream: &mut dyn Read) -> EncodingResult<u64> {
     let mut buf = [0u8; 8];
     let result = stream.read_exact(&mut buf);
     process_decode_io_result(result)?;
@@ -216,7 +216,7 @@ pub fn read_u64(stream: &mut Read) -> EncodingResult<u64> {
 }
 
 /// Read a 32-bit precision value from the stream
-pub fn read_f32(stream: &mut Read) -> EncodingResult<f32> {
+pub fn read_f32(stream: &mut dyn Read) -> EncodingResult<f32> {
     let mut buf = [0u8; 4];
     let result = stream.read_exact(&mut buf);
     process_decode_io_result(result)?;
@@ -224,7 +224,7 @@ pub fn read_f32(stream: &mut Read) -> EncodingResult<f32> {
 }
 
 /// Read a 64-bit precision from the stream
-pub fn read_f64(stream: &mut Read) -> EncodingResult<f64> {
+pub fn read_f64(stream: &mut dyn Read) -> EncodingResult<f64> {
     let mut buf = [0u8; 8];
     let result = stream.read_exact(&mut buf);
     process_decode_io_result(result)?;

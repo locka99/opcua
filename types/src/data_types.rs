@@ -56,7 +56,7 @@ impl BinaryEncoder<MessageSecurityMode> for MessageSecurityMode {
 }
 
 impl fmt::Display for MessageSecurityMode {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let name = match *self {
             MessageSecurityMode::None => MESSAGE_SECURITY_MODE_NONE,
             MessageSecurityMode::Sign => MESSAGE_SECURITY_MODE_SIGN,
