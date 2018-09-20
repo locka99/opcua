@@ -6,9 +6,6 @@ use basic_types::*;
 use date_time::*;
 use status_codes::StatusCode;
 
-/// This primitive data type is a UInt32 that identifies an element of an array.
-pub type Index = UInt32;
-
 /// This primitive data type is a UInt32 that is used as an identifier, such as a handle.
 /// All values, except for 0, are valid. IntegerId = 288,
 pub type IntegerId = UInt32;
@@ -131,7 +128,7 @@ impl BinaryEncoder<MonitoringMode> for MonitoringMode {
             2 => Ok(MonitoringMode::Reporting),
             _ => {
                 error!("Don't know what monitoring mode {} is", value);
-                Err(StatusCode::BadMonitoringModeInvalid)
+                Err(StatusCode::BadDecodingError)
             }
         }
     }
