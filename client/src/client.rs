@@ -1,6 +1,7 @@
 //! Client setup and session creation.
 
 use std::str::FromStr;
+use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
 use opcua_types::{ByteString, MessageSecurityMode, UAString};
@@ -11,7 +12,7 @@ use opcua_types::status_code::StatusCode;
 use opcua_core::crypto::{CertificateStore, PrivateKey, SecurityPolicy, X509};
 use opcua_core::config::Config;
 
-use config::{ANONYMOUS_USER_TOKEN_ID, ClientConfig, ClientEndpoint};
+use config::{ANONYMOUS_USER_TOKEN_ID, ClientConfig, ClientEndpoint, ClientUserToken};
 use session::{Session, SessionInfo};
 
 #[derive(Debug)]
@@ -24,9 +25,112 @@ struct SessionEntry {
     session: Arc<RwLock<Session>>,
 }
 
-/// The `Client` defines a connection to a server which can be used to to get end points or establish
-/// a session. It is configured using a [`ClientConfig`] which defines the server it talks to and other
-/// details such as the location of the certificate store.
+
+/// The `ClientBuilder` is a builder for producing a `Client`. It is an alternative to constructing
+/// a `ClientConfig` from file or from scratch.
+pub struct ClientBuilder {
+    client_config: ClientConfig,
+}
+
+impl ClientBuilder {
+    /// Creates a `ClientBuilder`
+    pub fn new() -> ClientBuilder {
+        ClientBuilder {
+            client_config: ClientConfig::new("", "")
+        }
+    }
+
+    /// Creates a `ClientBuilder` using a configuration file as the initial state.
+    pub fn from_config<T>(path: T) -> Result<ClientBuilder, ()> where T: Into<PathBuf> {
+        Ok(ClientBuilder {
+            client_config: ClientConfig::load(&path.into())?
+        })
+    }
+
+    /// Yields a `Client` from the values set by the builder. If the builder is not in a valid state
+    /// it will return `None`.
+    pub fn client(self) -> Option<Client> {
+        if self.is_valid() {
+            Some(Client::new(self.client_config))
+        } else {
+            None
+        }
+    }
+
+    /// Yields a `ClientConfig` from the values set by the builder.
+    pub fn config(self) -> ClientConfig {
+        self.client_config
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.client_config.is_valid()
+    }
+
+    pub fn application_name<T>(mut self, application_name: T) -> Self where T: Into<String> {
+        self.client_config.application_name = application_name.into();
+        self
+    }
+
+    pub fn application_uri<T>(mut self, application_uri: T) -> Self where T: Into<String> {
+        self.client_config.application_uri = application_uri.into();
+        self
+    }
+
+    pub fn product_uri<T>(mut self, product_uri: T) -> Self where T: Into<String> {
+        self.client_config.product_uri = product_uri.into();
+        self
+    }
+
+    pub fn create_sample_keypair(mut self, create_sample_keypair: bool) -> Self {
+        self.client_config.create_sample_keypair = create_sample_keypair;
+        self
+    }
+
+    pub fn trust_server_certs(mut self, trust_server_certs: bool) -> Self {
+        self.client_config.trust_server_certs = trust_server_certs;
+        self
+    }
+
+    pub fn pki_dir<T>(mut self, pki_dir: T) -> Self where T: Into<PathBuf> {
+        self.client_config.pki_dir = pki_dir.into();
+        self
+    }
+
+    pub fn preferred_locales(mut self, preferred_locales: Vec<String>) -> Self {
+        self.client_config.preferred_locales = preferred_locales;
+        self
+    }
+
+    pub fn default_endpoint<T>(mut self, endpoint_id: T) -> Self where T: Into<String> {
+        self.client_config.default_endpoint = endpoint_id.into();
+        self
+    }
+
+    pub fn endpoint<T>(mut self, endpoint_id: T, endpoint: ClientEndpoint) -> Self where T: Into<String> {
+        self.client_config.endpoints.insert(endpoint_id.into(), endpoint);
+        self
+    }
+
+    pub fn endpoints<T>(mut self, endpoints: Vec<(T, ClientEndpoint)>) -> Self where T: Into<String> {
+        for e in endpoints {
+            self.client_config.endpoints.insert(e.0.into(), e.1);
+        };
+        self
+    }
+
+    pub fn user_token<T>(mut self, user_token_id: T, user_token: ClientUserToken) -> Self where T: Into<String> {
+        let user_token_id = user_token_id.into();
+        if user_token_id == ANONYMOUS_USER_TOKEN_ID {
+            panic!("User token id {} is reserved", user_token_id);
+        }
+        self.client_config.user_tokens.insert(user_token_id, user_token);
+        self
+    }
+}
+
+/// The `Client` defines a connection that can be used to to get end points or establish
+/// one or more sessions with an OPC UA server. It is configured using a [`ClientConfig`] which
+/// defines the server it talks to and other details such as the location of the certificate store.
 ///
 /// [`ClientConfig`]: ../config/struct.ClientConfig.html
 ///

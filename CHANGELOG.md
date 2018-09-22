@@ -16,7 +16,8 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
     fails manually reconstruct the session - subscriptions and monitored items.
   - (WIP) Diagnostics
   - (WIP) Tokio codec - use a codec and frame writer to write message chunks
-
+  - Add a `ClientBuilder` object to simplify creating a `Client`
+  
 ## 0.4
   - General
     - More rigorous security checks server side and new client side certificate checking.

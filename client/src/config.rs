@@ -20,7 +20,7 @@ pub struct ClientUserToken {
 }
 
 impl ClientUserToken {
-    pub fn new<T>(user: T, password: T) -> Self where T: Into<String> {
+    pub fn new<S, T>(user: S, password: T) -> Self where S: Into<String>, T: Into<String> {
         ClientUserToken {
             user: user.into(),
             password: password.into(),
@@ -91,32 +91,50 @@ pub struct ClientConfig {
 }
 
 impl Config for ClientConfig {
+    /// Test if the config is valid, which requires at the least that
     fn is_valid(&self) -> bool {
         let mut valid = true;
 
+        if self.application_name.is_empty() {
+            error!("Application name is empty");
+            valid = false;
+        }
+        if self.application_uri.is_empty() {
+            error!("Application uri is empty");
+            valid = false;
+        }
         if self.user_tokens.contains_key(ANONYMOUS_USER_TOKEN_ID) {
             error!("User tokens contains the reserved \"{}\" id", ANONYMOUS_USER_TOKEN_ID);
             valid = false;
         }
         if self.user_tokens.contains_key("") {
-            warn!("User tokens contains an endpoint with an empty id");
+            error!("User tokens contains an endpoint with an empty id");
+            valid = false;
         }
-
-        // Check for duplicate ids in endpoints
-        if self.endpoints.contains_key("") {
-            warn!("Endpoints contains an endpoint with an empty id");
-        }
-
-        // Check for invalid security policy and modes in endpoints
-        for (id, e) in &self.endpoints {
-            if SecurityPolicy::from_str(&e.security_policy).unwrap() != SecurityPolicy::Unknown {
-                if MessageSecurityMode::Invalid == MessageSecurityMode::from(e.security_mode.as_ref()) {
-                    error!("Endpoint {} security mode {} is invalid", id, e.security_mode);
+        if self.endpoints.is_empty() {
+            error!("Endpoint config contains no endpoints");
+            valid = false;
+        } else {
+            // Check for invalid ids in endpoints
+            if self.endpoints.contains_key("") {
+                error!("Endpoints contains an endpoint with an empty id");
+                valid = false;
+            }
+            if !self.default_endpoint.is_empty() && !self.endpoints.contains_key(&self.default_endpoint) {
+                error!("Default endpoint id {} does not exist in list of endpoints", self.default_endpoint);
+                valid = false;
+            }
+            // Check for invalid security policy and modes in endpoints
+            for (id, e) in &self.endpoints {
+                if SecurityPolicy::from_str(&e.security_policy).unwrap() != SecurityPolicy::Unknown {
+                    if MessageSecurityMode::Invalid == MessageSecurityMode::from(e.security_mode.as_ref()) {
+                        error!("Endpoint {} security mode {} is invalid", id, e.security_mode);
+                        valid = false;
+                    }
+                } else {
+                    error!("Endpoint {} security policy {} is invalid", id, e.security_policy);
                     valid = false;
                 }
-            } else {
-                error!("Endpoint {} security policy {} is invalid", id, e.security_policy);
-                valid = false;
             }
         }
 
@@ -148,3 +166,4 @@ impl ClientConfig {
         }
     }
 }
+
