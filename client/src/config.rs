@@ -148,6 +148,25 @@ impl Config for ClientConfig {
     fn product_uri(&self) -> UAString { UAString::from(self.product_uri.as_ref()) }
 }
 
+impl Default for ClientConfig {
+    fn default() -> Self {
+        let mut pki_dir = std::env::current_dir().unwrap();
+        pki_dir.push("pki");
+        ClientConfig {
+            application_name: String::new(),
+            application_uri: String::new(),
+            create_sample_keypair: false,
+            trust_server_certs: false,
+            product_uri: String::new(),
+            pki_dir,
+            preferred_locales: Vec::new(),
+            default_endpoint: String::new(),
+            user_tokens: BTreeMap::new(),
+            endpoints: BTreeMap::new(),
+        }
+    }
+}
+
 impl ClientConfig {
     pub fn new<T>(application_name: T, application_uri: T) -> Self where T: Into<String> {
         let mut pki_dir = std::env::current_dir().unwrap();

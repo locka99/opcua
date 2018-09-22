@@ -1,5 +1,4 @@
-use opcua_client::client::Client;
-use opcua_client::config::ClientConfig;
+use opcua_client::prelude::{Client, ClientConfig};
 
 use state::ServerState;
 

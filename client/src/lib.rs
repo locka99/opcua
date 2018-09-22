@@ -1,6 +1,20 @@
 //! The OPC UA Client module provides the functionality necessary for a client to connect to an OPC UA server,
 //! authenticate itself, send messages, receive responses, get values, browse the address space and
 //! provide callbacks for things to be propagated to the client.
+//!
+//! Clients start off by creating a [`ClientBuilder`] and constructing a [`Client`] from that.
+//!
+//! It is also possible to create a `Client` from a [`ClientConfig`] that can be defined on disk, or
+//! in code.
+//!
+//! Once a `Client` has been created, it is able to connect to an OPC UA. The connection is managed
+//! by a [`Session`] and hasfunctions that enable the client to create subscriptions, monitor items,
+//! browse the address space and so on.
+//!
+//! [`Client`]: ./client/struct.Client.html
+//! [`ClientConfig`]: ./config/struct.ClientConfig.html
+//! [`ClientBuilder`]: ./client_builder/struct.ClientBuilder.html
+//! [`Session`]: ./session/struct.Session.html
 
 #[macro_use]
 extern crate log;
@@ -26,10 +40,12 @@ mod subscription_state;
 mod session_state;
 mod message_queue;
 
-pub mod config;
-pub mod client;
-pub mod session;
-pub mod callbacks;
+// Use through prelude
+mod config;
+mod client;
+mod session;
+mod callbacks;
+mod client_builder;
 
 use opcua_types::SupportedMessage;
 use opcua_types::service_types::ResponseHeader;
@@ -64,6 +80,7 @@ pub mod prelude {
     pub use opcua_types::service_types::*;
     pub use opcua_core::prelude::*;
     pub use client::*;
+    pub use client_builder::*;
     pub use config::*;
     pub use session::*;
     pub use subscription::MonitoredItem;
