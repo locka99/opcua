@@ -261,6 +261,33 @@ impl Config for ServerConfig {
     fn product_uri(&self) -> UAString { UAString::from(self.product_uri.as_ref()) }
 }
 
+
+impl Default for ServerConfig {
+    fn default() -> Self {
+        let pki_dir = PathBuf::from("./pki");
+        ServerConfig {
+            application_name: String::new(),
+            application_uri: String::new(),
+            product_uri: String::new(),
+            pki_dir,
+            create_sample_keypair: false,
+            discovery_server_url: None,
+            tcp_config: TcpConfig {
+                host: "localhost".to_string(),
+                port: constants::DEFAULT_RUST_OPC_UA_SERVER_PORT,
+                hello_timeout: constants::DEFAULT_HELLO_TIMEOUT_SECONDS,
+            },
+            user_tokens: BTreeMap::new(),
+            discovery_url: String::new(),
+            endpoints: BTreeMap::new(),
+            max_array_length: opcua_types_constants::MAX_ARRAY_LENGTH,
+            max_string_length: opcua_types_constants::MAX_STRING_LENGTH,
+            max_byte_string_length: opcua_types_constants::MAX_BYTE_STRING_LENGTH,
+            max_subscriptions: constants::DEFAULT_MAX_SUBSCRIPTIONS,
+        }
+    }
+}
+
 impl ServerConfig {
     pub fn new<T>(application_name: T, user_tokens: BTreeMap<String, ServerUserToken>, endpoints: BTreeMap<String, ServerEndpoint>) -> Self where T: Into<String> {
         let host = "127.0.0.1".to_string();

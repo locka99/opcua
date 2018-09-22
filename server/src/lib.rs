@@ -60,6 +60,7 @@ mod completion_pact;
 pub mod comms;
 pub mod metrics;
 pub mod server;
+pub mod server_builder;
 pub mod state;
 pub mod diagnostics;
 pub mod subscriptions;
