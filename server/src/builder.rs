@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use opcua_core::config::Config;
 
+use constants;
 use config::{ServerConfig, ServerEndpoint, ServerUserToken, ANONYMOUS_USER_TOKEN_ID};
 use server::Server;
 
@@ -42,6 +43,7 @@ impl ServerBuilder {
         ServerBuilder::new()
             .application_name("OPC UA Sample Server")
             .create_sample_keypair(true)
+            .discovery_server_url(Some(constants::DEFAULT_DISCOVERY_SERVER_URL.to_string()))
             .user_token("sample_user", ServerUserToken {
                 user: "sample".to_string(),
                 pass: Some("sample1".to_string()),

@@ -271,7 +271,7 @@ impl Default for ServerConfig {
             create_sample_keypair: false,
             discovery_server_url: None,
             tcp_config: TcpConfig {
-                host: "localhost".to_string(),
+                host: "127.0.0.1".to_string(),
                 port: constants::DEFAULT_RUST_OPC_UA_SERVER_PORT,
                 hello_timeout: constants::DEFAULT_HELLO_TIMEOUT_SECONDS,
             },
