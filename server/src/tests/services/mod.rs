@@ -15,7 +15,7 @@ struct ServiceTest {
 
 impl ServiceTest {
     pub fn new() -> ServiceTest {
-        let server = Server::new(ServerConfig::new_anonymous("foo"));
+        let server = ServerBuilder::new_anonymous("foo").server().unwrap();
         let tcp_transport = server.new_transport();
         let server_state = server.server_state.clone();
         let address_space = server.address_space.clone();

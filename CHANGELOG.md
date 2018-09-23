@@ -1,22 +1,23 @@
 # Changelog
 
 ASPIRATIONAL - a short list of things that would be nice to implement in the near future
-  - Rust 2018. Fix all code to the 2018 spec. This will clean up code like match statements, extern crates etc. 
-    that benefit from greater inference.
+
   - Replace more OpenSSL with `ring` equivalent functions. Ring doesn't do X509 so code is still
     dependent on OpenSSL until a drop-in replacement appears - need something which can generate, read and write X509
     certs, private keys and their corresponding .der, .pem file formats.
 
 ## 0.5 (WORK IN PROGRESS - WIP)
   - Tokio codec - use a codec and frame reader to read message chunks.
+  - (WIP) Rust 2018. All code will be ported to the 2018 spec. This will clean up code like match statements, extern crates etc. 
+    that benefit from greater inference.
+  - (WIP) Tokio codec - use a codec and frame writer to write message chunks
   - Better documentation both in markdown and for the client / server APIs.
   - (WIP) Session restore after disconnect in server. The server has to stash sessions that were abnormally disconnected
     so the session state can be restored if a new connection provides the token.
   - (WIP) Session restore after disconnect in client, i.e. attempt to reconnect and resume session first and if that
     fails manually reconstruct the session - subscriptions and monitored items.
   - (WIP) Diagnostics
-  - (WIP) Tokio codec - use a codec and frame writer to write message chunks
-  - Add a `ClientBuilder` object to simplify creating a `Client`
+  - Add a `ServerBuilder` and `ClientBuilder` to simplify creating a `Server` and `Client` respectively.
   
 ## 0.4
   - General

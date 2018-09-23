@@ -22,7 +22,7 @@
 //!  use opcua_server::prelude::*;
 //! 
 //!  fn main() {
-//!      let server: Server = ServerConfig::new_sample().into();
+//!      let server: Server = ServerBuilder::new_sample().server().unwrap();
 //!      server.run();
 //!  }
 //!  ```
@@ -60,7 +60,7 @@ mod completion_pact;
 pub mod comms;
 pub mod metrics;
 pub mod server;
-pub mod server_builder;
+pub mod builder;
 pub mod state;
 pub mod diagnostics;
 pub mod subscriptions;
@@ -79,6 +79,7 @@ pub mod prelude {
     pub use opcua_core::prelude::*;
     pub use config::*;
     pub use server::*;
+    pub use builder::*;
     pub use address_space::types::*;
     pub use subscriptions::*;
     pub use subscriptions::subscription::*;

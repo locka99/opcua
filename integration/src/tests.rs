@@ -14,6 +14,7 @@ use opcua_core;
 use opcua_server;
 use opcua_types::*;
 use opcua_server::config::{ServerEndpoint, ServerConfig};
+use opcua_server::builder::ServerBuilder;
 use opcua_server::prelude::*;
 use opcua_client::prelude::*;
 use opcua_client::config::{ClientConfig, ClientUserToken};
@@ -109,37 +110,33 @@ fn new_server(port_offset: u16) -> Server {
     let endpoint_path = "/";
 
     // Both client server define this
-    let anonymous_id = opcua_server::prelude::ANONYMOUS_USER_TOKEN_ID;
     let sample_user_id = "sample";
 
     // Create user tokens - anonymous and a sample user
-    let mut user_tokens = BTreeMap::new();
-    user_tokens.insert(sample_user_id.to_string(), ServerUserToken::new_user_pass("sample", "sample1"));
-    let user_token_ids = vec![anonymous_id, sample_user_id];
-
-    // Create endpoints in every configuration
-    let endpoints = [
-        ("none", endpoint_path, SecurityPolicy::None, MessageSecurityMode::None, &user_token_ids),
-        ("basic128rsa15_sign", endpoint_path, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign, &user_token_ids),
-        ("basic128rsa15_sign_encrypt", endpoint_path, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
-        ("basic256_sign", endpoint_path, SecurityPolicy::Basic256, MessageSecurityMode::Sign, &user_token_ids),
-        ("basic256_sign_encrypt", endpoint_path, SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
-        ("basic256sha256_sign", endpoint_path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign, &user_token_ids),
-        ("basic256sha256_sign_encrypt", endpoint_path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
-    ].iter().map(|v| {
-        (v.0.to_string(), ServerEndpoint::from((v.1, v.2, v.3, &v.4[..])))
-    }).collect::<BTreeMap<_, _>>();
-
-    let mut config = ServerConfig::new("integration_server", user_tokens, endpoints);
-    config.discovery_url = endpoint_url(port_offset);
-    config.create_sample_keypair = true;
-    config.pki_dir = PathBuf::from("./pki-server");
-    config.discovery_server_url = None;
-    config.tcp_config.host = hostname();
-    config.tcp_config.port = 4855 + port_offset;
+    let user_token_ids = vec![opcua_server::prelude::ANONYMOUS_USER_TOKEN_ID, sample_user_id];
 
     // Create an OPC UA server with sample configuration and default node set
-    let server = Server::new(config);
+    let server = ServerBuilder::new()
+        .application_name("integration_server")
+        .discovery_url(endpoint_url(port_offset))
+        .create_sample_keypair(true)
+        .pki_dir("./pki-server")
+        .discovery_server_url(None)
+        .host_port(hostname(), 4855 + port_offset)
+        .user_token(sample_user_id, ServerUserToken::new_user_pass("sample", "sample1"))
+        .endpoints(
+            [
+                ("none", endpoint_path, SecurityPolicy::None, MessageSecurityMode::None, &user_token_ids),
+                ("basic128rsa15_sign", endpoint_path, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign, &user_token_ids),
+                ("basic128rsa15_sign_encrypt", endpoint_path, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
+                ("basic256_sign", endpoint_path, SecurityPolicy::Basic256, MessageSecurityMode::Sign, &user_token_ids),
+                ("basic256_sign_encrypt", endpoint_path, SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
+                ("basic256sha256_sign", endpoint_path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign, &user_token_ids),
+                ("basic256sha256_sign_encrypt", endpoint_path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
+            ].iter().map(|v| {
+                (v.0.to_string(), ServerEndpoint::from((v.1, v.2, v.3, &v.4[..])))
+            }).collect())
+        .server().unwrap();
 
     // Allow untrusted access to the server
     {

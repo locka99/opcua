@@ -19,6 +19,7 @@ use address_space::variable::*;
 use session::*;
 use subscriptions::*;
 use config::ServerConfig;
+use builder::ServerBuilder;
 
 mod address_space;
 mod services;
@@ -54,7 +55,7 @@ fn add_sample_vars_to_address_space(address_space: &mut AddressSpace) {
 #[test]
 pub fn server_config_sample_save() {
     // This test only exists to dump a sample config
-    let config = ServerConfig::new_sample();
+    let config = ServerBuilder::new_sample().config();
     let mut path = std::env::current_dir().unwrap();
     path.push("..");
     path.push("samples");
@@ -66,7 +67,7 @@ pub fn server_config_sample_save() {
 #[test]
 pub fn server_config_save() {
     let path = make_test_file("server_config.yaml");
-    let config = ServerConfig::new_anonymous("foo");
+    let config = ServerBuilder::new_anonymous("foo").config();
     assert!(config.save(&path).is_ok());
     if let Ok(config2) = ServerConfig::load(&path) {
         assert_eq!(config, config2);
@@ -78,13 +79,13 @@ pub fn server_config_save() {
 #[test]
 pub fn server_config_invalid() {
     // Remove the endpoint
-    let mut config = ServerConfig::new_anonymous("foo");
+    let mut config = ServerBuilder::new_anonymous("foo").config();
     assert!(config.is_valid());
     config.endpoints.clear();
     assert_eq!(config.is_valid(), false);
 
     // Insert a nonexistent user
-    config = ServerConfig::new_anonymous("foo");
+    config = ServerBuilder::new_anonymous("foo").config();
     config.endpoints.get_mut("none").unwrap().user_token_ids.insert("hello".to_string());
     assert_eq!(config.is_valid(), false);
 }

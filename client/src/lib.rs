@@ -45,7 +45,7 @@ mod config;
 mod client;
 mod session;
 mod callbacks;
-mod client_builder;
+mod builder;
 
 use opcua_types::SupportedMessage;
 use opcua_types::service_types::ResponseHeader;
@@ -80,7 +80,7 @@ pub mod prelude {
     pub use opcua_types::service_types::*;
     pub use opcua_core::prelude::*;
     pub use client::*;
-    pub use client_builder::*;
+    pub use builder::*;
     pub use config::*;
     pub use session::*;
     pub use subscription::MonitoredItem;

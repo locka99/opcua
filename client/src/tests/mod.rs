@@ -7,7 +7,7 @@ use opcua_types::MessageSecurityMode;
 use opcua_core::crypto::SecurityPolicy;
 
 use config::{ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID};
-use client_builder::ClientBuilder;
+use builder::ClientBuilder;
 
 fn make_test_file(filename: &str) -> PathBuf {
     let mut path = std::env::temp_dir();

@@ -12,8 +12,6 @@ use opcua_core::config::Config;
 
 use constants;
 
-const DEFAULT_ENDPOINT_PATH: &str = "/";
-
 pub const ANONYMOUS_USER_TOKEN_ID: &str = "ANONYMOUS";
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -320,51 +318,6 @@ impl ServerConfig {
             max_byte_string_length: opcua_types_constants::MAX_BYTE_STRING_LENGTH,
             max_subscriptions: constants::DEFAULT_MAX_SUBSCRIPTIONS,
         }
-    }
-
-    /// Create a server configuration that runs a server with no security and anonymous access enabled
-    pub fn new_anonymous<T>(application_name: T) -> Self where T: Into<String> {
-        let user_tokens = BTreeMap::new();
-        let user_token_ids = vec![ANONYMOUS_USER_TOKEN_ID.to_string()];
-        let mut endpoints = BTreeMap::new();
-        endpoints.insert(
-            "none".to_string(),
-            ServerEndpoint::new_none(DEFAULT_ENDPOINT_PATH, &user_token_ids),
-        );
-        ServerConfig::new(application_name, user_tokens, endpoints)
-    }
-
-    /// Sample mode turns on everything including a hard coded user/pass
-    pub fn new_sample() -> ServerConfig {
-        warn!("Sample configuration is for testing purposes only. Use a proper configuration in your production environment");
-        let application_name = "OPC UA Sample Server";
-
-        let mut user_tokens = BTreeMap::new();
-
-        let sample_user_id = "sample_user";
-        user_tokens.insert(sample_user_id.to_string(), ServerUserToken {
-            user: "sample".to_string(),
-            pass: Some("sample1".to_string()),
-        });
-        user_tokens.insert("unused_user".to_string(), ServerUserToken {
-            user: "unused".to_string(),
-            pass: Some("unused1".to_string()),
-        });
-
-        let path = DEFAULT_ENDPOINT_PATH;
-        let user_token_ids = vec![ANONYMOUS_USER_TOKEN_ID.to_string(), sample_user_id.to_string()];
-
-        let mut config = ServerConfig::new(application_name, user_tokens, BTreeMap::new());
-        config.create_sample_keypair = true;
-        config.add_endpoint("none", ServerEndpoint::new_none(path, &user_token_ids));
-        config.add_endpoint("basic128rsa15_sign", ServerEndpoint::new_basic128rsa15_sign(path, &user_token_ids));
-        config.add_endpoint("basic128rsa15_sign_encrypt", ServerEndpoint::new_basic128rsa15_sign_encrypt(path, &user_token_ids));
-        config.add_endpoint("basic256_sign", ServerEndpoint::new_basic256_sign(path, &user_token_ids));
-        config.add_endpoint("basic256_sign_encrypt", ServerEndpoint::new_basic256_sign_encrypt(path, &user_token_ids));
-        config.add_endpoint("basic256sha256_sign", ServerEndpoint::new_basic256sha256_sign(path, &user_token_ids));
-        config.add_endpoint("basic256sha256_sign_encrypt", ServerEndpoint::new_basic256sha256_sign_encrypt(path, &user_token_ids));
-        config.add_endpoint("no_access", ServerEndpoint::new_none("/noaccess", &[]));
-        config
     }
 
     pub fn add_endpoint(&mut self, id: &str, endpoint: ServerEndpoint) {

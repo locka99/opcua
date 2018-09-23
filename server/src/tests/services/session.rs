@@ -1,12 +1,10 @@
 use tests::*;
 
-use config::*;
-use server::Server;
+use builder::ServerBuilder;
 
 #[test]
 fn anonymous_user_token() {
-    let config = ServerConfig::new_sample();
-    let server = Server::new(config);
+    let server = ServerBuilder::new_sample().server().unwrap();
     let server_state = server.server_state.read().unwrap();
 
     // Makes an anonymous token and sticks it into an extension object
@@ -33,15 +31,14 @@ fn make_user_name_identity_token(user: &str, pass: &[u8]) -> ExtensionObject {
         policy_id: UAString::from(SecurityPolicy::None.to_uri()),
         user_name: UAString::from(user),
         password: ByteString::from(pass),
-        encryption_algorithm: UAString::null()
+        encryption_algorithm: UAString::null(),
     };
     ExtensionObject::from_encodable(ObjectId::UserNameIdentityToken_Encoding_DefaultBinary, &token)
 }
 
 #[test]
 fn user_name_pass_token() {
-    let config = ServerConfig::new_sample();
-    let server = Server::new(config);
+    let server = ServerBuilder::new_sample().server().unwrap();
     let server_state = server.server_state.read().unwrap();
 
     // Test that a good user authenticates
