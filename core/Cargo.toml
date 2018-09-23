@@ -13,7 +13,7 @@ documentation = "https://docs.rs/opcua-core/"
 [dependencies]
 log = "0.4"
 chrono = "0.4"
-ring = "0.12"
+ring = "0.13"
 regex = "0.2"
 openssl = "0.10"
 serde = "1.0"
