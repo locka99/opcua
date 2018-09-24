@@ -170,11 +170,19 @@ impl Session {
             if let Err(error) = self.activate_session() {
                 // Perhaps the server went down and lost all its state?
                 // In that instance, the fall back here should be:
-                //
+
                 // 1) create a new session
+                self.create_session()?;
+
                 // 2) activate session
+                self.activate_session()?;
+
                 // 3) reconstruct all subscriptions and monitored items from their client side cached values
+
                 // TODO create session, activate and recreate all the subscriptions and monitored items
+
+
+
                 Err(error)
             } else {
                 Ok(())
