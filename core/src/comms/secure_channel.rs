@@ -191,7 +191,7 @@ impl SecureChannel {
         self.decoding_limits
     }
 
-    pub fn set_decoding_limits(&mut self, decoding_limits: DecodingLimits) {
+    pub fn set_(&mut self, decoding_limits: DecodingLimits) {
         self.decoding_limits = decoding_limits;
     }
 

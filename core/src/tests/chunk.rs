@@ -85,7 +85,7 @@ fn chunk_multi_encode_decode() {
     let _ = Test::setup();
 
     let mut secure_channel = SecureChannel::new_no_certificate_store();
-    secure_channel.set_decoding_limits(DecodingLimits {
+    secure_channel.set_(DecodingLimits {
         max_string_length: 65536,
         max_byte_string_length: 65536,
         max_array_length: 20000, // Need to bump this up because large response uses a large array

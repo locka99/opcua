@@ -89,7 +89,7 @@ impl BinaryEncoder<MessageChunkHeader> for MessageChunkHeader {
         }
     }
 
-    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
         let mut is_valid = true;
 
         let mut message_type_code = [0u8; 3];

@@ -65,7 +65,7 @@ impl BinaryEncoder<MessageHeader> for MessageHeader {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
         let mut message_type = [0u8; 4];
         process_decode_io_result(stream.read_exact(&mut message_type))?;
         let message_size = read_u32(stream)?;
