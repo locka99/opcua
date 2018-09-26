@@ -43,10 +43,10 @@ impl BinaryEncoder<CallMethodRequest> for CallMethodRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let object_id = NodeId::decode(stream)?;
-        let method_id = NodeId::decode(stream)?;
-        let input_arguments: Option<Vec<Variant>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let object_id = NodeId::decode(stream, decoding_limits)?;
+        let method_id = NodeId::decode(stream, decoding_limits)?;
+        let input_arguments: Option<Vec<Variant>> = read_array(stream, decoding_limits)?;
         Ok(CallMethodRequest {
             object_id,
             method_id,

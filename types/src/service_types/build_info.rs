@@ -52,13 +52,13 @@ impl BinaryEncoder<BuildInfo> for BuildInfo {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let product_uri = UAString::decode(stream)?;
-        let manufacturer_name = UAString::decode(stream)?;
-        let product_name = UAString::decode(stream)?;
-        let software_version = UAString::decode(stream)?;
-        let build_number = UAString::decode(stream)?;
-        let build_date = DateTime::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let product_uri = UAString::decode(stream, decoding_limits)?;
+        let manufacturer_name = UAString::decode(stream, decoding_limits)?;
+        let product_name = UAString::decode(stream, decoding_limits)?;
+        let software_version = UAString::decode(stream, decoding_limits)?;
+        let build_number = UAString::decode(stream, decoding_limits)?;
+        let build_date = DateTime::decode(stream, decoding_limits)?;
         Ok(BuildInfo {
             product_uri,
             manufacturer_name,

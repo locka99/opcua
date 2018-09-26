@@ -48,12 +48,12 @@ impl BinaryEncoder<SetTriggeringRequest> for SetTriggeringRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream)?;
-        let subscription_id = UInt32::decode(stream)?;
-        let triggering_item_id = UInt32::decode(stream)?;
-        let links_to_add: Option<Vec<UInt32>> = read_array(stream)?;
-        let links_to_remove: Option<Vec<UInt32>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_limits)?;
+        let subscription_id = UInt32::decode(stream, decoding_limits)?;
+        let triggering_item_id = UInt32::decode(stream, decoding_limits)?;
+        let links_to_add: Option<Vec<UInt32>> = read_array(stream, decoding_limits)?;
+        let links_to_remove: Option<Vec<UInt32>> = read_array(stream, decoding_limits)?;
         Ok(SetTriggeringRequest {
             request_header,
             subscription_id,

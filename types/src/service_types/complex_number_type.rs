@@ -38,9 +38,9 @@ impl BinaryEncoder<ComplexNumberType> for ComplexNumberType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let real = Float::decode(stream)?;
-        let imaginary = Float::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let real = Float::decode(stream, decoding_limits)?;
+        let imaginary = Float::decode(stream, decoding_limits)?;
         Ok(ComplexNumberType {
             real,
             imaginary,

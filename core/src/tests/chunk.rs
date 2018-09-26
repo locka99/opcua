@@ -1,6 +1,7 @@
 extern crate rustc_serialize as serialize;
 
 use std::io::{Cursor, Write};
+use opcua_types::DecodingLimits;
 use opcua_types::tcp_types::MIN_CHUNK_SIZE;
 
 use comms::chunker::*;
@@ -36,9 +37,10 @@ fn sample_secure_channel_request_data_security_none() -> MessageChunk {
 
     // Decode chunk from stream
     stream.set_position(0);
-    let chunk = MessageChunk::decode(&mut stream).unwrap();
+    let decoding_limits = DecodingLimits::default();
+    let chunk = MessageChunk::decode(&mut stream, &decoding_limits).unwrap();
 
-    println!("Sample chunk info = {:?}", chunk.message_header().unwrap());
+    println!("Sample chunk info = {:?}", chunk.message_header(&decoding_limits).unwrap());
 
     chunk
 }
@@ -82,7 +84,13 @@ fn make_large_read_response() -> SupportedMessage {
 fn chunk_multi_encode_decode() {
     let _ = Test::setup();
 
-    let secure_channel = SecureChannel::new_no_certificate_store();
+    let mut secure_channel = SecureChannel::new_no_certificate_store();
+    secure_channel.set_decoding_limits(DecodingLimits {
+        max_string_length: 65536,
+        max_byte_string_length: 65536,
+        max_array_length: 20000, // Need to bump this up because large response uses a large array
+    });
+
     let response = make_large_read_response();
 
     // Create a very large message
@@ -115,9 +123,11 @@ fn chunk_multi_chunk_intermediate_final() {
     let chunks = Chunker::encode(sequence_number, request_id, 0, MIN_CHUNK_SIZE, &secure_channel, &response).unwrap();
     assert!(chunks.len() > 1);
 
+    let decoding_limits = DecodingLimits::default();
+
     // All chunks except the last should be intermediate, the last should be final
     for (i, chunk) in chunks.iter().enumerate() {
-        let message_header = chunk.message_header().unwrap();
+        let message_header = chunk.message_header(&decoding_limits).unwrap();
         if i == chunks.len() - 1 {
             assert_eq!(message_header.is_final, MessageIsFinalType::Final);
         } else {
@@ -277,9 +287,10 @@ fn open_secure_channel_response() {
     let _ = Test::setup();
 
     let secure_channel = SecureChannel::new_no_certificate_store();
+    let decoding_limits = secure_channel.decoding_limits();
 
     let mut stream = Cursor::new(chunk);
-    let chunk = MessageChunk::decode(&mut stream).unwrap();
+    let chunk = MessageChunk::decode(&mut stream, &decoding_limits).unwrap();
     let chunks = vec![chunk];
 
     let decoded = Chunker::decode(&chunks, &secure_channel, None);

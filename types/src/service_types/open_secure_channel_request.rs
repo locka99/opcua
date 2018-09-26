@@ -55,13 +55,13 @@ impl BinaryEncoder<OpenSecureChannelRequest> for OpenSecureChannelRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream)?;
-        let client_protocol_version = UInt32::decode(stream)?;
-        let request_type = SecurityTokenRequestType::decode(stream)?;
-        let security_mode = MessageSecurityMode::decode(stream)?;
-        let client_nonce = ByteString::decode(stream)?;
-        let requested_lifetime = UInt32::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_limits)?;
+        let client_protocol_version = UInt32::decode(stream, decoding_limits)?;
+        let request_type = SecurityTokenRequestType::decode(stream, decoding_limits)?;
+        let security_mode = MessageSecurityMode::decode(stream, decoding_limits)?;
+        let client_nonce = ByteString::decode(stream, decoding_limits)?;
+        let requested_lifetime = UInt32::decode(stream, decoding_limits)?;
         Ok(OpenSecureChannelRequest {
             request_header,
             client_protocol_version,

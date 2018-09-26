@@ -47,11 +47,11 @@ impl BinaryEncoder<CallMethodResult> for CallMethodResult {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let status_code = StatusCode::decode(stream)?;
-        let input_argument_results: Option<Vec<StatusCode>> = read_array(stream)?;
-        let input_argument_diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream)?;
-        let output_arguments: Option<Vec<Variant>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let status_code = StatusCode::decode(stream, decoding_limits)?;
+        let input_argument_results: Option<Vec<StatusCode>> = read_array(stream, decoding_limits)?;
+        let input_argument_diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_limits)?;
+        let output_arguments: Option<Vec<Variant>> = read_array(stream, decoding_limits)?;
         Ok(CallMethodResult {
             status_code,
             input_argument_results,

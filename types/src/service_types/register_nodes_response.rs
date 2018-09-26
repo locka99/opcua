@@ -41,9 +41,9 @@ impl BinaryEncoder<RegisterNodesResponse> for RegisterNodesResponse {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let response_header = ResponseHeader::decode(stream)?;
-        let registered_node_ids: Option<Vec<NodeId>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let response_header = ResponseHeader::decode(stream, decoding_limits)?;
+        let registered_node_ids: Option<Vec<NodeId>> = read_array(stream, decoding_limits)?;
         Ok(RegisterNodesResponse {
             response_header,
             registered_node_ids,

@@ -35,10 +35,10 @@ impl BinaryEncoder<AggregateFilterResult> for AggregateFilterResult {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let revised_start_time = DateTime::decode(stream)?;
-        let revised_processing_interval = Double::decode(stream)?;
-        let revised_aggregate_configuration = AggregateConfiguration::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let revised_start_time = DateTime::decode(stream, decoding_limits)?;
+        let revised_processing_interval = Double::decode(stream, decoding_limits)?;
+        let revised_aggregate_configuration = AggregateConfiguration::decode(stream, decoding_limits)?;
         Ok(AggregateFilterResult {
             revised_start_time,
             revised_processing_interval,

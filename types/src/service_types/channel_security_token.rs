@@ -46,11 +46,11 @@ impl BinaryEncoder<ChannelSecurityToken> for ChannelSecurityToken {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let channel_id = UInt32::decode(stream)?;
-        let token_id = UInt32::decode(stream)?;
-        let created_at = DateTime::decode(stream)?;
-        let revised_lifetime = UInt32::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let channel_id = UInt32::decode(stream, decoding_limits)?;
+        let token_id = UInt32::decode(stream, decoding_limits)?;
+        let created_at = DateTime::decode(stream, decoding_limits)?;
+        let revised_lifetime = UInt32::decode(stream, decoding_limits)?;
         Ok(ChannelSecurityToken {
             channel_id,
             token_id,

@@ -42,10 +42,10 @@ impl BinaryEncoder<SetPublishingModeRequest> for SetPublishingModeRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream)?;
-        let publishing_enabled = Boolean::decode(stream)?;
-        let subscription_ids: Option<Vec<UInt32>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_limits)?;
+        let publishing_enabled = Boolean::decode(stream, decoding_limits)?;
+        let subscription_ids: Option<Vec<UInt32>> = read_array(stream, decoding_limits)?;
         Ok(SetPublishingModeRequest {
             request_header,
             publishing_enabled,

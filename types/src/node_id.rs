@@ -151,7 +151,7 @@ impl BinaryEncoder<NodeId> for NodeId {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let identifier = read_u8(stream)?;
         let node_id = match identifier {
             0x0 => {
@@ -171,17 +171,17 @@ impl BinaryEncoder<NodeId> for NodeId {
             }
             0x3 => {
                 let namespace = read_u16(stream)?;
-                let value = UAString::decode(stream)?;
+                let value = UAString::decode(stream, decoding_limits)?;
                 NodeId::new(namespace, value)
             }
             0x4 => {
                 let namespace = read_u16(stream)?;
-                let value = Guid::decode(stream)?;
+                let value = Guid::decode(stream, decoding_limits)?;
                 NodeId::new(namespace, value)
             }
             0x5 => {
                 let namespace = read_u16(stream)?;
-                let value = ByteString::decode(stream)?;
+                let value = ByteString::decode(stream, decoding_limits)?;
                 NodeId::new(namespace, value)
             }
             _ => {
@@ -484,7 +484,7 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let data_encoding = read_u8(stream)?;
         let identifier = data_encoding & 0x0f;
         let node_id = match identifier {
@@ -504,17 +504,17 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
             }
             0x3 => {
                 let namespace = read_u16(stream)?;
-                let value = UAString::decode(stream)?;
+                let value = UAString::decode(stream, decoding_limits)?;
                 NodeId::new(namespace, value)
             }
             0x4 => {
                 let namespace = read_u16(stream)?;
-                let value = Guid::decode(stream)?;
+                let value = Guid::decode(stream, decoding_limits)?;
                 NodeId::new(namespace, value)
             }
             0x5 => {
                 let namespace = read_u16(stream)?;
-                let value = ByteString::decode(stream)?;
+                let value = ByteString::decode(stream, decoding_limits)?;
                 NodeId::new(namespace, value)
             }
             _ => {
@@ -523,8 +523,8 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
         };
 
         // Optional stuff
-        let namespace_uri = if data_encoding & 0x80 != 0 { UAString::decode(stream)? } else { UAString::null() };
-        let server_index = if data_encoding & 0x40 != 0 { UInt32::decode(stream)? } else { 0 };
+        let namespace_uri = if data_encoding & 0x80 != 0 { UAString::decode(stream, decoding_limits)? } else { UAString::null() };
+        let server_index = if data_encoding & 0x40 != 0 { UInt32::decode(stream, decoding_limits)? } else { 0 };
 
         Ok(ExpandedNodeId {
             node_id,

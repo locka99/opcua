@@ -28,8 +28,8 @@ impl BinaryEncoder<LiteralOperand> for LiteralOperand {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let value = Variant::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let value = Variant::decode(stream, decoding_limits)?;
         Ok(LiteralOperand {
             value,
         })

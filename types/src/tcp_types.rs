@@ -65,7 +65,7 @@ impl BinaryEncoder<MessageHeader> for MessageHeader {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let mut message_type = [0u8; 4];
         process_decode_io_result(stream.read_exact(&mut message_type))?;
         let message_size = read_u32(stream)?;
@@ -86,14 +86,14 @@ impl MessageHeader {
 
     /// Reads the bytes of the stream to a buffer. If first 4 bytes are invalid,
     /// code returns an error
-    pub fn read_bytes<S: Read>(stream: &mut S) -> Result<Vec<u8>> {
+    pub fn read_bytes<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> Result<Vec<u8>> {
         // Read the bytes of the stream into a vector
         let mut header = [0u8; 4];
         stream.read_exact(&mut header)?;
         if MessageHeader::message_type(&header) == MessageType::Invalid {
             return Err(Error::new(ErrorKind::Other, "Message type is not recognized, cannot read bytes"));
         }
-        let message_size = UInt32::decode(stream);
+        let message_size = UInt32::decode(stream, decoding_limits);
         if message_size.is_err() {
             return Err(Error::new(ErrorKind::Other, "Cannot decode message_size"));
         }
@@ -184,14 +184,14 @@ impl BinaryEncoder<HelloMessage> for HelloMessage {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let message_header = MessageHeader::decode(stream)?;
-        let protocol_version = UInt32::decode(stream)?;
-        let receive_buffer_size = UInt32::decode(stream)?;
-        let send_buffer_size = UInt32::decode(stream)?;
-        let max_message_size = UInt32::decode(stream)?;
-        let max_chunk_count = UInt32::decode(stream)?;
-        let endpoint_url = UAString::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let message_header = MessageHeader::decode(stream, decoding_limits)?;
+        let protocol_version = UInt32::decode(stream, decoding_limits)?;
+        let receive_buffer_size = UInt32::decode(stream, decoding_limits)?;
+        let send_buffer_size = UInt32::decode(stream, decoding_limits)?;
+        let max_message_size = UInt32::decode(stream, decoding_limits)?;
+        let max_chunk_count = UInt32::decode(stream, decoding_limits)?;
+        let endpoint_url = UAString::decode(stream, decoding_limits)?;
         Ok(HelloMessage {
             message_header,
             protocol_version,
@@ -264,13 +264,13 @@ impl BinaryEncoder<AcknowledgeMessage> for AcknowledgeMessage {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let message_header = MessageHeader::decode(stream)?;
-        let protocol_version = UInt32::decode(stream)?;
-        let receive_buffer_size = UInt32::decode(stream)?;
-        let send_buffer_size = UInt32::decode(stream)?;
-        let max_message_size = UInt32::decode(stream)?;
-        let max_chunk_count = UInt32::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let message_header = MessageHeader::decode(stream, decoding_limits)?;
+        let protocol_version = UInt32::decode(stream, decoding_limits)?;
+        let receive_buffer_size = UInt32::decode(stream, decoding_limits)?;
+        let send_buffer_size = UInt32::decode(stream, decoding_limits)?;
+        let max_message_size = UInt32::decode(stream, decoding_limits)?;
+        let max_chunk_count = UInt32::decode(stream, decoding_limits)?;
         Ok(AcknowledgeMessage {
             message_header,
             protocol_version,
@@ -303,10 +303,10 @@ impl BinaryEncoder<ErrorMessage> for ErrorMessage {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let message_header = MessageHeader::decode(stream)?;
-        let error = UInt32::decode(stream)?;
-        let reason = UAString::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let message_header = MessageHeader::decode(stream, decoding_limits)?;
+        let error = UInt32::decode(stream, decoding_limits)?;
+        let reason = UAString::decode(stream, decoding_limits)?;
         Ok(ErrorMessage {
             message_header,
             error,

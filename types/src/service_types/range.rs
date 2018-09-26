@@ -38,9 +38,9 @@ impl BinaryEncoder<Range> for Range {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let low = Double::decode(stream)?;
-        let high = Double::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let low = Double::decode(stream, decoding_limits)?;
+        let high = Double::decode(stream, decoding_limits)?;
         Ok(Range {
             low,
             high,

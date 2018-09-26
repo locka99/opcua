@@ -40,9 +40,9 @@ impl BinaryEncoder<CloseSessionRequest> for CloseSessionRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream)?;
-        let delete_subscriptions = Boolean::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_limits)?;
+        let delete_subscriptions = Boolean::decode(stream, decoding_limits)?;
         Ok(CloseSessionRequest {
             request_header,
             delete_subscriptions,

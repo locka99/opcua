@@ -70,11 +70,11 @@ impl ReadState {
 
     fn process_chunk(&mut self, chunk: MessageChunk) -> Result<Option<SupportedMessage>, StatusCode> {
         // trace!("Got a chunk {:?}", chunk);
-        let chunk = {
+        let (chunk, decoding_limits) = {
             let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
-            secure_channel.verify_and_remove_security(&chunk.data)?
+            (secure_channel.verify_and_remove_security(&chunk.data)?, secure_channel.decoding_limits())
         };
-        let message_header = chunk.message_header()?;
+        let message_header = chunk.message_header(&decoding_limits)?;
         match message_header.is_final {
             MessageIsFinalType::Intermediate => {
                 panic!("We don't support intermediate chunks yet");
@@ -327,11 +327,17 @@ impl TcpTransport {
     fn spawn_reading_task(reader: ReadHalf<TcpStream>, finished_flag: Arc<RwLock<bool>>, _receive_buffer_size: usize, connection: ReadState) {
         // This is the main processing loop that receives and sends messages
 
+        let decoding_limits = {
+            let secure_channel = trace_read_lock_unwrap!(connection.secure_channel);
+            secure_channel.decoding_limits()
+        };
+
         let connection = Arc::new(RwLock::new(connection));
         let connection_for_terminate = connection.clone();
 
+
         // The reader reads frames from the codec, which are messages
-        let framed_reader = FramedRead::new(reader, TcpCodec::new(finished_flag));
+        let framed_reader = FramedRead::new(reader, TcpCodec::new(finished_flag, decoding_limits));
         let looping_task = framed_reader.for_each(move |message| {
             let mut connection = trace_write_lock_unwrap!(connection);
             let mut session_status_code = StatusCode::Good;

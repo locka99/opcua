@@ -38,9 +38,9 @@ impl BinaryEncoder<ServiceCounterDataType> for ServiceCounterDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let total_count = UInt32::decode(stream)?;
-        let error_count = UInt32::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let total_count = UInt32::decode(stream, decoding_limits)?;
+        let error_count = UInt32::decode(stream, decoding_limits)?;
         Ok(ServiceCounterDataType {
             total_count,
             error_count,

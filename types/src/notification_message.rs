@@ -1,5 +1,6 @@
 ///! Helpers for NotificationMessage types
 use date_time::DateTime;
+use encoding::DecodingLimits;
 use basic_types::*;
 use extension_object::ExtensionObject;
 use node_ids::ObjectId;
@@ -31,7 +32,7 @@ impl NotificationMessage {
         }
     }
 
-    pub fn data_change_notifications(&self) -> Vec<DataChangeNotification> {
+    pub fn data_change_notifications(&self, decoding_limits: &DecodingLimits) -> Vec<DataChangeNotification> {
         let mut result = Vec::with_capacity(10);
         if let Some(ref notification_data) = self.notification_data {
             // Dump out the contents
@@ -39,7 +40,9 @@ impl NotificationMessage {
                 if n.node_id != ObjectId::DataChangeNotification_Encoding_DefaultBinary.into() {
                     continue;
                 }
-                result.push(n.decode_inner::<DataChangeNotification>().unwrap());
+                if let Ok(notification) = n.decode_inner::<DataChangeNotification>(decoding_limits) {
+                    result.push(notification);
+                }
             }
         }
         result

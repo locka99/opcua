@@ -36,10 +36,10 @@ impl BinaryEncoder<EventFilterResult> for EventFilterResult {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let select_clause_results: Option<Vec<StatusCode>> = read_array(stream)?;
-        let select_clause_diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream)?;
-        let where_clause_result = ContentFilterResult::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let select_clause_results: Option<Vec<StatusCode>> = read_array(stream, decoding_limits)?;
+        let select_clause_diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_limits)?;
+        let where_clause_result = ContentFilterResult::decode(stream, decoding_limits)?;
         Ok(EventFilterResult {
             select_clause_results,
             select_clause_diagnostic_infos,

@@ -27,8 +27,8 @@ impl BinaryEncoder<ElementOperand> for ElementOperand {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let index = UInt32::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let index = UInt32::decode(stream, decoding_limits)?;
         Ok(ElementOperand {
             index,
         })

@@ -43,7 +43,8 @@ pub fn serialize_test_and_return_expected<T>(value: T, expected_value: T) -> T
     println!("encoded bytes = {:?}", actual);
     let mut stream = Cursor::new(actual);
 
-    let new_value: T = T::decode(&mut stream).unwrap();
+    let decoding_limits = DecodingLimits::default();
+    let new_value: T = T::decode(&mut stream, &decoding_limits).unwrap();
     println!("new value = {:?}", new_value);
     assert_eq!(expected_value, new_value);
     new_value

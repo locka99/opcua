@@ -47,11 +47,11 @@ impl BinaryEncoder<ReadRequest> for ReadRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream)?;
-        let max_age = Double::decode(stream)?;
-        let timestamps_to_return = TimestampsToReturn::decode(stream)?;
-        let nodes_to_read: Option<Vec<ReadValueId>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_limits)?;
+        let max_age = Double::decode(stream, decoding_limits)?;
+        let timestamps_to_return = TimestampsToReturn::decode(stream, decoding_limits)?;
+        let nodes_to_read: Option<Vec<ReadValueId>> = read_array(stream, decoding_limits)?;
         Ok(ReadRequest {
             request_header,
             max_age,

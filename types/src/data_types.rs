@@ -39,7 +39,7 @@ impl BinaryEncoder<MessageSecurityMode> for MessageSecurityMode {
         write_i32(stream, *self as Int32)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         // All enums are Int32
         let value = read_i32(stream)?;
         Ok(match value {
@@ -119,7 +119,7 @@ impl BinaryEncoder<MonitoringMode> for MonitoringMode {
         write_i32(stream, *self as Int32)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         // All enums are Int32
         let value = read_i32(stream)?;
         match value {

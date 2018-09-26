@@ -33,9 +33,9 @@ impl BinaryEncoder<X509IdentityToken> for X509IdentityToken {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let policy_id = UAString::decode(stream)?;
-        let certificate_data = ByteString::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let policy_id = UAString::decode(stream, decoding_limits)?;
+        let certificate_data = ByteString::decode(stream, decoding_limits)?;
         Ok(X509IdentityToken {
             policy_id,
             certificate_data,

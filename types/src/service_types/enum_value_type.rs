@@ -43,10 +43,10 @@ impl BinaryEncoder<EnumValueType> for EnumValueType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let value = Int64::decode(stream)?;
-        let display_name = LocalizedText::decode(stream)?;
-        let description = LocalizedText::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let value = Int64::decode(stream, decoding_limits)?;
+        let display_name = LocalizedText::decode(stream, decoding_limits)?;
+        let description = LocalizedText::decode(stream, decoding_limits)?;
         Ok(EnumValueType {
             value,
             display_name,

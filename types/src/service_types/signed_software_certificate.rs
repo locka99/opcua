@@ -40,9 +40,9 @@ impl BinaryEncoder<SignedSoftwareCertificate> for SignedSoftwareCertificate {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let certificate_data = ByteString::decode(stream)?;
-        let signature = ByteString::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let certificate_data = ByteString::decode(stream, decoding_limits)?;
+        let signature = ByteString::decode(stream, decoding_limits)?;
         Ok(SignedSoftwareCertificate {
             certificate_data,
             signature,

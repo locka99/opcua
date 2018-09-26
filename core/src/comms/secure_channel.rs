@@ -54,6 +54,8 @@ pub struct SecureChannel {
     remote_keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
     /// Server (i.e. our end's set of keys) Symmetric Signing Key, Decrypt Key, IV
     local_keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
+    /// Decoding limits
+    decoding_limits: DecodingLimits,
 }
 
 impl From<(SecurityPolicy, MessageSecurityMode)> for SecureChannel {
@@ -73,6 +75,7 @@ impl From<(SecurityPolicy, MessageSecurityMode)> for SecureChannel {
             remote_cert: None,
             local_keys: None,
             remote_keys: None,
+            decoding_limits: DecodingLimits::default(),
         }
     }
 }
@@ -84,7 +87,7 @@ impl SecureChannel {
         (SecurityPolicy::None, MessageSecurityMode::None).into()
     }
 
-    pub fn new(certificate_store: Arc<RwLock<CertificateStore>>, role: Role) -> SecureChannel {
+    pub fn new(certificate_store: Arc<RwLock<CertificateStore>>, role: Role, decoding_limits: DecodingLimits) -> SecureChannel {
         let (cert, private_key) = {
             let certificate_store = certificate_store.read().unwrap();
             if let Ok((cert, pkey)) = certificate_store.read_own_cert_and_pkey() {
@@ -109,6 +112,7 @@ impl SecureChannel {
             remote_cert: None,
             local_keys: None,
             remote_keys: None,
+            decoding_limits,
         }
     }
 
@@ -181,6 +185,14 @@ impl SecureChannel {
 
     pub fn token_id(&self) -> UInt32 {
         self.token_id
+    }
+
+    pub fn decoding_limits(&self) -> DecodingLimits {
+        self.decoding_limits
+    }
+
+    pub fn set_decoding_limits(&mut self, decoding_limits: DecodingLimits) {
+        self.decoding_limits = decoding_limits;
     }
 
     /// Test if the secure channel token needs to be renewed. The algorithm determines it needs
@@ -449,13 +461,13 @@ impl SecureChannel {
         message_size += signature_size;
 
         // Update message header to reflect size with padding + signature
-        Self::update_message_size_and_truncate(stream.into_inner(), message_size)
+        Self::update_message_size_and_truncate(stream.into_inner(), message_size, &self.decoding_limits)
     }
 
-    fn update_message_size(data: &mut [u8], message_size: usize) -> Result<(), StatusCode> {
+    fn update_message_size(data: &mut [u8], message_size: usize, decoding_limits: &DecodingLimits) -> Result<(), StatusCode> {
         // Read and rewrite the message_size in the header
         let mut stream = Cursor::new(data);
-        let mut message_header = MessageChunkHeader::decode(&mut stream)?;
+        let mut message_header = MessageChunkHeader::decode(&mut stream, &decoding_limits)?;
         stream.set_position(0);
         let old_message_size = message_header.message_size;
         message_header.message_size = message_size as UInt32;
@@ -465,8 +477,8 @@ impl SecureChannel {
     }
 
     // Truncates a vec and writes the message size
-    pub fn update_message_size_and_truncate(mut data: Vec<u8>, message_size: usize) -> Result<Vec<u8>, StatusCode> {
-        Self::update_message_size(&mut data[..], message_size)?;
+    pub fn update_message_size_and_truncate(mut data: Vec<u8>, message_size: usize, decoding_limits: &DecodingLimits) -> Result<Vec<u8>, StatusCode> {
+        Self::update_message_size(&mut data[..], message_size, decoding_limits)?;
         // Truncate vector to the size
         data.truncate(message_size);
         Ok(data)
@@ -497,7 +509,7 @@ impl SecureChannel {
             let encrypted_range = chunk_info.sequence_header_offset..data.len();
 
             // Encrypt and sign - open secure channel
-            let encrypted_size = if message_chunk.is_open_secure_channel() {
+            let encrypted_size = if message_chunk.is_open_secure_channel(&self.decoding_limits) {
                 self.asymmetric_sign_and_encrypt(self.security_policy, &data, encrypted_range, dst)?
             } else {
                 // Symmetric encrypt and sign
@@ -532,11 +544,11 @@ impl SecureChannel {
         // Get message & security header from data
         let (message_header, security_header, encrypted_data_offset) = {
             let mut stream = Cursor::new(&src);
-            let message_header = MessageChunkHeader::decode(&mut stream)?;
+            let message_header = MessageChunkHeader::decode(&mut stream, &self.decoding_limits)?;
             let security_header = if message_header.message_type.is_open_secure_channel() {
-                SecurityHeader::Asymmetric(AsymmetricSecurityHeader::decode(&mut stream)?)
+                SecurityHeader::Asymmetric(AsymmetricSecurityHeader::decode(&mut stream, &self.decoding_limits)?)
             } else {
-                SecurityHeader::Symmetric(SymmetricSecurityHeader::decode(&mut stream)?)
+                SecurityHeader::Symmetric(SymmetricSecurityHeader::decode(&mut stream, &self.decoding_limits)?)
             };
             let encrypted_data_offset = stream.position() as usize;
             (message_header, security_header, encrypted_data_offset)
@@ -607,7 +619,7 @@ impl SecureChannel {
             let mut decrypted_data = vec![0u8; message_size];
             let decrypted_size = self.asymmetric_decrypt_and_verify(security_policy, &verification_key, receiver_thumbprint, src, encrypted_range, their_key, &mut decrypted_data)?;
 
-            Self::update_message_size_and_truncate(decrypted_data, decrypted_size)?
+            Self::update_message_size_and_truncate(decrypted_data, decrypted_size, &self.decoding_limits)?
         } else if self.security_policy != SecurityPolicy::None && (self.security_mode == MessageSecurityMode::Sign || self.security_mode == MessageSecurityMode::SignAndEncrypt) {
             // Symmetric decrypt and verify
             let signature_size = self.security_policy.symmetric_signature_size();
@@ -619,7 +631,7 @@ impl SecureChannel {
             let decrypted_size = self.symmetric_decrypt_and_verify(src, signed_range, encrypted_range, &mut decrypted_data)?;
 
             // Now we need to strip off signature
-            Self::update_message_size_and_truncate(decrypted_data, decrypted_size - signature_size)?
+            Self::update_message_size_and_truncate(decrypted_data, decrypted_size - signature_size, &self.decoding_limits)?
         } else {
             src.to_vec()
         };
@@ -653,7 +665,7 @@ impl SecureChannel {
             trace!("plain_text_size = {}, encrypted_text_size = {}", plain_text_size, cipher_text_size);
             cipher_text_size
         };
-        Self::update_message_size(&mut tmp[..], header_size + cipher_text_size)?;
+        Self::update_message_size(&mut tmp[..], header_size + cipher_text_size, &self.decoding_limits)?;
 
         // Sign the message header, security header, sequence header, body, padding
         security_policy.asymmetric_sign(&signing_key, &tmp[signed_range.clone()], &mut signature)?;

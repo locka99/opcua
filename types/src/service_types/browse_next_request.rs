@@ -44,10 +44,10 @@ impl BinaryEncoder<BrowseNextRequest> for BrowseNextRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream)?;
-        let release_continuation_points = Boolean::decode(stream)?;
-        let continuation_points: Option<Vec<ByteString>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_limits)?;
+        let release_continuation_points = Boolean::decode(stream, decoding_limits)?;
+        let continuation_points: Option<Vec<ByteString>> = read_array(stream, decoding_limits)?;
         Ok(BrowseNextRequest {
             request_header,
             release_continuation_points,

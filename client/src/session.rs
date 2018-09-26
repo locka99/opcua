@@ -114,7 +114,11 @@ impl Session {
     /// Create a new session from the supplied application description, certificate store and session
     /// information.
     pub(crate) fn new(application_description: ApplicationDescription, certificate_store: Arc<RwLock<CertificateStore>>, session_info: SessionInfo) -> Session {
-        let secure_channel = Arc::new(RwLock::new(SecureChannel::new(certificate_store.clone(), Role::Client)));
+
+        // TODO take these from the client config
+        let decoding_limits = DecodingLimits::default();
+
+        let secure_channel = Arc::new(RwLock::new(SecureChannel::new(certificate_store.clone(), Role::Client, decoding_limits)));
         let message_queue = Arc::new(RwLock::new(MessageQueue::new()));
         let session_state = Arc::new(RwLock::new(SessionState::new(secure_channel.clone(), message_queue.clone())));
         let transport = TcpTransport::new(secure_channel.clone(), session_state.clone(), message_queue.clone());
@@ -1138,8 +1142,13 @@ impl Session {
                     });
                 }
 
+                let decoding_limits = {
+                    let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+                    secure_channel.decoding_limits()
+                };
+
                 // Process data change notifications
-                let data_change_notifications = notification_message.data_change_notifications();
+                let data_change_notifications = notification_message.data_change_notifications(&decoding_limits);
                 if !data_change_notifications.is_empty() {
                     let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                     subscription_state.subscription_data_change(subscription_id, &data_change_notifications);

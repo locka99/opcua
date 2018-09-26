@@ -57,14 +57,14 @@ impl BinaryEncoder<PublishResponse> for PublishResponse {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let response_header = ResponseHeader::decode(stream)?;
-        let subscription_id = UInt32::decode(stream)?;
-        let available_sequence_numbers: Option<Vec<UInt32>> = read_array(stream)?;
-        let more_notifications = Boolean::decode(stream)?;
-        let notification_message = NotificationMessage::decode(stream)?;
-        let results: Option<Vec<StatusCode>> = read_array(stream)?;
-        let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let response_header = ResponseHeader::decode(stream, decoding_limits)?;
+        let subscription_id = UInt32::decode(stream, decoding_limits)?;
+        let available_sequence_numbers: Option<Vec<UInt32>> = read_array(stream, decoding_limits)?;
+        let more_notifications = Boolean::decode(stream, decoding_limits)?;
+        let notification_message = NotificationMessage::decode(stream, decoding_limits)?;
+        let results: Option<Vec<StatusCode>> = read_array(stream, decoding_limits)?;
+        let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_limits)?;
         Ok(PublishResponse {
             response_header,
             subscription_id,

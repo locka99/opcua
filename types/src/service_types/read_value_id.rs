@@ -47,11 +47,11 @@ impl BinaryEncoder<ReadValueId> for ReadValueId {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let node_id = NodeId::decode(stream)?;
-        let attribute_id = UInt32::decode(stream)?;
-        let index_range = UAString::decode(stream)?;
-        let data_encoding = QualifiedName::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let node_id = NodeId::decode(stream, decoding_limits)?;
+        let attribute_id = UInt32::decode(stream, decoding_limits)?;
+        let index_range = UAString::decode(stream, decoding_limits)?;
+        let data_encoding = QualifiedName::decode(stream, decoding_limits)?;
         Ok(ReadValueId {
             node_id,
             attribute_id,

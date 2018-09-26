@@ -40,9 +40,9 @@ impl BinaryEncoder<RepublishResponse> for RepublishResponse {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let response_header = ResponseHeader::decode(stream)?;
-        let notification_message = NotificationMessage::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let response_header = ResponseHeader::decode(stream, decoding_limits)?;
+        let notification_message = NotificationMessage::decode(stream, decoding_limits)?;
         Ok(RepublishResponse {
             response_header,
             notification_message,

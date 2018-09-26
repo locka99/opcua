@@ -40,9 +40,9 @@ impl BinaryEncoder<CancelRequest> for CancelRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream)?;
-        let request_handle = UInt32::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_limits)?;
+        let request_handle = UInt32::decode(stream, decoding_limits)?;
         Ok(CancelRequest {
             request_header,
             request_handle,

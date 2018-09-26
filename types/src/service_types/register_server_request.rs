@@ -41,9 +41,9 @@ impl BinaryEncoder<RegisterServerRequest> for RegisterServerRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream)?;
-        let server = RegisteredServer::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_limits)?;
+        let server = RegisteredServer::decode(stream, decoding_limits)?;
         Ok(RegisterServerRequest {
             request_header,
             server,

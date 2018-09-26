@@ -45,11 +45,11 @@ impl BinaryEncoder<ServerOnNetwork> for ServerOnNetwork {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let record_id = UInt32::decode(stream)?;
-        let server_name = UAString::decode(stream)?;
-        let discovery_url = UAString::decode(stream)?;
-        let server_capabilities: Option<Vec<UAString>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let record_id = UInt32::decode(stream, decoding_limits)?;
+        let server_name = UAString::decode(stream, decoding_limits)?;
+        let discovery_url = UAString::decode(stream, decoding_limits)?;
+        let server_capabilities: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
         Ok(ServerOnNetwork {
             record_id,
             server_name,

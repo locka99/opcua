@@ -43,10 +43,10 @@ impl BinaryEncoder<NotificationMessage> for NotificationMessage {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let sequence_number = UInt32::decode(stream)?;
-        let publish_time = DateTime::decode(stream)?;
-        let notification_data: Option<Vec<ExtensionObject>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let sequence_number = UInt32::decode(stream, decoding_limits)?;
+        let publish_time = DateTime::decode(stream, decoding_limits)?;
+        let notification_data: Option<Vec<ExtensionObject>> = read_array(stream, decoding_limits)?;
         Ok(NotificationMessage {
             sequence_number,
             publish_time,

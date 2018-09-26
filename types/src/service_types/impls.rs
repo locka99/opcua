@@ -137,14 +137,14 @@ impl BinaryEncoder<RequestHeader> for RequestHeader {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let authentication_token = NodeId::decode(stream)?;
-        let timestamp = UtcTime::decode(stream)?;
-        let request_handle = IntegerId::decode(stream)?;
-        let return_diagnostics = DiagnosticBits::from_bits_truncate(UInt32::decode(stream)?);
-        let audit_entry_id = UAString::decode(stream)?;
-        let timeout_hint = UInt32::decode(stream)?;
-        let additional_header = ExtensionObject::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let authentication_token = NodeId::decode(stream, decoding_limits)?;
+        let timestamp = UtcTime::decode(stream, decoding_limits)?;
+        let request_handle = IntegerId::decode(stream, decoding_limits)?;
+        let return_diagnostics = DiagnosticBits::from_bits_truncate(UInt32::decode(stream, decoding_limits)?);
+        let audit_entry_id = UAString::decode(stream, decoding_limits)?;
+        let timeout_hint = UInt32::decode(stream, decoding_limits)?;
+        let additional_header = ExtensionObject::decode(stream, decoding_limits)?;
         Ok(RequestHeader {
             authentication_token,
             timestamp,
@@ -206,13 +206,13 @@ impl BinaryEncoder<ResponseHeader> for ResponseHeader {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let timestamp = UtcTime::decode(stream)?;
-        let request_handle = IntegerId::decode(stream)?;
-        let service_result = StatusCode::decode(stream)?;
-        let service_diagnostics = DiagnosticInfo::decode(stream)?;
-        let string_table: Option<Vec<UAString>> = read_array(stream)?;
-        let additional_header = ExtensionObject::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let timestamp = UtcTime::decode(stream, decoding_limits)?;
+        let request_handle = IntegerId::decode(stream, decoding_limits)?;
+        let service_result = StatusCode::decode(stream, decoding_limits)?;
+        let service_diagnostics = DiagnosticInfo::decode(stream, decoding_limits)?;
+        let string_table: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
+        let additional_header = ExtensionObject::decode(stream, decoding_limits)?;
         Ok(ResponseHeader {
             timestamp,
             request_handle,

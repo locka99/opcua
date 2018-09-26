@@ -30,7 +30,7 @@ impl BinaryEncoder<FilterOperand> for FilterOperand {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         Ok(FilterOperand {
         })
     }

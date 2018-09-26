@@ -39,9 +39,9 @@ impl BinaryEncoder<MonitoredItemModifyRequest> for MonitoredItemModifyRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let monitored_item_id = UInt32::decode(stream)?;
-        let requested_parameters = MonitoringParameters::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let monitored_item_id = UInt32::decode(stream, decoding_limits)?;
+        let requested_parameters = MonitoringParameters::decode(stream, decoding_limits)?;
         Ok(MonitoredItemModifyRequest {
             monitored_item_id,
             requested_parameters,

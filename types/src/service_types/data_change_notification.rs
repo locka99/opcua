@@ -32,9 +32,9 @@ impl BinaryEncoder<DataChangeNotification> for DataChangeNotification {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let monitored_items: Option<Vec<MonitoredItemNotification>> = read_array(stream)?;
-        let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let monitored_items: Option<Vec<MonitoredItemNotification>> = read_array(stream, decoding_limits)?;
+        let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_limits)?;
         Ok(DataChangeNotification {
             monitored_items,
             diagnostic_infos,

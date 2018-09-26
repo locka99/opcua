@@ -44,10 +44,10 @@ impl BinaryEncoder<QueryNextResponse> for QueryNextResponse {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let response_header = ResponseHeader::decode(stream)?;
-        let query_data_sets: Option<Vec<QueryDataSet>> = read_array(stream)?;
-        let revised_continuation_point = ByteString::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let response_header = ResponseHeader::decode(stream, decoding_limits)?;
+        let query_data_sets: Option<Vec<QueryDataSet>> = read_array(stream, decoding_limits)?;
+        let revised_continuation_point = ByteString::decode(stream, decoding_limits)?;
         Ok(QueryNextResponse {
             response_header,
             query_data_sets,

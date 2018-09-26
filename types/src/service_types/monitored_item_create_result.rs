@@ -49,12 +49,12 @@ impl BinaryEncoder<MonitoredItemCreateResult> for MonitoredItemCreateResult {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let status_code = StatusCode::decode(stream)?;
-        let monitored_item_id = UInt32::decode(stream)?;
-        let revised_sampling_interval = Double::decode(stream)?;
-        let revised_queue_size = UInt32::decode(stream)?;
-        let filter_result = ExtensionObject::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let status_code = StatusCode::decode(stream, decoding_limits)?;
+        let monitored_item_id = UInt32::decode(stream, decoding_limits)?;
+        let revised_sampling_interval = Double::decode(stream, decoding_limits)?;
+        let revised_queue_size = UInt32::decode(stream, decoding_limits)?;
+        let filter_result = ExtensionObject::decode(stream, decoding_limits)?;
         Ok(MonitoredItemCreateResult {
             status_code,
             monitored_item_id,

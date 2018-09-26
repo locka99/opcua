@@ -39,9 +39,9 @@ impl BinaryEncoder<EventFieldList> for EventFieldList {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let client_handle = UInt32::decode(stream)?;
-        let event_fields: Option<Vec<Variant>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let client_handle = UInt32::decode(stream, decoding_limits)?;
+        let event_fields: Option<Vec<Variant>> = read_array(stream, decoding_limits)?;
         Ok(EventFieldList {
             client_handle,
             event_fields,

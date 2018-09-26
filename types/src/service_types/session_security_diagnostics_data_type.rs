@@ -63,16 +63,16 @@ impl BinaryEncoder<SessionSecurityDiagnosticsDataType> for SessionSecurityDiagno
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let session_id = NodeId::decode(stream)?;
-        let client_user_id_of_session = UAString::decode(stream)?;
-        let client_user_id_history: Option<Vec<UAString>> = read_array(stream)?;
-        let authentication_mechanism = UAString::decode(stream)?;
-        let encoding = UAString::decode(stream)?;
-        let transport_protocol = UAString::decode(stream)?;
-        let security_mode = MessageSecurityMode::decode(stream)?;
-        let security_policy_uri = UAString::decode(stream)?;
-        let client_certificate = ByteString::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let session_id = NodeId::decode(stream, decoding_limits)?;
+        let client_user_id_of_session = UAString::decode(stream, decoding_limits)?;
+        let client_user_id_history: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
+        let authentication_mechanism = UAString::decode(stream, decoding_limits)?;
+        let encoding = UAString::decode(stream, decoding_limits)?;
+        let transport_protocol = UAString::decode(stream, decoding_limits)?;
+        let security_mode = MessageSecurityMode::decode(stream, decoding_limits)?;
+        let security_policy_uri = UAString::decode(stream, decoding_limits)?;
+        let client_certificate = ByteString::decode(stream, decoding_limits)?;
         Ok(SessionSecurityDiagnosticsDataType {
             session_id,
             client_user_id_of_session,

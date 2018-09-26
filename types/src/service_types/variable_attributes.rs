@@ -67,20 +67,20 @@ impl BinaryEncoder<VariableAttributes> for VariableAttributes {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let specified_attributes = UInt32::decode(stream)?;
-        let display_name = LocalizedText::decode(stream)?;
-        let description = LocalizedText::decode(stream)?;
-        let write_mask = UInt32::decode(stream)?;
-        let user_write_mask = UInt32::decode(stream)?;
-        let value = Variant::decode(stream)?;
-        let data_type = NodeId::decode(stream)?;
-        let value_rank = Int32::decode(stream)?;
-        let array_dimensions: Option<Vec<UInt32>> = read_array(stream)?;
-        let access_level = Byte::decode(stream)?;
-        let user_access_level = Byte::decode(stream)?;
-        let minimum_sampling_interval = Double::decode(stream)?;
-        let historizing = Boolean::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let specified_attributes = UInt32::decode(stream, decoding_limits)?;
+        let display_name = LocalizedText::decode(stream, decoding_limits)?;
+        let description = LocalizedText::decode(stream, decoding_limits)?;
+        let write_mask = UInt32::decode(stream, decoding_limits)?;
+        let user_write_mask = UInt32::decode(stream, decoding_limits)?;
+        let value = Variant::decode(stream, decoding_limits)?;
+        let data_type = NodeId::decode(stream, decoding_limits)?;
+        let value_rank = Int32::decode(stream, decoding_limits)?;
+        let array_dimensions: Option<Vec<UInt32>> = read_array(stream, decoding_limits)?;
+        let access_level = Byte::decode(stream, decoding_limits)?;
+        let user_access_level = Byte::decode(stream, decoding_limits)?;
+        let minimum_sampling_interval = Double::decode(stream, decoding_limits)?;
+        let historizing = Boolean::decode(stream, decoding_limits)?;
         Ok(VariableAttributes {
             specified_attributes,
             display_name,

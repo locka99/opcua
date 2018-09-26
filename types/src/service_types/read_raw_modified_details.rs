@@ -40,12 +40,12 @@ impl BinaryEncoder<ReadRawModifiedDetails> for ReadRawModifiedDetails {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let is_read_modified = Boolean::decode(stream)?;
-        let start_time = DateTime::decode(stream)?;
-        let end_time = DateTime::decode(stream)?;
-        let num_values_per_node = UInt32::decode(stream)?;
-        let return_bounds = Boolean::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let is_read_modified = Boolean::decode(stream, decoding_limits)?;
+        let start_time = DateTime::decode(stream, decoding_limits)?;
+        let end_time = DateTime::decode(stream, decoding_limits)?;
+        let num_values_per_node = UInt32::decode(stream, decoding_limits)?;
+        let return_bounds = Boolean::decode(stream, decoding_limits)?;
         Ok(ReadRawModifiedDetails {
             is_read_modified,
             start_time,

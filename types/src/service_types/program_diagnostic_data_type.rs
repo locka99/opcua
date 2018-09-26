@@ -67,17 +67,17 @@ impl BinaryEncoder<ProgramDiagnosticDataType> for ProgramDiagnosticDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let create_session_id = NodeId::decode(stream)?;
-        let create_client_name = UAString::decode(stream)?;
-        let invocation_creation_time = DateTime::decode(stream)?;
-        let last_transition_time = DateTime::decode(stream)?;
-        let last_method_call = UAString::decode(stream)?;
-        let last_method_session_id = NodeId::decode(stream)?;
-        let last_method_input_arguments: Option<Vec<Argument>> = read_array(stream)?;
-        let last_method_output_arguments: Option<Vec<Argument>> = read_array(stream)?;
-        let last_method_call_time = DateTime::decode(stream)?;
-        let last_method_return_status = StatusResult::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let create_session_id = NodeId::decode(stream, decoding_limits)?;
+        let create_client_name = UAString::decode(stream, decoding_limits)?;
+        let invocation_creation_time = DateTime::decode(stream, decoding_limits)?;
+        let last_transition_time = DateTime::decode(stream, decoding_limits)?;
+        let last_method_call = UAString::decode(stream, decoding_limits)?;
+        let last_method_session_id = NodeId::decode(stream, decoding_limits)?;
+        let last_method_input_arguments: Option<Vec<Argument>> = read_array(stream, decoding_limits)?;
+        let last_method_output_arguments: Option<Vec<Argument>> = read_array(stream, decoding_limits)?;
+        let last_method_call_time = DateTime::decode(stream, decoding_limits)?;
+        let last_method_return_status = StatusResult::decode(stream, decoding_limits)?;
         Ok(ProgramDiagnosticDataType {
             create_session_id,
             create_client_name,

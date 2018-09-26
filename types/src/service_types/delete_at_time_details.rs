@@ -32,9 +32,9 @@ impl BinaryEncoder<DeleteAtTimeDetails> for DeleteAtTimeDetails {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let node_id = NodeId::decode(stream)?;
-        let req_times: Option<Vec<DateTime>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let node_id = NodeId::decode(stream, decoding_limits)?;
+        let req_times: Option<Vec<DateTime>> = read_array(stream, decoding_limits)?;
         Ok(DeleteAtTimeDetails {
             node_id,
             req_times,

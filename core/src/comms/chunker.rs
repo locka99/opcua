@@ -11,7 +11,7 @@ use comms::secure_channel::SecureChannel;
 use crypto::SecurityPolicy;
 
 /// The Chunker is responsible for turning messages to chunks and chunks into messages.
-pub struct Chunker {}
+pub struct Chunker;
 
 impl Chunker {
     /// Tests what kind of chunk type is used for the supported message.
@@ -128,6 +128,7 @@ impl Chunker {
     /// Decodes a series of chunks to create a message. The message must be of a `SupportedMessage`
     /// type otherwise an error will occur.
     pub fn decode(chunks: &Vec<MessageChunk>, secure_channel: &SecureChannel, expected_node_id: Option<NodeId>) -> std::result::Result<SupportedMessage, StatusCode> {
+
         // Calculate the size of data held in all chunks
         let mut data_size: usize = 0;
         for (i, chunk) in chunks.iter().enumerate() {
@@ -166,8 +167,10 @@ impl Chunker {
         // elaborate on. Probably because people enjoy debugging why the stream pos is out by 1 byte
         // for hours.
 
+        let decoding_limits = secure_channel.decoding_limits();
+
         // Read node id from stream
-        let node_id = NodeId::decode(&mut data)?;
+        let node_id = NodeId::decode(&mut data, &decoding_limits)?;
         let object_id = {
             let valid_node_id = if node_id.namespace != 0 || !node_id.is_numeric() {
                 // Must be ns 0 and numeric
@@ -197,7 +200,7 @@ impl Chunker {
         };
 
         // Now decode the payload using the node id.
-        let decoded_message = SupportedMessage::decode_by_object_id(&mut data, object_id);
+        let decoded_message = SupportedMessage::decode_by_object_id(&mut data, object_id, &decoding_limits);
         if decoded_message.is_err() {
             debug!("Can't decode message {:?}", object_id);
             return Err(StatusCode::BadServiceUnsupported);

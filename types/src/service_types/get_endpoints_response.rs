@@ -41,9 +41,9 @@ impl BinaryEncoder<GetEndpointsResponse> for GetEndpointsResponse {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let response_header = ResponseHeader::decode(stream)?;
-        let endpoints: Option<Vec<EndpointDescription>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let response_header = ResponseHeader::decode(stream, decoding_limits)?;
+        let endpoints: Option<Vec<EndpointDescription>> = read_array(stream, decoding_limits)?;
         Ok(GetEndpointsResponse {
             response_header,
             endpoints,

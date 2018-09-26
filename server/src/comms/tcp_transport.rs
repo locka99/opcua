@@ -321,8 +321,14 @@ impl TcpTransport {
         }));
         let connection_for_terminate = connection.clone();
 
+        let decoding_limits = {
+            let transport = trace_read_lock_unwrap!(transport);
+            let secure_channel = trace_read_lock_unwrap!(transport.secure_channel);
+            secure_channel.decoding_limits()
+        };
+
         // The reader reads frames from the codec, which are messages
-        let framed_reader = FramedRead::new(reader, TcpCodec::new(finished_flag));
+        let framed_reader = FramedRead::new(reader, TcpCodec::new(finished_flag, decoding_limits));
         let looping_task = framed_reader.for_each(move |message| {
             let connection = trace_read_lock_unwrap!(connection);
             let transport_state = {
@@ -621,7 +627,13 @@ impl TcpTransport {
     }
 
     fn process_chunk(&mut self, chunk: MessageChunk, sender: &mut UnboundedSender<(UInt32, SupportedMessage)>) -> std::result::Result<(), StatusCode> {
-        let message_header = chunk.message_header()?;
+
+        let decoding_limits = {
+            let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+            secure_channel.decoding_limits()
+        };
+
+        let message_header = chunk.message_header(&decoding_limits)?;
 
         if message_header.is_final == MessageIsFinalType::Intermediate {
             panic!("We don't support intermediate chunks yet");

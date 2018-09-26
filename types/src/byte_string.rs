@@ -4,9 +4,8 @@ use std::io::{Read, Write};
 
 use base64;
 
-use encoding::{write_i32, BinaryEncoder, EncodingResult, process_encode_io_result, process_decode_io_result};
+use encoding::{write_i32, BinaryEncoder, EncodingResult, DecodingLimits, process_encode_io_result, process_decode_io_result};
 use basic_types::Int32;
-use constants;
 use status_codes::StatusCode;
 
 /// A sequence of octets.
@@ -41,24 +40,24 @@ impl BinaryEncoder<ByteString> for ByteString {
         }
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let buf_len = Int32::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let len = Int32::decode(stream, decoding_limits)?;
         // Null string?
-        if buf_len < -1 {
-            error!("ByteString buf length is a negative number {}", buf_len);
-            Err(StatusCode::BadDecodingError)
-        } else if buf_len > constants::MAX_BYTE_STRING_LENGTH as i32 {
-            error!("ByteString buf length {} is longer than max byte string length", buf_len);
-            Err(StatusCode::BadEncodingLimitsExceeded)
-        } else if buf_len == -1 {
+        if len == -1 {
             Ok(ByteString::null())
+        } else if len < -1 {
+            error!("ByteString buf length is a negative number {}", len);
+            Err(StatusCode::BadDecodingError)
+        } else if len as u32 > decoding_limits.max_byte_string_length {
+            error!("ByteString length {} exceeds decoding limit {}", len, decoding_limits.max_string_length);
+            Err(StatusCode::BadDecodingError)
         } else {
-            // Create the actual UTF8 string
-            let mut string_buf: Vec<u8> = Vec::with_capacity(buf_len as usize);
-            string_buf.resize(buf_len as usize, 0u8);
-            process_decode_io_result(stream.read_exact(&mut string_buf))?;
+            // Create a buffer filled with zeroes and read the byte string over the top
+            let mut buf: Vec<u8> = Vec::with_capacity(len as usize);
+            buf.resize(len as usize, 0u8);
+            process_decode_io_result(stream.read_exact(&mut buf))?;
             Ok(ByteString {
-                value: Some(string_buf)
+                value: Some(buf)
             })
         }
     }

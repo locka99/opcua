@@ -234,6 +234,7 @@ impl ServerState {
     pub fn authenticate_endpoint(&self, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode, user_identity_token: &ExtensionObject) -> StatusCode {
         // Get security from endpoint url
         let config = trace_read_lock_unwrap!(self.config);
+        let decoding_limits = config.decoding_limits();
         if let Some(endpoint) = config.find_endpoint(endpoint_url, security_policy, security_mode) {
             // Now validate the user identity token
             if user_identity_token.is_null() || user_identity_token.is_empty() {
@@ -249,7 +250,7 @@ impl ServerState {
                         }
                         ObjectId::UserNameIdentityToken_Encoding_DefaultBinary => {
                             // Username / password
-                            let result = user_identity_token.decode_inner::<UserNameIdentityToken>();
+                            let result = user_identity_token.decode_inner::<UserNameIdentityToken>(&decoding_limits);
                             if let Ok(token) = result {
                                 self.authenticate_username_identity_token(&config, endpoint, &token)
                             } else {
@@ -260,7 +261,7 @@ impl ServerState {
                         }
                         ObjectId::X509IdentityToken_Encoding_DefaultBinary => {
                             // X509 certs could be recognized here
-                            let result = user_identity_token.decode_inner::<X509IdentityToken>();
+                            let result = user_identity_token.decode_inner::<X509IdentityToken>(&decoding_limits);
                             if let Ok(_) = result {
                                 error!("X509 identity token type is not supported");
                                 StatusCode::BadIdentityTokenRejected

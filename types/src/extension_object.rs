@@ -67,22 +67,22 @@ impl BinaryEncoder<ExtensionObject> for ExtensionObject {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let node_id = NodeId::decode(stream)?;
-        let encoding_type = Byte::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let node_id = NodeId::decode(stream, decoding_limits)?;
+        let encoding_type = Byte::decode(stream, decoding_limits)?;
         let body = match encoding_type {
             0x0 => {
                 ExtensionObjectEncoding::None
             }
             0x1 => {
-                let value = ByteString::decode(stream);
+                let value = ByteString::decode(stream, decoding_limits);
                 if value.is_err() {
                     return Err(value.unwrap_err());
                 }
                 ExtensionObjectEncoding::ByteString(value.unwrap())
             }
             0x2 => {
-                let value = XmlElement::decode(stream);
+                let value = XmlElement::decode(stream, decoding_limits);
                 if value.is_err() {
                     return Err(value.unwrap_err());
                 }
@@ -138,12 +138,12 @@ impl ExtensionObject {
     /// Decodes the inner content of the extension object and returns it. The node id is ignored
     /// for decoding. The caller supplies the binary encoder impl that should be used to extract
     /// the data. Errors result in a decoding error.
-    pub fn decode_inner<T>(&self) -> EncodingResult<T> where T: BinaryEncoder<T> {
+    pub fn decode_inner<T>(&self, decoding_limits: &DecodingLimits) -> EncodingResult<T> where T: BinaryEncoder<T> {
         if let ExtensionObjectEncoding::ByteString(ref byte_string) = self.body {
             if let Some(ref value) = byte_string.value {
                 let value = value.clone();
                 let mut stream = Cursor::new(value);
-                return T::decode(&mut stream);
+                return T::decode(&mut stream, decoding_limits);
             }
         }
         Err(StatusCode::BadDecodingError)

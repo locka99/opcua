@@ -32,9 +32,9 @@ impl BinaryEncoder<DeleteEventDetails> for DeleteEventDetails {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let node_id = NodeId::decode(stream)?;
-        let event_ids: Option<Vec<ByteString>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let node_id = NodeId::decode(stream, decoding_limits)?;
+        let event_ids: Option<Vec<ByteString>> = read_array(stream, decoding_limits)?;
         Ok(DeleteEventDetails {
             node_id,
             event_ids,

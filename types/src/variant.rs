@@ -472,13 +472,13 @@ impl BinaryEncoder<Variant> for Variant {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let encoding_mask = Byte::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let encoding_mask = Byte::decode(stream, decoding_limits)?;
         let element_encoding_mask = encoding_mask & !(ARRAY_DIMENSIONS_BIT | ARRAY_VALUES_BIT);
 
         // Read array length
         let array_length = if encoding_mask & ARRAY_VALUES_BIT != 0 {
-            let array_length = Int32::decode(stream)?;
+            let array_length = Int32::decode(stream, decoding_limits)?;
             if array_length <= 0 {
                 error!("Invalid array_length {}", array_length);
                 return Err(StatusCode::BadDecodingError);
@@ -497,10 +497,10 @@ impl BinaryEncoder<Variant> for Variant {
 
             let mut result: Vec<Variant> = Vec::with_capacity(array_length as usize);
             for _ in 0..array_length {
-                result.push(Variant::decode_variant_value(stream, element_encoding_mask)?);
+                result.push(Variant::decode_variant_value(stream, element_encoding_mask, decoding_limits)?);
             }
             if encoding_mask & ARRAY_DIMENSIONS_BIT != 0 {
-                let dimensions: Option<Vec<Int32>> = read_array(stream)?;
+                let dimensions: Option<Vec<Int32>> = read_array(stream, decoding_limits)?;
                 if dimensions.is_none() {
                     error!("No array dimensions despite the bit flag being set");
                     return Err(StatusCode::BadDecodingError);
@@ -528,7 +528,7 @@ impl BinaryEncoder<Variant> for Variant {
             Err(StatusCode::BadDecodingError)
         } else {
             // Read a single variant
-            Variant::decode_variant_value(stream, element_encoding_mask)
+            Variant::decode_variant_value(stream, element_encoding_mask, decoding_limits)
         }
     }
 }
@@ -642,55 +642,55 @@ impl Variant {
     }
 
     /// Reads just the variant value from the stream
-    fn decode_variant_value<S: Read>(stream: &mut S, encoding_mask: Byte) -> EncodingResult<Self> {
+    fn decode_variant_value<S: Read>(stream: &mut S, encoding_mask: Byte, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let result = if encoding_mask == 0 {
             Variant::Empty
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Boolean) {
-            Self::new(Boolean::decode(stream)?)
+            Self::new(Boolean::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::SByte) {
-            Self::new(SByte::decode(stream)?)
+            Self::new(SByte::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Byte) {
-            Self::new(Byte::decode(stream)?)
+            Self::new(Byte::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Int16) {
-            Self::new(Int16::decode(stream)?)
+            Self::new(Int16::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::UInt16) {
-            Self::new(UInt16::decode(stream)?)
+            Self::new(UInt16::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Int32) {
-            Self::new(Int32::decode(stream)?)
+            Self::new(Int32::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::UInt32) {
-            Self::new(UInt32::decode(stream)?)
+            Self::new(UInt32::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Int64) {
-            Self::new(Int64::decode(stream)?)
+            Self::new(Int64::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::UInt64) {
-            Self::new(UInt64::decode(stream)?)
+            Self::new(UInt64::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Float) {
-            Self::new(Float::decode(stream)?)
+            Self::new(Float::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Double) {
-            Self::new(Double::decode(stream)?)
+            Self::new(Double::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::String) {
-            Self::new(UAString::decode(stream)?)
+            Self::new(UAString::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::DateTime) {
-            Self::new(DateTime::decode(stream)?)
+            Self::new(DateTime::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Guid) {
-            Self::new(Guid::decode(stream)?)
+            Self::new(Guid::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::ByteString) {
-            Self::new(ByteString::decode(stream)?)
+            Self::new(ByteString::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::XmlElement) {
-            Variant::XmlElement(XmlElement::decode(stream)?)
+            Variant::XmlElement(XmlElement::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::NodeId) {
-            Self::new(NodeId::decode(stream)?)
+            Self::new(NodeId::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::ExpandedNodeId) {
-            Self::new(ExpandedNodeId::decode(stream)?)
+            Self::new(ExpandedNodeId::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::StatusCode) {
-            Self::new(StatusCode::decode(stream)?)
+            Self::new(StatusCode::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::QualifiedName) {
-            Self::new(QualifiedName::decode(stream)?)
+            Self::new(QualifiedName::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::LocalizedText) {
-            Self::new(LocalizedText::decode(stream)?)
+            Self::new(LocalizedText::decode(stream, decoding_limits)?)
         } else if encoding_mask == 22 {
-            Self::new(ExtensionObject::decode(stream)?)
+            Self::new(ExtensionObject::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::DataValue) {
-            Self::new(DataValue::decode(stream)?)
+            Self::new(DataValue::decode(stream, decoding_limits)?)
         } else {
             Variant::Empty
         };

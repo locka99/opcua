@@ -44,10 +44,10 @@ impl BinaryEncoder<DeleteSubscriptionsResponse> for DeleteSubscriptionsResponse 
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let response_header = ResponseHeader::decode(stream)?;
-        let results: Option<Vec<StatusCode>> = read_array(stream)?;
-        let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let response_header = ResponseHeader::decode(stream, decoding_limits)?;
+        let results: Option<Vec<StatusCode>> = read_array(stream, decoding_limits)?;
+        let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_limits)?;
         Ok(DeleteSubscriptionsResponse {
             response_header,
             results,

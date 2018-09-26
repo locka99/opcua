@@ -47,7 +47,7 @@ macro_rules! supported_messages_enum {
                 }
             }
 
-            fn decode<S: Read>(_: &mut S) -> EncodingResult<Self> {
+            fn decode<S: Read>(_: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
                 // THIS WILL NOT DO ANYTHING
                 panic!("Cannot decode a stream to a supported message type");
             }
@@ -131,149 +131,149 @@ impl SupportedMessage {
         }
     }
 
-    pub fn decode_by_object_id<S: Read>(stream: &mut S, object_id: ObjectId) -> EncodingResult<Self> {
+    pub fn decode_by_object_id<S: Read>(stream: &mut S, object_id: ObjectId, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         trace!("decoding object_id {:?}", object_id);
         let decoded_message = match object_id {
             ObjectId::ServiceFault_Encoding_DefaultBinary => {
-                SupportedMessage::ServiceFault(ServiceFault::decode(stream)?)
+                SupportedMessage::ServiceFault(ServiceFault::decode(stream, decoding_limits)?)
             }
             ObjectId::OpenSecureChannelRequest_Encoding_DefaultBinary => {
-                SupportedMessage::OpenSecureChannelRequest(OpenSecureChannelRequest::decode(stream)?)
+                SupportedMessage::OpenSecureChannelRequest(OpenSecureChannelRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::OpenSecureChannelResponse_Encoding_DefaultBinary => {
-                SupportedMessage::OpenSecureChannelResponse(OpenSecureChannelResponse::decode(stream)?)
+                SupportedMessage::OpenSecureChannelResponse(OpenSecureChannelResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::CloseSecureChannelRequest_Encoding_DefaultBinary => {
-                SupportedMessage::CloseSecureChannelRequest(CloseSecureChannelRequest::decode(stream)?)
+                SupportedMessage::CloseSecureChannelRequest(CloseSecureChannelRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::CloseSecureChannelResponse_Encoding_DefaultBinary => {
-                SupportedMessage::CloseSecureChannelResponse(CloseSecureChannelResponse::decode(stream)?)
+                SupportedMessage::CloseSecureChannelResponse(CloseSecureChannelResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::GetEndpointsRequest_Encoding_DefaultBinary => {
-                SupportedMessage::GetEndpointsRequest(GetEndpointsRequest::decode(stream)?)
+                SupportedMessage::GetEndpointsRequest(GetEndpointsRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::GetEndpointsResponse_Encoding_DefaultBinary => {
-                SupportedMessage::GetEndpointsResponse(GetEndpointsResponse::decode(stream)?)
+                SupportedMessage::GetEndpointsResponse(GetEndpointsResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::FindServersRequest_Encoding_DefaultBinary => {
-                SupportedMessage::FindServersRequest(FindServersRequest::decode(stream)?)
+                SupportedMessage::FindServersRequest(FindServersRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::FindServersResponse_Encoding_DefaultBinary => {
-                SupportedMessage::FindServersResponse(FindServersResponse::decode(stream)?)
+                SupportedMessage::FindServersResponse(FindServersResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::RegisterServerRequest_Encoding_DefaultBinary => {
-                SupportedMessage::RegisterServerRequest(RegisterServerRequest::decode(stream)?)
+                SupportedMessage::RegisterServerRequest(RegisterServerRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::RegisterServerResponse_Encoding_DefaultBinary => {
-                SupportedMessage::RegisterServerResponse(RegisterServerResponse::decode(stream)?)
+                SupportedMessage::RegisterServerResponse(RegisterServerResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::CreateSessionRequest_Encoding_DefaultBinary => {
-                SupportedMessage::CreateSessionRequest(CreateSessionRequest::decode(stream)?)
+                SupportedMessage::CreateSessionRequest(CreateSessionRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::CreateSessionResponse_Encoding_DefaultBinary => {
-                SupportedMessage::CreateSessionResponse(CreateSessionResponse::decode(stream)?)
+                SupportedMessage::CreateSessionResponse(CreateSessionResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::CloseSessionRequest_Encoding_DefaultBinary => {
-                SupportedMessage::CloseSessionRequest(CloseSessionRequest::decode(stream)?)
+                SupportedMessage::CloseSessionRequest(CloseSessionRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::CloseSessionResponse_Encoding_DefaultBinary => {
-                SupportedMessage::CloseSessionResponse(CloseSessionResponse::decode(stream)?)
+                SupportedMessage::CloseSessionResponse(CloseSessionResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::ActivateSessionRequest_Encoding_DefaultBinary => {
-                SupportedMessage::ActivateSessionRequest(ActivateSessionRequest::decode(stream)?)
+                SupportedMessage::ActivateSessionRequest(ActivateSessionRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::ActivateSessionResponse_Encoding_DefaultBinary => {
-                SupportedMessage::ActivateSessionResponse(ActivateSessionResponse::decode(stream)?)
+                SupportedMessage::ActivateSessionResponse(ActivateSessionResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::CreateMonitoredItemsRequest_Encoding_DefaultBinary => {
-                SupportedMessage::CreateMonitoredItemsRequest(CreateMonitoredItemsRequest::decode(stream)?)
+                SupportedMessage::CreateMonitoredItemsRequest(CreateMonitoredItemsRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::CreateMonitoredItemsResponse_Encoding_DefaultBinary => {
-                SupportedMessage::CreateMonitoredItemsResponse(CreateMonitoredItemsResponse::decode(stream)?)
+                SupportedMessage::CreateMonitoredItemsResponse(CreateMonitoredItemsResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::ModifyMonitoredItemsRequest_Encoding_DefaultBinary => {
-                SupportedMessage::ModifyMonitoredItemsRequest(ModifyMonitoredItemsRequest::decode(stream)?)
+                SupportedMessage::ModifyMonitoredItemsRequest(ModifyMonitoredItemsRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::ModifyMonitoredItemsResponse_Encoding_DefaultBinary => {
-                SupportedMessage::ModifyMonitoredItemsResponse(ModifyMonitoredItemsResponse::decode(stream)?)
+                SupportedMessage::ModifyMonitoredItemsResponse(ModifyMonitoredItemsResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::DeleteMonitoredItemsRequest_Encoding_DefaultBinary => {
-                SupportedMessage::DeleteMonitoredItemsRequest(DeleteMonitoredItemsRequest::decode(stream)?)
+                SupportedMessage::DeleteMonitoredItemsRequest(DeleteMonitoredItemsRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::DeleteMonitoredItemsResponse_Encoding_DefaultBinary => {
-                SupportedMessage::DeleteMonitoredItemsResponse(DeleteMonitoredItemsResponse::decode(stream)?)
+                SupportedMessage::DeleteMonitoredItemsResponse(DeleteMonitoredItemsResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::CreateSubscriptionRequest_Encoding_DefaultBinary => {
-                SupportedMessage::CreateSubscriptionRequest(CreateSubscriptionRequest::decode(stream)?)
+                SupportedMessage::CreateSubscriptionRequest(CreateSubscriptionRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::CreateSubscriptionResponse_Encoding_DefaultBinary => {
-                SupportedMessage::CreateSubscriptionResponse(CreateSubscriptionResponse::decode(stream)?)
+                SupportedMessage::CreateSubscriptionResponse(CreateSubscriptionResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::ModifySubscriptionRequest_Encoding_DefaultBinary => {
-                SupportedMessage::ModifySubscriptionRequest(ModifySubscriptionRequest::decode(stream)?)
+                SupportedMessage::ModifySubscriptionRequest(ModifySubscriptionRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::ModifySubscriptionResponse_Encoding_DefaultBinary => {
-                SupportedMessage::ModifySubscriptionResponse(ModifySubscriptionResponse::decode(stream)?)
+                SupportedMessage::ModifySubscriptionResponse(ModifySubscriptionResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::DeleteSubscriptionsRequest_Encoding_DefaultBinary => {
-                SupportedMessage::DeleteSubscriptionsRequest(DeleteSubscriptionsRequest::decode(stream)?)
+                SupportedMessage::DeleteSubscriptionsRequest(DeleteSubscriptionsRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::DeleteSubscriptionsResponse_Encoding_DefaultBinary => {
-                SupportedMessage::DeleteSubscriptionsResponse(DeleteSubscriptionsResponse::decode(stream)?)
+                SupportedMessage::DeleteSubscriptionsResponse(DeleteSubscriptionsResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::SetPublishingModeRequest_Encoding_DefaultBinary => {
-                SupportedMessage::SetPublishingModeRequest(SetPublishingModeRequest::decode(stream)?)
+                SupportedMessage::SetPublishingModeRequest(SetPublishingModeRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::SetPublishingModeResponse_Encoding_DefaultBinary => {
-                SupportedMessage::SetPublishingModeResponse(SetPublishingModeResponse::decode(stream)?)
+                SupportedMessage::SetPublishingModeResponse(SetPublishingModeResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::BrowseRequest_Encoding_DefaultBinary => {
-                SupportedMessage::BrowseRequest(BrowseRequest::decode(stream)?)
+                SupportedMessage::BrowseRequest(BrowseRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::BrowseResponse_Encoding_DefaultBinary => {
-                SupportedMessage::BrowseResponse(BrowseResponse::decode(stream)?)
+                SupportedMessage::BrowseResponse(BrowseResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::BrowseNextRequest_Encoding_DefaultBinary => {
-                SupportedMessage::BrowseNextRequest(BrowseNextRequest::decode(stream)?)
+                SupportedMessage::BrowseNextRequest(BrowseNextRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::BrowseNextResponse_Encoding_DefaultBinary => {
-                SupportedMessage::BrowseNextResponse(BrowseNextResponse::decode(stream)?)
+                SupportedMessage::BrowseNextResponse(BrowseNextResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::PublishRequest_Encoding_DefaultBinary => {
-                SupportedMessage::PublishRequest(PublishRequest::decode(stream)?)
+                SupportedMessage::PublishRequest(PublishRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::PublishResponse_Encoding_DefaultBinary => {
-                SupportedMessage::PublishResponse(PublishResponse::decode(stream)?)
+                SupportedMessage::PublishResponse(PublishResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::RepublishRequest_Encoding_DefaultBinary => {
-                SupportedMessage::RepublishRequest(RepublishRequest::decode(stream)?)
+                SupportedMessage::RepublishRequest(RepublishRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::RepublishResponse_Encoding_DefaultBinary => {
-                SupportedMessage::RepublishResponse(RepublishResponse::decode(stream)?)
+                SupportedMessage::RepublishResponse(RepublishResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::TranslateBrowsePathsToNodeIdsRequest_Encoding_DefaultBinary => {
-                SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(TranslateBrowsePathsToNodeIdsRequest::decode(stream)?)
+                SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(TranslateBrowsePathsToNodeIdsRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::TranslateBrowsePathsToNodeIdsResponse_Encoding_DefaultBinary => {
-                SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(TranslateBrowsePathsToNodeIdsResponse::decode(stream)?)
+                SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(TranslateBrowsePathsToNodeIdsResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::ReadRequest_Encoding_DefaultBinary => {
-                SupportedMessage::ReadRequest(ReadRequest::decode(stream)?)
+                SupportedMessage::ReadRequest(ReadRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::ReadResponse_Encoding_DefaultBinary => {
-                SupportedMessage::ReadResponse(ReadResponse::decode(stream)?)
+                SupportedMessage::ReadResponse(ReadResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::WriteRequest_Encoding_DefaultBinary => {
-                SupportedMessage::WriteRequest(WriteRequest::decode(stream)?)
+                SupportedMessage::WriteRequest(WriteRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::WriteResponse_Encoding_DefaultBinary => {
-                SupportedMessage::WriteResponse(WriteResponse::decode(stream)?)
+                SupportedMessage::WriteResponse(WriteResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::CallRequest_Encoding_DefaultBinary => {
-                SupportedMessage::CallRequest(CallRequest::decode(stream)?)
+                SupportedMessage::CallRequest(CallRequest::decode(stream, decoding_limits)?)
             }
             ObjectId::CallResponse_Encoding_DefaultBinary => {
-                SupportedMessage::CallResponse(CallResponse::decode(stream)?)
+                SupportedMessage::CallResponse(CallResponse::decode(stream, decoding_limits)?)
             }
 
             _ => {

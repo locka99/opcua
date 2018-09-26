@@ -57,19 +57,19 @@ impl BinaryEncoder<Argument> for Argument {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let name = UAString::decode(stream)?;
-        let data_type = NodeId::decode(stream)?;
-        let value_rank = Int32::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let name = UAString::decode(stream, decoding_limits)?;
+        let data_type = NodeId::decode(stream, decoding_limits)?;
+        let value_rank = Int32::decode(stream, decoding_limits)?;
         // Decode array dimensions
-        let array_dimensions: Option<Vec<UInt32>> = read_array(stream)?;
+        let array_dimensions: Option<Vec<UInt32>> = read_array(stream, decoding_limits)?;
         if let Some(ref array_dimensions) = array_dimensions {
             if value_rank > 0 && value_rank as usize != array_dimensions.len() {
                 error!("The array dimensions {} of the Argument should match value rank {} and they don't", array_dimensions.len(), value_rank);
                 return Err(StatusCode::BadDataEncodingInvalid);
             }
         }
-        let description = LocalizedText::decode(stream)?;
+        let description = LocalizedText::decode(stream, decoding_limits)?;
         Ok(Argument {
             name,
             data_type,

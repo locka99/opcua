@@ -36,8 +36,8 @@ impl BinaryEncoder<ContentFilter> for ContentFilter {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let elements: Option<Vec<ContentFilterElement>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let elements: Option<Vec<ContentFilterElement>> = read_array(stream, decoding_limits)?;
         Ok(ContentFilter {
             elements,
         })

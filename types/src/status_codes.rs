@@ -281,7 +281,7 @@ impl BinaryEncoder<StatusCode> for StatusCode {
         write_u32(stream, self.bits())
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         Ok(StatusCode::from_bits_truncate(read_u32(stream)?))
     }
 }

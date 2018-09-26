@@ -40,9 +40,9 @@ impl BinaryEncoder<CallRequest> for CallRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream)?;
-        let methods_to_call: Option<Vec<CallMethodRequest>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_limits)?;
+        let methods_to_call: Option<Vec<CallMethodRequest>> = read_array(stream, decoding_limits)?;
         Ok(CallRequest {
             request_header,
             methods_to_call,

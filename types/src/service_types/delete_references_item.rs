@@ -50,12 +50,12 @@ impl BinaryEncoder<DeleteReferencesItem> for DeleteReferencesItem {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let source_node_id = NodeId::decode(stream)?;
-        let reference_type_id = NodeId::decode(stream)?;
-        let is_forward = Boolean::decode(stream)?;
-        let target_node_id = ExpandedNodeId::decode(stream)?;
-        let delete_bidirectional = Boolean::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let source_node_id = NodeId::decode(stream, decoding_limits)?;
+        let reference_type_id = NodeId::decode(stream, decoding_limits)?;
+        let is_forward = Boolean::decode(stream, decoding_limits)?;
+        let target_node_id = ExpandedNodeId::decode(stream, decoding_limits)?;
+        let delete_bidirectional = Boolean::decode(stream, decoding_limits)?;
         Ok(DeleteReferencesItem {
             source_node_id,
             reference_type_id,

@@ -48,11 +48,11 @@ impl BinaryEncoder<BrowseRequest> for BrowseRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream)?;
-        let view = ViewDescription::decode(stream)?;
-        let requested_max_references_per_node = UInt32::decode(stream)?;
-        let nodes_to_browse: Option<Vec<BrowseDescription>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_limits)?;
+        let view = ViewDescription::decode(stream, decoding_limits)?;
+        let requested_max_references_per_node = UInt32::decode(stream, decoding_limits)?;
+        let nodes_to_browse: Option<Vec<BrowseDescription>> = read_array(stream, decoding_limits)?;
         Ok(BrowseRequest {
             request_header,
             view,

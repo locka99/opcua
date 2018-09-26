@@ -48,12 +48,12 @@ impl BinaryEncoder<CreateSubscriptionResponse> for CreateSubscriptionResponse {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let response_header = ResponseHeader::decode(stream)?;
-        let subscription_id = UInt32::decode(stream)?;
-        let revised_publishing_interval = Double::decode(stream)?;
-        let revised_lifetime_count = UInt32::decode(stream)?;
-        let revised_max_keep_alive_count = UInt32::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let response_header = ResponseHeader::decode(stream, decoding_limits)?;
+        let subscription_id = UInt32::decode(stream, decoding_limits)?;
+        let revised_publishing_interval = Double::decode(stream, decoding_limits)?;
+        let revised_lifetime_count = UInt32::decode(stream, decoding_limits)?;
+        let revised_max_keep_alive_count = UInt32::decode(stream, decoding_limits)?;
         Ok(CreateSubscriptionResponse {
             response_header,
             subscription_id,

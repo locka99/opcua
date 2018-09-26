@@ -41,9 +41,9 @@ impl BinaryEncoder<BrowsePath> for BrowsePath {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let starting_node = NodeId::decode(stream)?;
-        let relative_path = RelativePath::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let starting_node = NodeId::decode(stream, decoding_limits)?;
+        let relative_path = RelativePath::decode(stream, decoding_limits)?;
         Ok(BrowsePath {
             starting_node,
             relative_path,

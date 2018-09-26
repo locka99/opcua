@@ -41,9 +41,9 @@ impl BinaryEncoder<DeleteReferencesRequest> for DeleteReferencesRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream)?;
-        let references_to_delete: Option<Vec<DeleteReferencesItem>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_limits)?;
+        let references_to_delete: Option<Vec<DeleteReferencesItem>> = read_array(stream, decoding_limits)?;
         Ok(DeleteReferencesRequest {
             request_header,
             references_to_delete,

@@ -39,9 +39,9 @@ impl BinaryEncoder<TransferResult> for TransferResult {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let status_code = StatusCode::decode(stream)?;
-        let available_sequence_numbers: Option<Vec<UInt32>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let status_code = StatusCode::decode(stream, decoding_limits)?;
+        let available_sequence_numbers: Option<Vec<UInt32>> = read_array(stream, decoding_limits)?;
         Ok(TransferResult {
             status_code,
             available_sequence_numbers,

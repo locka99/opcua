@@ -166,50 +166,50 @@ impl BinaryEncoder<SessionDiagnosticsDataType> for SessionDiagnosticsDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let session_id = NodeId::decode(stream)?;
-        let session_name = UAString::decode(stream)?;
-        let client_description = ApplicationDescription::decode(stream)?;
-        let server_uri = UAString::decode(stream)?;
-        let endpoint_url = UAString::decode(stream)?;
-        let locale_ids: Option<Vec<UAString>> = read_array(stream)?;
-        let actual_session_timeout = Double::decode(stream)?;
-        let max_response_message_size = UInt32::decode(stream)?;
-        let client_connection_time = DateTime::decode(stream)?;
-        let client_last_contact_time = DateTime::decode(stream)?;
-        let current_subscriptions_count = UInt32::decode(stream)?;
-        let current_monitored_items_count = UInt32::decode(stream)?;
-        let current_publish_requests_in_queue = UInt32::decode(stream)?;
-        let total_request_count = ServiceCounterDataType::decode(stream)?;
-        let unauthorized_request_count = UInt32::decode(stream)?;
-        let read_count = ServiceCounterDataType::decode(stream)?;
-        let history_read_count = ServiceCounterDataType::decode(stream)?;
-        let write_count = ServiceCounterDataType::decode(stream)?;
-        let history_update_count = ServiceCounterDataType::decode(stream)?;
-        let call_count = ServiceCounterDataType::decode(stream)?;
-        let create_monitored_items_count = ServiceCounterDataType::decode(stream)?;
-        let modify_monitored_items_count = ServiceCounterDataType::decode(stream)?;
-        let set_monitoring_mode_count = ServiceCounterDataType::decode(stream)?;
-        let set_triggering_count = ServiceCounterDataType::decode(stream)?;
-        let delete_monitored_items_count = ServiceCounterDataType::decode(stream)?;
-        let create_subscription_count = ServiceCounterDataType::decode(stream)?;
-        let modify_subscription_count = ServiceCounterDataType::decode(stream)?;
-        let set_publishing_mode_count = ServiceCounterDataType::decode(stream)?;
-        let publish_count = ServiceCounterDataType::decode(stream)?;
-        let republish_count = ServiceCounterDataType::decode(stream)?;
-        let transfer_subscriptions_count = ServiceCounterDataType::decode(stream)?;
-        let delete_subscriptions_count = ServiceCounterDataType::decode(stream)?;
-        let add_nodes_count = ServiceCounterDataType::decode(stream)?;
-        let add_references_count = ServiceCounterDataType::decode(stream)?;
-        let delete_nodes_count = ServiceCounterDataType::decode(stream)?;
-        let delete_references_count = ServiceCounterDataType::decode(stream)?;
-        let browse_count = ServiceCounterDataType::decode(stream)?;
-        let browse_next_count = ServiceCounterDataType::decode(stream)?;
-        let translate_browse_paths_to_node_ids_count = ServiceCounterDataType::decode(stream)?;
-        let query_first_count = ServiceCounterDataType::decode(stream)?;
-        let query_next_count = ServiceCounterDataType::decode(stream)?;
-        let register_nodes_count = ServiceCounterDataType::decode(stream)?;
-        let unregister_nodes_count = ServiceCounterDataType::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let session_id = NodeId::decode(stream, decoding_limits)?;
+        let session_name = UAString::decode(stream, decoding_limits)?;
+        let client_description = ApplicationDescription::decode(stream, decoding_limits)?;
+        let server_uri = UAString::decode(stream, decoding_limits)?;
+        let endpoint_url = UAString::decode(stream, decoding_limits)?;
+        let locale_ids: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
+        let actual_session_timeout = Double::decode(stream, decoding_limits)?;
+        let max_response_message_size = UInt32::decode(stream, decoding_limits)?;
+        let client_connection_time = DateTime::decode(stream, decoding_limits)?;
+        let client_last_contact_time = DateTime::decode(stream, decoding_limits)?;
+        let current_subscriptions_count = UInt32::decode(stream, decoding_limits)?;
+        let current_monitored_items_count = UInt32::decode(stream, decoding_limits)?;
+        let current_publish_requests_in_queue = UInt32::decode(stream, decoding_limits)?;
+        let total_request_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let unauthorized_request_count = UInt32::decode(stream, decoding_limits)?;
+        let read_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let history_read_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let write_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let history_update_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let call_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let create_monitored_items_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let modify_monitored_items_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let set_monitoring_mode_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let set_triggering_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let delete_monitored_items_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let create_subscription_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let modify_subscription_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let set_publishing_mode_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let publish_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let republish_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let transfer_subscriptions_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let delete_subscriptions_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let add_nodes_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let add_references_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let delete_nodes_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let delete_references_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let browse_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let browse_next_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let translate_browse_paths_to_node_ids_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let query_first_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let query_next_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let register_nodes_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
+        let unregister_nodes_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
         Ok(SessionDiagnosticsDataType {
             session_id,
             session_name,

@@ -41,9 +41,9 @@ impl BinaryEncoder<BrowsePathResult> for BrowsePathResult {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let status_code = StatusCode::decode(stream)?;
-        let targets: Option<Vec<BrowsePathTarget>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let status_code = StatusCode::decode(stream, decoding_limits)?;
+        let targets: Option<Vec<BrowsePathTarget>> = read_array(stream, decoding_limits)?;
         Ok(BrowsePathResult {
             status_code,
             targets,

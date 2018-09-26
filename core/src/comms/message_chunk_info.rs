@@ -1,7 +1,7 @@
 use std;
 use std::io::Cursor;
 
-use opcua_types::BinaryEncoder;
+use opcua_types::{BinaryEncoder};
 use opcua_types::status_code::StatusCode;
 
 use crypto::SecurityPolicy;
@@ -31,15 +31,17 @@ pub struct ChunkInfo {
 }
 
 impl ChunkInfo {
-    pub fn new(chunk: &MessageChunk, _: &SecureChannel) -> std::result::Result<ChunkInfo, StatusCode> {
+    pub fn new(chunk: &MessageChunk, secure_channel: &SecureChannel) -> std::result::Result<ChunkInfo, StatusCode> {
         let mut stream = Cursor::new(&chunk.data);
 
-        let message_header = MessageChunkHeader::decode(&mut stream)?;
+        let decoding_limits = secure_channel.decoding_limits();
+
+        let message_header = MessageChunkHeader::decode(&mut stream, &decoding_limits)?;
 
         // Read the security header
         let security_header_offset = stream.position() as usize;
-        let security_header = if chunk.is_open_secure_channel() {
-            let result = AsymmetricSecurityHeader::decode(&mut stream);
+        let security_header = if chunk.is_open_secure_channel(&decoding_limits) {
+            let result = AsymmetricSecurityHeader::decode(&mut stream, &decoding_limits);
             if result.is_err() {
                 error!("chunk_info() can't decode asymmetric security_header, {:?}", result.unwrap_err());
                 return Err(StatusCode::BadCommunicationError);
@@ -60,7 +62,7 @@ impl ChunkInfo {
             // Anything related to policy can be worked out here
             SecurityHeader::Asymmetric(security_header)
         } else {
-            let result = SymmetricSecurityHeader::decode(&mut stream);
+            let result = SymmetricSecurityHeader::decode(&mut stream, &decoding_limits);
             if result.is_err() {
                 error!("chunk_info() can't decode symmetric security_header, {:?}", result.unwrap_err());
                 return Err(StatusCode::BadCommunicationError);
@@ -69,7 +71,7 @@ impl ChunkInfo {
         };
 
         let sequence_header_offset = stream.position() as usize;
-        let sequence_header_result = SequenceHeader::decode(&mut stream);
+        let sequence_header_result = SequenceHeader::decode(&mut stream, &decoding_limits);
         if sequence_header_result.is_err() {
             error!("Cannot decode sequence header {:?}", sequence_header_result.unwrap_err());
             return Err(StatusCode::BadCommunicationError);

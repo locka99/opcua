@@ -54,14 +54,14 @@ impl BinaryEncoder<CreateSubscriptionRequest> for CreateSubscriptionRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream)?;
-        let requested_publishing_interval = Double::decode(stream)?;
-        let requested_lifetime_count = UInt32::decode(stream)?;
-        let requested_max_keep_alive_count = UInt32::decode(stream)?;
-        let max_notifications_per_publish = UInt32::decode(stream)?;
-        let publishing_enabled = Boolean::decode(stream)?;
-        let priority = Byte::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_limits)?;
+        let requested_publishing_interval = Double::decode(stream, decoding_limits)?;
+        let requested_lifetime_count = UInt32::decode(stream, decoding_limits)?;
+        let requested_max_keep_alive_count = UInt32::decode(stream, decoding_limits)?;
+        let max_notifications_per_publish = UInt32::decode(stream, decoding_limits)?;
+        let publishing_enabled = Boolean::decode(stream, decoding_limits)?;
+        let priority = Byte::decode(stream, decoding_limits)?;
         Ok(CreateSubscriptionRequest {
             request_header,
             requested_publishing_interval,

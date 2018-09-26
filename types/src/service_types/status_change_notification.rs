@@ -32,9 +32,9 @@ impl BinaryEncoder<StatusChangeNotification> for StatusChangeNotification {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let status = StatusCode::decode(stream)?;
-        let diagnostic_info = DiagnosticInfo::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let status = StatusCode::decode(stream, decoding_limits)?;
+        let diagnostic_info = DiagnosticInfo::decode(stream, decoding_limits)?;
         Ok(StatusChangeNotification {
             status,
             diagnostic_info,

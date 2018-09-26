@@ -39,11 +39,11 @@ impl BinaryEncoder<SimpleAttributeOperand> for SimpleAttributeOperand {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let type_definition_id = NodeId::decode(stream)?;
-        let browse_path: Option<Vec<QualifiedName>> = read_array(stream)?;
-        let attribute_id = UInt32::decode(stream)?;
-        let index_range = UAString::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let type_definition_id = NodeId::decode(stream, decoding_limits)?;
+        let browse_path: Option<Vec<QualifiedName>> = read_array(stream, decoding_limits)?;
+        let attribute_id = UInt32::decode(stream, decoding_limits)?;
+        let index_range = UAString::decode(stream, decoding_limits)?;
         Ok(SimpleAttributeOperand {
             type_definition_id,
             browse_path,

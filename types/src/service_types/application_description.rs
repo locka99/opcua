@@ -57,14 +57,14 @@ impl BinaryEncoder<ApplicationDescription> for ApplicationDescription {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let application_uri = UAString::decode(stream)?;
-        let product_uri = UAString::decode(stream)?;
-        let application_name = LocalizedText::decode(stream)?;
-        let application_type = ApplicationType::decode(stream)?;
-        let gateway_server_uri = UAString::decode(stream)?;
-        let discovery_profile_uri = UAString::decode(stream)?;
-        let discovery_urls: Option<Vec<UAString>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let application_uri = UAString::decode(stream, decoding_limits)?;
+        let product_uri = UAString::decode(stream, decoding_limits)?;
+        let application_name = LocalizedText::decode(stream, decoding_limits)?;
+        let application_type = ApplicationType::decode(stream, decoding_limits)?;
+        let gateway_server_uri = UAString::decode(stream, decoding_limits)?;
+        let discovery_profile_uri = UAString::decode(stream, decoding_limits)?;
+        let discovery_urls: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
         Ok(ApplicationDescription {
             application_uri,
             product_uri,

@@ -56,7 +56,7 @@ impl BinaryEncoder<DateTime> for DateTime {
         write_i64(stream, ticks)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let ticks = read_i64(stream)?;
         Ok(DateTime::from(ticks))
     }

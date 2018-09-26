@@ -38,9 +38,9 @@ impl BinaryEncoder<XVType> for XVType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let x = Double::decode(stream)?;
-        let value = Float::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let x = Double::decode(stream, decoding_limits)?;
+        let value = Float::decode(stream, decoding_limits)?;
         Ok(XVType {
             x,
             value,

@@ -59,14 +59,14 @@ impl BinaryEncoder<AddNodesItem> for AddNodesItem {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let parent_node_id = ExpandedNodeId::decode(stream)?;
-        let reference_type_id = NodeId::decode(stream)?;
-        let requested_new_node_id = ExpandedNodeId::decode(stream)?;
-        let browse_name = QualifiedName::decode(stream)?;
-        let node_class = NodeClass::decode(stream)?;
-        let node_attributes = ExtensionObject::decode(stream)?;
-        let type_definition = ExpandedNodeId::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let parent_node_id = ExpandedNodeId::decode(stream, decoding_limits)?;
+        let reference_type_id = NodeId::decode(stream, decoding_limits)?;
+        let requested_new_node_id = ExpandedNodeId::decode(stream, decoding_limits)?;
+        let browse_name = QualifiedName::decode(stream, decoding_limits)?;
+        let node_class = NodeClass::decode(stream, decoding_limits)?;
+        let node_attributes = ExtensionObject::decode(stream, decoding_limits)?;
+        let type_definition = ExpandedNodeId::decode(stream, decoding_limits)?;
         Ok(AddNodesItem {
             parent_node_id,
             reference_type_id,

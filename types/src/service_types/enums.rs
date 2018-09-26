@@ -27,7 +27,7 @@ impl BinaryEncoder<UserTokenType> for UserTokenType {
         write_i32(stream, *self as Int32)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         // All enums are Int32
         let user_token_type = read_i32(stream)?;
         match user_token_type {
@@ -62,7 +62,7 @@ impl BinaryEncoder<ApplicationType> for ApplicationType {
         write_i32(stream, *self as Int32)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let value = read_i32(stream)?;
         Ok(match value {
             0 => { ApplicationType::Server }
@@ -95,7 +95,7 @@ impl BinaryEncoder<TimestampsToReturn> for TimestampsToReturn {
         write_i32(stream, *self as Int32)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         // All enums are Int32
         let value = read_i32(stream)?;
         match value {
@@ -134,7 +134,7 @@ impl BinaryEncoder<NodeClass> for NodeClass {
         write_i32(stream, *self as Int32)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         // All enums are Int32
         let value = read_i32(stream)?;
         if let Some(result) = NodeClass::from_i32(value) {
@@ -183,7 +183,7 @@ impl BinaryEncoder<DataChangeTrigger> for DataChangeTrigger {
         write_i32(stream, *self as Int32)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         // All enums are Int32
         let value = read_i32(stream)?;
         match value {
@@ -227,7 +227,7 @@ impl BinaryEncoder<FilterOperator> for FilterOperator {
         write_i32(stream, *self as Int32)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         // All enums are Int32
         let value = read_i32(stream)?;
         match value {
@@ -271,7 +271,7 @@ impl BinaryEncoder<BrowseDirection> for BrowseDirection {
         write_i32(stream, *self as Int32)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         // All enums are Int32
         let value = read_i32(stream)?;
         match value {
@@ -302,7 +302,7 @@ impl BinaryEncoder<SecurityTokenRequestType> for SecurityTokenRequestType {
         write_i32(stream, *self as Int32)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         // All enums are Int32
         let security_token_request_type = read_i32(stream)?;
         Ok(match security_token_request_type {
@@ -339,7 +339,7 @@ impl BinaryEncoder<ServerState> for ServerState {
         write_i32(stream, *self as Int32)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         // All enums are Int32
         let value = read_i32(stream)?;
         match value {

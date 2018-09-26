@@ -27,7 +27,8 @@ impl FilterType {
             // No data filter was passed, so just a dumb value comparison
             Ok(FilterType::None)
         } else if filter_type_id == &ObjectId::DataChangeFilter_Encoding_DefaultBinary.into() {
-            Ok(FilterType::DataChangeFilter(filter.decode_inner::<DataChangeFilter>()?))
+            let decoding_limits = DecodingLimits::default(); // TODO
+            Ok(FilterType::DataChangeFilter(filter.decode_inner::<DataChangeFilter>(&decoding_limits)?))
         } else {
             error!("Requested data filter type is not supported, {:?}", filter_type_id);
             Err(StatusCode::BadFilterNotAllowed)

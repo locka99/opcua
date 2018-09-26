@@ -67,7 +67,7 @@ impl BinaryEncoder<Guid> for Guid {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let mut bytes = [0u8; 16];
         process_decode_io_result(stream.read_exact(&mut bytes))?;
         Ok(Guid { uuid: Uuid::from_bytes(&bytes).unwrap() })

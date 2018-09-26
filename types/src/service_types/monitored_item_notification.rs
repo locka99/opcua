@@ -39,9 +39,9 @@ impl BinaryEncoder<MonitoredItemNotification> for MonitoredItemNotification {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let client_handle = UInt32::decode(stream)?;
-        let value = DataValue::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let client_handle = UInt32::decode(stream, decoding_limits)?;
+        let value = DataValue::decode(stream, decoding_limits)?;
         Ok(MonitoredItemNotification {
             client_handle,
             value,

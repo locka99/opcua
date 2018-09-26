@@ -47,14 +47,14 @@ impl BinaryEncoder<MethodAttributes> for MethodAttributes {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let specified_attributes = UInt32::decode(stream)?;
-        let display_name = LocalizedText::decode(stream)?;
-        let description = LocalizedText::decode(stream)?;
-        let write_mask = UInt32::decode(stream)?;
-        let user_write_mask = UInt32::decode(stream)?;
-        let executable = Boolean::decode(stream)?;
-        let user_executable = Boolean::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let specified_attributes = UInt32::decode(stream, decoding_limits)?;
+        let display_name = LocalizedText::decode(stream, decoding_limits)?;
+        let description = LocalizedText::decode(stream, decoding_limits)?;
+        let write_mask = UInt32::decode(stream, decoding_limits)?;
+        let user_write_mask = UInt32::decode(stream, decoding_limits)?;
+        let executable = Boolean::decode(stream, decoding_limits)?;
+        let user_executable = Boolean::decode(stream, decoding_limits)?;
         Ok(MethodAttributes {
             specified_attributes,
             display_name,

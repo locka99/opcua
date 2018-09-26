@@ -38,9 +38,9 @@ impl BinaryEncoder<SubscriptionAcknowledgement> for SubscriptionAcknowledgement 
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let subscription_id = UInt32::decode(stream)?;
-        let sequence_number = UInt32::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let subscription_id = UInt32::decode(stream, decoding_limits)?;
+        let sequence_number = UInt32::decode(stream, decoding_limits)?;
         Ok(SubscriptionAcknowledgement {
             subscription_id,
             sequence_number,

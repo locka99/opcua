@@ -51,12 +51,12 @@ impl BinaryEncoder<Argument> for Argument {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let name = UAString::decode(stream)?;
-        let data_type = NodeId::decode(stream)?;
-        let value_rank = Int32::decode(stream)?;
-        let array_dimensions: Option<Vec<UInt32>> = read_array(stream)?;
-        let description = LocalizedText::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let name = UAString::decode(stream, decoding_limits)?;
+        let data_type = NodeId::decode(stream, decoding_limits)?;
+        let value_rank = Int32::decode(stream, decoding_limits)?;
+        let array_dimensions: Option<Vec<UInt32>> = read_array(stream, decoding_limits)?;
+        let description = LocalizedText::decode(stream, decoding_limits)?;
         Ok(Argument {
             name,
             data_type,

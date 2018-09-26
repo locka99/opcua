@@ -34,10 +34,10 @@ impl BinaryEncoder<DataChangeFilter> for DataChangeFilter {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let trigger = DataChangeTrigger::decode(stream)?;
-        let deadband_type = UInt32::decode(stream)?;
-        let deadband_value = Double::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let trigger = DataChangeTrigger::decode(stream, decoding_limits)?;
+        let deadband_type = UInt32::decode(stream, decoding_limits)?;
+        let deadband_value = Double::decode(stream, decoding_limits)?;
         Ok(DataChangeFilter {
             trigger,
             deadband_type,

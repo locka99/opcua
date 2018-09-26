@@ -48,11 +48,11 @@ impl BinaryEncoder<OpenSecureChannelResponse> for OpenSecureChannelResponse {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let response_header = ResponseHeader::decode(stream)?;
-        let server_protocol_version = UInt32::decode(stream)?;
-        let security_token = ChannelSecurityToken::decode(stream)?;
-        let server_nonce = ByteString::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let response_header = ResponseHeader::decode(stream, decoding_limits)?;
+        let server_protocol_version = UInt32::decode(stream, decoding_limits)?;
+        let security_token = ChannelSecurityToken::decode(stream, decoding_limits)?;
+        let server_nonce = ByteString::decode(stream, decoding_limits)?;
         Ok(OpenSecureChannelResponse {
             response_header,
             server_protocol_version,

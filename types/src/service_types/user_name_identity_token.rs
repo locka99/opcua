@@ -39,11 +39,11 @@ impl BinaryEncoder<UserNameIdentityToken> for UserNameIdentityToken {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let policy_id = UAString::decode(stream)?;
-        let user_name = UAString::decode(stream)?;
-        let password = ByteString::decode(stream)?;
-        let encryption_algorithm = UAString::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let policy_id = UAString::decode(stream, decoding_limits)?;
+        let user_name = UAString::decode(stream, decoding_limits)?;
+        let password = ByteString::decode(stream, decoding_limits)?;
+        let encryption_algorithm = UAString::decode(stream, decoding_limits)?;
         Ok(UserNameIdentityToken {
             policy_id,
             user_name,

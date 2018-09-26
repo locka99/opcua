@@ -42,10 +42,10 @@ impl BinaryEncoder<RepublishRequest> for RepublishRequest {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let request_header = RequestHeader::decode(stream)?;
-        let subscription_id = UInt32::decode(stream)?;
-        let retransmit_sequence_number = UInt32::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let request_header = RequestHeader::decode(stream, decoding_limits)?;
+        let subscription_id = UInt32::decode(stream, decoding_limits)?;
+        let retransmit_sequence_number = UInt32::decode(stream, decoding_limits)?;
         Ok(RepublishRequest {
             request_header,
             subscription_id,

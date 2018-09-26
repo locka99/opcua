@@ -23,7 +23,8 @@ fn ack_data() -> Vec<u8> {
 #[test]
 pub fn hello() {
     let mut stream = Cursor::new(hello_data());
-    let hello = HelloMessage::decode(&mut stream).unwrap();
+    let decoding_limits = DecodingLimits::default();
+    let hello = HelloMessage::decode(&mut stream, &decoding_limits).unwrap();
     println!("hello = {:?}", hello);
     assert_eq!(hello.message_header.message_type, MessageType::Hello);
     assert_eq!(hello.message_header.message_size, 57);
@@ -38,7 +39,8 @@ pub fn hello() {
 #[test]
 pub fn acknowledge() {
     let mut stream = Cursor::new(ack_data());
-    let ack = AcknowledgeMessage::decode(&mut stream).unwrap();
+    let decoding_limits = DecodingLimits::default();
+    let ack = AcknowledgeMessage::decode(&mut stream, &decoding_limits).unwrap();
     println!("ack = {:?}", ack);
     assert_eq!(ack.message_header.message_type, MessageType::Acknowledge);
     assert_eq!(ack.message_header.message_size, 28);

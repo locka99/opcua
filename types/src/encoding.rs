@@ -5,11 +5,32 @@ use std;
 use std::fmt::Debug;
 use std::io::{Read, Write, Cursor, Result};
 
+use constants;
 use byteorder::{ByteOrder, LittleEndian};
 
 use status_codes::StatusCode;
 
 pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
+
+#[derive(Clone, Copy, Debug)]
+pub struct DecodingLimits {
+    /// Maximum length in bytes (not chars!) of a string
+    pub max_string_length: u32,
+    /// Maximum length in bytes of a byte string
+    pub max_byte_string_length: u32,
+    /// Maximum number of array elements
+    pub max_array_length: u32,
+}
+
+impl Default for DecodingLimits {
+    fn default() -> Self {
+        DecodingLimits {
+            max_string_length: constants::MAX_STRING_LENGTH,
+            max_byte_string_length: constants::MAX_BYTE_STRING_LENGTH,
+            max_array_length: constants::MAX_ARRAY_LENGTH,
+        }
+    }
+}
 
 /// OPC UA Binary Encoding interface. Anything that encodes to binary must implement this. It provides
 /// functions to calculate the size in bytes of the struct (for allocating memory), encoding to a stream
@@ -19,9 +40,11 @@ pub trait BinaryEncoder<T> {
     /// as possible.
     fn byte_len(&self) -> usize;
     /// Encodes the instance to the write stream.
-    fn encode<S: Write>(&self, _: &mut S) -> EncodingResult<usize>;
-    /// Decodes an instance from the read stream.
-    fn decode<S: Read>(_: &mut S) -> EncodingResult<T>;
+    fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize>;
+    /// Decodes an instance from the read stream. The decoding limits are restrictions set by the server / client
+    /// on the length of strings, arrays etc. If these limits are exceeded the implementation should
+    /// return with a `BadDecodingError` as soon as possible.
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<T>;
     // Convenience method for encoding a message straight into an array of bytes
     fn to_vec(&self) -> Vec<u8> {
         let mut buffer = Cursor::new(Vec::with_capacity(self.byte_len()));
@@ -74,17 +97,20 @@ pub fn write_array<S: Write, T: BinaryEncoder<T>>(stream: &mut S, values: &Optio
 }
 
 /// Reads an array of the encoded type from a stream, preserving distinction between null array and empty array
-pub fn read_array<S: Read, T: BinaryEncoder<T>>(stream: &mut S) -> EncodingResult<Option<Vec<T>>> {
+pub fn read_array<S: Read, T: BinaryEncoder<T>>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Option<Vec<T>>> {
     let len = read_i32(stream)?;
     if len == -1 {
         Ok(None)
     } else if len < -1 {
         error!("Array length is negative value and invalid");
         Err(StatusCode::BadDecodingError)
+    } else if len as u32 > decoding_limits.max_array_length {
+        error!("Array length {} exceeds decoding limit {}", len, decoding_limits.max_array_length);
+        Err(StatusCode::BadDecodingError)
     } else {
         let mut values: Vec<T> = Vec::with_capacity(len as usize);
         for _ in 0..len {
-            values.push(T::decode(stream)?);
+            values.push(T::decode(stream, decoding_limits)?);
         }
         Ok(Some(values))
     }

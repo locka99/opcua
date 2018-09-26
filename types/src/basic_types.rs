@@ -23,7 +23,7 @@ impl BinaryEncoder<Boolean> for Boolean {
         write_u8(stream, if *self { 1 } else { 0 })
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         Ok(read_u8(stream)? == 1)
     }
 }
@@ -40,7 +40,7 @@ impl BinaryEncoder<SByte> for SByte {
         write_u8(stream, *self as u8)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         Ok(read_u8(stream)? as i8)
     }
 }
@@ -57,7 +57,7 @@ impl BinaryEncoder<Byte> for Byte {
         write_u8(stream, *self)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         Ok(read_u8(stream)?)
     }
 }
@@ -74,7 +74,7 @@ impl BinaryEncoder<Int16> for Int16 {
         write_i16(stream, *self)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         read_i16(stream)
     }
 }
@@ -91,7 +91,7 @@ impl BinaryEncoder<UInt16> for UInt16 {
         write_u16(stream, *self)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         read_u16(stream)
     }
 }
@@ -108,7 +108,7 @@ impl BinaryEncoder<Int32> for Int32 {
         write_i32(stream, *self)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         read_i32(stream)
     }
 }
@@ -125,7 +125,7 @@ impl BinaryEncoder<UInt32> for UInt32 {
         write_u32(stream, *self)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         read_u32(stream)
     }
 }
@@ -142,7 +142,7 @@ impl BinaryEncoder<Int64> for Int64 {
         write_i64(stream, *self)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         read_i64(stream)
     }
 }
@@ -159,7 +159,7 @@ impl BinaryEncoder<UInt64> for UInt64 {
         write_u64(stream, *self)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         read_u64(stream)
     }
 }
@@ -176,7 +176,7 @@ impl BinaryEncoder<Float> for Float {
         write_f32(stream, *self)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         read_f32(stream)
     }
 }
@@ -193,7 +193,7 @@ impl BinaryEncoder<Double> for Double {
         write_f64(stream, *self)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         read_f64(stream)
     }
 }
@@ -227,9 +227,9 @@ impl BinaryEncoder<QualifiedName> for QualifiedName {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let namespace_index = UInt16::decode(stream)?;
-        let name = UAString::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let namespace_index = UInt16::decode(stream, decoding_limits)?;
+        let name = UAString::decode(stream, decoding_limits)?;
         Ok(QualifiedName {
             namespace_index,
             name,
@@ -307,15 +307,15 @@ impl BinaryEncoder<LocalizedText> for LocalizedText {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let encoding_mask = Byte::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let encoding_mask = Byte::decode(stream, decoding_limits)?;
         let locale = if encoding_mask & 0x1 != 0 {
-            UAString::decode(stream)?
+            UAString::decode(stream, decoding_limits)?
         } else {
             UAString::null()
         };
         let text = if encoding_mask & 0x2 != 0 {
-            UAString::decode(stream)?
+            UAString::decode(stream, decoding_limits)?
         } else {
             UAString::null()
         };

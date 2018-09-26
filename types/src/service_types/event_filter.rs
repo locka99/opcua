@@ -32,9 +32,9 @@ impl BinaryEncoder<EventFilter> for EventFilter {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let select_clauses: Option<Vec<SimpleAttributeOperand>> = read_array(stream)?;
-        let where_clause = ContentFilter::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let select_clauses: Option<Vec<SimpleAttributeOperand>> = read_array(stream, decoding_limits)?;
+        let where_clause = ContentFilter::decode(stream, decoding_limits)?;
         Ok(EventFilter {
             select_clauses,
             where_clause,

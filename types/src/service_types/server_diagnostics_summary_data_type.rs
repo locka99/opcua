@@ -68,19 +68,19 @@ impl BinaryEncoder<ServerDiagnosticsSummaryDataType> for ServerDiagnosticsSummar
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let server_view_count = UInt32::decode(stream)?;
-        let current_session_count = UInt32::decode(stream)?;
-        let cumulated_session_count = UInt32::decode(stream)?;
-        let security_rejected_session_count = UInt32::decode(stream)?;
-        let rejected_session_count = UInt32::decode(stream)?;
-        let session_timeout_count = UInt32::decode(stream)?;
-        let session_abort_count = UInt32::decode(stream)?;
-        let current_subscription_count = UInt32::decode(stream)?;
-        let cumulated_subscription_count = UInt32::decode(stream)?;
-        let publishing_interval_count = UInt32::decode(stream)?;
-        let security_rejected_requests_count = UInt32::decode(stream)?;
-        let rejected_requests_count = UInt32::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let server_view_count = UInt32::decode(stream, decoding_limits)?;
+        let current_session_count = UInt32::decode(stream, decoding_limits)?;
+        let cumulated_session_count = UInt32::decode(stream, decoding_limits)?;
+        let security_rejected_session_count = UInt32::decode(stream, decoding_limits)?;
+        let rejected_session_count = UInt32::decode(stream, decoding_limits)?;
+        let session_timeout_count = UInt32::decode(stream, decoding_limits)?;
+        let session_abort_count = UInt32::decode(stream, decoding_limits)?;
+        let current_subscription_count = UInt32::decode(stream, decoding_limits)?;
+        let cumulated_subscription_count = UInt32::decode(stream, decoding_limits)?;
+        let publishing_interval_count = UInt32::decode(stream, decoding_limits)?;
+        let security_rejected_requests_count = UInt32::decode(stream, decoding_limits)?;
+        let rejected_requests_count = UInt32::decode(stream, decoding_limits)?;
         Ok(ServerDiagnosticsSummaryDataType {
             server_view_count,
             current_session_count,

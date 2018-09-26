@@ -14,7 +14,7 @@ use bytes::BytesMut;
 use tokio_io::codec::{Encoder, Decoder};
 
 use opcua_types::tcp_types::{MessageType, MessageHeader, HelloMessage, AcknowledgeMessage, ErrorMessage, MESSAGE_HEADER_LEN};
-use opcua_types::encoding::BinaryEncoder;
+use opcua_types::encoding::{BinaryEncoder, DecodingLimits};
 use opcua_types::status_code::StatusCode;
 
 use comms::message_chunk::MessageChunk;
@@ -31,6 +31,7 @@ pub enum Message {
 /// OPC UA message chunks with no intermediate buffers. Chunks are subsequently transformed into
 /// messages so there is still some buffers within message chunks, but not at the raw socket level.
 pub struct TcpCodec {
+    decoding_limits: DecodingLimits,
     abort: Arc<RwLock<bool>>
 }
 
@@ -50,7 +51,7 @@ impl Decoder for TcpCodec {
             // Get the message header
             let message_header = {
                 let mut buf = io::Cursor::new(&buf[0..MESSAGE_HEADER_LEN]);
-                MessageHeader::decode(&mut buf).map_err(|e| io::Error::from(e))?
+                MessageHeader::decode(&mut buf, &self.decoding_limits).map_err(|e| io::Error::from(e))?
             };
 
             // Once we have the header we can infer the message size required to read the rest of
@@ -60,7 +61,7 @@ impl Decoder for TcpCodec {
             if buf.len() >= message_size {
                 // Extract the message bytes from the buffer & decode them into a message
                 let mut buf = buf.split_to(message_size);
-                let message = Self::decode_message(message_header, &mut buf)
+                let message = Self::decode_message(message_header, &mut buf, &self.decoding_limits)
                     .map_err(|e| {
                         error!("Codec got an error {:?} while decoding a message", e);
                         io::Error::from(e)
@@ -97,9 +98,10 @@ impl Encoder for TcpCodec {
 impl TcpCodec {
     /// Constructs a new TcpCodec. The abort flag is set to terminate the codec even while it is
     /// waiting for a frame to arrive.
-    pub fn new(abort: Arc<RwLock<bool>>) -> TcpCodec {
+    pub fn new(abort: Arc<RwLock<bool>>, decoding_limits: DecodingLimits) -> TcpCodec {
         TcpCodec {
             abort,
+            decoding_limits,
         }
     }
 
@@ -109,20 +111,20 @@ impl TcpCodec {
     }
 
     /// Reads a message out of the buffer, which is assumed by now to be the proper length
-    fn decode_message(message_header: MessageHeader, buf: &mut BytesMut) -> Result<Message, StatusCode> {
+    fn decode_message(message_header: MessageHeader, buf: &mut BytesMut, decoding_limits: &DecodingLimits) -> Result<Message, StatusCode> {
         let mut buf = io::Cursor::new(&buf[..]);
         match message_header.message_type {
             MessageType::Acknowledge => {
-                Ok(Message::Acknowledge(AcknowledgeMessage::decode(&mut buf)?))
+                Ok(Message::Acknowledge(AcknowledgeMessage::decode(&mut buf, decoding_limits)?))
             }
             MessageType::Hello => {
-                Ok(Message::Hello(HelloMessage::decode(&mut buf)?))
+                Ok(Message::Hello(HelloMessage::decode(&mut buf, decoding_limits)?))
             }
             MessageType::Error => {
-                Ok(Message::Error(ErrorMessage::decode(&mut buf)?))
+                Ok(Message::Error(ErrorMessage::decode(&mut buf, decoding_limits)?))
             }
             MessageType::Chunk => {
-                Ok(Message::Chunk(MessageChunk::decode(&mut buf)?))
+                Ok(Message::Chunk(MessageChunk::decode(&mut buf, decoding_limits)?))
             }
             MessageType::Invalid => {
                 error!("Message type for chunk is invalid.");

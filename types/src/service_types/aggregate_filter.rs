@@ -39,11 +39,11 @@ impl BinaryEncoder<AggregateFilter> for AggregateFilter {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let start_time = DateTime::decode(stream)?;
-        let aggregate_type = NodeId::decode(stream)?;
-        let processing_interval = Double::decode(stream)?;
-        let aggregate_configuration = AggregateConfiguration::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let start_time = DateTime::decode(stream, decoding_limits)?;
+        let aggregate_type = NodeId::decode(stream, decoding_limits)?;
+        let processing_interval = Double::decode(stream, decoding_limits)?;
+        let aggregate_configuration = AggregateConfiguration::decode(stream, decoding_limits)?;
         Ok(AggregateFilter {
             start_time,
             aggregate_type,

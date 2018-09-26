@@ -104,42 +104,42 @@ impl BinaryEncoder<DataValue> for DataValue {
         Ok(size)
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let encoding_mask = DataValueFlags::from_bits_truncate(Byte::decode(stream)?);
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let encoding_mask = DataValueFlags::from_bits_truncate(Byte::decode(stream, decoding_limits)?);
 
         // Value
         let value = if encoding_mask.contains(DataValueFlags::HAS_VALUE) {
-            Some(Variant::decode(stream)?)
+            Some(Variant::decode(stream, decoding_limits)?)
         } else {
             None
         };
 
         // Status
         let status = if encoding_mask.contains(DataValueFlags::HAS_STATUS) {
-            Some(UInt32::decode(stream)?)
+            Some(UInt32::decode(stream, decoding_limits)?)
         } else {
             None
         };
 
         // Source timestamp
         let source_timestamp = if encoding_mask.contains(DataValueFlags::HAS_SOURCE_TIMESTAMP) {
-            Some(DateTime::decode(stream)?)
+            Some(DateTime::decode(stream, decoding_limits)?)
         } else {
             None
         };
         let source_picoseconds = if encoding_mask.contains(DataValueFlags::HAS_SOURCE_PICOSECONDS) {
-            Some(Int16::decode(stream)?)
+            Some(Int16::decode(stream, decoding_limits)?)
         } else {
             None
         };
         // Server timestamp
         let server_timestamp = if encoding_mask.contains(DataValueFlags::HAS_SERVER_TIMESTAMP) {
-            Some(DateTime::decode(stream)?)
+            Some(DateTime::decode(stream, decoding_limits)?)
         } else {
             None
         };
         let server_picoseconds = if encoding_mask.contains(DataValueFlags::HAS_SERVER_PICOSECONDS) {
-            Some(Int16::decode(stream)?)
+            Some(Int16::decode(stream, decoding_limits)?)
         } else {
             None
         };

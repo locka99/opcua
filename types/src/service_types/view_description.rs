@@ -44,10 +44,10 @@ impl BinaryEncoder<ViewDescription> for ViewDescription {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let view_id = NodeId::decode(stream)?;
-        let timestamp = DateTime::decode(stream)?;
-        let view_version = UInt32::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let view_id = NodeId::decode(stream, decoding_limits)?;
+        let timestamp = DateTime::decode(stream, decoding_limits)?;
+        let view_version = UInt32::decode(stream, decoding_limits)?;
         Ok(ViewDescription {
             view_id,
             timestamp,

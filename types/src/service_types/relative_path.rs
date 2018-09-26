@@ -37,8 +37,8 @@ impl BinaryEncoder<RelativePath> for RelativePath {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let elements: Option<Vec<RelativePathElement>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let elements: Option<Vec<RelativePathElement>> = read_array(stream, decoding_limits)?;
         Ok(RelativePath {
             elements,
         })

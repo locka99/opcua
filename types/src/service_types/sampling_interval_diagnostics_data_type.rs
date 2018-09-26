@@ -44,11 +44,11 @@ impl BinaryEncoder<SamplingIntervalDiagnosticsDataType> for SamplingIntervalDiag
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let sampling_interval = Double::decode(stream)?;
-        let monitored_item_count = UInt32::decode(stream)?;
-        let max_monitored_item_count = UInt32::decode(stream)?;
-        let disabled_monitored_item_count = UInt32::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let sampling_interval = Double::decode(stream, decoding_limits)?;
+        let monitored_item_count = UInt32::decode(stream, decoding_limits)?;
+        let max_monitored_item_count = UInt32::decode(stream, decoding_limits)?;
+        let disabled_monitored_item_count = UInt32::decode(stream, decoding_limits)?;
         Ok(SamplingIntervalDiagnosticsDataType {
             sampling_interval,
             monitored_item_count,

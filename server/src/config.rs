@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::collections::{BTreeMap, BTreeSet};
 
-use opcua_types::{MessageSecurityMode, UAString};
+use opcua_types::{MessageSecurityMode, UAString, DecodingLimits};
 use opcua_types::constants as opcua_types_constants;
 use opcua_types::url_matches_except_host;
 
@@ -317,6 +317,14 @@ impl ServerConfig {
             max_string_length: opcua_types_constants::MAX_STRING_LENGTH,
             max_byte_string_length: opcua_types_constants::MAX_BYTE_STRING_LENGTH,
             max_subscriptions: constants::DEFAULT_MAX_SUBSCRIPTIONS,
+        }
+    }
+
+    pub fn decoding_limits(&self) -> DecodingLimits {
+        DecodingLimits {
+            max_string_length: self.max_string_length,
+            max_byte_string_length: self.max_byte_string_length,
+            max_array_length: self.max_array_length,
         }
     }
 

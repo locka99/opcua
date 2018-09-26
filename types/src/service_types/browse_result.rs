@@ -45,10 +45,10 @@ impl BinaryEncoder<BrowseResult> for BrowseResult {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let status_code = StatusCode::decode(stream)?;
-        let continuation_point = ByteString::decode(stream)?;
-        let references: Option<Vec<ReferenceDescription>> = read_array(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let status_code = StatusCode::decode(stream, decoding_limits)?;
+        let continuation_point = ByteString::decode(stream, decoding_limits)?;
+        let references: Option<Vec<ReferenceDescription>> = read_array(stream, decoding_limits)?;
         Ok(BrowseResult {
             status_code,
             continuation_point,

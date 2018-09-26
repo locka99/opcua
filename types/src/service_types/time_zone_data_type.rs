@@ -38,9 +38,9 @@ impl BinaryEncoder<TimeZoneDataType> for TimeZoneDataType {
     }
 
     #[allow(unused_variables)]
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
-        let offset = Int16::decode(stream)?;
-        let daylight_saving_in_offset = Boolean::decode(stream)?;
+    fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+        let offset = Int16::decode(stream, decoding_limits)?;
+        let daylight_saving_in_offset = Boolean::decode(stream, decoding_limits)?;
         Ok(TimeZoneDataType {
             offset,
             daylight_saving_in_offset,
