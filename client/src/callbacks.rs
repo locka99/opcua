@@ -19,10 +19,14 @@ pub trait OnDataChange {
 pub trait OnConnectionStatusChange {
     /// Called when the connection status changes from connected to disconnected or vice versa
     fn connection_status_change(&mut self, connected: bool);
+}
+
+pub trait OnConnectionClosed {
     /// Called when the connection closed (in addition to a status change event). The status
-    /// code should be checked to see if the closure was a graceful terminate, or the result
+    /// code should be checked to see if the closure was a graceful terminate (`Good`), or the result
     /// of a network or protocol error. The implementation might choose to reconnect in response
-    /// to a bad status code, but it should not reconnect if the disconnect was intentional.
+    /// to a bad status code, however it should be aware of retrying too quickly or indefinitely in case
+    /// the error is permanent.
     fn connection_closed(&mut self, status_code: StatusCode);
 }
 
@@ -67,16 +71,32 @@ impl OnConnectionStatusChange for ConnectionStatusCallback {
         }
         (self.cb)(connected);
     }
-
-    fn connection_closed(&mut self, status_code: StatusCode) {
-        // TODO
-    }
 }
 
 impl ConnectionStatusCallback {
     // Constructor
     pub fn new<CB>(cb: CB) -> ConnectionStatusCallback where CB: FnMut(bool) + Send + Sync + 'static {
         ConnectionStatusCallback {
+            cb: Box::new(cb)
+        }
+    }
+}
+
+pub struct ConnectionClosedCallback {
+    cb: Box<dyn FnMut(StatusCode) + Send + Sync + 'static>,
+}
+
+impl OnConnectionClosed for ConnectionClosedCallback {
+    fn connection_closed(&mut self, status_code: StatusCode)
+    {
+        (self.cb)(status_code);
+    }
+}
+
+impl ConnectionClosedCallback {
+    // Constructor
+    pub fn new<CB>(cb: CB) -> ConnectionClosedCallback where CB: FnMut(StatusCode) + Send + Sync + 'static {
+        ConnectionClosedCallback {
             cb: Box::new(cb)
         }
     }

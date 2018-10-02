@@ -134,7 +134,7 @@ pub(crate) struct Subscription {
     pub(crate) priority: Byte,
     /// The change callback will be what is called if any monitored item changes within a cycle.
     /// The monitored item is referenced by its id
-    pub(crate) data_change_callback: Arc<Mutex<Box<OnDataChange + Send + Sync + 'static>>>,
+    pub(crate) data_change_callback: Arc<Mutex<OnDataChange + Send + Sync + 'static>>,
     /// A map of monitored items associated with the subscription (key = monitored_item_id)
     pub(crate) monitored_items: HashMap<UInt32, MonitoredItem>,
     /// A map of client handle to monitored item id
@@ -144,7 +144,7 @@ pub(crate) struct Subscription {
 impl Subscription {
     /// Creates a new subscription using the supplied parameters and the supplied data change callback.
     pub fn new(subscription_id: UInt32, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32,
-               publishing_enabled: Boolean, priority: Byte, data_change_callback: Arc<Mutex<Box<dyn OnDataChange + Send + Sync + 'static>>>)
+               publishing_enabled: Boolean, priority: Byte, data_change_callback: Arc<Mutex<dyn OnDataChange + Send + Sync + 'static>>)
                -> Subscription
     {
         Subscription {

@@ -213,7 +213,7 @@ impl Session {
                                         },
                                     }
                                 }).collect::<Vec<MonitoredItemCreateRequest>>();
-                                self.create_monitored_items(subscription_id, &items_to_create);
+                                let _ = self.create_monitored_items(subscription_id, &items_to_create);
                             }
                         });
                     }
@@ -608,12 +608,12 @@ impl Session {
     pub fn create_subscription<CB>(&mut self, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte, publishing_enabled: Boolean, callback: CB)
                                    -> Result<UInt32, StatusCode>
         where CB: OnDataChange + Send + Sync + 'static {
-        self.create_subscription_inner(publishing_interval, lifetime_count, max_keep_alive_count, max_notifications_per_publish, priority, publishing_enabled, Arc::new(Mutex::new(Box::new(callback))))
+        self.create_subscription_inner(publishing_interval, lifetime_count, max_keep_alive_count, max_notifications_per_publish, priority, publishing_enabled, Arc::new(Mutex::new(callback)))
     }
 
     /// This is the internal handler for create subscription that receives the callback wrapped up and reference counted.
     fn create_subscription_inner(&mut self, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte, publishing_enabled: Boolean,
-                                 callback: Arc<Mutex<Box<dyn OnDataChange + Send + Sync + 'static>>>)
+                                 callback: Arc<Mutex<dyn OnDataChange + Send + Sync + 'static>>)
                                  -> Result<UInt32, StatusCode>
     {
         let request = CreateSubscriptionRequest {
