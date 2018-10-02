@@ -84,6 +84,7 @@ pub mod prelude {
     pub use config::*;
     pub use session::*;
     pub use subscription::MonitoredItem;
+    pub use callbacks::*;
 }
 
 #[cfg(test)]

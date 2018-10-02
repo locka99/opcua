@@ -5,7 +5,7 @@
 //! and events.
 use std::result::Result;
 use std::str::FromStr;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Instant, Duration};
 use std::thread;
 
@@ -27,10 +27,10 @@ use client;
 use comms::tcp_transport::TcpTransport;
 use message_queue::MessageQueue;
 use subscription;
-use subscription::{Subscription, MonitoredItem};
+use subscription::Subscription;
 use subscription_state::SubscriptionState;
 use session_state::SessionState;
-use callbacks::ConnectionStatusCallback;
+use callbacks::{OnDataChange, OnConnectionStatusChange};
 
 /// Information about the server endpoint, security policy, security mode and user identity that the session will
 /// will use to establish a connection.
@@ -93,7 +93,7 @@ pub struct Session {
     /// Message queue
     message_queue: Arc<RwLock<MessageQueue>>,
     // Connection status callback
-    connection_status: ConnectionStatusCallback,
+    connection_status: Option<Box<dyn OnConnectionStatusChange + Send + Sync + 'static>>,
 }
 
 impl Drop for Session {
@@ -134,7 +134,7 @@ impl Session {
             transport,
             secure_channel,
             message_queue,
-            connection_status: ConnectionStatusCallback::new(),
+            connection_status: None,
         }
     }
 
@@ -150,8 +150,8 @@ impl Session {
 
     /// Registers a connection status callback with the session. This will be called if
     /// connection status changes from connected to disconnected or vice versa.
-    pub fn set_connection_status_callback<CB>(&mut self, callback: Option<CB>) where CB: FnMut(bool) + 'static + Send + Sync {
-        self.connection_status.set_callback(callback);
+    pub fn set_connection_status_callback<CB>(&mut self, callback: CB) where CB: OnConnectionStatusChange + Send + Sync + 'static {
+        self.connection_status = Some(Box::new(callback));
     }
 
     /// Reconnects to the server and tries to activate the existing session. If there
@@ -182,10 +182,42 @@ impl Session {
                 self.activate_session()?;
 
                 // 3) reconstruct all subscriptions and monitored items from their client side cached values
+                {
+                    // clone to avoid some borrowing issues on self
+                    let subscription_state = self.subscription_state.clone();
+                    {
+                        let mut subscription_state = trace_write_lock_unwrap!(subscription_state);
+                        let mut subscriptions = subscription_state.subscriptions();
+                        subscriptions.drain().for_each(|(_, sub)| {
+                            // Attempt to replicate the subscription
+                            if let Ok(subscription_id) = self.create_subscription_inner(
+                                sub.publishing_interval,
+                                sub.lifetime_count,
+                                sub.max_keep_alive_count,
+                                sub.max_notifications_per_publish,
+                                sub.priority,
+                                sub.publishing_enabled,
+                                sub.data_change_callback.clone()) {
 
-                // TODO create session, activate and recreate all the subscriptions and monitored items
-
-
+                                // For each monitored item
+                                let items_to_create = sub.monitored_items().iter().map(|(_, item)| {
+                                    MonitoredItemCreateRequest {
+                                        item_to_monitor: item.item_to_monitor(),
+                                        monitoring_mode: item.monitoring_mode(),
+                                        requested_parameters: MonitoringParameters {
+                                            client_handle: item.client_handle(),
+                                            sampling_interval: item.sampling_interval(),
+                                            filter: ExtensionObject::null(),
+                                            queue_size: item.queue_size(),
+                                            discard_oldest: true,
+                                        },
+                                    }
+                                }).collect::<Vec<MonitoredItemCreateRequest>>();
+                                self.create_monitored_items(subscription_id, &items_to_create);
+                            }
+                        });
+                    }
+                }
 
                 Err(error)
             } else {
@@ -214,7 +246,10 @@ impl Session {
             }
             self.transport.connect(endpoint_url.as_ref())?;
             self.open_secure_channel()?;
-            self.connection_status.fire_connected();
+
+            if let Some(ref mut connection_status) = self.connection_status {
+                connection_status.connection_status_change(true);
+            }
             Ok(())
         }
     }
@@ -225,7 +260,9 @@ impl Session {
         let _ = self.delete_all_subscriptions();
         let _ = self.close_secure_channel();
         self.transport.wait_for_disconnect();
-        self.connection_status.fire_disconnected();
+        if let Some(ref mut connection_status) = self.connection_status {
+            connection_status.connection_status_change(false);
+        }
     }
 
     /// Test if the session is in a connected state
@@ -570,7 +607,15 @@ impl Session {
     /// in milliseconds.
     pub fn create_subscription<CB>(&mut self, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte, publishing_enabled: Boolean, callback: CB)
                                    -> Result<UInt32, StatusCode>
-        where CB: Fn(Vec<&MonitoredItem>) + Send + Sync + 'static {
+        where CB: OnDataChange + Send + Sync + 'static {
+        self.create_subscription_inner(publishing_interval, lifetime_count, max_keep_alive_count, max_notifications_per_publish, priority, publishing_enabled, Arc::new(Mutex::new(Box::new(callback))))
+    }
+
+    /// This is the internal handler for create subscription that receives the callback wrapped up and reference counted.
+    fn create_subscription_inner(&mut self, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte, publishing_enabled: Boolean,
+                                 callback: Arc<Mutex<Box<dyn OnDataChange + Send + Sync + 'static>>>)
+                                 -> Result<UInt32, StatusCode>
+    {
         let request = CreateSubscriptionRequest {
             request_header: self.make_request_header(),
             requested_publishing_interval: publishing_interval,
@@ -779,7 +824,9 @@ impl Session {
                             subscription::CreateMonitoredItem {
                                 id: r.monitored_item_id,
                                 client_handle: i.requested_parameters.client_handle,
+                                discard_oldest: i.requested_parameters.discard_oldest,
                                 item_to_monitor: i.item_to_monitor.clone(),
+                                monitoring_mode: i.monitoring_mode,
                                 queue_size: r.revised_queue_size,
                                 sampling_interval: r.revised_sampling_interval,
                             }

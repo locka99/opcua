@@ -18,6 +18,10 @@ impl SubscriptionState {
         }
     }
 
+    pub fn subscriptions(&mut self) -> HashMap<UInt32, Subscription> {
+        self.subscriptions.drain().collect()
+    }
+
     pub fn subscription_ids(&self) -> Option<Vec<UInt32>> {
         if self.subscriptions.is_empty() {
             None

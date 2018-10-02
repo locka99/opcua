@@ -9,18 +9,21 @@
 //! on a reconnect if necessary.
 
 use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Mutex};
 use std::marker::Sync;
 
 use opcua_types::*;
 use opcua_types::service_types::{DataChangeNotification, ReadValueId};
 
-use callbacks::DataChangeCallback;
+use callbacks::OnDataChange;
 
 pub(crate) struct CreateMonitoredItem {
     pub id: UInt32,
     pub client_handle: UInt32,
     pub item_to_monitor: ReadValueId,
+    pub monitoring_mode: MonitoringMode,
     pub queue_size: UInt32,
+    pub discard_oldest: bool,
     pub sampling_interval: Double,
 }
 
@@ -28,16 +31,6 @@ pub(crate) struct ModifyMonitoredItem {
     pub id: UInt32,
     pub sampling_interval: Double,
     pub queue_size: UInt32,
-}
-
-pub(crate) trait WritableMonitoredItem {
-    fn set_id(&mut self, value: UInt32);
-
-    fn set_item_to_monitor(&mut self, item_to_monitor: ReadValueId);
-
-    fn set_sampling_interval(&mut self, value: Double);
-
-    fn set_queue_size(&mut self, value: UInt32);
 }
 
 #[derive(Debug)]
@@ -50,26 +43,14 @@ pub struct MonitoredItem {
     item_to_monitor: ReadValueId,
     /// Queue size
     queue_size: UInt32,
+    /// Discard oldest
+    discard_oldest: bool,
+    /// Monitoring mode
+    monitoring_mode: MonitoringMode,
     /// Sampling interval
     sampling_interval: Double,
     /// Last value of the item
     value: DataValue,
-}
-
-impl WritableMonitoredItem for MonitoredItem {
-    fn set_id(&mut self, value: UInt32) {
-        self.id = value;
-    }
-
-    fn set_item_to_monitor(&mut self, item_to_monitor: ReadValueId) { self.item_to_monitor = item_to_monitor; }
-
-    fn set_sampling_interval(&mut self, value: Double) {
-        self.sampling_interval = value;
-    }
-
-    fn set_queue_size(&mut self, value: UInt32) {
-        self.queue_size = value;
-    }
 }
 
 impl MonitoredItem {
@@ -84,13 +65,17 @@ impl MonitoredItem {
                 index_range: UAString::null(),
                 data_encoding: QualifiedName::null(),
             },
+            monitoring_mode: MonitoringMode::Reporting,
+            discard_oldest: false,
             value: DataValue::null(),
             client_handle,
         }
     }
 
-    pub fn id(&self) -> UInt32 {
-        self.id
+    pub fn id(&self) -> UInt32 { self.id }
+
+    pub fn set_id(&mut self, value: UInt32) {
+        self.id = value;
     }
 
     pub fn client_handle(&self) -> UInt32 {
@@ -99,48 +84,69 @@ impl MonitoredItem {
 
     pub fn item_to_monitor(&self) -> ReadValueId { self.item_to_monitor.clone() }
 
-    pub fn sampling_interval(&self) -> Double {
-        self.sampling_interval
+    pub fn set_item_to_monitor(&mut self, item_to_monitor: ReadValueId) {
+        self.item_to_monitor = item_to_monitor;
     }
 
-    pub fn queue_size(&self) -> UInt32 {
-        self.queue_size
+    pub fn sampling_interval(&self) -> Double { self.sampling_interval }
+
+    pub fn set_sampling_interval(&mut self, value: Double) {
+        self.sampling_interval = value;
+    }
+
+    pub fn queue_size(&self) -> UInt32 { self.queue_size }
+
+    pub fn set_queue_size(&mut self, value: UInt32) {
+        self.queue_size = value;
     }
 
     pub fn value(&self) -> DataValue {
         self.value.clone()
     }
+
+    pub fn monitoring_mode(&self) -> MonitoringMode { self.monitoring_mode }
+
+    pub fn set_monitoring_mode(&mut self, monitoring_mode: MonitoringMode) {
+        self.monitoring_mode = monitoring_mode;
+    }
+
+    pub fn discard_oldest(&self) -> bool { self.discard_oldest }
+
+    pub fn set_discard_oldest(&mut self, discard_oldest: bool) {
+        self.discard_oldest = discard_oldest;
+    }
 }
 
 pub(crate) struct Subscription {
     /// Subscription id, supplied by server
-    subscription_id: UInt32,
+    pub(crate) subscription_id: UInt32,
     /// Publishing interval in seconds
-    publishing_interval: Double,
+    pub(crate) publishing_interval: Double,
     /// Lifetime count, revised by server
-    lifetime_count: UInt32,
+    pub(crate) lifetime_count: UInt32,
     /// Max keep alive count, revised by server
-    max_keep_alive_count: UInt32,
+    pub(crate) max_keep_alive_count: UInt32,
     /// Max notifications per publish, revised by server
-    max_notifications_per_publish: UInt32,
+    pub(crate) max_notifications_per_publish: UInt32,
     /// Publishing enabled
-    publishing_enabled: Boolean,
+    pub(crate) publishing_enabled: Boolean,
     /// Priority
-    priority: Byte,
+    pub(crate) priority: Byte,
     /// The change callback will be what is called if any monitored item changes within a cycle.
     /// The monitored item is referenced by its id
-    data_change_callback: Option<DataChangeCallback>,
+    pub(crate) data_change_callback: Arc<Mutex<Box<OnDataChange + Send + Sync + 'static>>>,
     /// A map of monitored items associated with the subscription (key = monitored_item_id)
-    monitored_items: HashMap<UInt32, MonitoredItem>,
+    pub(crate) monitored_items: HashMap<UInt32, MonitoredItem>,
     /// A map of client handle to monitored item id
-    client_handles: HashMap<UInt32, UInt32>,
+    pub(crate) client_handles: HashMap<UInt32, UInt32>,
 }
 
 impl Subscription {
     /// Creates a new subscription using the supplied parameters and the supplied data change callback.
-    pub fn new<CB>(subscription_id: UInt32, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, publishing_enabled: Boolean, priority: Byte, data_change_callback: CB)
-                   -> Subscription
-        where CB: Fn(Vec<&MonitoredItem>) + Send + Sync + 'static {
+    pub fn new(subscription_id: UInt32, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32,
+               publishing_enabled: Boolean, priority: Byte, data_change_callback: Arc<Mutex<Box<dyn OnDataChange + Send + Sync + 'static>>>)
+               -> Subscription
+    {
         Subscription {
             subscription_id,
             publishing_interval,
@@ -149,11 +155,13 @@ impl Subscription {
             max_notifications_per_publish,
             publishing_enabled,
             priority,
-            data_change_callback: Some(DataChangeCallback::new(data_change_callback)),
+            data_change_callback,
             monitored_items: HashMap::new(),
             client_handles: HashMap::new(),
         }
     }
+
+    pub fn monitored_items(&self) -> &HashMap<UInt32, MonitoredItem> { &self.monitored_items }
 
     pub fn subscription_id(&self) -> UInt32 { self.subscription_id }
 
@@ -161,23 +169,13 @@ impl Subscription {
 
     pub fn set_publishing_interval(&mut self, publishing_interval: Double) { self.publishing_interval = publishing_interval; }
 
-    // pub fn lifetime_count(&self) -> UInt32 { self.lifetime_count }
-
     pub fn set_lifetime_count(&mut self, lifetime_count: UInt32) { self.lifetime_count = lifetime_count; }
-
-    // pub fn max_keep_alive_count(&self) -> UInt32 { self.max_keep_alive_count }
 
     pub fn set_max_keep_alive_count(&mut self, max_keep_alive_count: UInt32) { self.max_keep_alive_count = max_keep_alive_count; }
 
-    // pub fn max_notifications_per_publish(&self) -> UInt32 { self.max_notifications_per_publish }
-
     pub fn set_max_notifications_per_publish(&mut self, max_notifications_per_publish: UInt32) { self.max_notifications_per_publish = max_notifications_per_publish; }
 
-    // pub fn priority(&self) -> Byte { self.priority }
-
     pub fn set_priority(&mut self, priority: Byte) { self.priority = priority; }
-
-    // pub fn publishing_enabled(&self) -> Boolean { self.publishing_enabled }
 
     pub fn set_publishing_enabled(&mut self, publishing_enabled: Boolean) { self.publishing_enabled = publishing_enabled; }
 
@@ -185,6 +183,8 @@ impl Subscription {
         items_to_create.iter().for_each(|i| {
             let mut monitored_item = MonitoredItem::new(i.client_handle);
             monitored_item.set_id(i.id);
+            monitored_item.set_monitoring_mode(i.monitoring_mode);
+            monitored_item.set_discard_oldest(i.discard_oldest);
             monitored_item.set_sampling_interval(i.sampling_interval);
             monitored_item.set_queue_size(i.queue_size);
             monitored_item.set_item_to_monitor(i.item_to_monitor.clone());
@@ -242,11 +242,13 @@ impl Subscription {
             }
         }
 
-        if !monitored_item_ids.is_empty() && self.data_change_callback.is_some() {
+        if !monitored_item_ids.is_empty() {
             let data_change_items: Vec<&MonitoredItem> = monitored_item_ids.iter()
                 .map(|id| self.monitored_items.get(&id).unwrap()).collect();
+
             // Call the call back with the changes we collected
-            self.data_change_callback.as_ref().unwrap().call(data_change_items);
+            let mut cb = trace_lock_unwrap!(self.data_change_callback);
+            cb.data_change(data_change_items);
         }
     }
 }

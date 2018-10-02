@@ -167,14 +167,14 @@ fn subscription_loop(nodes_to_monitor: Vec<ReadValueId>, session: Arc<RwLock<Ses
         let mut session = session.write().unwrap();
 
         // Creates our subscription - one update every 2 seconds
-        let subscription_id = session.create_subscription(2000.0, 10, 30, 0, 0, true, move |items| {
+        let subscription_id = session.create_subscription(2000.0, 10, 30, 0, 0, true, DataChangeCallback::new(move |items| {
             let mut state = state.write().unwrap();
             items.iter().for_each(|item| {
                 // Each value will be applied to the state so that the UI thread can update it
                 let key = item.item_to_monitor().node_id.to_string();
                 state.values.insert(key, item.value().clone());
             });
-        })?;
+        }))?;
         println!("Created a subscription with id = {}", subscription_id);
 
         // Create some monitored items
