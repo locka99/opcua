@@ -30,7 +30,7 @@ use subscription;
 use subscription::Subscription;
 use subscription_state::SubscriptionState;
 use session_state::SessionState;
-use callbacks::{OnDataChange, OnConnectionStatusChange};
+use callbacks::{OnDataChange, OnConnectionStatusChange, OnSessionClosed};
 
 /// Information about the server endpoint, security policy, security mode and user identity that the session will
 /// will use to establish a connection.
@@ -92,8 +92,10 @@ pub struct Session {
     secure_channel: Arc<RwLock<SecureChannel>>,
     /// Message queue
     message_queue: Arc<RwLock<MessageQueue>>,
-    // Connection status callback
-    connection_status: Option<Box<dyn OnConnectionStatusChange + Send + Sync + 'static>>,
+    /// Connection status callback
+    connection_status_callback: Option<Box<dyn OnConnectionStatusChange + Send + Sync + 'static>>,
+    /// Connection closed callback
+    session_closed_callback: Option<Arc<Mutex<dyn OnSessionClosed + Send + Sync + 'static>>>,
 }
 
 impl Drop for Session {
@@ -134,7 +136,8 @@ impl Session {
             transport,
             secure_channel,
             message_queue,
-            connection_status: None,
+            connection_status_callback: None,
+            session_closed_callback: None
         }
     }
 
@@ -151,7 +154,7 @@ impl Session {
     /// Registers a connection status callback with the session. This will be called if
     /// connection status changes from connected to disconnected or vice versa.
     pub fn set_connection_status_callback<CB>(&mut self, callback: CB) where CB: OnConnectionStatusChange + Send + Sync + 'static {
-        self.connection_status = Some(Box::new(callback));
+        self.connection_status_callback = Some(Box::new(callback));
     }
 
     /// Reconnects to the server and tries to activate the existing session. If there
@@ -247,7 +250,7 @@ impl Session {
             self.transport.connect(endpoint_url.as_ref())?;
             self.open_secure_channel()?;
 
-            if let Some(ref mut connection_status) = self.connection_status {
+            if let Some(ref mut connection_status) = self.connection_status_callback {
                 connection_status.connection_status_change(true);
             }
             Ok(())
@@ -260,7 +263,7 @@ impl Session {
         let _ = self.delete_all_subscriptions();
         let _ = self.close_secure_channel();
         self.transport.wait_for_disconnect();
-        if let Some(ref mut connection_status) = self.connection_status {
+        if let Some(ref mut connection_status) = self.connection_status_callback {
             connection_status.connection_status_change(false);
         }
     }

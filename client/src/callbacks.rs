@@ -21,13 +21,13 @@ pub trait OnConnectionStatusChange {
     fn connection_status_change(&mut self, connected: bool);
 }
 
-pub trait OnConnectionClosed {
+pub trait OnSessionClosed {
     /// Called when the connection closed (in addition to a status change event). The status
     /// code should be checked to see if the closure was a graceful terminate (`Good`), or the result
     /// of a network or protocol error. The implementation might choose to reconnect in response
     /// to a bad status code, however it should be aware of retrying too quickly or indefinitely in case
     /// the error is permanent.
-    fn connection_closed(&mut self, status_code: StatusCode);
+    fn session_closed(&mut self, status_code: StatusCode);
 }
 
 /// This is a concrete implementation of [`OnDataChange`] that calls a function.
@@ -82,21 +82,20 @@ impl ConnectionStatusCallback {
     }
 }
 
-pub struct ConnectionClosedCallback {
+pub struct SessionClosedCallback {
     cb: Box<dyn FnMut(StatusCode) + Send + Sync + 'static>,
 }
 
-impl OnConnectionClosed for ConnectionClosedCallback {
-    fn connection_closed(&mut self, status_code: StatusCode)
-    {
+impl OnSessionClosed for SessionClosedCallback {
+    fn session_closed(&mut self, status_code: StatusCode) {
         (self.cb)(status_code);
     }
 }
 
-impl ConnectionClosedCallback {
+impl SessionClosedCallback {
     // Constructor
-    pub fn new<CB>(cb: CB) -> ConnectionClosedCallback where CB: FnMut(StatusCode) + Send + Sync + 'static {
-        ConnectionClosedCallback {
+    pub fn new<CB>(cb: CB) -> SessionClosedCallback where CB: FnMut(StatusCode) + Send + Sync + 'static {
+        SessionClosedCallback {
             cb: Box::new(cb)
         }
     }
