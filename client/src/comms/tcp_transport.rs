@@ -29,6 +29,7 @@ use opcua_core::comms::message_writer::MessageWriter;
 
 use session_state::SessionState;
 use message_queue::MessageQueue;
+use callbacks::OnSessionClosed;
 
 macro_rules! connection_state {( $s:expr ) => { *trace_read_lock_unwrap!($s) } }
 macro_rules! set_connection_state {( $s:expr, $v:expr ) => { *trace_write_lock_unwrap!($s) = $v } }
@@ -193,20 +194,43 @@ impl TcpTransport {
         assert!(addr.is_ipv4());
         // The connection will be serviced on its own thread. When the thread terminates, the connection
         // has also terminated.
-        let connection_task = Self::connection_task(addr, self.connection_state.clone(), endpoint_url.to_string(),
-                                                    self.session_state.clone(), self.secure_channel.clone(), self.message_queue.clone());
-        let _ = Some(thread::spawn(move || {
-            debug!("Client tokio tasks are starting for connection");
-            tokio::run(connection_task);
-            debug!("Client tokio tasks have stopped for connection");
-        }));
+
+        {
+            let connection_task = Self::connection_task(addr, self.connection_state.clone(), endpoint_url.to_string(),
+                                                        self.session_state.clone(), self.secure_channel.clone(), self.message_queue.clone());
+
+            let connection_state = self.connection_state.clone();
+            let session_state = self.session_state.clone();
+
+            let _ = Some(thread::spawn(move || {
+                debug!("Client tokio tasks are starting for connection");
+                tokio::run(connection_task);
+                debug!("Client tokio tasks have stopped for connection");
+
+                // Tell the session that the connection is finished.
+                let connection_state = connection_state!(connection_state);
+                match connection_state {
+                    ConnectionState::Finished(status_code) => {
+                        let mut session_state = trace_write_lock_unwrap!(session_state);
+                        session_state.session_closed(status_code);
+                    }
+                    _ => {
+                        panic!("Should not be able to terminate the connect task without it being in a finished state");
+                    }
+                }
+            }));
+        }
 
         // Poll for the state to indicate connect is ready
         debug!("Waiting for a connect (or failure to connect)");
         loop {
             match connection_state!(self.connection_state) {
-                ConnectionState::Processing | ConnectionState::Finished(_) => {
+                ConnectionState::Processing => {
                     debug!("Connected");
+                    break;
+                }
+                ConnectionState::Finished(_) => {
+                    debug!("Disconnected");
                     break;
                 }
                 _ => {

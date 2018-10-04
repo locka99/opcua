@@ -92,10 +92,8 @@ pub struct Session {
     secure_channel: Arc<RwLock<SecureChannel>>,
     /// Message queue
     message_queue: Arc<RwLock<MessageQueue>>,
-    /// Connection status callback
+    /// Connection status callback (TODO move to session state)
     connection_status_callback: Option<Box<dyn OnConnectionStatusChange + Send + Sync + 'static>>,
-    /// Connection closed callback
-    session_closed_callback: Option<Arc<Mutex<dyn OnSessionClosed + Send + Sync + 'static>>>,
 }
 
 impl Drop for Session {
@@ -137,7 +135,6 @@ impl Session {
             secure_channel,
             message_queue,
             connection_status_callback: None,
-            session_closed_callback: None
         }
     }
 
@@ -151,6 +148,11 @@ impl Session {
         Ok(())
     }
 
+    pub fn set_session_closed_callback<CB>(&mut self, session_closed_callback: CB) where CB: OnSessionClosed + Send + Sync + 'static {
+        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+        session_state.set_session_closed_callback(session_closed_callback);
+    }
+
     /// Registers a connection status callback with the session. This will be called if
     /// connection status changes from connected to disconnected or vice versa.
     pub fn set_connection_status_callback<CB>(&mut self, callback: CB) where CB: OnConnectionStatusChange + Send + Sync + 'static {
@@ -161,7 +163,7 @@ impl Session {
     /// is a failure, it will be communicated by the status code in the result.
     pub fn reconnect_and_activate_session(&mut self) -> Result<(), StatusCode> {
         let have_authentication_token = {
-            let mut session_state = trace_read_lock_unwrap!(self.session_state);
+            let session_state = trace_read_lock_unwrap!(self.session_state);
             !session_state.authentication_token().is_null()
         };
         // Do nothing if already connected / activated

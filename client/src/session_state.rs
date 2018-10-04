@@ -12,6 +12,7 @@ use opcua_types::service_types::*;
 use opcua_types::status_code::StatusCode;
 
 use message_queue::MessageQueue;
+use callbacks::OnSessionClosed;
 
 const DEFAULT_REQUEST_TIMEOUT: u32 = 10 * 1000;
 const SEND_BUFFER_SIZE: usize = 65536;
@@ -79,6 +80,24 @@ pub struct SessionState {
     pub wait_for_publish_response: bool,
     /// The message queue
     pub message_queue: Arc<RwLock<MessageQueue>>,
+    /// Connection closed callback
+    session_closed_callback: Option<Box<dyn OnSessionClosed + Send + Sync + 'static>>,
+}
+
+impl OnSessionClosed for SessionState {
+    fn session_closed(&mut self, status_code: StatusCode) {
+        debug!("Session was closed with status = {:?}", status_code);
+        if let Some(ref mut session_closed_callback) = self.session_closed_callback {
+            session_closed_callback.session_closed(status_code);
+        } else {
+            match status_code {
+                StatusCode::Good => {}
+                _ => {
+                    // TODO default behaviour
+                }
+            }
+        }
+    }
 }
 
 impl SessionState {
@@ -96,6 +115,7 @@ impl SessionState {
             message_queue,
             subscription_acknowledgements: Vec::new(),
             wait_for_publish_response: false,
+            session_closed_callback: None,
         }
     }
 
@@ -133,6 +153,10 @@ impl SessionState {
 
     pub fn set_authentication_token(&mut self, authentication_token: NodeId) {
         self.authentication_token = authentication_token;
+    }
+
+    pub fn set_session_closed_callback<CB>(&mut self, session_closed_callback: CB) where CB: OnSessionClosed + Send + Sync + 'static {
+        self.session_closed_callback = Some(Box::new(session_closed_callback));
     }
 
     /// Construct a request header for the session. All requests after create session are expected
