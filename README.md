@@ -2,6 +2,8 @@
 
 This is an [OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) server / client API implemented in Rust.
 
+[![Build Status](https://travis-ci.org/locka99/opcua.svg?branch=master)](https://travis-ci.org/locka99/opcua)
+
 OPC UA is an industry standard for monitoring of data. It's used extensively for embedded devices, industrial control, IoT,
 etc. - just about anything that has data that something else wants to monitor, control or visualize. 
 
@@ -18,12 +20,12 @@ See the [CHANGELOG.md](./CHANGELOG.md) for changes per version as well as aspira
 
 See the [design docs](./docs/README.md) for more in-depth thoughts on the whys and wherefores of implementing OPC UA in Rust.
 
-The documentation is generated from the latest published crates (currently 0.4). It may be out of date depending on the development cycle. 
+The documentation is generated from the latest published crates which may be some way behind current development. 
 
-- [Client](https://docs.rs/opcua-client/) - the client-side API.
-- [Server](https://docs.rs/opcua-server/) - the server-side API.
-- [Core](https://docs.rs/opcua-core/) - core functionality used by client and server.
-- [Types](https://docs.rs/opcua-types/) - structures, requests, responses and enums. 
+- [![Client](https://docs.rs/opcua-client/badge.svg)](https://docs.rs/opcua-client) - the client-side API.
+- [![Server](https://docs.rs/opcua-server/badge.svg)](https://docs.rs/opcua-server) - the server-side API.
+- [![Core](https://docs.rs/opcua-core/badge.svg)](https://docs.rs/opcua-core) - core functionality used by client and server.
+- [![Types](https://docs.rs/opcua-types/badge.svg)](https://docs.rs/opcua-types) - structures, requests, responses and enums. 
 
 # Samples
 
