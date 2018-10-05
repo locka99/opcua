@@ -17,7 +17,9 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
   - (WIP) Session restore after disconnect in client, i.e. attempt to reconnect and resume session first and if that
     fails manually reconstruct the session - subscriptions and monitored items.
   - (WIP) Diagnostics
+  - Status codes are changed from an enum to using bitflags!() macro 
   - Add a `ServerBuilder` and `ClientBuilder` to simplify creating a `Server` and `Client` respectively.
+  - Server enforces decoding limits on strings, byte strings and arrays. 
   
 ## 0.4
   - General
