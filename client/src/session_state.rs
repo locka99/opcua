@@ -89,13 +89,6 @@ impl OnSessionClosed for SessionState {
         debug!("Session was closed with status = {:?}", status_code);
         if let Some(ref mut session_closed_callback) = self.session_closed_callback {
             session_closed_callback.session_closed(status_code);
-        } else {
-            match status_code {
-                StatusCode::Good => {}
-                _ => {
-                    // TODO default behaviour
-                }
-            }
         }
     }
 }

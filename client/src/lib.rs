@@ -20,6 +20,7 @@
 extern crate log;
 extern crate url;
 extern crate chrono;
+extern crate time;
 #[macro_use]
 extern crate serde_derive;
 

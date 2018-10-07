@@ -26,7 +26,7 @@ use opcua_types::status_code::StatusCode;
 use client;
 use comms::tcp_transport::TcpTransport;
 use message_queue::MessageQueue;
-use session_retry::SessionRetry;
+use session_retry::{SessionRetry, Answer};
 use subscription;
 use subscription::Subscription;
 use subscription_state::SubscriptionState;
@@ -138,7 +138,7 @@ impl Session {
             secure_channel,
             message_queue,
             connection_status_callback: None,
-            session_retry: SessionRetry::default()
+            session_retry: SessionRetry::default(),
         }
     }
 
@@ -1007,15 +1007,44 @@ impl Session {
         session_state.async_send_request(request, is_async)
     }
 
-    /// Asks the session to poll, which basically does housekeeping and dispatching of any pending
-    /// async responses.
+    /// Asks the session to poll, which basically dispatchies any pending
+    /// async responses, attempts to reconnect if the client is disconnected from the client.
+    /// Returns `true` if it did something, `false` if it caused the thread to sleep for a bit.
     pub fn poll(&mut self) -> bool {
-        let handled_responses = self.handle_publish_responses();
-        if !handled_responses {
-            // Stops client calling this repeatedly
+        let did_something = if self.is_connected() {
+            let handled_responses = self.handle_publish_responses();
+            if !handled_responses {
+                // Stops client calling this repeatedly
+                thread::sleep(Duration::from_millis(50))
+            }
+            handled_responses
+        } else {
+            use chrono::Utc;
+            match self.session_retry.should_retry_connect(Utc::now()) {
+                Answer::GiveUp => {
+                    // TODO for the first GiveUp, we should log the message
+                    false
+                }
+                Answer::Retry => {
+                    debug!("Retrying to reconnect to server...");
+                    if let Ok(_) = self.reconnect_and_activate_session() {
+                        self.session_retry.reset_retry_count();
+                    } else {
+                        self.session_retry.increment_retry_count();
+                    }
+                    true
+                }
+                Answer::WaitFor(_) => {
+                    //  Do nothing for now...
+                    false
+                }
+            }
+        };
+        if !did_something {
+            // Sleep for a bit, save CPU
             thread::sleep(Duration::from_millis(50))
         }
-        handled_responses
+        did_something
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

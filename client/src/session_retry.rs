@@ -1,4 +1,5 @@
-use std::time::{Duration, Instant};
+use chrono::{DateTime, TimeZone, Utc};
+use time::Duration;
 
 #[derive(PartialEq, Debug)]
 pub enum Answer {
@@ -9,6 +10,10 @@ pub enum Answer {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct SessionRetry {
+    /// The number of attempts so far
+    retry_count: u32,
+    /// The last retry attempt
+    last_attempt: DateTime<Utc>,
     /// Retry max limit, 0 for no limit
     retry_limit: u32,
     /// Interval between retries
@@ -18,25 +23,39 @@ pub struct SessionRetry {
 impl Default for SessionRetry {
     fn default() -> Self {
         SessionRetry {
+            retry_count: 0,
+            last_attempt: Utc.ymd(1900, 1, 1).and_hms(0, 0, 0),
             retry_limit: Self::DEFAULT_RETRY_LIMIT,
-            retry_interval: Duration::from_millis(Self::DEFAULT_RETRY_INTERVAL_MS),
+            retry_interval: Duration::milliseconds(Self::DEFAULT_RETRY_INTERVAL_MS),
         }
     }
 }
 
 impl SessionRetry {
     pub const DEFAULT_RETRY_LIMIT: u32 = 10;
-    pub const DEFAULT_RETRY_INTERVAL_MS: u64 = 10000;
+    pub const DEFAULT_RETRY_INTERVAL_MS: i64 = 10000;
+
+    pub fn increment_retry_count(&mut self) {
+        self.retry_count += 1;
+    }
+
+    pub fn reset_retry_count(&mut self) {
+        self.retry_count = 0;
+    }
+
+    pub fn set_last_attempt(&mut self, last_attempt: DateTime<Utc>) {
+        self.last_attempt = last_attempt;
+    }
 
     /// Asks the policy, given the last retry attempt, should we try to connect again, wait a period of time
     /// or give up entirely.
-    pub fn should_retry_connect(&self, number_of_attempts: u32, now: Instant, last_attempt: Instant) -> Answer {
-        if self.retry_limit > 0 && number_of_attempts > self.retry_limit {
+    pub fn should_retry_connect(&self, now: DateTime<Utc>) -> Answer {
+        if self.retry_limit > 0 && self.retry_count > self.retry_limit {
             // Number of retries have been exceeded
             Answer::GiveUp
         } else {
             // Look at how much time has elapsed since the last attempt
-            let elapsed = now - last_attempt;
+            let elapsed = now - self.last_attempt;
             if self.retry_interval > elapsed {
                 // Wait a bit
                 Answer::WaitFor(self.retry_interval - elapsed)
@@ -50,17 +69,22 @@ impl SessionRetry {
 
 #[test]
 fn session_retry() {
-    let session_retry = SessionRetry::default();
+    let mut session_retry = SessionRetry::default();
 
-    let now = Instant::now();
+    let now = Utc::now();
 
-    let retry_interval = Duration::from_millis(SessionRetry::DEFAULT_RETRY_INTERVAL_MS);
-    let last_attempt_expired = now - retry_interval + Duration::new(0, 1);
-    let last_attempt_wait = now - retry_interval + Duration::new(1, 0);
+    let retry_interval = Duration::milliseconds(SessionRetry::DEFAULT_RETRY_INTERVAL_MS);
+    let last_attempt_expired = now - retry_interval - Duration::nanoseconds(1);
+    let last_attempt_wait = now - retry_interval + Duration::seconds(1);
 
-    assert_eq!(session_retry.should_retry_connect(1, now, last_attempt_expired), Answer::Retry);
-    assert_eq!(session_retry.should_retry_connect(SessionRetry::DEFAULT_RETRY_LIMIT, now, last_attempt_expired), Answer::Retry);
-    assert_eq!(session_retry.should_retry_connect(SessionRetry::DEFAULT_RETRY_LIMIT + 1, now, last_attempt_expired), Answer::GiveUp);
+    session_retry.set_last_attempt(last_attempt_expired);
+    assert_eq!(session_retry.should_retry_connect(now), Answer::Retry);
+    session_retry.retry_count = SessionRetry::DEFAULT_RETRY_LIMIT;
+    assert_eq!(session_retry.should_retry_connect(now), Answer::Retry);
+    session_retry.retry_count = SessionRetry::DEFAULT_RETRY_LIMIT + 1;
+    assert_eq!(session_retry.should_retry_connect(now), Answer::GiveUp);
 
-    assert_eq!(session_retry.should_retry_connect(1, now, last_attempt_wait), Answer::WaitFor(Duration::new(1, 0)));
+    session_retry.set_last_attempt(last_attempt_wait);
+    session_retry.retry_count = 0;
+    assert_eq!(session_retry.should_retry_connect(now), Answer::WaitFor(Duration::seconds(1)));
 }
