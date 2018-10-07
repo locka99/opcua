@@ -26,6 +26,7 @@ use opcua_types::status_code::StatusCode;
 use client;
 use comms::tcp_transport::TcpTransport;
 use message_queue::MessageQueue;
+use session_retry::SessionRetry;
 use subscription;
 use subscription::Subscription;
 use subscription_state::SubscriptionState;
@@ -94,6 +95,8 @@ pub struct Session {
     message_queue: Arc<RwLock<MessageQueue>>,
     /// Connection status callback (TODO move to session state)
     connection_status_callback: Option<Box<dyn OnConnectionStatusChange + Send + Sync + 'static>>,
+    /// Session retry policy
+    session_retry: SessionRetry,
 }
 
 impl Drop for Session {
@@ -135,6 +138,7 @@ impl Session {
             secure_channel,
             message_queue,
             connection_status_callback: None,
+            session_retry: SessionRetry::default()
         }
     }
 

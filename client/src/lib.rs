@@ -46,6 +46,7 @@ mod client;
 mod session;
 mod callbacks;
 mod builder;
+mod session_retry;
 
 use opcua_types::SupportedMessage;
 use opcua_types::service_types::ResponseHeader;
