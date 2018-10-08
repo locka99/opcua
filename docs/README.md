@@ -97,35 +97,47 @@ User/pass identities are defined by configuration
 
 # Building and testing
 
-## Setup
+## Linux
 
 1. Install latest stable rust, e.g. using rustup
 2. Install gcc and OpenSSL development libs & headers. 
 
-On Linux this should be straightforward. On Windows, read below.
+How you do this depends on your dist, either through `apt-get` or `dnf`.
 
 ### Windows
 
-You need OpenSSL to build OPC UA. The easiest way is to install the stable-x86_64-pc-windows-gnu Rust toolchain
-and then install [MSYS2 64-bit](http://www.msys2.org/). Read the instructions on the site especially on updating to the
-latest packages via `pacman -Syuu`.
+The recommended way to build OPC UA is with MSYS2 but you can use Microsoft Visual Studio 201x if you manually install 
+OpenSSL.
 
-Once MSYS2 has installed & updated you must install the MingW 64-bit compiler toolchain and OpenSSL packages.
+#### MSYS2
 
-```bash
-pacman -S gcc mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb mingw-w64-x86_64-pkg-config openssl openssl-devel pkg-config
-```
+MSYS2 is a Unix style build environment for Windows.
 
-Now ensure that these ensure both Rust and MinGW64 binaries are on your PATH and you should be ready:
+1. Install [MSYS2 64-bit](http://www.msys2.org/)
+2. Update all the packages `pacman -Syuu`
+3. `rustup toolchain install stable-x86_64-pc-windows-gnu`
+4. `pacman -S gcc mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb mingw-w64-x86_64-pkg-config openssl openssl-devel pkg-config`
 
-```bash
-set PATH=C:\msys64\mingw64\bin;C:\Users\MyName\.cargo\bin;%PATH%
-```
+You are recommended to use the MSYS2/MingW64 Shell. You may have to tweak your .bashrc to ensure that both Rust and 
+MinGW64 binaries are on your `PATH`. 
+
+#### MSVC
+
+Microsoft Visual Studio is a commercial product although it comes as a free community version for non-commercial use:
+
+1. Install Microsoft Visual Studio. You must install C++ and 64-bit platform support.
+2. `rustup toolchain install stable-x86_64-pc-windows-msvc`
+3. Download and install http://slproweb.com/download/Win64OpenSSL-1_1_0i.exe
+4. Set an environment variable `OPENSSL_DIR` to point to the installation location, e.g. `C:\OpenSSL-Win64`
+
+Ensure that `%OPENSSL_DIR%\bin` is on your `PATH`.
+
+Note this is a 64-bit build. I haven't tried building 32-bits but it would probably work by adjusting the settings above.
 
 ## Workspace Layout
 
-OPC UA for Rust follows the normal Rust conventions. There is a Cargo.toml per module that you may use to build the module and all dependencies. You may also
-build the entire workspace from the top like so:
+OPC UA for Rust follows the normal Rust conventions. There is a Cargo.toml per module that you may use to build the module
+and all dependencies. You may also build the entire workspace from the top like so:
 
 ```bash
 cd opcua
