@@ -27,12 +27,12 @@ use opcua_client::prelude::*;
 
 const DISPLAY_WIDTH: u32 = 640;
 const DISPLAY_HEIGHT: u32 = 480;
-const BACKGROUND_COLOUR: color::Color = color::DARK_GREY;
+const BACKGROUND_COLOUR: color::Color = color::BLACK;
 const MESSAGE_COLOUR: color::Color = color::YELLOW;
 const BAD_COLOUR: color::Color = color::RED;
 const GOOD_COLOUR: color::Color = color::WHITE;
-const CELL_WIDTH: f64 = 120.;
-const CELL_HEIGHT: f64 = 60.;
+const CELL_WIDTH: f64 = 200.;
+const CELL_HEIGHT: f64 = 80.;
 const PADDING: f64 = 5.;
 
 struct SessionState {
