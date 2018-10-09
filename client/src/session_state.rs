@@ -74,12 +74,12 @@ pub struct SessionState {
     /// Next monitored item client side handle
     monitored_item_handle: Handle,
     /// Unacknowledged
-    pub subscription_acknowledgements: Vec<SubscriptionAcknowledgement>,
+    subscription_acknowledgements: Vec<SubscriptionAcknowledgement>,
     /// A flag which tells client to wait for a publish response before sending any new publish
     /// requests
-    pub wait_for_publish_response: bool,
+    wait_for_publish_response: bool,
     /// The message queue
-    pub message_queue: Arc<RwLock<MessageQueue>>,
+    message_queue: Arc<RwLock<MessageQueue>>,
     /// Connection closed callback
     session_closed_callback: Option<Box<dyn OnSessionClosed + Send + Sync + 'static>>,
 }
@@ -140,6 +140,10 @@ impl SessionState {
         self.subscription_acknowledgements.drain(..).collect()
     }
 
+    pub fn add_subscription_acknowledgement(&mut self, subscription_acknowledgement: SubscriptionAcknowledgement) {
+        self.subscription_acknowledgements.push(subscription_acknowledgement);
+    }
+
     pub fn authentication_token(&self) -> &NodeId {
         &self.authentication_token
     }
@@ -150,6 +154,19 @@ impl SessionState {
 
     pub fn set_session_closed_callback<CB>(&mut self, session_closed_callback: CB) where CB: OnSessionClosed + Send + Sync + 'static {
         self.session_closed_callback = Some(Box::new(session_closed_callback));
+    }
+
+    pub fn wait_for_publish_response(&self) -> bool {
+        self.wait_for_publish_response
+    }
+
+    pub fn set_wait_for_publish_response(&mut self, wait_for_publish_response: bool) {
+        if self.wait_for_publish_response && !wait_for_publish_response {
+            debug!("Publish requests are enabled again");
+        } else if !self.wait_for_publish_response && wait_for_publish_response {
+            debug!("Publish requests will be disabled until some publish responses start to arrive");
+        }
+        self.wait_for_publish_response = wait_for_publish_response;
     }
 
     /// Construct a request header for the session. All requests after create session are expected

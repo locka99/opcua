@@ -119,26 +119,26 @@ impl MonitoredItem {
 
 pub(crate) struct Subscription {
     /// Subscription id, supplied by server
-    pub(crate) subscription_id: UInt32,
+    pub subscription_id: UInt32,
     /// Publishing interval in seconds
-    pub(crate) publishing_interval: Double,
+    pub publishing_interval: Double,
     /// Lifetime count, revised by server
-    pub(crate) lifetime_count: UInt32,
+    pub lifetime_count: UInt32,
     /// Max keep alive count, revised by server
-    pub(crate) max_keep_alive_count: UInt32,
+    pub max_keep_alive_count: UInt32,
     /// Max notifications per publish, revised by server
-    pub(crate) max_notifications_per_publish: UInt32,
+    pub max_notifications_per_publish: UInt32,
     /// Publishing enabled
-    pub(crate) publishing_enabled: Boolean,
+    pub publishing_enabled: Boolean,
     /// Priority
-    pub(crate) priority: Byte,
+    pub priority: Byte,
     /// The change callback will be what is called if any monitored item changes within a cycle.
     /// The monitored item is referenced by its id
-    pub(crate) data_change_callback: Arc<Mutex<OnDataChange + Send + Sync + 'static>>,
+    pub data_change_callback: Arc<Mutex<OnDataChange + Send + Sync + 'static>>,
     /// A map of monitored items associated with the subscription (key = monitored_item_id)
-    pub(crate) monitored_items: HashMap<UInt32, MonitoredItem>,
+    pub monitored_items: HashMap<UInt32, MonitoredItem>,
     /// A map of client handle to monitored item id
-    pub(crate) client_handles: HashMap<UInt32, UInt32>,
+    pub client_handles: HashMap<UInt32, UInt32>,
 }
 
 impl Subscription {

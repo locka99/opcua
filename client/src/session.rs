@@ -1169,7 +1169,7 @@ impl Session {
                 // Server may have throttled publish requests
                 let wait_for_publish_response = {
                     let session_state = trace_read_lock_unwrap!(session_state);
-                    session_state.wait_for_publish_response
+                    session_state.wait_for_publish_response()
                 };
                 if !wait_for_publish_response {
                     // We could not send the publish request if subscription is not reporting, or
@@ -1221,7 +1221,7 @@ impl Session {
                 // Queue an acknowledgement for this request
                 {
                     let mut session_state = trace_write_lock_unwrap!(self.session_state);
-                    session_state.subscription_acknowledgements.push(SubscriptionAcknowledgement {
+                    session_state.add_subscription_acknowledgement(SubscriptionAcknowledgement {
                         subscription_id,
                         sequence_number: notification_message.sequence_number,
                     });
@@ -1257,12 +1257,7 @@ impl Session {
         // Turn on/off publish requests
         {
             let mut session_state = trace_write_lock_unwrap!(self.session_state);
-            if session_state.wait_for_publish_response && !wait_for_publish_response {
-                debug!("Publish requests are enabled again");
-            } else if !session_state.wait_for_publish_response && wait_for_publish_response {
-                debug!("Publish requests will be disabled until some publish responses start to arrive");
-            }
-            session_state.wait_for_publish_response = wait_for_publish_response;
+            session_state.set_wait_for_publish_response(wait_for_publish_response);
         }
     }
 }

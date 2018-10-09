@@ -303,7 +303,7 @@ impl TcpTransport {
                 }
             }).map(|_| ())
         }).map_err(|e| {
-            info!("Writer terminating due to error {:?}", e);
+            error!("Writer terminating due to error {:?}", e);
         }).map(|_| {
             info!("Writer is finished");
         });
@@ -403,9 +403,8 @@ impl TcpTransport {
         }).map_err(|_| {
             error!("Read loop ended with an error");
         }).map(|_| {
-            error!("Read loop finished");
+            info!("Read loop finished");
         });
-        ;
 
         tokio::spawn(looping_task);
     }

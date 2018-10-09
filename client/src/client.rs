@@ -24,7 +24,6 @@ struct SessionEntry {
     session: Arc<RwLock<Session>>,
 }
 
-
 /// The `Client` defines a connection that can be used to to get end points or establish
 /// one or more sessions with an OPC UA server. It is configured using a [`ClientConfig`] which
 /// defines the server it talks to and other details such as the location of the certificate store.
