@@ -244,6 +244,10 @@ fn start_ui(mut ui: Ui, mut model: UiModel) {
 //                glium::glutin::ControlFlow::Break
 //            });
 
+            // This is a hack to throttle the render loop so it doesn't spin around eating CPU
+            use std::thread;
+            use std::time::Duration;
+            thread::sleep(Duration::from_millis(100));
         }
 
         // Process the events.
@@ -328,7 +332,7 @@ fn draw_ui(ui: &mut Ui, model: &mut UiModel) {
                 };
                 // Turn the value into a string to render it
                 let (x, y) = (start_x + (col as f64 * (CELL_WIDTH + PADDING)), start_y + row as f64 * (CELL_HEIGHT + PADDING));
-                // println!("col = {}, row = {}, x = {}, y = {}", col, row, x, y);
+                println!("col = {}, row = {}, x = {}, y = {}", col, row, x, y);
                 value_widget(&value, valid, x, y, CELL_WIDTH, CELL_HEIGHT, model.static_ids.canvas)
                     .set(*id, ui);
             } else {
@@ -338,11 +342,11 @@ fn draw_ui(ui: &mut Ui, model: &mut UiModel) {
     }
 }
 
-fn value_widget(value: &str, valid: bool, x: f64, y: f64, w: f64, h: f64, _canvas_id: conrod::widget::Id) -> widget::Text<'_> {
+fn value_widget(value: &str, valid: bool, x: f64, y: f64, w: f64, h: f64, canvas_id: conrod::widget::Id) -> widget::Text<'_> {
     let color = if valid { GOOD_COLOUR } else { BAD_COLOUR };
     widget::Text::new(value)
-        .x_y(x, y)
-        .w(w).h(h)
+        .xy_relative_to(canvas_id, [x, y])
+        .w_h(w, h)
         .center_justify()
         .color(color)
 }
