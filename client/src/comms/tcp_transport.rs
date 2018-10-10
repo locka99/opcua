@@ -60,6 +60,12 @@ struct ReadState {
     last_received_sequence_number: UInt32,
 }
 
+impl Drop for ReadState {
+    fn drop(&mut self) {
+        info!("ReadState has dropped");
+    }
+}
+
 impl ReadState {
     fn turn_received_chunks_into_message(&mut self, chunks: &Vec<MessageChunk>) -> Result<SupportedMessage, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
@@ -107,6 +113,12 @@ struct WriteState {
     pub send_buffer: MessageWriter,
 }
 
+impl Drop for WriteState {
+    fn drop(&mut self) {
+        info!("WriteState has dropped");
+    }
+}
+
 impl WriteState {
     /// Sends the supplied request asynchronously. The returned value is the request id for the
     /// chunked message. Higher levels may or may not find it useful.
@@ -139,6 +151,12 @@ pub struct TcpTransport {
     connection_state: Arc<RwLock<ConnectionState>>,
     /// Message queue for requests / responses
     message_queue: Arc<RwLock<MessageQueue>>,
+}
+
+impl Drop for TcpTransport {
+    fn drop(&mut self) {
+        info!("TcpTransport has dropped");
+    }
 }
 
 impl TcpTransport {

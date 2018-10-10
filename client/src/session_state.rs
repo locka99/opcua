@@ -93,6 +93,12 @@ impl OnSessionClosed for SessionState {
     }
 }
 
+impl Drop for SessionState {
+    fn drop(&mut self) {
+        info!("SessionState has dropped");
+    }
+}
+
 impl SessionState {
     pub fn new(secure_channel: Arc<RwLock<SecureChannel>>, message_queue: Arc<RwLock<MessageQueue>>) -> SessionState {
         SessionState {

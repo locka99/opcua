@@ -1,5 +1,54 @@
 This is the in-depth documentation about the OPC UA implementation in Rust.
 
+# Setup
+
+## Windows
+
+The recommended way to build OPC UA is with MSYS2 but you can use Microsoft Visual Studio 201x if you manually install 
+OpenSSL.
+
+### MSYS2
+
+MSYS2 is a Unix style build environment for Windows.
+
+1. Install [MSYS2 64-bit](http://www.msys2.org/)
+2. Update all the packages `pacman -Syuu`
+3. `rustup toolchain install stable-x86_64-pc-windows-gnu`
+4. `pacman -S gcc mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb mingw-w64-x86_64-pkg-config openssl openssl-devel pkg-config`
+
+You are recommended to use the MSYS2/MingW64 Shell. You may have to tweak your .bashrc to ensure that both Rust and 
+MinGW64 binaries are on your `PATH`. 
+
+### MSVC
+
+Microsoft Visual Studio is a commercial product although it comes as a free community version for non-commercial use:
+
+1. Install Microsoft Visual Studio. You must install C++ and 64-bit platform support.
+2. `rustup toolchain install stable-x86_64-pc-windows-msvc`
+3. Download and install http://slproweb.com/download/Win64OpenSSL-1_1_0i.exe
+4. Set an environment variable `OPENSSL_DIR` to point to the installation location, e.g. `C:\OpenSSL-Win64`
+
+Ensure that `%OPENSSL_DIR%\bin` is on your `PATH`.
+
+Note this is a 64-bit build. I haven't tried building 32-bits but it would probably work by adjusting the settings above.
+
+## Linux
+
+How you do this depends on your dist, either through `apt-get` or `dnf`.
+
+1. Install latest stable rust, e.g. using rustup
+2. Install gcc and OpenSSL development libs & headers. 
+
+## Workspace Layout
+
+OPC UA for Rust follows the normal Rust conventions. There is a Cargo.toml per module that you may use to build the module
+and all dependencies. You may also build the entire workspace from the top like so:
+
+```bash
+cd opcua
+cargo build
+```
+
 # OPC UA Feature Support  
 
 ## OPC UA Binary Transport Protocol
@@ -69,11 +118,20 @@ Currently the following are not supported
 
 ## Client
 
-The client shall provide synchronous and asynchronous calls corresponding to the functionality of the server. It will
-also support these additional calls.
+The client is mostly synchronous - i.e. you call a function and wait for the response. Under the covers, the call is 
+sent asynchronously and the call waits a period of time for the response to appear.
 
-* FindServers - to discover servers from a discovery server  
-* RegisterServer - servers that want to register with a discovery server use this client side API to do so
+The only exception at present is for publish responses for monitored items which arrive asynchronously via the
+callback.
+
+The client has an API that corresponds to the current server supported profile, i.e. look above at the
+server services and there will be calls analogous to these for the client. Potentially the client could
+support other services so it could be used to call other OPC UA implementation. 
+
+In addition to the server services above, the following are also supported.
+
+* FindServers - when connected to a discovery server and find other servers  
+* RegisterServer - when connected to a discovery server, to register a server
 
 ## Configuration
 
@@ -95,55 +153,6 @@ The server and client support the following user identities
 
 User/pass identities are defined by configuration
 
-# Building and testing
-
-## Linux
-
-1. Install latest stable rust, e.g. using rustup
-2. Install gcc and OpenSSL development libs & headers. 
-
-How you do this depends on your dist, either through `apt-get` or `dnf`.
-
-### Windows
-
-The recommended way to build OPC UA is with MSYS2 but you can use Microsoft Visual Studio 201x if you manually install 
-OpenSSL.
-
-#### MSYS2
-
-MSYS2 is a Unix style build environment for Windows.
-
-1. Install [MSYS2 64-bit](http://www.msys2.org/)
-2. Update all the packages `pacman -Syuu`
-3. `rustup toolchain install stable-x86_64-pc-windows-gnu`
-4. `pacman -S gcc mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb mingw-w64-x86_64-pkg-config openssl openssl-devel pkg-config`
-
-You are recommended to use the MSYS2/MingW64 Shell. You may have to tweak your .bashrc to ensure that both Rust and 
-MinGW64 binaries are on your `PATH`. 
-
-#### MSVC
-
-Microsoft Visual Studio is a commercial product although it comes as a free community version for non-commercial use:
-
-1. Install Microsoft Visual Studio. You must install C++ and 64-bit platform support.
-2. `rustup toolchain install stable-x86_64-pc-windows-msvc`
-3. Download and install http://slproweb.com/download/Win64OpenSSL-1_1_0i.exe
-4. Set an environment variable `OPENSSL_DIR` to point to the installation location, e.g. `C:\OpenSSL-Win64`
-
-Ensure that `%OPENSSL_DIR%\bin` is on your `PATH`.
-
-Note this is a 64-bit build. I haven't tried building 32-bits but it would probably work by adjusting the settings above.
-
-## Workspace Layout
-
-OPC UA for Rust follows the normal Rust conventions. There is a Cargo.toml per module that you may use to build the module
-and all dependencies. You may also build the entire workspace from the top like so:
-
-```bash
-cd opcua
-cargo build
-```
-
 ## Crypto
 
 OPC UA for Rust uses cryptographic algorithms for signing, verifying, encrypting and decrypting data. In addition
@@ -152,8 +161,8 @@ it creates, loads and saves certificates and keys.
 OpenSSL is used for this purpose although it would be nice to go to a pure Rust implementation assuming a crate
 delivers everything required. Most of the crypto+OpenSSL code is abstracted to make it easier to remove in the future.
 
-You are advised to read the OpenSSL [documentation](https://github.com/sfackler/rust-openssl) to set up your 
-environment.
+You are advised to read setup and the Rust OpenSSL [documentation](https://github.com/sfackler/rust-openssl) to set up your 
+environment. But basically you need binaries, headers and libs available for the Rust crate to compile against it.
 
 Note: It should be possible to build using MSVC and link to a OpenSSL binary lib but you should read the Rust OpenSSL 
 docs for how to set up your paths properly.
@@ -212,14 +221,12 @@ The API will use convention and idiomatic rust minimize and make concise the amo
 Here is a minimal, functioning server. 
 
 ```rust
-extern crate opcua_types;
-extern crate opcua_core;
 extern crate opcua_server;
 
 use opcua_server::prelude::*;
 
 fn main() {
-    let server: Server = ServerConfig::new_sample().into();
+    let server: Server = ServerBuilder::new_sample().server().unwrap();
     server.run();
 }
 ```

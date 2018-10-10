@@ -101,6 +101,7 @@ pub struct Session {
 
 impl Drop for Session {
     fn drop(&mut self) {
+        info!("Session has dropped");
         if self.is_connected() {
             self.disconnect();
         }
@@ -1182,8 +1183,12 @@ impl Session {
                 }
                 Ok(())
             })
-            .map(|_| ())
-            .map_err(|_| ()))
+            .map(|_| {
+                info!("Subscription timer task is finished");
+            })
+            .map_err(|e| {
+                error!("Subscription timer task finished with an error {:?}", e);
+            }))
     }
 
     // Process any async messages we expect to receive
