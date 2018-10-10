@@ -343,12 +343,11 @@ impl TcpTransport {
     fn spawn_finished_monitor_task(state: Arc<RwLock<ConnectionState>>, finished_flag: Arc<RwLock<bool>>) {
         // This task just spins around waiting for the connection to become finished. When it
         // does it, sets a flag.
-        let finished_monitor_task = Interval::new(Instant::now(), Duration::from_millis(1000))
+        let finished_monitor_task = Interval::new(Instant::now(), Duration::from_millis(200))
             .take_while(move |_| {
                 let finished = {
                     let state = connection_state!(state);
                     if let ConnectionState::Finished(_) = state {
-                        info!("Finished monitor is finished");
                         true
                     } else {
                         false
@@ -362,7 +361,12 @@ impl TcpTransport {
                 future::ok(!finished)
             })
             .for_each(|_| Ok(()))
-            .map_err(|_| ());
+            .map(|_| {
+                info!("Timer for finished has finished");
+            })
+            .map_err(|_| {
+                info!("Timer for finished has finished");
+            });
         tokio::spawn(finished_monitor_task);
     }
 
@@ -500,10 +504,10 @@ impl TcpTransport {
                 Self::write_bytes_task(connection)
             })
             .map_err(move |e| {
-                error!("Write loop ended with an error {:?}", e);
+                error!("Write loop finished with an error {:?}", e);
             })
             .map(|_| {
-                error!("Write loop finished");
+                info!("Write loop finished");
             });
 
         tokio::spawn(looping_task);
