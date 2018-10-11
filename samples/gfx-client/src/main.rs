@@ -53,7 +53,8 @@ impl SessionState {
 widget_ids! {
     struct Ids {
         canvas,
-        message
+        message,
+        grid
     }
 }
 
@@ -314,39 +315,48 @@ fn draw_ui(ui: &mut Ui, model: &mut UiModel) {
             .color(MESSAGE_COLOUR)
             .set(model.static_ids.message, ui)
     } else {
+        // Turn the references in the map into a vector
+        let values = state.values.iter().map(|(k, v)| (k, v)).collect::<Vec<_>>();
+
+        let num_values = values.len();
         let num_cols: usize = 2;
+        let num_rows = if num_values % num_cols == 0 { num_values / num_cols } else { (num_values / num_cols) + 1 };
 
-        let start_x = 0.0;
-        let start_y = 0.0;
+        // Create a matrix to hold the number of cells
+        let mut elements = widget::Matrix::new(num_cols, num_rows)
+            .middle_of(ui.window)
+            .cell_padding(PADDING, PADDING)
+            .w((num_cols as f64 * (CELL_WIDTH + PADDING)) - PADDING)
+            .h((num_rows as f64 * (CELL_HEIGHT + PADDING)) - PADDING)
+            .set(model.static_ids.grid, ui);
 
-        state.values.iter().enumerate().for_each(|(i, v)| {
-            // Create / update the cell and its state
-            let (node_id, value) = v;
-            if let Some(id) = model.value_ids.get(node_id) {
-                let (col, row) = (i % num_cols, i / num_cols);
-                let valid = value.is_valid();
-                let value = if let Some(ref value) = value.value {
-                    format!("{} ({}) ({}, {})", value.to_string(), node_id, col, row)
+        // Iterate the elements of the matrix, and place values in each
+        let mut idx = 0;
+        while let Some(elem) = elements.next(ui) {
+            if idx < values.len() {
+                let v = values[idx];
+                let (node_id, value) = v;
+                if let Some(_) = model.value_ids.get(node_id) {
+                    let valid = value.is_valid();
+                    let value = if let Some(ref value) = value.value {
+                        format!("{}\n[{}]", value.to_string(), node_id)
+                    } else {
+                        "None".to_string()
+                    };
+                    // Turn the value into a string to render it
+                    let widget = {
+                        let color = if valid { GOOD_COLOUR } else { BAD_COLOUR };
+                        widget::Text::new(&value)
+                            .w_h(CELL_WIDTH, CELL_HEIGHT)
+                            .center_justify()
+                            .color(color)
+                    };
+                    elem.set(widget, ui);
                 } else {
-                    "None".to_string()
-                };
-                // Turn the value into a string to render it
-                let (x, y) = (start_x + (col as f64 * (CELL_WIDTH + PADDING)), start_y + row as f64 * (CELL_HEIGHT + PADDING));
-                println!("col = {}, row = {}, x = {}, y = {}", col, row, x, y);
-                value_widget(&value, valid, x, y, CELL_WIDTH, CELL_HEIGHT, model.static_ids.canvas)
-                    .set(*id, ui);
-            } else {
-                panic!("No id called {}", node_id);
+                    panic!("No id called {}", node_id);
+                }
             }
-        });
+            idx += 1;
+        }
     }
-}
-
-fn value_widget(value: &str, valid: bool, x: f64, y: f64, w: f64, h: f64, canvas_id: conrod::widget::Id) -> widget::Text<'_> {
-    let color = if valid { GOOD_COLOUR } else { BAD_COLOUR };
-    widget::Text::new(value)
-        .xy_relative_to(canvas_id, [x, y])
-        .w_h(w, h)
-        .center_justify()
-        .color(color)
 }
