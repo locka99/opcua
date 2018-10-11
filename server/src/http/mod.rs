@@ -91,7 +91,7 @@ pub fn run_http_server(address: &str, server_state: Arc<RwLock<ServerState>>, co
             server_metrics,
         };
 
-        info!("HTTP server is running on {} to provide OPC UA server metrics", address);
+        info!("HTTP server is running on http://{}/ to provide OPC UA server metrics", address);
         let new_service = move || {
             let http_state = http_state.clone();
             service_fn_ok(move |req| http(&http_state, req))

@@ -2,16 +2,10 @@
 //! as well as a full collection of variables of every standard type.
 //!
 //! Use simple-server to understand a terse and simple example.
-
-
-
 extern crate rand;
 extern crate log4rs;
 
-
 extern crate opcua_server;
-
-
 
 use std::path::PathBuf;
 use std::iter::repeat;
