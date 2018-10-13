@@ -1,19 +1,22 @@
-//! This is a simple client with a graphical front end that monitors and displays values from
+//! This is a graphical client that monitors and displays values from
 //! a server. The files are read from a monitored_items.txt which should be in the working
 //! directory that the program is run from.
 
 extern crate clap;
 #[macro_use]
 extern crate conrod;
+
 extern crate opcua_client;
-
-
 extern crate opcua_console_logging;
 
 use std::collections::BTreeMap;
-use std::sync::{Arc, RwLock};
-use std::thread;
+use std::fs::File;
+use std::io::{BufReader, BufRead};
 use std::path::PathBuf;
+use std::str::FromStr;
+use std::sync::{Arc, RwLock};
+use std::time::Duration;
+use std::thread;
 
 use clap::Arg;
 
@@ -24,7 +27,6 @@ use conrod::backend::glium::glium::{self, Surface};
 use opcua_client::prelude::*;
 
 // Screen styling
-
 const DISPLAY_WIDTH: u32 = 640;
 const DISPLAY_HEIGHT: u32 = 480;
 const BACKGROUND_COLOUR: color::Color = color::BLACK;
@@ -113,7 +115,14 @@ fn main() {
     let endpoint_id: Option<&str> = if !endpoint_id.is_empty() { Some(&endpoint_id) } else { None };
 
     // Read the nodes from a file
-    let nodes_to_monitor = nodes_to_monitor();
+    let nodes_to_monitor = {
+        let f = File::open("./monitored_items.txt").unwrap();
+        BufReader::new(f).lines()
+            .map(|line| line.unwrap())
+            .filter(|line| line.len() > 0)
+            .map(|line| ReadValueId::from(NodeId::from_str(&line).unwrap()))
+            .collect::<Vec<_>>()
+    };
 
     if let Ok(session) = client.connect_and_activate(endpoint_id) {
         // Create a shared state object
@@ -127,8 +136,6 @@ fn main() {
             // Spawn a thread for the OPC UA client
             let session_state = session_state.clone();
             thread::spawn(move || {
-                // The --subscribe arg decides if code should subscribe to values, or just fetch those
-                // values and exit
                 let result = subscription_loop(nodes_to_monitor, session, session_state);
                 if let Err(result) = result {
                     println!("ERROR: Got an error while performing action - {:?}", result.description());
@@ -141,27 +148,7 @@ fn main() {
     }
 }
 
-fn nodes_to_monitor() -> Vec<ReadValueId> {
-    use std::io::{BufReader, BufRead};
-    use std::fs::File;
-    use std::str::FromStr;
-    if let Ok(f) = File::open("./monitored_items.txt") {
-        let f = BufReader::new(f);
-        let mut result = Vec::new();
-        for line in f.lines().map(|l| l.unwrap()) {
-            if line.len() > 0 {
-                result.push(ReadValueId::from(NodeId::from_str(&line).unwrap()));
-            }
-        }
-        result
-    } else {
-        panic!("Can't open monitored_items file")
-    }
-}
-
 fn subscription_loop(nodes_to_monitor: Vec<ReadValueId>, session: Arc<RwLock<Session>>, state: Arc<RwLock<SessionState>>) -> Result<(), StatusCode> {
-    // Create a subscription
-
     // This scope is important - we don't want to session to be locked when the code hits the
     // loop below
     {
@@ -221,8 +208,6 @@ fn start_ui(mut ui: Ui, mut model: UiModel) {
     const FONT_PATH: &str = "./assets/fonts/NotoSans/NotoSans-Regular.ttf";
     ui.fonts.insert_from_file(FONT_PATH).unwrap();
 
-    // A type used for converting `conrod::render::Primitives` into `Command`s that can be used
-    // for drawing to the glium `Surface`.
     let mut renderer = conrod::backend::glium::Renderer::new(&display).unwrap();
 
     // The image map describing each of our widget->image mappings (in our case, none).
@@ -246,8 +231,6 @@ fn start_ui(mut ui: Ui, mut model: UiModel) {
 //            });
 
             // This is a hack to throttle the render loop so it doesn't spin around eating CPU
-            use std::thread;
-            use std::time::Duration;
             thread::sleep(Duration::from_millis(100));
         }
 
@@ -303,7 +286,6 @@ fn draw_ui(ui: &mut Ui, model: &mut UiModel) {
         .color(BACKGROUND_COLOUR)
         .set(model.static_ids.canvas, ui);
 
-    // Create text widgets for each value
     let state = model.session_state.read().unwrap();
 
     // Create / update the widgets
@@ -322,7 +304,7 @@ fn draw_ui(ui: &mut Ui, model: &mut UiModel) {
         let num_cols: usize = 2;
         let num_rows = if num_values % num_cols == 0 { num_values / num_cols } else { (num_values / num_cols) + 1 };
 
-        // Create a matrix to hold the number of cells
+        // Create a matrix to render the text in its cells
         let mut elements = widget::Matrix::new(num_cols, num_rows)
             .middle_of(ui.window)
             .cell_padding(PADDING, PADDING)
@@ -330,33 +312,29 @@ fn draw_ui(ui: &mut Ui, model: &mut UiModel) {
             .h((num_rows as f64 * (CELL_HEIGHT + PADDING)) - PADDING)
             .set(model.static_ids.grid, ui);
 
-        // Iterate the elements of the matrix, and place values in each
-        let mut idx = 0;
+        // Iterate the elements of the matrix, and render the values as text
         while let Some(elem) = elements.next(ui) {
-            if idx < values.len() {
-                let v = values[idx];
-                let (node_id, value) = v;
-                if let Some(_) = model.value_ids.get(node_id) {
-                    let valid = value.is_valid();
-                    let value = if let Some(ref value) = value.value {
-                        format!("{}\n[{}]", value.to_string(), node_id)
-                    } else {
-                        "None".to_string()
-                    };
-                    // Turn the value into a string to render it
-                    let widget = {
-                        let color = if valid { GOOD_COLOUR } else { BAD_COLOUR };
-                        widget::Text::new(&value)
-                            .w_h(CELL_WIDTH, CELL_HEIGHT)
-                            .center_justify()
-                            .color(color)
-                    };
-                    elem.set(widget, ui);
-                } else {
-                    panic!("No id called {}", node_id);
-                }
+            let idx = elem.row * num_cols + elem.col;
+            if idx >= values.len() {
+                break;
             }
-            idx += 1;
+            let v = values[idx];
+            let (node_id, value) = v;
+            if model.value_ids.contains_key(node_id) {
+                let valid = value.is_valid();
+                let value = if let Some(ref value) = value.value {
+                    format!("{}\n[{}]", value.to_string(), node_id)
+                } else {
+                    "None".to_string()
+                };
+                let widget = widget::Text::new(&value)
+                    .w_h(CELL_WIDTH, CELL_HEIGHT)
+                    .center_justify()
+                    .color(if valid { GOOD_COLOUR } else { BAD_COLOUR });
+                elem.set(widget, ui);
+            } else {
+                panic!("No id called {}", node_id);
+            }
         }
     }
 }
