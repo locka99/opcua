@@ -239,7 +239,12 @@ impl TcpTransport {
                 future::ok(!is_server_abort)
             })
             .for_each(|_| Ok(()))
-            .map_err(|_| ());
+            .map_err(|_| {
+                error!("Finished monitor task finished with an error");
+            })
+            .map(|_| {
+                error!("Finished monitor task is finished");
+            });
         tokio::spawn(finished_monitor_task);
     }
 
@@ -464,9 +469,13 @@ impl TcpTransport {
                     }
                 }
                 Ok(())
-            }).map_err(|_| {}).map(|_| {
-            info!("Hello timeout is finished");
-        });
+            })
+            .map_err(|_| {
+                error!("Hello timeout is finished with an error");
+            })
+            .map(|_| {
+                info!("Hello timeout is finished");
+            });
         tokio::spawn(task);
     }
 
@@ -626,7 +635,6 @@ impl TcpTransport {
     }
 
     fn process_chunk(&mut self, chunk: MessageChunk, sender: &mut UnboundedSender<(UInt32, SupportedMessage)>) -> std::result::Result<(), StatusCode> {
-
         let decoding_limits = {
             let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
             secure_channel.decoding_limits()
