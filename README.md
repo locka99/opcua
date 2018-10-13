@@ -4,11 +4,11 @@ An [OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) server / c
 
 <table>
   <tr>
-    <td>Linux</td>
+    <td><b>Linux</b></td>
     <td><a href="https://travis-ci.org/locka99/opcua" title="Travis Build Status"><img src="https://travis-ci.org/locka99/opcua.svg?branch=master"></img></a></td>
   </tr>
   <tr>
-    <td>Windows</td>
+    <td><b>Windows</b></td>
     <td><a href="https://ci.appveyor.com/project/locka99/opcua" title="AppVeyor Build Status"><img src="https://ci.appveyor.com/api/projects/status/s4ndusio664o1349?svg=true"></img></a></td>
   </tr>
 </table>
@@ -33,22 +33,22 @@ The documentation is generated from the latest published crates which may be som
 
 <table>
     <tr>
-        <td>Client</td>
+        <td><b>Client</b></td>
         <td><a href="https://docs.rs/opcua-client"><img src="https://docs.rs/opcua-client/badge.svg"></img></a></td>
         <td>Client side APIs to connect to an OPC UA server.</td>
     </tr>
     <tr>
-        <td>Server</td>
+        <td><b>Server</b></td>
         <td><a href="https://docs.rs/opcua-server"><img src="https://docs.rs/opcua-server/badge.svg"></img></a></td>
         <td>Server side APIs to hose an OPC UA server, create new nodes, push/pull changes.</td>
     </tr>
     <tr>
-        <td>Core</td>
+        <td><b>Core</b></td>
         <td><a href="https://docs.rs/opcua-core"><img src="https://docs.rs/opcua-core/badge.svg"></img></a></td>
         <td>Core functionality shared by client and server - encryption, certificate management, chunking.</td>
     </tr>
     <tr>
-        <td>Types</td>
+        <td><b>Types</b></td>
         <td><a href="https://docs.rs/opcua-types"><img src="https://docs.rs/opcua-types/badge.svg"></img></a></td>
         <td>OPC UA core types and encoding implementations.</td>
     </tr>
