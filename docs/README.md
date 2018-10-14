@@ -371,13 +371,21 @@ profiles and relevant test cases.
 
 ## 3rd-party servers
 
-There are also a couple of node-opcua scripts under 3rd-party which behave in a similar fashion to `simple-client` and
-`simple-server`.
+There are also a couple of [node-opcua](https://github.com/node-opcua) scripts in `3rd-party/node-opcua`.
 
-This allows behaviour to be compared with an independently written OPC UA implementation.
+1. `client.js` - an OPC UA client that connects to a server and subscribes to v1, v2, v3, and v4.
+2. `server.js` - an OPC UA server that exposes v1, v2, v3 and v4 and changes them from a timer.
 
-1. `node-opcua-client` - an OPC UA client that connects to a server and subscribes to v1, v2, v3, and v4.
-2. `node-opcua-server` - an OPC UA server that exposes v1, v2, v3 and v4 and changes them from a timer.
+These are functionally analogous to `simple-server` and `simple-client` so the Rust code can be tested against
+an independently written implementation of OPC UA that works in the way it is expecting. This is useful for debugging
+and isolating bugs / differences.
+
+To use them:
+
+1. Install [NodeJS](https://nodejs.org/) - LTS should do, but any recent version should work.
+2. `cd 3rd-party/node-opcua`
+3. `npm install` 
+4. `node server.js` or `node client.js`
 
 # Testing
 
