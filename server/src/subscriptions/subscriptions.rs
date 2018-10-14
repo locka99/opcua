@@ -31,8 +31,8 @@ pub struct Subscriptions {
     // Notifications waiting to be sent - Value is subscription id and notification message.
     transmission_queue: VecDeque<(UInt32, PublishRequestEntry, NotificationMessage)>,
     // Notifications that have been sent but have yet to be acknowledged (retransmission queue).
-    // Key is sequence number. Value is subscription id and notification message
-    retransmission_queue: BTreeMap<UInt32, (UInt32, NotificationMessage)>,
+    // Key is (subscription_id, sequence_number). Value is notification message.
+    retransmission_queue: BTreeMap<(UInt32, UInt32), NotificationMessage>,
 }
 
 
@@ -51,7 +51,7 @@ impl Subscriptions {
     }
 
     #[cfg(test)]
-    pub fn retransmission_queue(&mut self) -> &mut BTreeMap<UInt32, (UInt32, NotificationMessage)> {
+    pub fn retransmission_queue(&mut self) -> &mut BTreeMap<(UInt32, UInt32), NotificationMessage> {
         &mut self.retransmission_queue
     }
 
@@ -175,7 +175,6 @@ impl Subscriptions {
                         panic!("Should not be returning a notification message if there are no publish request to fill");
                     }
                     // Consume the publish request and queue the notification onto the transmission queue
-                    debug!("Subscription {} produced a notification message", subscription_id);
                     let publish_request = self.publish_request_queue.pop_back().unwrap();
                     self.transmission_queue.push_front((subscription_id, publish_request, notification_message));
                 }
@@ -195,7 +194,7 @@ impl Subscriptions {
             let available_sequence_numbers = self.available_sequence_numbers(subscription_id);
 
             // The notification to be sent is now put into the retransmission queue
-            self.retransmission_queue.insert(notification_message.sequence_number, (subscription_id, notification_message.clone()));
+            self.retransmission_queue.insert((subscription_id, notification_message.sequence_number), notification_message.clone());
 
             // Acknowledge results
             let results = self.process_subscription_acknowledgements(&publish_request.request);
@@ -266,7 +265,8 @@ impl Subscriptions {
                     // Check the subscription id exists
                     if self.subscriptions.get(&subscription_id).is_some() {
                         // Clear notification by its sequence number
-                        if self.retransmission_queue.remove(&sequence_number).is_some() {
+                        if self.retransmission_queue.remove(&(subscription_id, sequence_number)).is_some() {
+                            debug!("Removing subscription {} sequence number {} from retransmission queue", subscription_id, sequence_number);
                             StatusCode::Good
                         } else {
                             error!("Can't find acknowledged notification with sequence number {}", sequence_number);
@@ -298,8 +298,8 @@ impl Subscriptions {
         } else {
             // Find the notifications matching this subscription id in the retransmission queue
             let sequence_numbers: Vec<UInt32> = self.retransmission_queue.iter()
-                .filter(|&(_, v)| v.0 == subscription_id)
-                .map(|(k, _)| *k)
+                .filter(|&(k, _)| k.0 == subscription_id)
+                .map(|(k, _)| k.1)
                 .collect();
             if sequence_numbers.is_empty() {
                 None
@@ -332,8 +332,8 @@ impl Subscriptions {
         // Look for the subscription
         if let Some(_) = self.subscriptions.get(&subscription_id) {
             // Look for the sequence number
-            if let Some(ref notification_message) = self.retransmission_queue.get(&sequence_number) {
-                Ok(notification_message.1.clone())
+            if let Some(ref notification_message) = self.retransmission_queue.get(&(subscription_id, sequence_number)) {
+                Ok((*notification_message).clone())
             } else {
                 Err(StatusCode::BadMessageNotAvailable)
             }

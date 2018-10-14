@@ -67,8 +67,8 @@ impl Into<SessionInfo> for (EndpointDescription, client::IdentityToken) {
     }
 }
 
-/// An open session of the client. The session is associated with an endpoint and
-/// maintains a state when it is active. The session struct provides functions for all the supported
+/// A session of the client. The session is associated with an endpoint and maintains a state
+/// when it is active. The session struct provides functions for all the supported
 /// request types in the API. Note that not all servers may support all client side requests and
 /// calling an unsupported API may cause the connection to be dropped.
 ///

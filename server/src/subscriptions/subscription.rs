@@ -366,6 +366,7 @@ impl Subscription {
         }
         if !all_notification_messages.is_empty() {
             use std;
+            debug!("Create notification for subscription {}, sequence number {}", self.subscription_id, self.next_sequence_number);
             // Create a notification message and push it onto the queue
             let notification = NotificationMessage::data_change(self.next_sequence_number, DateTime::now(), all_notification_messages);
             // Advance next sequence number

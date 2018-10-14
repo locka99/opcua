@@ -387,15 +387,8 @@ impl SecureChannel {
             };
 
             // PaddingSize = PlainTextBlockSize – ((BytesToWrite + SignatureSize + 1) % PlainTextBlockSize);
-
             let minimum_padding = Self::minimum_padding(signature_size);
-
-            let mut encrypt_size = 0;
-            encrypt_size += 8; // sequence header
-            encrypt_size += body_size;
-            encrypt_size += signature_size;
-            encrypt_size += minimum_padding;
-
+            let encrypt_size = 8 + body_size + signature_size + minimum_padding;
             let padding_size = if encrypt_size % plain_text_block_size != 0 {
                 plain_text_block_size - (encrypt_size % plain_text_block_size)
             } else {
@@ -625,7 +618,7 @@ impl SecureChannel {
             let signature_size = self.security_policy.symmetric_signature_size();
             let encrypted_range = encrypted_data_offset..message_size;
             let signed_range = 0..(message_size - signature_size);
-            debug!("Decrypting block with signature info {:?} and encrypt info {:?}", signed_range, encrypted_range);
+            trace!("Decrypting block with signature info {:?} and encrypt info {:?}", signed_range, encrypted_range);
 
             let mut decrypted_data = vec![0u8; message_size];
             let decrypted_size = self.symmetric_decrypt_and_verify(src, signed_range, encrypted_range, &mut decrypted_data)?;

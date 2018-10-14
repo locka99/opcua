@@ -306,7 +306,7 @@ fn republish() {
             let monitored_item_notifications = vec![];
             let notification = NotificationMessage::data_change(1, DateTime::now(), monitored_item_notifications);
             let sequence_number = notification.sequence_number;
-            session.subscriptions.retransmission_queue().insert(notification.sequence_number, (subscription_id, notification));
+            session.subscriptions.retransmission_queue().insert((subscription_id, notification.sequence_number), notification);
             sequence_number
         };
 
