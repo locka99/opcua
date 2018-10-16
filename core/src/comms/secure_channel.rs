@@ -449,11 +449,8 @@ impl SecureChannel {
             write_u8(&mut stream, 0u8)?;
         }
 
-        let mut message_size = data.len();
-        message_size += padding_size;
-        message_size += signature_size;
-
         // Update message header to reflect size with padding + signature
+        let message_size = data.len() + padding_size + signature_size;
         Self::update_message_size_and_truncate(stream.into_inner(), message_size, &self.decoding_limits)
     }
 

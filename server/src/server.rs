@@ -157,12 +157,16 @@ impl Server {
         server
     }
 
-    /// Runs the server which implies never returning unless there is a serious error. When running
-    /// the server will listen for requests from an incoming clients and will allow them to create
-    /// sessions.
+    /// Runs the server which blocks until it completes either by aborting or by error. Typically
+    /// a server should be run on its own thread.
     pub fn run(self) {
         let server = Arc::new(RwLock::new(self));
+        Self::run_server(server);
+    }
 
+    /// Runs the supplied server reference counted server. The function will block until the server
+    /// terminates, i.e. all running tokio tasks finish.
+    pub fn run_server(server: Arc<RwLock<Server>>) {
         // Debug endpoints
         {
             let server = trace_read_lock_unwrap!(server);
@@ -235,14 +239,16 @@ impl Server {
                         }
                         Ok(())
                     })
-                    .map_err(|err| {
-                        error!("Completion pact, incoming error = {:?}", err);
-                    })
                     .map(|_| {
                         info!("Completion pact has completed");
                     })
+                    .map_err(|err| {
+                        error!("Completion pact, incoming error = {:?}", err);
+                    })
             }).map(|_| {
                 info!("Server task is finished");
+            }).map_err(|err| {
+                error!("Server task is finished with an error {:?}", err);
             })
         });
         info!("Server has stopped");
@@ -256,7 +262,8 @@ impl Server {
         server_state.abort();
     }
 
-    /// Strip out dead connections, i.e those which have disconnected
+    /// Strip out dead connections, i.e those which have disconnected. Returns `true` if there are
+    /// still open connections after this function completes.
     fn remove_dead_connections(&self) -> bool {
         // Go through all connections, removing those that have terminated
         let mut connections = trace_write_lock_unwrap!(self.connections);
@@ -270,7 +277,7 @@ impl Server {
                 true
             }
         });
-        connections.is_empty()
+        !connections.is_empty()
     }
 
     // Log information about the endpoints on this server
@@ -303,8 +310,9 @@ impl Server {
         }
     }
 
-    // This timer will poll the server to see if it has aborted. If it has it will signal the tx_abort
-    // so that the main listener loop can be broken.
+    // This timer will poll the server to see if it has aborted. It also cleans up dead connections.
+    // If it determines to abort it will signal the tx_abort so that the main listener loop can
+    // be broken at its convenience.
     fn start_abort_poll(server: Arc<RwLock<Server>>, tx_abort: UnboundedSender<()>) {
         let task = Interval::new(Instant::now(), Duration::from_millis(1000))
             .take_while(move |_| {
@@ -316,11 +324,9 @@ impl Server {
                     // Predicate breaks take_while on abort & no open connections
                     if server_state.is_abort() {
                         if has_open_connections {
-                            debug!("Abort poll is waiting for open connections to terminate");
-                            false
-                        } else {
-                            true
+                            warn!("Abort called while there were still open connections");
                         }
+                        true
                     } else {
                         false
                     }

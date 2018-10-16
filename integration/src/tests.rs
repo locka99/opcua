@@ -1,8 +1,6 @@
-use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, RwLock};
 use std::sync::mpsc;
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
-use std::path::PathBuf;
 use std::sync::mpsc::channel;
 use std::thread;
 use std::time;
@@ -13,11 +11,10 @@ use chrono::Utc;
 use opcua_core;
 use opcua_server;
 use opcua_types::*;
-use opcua_server::config::{ServerEndpoint, ServerConfig};
+use opcua_server::config::ServerEndpoint;
 use opcua_server::builder::ServerBuilder;
 use opcua_server::prelude::*;
 use opcua_client::prelude::*;
-use opcua_client::config::{ClientConfig, ClientUserToken};
 use opcua_console_logging;
 
 const ENDPOINT_ID_NONE: &str = "sample_none";
@@ -27,6 +24,48 @@ const ENDPOINT_ID_BASIC256_SIGN_ENCRYPT: &str = "sample_basic256_signencrypt";
 const ENDPOINT_ID_BASIC256_SIGN: &str = "sample_basic256_sign";
 const ENDPOINT_ID_BASIC256SHA256_SIGN_ENCRYPT: &str = "sample_basic256sha256_signencrypt";
 const ENDPOINT_ID_BASIC256SHA256_SIGN: &str = "sample_basic256sha256_sign";
+
+#[test]
+fn abort() {
+    // This is a simple test that runs the server on a thread, sets a flag for it to abort and expects it to
+    // actually do so.
+    opcua_console_logging::init();
+
+    let server = Arc::new(RwLock::new(new_server(0)));
+    let server2 = server.clone();
+
+    // This is pretty lame, but to tell if the thread has terminated or not, there is no try_join
+    // so we will have the thread send a message when it is finishing via a receiver
+
+    let (tx, rx) = channel();
+    let _t = thread::spawn(move || {
+        // This should run & block until it is told to abort
+        Server::run_server(server);
+        tx.send(()).unwrap();
+    });
+
+    {
+        // Set the abort flag
+        server2.write().unwrap().abort();
+    }
+
+    // Wait for the message or timeout to occur
+    let timeout = 10000;
+    let start_time = Utc::now();
+    loop {
+        if let Ok(_) = rx.try_recv() {
+            info!("Abort test succeeded");
+            break;
+        }
+        let now = Utc::now();
+        let elapsed = now.signed_duration_since(start_time.clone());
+        if elapsed.num_milliseconds() > timeout {
+            error!("Abort test timed out");
+            panic!("Abort test timed out after {} ms", elapsed.num_milliseconds());
+        }
+    }
+}
+
 
 #[test]
 fn hello_timeout() {
@@ -118,11 +157,12 @@ fn new_server(port_offset: u16) -> Server {
     // Create an OPC UA server with sample configuration and default node set
     let server = ServerBuilder::new()
         .application_name("integration_server")
+        .application_uri("urn:integration_server")
         .discovery_url(endpoint_url(port_offset))
         .create_sample_keypair(true)
         .pki_dir("./pki-server")
         .discovery_server_url(None)
-        .host_port(hostname(), 4855 + port_offset)
+        .host_and_port(hostname(), 4855 + port_offset)
         .user_token(sample_user_id, ServerUserToken::new_user_pass("sample", "sample1"))
         .endpoints(
             [
@@ -172,40 +212,33 @@ fn new_server(port_offset: u16) -> Server {
 }
 
 fn new_client(port_offset: u16) -> Client {
-    let mut config = ClientConfig::new("integration_client", "x");
     let anonymous_id = opcua_server::prelude::ANONYMOUS_USER_TOKEN_ID;
-
-    // Make some endpoints
-    let endpoints = [
-        (ENDPOINT_ID_NONE, SecurityPolicy::None, MessageSecurityMode::None, anonymous_id),
-        (ENDPOINT_ID_BASIC128RSA15_SIGN_ENCRYPT, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt, anonymous_id),
-        (ENDPOINT_ID_BASIC128RSA15_SIGN, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign, anonymous_id),
-        (ENDPOINT_ID_BASIC256_SIGN_ENCRYPT, SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt, anonymous_id),
-        (ENDPOINT_ID_BASIC256_SIGN, SecurityPolicy::Basic256, MessageSecurityMode::Sign, anonymous_id),
-        (ENDPOINT_ID_BASIC256SHA256_SIGN_ENCRYPT, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, anonymous_id),
-        (ENDPOINT_ID_BASIC256SHA256_SIGN, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign, anonymous_id),
-    ].iter().map(|v| {
-        (v.0.to_string(), ClientEndpoint {
-            url: endpoint_url(port_offset),
-            security_policy: v.1.into(),
-            security_mode: v.2.into(),
-            user_token_id: v.3.to_string(),
-        })
-    }).collect::<BTreeMap<_, _>>();
-
-    let user_tokens = vec![
-        ("sample_user".to_string(), ClientUserToken::new("sample", "sample1")),
-    ].into_iter().collect::<BTreeMap<_, _>>();
-
-    config.pki_dir = PathBuf::from("./pki-client");
-    config.create_sample_keypair = true;
-    config.trust_server_certs = true;
-    config.endpoints = endpoints;
-    config.user_tokens = user_tokens;
-    config.default_endpoint = ENDPOINT_ID_NONE.to_string();
-    config.trust_server_certs = true;
-
-    Client::new(config)
+    ClientBuilder::new()
+        .application_name("integration_client")
+        .application_uri("x")
+        .pki_dir("./pki-client")
+        .endpoints(
+            [
+                (ENDPOINT_ID_NONE, SecurityPolicy::None, MessageSecurityMode::None, anonymous_id),
+                (ENDPOINT_ID_BASIC128RSA15_SIGN_ENCRYPT, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt, anonymous_id),
+                (ENDPOINT_ID_BASIC128RSA15_SIGN, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign, anonymous_id),
+                (ENDPOINT_ID_BASIC256_SIGN_ENCRYPT, SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt, anonymous_id),
+                (ENDPOINT_ID_BASIC256_SIGN, SecurityPolicy::Basic256, MessageSecurityMode::Sign, anonymous_id),
+                (ENDPOINT_ID_BASIC256SHA256_SIGN_ENCRYPT, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, anonymous_id),
+                (ENDPOINT_ID_BASIC256SHA256_SIGN, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign, anonymous_id),
+            ].iter().map(|v| {
+                (v.0.to_string(), ClientEndpoint {
+                    url: endpoint_url(port_offset),
+                    security_policy: v.1.into(),
+                    security_mode: v.2.into(),
+                    user_token_id: v.3.to_string(),
+                })
+            }).collect::<Vec<_>>())
+        .default_endpoint(ENDPOINT_ID_NONE)
+        .create_sample_keypair(true)
+        .trust_server_certs(true)
+        .user_token("sample_user", ClientUserToken::new("sample", "sample1"))
+        .client().unwrap()
 }
 
 fn new_client_server(port_offset: u16) -> (Client, Server) {
@@ -371,7 +404,7 @@ fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: 
 
 fn connect_with(port_offset: u16, endpoint_id: &str) {
     let endpoint_id = endpoint_id.to_string();
-    let client_test = move |rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client| {
+    let client_test = move |_rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client| {
         // Connect to the server
         info!("Client will try to connect to endpoint {}", endpoint_id);
         let session = client.connect_and_activate(Some(&endpoint_id)).unwrap();
@@ -397,7 +430,7 @@ fn connect_with(port_offset: u16, endpoint_id: &str) {
 
         // Server runs on its own thread
         let t = thread::spawn(move || {
-            Server::run(server);
+            Server::run_server(server);
         });
 
         // Listen for quit command, if we get one then finish

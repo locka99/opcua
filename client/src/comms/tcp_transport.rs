@@ -362,10 +362,10 @@ impl TcpTransport {
             })
             .for_each(|_| Ok(()))
             .map(|_| {
-                info!("Timer for finished has finished");
+                info!("Timer for finished is finished");
             })
-            .map_err(|_| {
-                info!("Timer for finished has finished");
+            .map_err(|err| {
+                info!("Timer for finished is finished with an error {:?}", err);
             });
         tokio::spawn(finished_monitor_task);
     }
@@ -442,10 +442,10 @@ impl TcpTransport {
                 // Read / write messages
                 Ok(())
             }
-        }).map_err(|_| {
-            error!("Read loop ended with an error");
         }).map(|_| {
             error!("Read loop finished");
+        }).map_err(|err| {
+            error!("Read loop ended with an error {:?}", err);
         });
         tokio::spawn(looping_task);
     }
@@ -503,11 +503,11 @@ impl TcpTransport {
                 }
                 Self::write_bytes_task(connection)
             })
-            .map_err(move |e| {
-                error!("Write loop finished with an error {:?}", e);
-            })
             .map(|_| {
-                info!("Write loop finished");
+                info!("Write loop is finished");
+            })
+            .map_err(move |err| {
+                error!("Write loop is finished with an error {:?}", err);
             });
 
         tokio::spawn(looping_task);

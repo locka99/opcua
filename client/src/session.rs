@@ -1187,7 +1187,7 @@ impl Session {
                 info!("Subscription timer task is finished");
             })
             .map_err(|e| {
-                error!("Subscription timer task finished with an error {:?}", e);
+                error!("Subscription timer task is finished with an error {:?}", e);
             }))
     }
 

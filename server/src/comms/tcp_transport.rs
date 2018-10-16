@@ -239,11 +239,11 @@ impl TcpTransport {
                 future::ok(!is_server_abort)
             })
             .for_each(|_| Ok(()))
-            .map_err(|_| {
-                error!("Finished monitor task finished with an error");
-            })
             .map(|_| {
-                error!("Finished monitor task is finished");
+                info!("Finished monitor task is finished");
+            })
+            .map_err(|err| {
+                error!("Finished monitor task is finished with an error {:?}", err);
             });
         tokio::spawn(finished_monitor_task);
     }
@@ -307,10 +307,10 @@ impl TcpTransport {
                     Ok(connection)
                 }
             }).map(|_| ())
-        }).map_err(|e| {
-            error!("Writer terminating due to error {:?}", e);
         }).map(|_| {
             info!("Writer is finished");
+        }).map_err(|err| {
+            error!("Writer is finished with an error {:?}", err);
         });
 
         tokio::spawn(looping_task);
@@ -368,7 +368,7 @@ impl TcpTransport {
                     }
                 }
                 _ => {
-                    error!("Unknown sesion state, aborting");
+                    error!("Unknown session state, aborting");
                     session_status_code = StatusCode::BadUnexpectedError;
                 }
             }
@@ -377,7 +377,6 @@ impl TcpTransport {
                 let mut transport = trace_write_lock_unwrap!(connection.transport);
                 transport.finish(session_status_code);
             }
-
             Ok(())
         }).map_err(move |e| {
             error!("Read loop error {:?}", e);
@@ -405,10 +404,10 @@ impl TcpTransport {
             } else {
                 Ok(())
             }
-        }).map_err(|_| {
-            error!("Read loop ended with an error");
         }).map(|_| {
-            info!("Read loop finished");
+            info!("Read loop is finished");
+        }).map_err(|err| {
+            error!("Read loop is finished with an error {:?}", err);
         });
 
         tokio::spawn(looping_task);
@@ -470,11 +469,11 @@ impl TcpTransport {
                 }
                 Ok(())
             })
-            .map_err(|_| {
-                error!("Hello timeout is finished with an error");
-            })
             .map(|_| {
                 info!("Hello timeout is finished");
+            })
+            .map_err(|err| {
+                error!("Hello timeout is finished with an error {:?}", err);
             });
         tokio::spawn(task);
     }
@@ -538,9 +537,13 @@ impl TcpTransport {
                         }
                     }
                     Ok(())
-                }).map_err(|_| ()).map(|_| {
-                info!("Subscription monitor is finished");
-            });
+                })
+                .map(|_| {
+                    info!("Subscription monitor is finished");
+                })
+                .map_err(|err| {
+                    error!("Subscription monitor is finished with an error {:?}", err);
+                });
             tokio::spawn(task);
         }
 
@@ -575,9 +578,13 @@ impl TcpTransport {
                         }
                     }
                     Ok(())
-                }).map(|_| {
-                info!("Subscription receiver is finished")
-            }));
+                })
+                .map(|_| {
+                    info!("Subscription receiver is finished");
+                })
+                .map_err(|err| {
+                    info!("Subscription receiver is finished with an error {:?}", err);
+                }));
         }
     }
 
