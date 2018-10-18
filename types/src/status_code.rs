@@ -1,10 +1,26 @@
 use std::io;
 use std::fmt;
+use std::fmt::Formatter;
 
 use serde::{Serialize, Serializer, Deserialize, Deserializer};
 use serde::de::{self, Visitor};
 
 pub use status_codes::StatusCode;
+
+// The bitflags! macro implements Debug for StatusCode but it fouls the display because status
+// codes are a combination of bits and unique values.
+
+impl fmt::Display for StatusCode {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        // Displays the StatusCode as it's name, or its name+bitflags
+        let bits = *self & StatusCode::BIT_MASK;
+        if bits.is_empty() {
+            write!(f, "{}", self.name())
+        } else {
+            write!(f, "{}+{:?}", self.name(), bits)
+        }
+    }
+}
 
 // Serialize / Deserialize are manually implemented because bitflags! doesn't do it.
 
@@ -24,7 +40,6 @@ impl Serialize for StatusCode {
 
 struct StatusCodeVisitor;
 
-
 impl<'de> Visitor<'de> for StatusCodeVisitor {
     type Value = u32;
 
@@ -40,7 +55,7 @@ impl<'de> Visitor<'de> for StatusCodeVisitor {
     }
 }
 
-impl<'de> Deserialize<'de>  for StatusCode {
+impl<'de> Deserialize<'de> for StatusCode {
     fn deserialize<D>(deserializer: D) -> Result<Self, <D as Deserializer<'de>>::Error>
         where D: Deserializer<'de> {
         Ok(StatusCode::from_bits_truncate(deserializer.deserialize_u32(StatusCodeVisitor)?))

@@ -160,7 +160,7 @@ impl BinaryEncoder<MessageChunk> for MessageChunk {
         // Read the header out first
         let chunk_header_result = MessageChunkHeader::decode(in_stream, decoding_limits);
         if chunk_header_result.is_err() {
-            error!("Cannot decode chunk header {:?}", chunk_header_result.unwrap_err());
+            error!("Cannot decode chunk header {}", chunk_header_result.unwrap_err());
             return Err(StatusCode::BadCommunicationError);
         }
 

@@ -57,7 +57,7 @@ use opcua_types::status_code::StatusCode;
 /// contains a failure status code.
 pub(crate) fn process_service_result(response_header: &ResponseHeader) -> Result<(), StatusCode> {
     if response_header.service_result.is_bad() {
-        info!("Received a bad service result {:?} from the request", response_header.service_result);
+        info!("Received a bad service result {} from the request", response_header.service_result);
         Err(response_header.service_result)
     } else {
         Ok(())
@@ -67,7 +67,7 @@ pub(crate) fn process_service_result(response_header: &ResponseHeader) -> Result
 pub(crate) fn process_unexpected_response(response: SupportedMessage) -> StatusCode {
     match response {
         SupportedMessage::ServiceFault(service_fault) => {
-            error!("Received a service fault of {:?} for the request", service_fault.response_header.service_result);
+            error!("Received a service fault of {} for the request", service_fault.response_header.service_result);
             service_fault.response_header.service_result
         }
         _ => {

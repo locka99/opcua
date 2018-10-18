@@ -1246,7 +1246,7 @@ impl Session {
             }
             SupportedMessage::ServiceFault(response) => {
                 let service_result = response.response_header.service_result;
-                debug!("Service fault received with {:?} error code", service_result);
+                debug!("Service fault received with {} error code", service_result);
                 trace!("ServiceFault {:?}", response);
                 // Terminate timer if
                 if service_result == StatusCode::BadTooManyPublishRequests {

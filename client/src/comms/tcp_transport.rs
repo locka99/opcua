@@ -420,7 +420,7 @@ impl TcpTransport {
                     } else {
                         StatusCode::BadUnexpectedError
                     };
-                    error!("Expecting a chunk, got an error message {:?}, reason \"{}\"", session_status_code, error.reason.as_ref());
+                    error!("Expecting a chunk, got an error message {}, reason \"{}\"", session_status_code, error.reason.as_ref());
                 }
                 _ => {
                     panic!("Expected a recognized message");
