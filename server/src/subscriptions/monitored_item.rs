@@ -27,7 +27,7 @@ impl FilterType {
             // No data filter was passed, so just a dumb value comparison
             Ok(FilterType::None)
         } else if filter_type_id == &ObjectId::DataChangeFilter_Encoding_DefaultBinary.into() {
-            let decoding_limits = DecodingLimits::default(); // TODO
+            let decoding_limits = DecodingLimits::minimal();
             Ok(FilterType::DataChangeFilter(filter.decode_inner::<DataChangeFilter>(&decoding_limits)?))
         } else {
             error!("Requested data filter type is not supported, {:?}", filter_type_id);
@@ -77,8 +77,9 @@ impl MonitoredItem {
         })
     }
 
-    /// Modifies the existing item with the values of the modify request
-    pub fn modify(&mut self, timestamps_to_return: TimestampsToReturn, request: &MonitoredItemModifyRequest) -> Result<(), StatusCode> {
+    /// Modifies the existing item with the values of the modify request. On success, the result
+    /// holds the filter result.
+    pub fn modify(&mut self, timestamps_to_return: TimestampsToReturn, request: &MonitoredItemModifyRequest) -> Result<ExtensionObject, StatusCode> {
         self.timestamps_to_return = timestamps_to_return;
         self.filter = FilterType::from_filter(&request.requested_parameters.filter)?;
         self.sampling_interval = Self::sanitize_sampling_interval(request.requested_parameters.sampling_interval);
@@ -100,7 +101,11 @@ impl MonitoredItem {
             self.notification_queue.reserve(extra_capacity);
         }
 
-        Ok(())
+        // DataChangeFilter has no result but if the impl adds support for EventFilter, AggregateFilter
+        // then this filter result will have to be filled in.
+        let filter_result = ExtensionObject::null();
+
+        Ok(filter_result)
     }
 
     /// Called repeatedly on the monitored item.
@@ -254,7 +259,6 @@ impl MonitoredItem {
         if self.notification_queue.is_empty() {
             None
         } else {
-            // Take first item off the queue
             self.queue_overflow = false;
             self.notification_queue.pop_front()
         }

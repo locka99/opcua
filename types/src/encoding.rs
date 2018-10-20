@@ -14,11 +14,11 @@ pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
 
 #[derive(Clone, Copy, Debug)]
 pub struct DecodingLimits {
-    /// Maximum length in bytes (not chars!) of a string
+    /// Maximum length in bytes (not chars!) of a string. 0 actually means 0, i.e. no string permitted
     pub max_string_length: u32,
-    /// Maximum length in bytes of a byte string
+    /// Maximum length in bytes of a byte string. 0 actually means 0, i.e. no byte string permitted
     pub max_byte_string_length: u32,
-    /// Maximum number of array elements
+    /// Maximum number of array elements. 0 actually means 0, i.e. no array permitted
     pub max_array_length: u32,
 }
 
@@ -28,6 +28,18 @@ impl Default for DecodingLimits {
             max_string_length: constants::MAX_STRING_LENGTH,
             max_byte_string_length: constants::MAX_BYTE_STRING_LENGTH,
             max_array_length: constants::MAX_ARRAY_LENGTH,
+        }
+    }
+}
+
+impl DecodingLimits {
+    /// This can be useful for decoding extension objects where the payload is not expected to contain
+    /// any string or array.
+    pub fn minimal() -> Self {
+        DecodingLimits {
+            max_string_length: 0,
+            max_byte_string_length: 0,
+            max_array_length: 0,
         }
     }
 }

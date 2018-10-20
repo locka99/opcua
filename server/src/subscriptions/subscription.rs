@@ -169,97 +169,89 @@ impl Subscription {
     /// Creates monitored items on the specified subscription, returning the creation results
     pub fn create_monitored_items(&mut self, timestamps_to_return: TimestampsToReturn, items_to_create: &[MonitoredItemCreateRequest]) -> Vec<MonitoredItemCreateResult> {
         self.reset_lifetime_counter();
-        let mut results = Vec::with_capacity(items_to_create.len());
+
         // Add items to the subscription if they're not already in its
-        for item_to_create in items_to_create {
-            // Process items to create here
-            let monitored_item_id = self.next_monitored_item_id;
-            self.next_monitored_item_id += 1;
+        items_to_create.iter().map(|item_to_create| {
             // Create a monitored item, if possible
-            let monitored_item = MonitoredItem::new(monitored_item_id, timestamps_to_return, item_to_create);
-            let result = if let Ok(monitored_item) = monitored_item {
-                // Return the status
-                let result = MonitoredItemCreateResult {
-                    status_code: StatusCode::Good,
-                    monitored_item_id,
-                    revised_sampling_interval: monitored_item.sampling_interval,
-                    revised_queue_size: monitored_item.queue_size as UInt32,
-                    filter_result: ExtensionObject::null(),
-                };
-                // Register the item with the subscription
-                self.monitored_items.insert(monitored_item_id, monitored_item);
-                result
-            } else {
-                // Monitored item couldn't be created
-                MonitoredItemCreateResult {
-                    status_code: monitored_item.unwrap_err(),
-                    monitored_item_id,
-                    revised_sampling_interval: 0f64,
-                    revised_queue_size: 0,
-                    filter_result: ExtensionObject::null(),
+            let monitored_item_id = self.next_monitored_item_id;
+            match MonitoredItem::new(monitored_item_id, timestamps_to_return, item_to_create) {
+                Ok(monitored_item) => {
+                    // Register the item with the subscription
+                    let revised_sampling_interval = monitored_item.sampling_interval;
+                    let revised_queue_size = monitored_item.queue_size as UInt32;
+                    self.monitored_items.insert(monitored_item_id, monitored_item);
+                    self.next_monitored_item_id += 1;
+                    MonitoredItemCreateResult {
+                        status_code: StatusCode::Good,
+                        monitored_item_id,
+                        revised_sampling_interval,
+                        revised_queue_size,
+                        filter_result: ExtensionObject::null(),
+                    }
                 }
-            };
-            results.push(result);
-        }
-        results
+                Err(status_code) => {
+                    MonitoredItemCreateResult {
+                        status_code,
+                        monitored_item_id: 0,
+                        revised_sampling_interval: 0f64,
+                        revised_queue_size: 0,
+                        filter_result: ExtensionObject::null(),
+                    }
+                }
+            }
+        }).collect()
     }
 
     /// Modify the specified monitored items, returning a result for each
     pub fn modify_monitored_items(&mut self, timestamps_to_return: TimestampsToReturn, items_to_modify: &[MonitoredItemModifyRequest]) -> Vec<MonitoredItemModifyResult> {
         self.reset_lifetime_counter();
-        let mut result = Vec::with_capacity(items_to_modify.len());
-        for item_to_modify in items_to_modify {
-            let monitored_item = self.monitored_items.get_mut(&item_to_modify.monitored_item_id);
-            if let Some(monitored_item) = monitored_item {
-                // Skip items not being reported
-                if monitored_item.monitoring_mode != MonitoringMode::Reporting {
-                    continue;
+        items_to_modify.iter().map(|item_to_modify| {
+            match self.monitored_items.get_mut(&item_to_modify.monitored_item_id) {
+                Some(monitored_item) => {
+                    // Try to change the monitored item according to the modify request
+                    let modify_result = monitored_item.modify(timestamps_to_return, item_to_modify);
+                    match modify_result {
+                        Ok(filter_result) => MonitoredItemModifyResult {
+                            status_code: StatusCode::Good,
+                            revised_sampling_interval: monitored_item.sampling_interval,
+                            revised_queue_size: monitored_item.queue_size as UInt32,
+                            filter_result,
+                        },
+                        Err(err) => MonitoredItemModifyResult {
+                            status_code: err,
+                            revised_sampling_interval: 0f64,
+                            revised_queue_size: 0,
+                            filter_result: ExtensionObject::null(),
+                        }
+                    }
                 }
-                // Try to change the monitored item according to the modify request
-                let modify_result = monitored_item.modify(timestamps_to_return, item_to_modify);
-                result.push(if modify_result.is_ok() {
-                    MonitoredItemModifyResult {
-                        status_code: StatusCode::Good,
-                        revised_sampling_interval: monitored_item.sampling_interval,
-                        revised_queue_size: monitored_item.queue_size as UInt32,
-                        filter_result: ExtensionObject::null(),
-                    }
-                } else {
-                    MonitoredItemModifyResult {
-                        status_code: modify_result.unwrap_err(),
-                        revised_sampling_interval: 0f64,
-                        revised_queue_size: 0,
-                        filter_result: ExtensionObject::null(),
-                    }
-                });
-            } else {
                 // Item does not exist
-                result.push(MonitoredItemModifyResult {
+                None => MonitoredItemModifyResult {
                     status_code: StatusCode::BadMonitoredItemIdInvalid,
                     revised_sampling_interval: 0f64,
                     revised_queue_size: 0,
                     filter_result: ExtensionObject::null(),
-                });
+                }
             }
-        }
-        result
+        }).collect()
     }
 
     /// Delete the specified monitored items (by item id), returning a status code for each
     pub fn delete_monitored_items(&mut self, items_to_delete: &[UInt32]) -> Vec<StatusCode> {
         self.reset_lifetime_counter();
         items_to_delete.iter().map(|item_to_delete| {
-            // Remove the item (or report an error with the id)
-            let removed = self.monitored_items.remove(item_to_delete);
-            if removed.is_some() { StatusCode::Good } else { StatusCode::BadMonitoredItemIdInvalid }
+            match self.monitored_items.remove(item_to_delete) {
+                Some(_) => StatusCode::Good,
+                None => StatusCode::BadMonitoredItemIdInvalid
+            }
         }).collect()
     }
 
     // Returns two vecs representing the server and client handles for each monitored item.
     // Called from the GetMonitoredItems impl
     pub fn get_handles(&self) -> (Vec<UInt32>, Vec<UInt32>) {
-        let server_handles: Vec<UInt32> = self.monitored_items.values().map(|i| i.monitored_item_id).collect();
-        let client_handles: Vec<UInt32> = self.monitored_items.values().map(|i| i.client_handle).collect();
+        let server_handles = self.monitored_items.values().map(|i| i.monitored_item_id).collect();
+        let client_handles = self.monitored_items.values().map(|i| i.client_handle).collect();
         (server_handles, client_handles)
     }
 
