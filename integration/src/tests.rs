@@ -308,6 +308,7 @@ fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: 
                 true
             };
             let _ = tx_client_response.send(ClientResponse::Finished(result));
+            info!("Client thread has finished");
         });
         (client_thread, tx_client_command, rx_client_response)
     };
@@ -319,12 +320,13 @@ fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: 
         let (tx_server_response, rx_server_response) = channel();
         let server_thread = thread::spawn(move || {
             // Server thread
-            trace!("Running server test");
+            info!("Server test thread is running");
             let _ = tx_server_response.send(ServerResponse::Starting);
             let _ = tx_server_response.send(ServerResponse::Ready);
             // TODO catch_unwind
             server_test(rx_server_command, server);
             let _ = tx_server_response.send(ServerResponse::Finished(true));
+            info!("Server thread has finished");
         });
         (server_thread, tx_server_command, rx_server_response)
     };
@@ -359,7 +361,7 @@ fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: 
                     info!("Client is ready");
                 }
                 ClientResponse::Finished(success) => {
-                    info!("Client test finished");
+                    info!("Client test finished, result = {:?}", success);
                     client_success = success;
                     client_has_finished = true;
                     if !server_has_finished {
@@ -382,7 +384,7 @@ fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: 
                     let _ = tx_client_command.send(ClientCommand::Start);
                 }
                 ServerResponse::Finished(success) => {
-                    info!("Server test finished");
+                    info!("Server test finished, result = {:?}", success);
                     server_success = success;
                     server_has_finished = true;
                 }
@@ -392,6 +394,8 @@ fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: 
         thread::sleep(time::Duration::from_millis(1000));
     }
 
+    info!("Joining on threads....");
+
     // Threads should exit by now
     let _ = client_thread.join();
     let _ = server_thread.join();
@@ -399,7 +403,7 @@ fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: 
     assert!(client_success);
     assert!(server_success);
 
-    trace!("test complete")
+    info!("test complete")
 }
 
 fn connect_with(port_offset: u16, endpoint_id: &str) {
@@ -431,6 +435,7 @@ fn connect_with(port_offset: u16, endpoint_id: &str) {
         // Server runs on its own thread
         let t = thread::spawn(move || {
             Server::run_server(server);
+            info!("Server thread has finished");
         });
 
         // Listen for quit command, if we get one then finish
