@@ -4,7 +4,7 @@ This is the in-depth documentation about the OPC UA implementation in Rust.
 
 ## Windows
 
-The recommended way to build OPC UA is with MSYS2 but you can use Microsoft Visual Studio 201x if you manually install 
+The preferred way to build OPC UA is with MSYS2 but you can use Microsoft Visual Studio 201x if you manually install 
 OpenSSL.
 
 ### MSYS2
@@ -16,8 +16,8 @@ MSYS2 is a Unix style build environment for Windows.
 3. `rustup toolchain install stable-x86_64-pc-windows-gnu`
 4. `pacman -S gcc mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb mingw-w64-x86_64-pkg-config openssl openssl-devel pkg-config`
 
-You are recommended to use the MSYS2/MingW64 Shell. You may have to tweak your .bashrc to ensure that both Rust and 
-MinGW64 binaries are on your `PATH`. 
+You should use the MSYS2/MingW64 Shell. You may have to tweak your .bashrc to ensure that both Rust and 
+MinGW64 binaries are on your `PATH` but once that's done you're good to go. 
 
 ### MSVC
 
@@ -36,8 +36,8 @@ Note this is a 64-bit build. I haven't tried building 32-bits but it would proba
 
 How you do this depends on your dist, either through `apt-get` or `dnf`.
 
-1. Install latest stable rust, e.g. using rustup
-2. Install gcc and OpenSSL development libs & headers. 
+1. Install latest stable rust, e.g. via `rustup`
+2. Install gcc and OpenSSL development libs & headers, e.g. `sudo apt-get gcc libssl-dev`
 
 ## Workspace Layout
 
@@ -53,8 +53,10 @@ cargo build
 
 ## OPC UA Binary Transport Protocol
 
-This implementation will implement the opc.tcp:// binary format. It will **not** implement OPC UA over XML. XML hasn't
-see much adoption so this is no great impediment. Binary over https:// might happen at a later time.
+This implementation will implement the `opc.tcp://` binary format. It will **not** implement OPC UA over XML. XML hasn't
+see much adoption so this is no great impediment.
+
+Binary over `https://` might happen at a later time.
 
 ## Server
 
