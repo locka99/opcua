@@ -162,7 +162,7 @@ pub mod types {
     pub use super::address_space::{AddressSpace, ReferenceDirection};
     pub use super::data_type::DataType;
     pub use super::object::Object;
-    pub use super::variable::Variable;
+    pub use super::variable::{VariableBuilder, Variable};
     pub use super::method::Method;
     pub use super::reference_type::ReferenceType;
     pub use super::object_type::ObjectType;

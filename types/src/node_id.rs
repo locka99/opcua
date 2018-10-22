@@ -75,15 +75,6 @@ pub struct NodeId {
     pub identifier: Identifier,
 }
 
-impl Default for NodeId {
-    fn default() -> Self {
-        NodeId {
-            namespace: 0,
-            identifier: Identifier::Numeric(0),
-        }
-    }
-}
-
 impl BinaryEncoder<NodeId> for NodeId {
     fn byte_len(&self) -> usize {
         // Type determines the byte code
@@ -334,6 +325,12 @@ impl From<(UInt16, ByteString)> for NodeId {
 }
 
 static NEXT_NODE_ID_NUMERIC: AtomicUsize = ATOMIC_USIZE_INIT;
+
+impl Default for NodeId {
+    fn default() -> Self {
+        NodeId::null()
+    }
+}
 
 impl NodeId {
     // Constructs a new NodeId from anything that can be turned into Identifier

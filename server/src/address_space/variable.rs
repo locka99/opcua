@@ -8,12 +8,122 @@ use address_space::node::Node;
 use address_space::{AttributeGetter, AttributeSetter};
 use address_space::{AccessLevel, UserAccessLevel};
 
+/// This is a builder object for constructing variable nodes programmatically.
+pub struct VariableBuilder {
+    node: Variable
+}
+
+macro_rules! node_builder_impl {
+    ( $node_builder_struct:ident ) => {
+        impl $node_builder_struct {
+
+            fn node_id(mut self, node_id: &NodeId) -> Self {
+                let _ = self.node.base.set_node_id(node_id);
+                self
+            }
+
+            pub fn display_name(mut self, display_name: &str) -> Self {
+                let _ = self.node.base.set_display_name(LocalizedText::new("", display_name));
+                self
+            }
+
+            pub fn browse_name(mut self, browse_name: &str) -> Self {
+                let _ = self.node.base.set_browse_name(QualifiedName::new(0, browse_name));
+                self
+            }
+
+            pub fn description(mut self, description: &str) -> Self {
+                let _ = self.node.base.set_description(LocalizedText::new("", description));
+                self
+            }
+        }
+    }
+}
+
+node_builder_impl!(VariableBuilder);
+
+impl VariableBuilder {
+    pub fn new(node_id: &NodeId) -> VariableBuilder {
+        VariableBuilder {
+            node: Variable::default()
+        }.node_id(node_id)
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.node.is_valid()
+    }
+
+    pub fn value<V>(mut self, value: V) -> Self where V: Into<DataValue> {
+        let _ = self.node.set_value(value);
+        self
+    }
+
+    pub fn data_type(mut self, data_type: DataTypeId) -> Self {
+        let _ = self.node.set_attribute(AttributeId::DataType, Variant::new::<NodeId>(data_type.into()).into());
+        self
+    }
+
+    pub fn historizing(mut self, historizing: bool) -> Self {
+        let _ = self.node.set_attribute(AttributeId::Historizing, Variant::Boolean(historizing).into());
+        self
+    }
+
+    pub fn access_level(mut self, access_level: AccessLevel) -> Self {
+        let _ = self.node.set_attribute(AttributeId::AccessLevel, Variant::Byte(access_level.bits).into());
+        self
+    }
+
+    pub fn user_access_level(mut self, user_access_level: UserAccessLevel) -> Self {
+        let _ = self.node.set_attribute(AttributeId::UserAccessLevel, Variant::Byte(user_access_level.bits).into());
+        self
+    }
+
+    pub fn value_rank(mut self, value_rank: Int32) -> Self {
+        let _ = self.node.set_attribute(AttributeId::ValueRank, Variant::Int32(value_rank).into());
+        self
+    }
+
+    pub fn array_dimensions(mut self, array_dimensions: &[UInt32]) -> Self {
+        let _ = self.node.set_attribute(AttributeId::ArrayDimensions, Variant::from_u32_array(array_dimensions).into());
+        self
+    }
+
+    pub fn minimum_sampling_interval(mut self, minimum_sampling_interval: Int32) -> Self {
+        let _ = self.node.set_attribute(AttributeId::MinimumSamplingInterval, Variant::Int32(minimum_sampling_interval).into());
+        self
+    }
+
+    /// Yields the built variable. This function will panic if the variable is invalid.
+    pub fn build(self) -> Variable {
+        if self.is_valid() {
+            self.node
+        } else {
+            panic!("The variable is not valid, node id = {:?}", self.node.base.node_id());
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Variable {
     base: Base,
 }
 
 node_impl!(Variable);
+
+impl Default for Variable {
+    fn default() -> Self {
+        Variable {
+            base: Base::new(NodeClass::Variable, &NodeId::null(), "", "", "", vec![
+                (AttributeId::UserAccessLevel, Variant::Byte(AccessLevel::CURRENT_READ.bits)),
+                (AttributeId::AccessLevel, Variant::Byte(UserAccessLevel::CURRENT_READ.bits)),
+                (AttributeId::DataType, Variant::new::<NodeId>(DataTypeId::Int32.into())),
+                (AttributeId::Historizing, Variant::Boolean(false)),
+                (AttributeId::ValueRank, Variant::Int32(-1)),
+                (AttributeId::Value, Variant::Empty)
+            ]),
+        }
+    }
+}
 
 impl Variable {
     pub fn new<V>(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, value: V) -> Variable where V: Into<Variant> {
@@ -32,23 +142,6 @@ impl Variable {
 
     /// Constructs a new variable with the specified id, name, type and value
     pub fn new_data_value(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: DataValue) -> Variable {
-        // Mandatory
-        let historizing = false;
-        let access_level = AccessLevel::CURRENT_READ;
-        let user_access_level = UserAccessLevel::CURRENT_READ;
-        let mut attributes = vec![
-            (AttributeId::UserAccessLevel, Variant::Byte(user_access_level.bits)),
-            (AttributeId::AccessLevel, Variant::Byte(access_level.bits)),
-            (AttributeId::DataType, Variant::new::<NodeId>(data_type.into())),
-            (AttributeId::Historizing, Variant::Boolean(historizing))
-        ];
-
-        // ArrayDimensions attribute depends on the value being an array
-        //
-        // TODO the code currently doesn't cope with the value being set as an array later on unless
-        // the client caller, sets these values for itself. That should be fixed.
-
-        // If the value is an array, then array dimensions and the value rank will be set
         let array_dimensions = if let Some(ref value) = value.value {
             // Get the
             match value {
@@ -63,22 +156,28 @@ impl Variable {
         } else {
             None
         };
-        if let Some(array_dimensions) = array_dimensions {
-            attributes.push((AttributeId::ValueRank, Variant::Int32(array_dimensions.len() as Int32)));
-            attributes.push((AttributeId::ArrayDimensions, Variant::from_u32_array(&array_dimensions)));
+
+        let builder = VariableBuilder::new(node_id)
+            .display_name(display_name)
+            .browse_name(browse_name)
+            .description(description)
+            .user_access_level(UserAccessLevel::CURRENT_READ)
+            .access_level(AccessLevel::CURRENT_READ)
+            .data_type(data_type)
+            .historizing(false)
+            .value(value);
+
+        // Set the array info
+        let builder = if let Some(array_dimensions) = array_dimensions {
+            builder.value_rank(array_dimensions.len() as Int32).array_dimensions(&array_dimensions)
         } else {
-            attributes.push((AttributeId::ValueRank, Variant::Int32(-1)));
-        }
-
-        // Optional attributes can be added through functions
-        //
-        //    MinimumSamplingInterval
-
-        let mut result = Variable {
-            base: Base::new(NodeClass::Variable, node_id, browse_name, display_name, description, attributes),
+            builder.value_rank(-1)
         };
-        let _ = result.base.set_attribute(AttributeId::Value, value);
-        result
+        builder.build()
+    }
+
+    pub fn is_valid(&self) -> bool {
+        !self.base.node_id().is_null()
     }
 
     pub fn value(&self) -> DataValue {
@@ -86,30 +185,14 @@ impl Variable {
     }
 
     /// Sets the variable's value
-    pub fn set_value(&mut self, value: DataValue) {
-        let _ = self.base.set_attribute(AttributeId::Value, value);
+    pub fn set_value<V>(&mut self, value: V) where V: Into<DataValue> {
+        // TODO if the value is an array or multi-dimensional array, should we
+        // set array dimensions / value rank?
+        let _ = self.base.set_attribute(AttributeId::Value, value.into());
     }
 
-    pub fn set_value_getter(&mut self, getter: Arc<Mutex<dyn AttributeGetter + Send>>) {
-        self.base.set_attribute_getter(AttributeId::Value, getter);
-    }
-
-    pub fn set_value_setter(&mut self, setter: Arc<Mutex<dyn AttributeSetter + Send>>) {
-        self.base.set_attribute_setter(AttributeId::Value, setter);
-    }
-
-    /// Sets the minimum sampling interval
-    ///
-    /// Specifies in milliseconds how fast the server can reasonably sample the value for changes
-    ///
-    /// The value 0 means server is to monitor the value continuously. The value -1 means indeterminate.
-    pub fn set_minimum_sampling_interval(&mut self, minimum_sampling_interval: Int32) {
-        let now = DateTime::now();
-        let _ = self.base.set_attribute_value(AttributeId::MinimumSamplingInterval, Variant::Int32(minimum_sampling_interval), &now, &now);
-    }
-
-    /// Sets the variable's value but first test to see if it has changed. If the value has not
-    /// changed the existing timestamps are preserved. If
+    /// Sets the variable's value directly but first test to see if it has changed. If the value has not
+    /// changed the existing timestamps are preserved.
     pub fn set_value_direct<V>(&mut self, now: &DateTime, value: V) where V: Into<Variant> {
         let mut data_value = self.value();
 
@@ -125,6 +208,29 @@ impl Variable {
         data_value.source_picoseconds = Some(0);
         data_value.value = Some(new_value);
         self.set_value(data_value);
+    }
+
+    pub fn set_value_getter(&mut self, getter: Arc<Mutex<dyn AttributeGetter + Send>>) {
+        self.base.set_attribute_getter(AttributeId::Value, getter);
+    }
+
+    pub fn set_value_setter(&mut self, setter: Arc<Mutex<dyn AttributeSetter + Send>>) {
+        self.base.set_attribute_setter(AttributeId::Value, setter);
+    }
+
+    /// Gets the minimum sampling interval, if the attribute was set
+    pub fn minimum_sampling_interval(&self) -> Option<Int32> {
+        find_attribute_value_optional!(&self.base, MinimumSamplingInterval, Int32)
+    }
+
+    /// Sets the minimum sampling interval
+    ///
+    /// Specifies in milliseconds how fast the server can reasonably sample the value for changes
+    ///
+    /// The value 0 means server is to monitor the value continuously. The value -1 means indeterminate.
+    pub fn set_minimum_sampling_interval(&mut self, minimum_sampling_interval: Int32) {
+        let now = DateTime::now();
+        let _ = self.base.set_attribute_value(AttributeId::MinimumSamplingInterval, Variant::Int32(minimum_sampling_interval), &now, &now);
     }
 
     pub fn is_readable(&self) -> bool {

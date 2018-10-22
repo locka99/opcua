@@ -213,3 +213,38 @@ fn multi_dimension_array_as_variable() {
     let array_dimensions = v.array_dimensions().unwrap();
     assert_eq!(array_dimensions, vec![10u32, 10u32]);
 }
+
+#[test]
+fn variable_builder() {
+    let result = std::panic::catch_unwind(|| {
+        // This should panic
+        let _v = VariableBuilder::new(&NodeId::null())
+            .build();
+    });
+    assert!(result.is_err());
+
+    // This should build
+    let _v = VariableBuilder::new(&NodeId::new(1, 1))
+        .build();
+
+    // Check a variable with a bunch of fields set
+    let v = VariableBuilder::new(&NodeId::new(1, "Hello"))
+        .browse_name("BrowseName")
+        .display_name("DisplayName")
+        .description("Desc")
+        .value_rank(10)
+        .array_dimensions(&[1, 2, 3])
+        .historizing(true)
+        .value(Variant::from(999))
+        .minimum_sampling_interval(123)
+        .build();
+
+    assert_eq!(v.node_id(), NodeId::new(1, "Hello"));
+    assert_eq!(v.browse_name(), QualifiedName::new(0, "BrowseName"));
+    assert_eq!(v.display_name(), LocalizedText::new("", "DisplayName"));
+    assert_eq!(v.description().unwrap(), LocalizedText::new("", "Desc"));
+    assert_eq!(v.value_rank(), 10);
+    assert_eq!(v.array_dimensions().unwrap(), vec![1, 2, 3]);
+    assert_eq!(v.historizing(), true);
+    assert_eq!(v.value().value.unwrap(), Variant::from(999));
+}

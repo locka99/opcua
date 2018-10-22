@@ -141,11 +141,14 @@ impl Node for Base {
     fn set_attribute(&mut self, attribute_id: AttributeId, value: DataValue) -> Result<(), StatusCode> {
         // Check the type of the datavalue
         let type_is_valid = match attribute_id {
-            AttributeId::NodeId | AttributeId::NodeClass => {
-                false
+            AttributeId::NodeId => {
+                is_valid_value_type!(value, NodeId)
+            }
+            AttributeId::NodeClass => {
+                is_valid_value_type!(value, Int32)
             }
             AttributeId::BrowseName => {
-                is_valid_value_type!(value, String)
+                is_valid_value_type!(value, QualifiedName)
             }
             AttributeId::DisplayName | AttributeId::Description | AttributeId::InverseName => {
                 is_valid_value_type!(value, LocalizedText)
@@ -240,6 +243,30 @@ impl Base {
             attribute_getters: HashMap::new(),
             attribute_setters: HashMap::new(),
         }
+    }
+
+    pub fn set_node_id(&mut self, node_id: &NodeId) {
+        let _ = self.set_attribute(AttributeId::NodeId, Variant::new(node_id.clone()).into());
+    }
+
+    pub fn set_display_name<S>(&mut self, display_name: S) where S: Into<LocalizedText> {
+        let _ = self.set_attribute(AttributeId::DisplayName, Variant::new(display_name.into()).into());
+    }
+
+    pub fn set_browse_name<S>(&mut self, browse_name: S) where S: Into<QualifiedName> {
+        let _ = self.set_attribute(AttributeId::BrowseName, Variant::new(browse_name.into()).into());
+    }
+
+    pub fn set_description<S>(&mut self, description: S) where S: Into<LocalizedText> {
+        let _ = self.set_attribute(AttributeId::Description, Variant::new(description.into()).into());
+    }
+
+    pub fn set_write_mask(&mut self, write_mask: WriteMask) {
+        let _ = self.set_attribute(AttributeId::WriteMask, Variant::UInt32(write_mask.bits()).into());
+    }
+
+    pub fn set_user_write_mask(&mut self, user_write_mask: WriteMask) {
+        let _ = self.set_attribute(AttributeId::UserWriteMask, Variant::UInt32(user_write_mask.bits()).into());
     }
 
     pub fn set_attribute_getter(&mut self, attribute_id: AttributeId, getter: Arc<Mutex<dyn AttributeGetter + Send>>) {
