@@ -17,7 +17,7 @@ use service_types::BrowseDescription;
 pub struct BrowseRequest {
     pub request_header: RequestHeader,
     pub view: ViewDescription,
-    pub requested_max_references_per_node: UInt32,
+    pub requested_max_references_per_node: u32,
     pub nodes_to_browse: Option<Vec<BrowseDescription>>,
 }
 
@@ -51,7 +51,7 @@ impl BinaryEncoder<BrowseRequest> for BrowseRequest {
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
         let view = ViewDescription::decode(stream, decoding_limits)?;
-        let requested_max_references_per_node = UInt32::decode(stream, decoding_limits)?;
+        let requested_max_references_per_node = u32::decode(stream, decoding_limits)?;
         let nodes_to_browse: Option<Vec<BrowseDescription>> = read_array(stream, decoding_limits)?;
         Ok(BrowseRequest {
             request_header,

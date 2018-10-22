@@ -15,8 +15,8 @@ use basic_types::QualifiedName;
 #[derive(Debug, Clone, PartialEq)]
 pub struct RelativePathElement {
     pub reference_type_id: NodeId,
-    pub is_inverse: Boolean,
-    pub include_subtypes: Boolean,
+    pub is_inverse: bool,
+    pub include_subtypes: bool,
     pub target_name: QualifiedName,
 }
 
@@ -49,8 +49,8 @@ impl BinaryEncoder<RelativePathElement> for RelativePathElement {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let reference_type_id = NodeId::decode(stream, decoding_limits)?;
-        let is_inverse = Boolean::decode(stream, decoding_limits)?;
-        let include_subtypes = Boolean::decode(stream, decoding_limits)?;
+        let is_inverse = bool::decode(stream, decoding_limits)?;
+        let include_subtypes = bool::decode(stream, decoding_limits)?;
         let target_name = QualifiedName::decode(stream, decoding_limits)?;
         Ok(RelativePathElement {
             reference_type_id,

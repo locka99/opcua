@@ -196,7 +196,7 @@ fn new_server(port_offset: u16) -> Server {
 
         // Add variables
         let _ = address_space.add_variables(
-            vec![Variable::new(&v1_node, "v1", "v1", "v1 variable", 0 as Int32)],
+            vec![Variable::new(&v1_node, "v1", "v1", "v1 variable", 0 as i32)],
             &sample_folder_id);
 
         // Register a getter for the variable

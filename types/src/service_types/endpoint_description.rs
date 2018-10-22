@@ -24,7 +24,7 @@ pub struct EndpointDescription {
     pub security_policy_uri: UAString,
     pub user_identity_tokens: Option<Vec<UserTokenPolicy>>,
     pub transport_profile_uri: UAString,
-    pub security_level: Byte,
+    pub security_level: u8,
 }
 
 impl MessageInfo for EndpointDescription {
@@ -70,7 +70,7 @@ impl BinaryEncoder<EndpointDescription> for EndpointDescription {
         let security_policy_uri = UAString::decode(stream, decoding_limits)?;
         let user_identity_tokens: Option<Vec<UserTokenPolicy>> = read_array(stream, decoding_limits)?;
         let transport_profile_uri = UAString::decode(stream, decoding_limits)?;
-        let security_level = Byte::decode(stream, decoding_limits)?;
+        let security_level = u8::decode(stream, decoding_limits)?;
         Ok(EndpointDescription {
             endpoint_url,
             server,

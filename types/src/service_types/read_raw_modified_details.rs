@@ -10,11 +10,11 @@ use date_time::DateTime;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReadRawModifiedDetails {
-    pub is_read_modified: Boolean,
+    pub is_read_modified: bool,
     pub start_time: DateTime,
     pub end_time: DateTime,
-    pub num_values_per_node: UInt32,
-    pub return_bounds: Boolean,
+    pub num_values_per_node: u32,
+    pub return_bounds: bool,
 }
 
 impl BinaryEncoder<ReadRawModifiedDetails> for ReadRawModifiedDetails {
@@ -41,11 +41,11 @@ impl BinaryEncoder<ReadRawModifiedDetails> for ReadRawModifiedDetails {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let is_read_modified = Boolean::decode(stream, decoding_limits)?;
+        let is_read_modified = bool::decode(stream, decoding_limits)?;
         let start_time = DateTime::decode(stream, decoding_limits)?;
         let end_time = DateTime::decode(stream, decoding_limits)?;
-        let num_values_per_node = UInt32::decode(stream, decoding_limits)?;
-        let return_bounds = Boolean::decode(stream, decoding_limits)?;
+        let num_values_per_node = u32::decode(stream, decoding_limits)?;
+        let return_bounds = bool::decode(stream, decoding_limits)?;
         Ok(ReadRawModifiedDetails {
             is_read_modified,
             start_time,

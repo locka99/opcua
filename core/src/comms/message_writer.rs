@@ -1,6 +1,6 @@
 use std::io::{Cursor, Write};
 
-use opcua_types::{SupportedMessage, UInt32};
+use opcua_types::SupportedMessage;
 use opcua_types::status_code::StatusCode;
 use opcua_types::tcp_types::AcknowledgeMessage;
 use opcua_types::{BinaryEncoder, EncodingResult};
@@ -9,8 +9,8 @@ use comms::secure_channel::SecureChannel;
 use comms::chunker::Chunker;
 //use debug::log_buffer;
 
-const DEFAULT_REQUEST_ID: UInt32 = 1000;
-const DEFAULT_SENT_SEQUENCE_NUMBER: UInt32 = 0;
+const DEFAULT_REQUEST_ID: u32 = 1000;
+const DEFAULT_SENT_SEQUENCE_NUMBER: u32 = 0;
 
 /// SocketWriter is a wrapper around the writable half of a tokio stream and a buffer which
 /// will be dumped into that stream.
@@ -18,9 +18,9 @@ pub struct MessageWriter {
     /// The send buffer
     buffer: Cursor<Vec<u8>>,
     /// The last request id
-    last_request_id: UInt32,
+    last_request_id: u32,
     /// Last sent sequence number
-    last_sent_sequence_number: UInt32,
+    last_sent_sequence_number: u32,
 }
 
 impl MessageWriter {
@@ -38,7 +38,7 @@ impl MessageWriter {
 
     /// Encodes the message into a series of chunks, encrypts those chunks and writes the
     /// result into the buffer ready to be sent.
-    pub fn write(&mut self, request_id: UInt32, message: SupportedMessage, secure_channel: &SecureChannel) -> Result<UInt32, StatusCode> {
+    pub fn write(&mut self, request_id: u32, message: SupportedMessage, secure_channel: &SecureChannel) -> Result<u32, StatusCode> {
         trace!("Writing request to buffer");
         // Turn message to chunk(s)
         // TODO max message size and max chunk size
@@ -47,7 +47,7 @@ impl MessageWriter {
         };
 
         // Sequence number monotonically increases per chunk
-        self.last_sent_sequence_number += chunks.len() as UInt32;
+        self.last_sent_sequence_number += chunks.len() as u32;
 
         // Send chunks
 
@@ -79,7 +79,7 @@ impl MessageWriter {
         Ok(request_id)
     }
 
-    pub fn next_request_id(&mut self) -> UInt32 {
+    pub fn next_request_id(&mut self) -> u32 {
         self.last_request_id += 1;
         self.last_request_id
     }

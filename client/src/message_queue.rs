@@ -8,9 +8,9 @@ pub struct MessageQueue {
     /// The requests that are in-flight, defined by their request handle and an async flag. Basically,
     /// the sent requests reside here  until the response returns at which point the entry is removed.
     /// If a response is received for which there is no entry, the response will be discarded.
-    inflight_requests: HashSet<(UInt32, bool)>,
+    inflight_requests: HashSet<(u32, bool)>,
     /// A map of incoming responses waiting to be processed
-    responses: HashMap<UInt32, (SupportedMessage, bool)>,
+    responses: HashMap<u32, (SupportedMessage, bool)>,
     /// This is the queue that messages will be sent onto the transport for sending
     sender: Option<UnboundedSender<SupportedMessage>>,
 }
@@ -31,7 +31,7 @@ impl MessageQueue {
         rx
     }
 
-    pub(crate) fn request_was_processed(&mut self, request_handle: UInt32) {
+    pub(crate) fn request_was_processed(&mut self, request_handle: u32) {
         debug!("Request {} was processed by the server", request_handle);
     }
 
@@ -45,7 +45,7 @@ impl MessageQueue {
 
     /// Called when a session's request times out. This call allows the session state to remove
     /// the request as pending and ignore any response that arrives for it.
-    pub(crate) fn request_has_timed_out(&mut self, request_handle: UInt32) {
+    pub(crate) fn request_has_timed_out(&mut self, request_handle: u32) {
         info!("Request {} has timed out and any response will be ignored", request_handle);
         let _ = self.inflight_requests.remove(&(request_handle, false));
         let _ = self.inflight_requests.remove(&(request_handle, true));
@@ -86,7 +86,7 @@ impl MessageQueue {
     }
 
     /// Called by the session to take the identified response if one exists, otherwise None
-    pub(crate) fn take_response(&mut self, request_handle: UInt32) -> Option<SupportedMessage> {
+    pub(crate) fn take_response(&mut self, request_handle: u32) -> Option<SupportedMessage> {
         if let Some(response) = self.responses.remove(&request_handle) {
             Some(response.0)
         } else {

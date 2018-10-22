@@ -12,7 +12,7 @@ use string::UAString;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ServerOnNetwork {
-    pub record_id: UInt32,
+    pub record_id: u32,
     pub server_name: UAString,
     pub discovery_url: UAString,
     pub server_capabilities: Option<Vec<UAString>>,
@@ -46,7 +46,7 @@ impl BinaryEncoder<ServerOnNetwork> for ServerOnNetwork {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let record_id = UInt32::decode(stream, decoding_limits)?;
+        let record_id = u32::decode(stream, decoding_limits)?;
         let server_name = UAString::decode(stream, decoding_limits)?;
         let discovery_url = UAString::decode(stream, decoding_limits)?;
         let server_capabilities: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;

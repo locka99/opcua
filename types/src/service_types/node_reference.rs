@@ -14,7 +14,7 @@ use node_id::NodeId;
 pub struct NodeReference {
     pub node_id: NodeId,
     pub reference_type_id: NodeId,
-    pub is_forward: Boolean,
+    pub is_forward: bool,
     pub referenced_node_ids: Option<Vec<NodeId>>,
 }
 
@@ -48,7 +48,7 @@ impl BinaryEncoder<NodeReference> for NodeReference {
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let node_id = NodeId::decode(stream, decoding_limits)?;
         let reference_type_id = NodeId::decode(stream, decoding_limits)?;
-        let is_forward = Boolean::decode(stream, decoding_limits)?;
+        let is_forward = bool::decode(stream, decoding_limits)?;
         let referenced_node_ids: Option<Vec<NodeId>> = read_array(stream, decoding_limits)?;
         Ok(NodeReference {
             node_id,

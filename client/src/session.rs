@@ -110,7 +110,7 @@ impl Drop for Session {
 
 #[derive(Clone, Copy, PartialEq)]
 enum SubscriptionTimerCommand {
-    CreateTimer(UInt32),
+    CreateTimer(u32),
     Quit,
 }
 
@@ -615,16 +615,16 @@ impl Session {
 
     /// Sends a CreateSubscriptionRequest request to the server. The `publishing_interval` is
     /// in milliseconds.
-    pub fn create_subscription<CB>(&mut self, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte, publishing_enabled: Boolean, callback: CB)
-                                   -> Result<UInt32, StatusCode>
+    pub fn create_subscription<CB>(&mut self, publishing_interval: f64, lifetime_count: u32, max_keep_alive_count: u32, max_notifications_per_publish: u32, priority: u8, publishing_enabled: bool, callback: CB)
+                                   -> Result<u32, StatusCode>
         where CB: OnDataChange + Send + Sync + 'static {
         self.create_subscription_inner(publishing_interval, lifetime_count, max_keep_alive_count, max_notifications_per_publish, priority, publishing_enabled, Arc::new(Mutex::new(callback)))
     }
 
     /// This is the internal handler for create subscription that receives the callback wrapped up and reference counted.
-    fn create_subscription_inner(&mut self, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte, publishing_enabled: Boolean,
+    fn create_subscription_inner(&mut self, publishing_interval: f64, lifetime_count: u32, max_keep_alive_count: u32, max_notifications_per_publish: u32, priority: u8, publishing_enabled: bool,
                                  callback: Arc<Mutex<dyn OnDataChange + Send + Sync + 'static>>)
-                                 -> Result<UInt32, StatusCode>
+                                 -> Result<u32, StatusCode>
     {
         let request = CreateSubscriptionRequest {
             request_header: self.make_request_header(),
@@ -666,7 +666,7 @@ impl Session {
     }
 
     // modify subscription
-    pub fn modify_subscription(&mut self, subscription_id: UInt32, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte) -> Result<(), StatusCode> {
+    pub fn modify_subscription(&mut self, subscription_id: u32, publishing_interval: f64, lifetime_count: u32, max_keep_alive_count: u32, max_notifications_per_publish: u32, priority: u8) -> Result<(), StatusCode> {
         if subscription_id == 0 {
             error!("modify_subscription, subscription id must be non-zero, or the subscription is considered invalid");
             Err(StatusCode::BadInvalidArgument)
@@ -703,7 +703,7 @@ impl Session {
     }
 
     /// Removes a subscription using its subscription id
-    pub fn delete_subscription(&mut self, subscription_id: UInt32) -> Result<StatusCode, StatusCode> {
+    pub fn delete_subscription(&mut self, subscription_id: u32) -> Result<StatusCode, StatusCode> {
         if subscription_id == 0 {
             error!("delete_subscription, subscription id 0 is invalid");
             Err(StatusCode::BadInvalidArgument)
@@ -765,7 +765,7 @@ impl Session {
     }
 
     /// Sets the publishing mode for one or more subscriptions
-    pub fn set_publishing_mode(&mut self, subscription_ids: &[UInt32], publishing_enabled: Boolean) -> Result<Vec<StatusCode>, StatusCode> {
+    pub fn set_publishing_mode(&mut self, subscription_ids: &[u32], publishing_enabled: bool) -> Result<Vec<StatusCode>, StatusCode> {
         debug!("set_publishing_mode, for subscriptions {:?}, publishing enabled {}", subscription_ids, publishing_enabled);
         if subscription_ids.is_empty() {
             // No subscriptions
@@ -795,7 +795,7 @@ impl Session {
     }
 
     /// Create monitored items request
-    pub fn create_monitored_items(&mut self, subscription_id: UInt32, items_to_create: &[MonitoredItemCreateRequest]) -> Result<Vec<MonitoredItemCreateResult>, StatusCode> {
+    pub fn create_monitored_items(&mut self, subscription_id: u32, items_to_create: &[MonitoredItemCreateRequest]) -> Result<Vec<MonitoredItemCreateResult>, StatusCode> {
         debug!("create_monitored_items, for subscription {}, {} items", subscription_id, items_to_create.len());
         if subscription_id == 0 {
             error!("create_monitored_items, subscription id 0 is invalid");
@@ -858,7 +858,7 @@ impl Session {
     }
 
     /// Modifies monitored items in the subscription
-    pub fn modify_monitored_items(&mut self, subscription_id: UInt32, items_to_modify: &[MonitoredItemModifyRequest]) -> Result<Vec<MonitoredItemModifyResult>, StatusCode> {
+    pub fn modify_monitored_items(&mut self, subscription_id: u32, items_to_modify: &[MonitoredItemModifyRequest]) -> Result<Vec<MonitoredItemModifyResult>, StatusCode> {
         debug!("modify_monitored_items, for subscription {}, {} items", subscription_id, items_to_modify.len());
         if subscription_id == 0 {
             error!("modify_monitored_items, subscription id 0 is invalid");
@@ -872,7 +872,7 @@ impl Session {
         } else {
             let monitored_item_ids = items_to_modify.iter()
                 .map(|i| i.monitored_item_id)
-                .collect::<Vec<UInt32>>();
+                .collect::<Vec<u32>>();
             let request = ModifyMonitoredItemsRequest {
                 request_header: self.make_request_header(),
                 subscription_id,
@@ -909,7 +909,7 @@ impl Session {
     }
 
     /// Deletes monitored items from the subscription
-    pub fn delete_monitored_items(&mut self, subscription_id: UInt32, items_to_delete: &[UInt32]) -> Result<Vec<StatusCode>, StatusCode> {
+    pub fn delete_monitored_items(&mut self, subscription_id: u32, items_to_delete: &[u32]) -> Result<Vec<StatusCode>, StatusCode> {
         debug!("delete_monitored_items, subscription {} for {} items", subscription_id, items_to_delete.len());
         if subscription_id == 0 {
             error!("delete_monitored_items, subscription id 0 is invalid");
@@ -969,7 +969,7 @@ impl Session {
     }
 
     /// Calls GetMonitoredItems via call_method(), putting a sane interface on the input / output
-    pub fn call_get_monitored_items(&mut self, subscription_id: UInt32) -> Result<(Vec<UInt32>, Vec<UInt32>), StatusCode> {
+    pub fn call_get_monitored_items(&mut self, subscription_id: u32) -> Result<(Vec<u32>, Vec<u32>), StatusCode> {
         let args = Some(vec![Variant::from(subscription_id)]);
         let object_id: NodeId = ObjectId::Server.into();
         let method_id: NodeId = MethodId::Server_GetMonitoredItems.into();
@@ -991,7 +991,7 @@ impl Session {
     }
 
     // Test if the subscription by id exists
-    fn subscription_exists(&self, subscription_id: UInt32) -> bool {
+    fn subscription_exists(&self, subscription_id: u32) -> bool {
         let subscription_state = trace_read_lock_unwrap!(self.subscription_state);
         subscription_state.subscription_exists(subscription_id)
     }
@@ -1003,7 +1003,7 @@ impl Session {
     }
 
     /// Asynchronously sends a request. The return value is the request handle of the request
-    fn async_send_request<T>(&mut self, request: T, is_async: bool) -> Result<UInt32, StatusCode> where T: Into<SupportedMessage> {
+    fn async_send_request<T>(&mut self, request: T, is_async: bool) -> Result<u32, StatusCode> where T: Into<SupportedMessage> {
         let mut session_state = trace_write_lock_unwrap!(self.session_state);
         session_state.async_send_request(request, is_async)
     }
@@ -1127,7 +1127,7 @@ impl Session {
 
     /// Makes a future that publishes requests for the subscription. This code doesn't return "impl Future"
     /// due to recursive behaviour in the take_while, so instead it returns a boxed future.
-    fn make_subscription_timer(subscription_id: UInt32, session_state: Arc<RwLock<SessionState>>, subscription_state: Arc<RwLock<SubscriptionState>>) -> Box<dyn Future<Item=(), Error=()> + Send> {
+    fn make_subscription_timer(subscription_id: u32, session_state: Arc<RwLock<SessionState>>, subscription_state: Arc<RwLock<SubscriptionState>>) -> Box<dyn Future<Item=(), Error=()> + Send> {
         let publishing_interval = {
             let ss = trace_read_lock_unwrap!(subscription_state);
             if let Some(subscription) = ss.get(subscription_id) {

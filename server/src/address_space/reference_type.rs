@@ -9,7 +9,7 @@ pub struct ReferenceType {
 node_impl!(ReferenceType);
 
 impl ReferenceType {
-    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, inverse_name: Option<LocalizedText>, symmetric: Boolean, is_abstract: Boolean) -> ReferenceType {
+    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, inverse_name: Option<LocalizedText>, symmetric: bool, is_abstract: bool) -> ReferenceType {
         // Mandatory
         let mut attributes = vec![
             (AttributeId::Symmetric, Variant::Boolean(symmetric)),
@@ -24,11 +24,11 @@ impl ReferenceType {
         }
     }
 
-    pub fn symmetric(&self) -> Boolean {
+    pub fn symmetric(&self) -> bool {
         find_attribute_value_mandatory!(&self.base, Symmetric, Boolean)
     }
 
-    pub fn is_abstract(&self) -> Boolean {
+    pub fn is_abstract(&self) -> bool {
         find_attribute_value_mandatory!(&self.base, IsAbstract, Boolean)
     }
 

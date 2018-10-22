@@ -16,7 +16,7 @@ use date_time::DateTime;
 pub struct ViewDescription {
     pub view_id: NodeId,
     pub timestamp: DateTime,
-    pub view_version: UInt32,
+    pub view_version: u32,
 }
 
 impl MessageInfo for ViewDescription {
@@ -47,7 +47,7 @@ impl BinaryEncoder<ViewDescription> for ViewDescription {
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let view_id = NodeId::decode(stream, decoding_limits)?;
         let timestamp = DateTime::decode(stream, decoding_limits)?;
-        let view_version = UInt32::decode(stream, decoding_limits)?;
+        let view_version = u32::decode(stream, decoding_limits)?;
         Ok(ViewDescription {
             view_id,
             timestamp,

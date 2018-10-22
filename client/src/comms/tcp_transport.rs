@@ -57,7 +57,7 @@ struct ReadState {
     pub secure_channel: Arc<RwLock<SecureChannel>>,
     pub message_queue: Arc<RwLock<MessageQueue>>,
     /// Last decoded sequence number
-    last_received_sequence_number: UInt32,
+    last_received_sequence_number: u32,
 }
 
 impl Drop for ReadState {
@@ -122,7 +122,7 @@ impl Drop for WriteState {
 impl WriteState {
     /// Sends the supplied request asynchronously. The returned value is the request id for the
     /// chunked message. Higher levels may or may not find it useful.
-    fn send_request(&mut self, request: SupportedMessage) -> Result<UInt32, StatusCode> {
+    fn send_request(&mut self, request: SupportedMessage) -> Result<u32, StatusCode> {
         match connection_state!(self.state) {
             ConnectionState::Processing => {
                 let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);

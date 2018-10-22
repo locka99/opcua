@@ -14,7 +14,7 @@ use service_types::impls::RequestHeader;
 #[derive(Debug, Clone, PartialEq)]
 pub struct CancelRequest {
     pub request_header: RequestHeader,
-    pub request_handle: UInt32,
+    pub request_handle: u32,
 }
 
 impl MessageInfo for CancelRequest {
@@ -42,7 +42,7 @@ impl BinaryEncoder<CancelRequest> for CancelRequest {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let request_handle = UInt32::decode(stream, decoding_limits)?;
+        let request_handle = u32::decode(stream, decoding_limits)?;
         Ok(CancelRequest {
             request_header,
             request_handle,

@@ -11,12 +11,12 @@ use basic_types::LocalizedText;
 /// The attributes for an object type node.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ObjectTypeAttributes {
-    pub specified_attributes: UInt32,
+    pub specified_attributes: u32,
     pub display_name: LocalizedText,
     pub description: LocalizedText,
-    pub write_mask: UInt32,
-    pub user_write_mask: UInt32,
-    pub is_abstract: Boolean,
+    pub write_mask: u32,
+    pub user_write_mask: u32,
+    pub is_abstract: bool,
 }
 
 impl BinaryEncoder<ObjectTypeAttributes> for ObjectTypeAttributes {
@@ -45,12 +45,12 @@ impl BinaryEncoder<ObjectTypeAttributes> for ObjectTypeAttributes {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let specified_attributes = UInt32::decode(stream, decoding_limits)?;
+        let specified_attributes = u32::decode(stream, decoding_limits)?;
         let display_name = LocalizedText::decode(stream, decoding_limits)?;
         let description = LocalizedText::decode(stream, decoding_limits)?;
-        let write_mask = UInt32::decode(stream, decoding_limits)?;
-        let user_write_mask = UInt32::decode(stream, decoding_limits)?;
-        let is_abstract = Boolean::decode(stream, decoding_limits)?;
+        let write_mask = u32::decode(stream, decoding_limits)?;
+        let user_write_mask = u32::decode(stream, decoding_limits)?;
+        let is_abstract = bool::decode(stream, decoding_limits)?;
         Ok(ObjectTypeAttributes {
             specified_attributes,
             display_name,

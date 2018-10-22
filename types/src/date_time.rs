@@ -6,14 +6,13 @@ use chrono::{self, Utc, TimeZone, Datelike, Timelike};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use encoding::*;
-use basic_types::*;
 
 const NANOS_PER_SECOND: i64 = 1_000_000_000;
 const NANOS_PER_TICK: i64 = 100;
 const TICKS_PER_SECOND: i64 = NANOS_PER_SECOND / NANOS_PER_TICK;
 
-const MIN_YEAR: UInt16 = 1601;
-const MAX_YEAR: UInt16 = 9999;
+const MIN_YEAR: u16 = 1601;
+const MAX_YEAR: u16 = 9999;
 
 type UtcDateTime = chrono::DateTime<Utc>;
 
@@ -69,16 +68,16 @@ impl Default for DateTime {
 }
 
 // From ymd_hms
-impl From<(UInt16, UInt16, UInt16, UInt16, UInt16, UInt16)> for DateTime {
-    fn from(dt: (UInt16, UInt16, UInt16, UInt16, UInt16, UInt16)) -> Self {
+impl From<(u16, u16, u16, u16, u16, u16)> for DateTime {
+    fn from(dt: (u16, u16, u16, u16, u16, u16)) -> Self {
         let (year, month, day, hour, minute, second) = dt;
         DateTime::from((year, month, day, hour, minute, second, 0))
     }
 }
 
 // From ymd_hms
-impl From<(UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt32)> for DateTime {
-    fn from(dt: (UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt32)) -> Self {
+impl From<(u16, u16, u16, u16, u16, u16, u32)> for DateTime {
+    fn from(dt: (u16, u16, u16, u16, u16, u16, u32)) -> Self {
         let (year, month, day, hour, minute, second, nanos) = dt;
         if month < 1 || month > 12 {
             panic!("Invalid month");
@@ -120,8 +119,8 @@ impl From<UtcDateTime> for DateTime {
     }
 }
 
-impl From<Int64> for DateTime {
-    fn from(value: Int64) -> Self {
+impl From<i64> for DateTime {
+    fn from(value: i64) -> Self {
         if value == i64::max_value() {
             // Max signifies end times
             Self::endtimes()
@@ -134,8 +133,8 @@ impl From<Int64> for DateTime {
     }
 }
 
-impl Into<Int64> for DateTime {
-    fn into(self) -> Int64 {
+impl Into<i64> for DateTime {
+    fn into(self) -> i64 {
         self.checked_ticks()
     }
 }
@@ -168,29 +167,29 @@ impl DateTime {
     }
 
     /// Constructs from a year, month, day
-    pub fn ymd(year: UInt16, month: UInt16, day: UInt16) -> DateTime {
+    pub fn ymd(year: u16, month: u16, day: u16) -> DateTime {
         DateTime::ymd_hms(year, month, day, 0, 0, 0)
     }
 
     /// Constructs from a year, month, day, hour, minute, second
-    pub fn ymd_hms(year: UInt16,
-                   month: UInt16,
-                   day: UInt16,
-                   hour: UInt16,
-                   minute: UInt16,
-                   second: UInt16)
+    pub fn ymd_hms(year: u16,
+                   month: u16,
+                   day: u16,
+                   hour: u16,
+                   minute: u16,
+                   second: u16)
                    -> DateTime {
         DateTime::from((year, month, day, hour, minute, second))
     }
 
     /// Constructs from a year, month, day, hour, minute, second, nanosecond
-    pub fn ymd_hms_nano(year: UInt16,
-                        month: UInt16,
-                        day: UInt16,
-                        hour: UInt16,
-                        minute: UInt16,
-                        second: UInt16,
-                        nanos: UInt32) -> DateTime {
+    pub fn ymd_hms_nano(year: u16,
+                        month: u16,
+                        day: u16,
+                        hour: u16,
+                        minute: u16,
+                        second: u16,
+                        nanos: u32) -> DateTime {
         DateTime::from((year, month, day, hour, minute, second, nanos))
     }
 

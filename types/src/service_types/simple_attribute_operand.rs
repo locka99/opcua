@@ -14,7 +14,7 @@ use string::UAString;
 pub struct SimpleAttributeOperand {
     pub type_definition_id: NodeId,
     pub browse_path: Option<Vec<QualifiedName>>,
-    pub attribute_id: UInt32,
+    pub attribute_id: u32,
     pub index_range: UAString,
 }
 
@@ -42,7 +42,7 @@ impl BinaryEncoder<SimpleAttributeOperand> for SimpleAttributeOperand {
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let type_definition_id = NodeId::decode(stream, decoding_limits)?;
         let browse_path: Option<Vec<QualifiedName>> = read_array(stream, decoding_limits)?;
-        let attribute_id = UInt32::decode(stream, decoding_limits)?;
+        let attribute_id = u32::decode(stream, decoding_limits)?;
         let index_range = UAString::decode(stream, decoding_limits)?;
         Ok(SimpleAttributeOperand {
             type_definition_id,

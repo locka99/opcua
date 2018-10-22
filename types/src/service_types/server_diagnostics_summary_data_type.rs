@@ -11,18 +11,18 @@ use node_ids::ObjectId;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ServerDiagnosticsSummaryDataType {
-    pub server_view_count: UInt32,
-    pub current_session_count: UInt32,
-    pub cumulated_session_count: UInt32,
-    pub security_rejected_session_count: UInt32,
-    pub rejected_session_count: UInt32,
-    pub session_timeout_count: UInt32,
-    pub session_abort_count: UInt32,
-    pub current_subscription_count: UInt32,
-    pub cumulated_subscription_count: UInt32,
-    pub publishing_interval_count: UInt32,
-    pub security_rejected_requests_count: UInt32,
-    pub rejected_requests_count: UInt32,
+    pub server_view_count: u32,
+    pub current_session_count: u32,
+    pub cumulated_session_count: u32,
+    pub security_rejected_session_count: u32,
+    pub rejected_session_count: u32,
+    pub session_timeout_count: u32,
+    pub session_abort_count: u32,
+    pub current_subscription_count: u32,
+    pub cumulated_subscription_count: u32,
+    pub publishing_interval_count: u32,
+    pub security_rejected_requests_count: u32,
+    pub rejected_requests_count: u32,
 }
 
 impl MessageInfo for ServerDiagnosticsSummaryDataType {
@@ -69,18 +69,18 @@ impl BinaryEncoder<ServerDiagnosticsSummaryDataType> for ServerDiagnosticsSummar
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let server_view_count = UInt32::decode(stream, decoding_limits)?;
-        let current_session_count = UInt32::decode(stream, decoding_limits)?;
-        let cumulated_session_count = UInt32::decode(stream, decoding_limits)?;
-        let security_rejected_session_count = UInt32::decode(stream, decoding_limits)?;
-        let rejected_session_count = UInt32::decode(stream, decoding_limits)?;
-        let session_timeout_count = UInt32::decode(stream, decoding_limits)?;
-        let session_abort_count = UInt32::decode(stream, decoding_limits)?;
-        let current_subscription_count = UInt32::decode(stream, decoding_limits)?;
-        let cumulated_subscription_count = UInt32::decode(stream, decoding_limits)?;
-        let publishing_interval_count = UInt32::decode(stream, decoding_limits)?;
-        let security_rejected_requests_count = UInt32::decode(stream, decoding_limits)?;
-        let rejected_requests_count = UInt32::decode(stream, decoding_limits)?;
+        let server_view_count = u32::decode(stream, decoding_limits)?;
+        let current_session_count = u32::decode(stream, decoding_limits)?;
+        let cumulated_session_count = u32::decode(stream, decoding_limits)?;
+        let security_rejected_session_count = u32::decode(stream, decoding_limits)?;
+        let rejected_session_count = u32::decode(stream, decoding_limits)?;
+        let session_timeout_count = u32::decode(stream, decoding_limits)?;
+        let session_abort_count = u32::decode(stream, decoding_limits)?;
+        let current_subscription_count = u32::decode(stream, decoding_limits)?;
+        let cumulated_subscription_count = u32::decode(stream, decoding_limits)?;
+        let publishing_interval_count = u32::decode(stream, decoding_limits)?;
+        let security_rejected_requests_count = u32::decode(stream, decoding_limits)?;
+        let rejected_requests_count = u32::decode(stream, decoding_limits)?;
         Ok(ServerDiagnosticsSummaryDataType {
             server_view_count,
             current_session_count,

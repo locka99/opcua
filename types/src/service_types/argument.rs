@@ -17,8 +17,8 @@ use basic_types::LocalizedText;
 pub struct Argument {
     pub name: UAString,
     pub data_type: NodeId,
-    pub value_rank: Int32,
-    pub array_dimensions: Option<Vec<UInt32>>,
+    pub value_rank: i32,
+    pub array_dimensions: Option<Vec<u32>>,
     pub description: LocalizedText,
 }
 
@@ -54,8 +54,8 @@ impl BinaryEncoder<Argument> for Argument {
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let name = UAString::decode(stream, decoding_limits)?;
         let data_type = NodeId::decode(stream, decoding_limits)?;
-        let value_rank = Int32::decode(stream, decoding_limits)?;
-        let array_dimensions: Option<Vec<UInt32>> = read_array(stream, decoding_limits)?;
+        let value_rank = i32::decode(stream, decoding_limits)?;
+        let array_dimensions: Option<Vec<u32>> = read_array(stream, decoding_limits)?;
         let description = LocalizedText::decode(stream, decoding_limits)?;
         Ok(Argument {
             name,

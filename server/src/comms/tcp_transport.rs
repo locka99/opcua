@@ -77,9 +77,9 @@ pub struct TcpTransport {
     /// Message handler
     message_handler: MessageHandler,
     /// Client protocol version set during HELLO
-    client_protocol_version: UInt32,
+    client_protocol_version: u32,
     /// Last decoded sequence number
-    last_received_sequence_number: UInt32,
+    last_received_sequence_number: u32,
 }
 
 
@@ -91,7 +91,7 @@ struct ReadState {
     /// Bytes read in buffer
     pub bytes_read: usize,
     /// Sender of responses
-    pub sender: Arc<RwLock<UnboundedSender<(UInt32, SupportedMessage)>>>,
+    pub sender: Arc<RwLock<UnboundedSender<(u32, SupportedMessage)>>>,
 }
 
 struct WriteState {
@@ -207,7 +207,7 @@ impl TcpTransport {
         let (send_buffer_size, receive_buffer_size) = (SEND_BUFFER_SIZE, RECEIVE_BUFFER_SIZE);
 
         // The reader task will send responses, the writer task will receive responses
-        let (tx, rx) = unbounded::<(UInt32, SupportedMessage)>();
+        let (tx, rx) = unbounded::<(u32, SupportedMessage)>();
         let send_buffer = Arc::new(Mutex::new(MessageWriter::new(send_buffer_size)));
         let (reader, writer) = socket.split();
         let secure_channel = {
@@ -248,7 +248,7 @@ impl TcpTransport {
         tokio::spawn(finished_monitor_task);
     }
 
-    fn spawn_writing_loop_task(writer: WriteHalf<TcpStream>, receiver: UnboundedReceiver<(UInt32, SupportedMessage)>, secure_channel: Arc<RwLock<SecureChannel>>, transport: Arc<RwLock<TcpTransport>>, send_buffer: Arc<Mutex<MessageWriter>>) {
+    fn spawn_writing_loop_task(writer: WriteHalf<TcpStream>, receiver: UnboundedReceiver<(u32, SupportedMessage)>, secure_channel: Arc<RwLock<SecureChannel>>, transport: Arc<RwLock<TcpTransport>>, send_buffer: Arc<Mutex<MessageWriter>>) {
         let connection = Arc::new(Mutex::new(WriteState {
             transport: transport.clone(),
             writer: Some(writer),
@@ -316,7 +316,7 @@ impl TcpTransport {
         tokio::spawn(looping_task);
     }
 
-    fn spawn_reading_loop_task(reader: ReadHalf<TcpStream>, finished_flag: Arc<RwLock<bool>>, sender: UnboundedSender<(UInt32, SupportedMessage)>, transport: Arc<RwLock<TcpTransport>>, receive_buffer_size: usize) {
+    fn spawn_reading_loop_task(reader: ReadHalf<TcpStream>, finished_flag: Arc<RwLock<bool>>, sender: UnboundedSender<(u32, SupportedMessage)>, transport: Arc<RwLock<TcpTransport>>, receive_buffer_size: usize) {
         // Connection state is maintained for looping through each task
         let connection = Arc::new(RwLock::new(ReadState {
             transport: transport.clone(),
@@ -479,7 +479,7 @@ impl TcpTransport {
     }
 
     /// Start the subscription timer to service subscriptions
-    fn spawn_subscriptions_task(transport: Arc<RwLock<TcpTransport>>, sender: UnboundedSender<(UInt32, SupportedMessage)>) {
+    fn spawn_subscriptions_task(transport: Arc<RwLock<TcpTransport>>, sender: UnboundedSender<(u32, SupportedMessage)>) {
         /// Subscription events are passed sent from the monitor task to the receiver
         #[derive(Clone, Debug, PartialEq)]
         enum SubscriptionEvent {
@@ -594,7 +594,7 @@ impl TcpTransport {
         server_state.is_abort()
     }
 
-    fn process_hello(&mut self, hello: HelloMessage, sender: &mut UnboundedSender<(UInt32, SupportedMessage)>) -> std::result::Result<(), StatusCode> {
+    fn process_hello(&mut self, hello: HelloMessage, sender: &mut UnboundedSender<(u32, SupportedMessage)>) -> std::result::Result<(), StatusCode> {
         let server_protocol_version = 0;
 
         trace!("Server received HELLO {:?}", hello);
@@ -617,12 +617,12 @@ impl TcpTransport {
         let mut acknowledge = AcknowledgeMessage {
             message_header: MessageHeader::new(MessageType::Acknowledge),
             protocol_version: server_protocol_version,
-            receive_buffer_size: RECEIVE_BUFFER_SIZE as UInt32,
-            send_buffer_size: SEND_BUFFER_SIZE as UInt32,
-            max_message_size: MAX_MESSAGE_SIZE as UInt32,
-            max_chunk_count: MAX_CHUNK_COUNT as UInt32,
+            receive_buffer_size: RECEIVE_BUFFER_SIZE as u32,
+            send_buffer_size: SEND_BUFFER_SIZE as u32,
+            max_message_size: MAX_MESSAGE_SIZE as u32,
+            max_chunk_count: MAX_CHUNK_COUNT as u32,
         };
-        acknowledge.message_header.message_size = acknowledge.byte_len() as UInt32;
+        acknowledge.message_header.message_size = acknowledge.byte_len() as u32;
 
         // New state
         self.transport_state = TransportState::ProcessMessages;
@@ -641,7 +641,7 @@ impl TcpTransport {
         Chunker::decode(&chunks, &secure_channel, None)
     }
 
-    fn process_chunk(&mut self, chunk: MessageChunk, sender: &mut UnboundedSender<(UInt32, SupportedMessage)>) -> std::result::Result<(), StatusCode> {
+    fn process_chunk(&mut self, chunk: MessageChunk, sender: &mut UnboundedSender<(u32, SupportedMessage)>) -> std::result::Result<(), StatusCode> {
         let decoding_limits = {
             let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
             secure_channel.decoding_limits()

@@ -384,7 +384,7 @@ impl SecurityPolicy {
     /// keys derived from the Nonces exchanged in the OpenSecureChannel call. These keys are derived by passing the Nonces to a pseudo-random function which produces a sequence of bytes from a set of inputs. A pseudo-random function is represented by the following function declaration:
     ///
     /// ```c++
-    /// Byte[] PRF( Byte[] secret,  Byte[] seed,  Int32 length,  Int32 offset)
+    /// Byte[] PRF( Byte[] secret,  Byte[] seed,  i32 length,  i32 offset)
     /// ```
     ///
     /// Where length is the number of bytes to return and offset is a number of bytes from the beginning of the sequence.

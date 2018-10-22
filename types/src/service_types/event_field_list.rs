@@ -12,7 +12,7 @@ use variant::Variant;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct EventFieldList {
-    pub client_handle: UInt32,
+    pub client_handle: u32,
     pub event_fields: Option<Vec<Variant>>,
 }
 
@@ -40,7 +40,7 @@ impl BinaryEncoder<EventFieldList> for EventFieldList {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let client_handle = UInt32::decode(stream, decoding_limits)?;
+        let client_handle = u32::decode(stream, decoding_limits)?;
         let event_fields: Option<Vec<Variant>> = read_array(stream, decoding_limits)?;
         Ok(EventFieldList {
             client_handle,

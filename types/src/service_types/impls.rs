@@ -107,7 +107,7 @@ pub struct RequestHeader {
     /// PublishRequest before processing a PublishResponse. If the request timed out, a
     /// BadTimeout Service result is sent and another PublishRequest is used.  The
     /// value of 0 indicates no timeout.
-    pub timeout_hint: UInt32,
+    pub timeout_hint: u32,
     /// Reserved for future use. Applications that do not understand the header should ignore it.
     pub additional_header: ExtensionObject,
 }
@@ -141,9 +141,9 @@ impl BinaryEncoder<RequestHeader> for RequestHeader {
         let authentication_token = NodeId::decode(stream, decoding_limits)?;
         let timestamp = UtcTime::decode(stream, decoding_limits)?;
         let request_handle = IntegerId::decode(stream, decoding_limits)?;
-        let return_diagnostics = DiagnosticBits::from_bits_truncate(UInt32::decode(stream, decoding_limits)?);
+        let return_diagnostics = DiagnosticBits::from_bits_truncate(u32::decode(stream, decoding_limits)?);
         let audit_entry_id = UAString::decode(stream, decoding_limits)?;
-        let timeout_hint = UInt32::decode(stream, decoding_limits)?;
+        let timeout_hint = u32::decode(stream, decoding_limits)?;
         let additional_header = ExtensionObject::decode(stream, decoding_limits)?;
         Ok(RequestHeader {
             authentication_token,
@@ -446,15 +446,15 @@ impl From<NodeId> for ReadValueId {
     fn from(node_id: NodeId) -> Self {
         ReadValueId {
             node_id,
-            attribute_id: AttributeId::Value as UInt32,
+            attribute_id: AttributeId::Value as u32,
             index_range: UAString::null(),
             data_encoding: QualifiedName::null(),
         }
     }
 }
 
-impl<'a> From<(UInt16, &'a str)> for ReadValueId {
-    fn from(v: (UInt16, &'a str)) -> Self {
+impl<'a> From<(u16, &'a str)> for ReadValueId {
+    fn from(v: (u16, &'a str)) -> Self {
         Self::from(NodeId::from(v))
     }
 }

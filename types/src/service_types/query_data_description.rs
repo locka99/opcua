@@ -14,7 +14,7 @@ use service_types::RelativePath;
 #[derive(Debug, Clone, PartialEq)]
 pub struct QueryDataDescription {
     pub relative_path: RelativePath,
-    pub attribute_id: UInt32,
+    pub attribute_id: u32,
     pub index_range: UAString,
 }
 
@@ -45,7 +45,7 @@ impl BinaryEncoder<QueryDataDescription> for QueryDataDescription {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let relative_path = RelativePath::decode(stream, decoding_limits)?;
-        let attribute_id = UInt32::decode(stream, decoding_limits)?;
+        let attribute_id = u32::decode(stream, decoding_limits)?;
         let index_range = UAString::decode(stream, decoding_limits)?;
         Ok(QueryDataDescription {
             relative_path,

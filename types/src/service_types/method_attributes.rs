@@ -11,13 +11,13 @@ use basic_types::LocalizedText;
 /// The attributes for a method node.
 #[derive(Debug, Clone, PartialEq)]
 pub struct MethodAttributes {
-    pub specified_attributes: UInt32,
+    pub specified_attributes: u32,
     pub display_name: LocalizedText,
     pub description: LocalizedText,
-    pub write_mask: UInt32,
-    pub user_write_mask: UInt32,
-    pub executable: Boolean,
-    pub user_executable: Boolean,
+    pub write_mask: u32,
+    pub user_write_mask: u32,
+    pub executable: bool,
+    pub user_executable: bool,
 }
 
 impl BinaryEncoder<MethodAttributes> for MethodAttributes {
@@ -48,13 +48,13 @@ impl BinaryEncoder<MethodAttributes> for MethodAttributes {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let specified_attributes = UInt32::decode(stream, decoding_limits)?;
+        let specified_attributes = u32::decode(stream, decoding_limits)?;
         let display_name = LocalizedText::decode(stream, decoding_limits)?;
         let description = LocalizedText::decode(stream, decoding_limits)?;
-        let write_mask = UInt32::decode(stream, decoding_limits)?;
-        let user_write_mask = UInt32::decode(stream, decoding_limits)?;
-        let executable = Boolean::decode(stream, decoding_limits)?;
-        let user_executable = Boolean::decode(stream, decoding_limits)?;
+        let write_mask = u32::decode(stream, decoding_limits)?;
+        let user_write_mask = u32::decode(stream, decoding_limits)?;
+        let executable = bool::decode(stream, decoding_limits)?;
+        let user_executable = bool::decode(stream, decoding_limits)?;
         Ok(MethodAttributes {
             specified_attributes,
             display_name,

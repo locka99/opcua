@@ -15,7 +15,7 @@ use byte_string::ByteString;
 #[derive(Debug, Clone, PartialEq)]
 pub struct BrowseNextRequest {
     pub request_header: RequestHeader,
-    pub release_continuation_points: Boolean,
+    pub release_continuation_points: bool,
     pub continuation_points: Option<Vec<ByteString>>,
 }
 
@@ -46,7 +46,7 @@ impl BinaryEncoder<BrowseNextRequest> for BrowseNextRequest {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let release_continuation_points = Boolean::decode(stream, decoding_limits)?;
+        let release_continuation_points = bool::decode(stream, decoding_limits)?;
         let continuation_points: Option<Vec<ByteString>> = read_array(stream, decoding_limits)?;
         Ok(BrowseNextRequest {
             request_header,

@@ -40,17 +40,17 @@ pub struct ServerState {
     pub server_pkey: Option<PrivateKey>,
     /// The next subscription id - subscriptions are shared across the whole server. Initial value
     /// is a random u32.
-    pub last_subscription_id: UInt32,
+    pub last_subscription_id: u32,
     /// Maximum number of subscriptions per session, 0 means no limit (danger)
     pub max_subscriptions: usize,
     /// Minimum publishing interval
     pub min_publishing_interval: Duration,
     /// Default keep alive count
-    pub default_keep_alive_count: UInt32,
+    pub default_keep_alive_count: u32,
     /// Maxmimum keep alive count
-    pub max_keep_alive_count: UInt32,
+    pub max_keep_alive_count: u32,
     /// Maximum lifetime count (3 times as large as max keep alive)
-    pub max_lifetime_count: UInt32,
+    pub max_lifetime_count: u32,
     //// Current state
     pub state: ServerStateType,
     /// Sets the abort flag that terminates the associated server
@@ -220,7 +220,7 @@ impl ServerState {
         }
     }
 
-    pub fn create_subscription_id(&mut self) -> UInt32 {
+    pub fn create_subscription_id(&mut self) -> u32 {
         self.last_subscription_id += 1;
         self.last_subscription_id
     }

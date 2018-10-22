@@ -11,8 +11,8 @@ use node_ids::ObjectId;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TimeZoneDataType {
-    pub offset: Int16,
-    pub daylight_saving_in_offset: Boolean,
+    pub offset: i16,
+    pub daylight_saving_in_offset: bool,
 }
 
 impl MessageInfo for TimeZoneDataType {
@@ -39,8 +39,8 @@ impl BinaryEncoder<TimeZoneDataType> for TimeZoneDataType {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let offset = Int16::decode(stream, decoding_limits)?;
-        let daylight_saving_in_offset = Boolean::decode(stream, decoding_limits)?;
+        let offset = i16::decode(stream, decoding_limits)?;
+        let daylight_saving_in_offset = bool::decode(stream, decoding_limits)?;
         Ok(TimeZoneDataType {
             offset,
             daylight_saving_in_offset,

@@ -13,8 +13,8 @@ use service_types::impls::RequestHeader;
 #[derive(Debug, Clone, PartialEq)]
 pub struct TransferSubscriptionsRequest {
     pub request_header: RequestHeader,
-    pub subscription_ids: Option<Vec<UInt32>>,
-    pub send_initial_values: Boolean,
+    pub subscription_ids: Option<Vec<u32>>,
+    pub send_initial_values: bool,
 }
 
 impl MessageInfo for TransferSubscriptionsRequest {
@@ -44,8 +44,8 @@ impl BinaryEncoder<TransferSubscriptionsRequest> for TransferSubscriptionsReques
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let subscription_ids: Option<Vec<UInt32>> = read_array(stream, decoding_limits)?;
-        let send_initial_values = Boolean::decode(stream, decoding_limits)?;
+        let subscription_ids: Option<Vec<u32>> = read_array(stream, decoding_limits)?;
+        let send_initial_values = bool::decode(stream, decoding_limits)?;
         Ok(TransferSubscriptionsRequest {
             request_header,
             subscription_ids,

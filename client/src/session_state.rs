@@ -24,13 +24,13 @@ const SYNC_POLLING_PERIOD: u64 = 50;
 
 /// A simple handle factory for incrementing sequences of numbers.
 struct Handle {
-    next: UInt32,
-    first: UInt32,
+    next: u32,
+    first: u32,
 }
 
 impl Handle {
     /// Creates a new handle factory, that starts with the supplied number
-    pub fn new(first: UInt32) -> Handle {
+    pub fn new(first: u32) -> Handle {
         Handle {
             next: first,
             first,
@@ -39,7 +39,7 @@ impl Handle {
 
     /// Returns the next handle to be issued, internally incrementing each time so the handle
     /// is always different until it wraps back to the start.
-    pub fn next(&mut self) -> UInt32 {
+    pub fn next(&mut self) -> u32 {
         let next = self.next;
         // Increment next
         if self.next == u32::MAX {
@@ -192,7 +192,7 @@ impl SessionState {
 
     /// Sends a publish request containing acknowledgements for previous notifications.
     /// TODO this function needs to be refactored as an asynchronous operation.
-    pub fn async_publish(&mut self, subscription_acknowledgements: &[SubscriptionAcknowledgement]) -> Result<UInt32, StatusCode> {
+    pub fn async_publish(&mut self, subscription_acknowledgements: &[SubscriptionAcknowledgement]) -> Result<u32, StatusCode> {
         debug!("async_publish with {} subscription acknowledgements", subscription_acknowledgements.len());
         let request = PublishRequest {
             request_header: self.make_request_header(),
@@ -213,7 +213,7 @@ impl SessionState {
     }
 
     /// Asynchronously sends a request. The return value is the request handle of the request
-    pub(crate) fn async_send_request<T>(&mut self, request: T, is_async: bool) -> Result<UInt32, StatusCode> where T: Into<SupportedMessage> {
+    pub(crate) fn async_send_request<T>(&mut self, request: T, is_async: bool) -> Result<u32, StatusCode> where T: Into<SupportedMessage> {
         let request = request.into();
         match request {
             SupportedMessage::OpenSecureChannelRequest(_) | SupportedMessage::CloseSecureChannelRequest(_) => {}
@@ -236,7 +236,7 @@ impl SessionState {
     /// is performed and in fact the function is expected to receive no messages except asynchronous
     /// and housekeeping events from the server. A 0 handle will cause the wait to process at most
     /// one async message before returning.
-    fn wait_for_sync_response(&mut self, request_handle: UInt32, request_timeout: UInt32) -> Result<SupportedMessage, StatusCode> {
+    fn wait_for_sync_response(&mut self, request_handle: u32, request_timeout: u32) -> Result<SupportedMessage, StatusCode> {
         if request_handle == 0 {
             panic!("Request handle must be non zero");
         }
@@ -262,12 +262,12 @@ impl SessionState {
         }
     }
 
-    fn take_response(&self, request_handle: UInt32) -> Option<SupportedMessage> {
+    fn take_response(&self, request_handle: u32) -> Option<SupportedMessage> {
         let mut message_queue = trace_write_lock_unwrap!(self.message_queue);
         message_queue.take_response(request_handle)
     }
 
-    fn request_has_timed_out(&self, request_handle: UInt32) {
+    fn request_has_timed_out(&self, request_handle: u32) {
         let mut message_queue = trace_write_lock_unwrap!(self.message_queue);
         message_queue.request_has_timed_out(request_handle)
     }
@@ -293,7 +293,7 @@ impl SessionState {
     pub(crate) fn issue_or_renew_secure_channel(&mut self, request_type: SecurityTokenRequestType) -> Result<(), StatusCode> {
         trace!("issue_or_renew_secure_channel({:?})", request_type);
 
-        const REQUESTED_LIFETIME: UInt32 = 60000; // TODO
+        const REQUESTED_LIFETIME: u32 = 60000; // TODO
 
         let (security_mode, security_policy, client_nonce) = {
             let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
@@ -334,7 +334,7 @@ impl SessionState {
     }
 
     /// Returns the next monitored item handle
-    pub fn next_monitored_item_handle(&mut self) -> UInt32 {
+    pub fn next_monitored_item_handle(&mut self) -> u32 {
         self.monitored_item_handle.next()
     }
 }

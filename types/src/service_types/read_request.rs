@@ -15,7 +15,7 @@ use service_types::ReadValueId;
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReadRequest {
     pub request_header: RequestHeader,
-    pub max_age: Double,
+    pub max_age: f64,
     pub timestamps_to_return: TimestampsToReturn,
     pub nodes_to_read: Option<Vec<ReadValueId>>,
 }
@@ -49,7 +49,7 @@ impl BinaryEncoder<ReadRequest> for ReadRequest {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let max_age = Double::decode(stream, decoding_limits)?;
+        let max_age = f64::decode(stream, decoding_limits)?;
         let timestamps_to_return = TimestampsToReturn::decode(stream, decoding_limits)?;
         let nodes_to_read: Option<Vec<ReadValueId>> = read_array(stream, decoding_limits)?;
         Ok(ReadRequest {

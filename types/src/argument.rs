@@ -1,6 +1,6 @@
 use std::io::{Read, Write};
 
-use basic_types::{LocalizedText, Int32, UInt32};
+use basic_types::{LocalizedText};
 use node_id::NodeId;
 use string::UAString;
 use status_codes::StatusCode;
@@ -16,8 +16,8 @@ use encoding::*;
 pub struct Argument {
     pub name: UAString,
     pub data_type: NodeId,
-    pub value_rank: Int32,
-    pub array_dimensions: Option<Vec<UInt32>>,
+    pub value_rank: i32,
+    pub array_dimensions: Option<Vec<u32>>,
     pub description: LocalizedText,
 }
 
@@ -60,9 +60,9 @@ impl BinaryEncoder<Argument> for Argument {
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let name = UAString::decode(stream, decoding_limits)?;
         let data_type = NodeId::decode(stream, decoding_limits)?;
-        let value_rank = Int32::decode(stream, decoding_limits)?;
+        let value_rank = i32::decode(stream, decoding_limits)?;
         // Decode array dimensions
-        let array_dimensions: Option<Vec<UInt32>> = read_array(stream, decoding_limits)?;
+        let array_dimensions: Option<Vec<u32>> = read_array(stream, decoding_limits)?;
         if let Some(ref array_dimensions) = array_dimensions {
             if value_rank > 0 && value_rank as usize != array_dimensions.len() {
                 error!("The array dimensions {} of the Argument should match value rank {} and they don't", array_dimensions.len(), value_rank);

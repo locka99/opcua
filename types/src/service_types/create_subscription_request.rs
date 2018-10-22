@@ -13,12 +13,12 @@ use service_types::impls::RequestHeader;
 #[derive(Debug, Clone, PartialEq)]
 pub struct CreateSubscriptionRequest {
     pub request_header: RequestHeader,
-    pub requested_publishing_interval: Double,
-    pub requested_lifetime_count: UInt32,
-    pub requested_max_keep_alive_count: UInt32,
-    pub max_notifications_per_publish: UInt32,
-    pub publishing_enabled: Boolean,
-    pub priority: Byte,
+    pub requested_publishing_interval: f64,
+    pub requested_lifetime_count: u32,
+    pub requested_max_keep_alive_count: u32,
+    pub max_notifications_per_publish: u32,
+    pub publishing_enabled: bool,
+    pub priority: u8,
 }
 
 impl MessageInfo for CreateSubscriptionRequest {
@@ -56,12 +56,12 @@ impl BinaryEncoder<CreateSubscriptionRequest> for CreateSubscriptionRequest {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let requested_publishing_interval = Double::decode(stream, decoding_limits)?;
-        let requested_lifetime_count = UInt32::decode(stream, decoding_limits)?;
-        let requested_max_keep_alive_count = UInt32::decode(stream, decoding_limits)?;
-        let max_notifications_per_publish = UInt32::decode(stream, decoding_limits)?;
-        let publishing_enabled = Boolean::decode(stream, decoding_limits)?;
-        let priority = Byte::decode(stream, decoding_limits)?;
+        let requested_publishing_interval = f64::decode(stream, decoding_limits)?;
+        let requested_lifetime_count = u32::decode(stream, decoding_limits)?;
+        let requested_max_keep_alive_count = u32::decode(stream, decoding_limits)?;
+        let max_notifications_per_publish = u32::decode(stream, decoding_limits)?;
+        let publishing_enabled = bool::decode(stream, decoding_limits)?;
+        let priority = u8::decode(stream, decoding_limits)?;
         Ok(CreateSubscriptionRequest {
             request_header,
             requested_publishing_interval,

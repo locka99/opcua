@@ -14,7 +14,7 @@ use service_types::AggregateConfiguration;
 pub struct AggregateFilter {
     pub start_time: DateTime,
     pub aggregate_type: NodeId,
-    pub processing_interval: Double,
+    pub processing_interval: f64,
     pub aggregate_configuration: AggregateConfiguration,
 }
 
@@ -42,7 +42,7 @@ impl BinaryEncoder<AggregateFilter> for AggregateFilter {
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let start_time = DateTime::decode(stream, decoding_limits)?;
         let aggregate_type = NodeId::decode(stream, decoding_limits)?;
-        let processing_interval = Double::decode(stream, decoding_limits)?;
+        let processing_interval = f64::decode(stream, decoding_limits)?;
         let aggregate_configuration = AggregateConfiguration::decode(stream, decoding_limits)?;
         Ok(AggregateFilter {
             start_time,

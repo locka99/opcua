@@ -11,8 +11,8 @@ use node_ids::ObjectId;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Range {
-    pub low: Double,
-    pub high: Double,
+    pub low: f64,
+    pub high: f64,
 }
 
 impl MessageInfo for Range {
@@ -39,8 +39,8 @@ impl BinaryEncoder<Range> for Range {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let low = Double::decode(stream, decoding_limits)?;
-        let high = Double::decode(stream, decoding_limits)?;
+        let low = f64::decode(stream, decoding_limits)?;
+        let high = f64::decode(stream, decoding_limits)?;
         Ok(Range {
             low,
             high,

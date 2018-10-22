@@ -2,7 +2,6 @@
 
 use std::io::{Read, Write, Cursor};
 
-use basic_types::Byte;
 use encoding::*;
 use string::XmlElement;
 use node_id::NodeId;
@@ -69,7 +68,7 @@ impl BinaryEncoder<ExtensionObject> for ExtensionObject {
 
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let node_id = NodeId::decode(stream, decoding_limits)?;
-        let encoding_type = Byte::decode(stream, decoding_limits)?;
+        let encoding_type = u8::decode(stream, decoding_limits)?;
         let body = match encoding_type {
             0x0 => {
                 ExtensionObjectEncoding::None

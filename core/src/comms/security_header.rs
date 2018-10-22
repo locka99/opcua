@@ -36,7 +36,7 @@ impl BinaryEncoder<SecurityHeader> for SecurityHeader {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SymmetricSecurityHeader {
-    pub token_id: UInt32,
+    pub token_id: u32,
 }
 
 impl BinaryEncoder<SymmetricSecurityHeader> for SymmetricSecurityHeader {
@@ -49,7 +49,7 @@ impl BinaryEncoder<SymmetricSecurityHeader> for SymmetricSecurityHeader {
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let token_id = UInt32::decode(stream, decoding_limits)?;
+        let token_id = u32::decode(stream, decoding_limits)?;
         Ok(SymmetricSecurityHeader {
             token_id
         })
@@ -127,8 +127,8 @@ impl AsymmetricSecurityHeader {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SequenceHeader {
-    pub sequence_number: UInt32,
-    pub request_id: UInt32,
+    pub sequence_number: u32,
+    pub request_id: u32,
 }
 
 impl BinaryEncoder<SequenceHeader> for SequenceHeader {
@@ -144,8 +144,8 @@ impl BinaryEncoder<SequenceHeader> for SequenceHeader {
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let sequence_number = UInt32::decode(stream, decoding_limits)?;
-        let request_id = UInt32::decode(stream, decoding_limits)?;
+        let sequence_number = u32::decode(stream, decoding_limits)?;
+        let request_id = u32::decode(stream, decoding_limits)?;
         Ok(SequenceHeader {
             sequence_number,
             request_id,

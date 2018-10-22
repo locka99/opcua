@@ -78,17 +78,17 @@ impl VariableBuilder {
         self
     }
 
-    pub fn value_rank(mut self, value_rank: Int32) -> Self {
+    pub fn value_rank(mut self, value_rank: i32) -> Self {
         let _ = self.node.set_attribute(AttributeId::ValueRank, Variant::Int32(value_rank).into());
         self
     }
 
-    pub fn array_dimensions(mut self, array_dimensions: &[UInt32]) -> Self {
+    pub fn array_dimensions(mut self, array_dimensions: &[u32]) -> Self {
         let _ = self.node.set_attribute(AttributeId::ArrayDimensions, Variant::from_u32_array(array_dimensions).into());
         self
     }
 
-    pub fn minimum_sampling_interval(mut self, minimum_sampling_interval: Int32) -> Self {
+    pub fn minimum_sampling_interval(mut self, minimum_sampling_interval: i32) -> Self {
         let _ = self.node.set_attribute(AttributeId::MinimumSamplingInterval, Variant::Int32(minimum_sampling_interval).into());
         self
     }
@@ -145,11 +145,11 @@ impl Variable {
         let array_dimensions = if let Some(ref value) = value.value {
             // Get the
             match value {
-                &Variant::Array(ref values) => Some(vec![values.len() as UInt32]),
+                &Variant::Array(ref values) => Some(vec![values.len() as u32]),
                 &Variant::MultiDimensionArray(ref values) => {
                     // Multidimensional arrays encode/decode dimensions with Int32 in Part 6, but arrayDimensions in Part 3
-                    // wants them as UInt32. Go figure... So convert Int32 to UInt32
-                    Some(values.dimensions.iter().map(|v| *v as UInt32).collect::<Vec<UInt32>>())
+                    // wants them as u32. Go figure... So convert Int32 to u32
+                    Some(values.dimensions.iter().map(|v| *v as u32).collect::<Vec<u32>>())
                 }
                 _ => None
             }
@@ -169,7 +169,7 @@ impl Variable {
 
         // Set the array info
         let builder = if let Some(array_dimensions) = array_dimensions {
-            builder.value_rank(array_dimensions.len() as Int32).array_dimensions(&array_dimensions)
+            builder.value_rank(array_dimensions.len() as i32).array_dimensions(&array_dimensions)
         } else {
             builder.value_rank(-1)
         };
@@ -219,7 +219,7 @@ impl Variable {
     }
 
     /// Gets the minimum sampling interval, if the attribute was set
-    pub fn minimum_sampling_interval(&self) -> Option<Int32> {
+    pub fn minimum_sampling_interval(&self) -> Option<i32> {
         find_attribute_value_optional!(&self.base, MinimumSamplingInterval, Int32)
     }
 
@@ -228,7 +228,7 @@ impl Variable {
     /// Specifies in milliseconds how fast the server can reasonably sample the value for changes
     ///
     /// The value 0 means server is to monitor the value continuously. The value -1 means indeterminate.
-    pub fn set_minimum_sampling_interval(&mut self, minimum_sampling_interval: Int32) {
+    pub fn set_minimum_sampling_interval(&mut self, minimum_sampling_interval: i32) {
         let now = DateTime::now();
         let _ = self.base.set_attribute_value(AttributeId::MinimumSamplingInterval, Variant::Int32(minimum_sampling_interval), &now, &now);
     }
@@ -277,17 +277,17 @@ impl Variable {
         UserAccessLevel::from_bits_truncate(bits)
     }
 
-    pub fn value_rank(&self) -> Int32 {
+    pub fn value_rank(&self) -> i32 {
         find_attribute_value_mandatory!(&self.base, ValueRank, Int32)
     }
 
-    pub fn historizing(&self) -> Boolean {
+    pub fn historizing(&self) -> bool {
         find_attribute_value_mandatory!(&self.base, Historizing, Boolean)
     }
 
-    pub fn array_dimensions(&self) -> Option<Vec<UInt32>> {
+    pub fn array_dimensions(&self) -> Option<Vec<u32>> {
         if let Some(values) = find_attribute_value_optional!(&self.base, ArrayDimensions, Array) {
-            // The expectation is that this Vec<Variant> is a non-zero Vec<UInt32>
+            // The expectation is that this Vec<Variant> is a non-zero Vec<u32>
             if values.is_empty() {
                 panic!("Expecting array dimensions, got an empty array");
             } else {
@@ -297,7 +297,7 @@ impl Variable {
                     } else {
                         panic!("Expecting array dimensions to be UInt32, but got a non UInt32");
                     }
-                }).collect::<Vec<UInt32>>())
+                }).collect::<Vec<u32>>())
             }
         } else {
             None

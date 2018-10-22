@@ -8,12 +8,21 @@ use string::*;
 
 // OPC UA Part 6 - Mappings 1.03 Specification
 
-// These are standard UA types
+// Standard UA types onto Rust types:
 
-/// A two-state logical value (true or false).
-pub type Boolean = bool;
+// Boolean  -> bool
+// SByte    -> i8
+// Byte     -> u8
+// Int16    -> i16
+// UInt16   -> u16
+// Int32    -> i32
+// UInt32   -> u32
+// Int64    -> i64
+// UInt64   -> u64
+// Float    -> f32
+// Double   -> f64
 
-impl BinaryEncoder<Boolean> for Boolean {
+impl BinaryEncoder<bool> for bool {
     fn byte_len(&self) -> usize {
         1
     }
@@ -28,10 +37,7 @@ impl BinaryEncoder<Boolean> for Boolean {
     }
 }
 
-/// A signed byte integer value between −128 and 127.
-pub type SByte = i8;
-
-impl BinaryEncoder<SByte> for SByte {
+impl BinaryEncoder<i8> for i8 {
     fn byte_len(&self) -> usize {
         1
     }
@@ -46,9 +52,7 @@ impl BinaryEncoder<SByte> for SByte {
 }
 
 /// An unsigned byt integer value between 0 and 255.
-pub type Byte = u8;
-
-impl BinaryEncoder<Byte> for Byte {
+impl BinaryEncoder<u8> for u8 {
     fn byte_len(&self) -> usize {
         1
     }
@@ -63,9 +67,7 @@ impl BinaryEncoder<Byte> for Byte {
 }
 
 /// A signed integer value between −32768 and 32767.
-pub type Int16 = i16;
-
-impl BinaryEncoder<Int16> for Int16 {
+impl BinaryEncoder<i16> for i16 {
     fn byte_len(&self) -> usize {
         2
     }
@@ -80,9 +82,7 @@ impl BinaryEncoder<Int16> for Int16 {
 }
 
 /// An unsigned integer value between 0 and 65535.
-pub type UInt16 = u16;
-
-impl BinaryEncoder<UInt16> for UInt16 {
+impl BinaryEncoder<u16> for u16 {
     fn byte_len(&self) -> usize {
         2
     }
@@ -97,9 +97,7 @@ impl BinaryEncoder<UInt16> for UInt16 {
 }
 
 /// A signed integer value between −2147483648 and 2147483647.
-pub type Int32 = i32;
-
-impl BinaryEncoder<Int32> for Int32 {
+impl BinaryEncoder<i32> for i32 {
     fn byte_len(&self) -> usize {
         4
     }
@@ -114,9 +112,7 @@ impl BinaryEncoder<Int32> for Int32 {
 }
 
 /// An unsigned integer value between 0 and 4294967295.
-pub type UInt32 = u32;
-
-impl BinaryEncoder<UInt32> for UInt32 {
+impl BinaryEncoder<u32> for u32 {
     fn byte_len(&self) -> usize {
         4
     }
@@ -131,9 +127,7 @@ impl BinaryEncoder<UInt32> for UInt32 {
 }
 
 /// A signed integer value between −9223372036854775808 and 9223372036854775807.
-pub type Int64 = i64;
-
-impl BinaryEncoder<Int64> for Int64 {
+impl BinaryEncoder<i64> for i64 {
     fn byte_len(&self) -> usize {
         8
     }
@@ -148,9 +142,7 @@ impl BinaryEncoder<Int64> for Int64 {
 }
 
 /// An unsigned integer value between 0 and 18446744073709551615.
-pub type UInt64 = u64;
-
-impl BinaryEncoder<UInt64> for UInt64 {
+impl BinaryEncoder<u64> for u64 {
     fn byte_len(&self) -> usize {
         8
     }
@@ -165,9 +157,7 @@ impl BinaryEncoder<UInt64> for UInt64 {
 }
 
 /// An IEEE single precision (32 bit) floating point value.
-pub type Float = f32;
-
-impl BinaryEncoder<Float> for Float {
+impl BinaryEncoder<f32> for f32 {
     fn byte_len(&self) -> usize {
         4
     }
@@ -182,9 +172,7 @@ impl BinaryEncoder<Float> for Float {
 }
 
 /// An IEEE double precision (64 bit) floating point value.
-pub type Double = f64;
-
-impl BinaryEncoder<Double> for Double {
+impl BinaryEncoder<f64> for f64 {
     fn byte_len(&self) -> usize {
         8
     }
@@ -206,7 +194,7 @@ impl BinaryEncoder<Double> for Double {
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct QualifiedName {
     /// The namespace index.
-    pub namespace_index: UInt16,
+    pub namespace_index: u16,
     /// The name.
     pub name: UAString,
 }
@@ -228,7 +216,7 @@ impl BinaryEncoder<QualifiedName> for QualifiedName {
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let namespace_index = UInt16::decode(stream, decoding_limits)?;
+        let namespace_index = u16::decode(stream, decoding_limits)?;
         let name = UAString::decode(stream, decoding_limits)?;
         Ok(QualifiedName {
             namespace_index,
@@ -238,7 +226,7 @@ impl BinaryEncoder<QualifiedName> for QualifiedName {
 }
 
 impl QualifiedName {
-    pub fn new(namespace_index: UInt16, name: &str) -> QualifiedName {
+    pub fn new(namespace_index: u16, name: &str) -> QualifiedName {
         QualifiedName {
             namespace_index,
             name: UAString::from(name),
@@ -290,7 +278,7 @@ impl BinaryEncoder<LocalizedText> for LocalizedText {
         // The mask has the following bits:
         // 0x01    Locale
         // 0x02    Text
-        let mut encoding_mask: Byte = 0;
+        let mut encoding_mask: u8 = 0;
         if !self.locale.is_empty() {
             encoding_mask |= 0x1;
         }
@@ -308,7 +296,7 @@ impl BinaryEncoder<LocalizedText> for LocalizedText {
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let encoding_mask = Byte::decode(stream, decoding_limits)?;
+        let encoding_mask = u8::decode(stream, decoding_limits)?;
         let locale = if encoding_mask & 0x1 != 0 {
             UAString::decode(stream, decoding_limits)?
         } else {

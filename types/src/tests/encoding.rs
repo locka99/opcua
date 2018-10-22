@@ -20,74 +20,74 @@ fn encoding_bool() {
 
 #[test]
 fn encoding_sbyte() {
-    serialize_test(0 as SByte);
-    serialize_test(100 as SByte);
-    serialize_test(-90 as SByte);
+    serialize_test(0 as i8);
+    serialize_test(100 as i8);
+    serialize_test(-90 as i8);
 }
 
 #[test]
 fn encoding_byte() {
-    serialize_test(0 as Byte);
-    serialize_test(255 as Byte);
-    serialize_test(90 as Byte);
+    serialize_test(0 as u8);
+    serialize_test(255 as u8);
+    serialize_test(90 as u8);
 }
 
 #[test]
 fn encoding_int16() {
-    serialize_test(0 as Int16);
-    serialize_test(-17000 as Int16);
-    serialize_test(32000 as Int16);
+    serialize_test(0 as i16);
+    serialize_test(-17000 as i16);
+    serialize_test(32000 as i16);
 }
 
 #[test]
 fn encoding_uint16() {
-    serialize_test(0 as UInt16);
-    serialize_test(57000 as UInt16);
-    serialize_test(32000 as UInt16);
+    serialize_test(0 as u16);
+    serialize_test(57000 as u16);
+    serialize_test(32000 as u16);
 }
 
 #[test]
 fn encoding_int32() {
-    serialize_test(0 as Int32);
-    serialize_test(-17444000 as Int32);
-    serialize_test(32004440 as Int32);
+    serialize_test(0 as i32);
+    serialize_test(-17444000 as i32);
+    serialize_test(32004440 as i32);
 }
 
 
 #[test]
 fn encoding_uint32() {
-    serialize_test(0 as UInt32);
-    serialize_test(57055500 as UInt32);
-    serialize_test(32555000 as UInt32);
+    serialize_test(0 as u32);
+    serialize_test(57055500 as u32);
+    serialize_test(32555000 as u32);
 }
 
 #[test]
 fn encoding_int64() {
-    serialize_test(0 as Int64);
-    serialize_test(-17442224000 as Int64);
-    serialize_test(32022204440 as Int64);
+    serialize_test(0 as i64);
+    serialize_test(-17442224000 as i64);
+    serialize_test(32022204440 as i64);
 }
 
 
 #[test]
 fn encoding_uint64() {
-    serialize_test(0 as UInt64);
-    serialize_test(57054445500 as UInt64);
-    serialize_test(34442555000 as UInt64);
+    serialize_test(0 as u64);
+    serialize_test(57054445500 as u64);
+    serialize_test(34442555000 as u64);
 }
 
 #[test]
 fn encoding_f32() {
-    serialize_test(0 as Float);
-    serialize_test(12.4342 as Float);
-    serialize_test(5686.222 as Float);
+    serialize_test(0 as f32);
+    serialize_test(12.4342 as f32);
+    serialize_test(5686.222 as f32);
 }
 
 #[test]
 fn encoding_f64() {
-    serialize_test(0 as Double);
-    serialize_test(12.43424324234 as Double);
-    serialize_test(5686.222342342 as Double);
+    serialize_test(0 as f64);
+    serialize_test(12.43424324234 as f64);
+    serialize_test(5686.222342342 as f64);
 }
 
 #[test]
@@ -146,7 +146,7 @@ fn encode_guid_5226() {
 #[test]
 fn node_id_2byte_numeric() {
     // Sample from OPCUA Part 6 - 5.2.2.9
-    let node_id = NodeId::new(0, 0x72 as UInt32);
+    let node_id = NodeId::new(0, 0x72 as u32);
     let expected_bytes = [0x0, 0x72];
     serialize_and_compare(node_id.clone(), &expected_bytes);
 

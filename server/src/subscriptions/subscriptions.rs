@@ -27,12 +27,12 @@ pub struct Subscriptions {
     // Timeout period for requests in ms
     publish_request_timeout: i64,
     /// Subscriptions associated with the session
-    subscriptions: BTreeMap<UInt32, Subscription>,
+    subscriptions: BTreeMap<u32, Subscription>,
     // Notifications waiting to be sent - Value is subscription id and notification message.
-    transmission_queue: VecDeque<(UInt32, PublishRequestEntry, NotificationMessage)>,
+    transmission_queue: VecDeque<(u32, PublishRequestEntry, NotificationMessage)>,
     // Notifications that have been sent but have yet to be acknowledged (retransmission queue).
     // Key is (subscription_id, sequence_number). Value is notification message.
-    retransmission_queue: BTreeMap<(UInt32, UInt32), NotificationMessage>,
+    retransmission_queue: BTreeMap<(u32, u32), NotificationMessage>,
 }
 
 
@@ -51,7 +51,7 @@ impl Subscriptions {
     }
 
     #[cfg(test)]
-    pub fn retransmission_queue(&mut self) -> &mut BTreeMap<(UInt32, UInt32), NotificationMessage> {
+    pub fn retransmission_queue(&mut self) -> &mut BTreeMap<(u32, u32), NotificationMessage> {
         &mut self.retransmission_queue
     }
 
@@ -83,7 +83,7 @@ impl Subscriptions {
     ///
     /// If the queue is full this call will pop the oldest and generate a service fault
     /// for that before pushing the new one.
-    pub fn enqueue_publish_request(&mut self, _: &AddressSpace, request_id: UInt32, request: PublishRequest) -> Result<(), StatusCode> {
+    pub fn enqueue_publish_request(&mut self, _: &AddressSpace, request_id: u32, request: PublishRequest) -> Result<(), StatusCode> {
         // Check if we have too many requests already
         let max_publish_requests = self.max_publish_requests();
         if self.publish_request_queue.len() >= max_publish_requests {
@@ -116,24 +116,24 @@ impl Subscriptions {
     }
 
     /// Returns a reference to the collection holding the subscriptions.
-    pub fn subscriptions(&self) -> &BTreeMap<UInt32, Subscription> {
+    pub fn subscriptions(&self) -> &BTreeMap<u32, Subscription> {
         &self.subscriptions
     }
 
     /// Tests if the subscriptions contain the supplied subscription id.
-    pub fn contains(&self, subscription_id: UInt32) -> bool {
+    pub fn contains(&self, subscription_id: u32) -> bool {
         self.subscriptions.contains_key(&subscription_id)
     }
 
-    pub fn insert(&mut self, subscription_id: UInt32, subscription: Subscription) {
+    pub fn insert(&mut self, subscription_id: u32, subscription: Subscription) {
         self.subscriptions.insert(subscription_id, subscription);
     }
 
-    pub fn remove(&mut self, subscription_id: UInt32) -> Option<Subscription> {
+    pub fn remove(&mut self, subscription_id: u32) -> Option<Subscription> {
         self.subscriptions.remove(&subscription_id)
     }
 
-    pub fn get_mut(&mut self, subscription_id: UInt32) -> Option<&mut Subscription> {
+    pub fn get_mut(&mut self, subscription_id: u32) -> Option<&mut Subscription> {
         self.subscriptions.get_mut(&subscription_id)
     }
 
@@ -286,18 +286,18 @@ impl Subscriptions {
 
     /// Searches the transmission queue to see if there are more notifications for the specified
     /// subscription id
-    fn more_notifications(&self, subscription_id: UInt32) -> bool {
+    fn more_notifications(&self, subscription_id: u32) -> bool {
         // At least one match means more notifications
         self.transmission_queue.iter().find(|v| v.0 == subscription_id).is_some()
     }
 
     /// Returns the array of available sequence numbers in the retransmission queue for the specified subscription
-    fn available_sequence_numbers(&self, subscription_id: UInt32) -> Option<Vec<UInt32>> {
+    fn available_sequence_numbers(&self, subscription_id: u32) -> Option<Vec<u32>> {
         if self.retransmission_queue.is_empty() {
             None
         } else {
             // Find the notifications matching this subscription id in the retransmission queue
-            let sequence_numbers: Vec<UInt32> = self.retransmission_queue.iter()
+            let sequence_numbers: Vec<u32> = self.retransmission_queue.iter()
                 .filter(|&(k, _)| k.0 == subscription_id)
                 .map(|(k, _)| k.1)
                 .collect();
@@ -309,7 +309,7 @@ impl Subscriptions {
         }
     }
 
-    fn make_publish_response(&self, publish_request: &PublishRequestEntry, subscription_id: UInt32, now: &DateTimeUtc, notification_message: NotificationMessage, more_notifications: bool, available_sequence_numbers: Option<Vec<UInt32>>, results: Option<Vec<StatusCode>>) -> PublishResponseEntry {
+    fn make_publish_response(&self, publish_request: &PublishRequestEntry, subscription_id: u32, now: &DateTimeUtc, notification_message: NotificationMessage, more_notifications: bool, available_sequence_numbers: Option<Vec<u32>>, results: Option<Vec<StatusCode>>) -> PublishResponseEntry {
         let now = DateTime::from(now.clone());
         PublishResponseEntry {
             request_id: publish_request.request_id,
@@ -328,7 +328,7 @@ impl Subscriptions {
     /// Finds a notification message in the retransmission queue matching the supplied subscription id
     /// and sequence number. Returns `BadNoSubscription` or `BadMessageNotAvailable` if a matching
     /// notification is not found.
-    pub fn find_notification_message(&self, subscription_id: UInt32, sequence_number: UInt32) -> Result<NotificationMessage, StatusCode> {
+    pub fn find_notification_message(&self, subscription_id: u32, sequence_number: u32) -> Result<NotificationMessage, StatusCode> {
         // Look for the subscription
         if let Some(_) = self.subscriptions.get(&subscription_id) {
             // Look for the sequence number

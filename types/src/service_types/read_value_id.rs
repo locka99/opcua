@@ -15,7 +15,7 @@ use basic_types::QualifiedName;
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ReadValueId {
     pub node_id: NodeId,
-    pub attribute_id: UInt32,
+    pub attribute_id: u32,
     pub index_range: UAString,
     pub data_encoding: QualifiedName,
 }
@@ -49,7 +49,7 @@ impl BinaryEncoder<ReadValueId> for ReadValueId {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let node_id = NodeId::decode(stream, decoding_limits)?;
-        let attribute_id = UInt32::decode(stream, decoding_limits)?;
+        let attribute_id = u32::decode(stream, decoding_limits)?;
         let index_range = UAString::decode(stream, decoding_limits)?;
         let data_encoding = QualifiedName::decode(stream, decoding_limits)?;
         Ok(ReadValueId {

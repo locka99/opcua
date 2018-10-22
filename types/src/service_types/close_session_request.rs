@@ -14,7 +14,7 @@ use service_types::impls::RequestHeader;
 #[derive(Debug, Clone, PartialEq)]
 pub struct CloseSessionRequest {
     pub request_header: RequestHeader,
-    pub delete_subscriptions: Boolean,
+    pub delete_subscriptions: bool,
 }
 
 impl MessageInfo for CloseSessionRequest {
@@ -42,7 +42,7 @@ impl BinaryEncoder<CloseSessionRequest> for CloseSessionRequest {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let delete_subscriptions = Boolean::decode(stream, decoding_limits)?;
+        let delete_subscriptions = bool::decode(stream, decoding_limits)?;
         Ok(CloseSessionRequest {
             request_header,
             delete_subscriptions,

@@ -86,27 +86,27 @@ pub enum TickReason {
 #[derive(Debug, Clone, Serialize)]
 pub struct Subscription {
     /// Subscription id
-    pub subscription_id: UInt32,
+    pub subscription_id: u32,
     /// Publishing interval in milliseconds
     pub publishing_interval: Duration,
     /// The lifetime count reset value
-    pub max_lifetime_count: UInt32,
+    pub max_lifetime_count: u32,
     /// Keep alive count reset value
-    pub max_keep_alive_count: UInt32,
+    pub max_keep_alive_count: u32,
     /// Relative priority of the subscription. When more than one subscriptio
     ///  needs to send notifications the highest priority subscription should
     /// be sent first.
-    pub priority: Byte,
+    pub priority: u8,
     /// Map of monitored items
-    pub monitored_items: HashMap<UInt32, MonitoredItem>,
+    pub monitored_items: HashMap<u32, MonitoredItem>,
     /// State of the subscription
     pub state: SubscriptionState,
     /// A value that contains the number of consecutive publishing timer expirations without Client
     /// activity before the Subscription is terminated.
-    pub current_lifetime_count: UInt32,
+    pub current_lifetime_count: u32,
     /// Keep alive counter decrements when there are no notifications to publish and when it expires
     /// requests to send an empty notification as a keep alive event
-    pub current_keep_alive_count: UInt32,
+    pub current_keep_alive_count: u32,
     /// boolean value that is set to true to mean that either a NotificationMessage or a keep-alive
     /// Message has been sent on the Subscription. It is a flag that is used to ensure that either
     /// a NotificationMessage or a keep-alive Message is sent out the first time the publishing timer
@@ -115,9 +115,9 @@ pub struct Subscription {
     /// The parameter that requests publishing to be enabled or disabled.
     pub publishing_enabled: bool,
     /// The next sequence number to be sent
-    next_sequence_number: UInt32,
+    next_sequence_number: u32,
     // The last monitored item id
-    next_monitored_item_id: UInt32,
+    next_monitored_item_id: u32,
     // The time that the subscription interval last fired
     last_timer_expired_time: DateTimeUtc,
     /// Server diagnostics to track creation / destruction / modification of the subscription
@@ -138,7 +138,7 @@ impl Drop for Subscription {
 }
 
 impl Subscription {
-    pub fn new(diagnostics: Arc<RwLock<ServerDiagnostics>>, subscription_id: UInt32, publishing_enabled: bool, publishing_interval: Duration, lifetime_count: UInt32, keep_alive_count: UInt32, priority: Byte) -> Subscription {
+    pub fn new(diagnostics: Arc<RwLock<ServerDiagnostics>>, subscription_id: u32, publishing_enabled: bool, publishing_interval: Duration, lifetime_count: u32, keep_alive_count: u32, priority: u8) -> Subscription {
         let subscription = Subscription {
             subscription_id,
             publishing_interval,
@@ -178,7 +178,7 @@ impl Subscription {
                 Ok(monitored_item) => {
                     // Register the item with the subscription
                     let revised_sampling_interval = monitored_item.sampling_interval;
-                    let revised_queue_size = monitored_item.queue_size as UInt32;
+                    let revised_queue_size = monitored_item.queue_size as u32;
                     self.monitored_items.insert(monitored_item_id, monitored_item);
                     self.next_monitored_item_id += 1;
                     MonitoredItemCreateResult {
@@ -214,7 +214,7 @@ impl Subscription {
                         Ok(filter_result) => MonitoredItemModifyResult {
                             status_code: StatusCode::Good,
                             revised_sampling_interval: monitored_item.sampling_interval,
-                            revised_queue_size: monitored_item.queue_size as UInt32,
+                            revised_queue_size: monitored_item.queue_size as u32,
                             filter_result,
                         },
                         Err(err) => MonitoredItemModifyResult {
@@ -237,7 +237,7 @@ impl Subscription {
     }
 
     /// Delete the specified monitored items (by item id), returning a status code for each
-    pub fn delete_monitored_items(&mut self, items_to_delete: &[UInt32]) -> Vec<StatusCode> {
+    pub fn delete_monitored_items(&mut self, items_to_delete: &[u32]) -> Vec<StatusCode> {
         self.reset_lifetime_counter();
         items_to_delete.iter().map(|item_to_delete| {
             match self.monitored_items.remove(item_to_delete) {
@@ -249,7 +249,7 @@ impl Subscription {
 
     // Returns two vecs representing the server and client handles for each monitored item.
     // Called from the GetMonitoredItems impl
-    pub fn get_handles(&self) -> (Vec<UInt32>, Vec<UInt32>) {
+    pub fn get_handles(&self) -> (Vec<u32>, Vec<u32>) {
         let server_handles = self.monitored_items.values().map(|i| i.monitored_item_id).collect();
         let client_handles = self.monitored_items.values().map(|i| i.client_handle).collect();
         (server_handles, client_handles)

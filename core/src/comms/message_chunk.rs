@@ -46,9 +46,9 @@ pub struct MessageChunkHeader {
     /// The chunk type - C == intermediate, F = the final chunk, A = the final chunk when aborting
     pub is_final: MessageIsFinalType,
     /// The size of the chunk (message) including the header
-    pub message_size: UInt32,
+    pub message_size: u32,
     /// Secure channel id
-    pub secure_channel_id: UInt32,
+    pub secure_channel_id: u32,
     /// valid flag
     pub is_valid: bool,
 }
@@ -188,7 +188,7 @@ impl BinaryEncoder<MessageChunk> for MessageChunk {
 }
 
 impl MessageChunk {
-    pub fn new(sequence_number: UInt32, request_id: UInt32, message_type: MessageChunkType, is_final: MessageIsFinalType, secure_channel: &SecureChannel, data: &[u8]) -> Result<MessageChunk, StatusCode> {
+    pub fn new(sequence_number: u32, request_id: u32, message_type: MessageChunkType, is_final: MessageIsFinalType, secure_channel: &SecureChannel, data: &[u8]) -> Result<MessageChunk, StatusCode> {
         // security header depends on message type
         let security_header = secure_channel.make_security_header(message_type);
         let sequence_header = SequenceHeader { sequence_number, request_id };

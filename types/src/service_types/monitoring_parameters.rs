@@ -12,11 +12,11 @@ use extension_object::ExtensionObject;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MonitoringParameters {
-    pub client_handle: UInt32,
-    pub sampling_interval: Double,
+    pub client_handle: u32,
+    pub sampling_interval: f64,
     pub filter: ExtensionObject,
-    pub queue_size: UInt32,
-    pub discard_oldest: Boolean,
+    pub queue_size: u32,
+    pub discard_oldest: bool,
 }
 
 impl MessageInfo for MonitoringParameters {
@@ -49,11 +49,11 @@ impl BinaryEncoder<MonitoringParameters> for MonitoringParameters {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let client_handle = UInt32::decode(stream, decoding_limits)?;
-        let sampling_interval = Double::decode(stream, decoding_limits)?;
+        let client_handle = u32::decode(stream, decoding_limits)?;
+        let sampling_interval = f64::decode(stream, decoding_limits)?;
         let filter = ExtensionObject::decode(stream, decoding_limits)?;
-        let queue_size = UInt32::decode(stream, decoding_limits)?;
-        let discard_oldest = Boolean::decode(stream, decoding_limits)?;
+        let queue_size = u32::decode(stream, decoding_limits)?;
+        let discard_oldest = bool::decode(stream, decoding_limits)?;
         Ok(MonitoringParameters {
             client_handle,
             sampling_interval,

@@ -23,8 +23,8 @@ pub struct CreateSessionRequest {
     pub session_name: UAString,
     pub client_nonce: ByteString,
     pub client_certificate: ByteString,
-    pub requested_session_timeout: Double,
-    pub max_response_message_size: UInt32,
+    pub requested_session_timeout: f64,
+    pub max_response_message_size: u32,
 }
 
 impl MessageInfo for CreateSessionRequest {
@@ -72,8 +72,8 @@ impl BinaryEncoder<CreateSessionRequest> for CreateSessionRequest {
         let session_name = UAString::decode(stream, decoding_limits)?;
         let client_nonce = ByteString::decode(stream, decoding_limits)?;
         let client_certificate = ByteString::decode(stream, decoding_limits)?;
-        let requested_session_timeout = Double::decode(stream, decoding_limits)?;
-        let max_response_message_size = UInt32::decode(stream, decoding_limits)?;
+        let requested_session_timeout = f64::decode(stream, decoding_limits)?;
+        let max_response_message_size = u32::decode(stream, decoding_limits)?;
         Ok(CreateSessionRequest {
             request_header,
             client_description,

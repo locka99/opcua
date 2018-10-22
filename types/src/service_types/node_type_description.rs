@@ -14,7 +14,7 @@ use service_types::QueryDataDescription;
 #[derive(Debug, Clone, PartialEq)]
 pub struct NodeTypeDescription {
     pub type_definition_node: ExpandedNodeId,
-    pub include_sub_types: Boolean,
+    pub include_sub_types: bool,
     pub data_to_return: Option<Vec<QueryDataDescription>>,
 }
 
@@ -45,7 +45,7 @@ impl BinaryEncoder<NodeTypeDescription> for NodeTypeDescription {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let type_definition_node = ExpandedNodeId::decode(stream, decoding_limits)?;
-        let include_sub_types = Boolean::decode(stream, decoding_limits)?;
+        let include_sub_types = bool::decode(stream, decoding_limits)?;
         let data_to_return: Option<Vec<QueryDataDescription>> = read_array(stream, decoding_limits)?;
         Ok(NodeTypeDescription {
             type_definition_node,

@@ -48,7 +48,7 @@ fn add_example_variables(server: &mut Server) {
 
         // Add some variables to our sample folder. Values will be overwritten by the timer
         let _ = address_space.add_variables(
-            vec![Variable::new(&v1_node, "v1", "v1", "v1 variable", 0 as Int32),
+            vec![Variable::new(&v1_node, "v1", "v1", "v1 variable", 0 as i32),
                  Variable::new(&v2_node, "v2", "v2", "v2 variable", false),
                  Variable::new(&v3_node, "v3", "v3", "v3 variable", UAString::from("")),
                  Variable::new(&v4_node, "v4", "v4", "v4 variable", 0f64)],
@@ -70,7 +70,7 @@ fn add_example_variables(server: &mut Server) {
             data.0 += 1;
             data.1 = !data.1;
             let mut address_space = address_space.write().unwrap();
-            let _ = address_space.set_variable_value(v1_node.clone(), data.0 as Int32);
+            let _ = address_space.set_variable_value(v1_node.clone(), data.0 as i32);
             let _ = address_space.set_variable_value(v2_node.clone(), data.1);
         });
     }

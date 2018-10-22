@@ -11,8 +11,8 @@ use node_ids::ObjectId;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SubscriptionAcknowledgement {
-    pub subscription_id: UInt32,
-    pub sequence_number: UInt32,
+    pub subscription_id: u32,
+    pub sequence_number: u32,
 }
 
 impl MessageInfo for SubscriptionAcknowledgement {
@@ -39,8 +39,8 @@ impl BinaryEncoder<SubscriptionAcknowledgement> for SubscriptionAcknowledgement 
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let subscription_id = UInt32::decode(stream, decoding_limits)?;
-        let sequence_number = UInt32::decode(stream, decoding_limits)?;
+        let subscription_id = u32::decode(stream, decoding_limits)?;
+        let sequence_number = u32::decode(stream, decoding_limits)?;
         Ok(SubscriptionAcknowledgement {
             subscription_id,
             sequence_number,

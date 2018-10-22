@@ -11,15 +11,15 @@ use node_ids::ObjectId;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct EndpointConfiguration {
-    pub operation_timeout: Int32,
-    pub use_binary_encoding: Boolean,
-    pub max_string_length: Int32,
-    pub max_byte_string_length: Int32,
-    pub max_array_length: Int32,
-    pub max_message_size: Int32,
-    pub max_buffer_size: Int32,
-    pub channel_lifetime: Int32,
-    pub security_token_lifetime: Int32,
+    pub operation_timeout: i32,
+    pub use_binary_encoding: bool,
+    pub max_string_length: i32,
+    pub max_byte_string_length: i32,
+    pub max_array_length: i32,
+    pub max_message_size: i32,
+    pub max_buffer_size: i32,
+    pub channel_lifetime: i32,
+    pub security_token_lifetime: i32,
 }
 
 impl MessageInfo for EndpointConfiguration {
@@ -60,15 +60,15 @@ impl BinaryEncoder<EndpointConfiguration> for EndpointConfiguration {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let operation_timeout = Int32::decode(stream, decoding_limits)?;
-        let use_binary_encoding = Boolean::decode(stream, decoding_limits)?;
-        let max_string_length = Int32::decode(stream, decoding_limits)?;
-        let max_byte_string_length = Int32::decode(stream, decoding_limits)?;
-        let max_array_length = Int32::decode(stream, decoding_limits)?;
-        let max_message_size = Int32::decode(stream, decoding_limits)?;
-        let max_buffer_size = Int32::decode(stream, decoding_limits)?;
-        let channel_lifetime = Int32::decode(stream, decoding_limits)?;
-        let security_token_lifetime = Int32::decode(stream, decoding_limits)?;
+        let operation_timeout = i32::decode(stream, decoding_limits)?;
+        let use_binary_encoding = bool::decode(stream, decoding_limits)?;
+        let max_string_length = i32::decode(stream, decoding_limits)?;
+        let max_byte_string_length = i32::decode(stream, decoding_limits)?;
+        let max_array_length = i32::decode(stream, decoding_limits)?;
+        let max_message_size = i32::decode(stream, decoding_limits)?;
+        let max_buffer_size = i32::decode(stream, decoding_limits)?;
+        let channel_lifetime = i32::decode(stream, decoding_limits)?;
+        let security_token_lifetime = i32::decode(stream, decoding_limits)?;
         Ok(EndpointConfiguration {
             operation_timeout,
             use_binary_encoding,

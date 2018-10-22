@@ -9,7 +9,7 @@ use basic_types::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ElementOperand {
-    pub index: UInt32,
+    pub index: u32,
 }
 
 impl BinaryEncoder<ElementOperand> for ElementOperand {
@@ -28,7 +28,7 @@ impl BinaryEncoder<ElementOperand> for ElementOperand {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let index = UInt32::decode(stream, decoding_limits)?;
+        let index = u32::decode(stream, decoding_limits)?;
         Ok(ElementOperand {
             index,
         })

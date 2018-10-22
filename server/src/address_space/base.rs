@@ -213,7 +213,7 @@ impl Base {
     pub fn new(node_class: NodeClass, node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, mut attributes: Vec<(AttributeId, Variant)>) -> Base {
         // Mandatory attributes
         let mut attributes_to_add = vec![
-            (AttributeId::NodeClass, Variant::Int32(node_class as Int32)),
+            (AttributeId::NodeClass, Variant::Int32(node_class as i32)),
             (AttributeId::NodeId, Variant::new(node_id.clone())),
             (AttributeId::DisplayName, Variant::new(LocalizedText::new("", display_name))),
             (AttributeId::BrowseName, Variant::new(QualifiedName::new(0, browse_name))),

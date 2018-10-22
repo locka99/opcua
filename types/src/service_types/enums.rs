@@ -1,7 +1,6 @@
 use std::io::{Read, Write};
 
 use encoding::*;
-use basic_types::*;
 use status_codes::StatusCode;
 
 /// The enumeration for the type of user identity token supported by an endpoint.
@@ -24,7 +23,7 @@ impl BinaryEncoder<UserTokenType> for UserTokenType {
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         // All enums are Int32
-        write_i32(stream, *self as Int32)
+        write_i32(stream, *self as i32)
     }
 
     fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
@@ -59,7 +58,7 @@ impl BinaryEncoder<ApplicationType> for ApplicationType {
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         // All enums are Int32
-        write_i32(stream, *self as Int32)
+        write_i32(stream, *self as i32)
     }
 
     fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
@@ -92,7 +91,7 @@ impl BinaryEncoder<TimestampsToReturn> for TimestampsToReturn {
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         // All enums are Int32
-        write_i32(stream, *self as Int32)
+        write_i32(stream, *self as i32)
     }
 
     fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
@@ -131,7 +130,7 @@ impl BinaryEncoder<NodeClass> for NodeClass {
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         // All enums are Int32
-        write_i32(stream, *self as Int32)
+        write_i32(stream, *self as i32)
     }
 
     fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
@@ -147,7 +146,7 @@ impl BinaryEncoder<NodeClass> for NodeClass {
 }
 
 impl NodeClass {
-    pub fn from_i32(value: Int32) -> Option<NodeClass> {
+    pub fn from_i32(value: i32) -> Option<NodeClass> {
         match value {
             0 => Some(NodeClass::Unspecified),
             1 => Some(NodeClass::Object),
@@ -180,7 +179,7 @@ impl BinaryEncoder<DataChangeTrigger> for DataChangeTrigger {
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         // All enums are Int32
-        write_i32(stream, *self as Int32)
+        write_i32(stream, *self as i32)
     }
 
     fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
@@ -224,7 +223,7 @@ impl BinaryEncoder<FilterOperator> for FilterOperator {
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         // All enums are Int32
-        write_i32(stream, *self as Int32)
+        write_i32(stream, *self as i32)
     }
 
     fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
@@ -268,7 +267,7 @@ impl BinaryEncoder<BrowseDirection> for BrowseDirection {
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         // All enums are Int32
-        write_i32(stream, *self as Int32)
+        write_i32(stream, *self as i32)
     }
 
     fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
@@ -299,7 +298,7 @@ impl BinaryEncoder<SecurityTokenRequestType> for SecurityTokenRequestType {
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         // All enums are Int32
-        write_i32(stream, *self as Int32)
+        write_i32(stream, *self as i32)
     }
 
     fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
@@ -336,7 +335,7 @@ impl BinaryEncoder<ServerState> for ServerState {
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         // All enums are Int32
-        write_i32(stream, *self as Int32)
+        write_i32(stream, *self as i32)
     }
 
     fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {

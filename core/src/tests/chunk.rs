@@ -45,7 +45,7 @@ fn sample_secure_channel_request_data_security_none() -> MessageChunk {
     chunk
 }
 
-fn set_chunk_sequence_number(chunk: &mut MessageChunk, secure_channel: &SecureChannel, sequence_number: UInt32) -> UInt32 {
+fn set_chunk_sequence_number(chunk: &mut MessageChunk, secure_channel: &SecureChannel, sequence_number: u32) -> u32 {
     // Read the sequence header
     let mut chunk_info = chunk.chunk_info(&secure_channel).unwrap();
     let old_sequence_number = chunk_info.sequence_header.sequence_number;
@@ -57,7 +57,7 @@ fn set_chunk_sequence_number(chunk: &mut MessageChunk, secure_channel: &SecureCh
     old_sequence_number
 }
 
-fn set_chunk_request_id(chunk: &mut MessageChunk, secure_channel: &SecureChannel, request_id: UInt32) -> UInt32 {
+fn set_chunk_request_id(chunk: &mut MessageChunk, secure_channel: &SecureChannel, request_id: u32) -> u32 {
     // Read the sequence header
     let mut chunk_info = chunk.chunk_info(&secure_channel).unwrap();
     let old_request_id = chunk_info.sequence_header.request_id;
@@ -70,7 +70,7 @@ fn set_chunk_request_id(chunk: &mut MessageChunk, secure_channel: &SecureChannel
 }
 
 fn make_large_read_response() -> SupportedMessage {
-    let results = (0..10000).map(|i| DataValue::new(i as UInt32)).collect();
+    let results = (0..10000).map(|i| DataValue::new(i as u32)).collect();
     SupportedMessage::ReadResponse(ReadResponse {
         response_header: ResponseHeader::null(),
         results: Some(results),
@@ -196,7 +196,7 @@ fn validate_chunks_sequence_number() {
 
     // Test sequence number is returned properly
     let result = Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap();
-    assert_eq!(sequence_number + chunks.len() as UInt32 - 1, result);
+    assert_eq!(sequence_number + chunks.len() as u32 - 1, result);
 
     // Hack one of the chunks to alter its seq id
     let old_sequence_nr = set_chunk_sequence_number(&mut chunks[0], &secure_channel, 1001);

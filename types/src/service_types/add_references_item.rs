@@ -18,7 +18,7 @@ use service_types::enums::NodeClass;
 pub struct AddReferencesItem {
     pub source_node_id: NodeId,
     pub reference_type_id: NodeId,
-    pub is_forward: Boolean,
+    pub is_forward: bool,
     pub target_server_uri: UAString,
     pub target_node_id: ExpandedNodeId,
     pub target_node_class: NodeClass,
@@ -58,7 +58,7 @@ impl BinaryEncoder<AddReferencesItem> for AddReferencesItem {
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let source_node_id = NodeId::decode(stream, decoding_limits)?;
         let reference_type_id = NodeId::decode(stream, decoding_limits)?;
-        let is_forward = Boolean::decode(stream, decoding_limits)?;
+        let is_forward = bool::decode(stream, decoding_limits)?;
         let target_server_uri = UAString::decode(stream, decoding_limits)?;
         let target_node_id = ExpandedNodeId::decode(stream, decoding_limits)?;
         let target_node_class = NodeClass::decode(stream, decoding_limits)?;

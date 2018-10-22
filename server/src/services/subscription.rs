@@ -151,7 +151,7 @@ impl SubscriptionService {
     }
 
     /// Handles a PublishRequest. This is asynchronous, so the response will be sent later on.
-    pub fn async_publish(&self, session: &mut Session, request_id: UInt32, address_space: &AddressSpace, request: PublishRequest) -> Result<Option<SupportedMessage>, StatusCode> {
+    pub fn async_publish(&self, session: &mut Session, request_id: u32, address_space: &AddressSpace, request: PublishRequest) -> Result<Option<SupportedMessage>, StatusCode> {
         trace!("--> Receive a PublishRequest {:?}", request);
         if session.subscriptions.is_empty() {
             Ok(Some(self.service_fault(&request.request_header, StatusCode::BadNoSubscription)))
@@ -185,7 +185,7 @@ impl SubscriptionService {
 
     /// This function takes the requested values passed in a create / modify and returns revised
     /// values that conform to the server's limits. For simplicity the return type is a tuple
-    fn revise_subscription_values(server_state: &ServerState, requested_publishing_interval: Duration, requested_max_keep_alive_count: UInt32, requested_lifetime_count: UInt32) -> (Duration, UInt32, UInt32) {
+    fn revise_subscription_values(server_state: &ServerState, requested_publishing_interval: Duration, requested_max_keep_alive_count: u32, requested_lifetime_count: u32) -> (Duration, u32, u32) {
         let revised_publishing_interval = if requested_publishing_interval < server_state.min_publishing_interval {
             server_state.min_publishing_interval
         } else {

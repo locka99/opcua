@@ -33,13 +33,13 @@ pub struct SecureChannel {
     /// The security mode for the connection, None, Sign, SignAndEncrypt
     security_mode: MessageSecurityMode,
     /// Secure channel id
-    secure_channel_id: UInt32,
+    secure_channel_id: u32,
     /// Token creation time.
     token_created_at: DateTime,
     /// Token lifetime
-    token_lifetime: UInt32,
+    token_lifetime: u32,
     /// Token identifier
-    token_id: UInt32,
+    token_id: u32,
     /// Our certificate
     cert: Option<X509>,
     /// Our private key
@@ -163,11 +163,11 @@ impl SecureChannel {
         self.token_lifetime = channel_token.revised_lifetime;
     }
 
-    pub fn set_secure_channel_id(&mut self, secure_channel_id: UInt32) {
+    pub fn set_secure_channel_id(&mut self, secure_channel_id: u32) {
         self.secure_channel_id = secure_channel_id;
     }
 
-    pub fn secure_channel_id(&self) -> UInt32 {
+    pub fn secure_channel_id(&self) -> u32 {
         self.secure_channel_id
     }
 
@@ -175,15 +175,15 @@ impl SecureChannel {
         self.token_created_at.clone()
     }
 
-    pub fn token_lifetime(&self) -> UInt32 {
+    pub fn token_lifetime(&self) -> u32 {
         self.token_lifetime
     }
 
-    pub fn set_token_id(&mut self, token_id: UInt32) {
+    pub fn set_token_id(&mut self, token_id: u32) {
         self.token_id = token_id;
     }
 
-    pub fn token_id(&self) -> UInt32 {
+    pub fn token_id(&self) -> u32 {
         self.token_id
     }
 
@@ -460,7 +460,7 @@ impl SecureChannel {
         let mut message_header = MessageChunkHeader::decode(&mut stream, &decoding_limits)?;
         stream.set_position(0);
         let old_message_size = message_header.message_size;
-        message_header.message_size = message_size as UInt32;
+        message_header.message_size = message_size as u32;
         message_header.encode(&mut stream)?;
         trace!("Message header message size being modified from {} to {}", old_message_size, message_size);
         Ok(())

@@ -4,8 +4,8 @@ use prelude::*;
 use subscriptions::subscription::SubscriptionStateParams;
 use diagnostics::ServerDiagnostics;
 
-const DEFAULT_LIFETIME_COUNT: UInt32 = 300;
-const DEFAULT_KEEPALIVE_COUNT: UInt32 = 100;
+const DEFAULT_LIFETIME_COUNT: u32 = 300;
+const DEFAULT_KEEPALIVE_COUNT: u32 = 100;
 
 fn make_subscription(state: SubscriptionState) -> Subscription {
     let subscription_interval = 1000f64;

@@ -28,7 +28,7 @@ impl Chunker {
     ///
     /// The function returns the last sequence number in the series for success, or
     /// `BadSequenceNumberInvalid` or `BadSecureChannelIdInvalid` for failure.
-    pub fn validate_chunks(starting_sequence_number: UInt32, secure_channel: &SecureChannel, chunks: &Vec<MessageChunk>) -> Result<UInt32, StatusCode> {
+    pub fn validate_chunks(starting_sequence_number: u32, secure_channel: &SecureChannel, chunks: &Vec<MessageChunk>) -> Result<u32, StatusCode> {
         let first_sequence_number = {
             let chunk_info = chunks[0].chunk_info(secure_channel)?;
             chunk_info.sequence_header.sequence_number
@@ -41,7 +41,7 @@ impl Chunker {
         let secure_channel_id = secure_channel.secure_channel_id();
 
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
-        let mut expected_request_id: UInt32 = 0;
+        let mut expected_request_id: u32 = 0;
         for (i, chunk) in chunks.iter().enumerate() {
             let chunk_info = chunk.chunk_info(secure_channel)?;
 
@@ -53,7 +53,7 @@ impl Chunker {
 
             // Check the sequence id - should be larger than the last one decoded
             let sequence_number = chunk_info.sequence_header.sequence_number;
-            let expected_sequence_number = first_sequence_number + i as UInt32;
+            let expected_sequence_number = first_sequence_number + i as u32;
             if sequence_number != expected_sequence_number {
                 error!("Chunk sequence number of {} is not the expected value of {}, idx {}", sequence_number, expected_sequence_number, i);
                 return Err(StatusCode::BadSecurityChecksFailed);
@@ -67,7 +67,7 @@ impl Chunker {
                 return Err(StatusCode::BadSecurityChecksFailed);
             }
         }
-        Ok(first_sequence_number + chunks.len() as UInt32 - 1)
+        Ok(first_sequence_number + chunks.len() as u32 - 1)
     }
 
     /// Encodes a message using the supplied sequence number and secure channel info and emits the corresponding chunks
@@ -75,7 +75,7 @@ impl Chunker {
     /// max_chunk_size refers to the maximum byte length that a chunk should not exceed or 0 for no limit
     /// max_message_size refers to the maximum byte length of a message or 0 for no limit
     ///
-    pub fn encode(sequence_number: UInt32, request_id: UInt32, max_message_size: usize, max_chunk_size: usize, secure_channel: &SecureChannel, supported_message: &SupportedMessage) -> std::result::Result<Vec<MessageChunk>, StatusCode> {
+    pub fn encode(sequence_number: u32, request_id: u32, max_message_size: usize, max_chunk_size: usize, secure_channel: &SecureChannel, supported_message: &SupportedMessage) -> std::result::Result<Vec<MessageChunk>, StatusCode> {
         let security_policy = secure_channel.security_policy();
         if security_policy == SecurityPolicy::Unknown {
             panic!("Security policy cannot be unknown");

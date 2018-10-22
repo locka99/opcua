@@ -13,8 +13,8 @@ use service_types::impls::RequestHeader;
 #[derive(Debug, Clone, PartialEq)]
 pub struct RepublishRequest {
     pub request_header: RequestHeader,
-    pub subscription_id: UInt32,
-    pub retransmit_sequence_number: UInt32,
+    pub subscription_id: u32,
+    pub retransmit_sequence_number: u32,
 }
 
 impl MessageInfo for RepublishRequest {
@@ -44,8 +44,8 @@ impl BinaryEncoder<RepublishRequest> for RepublishRequest {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let subscription_id = UInt32::decode(stream, decoding_limits)?;
-        let retransmit_sequence_number = UInt32::decode(stream, decoding_limits)?;
+        let subscription_id = u32::decode(stream, decoding_limits)?;
+        let retransmit_sequence_number = u32::decode(stream, decoding_limits)?;
         Ok(RepublishRequest {
             request_header,
             subscription_id,

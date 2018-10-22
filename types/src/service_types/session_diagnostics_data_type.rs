@@ -22,15 +22,15 @@ pub struct SessionDiagnosticsDataType {
     pub server_uri: UAString,
     pub endpoint_url: UAString,
     pub locale_ids: Option<Vec<UAString>>,
-    pub actual_session_timeout: Double,
-    pub max_response_message_size: UInt32,
+    pub actual_session_timeout: f64,
+    pub max_response_message_size: u32,
     pub client_connection_time: DateTime,
     pub client_last_contact_time: DateTime,
-    pub current_subscriptions_count: UInt32,
-    pub current_monitored_items_count: UInt32,
-    pub current_publish_requests_in_queue: UInt32,
+    pub current_subscriptions_count: u32,
+    pub current_monitored_items_count: u32,
+    pub current_publish_requests_in_queue: u32,
     pub total_request_count: ServiceCounterDataType,
-    pub unauthorized_request_count: UInt32,
+    pub unauthorized_request_count: u32,
     pub read_count: ServiceCounterDataType,
     pub history_read_count: ServiceCounterDataType,
     pub write_count: ServiceCounterDataType,
@@ -173,15 +173,15 @@ impl BinaryEncoder<SessionDiagnosticsDataType> for SessionDiagnosticsDataType {
         let server_uri = UAString::decode(stream, decoding_limits)?;
         let endpoint_url = UAString::decode(stream, decoding_limits)?;
         let locale_ids: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
-        let actual_session_timeout = Double::decode(stream, decoding_limits)?;
-        let max_response_message_size = UInt32::decode(stream, decoding_limits)?;
+        let actual_session_timeout = f64::decode(stream, decoding_limits)?;
+        let max_response_message_size = u32::decode(stream, decoding_limits)?;
         let client_connection_time = DateTime::decode(stream, decoding_limits)?;
         let client_last_contact_time = DateTime::decode(stream, decoding_limits)?;
-        let current_subscriptions_count = UInt32::decode(stream, decoding_limits)?;
-        let current_monitored_items_count = UInt32::decode(stream, decoding_limits)?;
-        let current_publish_requests_in_queue = UInt32::decode(stream, decoding_limits)?;
+        let current_subscriptions_count = u32::decode(stream, decoding_limits)?;
+        let current_monitored_items_count = u32::decode(stream, decoding_limits)?;
+        let current_publish_requests_in_queue = u32::decode(stream, decoding_limits)?;
         let total_request_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
-        let unauthorized_request_count = UInt32::decode(stream, decoding_limits)?;
+        let unauthorized_request_count = u32::decode(stream, decoding_limits)?;
         let read_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
         let history_read_count = ServiceCounterDataType::decode(stream, decoding_limits)?;
         let write_count = ServiceCounterDataType::decode(stream, decoding_limits)?;

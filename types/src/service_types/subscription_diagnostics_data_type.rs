@@ -13,36 +13,36 @@ use node_id::NodeId;
 #[derive(Debug, Clone, PartialEq)]
 pub struct SubscriptionDiagnosticsDataType {
     pub session_id: NodeId,
-    pub subscription_id: UInt32,
-    pub priority: Byte,
-    pub publishing_interval: Double,
-    pub max_keep_alive_count: UInt32,
-    pub max_lifetime_count: UInt32,
-    pub max_notifications_per_publish: UInt32,
-    pub publishing_enabled: Boolean,
-    pub modify_count: UInt32,
-    pub enable_count: UInt32,
-    pub disable_count: UInt32,
-    pub republish_request_count: UInt32,
-    pub republish_message_request_count: UInt32,
-    pub republish_message_count: UInt32,
-    pub transfer_request_count: UInt32,
-    pub transferred_to_alt_client_count: UInt32,
-    pub transferred_to_same_client_count: UInt32,
-    pub publish_request_count: UInt32,
-    pub data_change_notifications_count: UInt32,
-    pub event_notifications_count: UInt32,
-    pub notifications_count: UInt32,
-    pub late_publish_request_count: UInt32,
-    pub current_keep_alive_count: UInt32,
-    pub current_lifetime_count: UInt32,
-    pub unacknowledged_message_count: UInt32,
-    pub discarded_message_count: UInt32,
-    pub monitored_item_count: UInt32,
-    pub disabled_monitored_item_count: UInt32,
-    pub monitoring_queue_overflow_count: UInt32,
-    pub next_sequence_number: UInt32,
-    pub event_queue_over_flow_count: UInt32,
+    pub subscription_id: u32,
+    pub priority: u8,
+    pub publishing_interval: f64,
+    pub max_keep_alive_count: u32,
+    pub max_lifetime_count: u32,
+    pub max_notifications_per_publish: u32,
+    pub publishing_enabled: bool,
+    pub modify_count: u32,
+    pub enable_count: u32,
+    pub disable_count: u32,
+    pub republish_request_count: u32,
+    pub republish_message_request_count: u32,
+    pub republish_message_count: u32,
+    pub transfer_request_count: u32,
+    pub transferred_to_alt_client_count: u32,
+    pub transferred_to_same_client_count: u32,
+    pub publish_request_count: u32,
+    pub data_change_notifications_count: u32,
+    pub event_notifications_count: u32,
+    pub notifications_count: u32,
+    pub late_publish_request_count: u32,
+    pub current_keep_alive_count: u32,
+    pub current_lifetime_count: u32,
+    pub unacknowledged_message_count: u32,
+    pub discarded_message_count: u32,
+    pub monitored_item_count: u32,
+    pub disabled_monitored_item_count: u32,
+    pub monitoring_queue_overflow_count: u32,
+    pub next_sequence_number: u32,
+    pub event_queue_over_flow_count: u32,
 }
 
 impl MessageInfo for SubscriptionDiagnosticsDataType {
@@ -128,36 +128,36 @@ impl BinaryEncoder<SubscriptionDiagnosticsDataType> for SubscriptionDiagnosticsD
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let session_id = NodeId::decode(stream, decoding_limits)?;
-        let subscription_id = UInt32::decode(stream, decoding_limits)?;
-        let priority = Byte::decode(stream, decoding_limits)?;
-        let publishing_interval = Double::decode(stream, decoding_limits)?;
-        let max_keep_alive_count = UInt32::decode(stream, decoding_limits)?;
-        let max_lifetime_count = UInt32::decode(stream, decoding_limits)?;
-        let max_notifications_per_publish = UInt32::decode(stream, decoding_limits)?;
-        let publishing_enabled = Boolean::decode(stream, decoding_limits)?;
-        let modify_count = UInt32::decode(stream, decoding_limits)?;
-        let enable_count = UInt32::decode(stream, decoding_limits)?;
-        let disable_count = UInt32::decode(stream, decoding_limits)?;
-        let republish_request_count = UInt32::decode(stream, decoding_limits)?;
-        let republish_message_request_count = UInt32::decode(stream, decoding_limits)?;
-        let republish_message_count = UInt32::decode(stream, decoding_limits)?;
-        let transfer_request_count = UInt32::decode(stream, decoding_limits)?;
-        let transferred_to_alt_client_count = UInt32::decode(stream, decoding_limits)?;
-        let transferred_to_same_client_count = UInt32::decode(stream, decoding_limits)?;
-        let publish_request_count = UInt32::decode(stream, decoding_limits)?;
-        let data_change_notifications_count = UInt32::decode(stream, decoding_limits)?;
-        let event_notifications_count = UInt32::decode(stream, decoding_limits)?;
-        let notifications_count = UInt32::decode(stream, decoding_limits)?;
-        let late_publish_request_count = UInt32::decode(stream, decoding_limits)?;
-        let current_keep_alive_count = UInt32::decode(stream, decoding_limits)?;
-        let current_lifetime_count = UInt32::decode(stream, decoding_limits)?;
-        let unacknowledged_message_count = UInt32::decode(stream, decoding_limits)?;
-        let discarded_message_count = UInt32::decode(stream, decoding_limits)?;
-        let monitored_item_count = UInt32::decode(stream, decoding_limits)?;
-        let disabled_monitored_item_count = UInt32::decode(stream, decoding_limits)?;
-        let monitoring_queue_overflow_count = UInt32::decode(stream, decoding_limits)?;
-        let next_sequence_number = UInt32::decode(stream, decoding_limits)?;
-        let event_queue_over_flow_count = UInt32::decode(stream, decoding_limits)?;
+        let subscription_id = u32::decode(stream, decoding_limits)?;
+        let priority = u8::decode(stream, decoding_limits)?;
+        let publishing_interval = f64::decode(stream, decoding_limits)?;
+        let max_keep_alive_count = u32::decode(stream, decoding_limits)?;
+        let max_lifetime_count = u32::decode(stream, decoding_limits)?;
+        let max_notifications_per_publish = u32::decode(stream, decoding_limits)?;
+        let publishing_enabled = bool::decode(stream, decoding_limits)?;
+        let modify_count = u32::decode(stream, decoding_limits)?;
+        let enable_count = u32::decode(stream, decoding_limits)?;
+        let disable_count = u32::decode(stream, decoding_limits)?;
+        let republish_request_count = u32::decode(stream, decoding_limits)?;
+        let republish_message_request_count = u32::decode(stream, decoding_limits)?;
+        let republish_message_count = u32::decode(stream, decoding_limits)?;
+        let transfer_request_count = u32::decode(stream, decoding_limits)?;
+        let transferred_to_alt_client_count = u32::decode(stream, decoding_limits)?;
+        let transferred_to_same_client_count = u32::decode(stream, decoding_limits)?;
+        let publish_request_count = u32::decode(stream, decoding_limits)?;
+        let data_change_notifications_count = u32::decode(stream, decoding_limits)?;
+        let event_notifications_count = u32::decode(stream, decoding_limits)?;
+        let notifications_count = u32::decode(stream, decoding_limits)?;
+        let late_publish_request_count = u32::decode(stream, decoding_limits)?;
+        let current_keep_alive_count = u32::decode(stream, decoding_limits)?;
+        let current_lifetime_count = u32::decode(stream, decoding_limits)?;
+        let unacknowledged_message_count = u32::decode(stream, decoding_limits)?;
+        let discarded_message_count = u32::decode(stream, decoding_limits)?;
+        let monitored_item_count = u32::decode(stream, decoding_limits)?;
+        let disabled_monitored_item_count = u32::decode(stream, decoding_limits)?;
+        let monitoring_queue_overflow_count = u32::decode(stream, decoding_limits)?;
+        let next_sequence_number = u32::decode(stream, decoding_limits)?;
+        let event_queue_over_flow_count = u32::decode(stream, decoding_limits)?;
         Ok(SubscriptionDiagnosticsDataType {
             session_id,
             subscription_id,

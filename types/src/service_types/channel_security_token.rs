@@ -13,10 +13,10 @@ use date_time::DateTime;
 /// The token that identifies a set of keys for an active secure channel.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChannelSecurityToken {
-    pub channel_id: UInt32,
-    pub token_id: UInt32,
+    pub channel_id: u32,
+    pub token_id: u32,
     pub created_at: DateTime,
-    pub revised_lifetime: UInt32,
+    pub revised_lifetime: u32,
 }
 
 impl MessageInfo for ChannelSecurityToken {
@@ -47,10 +47,10 @@ impl BinaryEncoder<ChannelSecurityToken> for ChannelSecurityToken {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let channel_id = UInt32::decode(stream, decoding_limits)?;
-        let token_id = UInt32::decode(stream, decoding_limits)?;
+        let channel_id = u32::decode(stream, decoding_limits)?;
+        let token_id = u32::decode(stream, decoding_limits)?;
         let created_at = DateTime::decode(stream, decoding_limits)?;
-        let revised_lifetime = UInt32::decode(stream, decoding_limits)?;
+        let revised_lifetime = u32::decode(stream, decoding_limits)?;
         Ok(ChannelSecurityToken {
             channel_id,
             token_id,

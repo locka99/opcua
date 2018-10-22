@@ -21,13 +21,13 @@ pub struct CreateSessionResponse {
     pub response_header: ResponseHeader,
     pub session_id: NodeId,
     pub authentication_token: NodeId,
-    pub revised_session_timeout: Double,
+    pub revised_session_timeout: f64,
     pub server_nonce: ByteString,
     pub server_certificate: ByteString,
     pub server_endpoints: Option<Vec<EndpointDescription>>,
     pub server_software_certificates: Option<Vec<SignedSoftwareCertificate>>,
     pub server_signature: SignatureData,
-    pub max_request_message_size: UInt32,
+    pub max_request_message_size: u32,
 }
 
 impl MessageInfo for CreateSessionResponse {
@@ -73,13 +73,13 @@ impl BinaryEncoder<CreateSessionResponse> for CreateSessionResponse {
         let response_header = ResponseHeader::decode(stream, decoding_limits)?;
         let session_id = NodeId::decode(stream, decoding_limits)?;
         let authentication_token = NodeId::decode(stream, decoding_limits)?;
-        let revised_session_timeout = Double::decode(stream, decoding_limits)?;
+        let revised_session_timeout = f64::decode(stream, decoding_limits)?;
         let server_nonce = ByteString::decode(stream, decoding_limits)?;
         let server_certificate = ByteString::decode(stream, decoding_limits)?;
         let server_endpoints: Option<Vec<EndpointDescription>> = read_array(stream, decoding_limits)?;
         let server_software_certificates: Option<Vec<SignedSoftwareCertificate>> = read_array(stream, decoding_limits)?;
         let server_signature = SignatureData::decode(stream, decoding_limits)?;
-        let max_request_message_size = UInt32::decode(stream, decoding_limits)?;
+        let max_request_message_size = u32::decode(stream, decoding_limits)?;
         Ok(CreateSessionResponse {
             response_header,
             session_id,

@@ -13,11 +13,11 @@ use basic_types::LocalizedText;
 /// The base attributes for all nodes.
 #[derive(Debug, Clone, PartialEq)]
 pub struct NodeAttributes {
-    pub specified_attributes: UInt32,
+    pub specified_attributes: u32,
     pub display_name: LocalizedText,
     pub description: LocalizedText,
-    pub write_mask: UInt32,
-    pub user_write_mask: UInt32,
+    pub write_mask: u32,
+    pub user_write_mask: u32,
 }
 
 impl MessageInfo for NodeAttributes {
@@ -50,11 +50,11 @@ impl BinaryEncoder<NodeAttributes> for NodeAttributes {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let specified_attributes = UInt32::decode(stream, decoding_limits)?;
+        let specified_attributes = u32::decode(stream, decoding_limits)?;
         let display_name = LocalizedText::decode(stream, decoding_limits)?;
         let description = LocalizedText::decode(stream, decoding_limits)?;
-        let write_mask = UInt32::decode(stream, decoding_limits)?;
-        let user_write_mask = UInt32::decode(stream, decoding_limits)?;
+        let write_mask = u32::decode(stream, decoding_limits)?;
+        let user_write_mask = u32::decode(stream, decoding_limits)?;
         Ok(NodeAttributes {
             specified_attributes,
             display_name,

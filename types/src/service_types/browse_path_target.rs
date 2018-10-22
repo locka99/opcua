@@ -14,7 +14,7 @@ use node_id::ExpandedNodeId;
 #[derive(Debug, Clone, PartialEq)]
 pub struct BrowsePathTarget {
     pub target_id: ExpandedNodeId,
-    pub remaining_path_index: UInt32,
+    pub remaining_path_index: u32,
 }
 
 impl MessageInfo for BrowsePathTarget {
@@ -42,7 +42,7 @@ impl BinaryEncoder<BrowsePathTarget> for BrowsePathTarget {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let target_id = ExpandedNodeId::decode(stream, decoding_limits)?;
-        let remaining_path_index = UInt32::decode(stream, decoding_limits)?;
+        let remaining_path_index = u32::decode(stream, decoding_limits)?;
         Ok(BrowsePathTarget {
             target_id,
             remaining_path_index,

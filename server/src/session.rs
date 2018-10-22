@@ -42,13 +42,13 @@ pub struct Session {
     /// Session nonce
     pub session_nonce: ByteString,
     /// Session timeout
-    pub session_timeout: Double,
+    pub session_timeout: f64,
     /// User identity token
     pub user_identity: Option<ExtensionObject>,
     /// Negotiated max request message size
-    pub max_request_message_size: UInt32,
+    pub max_request_message_size: u32,
     /// Negotiated max response message size
-    pub max_response_message_size: UInt32,
+    pub max_response_message_size: u32,
     /// Endpoint url for this session
     pub endpoint_url: UAString,
     /// Maximum number of continuation points
@@ -64,7 +64,7 @@ pub struct Session {
     /// Flag indicating session is actually terminated
     terminated: bool,
     /// Internal value used to create new session ids.
-    last_session_id: UInt32,
+    last_session_id: u32,
 }
 
 impl Drop for Session {
@@ -170,7 +170,7 @@ impl Session {
         self.terminated_at = chrono::Utc::now();
     }
 
-    pub fn enqueue_publish_request(&mut self, address_space: &AddressSpace, request_id: UInt32, request: PublishRequest) -> Result<(), StatusCode> {
+    pub fn enqueue_publish_request(&mut self, address_space: &AddressSpace, request_id: u32, request: PublishRequest) -> Result<(), StatusCode> {
         self.subscriptions.enqueue_publish_request(address_space, request_id, request)
     }
 
@@ -180,7 +180,7 @@ impl Session {
 
     /// Reset the lifetime counter on the subscription, e.g. because a service references the
     /// subscription.
-    pub fn reset_subscription_lifetime_counter(&mut self, subscription_id: UInt32) {
+    pub fn reset_subscription_lifetime_counter(&mut self, subscription_id: u32) {
         if let Some(subscription) = self.subscriptions.get_mut(subscription_id) {
             subscription.reset_lifetime_counter();
         }

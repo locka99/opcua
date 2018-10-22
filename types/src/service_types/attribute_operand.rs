@@ -15,7 +15,7 @@ pub struct AttributeOperand {
     pub node_id: NodeId,
     pub alias: UAString,
     pub browse_path: RelativePath,
-    pub attribute_id: UInt32,
+    pub attribute_id: u32,
     pub index_range: UAString,
 }
 
@@ -46,7 +46,7 @@ impl BinaryEncoder<AttributeOperand> for AttributeOperand {
         let node_id = NodeId::decode(stream, decoding_limits)?;
         let alias = UAString::decode(stream, decoding_limits)?;
         let browse_path = RelativePath::decode(stream, decoding_limits)?;
-        let attribute_id = UInt32::decode(stream, decoding_limits)?;
+        let attribute_id = u32::decode(stream, decoding_limits)?;
         let index_range = UAString::decode(stream, decoding_limits)?;
         Ok(AttributeOperand {
             node_id,

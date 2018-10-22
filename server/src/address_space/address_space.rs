@@ -153,13 +153,13 @@ impl AddressSpace {
         {
             let server_state = trace_read_lock_unwrap!(server_state);
             let server_config = trace_read_lock_unwrap!(server_state.config);
-            self.set_variable_value(Server_ServerCapabilities_MaxArrayLength, server_config.max_array_length as UInt32);
-            self.set_variable_value(Server_ServerCapabilities_MaxStringLength, server_config.max_string_length as UInt32);
-            self.set_variable_value(Server_ServerCapabilities_MaxByteStringLength, server_config.max_byte_string_length as UInt32);
-            self.set_variable_value(Server_ServerCapabilities_MaxBrowseContinuationPoints, constants::MAX_BROWSE_CONTINUATION_POINTS as UInt32);
-            self.set_variable_value(Server_ServerCapabilities_MaxHistoryContinuationPoints, constants::MAX_HISTORY_CONTINUATION_POINTS as UInt32);
-            self.set_variable_value(Server_ServerCapabilities_MaxQueryContinuationPoints, constants::MAX_QUERY_CONTINUATION_POINTS as UInt32);
-            self.set_variable_value(Server_ServerCapabilities_MinSupportedSampleRate, constants::MIN_SAMPLING_INTERVAL as Double);
+            self.set_variable_value(Server_ServerCapabilities_MaxArrayLength, server_config.max_array_length as u32);
+            self.set_variable_value(Server_ServerCapabilities_MaxStringLength, server_config.max_string_length as u32);
+            self.set_variable_value(Server_ServerCapabilities_MaxByteStringLength, server_config.max_byte_string_length as u32);
+            self.set_variable_value(Server_ServerCapabilities_MaxBrowseContinuationPoints, constants::MAX_BROWSE_CONTINUATION_POINTS as u32);
+            self.set_variable_value(Server_ServerCapabilities_MaxHistoryContinuationPoints, constants::MAX_HISTORY_CONTINUATION_POINTS as u32);
+            self.set_variable_value(Server_ServerCapabilities_MaxQueryContinuationPoints, constants::MAX_QUERY_CONTINUATION_POINTS as u32);
+            self.set_variable_value(Server_ServerCapabilities_MinSupportedSampleRate, constants::MIN_SAMPLING_INTERVAL as f64);
         }
 
         // Server_ServerCapabilities_ServerProfileArray
@@ -255,7 +255,7 @@ impl AddressSpace {
             // Used to return the current time of the server, i.e. now
             let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Result<Option<DataValue>, StatusCode> {
                 // let server_state =  trace_read_lock_unwrap!(server_state);
-                Ok(Some(DataValue::new(0 as Int32)))
+                Ok(Some(DataValue::new(0 as i32)))
             });
             v.set_value_getter(Arc::new(Mutex::new(getter)));
         }
@@ -277,17 +277,17 @@ impl AddressSpace {
     /// Updates the server diagnostics data with new values
     pub fn set_server_diagnostics_summary(&mut self, sds: ServerDiagnosticsSummaryDataType) {
         use opcua_types::node_ids::VariableId::*;
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_ServerViewCount, sds.server_view_count as UInt32);
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSessionCount, sds.current_session_count as UInt32);
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSessionCount, sds.cumulated_session_count as UInt32);
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedSessionCount, sds.security_rejected_session_count as UInt32);
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionTimeoutCount, sds.session_timeout_count as UInt32);
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionAbortCount, sds.session_abort_count as UInt32);
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_PublishingIntervalCount, sds.publishing_interval_count as UInt32);
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSubscriptionCount, sds.current_subscription_count as UInt32);
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSubscriptionCount, sds.cumulated_subscription_count as UInt32);
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedRequestsCount, sds.security_rejected_requests_count as UInt32);
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount, sds.rejected_requests_count as UInt32);
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_ServerViewCount, sds.server_view_count as u32);
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSessionCount, sds.current_session_count as u32);
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSessionCount, sds.cumulated_session_count as u32);
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedSessionCount, sds.security_rejected_session_count as u32);
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionTimeoutCount, sds.session_timeout_count as u32);
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionAbortCount, sds.session_abort_count as u32);
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_PublishingIntervalCount, sds.publishing_interval_count as u32);
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSubscriptionCount, sds.current_subscription_count as u32);
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSubscriptionCount, sds.cumulated_subscription_count as u32);
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedRequestsCount, sds.security_rejected_requests_count as u32);
+        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount, sds.rejected_requests_count as u32);
     }
 
     /// Returns the node id for the root folder

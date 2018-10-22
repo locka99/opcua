@@ -9,7 +9,7 @@ pub struct DataType {
 node_impl!(DataType);
 
 impl DataType {
-    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, is_abstract: Boolean) -> DataType {
+    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, is_abstract: bool) -> DataType {
         let attributes = vec![
             (AttributeId::IsAbstract, Variant::Boolean(is_abstract)),
         ];

@@ -2,7 +2,6 @@
 
 use std::io::{Read, Write};
 
-use basic_types::*;
 use encoding::*;
 use status_codes::StatusCode;
 use string::UAString;
@@ -48,13 +47,13 @@ bitflags! {
 #[derive(PartialEq, Debug, Clone)]
 pub struct DiagnosticInfo {
     /// A symbolic name for the status code.
-    pub symbolic_id: Option<Int32>,
+    pub symbolic_id: Option<i32>,
     /// A namespace that qualifies the symbolic id.
-    pub namespace_uri: Option<Int32>,
+    pub namespace_uri: Option<i32>,
     /// The locale used for the localized text.
-    pub locale: Option<Int32>,
+    pub locale: Option<i32>,
     /// A human readable summary of the status code.
-    pub localized_text: Option<Int32>,
+    pub localized_text: Option<i32>,
     /// Detailed application specific diagnostic information.
     pub additional_info: Option<UAString>,
     /// A status code provided by an underlying system.
@@ -133,24 +132,24 @@ impl BinaryEncoder<DiagnosticInfo> for DiagnosticInfo {
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let encoding_mask = DiagnosticInfoMask::from_bits_truncate(Byte::decode(stream, decoding_limits)?);
+        let encoding_mask = DiagnosticInfoMask::from_bits_truncate(u8::decode(stream, decoding_limits)?);
         let mut diagnostic_info = DiagnosticInfo::default();
 
         if encoding_mask.contains(DiagnosticInfoMask::HAS_SYMBOLIC_ID) {
             // Read symbolic id
-            diagnostic_info.symbolic_id = Some(Int32::decode(stream, decoding_limits)?);
+            diagnostic_info.symbolic_id = Some(i32::decode(stream, decoding_limits)?);
         }
         if encoding_mask.contains(DiagnosticInfoMask::HAS_NAMESPACE) {
             // Read namespace
-            diagnostic_info.namespace_uri = Some(Int32::decode(stream, decoding_limits)?);
+            diagnostic_info.namespace_uri = Some(i32::decode(stream, decoding_limits)?);
         }
         if encoding_mask.contains(DiagnosticInfoMask::HAS_LOCALE) {
             // Read locale
-            diagnostic_info.locale = Some(Int32::decode(stream, decoding_limits)?);
+            diagnostic_info.locale = Some(i32::decode(stream, decoding_limits)?);
         }
         if encoding_mask.contains(DiagnosticInfoMask::HAS_LOCALIZED_TEXT) {
             // Read localized text
-            diagnostic_info.localized_text = Some(Int32::decode(stream, decoding_limits)?);
+            diagnostic_info.localized_text = Some(i32::decode(stream, decoding_limits)?);
         }
         if encoding_mask.contains(DiagnosticInfoMask::HAS_ADDITIONAL_INFO) {
             // Read Additional info

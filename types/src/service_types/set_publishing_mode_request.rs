@@ -13,8 +13,8 @@ use service_types::impls::RequestHeader;
 #[derive(Debug, Clone, PartialEq)]
 pub struct SetPublishingModeRequest {
     pub request_header: RequestHeader,
-    pub publishing_enabled: Boolean,
-    pub subscription_ids: Option<Vec<UInt32>>,
+    pub publishing_enabled: bool,
+    pub subscription_ids: Option<Vec<u32>>,
 }
 
 impl MessageInfo for SetPublishingModeRequest {
@@ -44,8 +44,8 @@ impl BinaryEncoder<SetPublishingModeRequest> for SetPublishingModeRequest {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let publishing_enabled = Boolean::decode(stream, decoding_limits)?;
-        let subscription_ids: Option<Vec<UInt32>> = read_array(stream, decoding_limits)?;
+        let publishing_enabled = bool::decode(stream, decoding_limits)?;
+        let subscription_ids: Option<Vec<u32>> = read_array(stream, decoding_limits)?;
         Ok(SetPublishingModeRequest {
             request_header,
             publishing_enabled,

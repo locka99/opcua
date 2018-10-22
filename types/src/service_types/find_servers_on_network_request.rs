@@ -14,8 +14,8 @@ use string::UAString;
 #[derive(Debug, Clone, PartialEq)]
 pub struct FindServersOnNetworkRequest {
     pub request_header: RequestHeader,
-    pub starting_record_id: UInt32,
-    pub max_records_to_return: UInt32,
+    pub starting_record_id: u32,
+    pub max_records_to_return: u32,
     pub server_capability_filter: Option<Vec<UAString>>,
 }
 
@@ -48,8 +48,8 @@ impl BinaryEncoder<FindServersOnNetworkRequest> for FindServersOnNetworkRequest 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let starting_record_id = UInt32::decode(stream, decoding_limits)?;
-        let max_records_to_return = UInt32::decode(stream, decoding_limits)?;
+        let starting_record_id = u32::decode(stream, decoding_limits)?;
+        let max_records_to_return = u32::decode(stream, decoding_limits)?;
         let server_capability_filter: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
         Ok(FindServersOnNetworkRequest {
             request_header,

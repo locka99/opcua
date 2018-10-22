@@ -13,9 +13,9 @@ struct SecureChannelState {
     // Renew count, debugging
     pub renew_count: usize,
     // Last secure channel id
-    last_secure_channel_id: UInt32,
+    last_secure_channel_id: u32,
     /// Last token id number
-    last_token_id: UInt32,
+    last_token_id: u32,
 }
 
 impl SecureChannelState {
@@ -28,12 +28,12 @@ impl SecureChannelState {
         }
     }
 
-    pub fn create_secure_channel_id(&mut self) -> UInt32 {
+    pub fn create_secure_channel_id(&mut self) -> u32 {
         self.last_secure_channel_id += 1;
         self.last_secure_channel_id
     }
 
-    pub fn create_token_id(&mut self) -> UInt32 {
+    pub fn create_token_id(&mut self) -> u32 {
         self.last_token_id += 1;
         self.last_token_id
     }
@@ -51,7 +51,7 @@ impl SecureChannelService {
         }
     }
 
-    pub fn open_secure_channel(&mut self, secure_channel: &mut SecureChannel, security_header: &SecurityHeader, client_protocol_version: UInt32, message: &SupportedMessage) -> Result<SupportedMessage, StatusCode> {
+    pub fn open_secure_channel(&mut self, secure_channel: &mut SecureChannel, security_header: &SecurityHeader, client_protocol_version: u32, message: &SupportedMessage) -> Result<SupportedMessage, StatusCode> {
         let request = match *message {
             SupportedMessage::OpenSecureChannelRequest(ref request) => {
                 trace!("Got secure channel request {:?}", request);

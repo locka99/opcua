@@ -19,8 +19,8 @@ pub struct QueryFirstRequest {
     pub view: ViewDescription,
     pub node_types: Option<Vec<NodeTypeDescription>>,
     pub filter: ContentFilter,
-    pub max_data_sets_to_return: UInt32,
-    pub max_references_to_return: UInt32,
+    pub max_data_sets_to_return: u32,
+    pub max_references_to_return: u32,
 }
 
 impl MessageInfo for QueryFirstRequest {
@@ -59,8 +59,8 @@ impl BinaryEncoder<QueryFirstRequest> for QueryFirstRequest {
         let view = ViewDescription::decode(stream, decoding_limits)?;
         let node_types: Option<Vec<NodeTypeDescription>> = read_array(stream, decoding_limits)?;
         let filter = ContentFilter::decode(stream, decoding_limits)?;
-        let max_data_sets_to_return = UInt32::decode(stream, decoding_limits)?;
-        let max_references_to_return = UInt32::decode(stream, decoding_limits)?;
+        let max_data_sets_to_return = u32::decode(stream, decoding_limits)?;
+        let max_references_to_return = u32::decode(stream, decoding_limits)?;
         Ok(QueryFirstRequest {
             request_header,
             view,

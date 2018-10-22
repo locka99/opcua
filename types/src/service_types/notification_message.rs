@@ -13,7 +13,7 @@ use extension_object::ExtensionObject;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct NotificationMessage {
-    pub sequence_number: UInt32,
+    pub sequence_number: u32,
     pub publish_time: DateTime,
     pub notification_data: Option<Vec<ExtensionObject>>,
 }
@@ -44,7 +44,7 @@ impl BinaryEncoder<NotificationMessage> for NotificationMessage {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let sequence_number = UInt32::decode(stream, decoding_limits)?;
+        let sequence_number = u32::decode(stream, decoding_limits)?;
         let publish_time = DateTime::decode(stream, decoding_limits)?;
         let notification_data: Option<Vec<ExtensionObject>> = read_array(stream, decoding_limits)?;
         Ok(NotificationMessage {

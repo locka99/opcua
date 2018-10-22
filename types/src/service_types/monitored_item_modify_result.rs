@@ -14,8 +14,8 @@ use extension_object::ExtensionObject;
 #[derive(Debug, Clone, PartialEq)]
 pub struct MonitoredItemModifyResult {
     pub status_code: StatusCode,
-    pub revised_sampling_interval: Double,
-    pub revised_queue_size: UInt32,
+    pub revised_sampling_interval: f64,
+    pub revised_queue_size: u32,
     pub filter_result: ExtensionObject,
 }
 
@@ -48,8 +48,8 @@ impl BinaryEncoder<MonitoredItemModifyResult> for MonitoredItemModifyResult {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let status_code = StatusCode::decode(stream, decoding_limits)?;
-        let revised_sampling_interval = Double::decode(stream, decoding_limits)?;
-        let revised_queue_size = UInt32::decode(stream, decoding_limits)?;
+        let revised_sampling_interval = f64::decode(stream, decoding_limits)?;
+        let revised_queue_size = u32::decode(stream, decoding_limits)?;
         let filter_result = ExtensionObject::decode(stream, decoding_limits)?;
         Ok(MonitoredItemModifyResult {
             status_code,

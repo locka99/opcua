@@ -1,13 +1,12 @@
 ///! Helpers for NotificationMessage types
 use date_time::DateTime;
 use encoding::DecodingLimits;
-use basic_types::*;
 use extension_object::ExtensionObject;
 use node_ids::ObjectId;
 use service_types::{NotificationMessage, MonitoredItemNotification, DataChangeNotification};
 
 impl NotificationMessage {
-    pub fn data_change(sequence_number: UInt32, publish_time: DateTime, monitored_items: Vec<MonitoredItemNotification>) -> NotificationMessage {
+    pub fn data_change(sequence_number: u32, publish_time: DateTime, monitored_items: Vec<MonitoredItemNotification>) -> NotificationMessage {
         let data_change_notification = DataChangeNotification {
             monitored_items: Some(monitored_items),
             diagnostic_infos: None,
@@ -24,7 +23,7 @@ impl NotificationMessage {
         }
     }
 
-    pub fn keep_alive(sequence_number: UInt32, publish_time: DateTime) -> NotificationMessage {
+    pub fn keep_alive(sequence_number: u32, publish_time: DateTime) -> NotificationMessage {
         NotificationMessage {
             sequence_number,
             publish_time,

@@ -23,7 +23,7 @@ fn make_browse_request(nodes: &[NodeId], max_references_per_node: usize, browse_
             timestamp: DateTime::now(),
             view_version: 0,
         },
-        requested_max_references_per_node: max_references_per_node as UInt32,
+        requested_max_references_per_node: max_references_per_node as u32,
         nodes_to_browse: Some(nodes_to_browse)
     }
 }
@@ -200,7 +200,7 @@ fn browse_next() {
         {
             let var_name = "xxxx";
             let node_id = NodeId::new(1, var_name);
-            let var = Variable::new(&node_id, var_name, var_name, "", 200 as Int32);
+            let var = Variable::new(&node_id, var_name, var_name, "", 200 as i32);
             let _ = address_space.add_variable(var, &parent_node_id);
         }
 

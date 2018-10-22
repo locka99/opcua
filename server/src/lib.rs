@@ -89,8 +89,6 @@ pub mod prelude {
 
 pub mod constants {
     //! Provides constants that govern the internal workings of the server implementation.
-    use opcua_types::Double;
-
     /// The default hello timeout period in seconds
     pub const DEFAULT_HELLO_TIMEOUT_SECONDS: u32 = 120;
     /// Default OPC UA server port for this implementation
@@ -107,9 +105,9 @@ pub mod constants {
     /// publish interval cannot be less than this.
     pub const SUBSCRIPTION_TIMER_RATE_MS: u64 = 100;
     /// Minimum publishing interval for subscriptions
-    pub const MIN_PUBLISHING_INTERVAL: Double = (SUBSCRIPTION_TIMER_RATE_MS as f64) / 1000.0;
+    pub const MIN_PUBLISHING_INTERVAL: f64 = (SUBSCRIPTION_TIMER_RATE_MS as f64) / 1000.0;
     /// Minimum sampling interval on monitored items
-    pub const MIN_SAMPLING_INTERVAL: Double = (SUBSCRIPTION_TIMER_RATE_MS as f64) / 1000.0;
+    pub const MIN_SAMPLING_INTERVAL: f64 = (SUBSCRIPTION_TIMER_RATE_MS as f64) / 1000.0;
     /// Maximum data change queue allowed by clients on monitored items
     pub const MAX_DATA_CHANGE_QUEUE_SIZE: usize = 10;
     /// The default size of preallocated vecs of monitored items per subscription

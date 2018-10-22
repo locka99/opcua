@@ -11,7 +11,7 @@ use service_types::EventFilter;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReadEventDetails {
-    pub num_values_per_node: UInt32,
+    pub num_values_per_node: u32,
     pub start_time: DateTime,
     pub end_time: DateTime,
     pub filter: EventFilter,
@@ -39,7 +39,7 @@ impl BinaryEncoder<ReadEventDetails> for ReadEventDetails {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let num_values_per_node = UInt32::decode(stream, decoding_limits)?;
+        let num_values_per_node = u32::decode(stream, decoding_limits)?;
         let start_time = DateTime::decode(stream, decoding_limits)?;
         let end_time = DateTime::decode(stream, decoding_limits)?;
         let filter = EventFilter::decode(stream, decoding_limits)?;

@@ -11,8 +11,8 @@ use node_ids::ObjectId;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ComplexNumberType {
-    pub real: Float,
-    pub imaginary: Float,
+    pub real: f32,
+    pub imaginary: f32,
 }
 
 impl MessageInfo for ComplexNumberType {
@@ -39,8 +39,8 @@ impl BinaryEncoder<ComplexNumberType> for ComplexNumberType {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let real = Float::decode(stream, decoding_limits)?;
-        let imaginary = Float::decode(stream, decoding_limits)?;
+        let real = f32::decode(stream, decoding_limits)?;
+        let imaginary = f32::decode(stream, decoding_limits)?;
         Ok(ComplexNumberType {
             real,
             imaginary,

@@ -12,7 +12,7 @@ use data_value::DataValue;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MonitoredItemNotification {
-    pub client_handle: UInt32,
+    pub client_handle: u32,
     pub value: DataValue,
 }
 
@@ -40,7 +40,7 @@ impl BinaryEncoder<MonitoredItemNotification> for MonitoredItemNotification {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let client_handle = UInt32::decode(stream, decoding_limits)?;
+        let client_handle = u32::decode(stream, decoding_limits)?;
         let value = DataValue::decode(stream, decoding_limits)?;
         Ok(MonitoredItemNotification {
             client_handle,

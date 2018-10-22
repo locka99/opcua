@@ -19,7 +19,7 @@ impl Object {
         }
     }
 
-    pub fn event_notifier(&self) -> Boolean {
+    pub fn event_notifier(&self) -> bool {
         find_attribute_value_mandatory!(&self.base, EventNotifier, Boolean)
     }
 }

@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use opcua_types::{Boolean, Byte, Double, UInt32};
 use opcua_types::service_types::DataChangeNotification;
 
 use subscription::*;
@@ -8,7 +7,7 @@ use subscription::*;
 /// Holds the live subscription state
 pub(crate) struct SubscriptionState {
     /// Subscriptions (key = subscription_id)
-    subscriptions: HashMap<UInt32, Subscription>,
+    subscriptions: HashMap<u32, Subscription>,
 }
 
 impl SubscriptionState {
@@ -18,11 +17,11 @@ impl SubscriptionState {
         }
     }
 
-    pub fn subscriptions(&mut self) -> HashMap<UInt32, Subscription> {
+    pub fn subscriptions(&mut self) -> HashMap<u32, Subscription> {
         self.subscriptions.drain().collect()
     }
 
-    pub fn subscription_ids(&self) -> Option<Vec<UInt32>> {
+    pub fn subscription_ids(&self) -> Option<Vec<u32>> {
         if self.subscriptions.is_empty() {
             None
         } else {
@@ -30,11 +29,11 @@ impl SubscriptionState {
         }
     }
 
-    pub fn subscription_exists(&self, subscription_id: UInt32) -> bool {
+    pub fn subscription_exists(&self, subscription_id: u32) -> bool {
         self.subscriptions.contains_key(&subscription_id)
     }
 
-    pub fn get(&self, subscription_id: UInt32) -> Option<&Subscription> {
+    pub fn get(&self, subscription_id: u32) -> Option<&Subscription> {
         self.subscriptions.get(&subscription_id)
     }
 
@@ -42,7 +41,7 @@ impl SubscriptionState {
         self.subscriptions.insert(subscription.subscription_id(), subscription);
     }
 
-    pub fn modify_subscription(&mut self, subscription_id: UInt32, publishing_interval: Double, lifetime_count: UInt32, max_keep_alive_count: UInt32, max_notifications_per_publish: UInt32, priority: Byte) {
+    pub fn modify_subscription(&mut self, subscription_id: u32, publishing_interval: f64, lifetime_count: u32, max_keep_alive_count: u32, max_notifications_per_publish: u32, priority: u8) {
         if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
             subscription.set_publishing_interval(publishing_interval);
             subscription.set_lifetime_count(lifetime_count);
@@ -52,7 +51,7 @@ impl SubscriptionState {
         }
     }
 
-    pub fn delete_subscription(&mut self, subscription_id: UInt32) {
+    pub fn delete_subscription(&mut self, subscription_id: u32) {
         self.subscriptions.remove(&subscription_id);
     }
 
@@ -60,7 +59,7 @@ impl SubscriptionState {
         self.subscriptions.clear();
     }
 
-    pub fn set_publishing_mode(&mut self, subscription_ids: &[UInt32], publishing_enabled: Boolean) {
+    pub fn set_publishing_mode(&mut self, subscription_ids: &[u32], publishing_enabled: bool) {
         subscription_ids.iter().for_each(|subscription_id| {
             if let Some(ref mut subscription) = self.subscriptions.get_mut(subscription_id) {
                 subscription.set_publishing_enabled(publishing_enabled);
@@ -68,25 +67,25 @@ impl SubscriptionState {
         });
     }
 
-    pub fn subscription_data_change(&mut self, subscription_id: UInt32, data_change_notifications: &[DataChangeNotification]) {
+    pub fn subscription_data_change(&mut self, subscription_id: u32, data_change_notifications: &[DataChangeNotification]) {
         if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
             subscription.data_change(data_change_notifications);
         }
     }
 
-    pub fn insert_monitored_items(&mut self, subscription_id: UInt32, items_to_create: &[CreateMonitoredItem]) {
+    pub fn insert_monitored_items(&mut self, subscription_id: u32, items_to_create: &[CreateMonitoredItem]) {
         if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
             subscription.insert_monitored_items(items_to_create);
         }
     }
 
-    pub fn modify_monitored_items(&mut self, subscription_id: UInt32, items_to_modify: &[ModifyMonitoredItem]) {
+    pub fn modify_monitored_items(&mut self, subscription_id: u32, items_to_modify: &[ModifyMonitoredItem]) {
         if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
             subscription.modify_monitored_items(items_to_modify);
         }
     }
 
-    pub fn delete_monitored_items(&mut self, subscription_id: UInt32, items_to_delete: &[UInt32]) {
+    pub fn delete_monitored_items(&mut self, subscription_id: u32, items_to_delete: &[u32]) {
         if let Some(ref mut subscription) = self.subscriptions.get_mut(&subscription_id) {
             subscription.delete_monitored_items(items_to_delete);
         }

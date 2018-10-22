@@ -16,9 +16,9 @@ use node_id::ExpandedNodeId;
 pub struct DeleteReferencesItem {
     pub source_node_id: NodeId,
     pub reference_type_id: NodeId,
-    pub is_forward: Boolean,
+    pub is_forward: bool,
     pub target_node_id: ExpandedNodeId,
-    pub delete_bidirectional: Boolean,
+    pub delete_bidirectional: bool,
 }
 
 impl MessageInfo for DeleteReferencesItem {
@@ -53,9 +53,9 @@ impl BinaryEncoder<DeleteReferencesItem> for DeleteReferencesItem {
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let source_node_id = NodeId::decode(stream, decoding_limits)?;
         let reference_type_id = NodeId::decode(stream, decoding_limits)?;
-        let is_forward = Boolean::decode(stream, decoding_limits)?;
+        let is_forward = bool::decode(stream, decoding_limits)?;
         let target_node_id = ExpandedNodeId::decode(stream, decoding_limits)?;
-        let delete_bidirectional = Boolean::decode(stream, decoding_limits)?;
+        let delete_bidirectional = bool::decode(stream, decoding_limits)?;
         Ok(DeleteReferencesItem {
             source_node_id,
             reference_type_id,

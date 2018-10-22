@@ -1,5 +1,3 @@
-use basic_types::UInt32;
-
 // Attributes as defined in Part 4, Figure B.7
 
 // Attributes sometimes required and sometimes optional
@@ -31,7 +29,7 @@ pub enum AttributeId {
 }
 
 impl AttributeId {
-    pub fn from_u32(attribute_id: UInt32) -> Result<AttributeId, ()> {
+    pub fn from_u32(attribute_id: u32) -> Result<AttributeId, ()> {
         let attribute_id = match attribute_id {
             1 => AttributeId::NodeId,
             2 => AttributeId::NodeClass,

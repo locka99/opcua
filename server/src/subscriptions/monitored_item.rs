@@ -38,13 +38,13 @@ impl FilterType {
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MonitoredItem {
-    pub monitored_item_id: UInt32,
+    pub monitored_item_id: u32,
     pub item_to_monitor: ReadValueId,
     pub monitoring_mode: MonitoringMode,
-    pub client_handle: UInt32,
+    pub client_handle: u32,
     pub sampling_interval: Duration,
     pub filter: FilterType,
-    pub discard_oldest: Boolean,
+    pub discard_oldest: bool,
     pub queue_size: usize,
     /// The notification queue is arranged from oldest to newest, i.e. pop front gets the oldest
     /// message, pop back gets the most recent.
@@ -56,7 +56,7 @@ pub struct MonitoredItem {
 }
 
 impl MonitoredItem {
-    pub fn new(monitored_item_id: UInt32, timestamps_to_return: TimestampsToReturn, request: &MonitoredItemCreateRequest) -> Result<MonitoredItem, StatusCode> {
+    pub fn new(monitored_item_id: u32, timestamps_to_return: TimestampsToReturn, request: &MonitoredItemCreateRequest) -> Result<MonitoredItem, StatusCode> {
         let filter = FilterType::from_filter(&request.requested_parameters.filter)?;
         let sampling_interval = Self::sanitize_sampling_interval(request.requested_parameters.sampling_interval);
         let queue_size = Self::sanitize_queue_size(request.requested_parameters.queue_size as usize);
@@ -288,7 +288,7 @@ impl MonitoredItem {
 
     /// Takes the requested sampling interval value supplied by client and ensures it is within
     /// the range supported by the server
-    fn sanitize_sampling_interval(requested_sampling_interval: Double) -> Double {
+    fn sanitize_sampling_interval(requested_sampling_interval: f64) -> f64 {
         if requested_sampling_interval < 0.0 {
             // From spec "any negative number is interpreted as -1"
             // -1 means monitored item's sampling interval defaults to the subscription's publishing interval

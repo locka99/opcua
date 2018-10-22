@@ -13,7 +13,7 @@ use basic_types::LocalizedText;
 /// A mapping between a value of an enumerated type and a name and description.
 #[derive(Debug, Clone, PartialEq)]
 pub struct EnumValueType {
-    pub value: Int64,
+    pub value: i64,
     pub display_name: LocalizedText,
     pub description: LocalizedText,
 }
@@ -44,7 +44,7 @@ impl BinaryEncoder<EnumValueType> for EnumValueType {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let value = Int64::decode(stream, decoding_limits)?;
+        let value = i64::decode(stream, decoding_limits)?;
         let display_name = LocalizedText::decode(stream, decoding_limits)?;
         let description = LocalizedText::decode(stream, decoding_limits)?;
         Ok(EnumValueType {

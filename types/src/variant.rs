@@ -63,68 +63,68 @@ impl VariantTypeId {
     }
 }
 
-impl From<Boolean> for Variant {
-    fn from(v: Boolean) -> Self {
+impl From<bool> for Variant {
+    fn from(v: bool) -> Self {
         Variant::Boolean(v)
     }
 }
 
-impl From<Byte> for Variant {
-    fn from(v: Byte) -> Self {
+impl From<u8> for Variant {
+    fn from(v: u8) -> Self {
         Variant::Byte(v)
     }
 }
 
-impl From<SByte> for Variant {
-    fn from(v: SByte) -> Self {
+impl From<i8> for Variant {
+    fn from(v: i8) -> Self {
         Variant::SByte(v)
     }
 }
 
-impl From<Int16> for Variant {
-    fn from(v: Int16) -> Self {
+impl From<i16> for Variant {
+    fn from(v: i16) -> Self {
         Variant::Int16(v)
     }
 }
 
-impl From<UInt16> for Variant {
-    fn from(v: UInt16) -> Self {
+impl From<u16> for Variant {
+    fn from(v: u16) -> Self {
         Variant::UInt16(v)
     }
 }
 
-impl From<Int32> for Variant {
-    fn from(v: Int32) -> Self {
+impl From<i32> for Variant {
+    fn from(v: i32) -> Self {
         Variant::Int32(v)
     }
 }
 
-impl From<UInt32> for Variant {
-    fn from(v: UInt32) -> Self {
+impl From<u32> for Variant {
+    fn from(v: u32) -> Self {
         Variant::UInt32(v)
     }
 }
 
-impl From<Int64> for Variant {
-    fn from(v: Int64) -> Self {
+impl From<i64> for Variant {
+    fn from(v: i64) -> Self {
         Variant::Int64(v)
     }
 }
 
-impl From<UInt64> for Variant {
-    fn from(v: UInt64) -> Self {
+impl From<u64> for Variant {
+    fn from(v: u64) -> Self {
         Variant::UInt64(v)
     }
 }
 
-impl From<Float> for Variant {
-    fn from(v: Float) -> Self {
+impl From<f32> for Variant {
+    fn from(v: f32) -> Self {
         Variant::Float(v)
     }
 }
 
-impl From<Double> for Variant {
-    fn from(v: Double) -> Self {
+impl From<f64> for Variant {
+    fn from(v: f64) -> Self {
         Variant::Double(v)
     }
 }
@@ -207,8 +207,8 @@ impl From<DataValue> for Variant {
     }
 }
 
-impl From<Vec<UInt32>> for Variant {
-    fn from(v: Vec<UInt32>) -> Self {
+impl From<Vec<u32>> for Variant {
+    fn from(v: Vec<u32>) -> Self {
         let array: Vec<Variant> = v.iter().map(|v| Variant::from(*v)).collect();
         Variant::Array(array)
     }
@@ -237,27 +237,27 @@ pub enum Variant {
     /// Empty type has no value
     Empty,
     /// Boolean
-    Boolean(Boolean),
+    Boolean(bool),
     /// Signed byte
-    SByte(SByte),
+    SByte(i8),
     /// Unsigned byte
-    Byte(Byte),
+    Byte(u8),
     /// Signed 16-bit int
-    Int16(Int16),
+    Int16(i16),
     /// Unsigned 16-bit int
-    UInt16(UInt16),
+    UInt16(u16),
     /// Signed 32-bit int
-    Int32(Int32),
+    Int32(i32),
     /// Unsigned 32-bit int
-    UInt32(UInt32),
+    UInt32(u32),
     /// Signed 64-bit int
-    Int64(Int64),
+    Int64(i64),
     /// Unsigned 64-bit int
-    UInt64(UInt64),
+    UInt64(u64),
     /// Float
-    Float(Float),
+    Float(f32),
     /// Double
-    Double(Double),
+    Double(f64),
     /// String
     String(UAString),
     /// DateTime
@@ -330,12 +330,12 @@ fn array_is_same_type(values: &[Variant], numeric_only: bool) -> bool {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MultiDimensionArray {
     pub values: Vec<Variant>,
-    pub dimensions: Vec<Int32>,
+    pub dimensions: Vec<i32>,
 }
 
 impl MultiDimensionArray {
     pub fn new<V, D>(values: V, dimensions: D) -> MultiDimensionArray
-        where V: Into<Vec<Variant>>, D: Into<Vec<Int32>> {
+        where V: Into<Vec<Variant>>, D: Into<Vec<i32>> {
         MultiDimensionArray {
             values: values.into(),
             dimensions: dimensions.into(),
@@ -473,12 +473,12 @@ impl BinaryEncoder<Variant> for Variant {
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let encoding_mask = Byte::decode(stream, decoding_limits)?;
+        let encoding_mask = u8::decode(stream, decoding_limits)?;
         let element_encoding_mask = encoding_mask & !(ARRAY_DIMENSIONS_BIT | ARRAY_VALUES_BIT);
 
         // Read array length
         let array_length = if encoding_mask & ARRAY_VALUES_BIT != 0 {
-            let array_length = Int32::decode(stream, decoding_limits)?;
+            let array_length = i32::decode(stream, decoding_limits)?;
             if array_length <= 0 {
                 error!("Invalid array_length {}", array_length);
                 return Err(StatusCode::BadDecodingError);
@@ -500,7 +500,7 @@ impl BinaryEncoder<Variant> for Variant {
                 result.push(Variant::decode_variant_value(stream, element_encoding_mask, decoding_limits)?);
             }
             if encoding_mask & ARRAY_DIMENSIONS_BIT != 0 {
-                let dimensions: Option<Vec<Int32>> = read_array(stream, decoding_limits)?;
+                let dimensions: Option<Vec<i32>> = read_array(stream, decoding_limits)?;
                 if dimensions.is_none() {
                     error!("No array dimensions despite the bit flag being set");
                     return Err(StatusCode::BadDecodingError);
@@ -642,31 +642,31 @@ impl Variant {
     }
 
     /// Reads just the variant value from the stream
-    fn decode_variant_value<S: Read>(stream: &mut S, encoding_mask: Byte, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
+    fn decode_variant_value<S: Read>(stream: &mut S, encoding_mask: u8, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let result = if encoding_mask == 0 {
             Variant::Empty
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Boolean) {
-            Self::new(Boolean::decode(stream, decoding_limits)?)
+            Self::new(bool::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::SByte) {
-            Self::new(SByte::decode(stream, decoding_limits)?)
+            Self::new(i8::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Byte) {
-            Self::new(Byte::decode(stream, decoding_limits)?)
+            Self::new(u8::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Int16) {
-            Self::new(Int16::decode(stream, decoding_limits)?)
+            Self::new(i16::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::UInt16) {
-            Self::new(UInt16::decode(stream, decoding_limits)?)
+            Self::new(u16::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Int32) {
-            Self::new(Int32::decode(stream, decoding_limits)?)
+            Self::new(i32::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::UInt32) {
-            Self::new(UInt32::decode(stream, decoding_limits)?)
+            Self::new(u32::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Int64) {
-            Self::new(Int64::decode(stream, decoding_limits)?)
+            Self::new(i64::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::UInt64) {
-            Self::new(UInt64::decode(stream, decoding_limits)?)
+            Self::new(u64::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Float) {
-            Self::new(Float::decode(stream, decoding_limits)?)
+            Self::new(f32::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Double) {
-            Self::new(Double::decode(stream, decoding_limits)?)
+            Self::new(f64::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::String) {
             Self::new(UAString::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::DateTime) {
@@ -728,7 +728,7 @@ impl Variant {
         }
     }
 
-    pub fn new_multi_dimension_array(values: Vec<Variant>, dimensions: Vec<Int32>) -> Variant {
+    pub fn new_multi_dimension_array(values: Vec<Variant>, dimensions: Vec<i32>) -> Variant {
         Variant::from(MultiDimensionArray::new(values, dimensions))
     }
 
@@ -810,12 +810,12 @@ impl Variant {
         }
     }
 
-    pub fn from_i32_array(in_values: &[Int32]) -> Variant {
+    pub fn from_i32_array(in_values: &[i32]) -> Variant {
         let values = in_values.iter().map(|v| Variant::from(*v)).collect();
         Variant::Array(values)
     }
 
-    pub fn from_u32_array(in_values: &[UInt32]) -> Variant {
+    pub fn from_u32_array(in_values: &[u32]) -> Variant {
         let values = in_values.iter().map(|v| Variant::from(*v)).collect();
         Variant::Array(values)
     }
@@ -826,7 +826,7 @@ impl Variant {
     }
 
     /// Returns an array of UInt32s
-    pub fn into_u32_array(&self) -> Result<Vec<UInt32>, StatusCode> {
+    pub fn into_u32_array(&self) -> Result<Vec<u32>, StatusCode> {
         if self.is_numeric_array() {
             match *self {
                 Variant::Array(ref values) => {
@@ -846,7 +846,7 @@ impl Variant {
                                 panic!("Expecting a numeric value in the numeric array");
                             }
                         }
-                    }).collect::<Vec<UInt32>>())
+                    }).collect::<Vec<u32>>())
                 }
                 _ => {
                     panic!("Not a numeric array");

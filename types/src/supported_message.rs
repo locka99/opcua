@@ -5,7 +5,6 @@ use std::io::{Read, Write};
 
 use encoding::*;
 use node_id::NodeId;
-use basic_types::UInt32;
 use service_types::*;
 use node_ids::ObjectId;
 use tcp_types::AcknowledgeMessage;
@@ -76,7 +75,7 @@ macro_rules! supported_messages_enum {
 }
 
 impl SupportedMessage {
-    pub fn request_handle(&self) -> UInt32 {
+    pub fn request_handle(&self) -> u32 {
         match *self {
             SupportedMessage::Invalid(_) | SupportedMessage::AcknowledgeMessage(_) => 0,
             // Requests

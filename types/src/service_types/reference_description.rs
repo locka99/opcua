@@ -18,7 +18,7 @@ use service_types::enums::NodeClass;
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReferenceDescription {
     pub reference_type_id: NodeId,
-    pub is_forward: Boolean,
+    pub is_forward: bool,
     pub node_id: ExpandedNodeId,
     pub browse_name: QualifiedName,
     pub display_name: LocalizedText,
@@ -61,7 +61,7 @@ impl BinaryEncoder<ReferenceDescription> for ReferenceDescription {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let reference_type_id = NodeId::decode(stream, decoding_limits)?;
-        let is_forward = Boolean::decode(stream, decoding_limits)?;
+        let is_forward = bool::decode(stream, decoding_limits)?;
         let node_id = ExpandedNodeId::decode(stream, decoding_limits)?;
         let browse_name = QualifiedName::decode(stream, decoding_limits)?;
         let display_name = LocalizedText::decode(stream, decoding_limits)?;

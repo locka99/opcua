@@ -11,11 +11,11 @@ use node_ids::ObjectId;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AggregateConfiguration {
-    pub use_server_capabilities_defaults: Boolean,
-    pub treat_uncertain_as_bad: Boolean,
-    pub percent_data_bad: Byte,
-    pub percent_data_good: Byte,
-    pub use_sloped_extrapolation: Boolean,
+    pub use_server_capabilities_defaults: bool,
+    pub treat_uncertain_as_bad: bool,
+    pub percent_data_bad: u8,
+    pub percent_data_good: u8,
+    pub use_sloped_extrapolation: bool,
 }
 
 impl MessageInfo for AggregateConfiguration {
@@ -48,11 +48,11 @@ impl BinaryEncoder<AggregateConfiguration> for AggregateConfiguration {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let use_server_capabilities_defaults = Boolean::decode(stream, decoding_limits)?;
-        let treat_uncertain_as_bad = Boolean::decode(stream, decoding_limits)?;
-        let percent_data_bad = Byte::decode(stream, decoding_limits)?;
-        let percent_data_good = Byte::decode(stream, decoding_limits)?;
-        let use_sloped_extrapolation = Boolean::decode(stream, decoding_limits)?;
+        let use_server_capabilities_defaults = bool::decode(stream, decoding_limits)?;
+        let treat_uncertain_as_bad = bool::decode(stream, decoding_limits)?;
+        let percent_data_bad = u8::decode(stream, decoding_limits)?;
+        let percent_data_good = u8::decode(stream, decoding_limits)?;
+        let use_sloped_extrapolation = bool::decode(stream, decoding_limits)?;
         Ok(AggregateConfiguration {
             use_server_capabilities_defaults,
             treat_uncertain_as_bad,

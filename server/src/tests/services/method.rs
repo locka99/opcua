@@ -28,7 +28,7 @@ fn create_subscription_request() -> CreateSubscriptionRequest {
     }
 }
 
-fn create_monitored_items_request<T>(subscription_id: UInt32, client_handle: UInt32, node_id: T) -> CreateMonitoredItemsRequest where T: 'static + Into<NodeId> {
+fn create_monitored_items_request<T>(subscription_id: u32, client_handle: u32, node_id: T) -> CreateMonitoredItemsRequest where T: 'static + Into<NodeId> {
     CreateMonitoredItemsRequest {
         request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
         subscription_id,
@@ -36,7 +36,7 @@ fn create_monitored_items_request<T>(subscription_id: UInt32, client_handle: UIn
         items_to_create: Some(vec![MonitoredItemCreateRequest {
             item_to_monitor: ReadValueId {
                 node_id: node_id.into(),
-                attribute_id: AttributeId::Value as UInt32,
+                attribute_id: AttributeId::Value as u32,
                 index_range: UAString::null(),
                 data_encoding: QualifiedName::null(),
             },
@@ -141,7 +141,7 @@ fn call_getmonitoreditems() {
         let response = call_single(&s, &address_space, &server_state, &session, request).unwrap();
         assert_eq!(response.status_code, StatusCode::Good);
 
-        // There should be two output args, each a vector of UInt32
+        // There should be two output args, each a vector of u32
         let mut result = response.output_arguments.unwrap();
         let server_handles = result.remove(0);
         let client_handles = result.remove(0);

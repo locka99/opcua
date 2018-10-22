@@ -9,11 +9,11 @@ fn test_var_node_id() -> NodeId {
 
 fn make_address_space() -> AddressSpace {
     let mut address_space = AddressSpace::new();
-    let _ = address_space.add_variable(Variable::new(&NodeId::new(1, 1), "test", "test", "", 0 as UInt32), &AddressSpace::objects_folder_id());
+    let _ = address_space.add_variable(Variable::new(&NodeId::new(1, 1), "test", "test", "", 0u32), &AddressSpace::objects_folder_id());
     address_space
 }
 
-fn make_create_request(sampling_interval: Duration, queue_size: UInt32) -> MonitoredItemCreateRequest {
+fn make_create_request(sampling_interval: Duration, queue_size: u32) -> MonitoredItemCreateRequest {
     // Encode a filter to an extension object
     let filter = ExtensionObject::from_encodable(ObjectId::DataChangeFilter_Encoding_DefaultBinary, &DataChangeFilter {
         trigger: DataChangeTrigger::StatusValueTimestamp,
@@ -24,7 +24,7 @@ fn make_create_request(sampling_interval: Duration, queue_size: UInt32) -> Monit
     MonitoredItemCreateRequest {
         item_to_monitor: ReadValueId {
             node_id: test_var_node_id(),
-            attribute_id: AttributeId::Value as UInt32,
+            attribute_id: AttributeId::Value as u32,
             index_range: UAString::null(),
             data_encoding: QualifiedName::null(),
         },
@@ -207,14 +207,14 @@ fn populate_monitored_item(discard_oldest: bool) -> MonitoredItem {
     for i in 0..5 {
         monitored_item.enqueue_notification_message(MonitoredItemNotification {
             client_handle: client_handle,
-            value: DataValue::new(i as Int32),
+            value: DataValue::new(i as i32),
         });
         assert!(!monitored_item.queue_overflow);
     }
 
     monitored_item.enqueue_notification_message(MonitoredItemNotification {
         client_handle: client_handle,
-        value: DataValue::new(10 as Int32),
+        value: DataValue::new(10 as i32),
     });
     assert!(monitored_item.queue_overflow);
     monitored_item

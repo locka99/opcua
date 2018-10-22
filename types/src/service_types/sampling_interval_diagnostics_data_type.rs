@@ -11,10 +11,10 @@ use node_ids::ObjectId;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SamplingIntervalDiagnosticsDataType {
-    pub sampling_interval: Double,
-    pub monitored_item_count: UInt32,
-    pub max_monitored_item_count: UInt32,
-    pub disabled_monitored_item_count: UInt32,
+    pub sampling_interval: f64,
+    pub monitored_item_count: u32,
+    pub max_monitored_item_count: u32,
+    pub disabled_monitored_item_count: u32,
 }
 
 impl MessageInfo for SamplingIntervalDiagnosticsDataType {
@@ -45,10 +45,10 @@ impl BinaryEncoder<SamplingIntervalDiagnosticsDataType> for SamplingIntervalDiag
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let sampling_interval = Double::decode(stream, decoding_limits)?;
-        let monitored_item_count = UInt32::decode(stream, decoding_limits)?;
-        let max_monitored_item_count = UInt32::decode(stream, decoding_limits)?;
-        let disabled_monitored_item_count = UInt32::decode(stream, decoding_limits)?;
+        let sampling_interval = f64::decode(stream, decoding_limits)?;
+        let monitored_item_count = u32::decode(stream, decoding_limits)?;
+        let max_monitored_item_count = u32::decode(stream, decoding_limits)?;
+        let disabled_monitored_item_count = u32::decode(stream, decoding_limits)?;
         Ok(SamplingIntervalDiagnosticsDataType {
             sampling_interval,
             monitored_item_count,

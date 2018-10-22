@@ -3,7 +3,6 @@
 use std::io::{Read, Write};
 
 use encoding::*;
-use basic_types::*;
 use date_time::*;
 use variant::Variant;
 use status_codes::StatusCode;
@@ -35,21 +34,21 @@ pub struct DataValue {
     /// The status associated with the value.
     /// Not present if the StatusCode bit in the EncodingMask is False
     /// Note we don't use StatusCode enum because extra bits can be set on the value
-    pub status: Option<UInt32>,
+    pub status: Option<u32>,
     /// The source timestamp associated with the value.
     /// Not present if the SourceTimestamp bit in the EncodingMask is False.
     pub source_timestamp: Option<DateTime>,
     /// The number of 10 picosecond intervals for the SourceTimestamp.
     /// Not present if the SourcePicoSeconds bit in the EncodingMask is False.
     /// If the source timestamp is missing the picoseconds are ignored.
-    pub source_picoseconds: Option<Int16>,
+    pub source_picoseconds: Option<i16>,
     /// The Server timestamp associated with the value.
     /// Not present if the ServerTimestamp bit in the EncodingMask is False.
     pub server_timestamp: Option<DateTime>,
     /// The number of 10 picosecond intervals for the ServerTimestamp.
     /// Not present if the ServerPicoSeconds bit in the EncodingMask is False.
     /// If the Server timestamp is missing the picoseconds are ignored.
-    pub server_picoseconds: Option<Int16>,
+    pub server_picoseconds: Option<i16>,
 }
 
 impl BinaryEncoder<DataValue> for DataValue {
@@ -105,7 +104,7 @@ impl BinaryEncoder<DataValue> for DataValue {
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let encoding_mask = DataValueFlags::from_bits_truncate(Byte::decode(stream, decoding_limits)?);
+        let encoding_mask = DataValueFlags::from_bits_truncate(u8::decode(stream, decoding_limits)?);
 
         // Value
         let value = if encoding_mask.contains(DataValueFlags::HAS_VALUE) {
@@ -116,7 +115,7 @@ impl BinaryEncoder<DataValue> for DataValue {
 
         // Status
         let status = if encoding_mask.contains(DataValueFlags::HAS_STATUS) {
-            Some(UInt32::decode(stream, decoding_limits)?)
+            Some(u32::decode(stream, decoding_limits)?)
         } else {
             None
         };
@@ -128,7 +127,7 @@ impl BinaryEncoder<DataValue> for DataValue {
             None
         };
         let source_picoseconds = if encoding_mask.contains(DataValueFlags::HAS_SOURCE_PICOSECONDS) {
-            Some(Int16::decode(stream, decoding_limits)?)
+            Some(i16::decode(stream, decoding_limits)?)
         } else {
             None
         };
@@ -139,7 +138,7 @@ impl BinaryEncoder<DataValue> for DataValue {
             None
         };
         let server_picoseconds = if encoding_mask.contains(DataValueFlags::HAS_SERVER_PICOSECONDS) {
-            Some(Int16::decode(stream, decoding_limits)?)
+            Some(i16::decode(stream, decoding_limits)?)
         } else {
             None
         };
@@ -196,8 +195,8 @@ impl DataValue {
         self.server_picoseconds = Some(0);
     }
 
-    /// Returns the status code as a UInt32
-    pub fn status(&self) -> UInt32 {
+    /// Returns the status code as a u32
+    pub fn status(&self) -> u32 {
         if let Some(ref status) = self.status {
             *status
         } else {

@@ -14,7 +14,7 @@ use byte_string::ByteString;
 #[derive(Debug, Clone, PartialEq)]
 pub struct QueryNextRequest {
     pub request_header: RequestHeader,
-    pub release_continuation_point: Boolean,
+    pub release_continuation_point: bool,
     pub continuation_point: ByteString,
 }
 
@@ -45,7 +45,7 @@ impl BinaryEncoder<QueryNextRequest> for QueryNextRequest {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let release_continuation_point = Boolean::decode(stream, decoding_limits)?;
+        let release_continuation_point = bool::decode(stream, decoding_limits)?;
         let continuation_point = ByteString::decode(stream, decoding_limits)?;
         Ok(QueryNextRequest {
             request_header,

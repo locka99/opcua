@@ -16,9 +16,9 @@ use service_types::NotificationMessage;
 #[derive(Debug, Clone, PartialEq)]
 pub struct PublishResponse {
     pub response_header: ResponseHeader,
-    pub subscription_id: UInt32,
-    pub available_sequence_numbers: Option<Vec<UInt32>>,
-    pub more_notifications: Boolean,
+    pub subscription_id: u32,
+    pub available_sequence_numbers: Option<Vec<u32>>,
+    pub more_notifications: bool,
     pub notification_message: NotificationMessage,
     pub results: Option<Vec<StatusCode>>,
     pub diagnostic_infos: Option<Vec<DiagnosticInfo>>,
@@ -59,9 +59,9 @@ impl BinaryEncoder<PublishResponse> for PublishResponse {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let response_header = ResponseHeader::decode(stream, decoding_limits)?;
-        let subscription_id = UInt32::decode(stream, decoding_limits)?;
-        let available_sequence_numbers: Option<Vec<UInt32>> = read_array(stream, decoding_limits)?;
-        let more_notifications = Boolean::decode(stream, decoding_limits)?;
+        let subscription_id = u32::decode(stream, decoding_limits)?;
+        let available_sequence_numbers: Option<Vec<u32>> = read_array(stream, decoding_limits)?;
+        let more_notifications = bool::decode(stream, decoding_limits)?;
         let notification_message = NotificationMessage::decode(stream, decoding_limits)?;
         let results: Option<Vec<StatusCode>> = read_array(stream, decoding_limits)?;
         let diagnostic_infos: Option<Vec<DiagnosticInfo>> = read_array(stream, decoding_limits)?;

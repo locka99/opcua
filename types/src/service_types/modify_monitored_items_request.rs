@@ -15,7 +15,7 @@ use service_types::MonitoredItemModifyRequest;
 #[derive(Debug, Clone, PartialEq)]
 pub struct ModifyMonitoredItemsRequest {
     pub request_header: RequestHeader,
-    pub subscription_id: UInt32,
+    pub subscription_id: u32,
     pub timestamps_to_return: TimestampsToReturn,
     pub items_to_modify: Option<Vec<MonitoredItemModifyRequest>>,
 }
@@ -49,7 +49,7 @@ impl BinaryEncoder<ModifyMonitoredItemsRequest> for ModifyMonitoredItemsRequest 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let subscription_id = UInt32::decode(stream, decoding_limits)?;
+        let subscription_id = u32::decode(stream, decoding_limits)?;
         let timestamps_to_return = TimestampsToReturn::decode(stream, decoding_limits)?;
         let items_to_modify: Option<Vec<MonitoredItemModifyRequest>> = read_array(stream, decoding_limits)?;
         Ok(ModifyMonitoredItemsRequest {

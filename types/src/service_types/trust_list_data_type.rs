@@ -12,7 +12,7 @@ use byte_string::ByteString;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TrustListDataType {
-    pub specified_lists: UInt32,
+    pub specified_lists: u32,
     pub trusted_certificates: Option<Vec<ByteString>>,
     pub trusted_crls: Option<Vec<ByteString>>,
     pub issuer_certificates: Option<Vec<ByteString>>,
@@ -49,7 +49,7 @@ impl BinaryEncoder<TrustListDataType> for TrustListDataType {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let specified_lists = UInt32::decode(stream, decoding_limits)?;
+        let specified_lists = u32::decode(stream, decoding_limits)?;
         let trusted_certificates: Option<Vec<ByteString>> = read_array(stream, decoding_limits)?;
         let trusted_crls: Option<Vec<ByteString>> = read_array(stream, decoding_limits)?;
         let issuer_certificates: Option<Vec<ByteString>> = read_array(stream, decoding_limits)?;

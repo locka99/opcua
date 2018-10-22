@@ -11,7 +11,7 @@ use session::Session;
 pub fn handle_get_monitored_items(_: &AddressSpace, _: &ServerState, session: &Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
     debug!("Method handler for GetMonitoredItems");
     // Expect arguments:
-    //   subscriptionId: UInt32
+    //   subscriptionId: u32
     if let Some(ref input_arguments) = request.input_arguments {
         match input_arguments.len() {
             1 => {
@@ -19,8 +19,8 @@ pub fn handle_get_monitored_items(_: &AddressSpace, _: &ServerState, session: &S
                 if let Variant::UInt32(subscription_id) = arg1 {
                     if let Some(subscription) = session.subscriptions.subscriptions().get(&subscription_id) {
                         // Response
-                        //   serverHandles: Vec<UInt32>
-                        //   clientHandles: Vec<UInt32>
+                        //   serverHandles: Vec<u32>
+                        //   clientHandles: Vec<u32>
                         let (server_handles, client_handles) = subscription.get_handles();
                         Ok(CallMethodResult {
                             status_code: StatusCode::Good,

@@ -73,7 +73,7 @@ impl MessageHandler {
         }
     }
 
-    pub fn handle_message(&mut self, request_id: UInt32, message: SupportedMessage) -> Result<Option<SupportedMessage>, StatusCode> {
+    pub fn handle_message(&mut self, request_id: u32, message: SupportedMessage) -> Result<Option<SupportedMessage>, StatusCode> {
         // Note address space has to be locked before server_state because of deadlock in address_space.rs
         // or other vars tied to state that will happen the other way around.
         let mut server_state = trace_write_lock_unwrap!(self.server_state);

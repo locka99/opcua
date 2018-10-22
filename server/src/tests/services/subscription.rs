@@ -27,7 +27,7 @@ fn do_service_test<T>(f: T)
     f(&mut server_state, &mut session, &address_space, SubscriptionService::new(), MonitoredItemService::new());
 }
 
-fn create_subscription_request(max_keep_alive_count: UInt32, lifetime_count: UInt32) -> CreateSubscriptionRequest {
+fn create_subscription_request(max_keep_alive_count: u32, lifetime_count: u32) -> CreateSubscriptionRequest {
     CreateSubscriptionRequest {
         request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
         requested_publishing_interval: 100f64,
@@ -39,7 +39,7 @@ fn create_subscription_request(max_keep_alive_count: UInt32, lifetime_count: UIn
     }
 }
 
-fn create_monitored_items_request<T>(subscription_id: UInt32, mut node_id: Vec<T>) -> CreateMonitoredItemsRequest
+fn create_monitored_items_request<T>(subscription_id: u32, mut node_id: Vec<T>) -> CreateMonitoredItemsRequest
     where T: Into<NodeId> {
     let items_to_create = Some(node_id.drain(..)
         .map(|i| {
@@ -72,7 +72,7 @@ fn create_modify_destroy_subscription() {
 
 /// Creates a subscription with the specified keep alive and lifetime values and compares
 /// the revised values to the expected values.
-fn keepalive_test(keep_alive: UInt32, lifetime: UInt32, expected_keep_alive: UInt32, expected_lifetime: UInt32) {
+fn keepalive_test(keep_alive: u32, lifetime: u32, expected_keep_alive: u32, expected_lifetime: u32) {
     do_service_test(|server_state, session, _, ss, _| {
         // Create subscription
         let request = create_subscription_request(keep_alive, lifetime);
@@ -88,8 +88,8 @@ fn keepalive_test(keep_alive: UInt32, lifetime: UInt32, expected_keep_alive: UIn
 fn test_revised_keep_alive_lifetime_counts() {
     // Test that the keep alive and lifetime counts are correctly revised from their inputs
     use ::constants::{DEFAULT_KEEP_ALIVE_COUNT, MAX_KEEP_ALIVE_COUNT};
-    const MAX_LIFETIME_COUNT: UInt32 = 3 * MAX_KEEP_ALIVE_COUNT;
-    const DEFAULT_LIFETIME_COUNT: UInt32 = 3 * DEFAULT_KEEP_ALIVE_COUNT;
+    const MAX_LIFETIME_COUNT: u32 = 3 * MAX_KEEP_ALIVE_COUNT;
+    const DEFAULT_LIFETIME_COUNT: u32 = 3 * DEFAULT_KEEP_ALIVE_COUNT;
 
     // Expect defaults to hold true
     keepalive_test(0, 0, DEFAULT_KEEP_ALIVE_COUNT, DEFAULT_LIFETIME_COUNT);

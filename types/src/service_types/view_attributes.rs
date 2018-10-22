@@ -11,13 +11,13 @@ use basic_types::LocalizedText;
 /// The attributes for a view node.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ViewAttributes {
-    pub specified_attributes: UInt32,
+    pub specified_attributes: u32,
     pub display_name: LocalizedText,
     pub description: LocalizedText,
-    pub write_mask: UInt32,
-    pub user_write_mask: UInt32,
-    pub contains_no_loops: Boolean,
-    pub event_notifier: Byte,
+    pub write_mask: u32,
+    pub user_write_mask: u32,
+    pub contains_no_loops: bool,
+    pub event_notifier: u8,
 }
 
 impl BinaryEncoder<ViewAttributes> for ViewAttributes {
@@ -48,13 +48,13 @@ impl BinaryEncoder<ViewAttributes> for ViewAttributes {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let specified_attributes = UInt32::decode(stream, decoding_limits)?;
+        let specified_attributes = u32::decode(stream, decoding_limits)?;
         let display_name = LocalizedText::decode(stream, decoding_limits)?;
         let description = LocalizedText::decode(stream, decoding_limits)?;
-        let write_mask = UInt32::decode(stream, decoding_limits)?;
-        let user_write_mask = UInt32::decode(stream, decoding_limits)?;
-        let contains_no_loops = Boolean::decode(stream, decoding_limits)?;
-        let event_notifier = Byte::decode(stream, decoding_limits)?;
+        let write_mask = u32::decode(stream, decoding_limits)?;
+        let user_write_mask = u32::decode(stream, decoding_limits)?;
+        let contains_no_loops = bool::decode(stream, decoding_limits)?;
+        let event_notifier = u8::decode(stream, decoding_limits)?;
         Ok(ViewAttributes {
             specified_attributes,
             display_name,

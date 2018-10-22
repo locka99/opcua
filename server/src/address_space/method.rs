@@ -9,7 +9,7 @@ pub struct Method {
 node_impl!(Method);
 
 impl Method {
-    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, is_abstract: Boolean, executable: Boolean, user_executable: Boolean) -> Method {
+    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, is_abstract: bool, executable: bool, user_executable: bool) -> Method {
         // Mandatory
         let attributes = vec![
             (AttributeId::IsAbstract, Variant::Boolean(is_abstract)),
@@ -35,15 +35,15 @@ impl Method {
         }
     }
 
-    pub fn is_abstract(&self) -> Boolean {
+    pub fn is_abstract(&self) -> bool {
         find_attribute_value_mandatory!(&self.base, IsAbstract, Boolean)
     }
 
-    pub fn executable(&self) -> Boolean {
+    pub fn executable(&self) -> bool {
         find_attribute_value_mandatory!(&self.base, Executable, Boolean)
     }
 
-    pub fn user_executable(&self) -> Boolean {
+    pub fn user_executable(&self) -> bool {
         // User executable cannot be true unless executable is true
         if self.executable() {
             // TODO this should check the current session state to determine if the user

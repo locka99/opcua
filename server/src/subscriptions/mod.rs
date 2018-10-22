@@ -1,4 +1,4 @@
-use opcua_types::{UInt32, SupportedMessage};
+use opcua_types::SupportedMessage;
 use opcua_types::service_types::PublishRequest;
 
 /// The publish request entry preserves the request_id which is part of the chunk layer but clients
@@ -7,13 +7,13 @@ use opcua_types::service_types::PublishRequest;
 /// so that later we can send out responses that have the proper req id
 #[derive(Clone)]
 pub struct PublishRequestEntry {
-    pub request_id: UInt32,
+    pub request_id: u32,
     pub request: PublishRequest,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PublishResponseEntry {
-    pub request_id: UInt32,
+    pub request_id: u32,
     pub response: SupportedMessage,
 }
 

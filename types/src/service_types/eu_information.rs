@@ -14,7 +14,7 @@ use basic_types::LocalizedText;
 #[derive(Debug, Clone, PartialEq)]
 pub struct EUInformation {
     pub namespace_uri: UAString,
-    pub unit_id: Int32,
+    pub unit_id: i32,
     pub display_name: LocalizedText,
     pub description: LocalizedText,
 }
@@ -48,7 +48,7 @@ impl BinaryEncoder<EUInformation> for EUInformation {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let namespace_uri = UAString::decode(stream, decoding_limits)?;
-        let unit_id = Int32::decode(stream, decoding_limits)?;
+        let unit_id = i32::decode(stream, decoding_limits)?;
         let display_name = LocalizedText::decode(stream, decoding_limits)?;
         let description = LocalizedText::decode(stream, decoding_limits)?;
         Ok(EUInformation {

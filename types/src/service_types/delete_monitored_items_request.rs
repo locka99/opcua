@@ -13,8 +13,8 @@ use service_types::impls::RequestHeader;
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeleteMonitoredItemsRequest {
     pub request_header: RequestHeader,
-    pub subscription_id: UInt32,
-    pub monitored_item_ids: Option<Vec<UInt32>>,
+    pub subscription_id: u32,
+    pub monitored_item_ids: Option<Vec<u32>>,
 }
 
 impl MessageInfo for DeleteMonitoredItemsRequest {
@@ -44,8 +44,8 @@ impl BinaryEncoder<DeleteMonitoredItemsRequest> for DeleteMonitoredItemsRequest 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let subscription_id = UInt32::decode(stream, decoding_limits)?;
-        let monitored_item_ids: Option<Vec<UInt32>> = read_array(stream, decoding_limits)?;
+        let subscription_id = u32::decode(stream, decoding_limits)?;
+        let monitored_item_ids: Option<Vec<u32>> = read_array(stream, decoding_limits)?;
         Ok(DeleteMonitoredItemsRequest {
             request_header,
             subscription_id,

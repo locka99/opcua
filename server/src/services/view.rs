@@ -119,7 +119,7 @@ impl ViewService {
                         let targets = result.iter().map(|node_id| {
                             BrowsePathTarget {
                                 target_id: ExpandedNodeId::new(node_id.clone()),
-                                remaining_path_index: u32::MAX as UInt32,
+                                remaining_path_index: u32::MAX,
                             }
                         }).collect();
                         Some(targets)
@@ -201,7 +201,7 @@ impl ViewService {
             let target_node_class = target_node.node_class();
 
             // Skip target nodes not required by the mask
-            if node_class_mask != 0 && node_class_mask & (target_node_class as UInt32) == 0 {
+            if node_class_mask != 0 && node_class_mask & (target_node_class as u32) == 0 {
                 continue;
             }
 

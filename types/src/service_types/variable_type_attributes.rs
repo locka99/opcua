@@ -13,16 +13,16 @@ use node_id::NodeId;
 /// The attributes for a variable type node.
 #[derive(Debug, Clone, PartialEq)]
 pub struct VariableTypeAttributes {
-    pub specified_attributes: UInt32,
+    pub specified_attributes: u32,
     pub display_name: LocalizedText,
     pub description: LocalizedText,
-    pub write_mask: UInt32,
-    pub user_write_mask: UInt32,
+    pub write_mask: u32,
+    pub user_write_mask: u32,
     pub value: Variant,
     pub data_type: NodeId,
-    pub value_rank: Int32,
-    pub array_dimensions: Option<Vec<UInt32>>,
-    pub is_abstract: Boolean,
+    pub value_rank: i32,
+    pub array_dimensions: Option<Vec<u32>>,
+    pub is_abstract: bool,
 }
 
 impl BinaryEncoder<VariableTypeAttributes> for VariableTypeAttributes {
@@ -59,16 +59,16 @@ impl BinaryEncoder<VariableTypeAttributes> for VariableTypeAttributes {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let specified_attributes = UInt32::decode(stream, decoding_limits)?;
+        let specified_attributes = u32::decode(stream, decoding_limits)?;
         let display_name = LocalizedText::decode(stream, decoding_limits)?;
         let description = LocalizedText::decode(stream, decoding_limits)?;
-        let write_mask = UInt32::decode(stream, decoding_limits)?;
-        let user_write_mask = UInt32::decode(stream, decoding_limits)?;
+        let write_mask = u32::decode(stream, decoding_limits)?;
+        let user_write_mask = u32::decode(stream, decoding_limits)?;
         let value = Variant::decode(stream, decoding_limits)?;
         let data_type = NodeId::decode(stream, decoding_limits)?;
-        let value_rank = Int32::decode(stream, decoding_limits)?;
-        let array_dimensions: Option<Vec<UInt32>> = read_array(stream, decoding_limits)?;
-        let is_abstract = Boolean::decode(stream, decoding_limits)?;
+        let value_rank = i32::decode(stream, decoding_limits)?;
+        let array_dimensions: Option<Vec<u32>> = read_array(stream, decoding_limits)?;
+        let is_abstract = bool::decode(stream, decoding_limits)?;
         Ok(VariableTypeAttributes {
             specified_attributes,
             display_name,

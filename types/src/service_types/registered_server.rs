@@ -22,7 +22,7 @@ pub struct RegisteredServer {
     pub gateway_server_uri: UAString,
     pub discovery_urls: Option<Vec<UAString>>,
     pub semaphore_file_path: UAString,
-    pub is_online: Boolean,
+    pub is_online: bool,
 }
 
 impl MessageInfo for RegisteredServer {
@@ -68,7 +68,7 @@ impl BinaryEncoder<RegisteredServer> for RegisteredServer {
         let gateway_server_uri = UAString::decode(stream, decoding_limits)?;
         let discovery_urls: Option<Vec<UAString>> = read_array(stream, decoding_limits)?;
         let semaphore_file_path = UAString::decode(stream, decoding_limits)?;
-        let is_online = Boolean::decode(stream, decoding_limits)?;
+        let is_online = bool::decode(stream, decoding_limits)?;
         Ok(RegisteredServer {
             server_uri,
             product_uri,

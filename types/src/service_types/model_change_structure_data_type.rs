@@ -14,7 +14,7 @@ use node_id::NodeId;
 pub struct ModelChangeStructureDataType {
     pub affected: NodeId,
     pub affected_type: NodeId,
-    pub verb: Byte,
+    pub verb: u8,
 }
 
 impl MessageInfo for ModelChangeStructureDataType {
@@ -45,7 +45,7 @@ impl BinaryEncoder<ModelChangeStructureDataType> for ModelChangeStructureDataTyp
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let affected = NodeId::decode(stream, decoding_limits)?;
         let affected_type = NodeId::decode(stream, decoding_limits)?;
-        let verb = Byte::decode(stream, decoding_limits)?;
+        let verb = u8::decode(stream, decoding_limits)?;
         Ok(ModelChangeStructureDataType {
             affected,
             affected_type,

@@ -2,13 +2,12 @@ use std::io::{Read, Write};
 use std::fmt;
 
 use encoding::*;
-use basic_types::*;
 use date_time::*;
 use status_codes::StatusCode;
 
 /// This primitive data type is a UInt32 that is used as an identifier, such as a handle.
 /// All values, except for 0, are valid. IntegerId = 288,
-pub type IntegerId = UInt32;
+pub type IntegerId = u32;
 
 pub const MESSAGE_SECURITY_MODE_NONE: &str = "None";
 pub const MESSAGE_SECURITY_MODE_SIGN: &str = "Sign";
@@ -36,7 +35,7 @@ impl BinaryEncoder<MessageSecurityMode> for MessageSecurityMode {
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         // All enums are Int32
-        write_i32(stream, *self as Int32)
+        write_i32(stream, *self as i32)
     }
 
     fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
@@ -97,7 +96,7 @@ impl<'a> From<&'a str> for MessageSecurityMode {
 /// This Simple DataType is a Double that defines an interval of time in milliseconds (fractions can
 /// be used to define sub-millisecond values). Negative values are generally invalid but may have
 /// special meanings where the Duration is used. Duration = 290,
-pub type Duration = Double;
+pub type Duration = f64;
 
 /// UtcTime = 294,
 pub type UtcTime = DateTime;
@@ -116,7 +115,7 @@ impl BinaryEncoder<MonitoringMode> for MonitoringMode {
 
     fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
         // All enums are Int32
-        write_i32(stream, *self as Int32)
+        write_i32(stream, *self as i32)
     }
 
     fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {

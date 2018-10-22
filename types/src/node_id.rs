@@ -7,7 +7,6 @@ use std::io::{Read, Write};
 use std::str::FromStr;
 use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 
-use basic_types::*;
 use byte_string::ByteString;
 use encoding::*;
 use guid::Guid;
@@ -18,20 +17,20 @@ use string::*;
 /// The kind of identifier, numeric, string, guid or byte
 #[derive(Eq, PartialEq, Clone, Debug, Hash, Serialize, Deserialize)]
 pub enum Identifier {
-    Numeric(UInt32),
+    Numeric(u32),
     String(UAString),
     Guid(Guid),
     ByteString(ByteString),
 }
 
-impl From<Int32> for Identifier {
-    fn from(v: Int32) -> Self {
+impl From<i32> for Identifier {
+    fn from(v: i32) -> Self {
         Identifier::Numeric(v as u32)
     }
 }
 
-impl From<UInt32> for Identifier {
-    fn from(v: UInt32) -> Self {
+impl From<u32> for Identifier {
+    fn from(v: u32) -> Self {
         Identifier::Numeric(v as u32)
     }
 }
@@ -70,7 +69,7 @@ impl From<ByteString> for Identifier {
 #[derive(PartialEq, Eq, Clone, Debug, Hash, Serialize, Deserialize)]
 pub struct NodeId {
     /// The index for a namespace
-    pub namespace: UInt16,
+    pub namespace: u16,
     /// The identifier for the node in the address space
     pub identifier: Identifier,
 }
@@ -212,7 +211,7 @@ impl FromStr for NodeId {
 
         // Check namespace (optional)
         let namespace = if let Some(ns) = captures.name("ns") {
-            let parse_result = ns.as_str().parse::<UInt16>();
+            let parse_result = ns.as_str().parse::<u16>();
             if parse_result.is_err() {
                 return Err(StatusCode::BadNodeIdInvalid);
             }
@@ -226,7 +225,7 @@ impl FromStr for NodeId {
         let v = captures.name("v").unwrap();
         let node_id = match t.as_str() {
             "i" => {
-                let number = v.as_str().parse::<UInt32>();
+                let number = v.as_str().parse::<u32>();
                 if number.is_err() {
                     return Err(StatusCode::BadNodeIdInvalid);
                 }
@@ -294,32 +293,32 @@ impl ToString for NodeId {
     }
 }
 
-impl<'a> From<(UInt16, &'a str)> for NodeId {
-    fn from(v: (UInt16, &'a str)) -> Self {
+impl<'a> From<(u16, &'a str)> for NodeId {
+    fn from(v: (u16, &'a str)) -> Self {
         Self::new(v.0, UAString::from(v.1))
     }
 }
 
-impl From<(UInt16, UAString)> for NodeId {
-    fn from(v: (UInt16, UAString)) -> Self {
+impl From<(u16, UAString)> for NodeId {
+    fn from(v: (u16, UAString)) -> Self {
         Self::new(v.0, v.1)
     }
 }
 
-impl From<(UInt16, UInt32)> for NodeId {
-    fn from(v: (UInt16, UInt32)) -> Self {
+impl From<(u16, u32)> for NodeId {
+    fn from(v: (u16, u32)) -> Self {
         Self::new(v.0, v.1)
     }
 }
 
-impl From<(UInt16, Guid)> for NodeId {
-    fn from(v: (UInt16, Guid)) -> Self {
+impl From<(u16, Guid)> for NodeId {
+    fn from(v: (u16, Guid)) -> Self {
         Self::new(v.0, v.1)
     }
 }
 
-impl From<(UInt16, ByteString)> for NodeId {
-    fn from(v: (UInt16, ByteString)) -> Self {
+impl From<(u16, ByteString)> for NodeId {
+    fn from(v: (u16, ByteString)) -> Self {
         Self::new(v.0, v.1)
     }
 }
@@ -334,8 +333,8 @@ impl Default for NodeId {
 
 impl NodeId {
     // Constructs a new NodeId from anything that can be turned into Identifier
-    // UInt32, Guid, ByteString or String
-    pub fn new<T>(namespace: UInt16, value: T) -> NodeId where T: 'static + Into<Identifier> {
+    // u32, Guid, ByteString or String
+    pub fn new<T>(namespace: u16, value: T) -> NodeId where T: 'static + Into<Identifier> {
         NodeId { namespace, identifier: value.into() }
     }
 
@@ -410,7 +409,7 @@ impl NodeId {
 pub struct ExpandedNodeId {
     pub node_id: NodeId,
     pub namespace_uri: UAString,
-    pub server_index: UInt32,
+    pub server_index: u32,
 }
 
 impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
@@ -521,7 +520,7 @@ impl BinaryEncoder<ExpandedNodeId> for ExpandedNodeId {
 
         // Optional stuff
         let namespace_uri = if data_encoding & 0x80 != 0 { UAString::decode(stream, decoding_limits)? } else { UAString::null() };
-        let server_index = if data_encoding & 0x40 != 0 { UInt32::decode(stream, decoding_limits)? } else { 0 };
+        let server_index = if data_encoding & 0x40 != 0 { u32::decode(stream, decoding_limits)? } else { 0 };
 
         Ok(ExpandedNodeId {
             node_id,

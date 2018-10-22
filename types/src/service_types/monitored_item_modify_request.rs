@@ -12,7 +12,7 @@ use service_types::MonitoringParameters;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MonitoredItemModifyRequest {
-    pub monitored_item_id: UInt32,
+    pub monitored_item_id: u32,
     pub requested_parameters: MonitoringParameters,
 }
 
@@ -40,7 +40,7 @@ impl BinaryEncoder<MonitoredItemModifyRequest> for MonitoredItemModifyRequest {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let monitored_item_id = UInt32::decode(stream, decoding_limits)?;
+        let monitored_item_id = u32::decode(stream, decoding_limits)?;
         let requested_parameters = MonitoringParameters::decode(stream, decoding_limits)?;
         Ok(MonitoredItemModifyRequest {
             monitored_item_id,

@@ -17,9 +17,9 @@ pub struct BrowseDescription {
     pub node_id: NodeId,
     pub browse_direction: BrowseDirection,
     pub reference_type_id: NodeId,
-    pub include_subtypes: Boolean,
-    pub node_class_mask: UInt32,
-    pub result_mask: UInt32,
+    pub include_subtypes: bool,
+    pub node_class_mask: u32,
+    pub result_mask: u32,
 }
 
 impl MessageInfo for BrowseDescription {
@@ -57,9 +57,9 @@ impl BinaryEncoder<BrowseDescription> for BrowseDescription {
         let node_id = NodeId::decode(stream, decoding_limits)?;
         let browse_direction = BrowseDirection::decode(stream, decoding_limits)?;
         let reference_type_id = NodeId::decode(stream, decoding_limits)?;
-        let include_subtypes = Boolean::decode(stream, decoding_limits)?;
-        let node_class_mask = UInt32::decode(stream, decoding_limits)?;
-        let result_mask = UInt32::decode(stream, decoding_limits)?;
+        let include_subtypes = bool::decode(stream, decoding_limits)?;
+        let node_class_mask = u32::decode(stream, decoding_limits)?;
+        let result_mask = u32::decode(stream, decoding_limits)?;
         Ok(BrowseDescription {
             node_id,
             browse_direction,

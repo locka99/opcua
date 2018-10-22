@@ -9,7 +9,7 @@ pub struct VariableType {
 node_impl!(VariableType);
 
 impl VariableType {
-    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, is_abstract: bool, value_rank: Int32) -> VariableType {
+    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, is_abstract: bool, value_rank: i32) -> VariableType {
         // Mandatory
         let attributes = vec![
             (AttributeId::IsAbstract, Variant::Boolean(is_abstract)),
@@ -24,11 +24,11 @@ impl VariableType {
         }
     }
 
-    pub fn is_abstract(&self) -> Boolean {
+    pub fn is_abstract(&self) -> bool {
         find_attribute_value_mandatory!(&self.base, IsAbstract, Boolean)
     }
 
-    pub fn value_rank(&self) -> Int32 {
+    pub fn value_rank(&self) -> i32 {
         find_attribute_value_mandatory!(&self.base, ValueRank, Int32)
     }
 }

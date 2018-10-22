@@ -11,13 +11,13 @@ use basic_types::LocalizedText;
 /// The attributes for a reference type node.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReferenceTypeAttributes {
-    pub specified_attributes: UInt32,
+    pub specified_attributes: u32,
     pub display_name: LocalizedText,
     pub description: LocalizedText,
-    pub write_mask: UInt32,
-    pub user_write_mask: UInt32,
-    pub is_abstract: Boolean,
-    pub symmetric: Boolean,
+    pub write_mask: u32,
+    pub user_write_mask: u32,
+    pub is_abstract: bool,
+    pub symmetric: bool,
     pub inverse_name: LocalizedText,
 }
 
@@ -51,13 +51,13 @@ impl BinaryEncoder<ReferenceTypeAttributes> for ReferenceTypeAttributes {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let specified_attributes = UInt32::decode(stream, decoding_limits)?;
+        let specified_attributes = u32::decode(stream, decoding_limits)?;
         let display_name = LocalizedText::decode(stream, decoding_limits)?;
         let description = LocalizedText::decode(stream, decoding_limits)?;
-        let write_mask = UInt32::decode(stream, decoding_limits)?;
-        let user_write_mask = UInt32::decode(stream, decoding_limits)?;
-        let is_abstract = Boolean::decode(stream, decoding_limits)?;
-        let symmetric = Boolean::decode(stream, decoding_limits)?;
+        let write_mask = u32::decode(stream, decoding_limits)?;
+        let user_write_mask = u32::decode(stream, decoding_limits)?;
+        let is_abstract = bool::decode(stream, decoding_limits)?;
+        let symmetric = bool::decode(stream, decoding_limits)?;
         let inverse_name = LocalizedText::decode(stream, decoding_limits)?;
         Ok(ReferenceTypeAttributes {
             specified_attributes,

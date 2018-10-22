@@ -4,7 +4,6 @@ use std::str::FromStr;
 
 use regex::Regex;
 
-use basic_types::UInt32;
 use variant::Variant;
 
 /// Numeric range describes a range within an array. See OPCUA Part 4 7.22
@@ -36,9 +35,9 @@ use variant::Variant;
 #[derive(Debug, PartialEq, Clone)]
 pub enum NumericRange {
     /// A single index
-    Index(UInt32),
+    Index(u32),
     /// A range of indices
-    Range(UInt32, UInt32),
+    Range(u32, u32),
     /// Multiple ranges contains any mix of Index, Range values - a multiple range containing multiple ranges is invalid
     MultipleRanges(Vec<NumericRange>),
 }
@@ -177,13 +176,13 @@ impl NumericRange {
                 if min.is_none() && max.is_none() {
                     Err(())
                 } else if min.is_some() && max.is_none() {
-                    if let Ok(min) = min.unwrap().as_str().parse::<UInt32>() {
+                    if let Ok(min) = min.unwrap().as_str().parse::<u32>() {
                         Ok(NumericRange::Index(min))
                     } else {
                         Err(())
                     }
-                } else if let Ok(min) = min.unwrap().as_str().parse::<UInt32>() {
-                    if let Ok(max) = max.unwrap().as_str().parse::<UInt32>() {
+                } else if let Ok(min) = min.unwrap().as_str().parse::<u32>() {
+                    if let Ok(max) = max.unwrap().as_str().parse::<u32>() {
                         if min >= max {
                             Err(())
                         } else {

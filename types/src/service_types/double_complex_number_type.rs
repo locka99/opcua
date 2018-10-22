@@ -11,8 +11,8 @@ use node_ids::ObjectId;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DoubleComplexNumberType {
-    pub real: Double,
-    pub imaginary: Double,
+    pub real: f64,
+    pub imaginary: f64,
 }
 
 impl MessageInfo for DoubleComplexNumberType {
@@ -39,8 +39,8 @@ impl BinaryEncoder<DoubleComplexNumberType> for DoubleComplexNumberType {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let real = Double::decode(stream, decoding_limits)?;
-        let imaginary = Double::decode(stream, decoding_limits)?;
+        let real = f64::decode(stream, decoding_limits)?;
+        let imaginary = f64::decode(stream, decoding_limits)?;
         Ok(DoubleComplexNumberType {
             real,
             imaginary,

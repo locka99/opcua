@@ -4,7 +4,6 @@ use std::io::{Read, Write};
 use std::fmt;
 
 use encoding::{write_i32, BinaryEncoder, EncodingResult, DecodingLimits, process_encode_io_result, process_decode_io_result};
-use basic_types::Int32;
 use status_codes::StatusCode;
 
 /// A string containing UTF-8 encoded characters.
@@ -50,7 +49,7 @@ impl BinaryEncoder<UAString> for UAString {
     }
 
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let len = Int32::decode(stream, decoding_limits)?;
+        let len = i32::decode(stream, decoding_limits)?;
         // Null string?
         if len == -1 {
             Ok(UAString::null())

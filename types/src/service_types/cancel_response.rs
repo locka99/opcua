@@ -14,7 +14,7 @@ use service_types::impls::ResponseHeader;
 #[derive(Debug, Clone, PartialEq)]
 pub struct CancelResponse {
     pub response_header: ResponseHeader,
-    pub cancel_count: UInt32,
+    pub cancel_count: u32,
 }
 
 impl MessageInfo for CancelResponse {
@@ -42,7 +42,7 @@ impl BinaryEncoder<CancelResponse> for CancelResponse {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let response_header = ResponseHeader::decode(stream, decoding_limits)?;
-        let cancel_count = UInt32::decode(stream, decoding_limits)?;
+        let cancel_count = u32::decode(stream, decoding_limits)?;
         Ok(CancelResponse {
             response_header,
             cancel_count,

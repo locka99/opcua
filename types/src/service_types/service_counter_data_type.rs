@@ -11,8 +11,8 @@ use node_ids::ObjectId;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ServiceCounterDataType {
-    pub total_count: UInt32,
-    pub error_count: UInt32,
+    pub total_count: u32,
+    pub error_count: u32,
 }
 
 impl MessageInfo for ServiceCounterDataType {
@@ -39,8 +39,8 @@ impl BinaryEncoder<ServiceCounterDataType> for ServiceCounterDataType {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let total_count = UInt32::decode(stream, decoding_limits)?;
-        let error_count = UInt32::decode(stream, decoding_limits)?;
+        let total_count = u32::decode(stream, decoding_limits)?;
+        let error_count = u32::decode(stream, decoding_limits)?;
         Ok(ServiceCounterDataType {
             total_count,
             error_count,

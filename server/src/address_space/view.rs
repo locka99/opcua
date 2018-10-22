@@ -9,7 +9,7 @@ pub struct View {
 node_impl!(View);
 
 impl View {
-    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, event_notifier: Boolean, contains_no_loops: Boolean) -> View {
+    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, event_notifier: bool, contains_no_loops: bool) -> View {
         // Mandatory
         let attributes = vec![
             (AttributeId::EventNotifier, Variant::Boolean(event_notifier)),
@@ -20,11 +20,11 @@ impl View {
         }
     }
 
-    pub fn event_notifier(&self) -> Boolean {
+    pub fn event_notifier(&self) -> bool {
         find_attribute_value_mandatory!(&self.base, EventNotifier, Boolean)
     }
 
-    pub fn contains_no_loops(&self) -> Boolean {
+    pub fn contains_no_loops(&self) -> bool {
         find_attribute_value_mandatory!(&self.base, ContainsNoLoops, Boolean)
     }
 }

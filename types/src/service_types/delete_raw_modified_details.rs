@@ -12,7 +12,7 @@ use date_time::DateTime;
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeleteRawModifiedDetails {
     pub node_id: NodeId,
-    pub is_delete_modified: Boolean,
+    pub is_delete_modified: bool,
     pub start_time: DateTime,
     pub end_time: DateTime,
 }
@@ -40,7 +40,7 @@ impl BinaryEncoder<DeleteRawModifiedDetails> for DeleteRawModifiedDetails {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let node_id = NodeId::decode(stream, decoding_limits)?;
-        let is_delete_modified = Boolean::decode(stream, decoding_limits)?;
+        let is_delete_modified = bool::decode(stream, decoding_limits)?;
         let start_time = DateTime::decode(stream, decoding_limits)?;
         let end_time = DateTime::decode(stream, decoding_limits)?;
         Ok(DeleteRawModifiedDetails {

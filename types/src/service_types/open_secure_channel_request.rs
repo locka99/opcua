@@ -17,11 +17,11 @@ use byte_string::ByteString;
 #[derive(Debug, Clone, PartialEq)]
 pub struct OpenSecureChannelRequest {
     pub request_header: RequestHeader,
-    pub client_protocol_version: UInt32,
+    pub client_protocol_version: u32,
     pub request_type: SecurityTokenRequestType,
     pub security_mode: MessageSecurityMode,
     pub client_nonce: ByteString,
-    pub requested_lifetime: UInt32,
+    pub requested_lifetime: u32,
 }
 
 impl MessageInfo for OpenSecureChannelRequest {
@@ -57,11 +57,11 @@ impl BinaryEncoder<OpenSecureChannelRequest> for OpenSecureChannelRequest {
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let request_header = RequestHeader::decode(stream, decoding_limits)?;
-        let client_protocol_version = UInt32::decode(stream, decoding_limits)?;
+        let client_protocol_version = u32::decode(stream, decoding_limits)?;
         let request_type = SecurityTokenRequestType::decode(stream, decoding_limits)?;
         let security_mode = MessageSecurityMode::decode(stream, decoding_limits)?;
         let client_nonce = ByteString::decode(stream, decoding_limits)?;
-        let requested_lifetime = UInt32::decode(stream, decoding_limits)?;
+        let requested_lifetime = u32::decode(stream, decoding_limits)?;
         Ok(OpenSecureChannelRequest {
             request_header,
             client_protocol_version,

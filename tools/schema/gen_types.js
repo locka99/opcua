@@ -53,12 +53,29 @@ _.each(basic_types_import_map, function (types, module) {
     })
 })
 
+
+var type_name_mappings = {
+    "String": "UAString",
+    "Boolean": "bool",
+    "SByte": "i8",
+    "Byte": "u8",
+    "Int16": "i16",
+    "UInt16": "u16",
+    "Int32": "i32",
+    "UInt32": "u32",
+    "Int64": "i64",
+    "UInt64": "u64",
+    "Float": "f32",
+    "Double": "f64"
+}
+
 function massageTypeName(name) {
-    // Replace String with UAString
-    if (name === "String") {
-        return "UAString";
+    if (_.has(type_name_mappings, name)) {
+        return type_name_mappings[name];
     }
-    return name;
+    else {
+        return name;
+    }
 }
 
 function convertFieldName(name) {

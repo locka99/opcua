@@ -11,8 +11,8 @@ use node_ids::ObjectId;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct XVType {
-    pub x: Double,
-    pub value: Float,
+    pub x: f64,
+    pub value: f32,
 }
 
 impl MessageInfo for XVType {
@@ -39,8 +39,8 @@ impl BinaryEncoder<XVType> for XVType {
 
     #[allow(unused_variables)]
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
-        let x = Double::decode(stream, decoding_limits)?;
-        let value = Float::decode(stream, decoding_limits)?;
+        let x = f64::decode(stream, decoding_limits)?;
+        let value = f32::decode(stream, decoding_limits)?;
         Ok(XVType {
             x,
             value,

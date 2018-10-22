@@ -2,7 +2,6 @@
 
 use std::io::{Read, Write, Cursor, Result, Error, ErrorKind};
 
-use basic_types::*;
 use status_codes::StatusCode;
 use string::UAString;
 use encoding::*;
@@ -38,7 +37,7 @@ pub const MESSAGE_HEADER_LEN: usize = 8;
 #[derive(Debug, Clone, PartialEq)]
 pub struct MessageHeader {
     pub message_type: MessageType,
-    pub message_size: UInt32,
+    pub message_size: u32,
 }
 
 impl BinaryEncoder<MessageHeader> for MessageHeader {
@@ -93,7 +92,7 @@ impl MessageHeader {
         if MessageHeader::message_type(&header) == MessageType::Invalid {
             return Err(Error::new(ErrorKind::Other, "Message type is not recognized, cannot read bytes"));
         }
-        let message_size = UInt32::decode(stream, decoding_limits);
+        let message_size = u32::decode(stream, decoding_limits);
         if message_size.is_err() {
             return Err(Error::new(ErrorKind::Other, "Cannot decode message_size"));
         }
@@ -158,11 +157,11 @@ impl MessageHeader {
 #[derive(Debug, Clone, PartialEq)]
 pub struct HelloMessage {
     pub message_header: MessageHeader,
-    pub protocol_version: UInt32,
-    pub receive_buffer_size: UInt32,
-    pub send_buffer_size: UInt32,
-    pub max_message_size: UInt32,
-    pub max_chunk_count: UInt32,
+    pub protocol_version: u32,
+    pub receive_buffer_size: u32,
+    pub send_buffer_size: u32,
+    pub max_message_size: u32,
+    pub max_chunk_count: u32,
     pub endpoint_url: UAString,
 }
 
@@ -186,11 +185,11 @@ impl BinaryEncoder<HelloMessage> for HelloMessage {
 
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let message_header = MessageHeader::decode(stream, decoding_limits)?;
-        let protocol_version = UInt32::decode(stream, decoding_limits)?;
-        let receive_buffer_size = UInt32::decode(stream, decoding_limits)?;
-        let send_buffer_size = UInt32::decode(stream, decoding_limits)?;
-        let max_message_size = UInt32::decode(stream, decoding_limits)?;
-        let max_chunk_count = UInt32::decode(stream, decoding_limits)?;
+        let protocol_version = u32::decode(stream, decoding_limits)?;
+        let receive_buffer_size = u32::decode(stream, decoding_limits)?;
+        let send_buffer_size = u32::decode(stream, decoding_limits)?;
+        let max_message_size = u32::decode(stream, decoding_limits)?;
+        let max_chunk_count = u32::decode(stream, decoding_limits)?;
         let endpoint_url = UAString::decode(stream, decoding_limits)?;
         Ok(HelloMessage {
             message_header,
@@ -212,13 +211,13 @@ impl HelloMessage {
         let mut msg = HelloMessage {
             message_header: MessageHeader::new(MessageType::Hello),
             protocol_version: 0,
-            send_buffer_size: send_buffer_size as UInt32,
-            receive_buffer_size: receive_buffer_size as UInt32,
-            max_message_size: max_message_size as UInt32,
-            max_chunk_count: MAX_CHUNK_COUNT as UInt32,
+            send_buffer_size: send_buffer_size as u32,
+            receive_buffer_size: receive_buffer_size as u32,
+            max_message_size: max_message_size as u32,
+            max_chunk_count: MAX_CHUNK_COUNT as u32,
             endpoint_url: UAString::from(endpoint_url),
         };
-        msg.message_header.message_size = msg.byte_len() as UInt32;
+        msg.message_header.message_size = msg.byte_len() as u32;
         msg
     }
 
@@ -233,7 +232,7 @@ impl HelloMessage {
 
     pub fn is_valid_buffer_sizes(&self) -> bool {
         // Set in part 6 as minimum transport buffer size
-        self.receive_buffer_size >= MIN_CHUNK_SIZE as UInt32 && self.send_buffer_size >= MIN_CHUNK_SIZE as UInt32
+        self.receive_buffer_size >= MIN_CHUNK_SIZE as u32 && self.send_buffer_size >= MIN_CHUNK_SIZE as u32
     }
 }
 
@@ -241,11 +240,11 @@ impl HelloMessage {
 #[derive(Debug, Clone, PartialEq)]
 pub struct AcknowledgeMessage {
     pub message_header: MessageHeader,
-    pub protocol_version: UInt32,
-    pub receive_buffer_size: UInt32,
-    pub send_buffer_size: UInt32,
-    pub max_message_size: UInt32,
-    pub max_chunk_count: UInt32,
+    pub protocol_version: u32,
+    pub receive_buffer_size: u32,
+    pub send_buffer_size: u32,
+    pub max_message_size: u32,
+    pub max_chunk_count: u32,
 }
 
 impl BinaryEncoder<AcknowledgeMessage> for AcknowledgeMessage {
@@ -266,11 +265,11 @@ impl BinaryEncoder<AcknowledgeMessage> for AcknowledgeMessage {
 
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let message_header = MessageHeader::decode(stream, decoding_limits)?;
-        let protocol_version = UInt32::decode(stream, decoding_limits)?;
-        let receive_buffer_size = UInt32::decode(stream, decoding_limits)?;
-        let send_buffer_size = UInt32::decode(stream, decoding_limits)?;
-        let max_message_size = UInt32::decode(stream, decoding_limits)?;
-        let max_chunk_count = UInt32::decode(stream, decoding_limits)?;
+        let protocol_version = u32::decode(stream, decoding_limits)?;
+        let receive_buffer_size = u32::decode(stream, decoding_limits)?;
+        let send_buffer_size = u32::decode(stream, decoding_limits)?;
+        let max_message_size = u32::decode(stream, decoding_limits)?;
+        let max_chunk_count = u32::decode(stream, decoding_limits)?;
         Ok(AcknowledgeMessage {
             message_header,
             protocol_version,
@@ -286,7 +285,7 @@ impl BinaryEncoder<AcknowledgeMessage> for AcknowledgeMessage {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ErrorMessage {
     pub message_header: MessageHeader,
-    pub error: UInt32,
+    pub error: u32,
     pub reason: UAString,
 }
 
@@ -305,7 +304,7 @@ impl BinaryEncoder<ErrorMessage> for ErrorMessage {
 
     fn decode<S: Read>(stream: &mut S, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         let message_header = MessageHeader::decode(stream, decoding_limits)?;
-        let error = UInt32::decode(stream, decoding_limits)?;
+        let error = u32::decode(stream, decoding_limits)?;
         let reason = UAString::decode(stream, decoding_limits)?;
         Ok(ErrorMessage {
             message_header,
@@ -322,7 +321,7 @@ impl ErrorMessage {
             error: status_code.bits(),
             reason: UAString::from(status_code.description()),
         };
-        error.message_header.message_size = error.byte_len() as UInt32;
+        error.message_header.message_size = error.byte_len() as u32;
         error
     }
 }
