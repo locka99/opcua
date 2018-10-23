@@ -173,9 +173,8 @@ impl Node for Base {
                     false
                 } else {
                     if let &Variant::Array(ref array) = value.value.as_ref().unwrap() {
-                        // check that array of variants are all UInt32s
-                        let non_u32_value = array.iter().find(|v| if let &Variant::UInt32(_) = v { false } else { true });
-                        if non_u32_value.is_some() {
+                        // check that the array of variants are all UInt32s
+                        if let Some(non_u32_value) = array.iter().find(|v| if let &Variant::UInt32(_) = v { false } else { true }) {
                             error!("Array contains non UInt32 values, cannot use as array dimensions");
                             false
                         } else {
