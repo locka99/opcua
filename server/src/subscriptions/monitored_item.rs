@@ -115,11 +115,11 @@ impl MonitoredItem {
     /// the subscriptions and controls the rate.
     ///
     /// Function returns true if a notification message was created and should be reported.
-    pub fn tick(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, publishing_interval_elapsed: bool) -> bool {
+    pub fn tick(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, publishing_interval_elapsed: bool, resend_data: bool) -> bool {
         if self.monitoring_mode == MonitoringMode::Disabled {
             false
         } else {
-            let check_value = if self.last_data_value.is_none() {
+            let check_value = if resend_data || self.last_data_value.is_none() {
                 // Always check on the first tick
                 true
             } else if self.sampling_interval < 0f64 {
@@ -139,7 +139,7 @@ impl MonitoredItem {
             // Test the value (or don't)
             if check_value {
                 // Indicate a change if reporting is enabled
-                let value_has_changed = self.check_value(address_space, now) && self.monitoring_mode == MonitoringMode::Reporting;
+                let value_has_changed = self.check_value(address_space, now, resend_data) && self.monitoring_mode == MonitoringMode::Reporting;
                 // println!("Monitored item using its own interval changed = {}", value_has_changed);
                 value_has_changed
             } else {
@@ -153,7 +153,7 @@ impl MonitoredItem {
     /// check, the latest value and its timestamps will be stored in the monitored item.
     ///
     /// The function will return true if the value was changed, false otherwise.
-    fn check_value(&mut self, address_space: &AddressSpace, now: &DateTimeUtc) -> bool {
+    fn check_value(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, resend_data: bool) -> bool {
         self.last_sample_time = *now;
         if let Some(node) = address_space.find_node(&self.item_to_monitor.node_id) {
             let node = node.as_node();
@@ -166,7 +166,9 @@ impl MonitoredItem {
             let data_value = node.find_attribute(attribute_id);
             if let Some(mut data_value) = data_value {
                 // Test for data change
-                let data_change = if let Some(ref last_data_value) = self.last_data_value {
+                let data_change = if resend_data {
+                    true
+                } else if let Some(ref last_data_value) = self.last_data_value {
                     // If there is a filter on the monitored item then the filter determines
                     // if the value is considered to have changed, otherwise it is a straight
                     // equality test.
@@ -202,7 +204,9 @@ impl MonitoredItem {
                             data_value.server_timestamp = None;
                             data_value.server_picoseconds = None
                         }
-                        _ => {}
+                        TimestampsToReturn::Both => {
+                            // DO NOTHING
+                        }
                     }
 
                     // Enqueue notification message

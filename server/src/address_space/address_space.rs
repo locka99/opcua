@@ -90,7 +90,7 @@ pub enum ReferenceDirection {
     Inverse,
 }
 
-type MethodCallback = Box<dyn Fn(&AddressSpace, &ServerState, &Session, &CallMethodRequest) -> Result<CallMethodResult, StatusCode> + Send + Sync + 'static>;
+type MethodCallback = Box<dyn Fn(&AddressSpace, &ServerState, &mut Session, &CallMethodRequest) -> Result<CallMethodResult, StatusCode> + Send + Sync + 'static>;
 
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
 struct MethodKey {
@@ -272,6 +272,7 @@ impl AddressSpace {
 
         // Server method handlers
         self.register_method_handler(ObjectId::Server, MethodId::Server_GetMonitoredItems, Box::new(method_impls::handle_get_monitored_items));
+        self.register_method_handler(ObjectId::Server, MethodId::Server_ResendData, Box::new(method_impls::handle_resend_data));
     }
 
     /// Updates the server diagnostics data with new values
@@ -661,7 +662,7 @@ impl AddressSpace {
     ///
     /// Calls require a registered handler to handle the method. If there is no handler, or if
     /// the request refers to a non existent object / method, the function will return an error.
-    pub fn call_method(&self, server_state: &ServerState, session: &Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
+    pub fn call_method(&self, server_state: &ServerState, session: &mut Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
         let (object_id, method_id) = (&request.object_id, &request.method_id);
 
         // Handle the call

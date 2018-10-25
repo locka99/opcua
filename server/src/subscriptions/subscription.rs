@@ -114,6 +114,9 @@ pub struct Subscription {
     pub message_sent: bool,
     /// The parameter that requests publishing to be enabled or disabled.
     pub publishing_enabled: bool,
+    /// A flag that tells the subscription to send the latest value of every monitored item on the
+    /// next publish request.
+    resend_data: bool,
     /// The next sequence number to be sent
     next_sequence_number: u32,
     // The last monitored item id
@@ -152,6 +155,7 @@ impl Subscription {
             current_keep_alive_count: keep_alive_count,
             message_sent: false,
             publishing_enabled,
+            resend_data: false,
             // Counters for new items
             next_sequence_number: 1,
             next_monitored_item_id: 1,
@@ -255,6 +259,12 @@ impl Subscription {
         (server_handles, client_handles)
     }
 
+    /// Sets the resend data flag which means the next publish request will receive the latest value
+    /// of every monitored item whether it has changed in this cycle or not.
+    pub fn set_resend_data(&mut self) {
+        self.resend_data = true;
+    }
+
     /// Checks the subscription and monitored items for state change, messages. If the tick does
     /// nothing, the function returns None. Otherwise it returns one or more messages in an Vec.
     pub fn tick(&mut self, address_space: &AddressSpace, tick_reason: TickReason, publishing_req_queued: bool, now: &DateTimeUtc) -> Option<NotificationMessage> {
@@ -284,9 +294,11 @@ impl Subscription {
         let (notification_message, more_notifications) = match self.state {
             SubscriptionState::Closed | SubscriptionState::Creating => (None, false),
             _ => {
-                self.tick_monitored_items(address_space, now, publishing_interval_elapsed)
+                let resend_data = self.resend_data;
+                self.tick_monitored_items(address_space, now, publishing_interval_elapsed, resend_data)
             }
         };
+        self.resend_data = false;
         let notifications_available = notification_message.is_some();
 
         // If items have changed or subscription interval elapsed then we may have notifications
@@ -344,23 +356,24 @@ impl Subscription {
 
     /// Iterate through the monitored items belonging to the subscription, calling tick on each in turn.
     /// The function returns notifications and a more_notifications boolean.
-    fn tick_monitored_items(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, publishing_interval_elapsed: bool) -> (Option<NotificationMessage>, bool) {
-        let mut all_notification_messages = Vec::new();
+    fn tick_monitored_items(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, publishing_interval_elapsed: bool, resend_data: bool) -> (Option<NotificationMessage>, bool) {
+        let mut notification_messages = Vec::new();
         for (_, monitored_item) in &mut self.monitored_items {
             // If this returns true then the monitored item wants to report its notification
-            let _ = monitored_item.tick(address_space, now, publishing_interval_elapsed);
+            let _ = monitored_item.tick(address_space, now, publishing_interval_elapsed, resend_data);
             if publishing_interval_elapsed {
                 // Take some / all of the monitored item's pending notifications
-                if let Some(mut notification_messages) = monitored_item.all_notification_messages() {
-                    all_notification_messages.append(&mut notification_messages);
+                if let Some(mut item_notification_messages) = monitored_item.all_notification_messages() {
+                    notification_messages.append(&mut item_notification_messages);
                 }
             }
         }
-        if !all_notification_messages.is_empty() {
+
+        if !notification_messages.is_empty() {
             use std;
             debug!("Create notification for subscription {}, sequence number {}", self.subscription_id, self.next_sequence_number);
             // Create a notification message and push it onto the queue
-            let notification = NotificationMessage::data_change(self.next_sequence_number, DateTime::now(), all_notification_messages);
+            let notification = NotificationMessage::data_change(self.next_sequence_number, DateTime::now(), notification_messages);
             // Advance next sequence number
             self.next_sequence_number = if self.next_sequence_number == std::u32::MAX {
                 1

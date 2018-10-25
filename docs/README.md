@@ -406,7 +406,7 @@ towards.
     * Deadband filter
     * CallMethod service
     * GetMonitoredItems via call
-    * ! No ResendData via call
+    * ResendData via call
 
 This [OPC UA link](http://opcfoundation-onlineapplications.org/ProfileReporting/index.htm) provides interactive and descriptive information about
 profiles and relevant test cases.

@@ -207,7 +207,7 @@ impl MessageHandler {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.method_service.call(&address_space, &server_state, &session, request)?)
+                    Some(self.method_service.call(&address_space, &server_state, &mut session, request)?)
                 }
             }
             _ => {
