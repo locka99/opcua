@@ -8,10 +8,10 @@ use std::fmt::Debug;
 use std::cmp::PartialEq;
 use std::io::Cursor;
 
-use ::*;
-use argument::Argument;
-use status_codes::StatusCode;
-use node_ids::*;
+use crate::*;
+use crate::argument::Argument;
+use crate::status_codes::StatusCode;
+use crate::node_ids::*;
 
 pub fn serialize_test_and_return<T>(value: T) -> T
     where T: BinaryEncoder<T> + Debug + PartialEq + Clone

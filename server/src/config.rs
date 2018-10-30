@@ -10,7 +10,7 @@ use opcua_types::url_matches_except_host;
 use opcua_core::crypto::SecurityPolicy;
 use opcua_core::config::Config;
 
-use constants;
+use crate::constants;
 
 pub const ANONYMOUS_USER_TOKEN_ID: &str = "ANONYMOUS";
 

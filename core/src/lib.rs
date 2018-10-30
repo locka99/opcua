@@ -132,7 +132,7 @@ pub mod config;
 pub mod prelude {
     pub use opcua_types::*;
     pub use opcua_types::status_code::StatusCode;
-    pub use comms::prelude::*;
-    pub use crypto::*;
-    pub use config::Config;
+    pub use crate::comms::prelude::*;
+    pub use crate::crypto::*;
+    pub use crate::config::Config;
 }

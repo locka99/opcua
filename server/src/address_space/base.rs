@@ -7,8 +7,8 @@ use opcua_types::*;
 use opcua_types::status_code::StatusCode;
 use opcua_types::service_types::*;
 
-use address_space::{AttributeGetter, AttributeSetter};
-use address_space::node::Node;
+use crate::address_space::{AttributeGetter, AttributeSetter};
+use crate::address_space::node::Node;
 
 // This should match size of AttributeId
 const NUM_ATTRIBUTES: usize = 22;

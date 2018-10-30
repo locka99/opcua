@@ -1,10 +1,10 @@
 use std::sync::{Arc, RwLock, RwLockWriteGuard};
 
-use prelude::*;
-use state::ServerState;
-use session::Session;
-use comms::transport::Transport;
-use tests::*;
+use crate::prelude::*;
+use crate::state::ServerState;
+use crate::session::Session;
+use crate::comms::transport::Transport;
+use crate::tests::*;
 
 struct ServiceTest {
     pub server: Server,

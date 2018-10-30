@@ -1,5 +1,5 @@
-use prelude::*;
-use services::view::ViewService;
+use crate::prelude::*;
+use crate::services::view::ViewService;
 use super::*;
 
 // View service tests

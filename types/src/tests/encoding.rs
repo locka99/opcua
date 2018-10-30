@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use tests::*;
+use crate::tests::*;
 
 #[test]
 fn endpoint_match() {

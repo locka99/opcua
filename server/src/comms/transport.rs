@@ -7,7 +7,7 @@ use std::sync::{Arc, RwLock};
 
 use opcua_types::status_code::StatusCode;
 
-use session::Session;
+use crate::session::Session;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TransportState {

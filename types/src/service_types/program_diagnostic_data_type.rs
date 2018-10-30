@@ -3,16 +3,16 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
+use crate::encoding::*;
 #[allow(unused_imports)]
-use basic_types::*;
-use service_types::impls::MessageInfo;
-use node_ids::ObjectId;
-use node_id::NodeId;
-use string::UAString;
-use date_time::DateTime;
-use service_types::Argument;
-use service_types::StatusResult;
+use crate::basic_types::*;
+use crate::service_types::impls::MessageInfo;
+use crate::node_ids::ObjectId;
+use crate::node_id::NodeId;
+use crate::string::UAString;
+use crate::date_time::DateTime;
+use crate::service_types::Argument;
+use crate::service_types::StatusResult;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ProgramDiagnosticDataType {

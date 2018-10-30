@@ -3,14 +3,14 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
+use crate::encoding::*;
 #[allow(unused_imports)]
-use basic_types::*;
-use service_types::impls::MessageInfo;
-use node_ids::ObjectId;
-use status_codes::StatusCode;
-use diagnostic_info::DiagnosticInfo;
-use variant::Variant;
+use crate::basic_types::*;
+use crate::service_types::impls::MessageInfo;
+use crate::node_ids::ObjectId;
+use crate::status_codes::StatusCode;
+use crate::diagnostic_info::DiagnosticInfo;
+use crate::variant::Variant;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CallMethodResult {

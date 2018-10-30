@@ -14,12 +14,12 @@ use opcua_core::config::Config;
 use opcua_core::crypto::*;
 use opcua_core::comms::secure_channel::SecureChannel;
 
-use address_space::address_space::*;
-use address_space::variable::*;
-use session::*;
-use subscriptions::*;
-use config::ServerConfig;
-use builder::ServerBuilder;
+use crate::address_space::address_space::*;
+use crate::address_space::variable::*;
+use crate::session::*;
+use crate::subscriptions::*;
+use crate::config::ServerConfig;
+use crate::builder::ServerBuilder;
 
 mod address_space;
 mod services;

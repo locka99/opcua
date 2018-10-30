@@ -5,13 +5,13 @@ use std::io::Write;
 
 use opcua_types::status_code::StatusCode;
 
-use crypto::{SecurityPolicy, SHA1_SIZE, SHA256_SIZE};
-use crypto::certificate_store::*;
-use crypto::x509::{X509, X509Data};
-use crypto::pkey::{PrivateKey, KeySize, RsaPadding};
-use crypto::aeskey::AesKey;
+use crate::crypto::{SecurityPolicy, SHA1_SIZE, SHA256_SIZE};
+use crate::crypto::certificate_store::*;
+use crate::crypto::x509::{X509, X509Data};
+use crate::crypto::pkey::{PrivateKey, KeySize, RsaPadding};
+use crate::crypto::aeskey::AesKey;
 
-use tests::{make_certificate_store, make_test_cert_1024, make_test_cert_2048, APPLICATION_URI, APPLICATION_HOSTNAME};
+use crate::tests::{make_certificate_store, make_test_cert_1024, make_test_cert_2048, APPLICATION_URI, APPLICATION_HOSTNAME};
 
 #[test]
 fn aes_test() {
@@ -299,8 +299,8 @@ fn sign_verify_sha256() {
 
 #[test]
 fn sign_hmac_sha1() {
-    use crypto::hash;
-    use tests::crypto::serialize::hex::FromHex;
+    use crate::crypto::hash;
+    use crate::tests::crypto::serialize::hex::FromHex;
 
     let key = b"";
     let data = b"";
@@ -325,8 +325,8 @@ fn sign_hmac_sha1() {
 
 #[test]
 fn sign_hmac_sha256() {
-    use crypto::hash;
-    use tests::crypto::serialize::hex::FromHex;
+    use crate::crypto::hash;
+    use crate::tests::crypto::serialize::hex::FromHex;
 
     let key = b"";
     let data = b"";

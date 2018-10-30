@@ -2,12 +2,12 @@
 
 use std::io::{Read, Write, Cursor};
 
-use encoding::*;
-use string::XmlElement;
-use node_id::NodeId;
-use byte_string::ByteString;
+use crate::encoding::*;
+use crate::string::XmlElement;
+use crate::node_id::NodeId;
+use crate::byte_string::ByteString;
 
-use status_codes::StatusCode;
+use crate::status_codes::StatusCode;
 
 /// Enumeration that holds the kinds of encoding that an ExtensionObject data may be encoded with.
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]

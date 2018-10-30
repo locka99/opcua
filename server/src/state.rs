@@ -9,8 +9,8 @@ use opcua_types::service_types::{ApplicationDescription, RegisteredServer, Appli
 use opcua_types::service_types::ServerState as ServerStateType;
 use opcua_types::status_code::StatusCode;
 
-use config::{ServerConfig, ServerEndpoint};
-use diagnostics::ServerDiagnostics;
+use crate::config::{ServerConfig, ServerEndpoint};
+use crate::diagnostics::ServerDiagnostics;
 
 const TOKEN_POLICY_ANONYMOUS: &str = "anonymous";
 const TOKEN_POLICY_USER_PASS_PLAINTEXT: &str = "userpass_plaintext";

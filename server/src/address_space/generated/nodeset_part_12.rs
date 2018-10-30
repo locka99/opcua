@@ -8,7 +8,7 @@ use std::str::FromStr;
 use opcua_types::*;
 use opcua_types::node_ids::*;
 #[allow(unused_imports)]
-use address_space::types::*;
+use crate::address_space::types::*;
 
 #[allow(unused_variables)]
 pub fn populate_address_space(address_space: &mut AddressSpace) {

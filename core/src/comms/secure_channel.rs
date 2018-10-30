@@ -8,13 +8,13 @@ use opcua_types::*;
 use opcua_types::service_types::ChannelSecurityToken;
 use opcua_types::status_code::StatusCode;
 
-use comms::message_chunk::{MessageChunk, MessageChunkHeader, MessageChunkType};
-use comms::security_header::{AsymmetricSecurityHeader, SecurityHeader, SymmetricSecurityHeader};
-use crypto::aeskey::AesKey;
-use crypto::CertificateStore;
-use crypto::pkey::{PrivateKey, PublicKey, KeySize};
-use crypto::SecurityPolicy;
-use crypto::x509::X509;
+use crate::comms::message_chunk::{MessageChunk, MessageChunkHeader, MessageChunkType};
+use crate::comms::security_header::{AsymmetricSecurityHeader, SecurityHeader, SymmetricSecurityHeader};
+use crate::crypto::aeskey::AesKey;
+use crate::crypto::CertificateStore;
+use crate::crypto::pkey::{PrivateKey, PublicKey, KeySize};
+use crate::crypto::SecurityPolicy;
+use crate::crypto::x509::X509;
 
 #[derive(Debug, PartialEq)]
 pub enum Role {
@@ -475,7 +475,7 @@ impl SecureChannel {
     }
 
     fn log_crypto_data(message: &str, data: &[u8]) {
-        use debug;
+        use crate::debug;
         debug::log_buffer(message, data);
     }
 

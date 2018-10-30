@@ -3,14 +3,14 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
+use crate::encoding::*;
 #[allow(unused_imports)]
-use basic_types::*;
-use service_types::impls::MessageInfo;
-use node_ids::ObjectId;
-use data_types::MonitoringMode;
-use service_types::ReadValueId;
-use service_types::MonitoringParameters;
+use crate::basic_types::*;
+use crate::service_types::impls::MessageInfo;
+use crate::node_ids::ObjectId;
+use crate::data_types::MonitoringMode;
+use crate::service_types::ReadValueId;
+use crate::service_types::MonitoringParameters;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MonitoredItemCreateRequest {

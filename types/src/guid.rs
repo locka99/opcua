@@ -6,7 +6,7 @@ use std::io::{Read, Write};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use encoding::*;
+use crate::encoding::*;
 use uuid::Uuid;
 
 /// A Guid is a 16 byte Globally Unique Identifier.

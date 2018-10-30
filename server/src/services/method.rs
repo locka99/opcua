@@ -4,11 +4,11 @@ use opcua_types::*;
 use opcua_types::status_code::StatusCode;
 use opcua_types::service_types::*;
 
-use address_space::AddressSpace;
-use services::Service;
-use session::Session;
-use state::ServerState;
-use constants;
+use crate::address_space::AddressSpace;
+use crate::services::Service;
+use crate::session::Session;
+use crate::state::ServerState;
+use crate::constants;
 
 /// The method service. Allows a client to call a method on the server.
 pub(crate) struct MethodService;

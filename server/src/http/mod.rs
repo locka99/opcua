@@ -9,9 +9,9 @@ use hyper::service::service_fn_ok;
 use hyper::rt;
 use serde_json;
 
-use server::Connections;
-use metrics::ServerMetrics;
-use state::ServerState;
+use crate::server::Connections;
+use crate::metrics::ServerMetrics;
+use crate::state::ServerState;
 
 /// This is our metrics service, the thing called to handle requests coming from hyper
 #[derive(Clone)]

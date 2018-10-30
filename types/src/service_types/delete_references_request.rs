@@ -3,13 +3,13 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
+use crate::encoding::*;
 #[allow(unused_imports)]
-use basic_types::*;
-use service_types::impls::MessageInfo;
-use node_ids::ObjectId;
-use service_types::impls::RequestHeader;
-use service_types::DeleteReferencesItem;
+use crate::basic_types::*;
+use crate::service_types::impls::MessageInfo;
+use crate::node_ids::ObjectId;
+use crate::service_types::impls::RequestHeader;
+use crate::service_types::DeleteReferencesItem;
 
 /// Delete one or more references from the server address space.
 #[derive(Debug, Clone, PartialEq)]

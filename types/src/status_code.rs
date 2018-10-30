@@ -5,7 +5,7 @@ use std::fmt::Formatter;
 use serde::{Serialize, Serializer, Deserialize, Deserializer};
 use serde::de::{self, Visitor};
 
-pub use status_codes::StatusCode;
+pub use crate::status_codes::StatusCode;
 
 // The bitflags! macro implements Debug for StatusCode but it fouls the display because status
 // codes are a combination of bits and unique values.

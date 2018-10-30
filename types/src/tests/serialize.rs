@@ -1,10 +1,10 @@
 use serde_json;
 
-use data_value::DataValue;
-use variant::Variant;
-use guid::Guid;
-use date_time::DateTime;
-use status_codes::StatusCode;
+use crate::data_value::DataValue;
+use crate::variant::Variant;
+use crate::guid::Guid;
+use crate::date_time::DateTime;
+use crate::status_codes::StatusCode;
 
 #[test]
 fn serialize_variant() {

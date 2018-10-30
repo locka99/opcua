@@ -2,12 +2,12 @@
 //! chunks containing messages
 
 
-use comms::chunker::*;
-use comms::secure_channel::*;
+use crate::comms::chunker::*;
+use crate::comms::secure_channel::*;
 
-use crypto::SecurityPolicy;
+use crate::crypto::SecurityPolicy;
 
-use tests::*;
+use crate::tests::*;
 
 fn test_symmetric_encrypt_decrypt(message: SupportedMessage, security_mode: MessageSecurityMode, security_policy: SecurityPolicy) {
     let (secure_channel1, mut secure_channel2) = make_secure_channels(security_mode, security_policy);

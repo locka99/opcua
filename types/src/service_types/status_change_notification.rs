@@ -3,11 +3,11 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
+use crate::encoding::*;
 #[allow(unused_imports)]
-use basic_types::*;
-use status_codes::StatusCode;
-use diagnostic_info::DiagnosticInfo;
+use crate::basic_types::*;
+use crate::status_codes::StatusCode;
+use crate::diagnostic_info::DiagnosticInfo;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct StatusChangeNotification {

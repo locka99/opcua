@@ -3,12 +3,12 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
+use crate::encoding::*;
 #[allow(unused_imports)]
-use basic_types::*;
-use node_id::NodeId;
-use string::UAString;
-use service_types::RelativePath;
+use crate::basic_types::*;
+use crate::node_id::NodeId;
+use crate::string::UAString;
+use crate::service_types::RelativePath;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AttributeOperand {

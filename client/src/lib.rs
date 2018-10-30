@@ -81,12 +81,12 @@ pub mod prelude {
     pub use opcua_types::status_code::StatusCode;
     pub use opcua_types::service_types::*;
     pub use opcua_core::prelude::*;
-    pub use client::*;
-    pub use builder::*;
-    pub use config::*;
-    pub use session::*;
-    pub use subscription::MonitoredItem;
-    pub use callbacks::*;
+    pub use crate::client::*;
+    pub use crate::builder::*;
+    pub use crate::config::*;
+    pub use crate::session::*;
+    pub use crate::subscription::MonitoredItem;
+    pub use crate::callbacks::*;
 }
 
 #[cfg(test)]

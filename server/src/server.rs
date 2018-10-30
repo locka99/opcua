@@ -17,18 +17,18 @@ use opcua_types::service_types::ServerState as ServerStateType;
 use opcua_core::config::Config;
 use opcua_core::prelude::*;
 
-use address_space::types::AddressSpace;
-use comms::tcp_transport::*;
-use comms::transport::Transport;
-use config::ServerConfig;
-use constants;
-use diagnostics::ServerDiagnostics;
-use discovery;
-use metrics::ServerMetrics;
-use services::message_handler::MessageHandler;
-use session::Session;
-use state::ServerState;
-use util::PollingAction;
+use crate::address_space::types::AddressSpace;
+use crate::comms::tcp_transport::*;
+use crate::comms::transport::Transport;
+use crate::config::ServerConfig;
+use crate::constants;
+use crate::diagnostics::ServerDiagnostics;
+use crate::discovery;
+use crate::metrics::ServerMetrics;
+use crate::services::message_handler::MessageHandler;
+use crate::session::Session;
+use crate::state::ServerState;
+use crate::util::PollingAction;
 
 pub type Connections = Vec<Arc<RwLock<TcpTransport>>>;
 
@@ -220,7 +220,7 @@ impl Server {
 
                 future::ok(())
             }).and_then(move |_| {
-                use completion_pact::stream_completion_pact;
+                use crate::completion_pact::stream_completion_pact;
                 // Listen for connections
                 let listener = TcpListener::bind(&sock_addr).unwrap();
                 stream_completion_pact(listener.incoming(), rx_abort)

@@ -8,7 +8,7 @@ use openssl::hash;
 
 use opcua_types::status_code::StatusCode;
 
-use crypto::{SHA1_SIZE, SHA256_SIZE};
+use crate::crypto::{SHA1_SIZE, SHA256_SIZE};
 
 /// Pseudo random `P_SHA` implementation for creating pseudo random range of bytes from an input
 ///

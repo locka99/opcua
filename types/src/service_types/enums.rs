@@ -1,7 +1,7 @@
 use std::io::{Read, Write};
 
-use encoding::*;
-use status_codes::StatusCode;
+use crate::encoding::*;
+use crate::status_codes::StatusCode;
 
 /// The enumeration for the type of user identity token supported by an endpoint.
 #[derive(Debug, Copy, Clone, PartialEq)]

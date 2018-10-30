@@ -2,10 +2,10 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
-use date_time::*;
-use variant::Variant;
-use status_codes::StatusCode;
+use crate::encoding::*;
+use crate::date_time::*;
+use crate::variant::Variant;
+use crate::status_codes::StatusCode;
 
 bitflags! {
     struct DataValueFlags: u8 {

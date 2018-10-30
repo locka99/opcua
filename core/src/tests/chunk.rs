@@ -4,14 +4,14 @@ use std::io::{Cursor, Write};
 use opcua_types::DecodingLimits;
 use opcua_types::tcp_types::MIN_CHUNK_SIZE;
 
-use comms::chunker::*;
-use comms::message_chunk::*;
-use comms::secure_channel::*;
+use crate::comms::chunker::*;
+use crate::comms::message_chunk::*;
+use crate::comms::secure_channel::*;
 
-use crypto::SecurityPolicy;
-use crypto::x509::X509;
+use crate::crypto::SecurityPolicy;
+use crate::crypto::x509::X509;
 
-use tests::*;
+use crate::tests::*;
 
 fn sample_secure_channel_request_data_security_none() -> MessageChunk {
     let sample_data = vec![
@@ -361,7 +361,7 @@ fn security_policy_symmetric_encrypt_decrypt() {
 fn asymmetric_decrypt_and_verify_sample_chunk() {
     let _ = Test::setup();
 
-    use tests::chunk::serialize::hex::FromHex;
+    use crate::tests::chunk::serialize::hex::FromHex;
 
     let their_cert_data = include_bytes!("test_data/their_cert.der");
     let their_cert = X509::from_der(&their_cert_data[..]).unwrap();

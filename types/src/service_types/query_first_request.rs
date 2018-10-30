@@ -3,15 +3,15 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
+use crate::encoding::*;
 #[allow(unused_imports)]
-use basic_types::*;
-use service_types::impls::MessageInfo;
-use node_ids::ObjectId;
-use service_types::impls::RequestHeader;
-use service_types::ViewDescription;
-use service_types::NodeTypeDescription;
-use service_types::ContentFilter;
+use crate::basic_types::*;
+use crate::service_types::impls::MessageInfo;
+use crate::node_ids::ObjectId;
+use crate::service_types::impls::RequestHeader;
+use crate::service_types::ViewDescription;
+use crate::service_types::NodeTypeDescription;
+use crate::service_types::ContentFilter;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct QueryFirstRequest {

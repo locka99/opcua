@@ -3,11 +3,11 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
-use node_id::NodeId;
-use service_types::*;
-use node_ids::ObjectId;
-use tcp_types::AcknowledgeMessage;
+use crate::encoding::*;
+use crate::node_id::NodeId;
+use crate::service_types::*;
+use crate::node_ids::ObjectId;
+use crate::tcp_types::AcknowledgeMessage;
 
 /// This macro helps avoid tedious repetition as new messages are added
 /// The first form just handles the trailing comma after the last entry to save some pointless

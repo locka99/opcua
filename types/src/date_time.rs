@@ -5,7 +5,7 @@ use std::io::{Read, Write};
 use chrono::{self, Utc, TimeZone, Datelike, Timelike};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use encoding::*;
+use crate::encoding::*;
 
 const NANOS_PER_SECOND: i64 = 1_000_000_000;
 const NANOS_PER_TICK: i64 = 100;

@@ -3,17 +3,17 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
+use crate::encoding::*;
 #[allow(unused_imports)]
-use basic_types::*;
-use service_types::impls::MessageInfo;
-use node_ids::ObjectId;
-use service_types::impls::ResponseHeader;
-use byte_string::ByteString;
-use diagnostic_info::DiagnosticInfo;
-use service_types::QueryDataSet;
-use service_types::ParsingResult;
-use service_types::ContentFilterResult;
+use crate::basic_types::*;
+use crate::service_types::impls::MessageInfo;
+use crate::node_ids::ObjectId;
+use crate::service_types::impls::ResponseHeader;
+use crate::byte_string::ByteString;
+use crate::diagnostic_info::DiagnosticInfo;
+use crate::service_types::QueryDataSet;
+use crate::service_types::ParsingResult;
+use crate::service_types::ContentFilterResult;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct QueryFirstResponse {

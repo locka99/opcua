@@ -3,10 +3,10 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
+use crate::encoding::*;
 #[allow(unused_imports)]
-use basic_types::*;
-use date_time::DateTime;
+use crate::basic_types::*;
+use crate::date_time::DateTime;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReadRawModifiedDetails {

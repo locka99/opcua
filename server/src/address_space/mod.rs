@@ -57,7 +57,7 @@ macro_rules! node_impl {
         use opcua_types::*;
         use opcua_types::status_code::StatusCode;
         use opcua_types::service_types::NodeClass;
-        use address_space::node::NodeType;
+        use crate::address_space::node::NodeType;
 
         impl Node for $node_struct {
             fn node_class(&self) -> NodeClass { self.base.node_class() }

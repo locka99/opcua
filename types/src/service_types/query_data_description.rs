@@ -3,13 +3,13 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
+use crate::encoding::*;
 #[allow(unused_imports)]
-use basic_types::*;
-use service_types::impls::MessageInfo;
-use node_ids::ObjectId;
-use string::UAString;
-use service_types::RelativePath;
+use crate::basic_types::*;
+use crate::service_types::impls::MessageInfo;
+use crate::node_ids::ObjectId;
+use crate::string::UAString;
+use crate::service_types::RelativePath;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct QueryDataDescription {

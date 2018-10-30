@@ -3,8 +3,8 @@
 use std::io::{Read, Write};
 use std::fmt;
 
-use encoding::*;
-use string::*;
+use crate::encoding::*;
+use crate::string::*;
 
 // OPC UA Part 6 - Mappings 1.03 Specification
 

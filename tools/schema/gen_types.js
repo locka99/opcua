@@ -187,14 +187,14 @@ pub use self::impls::*;
 }
 
 function generate_type_imports(structured_types, fields_to_add, fields_to_hide, has_message_info) {
-    var imports = `use encoding::*;
+    var imports = `use crate::encoding::*;
 #[allow(unused_imports)]
-use basic_types::*;
+use crate::basic_types::*;
 `;
 
     if (has_message_info) {
-        imports += `use service_types::impls::MessageInfo;
-use node_ids::ObjectId;
+        imports += `use crate::service_types::impls::MessageInfo;
+use crate::node_ids::ObjectId;
 `;
     }
 
@@ -229,7 +229,7 @@ use node_ids::ObjectId;
     var basic_type_imports = "";
     _.each(basic_types_to_import, function (types, module) {
         _.each(types, function (type) {
-            basic_type_imports += `use ${module}::${type};
+            basic_type_imports += `use crate::${module}::${type};
 `
         });
     });
@@ -238,7 +238,7 @@ use node_ids::ObjectId;
     // Service type imports
     var service_type_imports = "";
     _.each(service_types_used, function (value, key) {
-        service_type_imports += `use service_types::${key};
+        service_type_imports += `use crate::service_types::${key};
 `;
     });
     imports += service_type_imports;

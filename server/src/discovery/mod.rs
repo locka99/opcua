@@ -1,6 +1,6 @@
 use opcua_client::prelude::{Client, ClientConfig};
 
-use state::ServerState;
+use crate::state::ServerState;
 
 /// Registers the specified endpoints with the specified discovery server
 pub fn register_with_discovery_server(discovery_server_url: &str, server_state: &ServerState) {

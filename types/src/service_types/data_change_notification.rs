@@ -3,11 +3,11 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
+use crate::encoding::*;
 #[allow(unused_imports)]
-use basic_types::*;
-use diagnostic_info::DiagnosticInfo;
-use service_types::MonitoredItemNotification;
+use crate::basic_types::*;
+use crate::diagnostic_info::DiagnosticInfo;
+use crate::service_types::MonitoredItemNotification;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DataChangeNotification {

@@ -8,12 +8,12 @@ use opcua_types::*;
 use opcua_types::status_code::StatusCode;
 use opcua_types::service_types::*;
 
-use comms::secure_channel::SecureChannel;
+use crate::comms::secure_channel::SecureChannel;
 
-use crypto::pkey::PrivateKey;
-use crypto::x509::{X509, X509Data};
-use crypto::certificate_store::*;
-use crypto::security_policy::SecurityPolicy;
+use crate::crypto::pkey::PrivateKey;
+use crate::crypto::x509::{X509, X509Data};
+use crate::crypto::certificate_store::*;
+use crate::crypto::security_policy::SecurityPolicy;
 
 pub fn serialize_test_and_return<T>(value: T) -> T
     where T: BinaryEncoder<T> + Debug + PartialEq

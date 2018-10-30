@@ -5,10 +5,10 @@ use std;
 use std::fmt::Debug;
 use std::io::{Read, Write, Cursor, Result};
 
-use constants;
+use crate::constants;
 use byteorder::{ByteOrder, LittleEndian};
 
-use status_codes::StatusCode;
+use crate::status_codes::StatusCode;
 
 pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
 

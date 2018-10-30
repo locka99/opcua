@@ -1,6 +1,6 @@
 use chrono;
 
-use prelude::*;
+use crate::prelude::*;
 use super::*;
 
 fn test_var_node_id() -> NodeId {

@@ -8,7 +8,7 @@ use std::fmt;
 
 use opcua_types::status_code::StatusCode;
 
-use subscription::MonitoredItem;
+use crate::subscription::MonitoredItem;
 
 /// This trait is implemented by something that wishes to receive subscription data change notifications.
 pub trait OnDataChange {

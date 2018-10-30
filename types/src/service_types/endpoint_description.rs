@@ -3,16 +3,16 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
+use crate::encoding::*;
 #[allow(unused_imports)]
-use basic_types::*;
-use service_types::impls::MessageInfo;
-use node_ids::ObjectId;
-use string::UAString;
-use byte_string::ByteString;
-use data_types::MessageSecurityMode;
-use service_types::ApplicationDescription;
-use service_types::UserTokenPolicy;
+use crate::basic_types::*;
+use crate::service_types::impls::MessageInfo;
+use crate::node_ids::ObjectId;
+use crate::string::UAString;
+use crate::byte_string::ByteString;
+use crate::data_types::MessageSecurityMode;
+use crate::service_types::ApplicationDescription;
+use crate::service_types::UserTokenPolicy;
 
 /// The description of a endpoint that can be used to access a server.
 #[derive(Debug, Clone, PartialEq)]

@@ -4,8 +4,8 @@ use opcua_types::*;
 use opcua_types::status_code::StatusCode;
 use opcua_types::service_types::*;
 
-use session::Session;
-use services::Service;
+use crate::session::Session;
+use crate::services::Service;
 
 /// The monitored item service. Allows client to create, modify and delete monitored items on a subscription.
 pub(crate) struct MonitoredItemService;

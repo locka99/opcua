@@ -9,16 +9,16 @@ use opcua_types::service_types::{BrowseDirection, RelativePath, RelativePathElem
 use opcua_types::status_code::StatusCode;
 use opcua_types::service_types::{CallMethodRequest, CallMethodResult};
 
-use address_space::AttrFnGetter;
-use address_space::node::{Node, NodeType, HasNodeId};
-use address_space::object::Object;
-use address_space::variable::Variable;
-use address_space::method_impls;
+use crate::address_space::AttrFnGetter;
+use crate::address_space::node::{Node, NodeType, HasNodeId};
+use crate::address_space::object::Object;
+use crate::address_space::variable::Variable;
+use crate::address_space::method_impls;
 
-use state::ServerState;
-use session::Session;
-use constants;
-use DateTimeUtc;
+use crate::state::ServerState;
+use crate::session::Session;
+use crate::constants;
+use crate::DateTimeUtc;
 
 /// Searches for the specified node by type, expecting it to exist
 macro_rules! expect_and_find_node {

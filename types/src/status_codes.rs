@@ -4,7 +4,7 @@
 use std::io::{Read, Write};
 use std::str::FromStr;
 
-use encoding::*;
+use crate::encoding::*;
 
 bitflags! {
     pub struct StatusCode: u32 {

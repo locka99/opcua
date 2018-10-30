@@ -5,9 +5,9 @@ use std::sync::{Arc, Mutex};
 use opcua_types::{ByteString};
 use opcua_types::service_types::ReferenceDescription;
 
-use DateTimeUtc;
+use crate::DateTimeUtc;
 
-use prelude::AddressSpace;
+use crate::prelude::AddressSpace;
 
 #[derive(Clone)]
 pub struct BrowseContinuationPoint {

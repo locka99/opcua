@@ -6,8 +6,8 @@ use opcua_core::config::Config;
 use opcua_types::MessageSecurityMode;
 use opcua_core::crypto::SecurityPolicy;
 
-use config::{ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID};
-use builder::ClientBuilder;
+use crate::config::{ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID};
+use crate::builder::ClientBuilder;
 
 fn make_test_file(filename: &str) -> PathBuf {
     let mut path = std::env::temp_dir();

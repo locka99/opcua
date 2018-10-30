@@ -1,24 +1,24 @@
-use attribute::AttributeId;
-use basic_types::*;
-use extension_object::ExtensionObject;
-use byte_string::ByteString;
-use data_types::*;
-use data_value::DataValue;
-use date_time::DateTime;
-use encoding::*;
-use node_id::NodeId;
-use node_ids::ObjectId;
-use diagnostic_info::{DiagnosticBits, DiagnosticInfo};
-use profiles;
-use service_types::{AnonymousIdentityToken, ApplicationType, DataChangeFilter, DataChangeTrigger, EndpointDescription, ReadValueId, ServiceFault, SignatureData, UserNameIdentityToken, UserTokenType};
-use service_types::{MonitoredItemCreateRequest, MonitoringParameters, CallMethodRequest, ServerDiagnosticsSummaryDataType};
-use service_types::ApplicationDescription;
-use status_codes::StatusCode;
+use crate::attribute::AttributeId;
+use crate::basic_types::*;
+use crate::extension_object::ExtensionObject;
+use crate::byte_string::ByteString;
+use crate::data_types::*;
+use crate::data_value::DataValue;
+use crate::date_time::DateTime;
+use crate::encoding::*;
+use crate::node_id::NodeId;
+use crate::node_ids::ObjectId;
+use crate::diagnostic_info::{DiagnosticBits, DiagnosticInfo};
+use crate::profiles;
+use crate::service_types::{AnonymousIdentityToken, ApplicationType, DataChangeFilter, DataChangeTrigger, EndpointDescription, ReadValueId, ServiceFault, SignatureData, UserNameIdentityToken, UserTokenType};
+use crate::service_types::{MonitoredItemCreateRequest, MonitoringParameters, CallMethodRequest, ServerDiagnosticsSummaryDataType};
+use crate::service_types::ApplicationDescription;
+use crate::status_codes::StatusCode;
 use std;
 use std::io::{Read, Write};
-use string::UAString;
-use supported_message::SupportedMessage;
-use variant::Variant;
+use crate::string::UAString;
+use crate::supported_message::SupportedMessage;
+use crate::variant::Variant;
 
 /// Implemented by messages
 pub trait MessageInfo {

@@ -1,5 +1,5 @@
-use address_space::base::Base;
-use address_space::node::Node;
+use crate::address_space::base::Base;
+use crate::address_space::node::Node;
 
 #[derive(Debug)]
 pub struct Method {

@@ -1,6 +1,6 @@
-use prelude::*;
+use crate::prelude::*;
 
-use tests::*;
+use crate::tests::*;
 
 #[test]
 fn address_space() {

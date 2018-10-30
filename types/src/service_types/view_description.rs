@@ -3,13 +3,13 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
+use crate::encoding::*;
 #[allow(unused_imports)]
-use basic_types::*;
-use service_types::impls::MessageInfo;
-use node_ids::ObjectId;
-use node_id::NodeId;
-use date_time::DateTime;
+use crate::basic_types::*;
+use crate::service_types::impls::MessageInfo;
+use crate::node_ids::ObjectId;
+use crate::node_id::NodeId;
+use crate::date_time::DateTime;
 
 /// The view to browse.
 #[derive(Debug, Clone, PartialEq)]

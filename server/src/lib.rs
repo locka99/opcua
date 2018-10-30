@@ -77,14 +77,14 @@ pub mod prelude {
     pub use opcua_types::status_code::StatusCode;
     pub use opcua_types::service_types::*;
     pub use opcua_core::prelude::*;
-    pub use config::*;
-    pub use server::*;
-    pub use builder::*;
-    pub use address_space::types::*;
-    pub use subscriptions::*;
-    pub use subscriptions::subscription::*;
-    pub use subscriptions::monitored_item::*;
-    pub use util::*;
+    pub use crate::config::*;
+    pub use crate::server::*;
+    pub use crate::builder::*;
+    pub use crate::address_space::types::*;
+    pub use crate::subscriptions::*;
+    pub use crate::subscriptions::subscription::*;
+    pub use crate::subscriptions::monitored_item::*;
+    pub use crate::util::*;
 }
 
 pub mod constants {

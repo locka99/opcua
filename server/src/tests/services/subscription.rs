@@ -1,12 +1,12 @@
 use std::ops::Add;
-use prelude::*;
+use crate::prelude::*;
 
 use chrono::Utc;
 
-use state::ServerState;
-use address_space::AddressSpace;
-use services::subscription::SubscriptionService;
-use services::monitored_item::MonitoredItemService;
+use crate::state::ServerState;
+use crate::address_space::AddressSpace;
+use crate::services::subscription::SubscriptionService;
+use crate::services::monitored_item::MonitoredItemService;
 
 use super::*;
 
@@ -104,7 +104,7 @@ fn keepalive_test(keep_alive: u32, lifetime: u32, expected_keep_alive: u32, expe
 #[test]
 fn test_revised_keep_alive_lifetime_counts() {
     // Test that the keep alive and lifetime counts are correctly revised from their inputs
-    use ::constants::{DEFAULT_KEEP_ALIVE_COUNT, MAX_KEEP_ALIVE_COUNT};
+    use crate::constants::{DEFAULT_KEEP_ALIVE_COUNT, MAX_KEEP_ALIVE_COUNT};
     const MAX_LIFETIME_COUNT: u32 = 3 * MAX_KEEP_ALIVE_COUNT;
     const DEFAULT_LIFETIME_COUNT: u32 = 3 * DEFAULT_KEEP_ALIVE_COUNT;
 
@@ -223,7 +223,7 @@ fn resend_data() {
         create_monitored_item(subscription_id, VariableId::Server_ServerCapabilities_MaxArrayLength, session, &mis);
 
         // Publish expect initial value
-        let notification_message = {
+        let _notification_message = {
             let request = PublishRequest {
                 request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
                 subscription_acknowledgements: None, // Option<Vec<SubscriptionAcknowledgement>>,
@@ -231,7 +231,7 @@ fn resend_data() {
             debug!("PublishRequest {:#?}", request);
 
             // Don't expect a response right away
-            let response = ss.async_publish(session, 1001, &address_space, request).unwrap();
+            let _response = ss.async_publish(session, 1001, &address_space, request).unwrap();
 
             // Tick subscriptions to trigger a change
             let now = Utc::now().add(chrono::Duration::seconds(2));
@@ -255,7 +255,7 @@ fn resend_data() {
         };
 
         // publish again, expect no values
-        let notification_message = {
+        let _notification_message = {
             let request = PublishRequest {
                 request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
                 subscription_acknowledgements: None, // Option<Vec<SubscriptionAcknowledgement>>,
@@ -263,7 +263,7 @@ fn resend_data() {
             debug!("PublishRequest {:#?}", request);
 
             // Don't expect a response right away
-            let response = ss.async_publish(session, 1002, &address_space, request).unwrap();
+            let _response = ss.async_publish(session, 1002, &address_space, request).unwrap();
 
             // Tick subscriptions to trigger a change
             let now = Utc::now().add(chrono::Duration::seconds(2));

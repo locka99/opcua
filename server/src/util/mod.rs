@@ -12,7 +12,7 @@ use tokio_timer::Interval;
 
 use opcua_types::service_types::ServerState as ServerStateType;
 
-use state::ServerState;
+use crate::state::ServerState;
 
 /// This is a convenience for a polling action. This struct starts a repeating timer that calls
 /// an action repeatedly.

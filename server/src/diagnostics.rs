@@ -2,8 +2,8 @@
 //! state of a server.
 use opcua_client::prelude::ServerDiagnosticsSummaryDataType;
 
-use subscriptions::subscription::Subscription;
-use session::Session;
+use crate::subscriptions::subscription::Subscription;
+use crate::session::Session;
 
 /// Structure that captures diagnostics information for the server
 #[derive(Clone, Serialize, Debug)]

@@ -2,8 +2,8 @@ use super::*;
 
 use opcua_types::WriteMask;
 
-use services::attribute::AttributeService;
-use address_space::AccessLevel;
+use crate::services::attribute::AttributeService;
+use crate::address_space::AccessLevel;
 
 fn read_value(node_id: &NodeId, attribute_id: AttributeId) -> ReadValueId {
     ReadValueId {

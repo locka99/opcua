@@ -3,10 +3,10 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
+use crate::encoding::*;
 #[allow(unused_imports)]
-use basic_types::*;
-use basic_types::LocalizedText;
+use crate::basic_types::*;
+use crate::basic_types::LocalizedText;
 
 /// The attributes for a data type node.
 #[derive(Debug, Clone, PartialEq)]

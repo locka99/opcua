@@ -4,12 +4,12 @@
 
 use opcua_types::DateTime;
 
-use comms::transport::Transport;
-use config;
-use server;
-use subscriptions::subscription::Subscription;
-use diagnostics::ServerDiagnostics;
-use state::ServerState;
+use crate::comms::transport::Transport;
+use crate::config;
+use crate::server;
+use crate::subscriptions::subscription::Subscription;
+use crate::diagnostics::ServerDiagnostics;
+use crate::state::ServerState;
 
 #[derive(Serialize)]
 pub struct ServerMetrics {

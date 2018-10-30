@@ -2,9 +2,9 @@ use std::path::PathBuf;
 
 use opcua_core::config::Config;
 
-use constants;
-use config::{ServerConfig, ServerEndpoint, ServerUserToken, ANONYMOUS_USER_TOKEN_ID};
-use server::Server;
+use crate::constants;
+use crate::config::{ServerConfig, ServerEndpoint, ServerUserToken, ANONYMOUS_USER_TOKEN_ID};
+use crate::server::Server;
 
 const DEFAULT_ENDPOINT_PATH: &str = "/";
 

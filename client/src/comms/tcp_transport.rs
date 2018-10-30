@@ -27,9 +27,9 @@ use opcua_core::prelude::*;
 use opcua_core::comms::tcp_codec::{Message, TcpCodec};
 use opcua_core::comms::message_writer::MessageWriter;
 
-use session_state::SessionState;
-use message_queue::MessageQueue;
-use callbacks::OnSessionClosed;
+use crate::session_state::SessionState;
+use crate::message_queue::MessageQueue;
+use crate::callbacks::OnSessionClosed;
 
 macro_rules! connection_state {( $s:expr ) => { *trace_read_lock_unwrap!($s) } }
 macro_rules! set_connection_state {( $s:expr, $v:expr ) => { *trace_write_lock_unwrap!($s) = $v } }

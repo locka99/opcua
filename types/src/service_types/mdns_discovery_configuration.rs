@@ -3,10 +3,10 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
+use crate::encoding::*;
 #[allow(unused_imports)]
-use basic_types::*;
-use string::UAString;
+use crate::basic_types::*;
+use crate::string::UAString;
 
 /// The discovery information needed for mDNS registration.
 #[derive(Debug, Clone, PartialEq)]

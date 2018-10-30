@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use opcua_core::config::Config;
 
-use client::*;
-use config::*;
+use crate::client::*;
+use crate::config::*;
 
 /// The `ClientBuilder` is a builder for producing a [`Client`]. It is an alternative to constructing
 /// a [`ClientConfig`] from file or from scratch.

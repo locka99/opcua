@@ -6,10 +6,10 @@ use opcua_types::status_code::StatusCode;
 use opcua_types::node_ids::ReferenceTypeId;
 use opcua_types::service_types::*;
 
-use address_space::AddressSpace;
-use session::Session;
-use services::Service;
-use continuation_point::BrowseContinuationPoint;
+use crate::address_space::AddressSpace;
+use crate::session::Session;
+use crate::services::Service;
+use crate::continuation_point::BrowseContinuationPoint;
 
 // Bits that control the reference description coming back from browse()
 

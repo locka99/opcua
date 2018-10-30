@@ -11,8 +11,8 @@ use opcua_types::*;
 use opcua_types::service_types::*;
 use opcua_types::status_code::StatusCode;
 
-use message_queue::MessageQueue;
-use callbacks::OnSessionClosed;
+use crate::message_queue::MessageQueue;
+use crate::callbacks::OnSessionClosed;
 
 const DEFAULT_REQUEST_TIMEOUT: u32 = 10 * 1000;
 const SEND_BUFFER_SIZE: usize = 65536;
@@ -329,7 +329,7 @@ impl SessionState {
             }
             Ok(())
         } else {
-            Err(::process_unexpected_response(response))
+            Err(crate::process_unexpected_response(response))
         }
     }
 

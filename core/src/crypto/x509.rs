@@ -14,8 +14,8 @@ use opcua_types::ByteString;
 use opcua_types::service_types::ApplicationDescription;
 use opcua_types::status_code::StatusCode;
 
-use crypto::pkey::PublicKey;
-use crypto::thumbprint::Thumbprint;
+use crate::crypto::pkey::PublicKey;
+use crate::crypto::thumbprint::Thumbprint;
 
 const DEFAULT_KEYSIZE: u32 = 2048;
 const DEFAULT_COUNTRY: &str = "IE";

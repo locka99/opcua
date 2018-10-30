@@ -3,11 +3,11 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
+use crate::encoding::*;
 #[allow(unused_imports)]
-use basic_types::*;
-use node_id::NodeId;
-use byte_string::ByteString;
+use crate::basic_types::*;
+use crate::node_id::NodeId;
+use crate::byte_string::ByteString;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeleteEventDetails {

@@ -1,6 +1,6 @@
 use opcua_types::*;
 
-use tests::*;
+use crate::tests::*;
 
 fn request_header() -> RequestHeader {
     RequestHeader {

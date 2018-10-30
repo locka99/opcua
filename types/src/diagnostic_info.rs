@@ -2,9 +2,9 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
-use status_codes::StatusCode;
-use string::UAString;
+use crate::encoding::*;
+use crate::status_codes::StatusCode;
+use crate::string::UAString;
 
 bitflags! {
     pub struct DiagnosticInfoMask: u8 {

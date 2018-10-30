@@ -3,14 +3,14 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
+use crate::encoding::*;
 #[allow(unused_imports)]
-use basic_types::*;
-use service_types::impls::MessageInfo;
-use node_ids::ObjectId;
-use node_id::NodeId;
-use string::UAString;
-use data_value::DataValue;
+use crate::basic_types::*;
+use crate::service_types::impls::MessageInfo;
+use crate::node_ids::ObjectId;
+use crate::node_id::NodeId;
+use crate::string::UAString;
+use crate::data_value::DataValue;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct WriteValue {

@@ -4,9 +4,9 @@ use opcua_types::node_ids::{ObjectId, MethodId};
 
 use super::*;
 
-use services::method::MethodService;
-use services::subscription::SubscriptionService;
-use services::monitored_item::MonitoredItemService;
+use crate::services::method::MethodService;
+use crate::services::subscription::SubscriptionService;
+use crate::services::monitored_item::MonitoredItemService;
 
 fn new_call_method_request<S, T>(object_id: S, method_id: T, input_arguments: Option<Vec<Variant>>) -> CallMethodRequest
     where S: Into<NodeId>, T: Into<NodeId> {
@@ -193,7 +193,7 @@ fn call_resend_data() {
     // Call with valid subscription id
     {
         let ss = SubscriptionService::new();
-        let mis = MonitoredItemService::new();
+        let _mis = MonitoredItemService::new();
 
         // Create a subscription with some monitored items where client handle is distinct
         let subscription_id = {

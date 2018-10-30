@@ -8,10 +8,10 @@ use openssl::hash as openssl_hash;
 use opcua_types::status_code::StatusCode;
 use opcua_types::ByteString;
 
-use crypto::{SHA1_SIZE, SHA256_SIZE};
-use crypto::aeskey::AesKey;
-use crypto::pkey::{PrivateKey, PublicKey, RsaPadding, KeySize};
-use crypto::hash;
+use crate::crypto::{SHA1_SIZE, SHA256_SIZE};
+use crate::crypto::aeskey::AesKey;
+use crate::crypto::pkey::{PrivateKey, PublicKey, RsaPadding, KeySize};
+use crate::crypto::hash;
 
 /// URI supplied for the None security policy
 pub const SECURITY_POLICY_NONE_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#None";
@@ -39,7 +39,7 @@ pub const SECURITY_POLICY_BASIC_256_SHA_256: &str = "Basic256Sha256";
 ///
 /// A suite of algorithms that uses RSA15 as Key-Wrap-algorithm and 128-Bit for encryption algorithms.
 pub mod basic128rsa15 {
-    use crypto::algorithms::*;
+    use crate::crypto::algorithms::*;
 
     /// SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
     pub const SYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_HMAC_SHA1;
@@ -84,7 +84,7 @@ pub mod basic128rsa15 {
 ///
 /// A suite of algorithms that are for 256-Bit encryption, algorithms include:
 pub mod basic256 {
-    use crypto::algorithms::*;
+    use crate::crypto::algorithms::*;
 
     /// SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
     pub const SYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_HMAC_SHA1;
@@ -133,7 +133,7 @@ pub mod basic256 {
 ///
 /// A suite of algorithms that are for 256-Bit encryption, algorithms include.
 pub mod basic256sha256 {
-    use crypto::algorithms::*;
+    use crate::crypto::algorithms::*;
 
     /// SymmetricSignatureAlgorithm – Hmac_Sha256 – (http://www.w3.org/2000/09/xmldsig#hmac-sha256).
     pub const SYMMETRIC_SIGNATURE_ALGORITHM: &str = DSIG_HMAC_SHA256;

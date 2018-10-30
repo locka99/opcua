@@ -1,7 +1,7 @@
 use opcua_types::UAString;
 
 use super::*;
-use services::discovery::DiscoveryService;
+use crate::services::discovery::DiscoveryService;
 
 #[test]
 fn get_endpoints() {

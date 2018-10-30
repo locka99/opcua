@@ -3,16 +3,16 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
+use crate::encoding::*;
 #[allow(unused_imports)]
-use basic_types::*;
-use service_types::impls::MessageInfo;
-use node_ids::ObjectId;
-use node_id::NodeId;
-use node_id::ExpandedNodeId;
-use basic_types::QualifiedName;
-use basic_types::LocalizedText;
-use service_types::enums::NodeClass;
+use crate::basic_types::*;
+use crate::service_types::impls::MessageInfo;
+use crate::node_ids::ObjectId;
+use crate::node_id::NodeId;
+use crate::node_id::ExpandedNodeId;
+use crate::basic_types::QualifiedName;
+use crate::basic_types::LocalizedText;
+use crate::service_types::enums::NodeClass;
 
 /// The description of a reference.
 #[derive(Debug, Clone, PartialEq)]

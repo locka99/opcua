@@ -3,13 +3,13 @@
 
 use std::io::{Read, Write};
 
-use encoding::*;
+use crate::encoding::*;
 #[allow(unused_imports)]
-use basic_types::*;
-use service_types::impls::MessageInfo;
-use node_ids::ObjectId;
-use service_types::impls::ResponseHeader;
-use service_types::EndpointDescription;
+use crate::basic_types::*;
+use crate::service_types::impls::MessageInfo;
+use crate::node_ids::ObjectId;
+use crate::service_types::impls::ResponseHeader;
+use crate::service_types::EndpointDescription;
 
 /// Gets the endpoints used by the server.
 #[derive(Debug, Clone, PartialEq)]

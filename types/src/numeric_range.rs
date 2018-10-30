@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use regex::Regex;
 
-use variant::Variant;
+use crate::variant::Variant;
 
 /// Numeric range describes a range within an array. See OPCUA Part 4 7.22
 ///

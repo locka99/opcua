@@ -23,15 +23,15 @@ use opcua_types::node_ids::{ObjectId, MethodId};
 use opcua_types::service_types::*;
 use opcua_types::status_code::StatusCode;
 
-use client;
-use comms::tcp_transport::TcpTransport;
-use message_queue::MessageQueue;
-use session_retry::{SessionRetry, Answer};
-use subscription;
-use subscription::Subscription;
-use subscription_state::SubscriptionState;
-use session_state::SessionState;
-use callbacks::{OnDataChange, OnConnectionStatusChange, OnSessionClosed};
+use crate::client;
+use crate::comms::tcp_transport::TcpTransport;
+use crate::message_queue::MessageQueue;
+use crate::session_retry::{SessionRetry, Answer};
+use crate::subscription;
+use crate::subscription::Subscription;
+use crate::subscription_state::SubscriptionState;
+use crate::session_state::SessionState;
+use crate::callbacks::{OnDataChange, OnConnectionStatusChange, OnSessionClosed};
 
 /// Information about the server endpoint, security policy, security mode and user identity that the session will
 /// will use to establish a connection.
@@ -336,7 +336,7 @@ impl Session {
 
         let response = self.send_request(request)?;
         if let SupportedMessage::CreateSessionResponse(response) = response {
-            ::process_service_result(&response.response_header)?;
+            crate::process_service_result(&response.response_header)?;
 
             let session_state = self.session_state.clone();
             let mut session_state = trace_write_lock_unwrap!(session_state);
@@ -382,7 +382,7 @@ impl Session {
                 Ok(session_state.session_id())
             }
         } else {
-            Err(::process_unexpected_response(response))
+            Err(crate::process_unexpected_response(response))
         }
     }
 
@@ -443,10 +443,10 @@ impl Session {
         let response = self.send_request(request)?;
         if let SupportedMessage::ActivateSessionResponse(response) = response {
             // trace!("ActivateSessionResponse = {:#?}", response);
-            ::process_service_result(&response.response_header)?;
+            crate::process_service_result(&response.response_header)?;
             Ok(())
         } else {
-            Err(::process_unexpected_response(response))
+            Err(crate::process_unexpected_response(response))
         }
     }
 
@@ -460,7 +460,7 @@ impl Session {
         };
         let response = self.send_request(request)?;
         if let SupportedMessage::FindServersResponse(response) = response {
-            ::process_service_result(&response.response_header)?;
+            crate::process_service_result(&response.response_header)?;
             let servers = if let Some(servers) = response.servers {
                 servers
             } else {
@@ -468,7 +468,7 @@ impl Session {
             };
             Ok(servers)
         } else {
-            Err(::process_unexpected_response(response))
+            Err(crate::process_unexpected_response(response))
         }
     }
 
@@ -479,10 +479,10 @@ impl Session {
         };
         let response = self.send_request(request)?;
         if let SupportedMessage::RegisterServerResponse(response) = response {
-            ::process_service_result(&response.response_header)?;
+            crate::process_service_result(&response.response_header)?;
             Ok(())
         } else {
-            Err(::process_unexpected_response(response))
+            Err(crate::process_unexpected_response(response))
         }
     }
 
@@ -499,7 +499,7 @@ impl Session {
 
         let response = self.send_request(request)?;
         if let SupportedMessage::GetEndpointsResponse(response) = response {
-            ::process_service_result(&response.response_header)?;
+            crate::process_service_result(&response.response_header)?;
             if response.endpoints.is_none() {
                 debug!("get_endpoints, success but no endpoints");
                 Ok(Vec::new())
@@ -509,7 +509,7 @@ impl Session {
             }
         } else {
             error!("get_endpoints failed {:?}", response);
-            Err(::process_unexpected_response(response))
+            Err(crate::process_unexpected_response(response))
         }
     }
 
@@ -532,11 +532,11 @@ impl Session {
             let response = self.send_request(request)?;
             if let SupportedMessage::BrowseResponse(response) = response {
                 debug!("browse, success");
-                ::process_service_result(&response.response_header)?;
+                crate::process_service_result(&response.response_header)?;
                 Ok(response.results)
             } else {
                 error!("browse failed {:?}", response);
-                Err(::process_unexpected_response(response))
+                Err(crate::process_unexpected_response(response))
             }
         }
     }
@@ -555,11 +555,11 @@ impl Session {
             let response = self.send_request(request)?;
             if let SupportedMessage::BrowseNextResponse(response) = response {
                 debug!("browse_next, success");
-                ::process_service_result(&response.response_header)?;
+                crate::process_service_result(&response.response_header)?;
                 Ok(response.results)
             } else {
                 error!("browse_next failed {:?}", response);
-                Err(::process_unexpected_response(response))
+                Err(crate::process_unexpected_response(response))
             }
         }
     }
@@ -581,11 +581,11 @@ impl Session {
             let response = self.send_request(request)?;
             if let SupportedMessage::ReadResponse(response) = response {
                 debug!("read_nodes, success");
-                ::process_service_result(&response.response_header)?;
+                crate::process_service_result(&response.response_header)?;
                 Ok(response.results)
             } else {
                 error!("write_value failed {:?}", response);
-                Err(::process_unexpected_response(response))
+                Err(crate::process_unexpected_response(response))
             }
         }
     }
@@ -604,11 +604,11 @@ impl Session {
             let response = self.send_request(request)?;
             if let SupportedMessage::WriteResponse(response) = response {
                 debug!("write_value, success");
-                ::process_service_result(&response.response_header)?;
+                crate::process_service_result(&response.response_header)?;
                 Ok(response.results)
             } else {
                 error!("write_value failed {:?}", response);
-                Err(::process_unexpected_response(response))
+                Err(crate::process_unexpected_response(response))
             }
         }
     }
@@ -637,7 +637,7 @@ impl Session {
         };
         let response = self.send_request(request)?;
         if let SupportedMessage::CreateSubscriptionResponse(response) = response {
-            ::process_service_result(&response.response_header)?;
+            crate::process_service_result(&response.response_header)?;
             let subscription = Subscription::new(response.subscription_id, response.revised_publishing_interval,
                                                  response.revised_lifetime_count,
                                                  response.revised_max_keep_alive_count,
@@ -661,7 +661,7 @@ impl Session {
             Ok(response.subscription_id)
         } else {
             error!("create_subscription failed {:?}", response);
-            Err(::process_unexpected_response(response))
+            Err(crate::process_unexpected_response(response))
         }
     }
 
@@ -685,7 +685,7 @@ impl Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::ModifySubscriptionResponse(response) = response {
-                ::process_service_result(&response.response_header)?;
+                crate::process_service_result(&response.response_header)?;
                 let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                 subscription_state.modify_subscription(subscription_id,
                                                        response.revised_publishing_interval,
@@ -697,7 +697,7 @@ impl Session {
                 Ok(())
             } else {
                 error!("modify_subscription failed {:?}", response);
-                Err(::process_unexpected_response(response))
+                Err(crate::process_unexpected_response(response))
             }
         }
     }
@@ -717,7 +717,7 @@ impl Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::DeleteSubscriptionsResponse(response) = response {
-                ::process_service_result(&response.response_header)?;
+                crate::process_service_result(&response.response_header)?;
                 {
                     let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                     subscription_state.delete_subscription(subscription_id);
@@ -726,7 +726,7 @@ impl Session {
                 Ok(response.results.as_ref().unwrap()[0])
             } else {
                 error!("delete_subscription failed {:?}", response);
-                Err(::process_unexpected_response(response))
+                Err(crate::process_unexpected_response(response))
             }
         }
     }
@@ -749,7 +749,7 @@ impl Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::DeleteSubscriptionsResponse(response) = response {
-                ::process_service_result(&response.response_header)?;
+                crate::process_service_result(&response.response_header)?;
                 {
                     // Clear out all subscriptions, assuming the delete worked
                     let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
@@ -759,7 +759,7 @@ impl Session {
                 Ok(response.results.unwrap())
             } else {
                 error!("delete_all_subscriptions failed {:?}", response);
-                Err(::process_unexpected_response(response))
+                Err(crate::process_unexpected_response(response))
             }
         }
     }
@@ -779,7 +779,7 @@ impl Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::SetPublishingModeResponse(response) = response {
-                ::process_service_result(&response.response_header)?;
+                crate::process_service_result(&response.response_header)?;
                 {
                     // Clear out all subscriptions, assuming the delete worked
                     let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
@@ -789,7 +789,7 @@ impl Session {
                 Ok(response.results.unwrap())
             } else {
                 error!("set_publishing_mode failed {:?}", response);
-                Err(::process_unexpected_response(response))
+                Err(crate::process_unexpected_response(response))
             }
         }
     }
@@ -824,7 +824,7 @@ impl Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::CreateMonitoredItemsResponse(response) = response {
-                ::process_service_result(&response.response_header)?;
+                crate::process_service_result(&response.response_header)?;
                 if let Some(ref results) = response.results {
                     debug!("create_monitored_items, {} items created", items_to_create.len());
                     // Set the items in our internal state
@@ -852,7 +852,7 @@ impl Session {
                 Ok(response.results.unwrap())
             } else {
                 error!("create_monitored_items failed {:?}", response);
-                Err(::process_unexpected_response(response))
+                Err(crate::process_unexpected_response(response))
             }
         }
     }
@@ -881,7 +881,7 @@ impl Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::ModifyMonitoredItemsResponse(response) = response {
-                ::process_service_result(&response.response_header)?;
+                crate::process_service_result(&response.response_header)?;
                 if let Some(ref results) = response.results {
                     // Set the items in our internal state
                     let items_to_modify = monitored_item_ids.iter()
@@ -903,7 +903,7 @@ impl Session {
                 Ok(response.results.unwrap())
             } else {
                 error!("modify_monitored_items failed {:?}", response);
-                Err(::process_unexpected_response(response))
+                Err(crate::process_unexpected_response(response))
             }
         }
     }
@@ -928,7 +928,7 @@ impl Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::DeleteMonitoredItemsResponse(response) = response {
-                ::process_service_result(&response.response_header)?;
+                crate::process_service_result(&response.response_header)?;
                 if let Some(_) = response.results {
                     let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                     subscription_state.delete_monitored_items(subscription_id, items_to_delete);
@@ -937,7 +937,7 @@ impl Session {
                 Ok(response.results.unwrap())
             } else {
                 error!("delete_monitored_items failed {:?}", response);
-                Err(::process_unexpected_response(response))
+                Err(crate::process_unexpected_response(response))
             }
         }
     }
@@ -964,7 +964,7 @@ impl Session {
                 Err(StatusCode::BadUnexpectedError)
             }
         } else {
-            Err(::process_unexpected_response(response))
+            Err(crate::process_unexpected_response(response))
         }
     }
 

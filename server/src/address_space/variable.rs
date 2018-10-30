@@ -3,10 +3,10 @@ use std::convert::Into;
 
 use opcua_types::node_ids::DataTypeId;
 
-use address_space::base::Base;
-use address_space::node::Node;
-use address_space::{AttributeGetter, AttributeSetter};
-use address_space::{AccessLevel, UserAccessLevel};
+use crate::address_space::base::Base;
+use crate::address_space::node::Node;
+use crate::address_space::{AttributeGetter, AttributeSetter};
+use crate::address_space::{AccessLevel, UserAccessLevel};
 
 /// This is a builder object for constructing variable nodes programmatically.
 pub struct VariableBuilder {

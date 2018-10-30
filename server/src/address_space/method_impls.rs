@@ -2,9 +2,9 @@ use opcua_types::*;
 use opcua_types::status_code::StatusCode;
 use opcua_types::service_types::{CallMethodRequest, CallMethodResult};
 
-use address_space::AddressSpace;
-use state::ServerState;
-use session::Session;
+use crate::address_space::AddressSpace;
+use crate::state::ServerState;
+use crate::session::Session;
 
 /// Count the number of provided input arguments, comparing them to the expected number.
 fn ensure_input_argument_count(request: &CallMethodRequest, expected: usize) -> Result<(), StatusCode> {
@@ -61,7 +61,7 @@ pub fn handle_resend_data(_: &AddressSpace, _: &ServerState, session: &mut Sessi
 
     let subscription_id = get_input_argument!(request, 0, UInt32)?;
 
-    if let Some(mut subscription) = session.subscriptions.get_mut(*subscription_id) {
+    if let Some(subscription) = session.subscriptions.get_mut(*subscription_id) {
         subscription.set_resend_data();
         Ok(CallMethodResult {
             status_code: StatusCode::Good,

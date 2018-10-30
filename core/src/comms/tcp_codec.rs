@@ -17,7 +17,7 @@ use opcua_types::tcp_types::{MessageType, MessageHeader, HelloMessage, Acknowled
 use opcua_types::encoding::{BinaryEncoder, DecodingLimits};
 use opcua_types::status_code::StatusCode;
 
-use comms::message_chunk::MessageChunk;
+use crate::comms::message_chunk::MessageChunk;
 
 #[derive(Debug)]
 pub enum Message {

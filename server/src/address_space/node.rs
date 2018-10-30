@@ -2,7 +2,7 @@ use opcua_types::{NodeId, QualifiedName, LocalizedText, AttributeId, DataValue, 
 use opcua_types::service_types::NodeClass;
 use opcua_types::status_code::StatusCode;
 
-use address_space::types::{Object, ObjectType, ReferenceType, Variable, VariableType, View, DataType, Method};
+use crate::address_space::types::{Object, ObjectType, ReferenceType, Variable, VariableType, View, DataType, Method};
 
 #[derive(Debug)]
 pub enum NodeType {

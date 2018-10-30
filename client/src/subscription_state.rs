@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use opcua_types::service_types::DataChangeNotification;
 
-use subscription::*;
+use crate::subscription::*;
 
 /// Holds the live subscription state
 pub(crate) struct SubscriptionState {

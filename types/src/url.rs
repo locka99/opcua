@@ -2,9 +2,9 @@
 
 use std;
 
-use url_external::Url;
+use crate::url_external::Url;
 
-use constants::DEFAULT_OPC_UA_SERVER_PORT;
+use crate::constants::DEFAULT_OPC_UA_SERVER_PORT;
 
 pub const OPC_TCP_SCHEME: &str = "opc.tcp";
 

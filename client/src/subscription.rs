@@ -15,7 +15,7 @@ use std::marker::Sync;
 use opcua_types::*;
 use opcua_types::service_types::{DataChangeNotification, ReadValueId};
 
-use callbacks::OnDataChange;
+use crate::callbacks::OnDataChange;
 
 pub(crate) struct CreateMonitoredItem {
     pub id: u32,

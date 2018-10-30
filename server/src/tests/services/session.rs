@@ -1,6 +1,6 @@
-use tests::*;
+use crate::tests::*;
 
-use builder::ServerBuilder;
+use crate::builder::ServerBuilder;
 
 #[test]
 fn anonymous_user_token() {

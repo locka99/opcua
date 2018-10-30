@@ -1,4 +1,4 @@
-use variant::{Variant, VariantTypeId, MultiDimensionArray};
+use crate::variant::{Variant, VariantTypeId, MultiDimensionArray};
 
 #[test]
 fn is_numeric() {
@@ -19,8 +19,8 @@ fn is_numeric() {
 
 #[test]
 fn variant_type_id() {
-    use {UAString, DateTime, ByteString, XmlElement, NodeId, ExpandedNodeId, QualifiedName, LocalizedText, ExtensionObject, DataValue, Guid};
-    use status_codes::StatusCode;
+    use crate::{UAString, DateTime, ByteString, XmlElement, NodeId, ExpandedNodeId, QualifiedName, LocalizedText, ExtensionObject, DataValue, Guid};
+    use crate::status_codes::StatusCode;
 
     let types = [
         (Variant::Empty, VariantTypeId::Empty),
