@@ -91,7 +91,7 @@ impl Server {
         let servers = vec![config.application_uri.clone()];
         let base_endpoint = format!("opc.tcp://{}:{}", config.tcp_config.host, config.tcp_config.port);
         let max_subscriptions = config.max_subscriptions as usize;
-        let diagnostics = Arc::new(RwLock::new(ServerDiagnostics::new()));
+        let diagnostics = Arc::new(RwLock::new(ServerDiagnostics::default()));
         // TODO max string, byte string and array lengths
 
         // Security, pki auto create cert

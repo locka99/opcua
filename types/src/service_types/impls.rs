@@ -11,7 +11,7 @@ use node_ids::ObjectId;
 use diagnostic_info::{DiagnosticBits, DiagnosticInfo};
 use profiles;
 use service_types::{AnonymousIdentityToken, ApplicationType, DataChangeFilter, DataChangeTrigger, EndpointDescription, ReadValueId, ServiceFault, SignatureData, UserNameIdentityToken, UserTokenType};
-use service_types::{MonitoredItemCreateRequest, MonitoringParameters, CallMethodRequest};
+use service_types::{MonitoredItemCreateRequest, MonitoringParameters, CallMethodRequest, ServerDiagnosticsSummaryDataType};
 use service_types::ApplicationDescription;
 use status_codes::StatusCode;
 use std;
@@ -519,6 +519,25 @@ impl Into<CallMethodRequest> for (NodeId, NodeId, Option<Vec<Variant>>) {
             object_id: self.0,
             method_id: self.1,
             input_arguments: self.2,
+        }
+    }
+}
+
+impl Default for ServerDiagnosticsSummaryDataType {
+    fn default() -> Self {
+        ServerDiagnosticsSummaryDataType {
+            server_view_count: 0,
+            current_session_count: 0,
+            cumulated_session_count: 0,
+            security_rejected_session_count: 0,
+            rejected_session_count: 0,
+            session_timeout_count: 0,
+            session_abort_count: 0,
+            current_subscription_count: 0,
+            cumulated_subscription_count: 0,
+            publishing_interval_count: 0,
+            security_rejected_requests_count: 0,
+            rejected_requests_count: 0,
         }
     }
 }

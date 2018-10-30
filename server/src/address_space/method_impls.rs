@@ -76,8 +76,7 @@ pub fn handle_resend_data(_: &AddressSpace, _: &ServerState, session: &mut Sessi
     }
 }
 
-/// This is the handler for the Server.GetMonitoredItems method call. It's called via a CallRequest on
-/// the Method service.
+/// This is the handler for the Server.GetMonitoredItems method call.
 pub fn handle_get_monitored_items(_: &AddressSpace, _: &ServerState, session: &mut Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
     debug!("Method handler for GetMonitoredItems");
 

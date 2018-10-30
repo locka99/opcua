@@ -43,7 +43,7 @@ var basic_types_import_map = {
     "status_codes": ["StatusCode"]
 };
 
-var serde_supported_types = ["ReadValueId", "DataChangeFilter", "MonitoredItemNotification"];
+var serde_supported_types = ["ReadValueId", "DataChangeFilter", "MonitoredItemNotification", "ServerDiagnosticsSummaryDataType"];
 
 // Contains a flattened reverse lookup of the import map
 var basic_types_reverse_import_map = {}

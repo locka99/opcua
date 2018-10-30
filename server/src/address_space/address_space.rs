@@ -67,6 +67,18 @@ macro_rules! is_method {
     }
 }
 
+/// Sets the diagnostic
+macro_rules! server_diagnostics_summary {
+    ($address_space: expr, $variable_id: expr, $field: ident) => {
+        $address_space.set_variable_getter($variable_id, move |_, _| {
+            // TODO clone diagnostics here
+            // TODO Ok(Some(DataValue::from(Variant::from(diagnostics.$field))))
+            Ok(Some(DataValue::from(Variant::from(0u32))))
+        });
+    }
+}
+
+
 /// The `NodeId` is the target node. The reference is held in a list by the source node.
 /// The target node does not need to exist.
 #[derive(Debug, Clone)]
@@ -132,6 +144,17 @@ impl AddressSpace {
     /// Returns the last modified date for the address space
     pub fn last_modified(&self) -> DateTimeUtc {
         self.last_modified.clone()
+    }
+
+    /// Sets the getter for a variable node
+    pub fn set_variable_getter<N, F>(&mut self, variable_id: N, getter: F) where
+        N: Into<NodeId>,
+        F: FnMut(NodeId, AttributeId) -> Result<Option<DataValue>, StatusCode> + Send + 'static
+    {
+        if let Some(ref mut v) = self.find_variable_mut(variable_id) {
+            let getter = AttrFnGetter::new(getter);
+            v.set_value_getter(Arc::new(Mutex::new(getter)));
+        }
     }
 
     /// Sets values for nodes representing the server.
@@ -208,20 +231,19 @@ impl AddressSpace {
         // Server_ServerCapabilities_MinSupportedSampleRate
 
         // Server_ServerDiagnostics_ServerDiagnosticsSummary
-        self.set_server_diagnostics_summary(ServerDiagnosticsSummaryDataType {
-            server_view_count: 0,
-            current_session_count: 0,
-            cumulated_session_count: 0,
-            security_rejected_session_count: 0,
-            rejected_session_count: 0,
-            session_timeout_count: 0,
-            session_abort_count: 0,
-            current_subscription_count: 0,
-            cumulated_subscription_count: 0,
-            publishing_interval_count: 0,
-            security_rejected_requests_count: 0,
-            rejected_requests_count: 0,
-        });
+        self.set_server_diagnostics_summary(ServerDiagnosticsSummaryDataType::default());
+
+        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_ServerViewCount, server_view_count);
+        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSessionCount, current_session_count);
+        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSessionCount, cumulated_session_count);
+        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedSessionCount, security_rejected_session_count);
+        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionTimeoutCount, session_timeout_count);
+        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionAbortCount, session_abort_count);
+        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_PublishingIntervalCount, publishing_interval_count);
+        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSubscriptionCount, current_subscription_count);
+        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSubscriptionCount, cumulated_subscription_count);
+        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedRequestsCount, security_rejected_requests_count);
+        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount, rejected_requests_count);
 
         // Server_ServerDiagnostics_SamplingIntervalDiagnosticsArray
         // Server_ServerDiagnostics_SubscriptionDiagnosticsArray
@@ -239,26 +261,16 @@ impl AddressSpace {
         self.set_variable_value(Server_ServerStatus_StartTime, DateTime::now());
 
         // Server_ServerStatus_CurrentTime
-        if let Some(ref mut v) = self.find_variable_mut(Server_ServerStatus_CurrentTime) {
-            // Used to return the current time of the server, i.e. now
-            let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Result<Option<DataValue>, StatusCode> {
-                Ok(Some(DataValue::new(DateTime::now())))
-            });
-            // Put a getter onto this thing so it can fetch the current time on demand
-            v.set_value_getter(Arc::new(Mutex::new(getter)));
-        }
+        self.set_variable_getter(Server_ServerStatus_CurrentTime, move |_, _| {
+            Ok(Some(DataValue::new(DateTime::now())))
+        });
 
         // State OPC UA Part 5 12.6, Valid states are
         //     State (Server_ServerStatus_State)
-        if let Some(ref mut v) = self.find_variable_mut(Server_ServerStatus_State) {
-            let _server_state = server_state.clone();
-            // Used to return the current time of the server, i.e. now
-            let getter = AttrFnGetter::new(move |_: NodeId, _: AttributeId| -> Result<Option<DataValue>, StatusCode> {
-                // let server_state =  trace_read_lock_unwrap!(server_state);
-                Ok(Some(DataValue::new(0 as i32)))
-            });
-            v.set_value_getter(Arc::new(Mutex::new(getter)));
-        }
+        self.set_variable_getter(Server_ServerStatus_State, move |_, _| {
+            // let server_state =  trace_read_lock_unwrap!(server_state);
+            Ok(Some(DataValue::new(0 as i32)))
+        });
 
         // ServerStatus_BuildInfo
         {

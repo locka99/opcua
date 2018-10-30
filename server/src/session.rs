@@ -98,7 +98,7 @@ impl Session {
             endpoint_url: UAString::null(),
             max_browse_continuation_points,
             browse_continuation_points: VecDeque::with_capacity(max_browse_continuation_points),
-            diagnostics: Arc::new(RwLock::new(ServerDiagnostics::new())),
+            diagnostics: Arc::new(RwLock::new(ServerDiagnostics::default())),
             last_session_id: 0,
         };
         {

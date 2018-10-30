@@ -9,7 +9,7 @@ use basic_types::*;
 use service_types::impls::MessageInfo;
 use node_ids::ObjectId;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ServerDiagnosticsSummaryDataType {
     pub server_view_count: u32,
     pub current_session_count: u32,

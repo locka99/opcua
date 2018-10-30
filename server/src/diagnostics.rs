@@ -1,6 +1,6 @@
 //! Provides diagnostics structures and functions for gathering information about the running
 //! state of a server.
-use std::collections::HashSet;
+use opcua_client::prelude::ServerDiagnosticsSummaryDataType;
 
 use subscriptions::subscription::Subscription;
 use session::Session;
@@ -8,38 +8,44 @@ use session::Session;
 /// Structure that captures diagnostics information for the server
 #[derive(Clone, Serialize, Debug)]
 pub struct ServerDiagnostics {
-    session_count: u32,
-    session_count_cumulative: u32,
-    active_subscriptions: HashSet<u32>,
-    subscription_count_cumulative: u32,
+    server_diagnostics_summary: ServerDiagnosticsSummaryDataType,
+}
+
+impl Default for ServerDiagnostics {
+    fn default() -> Self {
+        Self {
+            server_diagnostics_summary: ServerDiagnosticsSummaryDataType::default()
+        }
+    }
 }
 
 impl ServerDiagnostics {
-    pub fn new() -> ServerDiagnostics {
-        ServerDiagnostics {
-            session_count: 0,
-            session_count_cumulative: 0,
-            active_subscriptions: HashSet::new(),
-            subscription_count_cumulative: 0,
-        }
+    /// Return a completed summary of the server diagnostics as they stand. This structure
+    /// is used to fill the address space stats about the server.
+    pub fn server_diagnostics_summary(&self) -> ServerDiagnosticsSummaryDataType {
+        self.server_diagnostics_summary.clone()
+    }
+
+    pub fn on_rejected_request(&mut self) {
+        self.server_diagnostics_summary.rejected_requests_count += 1;
     }
 
     pub fn on_create_session(&mut self, _session: &Session) {
-        self.session_count += 1;
-        self.session_count_cumulative += 1;
+        self.server_diagnostics_summary.current_session_count += 1;
+        self.server_diagnostics_summary.cumulated_session_count += 1;
     }
 
     pub fn on_destroy_session(&mut self, _session: &Session) {
-        self.session_count -= 1;
+        self.server_diagnostics_summary.current_session_count -= 1;
     }
 
-    pub fn on_create_subscription(&mut self, subscription: &Subscription) {
-        self.active_subscriptions.insert(subscription.subscription_id);
-        self.subscription_count_cumulative += 1;
+    pub fn on_create_subscription(&mut self, _subscription: &Subscription) {
+        self.server_diagnostics_summary.current_subscription_count += 1;
+        self.server_diagnostics_summary.cumulated_subscription_count += 1;
     }
 
-    pub fn on_destroy_subscription(&mut self, subscription: &Subscription) {
-        let _ = self.active_subscriptions.remove(&subscription.subscription_id);
+    pub fn on_destroy_subscription(&mut self, _subscription: &Subscription) {
+        self.server_diagnostics_summary.current_subscription_count -=1;
     }
 }
 

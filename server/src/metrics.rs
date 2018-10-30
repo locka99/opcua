@@ -46,7 +46,7 @@ impl ServerMetrics {
                 start_time: String::new(),
                 uptime_ms: 0,
             },
-            diagnostics: ServerDiagnostics::new(),
+            diagnostics: ServerDiagnostics::default(),
             config: None,
             connections: Vec::new(),
         }
