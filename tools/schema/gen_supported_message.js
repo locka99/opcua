@@ -14,10 +14,11 @@ function generate_supported_message(message_types) {
 
 use std::io::{Read, Write};
 
-use encoding::*;
-use node_id::NodeId;
-use service_types::*;
-use node_ids::ObjectId;
+use crate::encoding::*;
+use crate::node_id::NodeId;
+use crate::service_types::*;
+use crate::node_ids::ObjectId;
+use crate::tcp_types::AcknowledgeMessage;
 
 /// This macro helps avoid tedious repetition as new messages are added
 /// The first form just handles the trailing comma after the last entry to save some pointless
@@ -29,6 +30,8 @@ macro_rules! supported_messages_enum {
         pub enum SupportedMessage {
             /// An invalid request / response of some form
             Invalid(ObjectId),
+            /// Acknowledge message
+            AcknowledgeMessage(AcknowledgeMessage),
             /// Other messages
             $( $x($x), )*
         }
@@ -37,8 +40,9 @@ macro_rules! supported_messages_enum {
             fn byte_len(&self) -> usize {
                 match *self {
                     SupportedMessage::Invalid(object_id) => {
-                        panic!("Unsupported message {:?}", object_id);
+                        panic!("Unsupported message byte_len {:?}", object_id);
                     },
+                    SupportedMessage::AcknowledgeMessage(ref value) => value.byte_len(),
                     $( SupportedMessage::$x(ref value) => value.byte_len(), )*
                 }
             }
@@ -46,13 +50,14 @@ macro_rules! supported_messages_enum {
             fn encode<S: Write>(&self, stream: &mut S) -> EncodingResult<usize> {
                 match *self {
                     SupportedMessage::Invalid(object_id) => {
-                        panic!("Unsupported message {:?}", object_id);
+                        panic!("Unsupported message encode {:?}", object_id);
                     },
+                    SupportedMessage::AcknowledgeMessage(ref value) => value.encode(stream),
                     $( SupportedMessage::$x(ref value) => value.encode(stream), )*
                 }
             }
 
-            fn decode<S: Read>(_: &mut S) -> EncodingResult<Self> {
+            fn decode<S: Read>(_: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
                 // THIS WILL NOT DO ANYTHING
                 panic!("Cannot decode a stream to a supported message type");
             }
@@ -68,7 +73,10 @@ macro_rules! supported_messages_enum {
             pub fn node_id(&self) -> NodeId {
                 match *self {
                     SupportedMessage::Invalid(object_id) => {
-                        panic!("Unsupported message {:?}", object_id);
+                        panic!("Unsupported message invalid, node_id {:?}", object_id);
+                    },
+                    SupportedMessage::AcknowledgeMessage(ref value) => {
+                        panic!("Unsupported message node_id {:?}", value);
                     },
                     $( SupportedMessage::$x(ref value) => value.object_id().into(), )*
                 }
@@ -78,14 +86,33 @@ macro_rules! supported_messages_enum {
 }
 
 impl SupportedMessage {
-    pub fn decode_by_object_id<S: Read>(stream: &mut S, object_id: ObjectId) -> EncodingResult<Self> {
+    pub fn request_handle(&self) -> u32 {
+        match *self {
+            SupportedMessage::Invalid(_) | SupportedMessage::AcknowledgeMessage(_) => 0,
+`;
+
+    _.each(message_types, function (message_type) {
+        if (message_type.endsWith("Request")) {
+            contents += `            SupportedMessage::${message_type}(ref r) => r.request_header.request_handle,
+`;
+        }
+        else if (message_type.endsWith("Response") || message_type === "ServiceFault") {
+            contents += `            SupportedMessage::${message_type}(ref r) => r.response_header.request_handle,
+`;
+        }
+    });
+
+    contents += `        }
+    }
+
+    pub fn decode_by_object_id<S: Read>(stream: &mut S, object_id: ObjectId, decoding_limits: &DecodingLimits) -> EncodingResult<Self> {
         trace!("decoding object_id {:?}", object_id);
         let decoded_message = match object_id {
 `;
 
     _.each(message_types, function (message_type) {
         contents += `            ObjectId::${message_type}_Encoding_DefaultBinary => {
-                SupportedMessage::${message_type}(${message_type}::decode(stream)?)
+                SupportedMessage::${message_type}(${message_type}::decode(stream, decoding_limits)?)
             }
 `;
     });
@@ -114,6 +141,8 @@ supported_messages_enum![
 
     settings.write_to_file(file_path, contents);
 }
+
+
 
 // These types are messages which means they implement Into<SupportedMessage> and are processed by supported message
 generate_supported_message([

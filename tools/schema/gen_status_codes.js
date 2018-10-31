@@ -35,7 +35,7 @@ fs.createReadStream(status_code_csv)
 use std::io::{Read, Write};
 use std::str::FromStr;
 
-use encoding::*;
+use crate::encoding::*;
 
 bitflags! {
     pub struct StatusCode: u32 {
@@ -89,7 +89,7 @@ impl BinaryEncoder<StatusCode> for StatusCode {
         write_u32(stream, self.bits())
     }
 
-    fn decode<S: Read>(stream: &mut S) -> EncodingResult<Self> {
+    fn decode<S: Read>(stream: &mut S, _: &DecodingLimits) -> EncodingResult<Self> {
         Ok(StatusCode::from_bits_truncate(read_u32(stream)?))
     }
 }
