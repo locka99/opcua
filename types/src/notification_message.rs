@@ -1,9 +1,11 @@
 ///! Helpers for NotificationMessage types
-use crate::date_time::DateTime;
-use crate::encoding::DecodingLimits;
-use crate::extension_object::ExtensionObject;
-use crate::node_ids::ObjectId;
-use crate::service_types::{NotificationMessage, MonitoredItemNotification, DataChangeNotification};
+use crate::{
+    date_time::DateTime,
+    encoding::DecodingLimits,
+    extension_object::ExtensionObject,
+    node_ids::ObjectId,
+    service_types::{NotificationMessage, MonitoredItemNotification, DataChangeNotification},
+};
 
 impl NotificationMessage {
     pub fn data_change(sequence_number: u32, publish_time: DateTime, monitored_items: Vec<MonitoredItemNotification>) -> NotificationMessage {

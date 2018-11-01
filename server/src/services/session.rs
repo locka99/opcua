@@ -8,10 +8,12 @@ use opcua_core::crypto;
 use opcua_core::crypto::SecurityPolicy;
 use opcua_core::crypto::CertificateStore;
 
-use crate::constants;
-use crate::state::ServerState;
-use crate::session::Session;
-use crate::services::Service;
+use crate::{
+    constants,
+    state::ServerState,
+    session::Session,
+    services::Service,
+};
 
 /// The session service. Allows the client to create, activate and close an authenticated session with the server.
 pub(crate) struct SessionService;

@@ -22,8 +22,8 @@ impl Default for ServerDiagnostics {
 impl ServerDiagnostics {
     /// Return a completed summary of the server diagnostics as they stand. This structure
     /// is used to fill the address space stats about the server.
-    pub fn server_diagnostics_summary(&self) -> ServerDiagnosticsSummaryDataType {
-        self.server_diagnostics_summary.clone()
+    pub fn server_diagnostics_summary(&self) -> &ServerDiagnosticsSummaryDataType {
+        &self.server_diagnostics_summary
     }
 
     pub fn on_rejected_request(&mut self) {

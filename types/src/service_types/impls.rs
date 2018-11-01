@@ -1,24 +1,29 @@
-use crate::attribute::AttributeId;
-use crate::basic_types::*;
-use crate::extension_object::ExtensionObject;
-use crate::byte_string::ByteString;
-use crate::data_types::*;
-use crate::data_value::DataValue;
-use crate::date_time::DateTime;
-use crate::encoding::*;
-use crate::node_id::NodeId;
-use crate::node_ids::ObjectId;
-use crate::diagnostic_info::{DiagnosticBits, DiagnosticInfo};
-use crate::profiles;
-use crate::service_types::{AnonymousIdentityToken, ApplicationType, DataChangeFilter, DataChangeTrigger, EndpointDescription, ReadValueId, ServiceFault, SignatureData, UserNameIdentityToken, UserTokenType};
-use crate::service_types::{MonitoredItemCreateRequest, MonitoringParameters, CallMethodRequest, ServerDiagnosticsSummaryDataType};
-use crate::service_types::ApplicationDescription;
-use crate::status_codes::StatusCode;
-use std;
-use std::io::{Read, Write};
-use crate::string::UAString;
-use crate::supported_message::SupportedMessage;
-use crate::variant::Variant;
+use std::{self, io::{Read, Write}};
+
+use crate::{
+    attribute::AttributeId,
+    basic_types::*,
+    extension_object::ExtensionObject,
+    byte_string::ByteString,
+    data_types::*,
+    data_value::DataValue,
+    date_time::DateTime,
+    encoding::*,
+    node_id::NodeId,
+    node_ids::ObjectId,
+    diagnostic_info::{DiagnosticBits, DiagnosticInfo},
+    profiles,
+    service_types::{
+        AnonymousIdentityToken, ApplicationType, DataChangeFilter, DataChangeTrigger,
+        EndpointDescription, ReadValueId, ServiceFault, SignatureData, UserNameIdentityToken, UserTokenType,
+        MonitoredItemCreateRequest, MonitoringParameters, CallMethodRequest, ServerDiagnosticsSummaryDataType,
+        ApplicationDescription,
+    },
+    status_codes::StatusCode,
+    string::UAString,
+    supported_message::SupportedMessage,
+    variant::Variant,
+};
 
 /// Implemented by messages
 pub trait MessageInfo {

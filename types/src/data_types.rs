@@ -1,9 +1,11 @@
 use std::io::{Read, Write};
 use std::fmt;
 
-use crate::encoding::*;
-use crate::date_time::*;
-use crate::status_codes::StatusCode;
+use crate::{
+    encoding::*,
+    date_time::*,
+    status_codes::StatusCode
+};
 
 /// This primitive data type is a UInt32 that is used as an identifier, such as a handle.
 /// All values, except for 0, are valid. IntegerId = 288,

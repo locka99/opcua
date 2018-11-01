@@ -8,10 +8,14 @@ use openssl::hash as openssl_hash;
 use opcua_types::status_code::StatusCode;
 use opcua_types::ByteString;
 
-use crate::crypto::{SHA1_SIZE, SHA256_SIZE};
-use crate::crypto::aeskey::AesKey;
-use crate::crypto::pkey::{PrivateKey, PublicKey, RsaPadding, KeySize};
-use crate::crypto::hash;
+use crate::{
+    crypto::{
+        SHA1_SIZE, SHA256_SIZE,
+        aeskey::AesKey,
+        pkey::{PrivateKey, PublicKey, RsaPadding, KeySize},
+        hash,
+    }
+};
 
 /// URI supplied for the None security policy
 pub const SECURITY_POLICY_NONE_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#None";

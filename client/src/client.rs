@@ -11,8 +11,10 @@ use opcua_types::status_code::StatusCode;
 use opcua_core::crypto::{CertificateStore, PrivateKey, SecurityPolicy, X509};
 use opcua_core::config::Config;
 
-use crate::config::{ANONYMOUS_USER_TOKEN_ID, ClientConfig, ClientEndpoint};
-use crate::session::{Session, SessionInfo};
+use crate::{
+    config::{ANONYMOUS_USER_TOKEN_ID, ClientConfig, ClientEndpoint},
+    session::{Session, SessionInfo},
+};
 
 #[derive(Debug)]
 pub enum IdentityToken {

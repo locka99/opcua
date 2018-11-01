@@ -2,9 +2,11 @@ use opcua_types::*;
 use opcua_types::status_code::StatusCode;
 use opcua_types::service_types::{CallMethodRequest, CallMethodResult};
 
-use crate::address_space::AddressSpace;
-use crate::state::ServerState;
-use crate::session::Session;
+use crate::{
+    address_space::AddressSpace,
+    state::ServerState,
+    session::Session
+};
 
 /// Count the number of provided input arguments, comparing them to the expected number.
 fn ensure_input_argument_count(request: &CallMethodRequest, expected: usize) -> Result<(), StatusCode> {

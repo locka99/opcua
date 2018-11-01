@@ -17,18 +17,20 @@ use opcua_types::service_types::ServerState as ServerStateType;
 use opcua_core::config::Config;
 use opcua_core::prelude::*;
 
-use crate::address_space::types::AddressSpace;
-use crate::comms::tcp_transport::*;
-use crate::comms::transport::Transport;
-use crate::config::ServerConfig;
-use crate::constants;
-use crate::diagnostics::ServerDiagnostics;
-use crate::discovery;
-use crate::metrics::ServerMetrics;
-use crate::services::message_handler::MessageHandler;
-use crate::session::Session;
-use crate::state::ServerState;
-use crate::util::PollingAction;
+use crate::{
+    address_space::types::AddressSpace,
+    comms::tcp_transport::*,
+    comms::transport::Transport,
+    config::ServerConfig,
+    constants,
+    diagnostics::ServerDiagnostics,
+    discovery,
+    metrics::ServerMetrics,
+    services::message_handler::MessageHandler,
+    session::Session,
+    state::ServerState,
+    util::PollingAction,
+};
 
 pub type Connections = Vec<Arc<RwLock<TcpTransport>>>;
 

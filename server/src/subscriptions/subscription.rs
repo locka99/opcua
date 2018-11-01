@@ -7,11 +7,13 @@ use opcua_types::*;
 use opcua_types::status_code::StatusCode;
 use opcua_types::service_types::{TimestampsToReturn, NotificationMessage, MonitoredItemCreateRequest, MonitoredItemCreateResult, MonitoredItemModifyRequest, MonitoredItemModifyResult};
 
-use crate::constants;
-use crate::DateTimeUtc;
-use crate::subscriptions::monitored_item::MonitoredItem;
-use crate::address_space::AddressSpace;
-use crate::diagnostics::ServerDiagnostics;
+use crate::{
+    constants,
+    DateTimeUtc,
+    subscriptions::monitored_item::MonitoredItem,
+    address_space::AddressSpace,
+    diagnostics::ServerDiagnostics,
+};
 
 /// The state of the subscription
 #[derive(Debug, Copy, Clone, PartialEq, Serialize)]

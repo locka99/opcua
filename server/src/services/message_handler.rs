@@ -1,18 +1,24 @@
-use crate::address_space::AddressSpace;
+use std::sync::{Arc, RwLock};
+
 use opcua_core::crypto::CertificateStore;
 use opcua_types::*;
 use opcua_types::service_types::*;
 use opcua_types::status_code::StatusCode;
-use crate::state::ServerState;
-use crate::services::attribute::AttributeService;
-use crate::services::discovery::DiscoveryService;
-use crate::services::method::MethodService;
-use crate::services::monitored_item::MonitoredItemService;
-use crate::services::session::SessionService;
-use crate::services::subscription::SubscriptionService;
-use crate::services::view::ViewService;
-use crate::session::Session;
-use std::sync::{Arc, RwLock};
+
+use crate::{
+    address_space::AddressSpace,
+    state::ServerState,
+    services::{
+        attribute::AttributeService,
+        discovery::DiscoveryService,
+        method::MethodService,
+        monitored_item::MonitoredItemService,
+        session::SessionService,
+        subscription::SubscriptionService,
+        view::ViewService,
+    },
+    session::Session,
+};
 
 /// Processes and dispatches messages for handling
 pub struct MessageHandler {

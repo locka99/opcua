@@ -6,9 +6,13 @@ use std::io::Cursor;
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
 
-use crate::comms::message_chunk::{MessageIsFinalType, MessageChunk, MessageChunkType};
-use crate::comms::secure_channel::SecureChannel;
-use crate::crypto::SecurityPolicy;
+use crate::{
+    comms::{
+        message_chunk::{MessageIsFinalType, MessageChunk, MessageChunkType},
+        secure_channel::SecureChannel,
+    },
+    crypto::SecurityPolicy
+};
 
 /// The Chunker is responsible for turning messages to chunks and chunks into messages.
 pub struct Chunker;

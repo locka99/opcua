@@ -2,18 +2,20 @@
 
 use std::io::{Read, Write};
 
-use crate::basic_types::*;
-use crate::extension_object::ExtensionObject;
-use crate::byte_string::ByteString;
-use crate::constants;
-use crate::data_value::DataValue;
-use crate::date_time::DateTime;
-use crate::encoding::*;
-use crate::guid::Guid;
-use crate::node_id::{ExpandedNodeId, NodeId};
-use crate::node_ids::DataTypeId;
-use crate::status_codes::StatusCode;
-use crate::string::{UAString, XmlElement};
+use crate::{
+    basic_types::*,
+    extension_object::ExtensionObject,
+    byte_string::ByteString,
+    constants,
+    data_value::DataValue,
+    date_time::DateTime,
+    encoding::*,
+    guid::Guid,
+    node_id::{ExpandedNodeId, NodeId},
+    node_ids::DataTypeId,
+    status_codes::StatusCode,
+    string::{UAString, XmlElement},
+};
 
 const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
 const ARRAY_VALUES_BIT: u8 = 1 << 7;

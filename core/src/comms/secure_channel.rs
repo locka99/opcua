@@ -8,13 +8,20 @@ use opcua_types::*;
 use opcua_types::service_types::ChannelSecurityToken;
 use opcua_types::status_code::StatusCode;
 
-use crate::comms::message_chunk::{MessageChunk, MessageChunkHeader, MessageChunkType};
-use crate::comms::security_header::{AsymmetricSecurityHeader, SecurityHeader, SymmetricSecurityHeader};
-use crate::crypto::aeskey::AesKey;
-use crate::crypto::CertificateStore;
-use crate::crypto::pkey::{PrivateKey, PublicKey, KeySize};
-use crate::crypto::SecurityPolicy;
-use crate::crypto::x509::X509;
+use crate::{
+    comms::{
+        message_chunk::{MessageChunk, MessageChunkHeader, MessageChunkType},
+        security_header::{AsymmetricSecurityHeader, SecurityHeader, SymmetricSecurityHeader},
+    },
+    crypto::{
+        aeskey::AesKey,
+        CertificateStore,
+        pkey::{PrivateKey, PublicKey, KeySize},
+        SecurityPolicy,
+        x509::X509,
+    },
+};
+
 
 #[derive(Debug, PartialEq)]
 pub enum Role {

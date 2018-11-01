@@ -4,11 +4,13 @@ use opcua_types::*;
 use opcua_types::status_code::StatusCode;
 use opcua_types::service_types::*;
 
-use crate::subscriptions::subscription::Subscription;
-use crate::state::ServerState;
-use crate::session::Session;
-use crate::services::Service;
-use crate::address_space::AddressSpace;
+use crate::{
+    subscriptions::subscription::Subscription,
+    state::ServerState,
+    session::Session,
+    services::Service,
+    address_space::AddressSpace,
+};
 
 /// The subscription service. Allows the client to create, modify and delete subscriptions of monitored items
 /// on the server and to request publish of notifications.

@@ -4,8 +4,7 @@ use opcua_types::*;
 use opcua_types::status_code::StatusCode;
 use opcua_types::service_types::*;
 
-use crate::state::ServerState;
-use crate::services::Service;
+use crate::{state::ServerState, services::Service};
 
 /// The discovery service. Allows a server to return the endpoints that it supports.
 pub(crate) struct DiscoveryService;

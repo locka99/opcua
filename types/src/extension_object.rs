@@ -2,12 +2,13 @@
 
 use std::io::{Read, Write, Cursor};
 
-use crate::encoding::*;
-use crate::string::XmlElement;
-use crate::node_id::NodeId;
-use crate::byte_string::ByteString;
-
-use crate::status_codes::StatusCode;
+use crate::{
+    encoding::*,
+    string::XmlElement,
+    node_id::NodeId,
+    byte_string::ByteString,
+    status_codes::StatusCode,
+};
 
 /// Enumeration that holds the kinds of encoding that an ExtensionObject data may be encoded with.
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
@@ -124,7 +125,7 @@ impl ExtensionObject {
     /// Creates an extension object with the specified node id and the encodable object as its payload.
     /// The body is set to a byte string containing the encoded struct.
     pub fn from_encodable<N, T>(node_id: N, encodable: &T) -> ExtensionObject where N: 'static + Into<NodeId>,
-                                                                                   T: BinaryEncoder<T> {
+                                                                                    T: BinaryEncoder<T> {
         // Serialize to extension object
         let mut stream = Cursor::new(vec![0u8; encodable.byte_len()]);
         let _ = encodable.encode(&mut stream);

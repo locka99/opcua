@@ -9,7 +9,6 @@ use opcua_types::node_ids::ObjectId;
 use opcua_types::service_types::{TimestampsToReturn, DataChangeFilter, ReadValueId, MonitoredItemCreateRequest, MonitoredItemModifyRequest, MonitoredItemNotification};
 
 use crate::constants;
-
 use crate::DateTimeUtc;
 use crate::address_space::AddressSpace;
 

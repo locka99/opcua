@@ -9,13 +9,15 @@ use opcua_types::*;
 use opcua_types::service_types::PublishRequest;
 use opcua_types::status_code::StatusCode;
 
-use crate::address_space::AddressSpace;
-use crate::continuation_point::BrowseContinuationPoint;
-use crate::diagnostics::ServerDiagnostics;
-use crate::DateTimeUtc;
-use crate::server::Server;
-use crate::subscriptions::subscription::TickReason;
-use crate::subscriptions::subscriptions::Subscriptions;
+use crate::{
+    address_space::AddressSpace,
+    continuation_point::BrowseContinuationPoint,
+    diagnostics::ServerDiagnostics,
+    DateTimeUtc,
+    server::Server,
+    subscriptions::subscription::TickReason,
+    subscriptions::subscriptions::Subscriptions,
+};
 
 /// Session info holds information about a session created by CreateSession service
 #[derive(Clone)]

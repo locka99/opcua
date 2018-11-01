@@ -154,23 +154,26 @@ pub mod url;
 pub mod argument;
 pub mod tcp_types;
 
-pub use crate::encoding::*;
-pub use crate::basic_types::*;
-pub use crate::string::*;
-pub use crate::extension_object::*;
-pub use crate::byte_string::*;
-pub use crate::data_value::*;
-pub use crate::diagnostic_info::*;
-pub use crate::date_time::*;
-pub use crate::guid::*;
-pub use crate::node_id::*;
-pub use crate::variant::*;
-pub use crate::data_types::*;
-pub use crate::attribute::*;
-pub use crate::supported_message::*;
-pub use crate::numeric_range::*;
-pub use crate::url::*;
-pub use crate::argument::*;
+pub use crate::{
+    encoding::*,
+    basic_types::*,
+    string::*,
+    extension_object::*,
+    byte_string::*,
+    data_value::*,
+    diagnostic_info::*,
+    date_time::*,
+    guid::*,
+    node_id::*,
+    variant::*,
+    data_types::*,
+    attribute::*,
+    supported_message::*,
+    numeric_range::*,
+    url::*,
+    argument::*,
+};
+
 
 // These mods are not use'd into this mod - too many types
 pub mod service_types;

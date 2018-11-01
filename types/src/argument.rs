@@ -1,10 +1,12 @@
 use std::io::{Read, Write};
 
-use crate::basic_types::{LocalizedText};
-use crate::node_id::NodeId;
-use crate::string::UAString;
-use crate::status_codes::StatusCode;
-use crate::encoding::*;
+use crate::{
+    basic_types::LocalizedText,
+    node_id::NodeId,
+    string::UAString,
+    status_codes::StatusCode,
+    encoding::*,
+};
 
 // From OPC UA Part 3 - Address Space Model 1.03 Specification
 //

@@ -2,9 +2,11 @@
 
 use std::io::{Read, Write, Cursor, Result, Error, ErrorKind};
 
-use crate::status_codes::StatusCode;
-use crate::string::UAString;
-use crate::encoding::*;
+use crate::{
+    status_codes::StatusCode,
+    string::UAString,
+    encoding::*,
+};
 
 pub const HELLO_MESSAGE: &[u8] = b"HEL";
 pub const ACKNOWLEDGE_MESSAGE: &[u8] = b"ACK";

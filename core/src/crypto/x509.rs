@@ -5,8 +5,7 @@ use std::marker::Send;
 use std::fmt::{Debug, Formatter};
 use std::result::Result;
 
-use openssl::x509;
-use openssl::nid::Nid;
+use openssl::{x509, nid::Nid};
 
 use chrono::{DateTime, Utc, TimeZone};
 

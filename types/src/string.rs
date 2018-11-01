@@ -3,8 +3,10 @@
 use std::io::{Read, Write};
 use std::fmt;
 
-use crate::encoding::{write_i32, BinaryEncoder, EncodingResult, DecodingLimits, process_encode_io_result, process_decode_io_result};
-use crate::status_codes::StatusCode;
+use crate::{
+    encoding::{write_i32, BinaryEncoder, EncodingResult, DecodingLimits, process_encode_io_result, process_decode_io_result},
+    status_codes::StatusCode,
+};
 
 /// A string containing UTF-8 encoded characters.
 ///

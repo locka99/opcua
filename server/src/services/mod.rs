@@ -6,7 +6,7 @@ pub mod message_handler;
 
 trait Service {
     fn service_fault(&self, request_header: &RequestHeader, service_result: StatusCode) -> SupportedMessage {
-        warn!("Service fault with status code {:?} is being created", service_result);
+        warn!("Service fault with status code {} is being created", service_result);
         ServiceFault::new_supported_message(request_header, service_result)
     }
 }

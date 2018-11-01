@@ -4,10 +4,7 @@ use std::marker::Send;
 use std::fmt::{Debug, Formatter};
 use std::result::Result;
 
-use openssl::pkey;
-use openssl::rsa;
-use openssl::sign;
-use openssl::hash;
+use openssl::{pkey, rsa, sign, hash};
 
 use opcua_types::status_code::StatusCode;
 

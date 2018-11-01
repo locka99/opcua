@@ -3,22 +3,27 @@ use std::sync::{Arc, Mutex, RwLock};
 
 use chrono::Utc;
 
-use opcua_types::*;
-use opcua_types::node_ids::*;
-use opcua_types::service_types::{BrowseDirection, RelativePath, RelativePathElement, ServerDiagnosticsSummaryDataType};
-use opcua_types::status_code::StatusCode;
-use opcua_types::service_types::{CallMethodRequest, CallMethodResult};
+use opcua_types::{
+    *,
+    node_ids::*,
+    status_code::StatusCode,
+    service_types::{CallMethodRequest, CallMethodResult, BrowseDirection, RelativePath, RelativePathElement},
+};
 
-use crate::address_space::AttrFnGetter;
-use crate::address_space::node::{Node, NodeType, HasNodeId};
-use crate::address_space::object::Object;
-use crate::address_space::variable::Variable;
-use crate::address_space::method_impls;
-
-use crate::state::ServerState;
-use crate::session::Session;
-use crate::constants;
-use crate::DateTimeUtc;
+use crate::{
+    address_space::{
+        AttrFnGetter,
+        node::{Node, NodeType, HasNodeId},
+        object::Object,
+        variable::Variable,
+        method_impls,
+    },
+    diagnostics::ServerDiagnostics,
+    state::ServerState,
+    session::Session,
+    constants,
+    DateTimeUtc,
+};
 
 /// Searches for the specified node by type, expecting it to exist
 macro_rules! expect_and_find_node {
@@ -67,13 +72,14 @@ macro_rules! is_method {
     }
 }
 
-/// Sets the diagnostic
+/// Gets a field from the live diagnostics table.
 macro_rules! server_diagnostics_summary {
     ($address_space: expr, $variable_id: expr, $field: ident) => {
+        let server_diagnostics = $address_space.server_diagnostics.as_ref().unwrap().clone();
         $address_space.set_variable_getter($variable_id, move |_, _| {
-            // TODO clone diagnostics here
-            // TODO Ok(Some(DataValue::from(Variant::from(diagnostics.$field))))
-            Ok(Some(DataValue::from(Variant::from(0u32))))
+            let server_diagnostics = server_diagnostics.read().unwrap();
+            let server_diagnostics_summary = server_diagnostics.server_diagnostics_summary();
+            Ok(Some(DataValue::from(Variant::from(server_diagnostics_summary.$field))))
         });
     }
 }
@@ -123,6 +129,8 @@ pub struct AddressSpace {
     last_modified: DateTimeUtc,
     /// Method handlers
     method_handlers: HashMap<MethodKey, MethodCallback>,
+    /// Access to server diagnostics
+    server_diagnostics: Option<Arc<RwLock<ServerDiagnostics>>>,
 }
 
 impl AddressSpace {
@@ -136,6 +144,7 @@ impl AddressSpace {
             inverse_references: HashMap::new(),
             last_modified: Utc::now(),
             method_handlers: HashMap::new(),
+            server_diagnostics: None,
         };
         address_space.add_default_nodes();
         address_space
@@ -231,23 +240,25 @@ impl AddressSpace {
         // Server_ServerCapabilities_MinSupportedSampleRate
 
         // Server_ServerDiagnostics_ServerDiagnosticsSummary
-        self.set_server_diagnostics_summary(ServerDiagnosticsSummaryDataType::default());
-
-        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_ServerViewCount, server_view_count);
-        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSessionCount, current_session_count);
-        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSessionCount, cumulated_session_count);
-        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedSessionCount, security_rejected_session_count);
-        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionTimeoutCount, session_timeout_count);
-        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionAbortCount, session_abort_count);
-        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_PublishingIntervalCount, publishing_interval_count);
-        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSubscriptionCount, current_subscription_count);
-        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSubscriptionCount, cumulated_subscription_count);
-        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedRequestsCount, security_rejected_requests_count);
-        server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount, rejected_requests_count);
-
         // Server_ServerDiagnostics_SamplingIntervalDiagnosticsArray
         // Server_ServerDiagnostics_SubscriptionDiagnosticsArray
         // Server_ServerDiagnostics_EnabledFlag
+        {
+            let server_state = trace_read_lock_unwrap!(server_state);
+            self.server_diagnostics = Some(server_state.diagnostics.clone());
+            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_ServerViewCount, server_view_count);
+            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSessionCount, current_session_count);
+            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSessionCount, cumulated_session_count);
+            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedSessionCount, security_rejected_session_count);
+            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionTimeoutCount, session_timeout_count);
+            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionAbortCount, session_abort_count);
+            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedSessionCount, rejected_session_count);
+            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_PublishingIntervalCount, publishing_interval_count);
+            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSubscriptionCount, current_subscription_count);
+            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSubscriptionCount, cumulated_subscription_count);
+            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedRequestsCount, security_rejected_requests_count);
+            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount, rejected_requests_count);
+        }
 
         // ServiceLevel - 0-255 worst to best quality of service
         self.set_variable_value(Server_ServiceLevel, 255u8);
@@ -285,22 +296,6 @@ impl AddressSpace {
         // Server method handlers
         self.register_method_handler(ObjectId::Server, MethodId::Server_GetMonitoredItems, Box::new(method_impls::handle_get_monitored_items));
         self.register_method_handler(ObjectId::Server, MethodId::Server_ResendData, Box::new(method_impls::handle_resend_data));
-    }
-
-    /// Updates the server diagnostics data with new values
-    pub fn set_server_diagnostics_summary(&mut self, sds: ServerDiagnosticsSummaryDataType) {
-        use opcua_types::node_ids::VariableId::*;
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_ServerViewCount, sds.server_view_count as u32);
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSessionCount, sds.current_session_count as u32);
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSessionCount, sds.cumulated_session_count as u32);
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedSessionCount, sds.security_rejected_session_count as u32);
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionTimeoutCount, sds.session_timeout_count as u32);
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionAbortCount, sds.session_abort_count as u32);
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_PublishingIntervalCount, sds.publishing_interval_count as u32);
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSubscriptionCount, sds.current_subscription_count as u32);
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSubscriptionCount, sds.cumulated_subscription_count as u32);
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedRequestsCount, sds.security_rejected_requests_count as u32);
-        self.set_variable_value(Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount, sds.rejected_requests_count as u32);
     }
 
     /// Returns the node id for the root folder

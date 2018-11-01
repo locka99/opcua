@@ -5,8 +5,7 @@ use opcua_types::status_code::StatusCode;
 use opcua_types::tcp_types::AcknowledgeMessage;
 use opcua_types::{BinaryEncoder, EncodingResult};
 
-use crate::comms::secure_channel::SecureChannel;
-use crate::comms::chunker::Chunker;
+use crate::comms::{secure_channel::SecureChannel, chunker::Chunker};
 //use debug::log_buffer;
 
 const DEFAULT_REQUEST_ID: u32 = 1000;

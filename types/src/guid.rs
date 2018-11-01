@@ -5,9 +5,9 @@ use std::str::FromStr;
 use std::io::{Read, Write};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use uuid::Uuid;
 
 use crate::encoding::*;
-use uuid::Uuid;
 
 /// A Guid is a 16 byte Globally Unique Identifier.
 #[derive(Eq, PartialEq, Clone, Hash)]

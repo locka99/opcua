@@ -1,14 +1,17 @@
 use std;
 use std::io::Cursor;
 
-use opcua_types::{BinaryEncoder};
+use opcua_types::BinaryEncoder;
 use opcua_types::status_code::StatusCode;
 
-use crate::crypto::SecurityPolicy;
-use crate::comms::security_header::{SecurityHeader, SequenceHeader};
-use crate::comms::message_chunk::{MessageChunk, MessageChunkHeader};
-use crate::comms::secure_channel::SecureChannel;
-use crate::comms::security_header::{AsymmetricSecurityHeader, SymmetricSecurityHeader};
+use crate::{
+    crypto::SecurityPolicy,
+    comms::{
+        security_header::{SecurityHeader, SequenceHeader, AsymmetricSecurityHeader, SymmetricSecurityHeader},
+        message_chunk::{MessageChunk, MessageChunkHeader},
+        secure_channel::SecureChannel,
+    },
+};
 
 /// Chunk info provides some basic information gleaned from reading the chunk such as offsets into
 /// the chunk and so on. The chunk MUST be decrypted before calling this otherwise the values are 

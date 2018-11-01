@@ -4,18 +4,21 @@ use std::path::{Path, PathBuf};
 use std::fs::{File, metadata};
 use std::io::{Write, Read};
 
-use openssl::x509;
-use openssl::x509::extension::*;
-use openssl::pkey;
-use openssl::rsa::*;
-use openssl::asn1::*;
-use openssl::hash::*;
+use openssl::{
+    x509::{self, extension::*},
+    pkey,
+    rsa::*,
+    asn1::*,
+    hash::*,
+};
 
 use opcua_types::service_types::ApplicationDescription;
 use opcua_types::status_code::StatusCode;
 
-use crate::crypto::x509::{X509, X509Data};
-use crate::crypto::pkey::PrivateKey;
+use crate::crypto::{
+    x509::{X509, X509Data},
+    pkey::PrivateKey,
+};
 
 /// The name that the server/client's application instance certificate is expected to be
 const OWN_CERTIFICATE_NAME: &str = "cert.der";

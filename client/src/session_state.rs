@@ -11,8 +11,7 @@ use opcua_types::*;
 use opcua_types::service_types::*;
 use opcua_types::status_code::StatusCode;
 
-use crate::message_queue::MessageQueue;
-use crate::callbacks::OnSessionClosed;
+use crate::{message_queue::MessageQueue, callbacks::OnSessionClosed};
 
 const DEFAULT_REQUEST_TIMEOUT: u32 = 10 * 1000;
 const SEND_BUFFER_SIZE: usize = 65536;

@@ -23,15 +23,17 @@ use opcua_types::node_ids::{ObjectId, MethodId};
 use opcua_types::service_types::*;
 use opcua_types::status_code::StatusCode;
 
-use crate::client;
-use crate::comms::tcp_transport::TcpTransport;
-use crate::message_queue::MessageQueue;
-use crate::session_retry::{SessionRetry, Answer};
-use crate::subscription;
-use crate::subscription::Subscription;
-use crate::subscription_state::SubscriptionState;
-use crate::session_state::SessionState;
-use crate::callbacks::{OnDataChange, OnConnectionStatusChange, OnSessionClosed};
+use crate::{
+    client,
+    comms::tcp_transport::TcpTransport,
+    message_queue::MessageQueue,
+    session_retry::{SessionRetry, Answer},
+    subscription,
+    subscription::Subscription,
+    subscription_state::SubscriptionState,
+    session_state::SessionState,
+    callbacks::{OnDataChange, OnConnectionStatusChange, OnSessionClosed},
+};
 
 /// Information about the server endpoint, security policy, security mode and user identity that the session will
 /// will use to establish a connection.

@@ -1,5 +1,4 @@
-use crate::address_space::base::Base;
-use crate::address_space::node::Node;
+use crate::address_space::{base::Base, node::Node};
 
 #[derive(Debug)]
 pub struct Object {

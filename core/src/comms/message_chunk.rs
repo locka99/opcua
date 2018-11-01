@@ -9,9 +9,11 @@ use opcua_types::status_code::StatusCode;
 use opcua_types::tcp_types::{CHUNK_MESSAGE, CLOSE_SECURE_CHANNEL_MESSAGE, OPEN_SECURE_CHANNEL_MESSAGE};
 use opcua_types::tcp_types::{CHUNK_INTERMEDIATE, CHUNK_FINAL, CHUNK_FINAL_ERROR};
 
-use crate::comms::security_header::{SequenceHeader, SecurityHeader, AsymmetricSecurityHeader, SymmetricSecurityHeader};
-use crate::comms::secure_channel::SecureChannel;
-use crate::comms::message_chunk_info::ChunkInfo;
+use crate::comms::{
+    security_header::{SequenceHeader, SecurityHeader, AsymmetricSecurityHeader, SymmetricSecurityHeader},
+    secure_channel::SecureChannel,
+    message_chunk_info::ChunkInfo,
+};
 
 /// The size of a chunk header, used by several places
 pub const MESSAGE_CHUNK_HEADER_SIZE: usize = 12;

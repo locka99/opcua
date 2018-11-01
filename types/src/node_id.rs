@@ -7,12 +7,14 @@ use std::io::{Read, Write};
 use std::str::FromStr;
 use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 
-use crate::byte_string::ByteString;
-use crate::encoding::*;
-use crate::guid::Guid;
-use crate::node_ids::{ObjectId, ReferenceTypeId};
-use crate::status_codes::StatusCode;
-use crate::string::*;
+use crate::{
+    byte_string::ByteString,
+    encoding::*,
+    guid::Guid,
+    node_ids::{ObjectId, ReferenceTypeId},
+    status_codes::StatusCode,
+    string::*,
+};
 
 /// The kind of identifier, numeric, string, guid or byte
 #[derive(Eq, PartialEq, Clone, Debug, Hash, Serialize, Deserialize)]
