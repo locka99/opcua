@@ -30,6 +30,8 @@ extern crate chrono;
 #[cfg(feature = "http")]
 extern crate hyper;
 #[macro_use]
+extern crate lazy_static;
+#[macro_use]
 extern crate log;
 #[macro_use]
 extern crate bitflags;
@@ -51,6 +53,26 @@ extern crate opcua_core;
 extern crate opcua_types;
 
 type DateTimeUtc = chrono::DateTime<chrono::Utc>;
+
+lazy_static! {
+    static ref RUNTIME: diagnostics::Runtime = diagnostics::Runtime::default();
+}
+
+#[macro_export]
+macro_rules! register_runtime_component {
+    ( $component_name:expr ) => {
+        use crate::RUNTIME;
+        RUNTIME.register_component($component_name);
+    }
+}
+
+#[macro_export]
+macro_rules! deregister_runtime_component {
+    ( $component_name:expr ) => {
+        use crate::RUNTIME;
+        RUNTIME.deregister_component($component_name);
+    }
+}
 
 mod services;
 mod session;

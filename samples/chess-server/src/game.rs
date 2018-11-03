@@ -481,7 +481,6 @@ impl Game {
 
     pub fn print_board(&self) {
         let mut line = String::new();
-
         for idx in 0..self.squares.len() {
             if idx % 8 == 0 && !line.is_empty() {
                 println!("{}", line);
