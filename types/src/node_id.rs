@@ -5,6 +5,7 @@ use std::u32;
 use std::u16;
 use std::io::{Read, Write};
 use std::str::FromStr;
+use std::fmt;
 use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 
 use crate::{
@@ -74,6 +75,31 @@ pub struct NodeId {
     pub namespace: u16,
     /// The identifier for the node in the address space
     pub identifier: Identifier,
+}
+
+impl fmt::Display for NodeId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let namespace = if self.namespace != 0 {
+            format!("ns={};", self.namespace)
+        } else {
+            String::new()
+        };
+        match self.identifier {
+            Identifier::Numeric(ref value) => {
+                write!(f, "{}i={}", namespace, value)
+            }
+            Identifier::String(ref value) => {
+                write!(f, "{}s={}", namespace, if value.is_null() { "null" } else { value.as_ref() })
+            }
+            Identifier::Guid(ref value) => {
+                write!(f, "{}g={:?}", namespace, value)
+            }
+            Identifier::ByteString(ref value) => {
+                // Base64 encode bytes
+                write!(f, "{}b={}", namespace, value.as_base64())
+            }
+        }
+    }
 }
 
 impl BinaryEncoder<NodeId> for NodeId {
@@ -263,35 +289,6 @@ impl FromStr for NodeId {
 impl Into<String> for NodeId {
     fn into(self) -> String {
         self.to_string()
-    }
-}
-
-impl ToString for NodeId {
-    fn to_string(&self) -> String {
-        let mut result = String::new();
-        if self.namespace != 0 {
-            result.push_str(&format!("ns={};", self.namespace));
-        }
-        result.push_str(&match self.identifier {
-            Identifier::Numeric(ref value) => {
-                format!("i={}", value)
-            }
-            Identifier::String(ref value) => {
-                if value.is_null() {
-                    "null".to_string()
-                } else {
-                    format!("s={}", value.as_ref())
-                }
-            }
-            Identifier::Guid(ref value) => {
-                format!("g={:?}", value)
-            }
-            Identifier::ByteString(ref value) => {
-                // Base64 encode bytes
-                format!("b={}", value.as_base64())
-            }
-        });
-        result
     }
 }
 

@@ -59,32 +59,6 @@ macro_rules! connection_finished_test {
     }
 }
 
-/// This is the thing that handles input and output for the open connection associated with the
-/// session.
-pub struct TcpTransport {
-    // Server state, address space etc.
-    server_state: Arc<RwLock<ServerState>>,
-    // Session state - open sessions, tokens etc
-    session: Arc<RwLock<Session>>,
-    /// Secure channel state
-    secure_channel: Arc<RwLock<SecureChannel>>,
-    /// Address space
-    address_space: Arc<RwLock<AddressSpace>>,
-    /// The current transport state
-    transport_state: TransportState,
-    /// Client address
-    client_address: Option<SocketAddr>,
-    /// Secure channel handler
-    secure_channel_service: SecureChannelService,
-    /// Message handler
-    message_handler: MessageHandler,
-    /// Client protocol version set during HELLO
-    client_protocol_version: u32,
-    /// Last decoded sequence number
-    last_received_sequence_number: u32,
-}
-
-
 struct ReadState {
     /// The associated connection
     pub transport: Arc<RwLock<TcpTransport>>,
@@ -105,6 +79,33 @@ struct WriteState {
     pub writer: Option<WriteHalf<TcpStream>>,
     /// Write buffer (protected since it might be accessed by publish response / event activity)
     pub send_buffer: Arc<Mutex<MessageWriter>>,
+}
+
+/// This is the thing that handles input and output for the open connection associated with the
+/// session.
+pub struct TcpTransport {
+    /// Server state, address space etc.
+    server_state: Arc<RwLock<ServerState>>,
+    /// Session state - open sessions, tokens etc
+    session: Arc<RwLock<Session>>,
+    /// Session id (for debugging)
+    session_id: NodeId,
+    /// Secure channel state
+    secure_channel: Arc<RwLock<SecureChannel>>,
+    /// Address space
+    address_space: Arc<RwLock<AddressSpace>>,
+    /// The current transport state
+    transport_state: TransportState,
+    /// Client address
+    client_address: Option<SocketAddr>,
+    /// Secure channel handler
+    secure_channel_service: SecureChannelService,
+    /// Message handler
+    message_handler: MessageHandler,
+    /// Client protocol version set during HELLO
+    client_protocol_version: u32,
+    /// Last decoded sequence number
+    last_received_sequence_number: u32,
 }
 
 impl Transport for TcpTransport {
@@ -141,14 +142,15 @@ impl Transport for TcpTransport {
 
 impl TcpTransport {
     pub fn new(server_state: Arc<RwLock<ServerState>>, session: Arc<RwLock<Session>>, address_space: Arc<RwLock<AddressSpace>>, message_handler: MessageHandler) -> TcpTransport {
-        let secure_channel = {
+        let (secure_channel, session_id) = {
             let session = trace_read_lock_unwrap!(session);
-            session.secure_channel.clone()
+            (session.secure_channel.clone(), session.session_id.clone())
         };
         let secure_channel_service = SecureChannelService::new();
         TcpTransport {
             server_state,
             session,
+            session_id,
             address_space,
             transport_state: TransportState::New,
             client_address: None,
@@ -228,6 +230,14 @@ impl TcpTransport {
     }
 
     fn spawn_finished_monitor_task(transport: Arc<RwLock<TcpTransport>>, finished_flag: Arc<RwLock<bool>>) {
+        let id = {
+            let transport = trace_read_lock_unwrap!(transport);
+            format!("{}/finished_monitor_task", transport.session_id)
+        };
+        let id_for_map = id.clone();
+        let id_for_map_err = id.clone();
+        register_runtime_component!(id);
+
         let finished_monitor_task = Interval::new(Instant::now(), Duration::from_millis(constants::HELLO_TIMEOUT_POLL_MS))
             .take_while(move |_| {
                 let is_server_abort = {
@@ -240,12 +250,14 @@ impl TcpTransport {
                 }
                 future::ok(!is_server_abort)
             })
-            .for_each(|_| Ok(()))
+            .for_each(move |_| Ok(()))
             .map(|_| {
                 info!("Finished monitor task is finished");
+                deregister_runtime_component!(id_for_map);
             })
-            .map_err(|err| {
+            .map_err(move |err| {
                 error!("Finished monitor task is finished with an error {:?}", err);
+                deregister_runtime_component!(id_for_map_err);
             });
         tokio::spawn(finished_monitor_task);
     }

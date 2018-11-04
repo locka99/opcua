@@ -325,8 +325,6 @@ impl TcpTransport {
     }
 
     fn write_bytes_task(connection: Arc<Mutex<WriteState>>) -> impl Future<Item=(), Error=()> {
-        // io::write_all consumes writer which is a pain, so it is stored as an Option returned
-        // afterwards
         let (bytes_to_write, writer) = {
             let mut connection = trace_lock_unwrap!(connection);
             let bytes_to_write = connection.send_buffer.bytes_to_write();
