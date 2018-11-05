@@ -2,9 +2,7 @@
 
 use std::result::Result;
 
-use openssl::pkey;
-use openssl::sign;
-use openssl::hash;
+use openssl::{pkey, sign, hash};
 
 use opcua_types::status_code::StatusCode;
 
@@ -17,7 +15,7 @@ use crate::crypto::{SHA1_SIZE, SHA256_SIZE};
 ///
 /// P_SHA1(secret, seed) = HMAC_SHA1(secret, A(1) + seed) +
 ///                        HMAC_SHA1(secret, A(2) + seed) +
-///                        HMAC_SHA1 (secret, A(3) + seed) + ...
+///                        HMAC_SHA1(secret, A(3) + seed) + ...
 ///
 /// Where A(n) is defined as:
 ///   A(0) = seed
