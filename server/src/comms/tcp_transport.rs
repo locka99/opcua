@@ -13,24 +13,25 @@ use std::sync::{Arc, RwLock, Mutex};
 
 use chrono;
 use chrono::Utc;
-use futures::{Stream, Future};
-use futures::future::{self};
-use futures::sync::mpsc;
-use futures::sync::mpsc::{UnboundedSender, UnboundedReceiver, unbounded};
-use tokio;
-use tokio::net::TcpStream;
-use tokio_io::AsyncRead;
-use tokio_io::io;
-use tokio_io::io::{ReadHalf, WriteHalf};
+use futures::{
+    Stream, Future,
+    future,
+    sync::mpsc::{self, UnboundedSender, UnboundedReceiver, unbounded},
+};
+use tokio::{self, net::TcpStream};
+use tokio_io::{AsyncRead, io::{self, ReadHalf, WriteHalf}};
 use tokio_codec::FramedRead;
 use tokio_timer::Interval;
 
-use opcua_core::prelude::*;
-use opcua_core::comms::message_writer::MessageWriter;
-use opcua_core::comms::tcp_codec::{Message, TcpCodec};
-use opcua_core::comms::secure_channel::SecureChannel;
-use opcua_types::status_code::StatusCode;
-use opcua_types::tcp_types::*;
+use opcua_core::{
+    prelude::*,
+    comms::{
+        message_writer::MessageWriter,
+        tcp_codec::{Message, TcpCodec},
+        secure_channel::SecureChannel,
+    },
+};
+use opcua_types::{status_code::StatusCode, tcp_types::*};
 
 use crate::{
     address_space::types::AddressSpace,
@@ -229,11 +230,13 @@ impl TcpTransport {
         Self::spawn_writing_loop_task(writer, rx, secure_channel.clone(), transport.clone(), send_buffer);
     }
 
+    fn make_session_id(component: &str, transport: Arc<RwLock<TcpTransport>>) -> String {
+        let transport = trace_read_lock_unwrap!(transport);
+        format!("{}/{}", transport.session_id, component)
+    }
+
     fn spawn_finished_monitor_task(transport: Arc<RwLock<TcpTransport>>, finished_flag: Arc<RwLock<bool>>) {
-        let id = {
-            let transport = trace_read_lock_unwrap!(transport);
-            format!("{}/finished_monitor_task", transport.session_id)
-        };
+        let id = Self::make_session_id("finished_monitor_task", transport.clone());
         let id_for_map = id.clone();
         let id_for_map_err = id.clone();
         register_runtime_component!(id);
@@ -263,6 +266,11 @@ impl TcpTransport {
     }
 
     fn spawn_writing_loop_task(writer: WriteHalf<TcpStream>, receiver: UnboundedReceiver<(u32, SupportedMessage)>, secure_channel: Arc<RwLock<SecureChannel>>, transport: Arc<RwLock<TcpTransport>>, send_buffer: Arc<Mutex<MessageWriter>>) {
+        let id = Self::make_session_id("writing_loop_task", transport.clone());
+        let id_for_map = id.clone();
+        let id_for_map_err = id.clone();
+        register_runtime_component!(id);
+
         let connection = Arc::new(Mutex::new(WriteState {
             transport: transport.clone(),
             writer: Some(writer),
@@ -321,16 +329,23 @@ impl TcpTransport {
                     Ok(connection)
                 }
             }).map(|_| ())
-        }).map(|_| {
+        }).map(move |_| {
             info!("Writer is finished");
-        }).map_err(|err| {
+            deregister_runtime_component!(id_for_map);
+        }).map_err(move |err| {
             error!("Writer is finished with an error {:?}", err);
+            deregister_runtime_component!(id_for_map_err);
         });
 
         tokio::spawn(looping_task);
     }
 
     fn spawn_reading_loop_task(reader: ReadHalf<TcpStream>, finished_flag: Arc<RwLock<bool>>, sender: UnboundedSender<(u32, SupportedMessage)>, transport: Arc<RwLock<TcpTransport>>, receive_buffer_size: usize) {
+        let id = Self::make_session_id("reading_loop_task", transport.clone());
+        let id_for_map = id.clone();
+        let id_for_map_err = id.clone();
+        register_runtime_component!(id);
+
         // Connection state is maintained for looping through each task
         let connection = Arc::new(RwLock::new(ReadState {
             transport: transport.clone(),
@@ -418,10 +433,12 @@ impl TcpTransport {
             } else {
                 Ok(())
             }
-        }).map(|_| {
+        }).map(move |_| {
             info!("Read loop is finished");
-        }).map_err(|err| {
+            deregister_runtime_component!(id_for_map);
+        }).map_err(move |err| {
             error!("Read loop is finished with an error {:?}", err);
+            deregister_runtime_component!(id_for_map_err);
         });
 
         tokio::spawn(looping_task);
@@ -430,6 +447,11 @@ impl TcpTransport {
     /// Makes the tokio task that looks for a hello timeout event, i.e. the connection is opened
     /// but no hello is received and we need to drop the session
     fn spawn_hello_timeout_task(transport: Arc<RwLock<TcpTransport>>, session_start_time: chrono::DateTime<Utc>) {
+        let id = Self::make_session_id("hello_timeout_task", transport.clone());
+        let id_for_map = id.clone();
+        let id_for_map_err = id.clone();
+        register_runtime_component!(id);
+
         struct HelloState {
             /// The associated connection
             pub transport: Arc<RwLock<TcpTransport>>,
@@ -485,9 +507,11 @@ impl TcpTransport {
             })
             .map(|_| {
                 info!("Hello timeout is finished");
+                deregister_runtime_component!(id_for_map);
             })
             .map_err(|err| {
                 error!("Hello timeout is finished with an error {:?}", err);
+                deregister_runtime_component!(id_for_map_err);
             });
         tokio::spawn(task);
     }
@@ -506,6 +530,11 @@ impl TcpTransport {
 
         // Create the monitoring timer - this monitors for publish requests and ticks the subscriptions
         {
+            let id = Self::make_session_id("subscriptions_task_monitor", transport.clone());
+            let id_for_map = id.clone();
+            let id_for_map_err = id.clone();
+            register_runtime_component!(id);
+
             struct SubscriptionMonitorState {
                 /// The associated connection
                 pub transport: Arc<RwLock<TcpTransport>>,
@@ -552,17 +581,24 @@ impl TcpTransport {
                     }
                     Ok(())
                 })
-                .map(|_| {
+                .map(move |_| {
                     info!("Subscription monitor is finished");
+                    deregister_runtime_component!(id_for_map);
                 })
-                .map_err(|err| {
+                .map_err(move |err| {
                     error!("Subscription monitor is finished with an error {:?}", err);
+                    deregister_runtime_component!(id_for_map_err);
                 });
             tokio::spawn(task);
         }
 
         // Create the receiving task - this takes publish responses and sends them back to the client
         {
+            let id = Self::make_session_id("subscriptions_task_receiver", transport.clone());
+            let id_for_map = id.clone();
+            let id_for_map_err = id.clone();
+            register_runtime_component!(id);
+
             struct SubscriptionReceiverState {
                 /// The associated connection
                 pub transport: Arc<RwLock<TcpTransport>>,
@@ -593,11 +629,13 @@ impl TcpTransport {
                     }
                     Ok(())
                 })
-                .map(|_| {
+                .map(move |_| {
                     info!("Subscription receiver is finished");
+                    deregister_runtime_component!(id_for_map);
                 })
-                .map_err(|err| {
+                .map_err(move |err| {
                     info!("Subscription receiver is finished with an error {:?}", err);
+                    deregister_runtime_component!(id_for_map_err);
                 }));
         }
     }

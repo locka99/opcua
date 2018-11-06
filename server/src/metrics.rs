@@ -19,6 +19,7 @@ pub struct ServerMetrics {
     pub diagnostics: ServerDiagnostics,
     pub config: Option<config::ServerConfig>,
     pub connections: Vec<Connection>,
+    pub runtime_components: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -51,6 +52,7 @@ impl ServerMetrics {
             diagnostics: ServerDiagnostics::default(),
             config: None,
             connections: Vec::new(),
+            runtime_components: Vec::new(),
         }
     }
 
@@ -87,6 +89,8 @@ impl ServerMetrics {
 
     // Update the connection metrics which includes susbcriptions and monitored items
     pub fn update_from_connections(&mut self, connections: &server::Connections) {
+        self.runtime_components = runtime_components!();
+
         self.connections = connections.iter().map(|c| {
             let connection = trace_read_lock_unwrap!(c);
 

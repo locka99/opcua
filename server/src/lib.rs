@@ -59,6 +59,16 @@ lazy_static! {
 }
 
 #[macro_export]
+macro_rules! runtime_components {
+    () => {
+        {
+            use crate::RUNTIME;
+            RUNTIME.components()
+        }
+    }
+}
+
+#[macro_export]
 macro_rules! register_runtime_component {
     ( $component_name:expr ) => {
         use crate::RUNTIME;
