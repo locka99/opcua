@@ -8,9 +8,7 @@ use opcua_types::status_code::StatusCode;
 use opcua_types::node_ids::ObjectId;
 use opcua_types::service_types::{TimestampsToReturn, DataChangeFilter, ReadValueId, MonitoredItemCreateRequest, MonitoredItemModifyRequest, MonitoredItemNotification};
 
-use crate::constants;
-use crate::DateTimeUtc;
-use crate::address_space::AddressSpace;
+use crate::{constants, DateTimeUtc, address_space::AddressSpace};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum FilterType {

@@ -243,15 +243,15 @@ impl TcpTransport {
 
         let finished_monitor_task = Interval::new(Instant::now(), Duration::from_millis(constants::HELLO_TIMEOUT_POLL_MS))
             .take_while(move |_| {
-                let is_server_abort = {
+                let (is_server_abort, is_finished) = {
                     let transport = trace_read_lock_unwrap!(transport);
-                    transport.is_server_abort()
+                    (transport.is_server_abort(), transport.is_finished())
                 };
-                if is_server_abort {
+                if !is_finished && is_server_abort {
                     let mut finished_flag = trace_write_lock_unwrap!(finished_flag);
                     *finished_flag = true;
                 }
-                future::ok(!is_server_abort)
+                future::ok(!is_server_abort && !is_finished)
             })
             .for_each(move |_| Ok(()))
             .map(|_| {

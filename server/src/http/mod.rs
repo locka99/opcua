@@ -3,15 +3,16 @@ use std::thread;
 
 use futures::{Poll, Async};
 use futures::future::Future;
-use hyper;
-use hyper::{Server, Request, Response, Body, Method, StatusCode};
+use hyper::{self, Server, Request, Response, Body, Method, StatusCode};
 use hyper::service::service_fn_ok;
 use hyper::rt;
 use serde_json;
 
-use crate::server::Connections;
-use crate::metrics::ServerMetrics;
-use crate::state::ServerState;
+use crate::{
+    server::Connections,
+    metrics::ServerMetrics,
+    state::ServerState
+};
 
 /// This is our metrics service, the thing called to handle requests coming from hyper
 #[derive(Clone)]

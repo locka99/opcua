@@ -1,30 +1,32 @@
 //! Provides diagnostics structures and functions for gathering information about the running
 //! state of a server.
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 use std::sync::{Arc, Mutex};
 
 use opcua_client::prelude::ServerDiagnosticsSummaryDataType;
 
-use crate::subscriptions::subscription::Subscription;
-use crate::session::Session;
+use crate::{
+    subscriptions::subscription::Subscription,
+    session::Session,
+};
 
 pub struct Runtime {
     /// This is a list of the currently running components / threads / tasks in the server,
     /// useful for debugging.
-    running_components: Arc<Mutex<HashSet<String>>>,
+    running_components: Arc<Mutex<BTreeSet<String>>>,
 }
 
 impl Default for Runtime {
     fn default() -> Self {
         Self {
-            running_components: Arc::new(Mutex::new(HashSet::new())),
+            running_components: Arc::new(Mutex::new(BTreeSet::new())),
         }
     }
 }
 
 impl Runtime {
     pub fn components(&self) -> Vec<String> {
-        let mut running_components = trace_lock_unwrap!(self.running_components);
+        let running_components = trace_lock_unwrap!(self.running_components);
         running_components.iter().map(|k| k.clone()).collect()
     }
 
@@ -32,7 +34,7 @@ impl Runtime {
         let mut running_components = trace_lock_unwrap!(self.running_components);
         let key = name.into();
         if running_components.contains(&key) {
-            error!("Shouldn't be registering this component more than once");
+            error!("Shouldn't be registering component {} more than once", key);
         }
         running_components.insert(key);
     }
@@ -41,7 +43,7 @@ impl Runtime {
         let mut running_components = trace_lock_unwrap!(self.running_components);
         let key = name.into();
         if !running_components.contains(&key) {
-            error!("Shouldn't be deregistering this component which doesn't exist");
+            error!("Shouldn't be deregistering component {} which doesn't exist", key);
         }
         running_components.remove(&key);
     }

@@ -365,7 +365,7 @@ impl TcpTransport {
                 info!("Timer for finished is finished");
             })
             .map_err(|err| {
-                info!("Timer for finished is finished with an error {:?}", err);
+                error!("Timer for finished is finished with an error {:?}", err);
             });
         tokio::spawn(finished_monitor_task);
     }
@@ -443,7 +443,7 @@ impl TcpTransport {
                 Ok(())
             }
         }).map(|_| {
-            error!("Read loop finished");
+            info!("Read loop finished");
         }).map_err(|err| {
             error!("Read loop ended with an error {:?}", err);
         });

@@ -1,5 +1,5 @@
 use std::collections::VecDeque;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, RwLock, Mutex};
 
 use chrono;
 
@@ -24,6 +24,17 @@ use crate::{
 pub struct SessionInfo {}
 
 const PUBLISH_REQUEST_TIMEOUT: i64 = 30000;
+
+lazy_static! {
+    // TODO this should be done with AtomicI32 when it stops being experimental
+    static ref LAST_SESSION_ID: Arc<Mutex<i32>> = Arc::new(Mutex::new(0));
+}
+
+fn next_session_id() -> NodeId {
+    let mut last_session_id = trace_lock_unwrap!(LAST_SESSION_ID);
+    *last_session_id += 1;
+    NodeId::new(1, *last_session_id)
+}
 
 /// The Session is any state maintained between the client and server
 pub struct Session {
@@ -65,8 +76,6 @@ pub struct Session {
     terminated_at: DateTimeUtc,
     /// Flag indicating session is actually terminated
     terminated: bool,
-    /// Internal value used to create new session ids.
-    last_session_id: u32,
 }
 
 impl Drop for Session {
@@ -83,7 +92,7 @@ impl Session {
         let max_browse_continuation_points = super::constants::MAX_BROWSE_CONTINUATION_POINTS;
         let session = Session {
             subscriptions: Subscriptions::new(100, PUBLISH_REQUEST_TIMEOUT),
-            session_id: NodeId::null(),
+            session_id: next_session_id(),
             activated: false,
             terminate_session: false,
             terminated: false,
@@ -101,7 +110,6 @@ impl Session {
             max_browse_continuation_points,
             browse_continuation_points: VecDeque::with_capacity(max_browse_continuation_points),
             diagnostics: Arc::new(RwLock::new(ServerDiagnostics::default())),
-            last_session_id: 0,
         };
         {
             let mut diagnostics = trace_write_lock_unwrap!(session.diagnostics);
@@ -130,7 +138,7 @@ impl Session {
 
         let session = Session {
             subscriptions: Subscriptions::new(max_subscriptions, PUBLISH_REQUEST_TIMEOUT),
-            session_id: NodeId::null(),
+            session_id: next_session_id(),
             activated: false,
             terminate_session: false,
             terminated: false,
@@ -148,18 +156,12 @@ impl Session {
             max_browse_continuation_points,
             browse_continuation_points: VecDeque::with_capacity(max_browse_continuation_points),
             diagnostics,
-            last_session_id: 0,
         };
         {
             let mut diagnostics = trace_write_lock_unwrap!(session.diagnostics);
             diagnostics.on_create_session(&session);
         }
         session
-    }
-
-    pub fn next_session_id(&mut self) -> NodeId {
-        self.last_session_id += 1;
-        NodeId::new(1, self.last_session_id)
     }
 
     pub fn terminated(&self) -> bool { self.terminated }

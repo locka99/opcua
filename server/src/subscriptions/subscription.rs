@@ -319,9 +319,10 @@ impl Subscription {
             match update_state_result.update_state_action {
                 UpdateStateAction::None => {
                     if notifications_available {
-                        trace!("Notification message was being ignored for a do-nothing");
                         // Reset the next sequence number to the discarded notification
-                        self.next_sequence_number -= notification_message.unwrap().sequence_number;
+                        let notification_sequence_number = notification_message.unwrap().sequence_number;
+                        self.next_sequence_number = notification_sequence_number;
+                        debug!("Notification message nr {} was being ignored for a do-nothing, self next sequence nr reverted to {}", notification_sequence_number, self.next_sequence_number);
                     }
                     // Send nothing
                     //println!("do nothing {:?}", update_state_result.handled_state);
@@ -329,9 +330,10 @@ impl Subscription {
                 }
                 UpdateStateAction::ReturnKeepAlive => {
                     if notifications_available {
-                        trace!("Notification message was being ignored for a keep alive");
                         // Reset the next sequence number to the discarded notification
-                        self.next_sequence_number -= notification_message.unwrap().sequence_number;
+                        let notification_sequence_number = notification_message.unwrap().sequence_number;
+                        self.next_sequence_number = notification_sequence_number;
+                        debug!("Notification message nr {} was being ignored for a keep alive, self next sequence nr reverted to {}", notification_sequence_number, self.next_sequence_number);
                     }
                     // Send a keep alive
                     debug!("Sending keep alive response");

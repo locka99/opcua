@@ -69,7 +69,6 @@ impl SessionService {
         let response = if service_result.is_bad() {
             self.service_fault(&request.request_header, service_result)
         } else {
-            let session_id = session.next_session_id();
             let authentication_token = NodeId::new(0, ByteString::random(32));
             let session_timeout = constants::SESSION_TIMEOUT;
             let max_request_message_size = constants::MAX_REQUEST_MESSAGE_SIZE;
@@ -86,7 +85,6 @@ impl SessionService {
             let server_certificate = server_state.server_certificate_as_byte_string();
             let server_endpoints = Some(endpoints);
 
-            session.session_id = session_id.clone();
             session.authentication_token = authentication_token.clone();
             session.session_timeout = session_timeout;
             session.max_request_message_size = max_request_message_size;
@@ -99,7 +97,7 @@ impl SessionService {
 
             CreateSessionResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
-                session_id,
+                session_id: session.session_id.clone(),
                 authentication_token,
                 revised_session_timeout: session_timeout,
                 server_nonce,

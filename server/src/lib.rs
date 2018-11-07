@@ -58,6 +58,7 @@ lazy_static! {
     static ref RUNTIME: diagnostics::Runtime = diagnostics::Runtime::default();
 }
 
+/// Returns a vector of all currently existing runtime components as a vector of strings.
 #[macro_export]
 macro_rules! runtime_components {
     () => {
@@ -68,6 +69,9 @@ macro_rules! runtime_components {
     }
 }
 
+/// This macro is for debugging purposes - code register a running component (e.g. tokio task) when it starts
+/// and calls the corresponding deregister macro when it finishes. This enables the code to print
+/// out a list of components in existence at any time to ensure they were properly cleaned up.
 #[macro_export]
 macro_rules! register_runtime_component {
     ( $component_name:expr ) => {
@@ -76,6 +80,7 @@ macro_rules! register_runtime_component {
     }
 }
 
+/// See `register_runtime_component`
 #[macro_export]
 macro_rules! deregister_runtime_component {
     ( $component_name:expr ) => {

@@ -6,10 +6,14 @@ use opcua_types::*;
 use opcua_types::service_types::{NotificationMessage, PublishRequest, PublishResponse, ResponseHeader, ServiceFault};
 use opcua_types::status_code::StatusCode;
 
-use crate::address_space::types::AddressSpace;
-use crate::DateTimeUtc;
-use crate::subscriptions::{PublishRequestEntry, PublishResponseEntry};
-use crate::subscriptions::subscription::{Subscription, SubscriptionState, TickReason};
+use crate::{
+    address_space::types::AddressSpace,
+    DateTimeUtc,
+    subscriptions::{
+        PublishRequestEntry, PublishResponseEntry,
+        subscription::{Subscription, SubscriptionState, TickReason},
+    },
+};
 
 /// The `Subscriptions` manages zero or more subscriptions, pairing publish requests coming from
 /// the client with notifications coming from the subscriptions. Therefore the subscriptions has
