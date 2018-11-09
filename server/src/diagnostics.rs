@@ -84,6 +84,14 @@ impl ServerDiagnostics {
         self.server_diagnostics_summary.rejected_requests_count += 1;
     }
 
+    pub fn on_rejected_security_session(&mut self) {
+        self.server_diagnostics_summary.security_rejected_session_count += 1;
+    }
+
+    pub fn on_rejected_session(&mut self) {
+        self.server_diagnostics_summary.rejected_session_count += 1;
+    }
+
     pub fn on_create_session(&mut self, _session: &Session) {
         self.server_diagnostics_summary.current_session_count += 1;
         self.server_diagnostics_summary.cumulated_session_count += 1;

@@ -7,6 +7,23 @@
 </head>
 <body onload="requestMetrics()">
 <style>
+    table {
+        border-collapse: collapse;
+    }
+
+    td, th {
+        border: 1px solid black;
+        padding: 0.5rem;
+    }
+
+    table.side_headings td, table.side_headings th {
+        text-align: left;
+    }
+
+    th {
+        background: lightblue;
+        font-weight: bold;
+    }
 </style>
 <script>
     function requestMetrics() {
@@ -70,7 +87,7 @@
     }
 
     function node_id_str(node_id) {
-        var identifier = node_id.identifier;
+        const identifier = node_id.identifier;
         if (identifier["String"]) {
             return `ns=${node_id.namespace};s=${identifier["String"].value}`;
         }
@@ -89,83 +106,144 @@
     }
 
     function fillMetrics(json) {
-        var html = "";
+        let html = `<h1 class='server'>Server</h1>`;
 
-        html += `<h1 class='server'>Server</h1>`;
+        html += dump_server(json["config"], json["server"]);
 
-        var server = json["server"];
-        var config = json["config"];
-
-        html += `<table>
-<tr><td>Server name:</td><td>${config["application_name"]}</td></tr>
-<tr><td>Server URI:</td><td>${config["application_uri"]}</td></tr>
-<tr><td>Start Time</td><td>${new Date(server["start_time"]).toString()}</td></tr>
-<tr><td>Uptime (MS)</td><td>${server["uptime_ms"]}</td></tr>
-</table>
-`;
-        // ip address etc.
+        // diagnostic summary
+        html += dump_diagnostics(json["diagnostics"]);
 
         // Sessions
-        var connections = json["connections"];
+        const connections = json["connections"];
         html += "<h1 class='connections'>Client connections</h1>";
         if (connections.length === 0) {
             html += "<p>No connections</p>";
         }
         else {
             connections.forEach(function (connection) {
-                html += `<h2>Client${connection["id"]}</h2>
-<table>
-<tr><td>Client address:</td><td>${connection["client_address"]}</td></tr>
-<tr><td>Transport state:</td><td>${connection["transport_state"]}</td></tr>
-<tr><td>Session activated:</td><td>${connection["session_activated"]}</td></tr>
-<tr><td>Session terminated:</td><td>${connection["session_terminated"]}</td></tr>
-<tr><td>Session terminated at:</td><td>${connection["session_terminated_at"]}</td></tr>
-</table>`;
+                    html += dump_connection(connection);
 
-                // Subscriptions
-                var subscriptions = connection["subscriptions"];
-                if (subscriptions.length === 0) {
-                    html += "<p>No subscriptions</p>";
+                    // Subscriptions
+                    const subscriptions = connection["subscriptions"];
+                    if (subscriptions.length === 0) {
+                        html += `<p>No subscriptions</p>`;
+                    }
+                    else {
+                        subscriptions.forEach(function (subscription) {
+                            html += dump_subscription(subscription);
+                            var monitored_items = subscription.monitored_items;
+                            if (monitored_items.length === 0) {
+                                html += "<p>No monitored items</p>";
+                            }
+                            else {
+                                Object.keys(monitored_items).forEach(function (key) {
+                                    const item = monitored_items[key];
+                                    html += dump_monitored_item(item);
+                                });
+                            }
+                        });
+                    }
                 }
-                else {
-                    subscriptions.forEach(function (subscription) {
-                        html += `<h2 class='subscriptions'>Subscriptions</h2>
-<h3>Subscription ${subscription.subscription_id}</h3>
-<table>
-<tr><td>Priority:</td><td>${subscription.priority}</td></tr>
-<tr><td>Publishing enabled:</td><td>${subscription.publishing_enabled}</td></tr>
-<tr><td>Publishing interval:</td><td>${subscription.publishing_interval}ms</td></tr>
-<tr><td>Last Timer Expiration:</td><td>${subscription.last_timer_expired_time}</td></tr>
-</table>`;
-
-                        var monitored_items = subscription.monitored_items;
-                        if (monitored_items.length === 0) {
-                            html += "<p>No monitored items</p>";
-                        }
-                        else {
-                            Object.keys(monitored_items).forEach(function (key) {
-                                var item = monitored_items[key];
-                                html += `<h4 class='monitoreditems'>Item ${item.monitored_item_id}</h4>
-<table>
-<tr><td>Item to monitor:</td><td>${node_id_str(item.item_to_monitor.node_id)} / ${attribute_id_string(item.item_to_monitor.attribute_id)}</td></tr>
-<tr><td>Monitoring mode:</td><td>${item.monitoring_mode}</td></tr>
-<tr><td>Client handle:</td><td>${item.client_handle}</td></tr>
-<tr><td>Filter:</td><td>${item.filter}</td></tr>
-<tr><td>Sampling interval:</td><td>${item.sampling_interval}ms</td></tr>
-<tr><td>Discard Oldest:</td><td>${item.discard_oldest}</td></tr>
-<tr><td>Queue Size:</td><td>${item.queue_size}</td></tr>
-<tr><td>Timestamps to return:</td><td>${item.timestamps_to_return}</td></tr>
-<tr><td>Last Sample Time:</td><td>${item.last_sample_time}</td></tr>
-<tr><td>Last Value:</td><td>${JSON.stringify(item.last_data_value)}</td></tr>
-</table>`;
-                            });
-                        }
-                    });
-                }
-            });
+            );
         }
         $("#metrics").html(html);
     }
+
+    function dump_server(config, server) {
+        return `<table class="side_headings">
+<tr><th>Server name</th><td>${config["application_name"]}</td></tr>
+<tr><th>Server URI</th><td>${config["application_uri"]}</td></tr>
+<tr><th>Start Time</th><td>${new Date(server["start_time"]).toString()}</td></tr>
+<tr><th>Uptime (MS)</th><td>${server["uptime_ms"]}</td></tr>
+</table>
+`;
+    }
+
+    function dump_connection(connection) {
+        `<h2>Client${connection["id"]}</h2>
+<table class="side_headings">
+<tr><th>Client address</th><td>${connection["client_address"]}</td></tr>
+<tr><th>Transport state</th><td>${connection["transport_state"]}</td></tr>
+<tr><th>Session activated</th><td>${connection["session_activated"]}</td></tr>
+<tr><th>Session terminated</th><td>${connection["session_terminated"]}</td></tr>
+<tr><th>Session terminated at</th><td>${connection["session_terminated_at"]}</td></tr>
+</table>`;
+    }
+
+    function dump_subscription(subscription) {
+        return `<h2 class='subscriptions'>Subscriptions</h2>
+<h3>Subscription ${subscription.subscription_id}</h3>
+<table class="side_headings">
+<tr><th>Priority</th><td>${subscription.priority}</td></tr>
+<tr><th>Publishing enabled</th><td>${subscription.publishing_enabled}</td></tr>
+<tr><th>Publishing interval</th><td>${subscription.publishing_interval}ms</td></tr>
+<tr><th>Last Timer Expiration</th><td>${subscription.last_timer_expired_time}</td></tr>
+</table>`;
+    }
+
+    function dump_monitored_item(item) {
+        return `<h4 class='monitoreditems'>Item ${item.monitored_item_id}</h4>
+<table class="side_headings">
+<tr><th>Item to monitor</th><td>${node_id_str(item.item_to_monitor.node_id)} / ${attribute_id_string(item.item_to_monitor.attribute_id)}</td></tr>
+<tr><th>Monitoring mode</th><td>${item.monitoring_mode}</td></tr>
+<tr><th>Client handle</th><td>${item.client_handle}</td></tr>
+<tr><th>Filter</th><td>${item.filter}</td></tr>
+<tr><th>Sampling interval</th><td>${item.sampling_interval}ms</td></tr>
+<tr><th>Discard Oldest</th><td>${item.discard_oldest}</td></tr>
+<tr><th>Queue Size</th><td>${item.queue_size}</td></tr>
+<tr><th>Timestamps to return</th><td>${item.timestamps_to_return}</td></tr>
+<tr><th>Last Sample Time</th><td>${item.last_sample_time}</td></tr>
+<tr><th>Last Value</th><td>${JSON.stringify(item.last_data_value)}</td></tr>
+</table>`;
+    }
+
+    function dump_diagnostics(diagnostics) {
+        const diagnostics_summary = diagnostics["server_diagnostics_summary"];
+        return `<h2 class='diagnostic_summary'>Diagnostic Summary</h2>
+<table>
+    <thead>
+    <tr></tr>
+    <tr>
+        <th colspan="6">Sessions</th>
+        <th colspan="3">Subscriptions</th>
+        <th colspan="2">Requests</th>
+    </tr>
+    <tr>
+        <!-- Sesssions -->
+        <th>Current</th>
+        <th>Cumulative</th>
+        <th>Security Rejected</th>
+        <th>Rejected</th>
+        <th>Timeouts</th>
+        <th>Aborts</th>
+        <!-- Subscriptions -->
+        <th>Current</th>
+        <th>Cumulative</th>
+        <th>Publishing Intervals</th>
+        <!-- Requests -->
+        <th>Security Rejected</th>
+        <th>Rejected</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>${diagnostics_summary["current_session_count"]}</td>
+        <td>${diagnostics_summary["cumulated_session_count"]}</td>
+        <td>${diagnostics_summary["security_rejected_session_count"]}</td>
+        <td>${diagnostics_summary["rejected_session_count"]}</td>
+        <td>${diagnostics_summary["session_timeout_count"]}</td>
+        <td>${diagnostics_summary["session_abort_count"]}</td>
+        <td>${diagnostics_summary["current_subscription_count"]}</td>
+        <td>${diagnostics_summary["cumulated_subscription_count"]}</td>
+        <td>${diagnostics_summary["publishing_interval_count"]}</td>
+        <td>${diagnostics_summary["security_rejected_requests_count"]}</td>
+        <td>${diagnostics_summary["rejected_requests_count"]}</td>
+    </tr>
+    </tbody>
+</table>
+`;
+    }
+
 </script>
 
 <div><span><a href="#" onclick="requestMetrics()">Reload</a></span></div>

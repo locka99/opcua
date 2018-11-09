@@ -28,87 +28,107 @@ impl SessionService {
     pub fn create_session(&self, certificate_store: &CertificateStore, server_state: &mut ServerState, session: &mut Session, request: CreateSessionRequest) -> Result<SupportedMessage, StatusCode> {
         debug!("Create session request {:?}", request);
 
-        // Validate the endpoint url
-        if request.endpoint_url.is_null() {
-            error!("Create session was passed an null endpoint url");
-            return Ok(self.service_fault(&request.request_header, StatusCode::BadTcpEndpointUrlInvalid));
-        }
-
-        // TODO request.endpoint_url should match hostname of server application certificate
-
-        // Find matching end points for this url
         let endpoints = server_state.new_endpoint_descriptions(request.endpoint_url.as_ref());
-        if endpoints.is_none() {
-            error!("Create session cannot find matching endpoints");
-            return Ok(self.service_fault(&request.request_header, StatusCode::BadTcpEndpointUrlInvalid));
-        }
-        let endpoints = endpoints.unwrap();
 
-        // Extract the client certificate if one is supplied
-        let client_certificate = if let Ok(client_certificate) = crypto::X509::from_byte_string(&request.client_certificate) {
-            Some(client_certificate)
-        } else {
-            None
-        };
-
-        // Check the client's certificate for validity and acceptance
-        let security_policy = {
-            let secure_channel = trace_read_lock_unwrap!(session.secure_channel);
-            secure_channel.security_policy()
-        };
-        let service_result = if security_policy != SecurityPolicy::None {
-            if let Some(ref client_certificate) = client_certificate {
-                certificate_store.validate_or_reject_application_instance_cert(client_certificate, None, None)
+        // Check the args
+        let service_result = {
+            // Validate the endpoint url
+            if request.endpoint_url.is_null() {
+                error!("Create session was passed an null endpoint url");
+                StatusCode::BadTcpEndpointUrlInvalid
             } else {
-                warn!("Certificate supplied by client is invalid");
-                StatusCode::BadCertificateInvalid
+                // TODO request.endpoint_url should match hostname of server application certificate
+                // Find matching end points for this url
+                if endpoints.is_none() {
+                    error!("Create session cannot find matching endpoints");
+                    StatusCode::BadTcpEndpointUrlInvalid
+                } else {
+                    StatusCode::Good
+                }
             }
-        } else {
-            StatusCode::Good
         };
-        let response = if service_result.is_bad() {
-            self.service_fault(&request.request_header, service_result)
-        } else {
-            let authentication_token = NodeId::new(0, ByteString::random(32));
-            let session_timeout = constants::SESSION_TIMEOUT;
-            let max_request_message_size = constants::MAX_REQUEST_MESSAGE_SIZE;
+        if service_result.is_bad() {
+            // Rejected
+            let mut diagnostics = trace_write_lock_unwrap!(server_state.diagnostics);
+            diagnostics.on_rejected_session();
+            Ok(self.service_fault(&request.request_header, service_result))
+        }
+        else {
+            let endpoints = endpoints.unwrap();
 
-            // Calculate a signature (assuming there is a pkey)
-            let server_signature = if let Some(ref pkey) = server_state.server_pkey {
-                crypto::create_signature_data(pkey, security_policy, &request.client_certificate, &request.client_nonce)?
+            // Extract the client certificate if one is supplied
+            let client_certificate = if let Ok(client_certificate) = crypto::X509::from_byte_string(&request.client_certificate) {
+                Some(client_certificate)
             } else {
-                SignatureData::null()
+                None
             };
 
-            // Crypto
-            let server_nonce = security_policy.random_nonce();
-            let server_certificate = server_state.server_certificate_as_byte_string();
-            let server_endpoints = Some(endpoints);
+            // Check the client's certificate for validity and acceptance
+            let security_policy = {
+                let secure_channel = trace_read_lock_unwrap!(session.secure_channel);
+                secure_channel.security_policy()
+            };
+            let service_result = if security_policy != SecurityPolicy::None {
+                let result = if let Some(ref client_certificate) = client_certificate {
+                    certificate_store.validate_or_reject_application_instance_cert(client_certificate, None, None)
+                } else {
+                    warn!("Certificate supplied by client is invalid");
+                    StatusCode::BadCertificateInvalid
+                };
+                if result.is_bad() {
+                    // Rejected for security reasons
+                    let mut diagnostics = trace_write_lock_unwrap!(server_state.diagnostics);
+                    diagnostics.on_rejected_security_session();
+                }
+                result
+            } else {
+                StatusCode::Good
+            };
 
-            session.authentication_token = authentication_token.clone();
-            session.session_timeout = session_timeout;
-            session.max_request_message_size = max_request_message_size;
-            session.max_response_message_size = request.max_response_message_size;
-            session.endpoint_url = request.endpoint_url.clone();
-            session.security_policy_uri = security_policy.to_uri().to_string();
-            session.user_identity = None;
-            session.client_certificate = client_certificate;
-            session.session_nonce = server_nonce.clone();
+            let response = if service_result.is_bad() {
+                self.service_fault(&request.request_header, service_result)
+            } else {
+                let authentication_token = NodeId::new(0, ByteString::random(32));
+                let session_timeout = constants::SESSION_TIMEOUT;
+                let max_request_message_size = constants::MAX_REQUEST_MESSAGE_SIZE;
 
-            CreateSessionResponse {
-                response_header: ResponseHeader::new_good(&request.request_header),
-                session_id: session.session_id.clone(),
-                authentication_token,
-                revised_session_timeout: session_timeout,
-                server_nonce,
-                server_certificate,
-                server_endpoints,
-                server_software_certificates: None,
-                server_signature,
-                max_request_message_size,
-            }.into()
-        };
-        Ok(response)
+                // Calculate a signature (assuming there is a pkey)
+                let server_signature = if let Some(ref pkey) = server_state.server_pkey {
+                    crypto::create_signature_data(pkey, security_policy, &request.client_certificate, &request.client_nonce)?
+                } else {
+                    SignatureData::null()
+                };
+
+                // Crypto
+                let server_nonce = security_policy.random_nonce();
+                let server_certificate = server_state.server_certificate_as_byte_string();
+                let server_endpoints = Some(endpoints);
+
+                session.authentication_token = authentication_token.clone();
+                session.session_timeout = session_timeout;
+                session.max_request_message_size = max_request_message_size;
+                session.max_response_message_size = request.max_response_message_size;
+                session.endpoint_url = request.endpoint_url.clone();
+                session.security_policy_uri = security_policy.to_uri().to_string();
+                session.user_identity = None;
+                session.client_certificate = client_certificate;
+                session.session_nonce = server_nonce.clone();
+
+                CreateSessionResponse {
+                    response_header: ResponseHeader::new_good(&request.request_header),
+                    session_id: session.session_id.clone(),
+                    authentication_token,
+                    revised_session_timeout: session_timeout,
+                    server_nonce,
+                    server_certificate,
+                    server_endpoints,
+                    server_software_certificates: None,
+                    server_signature,
+                    max_request_message_size,
+                }.into()
+            };
+            Ok(response)
+        }
     }
 
     pub fn activate_session(&self, server_state: &mut ServerState, session: &mut Session, request: ActivateSessionRequest) -> Result<SupportedMessage, StatusCode> {

@@ -40,6 +40,10 @@ pub enum UpdateStateAction {
     ReturnNotifications,
 }
 
+/// This is for debugging purposes. It allows the caller to validate the output state if required.
+///
+/// Values correspond to state table in OPC UA Part 4 5.13.1.2
+///
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum HandledState {
     None0 = 0,
@@ -63,7 +67,7 @@ pub enum HandledState {
 
 }
 
-
+/// This is for debugging purposes. It allows the caller to validate the output state if required.
 #[derive(Debug)]
 pub struct UpdateStateResult {
     pub handled_state: HandledState,
@@ -322,7 +326,7 @@ impl Subscription {
                         // Reset the next sequence number to the discarded notification
                         let notification_sequence_number = notification_message.unwrap().sequence_number;
                         self.next_sequence_number = notification_sequence_number;
-                        debug!("Notification message nr {} was being ignored for a do-nothing, self next sequence nr reverted to {}", notification_sequence_number, self.next_sequence_number);
+                        debug!("Notification message nr {} was being ignored for a do-nothing, update state was {:?}", notification_sequence_number, update_state_result);
                     }
                     // Send nothing
                     //println!("do nothing {:?}", update_state_result.handled_state);
@@ -333,7 +337,7 @@ impl Subscription {
                         // Reset the next sequence number to the discarded notification
                         let notification_sequence_number = notification_message.unwrap().sequence_number;
                         self.next_sequence_number = notification_sequence_number;
-                        debug!("Notification message nr {} was being ignored for a keep alive, self next sequence nr reverted to {}", notification_sequence_number, self.next_sequence_number);
+                        debug!("Notification message nr {} was being ignored for a keep alive, update state was {:?}", notification_sequence_number, update_state_result);
                     }
                     // Send a keep alive
                     debug!("Sending keep alive response");
