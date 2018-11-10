@@ -131,16 +131,6 @@
                     else {
                         subscriptions.forEach(function (subscription) {
                             html += dump_subscription(subscription);
-                            var monitored_items = subscription.monitored_items;
-                            if (monitored_items.length === 0) {
-                                html += "<p>No monitored items</p>";
-                            }
-                            else {
-                                Object.keys(monitored_items).forEach(function (key) {
-                                    const item = monitored_items[key];
-                                    html += dump_monitored_item(item);
-                                });
-                            }
                         });
                     }
                 }
@@ -171,7 +161,7 @@
     }
 
     function dump_subscription(subscription) {
-        return `<h2 class='subscriptions'>Subscriptions</h2>
+        let html = `<h2 class='subscriptions'>Subscriptions</h2>
 <h3>Subscription ${subscription.subscription_id}</h3>
 <table class="side_headings">
 <tr><th>Priority</th><td>${subscription.priority}</td></tr>
@@ -179,22 +169,65 @@
 <tr><th>Publishing interval</th><td>${subscription.publishing_interval}ms</td></tr>
 <tr><th>Last Timer Expiration</th><td>${subscription.last_timer_expired_time}</td></tr>
 </table>`;
+        var monitored_items = subscription.monitored_items;
+        if (monitored_items.length === 0) {
+            html += "<p>No monitored items</p>";
+        }
+        else {
+            html += dump_monitored_items(monitored_items);
+        }
+        return html;
+    }
+
+    function dump_monitored_items(monitored_items) {
+        let html = `
+<h3>Monitored Items</h3>
+<table>
+<thead>
+<tr>
+    <th>Node Id</th>
+    <th>Last Value</th>
+    <th>Mode</th>
+    <th>Client #</th>
+    <th>Filter</th>
+    <th>Sampling interval</th>
+    <th>Discard Oldest</th>
+    <th>Queue Size</th>
+    <th>Timestamps to return</th>
+    <th>Last Sample Time</th>
+</tr>
+</thead>
+<tbody>`;
+        Object.keys(monitored_items).forEach(function (key) {
+            const item = monitored_items[key];
+            html += dump_monitored_item(item);
+        });
+        html += `
+</tbody>
+</table>`;
+        return html;
     }
 
     function dump_monitored_item(item) {
-        return `<h4 class='monitoreditems'>Item ${item.monitored_item_id}</h4>
-<table class="side_headings">
-<tr><th>Item to monitor</th><td>${node_id_str(item.item_to_monitor.node_id)} / ${attribute_id_string(item.item_to_monitor.attribute_id)}</td></tr>
-<tr><th>Monitoring mode</th><td>${item.monitoring_mode}</td></tr>
-<tr><th>Client handle</th><td>${item.client_handle}</td></tr>
-<tr><th>Filter</th><td>${item.filter}</td></tr>
-<tr><th>Sampling interval</th><td>${item.sampling_interval}ms</td></tr>
-<tr><th>Discard Oldest</th><td>${item.discard_oldest}</td></tr>
-<tr><th>Queue Size</th><td>${item.queue_size}</td></tr>
-<tr><th>Timestamps to return</th><td>${item.timestamps_to_return}</td></tr>
-<tr><th>Last Sample Time</th><td>${item.last_sample_time}</td></tr>
-<tr><th>Last Value</th><td>${JSON.stringify(item.last_data_value)}</td></tr>
-</table>`;
+        let node_id = node_id_str(item.item_to_monitor.node_id);
+        // Value (13) is the common thing to monitor
+        if (item.item_to_monitor.attribute_id != 13) {
+            node_id += ` / ${attribute_id_string(item.item_to_monitor.attribute_id)}`;
+        }
+        return `
+<tr>
+    <td>${node_id}</td>
+    <td>${JSON.stringify(item.last_data_value.value)}</td>
+    <td>${item.monitoring_mode}</td>
+    <td>${item.client_handle}</td>
+    <td>${item.filter}</td>
+    <td>${item.sampling_interval}ms</td>
+    <td>${item.discard_oldest}</td>
+    <td>${item.queue_size}</td>
+    <td>${item.timestamps_to_return}</td>
+    <td>${item.last_sample_time}</td>
+</tr>
+`;
     }
 
     function dump_diagnostics(diagnostics) {
@@ -202,46 +235,46 @@
         return `<h2 class='diagnostic_summary'>Diagnostic Summary</h2>
 <table>
     <thead>
-    <tr></tr>
-    <tr>
-        <th colspan="6">Sessions</th>
-        <th colspan="3">Subscriptions</th>
-        <th colspan="2">Requests</th>
-    </tr>
-    <tr>
-        <!-- Sesssions -->
-        <th>Current</th>
-        <th>Cumulative</th>
-        <th>Security Rejected</th>
-        <th>Rejected</th>
-        <th>Timeouts</th>
-        <th>Aborts</th>
-        <!-- Subscriptions -->
-        <th>Current</th>
-        <th>Cumulative</th>
-        <th>Publishing Intervals</th>
-        <!-- Requests -->
-        <th>Security Rejected</th>
-        <th>Rejected</th>
-    </tr>
+        <tr></tr>
+        <tr>
+            <th colspan="6">Sessions</th>
+            <th colspan="3">Subscriptions</th>
+            <th colspan="2">Requests</th>
+        </tr>
+        <tr>
+            <!-- Sesssions -->
+            <th>Current</th>
+            <th>Cumulative</th>
+            <th>Security Rejected</th>
+            <th>Rejected</th>
+            <th>Timeouts</th>
+            <th>Aborts</th>
+            <!-- Subscriptions -->
+            <th>Current</th>
+            <th>Cumulative</th>
+            <th>Publishing Intervals</th>
+            <!-- Requests -->
+            <th>Security Rejected</th>
+            <th>Rejected</th>
+        </tr>
     </thead>
     <tbody>
-    <tr>
-        <td>${diagnostics_summary["current_session_count"]}</td>
-        <td>${diagnostics_summary["cumulated_session_count"]}</td>
-        <td>${diagnostics_summary["security_rejected_session_count"]}</td>
-        <td>${diagnostics_summary["rejected_session_count"]}</td>
-        <td>${diagnostics_summary["session_timeout_count"]}</td>
-        <td>${diagnostics_summary["session_abort_count"]}</td>
-        <td>${diagnostics_summary["current_subscription_count"]}</td>
-        <td>${diagnostics_summary["cumulated_subscription_count"]}</td>
-        <td>${diagnostics_summary["publishing_interval_count"]}</td>
-        <td>${diagnostics_summary["security_rejected_requests_count"]}</td>
-        <td>${diagnostics_summary["rejected_requests_count"]}</td>
-    </tr>
+        <tr>
+            <td>${diagnostics_summary["current_session_count"]}</td>
+            <td>${diagnostics_summary["cumulated_session_count"]}</td>
+            <td>${diagnostics_summary["security_rejected_session_count"]}</td>
+            <td>${diagnostics_summary["rejected_session_count"]}</td>
+            <td>${diagnostics_summary["session_timeout_count"]}</td>
+            <td>${diagnostics_summary["session_abort_count"]}</td>
+            <td>${diagnostics_summary["current_subscription_count"]}</td>
+            <td>${diagnostics_summary["cumulated_subscription_count"]}</td>
+            <td>${diagnostics_summary["publishing_interval_count"]}</td>
+            <td>${diagnostics_summary["security_rejected_requests_count"]}</td>
+            <td>${diagnostics_summary["rejected_requests_count"]}</td>
+        </tr>
     </tbody>
 </table>
-`;
+            `;
     }
 
 </script>
