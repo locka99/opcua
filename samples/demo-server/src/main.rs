@@ -285,7 +285,7 @@ fn add_dynamic_array_variables(server: &mut Server, dynamic_folder_id: &NodeId) 
         Scalar::values().iter().for_each(|sn| {
             let node_id = sn.node_id(true, true);
             let name = sn.name();
-            let values = (0..100).map(|_| sn.default_value()).collect::<Vec<Variant>>();
+            let values = (0..10).map(|_| sn.default_value()).collect::<Vec<Variant>>();
             let _ = address_space.add_variable(Variable::new(&node_id, name, name, &format!("{} value", name), values), &folder_id);
         });
     }
@@ -294,7 +294,7 @@ fn add_dynamic_array_variables(server: &mut Server, dynamic_folder_id: &NodeId) 
         let mut address_space = address_space.write().unwrap();
         Scalar::values().iter().for_each(|sn| {
             let node_id = sn.node_id(true, true);
-            let values = (0..100).map(|_| sn.random_value()).collect::<Vec<Variant>>();
+            let values = (0..10).map(|_| sn.random_value()).collect::<Vec<Variant>>();
             let _ = address_space.set_variable_value(node_id, values);
         });
     });
@@ -302,6 +302,9 @@ fn add_dynamic_array_variables(server: &mut Server, dynamic_folder_id: &NodeId) 
 
 fn add_stress_scalar_variables(server: &mut Server) {
     // The address space is guarded so obtain a lock to change it
+
+    let node_ids = (0..1000).map(|i| NodeId::new(2, format!("v{:04}", i))).collect::<Vec<NodeId>>();
+
     {
         let mut address_space = server.address_space.write().unwrap();
 
@@ -309,22 +312,20 @@ fn add_stress_scalar_variables(server: &mut Server) {
             .add_folder("Stress", "Stress", &AddressSpace::objects_folder_id())
             .unwrap();
 
-        for i in 0..1000 {
-            let node_id = NodeId::new(2, format!("v{:04}", i));
+        node_ids.iter().enumerate().for_each(|(i, node_id)| {
             let name = format!("v{:04}", i);
             let default_value = Variant::Int32(0);
-            let _ = address_space.add_variable(Variable::new(&node_id, &name, &name, &format!("{} value", name), default_value), &folder_id);
-        }
+            let _ = address_space.add_variable(Variable::new(node_id, &name, &name, &format!("{} value", name), default_value), &folder_id);
+        });
     }
 
     let address_space = server.address_space.clone();
     server.add_polling_action(100, move || {
         let mut address_space = address_space.write().unwrap();
         let mut rng = rand::thread_rng();
-        for i in 0..1000 {
-            let node_id = NodeId::new(2, format!("v{:04}", i));
+        node_ids.iter().for_each(|node_id| {
             let value: Variant = rng.gen::<i32>().into();
-            let _ = address_space.set_variable_value(node_id, value);
-        }
+            let _ = address_space.set_variable_value(node_id.clone(), value);
+        });
     });
 }

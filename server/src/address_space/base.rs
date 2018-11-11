@@ -126,6 +126,10 @@ impl Node for Base {
     fn set_attribute(&mut self, attribute_id: AttributeId, value: DataValue) -> Result<(), StatusCode> {
         // Check the type of the datavalue
         let type_is_valid = match attribute_id {
+            AttributeId::Value => {
+                // Anything is permitted
+                true
+            }
             AttributeId::NodeId => {
                 is_valid_value_type!(value, NodeId)
             }
@@ -172,10 +176,6 @@ impl Node for Base {
             }
             AttributeId::MinimumSamplingInterval => {
                 is_valid_value_type!(value, Double)
-            }
-            AttributeId::Value => {
-                // Anything is permitted
-                true
             }
         };
         if !type_is_valid {
