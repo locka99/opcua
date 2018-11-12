@@ -85,7 +85,7 @@ pub struct SessionState {
 
 impl OnSessionClosed for SessionState {
     fn session_closed(&mut self, status_code: StatusCode) {
-        debug!("Session was closed with status = {:?}", status_code);
+        debug!("Session was closed with status = {}", status_code);
         if let Some(ref mut session_closed_callback) = self.session_closed_callback {
             session_closed_callback.session_closed(status_code);
         }

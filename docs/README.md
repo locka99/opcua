@@ -80,6 +80,7 @@ The following services are supported:
   * CreateSession
   * ActivateSession
   * CloseSession
+  * Cancel (stub)
 
 * View service set
   * Browse

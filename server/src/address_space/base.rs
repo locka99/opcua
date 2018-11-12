@@ -35,9 +35,9 @@ pub struct Base {
     /// Attributes
     attributes: Vec<Option<DataValue>>,
     /// Attribute getters - if None, handled by Base
-    attribute_getters: HashMap<AttributeId, Arc<Mutex<dyn AttributeGetter + Send>>>,
+    attribute_getters: Option<HashMap<AttributeId, Arc<Mutex<dyn AttributeGetter + Send>>>>,
     /// Attribute setters - if None, handled by Base
-    attribute_setters: HashMap<AttributeId, Arc<Mutex<dyn AttributeSetter + Send>>>,
+    attribute_setters: Option<HashMap<AttributeId, Arc<Mutex<dyn AttributeSetter + Send>>>>,
 }
 
 impl Debug for Base {
@@ -104,22 +104,24 @@ impl Node for Base {
     }
 
     fn find_attribute(&self, attribute_id: AttributeId) -> Option<DataValue> {
-        if let Some(getter) = self.attribute_getters.get(&attribute_id) {
-            let mut getter = getter.lock().unwrap();
-            let value = getter.get(self.node_id(), attribute_id);
-            if value.is_ok() {
-                value.unwrap()
-            } else {
-                None
+        if let Some(ref attribute_getters) = self.attribute_getters {
+            if let Some(getter) = attribute_getters.get(&attribute_id) {
+                let mut getter = getter.lock().unwrap();
+                let value = getter.get(self.node_id(), attribute_id);
+
+                return if value.is_ok() {
+                    value.unwrap()
+                } else {
+                    None
+                };
             }
+        }
+        let attribute_idx = Self::attribute_idx(attribute_id);
+        if attribute_idx >= self.attributes.len() {
+            warn!("Attribute id {:?} is out of range and invalid", attribute_id);
+            None
         } else {
-            let attribute_idx = Self::attribute_idx(attribute_id);
-            if attribute_idx >= self.attributes.len() {
-                warn!("Attribute id {:?} is out of range and invalid", attribute_id);
-                None
-            } else {
-                self.attributes[attribute_idx].clone()
-            }
+            self.attributes[attribute_idx].clone()
         }
     }
 
@@ -182,12 +184,14 @@ impl Node for Base {
             Err(StatusCode::BadTypeMismatch)
         } else {
             let attribute_idx = Self::attribute_idx(attribute_id);
-            if let Some(setter) = self.attribute_setters.get(&attribute_id) {
-                let mut setter = setter.lock().unwrap();
-                setter.set(self.node_id(), attribute_id, value)?;
-            } else {
-                self.attributes[attribute_idx] = Some(value);
+            if let Some(ref attribute_setters) = self.attribute_setters {
+                if let Some(setter) = attribute_setters.get(&attribute_id) {
+                    let mut setter = setter.lock().unwrap();
+                    setter.set(self.node_id(), attribute_id, value)?;
+                    return Ok(());
+                }
             }
+            self.attributes[attribute_idx] = Some(value);
             Ok(())
         }
     }
@@ -224,8 +228,8 @@ impl Base {
 
         Base {
             attributes,
-            attribute_getters: HashMap::new(),
-            attribute_setters: HashMap::new(),
+            attribute_getters: None,
+            attribute_setters: None,
         }
     }
 
@@ -254,11 +258,17 @@ impl Base {
     }
 
     pub fn set_attribute_getter(&mut self, attribute_id: AttributeId, getter: Arc<Mutex<dyn AttributeGetter + Send>>) {
-        self.attribute_getters.insert(attribute_id, getter);
+        if self.attribute_getters.is_none() {
+            self.attribute_getters = Some(HashMap::new());
+        }
+        self.attribute_getters.as_mut().unwrap().insert(attribute_id, getter);
     }
 
     pub fn set_attribute_setter(&mut self, attribute_id: AttributeId, setter: Arc<Mutex<dyn AttributeSetter + Send>>) {
-        self.attribute_setters.insert(attribute_id, setter);
+        if self.attribute_setters.is_none() {
+            self.attribute_setters = Some(HashMap::new());
+        }
+        self.attribute_setters.as_mut().unwrap().insert(attribute_id, setter);
     }
 
     pub fn set_attribute_value(&mut self, attribute_id: AttributeId, value: Variant, server_timestamp: &DateTime, source_timestamp: &DateTime) -> Result<(), StatusCode> {

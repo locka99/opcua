@@ -563,7 +563,13 @@ impl AddressSpace {
     /// Find and return a variable with the specified node id or return None if it cannot be
     /// found or is not a variable
     pub fn find_variable<N>(&self, node_id: N) -> Option<&Variable> where N: Into<NodeId> {
-        if let Some(node) = self.node_map.get(&node_id.into()) {
+        self.find_variable_by_ref(&node_id.into())
+    }
+
+    /// Find and return a variable with the specified node id or return None if it cannot be
+    /// found or is not a variable
+    pub fn find_variable_by_ref(&self, node_id: &NodeId) -> Option<&Variable> {
+        if let Some(node) = self.node_map.get(node_id) {
             if let &NodeType::Variable(ref variable) = node {
                 Some(variable)
             } else {
@@ -574,11 +580,16 @@ impl AddressSpace {
         }
     }
 
-
     /// Find and return a variable with the specified node id or return None if it cannot be
     /// found or is not a variable
     pub fn find_variable_mut<N>(&mut self, node_id: N) -> Option<&mut Variable> where N: Into<NodeId> {
-        if let Some(node) = self.node_map.get_mut(&node_id.into()) {
+        self.find_variable_mut_by_ref(&node_id.into())
+    }
+
+    /// Find and return a variable with the specified node id or return None if it cannot be
+    /// found or is not a variable
+    pub fn find_variable_mut_by_ref(&mut self, node_id: &NodeId) -> Option<&mut Variable> {
+        if let Some(node) = self.node_map.get_mut(node_id) {
             if let &mut NodeType::Variable(ref mut variable) = node {
                 Some(variable)
             } else {
@@ -588,12 +599,18 @@ impl AddressSpace {
             None
         }
     }
-
     /// Set a variable value from its NodeId. The function will return false if the variable does
     /// not exist, or the node is not a variable.
     pub fn set_variable_value<N, V>(&mut self, node_id: N, value: V) -> bool
         where N: Into<NodeId>, V: Into<Variant> {
-        if let Some(ref mut variable) = self.find_variable_mut(node_id) {
+        self.set_variable_value_by_ref(&node_id.into(), value)
+    }
+
+    /// Set a variable value from its NodeId. The function will return false if the variable does
+    /// not exist, or the node is not a variable.
+    pub fn set_variable_value_by_ref<V>(&mut self, node_id: &NodeId, value: V) -> bool
+        where V: Into<Variant> {
+        if let Some(ref mut variable) = self.find_variable_mut_by_ref(node_id) {
             variable.set_value_direct(&DateTime::now(), value);
             true
         } else {

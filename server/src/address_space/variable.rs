@@ -197,7 +197,6 @@ impl Variable {
     /// changed the existing timestamps are preserved.
     pub fn set_value_direct<V>(&mut self, now: &DateTime, value: V) where V: Into<Variant> {
         let mut data_value = self.value();
-
         let new_value = value.into();
         if let Some(ref existing_value) = data_value.value {
             if *existing_value == new_value {
@@ -212,10 +211,14 @@ impl Variable {
         self.set_value(data_value);
     }
 
+    /// Sets a getter function that will be called to get the value of this variable.
     pub fn set_value_getter(&mut self, getter: Arc<Mutex<dyn AttributeGetter + Send>>) {
         self.base.set_attribute_getter(AttributeId::Value, getter);
     }
 
+    /// Sets a setter function that will be called to set the value of this variable. Note
+    /// you most likely want to set the corresponding getter too otherwise you will never get back
+    /// the values you set otherwise.
     pub fn set_value_setter(&mut self, setter: Arc<Mutex<dyn AttributeSetter + Send>>) {
         self.base.set_attribute_setter(AttributeId::Value, setter);
     }

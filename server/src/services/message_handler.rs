@@ -108,6 +108,13 @@ impl MessageHandler {
                     Some(self.session_service.activate_session(&mut server_state, &mut session, request)?)
                 }
             }
+            SupportedMessage::CancelRequest(request) => {
+                if let Err(response) = self.validate_request(&mut session, &request.request_header) {
+                    Some(response)
+                } else {
+                    Some(self.session_service.cancel(&mut server_state, &mut session, request)?)
+                }
+            }
             SupportedMessage::CreateSubscriptionRequest(request) => {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)

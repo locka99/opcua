@@ -97,6 +97,8 @@ impl SupportedMessage {
             SupportedMessage::CloseSessionResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::ActivateSessionRequest(ref r) => r.request_header.request_handle,
             SupportedMessage::ActivateSessionResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::CancelRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::CancelResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::CreateMonitoredItemsRequest(ref r) => r.request_header.request_handle,
             SupportedMessage::CreateMonitoredItemsResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::ModifyMonitoredItemsRequest(ref r) => r.request_header.request_handle,
@@ -183,6 +185,12 @@ impl SupportedMessage {
             }
             ObjectId::ActivateSessionResponse_Encoding_DefaultBinary => {
                 SupportedMessage::ActivateSessionResponse(ActivateSessionResponse::decode(stream, decoding_limits)?)
+            }
+            ObjectId::CancelRequest_Encoding_DefaultBinary => {
+                SupportedMessage::CancelRequest(CancelRequest::decode(stream, decoding_limits)?)
+            }
+            ObjectId::CancelResponse_Encoding_DefaultBinary => {
+                SupportedMessage::CancelResponse(CancelResponse::decode(stream, decoding_limits)?)
             }
             ObjectId::CreateMonitoredItemsRequest_Encoding_DefaultBinary => {
                 SupportedMessage::CreateMonitoredItemsRequest(CreateMonitoredItemsRequest::decode(stream, decoding_limits)?)
@@ -291,6 +299,8 @@ supported_messages_enum![
     OpenSecureChannelResponse,
     CloseSecureChannelRequest,
     CloseSecureChannelResponse,
+    CancelRequest,
+    CancelResponse,
     GetEndpointsRequest,
     GetEndpointsResponse,
     FindServersRequest,

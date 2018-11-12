@@ -289,11 +289,11 @@ fn set_dynamic_timers(server: &mut Server) {
         // Scalar
         Scalar::values().iter().for_each(|sn| {
             let node_id = sn.node_id(true, false);
-            let _ = address_space.set_variable_value(node_id, sn.random_value());
+            let _ = address_space.set_variable_value_by_ref(&node_id, sn.random_value());
 
             let node_id = sn.node_id(true, true);
             let values = (0..10).map(|_| sn.random_value()).collect::<Vec<Variant>>();
-            let _ = address_space.set_variable_value(node_id, values);
+            let _ = address_space.set_variable_value_by_ref(&node_id, values);
         });
     });
 }
@@ -319,11 +319,11 @@ fn add_stress_scalar_variables(server: &mut Server) -> Vec<NodeId> {
 fn set_stress_timer(server: &mut Server, node_ids: Vec<NodeId>) {
     let address_space = server.address_space.clone();
     server.add_polling_action(100, move || {
-        let mut address_space = address_space.write().unwrap();
         let mut rng = rand::thread_rng();
+        let mut address_space = address_space.write().unwrap();
         node_ids.iter().for_each(|node_id| {
             let value: Variant = rng.gen::<i32>().into();
-            let _ = address_space.set_variable_value(node_id.clone(), value);
+            let _ = address_space.set_variable_value_by_ref(node_id, value);
         });
     });
 }

@@ -452,7 +452,22 @@ impl Session {
         }
     }
 
-    // Find a bunch of servers
+    /// Cancels a request
+    pub fn cancel(&mut self, request_handle: IntegerId) -> Result<u32, StatusCode> {
+        let request = CancelRequest {
+            request_header: self.make_request_header(),
+            request_handle,
+        };
+        let response = self.send_request(request)?;
+        if let SupportedMessage::CancelResponse(response) = response {
+            crate::process_service_result(&response.response_header)?;
+            Ok(response.cancel_count)
+        } else {
+            Err(crate::process_unexpected_response(response))
+        }
+    }
+
+    /// Find a bunch of servers
     pub fn find_servers<T>(&mut self, discovery_url: T) -> Result<Vec<ApplicationDescription>, StatusCode> where T: Into<String> {
         let request = FindServersRequest {
             request_header: self.make_request_header(),

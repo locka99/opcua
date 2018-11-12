@@ -52,8 +52,7 @@ impl SessionService {
             let mut diagnostics = trace_write_lock_unwrap!(server_state.diagnostics);
             diagnostics.on_rejected_session();
             Ok(self.service_fault(&request.request_header, service_result))
-        }
-        else {
+        } else {
             let endpoints = endpoints.unwrap();
 
             // Extract the client certificate if one is supplied
@@ -181,6 +180,15 @@ impl SessionService {
         session.activated = false;
         let response = CloseSessionResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
+        };
+        Ok(response.into())
+    }
+
+    pub fn cancel(&self, _server_state: &mut ServerState, _session: &mut Session, request: CancelRequest) -> Result<SupportedMessage, StatusCode> {
+        // This service call currently does nothing
+        let response = CancelResponse {
+            response_header: ResponseHeader::new_good(&request.request_header),
+            cancel_count: 0,
         };
         Ok(response.into())
     }
