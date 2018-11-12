@@ -34,7 +34,7 @@ impl MethodService {
                         Ok(response) => response,
                         Err(status_code) => {
                             // Call didn't work for some reason
-                            error!("Call to {:?} on {:?} failed with status code {:?}", request.method_id, request.object_id, status_code);
+                            error!("Call to {:?} on {:?} failed with status code {}", request.method_id, request.object_id, status_code);
                             CallMethodResult {
                                 status_code,
                                 input_argument_results: None,

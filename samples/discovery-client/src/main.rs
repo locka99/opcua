@@ -49,7 +49,7 @@ fn main() {
                         // Ask the server associated with the default endpoint for its list of endpoints
                         match client.get_server_endpoints_from_url(discovery_url.as_ref()) {
                             Result::Err(status_code) => {
-                                println!("    ERROR: Can't get endpoints for this server url, error - {:?}", status_code.description());
+                                println!("    ERROR: Can't get endpoints for this server url, error - {}", status_code);
                                 continue;
                             }
                             Result::Ok(endpoints) => {

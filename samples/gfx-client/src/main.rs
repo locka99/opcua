@@ -138,7 +138,7 @@ fn main() {
             thread::spawn(move || {
                 let result = subscription_loop(nodes_to_monitor, session, session_state);
                 if let Err(result) = result {
-                    println!("ERROR: Got an error while performing action - {:?}", result.description());
+                    println!("ERROR: Got an error while performing action - {}", result);
                 }
             });
         }

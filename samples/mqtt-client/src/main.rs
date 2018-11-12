@@ -51,7 +51,7 @@ fn main() {
     if let Ok(session) = client.connect_and_activate(endpoint_id) {
         let result = subscription_loop(session);
         if let Err(result) = result {
-            println!("ERROR: Got an error while performing action - {:?}", result.description());
+            println!("ERROR: Got an error while performing action - {}", result);
         }
     }
 }

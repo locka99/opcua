@@ -130,7 +130,7 @@ impl Client {
         // Ask the server associated with the default endpoint for its list of endpoints
         let endpoints = match self.get_server_endpoints() {
             Result::Err(status_code) => {
-                error!("Can't get endpoints for server, error - {:?}", status_code.description());
+                error!("Can't get endpoints for server, error - {}", status_code);
                 return Err(status_code);
             }
             Result::Ok(endpoints) => endpoints
@@ -152,7 +152,7 @@ impl Client {
             // Connect to the server
             let mut session = session.write().unwrap();
             if let Err(result) = session.connect_and_activate_session() {
-                error!("Got an error while creating the default session - {:?}", result.description());
+                error!("Got an error while creating the default session - {}", result.description());
             }
         }
 

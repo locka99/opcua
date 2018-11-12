@@ -115,7 +115,7 @@ pub fn verify_signature_data(signature: &SignatureData, security_policy: Securit
             StatusCode::Good
         } else {
             let result = result.unwrap_err();
-            error!("Client signature verification failed, status code = {:?}", result);
+            error!("Client signature verification failed, status code = {}", result);
             result
         }
     } else {

@@ -58,7 +58,7 @@ fn main() {
             read_values(session)
         };
         if let Err(result) = result {
-            println!("ERROR: Got an error while performing action - {:?}", result.description());
+            println!("ERROR: Got an error while performing action - {}", result);
         }
     }
 }
