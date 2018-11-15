@@ -80,10 +80,6 @@ impl ServerDiagnostics {
         &self.server_diagnostics_summary
     }
 
-    pub fn on_rejected_request(&mut self) {
-        self.server_diagnostics_summary.rejected_requests_count += 1;
-    }
-
     pub fn on_rejected_security_session(&mut self) {
         self.server_diagnostics_summary.security_rejected_session_count += 1;
     }
@@ -108,6 +104,38 @@ impl ServerDiagnostics {
 
     pub fn on_destroy_subscription(&mut self, _subscription: &Subscription) {
         self.server_diagnostics_summary.current_subscription_count -= 1;
+    }
+
+    // --- These are not yet called by anything
+
+    pub fn on_server_view(&mut self, _session: &Session) {
+        self.server_diagnostics_summary.server_view_count += 1;
+        unimplemented!();
+    }
+
+    pub fn on_session_timeout(&mut self, _session: &Session) {
+        self.server_diagnostics_summary.session_timeout_count += 1;
+        unimplemented!()
+    }
+
+    pub fn on_session_abort(&mut self, _session: &Session) {
+        self.server_diagnostics_summary.session_abort_count += 1;
+        unimplemented!()
+    }
+
+    pub fn on_publishing_interval(&mut self) {
+        self.server_diagnostics_summary.publishing_interval_count += 1;
+        unimplemented!()
+    }
+
+    pub fn on_security_rejected_request(&mut self) {
+        self.server_diagnostics_summary.security_rejected_requests_count += 1;
+        unimplemented!()
+    }
+
+    pub fn on_rejected_request(&mut self) {
+        self.server_diagnostics_summary.rejected_requests_count += 1;
+        unimplemented!()
     }
 }
 
