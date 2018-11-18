@@ -501,6 +501,11 @@ impl TcpTransport {
                         info!("Session has been waiting for a hello for more than the timeout period and will now close");
                         let mut transport = trace_write_lock_unwrap!(state.transport);
                         transport.finish(StatusCode::BadTimeout);
+
+                        // Diagnostics
+                        let server_state = trace_read_lock_unwrap!(transport.server_state);
+                        let mut diagnostics = trace_write_lock_unwrap!(server_state.diagnostics);
+                        diagnostics.on_session_timeout();
                     }
                 }
                 Ok(())

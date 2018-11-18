@@ -16,8 +16,9 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
     so the session state can be restored if a new connection provides the token.
   - (WIP) Session restore after disconnect in client, i.e. attempt to reconnect and resume session first and if that
     fails manually reconstruct the session - subscriptions and monitored items.
-  - (WIP) Diagnostics
-  - Status codes are changed from an enum to using bitflags!() macro 
+  - Server diagnostics in address space / metrics are more complete
+  - Http status page is nicer to look at and more compact
+  - Status codes are changed from an enum to using bitflags!() macro. Other flags are also changed to use bitflags.
   - Add a `ServerBuilder` and `ClientBuilder` to simplify creating a `Server` and `Client` respectively.
   - Server enforces decoding limits on strings, byte strings and arrays. 
   
