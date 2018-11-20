@@ -5,6 +5,8 @@ authors = ["Adam Lock <locka99@gmail.com>"]
 
 [dependencies]
 clap = "2.27"
+# This is a completely arbitrary snapshot of rumqtt that happens to work
+rumqtt = { git = "https://github.com/AtherEnergy/rumqtt.git", rev = "83b4694525061e2ccef617c0ac867db2044cc4e7" }
 
 [dependencies.opcua-types]
 path = "../../types"

@@ -1,5 +1,4 @@
 extern crate clap;
-
 extern crate opcua_core;
 
 use std::path::PathBuf;

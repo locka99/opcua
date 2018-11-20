@@ -7,20 +7,21 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the nea
     certs, private keys and their corresponding .der, .pem file formats.
 
 ## 0.5 (WORK IN PROGRESS - WIP)
-  - Tokio codec - use a codec and frame reader to read message chunks.
   - (WIP) Rust 2018. All code will be ported to the 2018 spec. This will clean up code like match statements, extern crates etc. 
     that benefit from greater inference.
   - (WIP) Tokio codec - use a codec and frame writer to write message chunks
-  - Better documentation both in markdown and for the client / server APIs.
   - (WIP) Session restore after disconnect in server. The server has to stash sessions that were abnormally disconnected
     so the session state can be restored if a new connection provides the token.
   - (WIP) Session restore after disconnect in client, i.e. attempt to reconnect and resume session first and if that
     fails manually reconstruct the session - subscriptions and monitored items.
+  - Tokio codec - use a codec and frame reader to read message chunks.
+  - Better documentation both in markdown and for the client / server APIs.
   - Server diagnostics in address space / metrics are more complete
   - Http status page is nicer to look at and more compact
   - Status codes are changed from an enum to using bitflags!() macro. Other flags are also changed to use bitflags.
   - Add a `ServerBuilder` and `ClientBuilder` to simplify creating a `Server` and `Client` respectively.
   - Server enforces decoding limits on strings, byte strings and arrays. 
+  - Implement the mqtt-client sample
   
 ## 0.4
   - General
