@@ -26,6 +26,26 @@ pub enum Identifier {
     ByteString(ByteString),
 }
 
+impl fmt::Display for Identifier {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Identifier::Numeric(ref value) => {
+                write!(f, "{}", value)
+            }
+            Identifier::String(ref value) => {
+                write!(f, "{}", if value.is_null() { "null" } else { value.as_ref() })
+            }
+            Identifier::Guid(ref value) => {
+                write!(f, "{:?}", value)
+            }
+            Identifier::ByteString(ref value) => {
+                // Base64 encode bytes
+                write!(f, "{}", value.as_base64())
+            }
+        }
+    }
+}
+
 impl From<i32> for Identifier {
     fn from(v: i32) -> Self {
         Identifier::Numeric(v as u32)
@@ -85,18 +105,18 @@ impl fmt::Display for NodeId {
             String::new()
         };
         match self.identifier {
-            Identifier::Numeric(ref value) => {
-                write!(f, "{}i={}", namespace, value)
+            Identifier::Numeric(_) => {
+                write!(f, "{}i={}", namespace, self.identifier)
             }
-            Identifier::String(ref value) => {
-                write!(f, "{}s={}", namespace, if value.is_null() { "null" } else { value.as_ref() })
+            Identifier::String(_) => {
+                write!(f, "{}s={}", namespace, self.identifier)
             }
-            Identifier::Guid(ref value) => {
-                write!(f, "{}g={:?}", namespace, value)
+            Identifier::Guid(_) => {
+                write!(f, "{}g={}", namespace, self.identifier)
             }
-            Identifier::ByteString(ref value) => {
+            Identifier::ByteString(_) => {
                 // Base64 encode bytes
-                write!(f, "{}b={}", namespace, value.as_base64())
+                write!(f, "{}b={}", namespace, self.identifier)
             }
         }
     }

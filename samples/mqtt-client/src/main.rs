@@ -24,8 +24,6 @@ use opcua_client::prelude::*;
 // 5. User can observe result on the broker (e.g. http://www.mqtt-dashboard.com/)
 
 fn main() {
-
-
     // Read command line arguments
     let m = App::new("Simple OPC UA Client")
         .arg(Arg::with_name("config")
@@ -65,13 +63,13 @@ fn main() {
     // The way this will work is the mqtt connection will live in its own thread, listening for
     // events that are sent to it.
     let (tx, rx) = mpsc::channel::<(NodeId, DataValue)>();
-    let t = thread::spawn(move || {
+    let _ = thread::spawn(move || {
         let mqtt_options = MqttOptions::new("test-id", mqtt_host, mqtt_port).set_keep_alive(10);
         let (mut mqtt_client, _) = MqttClient::start(mqtt_options).unwrap();
 
         loop {
             let (node_id, data_value) = rx.recv().unwrap();
-            let topic = format!("opcua-rust/mqtt-client/{}", node_id);
+            let topic = format!("opcua-rust/mqtt-client/{}/{}", node_id.namespace, node_id.identifier);
             let value = if let Some(ref value) = data_value.value {
                 format!("{:?}", value)
             } else {
@@ -103,14 +101,15 @@ fn subscription_loop(session: Arc<RwLock<Session>>, tx: mpsc::Sender<(NodeId, Da
     {
         let mut session = session.write().unwrap();
 
-        // Creates our subscription - one update every 5 seconds
+        // Creates our subscription - one update every second. The update is sent as a message
+        // to the MQTT thread to be published.
         let tx = Arc::new(Mutex::new(tx));
         let subscription_id = session.create_subscription(1000f64, 10, 30, 0, 0, true, DataChangeCallback::new(move |items| {
             println!("Data change from server:");
+            let tx = tx.lock().unwrap();
             items.iter().for_each(|item| {
                 let node_id = item.item_to_monitor().node_id;
                 let value = item.value();
-                let tx = tx.lock().unwrap();
                 let _ = tx.send((node_id, value));
             });
         }))?;
