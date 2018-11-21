@@ -1,14 +1,17 @@
 //! This is a sample OPC UA Client that connects to the specified server, fetches some
 //! values before exiting.
+#[macro_use]
 extern crate clap;
 extern crate rumqtt;
 
 extern crate opcua_client;
 extern crate opcua_console_logging;
 
-use std::sync::{Arc, Mutex, RwLock, mpsc};
-use std::path::PathBuf;
-use std::thread;
+use std::{
+    path::PathBuf,
+    sync::{Arc, Mutex, RwLock, mpsc},
+    thread,
+};
 
 use rumqtt::{MqttClient, MqttOptions, QoS};
 use clap::{App, Arg};
@@ -53,7 +56,7 @@ fn main() {
         .get_matches();
 
     let mqtt_host = m.value_of("host").unwrap().to_string();
-    let mqtt_port = 1883; // value_t_or_exit!(m, "port", u16);
+    let mqtt_port = value_t_or_exit!(m, "port", u16);
     let config_file = m.value_of("config").unwrap().to_string();
     let endpoint_id = m.value_of("id").unwrap().to_string();
 
