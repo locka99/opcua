@@ -1,6 +1,6 @@
 [package]
 name = "opcua-client"
-version = "0.5.0" # OPCUARustVersion
+version = "0.6.0" # OPCUARustVersion
 description = "OPC UA client API"
 authors = ["Adam Lock <locka99@gmail.com>"]
 homepage = "https://github.com/locka99/opcua"
@@ -25,8 +25,8 @@ futures = "0.1"
 
 [dependencies.opcua-types]
 path = "../types"
-version = "0.5.0" # OPCUARustVersion
+version = "0.6.0" # OPCUARustVersion
 
 [dependencies.opcua-core]
 path = "../core"
-version = "0.5.0" # OPCUARustVersion
+version = "0.6.0" # OPCUARustVersion

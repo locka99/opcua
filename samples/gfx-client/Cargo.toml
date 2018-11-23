@@ -1,6 +1,6 @@
 [package]
 name = "opcua-gfx-client"
-version = "0.5.0" # OPCUARustVersion
+version = "0.6.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 
 [dependencies]
@@ -9,16 +9,16 @@ conrod = { version = "0.61", features = ["winit", "glium"] }
 
 [dependencies.opcua-types]
 path = "../../types"
-version = "0.5.0" # OPCUARustVersion
+version = "0.6.0" # OPCUARustVersion
 
 [dependencies.opcua-client]
 path = "../../client"
-version = "0.5.0" # OPCUARustVersion
+version = "0.6.0" # OPCUARustVersion
 
 [dependencies.opcua-core]
 path = "../../core"
-version = "0.5.0" # OPCUARustVersion
+version = "0.6.0" # OPCUARustVersion
 
 [dependencies.opcua-console-logging]
 path = "../../console-logging"
-version = "0.5.0" # OPCUARustVersion
+version = "0.6.0" # OPCUARustVersion
