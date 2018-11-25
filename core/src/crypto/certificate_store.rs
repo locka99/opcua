@@ -236,8 +236,9 @@ impl CertificateStore {
         Ok((cert, pkey))
     }
 
-    /// Validates the cert and if its unknown, writes the value to the rejected folder so it can
-    /// be moved to trusted by user
+    /// Validates the cert as trusted and valid. If the cert is unknown, it will be written to
+    /// the rejected folder so that the administrator can manually move it to the trusted folder.
+    ///
     /// # Errors
     ///
     /// A non `Good` status code indicates a failure in the cert or in some action required in
@@ -260,9 +261,10 @@ impl CertificateStore {
         result
     }
 
-    /// This function is to stop collision errors / tampering where someone renames a cert on disk
-    /// to match another cert and somehow bypasses or subverts a check. The disk cert must match
-    /// the memory cert or the test is assumed to fail.
+    /// Ensures that the cert provided is the same as the one specified by a path. This is a
+    /// security check to stop someone from renaming a cert on disk to match another cert and
+    /// somehow bypassing or subverting a check. The disk cert must exactly match the memory cert
+    /// or the test is assumed to fail.
     fn ensure_cert_and_file_are_the_same(cert: &X509, cert_path: &Path) -> bool {
         if !cert_path.exists() {
             trace!("Can't find cert on disk");
