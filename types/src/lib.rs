@@ -27,29 +27,7 @@ extern crate serde_json;
 macro_rules! supported_message_as {
     ($v: expr, $i: ident) => {
         if let SupportedMessage::$i(value) = $v {
-            value
-        } else {
-            panic!("Failed to get a supported message of type {}", stringify!($i));
-        }
-    }
-}
-
-#[macro_export]
-macro_rules! supported_message_as_ref {
-    ($v: expr, $i: ident) => {
-        if let SupportedMessage::$i(ref value) = $v {
-            value
-        } else {
-            panic!("Failed to get a supported message of type {}", stringify!($i));
-        }
-    }
-}
-
-#[macro_export]
-macro_rules! supported_message_as_ref_mut {
-    ($v: expr, $i: ident) => {
-        if let SupportedMessage::$i(ref mut v) = $v {
-            v
+            *value
         } else {
             panic!("Failed to get a supported message of type {}", stringify!($i));
         }

@@ -314,12 +314,12 @@ impl SessionState {
             client_nonce,
             requested_lifetime,
         };
-        let response = self.send_request(SupportedMessage::OpenSecureChannelRequest(request))?;
+        let response = self.send_request(request)?;
         if let SupportedMessage::OpenSecureChannelResponse(response) = response {
             debug!("Setting transport's security token");
             {
                 let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
-                secure_channel.set_security_token(response.security_token);
+                secure_channel.set_security_token(response.security_token.clone());
 
                 if security_policy != SecurityPolicy::None && (security_mode == MessageSecurityMode::Sign || security_mode == MessageSecurityMode::SignAndEncrypt) {
                     secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce)?;

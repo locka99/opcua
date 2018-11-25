@@ -127,7 +127,7 @@ fn make_open_secure_channel_response() -> OpenSecureChannelResponse {
 }
 
 fn make_sample_message() -> SupportedMessage {
-    SupportedMessage::GetEndpointsRequest(GetEndpointsRequest {
+    GetEndpointsRequest {
         request_header: RequestHeader {
             authentication_token: NodeId::new(0, 99),
             timestamp: DateTime::now(),
@@ -140,7 +140,7 @@ fn make_sample_message() -> SupportedMessage {
         endpoint_url: UAString::null(),
         locale_ids: None,
         profile_uris: None,
-    })
+    }.into()
 }
 
 struct Test;

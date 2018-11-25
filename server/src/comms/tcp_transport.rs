@@ -309,7 +309,7 @@ impl TcpTransport {
                 let mut send_buffer = trace_lock_unwrap!(connection.send_buffer);
                 match response {
                     SupportedMessage::AcknowledgeMessage(ack) => {
-                        let _ = send_buffer.write_ack(ack);
+                        let _ = send_buffer.write_ack(&ack);
                     }
                     msg => {
                         let _ = send_buffer.write(request_id, msg, &mut secure_channel);
@@ -680,13 +680,14 @@ impl TcpTransport {
             max_chunk_count: MAX_CHUNK_COUNT as u32,
         };
         acknowledge.message_header.message_size = acknowledge.byte_len() as u32;
+        let acknowledge: SupportedMessage = acknowledge.into();
 
         // New state
         self.transport_state = TransportState::ProcessMessages;
         self.client_protocol_version = client_protocol_version;
 
         debug!("Sending ACK");
-        let _ = sender.unbounded_send((0, SupportedMessage::AcknowledgeMessage(acknowledge)));
+        let _ = sender.unbounded_send((0, acknowledge));
         Ok(())
     }
 

@@ -68,7 +68,7 @@ fn create_monitored_items_request<T>(subscription_id: u32, mut node_id: Vec<T>) 
 fn create_subscription(server_state: &mut ServerState, session: &mut Session, ss: &SubscriptionService) -> u32 {
     let request = create_subscription_request(0, 0);
     debug!("{:#?}", request);
-    let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state, session, request).unwrap(), CreateSubscriptionResponse);
+    let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state, session, &request).unwrap(), CreateSubscriptionResponse);
     debug!("{:#?}", response);
     response.subscription_id
 }
@@ -77,7 +77,7 @@ fn create_monitored_item<T>(subscription_id: u32, node_to_monitor: T, session: &
     // Create a monitored item
     let request = create_monitored_items_request(subscription_id, vec![node_to_monitor]);
     debug!("CreateMonitoredItemsRequest {:#?}", request);
-    let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(session, request).unwrap(), CreateMonitoredItemsResponse);
+    let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(session, &request).unwrap(), CreateMonitoredItemsResponse);
     debug!("CreateMonitoredItemsResponse {:#?}", response);
     // let result = response.results.unwrap()[0].monitored_item_id;
 }
@@ -93,7 +93,7 @@ fn keepalive_test(keep_alive: u32, lifetime: u32, expected_keep_alive: u32, expe
     do_service_test(|server_state, session, _, ss, _| {
         // Create subscription
         let request = create_subscription_request(keep_alive, lifetime);
-        let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state, session, request).unwrap(), CreateSubscriptionResponse);
+        let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state, session, &request).unwrap(), CreateSubscriptionResponse);
         debug!("{:#?}", response);
         assert_eq!(response.revised_lifetime_count, expected_lifetime);
         assert_eq!(response.revised_max_keep_alive_count, expected_keep_alive);
@@ -132,7 +132,7 @@ fn publish_with_no_subscriptions() {
         };
         // Publish and expect a service fault BadNoSubscription
         let request_id = 1001;
-        let response = ss.async_publish(session, request_id, &address_space, request).unwrap().unwrap();
+        let response = ss.async_publish(session, request_id, &address_space, &request).unwrap().unwrap();
         let response: ServiceFault = supported_message_as!(response, ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadNoSubscription);
     })
@@ -160,7 +160,7 @@ fn publish_response_subscription() {
             debug!("PublishRequest {:#?}", request);
 
             // Don't expect a response right away
-            let response = ss.async_publish(session, request_id, &address_space, request).unwrap();
+            let response = ss.async_publish(session, request_id, &address_space, &request).unwrap();
             assert!(response.is_none());
 
             assert!(!session.subscriptions.publish_request_queue.is_empty());
@@ -231,7 +231,7 @@ fn resend_data() {
             debug!("PublishRequest {:#?}", request);
 
             // Don't expect a response right away
-            let _response = ss.async_publish(session, 1001, &address_space, request).unwrap();
+            let _response = ss.async_publish(session, 1001, &address_space, &request).unwrap();
 
             // Tick subscriptions to trigger a change
             let now = Utc::now().add(chrono::Duration::seconds(2));
@@ -263,7 +263,7 @@ fn resend_data() {
             debug!("PublishRequest {:#?}", request);
 
             // Don't expect a response right away
-            let _response = ss.async_publish(session, 1002, &address_space, request).unwrap();
+            let _response = ss.async_publish(session, 1002, &address_space, &request).unwrap();
 
             // Tick subscriptions to trigger a change
             let now = Utc::now().add(chrono::Duration::seconds(2));
@@ -306,7 +306,7 @@ fn publish_keep_alive() {
                 (1, "v1"),
             ]);
             debug!("CreateMonitoredItemsRequest {:#?}", request);
-            let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(session, request).unwrap(), CreateMonitoredItemsResponse);
+            let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(session, &request).unwrap(), CreateMonitoredItemsResponse);
             debug!("CreateMonitoredItemsResponse {:#?}", response);
             // let result = response.results.unwrap()[0].monitored_item_id;
         }
@@ -328,7 +328,7 @@ fn publish_keep_alive() {
             debug!("PublishRequest {:#?}", request);
 
             // Don't expect a response right away
-            let response = ss.async_publish(session, request_id, &address_space, request).unwrap();
+            let response = ss.async_publish(session, request_id, &address_space, &request).unwrap();
             assert!(response.is_none());
 
             assert!(!session.subscriptions.publish_request_queue.is_empty());
@@ -395,7 +395,7 @@ fn republish() {
             subscription_id,
             retransmit_sequence_number: sequence_number,
         };
-        let response = ss.republish(session, request).unwrap();
+        let response = ss.republish(session, &request).unwrap();
         trace!("republish response {:#?}", response);
         let response: RepublishResponse = supported_message_as!(response, RepublishResponse);
         assert!(response.notification_message.sequence_number != 0);
@@ -406,7 +406,7 @@ fn republish() {
             subscription_id: subscription_id + 1,
             retransmit_sequence_number: sequence_number,
         };
-        let response: ServiceFault = supported_message_as!(ss.republish(session, request).unwrap(), ServiceFault);
+        let response: ServiceFault = supported_message_as!(ss.republish(session, &request).unwrap(), ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadNoSubscription);
 
         // try for a sequence nr that does not exist
@@ -415,7 +415,7 @@ fn republish() {
             subscription_id,
             retransmit_sequence_number: sequence_number + 1,
         };
-        let response: ServiceFault = supported_message_as!(ss.republish(session, request).unwrap(), ServiceFault);
+        let response: ServiceFault = supported_message_as!(ss.republish(session, &request).unwrap(), ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadMessageNotAvailable);
     })
 }

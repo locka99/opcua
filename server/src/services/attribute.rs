@@ -27,7 +27,7 @@ impl AttributeService {
     /// elements or to read ranges of elements of the composite. Servers may make historical
     /// values available to Clients using this Service, although the historical values themselves
     /// are not visible in the AddressSpace.
-    pub fn read(&self, address_space: &AddressSpace, request: ReadRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn read(&self, address_space: &AddressSpace, request: &ReadRequest) -> Result<SupportedMessage, StatusCode> {
         // Read nodes and their attributes
         let timestamps_to_return = request.timestamps_to_return;
 
@@ -129,7 +129,7 @@ impl AttributeService {
     /// constructed Attribute values whose elements are indexed, such as an array, this Service
     /// allows Clients to write the entire set of indexed values as a composite, to write individual
     /// elements or to write ranges of elements of the composite.
-    pub fn write(&self, address_space: &mut AddressSpace, request: WriteRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn write(&self, address_space: &mut AddressSpace, request: &WriteRequest) -> Result<SupportedMessage, StatusCode> {
         let results = if let Some(ref nodes_to_write) = request.nodes_to_write {
             let results = nodes_to_write.iter().map(|node_to_write| {
                 Self::write_node_value(address_space, node_to_write)

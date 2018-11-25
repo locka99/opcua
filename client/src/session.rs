@@ -343,8 +343,8 @@ impl Session {
             let session_state = self.session_state.clone();
             let mut session_state = trace_write_lock_unwrap!(session_state);
 
-            session_state.set_session_id(response.session_id);
-            session_state.set_authentication_token(response.authentication_token);
+            session_state.set_session_id(response.session_id.clone());
+            session_state.set_authentication_token(response.authentication_token.clone());
             {
                 let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
                 let _ = secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce);
@@ -1237,7 +1237,7 @@ impl Session {
 
                 // Update subscriptions based on response
                 // Queue acknowledgements for next request
-                let notification_message = response.notification_message;
+                let notification_message = response.notification_message.clone();
                 let subscription_id = response.subscription_id;
 
                 // Queue an acknowledgement for this request

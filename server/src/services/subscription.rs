@@ -24,7 +24,7 @@ impl SubscriptionService {
     }
 
     /// Handles a CreateSubscriptionRequest
-    pub fn create_subscription(&self, server_state: &mut ServerState, session: &mut Session, request: CreateSubscriptionRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn create_subscription(&self, server_state: &mut ServerState, session: &mut Session, request: &CreateSubscriptionRequest) -> Result<SupportedMessage, StatusCode> {
         let subscriptions = &mut session.subscriptions;
         let response = if server_state.max_subscriptions > 0 && subscriptions.len() >= server_state.max_subscriptions {
             self.service_fault(&request.request_header, StatusCode::BadTooManySubscriptions)
@@ -60,7 +60,7 @@ impl SubscriptionService {
     }
 
     /// Handles a ModifySubscriptionRequest
-    pub fn modify_subscription(&self, server_state: &mut ServerState, session: &mut Session, request: ModifySubscriptionRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn modify_subscription(&self, server_state: &mut ServerState, session: &mut Session, request: &ModifySubscriptionRequest) -> Result<SupportedMessage, StatusCode> {
         let subscriptions = &mut session.subscriptions;
         let subscription_id = request.subscription_id;
 
@@ -92,7 +92,7 @@ impl SubscriptionService {
     }
 
     /// Handles a DeleteSubscriptionsRequest
-    pub fn delete_subscriptions(&self, session: &mut Session, request: DeleteSubscriptionsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn delete_subscriptions(&self, session: &mut Session, request: &DeleteSubscriptionsRequest) -> Result<SupportedMessage, StatusCode> {
         if request.subscription_ids.is_none() {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else {
@@ -122,7 +122,7 @@ impl SubscriptionService {
     }
 
     /// Handles a SerPublishingModeRequest
-    pub fn set_publishing_mode(&self, session: &mut Session, request: SetPublishingModeRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn set_publishing_mode(&self, session: &mut Session, request: &SetPublishingModeRequest) -> Result<SupportedMessage, StatusCode> {
         if request.subscription_ids.is_none() {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else {
@@ -153,13 +153,13 @@ impl SubscriptionService {
     }
 
     /// Handles a PublishRequest. This is asynchronous, so the response will be sent later on.
-    pub fn async_publish(&self, session: &mut Session, request_id: u32, address_space: &AddressSpace, request: PublishRequest) -> Result<Option<SupportedMessage>, StatusCode> {
+    pub fn async_publish(&self, session: &mut Session, request_id: u32, address_space: &AddressSpace, request: &PublishRequest) -> Result<Option<SupportedMessage>, StatusCode> {
         trace!("--> Receive a PublishRequest {:?}", request);
         if session.subscriptions.is_empty() {
             Ok(Some(self.service_fault(&request.request_header, StatusCode::BadNoSubscription)))
         } else {
             let request_header = request.request_header.clone();
-            let result = session.enqueue_publish_request(address_space, request_id, request);
+            let result = session.enqueue_publish_request(address_space, request_id, request.clone());
             if let Err(error) = result {
                 Ok(Some(self.service_fault(&request_header, error)))
             } else {
@@ -169,7 +169,7 @@ impl SubscriptionService {
     }
 
     /// Handles a RepublishRequest
-    pub fn republish(&self, session: &mut Session, request: RepublishRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn republish(&self, session: &mut Session, request: &RepublishRequest) -> Result<SupportedMessage, StatusCode> {
         trace!("Republish {:?}", request);
         // Look for a matching notification message
         let result = session.subscriptions.find_notification_message(request.subscription_id, request.retransmit_sequence_number);

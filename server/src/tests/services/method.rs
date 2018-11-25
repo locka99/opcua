@@ -55,7 +55,7 @@ fn create_monitored_items_request<T>(subscription_id: u32, client_handle: u32, n
 
 /// This is a convenience for tests
 fn call_single(s: &MethodService, address_space: &AddressSpace, server_state: &ServerState, session: &mut Session, request: CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
-    let response = s.call(address_space, server_state, session, CallRequest {
+    let response = s.call(address_space, server_state, session, &CallRequest {
         request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
         methods_to_call: Some(vec![request]),
     })?;
@@ -125,14 +125,14 @@ fn call_getmonitoreditems() {
         // Create a subscription with some monitored items where client handle is distinct
         let subscription_id = {
             let request = create_subscription_request();
-            let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(&mut server_state, &mut session, request).unwrap(), CreateSubscriptionResponse);
+            let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(&mut server_state, &mut session, &request).unwrap(), CreateSubscriptionResponse);
             response.subscription_id
         };
 
         // Create a monitored item
         let monitored_item_id = {
             let request = create_monitored_items_request(subscription_id, 999, VariableId::Server_ServerStatus_CurrentTime);
-            let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(&mut session, request).unwrap(), CreateMonitoredItemsResponse);
+            let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(&mut session, &request).unwrap(), CreateMonitoredItemsResponse);
             response.results.unwrap()[0].monitored_item_id
         };
 
@@ -198,7 +198,7 @@ fn call_resend_data() {
         // Create a subscription with some monitored items where client handle is distinct
         let subscription_id = {
             let request = create_subscription_request();
-            let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(&mut server_state, &mut session, request).unwrap(), CreateSubscriptionResponse);
+            let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(&mut server_state, &mut session, &request).unwrap(), CreateSubscriptionResponse);
             response.subscription_id
         };
 

@@ -81,21 +81,21 @@ fn test_asymmetric_encrypt_decrypt(message: SupportedMessage, security_mode: Mes
 fn asymmetric_sign_and_encrypt_message_chunk_basic128rsa15() {
     let _ = Test::setup();
     error!("asymmetric_sign_and_encrypt_message_chunk_basic128rsa15");
-    test_asymmetric_encrypt_decrypt(SupportedMessage::OpenSecureChannelResponse(make_open_secure_channel_response()), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic128Rsa15);
+    test_asymmetric_encrypt_decrypt(make_open_secure_channel_response().into(), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic128Rsa15);
 }
 
 #[test]
 fn asymmetric_sign_and_encrypt_message_chunk_basic256() {
     let _ = Test::setup();
     error!("asymmetric_sign_and_encrypt_message_chunk_basic256");
-    test_asymmetric_encrypt_decrypt(SupportedMessage::OpenSecureChannelResponse(make_open_secure_channel_response()), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic256);
+    test_asymmetric_encrypt_decrypt(make_open_secure_channel_response().into(), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic256);
 }
 
 #[test]
 fn asymmetric_sign_and_encrypt_message_chunk_basic256sha256() {
     let _ = Test::setup();
     error!("asymmetric_sign_and_encrypt_message_chunk_basic256sha256");
-    test_asymmetric_encrypt_decrypt(SupportedMessage::OpenSecureChannelResponse(make_open_secure_channel_response()), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic256Sha256);
+    test_asymmetric_encrypt_decrypt(make_open_secure_channel_response().into(), MessageSecurityMode::SignAndEncrypt, SecurityPolicy::Basic256Sha256);
 }
 
 /// Create a message, encode it to a chunk, sign the chunk, verify the signature and decode back to message

@@ -36,7 +36,7 @@ impl ViewService {
         ViewService {}
     }
 
-    pub fn browse(&self, session: &mut Session, address_space: &AddressSpace, request: BrowseRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn browse(&self, session: &mut Session, address_space: &AddressSpace, request: &BrowseRequest) -> Result<SupportedMessage, StatusCode> {
         let browse_results = if request.nodes_to_browse.is_some() {
             let nodes_to_browse = request.nodes_to_browse.as_ref().unwrap();
 
@@ -62,7 +62,7 @@ impl ViewService {
         Ok(response.into())
     }
 
-    pub fn browse_next(&self, session: &mut Session, address_space: &AddressSpace, request: BrowseNextRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn browse_next(&self, session: &mut Session, address_space: &AddressSpace, request: &BrowseNextRequest) -> Result<SupportedMessage, StatusCode> {
         if request.continuation_points.is_none() {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else {
@@ -88,13 +88,13 @@ impl ViewService {
         }
     }
 
-    pub fn translate_browse_paths_to_node_ids(&self, address_space: &AddressSpace, request: TranslateBrowsePathsToNodeIdsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn translate_browse_paths_to_node_ids(&self, address_space: &AddressSpace, request: &TranslateBrowsePathsToNodeIdsRequest) -> Result<SupportedMessage, StatusCode> {
         trace!("TranslateBrowsePathsToNodeIdsRequest = {:?}", &request);
 
         if request.browse_paths.is_none() {
             return Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo));
         }
-        let browse_paths = request.browse_paths.unwrap();
+        let browse_paths = request.browse_paths.as_ref().unwrap();
         if browse_paths.is_empty() {
             return Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo));
         }

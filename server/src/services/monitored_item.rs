@@ -16,7 +16,7 @@ impl MonitoredItemService {
         MonitoredItemService {}
     }
 
-    pub fn create_monitored_items(&self, session: &mut Session, request: CreateMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn create_monitored_items(&self, session: &mut Session, request: &CreateMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref items_to_create) = request.items_to_create {
             // Find subscription and add items to it
             if let Some(subscription) = session.subscriptions.get_mut(request.subscription_id) {
@@ -37,7 +37,7 @@ impl MonitoredItemService {
         }
     }
 
-    pub fn modify_monitored_items(&self, session: &mut Session, request: ModifyMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn modify_monitored_items(&self, session: &mut Session, request: &ModifyMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref items_to_modify) = request.items_to_modify {
             // Find subscription and modify items in it
             let subscription_id = request.subscription_id;
@@ -59,7 +59,7 @@ impl MonitoredItemService {
         }
     }
 
-    pub fn delete_monitored_items(&self, session: &mut Session, request: DeleteMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn delete_monitored_items(&self, session: &mut Session, request: &DeleteMonitoredItemsRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref items_to_delete) = request.monitored_item_ids {
             // Find subscription and delete items from it
             let subscription_id = request.subscription_id;

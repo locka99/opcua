@@ -242,9 +242,9 @@ impl Subscriptions {
                 debug!("Publish request {} has expired - timestamp = {:?}, expiration hint = {}, publish timeout = {:?}, time now = {:?}, ", request_header.request_handle, request_timestamp, request_timestamp, publish_request_timeout, now);
                 expired_publish_responses.push_front(PublishResponseEntry {
                     request_id: request.request_id,
-                    response: SupportedMessage::ServiceFault(ServiceFault {
+                    response: ServiceFault {
                         response_header: ResponseHeader::new_timestamped_service_result(DateTime::now(), &request.request.request_header, StatusCode::BadTimeout),
-                    }),
+                    }.into(),
                 });
                 false
             } else {
@@ -320,7 +320,7 @@ impl Subscriptions {
         let now = DateTime::from(now.clone());
         PublishResponseEntry {
             request_id: publish_request.request_id,
-            response: SupportedMessage::PublishResponse(PublishResponse {
+            response: PublishResponse {
                 response_header: ResponseHeader::new_timestamped_service_result(now, &publish_request.request.request_header, StatusCode::Good),
                 subscription_id,
                 available_sequence_numbers,
@@ -328,7 +328,7 @@ impl Subscriptions {
                 notification_message,
                 results,
                 diagnostic_infos: None,
-            }),
+            }.into(),
         }
     }
 

@@ -54,7 +54,7 @@ fn read_test() {
         };
 
         let address_space = st.server.address_space.read().unwrap();
-        let response = ats.read(&address_space, request);
+        let response = ats.read(&address_space, &request);
         assert!(response.is_ok());
         let response: ReadResponse = supported_message_as!(response.unwrap(), ReadResponse);
 
@@ -163,7 +163,7 @@ fn write_test() {
 
     // do a write with the following write
     let mut address_space = st.server.address_space.write().unwrap();
-    let response = ats.write(&mut address_space, request);
+    let response = ats.write(&mut address_space, &request);
     assert!(response.is_ok());
     let response: WriteResponse = supported_message_as!(response.unwrap(), WriteResponse);
     let results = response.results.unwrap();

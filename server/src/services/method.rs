@@ -22,8 +22,8 @@ impl MethodService {
         MethodService {}
     }
 
-    pub fn call(&self, address_space: &AddressSpace, server_state: &ServerState, session: &mut Session, request: CallRequest) -> Result<SupportedMessage, StatusCode> {
-        if let Some(calls) = request.methods_to_call {
+    pub fn call(&self, address_space: &AddressSpace, server_state: &ServerState, session: &mut Session, request: &CallRequest) -> Result<SupportedMessage, StatusCode> {
+        if let Some(ref calls) = request.methods_to_call {
             if calls.len() >= constants::MAX_METHOD_CALLS {
                 return Ok(self.service_fault(&request.request_header, StatusCode::BadTooManyOperations));
             } else {

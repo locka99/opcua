@@ -31,7 +31,7 @@ impl MessageWriter {
         }
     }
 
-    pub fn write_ack(&mut self, ack: AcknowledgeMessage) -> EncodingResult<usize> {
+    pub fn write_ack(&mut self, ack: &AcknowledgeMessage) -> EncodingResult<usize> {
         ack.encode(&mut self.buffer)
     }
 

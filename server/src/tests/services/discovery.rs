@@ -18,7 +18,7 @@ fn get_endpoints() {
             profile_uris: None,
         };
 
-        let result = ds.get_endpoints(&mut server_state, request);
+        let result = ds.get_endpoints(&mut server_state, &request);
         assert!(result.is_ok());
         let result = supported_message_as!(result.unwrap(), GetEndpointsResponse);
 
@@ -47,7 +47,7 @@ fn discovery_test() {
             profile_uris: None,
         };
 
-        let result = ds.get_endpoints(&mut server_state, request);
+        let result = ds.get_endpoints(&mut server_state, &request);
         assert!(result.is_ok());
         let result = supported_message_as!(result.unwrap(), GetEndpointsResponse);
 
@@ -66,7 +66,7 @@ fn discovery_test() {
             locale_ids: None,
             profile_uris: Some(profile_uris),
         };
-        let result = ds.get_endpoints(&mut server_state, request);
+        let result = ds.get_endpoints(&mut server_state, &request);
         assert!(result.is_ok());
         let result = supported_message_as!(result.unwrap(), GetEndpointsResponse);
         assert!(result.endpoints.is_none());
@@ -79,7 +79,7 @@ fn discovery_test() {
             locale_ids: None,
             profile_uris: Some(profile_uris),
         };
-        let result = ds.get_endpoints(&mut server_state, request);
+        let result = ds.get_endpoints(&mut server_state, &request);
         assert!(result.is_ok());
         let result = supported_message_as!(result.unwrap(), GetEndpointsResponse);
         let endpoints = result.endpoints.unwrap();

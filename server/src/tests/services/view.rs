@@ -48,14 +48,14 @@ fn verify_references_to_many_vars(references: &[ReferenceDescription], expected_
 
 fn do_browse(vs: &ViewService, session: &mut Session, address_space: &AddressSpace, nodes: &[NodeId], max_references_per_node: usize) -> BrowseResponse {
     let request = make_browse_request(nodes, max_references_per_node, BrowseDirection::Forward, ReferenceTypeId::Organizes);
-    let result = vs.browse(session, address_space, request);
+    let result = vs.browse(session, address_space, &request);
     assert!(result.is_ok());
     supported_message_as!(result.unwrap(), BrowseResponse)
 }
 
 fn do_browse_next(vs: &ViewService, session: &mut Session, address_space: &AddressSpace, continuation_point: &ByteString, release_continuation_points: bool) -> BrowseNextResponse {
     let request = make_browse_next_request(continuation_point, release_continuation_points);
-    let result = vs.browse_next(session, address_space, request);
+    let result = vs.browse_next(session, address_space, &request);
     assert!(result.is_ok());
     supported_message_as!(result.unwrap(), BrowseNextResponse)
 }
@@ -241,7 +241,7 @@ fn translate_browse_paths_to_node_ids() {
 
         let vs = ViewService::new();
         let address_space = st.server.address_space.read().unwrap();
-        let result = vs.translate_browse_paths_to_node_ids(&address_space, request);
+        let result = vs.translate_browse_paths_to_node_ids(&address_space, &request);
         assert!(result.is_ok());
         let result: TranslateBrowsePathsToNodeIdsResponse = supported_message_as!(result.unwrap(), TranslateBrowsePathsToNodeIdsResponse);
 

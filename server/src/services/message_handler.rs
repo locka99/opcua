@@ -91,56 +91,56 @@ impl MessageHandler {
 
         let response = match message {
             SupportedMessage::GetEndpointsRequest(request) => {
-                Some(self.discovery_service.get_endpoints(&server_state, request)?)
+                Some(self.discovery_service.get_endpoints(&server_state, &request)?)
             }
             SupportedMessage::CreateSessionRequest(request) => {
                 let certificate_store = trace_read_lock_unwrap!(self.certificate_store);
-                Some(self.session_service.create_session(&certificate_store, &mut server_state, &mut session, request)?)
+                Some(self.session_service.create_session(&certificate_store, &mut server_state, &mut session, &request)?)
             }
             SupportedMessage::CloseSessionRequest(request) => {
-                Some(self.session_service.close_session(&mut session, request)?)
+                Some(self.session_service.close_session(&mut session, &request)?)
             }
             // ALL THE REQUESTS BELOW MUST BE VALIDATED AGAINST THE SESSION
             SupportedMessage::ActivateSessionRequest(request) => {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.session_service.activate_session(&mut server_state, &mut session, request)?)
+                    Some(self.session_service.activate_session(&mut server_state, &mut session, &request)?)
                 }
             }
             SupportedMessage::CancelRequest(request) => {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.session_service.cancel(&mut server_state, &mut session, request)?)
+                    Some(self.session_service.cancel(&mut server_state, &mut session, &request)?)
                 }
             }
             SupportedMessage::CreateSubscriptionRequest(request) => {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.subscription_service.create_subscription(&mut server_state, &mut session, request)?)
+                    Some(self.subscription_service.create_subscription(&mut server_state, &mut session, &request)?)
                 }
             }
             SupportedMessage::ModifySubscriptionRequest(request) => {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.subscription_service.modify_subscription(&mut server_state, &mut session, request)?)
+                    Some(self.subscription_service.modify_subscription(&mut server_state, &mut session, &request)?)
                 }
             }
             SupportedMessage::DeleteSubscriptionsRequest(request) => {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.subscription_service.delete_subscriptions(&mut session, request)?)
+                    Some(self.subscription_service.delete_subscriptions(&mut session, &request)?)
                 }
             }
             SupportedMessage::SetPublishingModeRequest(request) => {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.subscription_service.set_publishing_mode(&mut session, request)?)
+                    Some(self.subscription_service.set_publishing_mode(&mut session, &request)?)
                 }
             }
             SupportedMessage::PublishRequest(request) => {
@@ -150,77 +150,77 @@ impl MessageHandler {
                     // Unlike other calls which return immediately, this one is asynchronous - the
                     // request is queued and the response will come back out of sequence some time in
                     // the future.
-                    self.subscription_service.async_publish(&mut session, request_id, &address_space, request)?
+                    self.subscription_service.async_publish(&mut session, request_id, &address_space, &request)?
                 }
             }
             SupportedMessage::RepublishRequest(request) => {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.subscription_service.republish(&mut session, request)?)
+                    Some(self.subscription_service.republish(&mut session, &request)?)
                 }
             }
             SupportedMessage::BrowseRequest(request) => {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.view_service.browse(&mut session, &address_space, request)?)
+                    Some(self.view_service.browse(&mut session, &address_space, &request)?)
                 }
             }
             SupportedMessage::BrowseNextRequest(request) => {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.view_service.browse_next(&mut session, &address_space, request)?)
+                    Some(self.view_service.browse_next(&mut session, &address_space, &request)?)
                 }
             }
             SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(request) => {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.view_service.translate_browse_paths_to_node_ids(&address_space, request)?)
+                    Some(self.view_service.translate_browse_paths_to_node_ids(&address_space, &request)?)
                 }
             }
             SupportedMessage::ReadRequest(request) => {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.attribute_service.read(&address_space, request)?)
+                    Some(self.attribute_service.read(&address_space, &request)?)
                 }
             }
             SupportedMessage::WriteRequest(request) => {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.attribute_service.write(&mut address_space, request)?)
+                    Some(self.attribute_service.write(&mut address_space, &request)?)
                 }
             }
             SupportedMessage::CreateMonitoredItemsRequest(request) => {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.monitored_item_service.create_monitored_items(&mut session, request)?)
+                    Some(self.monitored_item_service.create_monitored_items(&mut session, &request)?)
                 }
             }
             SupportedMessage::ModifyMonitoredItemsRequest(request) => {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.monitored_item_service.modify_monitored_items(&mut session, request)?)
+                    Some(self.monitored_item_service.modify_monitored_items(&mut session, &request)?)
                 }
             }
             SupportedMessage::DeleteMonitoredItemsRequest(request) => {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.monitored_item_service.delete_monitored_items(&mut session, request)?)
+                    Some(self.monitored_item_service.delete_monitored_items(&mut session, &request)?)
                 }
             }
             SupportedMessage::CallRequest(request) => {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)
                 } else {
-                    Some(self.method_service.call(&address_space, &server_state, &mut session, request)?)
+                    Some(self.method_service.call(&address_space, &server_state, &mut session, &request)?)
                 }
             }
             _ => {
