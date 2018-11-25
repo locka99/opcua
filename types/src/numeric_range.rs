@@ -114,25 +114,22 @@ impl FromStr for NumericRange {
 
         // Split the string on the comma
         let parts: Vec<_> = s.split(',').collect();
-        if parts.is_empty() {
-            Err(())
-        } else if parts.len() > MAX_INDICES {
-            // More than MAX_INDICES really?
-            Err(())
-        } else if parts.len() > 1 {
-            // Multi dimensions
-            let mut ranges = Vec::with_capacity(MAX_INDICES);
-            for p in &parts {
-                if let Ok(range) = Self::parse_range(&p) {
-                    ranges.push(range);
-                } else {
-                    return Err(());
+        match parts.len() {
+            1 => Self::parse_range(&parts[0]),
+            2...MAX_INDICES => {
+                // Multi dimensions
+                let mut ranges = Vec::with_capacity(parts.len());
+                for p in &parts {
+                    if let Ok(range) = Self::parse_range(&p) {
+                        ranges.push(range);
+                    } else {
+                        return Err(());
+                    }
                 }
+                Ok(NumericRange::MultipleRanges(ranges))
             }
-            Ok(NumericRange::MultipleRanges(ranges))
-        } else {
-            let part = &parts[0];
-            Self::parse_range(&part)
+            // 0 parts, or more than MAX_INDICES (really????)
+            _ => Err(()),
         }
     }
 }
