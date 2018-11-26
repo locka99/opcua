@@ -183,7 +183,7 @@ impl CertificateStore {
         Ok((X509::wrap(cert), PrivateKey::wrap_private_key(pkey)))
     }
 
-    /// Reads a private key from a path on disk disk
+    /// Reads a private key from a path on disk.
     pub fn read_pkey(path: &Path) -> Result<PrivateKey, String> {
         if let Ok(pkey_info) = metadata(path) {
             if let Ok(mut f) = File::open(&path) {
@@ -380,29 +380,22 @@ impl CertificateStore {
         StatusCode::Good
     }
 
-    /// Returns a certificate file name from the cert's issuer and thumbprint fields
+    /// Returns a certificate file name from the cert's issuer and thumbprint fields.
+    /// File name is either "prefix - [thumbprint].der" or "thumbprint.der" depending on
+    /// the cert's common name being empty or not
     pub fn cert_file_name(cert: &X509) -> String {
-        let mut file_name = String::with_capacity(128);
-
         let prefix = if let Ok(common_name) = cert.common_name() {
             common_name.trim().to_string()
         } else {
             String::new()
         };
-
         let thumbprint = cert.thumbprint().as_hex_string();
+
         if !prefix.is_empty() {
-            // Format "prefix - [thumbprint].der"
-            file_name.push_str(&prefix);
-            file_name.push_str(" [");
-            file_name.push_str(&thumbprint);
-            file_name.push_str("].der");
+            format!("{} [{}].der", prefix, thumbprint)
         } else {
-            // Format "thumbprint.der"
-            file_name.push_str(&thumbprint);
-            file_name.push_str(".der");
+            format!("{}.der", thumbprint)
         }
-        file_name
     }
 
     /// Creates the PKI directory structure
