@@ -40,7 +40,7 @@ fs.createReadStream(status_code_csv)
             rs_out.write(
                 `
 #[allow(non_camel_case_types)]
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub enum ${key}Id {
 `);
             _.each(value, function (node) {

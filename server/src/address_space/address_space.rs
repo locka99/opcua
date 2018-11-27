@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex, RwLock};
 
 use chrono::Utc;
@@ -131,6 +131,8 @@ pub struct AddressSpace {
     method_handlers: HashMap<MethodKey, MethodCallback>,
     /// Access to server diagnostics
     server_diagnostics: Option<Arc<RwLock<ServerDiagnostics>>>,
+    /// A map of subtypes
+    reference_type_subtypes: HashSet<(ReferenceTypeId, ReferenceTypeId)>,
 }
 
 impl AddressSpace {
@@ -145,6 +147,7 @@ impl AddressSpace {
             last_modified: Utc::now(),
             method_handlers: HashMap::new(),
             server_diagnostics: None,
+            reference_type_subtypes: HashSet::new(),
         };
         address_space.add_default_nodes();
         address_space
@@ -378,6 +381,9 @@ impl AddressSpace {
         super::generated::populate_address_space(self);
         debug!("finished populating address space, number of nodes = {}, number of references = {}, number of reverse references = {}",
                self.node_map.len(), self.references.len(), self.inverse_references.len());
+
+        // Build up the map of subtypes
+        self.build_reference_type_subtypes();
     }
 
     // Inserts a bunch of references between two nodes into the address space
@@ -720,55 +726,43 @@ impl AddressSpace {
         }
     }
 
+    /// Builds a set of pairs which denote valid parent / subtypes
+    fn build_reference_type_subtypes(&mut self) {
+        // This is a hard coded hack but potentially it could be modified to build subtypes
+        // by walking the address space.
+
+        // TODO somehow work out subtypes
+
+        self.reference_type_subtypes = [
+            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasChild),
+            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasSubtype),
+            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::Organizes),
+            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::Aggregates),
+            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasProperty),
+            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasComponent),
+            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasOrderedComponent),
+            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasEventSource),
+            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasNotifier),
+            (ReferenceTypeId::HasChild, ReferenceTypeId::Aggregates),
+            (ReferenceTypeId::HasChild, ReferenceTypeId::HasComponent),
+            (ReferenceTypeId::HasChild, ReferenceTypeId::HasHistoricalConfiguration),
+            (ReferenceTypeId::HasChild, ReferenceTypeId::HasProperty),
+            (ReferenceTypeId::HasChild, ReferenceTypeId::HasOrderedComponent),
+            (ReferenceTypeId::HasChild, ReferenceTypeId::HasSubtype),
+            (ReferenceTypeId::Aggregates, ReferenceTypeId::HasComponent),
+            (ReferenceTypeId::Aggregates, ReferenceTypeId::HasHistoricalConfiguration),
+            (ReferenceTypeId::Aggregates, ReferenceTypeId::HasProperty),
+            (ReferenceTypeId::Aggregates, ReferenceTypeId::HasOrderedComponent),
+            (ReferenceTypeId::HasComponent, ReferenceTypeId::HasOrderedComponent),
+            (ReferenceTypeId::HasEventSource, ReferenceTypeId::HasNotifier),
+        ].iter().map(|(r1, r2)| (*r1, *r2)).collect()
+    }
+
     fn reference_type_matches(&self, r1: ReferenceTypeId, r2: ReferenceTypeId, include_subtypes: bool) -> bool {
         if r1 == r2 {
             true
         } else if include_subtypes {
-            // THIS IS AN UGLY HACK. The subtype code should really walk down the hierarchy of
-            // types in the address space to figure this out
-            match r1 {
-                ReferenceTypeId::HierarchicalReferences => {
-                    match r2 {
-                        ReferenceTypeId::HierarchicalReferences | ReferenceTypeId::HasChild |
-                        ReferenceTypeId::HasSubtype | ReferenceTypeId::Organizes |
-                        ReferenceTypeId::Aggregates | ReferenceTypeId::HasProperty |
-                        ReferenceTypeId::HasComponent | ReferenceTypeId::HasOrderedComponent |
-                        ReferenceTypeId::HasEventSource | ReferenceTypeId::HasNotifier => {
-                            true
-                        }
-                        _ => false
-                    }
-                }
-                ReferenceTypeId::HasChild => {
-                    match r2 {
-                        ReferenceTypeId::Aggregates | ReferenceTypeId::HasComponent |
-                        ReferenceTypeId::HasHistoricalConfiguration | ReferenceTypeId::HasProperty |
-                        ReferenceTypeId::HasOrderedComponent | ReferenceTypeId::HasSubtype => {
-                            true
-                        }
-                        _ => false
-                    }
-                }
-                ReferenceTypeId::Aggregates => {
-                    match r2 {
-                        ReferenceTypeId::HasComponent | ReferenceTypeId::HasHistoricalConfiguration |
-                        ReferenceTypeId::HasProperty | ReferenceTypeId::HasOrderedComponent => {
-                            true
-                        }
-                        _ => false
-                    }
-                }
-                ReferenceTypeId::HasComponent => {
-                    r2 == ReferenceTypeId::HasOrderedComponent
-                }
-                ReferenceTypeId::HasEventSource => {
-                    r2 == ReferenceTypeId::HasNotifier
-                }
-                _ => {
-                    // TODO somehow work out subtypes, e.g. working back along inverse references
-                    false
-                }
-            }
+            self.reference_type_subtypes.contains(&(r1, r2))
         } else {
             false
         }

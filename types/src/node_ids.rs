@@ -5,7 +5,7 @@ use crate::node_id::{NodeId, ExpandedNodeId};
 use crate::string::UAString;
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub enum DataTypeId {
     Boolean = 1,
     SByte = 2,
@@ -628,7 +628,7 @@ impl DataTypeId {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub enum ReferenceTypeId {
     References = 31,
     NonHierarchicalReferences = 32,
@@ -711,7 +711,7 @@ impl ReferenceTypeId {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub enum ObjectTypeId {
     BaseObjectType = 58,
     FolderType = 61,
@@ -982,7 +982,7 @@ impl ObjectTypeId {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub enum VariableTypeId {
     BaseVariableType = 62,
     BaseDataVariableType = 63,
@@ -1085,7 +1085,7 @@ impl VariableTypeId {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub enum ObjectId {
     ModellingRule_Mandatory = 78,
     ModellingRule_MandatoryShared = 79,
@@ -1898,7 +1898,7 @@ impl ObjectId {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub enum VariableId {
     DataTypeDescriptionType_DataTypeVersion = 104,
     DataTypeDescriptionType_DictionaryFragment = 105,
@@ -10053,7 +10053,7 @@ impl VariableId {
 }
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub enum MethodId {
     ProgramStateMachineType_Start = 2426,
     ProgramStateMachineType_Suspend = 2427,
