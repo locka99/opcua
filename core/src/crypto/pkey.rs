@@ -156,7 +156,9 @@ impl PrivateKey {
         // Decrypt the data
         let mut src_idx = 0;
         let mut dst_idx = 0;
-        while src_idx < src.len() {
+
+        let src_len = src.len();
+        while src_idx < src_len {
             let src = &src[src_idx..(src_idx + cipher_text_block_size)];
             let dst = &mut dst[dst_idx..(dst_idx + cipher_text_block_size)];
             let decrypted_bytes = rsa.private_decrypt(src, dst, padding);
@@ -226,11 +228,13 @@ impl PublicKey {
         // Encrypt the data in chunks no larger than the key size less padding
         let mut src_idx = 0;
         let mut dst_idx = 0;
-        while src_idx < src.len() {
-            let bytes_to_encrypt = if src.len() < plain_text_block_size {
-                src.len()
-            } else if (src.len() - src_idx) < plain_text_block_size {
-                src.len() - src_idx
+
+        let src_len = src.len();
+        while src_idx < src_len {
+            let bytes_to_encrypt = if src_len < plain_text_block_size {
+                src_len
+            } else if (src_len - src_idx) < plain_text_block_size {
+                src_len - src_idx
             } else {
                 plain_text_block_size
             };
