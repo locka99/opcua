@@ -310,7 +310,7 @@ fn array_is_same_type(values: &[Variant], numeric_only: bool) -> bool {
             error!("Variant array contains nested array {:?}", expected_type_id);
             false
         } else if values.len() > 1 {
-            // Ensure all elements are the expected type
+            // Ensure all remaining elements are the same type as the first element
             values[1..].iter().find(|v| {
                 if v.type_id() != expected_type_id {
                     error!("Variant array's type is expected to be {:?} but found another type {:?} in it too", expected_type_id, v.type_id());

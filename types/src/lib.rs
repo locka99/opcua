@@ -122,6 +122,7 @@ pub mod date_time;
 pub mod diagnostic_info;
 pub mod guid;
 pub mod node_id;
+pub mod node_ids;
 pub mod variant;
 pub mod data_types;
 pub mod notification_message;
@@ -131,6 +132,8 @@ pub mod numeric_range;
 pub mod url;
 pub mod argument;
 pub mod tcp_types;
+pub mod service_types;
+pub mod status_code;
 
 pub use crate::{
     encoding::*,
@@ -151,12 +154,6 @@ pub use crate::{
     url::*,
     argument::*,
 };
-
-
-// These mods are not use'd into this mod - too many types
-pub mod service_types;
-pub mod node_ids;
-pub mod status_code;
 
 #[cfg(test)]
 mod tests;

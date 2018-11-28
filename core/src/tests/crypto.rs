@@ -199,8 +199,8 @@ fn test_asymmetric_encrypt_and_decrypt(cert: &X509, key: &PrivateKey, security_p
 fn asymmetric_encrypt_and_decrypt() {
     let (cert, key) = make_test_cert_2048();
     // Try all security policies, ensure they encrypt / decrypt for various sizes
-    for security_policy in [SecurityPolicy::Basic128Rsa15, SecurityPolicy::Basic256, SecurityPolicy::Basic256Sha256].iter() {
-        for data_size in [0, 1, 127, 128, 129, 255, 256, 257, 13001].iter() {
+    for security_policy in &[SecurityPolicy::Basic128Rsa15, SecurityPolicy::Basic256, SecurityPolicy::Basic256Sha256] {
+        for data_size in &[0, 1, 127, 128, 129, 255, 256, 257, 13001] {
             test_asymmetric_encrypt_and_decrypt(&cert, &key, *security_policy, *data_size);
         }
     }
