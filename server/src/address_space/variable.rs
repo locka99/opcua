@@ -61,7 +61,8 @@ impl VariableBuilder {
     }
 
     pub fn data_type(mut self, data_type: DataTypeId) -> Self {
-        let _ = self.node.set_attribute(AttributeId::DataType, Variant::new::<NodeId>(data_type.into()).into());
+        let node_id: NodeId = data_type.into();
+        let _ = self.node.set_attribute(AttributeId::DataType, Variant::from(node_id).into());
         self
     }
 
@@ -114,11 +115,12 @@ node_impl!(Variable);
 
 impl Default for Variable {
     fn default() -> Self {
+        let data_type_node_id: NodeId = DataTypeId::Int32.into();
         Variable {
             base: Base::new(NodeClass::Variable, &NodeId::null(), "", "", "", vec![
                 (AttributeId::UserAccessLevel, Variant::Byte(AccessLevel::CURRENT_READ.bits)),
                 (AttributeId::AccessLevel, Variant::Byte(UserAccessLevel::CURRENT_READ.bits)),
-                (AttributeId::DataType, Variant::new::<NodeId>(DataTypeId::Int32.into())),
+                (AttributeId::DataType, Variant::from(data_type_node_id)),
                 (AttributeId::Historizing, Variant::Boolean(false)),
                 (AttributeId::ValueRank, Variant::Int32(-1)),
                 (AttributeId::Value, Variant::Empty)

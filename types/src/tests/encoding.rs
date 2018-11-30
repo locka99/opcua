@@ -341,12 +341,14 @@ fn variant() {
     let v = Variant::XmlElement(XmlElement::from("The world wonders"));
     serialize_test(v);
     // NodeId(NodeId),
-    let v = Variant::from::<NodeId>(ObjectId::AddNodesItem_Encoding_DefaultBinary.into());
+    let v: NodeId = ObjectId::AddNodesItem_Encoding_DefaultBinary.into();
+    let v = Variant::from(v);
     serialize_test(v);
     let v = Variant::from(NodeId::new(99, "hello everyone"));
     serialize_test(v);
     // ExpandedNodeId
-    let v = Variant::from::<ExpandedNodeId>(ObjectId::AddNodesItem_Encoding_DefaultBinary.into());
+    let v: ExpandedNodeId = ObjectId::AddNodesItem_Encoding_DefaultBinary.into();
+    let v = Variant::from(v);
     serialize_test(v);
     // StatusCode
     let v = Variant::from(StatusCode::BadTcpMessageTypeInvalid);
