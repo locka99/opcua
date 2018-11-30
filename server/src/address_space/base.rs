@@ -202,10 +202,10 @@ impl Base {
         // Mandatory attributes
         let mut attributes_to_add = vec![
             (AttributeId::NodeClass, Variant::Int32(node_class as i32)),
-            (AttributeId::NodeId, Variant::new(node_id.clone())),
-            (AttributeId::DisplayName, Variant::new(LocalizedText::new("", display_name))),
-            (AttributeId::BrowseName, Variant::new(QualifiedName::new(0, browse_name))),
-            (AttributeId::Description, Variant::new(LocalizedText::new("", description))),
+            (AttributeId::NodeId, Variant::from(node_id.clone())),
+            (AttributeId::DisplayName, Variant::from(LocalizedText::new("", display_name))),
+            (AttributeId::BrowseName, Variant::from(QualifiedName::new(0, browse_name))),
+            (AttributeId::Description, Variant::from(LocalizedText::new("", description))),
             (AttributeId::WriteMask, Variant::UInt32(0)),
             (AttributeId::UserWriteMask, Variant::UInt32(0)),
         ];
@@ -234,19 +234,19 @@ impl Base {
     }
 
     pub fn set_node_id(&mut self, node_id: &NodeId) {
-        let _ = self.set_attribute(AttributeId::NodeId, Variant::new(node_id.clone()).into());
+        let _ = self.set_attribute(AttributeId::NodeId, Variant::from(node_id.clone()).into());
     }
 
     pub fn set_display_name<S>(&mut self, display_name: S) where S: Into<LocalizedText> {
-        let _ = self.set_attribute(AttributeId::DisplayName, Variant::new(display_name.into()).into());
+        let _ = self.set_attribute(AttributeId::DisplayName, Variant::from(display_name.into()).into());
     }
 
     pub fn set_browse_name<S>(&mut self, browse_name: S) where S: Into<QualifiedName> {
-        let _ = self.set_attribute(AttributeId::BrowseName, Variant::new(browse_name.into()).into());
+        let _ = self.set_attribute(AttributeId::BrowseName, Variant::from(browse_name.into()).into());
     }
 
     pub fn set_description<S>(&mut self, description: S) where S: Into<LocalizedText> {
-        let _ = self.set_attribute(AttributeId::Description, Variant::new(description.into()).into());
+        let _ = self.set_attribute(AttributeId::Description, Variant::from(description.into()).into());
     }
 
     pub fn set_write_mask(&mut self, write_mask: WriteMask) {

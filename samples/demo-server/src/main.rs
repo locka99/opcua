@@ -110,20 +110,20 @@ impl Scalar {
     /// Returns the default value for any particular type
     pub fn default_value(&self) -> Variant {
         match *self {
-            Scalar::Boolean => Variant::new(false),
-            Scalar::Byte => Variant::new(0u8),
-            Scalar::SByte => Variant::new(0i8),
-            Scalar::Int16 => Variant::new(0i16),
-            Scalar::UInt16 => Variant::new(0u16),
-            Scalar::Int32 => Variant::new(0i32),
-            Scalar::UInt32 => Variant::new(0u32),
-            Scalar::Int64 => Variant::new(0i64),
-            Scalar::UInt64 => Variant::new(0u64),
-            Scalar::Float => Variant::new(0f32),
-            Scalar::Double => Variant::new(0f64),
-            Scalar::String => Variant::new(""),
-            Scalar::DateTime => Variant::new(DateTime::default()),
-            Scalar::Guid => Variant::new(Guid::default())
+            Scalar::Boolean => false.into(),
+            Scalar::Byte => 0u8.into(),
+            Scalar::SByte => 0i8.into(),
+            Scalar::Int16 => 0i16.into(),
+            Scalar::UInt16 => 0u16.into(),
+            Scalar::Int32 => 0i32.into(),
+            Scalar::UInt32 => 0u32.into(),
+            Scalar::Int64 => 0i64.into(),
+            Scalar::UInt64 => 0u64.into(),
+            Scalar::Float => 0f32.into(),
+            Scalar::Double => 0f64.into(),
+            Scalar::String => "".into(),
+            Scalar::DateTime => DateTime::default().into(),
+            Scalar::Guid => Guid::default().into()
         }
     }
 

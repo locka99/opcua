@@ -1,4 +1,4 @@
-//! Contains the implementation of various UA over TCP types.
+ //! Contains the implementation of various UA over TCP types.
 
 use std::io::{Read, Write, Cursor, Result, Error, ErrorKind};
 

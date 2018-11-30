@@ -566,10 +566,6 @@ impl ToString for Variant {
 }
 
 impl Variant {
-    pub fn new<T>(value: T) -> Variant where T: 'static + Into<Variant> {
-        value.into()
-    }
-
     /// Test the flag (convenience method)
     pub fn test_encoding_flag(encoding_mask: u8, data_type_id: DataTypeId) -> bool {
         encoding_mask == data_type_id as u8
@@ -648,51 +644,51 @@ impl Variant {
         let result = if encoding_mask == 0 {
             Variant::Empty
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Boolean) {
-            Self::new(bool::decode(stream, decoding_limits)?)
+            Self::from(bool::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::SByte) {
-            Self::new(i8::decode(stream, decoding_limits)?)
+            Self::from(i8::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Byte) {
-            Self::new(u8::decode(stream, decoding_limits)?)
+            Self::from(u8::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Int16) {
-            Self::new(i16::decode(stream, decoding_limits)?)
+            Self::from(i16::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::UInt16) {
-            Self::new(u16::decode(stream, decoding_limits)?)
+            Self::from(u16::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Int32) {
-            Self::new(i32::decode(stream, decoding_limits)?)
+            Self::from(i32::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::UInt32) {
-            Self::new(u32::decode(stream, decoding_limits)?)
+            Self::from(u32::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Int64) {
-            Self::new(i64::decode(stream, decoding_limits)?)
+            Self::from(i64::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::UInt64) {
-            Self::new(u64::decode(stream, decoding_limits)?)
+            Self::from(u64::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Float) {
-            Self::new(f32::decode(stream, decoding_limits)?)
+            Self::from(f32::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Double) {
-            Self::new(f64::decode(stream, decoding_limits)?)
+            Self::from(f64::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::String) {
-            Self::new(UAString::decode(stream, decoding_limits)?)
+            Self::from(UAString::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::DateTime) {
-            Self::new(DateTime::decode(stream, decoding_limits)?)
+            Self::from(DateTime::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::Guid) {
-            Self::new(Guid::decode(stream, decoding_limits)?)
+            Self::from(Guid::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::ByteString) {
-            Self::new(ByteString::decode(stream, decoding_limits)?)
+            Self::from(ByteString::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::XmlElement) {
             Variant::XmlElement(XmlElement::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::NodeId) {
-            Self::new(NodeId::decode(stream, decoding_limits)?)
+            Self::from(NodeId::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::ExpandedNodeId) {
-            Self::new(ExpandedNodeId::decode(stream, decoding_limits)?)
+            Self::from(ExpandedNodeId::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::StatusCode) {
-            Self::new(StatusCode::decode(stream, decoding_limits)?)
+            Self::from(StatusCode::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::QualifiedName) {
-            Self::new(QualifiedName::decode(stream, decoding_limits)?)
+            Self::from(QualifiedName::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::LocalizedText) {
-            Self::new(LocalizedText::decode(stream, decoding_limits)?)
+            Self::from(LocalizedText::decode(stream, decoding_limits)?)
         } else if encoding_mask == 22 {
-            Self::new(ExtensionObject::decode(stream, decoding_limits)?)
+            Self::from(ExtensionObject::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::DataValue) {
-            Self::new(DataValue::decode(stream, decoding_limits)?)
+            Self::from(DataValue::decode(stream, decoding_limits)?)
         } else {
             Variant::Empty
         };

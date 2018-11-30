@@ -341,30 +341,30 @@ fn variant() {
     let v = Variant::XmlElement(XmlElement::from("The world wonders"));
     serialize_test(v);
     // NodeId(NodeId),
-    let v = Variant::new::<NodeId>(ObjectId::AddNodesItem_Encoding_DefaultBinary.into());
+    let v = Variant::from::<NodeId>(ObjectId::AddNodesItem_Encoding_DefaultBinary.into());
     serialize_test(v);
-    let v = Variant::new(NodeId::new(99, "hello everyone"));
+    let v = Variant::from(NodeId::new(99, "hello everyone"));
     serialize_test(v);
     // ExpandedNodeId
-    let v = Variant::new::<ExpandedNodeId>(ObjectId::AddNodesItem_Encoding_DefaultBinary.into());
+    let v = Variant::from::<ExpandedNodeId>(ObjectId::AddNodesItem_Encoding_DefaultBinary.into());
     serialize_test(v);
     // StatusCode
-    let v = Variant::new(StatusCode::BadTcpMessageTypeInvalid);
+    let v = Variant::from(StatusCode::BadTcpMessageTypeInvalid);
     serialize_test(v);
     // QualifiedName
-    let v = Variant::new(QualifiedName {
+    let v = Variant::from(QualifiedName {
         namespace_index: 100,
         name: UAString::from("this is a qualified name"),
     });
     serialize_test(v);
     // LocalizedText
-    let v = Variant::new(LocalizedText {
+    let v = Variant::from(LocalizedText {
         locale: UAString::from("Hello everyone"),
         text: UAString::from("This text is localized"),
     });
     serialize_test(v);
     // ExtensionObject
-    let v = Variant::new(ExtensionObject::null());
+    let v = Variant::from(ExtensionObject::null());
     serialize_test(v);
     // DataValue
     let v = DataValue {
