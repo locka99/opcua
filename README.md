@@ -23,13 +23,16 @@ supports the embedded, micro and nano profiles but may grow to support features 
 
 The code is licenced under [MPL-2.0](https://opensource.org/licenses/MPL-2.0). Like all open source code, you use this code at your own risk. 
 
+# Setup
+
+Read the [setup](./docs/setup.md) for instructions on building OPCUA for Rust and more in-depth thoughts on the whys 
+and wherefores about the implementation.
+
 # Documentation
 
-See the [CHANGELOG.md](./CHANGELOG.md) for changes per version as well as aspirational / upcoming work.
+Read the [change log](./CHANGELOG.md) for changes per version as well as aspirational / upcoming work.
 
-See the [design docs](./docs/README.md) for more in-depth thoughts on the whys and wherefores of implementing OPC UA in Rust.
-
-The documentation is generated from the latest published crates which may be some way behind current development. 
+The API documentation is generated from the latest published crates which may be some way behind current development. 
 
 <table>
     <tr>
