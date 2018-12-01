@@ -19,25 +19,25 @@ MSYS2 is a Unix style build environment for Windows.
 You should use the MSYS2/MingW64 Shell. You may have to tweak your .bashrc to ensure that both Rust and 
 MinGW64 binaries are on your `PATH` but once that's done you're good to go. 
 
-### MSVC
+### Visual Studio
 
-Microsoft Visual Studio is a commercial product although it comes as a free community version for non-commercial use:
-
-1. Install Microsoft Visual Studio. You must install C++ and 64-bit platform support.
+1. Install [Microsoft Visual Studio](https://visualstudio.microsoft.com/). You must install C++ and 64-bit platform support.
 2. `rustup toolchain install stable-x86_64-pc-windows-msvc`
 3. Download and install http://slproweb.com/download/Win64OpenSSL-1_1_0i.exe
 4. Set an environment variable `OPENSSL_DIR` to point to the installation location, e.g. `C:\OpenSSL-Win64`
 
 Ensure that `%OPENSSL_DIR%\bin` is on your `PATH`.
 
-Note this is a 64-bit build. I haven't tried building 32-bits but it would probably work by adjusting the settings above.
+Note this is a 64-bit build. I haven't tried building 32-bits but it may work by adjusting 64 to 32 as required.
 
 ## Linux
 
-How you do this depends on your dist, either through `apt-get` or `dnf`.
+How you do this depends on your dist, either through `apt-get` or `dnf`. 
 
 1. Install latest stable rust, e.g. via `rustup`
 2. Install gcc and OpenSSL development libs & headers, e.g. `sudo apt-get gcc libssl-dev`
+
+Adjust your package names as appropriate for other versions of Linux.
 
 ## Workspace Layout
 
@@ -246,7 +246,7 @@ All types are defined in the `opcua-types` crate.
 
 ### Primitives
 
-OPC UA primitive types are mapped onto their Rust equivalents
+OPC UA primitive types are referred to by their Rust equivalents, i.e. if the specification says `Int32`, the signature of the function / struct will use `i32`:
 
 * `Boolean` to `bool`
 * `SByte` to `i8`
