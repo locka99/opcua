@@ -173,14 +173,16 @@ impl AddressSpace {
     pub fn set_server_state(&mut self, server_state: Arc<RwLock<ServerState>>) {
         use opcua_types::node_ids::VariableId::*;
 
+        let now = DateTime::now();
+
         // Server variables
         {
             let server_state = trace_read_lock_unwrap!(server_state);
             if let Some(ref mut v) = self.find_variable_mut(Server_NamespaceArray) {
-                v.set_value_direct(&DateTime::now(), Variant::from_string_array(&server_state.namespaces));
+                v.set_value_direct(Variant::from_string_array(&server_state.namespaces), &now);
             }
             if let Some(ref mut v) = self.find_variable_mut(Server_ServerArray) {
-                v.set_value_direct(&DateTime::now(), Variant::from_string_array(&server_state.servers));
+                v.set_value_direct(Variant::from_string_array(&server_state.servers), &now);
             }
         }
 
@@ -188,13 +190,13 @@ impl AddressSpace {
         {
             let server_state = trace_read_lock_unwrap!(server_state);
             let server_config = trace_read_lock_unwrap!(server_state.config);
-            self.set_variable_value(Server_ServerCapabilities_MaxArrayLength, server_config.max_array_length as u32);
-            self.set_variable_value(Server_ServerCapabilities_MaxStringLength, server_config.max_string_length as u32);
-            self.set_variable_value(Server_ServerCapabilities_MaxByteStringLength, server_config.max_byte_string_length as u32);
-            self.set_variable_value(Server_ServerCapabilities_MaxBrowseContinuationPoints, constants::MAX_BROWSE_CONTINUATION_POINTS as u32);
-            self.set_variable_value(Server_ServerCapabilities_MaxHistoryContinuationPoints, constants::MAX_HISTORY_CONTINUATION_POINTS as u32);
-            self.set_variable_value(Server_ServerCapabilities_MaxQueryContinuationPoints, constants::MAX_QUERY_CONTINUATION_POINTS as u32);
-            self.set_variable_value(Server_ServerCapabilities_MinSupportedSampleRate, constants::MIN_SAMPLING_INTERVAL as f64);
+            self.set_variable_value(Server_ServerCapabilities_MaxArrayLength, server_config.max_array_length as u32, &now);
+            self.set_variable_value(Server_ServerCapabilities_MaxStringLength, server_config.max_string_length as u32, &now);
+            self.set_variable_value(Server_ServerCapabilities_MaxByteStringLength, server_config.max_byte_string_length as u32, &now);
+            self.set_variable_value(Server_ServerCapabilities_MaxBrowseContinuationPoints, constants::MAX_BROWSE_CONTINUATION_POINTS as u32, &now);
+            self.set_variable_value(Server_ServerCapabilities_MaxHistoryContinuationPoints, constants::MAX_HISTORY_CONTINUATION_POINTS as u32, &now);
+            self.set_variable_value(Server_ServerCapabilities_MaxQueryContinuationPoints, constants::MAX_QUERY_CONTINUATION_POINTS as u32, &now);
+            self.set_variable_value(Server_ServerCapabilities_MinSupportedSampleRate, constants::MIN_SAMPLING_INTERVAL as f64, &now);
         }
 
         // Server_ServerCapabilities_ServerProfileArray
@@ -236,7 +238,7 @@ impl AddressSpace {
                 //  Security Default ApplicationInstanceCertificate
                 "http://opcfoundation.org/UA-Profile/Server/EmbeddedUA".to_string(),
             ];
-            v.set_value_direct(&DateTime::now(), Variant::from_string_array(&server_profiles));
+            v.set_value_direct(Variant::from_string_array(&server_profiles), &now);
         }
 
         // Server_ServerCapabilities_LocaleIdArray
@@ -264,7 +266,7 @@ impl AddressSpace {
         }
 
         // ServiceLevel - 0-255 worst to best quality of service
-        self.set_variable_value(Server_ServiceLevel, 255u8);
+        self.set_variable_value(Server_ServiceLevel, 255u8, &now);
 
         // Auditing - var
         // ServerDiagnostics
@@ -272,7 +274,7 @@ impl AddressSpace {
         // ServerRedundancy
 
         // Server status
-        self.set_variable_value(Server_ServerStatus_StartTime, DateTime::now());
+        self.set_variable_value(Server_ServerStatus_StartTime, now.clone(), &now);
 
         // Server_ServerStatus_CurrentTime
         self.set_variable_getter(Server_ServerStatus_CurrentTime, move |_, _| {
@@ -607,17 +609,17 @@ impl AddressSpace {
     }
     /// Set a variable value from its NodeId. The function will return false if the variable does
     /// not exist, or the node is not a variable.
-    pub fn set_variable_value<N, V>(&mut self, node_id: N, value: V) -> bool
+    pub fn set_variable_value<N, V>(&mut self, node_id: N, value: V, now: &DateTime) -> bool
         where N: Into<NodeId>, V: Into<Variant> {
-        self.set_variable_value_by_ref(&node_id.into(), value)
+        self.set_variable_value_by_ref(&node_id.into(), value, now)
     }
 
     /// Set a variable value from its NodeId. The function will return false if the variable does
     /// not exist, or the node is not a variable.
-    pub fn set_variable_value_by_ref<V>(&mut self, node_id: &NodeId, value: V) -> bool
+    pub fn set_variable_value_by_ref<V>(&mut self, node_id: &NodeId, value: V, now: &DateTime) -> bool
         where V: Into<Variant> {
         if let Some(ref mut variable) = self.find_variable_mut_by_ref(node_id) {
-            variable.set_value_direct(&DateTime::now(), value);
+            variable.set_value_direct(value, now);
             true
         } else {
             false

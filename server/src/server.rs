@@ -53,7 +53,7 @@ pub type Connections = Vec<Arc<RwLock<TcpTransport>>>;
 ///
 pub struct Server {
     /// List of pending polling actions to add to the server once run is called
-    pending_polling_actions: Vec<(u32, Box<dyn Fn() + Send + Sync + 'static>)>,
+    pending_polling_actions: Vec<(u64, Box<dyn Fn() + Send + Sync + 'static>)>,
     /// Certificate store for certs
     pub certificate_store: Arc<RwLock<CertificateStore>>,
     /// Server metrics - diagnostics and anything else that someone might be interested in that
@@ -318,6 +318,7 @@ impl Server {
     fn start_abort_poll(server: Arc<RwLock<Server>>, tx_abort: UnboundedSender<()>) {
         let task = Interval::new(Instant::now(), Duration::from_millis(1000))
             .take_while(move |_| {
+                trace!("abort_poll_task.take_while");
                 let abort = {
                     // Check if there are any open sessions
                     let server = trace_read_lock_unwrap!(server);
@@ -371,12 +372,14 @@ impl Server {
             // anything.
             let task = Interval::new(Instant::now(), Duration::from_millis(1000))
                 .take_while(move |_| {
+                    trace!("discovery_server_register.take_while");
                     let server_state = trace_read_lock_unwrap!(server_state_for_take);
                     future::ok(!server_state.is_abort())
                 })
                 .for_each(move |_| {
                     // Test if registration needs to happen, i.e. if this is first time around,
                     // or if duration has elapsed since last attempt.
+                    trace!("discovery_server_register.for_each");
                     let now = Instant::now();
                     let mut last_registered = trace_lock_unwrap!(last_registered);
                     let register_server = if now.duration_since(*last_registered) >= register_duration {
@@ -418,7 +421,7 @@ impl Server {
 
     /// Creates a polling action that happens continuously on an interval while the server
     /// is running.
-    pub fn add_polling_action<F>(&mut self, interval_ms: u32, action: F)
+    pub fn add_polling_action<F>(&mut self, interval_ms: u64, action: F)
         where F: Fn() + Send + Sync + 'static {
         // If the server is not yet running, the action is queued and is started later
         let server_state = trace_read_lock_unwrap!(self.server_state);

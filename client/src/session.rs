@@ -1160,6 +1160,7 @@ impl Session {
         debug!("Publishing interval {}", publishing_interval);
         Box::new(Interval::new(Instant::now(), Duration::from_millis(publishing_interval as u64))
             .take_while(move |_| {
+                trace!("publishing_interval.take_while");
                 let (take, respawn) = {
                     let subscription_state = trace_read_lock_unwrap!(subscription_state);
                     if let Some(ref subscription) = subscription_state.get(subscription_id) {

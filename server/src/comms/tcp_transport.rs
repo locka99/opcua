@@ -243,6 +243,7 @@ impl TcpTransport {
 
         let finished_monitor_task = Interval::new(Instant::now(), Duration::from_millis(constants::HELLO_TIMEOUT_POLL_MS))
             .take_while(move |_| {
+                trace!("finished_monitor_task.take_while");
                 let (is_server_abort, is_finished) = {
                     let transport = trace_read_lock_unwrap!(transport);
                     (transport.is_server_abort(), transport.is_finished())
@@ -282,6 +283,7 @@ impl TcpTransport {
         let looping_task = receiver.map(move |(request_id, response)| {
             (request_id, response, connection.clone())
         }).take_while(move |(_, response, _)| {
+            trace!("write_looping_task.take_while");
             let take = if let SupportedMessage::Invalid(_) = response {
                 error!("Writer is terminating because it received an invalid message");
                 let mut transport = trace_write_lock_unwrap!(transport);
@@ -479,6 +481,7 @@ impl TcpTransport {
         let transport_for_take_while = state.transport.clone();
         let task = Interval::new(Instant::now(), Duration::from_millis(constants::HELLO_TIMEOUT_POLL_MS))
             .take_while(move |_| {
+                trace!("hello_timeout_task.take_while");
                 // Terminates when session is no longer waiting for a hello or connection is done
                 let transport = trace_read_lock_unwrap!(transport_for_take_while);
                 let kill_timer = transport.has_received_hello() || transport.is_finished();
@@ -556,6 +559,7 @@ impl TcpTransport {
             let interval_duration = Duration::from_millis(constants::SUBSCRIPTION_TIMER_RATE_MS);
             let task = Interval::new(Instant::now(), interval_duration)
                 .take_while(move |_| {
+                    trace!("subscriptions_task.take_while");
                     connection_finished_test!(transport_for_take_while)
                 })
                 .for_each(move |_| {
@@ -618,6 +622,7 @@ impl TcpTransport {
 
             tokio::spawn(subscription_rx
                 .take_while(move |_| {
+                    trace!("receiving_task.take_while");
                     connection_finished_test!(transport_for_take_while)
                 })
                 .for_each(move |subscription_event| {

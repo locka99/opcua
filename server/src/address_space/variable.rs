@@ -197,7 +197,7 @@ impl Variable {
 
     /// Sets the variable's value directly but first test to see if it has changed. If the value has not
     /// changed the existing timestamps are preserved.
-    pub fn set_value_direct<V>(&mut self, now: &DateTime, value: V) where V: Into<Variant> {
+    pub fn set_value_direct<V>(&mut self, value: V, now: &DateTime) where V: Into<Variant> {
         let mut data_value = self.value();
         let new_value = value.into();
         if let Some(ref existing_value) = data_value.value {

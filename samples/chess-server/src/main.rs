@@ -105,7 +105,9 @@ fn update_board_state(game: &game::Game, address_space: &mut AddressSpace) {
         // Piece on the square
         let square_value = game.square_from_str(square);
         let node_id = NodeId::new(2, *square);
-        let _ = address_space.set_variable_value(node_id, square_value as u8);
+
+        let now = DateTime::now();
+        let _ = address_space.set_variable_value(node_id, square_value as u8, &now);
 
         // Highlight the square
         let node_id = NodeId::new(2, format!("{}.highlight", square));
@@ -114,6 +116,6 @@ fn update_board_state(game: &game::Game, address_space: &mut AddressSpace) {
         } else {
             false
         };
-        let _ = address_space.set_variable_value(node_id, highlight_square);
+        let _ = address_space.set_variable_value(node_id, highlight_square, &now);
     }
 }

@@ -70,8 +70,9 @@ fn add_example_variables(server: &mut Server) {
             data.0 += 1;
             data.1 = !data.1;
             let mut address_space = address_space.write().unwrap();
-            let _ = address_space.set_variable_value(v1_node.clone(), data.0 as i32);
-            let _ = address_space.set_variable_value(v2_node.clone(), data.1);
+            let now = DateTime::now();
+            let _ = address_space.set_variable_value(v1_node.clone(), data.0 as i32, &now);
+            let _ = address_space.set_variable_value(v2_node.clone(), data.1, &now);
         });
     }
 

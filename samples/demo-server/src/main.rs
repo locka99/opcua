@@ -287,13 +287,14 @@ fn set_dynamic_timers(server: &mut Server) {
     server.add_polling_action(250, move || {
         let mut address_space = address_space.write().unwrap();
         // Scalar
+        let now = DateTime::now();
         Scalar::values().iter().for_each(|sn| {
             let node_id = sn.node_id(true, false);
-            let _ = address_space.set_variable_value_by_ref(&node_id, sn.random_value());
+            let _ = address_space.set_variable_value_by_ref(&node_id, sn.random_value(), &now);
 
             let node_id = sn.node_id(true, true);
             let values = (0..10).map(|_| sn.random_value()).collect::<Vec<Variant>>();
-            let _ = address_space.set_variable_value_by_ref(&node_id, values);
+            let _ = address_space.set_variable_value_by_ref(&node_id, values, &now);
         });
     });
 }
@@ -321,9 +322,10 @@ fn set_stress_timer(server: &mut Server, node_ids: Vec<NodeId>) {
     server.add_polling_action(100, move || {
         let mut rng = rand::thread_rng();
         let mut address_space = address_space.write().unwrap();
+        let now = DateTime::now();
         node_ids.iter().for_each(|node_id| {
             let value: Variant = rng.gen::<i32>().into();
-            let _ = address_space.set_variable_value_by_ref(node_id, value);
+            let _ = address_space.set_variable_value_by_ref(node_id, value, &now);
         });
     });
 }
