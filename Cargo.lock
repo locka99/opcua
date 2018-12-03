@@ -1438,6 +1438,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "opcua-web-client"
+version = "0.6.0"
+dependencies = [
+ "actix-web 0.7.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "clap 2.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "opcua-client 0.6.0",
+ "opcua-console-logging 0.6.0",
+ "opcua-core 0.6.0",
+ "opcua-types 0.6.0",
+]
+
+[[package]]
 name = "openssl"
 version = "0.10.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
