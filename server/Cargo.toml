@@ -12,7 +12,7 @@ documentation = "https://docs.rs/opcua-server/"
 
 [features]
 default = []
-http = ["hyper"]
+http = ["actix-web"]
 
 [dependencies]
 log = "0.4"
@@ -30,8 +30,8 @@ tokio-timer = "0.2"
 futures = "0.1"
 bitflags = "1.0"
 
-[dependencies.hyper]
-version = "0.12"
+[dependencies.actix-web]
+version = "0.7"
 optional = true
 
 [dependencies.opcua-types]

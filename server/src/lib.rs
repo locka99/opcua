@@ -28,7 +28,7 @@
 //!  ```
 extern crate chrono;
 #[cfg(feature = "http")]
-extern crate hyper;
+extern crate actix_web;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]

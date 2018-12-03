@@ -52,7 +52,12 @@ fn main() {
     add_control_switches(&mut server);
 
     // Start the http server, used for metrics
-    http::run_http_server("127.0.0.1:8585", server.server_state.clone(), server.connections.clone(), server.server_metrics.clone());
+    {
+        let server_state = server.server_state.clone();
+        let connections = server.connections.clone();
+        let metrics = server.server_metrics.clone();
+        let _ = http::run_http_server("127.0.0.1:8585", "../../server/html", server_state, connections, metrics);
+    }
 
     // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
     server.run();

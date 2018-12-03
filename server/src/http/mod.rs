@@ -1,17 +1,18 @@
 use std::sync::{Arc, RwLock};
 use std::thread;
+use std::path::PathBuf;
 
 use futures::{Poll, Async};
 use futures::future::Future;
-use hyper::{self, Server, Request, Response, Body, Method, StatusCode};
-use hyper::service::service_fn_ok;
-use hyper::rt;
+
+use actix_web::{http, server, App, Responder, HttpRequest, HttpResponse, fs};
+
 use serde_json;
 
 use crate::{
     server::Connections,
     metrics::ServerMetrics,
-    state::ServerState
+    state::ServerState,
 };
 
 /// This is our metrics service, the thing called to handle requests coming from hyper
@@ -22,43 +23,33 @@ struct HttpState {
     server_metrics: Arc<RwLock<ServerMetrics>>,
 }
 
-fn http(state: &HttpState, req: Request<Body>) -> Response<Body> {
-    let mut builder = Response::builder();
-    match (req.method(), req.uri().path()) {
-        (&Method::GET, "/") => {
-            let content = include_str!("index.html");
-            builder
-                .body(content.into())
-                .unwrap()
+fn index(req: &HttpRequest<HttpState>) -> impl Responder {
+    fs::NamedFile::open("html/index.html")
+}
+
+fn metrics(req: &HttpRequest<HttpState>) -> impl Responder {
+    use std::ops::Deref;
+
+    let state = req.state();
+
+    // Send metrics data as json
+    let json = {
+        let mut server_metrics = state.server_metrics.write().unwrap();
+        {
+            let server_state = state.server_state.read().unwrap();
+            server_metrics.update_from_server_state(&server_state);
         }
-        (&Method::GET, "/metrics") => {
-            use std::ops::Deref;
-            // Send metrics data as json
-            let json = {
-                let mut server_metrics = state.server_metrics.write().unwrap();
-                {
-                    let server_state = state.server_state.read().unwrap();
-                    server_metrics.update_from_server_state(&server_state);
-                }
-                {
-                    let connections = state.connections.read().unwrap();
-                    let connections = connections.deref();
-                    server_metrics.update_from_connections(connections);
-                }
-                serde_json::to_string_pretty(server_metrics.deref()).unwrap()
-            };
-            builder
-                .header(hyper::header::CONTENT_TYPE, "text/json")
-                .body(json.into())
-                .unwrap()
+        {
+            let connections = state.connections.read().unwrap();
+            let connections = connections.deref();
+            server_metrics.update_from_connections(connections);
         }
-        _ => {
-            builder
-                .status(StatusCode::NOT_FOUND)
-                .body(Body::empty())
-                .unwrap()
-        }
-    }
+        serde_json::to_string_pretty(server_metrics.deref()).unwrap()
+    };
+
+    HttpResponse::Ok()
+        .content_type("application/json")
+        .body(json)
 }
 
 struct HttpQuit {
@@ -83,30 +74,29 @@ impl Future for HttpQuit {
 }
 
 /// Runs an http server on the specified binding address, serving out the supplied server metrics
-pub fn run_http_server(address: &str, server_state: Arc<RwLock<ServerState>>, connections: Arc<RwLock<Connections>>, server_metrics: Arc<RwLock<ServerMetrics>>) -> thread::JoinHandle<()> {
-    let address = address.parse().unwrap();
+pub fn run_http_server(address: &str, content_path: &str, server_state: Arc<RwLock<ServerState>>, connections: Arc<RwLock<Connections>>, server_metrics: Arc<RwLock<ServerMetrics>>) -> thread::JoinHandle<()> {
+    let address = String::from(address);
+
+    let base_path = PathBuf::from(content_path);
     thread::spawn(move || {
-        let http_state = HttpState {
-            server_state: server_state.clone(),
-            connections,
-            server_metrics,
-        };
-
         info!("HTTP server is running on http://{}/ to provide OPC UA server metrics", address);
-        let new_service = move || {
-            let http_state = http_state.clone();
-            service_fn_ok(move |req| http(&http_state, req))
-        };
-
-        let http_server = Server::bind(&address)
-            .serve(new_service)
-            .map_err(|e| error!("Http server error: {}", e));
-
-        rt::run(http_server);
+        server::new(
+            move || {
+                App::with_state(HttpState {
+                    server_state: server_state.clone(),
+                    connections: connections.clone(),
+                    server_metrics: server_metrics.clone(),
+                })
+                    .resource("/metrics", |r| r.method(http::Method::GET).f(metrics))
+                    .handler("/", fs::StaticFiles::new(base_path.clone()).unwrap()
+                        .index_file("index.html"))
+            })
+            .bind(&address).unwrap()
+            .run();
 
         // This polling action will quit the http server when the OPC UA server aborts
         // TODO the server should consume this and terminate
-        let _server_should_quit = HttpQuit { server_state };
+        // let _server_should_quit = HttpQuit { server_state };
         // http_server.run_until(server_should_quit).unwrap();
 
         info!("HTTP server has stopped");
