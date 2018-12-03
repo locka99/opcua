@@ -179,10 +179,10 @@ impl AddressSpace {
         {
             let server_state = trace_read_lock_unwrap!(server_state);
             if let Some(ref mut v) = self.find_variable_mut(Server_NamespaceArray) {
-                v.set_value_direct(Variant::from_string_array(&server_state.namespaces), &now);
+                v.set_value_direct(Variant::from_string_array(&server_state.namespaces), &now, &now);
             }
             if let Some(ref mut v) = self.find_variable_mut(Server_ServerArray) {
-                v.set_value_direct(Variant::from_string_array(&server_state.servers), &now);
+                v.set_value_direct(Variant::from_string_array(&server_state.servers), &now, &now);
             }
         }
 
@@ -190,13 +190,13 @@ impl AddressSpace {
         {
             let server_state = trace_read_lock_unwrap!(server_state);
             let server_config = trace_read_lock_unwrap!(server_state.config);
-            self.set_variable_value(Server_ServerCapabilities_MaxArrayLength, server_config.max_array_length as u32, &now);
-            self.set_variable_value(Server_ServerCapabilities_MaxStringLength, server_config.max_string_length as u32, &now);
-            self.set_variable_value(Server_ServerCapabilities_MaxByteStringLength, server_config.max_byte_string_length as u32, &now);
-            self.set_variable_value(Server_ServerCapabilities_MaxBrowseContinuationPoints, constants::MAX_BROWSE_CONTINUATION_POINTS as u32, &now);
-            self.set_variable_value(Server_ServerCapabilities_MaxHistoryContinuationPoints, constants::MAX_HISTORY_CONTINUATION_POINTS as u32, &now);
-            self.set_variable_value(Server_ServerCapabilities_MaxQueryContinuationPoints, constants::MAX_QUERY_CONTINUATION_POINTS as u32, &now);
-            self.set_variable_value(Server_ServerCapabilities_MinSupportedSampleRate, constants::MIN_SAMPLING_INTERVAL as f64, &now);
+            self.set_variable_value(Server_ServerCapabilities_MaxArrayLength, server_config.max_array_length as u32, &now, &now);
+            self.set_variable_value(Server_ServerCapabilities_MaxStringLength, server_config.max_string_length as u32, &now, &now);
+            self.set_variable_value(Server_ServerCapabilities_MaxByteStringLength, server_config.max_byte_string_length as u32, &now, &now);
+            self.set_variable_value(Server_ServerCapabilities_MaxBrowseContinuationPoints, constants::MAX_BROWSE_CONTINUATION_POINTS as u32, &now, &now);
+            self.set_variable_value(Server_ServerCapabilities_MaxHistoryContinuationPoints, constants::MAX_HISTORY_CONTINUATION_POINTS as u32, &now, &now);
+            self.set_variable_value(Server_ServerCapabilities_MaxQueryContinuationPoints, constants::MAX_QUERY_CONTINUATION_POINTS as u32, &now, &now);
+            self.set_variable_value(Server_ServerCapabilities_MinSupportedSampleRate, constants::MIN_SAMPLING_INTERVAL as f64, &now, &now);
         }
 
         // Server_ServerCapabilities_ServerProfileArray
@@ -238,7 +238,7 @@ impl AddressSpace {
                 //  Security Default ApplicationInstanceCertificate
                 "http://opcfoundation.org/UA-Profile/Server/EmbeddedUA".to_string(),
             ];
-            v.set_value_direct(Variant::from_string_array(&server_profiles), &now);
+            v.set_value_direct(Variant::from_string_array(&server_profiles), &now, &now);
         }
 
         // Server_ServerCapabilities_LocaleIdArray
@@ -266,15 +266,15 @@ impl AddressSpace {
         }
 
         // ServiceLevel - 0-255 worst to best quality of service
-        self.set_variable_value(Server_ServiceLevel, 255u8, &now);
+        self.set_variable_value(Server_ServiceLevel, 255u8, &now, &now);
 
         // Auditing - var
         // ServerDiagnostics
         // VendorServiceInfo
         // ServerRedundancy
 
-        // Server status
-        self.set_variable_value(Server_ServerStatus_StartTime, now.clone(), &now);
+        // Server_ServerStatus_StartTime
+        self.set_variable_value(Server_ServerStatus_StartTime, now.clone(), &now, &now);
 
         // Server_ServerStatus_CurrentTime
         self.set_variable_getter(Server_ServerStatus_CurrentTime, move |_, _| {
@@ -609,17 +609,17 @@ impl AddressSpace {
     }
     /// Set a variable value from its NodeId. The function will return false if the variable does
     /// not exist, or the node is not a variable.
-    pub fn set_variable_value<N, V>(&mut self, node_id: N, value: V, now: &DateTime) -> bool
+    pub fn set_variable_value<N, V>(&mut self, node_id: N, value: V, source_timestamp: &DateTime, server_timestamp: &DateTime) -> bool
         where N: Into<NodeId>, V: Into<Variant> {
-        self.set_variable_value_by_ref(&node_id.into(), value, now)
+        self.set_variable_value_by_ref(&node_id.into(), value, source_timestamp, server_timestamp)
     }
 
     /// Set a variable value from its NodeId. The function will return false if the variable does
     /// not exist, or the node is not a variable.
-    pub fn set_variable_value_by_ref<V>(&mut self, node_id: &NodeId, value: V, now: &DateTime) -> bool
+    pub fn set_variable_value_by_ref<V>(&mut self, node_id: &NodeId, value: V, source_timestamp: &DateTime, server_timestamp: &DateTime) -> bool
         where V: Into<Variant> {
         if let Some(ref mut variable) = self.find_variable_mut_by_ref(node_id) {
-            variable.set_value_direct(value, now);
+            variable.set_value_direct(value, source_timestamp, server_timestamp);
             true
         } else {
             false

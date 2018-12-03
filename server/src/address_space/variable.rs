@@ -197,20 +197,8 @@ impl Variable {
 
     /// Sets the variable's value directly but first test to see if it has changed. If the value has not
     /// changed the existing timestamps are preserved.
-    pub fn set_value_direct<V>(&mut self, value: V, now: &DateTime) where V: Into<Variant> {
-        let mut data_value = self.value();
-        let new_value = value.into();
-        if let Some(ref existing_value) = data_value.value {
-            if *existing_value == new_value {
-                return;
-            }
-        }
-        data_value.server_timestamp = Some(now.clone());
-        data_value.server_picoseconds = Some(0);
-        data_value.source_timestamp = Some(now.clone());
-        data_value.source_picoseconds = Some(0);
-        data_value.value = Some(new_value);
-        self.set_value(data_value);
+    pub fn set_value_direct<V>(&mut self, value: V, source_timestamp: &DateTime, server_timestamp: &DateTime) where V: Into<Variant> {
+        let _ = self.base.set_attribute(AttributeId::Value, DataValue::from((value.into(), source_timestamp, server_timestamp)));
     }
 
     /// Sets a getter function that will be called to get the value of this variable.

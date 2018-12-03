@@ -162,6 +162,33 @@ impl From<Variant> for DataValue {
     }
 }
 
+impl<'a> From<(Variant, &'a DateTime)> for DataValue {
+    fn from(v: (Variant, &'a DateTime)) -> Self {
+        DataValue {
+            value: Some(v.0),
+            status: Some(StatusCode::Good.bits()),
+            source_timestamp: Some(v.1.clone()),
+            source_picoseconds: Some(0),
+            server_timestamp: Some(v.1.clone()),
+            server_picoseconds: Some(0),
+        }
+    }
+}
+
+impl<'a> From<(Variant, &'a DateTime, &'a DateTime)> for DataValue {
+    fn from(v: (Variant, &'a DateTime, &'a DateTime)) -> Self {
+        // First date is source time, second is server time
+        DataValue {
+            value: Some(v.0),
+            status: Some(StatusCode::Good.bits()),
+            source_timestamp: Some(v.1.clone()),
+            source_picoseconds: Some(0),
+            server_timestamp: Some(v.2.clone()),
+            server_picoseconds: Some(0),
+        }
+    }
+}
+
 impl DataValue {
     /// Creates a data value from the supplied value
     pub fn new<V>(value: V) -> DataValue where V: Into<Variant> {
@@ -189,11 +216,11 @@ impl DataValue {
     }
 
     /// Sets the value of the data value, updating the timestamps at the same point
-    pub fn set_value<V>(&mut self, value: V, source_timestamp: DateTime, server_timestamp: DateTime) where V: Into<Variant> {
+    pub fn set_value<V>(&mut self, value: V, source_timestamp: &DateTime, server_timestamp: &DateTime) where V: Into<Variant> {
         self.value = Some(value.into());
-        self.source_timestamp = Some(source_timestamp);
+        self.source_timestamp = Some(source_timestamp.clone());
         self.source_picoseconds = Some(0);
-        self.server_timestamp = Some(server_timestamp);
+        self.server_timestamp = Some(server_timestamp.clone());
         self.server_picoseconds = Some(0);
     }
 
