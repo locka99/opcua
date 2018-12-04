@@ -4,7 +4,7 @@ version = "0.6.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 
 [dependencies]
-clap = "2.27"
+actix = "0.7"
 actix-web = "0.7"
 
 [dependencies.opcua-types]

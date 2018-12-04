@@ -56,6 +56,7 @@ fn main() {
         let server_state = server.server_state.clone();
         let connections = server.connections.clone();
         let metrics = server.server_metrics.clone();
+        // The index.html is in a path relative to the working dir.
         let _ = http::run_http_server("127.0.0.1:8585", "../../server/html", server_state, connections, metrics);
     }
 

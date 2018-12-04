@@ -6,3 +6,6 @@ intended to be as basic as `simple-server` and will grow over time to:
 * Be used for testing / verification purposes
 * Http access to diagnostics and other info
 * More sophisticated logging and data capture
+
+There is an http server showing metrics running on localhost:8585, however `cargo run` must be issued from `opcua/samples/demo-server`
+because it is serving content from a relative path `../../server/html`. 

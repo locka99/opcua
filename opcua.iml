@@ -62,6 +62,10 @@
       <sourceFolder url="file://$MODULE_DIR$/integration/examples" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/integration/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/integration/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/samples/web-client/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/samples/web-client/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/samples/web-client/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/samples/web-client/benches" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/client/target" />
       <excludeFolder url="file://$MODULE_DIR$/console-logging/target" />
       <excludeFolder url="file://$MODULE_DIR$/core/target" />
@@ -73,6 +77,7 @@
       <excludeFolder url="file://$MODULE_DIR$/samples/mqtt-client/target" />
       <excludeFolder url="file://$MODULE_DIR$/samples/simple-client/target" />
       <excludeFolder url="file://$MODULE_DIR$/samples/simple-server/target" />
+      <excludeFolder url="file://$MODULE_DIR$/samples/web-client/target" />
       <excludeFolder url="file://$MODULE_DIR$/server/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/tools/certificate-creator/target" />

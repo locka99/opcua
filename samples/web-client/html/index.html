@@ -1,6 +1,45 @@
-<html>
-<head></head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Web Socket client</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+</head>
 <body>
-<h1>Web Socket client</h1>
+<script>
+    // Open a web socket to the server
+    var ws;
+
+    function status(text) {
+        $("#status").text(text);
+    }
+
+    function connect() {
+        ws = new WebSocket("ws://localhost:8686/ws/");
+        ws.onopen = function (e) {
+            status("Connected");
+            ws.send("subscribe");
+        }
+
+        ws.onmessage = function (e) {
+
+        }
+
+        ws.onerror = function (e) {
+            status("Error");
+        }
+    }
+
+    function disconnect() {
+        ws.close();
+        status("Disconnected");
+    }
+</script>
+
+<button id="connect" onclick="connect()">Connect</button>
+<button id="disconnect" onclick="disconnect()">Disconnect</button>
+
+<h2 id="status">Click to connect</h2>
+
 </body>
 </html>
