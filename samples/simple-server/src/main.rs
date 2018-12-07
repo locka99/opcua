@@ -1,14 +1,6 @@
 //! This is a simple server for OPC UA. Our sample creates a server with the default settings
 //! adds some variables to the address space and the listeners for connections. It also has
 //! a timer that updates those variables so anything monitoring variables sees the values changing.
-extern crate chrono;
-
-
-
-extern crate opcua_server;
-
-extern crate opcua_console_logging;
-
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 

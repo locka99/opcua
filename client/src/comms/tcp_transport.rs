@@ -178,7 +178,7 @@ impl TcpTransport {
             panic!("Should not try to connect when already connected");
         }
 
-        use url::Url;
+        use ::url::Url;
         // Validate and split out the endpoint we have
         let result = Url::parse(&endpoint_url);
         if result.is_err() {

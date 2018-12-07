@@ -1,12 +1,5 @@
 //! This is a sample OPC UA Client that connects to the specified server, fetches some
 //! values before exiting.
-#[macro_use]
-extern crate clap;
-extern crate rumqtt;
-
-extern crate opcua_client;
-extern crate opcua_console_logging;
-
 use std::{
     path::PathBuf,
     sync::{Arc, Mutex, RwLock, mpsc},
@@ -14,7 +7,7 @@ use std::{
 };
 
 use rumqtt::{MqttClient, MqttOptions, QoS};
-use clap::{App, Arg};
+use clap::{App, Arg, value_t_or_exit};
 
 use opcua_client::prelude::*;
 

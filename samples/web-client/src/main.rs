@@ -1,7 +1,4 @@
-extern crate actix;
-extern crate actix_web;
-
-use actix::prelude::*;
+use ::actix::prelude::*;
 use actix_web::server::HttpServer;
 use actix_web::{fs, http, ws, App, Error, HttpRequest, HttpResponse};
 
@@ -13,7 +10,7 @@ impl Actor for WebSocket {
     type Context = ws::WebsocketContext<Self, State>;
 
     /// Method is called on actor start. We start the heartbeat process here.
-    fn started(&mut self, ctx: &mut Self::Context) {}
+    fn started(&mut self, _ctx: &mut Self::Context) {}
 }
 
 /// Handler for `ws::Message`

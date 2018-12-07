@@ -15,10 +15,6 @@
 //! This is a minimal server which runs with the default address space on the default port.
 //! 
 //!  ```rust,no_run
-//!  extern crate opcua_types;
-//!  extern crate opcua_core;
-//!  extern crate opcua_server;
-//! 
 //!  use opcua_server::prelude::*;
 //! 
 //!  fn main() {
@@ -26,7 +22,6 @@
 //!      server.run();
 //!  }
 //!  ```
-extern crate chrono;
 #[cfg(feature = "http")]
 extern crate actix_web;
 #[macro_use]
@@ -35,22 +30,10 @@ extern crate lazy_static;
 extern crate log;
 #[macro_use]
 extern crate bitflags;
-
-
 #[macro_use]
 extern crate serde_derive;
-extern crate serde_json;
-extern crate time;
-extern crate futures;
-extern crate tokio;
-extern crate tokio_io;
-extern crate tokio_codec;
-extern crate tokio_timer;
-
-extern crate opcua_client;
 #[macro_use]
 extern crate opcua_core;
-extern crate opcua_types;
 
 type DateTimeUtc = chrono::DateTime<chrono::Utc>;
 

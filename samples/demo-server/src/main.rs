@@ -2,11 +2,6 @@
 //! as well as a full collection of variables of every standard type.
 //!
 //! Use simple-server to understand a terse and simple example.
-extern crate rand;
-extern crate log4rs;
-
-extern crate opcua_server;
-
 use std::path::PathBuf;
 use std::iter::repeat;
 
@@ -85,7 +80,7 @@ enum Scalar {
 
 impl Scalar {
     pub fn name(&self) -> &'static str {
-        match *self {
+        match self {
             Scalar::Boolean => "Boolean",
             Scalar::Byte => "Byte",
             Scalar::SByte => "SByte",
@@ -115,7 +110,7 @@ impl Scalar {
 
     /// Returns the default value for any particular type
     pub fn default_value(&self) -> Variant {
-        match *self {
+        match self {
             Scalar::Boolean => false.into(),
             Scalar::Byte => 0u8.into(),
             Scalar::SByte => 0i8.into(),
@@ -136,7 +131,7 @@ impl Scalar {
     /// Generates a randomized value of the appropriate type in a Variant
     pub fn random_value(&self) -> Variant {
         let mut rng = rand::thread_rng();
-        match *self {
+        match self {
             Scalar::Boolean => rng.gen::<bool>().into(),
             Scalar::Byte => rng.gen::<u8>().into(),
             Scalar::SByte => rng.gen::<i8>().into(),

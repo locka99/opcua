@@ -3,19 +3,8 @@
 
 #[macro_use]
 extern crate log;
-extern crate chrono;
-
-extern crate ring;
-extern crate openssl;
 #[cfg(test)]
 extern crate tempdir;
-extern crate serde;
-extern crate serde_yaml;
-
-extern crate tokio_io;
-extern crate bytes;
-
-extern crate opcua_types;
 
 pub mod comms;
 pub mod crypto;
@@ -64,24 +53,6 @@ macro_rules! trace_write_lock_unwrap {
     }
 }
 
-/// OPC UA for Rust uses the standard log crate for internal logging purposes. This function
-/// can be called by executable targets (e.g. inside main() set up) to enable logging. The default
-/// implementation uses env_logger to provide console based output. Set the `RUST_OPCUA_LOG`
-/// environment variable with the default log level, e.g. `RUST_OPCUA_LOG=debug` for more logging.
-/// See `env_logger` for more filtering options.
-///
-/// Alternatively, don't call it and call another implementation that supports the log macros.
-///
-/// See here for more information
-///
-/// https://crates.io/crates/log
-#[macro_export]
-macro_rules! opcua_init_env_logger {
-    () => {
-        ::opcua_core::init_env_logger();
-    }
-}
-
 /// Contains debugging utility helper functions
 pub mod debug {
     pub const SUBSCRIPTION: &str = "subscription";
@@ -89,7 +60,6 @@ pub mod debug {
     /// Prints out the content of a slice in hex and visible char format to aid debugging. Format
     /// is similar to corresponding functionality in node-opcua
     pub fn log_buffer(message: &str, buf: &[u8]) {
-        use log;
         // No point doing anything unless debug level is on
         if !log_enabled!(log::Level::Trace) {
             return;

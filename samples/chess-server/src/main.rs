@@ -1,11 +1,9 @@
-extern crate opcua_server;
-extern crate uci;
-
-use opcua_server::prelude::*;
 use std::env;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
+
+use opcua_server::prelude::*;
 
 mod game;
 

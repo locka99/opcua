@@ -23,7 +23,7 @@ struct HttpState {
     server_metrics: Arc<RwLock<ServerMetrics>>,
 }
 
-fn index(req: &HttpRequest<HttpState>) -> impl Responder {
+fn index(_req: &HttpRequest<HttpState>) -> impl Responder {
     fs::NamedFile::open("html/index.html")
 }
 

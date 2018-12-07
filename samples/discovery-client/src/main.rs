@@ -1,10 +1,4 @@
 //! This is a sample that calls find servers on a OPC UA discovery server
-extern crate clap;
-extern crate opcua_client;
-
-extern crate opcua_types;
-extern crate opcua_console_logging;
-
 use std::str::FromStr;
 
 use opcua_client::prelude::*;

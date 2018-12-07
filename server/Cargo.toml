@@ -9,6 +9,7 @@ keywords = ["opcua","opc","ua"]
 categories = ["embedded","network-programming"]
 readme = "../README.md"
 documentation = "https://docs.rs/opcua-server/"
+edition = "2018"
 
 [features]
 default = []

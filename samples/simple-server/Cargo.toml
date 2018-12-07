@@ -2,6 +2,7 @@
 name = "opcua-simple-server"
 version = "0.6.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
+edition = "2018"
 
 [dependencies]
 chrono = "0.4"

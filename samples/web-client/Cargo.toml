@@ -2,6 +2,7 @@
 name = "opcua-web-client"
 version = "0.6.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
+edition = "2018"
 
 [dependencies]
 actix = "0.7"

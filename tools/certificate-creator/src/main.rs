@@ -1,6 +1,4 @@
-#[macro_use]
-extern crate clap;
-extern crate opcua_core;
+use clap::value_t_or_exit;
 
 use std::path::PathBuf;
 

@@ -12,14 +12,6 @@ extern crate lazy_static;
 extern crate bitflags;
 #[macro_use]
 extern crate serde_derive;
-extern crate serde;
-extern crate byteorder;
-extern crate chrono;
-extern crate regex;
-extern crate ring;
-extern crate uuid;
-extern crate url as url_external;
-extern crate base64;
 #[cfg(test)]
 extern crate serde_json;
 

@@ -2,7 +2,7 @@
 
 use std;
 
-use crate::url_external::Url;
+use ::url::Url;
 
 use crate::constants::DEFAULT_OPC_UA_SERVER_PORT;
 

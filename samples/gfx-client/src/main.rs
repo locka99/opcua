@@ -1,14 +1,6 @@
 //! This is a graphical client that monitors and displays values from
 //! a server. The files are read from a monitored_items.txt which should be in the working
 //! directory that the program is run from.
-
-extern crate clap;
-#[macro_use]
-extern crate conrod;
-
-extern crate opcua_client;
-extern crate opcua_console_logging;
-
 use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::{BufReader, BufRead};
@@ -20,7 +12,7 @@ use std::thread;
 
 use clap::Arg;
 
-use conrod::{widget, Colorable, Positionable, Sizeable, Widget, Ui};
+use conrod::{widget, Colorable, Positionable, Sizeable, Widget, Ui, widget_ids};
 use conrod::color;
 use conrod::backend::glium::glium::{self, Surface};
 
@@ -130,7 +122,7 @@ fn main() {
 
         // Construct the UI and ids
         let mut ui = conrod::UiBuilder::new([DISPLAY_WIDTH as f64, DISPLAY_HEIGHT as f64]).build();
-        let mut model = UiModel::new(&mut ui, &nodes_to_monitor, session_state.clone());
+        let model = UiModel::new(&mut ui, &nodes_to_monitor, session_state.clone());
 
         {
             // Spawn a thread for the OPC UA client

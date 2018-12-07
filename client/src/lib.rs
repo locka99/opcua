@@ -18,20 +18,8 @@
 
 #[macro_use]
 extern crate log;
-extern crate url;
-extern crate chrono;
-extern crate time;
 #[macro_use]
 extern crate serde_derive;
-
-
-extern crate futures;
-extern crate tokio;
-extern crate tokio_io;
-extern crate tokio_timer;
-extern crate tokio_codec;
-
-extern crate opcua_types;
 #[macro_use]
 extern crate opcua_core;
 

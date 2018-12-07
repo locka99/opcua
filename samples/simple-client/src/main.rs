@@ -5,12 +5,6 @@
 //! 3. Either:
 //!    a) Read some values and exit
 //!    b) Subscribe to values and loop forever printing out their values (using --subscribe)
-extern crate clap;
-extern crate opcua_client;
-
-
-extern crate opcua_console_logging;
-
 use std::sync::{Arc, RwLock};
 use std::path::PathBuf;
 
