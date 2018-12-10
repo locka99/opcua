@@ -10,7 +10,6 @@ use crate::{client::*, config::*};
 /// # Example
 ///
 /// ```rust,no_run
-/// extern crate opcua_client;
 /// use opcua_client::prelude::*;
 ///
 /// fn main() {

@@ -1,5 +1,3 @@
-extern crate env_logger;
-extern crate chrono;
 #[macro_use]
 extern crate log;
 #[macro_use]

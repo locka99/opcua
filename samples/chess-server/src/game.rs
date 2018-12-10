@@ -1,5 +1,3 @@
-extern crate uci;
-
 use uci::Engine;
 
 /// The piece on a square

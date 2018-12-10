@@ -68,10 +68,6 @@ impl Client {
     /// # Example
     ///
     /// ```rust,no_run
-    /// extern crate opcua_core;
-    /// extern crate opcua_client;
-    /// extern crate opcua_types;
-    ///
     /// use opcua_client::prelude::*;
     /// use std::path::PathBuf;
     ///
