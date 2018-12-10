@@ -38,8 +38,10 @@ fn main() {
     // Create an OPC UA server with sample configuration and default node set
     let server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
 
+    let address_space = server.address_space();
+
     {
-        let mut address_space = server.address_space.write().unwrap();
+        let mut address_space = address_space.write().unwrap();
         let board_node_id = address_space
             .add_folder("Board", "Board", &AddressSpace::objects_folder_id())
             .unwrap();
@@ -61,7 +63,6 @@ fn main() {
 
     // Each variable will hold a value representing what's in the square. A client can subscribe to the content
     // of the variables and observe games being played.
-    let address_space = server.address_space.clone();
 
     thread::spawn(move || {
         use std::time::Duration;

@@ -17,8 +17,8 @@ impl ServiceTest {
     pub fn new() -> ServiceTest {
         let server = ServerBuilder::new_anonymous("foo").server().unwrap();
         let tcp_transport = server.new_transport();
-        let server_state = server.server_state.clone();
-        let address_space = server.address_space.clone();
+        let server_state = server.server_state();
+        let address_space = server.address_space();
         let session = tcp_transport.session();
         ServiceTest {
             server,

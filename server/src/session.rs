@@ -120,18 +120,12 @@ impl Session {
 
     pub fn new(server: &Server) -> Session {
         let max_browse_continuation_points = super::constants::MAX_BROWSE_CONTINUATION_POINTS;
-        let max_subscriptions = {
-            let server_state = trace_read_lock_unwrap!(server.server_state);
-            server_state.max_subscriptions
-        };
 
-        let diagnostics = {
-            let server_state = trace_read_lock_unwrap!(server.server_state);
-            server_state.diagnostics.clone()
-        };
-
+        let server_state = server.server_state();
+        let server_state = trace_read_lock_unwrap!(server_state);
+        let max_subscriptions = server_state.max_subscriptions;
+        let diagnostics = server_state.diagnostics.clone();
         let decoding_limits = {
-            let server_state = trace_read_lock_unwrap!(server.server_state);
             let config = trace_read_lock_unwrap!(server_state.config);
             config.decoding_limits()
         };
@@ -146,7 +140,7 @@ impl Session {
             client_certificate: None,
             security_policy_uri: String::new(),
             authentication_token: NodeId::null(),
-            secure_channel: Arc::new(RwLock::new(SecureChannel::new(server.certificate_store.clone(), Role::Server, decoding_limits))),
+            secure_channel: Arc::new(RwLock::new(SecureChannel::new(server.certificate_store(), Role::Server, decoding_limits))),
             session_nonce: ByteString::null(),
             session_timeout: 0f64,
             user_identity: None,

@@ -55,17 +55,17 @@ pub struct Server {
     /// List of pending polling actions to add to the server once run is called
     pending_polling_actions: Vec<(u64, Box<dyn Fn() + Send + Sync + 'static>)>,
     /// Certificate store for certs
-    pub certificate_store: Arc<RwLock<CertificateStore>>,
+    certificate_store: Arc<RwLock<CertificateStore>>,
     /// Server metrics - diagnostics and anything else that someone might be interested in that
     /// describes the current state of the server
-    pub server_metrics: Arc<RwLock<ServerMetrics>>,
+    server_metrics: Arc<RwLock<ServerMetrics>>,
     /// The server state is everything that sessions share that can possibly change. State
     /// is initialised from a [`ServerConfig`].
-    pub server_state: Arc<RwLock<ServerState>>,
+    server_state: Arc<RwLock<ServerState>>,
     /// Address space
-    pub address_space: Arc<RwLock<AddressSpace>>,
+    address_space: Arc<RwLock<AddressSpace>>,
     /// List of open connections
-    pub connections: Arc<RwLock<Connections>>,
+    connections: Arc<RwLock<Connections>>,
 }
 
 impl From<ServerConfig> for Server {
@@ -254,6 +254,26 @@ impl Server {
             })
         });
         info!("Server has stopped");
+    }
+
+    pub fn server_state(&self) -> Arc<RwLock<ServerState>> {
+        self.server_state.clone()
+    }
+
+    pub fn certificate_store(&self) -> Arc<RwLock<CertificateStore>> {
+        self.certificate_store.clone()
+    }
+
+    pub fn address_space(&self) -> Arc<RwLock<AddressSpace>> {
+        self.address_space.clone()
+    }
+
+    pub fn connections(&self) -> Arc<RwLock<Connections>> {
+        self.connections.clone()
+    }
+
+    pub fn server_metrics(&self) -> Arc<RwLock<ServerMetrics>> {
+        self.server_metrics.clone()
     }
 
     // Sets a flag telling the running server to abort. The abort will happen asynchronously after

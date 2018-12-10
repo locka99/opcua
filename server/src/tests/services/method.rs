@@ -70,7 +70,7 @@ fn call_getmonitoreditems() {
     let s = MethodService::new();
 
     let (mut server_state, mut session) = st.get_server_state_and_session();
-    let address_space = st.server.address_space.write().unwrap();
+    let address_space = st.address_space.write().unwrap();
 
     // Call without a valid object id
     {
@@ -172,7 +172,7 @@ fn call_resend_data() {
     let s = MethodService::new();
 
     let (mut server_state, mut session) = st.get_server_state_and_session();
-    let address_space = st.server.address_space.write().unwrap();
+    let address_space = st.address_space.write().unwrap();
 
     // Call without a valid object id
     {

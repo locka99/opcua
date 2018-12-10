@@ -19,7 +19,8 @@ fn main() {
     let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
 
     let (static_folder_id, dynamic_folder_id) = {
-        let mut address_space = server.address_space.write().unwrap();
+        let address_space = server.address_space();
+        let mut address_space = address_space.write().unwrap();
         (
             address_space
                 .add_folder("Static", "Static", &AddressSpace::objects_folder_id())
@@ -48,9 +49,9 @@ fn main() {
 
     // Start the http server, used for metrics
     {
-        let server_state = server.server_state.clone();
-        let connections = server.connections.clone();
-        let metrics = server.server_metrics.clone();
+        let server_state = server.server_state();
+        let connections = server.connections();
+        let metrics = server.server_metrics();
         // The index.html is in a path relative to the working dir.
         let _ = http::run_http_server("127.0.0.1:8585", "../../server/html", server_state, connections, metrics);
     }
@@ -175,8 +176,12 @@ impl Scalar {
 fn add_control_switches(server: &mut Server) {
     // The address space is guarded so obtain a lock to change it
     let abort_node_id = NodeId::new(2u16, "abort");
+
+    let address_space = server.address_space();
+    let server_state = server.server_state();
+
     {
-        let mut address_space = server.address_space.write().unwrap();
+        let mut address_space = address_space.write().unwrap();
 
         let folder_id = address_space
             .add_folder("Control", "Control", &AddressSpace::objects_folder_id())
@@ -187,8 +192,6 @@ fn add_control_switches(server: &mut Server) {
         let _ = address_space.add_variable(variable, &folder_id);
     }
 
-    let server_state = server.server_state.clone();
-    let address_space = server.address_space.clone();
     server.add_polling_action(1000, move || {
         let address_space = address_space.read().unwrap();
         // Test for abort flag
@@ -213,7 +216,8 @@ fn add_control_switches(server: &mut Server) {
 /// Creates some sample variables, and some push / pull examples that update them
 fn add_static_scalar_variables(server: &mut Server, static_folder_id: &NodeId) {
     // The address space is guarded so obtain a lock to change it
-    let mut address_space = server.address_space.write().unwrap();
+    let address_space = server.address_space();
+    let mut address_space = address_space.write().unwrap();
 
     // Create a folder under static folder
     let folder_id = address_space
@@ -230,26 +234,26 @@ fn add_static_scalar_variables(server: &mut Server, static_folder_id: &NodeId) {
 
 fn add_static_array_variables(server: &mut Server, static_folder_id: &NodeId) {
     // The address space is guarded so obtain a lock to change it
-    {
-        let mut address_space = server.address_space.write().unwrap();
+    let address_space = server.address_space();
+    let mut address_space = address_space.write().unwrap();
 
-        // Create a folder under static folder
-        let folder_id = address_space
-            .add_folder("Array", "Array", &static_folder_id)
-            .unwrap();
+    // Create a folder under static folder
+    let folder_id = address_space
+        .add_folder("Array", "Array", &static_folder_id)
+        .unwrap();
 
-        Scalar::values().iter().for_each(|sn| {
-            let node_id = sn.node_id(false, true);
-            let name = sn.name();
-            let values = (0..100).map(|_| sn.default_value()).collect::<Vec<Variant>>();
-            let _ = address_space.add_variable(Variable::new(&node_id, name, name, &format!("{} value", name), values), &folder_id);
-        });
-    }
+    Scalar::values().iter().for_each(|sn| {
+        let node_id = sn.node_id(false, true);
+        let name = sn.name();
+        let values = (0..100).map(|_| sn.default_value()).collect::<Vec<Variant>>();
+        let _ = address_space.add_variable(Variable::new(&node_id, name, name, &format!("{} value", name), values), &folder_id);
+    });
 }
 
 fn add_dynamic_scalar_variables(server: &mut Server, dynamic_folder_id: &NodeId) {
     // The address space is guarded so obtain a lock to change it
-    let mut address_space = server.address_space.write().unwrap();
+    let address_space = server.address_space();
+    let mut address_space = address_space.write().unwrap();
 
     // Create a folder under static folder
     let folder_id = address_space
@@ -266,7 +270,8 @@ fn add_dynamic_scalar_variables(server: &mut Server, dynamic_folder_id: &NodeId)
 
 fn add_dynamic_array_variables(server: &mut Server, dynamic_folder_id: &NodeId) {
     // The address space is guarded so obtain a lock to change it
-    let mut address_space = server.address_space.write().unwrap();
+    let address_space = server.address_space();
+    let mut address_space = address_space.write().unwrap();
 
     // Create a folder under static folder
     let folder_id = address_space
@@ -282,7 +287,7 @@ fn add_dynamic_array_variables(server: &mut Server, dynamic_folder_id: &NodeId) 
 }
 
 fn set_dynamic_timers(server: &mut Server) {
-    let address_space = server.address_space.clone();
+    let address_space = server.address_space();
 
     // Standard change timers
     server.add_polling_action(250, move || {
@@ -303,7 +308,8 @@ fn set_dynamic_timers(server: &mut Server) {
 fn add_stress_scalar_variables(server: &mut Server) -> Vec<NodeId> {
     let node_ids = (0..1000).map(|i| NodeId::new(2, format!("v{:04}", i))).collect::<Vec<NodeId>>();
 
-    let mut address_space = server.address_space.write().unwrap();
+    let address_space = server.address_space();
+    let mut address_space = address_space.write().unwrap();
 
     let folder_id = address_space
         .add_folder("Stress", "Stress", &AddressSpace::objects_folder_id())
@@ -319,7 +325,7 @@ fn add_stress_scalar_variables(server: &mut Server) -> Vec<NodeId> {
 }
 
 fn set_stress_timer(server: &mut Server, node_ids: Vec<NodeId>) {
-    let address_space = server.address_space.clone();
+    let address_space = server.address_space();
     server.add_polling_action(100, move || {
         let mut rng = rand::thread_rng();
         let mut address_space = address_space.write().unwrap();

@@ -57,7 +57,8 @@ impl ServerMetrics {
     }
 
     pub fn set_server_info(&mut self, server: &server::Server) {
-        let server_state = trace_read_lock_unwrap!(server.server_state);
+        let server_state = server.server_state();
+        let server_state = trace_read_lock_unwrap!(server_state);
         let server_config = trace_read_lock_unwrap!(server_state.config);
 
         // For security, blank out user tokens

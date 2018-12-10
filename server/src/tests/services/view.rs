@@ -67,7 +67,7 @@ fn browse() {
 
     let vs = ViewService::new();
 
-    let mut address_space = st.server.address_space.write().unwrap();
+    let mut address_space = st.address_space.write().unwrap();
     add_sample_vars_to_address_space(&mut address_space);
 
     let nodes: Vec<NodeId> = vec![ObjectId::RootFolder.into()];
@@ -100,7 +100,7 @@ fn browse_next() {
     let st = ServiceTest::new();
     let (_, mut session) = st.get_server_state_and_session();
 
-    let mut address_space = st.server.address_space.write().unwrap();
+    let mut address_space = st.address_space.write().unwrap();
     let parent_node_id = add_many_vars_to_address_space(&mut address_space, 100).0;
     let nodes = vec![parent_node_id.clone()];
 
@@ -240,7 +240,7 @@ fn translate_browse_paths_to_node_ids() {
         };
 
         let vs = ViewService::new();
-        let address_space = st.server.address_space.read().unwrap();
+        let address_space = st.address_space.read().unwrap();
         let result = vs.translate_browse_paths_to_node_ids(&address_space, &request);
         assert!(result.is_ok());
         let result: TranslateBrowsePathsToNodeIdsResponse = supported_message_as!(result.unwrap(), TranslateBrowsePathsToNodeIdsResponse);

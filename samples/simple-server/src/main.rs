@@ -29,9 +29,11 @@ fn add_example_variables(server: &mut Server) {
     let v3_node = NodeId::new(2, "v3");
     let v4_node = NodeId::new(2, "v4");
 
+    let address_space = server.address_space();
+
     // The address space is guarded so obtain a lock to change it
     {
-        let mut address_space = server.address_space.write().unwrap();
+        let mut address_space = address_space.write().unwrap();
 
         // Create a sample folder under objects folder
         let sample_folder_id = address_space
@@ -50,28 +52,12 @@ fn add_example_variables(server: &mut Server) {
     // OPC UA for Rust allows you to push or pull values from a variable so here are examples
     // of each method.
 
-    // 1) Push. This code will use a timer to set the values on variable v1 & v2 on an interval.
-    //    Note you could use your timer callbacks you like for this but calling create_polling_action
-    //    means you get the internal implementation.
-    {
-        // Store a counter and a flag in a tuple
-        let data = Arc::new(Mutex::new((0, true)));
-        let address_space = server.address_space.clone();
-        server.add_polling_action(300, move || {
-            let mut data = data.lock().unwrap();
-            data.0 += 1;
-            data.1 = !data.1;
-            let mut address_space = address_space.write().unwrap();
-            let now = DateTime::now();
-            let _ = address_space.set_variable_value(v1_node.clone(), data.0 as i32, &now, &now);
-            let _ = address_space.set_variable_value(v2_node.clone(), data.1, &now, &now);
-        });
-    }
 
-    // 2) Pull. This code will add getters to v3 & v4 that returns their values by calling
+    // 1) Pull. This code will add getters to v3 & v4 that returns their values by calling
     //    function.
     {
-        let mut address_space = server.address_space.write().unwrap();
+        let address_space = server.address_space();
+        let mut address_space = address_space.write().unwrap();
         if let Some(ref mut v) = address_space.find_variable_mut(v3_node.clone()) {
             // Hello world's counter will increment with each get - slower interval == slower increment
             let mut counter = 0;
@@ -94,5 +80,22 @@ fn add_example_variables(server: &mut Server) {
             });
             v.set_value_getter(Arc::new(Mutex::new(getter)));
         }
+    }
+
+    // 2) Push. This code will use a timer to set the values on variable v1 & v2 on an interval.
+    //    Note you could use your timer callbacks you like for this but calling create_polling_action
+    //    means you get the internal implementation.
+    {
+        // Store a counter and a flag in a tuple
+        let data = Arc::new(Mutex::new((0, true)));
+        server.add_polling_action(300, move || {
+            let mut data = data.lock().unwrap();
+            data.0 += 1;
+            data.1 = !data.1;
+            let mut address_space = address_space.write().unwrap();
+            let now = DateTime::now();
+            let _ = address_space.set_variable_value(v1_node.clone(), data.0 as i32, &now, &now);
+            let _ = address_space.set_variable_value(v2_node.clone(), data.1, &now, &now);
+        });
     }
 }

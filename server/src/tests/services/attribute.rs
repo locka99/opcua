@@ -10,7 +10,7 @@ fn read_value(node_id: &NodeId, attribute_id: AttributeId) -> ReadValueId {
         node_id: node_id.clone(),
         attribute_id: attribute_id as u32,
         index_range: UAString::null(),
-        data_encoding: QualifiedName::null()
+        data_encoding: QualifiedName::null(),
     }
 }
 
@@ -21,7 +21,7 @@ fn read_test() {
 
     // test an empty read nothing to do
     let node_ids = {
-        let mut address_space = st.server.address_space.write().unwrap();
+        let mut address_space = st.address_space.write().unwrap();
         let (_, node_ids) = add_many_vars_to_address_space(&mut address_space, 10);
         // Remove read access to [3] for a test below
         let node = address_space.find_node_mut(&node_ids[3]).unwrap();
@@ -53,7 +53,7 @@ fn read_test() {
             nodes_to_read: Some(nodes_to_read),
         };
 
-        let address_space = st.server.address_space.read().unwrap();
+        let address_space = st.address_space.read().unwrap();
         let response = ats.read(&address_space, &request);
         assert!(response.is_ok());
         let response: ReadResponse = supported_message_as!(response.unwrap(), ReadResponse);
@@ -105,7 +105,7 @@ fn write_test() {
     // Create some variable nodes and modify permissions in the address space so we 
     // can see what happens when they are written to.
     let node_ids = {
-        let mut address_space = st.server.address_space.write().unwrap();
+        let mut address_space = st.address_space.write().unwrap();
         let (_, node_ids) = add_many_vars_to_address_space(&mut address_space, 10);
         // set up nodes for the tests to be performed to each
         for (i, node_id) in node_ids.iter().enumerate() {
@@ -162,7 +162,7 @@ fn write_test() {
     };
 
     // do a write with the following write
-    let mut address_space = st.server.address_space.write().unwrap();
+    let mut address_space = st.address_space.write().unwrap();
     let response = ats.write(&mut address_space, &request);
     assert!(response.is_ok());
     let response: WriteResponse = supported_message_as!(response.unwrap(), WriteResponse);
