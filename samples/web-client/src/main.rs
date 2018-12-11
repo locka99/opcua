@@ -1,13 +1,28 @@
+#[macro_use]
+extern crate serde_derive;
+
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
-use ::actix::prelude::*;
+use serde_json;
+
+use actix::{StreamHandler, Actor, ActorContext};
 use actix_web::server::HttpServer;
 use actix_web::{fs, http, ws, App, Error, HttpRequest, HttpResponse};
 
 use opcua_client::prelude::*;
 
-struct State {}
+struct State {
+    // TODO listeners are callbacks that will be told about data change notifications
+    pub listeners: Vec<DataChangeCallback>,
+}
+
+#[derive(Serialize)]
+struct ChangeMessage {
+    pub id: ReadValueId,
+    pub value: DataValue,
+}
+
 
 struct WebSocket {}
 
@@ -38,6 +53,9 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WebSocket {
 }
 
 fn ws_index(r: &HttpRequest<State>) -> Result<HttpResponse, Error> {
+
+    // TODO new websocket needs a clone of
+
     ws::start(r, WebSocket {})
 }
 
@@ -61,7 +79,9 @@ fn http_spawn() {
         let base_path = "./html";
         let address = "127.0.0.1:8686";
         HttpServer::new(move || {
-            let state = State {};
+            let state = State {
+                listeners: Vec::new(),
+            };
             App::with_state(state)
                 // Websocket
                 .resource("/ws/", |r| r.method(http::Method::GET).f(ws_index))
@@ -96,11 +116,11 @@ fn nodes_to_monitor() -> Vec<ReadValueId> {
     ]
 }
 
-fn publish_value(read_value_id: &ReadValueId, data_value: &DataValue) {
+fn publish_changes(changes: Vec<ChangeMessage>) {
+    let changes = serde_json::to_string(&changes).unwrap();
     // TODO here we go through every open web socket, publishing a change event
-    println!("publish_value");
+    println!("publish_value: {}", changes);
 }
-
 
 fn subscription_loop(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
     // Create a subscription
@@ -114,9 +134,12 @@ fn subscription_loop(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
         // Creates our subscription
         let subscription_id = session.create_subscription(2000.0, 10, 30, 0, 0, true, DataChangeCallback::new(|items| {
             println!("Data change from server:");
-            items.iter().for_each(|item| {
-                publish_value(&item.item_to_monitor(), &item.value());
-            });
+            publish_changes(items.iter().map(|item| {
+                ChangeMessage {
+                    id: item.item_to_monitor().clone(),
+                    value: item.value().clone(),
+                }
+            }).collect::<Vec<_>>());
         }))?;
         println!("Created a subscription with id = {}", subscription_id);
 

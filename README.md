@@ -80,3 +80,4 @@ The full list of samples:
 5. `chess-server` - an OPC UA server that connects to a chess engine as its back end and updates variables representing the state of the game.
 6. `demo-server` - an OPC UA server that will implements more functionality than the simple server and may become a compliance server in time.
 7. `mqtt-client` - an OPC UA client that subscribes to some values and publishes them to an MQTT broker
+8. `web-client` - an OPC UA client that subscribes to some values and streams them over a websocket.
