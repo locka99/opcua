@@ -180,14 +180,16 @@ fn new_server(port_offset: u16) -> Server {
 
     // Allow untrusted access to the server
     {
-        let mut certificate_store = server.certificate_store.write().unwrap();
+        let certificate_store = server.certificate_store();
+        let mut certificate_store = certificate_store.write().unwrap();
         certificate_store.trust_unknown_certs = true;
     }
 
     // Populate the address space with some variables
     let v1_node = v1_node_id();
     {
-        let mut address_space = server.address_space.write().unwrap();
+        let address_space = server.address_space();
+        let mut address_space = address_space.write().unwrap();
 
         // Create a sample folder under objects folder
         let sample_folder_id = address_space
