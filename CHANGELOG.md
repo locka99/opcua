@@ -1,15 +1,20 @@
 # Changelog
 
-ASPIRATIONAL - a short list of things that would be nice to implement in the near future
+ASPIRATIONAL - a short list of things that would be nice to implement in the future
 
   - Replace more OpenSSL with `ring` equivalent functions. Ring doesn't do X509 so code is still
     dependent on OpenSSL until a drop-in replacement appears - need something which can generate, read and write X509
     certs, private keys and their corresponding .der, .pem file formats.
+  - Tokio codec - use a codec and frame writer to write message chunks
+  - Tokio/Futures/`async`/`await` - Rust 2018 will gain new async functionality soon and at some point the code will have to update
+    to use it.
 
 ## 0.6 (work in progress)
-  - (WIP) Rust 2018. All code will be ported to the 2018 spec. This will clean up code like match statements, extern crates etc. 
-    that benefit from greater inference.
-  - (WIP) Tokio codec - use a codec and frame writer to write message chunks
+  - Rust 2018. All `Cargo.toml` files now contain `edition = "2018"` and the code has been cleaned up to benefit from 
+    some of the improvements in the language. e.g. all `extern crate` declarations have been removed except for some
+    global macros that are pulled in. You can still build and link to OPC UA from a 2015 project but you must be using 
+    Rust 1.31 or later.
+  - New `web-client` code which demonstrates an OPCUA client that serves streaming data over a websocket.
   - (WIP) Session restore after disconnect in server. The server has to stash sessions that were abnormally disconnected
     so the session state can be restored if a new connection provides the token.
   - (WIP) Session restore after disconnect in client, i.e. attempt to reconnect and resume session first and if that
