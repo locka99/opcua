@@ -6,7 +6,7 @@ use std::sync::{Arc, RwLock};
 
 use serde_json;
 
-use actix::{StreamHandler, Actor, ActorContext};
+use actix::{StreamHandler, Actor, ActorContext, Message};
 use actix_web::server::HttpServer;
 use actix_web::{fs, http, ws, App, Error, HttpRequest, HttpResponse};
 
@@ -23,10 +23,13 @@ struct ChangeMessage {
     pub value: DataValue,
 }
 
+impl Message for ChangeMessage {
+    type Result = ();
+}
 
-struct WebSocket {}
+struct SubscriptionSession;
 
-impl Actor for WebSocket {
+impl Actor for SubscriptionSession {
     type Context = ws::WebsocketContext<Self, State>;
 
     /// Method is called on actor start. We start the heartbeat process here.
@@ -34,7 +37,7 @@ impl Actor for WebSocket {
 }
 
 /// Handler for `ws::Message`
-impl StreamHandler<ws::Message, ws::ProtocolError> for WebSocket {
+impl StreamHandler<ws::Message, ws::ProtocolError> for SubscriptionSession {
     fn handle(&mut self, msg: ws::Message, ctx: &mut Self::Context) {
         // process websocket messages
         println!("WS: {:?}", msg);
@@ -53,10 +56,8 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WebSocket {
 }
 
 fn ws_index(r: &HttpRequest<State>) -> Result<HttpResponse, Error> {
-
     // TODO new websocket needs a clone of
-
-    ws::start(r, WebSocket {})
+    ws::start(r, SubscriptionSession {})
 }
 
 fn main() {

@@ -3,7 +3,7 @@
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 
-use opcua_types::{ByteString, MessageSecurityMode, UAString};
+use opcua_types::MessageSecurityMode;
 use opcua_types::{is_opc_ua_binary_url, server_url_from_endpoint_url, url_matches, url_matches_except_host};
 use opcua_types::service_types::{ApplicationDescription, EndpointDescription, RegisteredServer};
 use opcua_types::status_code::StatusCode;
@@ -29,6 +29,19 @@ struct SessionEntry {
 /// The `Client` defines a connection that can be used to to get end points or establish
 /// one or more sessions with an OPC UA server. It is configured using a [`ClientConfig`] which
 /// defines the server it talks to and other details such as the location of the certificate store.
+///
+/// You basically have a couple of choices when creating a client that connects to a server:
+///
+/// 1. Create a `Client` from a `ClientConfig` containing all the endpoints you expect to connect with
+///    and then use `connect_and_activate()` to connect to one of them by its id. This option assumes
+///    that your client and the server it connects with are describing the same endpoints. It will not
+///    work if the server describes different endpoints than the one in your config.
+///
+/// 2. Create a `Client` from a `ClientConfig` containing no endpoints and then use ad-hoc functions
+///    like `get_server_endpoints_from_url()` to interrogate a server's endpoints and use your own
+///    logic to decide which one to connect with via `Client::new_session_from_info`. This might be
+///    suitable if your client can connect to a multitude of servers without advance knowledge of
+///    their endpoints.
 ///
 /// [`ClientConfig`]: ../config/struct.ClientConfig.html
 ///
@@ -111,7 +124,9 @@ impl Client {
         self.config.application_description()
     }
 
-    /// Connects to the named endpoint and creates / activates a [`Session`] for that endpoint.
+    /// Connects to a named endpoint that you have defined in the `ClientConfig`
+    /// and creates / activates a [`Session`] for that endpoint. Note that `GetEndpoints` is first
+    /// called on the server and it is expected to support the endpoint you intend to connect to.
     ///
     /// Returns with the session that has been established or an error.
     ///
@@ -212,8 +227,9 @@ impl Client {
         self.new_session_from_info(session_info)
     }
 
-    /// Creates an ad hoc new [`Session`] using the specified endpoint url,
-    /// security policy and mode.
+    /// Creates an ad hoc new [`Session`] using the specified endpoint url, security policy and mode.
+    ///
+    /// This function supports anything that implements `Into<SessionInfo>`, for example `EndpointDescription`.
     ///
     /// [`Session`]: ../session/struct.Session.html
     ///
@@ -264,6 +280,20 @@ impl Client {
     /// [`EndpointDescription`] that it hosts. If there is an error, the function will
     /// return an error.
     ///
+    /// ```rust,no_run
+    /// use opcua_client::prelude::*;
+    /// use std::path::PathBuf;
+    ///
+    /// fn main() {
+    ///     let mut client = Client::new(ClientConfig::load(&PathBuf::from("./myclient.conf")).unwrap());
+    ///     if let Ok(endpoints) = client.get_server_endpoints_from_url("opc.tcp://foo:1234") {
+    ///         if let Some(endpoint) = Client::find_server_endpoint(&endpoints, "opc.tcp://foo:1234/mypath", SecurityPolicy::None, MessageSecurityMode::None) {
+    ///           //...
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    ///
     /// [`EndpointDescription`]: ../../opcua_types/service_types/endpoint_description/struct.EndpointDescription.html
     ///
     pub fn get_server_endpoints_from_url<T>(&self, server_url: T) -> Result<Vec<EndpointDescription>, StatusCode>
@@ -274,7 +304,7 @@ impl Client {
         let (client_certificate, client_pkey) = self.get_client_cert_and_key();
 
         // Most of these fields mean nothing when getting endpoints
-        let endpoint = Self::make_endpoint_description(&server_url);
+        let endpoint = EndpointDescription::from(server_url.as_ref());
         let session_info = SessionInfo {
             endpoint,
             user_identity_token: IdentityToken::Anonymous,
@@ -299,7 +329,7 @@ impl Client {
     {
         let discovery_endpoint_url = discovery_endpoint_url.into();
         debug!("find_servers, {}", discovery_endpoint_url);
-        let endpoint = Self::make_endpoint_description(&discovery_endpoint_url);
+        let endpoint = EndpointDescription::from(discovery_endpoint_url.as_ref());
         let session = self.new_session_from_info(endpoint);
         if let Ok(session) = session {
             let mut session = trace_write_lock_unwrap!(session);
@@ -381,24 +411,27 @@ impl Client {
         }
     }
 
-    /// Makes an endpoint description from a url, assuming the endpoint to have no encryption
-    fn make_endpoint_description(server_url: &str) -> EndpointDescription {
-        EndpointDescription {
-            endpoint_url: UAString::from(server_url),
-            security_policy_uri: UAString::from(SecurityPolicy::None.to_uri()),
-            security_mode: MessageSecurityMode::None,
-            server: ApplicationDescription::null(),
-            security_level: 0,
-            server_certificate: ByteString::null(),
-            transport_profile_uri: UAString::null(),
-            user_identity_tokens: None,
-        }
-    }
-
     /// Finds a matching endpoint, one that most closely matches the host, path, security policy
     /// and security mode used as inputs. The function will fallback to omit the host in its
     /// comparison if no exact match is found.
-    pub fn find_server_endpoint<T>(&self, endpoints: &[EndpointDescription], endpoint_url: T,
+    ///
+    /// ```rust,no_run
+    /// use opcua_client::prelude::*;
+    /// let endpoints = [
+    ///     EndpointDescription::from("opc.tcp://foo:123"),
+    ///     EndpointDescription::from("opc.tcp://foo:456")
+    /// ];
+    /// // Some result, including for hostname mismatch
+    /// assert!(Client::find_server_endpoint(&endpoints, "opc.tcp://foo:123", SecurityPolicy::None, MessageSecurityMode::None).is_some());
+    /// assert!(Client::find_server_endpoint(&endpoints, "opc.tcp://bar:123", SecurityPolicy::None, MessageSecurityMode::None).is_some());
+    /// assert!(Client::find_server_endpoint(&endpoints, "opc.tcp://foo:456", SecurityPolicy::None, MessageSecurityMode::None).is_some());
+    /// // None
+    /// assert!(Client::find_server_endpoint(&endpoints, "opc.tcp://foo:222", SecurityPolicy::None, MessageSecurityMode::None).is_none());
+    /// assert!(Client::find_server_endpoint(&endpoints, "opc.tcp://foo:123", SecurityPolicy::Basic128Rsa15, MessageSecurityMode::None).is_none());
+    /// assert!(Client::find_server_endpoint(&endpoints, "opc.tcp://foo:123", SecurityPolicy::None, MessageSecurityMode::Sign).is_none());
+    /// ```
+    ///
+    pub fn find_server_endpoint<T>(endpoints: &[EndpointDescription], endpoint_url: T,
                                    security_policy: SecurityPolicy,
                                    security_mode: MessageSecurityMode) -> Option<EndpointDescription>
         where T: Into<String> {

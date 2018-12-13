@@ -5,8 +5,11 @@ use std::str::FromStr;
 
 use openssl::hash as openssl_hash;
 
-use opcua_types::status_code::StatusCode;
-use opcua_types::ByteString;
+use opcua_types::{
+    status_code::StatusCode,
+    ByteString,
+    constants,
+};
 
 use crate::{
     crypto::{
@@ -16,24 +19,6 @@ use crate::{
         hash,
     }
 };
-
-/// URI supplied for the None security policy
-pub const SECURITY_POLICY_NONE_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#None";
-/// URI supplied for the `Basic128Rsa15` security policy
-pub const SECURITY_POLICY_BASIC_128_RSA_15_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Basic128Rsa15";
-/// URI supplied for the `Basic256` security policy
-pub const SECURITY_POLICY_BASIC_256_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256";
-/// URI supplied for the `Basic256Sha256` security policy
-pub const SECURITY_POLICY_BASIC_256_SHA_256_URI: &str = "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256";
-
-/// String used as shorthand in config files, debug etc.for `None` security policy
-pub const SECURITY_POLICY_NONE: &str = "None";
-/// String used as shorthand in config files, debug etc.for `Basic128Rsa15` security policy
-pub const SECURITY_POLICY_BASIC_128_RSA_15: &str = "Basic128Rsa15";
-/// String used as shorthand in config files, debug etc.for `Basic256` security policy
-pub const SECURITY_POLICY_BASIC_256: &str = "Basic256";
-/// String used as shorthand in config files, debug etc.for `Basic256Sha256` security policy
-pub const SECURITY_POLICY_BASIC_256_SHA_256: &str = "Basic256Sha256";
 
 // These are constants that govern the different encryption / signing modes for OPC UA. In some
 // cases these algorithm string constants will be passed over the wire and code needs to test the
@@ -204,10 +189,10 @@ impl FromStr for SecurityPolicy {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
-            SECURITY_POLICY_NONE | SECURITY_POLICY_NONE_URI => SecurityPolicy::None,
-            SECURITY_POLICY_BASIC_128_RSA_15 | SECURITY_POLICY_BASIC_128_RSA_15_URI => SecurityPolicy::Basic128Rsa15,
-            SECURITY_POLICY_BASIC_256 | SECURITY_POLICY_BASIC_256_URI => SecurityPolicy::Basic256,
-            SECURITY_POLICY_BASIC_256_SHA_256 | SECURITY_POLICY_BASIC_256_SHA_256_URI => SecurityPolicy::Basic256Sha256,
+            constants::SECURITY_POLICY_NONE | constants::SECURITY_POLICY_NONE_URI => SecurityPolicy::None,
+            constants::SECURITY_POLICY_BASIC_128_RSA_15 | constants::SECURITY_POLICY_BASIC_128_RSA_15_URI => SecurityPolicy::Basic128Rsa15,
+            constants::SECURITY_POLICY_BASIC_256 | constants::SECURITY_POLICY_BASIC_256_URI => SecurityPolicy::Basic256,
+            constants::SECURITY_POLICY_BASIC_256_SHA_256 | constants::SECURITY_POLICY_BASIC_256_SHA_256_URI => SecurityPolicy::Basic256Sha256,
             _ => {
                 error!("Specified security policy {} is not recognized", s);
                 SecurityPolicy::Unknown
@@ -225,10 +210,10 @@ impl From<SecurityPolicy> for String {
 impl SecurityPolicy {
     pub fn to_uri(&self) -> &'static str {
         match *self {
-            SecurityPolicy::None => SECURITY_POLICY_NONE_URI,
-            SecurityPolicy::Basic128Rsa15 => SECURITY_POLICY_BASIC_128_RSA_15_URI,
-            SecurityPolicy::Basic256 => SECURITY_POLICY_BASIC_256_URI,
-            SecurityPolicy::Basic256Sha256 => SECURITY_POLICY_BASIC_256_SHA_256_URI,
+            SecurityPolicy::None => constants::SECURITY_POLICY_NONE_URI,
+            SecurityPolicy::Basic128Rsa15 => constants::SECURITY_POLICY_BASIC_128_RSA_15_URI,
+            SecurityPolicy::Basic256 => constants::SECURITY_POLICY_BASIC_256_URI,
+            SecurityPolicy::Basic256Sha256 => constants::SECURITY_POLICY_BASIC_256_SHA_256_URI,
             _ => {
                 panic!("Shouldn't be turning an unknown policy into a uri");
             }
@@ -237,10 +222,10 @@ impl SecurityPolicy {
 
     pub fn to_str(&self) -> &'static str {
         match *self {
-            SecurityPolicy::None => SECURITY_POLICY_NONE,
-            SecurityPolicy::Basic128Rsa15 => SECURITY_POLICY_BASIC_128_RSA_15,
-            SecurityPolicy::Basic256 => SECURITY_POLICY_BASIC_256,
-            SecurityPolicy::Basic256Sha256 => SECURITY_POLICY_BASIC_256_SHA_256,
+            SecurityPolicy::None => constants::SECURITY_POLICY_NONE,
+            SecurityPolicy::Basic128Rsa15 => constants::SECURITY_POLICY_BASIC_128_RSA_15,
+            SecurityPolicy::Basic256 => constants::SECURITY_POLICY_BASIC_256,
+            SecurityPolicy::Basic256Sha256 => constants::SECURITY_POLICY_BASIC_256_SHA_256,
             _ => {
                 panic!("Shouldn't be turning an unknown policy into a string");
             }
@@ -356,10 +341,10 @@ impl SecurityPolicy {
 
     pub fn from_uri(uri: &str) -> SecurityPolicy {
         match uri {
-            SECURITY_POLICY_NONE_URI => SecurityPolicy::None,
-            SECURITY_POLICY_BASIC_128_RSA_15_URI => SecurityPolicy::Basic128Rsa15,
-            SECURITY_POLICY_BASIC_256_URI => SecurityPolicy::Basic256,
-            SECURITY_POLICY_BASIC_256_SHA_256_URI => SecurityPolicy::Basic256Sha256,
+            constants::SECURITY_POLICY_NONE_URI => SecurityPolicy::None,
+            constants::SECURITY_POLICY_BASIC_128_RSA_15_URI => SecurityPolicy::Basic128Rsa15,
+            constants::SECURITY_POLICY_BASIC_256_URI => SecurityPolicy::Basic256,
+            constants::SECURITY_POLICY_BASIC_256_SHA_256_URI => SecurityPolicy::Basic256Sha256,
             _ => {
                 error!("Specified security policy {} is not recognized", uri);
                 SecurityPolicy::Unknown

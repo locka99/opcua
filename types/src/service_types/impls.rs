@@ -2,6 +2,7 @@ use std::{self, io::{Read, Write}};
 
 use crate::{
     attribute::AttributeId,
+    constants,
     basic_types::*,
     extension_object::ExtensionObject,
     byte_string::ByteString,
@@ -543,6 +544,27 @@ impl Default for ServerDiagnosticsSummaryDataType {
             publishing_interval_count: 0,
             security_rejected_requests_count: 0,
             rejected_requests_count: 0,
+        }
+    }
+}
+
+impl<'a> From<&'a str> for EndpointDescription {
+    fn from(v: &'a str) -> Self {
+        EndpointDescription::from((v, constants::SECURITY_POLICY_NONE_URI, MessageSecurityMode::None))
+    }
+}
+
+impl<'a> From<(&'a str, &'a str, MessageSecurityMode)> for EndpointDescription {
+    fn from(v: (&'a str, &'a str, MessageSecurityMode)) -> Self {
+        EndpointDescription {
+            endpoint_url: UAString::from(v.0),
+            security_policy_uri: UAString::from(v.1),
+            security_mode: v.2,
+            server: ApplicationDescription::null(),
+            security_level: 0,
+            server_certificate: ByteString::null(),
+            transport_profile_uri: UAString::null(),
+            user_identity_tokens: None,
         }
     }
 }
