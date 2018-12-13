@@ -10,43 +10,49 @@ use opcua_types::node_ids::*;
 #[allow(unused_imports)]
 use crate::address_space::types::*;
 
+fn add_1(address_space: &mut AddressSpace) {
+    // Object
+    let browse_name = "Default XML";
+    let display_name = "Default XML";
+    let description = "";
+    let node_id = NodeId::new(0, 14801);
+    let node = Object::new(&node_id, browse_name, display_name, description);
+    address_space.insert(node, Some(&[
+        (&NodeId::new(0, 14532), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 14826), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+    ]));
+}
+
+fn add_2(address_space: &mut AddressSpace) {
+    // Object
+    let browse_name = "Default Binary";
+    let display_name = "Default Binary";
+    let description = "";
+    let node_id = NodeId::new(0, 14845);
+    let node = Object::new(&node_id, browse_name, display_name, description);
+    address_space.insert(node, Some(&[
+        (&NodeId::new(0, 14532), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
+        (&NodeId::new(0, 14870), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
+        (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
+    ]));
+}
+
+fn add_3(address_space: &mut AddressSpace) {
+    // DataType
+    let browse_name = "EnumField";
+    let display_name = "EnumField";
+    let description = "";
+    let node_id = NodeId::new(0, 14532);
+    let node = DataType::new(&node_id, browse_name, display_name, description, false);
+    address_space.insert(node, Some(&[
+        (&NodeId::new(0, 7594), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
+    ]));
+}
+
 #[allow(unused_variables)]
 pub fn populate_address_space(address_space: &mut AddressSpace) {
-    {
-        // Object
-        let browse_name = "Default XML";
-        let display_name = "Default XML";
-        let description = "";
-        let node_id = NodeId::new(0, 14801);
-        let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node, Some(&[
-            (&NodeId::new(0, 14532), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-            (&NodeId::new(0, 14826), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-            (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        ]));
-    }
-    {
-        // Object
-        let browse_name = "Default Binary";
-        let display_name = "Default Binary";
-        let description = "";
-        let node_id = NodeId::new(0, 14845);
-        let node = Object::new(&node_id, browse_name, display_name, description);
-        address_space.insert(node, Some(&[
-            (&NodeId::new(0, 14532), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
-            (&NodeId::new(0, 14870), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
-            (&NodeId::new(0, 76), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        ]));
-    }
-    {
-        // DataType
-        let browse_name = "EnumField";
-        let display_name = "EnumField";
-        let description = "";
-        let node_id = NodeId::new(0, 14532);
-        let node = DataType::new(&node_id, browse_name, display_name, description, false);
-        address_space.insert(node, Some(&[
-            (&NodeId::new(0, 7594), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-        ]));
-    }
+    add_1(address_space);
+    add_2(address_space);
+    add_3(address_space);
 }

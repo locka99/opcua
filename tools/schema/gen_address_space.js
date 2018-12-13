@@ -79,31 +79,24 @@ use crate::address_space::types::*;
 // Parse the xml
 // Create a file with rs
 //   in that file, create a populate_address_space method
-    var indent = "    ";
 
-    contents += "#[allow(unused_variables)]\n";
-    contents += `pub fn populate_address_space(address_space: &mut AddressSpace) {\n`;
-
-    if (trace) {
-        contents += `${indent}trace!("Populating address space with node set ${ns.name}");\n`
-    }
-
+    var idx = 1;
     var nodes = ns.data["UANodeSet"];
     if (_.has(nodes, "UAObject")) {
         _.each(nodes["UAObject"], function (node) {
-            contents += insert_node(indent, "Object", node, "Object::new(&node_id, browse_name, display_name, description)");
+            contents += insert_node(idx++, "Object", node, "Object::new(&node_id, browse_name, display_name, description)");
         });
     }
     if (_.has(nodes, "UAObjectType")) {
         _.each(nodes["UAObjectType"], function (value) {
             var is_abstract = _.has(value["$"], "IsAbstract") && value["$"]["IsAbstract"] === "true";
-            contents += insert_node(indent, "ObjectType", value, `ObjectType::new(&node_id, browse_name, display_name, description, ${is_abstract})`);
+            contents += insert_node(idx++, "ObjectType", value, `ObjectType::new(&node_id, browse_name, display_name, description, ${is_abstract})`);
         });
     }
     if (_.has(nodes, "UADataType")) {
         _.each(nodes["UADataType"], function (node) {
             var is_abstract = _.has(node["$"], "IsAbstract") && node["$"]["IsAbstract"] === "true";
-            contents += insert_node(indent, "DataType", node, `DataType::new(&node_id, browse_name, display_name, description, ${is_abstract})`);
+            contents += insert_node(idx++, "DataType", node, `DataType::new(&node_id, browse_name, display_name, description, ${is_abstract})`);
         });
     }
     if (_.has(nodes, "UAReferenceType")) {
@@ -111,7 +104,7 @@ use crate::address_space::types::*;
             var is_abstract = _.has(node["$"], "IsAbstract") && node["$"]["IsAbstract"] === "true";
             var inverse_name = _.has(node, "InverseName") ? `Some(LocalizedText::new("", "${node["InverseName"][0]}"))` : "None";
             var symmetric = _.has(node["$"], "Symmetric") && node["$"]["Symmetric"] === "true";
-            contents += insert_node(indent, "DataType", node, `ReferenceType::new(&node_id, browse_name, display_name, description, ${inverse_name}, ${symmetric}, ${is_abstract})`);
+            contents += insert_node(idx++, "DataType", node, `ReferenceType::new(&node_id, browse_name, display_name, description, ${inverse_name}, ${symmetric}, ${is_abstract})`);
         });
     }
     if (_.has(nodes, "UAVariable")) {
@@ -121,22 +114,20 @@ use crate::address_space::types::*;
                 data_type = node["$"]["DataType"];
                 if (data_type.startsWith("i=")) {
                     data_type = `DataTypeId::from_u32(${data_type.substr(2)}u32).unwrap()`;
-                }
-                else {
+                } else {
                     data_type = `DataTypeId::${data_type}`;
                 }
-            }
-            else {
+            } else {
                 console.log("UAVariable has no data type???");
             }
-            contents += insert_node(indent, "Variable", node, `Variable::new_data_value(&node_id, browse_name, display_name, description, ${data_type}, data_value)`);
+            contents += insert_node(idx++, "Variable", node, `Variable::new_data_value(&node_id, browse_name, display_name, description, ${data_type}, data_value)`);
         });
     }
     if (_.has(nodes, "UAVariableType")) {
         _.each(nodes["UAVariableType"], function (node) {
             var is_abstract = _.has(node["$"], "IsAbstract") && node["$"]["IsAbstract"] === "true";
             var value_rank = _.has(node["$"], "ValueRank") ? node["$"]["ValueRank"] : -1;
-            contents += insert_node(indent, "VariableType", node, `VariableType::new(&node_id, browse_name, display_name, description, ${is_abstract}, ${value_rank})`);
+            contents += insert_node(idx++, "VariableType", node, `VariableType::new(&node_id, browse_name, display_name, description, ${is_abstract}, ${value_rank})`);
         });
     }
     if (_.has(nodes, "UAMethod")) {
@@ -144,10 +135,18 @@ use crate::address_space::types::*;
             var is_abstract = _.has(node["$"], "IsAbstract") && node["$"]["IsAbstract"] === "true";
             var executable = false; // TODO
             var user_executable = false; // TODO
-            contents += insert_node(indent, "Method", node, `Method::new(&node_id, browse_name, display_name, description, ${is_abstract}, ${executable}, ${user_executable})`);
+            contents += insert_node(idx++, "Method", node, `Method::new(&node_id, browse_name, display_name, description, ${is_abstract}, ${executable}, ${user_executable})`);
         });
     }
 
+    contents += "#[allow(unused_variables)]\n";
+    contents += `pub fn populate_address_space(address_space: &mut AddressSpace) {\n`;
+    if (trace) {
+        contents += `    trace!("Populating address space with node set ${ns.name}");\n`
+    }
+    for (var i = 1; i < idx; i++) {
+        contents += `    add_${i}(address_space);\n`
+    }
     contents += `}\n`;
 
     settings.write_to_file(`${settings.rs_address_space_dir}/${ns.module}.rs`, contents);
@@ -186,9 +185,9 @@ function node_id_ctor(snippet) {
     return `NodeId::new(0, ${snippet.substr(2)})`;
 }
 
-function insert_node(indent, node_type, node, node_ctor) {
-    var contents = `${indent}{\n`;
-    indent += "    ";
+function insert_node(idx, node_type, node, node_ctor) {
+    var contents = `fn add_${idx}(address_space: &mut AddressSpace) {\n`;
+    var indent = "    ";
 
     contents += `${indent}// ${node_type}\n`;
 
@@ -243,8 +242,7 @@ function insert_node(indent, node_type, node, node_ctor) {
                         var array_dimensions = "None";
                         if (value_rank > 1) {
                             console.log("ERROR: Unsupported array dimensions arg");
-                        }
-                        else if (value_rank == 1) {
+                        } else if (value_rank == 1) {
                             console.log("ArrayDimensions is not read - setting dimensions to 0 which means variable length");
                             array_dimensions = "Some(vec![0])"
                         }
@@ -334,7 +332,7 @@ function insert_node(indent, node_type, node, node_ctor) {
 
     // Process InverseName
     indent = indent.substr(0, indent.length - 4);
-    contents += `${indent}}\n`;
+    contents += `}\n\n`;
 
     return contents;
 }
@@ -352,8 +350,7 @@ function insert_references(indent, reference_element, node_references) {
 
             if (reference_type.startsWith("i=")) {
                 // TODO
-            }
-            else {
+            } else {
                 node_references.push({
                     node_other: node_other,
                     reference_type: `ReferenceTypeId::${reference_type}`,
