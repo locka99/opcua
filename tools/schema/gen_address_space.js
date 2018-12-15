@@ -226,22 +226,42 @@ function insert_node(fn_name, node_type, node) {
 
     contents += `${indent}// ${node_type}\n`;
 
-    let node_ctor = "";
+    let browse_name = _.has(node["$"], "BrowseName") ? node["$"]["BrowseName"] : "";
+    let display_name = _.has(node, "DisplayName") ? node["DisplayName"][0] : "";
+
+    let browse_name_var;
+    let display_name_var;
+    if (browse_name === display_name) {
+        // When both display name and browse name are the same we can use the same variable for both
+        contents += `${indent}let name = "${browse_name}";\n`;
+        browse_name_var = "name";
+        display_name_var = "name";
+    }
+    else {
+        contents += `${indent}let browse_name = "${browse_name}";\n`;
+        contents += `${indent}let display_name = "${display_name}";\n`;
+        browse_name_var = "browse_name";
+        display_name_var = "display_name";
+    }
+
+    let description = _.has(node, "Description") ? node["Description"][0] : "";
+    contents += `${indent}let description = "${description}";\n`;
 
     // Process values
+    let node_ctor = "";
     if (node_type === "Object") {
-        node_ctor = "Object::new(&node_id, browse_name, display_name, description)";
+        node_ctor = `Object::new(&node_id, ${browse_name_var}, ${display_name_var}, description)`;
     } else if (node_type === "ObjectType") {
         let is_abstract = _.has(node["$"], "IsAbstract") && node["$"]["IsAbstract"] === "true";
-        node_ctor = `ObjectType::new(&node_id, browse_name, display_name, description, ${is_abstract})`;
+        node_ctor = `ObjectType::new(&node_id, ${browse_name_var}, ${display_name_var}, description, ${is_abstract})`;
     } else if (node_type === "DataType") {
         let is_abstract = _.has(node["$"], "IsAbstract") && node["$"]["IsAbstract"] === "true";
-        node_ctor = `DataType::new(&node_id, browse_name, display_name, description, ${is_abstract})`;
+        node_ctor = `DataType::new(&node_id, ${browse_name_var}, ${display_name_var}, description, ${is_abstract})`;
     } else if (node_type === "ReferenceType") {
         let is_abstract = _.has(node["$"], "IsAbstract") && node["$"]["IsAbstract"] === "true";
         let inverse_name = _.has(node, "InverseName") ? `Some(LocalizedText::new("", "${node["InverseName"][0]}"))` : "None";
         let symmetric = _.has(node["$"], "Symmetric") && node["$"]["Symmetric"] === "true";
-        node_ctor = `ReferenceType::new(&node_id, browse_name, display_name, description, ${inverse_name}, ${symmetric}, ${is_abstract})`
+        node_ctor = `ReferenceType::new(&node_id, ${browse_name_var}, ${display_name_var}, description, ${inverse_name}, ${symmetric}, ${is_abstract})`
     } else if (node_type === "Variable") {
         let data_type = "DataTypeId::Boolean";
         if (_.has(node["$"], "DataType")) {
@@ -340,24 +360,17 @@ function insert_node(fn_name, node_type, node) {
         if (!data_value_is_set) {
             contents += `${indent}let data_value = DataValue::null();\n`
         }
-        node_ctor = `Variable::new_data_value(&node_id, browse_name, display_name, description, ${data_type}, data_value)`;
+        node_ctor = `Variable::new_data_value(&node_id, ${browse_name_var}, ${display_name_var}, description, ${data_type}, data_value)`;
     } else if (node_type === "VariableType") {
         let is_abstract = _.has(node["$"], "IsAbstract") && node["$"]["IsAbstract"] === "true";
         let value_rank = _.has(node["$"], "ValueRank") ? node["$"]["ValueRank"] : -1;
-        node_ctor = `VariableType::new(&node_id, browse_name, display_name, description, ${is_abstract}, ${value_rank})`;
+        node_ctor = `VariableType::new(&node_id, ${browse_name_var}, ${display_name_var}, description, ${is_abstract}, ${value_rank})`;
     } else if (node_type === "Method") {
         let is_abstract = _.has(node["$"], "IsAbstract") && node["$"]["IsAbstract"] === "true";
         let executable = false; // TODO
         let user_executable = false; // TODO
-        node_ctor = `Method::new(&node_id, browse_name, display_name, description, ${is_abstract}, ${executable}, ${user_executable})`;
+        node_ctor = `Method::new(&node_id, ${browse_name_var}, ${display_name_var}, description, ${is_abstract}, ${executable}, ${user_executable})`;
     }
-
-    let browse_name = _.has(node["$"], "BrowseName") ? node["$"]["BrowseName"] : "";
-    contents += `${indent}let browse_name = "${browse_name}";\n`;
-    let display_name = _.has(node, "DisplayName") ? node["DisplayName"][0] : "";
-    contents += `${indent}let display_name = "${display_name}";\n`;
-    let description = _.has(node, "Description") ? node["Description"][0] : "";
-    contents += `${indent}let description = "${description}";\n`;
 
     let node_id = node["$"]["NodeId"];
     contents += `${indent}let node_id = ${node_id_ctor(node_id)};\n`;

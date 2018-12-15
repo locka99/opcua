@@ -28,11 +28,10 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
 
 fn add_datatype_1(address_space: &mut AddressSpace) {
     // DataType
-    let browse_name = "EnumeratedTestType";
-    let display_name = "EnumeratedTestType";
+    let name = "EnumeratedTestType";
     let description = "A simple enumerated type used for testing.";
     let node_id = NodeId::new(0, 398);
-    let node = DataType::new(&node_id, browse_name, display_name, description, false);
+    let node = DataType::new(&node_id, name, name, description, false);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11886), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
         (&NodeId::new(0, 29), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
@@ -41,12 +40,11 @@ fn add_datatype_1(address_space: &mut AddressSpace) {
 
 fn add_variable_2(address_space: &mut AddressSpace) {
     // Variable
-    let data_value = DataValue::null();
-    let browse_name = "EnumValues";
-    let display_name = "EnumValues";
+    let name = "EnumValues";
     let description = "";
+    let data_value = DataValue::null();
     let node_id = NodeId::new(0, 11886);
-    let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(7594u32).unwrap(), data_value);
+    let node = Variable::new_data_value(&node_id, name, name, description, DataTypeId::from_u32(7594u32).unwrap(), data_value);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 398), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),

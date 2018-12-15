@@ -29,11 +29,10 @@ pub fn populate_address_space(address_space: &mut AddressSpace) {
 
 fn add_object_1(address_space: &mut AddressSpace) {
     // Object
-    let browse_name = "Default XML";
-    let display_name = "Default XML";
+    let name = "Default XML";
     let description = "";
     let node_id = NodeId::new(0, 14801);
-    let node = Object::new(&node_id, browse_name, display_name, description);
+    let node = Object::new(&node_id, name, name, description);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 14532), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 14826), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -43,11 +42,10 @@ fn add_object_1(address_space: &mut AddressSpace) {
 
 fn add_object_2(address_space: &mut AddressSpace) {
     // Object
-    let browse_name = "Default Binary";
-    let display_name = "Default Binary";
+    let name = "Default Binary";
     let description = "";
     let node_id = NodeId::new(0, 14845);
-    let node = Object::new(&node_id, browse_name, display_name, description);
+    let node = Object::new(&node_id, name, name, description);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 14532), ReferenceTypeId::HasEncoding, ReferenceDirection::Inverse),
         (&NodeId::new(0, 14870), ReferenceTypeId::HasDescription, ReferenceDirection::Forward),
@@ -57,11 +55,10 @@ fn add_object_2(address_space: &mut AddressSpace) {
 
 fn add_datatype_3(address_space: &mut AddressSpace) {
     // DataType
-    let browse_name = "EnumField";
-    let display_name = "EnumField";
+    let name = "EnumField";
     let description = "";
     let node_id = NodeId::new(0, 14532);
-    let node = DataType::new(&node_id, browse_name, display_name, description, false);
+    let node = DataType::new(&node_id, name, name, description, false);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 7594), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
     ]));
