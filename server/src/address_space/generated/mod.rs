@@ -3,29 +3,55 @@
 
 use crate::address_space::types::AddressSpace;
 
-mod nodeset_part_3;
-mod nodeset_part_4;
-mod nodeset_part_5;
-mod nodeset_part_8;
-mod nodeset_part_9;
-mod nodeset_part_10;
-mod nodeset_part_11;
-mod nodeset_part_12;
-mod nodeset_part_13;
-mod nodeset_part_14;
-mod nodeset_part_999;
+mod nodeset_3;
+mod nodeset_4_1;
+mod nodeset_4_2;
+mod nodeset_5_1;
+mod nodeset_5_2;
+mod nodeset_5_3;
+mod nodeset_5_4;
+mod nodeset_5_5;
+mod nodeset_5_6;
+mod nodeset_5_7;
+mod nodeset_5_8;
+mod nodeset_5_9;
+mod nodeset_5_10;
+mod nodeset_5_11;
+mod nodeset_8;
+mod nodeset_9_1;
+mod nodeset_9_2;
+mod nodeset_10;
+mod nodeset_11;
+mod nodeset_12_1;
+mod nodeset_12_2;
+mod nodeset_13;
+mod nodeset_14;
+mod nodeset_999;
 
 /// Populates the address space with all defined node sets
 pub fn populate_address_space(address_space: &mut AddressSpace) {
-    nodeset_part_3::populate_address_space(address_space);
-    nodeset_part_4::populate_address_space(address_space);
-    nodeset_part_5::populate_address_space(address_space);
-    nodeset_part_8::populate_address_space(address_space);
-    nodeset_part_9::populate_address_space(address_space);
-    nodeset_part_10::populate_address_space(address_space);
-    nodeset_part_11::populate_address_space(address_space);
-    nodeset_part_12::populate_address_space(address_space);
-    nodeset_part_13::populate_address_space(address_space);
-    nodeset_part_14::populate_address_space(address_space);
-    nodeset_part_999::populate_address_space(address_space);
+    nodeset_3::populate_address_space(address_space);
+    nodeset_4_1::populate_address_space(address_space);
+    nodeset_4_2::populate_address_space(address_space);
+    nodeset_5_1::populate_address_space(address_space);
+    nodeset_5_2::populate_address_space(address_space);
+    nodeset_5_3::populate_address_space(address_space);
+    nodeset_5_4::populate_address_space(address_space);
+    nodeset_5_5::populate_address_space(address_space);
+    nodeset_5_6::populate_address_space(address_space);
+    nodeset_5_7::populate_address_space(address_space);
+    nodeset_5_8::populate_address_space(address_space);
+    nodeset_5_9::populate_address_space(address_space);
+    nodeset_5_10::populate_address_space(address_space);
+    nodeset_5_11::populate_address_space(address_space);
+    nodeset_8::populate_address_space(address_space);
+    nodeset_9_1::populate_address_space(address_space);
+    nodeset_9_2::populate_address_space(address_space);
+    nodeset_10::populate_address_space(address_space);
+    nodeset_11::populate_address_space(address_space);
+    nodeset_12_1::populate_address_space(address_space);
+    nodeset_12_2::populate_address_space(address_space);
+    nodeset_13::populate_address_space(address_space);
+    nodeset_14::populate_address_space(address_space);
+    nodeset_999::populate_address_space(address_space);
 }

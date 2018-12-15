@@ -5,12 +5,68 @@
 use std::str::FromStr;
 
 #[allow(unused_imports)]
-use opcua_types::*;
-use opcua_types::node_ids::*;
+use opcua_types::{
+    node_id::NodeId,
+    data_value::DataValue,
+    variant::Variant, 
+    extension_object::ExtensionObject, 
+    string::UAString,
+    basic_types::LocalizedText,
+    service_types::{
+        Argument
+    },
+    node_ids::*
+};
 #[allow(unused_imports)]
 use crate::address_space::types::*;
 
-fn add_1(address_space: &mut AddressSpace) {
+#[allow(unused_variables)]
+pub fn populate_address_space(address_space: &mut AddressSpace) {
+    add_object_1(address_space);
+    add_object_2(address_space);
+    add_object_3(address_space);
+    add_object_4(address_space);
+    add_object_5(address_space);
+    add_object_6(address_space);
+    add_object_7(address_space);
+    add_object_8(address_space);
+    add_object_9(address_space);
+    add_object_10(address_space);
+    add_object_11(address_space);
+    add_object_12(address_space);
+    add_object_13(address_space);
+    add_object_14(address_space);
+    add_object_15(address_space);
+    add_object_16(address_space);
+    add_object_17(address_space);
+    add_object_18(address_space);
+    add_object_19(address_space);
+    add_object_20(address_space);
+    add_object_21(address_space);
+    add_object_22(address_space);
+    add_object_23(address_space);
+    add_object_24(address_space);
+    add_object_25(address_space);
+    add_object_26(address_space);
+    add_object_27(address_space);
+    add_object_28(address_space);
+    add_object_29(address_space);
+    add_object_30(address_space);
+    add_object_31(address_space);
+    add_object_32(address_space);
+    add_object_33(address_space);
+    add_object_34(address_space);
+    add_object_35(address_space);
+    add_object_36(address_space);
+    add_object_37(address_space);
+    add_objecttype_38(address_space);
+    add_variable_39(address_space);
+    add_variable_40(address_space);
+    add_variable_41(address_space);
+    add_variable_42(address_space);
+}
+
+fn add_object_1(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Interpolative";
     let display_name = "Interpolative";
@@ -22,7 +78,7 @@ fn add_1(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_2(address_space: &mut AddressSpace) {
+fn add_object_2(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Average";
     let display_name = "Average";
@@ -34,7 +90,7 @@ fn add_2(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_3(address_space: &mut AddressSpace) {
+fn add_object_3(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "TimeAverage";
     let display_name = "TimeAverage";
@@ -46,7 +102,7 @@ fn add_3(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_4(address_space: &mut AddressSpace) {
+fn add_object_4(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "TimeAverage2";
     let display_name = "TimeAverage2";
@@ -58,7 +114,7 @@ fn add_4(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_5(address_space: &mut AddressSpace) {
+fn add_object_5(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Total";
     let display_name = "Total";
@@ -70,7 +126,7 @@ fn add_5(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_6(address_space: &mut AddressSpace) {
+fn add_object_6(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Total2";
     let display_name = "Total2";
@@ -82,7 +138,7 @@ fn add_6(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_7(address_space: &mut AddressSpace) {
+fn add_object_7(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Minimum";
     let display_name = "Minimum";
@@ -94,7 +150,7 @@ fn add_7(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_8(address_space: &mut AddressSpace) {
+fn add_object_8(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Maximum";
     let display_name = "Maximum";
@@ -106,7 +162,7 @@ fn add_8(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_9(address_space: &mut AddressSpace) {
+fn add_object_9(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "MinimumActualTime";
     let display_name = "MinimumActualTime";
@@ -118,7 +174,7 @@ fn add_9(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_10(address_space: &mut AddressSpace) {
+fn add_object_10(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "MaximumActualTime";
     let display_name = "MaximumActualTime";
@@ -130,7 +186,7 @@ fn add_10(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_11(address_space: &mut AddressSpace) {
+fn add_object_11(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Range";
     let display_name = "Range";
@@ -142,7 +198,7 @@ fn add_11(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_12(address_space: &mut AddressSpace) {
+fn add_object_12(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Minimum2";
     let display_name = "Minimum2";
@@ -154,7 +210,7 @@ fn add_12(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_13(address_space: &mut AddressSpace) {
+fn add_object_13(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Maximum2";
     let display_name = "Maximum2";
@@ -166,7 +222,7 @@ fn add_13(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_14(address_space: &mut AddressSpace) {
+fn add_object_14(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "MinimumActualTime2";
     let display_name = "MinimumActualTime2";
@@ -178,7 +234,7 @@ fn add_14(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_15(address_space: &mut AddressSpace) {
+fn add_object_15(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "MaximumActualTime2";
     let display_name = "MaximumActualTime2";
@@ -190,7 +246,7 @@ fn add_15(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_16(address_space: &mut AddressSpace) {
+fn add_object_16(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Range2";
     let display_name = "Range2";
@@ -202,7 +258,7 @@ fn add_16(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_17(address_space: &mut AddressSpace) {
+fn add_object_17(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "AnnotationCount";
     let display_name = "AnnotationCount";
@@ -214,7 +270,7 @@ fn add_17(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_18(address_space: &mut AddressSpace) {
+fn add_object_18(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Count";
     let display_name = "Count";
@@ -226,7 +282,7 @@ fn add_18(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_19(address_space: &mut AddressSpace) {
+fn add_object_19(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "DurationInStateZero";
     let display_name = "DurationInStateZero";
@@ -238,7 +294,7 @@ fn add_19(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_20(address_space: &mut AddressSpace) {
+fn add_object_20(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "DurationInStateNonZero";
     let display_name = "DurationInStateNonZero";
@@ -250,7 +306,7 @@ fn add_20(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_21(address_space: &mut AddressSpace) {
+fn add_object_21(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "NumberOfTransitions";
     let display_name = "NumberOfTransitions";
@@ -262,7 +318,7 @@ fn add_21(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_22(address_space: &mut AddressSpace) {
+fn add_object_22(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Start";
     let display_name = "Start";
@@ -274,7 +330,7 @@ fn add_22(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_23(address_space: &mut AddressSpace) {
+fn add_object_23(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "End";
     let display_name = "End";
@@ -286,7 +342,7 @@ fn add_23(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_24(address_space: &mut AddressSpace) {
+fn add_object_24(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Delta";
     let display_name = "Delta";
@@ -298,7 +354,7 @@ fn add_24(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_25(address_space: &mut AddressSpace) {
+fn add_object_25(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "StartBound";
     let display_name = "StartBound";
@@ -310,7 +366,7 @@ fn add_25(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_26(address_space: &mut AddressSpace) {
+fn add_object_26(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "EndBound";
     let display_name = "EndBound";
@@ -322,7 +378,7 @@ fn add_26(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_27(address_space: &mut AddressSpace) {
+fn add_object_27(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "DeltaBounds";
     let display_name = "DeltaBounds";
@@ -334,7 +390,7 @@ fn add_27(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_28(address_space: &mut AddressSpace) {
+fn add_object_28(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "DurationGood";
     let display_name = "DurationGood";
@@ -346,7 +402,7 @@ fn add_28(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_29(address_space: &mut AddressSpace) {
+fn add_object_29(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "DurationBad";
     let display_name = "DurationBad";
@@ -358,7 +414,7 @@ fn add_29(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_30(address_space: &mut AddressSpace) {
+fn add_object_30(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "PercentGood";
     let display_name = "PercentGood";
@@ -370,7 +426,7 @@ fn add_30(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_31(address_space: &mut AddressSpace) {
+fn add_object_31(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "PercentBad";
     let display_name = "PercentBad";
@@ -382,7 +438,7 @@ fn add_31(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_32(address_space: &mut AddressSpace) {
+fn add_object_32(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "WorstQuality";
     let display_name = "WorstQuality";
@@ -394,7 +450,7 @@ fn add_32(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_33(address_space: &mut AddressSpace) {
+fn add_object_33(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "WorstQuality2";
     let display_name = "WorstQuality2";
@@ -406,7 +462,7 @@ fn add_33(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_34(address_space: &mut AddressSpace) {
+fn add_object_34(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "StandardDeviationSample";
     let display_name = "StandardDeviationSample";
@@ -418,7 +474,7 @@ fn add_34(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_35(address_space: &mut AddressSpace) {
+fn add_object_35(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "StandardDeviationPopulation";
     let display_name = "StandardDeviationPopulation";
@@ -430,7 +486,7 @@ fn add_35(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_36(address_space: &mut AddressSpace) {
+fn add_object_36(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "VarianceSample";
     let display_name = "VarianceSample";
@@ -442,7 +498,7 @@ fn add_36(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_37(address_space: &mut AddressSpace) {
+fn add_object_37(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "VariancePopulation";
     let display_name = "VariancePopulation";
@@ -454,7 +510,7 @@ fn add_37(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_38(address_space: &mut AddressSpace) {
+fn add_objecttype_38(address_space: &mut AddressSpace) {
     // ObjectType
     let browse_name = "AggregateConfigurationType";
     let display_name = "AggregateConfigurationType";
@@ -470,7 +526,7 @@ fn add_38(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_39(address_space: &mut AddressSpace) {
+fn add_variable_39(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "TreatUncertainAsBad";
@@ -486,7 +542,7 @@ fn add_39(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_40(address_space: &mut AddressSpace) {
+fn add_variable_40(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "PercentDataBad";
@@ -502,7 +558,7 @@ fn add_40(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_41(address_space: &mut AddressSpace) {
+fn add_variable_41(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "PercentDataGood";
@@ -518,7 +574,7 @@ fn add_41(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_42(address_space: &mut AddressSpace) {
+fn add_variable_42(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "UseSlopedExtrapolation";
@@ -534,48 +590,3 @@ fn add_42(address_space: &mut AddressSpace) {
     ]));
 }
 
-#[allow(unused_variables)]
-pub fn populate_address_space(address_space: &mut AddressSpace) {
-    add_1(address_space);
-    add_2(address_space);
-    add_3(address_space);
-    add_4(address_space);
-    add_5(address_space);
-    add_6(address_space);
-    add_7(address_space);
-    add_8(address_space);
-    add_9(address_space);
-    add_10(address_space);
-    add_11(address_space);
-    add_12(address_space);
-    add_13(address_space);
-    add_14(address_space);
-    add_15(address_space);
-    add_16(address_space);
-    add_17(address_space);
-    add_18(address_space);
-    add_19(address_space);
-    add_20(address_space);
-    add_21(address_space);
-    add_22(address_space);
-    add_23(address_space);
-    add_24(address_space);
-    add_25(address_space);
-    add_26(address_space);
-    add_27(address_space);
-    add_28(address_space);
-    add_29(address_space);
-    add_30(address_space);
-    add_31(address_space);
-    add_32(address_space);
-    add_33(address_space);
-    add_34(address_space);
-    add_35(address_space);
-    add_36(address_space);
-    add_37(address_space);
-    add_38(address_space);
-    add_39(address_space);
-    add_40(address_space);
-    add_41(address_space);
-    add_42(address_space);
-}

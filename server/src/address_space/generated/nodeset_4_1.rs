@@ -5,12 +5,126 @@
 use std::str::FromStr;
 
 #[allow(unused_imports)]
-use opcua_types::*;
-use opcua_types::node_ids::*;
+use opcua_types::{
+    node_id::NodeId,
+    data_value::DataValue,
+    variant::Variant, 
+    extension_object::ExtensionObject, 
+    string::UAString,
+    basic_types::LocalizedText,
+    service_types::{
+        Argument
+    },
+    node_ids::*
+};
 #[allow(unused_imports)]
 use crate::address_space::types::*;
 
-fn add_1(address_space: &mut AddressSpace) {
+#[allow(unused_variables)]
+pub fn populate_address_space(address_space: &mut AddressSpace) {
+    add_object_1(address_space);
+    add_object_2(address_space);
+    add_object_3(address_space);
+    add_object_4(address_space);
+    add_object_5(address_space);
+    add_object_6(address_space);
+    add_object_7(address_space);
+    add_object_8(address_space);
+    add_object_9(address_space);
+    add_object_10(address_space);
+    add_object_11(address_space);
+    add_object_12(address_space);
+    add_object_13(address_space);
+    add_object_14(address_space);
+    add_object_15(address_space);
+    add_object_16(address_space);
+    add_object_17(address_space);
+    add_object_18(address_space);
+    add_object_19(address_space);
+    add_object_20(address_space);
+    add_object_21(address_space);
+    add_object_22(address_space);
+    add_object_23(address_space);
+    add_object_24(address_space);
+    add_object_25(address_space);
+    add_object_26(address_space);
+    add_object_27(address_space);
+    add_object_28(address_space);
+    add_object_29(address_space);
+    add_object_30(address_space);
+    add_object_31(address_space);
+    add_object_32(address_space);
+    add_object_33(address_space);
+    add_object_34(address_space);
+    add_object_35(address_space);
+    add_object_36(address_space);
+    add_object_37(address_space);
+    add_object_38(address_space);
+    add_object_39(address_space);
+    add_object_40(address_space);
+    add_object_41(address_space);
+    add_object_42(address_space);
+    add_object_43(address_space);
+    add_object_44(address_space);
+    add_object_45(address_space);
+    add_object_46(address_space);
+    add_object_47(address_space);
+    add_object_48(address_space);
+    add_object_49(address_space);
+    add_object_50(address_space);
+    add_object_51(address_space);
+    add_object_52(address_space);
+    add_object_53(address_space);
+    add_object_54(address_space);
+    add_object_55(address_space);
+    add_object_56(address_space);
+    add_object_57(address_space);
+    add_object_58(address_space);
+    add_object_59(address_space);
+    add_object_60(address_space);
+    add_object_61(address_space);
+    add_object_62(address_space);
+    add_object_63(address_space);
+    add_object_64(address_space);
+    add_datatype_65(address_space);
+    add_datatype_66(address_space);
+    add_datatype_67(address_space);
+    add_datatype_68(address_space);
+    add_datatype_69(address_space);
+    add_datatype_70(address_space);
+    add_datatype_71(address_space);
+    add_datatype_72(address_space);
+    add_datatype_73(address_space);
+    add_datatype_74(address_space);
+    add_datatype_75(address_space);
+    add_datatype_76(address_space);
+    add_datatype_77(address_space);
+    add_datatype_78(address_space);
+    add_datatype_79(address_space);
+    add_datatype_80(address_space);
+    add_datatype_81(address_space);
+    add_datatype_82(address_space);
+    add_datatype_83(address_space);
+    add_datatype_84(address_space);
+    add_datatype_85(address_space);
+    add_datatype_86(address_space);
+    add_datatype_87(address_space);
+    add_datatype_88(address_space);
+    add_datatype_89(address_space);
+    add_datatype_90(address_space);
+    add_datatype_91(address_space);
+    add_datatype_92(address_space);
+    add_datatype_93(address_space);
+    add_datatype_94(address_space);
+    add_datatype_95(address_space);
+    add_datatype_96(address_space);
+    add_datatype_97(address_space);
+    add_datatype_98(address_space);
+    add_datatype_99(address_space);
+    add_datatype_100(address_space);
+}
+
+fn add_object_1(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -24,7 +138,7 @@ fn add_1(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_2(address_space: &mut AddressSpace) {
+fn add_object_2(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -38,7 +152,7 @@ fn add_2(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_3(address_space: &mut AddressSpace) {
+fn add_object_3(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -52,7 +166,7 @@ fn add_3(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_4(address_space: &mut AddressSpace) {
+fn add_object_4(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -66,7 +180,7 @@ fn add_4(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_5(address_space: &mut AddressSpace) {
+fn add_object_5(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -80,7 +194,7 @@ fn add_5(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_6(address_space: &mut AddressSpace) {
+fn add_object_6(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -94,7 +208,7 @@ fn add_6(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_7(address_space: &mut AddressSpace) {
+fn add_object_7(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -108,7 +222,7 @@ fn add_7(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_8(address_space: &mut AddressSpace) {
+fn add_object_8(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -122,7 +236,7 @@ fn add_8(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_9(address_space: &mut AddressSpace) {
+fn add_object_9(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -136,7 +250,7 @@ fn add_9(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_10(address_space: &mut AddressSpace) {
+fn add_object_10(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -150,7 +264,7 @@ fn add_10(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_11(address_space: &mut AddressSpace) {
+fn add_object_11(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -164,7 +278,7 @@ fn add_11(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_12(address_space: &mut AddressSpace) {
+fn add_object_12(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -178,7 +292,7 @@ fn add_12(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_13(address_space: &mut AddressSpace) {
+fn add_object_13(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -192,7 +306,7 @@ fn add_13(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_14(address_space: &mut AddressSpace) {
+fn add_object_14(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -206,7 +320,7 @@ fn add_14(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_15(address_space: &mut AddressSpace) {
+fn add_object_15(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -220,7 +334,7 @@ fn add_15(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_16(address_space: &mut AddressSpace) {
+fn add_object_16(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -234,7 +348,7 @@ fn add_16(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_17(address_space: &mut AddressSpace) {
+fn add_object_17(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -248,7 +362,7 @@ fn add_17(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_18(address_space: &mut AddressSpace) {
+fn add_object_18(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -262,7 +376,7 @@ fn add_18(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_19(address_space: &mut AddressSpace) {
+fn add_object_19(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -276,7 +390,7 @@ fn add_19(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_20(address_space: &mut AddressSpace) {
+fn add_object_20(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -290,7 +404,7 @@ fn add_20(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_21(address_space: &mut AddressSpace) {
+fn add_object_21(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -304,7 +418,7 @@ fn add_21(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_22(address_space: &mut AddressSpace) {
+fn add_object_22(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -318,7 +432,7 @@ fn add_22(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_23(address_space: &mut AddressSpace) {
+fn add_object_23(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -332,7 +446,7 @@ fn add_23(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_24(address_space: &mut AddressSpace) {
+fn add_object_24(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -346,7 +460,7 @@ fn add_24(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_25(address_space: &mut AddressSpace) {
+fn add_object_25(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -360,7 +474,7 @@ fn add_25(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_26(address_space: &mut AddressSpace) {
+fn add_object_26(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -374,7 +488,7 @@ fn add_26(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_27(address_space: &mut AddressSpace) {
+fn add_object_27(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -388,7 +502,7 @@ fn add_27(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_28(address_space: &mut AddressSpace) {
+fn add_object_28(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -402,7 +516,7 @@ fn add_28(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_29(address_space: &mut AddressSpace) {
+fn add_object_29(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -416,7 +530,7 @@ fn add_29(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_30(address_space: &mut AddressSpace) {
+fn add_object_30(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -430,7 +544,7 @@ fn add_30(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_31(address_space: &mut AddressSpace) {
+fn add_object_31(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -444,7 +558,7 @@ fn add_31(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_32(address_space: &mut AddressSpace) {
+fn add_object_32(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -458,7 +572,7 @@ fn add_32(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_33(address_space: &mut AddressSpace) {
+fn add_object_33(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -472,7 +586,7 @@ fn add_33(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_34(address_space: &mut AddressSpace) {
+fn add_object_34(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -486,7 +600,7 @@ fn add_34(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_35(address_space: &mut AddressSpace) {
+fn add_object_35(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -500,7 +614,7 @@ fn add_35(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_36(address_space: &mut AddressSpace) {
+fn add_object_36(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -514,7 +628,7 @@ fn add_36(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_37(address_space: &mut AddressSpace) {
+fn add_object_37(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -528,7 +642,7 @@ fn add_37(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_38(address_space: &mut AddressSpace) {
+fn add_object_38(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -542,7 +656,7 @@ fn add_38(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_39(address_space: &mut AddressSpace) {
+fn add_object_39(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -556,7 +670,7 @@ fn add_39(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_40(address_space: &mut AddressSpace) {
+fn add_object_40(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -570,7 +684,7 @@ fn add_40(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_41(address_space: &mut AddressSpace) {
+fn add_object_41(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -584,7 +698,7 @@ fn add_41(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_42(address_space: &mut AddressSpace) {
+fn add_object_42(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -598,7 +712,7 @@ fn add_42(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_43(address_space: &mut AddressSpace) {
+fn add_object_43(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -612,7 +726,7 @@ fn add_43(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_44(address_space: &mut AddressSpace) {
+fn add_object_44(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -626,7 +740,7 @@ fn add_44(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_45(address_space: &mut AddressSpace) {
+fn add_object_45(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -640,7 +754,7 @@ fn add_45(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_46(address_space: &mut AddressSpace) {
+fn add_object_46(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -654,7 +768,7 @@ fn add_46(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_47(address_space: &mut AddressSpace) {
+fn add_object_47(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -668,7 +782,7 @@ fn add_47(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_48(address_space: &mut AddressSpace) {
+fn add_object_48(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -682,7 +796,7 @@ fn add_48(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_49(address_space: &mut AddressSpace) {
+fn add_object_49(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -696,7 +810,7 @@ fn add_49(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_50(address_space: &mut AddressSpace) {
+fn add_object_50(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -710,7 +824,7 @@ fn add_50(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_51(address_space: &mut AddressSpace) {
+fn add_object_51(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -724,7 +838,7 @@ fn add_51(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_52(address_space: &mut AddressSpace) {
+fn add_object_52(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -738,7 +852,7 @@ fn add_52(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_53(address_space: &mut AddressSpace) {
+fn add_object_53(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -752,7 +866,7 @@ fn add_53(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_54(address_space: &mut AddressSpace) {
+fn add_object_54(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -766,7 +880,7 @@ fn add_54(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_55(address_space: &mut AddressSpace) {
+fn add_object_55(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -780,7 +894,7 @@ fn add_55(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_56(address_space: &mut AddressSpace) {
+fn add_object_56(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -794,7 +908,7 @@ fn add_56(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_57(address_space: &mut AddressSpace) {
+fn add_object_57(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -808,7 +922,7 @@ fn add_57(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_58(address_space: &mut AddressSpace) {
+fn add_object_58(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -822,7 +936,7 @@ fn add_58(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_59(address_space: &mut AddressSpace) {
+fn add_object_59(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -836,7 +950,7 @@ fn add_59(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_60(address_space: &mut AddressSpace) {
+fn add_object_60(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -850,7 +964,7 @@ fn add_60(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_61(address_space: &mut AddressSpace) {
+fn add_object_61(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -864,7 +978,7 @@ fn add_61(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_62(address_space: &mut AddressSpace) {
+fn add_object_62(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -878,7 +992,7 @@ fn add_62(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_63(address_space: &mut AddressSpace) {
+fn add_object_63(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -892,7 +1006,7 @@ fn add_63(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_64(address_space: &mut AddressSpace) {
+fn add_object_64(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -906,7 +1020,7 @@ fn add_64(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_65(address_space: &mut AddressSpace) {
+fn add_datatype_65(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "ExpandedNodeId";
     let display_name = "ExpandedNodeId";
@@ -918,7 +1032,7 @@ fn add_65(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_66(address_space: &mut AddressSpace) {
+fn add_datatype_66(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "StatusCode";
     let display_name = "StatusCode";
@@ -930,7 +1044,7 @@ fn add_66(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_67(address_space: &mut AddressSpace) {
+fn add_datatype_67(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "DataValue";
     let display_name = "DataValue";
@@ -942,7 +1056,7 @@ fn add_67(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_68(address_space: &mut AddressSpace) {
+fn add_datatype_68(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "DiagnosticInfo";
     let display_name = "DiagnosticInfo";
@@ -954,7 +1068,7 @@ fn add_68(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_69(address_space: &mut AddressSpace) {
+fn add_datatype_69(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "IntegerId";
     let display_name = "IntegerId";
@@ -966,7 +1080,7 @@ fn add_69(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_70(address_space: &mut AddressSpace) {
+fn add_datatype_70(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "ApplicationType";
     let display_name = "ApplicationType";
@@ -979,7 +1093,7 @@ fn add_70(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_71(address_space: &mut AddressSpace) {
+fn add_datatype_71(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "ApplicationDescription";
     let display_name = "ApplicationDescription";
@@ -991,7 +1105,7 @@ fn add_71(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_72(address_space: &mut AddressSpace) {
+fn add_datatype_72(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "ServerOnNetwork";
     let display_name = "ServerOnNetwork";
@@ -1003,7 +1117,7 @@ fn add_72(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_73(address_space: &mut AddressSpace) {
+fn add_datatype_73(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "ApplicationInstanceCertificate";
     let display_name = "ApplicationInstanceCertificate";
@@ -1015,7 +1129,7 @@ fn add_73(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_74(address_space: &mut AddressSpace) {
+fn add_datatype_74(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "MessageSecurityMode";
     let display_name = "MessageSecurityMode";
@@ -1028,7 +1142,7 @@ fn add_74(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_75(address_space: &mut AddressSpace) {
+fn add_datatype_75(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "UserTokenType";
     let display_name = "UserTokenType";
@@ -1041,7 +1155,7 @@ fn add_75(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_76(address_space: &mut AddressSpace) {
+fn add_datatype_76(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "UserTokenPolicy";
     let display_name = "UserTokenPolicy";
@@ -1053,7 +1167,7 @@ fn add_76(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_77(address_space: &mut AddressSpace) {
+fn add_datatype_77(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "EndpointDescription";
     let display_name = "EndpointDescription";
@@ -1065,7 +1179,7 @@ fn add_77(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_78(address_space: &mut AddressSpace) {
+fn add_datatype_78(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "RegisteredServer";
     let display_name = "RegisteredServer";
@@ -1077,7 +1191,7 @@ fn add_78(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_79(address_space: &mut AddressSpace) {
+fn add_datatype_79(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "DiscoveryConfiguration";
     let display_name = "DiscoveryConfiguration";
@@ -1089,7 +1203,7 @@ fn add_79(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_80(address_space: &mut AddressSpace) {
+fn add_datatype_80(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "MdnsDiscoveryConfiguration";
     let display_name = "MdnsDiscoveryConfiguration";
@@ -1101,7 +1215,7 @@ fn add_80(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_81(address_space: &mut AddressSpace) {
+fn add_datatype_81(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "SecurityTokenRequestType";
     let display_name = "SecurityTokenRequestType";
@@ -1114,7 +1228,7 @@ fn add_81(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_82(address_space: &mut AddressSpace) {
+fn add_datatype_82(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "SignedSoftwareCertificate";
     let display_name = "SignedSoftwareCertificate";
@@ -1126,7 +1240,7 @@ fn add_82(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_83(address_space: &mut AddressSpace) {
+fn add_datatype_83(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "SessionAuthenticationToken";
     let display_name = "SessionAuthenticationToken";
@@ -1138,7 +1252,7 @@ fn add_83(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_84(address_space: &mut AddressSpace) {
+fn add_datatype_84(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "UserIdentityToken";
     let display_name = "UserIdentityToken";
@@ -1150,7 +1264,7 @@ fn add_84(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_85(address_space: &mut AddressSpace) {
+fn add_datatype_85(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "AnonymousIdentityToken";
     let display_name = "AnonymousIdentityToken";
@@ -1162,7 +1276,7 @@ fn add_85(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_86(address_space: &mut AddressSpace) {
+fn add_datatype_86(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "UserNameIdentityToken";
     let display_name = "UserNameIdentityToken";
@@ -1174,7 +1288,7 @@ fn add_86(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_87(address_space: &mut AddressSpace) {
+fn add_datatype_87(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "X509IdentityToken";
     let display_name = "X509IdentityToken";
@@ -1186,7 +1300,7 @@ fn add_87(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_88(address_space: &mut AddressSpace) {
+fn add_datatype_88(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "IssuedIdentityToken";
     let display_name = "IssuedIdentityToken";
@@ -1198,7 +1312,7 @@ fn add_88(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_89(address_space: &mut AddressSpace) {
+fn add_datatype_89(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "NodeAttributesMask";
     let display_name = "NodeAttributesMask";
@@ -1211,7 +1325,7 @@ fn add_89(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_90(address_space: &mut AddressSpace) {
+fn add_datatype_90(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "AddNodesItem";
     let display_name = "AddNodesItem";
@@ -1223,7 +1337,7 @@ fn add_90(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_91(address_space: &mut AddressSpace) {
+fn add_datatype_91(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "AddReferencesItem";
     let display_name = "AddReferencesItem";
@@ -1235,7 +1349,7 @@ fn add_91(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_92(address_space: &mut AddressSpace) {
+fn add_datatype_92(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "DeleteNodesItem";
     let display_name = "DeleteNodesItem";
@@ -1247,7 +1361,7 @@ fn add_92(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_93(address_space: &mut AddressSpace) {
+fn add_datatype_93(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "DeleteReferencesItem";
     let display_name = "DeleteReferencesItem";
@@ -1259,7 +1373,7 @@ fn add_93(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_94(address_space: &mut AddressSpace) {
+fn add_datatype_94(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "AttributeWriteMask";
     let display_name = "AttributeWriteMask";
@@ -1272,7 +1386,7 @@ fn add_94(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_95(address_space: &mut AddressSpace) {
+fn add_datatype_95(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "ContinuationPoint";
     let display_name = "ContinuationPoint";
@@ -1284,7 +1398,7 @@ fn add_95(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_96(address_space: &mut AddressSpace) {
+fn add_datatype_96(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "RelativePathElement";
     let display_name = "RelativePathElement";
@@ -1296,7 +1410,7 @@ fn add_96(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_97(address_space: &mut AddressSpace) {
+fn add_datatype_97(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "RelativePath";
     let display_name = "RelativePath";
@@ -1308,7 +1422,7 @@ fn add_97(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_98(address_space: &mut AddressSpace) {
+fn add_datatype_98(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "Counter";
     let display_name = "Counter";
@@ -1320,7 +1434,7 @@ fn add_98(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_99(address_space: &mut AddressSpace) {
+fn add_datatype_99(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "NumericRange";
     let display_name = "NumericRange";
@@ -1332,7 +1446,7 @@ fn add_99(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_100(address_space: &mut AddressSpace) {
+fn add_datatype_100(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "Time";
     let display_name = "Time";
@@ -1344,483 +1458,3 @@ fn add_100(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_101(address_space: &mut AddressSpace) {
-    // DataType
-    let browse_name = "Date";
-    let display_name = "Date";
-    let description = "A date value.";
-    let node_id = NodeId::new(0, 293);
-    let node = DataType::new(&node_id, browse_name, display_name, description, false);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 13), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_102(address_space: &mut AddressSpace) {
-    // DataType
-    let browse_name = "EndpointConfiguration";
-    let display_name = "EndpointConfiguration";
-    let description = "";
-    let node_id = NodeId::new(0, 331);
-    let node = DataType::new(&node_id, browse_name, display_name, description, false);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 22), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_103(address_space: &mut AddressSpace) {
-    // DataType
-    let browse_name = "FilterOperator";
-    let display_name = "FilterOperator";
-    let description = "";
-    let node_id = NodeId::new(0, 576);
-    let node = DataType::new(&node_id, browse_name, display_name, description, false);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 7605), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 29), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_104(address_space: &mut AddressSpace) {
-    // DataType
-    let browse_name = "ContentFilterElement";
-    let display_name = "ContentFilterElement";
-    let description = "";
-    let node_id = NodeId::new(0, 583);
-    let node = DataType::new(&node_id, browse_name, display_name, description, false);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 22), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_105(address_space: &mut AddressSpace) {
-    // DataType
-    let browse_name = "ContentFilter";
-    let display_name = "ContentFilter";
-    let description = "";
-    let node_id = NodeId::new(0, 586);
-    let node = DataType::new(&node_id, browse_name, display_name, description, false);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 22), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_106(address_space: &mut AddressSpace) {
-    // DataType
-    let browse_name = "FilterOperand";
-    let display_name = "FilterOperand";
-    let description = "";
-    let node_id = NodeId::new(0, 589);
-    let node = DataType::new(&node_id, browse_name, display_name, description, false);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 22), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_107(address_space: &mut AddressSpace) {
-    // DataType
-    let browse_name = "ElementOperand";
-    let display_name = "ElementOperand";
-    let description = "";
-    let node_id = NodeId::new(0, 592);
-    let node = DataType::new(&node_id, browse_name, display_name, description, false);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 589), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_108(address_space: &mut AddressSpace) {
-    // DataType
-    let browse_name = "LiteralOperand";
-    let display_name = "LiteralOperand";
-    let description = "";
-    let node_id = NodeId::new(0, 595);
-    let node = DataType::new(&node_id, browse_name, display_name, description, false);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 589), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_109(address_space: &mut AddressSpace) {
-    // DataType
-    let browse_name = "AttributeOperand";
-    let display_name = "AttributeOperand";
-    let description = "";
-    let node_id = NodeId::new(0, 598);
-    let node = DataType::new(&node_id, browse_name, display_name, description, false);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 589), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_110(address_space: &mut AddressSpace) {
-    // DataType
-    let browse_name = "SimpleAttributeOperand";
-    let display_name = "SimpleAttributeOperand";
-    let description = "";
-    let node_id = NodeId::new(0, 601);
-    let node = DataType::new(&node_id, browse_name, display_name, description, false);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 589), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_111(address_space: &mut AddressSpace) {
-    // DataType
-    let browse_name = "HistoryEvent";
-    let display_name = "HistoryEvent";
-    let description = "";
-    let node_id = NodeId::new(0, 659);
-    let node = DataType::new(&node_id, browse_name, display_name, description, false);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 22), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_112(address_space: &mut AddressSpace) {
-    // DataType
-    let browse_name = "HistoryUpdateType";
-    let display_name = "HistoryUpdateType";
-    let description = "";
-    let node_id = NodeId::new(0, 11234);
-    let node = DataType::new(&node_id, browse_name, display_name, description, false);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 11884), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 29), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_113(address_space: &mut AddressSpace) {
-    // DataType
-    let browse_name = "PerformUpdateType";
-    let display_name = "PerformUpdateType";
-    let description = "";
-    let node_id = NodeId::new(0, 11293);
-    let node = DataType::new(&node_id, browse_name, display_name, description, false);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 11885), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
-        (&NodeId::new(0, 29), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_114(address_space: &mut AddressSpace) {
-    // DataType
-    let browse_name = "MonitoringFilter";
-    let display_name = "MonitoringFilter";
-    let description = "";
-    let node_id = NodeId::new(0, 719);
-    let node = DataType::new(&node_id, browse_name, display_name, description, false);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 22), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_115(address_space: &mut AddressSpace) {
-    // DataType
-    let browse_name = "EventFilter";
-    let display_name = "EventFilter";
-    let description = "";
-    let node_id = NodeId::new(0, 725);
-    let node = DataType::new(&node_id, browse_name, display_name, description, false);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 719), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_116(address_space: &mut AddressSpace) {
-    // DataType
-    let browse_name = "AggregateConfiguration";
-    let display_name = "AggregateConfiguration";
-    let description = "";
-    let node_id = NodeId::new(0, 948);
-    let node = DataType::new(&node_id, browse_name, display_name, description, false);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 22), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_117(address_space: &mut AddressSpace) {
-    // DataType
-    let browse_name = "HistoryEventFieldList";
-    let display_name = "HistoryEventFieldList";
-    let description = "";
-    let node_id = NodeId::new(0, 920);
-    let node = DataType::new(&node_id, browse_name, display_name, description, false);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 22), ReferenceTypeId::HasSubtype, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_118(address_space: &mut AddressSpace) {
-    // Variable
-    let data_value = DataValue::null();
-    let browse_name = "EnumStrings";
-    let display_name = "EnumStrings";
-    let description = "";
-    let node_id = NodeId::new(0, 7597);
-    let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::LocalizedText, data_value);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 307), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 307), ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_119(address_space: &mut AddressSpace) {
-    // Variable
-    let data_value = DataValue::null();
-    let browse_name = "EnumStrings";
-    let display_name = "EnumStrings";
-    let description = "";
-    let node_id = NodeId::new(0, 7595);
-    let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::LocalizedText, data_value);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 302), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 302), ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_120(address_space: &mut AddressSpace) {
-    // Variable
-    let data_value = DataValue::null();
-    let browse_name = "EnumStrings";
-    let display_name = "EnumStrings";
-    let description = "";
-    let node_id = NodeId::new(0, 7596);
-    let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::LocalizedText, data_value);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 303), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 303), ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_121(address_space: &mut AddressSpace) {
-    // Variable
-    let data_value = DataValue::null();
-    let browse_name = "EnumStrings";
-    let display_name = "EnumStrings";
-    let description = "";
-    let node_id = NodeId::new(0, 7598);
-    let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::LocalizedText, data_value);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 315), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 315), ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_122(address_space: &mut AddressSpace) {
-    // Variable
-    let data_value = DataValue::null();
-    let browse_name = "EnumValues";
-    let display_name = "EnumValues";
-    let description = "";
-    let node_id = NodeId::new(0, 11881);
-    let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(7594u32).unwrap(), data_value);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 348), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 348), ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_123(address_space: &mut AddressSpace) {
-    // Variable
-    let data_value = DataValue::null();
-    let browse_name = "EnumValues";
-    let display_name = "EnumValues";
-    let description = "";
-    let node_id = NodeId::new(0, 11882);
-    let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(7594u32).unwrap(), data_value);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 347), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 347), ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_124(address_space: &mut AddressSpace) {
-    // Variable
-    let data_value = DataValue::null();
-    let browse_name = "EnumStrings";
-    let display_name = "EnumStrings";
-    let description = "";
-    let node_id = NodeId::new(0, 7605);
-    let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::LocalizedText, data_value);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 576), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 576), ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_125(address_space: &mut AddressSpace) {
-    // Variable
-    let data_value = DataValue::null();
-    let browse_name = "EnumValues";
-    let display_name = "EnumValues";
-    let description = "";
-    let node_id = NodeId::new(0, 11884);
-    let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(7594u32).unwrap(), data_value);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 11234), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11234), ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-fn add_126(address_space: &mut AddressSpace) {
-    // Variable
-    let data_value = DataValue::null();
-    let browse_name = "EnumValues";
-    let display_name = "EnumValues";
-    let description = "";
-    let node_id = NodeId::new(0, 11885);
-    let node = Variable::new_data_value(&node_id, browse_name, display_name, description, DataTypeId::from_u32(7594u32).unwrap(), data_value);
-    address_space.insert(node, Some(&[
-        (&NodeId::new(0, 11293), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
-        (&NodeId::new(0, 68), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
-        (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
-        (&NodeId::new(0, 11293), ReferenceTypeId::HasProperty, ReferenceDirection::Inverse),
-    ]));
-}
-
-#[allow(unused_variables)]
-pub fn populate_address_space(address_space: &mut AddressSpace) {
-    add_1(address_space);
-    add_2(address_space);
-    add_3(address_space);
-    add_4(address_space);
-    add_5(address_space);
-    add_6(address_space);
-    add_7(address_space);
-    add_8(address_space);
-    add_9(address_space);
-    add_10(address_space);
-    add_11(address_space);
-    add_12(address_space);
-    add_13(address_space);
-    add_14(address_space);
-    add_15(address_space);
-    add_16(address_space);
-    add_17(address_space);
-    add_18(address_space);
-    add_19(address_space);
-    add_20(address_space);
-    add_21(address_space);
-    add_22(address_space);
-    add_23(address_space);
-    add_24(address_space);
-    add_25(address_space);
-    add_26(address_space);
-    add_27(address_space);
-    add_28(address_space);
-    add_29(address_space);
-    add_30(address_space);
-    add_31(address_space);
-    add_32(address_space);
-    add_33(address_space);
-    add_34(address_space);
-    add_35(address_space);
-    add_36(address_space);
-    add_37(address_space);
-    add_38(address_space);
-    add_39(address_space);
-    add_40(address_space);
-    add_41(address_space);
-    add_42(address_space);
-    add_43(address_space);
-    add_44(address_space);
-    add_45(address_space);
-    add_46(address_space);
-    add_47(address_space);
-    add_48(address_space);
-    add_49(address_space);
-    add_50(address_space);
-    add_51(address_space);
-    add_52(address_space);
-    add_53(address_space);
-    add_54(address_space);
-    add_55(address_space);
-    add_56(address_space);
-    add_57(address_space);
-    add_58(address_space);
-    add_59(address_space);
-    add_60(address_space);
-    add_61(address_space);
-    add_62(address_space);
-    add_63(address_space);
-    add_64(address_space);
-    add_65(address_space);
-    add_66(address_space);
-    add_67(address_space);
-    add_68(address_space);
-    add_69(address_space);
-    add_70(address_space);
-    add_71(address_space);
-    add_72(address_space);
-    add_73(address_space);
-    add_74(address_space);
-    add_75(address_space);
-    add_76(address_space);
-    add_77(address_space);
-    add_78(address_space);
-    add_79(address_space);
-    add_80(address_space);
-    add_81(address_space);
-    add_82(address_space);
-    add_83(address_space);
-    add_84(address_space);
-    add_85(address_space);
-    add_86(address_space);
-    add_87(address_space);
-    add_88(address_space);
-    add_89(address_space);
-    add_90(address_space);
-    add_91(address_space);
-    add_92(address_space);
-    add_93(address_space);
-    add_94(address_space);
-    add_95(address_space);
-    add_96(address_space);
-    add_97(address_space);
-    add_98(address_space);
-    add_99(address_space);
-    add_100(address_space);
-    add_101(address_space);
-    add_102(address_space);
-    add_103(address_space);
-    add_104(address_space);
-    add_105(address_space);
-    add_106(address_space);
-    add_107(address_space);
-    add_108(address_space);
-    add_109(address_space);
-    add_110(address_space);
-    add_111(address_space);
-    add_112(address_space);
-    add_113(address_space);
-    add_114(address_space);
-    add_115(address_space);
-    add_116(address_space);
-    add_117(address_space);
-    add_118(address_space);
-    add_119(address_space);
-    add_120(address_space);
-    add_121(address_space);
-    add_122(address_space);
-    add_123(address_space);
-    add_124(address_space);
-    add_125(address_space);
-    add_126(address_space);
-}

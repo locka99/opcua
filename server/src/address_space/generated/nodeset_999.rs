@@ -5,12 +5,28 @@
 use std::str::FromStr;
 
 #[allow(unused_imports)]
-use opcua_types::*;
-use opcua_types::node_ids::*;
+use opcua_types::{
+    node_id::NodeId,
+    data_value::DataValue,
+    variant::Variant, 
+    extension_object::ExtensionObject, 
+    string::UAString,
+    basic_types::LocalizedText,
+    service_types::{
+        Argument
+    },
+    node_ids::*
+};
 #[allow(unused_imports)]
 use crate::address_space::types::*;
 
-fn add_1(address_space: &mut AddressSpace) {
+#[allow(unused_variables)]
+pub fn populate_address_space(address_space: &mut AddressSpace) {
+    add_datatype_1(address_space);
+    add_variable_2(address_space);
+}
+
+fn add_datatype_1(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "EnumeratedTestType";
     let display_name = "EnumeratedTestType";
@@ -23,7 +39,7 @@ fn add_1(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_2(address_space: &mut AddressSpace) {
+fn add_variable_2(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "EnumValues";
@@ -39,8 +55,3 @@ fn add_2(address_space: &mut AddressSpace) {
     ]));
 }
 
-#[allow(unused_variables)]
-pub fn populate_address_space(address_space: &mut AddressSpace) {
-    add_1(address_space);
-    add_2(address_space);
-}

@@ -5,12 +5,112 @@
 use std::str::FromStr;
 
 #[allow(unused_imports)]
-use opcua_types::*;
-use opcua_types::node_ids::*;
+use opcua_types::{
+    node_id::NodeId,
+    data_value::DataValue,
+    variant::Variant, 
+    extension_object::ExtensionObject, 
+    string::UAString,
+    basic_types::LocalizedText,
+    service_types::{
+        Argument
+    },
+    node_ids::*
+};
 #[allow(unused_imports)]
 use crate::address_space::types::*;
 
-fn add_1(address_space: &mut AddressSpace) {
+#[allow(unused_variables)]
+pub fn populate_address_space(address_space: &mut AddressSpace) {
+    add_object_1(address_space);
+    add_object_2(address_space);
+    add_object_3(address_space);
+    add_object_4(address_space);
+    add_object_5(address_space);
+    add_object_6(address_space);
+    add_object_7(address_space);
+    add_object_8(address_space);
+    add_object_9(address_space);
+    add_objecttype_10(address_space);
+    add_objecttype_11(address_space);
+    add_objecttype_12(address_space);
+    add_objecttype_13(address_space);
+    add_objecttype_14(address_space);
+    add_objecttype_15(address_space);
+    add_objecttype_16(address_space);
+    add_objecttype_17(address_space);
+    add_datatype_18(address_space);
+    add_datatype_19(address_space);
+    add_referencetype_20(address_space);
+    add_variable_21(address_space);
+    add_variable_22(address_space);
+    add_variable_23(address_space);
+    add_variable_24(address_space);
+    add_variable_25(address_space);
+    add_variable_26(address_space);
+    add_variable_27(address_space);
+    add_variable_28(address_space);
+    add_variable_29(address_space);
+    add_variable_30(address_space);
+    add_variable_31(address_space);
+    add_variable_32(address_space);
+    add_variable_33(address_space);
+    add_variable_34(address_space);
+    add_variable_35(address_space);
+    add_variable_36(address_space);
+    add_variable_37(address_space);
+    add_variable_38(address_space);
+    add_variable_39(address_space);
+    add_variable_40(address_space);
+    add_variable_41(address_space);
+    add_variable_42(address_space);
+    add_variable_43(address_space);
+    add_variable_44(address_space);
+    add_variable_45(address_space);
+    add_variable_46(address_space);
+    add_variable_47(address_space);
+    add_variable_48(address_space);
+    add_variable_49(address_space);
+    add_variable_50(address_space);
+    add_variable_51(address_space);
+    add_variable_52(address_space);
+    add_variable_53(address_space);
+    add_variable_54(address_space);
+    add_variable_55(address_space);
+    add_variable_56(address_space);
+    add_variable_57(address_space);
+    add_variable_58(address_space);
+    add_variable_59(address_space);
+    add_variable_60(address_space);
+    add_variable_61(address_space);
+    add_variable_62(address_space);
+    add_variable_63(address_space);
+    add_variable_64(address_space);
+    add_variable_65(address_space);
+    add_variable_66(address_space);
+    add_variable_67(address_space);
+    add_variable_68(address_space);
+    add_variable_69(address_space);
+    add_variable_70(address_space);
+    add_variable_71(address_space);
+    add_variable_72(address_space);
+    add_variable_73(address_space);
+    add_variable_74(address_space);
+    add_variable_75(address_space);
+    add_variable_76(address_space);
+    add_variable_77(address_space);
+    add_variable_78(address_space);
+    add_variable_79(address_space);
+    add_variable_80(address_space);
+    add_variable_81(address_space);
+    add_variable_82(address_space);
+    add_variable_83(address_space);
+    add_variable_84(address_space);
+    add_variable_85(address_space);
+    add_variable_86(address_space);
+}
+
+fn add_object_1(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "HistoryServerCapabilities";
     let display_name = "HistoryServerCapabilities";
@@ -38,7 +138,7 @@ fn add_1(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_2(address_space: &mut AddressSpace) {
+fn add_object_2(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "AggregateFunctions";
     let display_name = "AggregateFunctions";
@@ -52,7 +152,7 @@ fn add_2(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_3(address_space: &mut AddressSpace) {
+fn add_object_3(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "AggregateConfiguration";
     let display_name = "AggregateConfiguration";
@@ -71,7 +171,7 @@ fn add_3(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_4(address_space: &mut AddressSpace) {
+fn add_object_4(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "AggregateFunctions";
     let display_name = "AggregateFunctions";
@@ -86,7 +186,7 @@ fn add_4(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_5(address_space: &mut AddressSpace) {
+fn add_object_5(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "HA Configuration";
     let display_name = "HA Configuration";
@@ -100,7 +200,7 @@ fn add_5(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_6(address_space: &mut AddressSpace) {
+fn add_object_6(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "AggregateConfiguration";
     let display_name = "AggregateConfiguration";
@@ -118,7 +218,7 @@ fn add_6(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_7(address_space: &mut AddressSpace) {
+fn add_object_7(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "AggregateFunctions";
     let display_name = "AggregateFunctions";
@@ -133,7 +233,7 @@ fn add_7(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_8(address_space: &mut AddressSpace) {
+fn add_object_8(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default XML";
     let display_name = "Default XML";
@@ -147,7 +247,7 @@ fn add_8(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_9(address_space: &mut AddressSpace) {
+fn add_object_9(address_space: &mut AddressSpace) {
     // Object
     let browse_name = "Default Binary";
     let display_name = "Default Binary";
@@ -161,7 +261,7 @@ fn add_9(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_10(address_space: &mut AddressSpace) {
+fn add_objecttype_10(address_space: &mut AddressSpace) {
     // ObjectType
     let browse_name = "HistoricalDataConfigurationType";
     let display_name = "HistoricalDataConfigurationType";
@@ -183,7 +283,7 @@ fn add_10(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_11(address_space: &mut AddressSpace) {
+fn add_objecttype_11(address_space: &mut AddressSpace) {
     // ObjectType
     let browse_name = "HistoryServerCapabilitiesType";
     let display_name = "HistoryServerCapabilitiesType";
@@ -210,7 +310,7 @@ fn add_11(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_12(address_space: &mut AddressSpace) {
+fn add_objecttype_12(address_space: &mut AddressSpace) {
     // ObjectType
     let browse_name = "AuditHistoryEventUpdateEventType";
     let display_name = "AuditHistoryEventUpdateEventType";
@@ -227,7 +327,7 @@ fn add_12(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_13(address_space: &mut AddressSpace) {
+fn add_objecttype_13(address_space: &mut AddressSpace) {
     // ObjectType
     let browse_name = "AuditHistoryValueUpdateEventType";
     let display_name = "AuditHistoryValueUpdateEventType";
@@ -243,7 +343,7 @@ fn add_13(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_14(address_space: &mut AddressSpace) {
+fn add_objecttype_14(address_space: &mut AddressSpace) {
     // ObjectType
     let browse_name = "AuditHistoryDeleteEventType";
     let display_name = "AuditHistoryDeleteEventType";
@@ -256,7 +356,7 @@ fn add_14(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_15(address_space: &mut AddressSpace) {
+fn add_objecttype_15(address_space: &mut AddressSpace) {
     // ObjectType
     let browse_name = "AuditHistoryRawModifyDeleteEventType";
     let display_name = "AuditHistoryRawModifyDeleteEventType";
@@ -272,7 +372,7 @@ fn add_15(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_16(address_space: &mut AddressSpace) {
+fn add_objecttype_16(address_space: &mut AddressSpace) {
     // ObjectType
     let browse_name = "AuditHistoryAtTimeDeleteEventType";
     let display_name = "AuditHistoryAtTimeDeleteEventType";
@@ -286,7 +386,7 @@ fn add_16(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_17(address_space: &mut AddressSpace) {
+fn add_objecttype_17(address_space: &mut AddressSpace) {
     // ObjectType
     let browse_name = "AuditHistoryEventDeleteEventType";
     let display_name = "AuditHistoryEventDeleteEventType";
@@ -300,7 +400,7 @@ fn add_17(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_18(address_space: &mut AddressSpace) {
+fn add_datatype_18(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "Annotation";
     let display_name = "Annotation";
@@ -312,7 +412,7 @@ fn add_18(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_19(address_space: &mut AddressSpace) {
+fn add_datatype_19(address_space: &mut AddressSpace) {
     // DataType
     let browse_name = "ExceptionDeviationFormat";
     let display_name = "ExceptionDeviationFormat";
@@ -325,8 +425,8 @@ fn add_19(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_20(address_space: &mut AddressSpace) {
-    // DataType
+fn add_referencetype_20(address_space: &mut AddressSpace) {
+    // ReferenceType
     let browse_name = "HasHistoricalConfiguration";
     let display_name = "HasHistoricalConfiguration";
     let description = "The type for a reference to the historical configuration for a data variable.";
@@ -337,7 +437,7 @@ fn add_20(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_21(address_space: &mut AddressSpace) {
+fn add_variable_21(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "AccessHistoryDataCapability";
@@ -352,7 +452,7 @@ fn add_21(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_22(address_space: &mut AddressSpace) {
+fn add_variable_22(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "AccessHistoryEventsCapability";
@@ -367,7 +467,7 @@ fn add_22(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_23(address_space: &mut AddressSpace) {
+fn add_variable_23(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "MaxReturnDataValues";
@@ -382,7 +482,7 @@ fn add_23(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_24(address_space: &mut AddressSpace) {
+fn add_variable_24(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "MaxReturnEventValues";
@@ -397,7 +497,7 @@ fn add_24(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_25(address_space: &mut AddressSpace) {
+fn add_variable_25(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "InsertDataCapability";
@@ -412,7 +512,7 @@ fn add_25(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_26(address_space: &mut AddressSpace) {
+fn add_variable_26(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "ReplaceDataCapability";
@@ -427,7 +527,7 @@ fn add_26(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_27(address_space: &mut AddressSpace) {
+fn add_variable_27(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "UpdateDataCapability";
@@ -442,7 +542,7 @@ fn add_27(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_28(address_space: &mut AddressSpace) {
+fn add_variable_28(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "DeleteRawCapability";
@@ -457,7 +557,7 @@ fn add_28(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_29(address_space: &mut AddressSpace) {
+fn add_variable_29(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "DeleteAtTimeCapability";
@@ -472,7 +572,7 @@ fn add_29(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_30(address_space: &mut AddressSpace) {
+fn add_variable_30(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "InsertEventCapability";
@@ -487,7 +587,7 @@ fn add_30(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_31(address_space: &mut AddressSpace) {
+fn add_variable_31(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "ReplaceEventCapability";
@@ -502,7 +602,7 @@ fn add_31(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_32(address_space: &mut AddressSpace) {
+fn add_variable_32(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "UpdateEventCapability";
@@ -517,7 +617,7 @@ fn add_32(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_33(address_space: &mut AddressSpace) {
+fn add_variable_33(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "DeleteEventCapability";
@@ -532,7 +632,7 @@ fn add_33(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_34(address_space: &mut AddressSpace) {
+fn add_variable_34(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "InsertAnnotationCapability";
@@ -547,7 +647,7 @@ fn add_34(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_35(address_space: &mut AddressSpace) {
+fn add_variable_35(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "Annotations";
@@ -560,7 +660,7 @@ fn add_35(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_36(address_space: &mut AddressSpace) {
+fn add_variable_36(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "TreatUncertainAsBad";
@@ -576,7 +676,7 @@ fn add_36(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_37(address_space: &mut AddressSpace) {
+fn add_variable_37(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "PercentDataBad";
@@ -592,7 +692,7 @@ fn add_37(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_38(address_space: &mut AddressSpace) {
+fn add_variable_38(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "PercentDataGood";
@@ -608,7 +708,7 @@ fn add_38(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_39(address_space: &mut AddressSpace) {
+fn add_variable_39(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "UseSlopedExtrapolation";
@@ -624,7 +724,7 @@ fn add_39(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_40(address_space: &mut AddressSpace) {
+fn add_variable_40(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "Stepped";
@@ -640,7 +740,7 @@ fn add_40(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_41(address_space: &mut AddressSpace) {
+fn add_variable_41(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "Definition";
@@ -656,7 +756,7 @@ fn add_41(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_42(address_space: &mut AddressSpace) {
+fn add_variable_42(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "MaxTimeInterval";
@@ -672,7 +772,7 @@ fn add_42(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_43(address_space: &mut AddressSpace) {
+fn add_variable_43(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "MinTimeInterval";
@@ -688,7 +788,7 @@ fn add_43(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_44(address_space: &mut AddressSpace) {
+fn add_variable_44(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "ExceptionDeviation";
@@ -704,7 +804,7 @@ fn add_44(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_45(address_space: &mut AddressSpace) {
+fn add_variable_45(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "ExceptionDeviationFormat";
@@ -720,7 +820,7 @@ fn add_45(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_46(address_space: &mut AddressSpace) {
+fn add_variable_46(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "StartOfArchive";
@@ -736,7 +836,7 @@ fn add_46(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_47(address_space: &mut AddressSpace) {
+fn add_variable_47(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "StartOfOnlineArchive";
@@ -752,7 +852,7 @@ fn add_47(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_48(address_space: &mut AddressSpace) {
+fn add_variable_48(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "TreatUncertainAsBad";
@@ -767,7 +867,7 @@ fn add_48(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_49(address_space: &mut AddressSpace) {
+fn add_variable_49(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "PercentDataBad";
@@ -782,7 +882,7 @@ fn add_49(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_50(address_space: &mut AddressSpace) {
+fn add_variable_50(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "PercentDataGood";
@@ -797,7 +897,7 @@ fn add_50(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_51(address_space: &mut AddressSpace) {
+fn add_variable_51(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "UseSlopedExtrapolation";
@@ -812,7 +912,7 @@ fn add_51(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_52(address_space: &mut AddressSpace) {
+fn add_variable_52(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "Stepped";
@@ -827,7 +927,7 @@ fn add_52(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_53(address_space: &mut AddressSpace) {
+fn add_variable_53(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "HistoricalEventFilter";
@@ -840,7 +940,7 @@ fn add_53(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_54(address_space: &mut AddressSpace) {
+fn add_variable_54(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "AccessHistoryDataCapability";
@@ -856,7 +956,7 @@ fn add_54(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_55(address_space: &mut AddressSpace) {
+fn add_variable_55(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "AccessHistoryEventsCapability";
@@ -872,7 +972,7 @@ fn add_55(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_56(address_space: &mut AddressSpace) {
+fn add_variable_56(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "MaxReturnDataValues";
@@ -888,7 +988,7 @@ fn add_56(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_57(address_space: &mut AddressSpace) {
+fn add_variable_57(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "MaxReturnEventValues";
@@ -904,7 +1004,7 @@ fn add_57(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_58(address_space: &mut AddressSpace) {
+fn add_variable_58(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "InsertDataCapability";
@@ -920,7 +1020,7 @@ fn add_58(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_59(address_space: &mut AddressSpace) {
+fn add_variable_59(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "ReplaceDataCapability";
@@ -936,7 +1036,7 @@ fn add_59(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_60(address_space: &mut AddressSpace) {
+fn add_variable_60(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "UpdateDataCapability";
@@ -952,7 +1052,7 @@ fn add_60(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_61(address_space: &mut AddressSpace) {
+fn add_variable_61(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "DeleteRawCapability";
@@ -968,7 +1068,7 @@ fn add_61(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_62(address_space: &mut AddressSpace) {
+fn add_variable_62(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "DeleteAtTimeCapability";
@@ -984,7 +1084,7 @@ fn add_62(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_63(address_space: &mut AddressSpace) {
+fn add_variable_63(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "InsertEventCapability";
@@ -1000,7 +1100,7 @@ fn add_63(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_64(address_space: &mut AddressSpace) {
+fn add_variable_64(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "ReplaceEventCapability";
@@ -1016,7 +1116,7 @@ fn add_64(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_65(address_space: &mut AddressSpace) {
+fn add_variable_65(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "UpdateEventCapability";
@@ -1032,7 +1132,7 @@ fn add_65(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_66(address_space: &mut AddressSpace) {
+fn add_variable_66(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "DeleteEventCapability";
@@ -1048,7 +1148,7 @@ fn add_66(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_67(address_space: &mut AddressSpace) {
+fn add_variable_67(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "InsertAnnotationCapability";
@@ -1064,7 +1164,7 @@ fn add_67(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_68(address_space: &mut AddressSpace) {
+fn add_variable_68(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "UpdatedNode";
@@ -1080,7 +1180,7 @@ fn add_68(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_69(address_space: &mut AddressSpace) {
+fn add_variable_69(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "PerformInsertReplace";
@@ -1096,7 +1196,7 @@ fn add_69(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_70(address_space: &mut AddressSpace) {
+fn add_variable_70(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "Filter";
@@ -1112,7 +1212,7 @@ fn add_70(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_71(address_space: &mut AddressSpace) {
+fn add_variable_71(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "NewValues";
@@ -1128,7 +1228,7 @@ fn add_71(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_72(address_space: &mut AddressSpace) {
+fn add_variable_72(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "OldValues";
@@ -1144,7 +1244,7 @@ fn add_72(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_73(address_space: &mut AddressSpace) {
+fn add_variable_73(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "UpdatedNode";
@@ -1160,7 +1260,7 @@ fn add_73(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_74(address_space: &mut AddressSpace) {
+fn add_variable_74(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "PerformInsertReplace";
@@ -1176,7 +1276,7 @@ fn add_74(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_75(address_space: &mut AddressSpace) {
+fn add_variable_75(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "NewValues";
@@ -1192,7 +1292,7 @@ fn add_75(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_76(address_space: &mut AddressSpace) {
+fn add_variable_76(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "OldValues";
@@ -1208,7 +1308,7 @@ fn add_76(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_77(address_space: &mut AddressSpace) {
+fn add_variable_77(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "UpdatedNode";
@@ -1224,7 +1324,7 @@ fn add_77(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_78(address_space: &mut AddressSpace) {
+fn add_variable_78(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "IsDeleteModified";
@@ -1240,7 +1340,7 @@ fn add_78(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_79(address_space: &mut AddressSpace) {
+fn add_variable_79(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "StartTime";
@@ -1256,7 +1356,7 @@ fn add_79(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_80(address_space: &mut AddressSpace) {
+fn add_variable_80(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "EndTime";
@@ -1272,7 +1372,7 @@ fn add_80(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_81(address_space: &mut AddressSpace) {
+fn add_variable_81(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "OldValues";
@@ -1288,7 +1388,7 @@ fn add_81(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_82(address_space: &mut AddressSpace) {
+fn add_variable_82(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "ReqTimes";
@@ -1304,7 +1404,7 @@ fn add_82(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_83(address_space: &mut AddressSpace) {
+fn add_variable_83(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "OldValues";
@@ -1320,7 +1420,7 @@ fn add_83(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_84(address_space: &mut AddressSpace) {
+fn add_variable_84(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "EventIds";
@@ -1336,7 +1436,7 @@ fn add_84(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_85(address_space: &mut AddressSpace) {
+fn add_variable_85(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "OldValues";
@@ -1352,7 +1452,7 @@ fn add_85(address_space: &mut AddressSpace) {
     ]));
 }
 
-fn add_86(address_space: &mut AddressSpace) {
+fn add_variable_86(address_space: &mut AddressSpace) {
     // Variable
     let data_value = DataValue::null();
     let browse_name = "EnumStrings";
@@ -1368,92 +1468,3 @@ fn add_86(address_space: &mut AddressSpace) {
     ]));
 }
 
-#[allow(unused_variables)]
-pub fn populate_address_space(address_space: &mut AddressSpace) {
-    add_1(address_space);
-    add_2(address_space);
-    add_3(address_space);
-    add_4(address_space);
-    add_5(address_space);
-    add_6(address_space);
-    add_7(address_space);
-    add_8(address_space);
-    add_9(address_space);
-    add_10(address_space);
-    add_11(address_space);
-    add_12(address_space);
-    add_13(address_space);
-    add_14(address_space);
-    add_15(address_space);
-    add_16(address_space);
-    add_17(address_space);
-    add_18(address_space);
-    add_19(address_space);
-    add_20(address_space);
-    add_21(address_space);
-    add_22(address_space);
-    add_23(address_space);
-    add_24(address_space);
-    add_25(address_space);
-    add_26(address_space);
-    add_27(address_space);
-    add_28(address_space);
-    add_29(address_space);
-    add_30(address_space);
-    add_31(address_space);
-    add_32(address_space);
-    add_33(address_space);
-    add_34(address_space);
-    add_35(address_space);
-    add_36(address_space);
-    add_37(address_space);
-    add_38(address_space);
-    add_39(address_space);
-    add_40(address_space);
-    add_41(address_space);
-    add_42(address_space);
-    add_43(address_space);
-    add_44(address_space);
-    add_45(address_space);
-    add_46(address_space);
-    add_47(address_space);
-    add_48(address_space);
-    add_49(address_space);
-    add_50(address_space);
-    add_51(address_space);
-    add_52(address_space);
-    add_53(address_space);
-    add_54(address_space);
-    add_55(address_space);
-    add_56(address_space);
-    add_57(address_space);
-    add_58(address_space);
-    add_59(address_space);
-    add_60(address_space);
-    add_61(address_space);
-    add_62(address_space);
-    add_63(address_space);
-    add_64(address_space);
-    add_65(address_space);
-    add_66(address_space);
-    add_67(address_space);
-    add_68(address_space);
-    add_69(address_space);
-    add_70(address_space);
-    add_71(address_space);
-    add_72(address_space);
-    add_73(address_space);
-    add_74(address_space);
-    add_75(address_space);
-    add_76(address_space);
-    add_77(address_space);
-    add_78(address_space);
-    add_79(address_space);
-    add_80(address_space);
-    add_81(address_space);
-    add_82(address_space);
-    add_83(address_space);
-    add_84(address_space);
-    add_85(address_space);
-    add_86(address_space);
-}
