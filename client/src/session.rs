@@ -147,7 +147,7 @@ impl Session {
 
     /// Connects to the server, creates and activates a session. If there
     /// is a failure, it will be communicated by the status code in the result.
-    pub fn connect_and_activate_session(&mut self) -> Result<(), StatusCode> {
+    pub fn connect_and_activate(&mut self) -> Result<(), StatusCode> {
         // Connect now using the session state
         self.connect()?;
         self.create_session()?;
@@ -168,7 +168,7 @@ impl Session {
 
     /// Reconnects to the server and tries to activate the existing session. If there
     /// is a failure, it will be communicated by the status code in the result.
-    pub fn reconnect_and_activate_session(&mut self) -> Result<(), StatusCode> {
+    pub fn reconnect_and_activate(&mut self) -> Result<(), StatusCode> {
         let have_authentication_token = {
             let session_state = trace_read_lock_unwrap!(self.session_state);
             !session_state.authentication_token().is_null()
@@ -1045,7 +1045,7 @@ impl Session {
                 }
                 Answer::Retry => {
                     debug!("Retrying to reconnect to server...");
-                    if let Ok(_) = self.reconnect_and_activate_session() {
+                    if let Ok(_) = self.reconnect_and_activate() {
                         self.session_retry.reset_retry_count();
                     } else {
                         self.session_retry.increment_retry_count();

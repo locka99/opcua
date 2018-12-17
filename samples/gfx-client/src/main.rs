@@ -116,7 +116,7 @@ fn main() {
             .collect::<Vec<_>>()
     };
 
-    if let Ok(session) = client.connect_and_activate(endpoint_id) {
+    if let Ok(session) = client.connect_to_endpoint_id(endpoint_id) {
         // Create a shared state object
         let session_state = Arc::new(RwLock::new(SessionState::new()));
 

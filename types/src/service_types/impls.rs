@@ -18,7 +18,7 @@ use crate::{
         AnonymousIdentityToken, ApplicationType, DataChangeFilter, DataChangeTrigger,
         EndpointDescription, ReadValueId, ServiceFault, SignatureData, UserNameIdentityToken, UserTokenType,
         MonitoredItemCreateRequest, MonitoringParameters, CallMethodRequest, ServerDiagnosticsSummaryDataType,
-        ApplicationDescription,
+        ApplicationDescription, UserTokenPolicy,
     },
     status_codes::StatusCode,
     string::UAString,
@@ -263,6 +263,17 @@ impl ResponseHeader {
     }
 }
 
+impl UserTokenPolicy {
+    pub fn anonymous() -> UserTokenPolicy {
+        UserTokenPolicy {
+            policy_id: UAString::from("anonymous"),
+            token_type: UserTokenType::Anonymous,
+            issued_token_type: UAString::null(),
+            issuer_endpoint_url: UAString::null(),
+            security_policy_uri: UAString::null(),
+        }
+    }
+}
 
 pub struct ValueChangeFilter {}
 
@@ -556,6 +567,24 @@ impl<'a> From<&'a str> for EndpointDescription {
 
 impl<'a> From<(&'a str, &'a str, MessageSecurityMode)> for EndpointDescription {
     fn from(v: (&'a str, &'a str, MessageSecurityMode)) -> Self {
+        EndpointDescription::from((v.0, v.1, v.2, None))
+    }
+}
+
+impl<'a> From<(&'a str, &'a str, MessageSecurityMode, UserTokenPolicy)> for EndpointDescription {
+    fn from(v: (&'a str, &'a str, MessageSecurityMode, UserTokenPolicy)) -> Self {
+        EndpointDescription::from((v.0, v.1, v.2, Some(vec![v.3])))
+    }
+}
+
+impl<'a> From<(&'a str, &'a str, MessageSecurityMode, Vec<UserTokenPolicy>)> for EndpointDescription {
+    fn from(v: (&'a str, &'a str, MessageSecurityMode, Vec<UserTokenPolicy>)) -> Self {
+        EndpointDescription::from((v.0, v.1, v.2, Some(v.3)))
+    }
+}
+
+impl<'a> From<(&'a str, &'a str, MessageSecurityMode, Option<Vec<UserTokenPolicy>>)> for EndpointDescription {
+    fn from(v: (&'a str, &'a str, MessageSecurityMode, Option<Vec<UserTokenPolicy>>)) -> Self {
         EndpointDescription {
             endpoint_url: UAString::from(v.0),
             security_policy_uri: UAString::from(v.1),
@@ -564,7 +593,7 @@ impl<'a> From<(&'a str, &'a str, MessageSecurityMode)> for EndpointDescription {
             security_level: 0,
             server_certificate: ByteString::null(),
             transport_profile_uri: UAString::null(),
-            user_identity_tokens: None,
+            user_identity_tokens: v.3,
         }
     }
 }

@@ -413,7 +413,7 @@ fn connect_with(port_offset: u16, endpoint_id: &str) {
     let client_test = move |_rx_client_command: mpsc::Receiver<ClientCommand>, mut client: Client| {
         // Connect to the server
         info!("Client will try to connect to endpoint {}", endpoint_id);
-        let session = client.connect_and_activate(Some(&endpoint_id)).unwrap();
+        let session = client.connect_to_endpoint_id(Some(&endpoint_id)).unwrap();
 
         // Read the variable
         let mut values = {

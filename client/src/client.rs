@@ -33,15 +33,13 @@ struct SessionEntry {
 /// You basically have a couple of choices when creating a client that connects to a server:
 ///
 /// 1. Create a `Client` from a `ClientConfig` containing all the endpoints you expect to connect with
-///    and then use `connect_and_activate()` to connect to one of them by its id. This option assumes
+///    and then use `connect_to_endpoint_id()` to connect to one of them by its id. This option assumes
 ///    that your client and the server it connects with are describing the same endpoints. It will not
 ///    work if the server describes different endpoints than the one in your config.
 ///
-/// 2. Create a `Client` from a `ClientConfig` containing no endpoints and then use ad-hoc functions
-///    like `get_server_endpoints_from_url()` to interrogate a server's endpoints and use your own
-///    logic to decide which one to connect with via `Client::new_session_from_info`. This might be
-///    suitable if your client can connect to a multitude of servers without advance knowledge of
-///    their endpoints.
+/// 2. Create a `Client` from a `ClientConfig` containing no endpoints, then create an endpoint
+///    at runtime and call `connect_to_endpoint()`. This might be suitable if your client can
+///    connect to a multitude of servers without advance knowledge of their endpoints.
 ///
 /// [`ClientConfig`]: ../config/struct.ClientConfig.html
 ///
@@ -86,7 +84,7 @@ impl Client {
     ///
     /// fn main() {
     ///     let mut client = Client::new(ClientConfig::load(&PathBuf::from("./myclient.conf")).unwrap());
-    ///     if let Ok(session) = client.connect_and_activate(None) {
+    ///     if let Ok(session) = client.connect_to_endpoint_id(None) {
     ///         // ..
     ///     }
     /// }
@@ -137,7 +135,7 @@ impl Client {
     ///
     /// [`Session`]: ../session/struct.Session.html
     ///
-    pub fn connect_and_activate(&mut self, endpoint_id: Option<&str>) -> Result<Arc<RwLock<Session>>, StatusCode> {
+    pub fn connect_to_endpoint_id(&mut self, endpoint_id: Option<&str>) -> Result<Arc<RwLock<Session>>, StatusCode> {
         // Ask the server associated with the default endpoint for its list of endpoints
         let endpoints = match self.get_server_endpoints() {
             Result::Err(status_code) => {
@@ -162,7 +160,32 @@ impl Client {
         {
             // Connect to the server
             let mut session = session.write().unwrap();
-            if let Err(result) = session.connect_and_activate_session() {
+            if let Err(result) = session.connect_and_activate() {
+                error!("Got an error while creating the default session - {}", result.description());
+            }
+        }
+
+        Ok(session)
+    }
+
+    /// Connects to an ad-hoc server endpoint description. and creates / activates a [`Session`] for
+    /// that endpoint.
+    ///
+    /// Returns with the session that has been established or an error.
+    ///
+    /// Important Note: sessions are protected objects that are shared from multiple threads both
+    /// internally by the API and externally by your code. You should only lock your session
+    /// for the smallest duration necessary and release it thereafter. i.e. scope protect your
+    /// calls.
+    pub fn connect_to_endpoint<T>(&mut self, endpoint: T) -> Result<Arc<RwLock<Session>>, StatusCode> where T: Into<EndpointDescription> {
+        // Create a session to an endpoint. If an endpoint id is specified use that
+        let endpoint = endpoint.into();
+        let session = self.new_session_from_info((endpoint, IdentityToken::Anonymous)).unwrap();
+
+        {
+            // Connect to the server
+            let mut session = session.write().unwrap();
+            if let Err(result) = session.connect_and_activate() {
                 error!("Got an error while creating the default session - {}", result.description());
             }
         }

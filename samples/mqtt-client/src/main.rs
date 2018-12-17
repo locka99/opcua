@@ -80,7 +80,7 @@ fn main() {
     // endpoints one of which is marked as the default.
     let mut client = Client::new(ClientConfig::load(&PathBuf::from(config_file)).unwrap());
     let endpoint_id: Option<&str> = if !endpoint_id.is_empty() { Some(&endpoint_id) } else { None };
-    if let Ok(session) = client.connect_and_activate(endpoint_id) {
+    if let Ok(session) = client.connect_to_endpoint_id(endpoint_id) {
         let result = subscription_loop(session, tx);
         if let Err(result) = result {
             println!("ERROR: Got an error while performing action - {}", result);

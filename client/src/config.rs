@@ -112,8 +112,7 @@ impl Config for ClientConfig {
             valid = false;
         }
         if self.endpoints.is_empty() {
-            error!("Endpoint config contains no endpoints");
-            valid = false;
+            warn!("Endpoint config contains no endpoints");
         } else {
             // Check for invalid ids in endpoints
             if self.endpoints.contains_key("") {

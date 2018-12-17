@@ -100,7 +100,7 @@ fn opcua_run() {
     // endpoints one of which is marked as the default.
     let config_file = "../client.conf";
     let mut client = Client::new(ClientConfig::load(&PathBuf::from(config_file)).unwrap());
-    if let Ok(session) = client.connect_and_activate(None) {
+    if let Ok(session) = client.connect_to_endpoint_id(None) {
         let result = subscription_loop(session);
         if let Err(result) = result {
             println!("ERROR: Got an error while performing action - {}", result);

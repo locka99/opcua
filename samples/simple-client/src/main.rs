@@ -6,7 +6,6 @@
 //!    a) Read some values and exit
 //!    b) Subscribe to values and loop forever printing out their values (using --subscribe)
 use std::sync::{Arc, RwLock};
-use std::path::PathBuf;
 
 use clap::{App, Arg};
 
@@ -14,26 +13,20 @@ use opcua_client::prelude::*;
 
 fn main() {
     // Read command line arguments
-    let (subscribe, config_file, endpoint_id) = {
+    let (subscribe, url) = {
         let m = App::new("Simple OPC UA Client")
-            .arg(Arg::with_name("config")
-                .long("config")
-                .help("Sets the configuration file to read settings and endpoints from")
+            .arg(Arg::with_name("url")
+                .long("url")
+                .help("Specify the OPC UA endpoint to connect to")
                 .takes_value(true)
-                .default_value("../client.conf")
-                .required(false))
-            .arg(Arg::with_name("id")
-                .long("endpoint-id")
-                .help("Sets the endpoint id from the config file to connect to")
-                .takes_value(true)
-                .default_value("")
+                .default_value("opc.tcp://localhost:4855")
                 .required(false))
             .arg(Arg::with_name("subscribe")
                 .long("subscribe")
                 .help("Subscribes to values running indefinitely")
                 .required(false))
             .get_matches();
-        (m.is_present("subscribe"), m.value_of("config").unwrap().to_string(), m.value_of("id").unwrap().to_string())
+        (m.is_present("subscribe"), m.value_of("url").unwrap().to_string())
     };
 
     // Optional - enable OPC UA logging
@@ -41,9 +34,14 @@ fn main() {
 
     // Use the sample client config to set up a client. The sample config has a number of named
     // endpoints one of which is marked as the default.
-    let mut client = Client::new(ClientConfig::load(&PathBuf::from(config_file)).unwrap());
-    let endpoint_id: Option<&str> = if !endpoint_id.is_empty() { Some(&endpoint_id) } else { None };
-    if let Ok(session) = client.connect_and_activate(endpoint_id) {
+
+    let mut client = ClientBuilder::new()
+        .application_name("Simple Client")
+        .application_uri("urn:SimpleClient")
+        .trust_server_certs(true)
+        .client().unwrap();
+
+    if let Ok(session) = client.connect_to_endpoint((url.as_ref(), SecurityPolicy::None.to_str(), MessageSecurityMode::None, UserTokenPolicy::anonymous())) {
         // The --subscribe arg decides if code should subscribe to values, or just fetch those
         // values and exit
         let result = if subscribe {
