@@ -3,13 +3,22 @@
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 
-use opcua_types::MessageSecurityMode;
-use opcua_types::{is_opc_ua_binary_url, server_url_from_endpoint_url, url_matches, url_matches_except_host};
-use opcua_types::service_types::{ApplicationDescription, EndpointDescription, RegisteredServer};
-use opcua_types::status_code::StatusCode;
+use opcua_types::{
+    MessageSecurityMode,
+    service_types::{
+        ApplicationDescription, EndpointDescription, RegisteredServer,
+    },
+    status_code::StatusCode,
+    url::{
+        is_opc_ua_binary_url, server_url_from_endpoint_url, url_matches, url_matches_except_host,
+        hostname_from_url, url_with_replaced_hostname,
+    },
+};
 
-use opcua_core::crypto::{CertificateStore, PrivateKey, SecurityPolicy, X509};
-use opcua_core::config::Config;
+use opcua_core::{
+    crypto::{CertificateStore, PrivateKey, SecurityPolicy, X509},
+    config::Config,
+};
 
 use crate::{
     config::{ANONYMOUS_USER_TOKEN_ID, ClientConfig, ClientEndpoint},
@@ -177,10 +186,11 @@ impl Client {
     /// internally by the API and externally by your code. You should only lock your session
     /// for the smallest duration necessary and release it thereafter. i.e. scope protect your
     /// calls.
-    pub fn connect_to_endpoint<T>(&mut self, endpoint: T) -> Result<Arc<RwLock<Session>>, StatusCode> where T: Into<EndpointDescription> {
+    pub fn connect_to_endpoint<T>(&mut self, endpoint: T, user_identity_token: IdentityToken) -> Result<Arc<RwLock<Session>>, StatusCode> where T: Into<EndpointDescription> {
         // Create a session to an endpoint. If an endpoint id is specified use that
         let endpoint = endpoint.into();
-        let session = self.new_session_from_info((endpoint, IdentityToken::Anonymous)).unwrap();
+
+        let session = self.new_session_from_info((endpoint, user_identity_token)).unwrap();
 
         {
             // Connect to the server
@@ -507,21 +517,37 @@ impl Client {
     }
 
     /// Find an endpoint supplied from the list of endpoints that matches the input criteria
-    pub fn find_matching_endpoint<T>(endpoints: &[EndpointDescription],
-                                     endpoint_url: T, security_policy: SecurityPolicy,
-                                     security_mode: MessageSecurityMode) -> Option<EndpointDescription>
-        where T: Into<String>
+    pub fn find_matching_endpoint(endpoints: &[EndpointDescription],
+                                  endpoint_url: &str, security_policy: SecurityPolicy,
+                                  security_mode: MessageSecurityMode) -> Option<EndpointDescription>
     {
-        let endpoint_url = endpoint_url.into();
         if security_policy == SecurityPolicy::Unknown {
             panic!("Can't match against unknown security policy");
         }
-        endpoints.iter().find(|e| {
+
+        let matching_endpoint = endpoints.iter().find(|e| {
             // Endpoint matches if the security mode, policy and url match
             security_mode == e.security_mode &&
                 security_policy == SecurityPolicy::from_uri(e.security_policy_uri.as_ref()) &&
-                url_matches_except_host(&endpoint_url, e.endpoint_url.as_ref())
-        }).map(|e| e.clone())
+                url_matches_except_host(endpoint_url, e.endpoint_url.as_ref())
+        }).map(|e| e.clone());
+
+        // Issue #16, #17 - the server may advertise an endpoint whose hostname is inaccessible
+        // to the client so substitute the advertised hostname with the one the client supplied.
+        if let Some(mut matching_endpoint) = matching_endpoint {
+            if let Ok(hostname) = hostname_from_url(endpoint_url) {
+                if let Ok(new_endpoint_url) = url_with_replaced_hostname(matching_endpoint.endpoint_url.as_ref(), &hostname) {
+                    matching_endpoint.endpoint_url = new_endpoint_url.into();
+                    Some(matching_endpoint)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 
     /// Creates a [`SessionInfo`](SessionInfo) information from the supplied client endpoint.
@@ -532,7 +558,7 @@ impl Client {
             if security_mode != MessageSecurityMode::Invalid {
                 let endpoint_url = client_endpoint.url.clone();
                 // Now find a matching endpoint from those on the server
-                let endpoint = Self::find_matching_endpoint(endpoints, endpoint_url.clone(), security_policy, security_mode);
+                let endpoint = Self::find_matching_endpoint(endpoints, &endpoint_url, security_policy, security_mode);
                 if endpoint.is_none() {
                     Err(format!("Endpoint {}, {:?} / {:?} does not match against any supplied by the server", endpoint_url, security_policy, security_mode))
                 } else if let Some(user_identity_token) = self.client_identity_token(client_endpoint.user_token_id.clone()) {

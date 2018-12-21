@@ -41,7 +41,7 @@ fn main() {
         .trust_server_certs(true)
         .client().unwrap();
 
-    if let Ok(session) = client.connect_to_endpoint((url.as_ref(), SecurityPolicy::None.to_str(), MessageSecurityMode::None, UserTokenPolicy::anonymous())) {
+    if let Ok(session) = client.connect_to_endpoint((url.as_ref(), SecurityPolicy::None.to_str(), MessageSecurityMode::None, UserTokenPolicy::anonymous()), IdentityToken::Anonymous) {
         // The --subscribe arg decides if code should subscribe to values, or just fetch those
         // values and exit
         let result = if subscribe {

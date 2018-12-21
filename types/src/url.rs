@@ -8,7 +8,7 @@ use crate::constants::DEFAULT_OPC_UA_SERVER_PORT;
 
 pub const OPC_TCP_SCHEME: &str = "opc.tcp";
 
-pub fn opc_url_from_str(s: &str) -> Result<Url, ()> {
+fn opc_url_from_str(s: &str) -> Result<Url, ()> {
     let url = Url::parse(s);
     if let Ok(mut url) = url {
         if url.port().is_none() {
@@ -20,6 +20,13 @@ pub fn opc_url_from_str(s: &str) -> Result<Url, ()> {
         error!("Cannot parse url {}, error = {:?}", s, url.unwrap_err());
         Err(())
     }
+}
+
+/// Replace the hostname in the supplied url and return a new url
+pub fn url_with_replaced_hostname(url: &str, hostname: &str) -> Result<String, ()> {
+    let mut url = opc_url_from_str(url)?;
+    let _ = url.set_host(Some(hostname));
+    Ok(url.into_string())
 }
 
 /// Test if the two urls match exactly. Strings are fed into a url parser and compared to resolve
