@@ -106,7 +106,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn url_scheme_test() {
+    fn url_scheme() {
         assert!(is_opc_ua_binary_url("opc.tcp://foo/xyz"));
         assert!(!is_opc_ua_binary_url("http://foo/xyz"));
     }
@@ -129,5 +129,12 @@ mod tests {
         assert_eq!("opc.tcp://localhost:4841/", server_url_from_endpoint_url("opc.tcp://localhost:4841").unwrap());
         assert_eq!("opc.tcp://localhost/", server_url_from_endpoint_url("opc.tcp://localhost/xyz/abc?1").unwrap());
         assert_eq!("opc.tcp://localhost:999/", server_url_from_endpoint_url("opc.tcp://localhost:999/xyz/abc?1").unwrap());
+    }
+
+    #[test]
+    fn url_with_replaced_hostname_test() {
+        assert_eq!(url_with_replaced_hostname("opc.tcp://foo:123/x", "foo").unwrap(), "opc.tcp://foo:123/x");
+        assert_eq!(url_with_replaced_hostname("opc.tcp://foo:123/x", "bar").unwrap(), "opc.tcp://bar:123/x");
+        assert_eq!(url_with_replaced_hostname("opc.tcp://localhost:123/x", "127.0.0.1").unwrap(), "opc.tcp://127.0.0.1:123/x");
     }
 }
