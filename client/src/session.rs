@@ -27,7 +27,7 @@ use crate::{
     client,
     comms::tcp_transport::TcpTransport,
     message_queue::MessageQueue,
-    session_retry::{SessionRetry, Answer},
+    session_retry::{SessionRetryPolicy, Answer},
     subscription,
     subscription::Subscription,
     subscription_state::SubscriptionState,
@@ -98,7 +98,7 @@ pub struct Session {
     /// Connection status callback (TODO move to session state)
     connection_status_callback: Option<Box<dyn OnConnectionStatusChange + Send + Sync + 'static>>,
     /// Session retry policy
-    session_retry: SessionRetry,
+    session_retry_policy: SessionRetryPolicy,
 }
 
 impl Drop for Session {
@@ -141,7 +141,7 @@ impl Session {
             secure_channel,
             message_queue,
             connection_status_callback: None,
-            session_retry: SessionRetry::default(),
+            session_retry_policy: SessionRetryPolicy::default(),
         }
     }
 
@@ -1038,17 +1038,18 @@ impl Session {
             handled_responses
         } else {
             use chrono::Utc;
-            match self.session_retry.should_retry_connect(Utc::now()) {
+            match self.session_retry_policy.should_retry_connect(Utc::now()) {
                 Answer::GiveUp => {
                     // TODO for the first GiveUp, we should log the message
                     false
                 }
                 Answer::Retry => {
-                    debug!("Retrying to reconnect to server...");
+                    info!("Retrying to reconnect to server...");
                     if let Ok(_) = self.reconnect_and_activate() {
-                        self.session_retry.reset_retry_count();
+                        info!("Retry to connect was successfull");
+                        self.session_retry_policy.reset_retry_count();
                     } else {
-                        self.session_retry.increment_retry_count();
+                        self.session_retry_policy.increment_retry_count();
                     }
                     true
                 }

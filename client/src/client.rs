@@ -82,8 +82,11 @@ impl From<ClientConfig> for Client {
 }
 
 impl Client {
-    /// Creates a new [`Client`] instance. The application name and uri are supplied as arguments to
-    /// this call and are passed to each session that connects hereafter.
+    /// Creates a new [`Client`] instance from a [`ClientConfig`]. The configuration
+    /// defines the behaviour of the new client, which endpoints it recognizes, where it stores
+    /// certificates etc.
+    ///
+    /// A [`Client`] can be made directly or by using a [`ClientBuilder`].
     ///
     /// # Example
     ///
@@ -101,6 +104,7 @@ impl Client {
     ///
     /// [`Client`]: ./struct.Client.html
     /// [`ClientConfig`]: ../config/struct.ClientConfig.html
+    /// [`ClientBuilder`]: ../config/struct.ClientBuilder.html
     ///
     pub fn new(config: ClientConfig) -> Client {
         let application_description = if config.create_sample_keypair { Some(config.application_description()) } else { None };
@@ -189,6 +193,9 @@ impl Client {
     pub fn connect_to_endpoint<T>(&mut self, endpoint: T, user_identity_token: IdentityToken) -> Result<Arc<RwLock<Session>>, StatusCode> where T: Into<EndpointDescription> {
         // Create a session to an endpoint. If an endpoint id is specified use that
         let endpoint = endpoint.into();
+
+        // TODO this code should fetch endpoints if possible from the endpoint, and attempt
+        // to match the identity token and endpoint as closely as it can
 
         let session = self.new_session_from_info((endpoint, user_identity_token)).unwrap();
 
@@ -280,7 +287,7 @@ impl Client {
     }
 
     /// Fetches the client's public certificate and private key from the certificate store.
-    fn get_client_cert_and_key(&self) -> (Option<X509>, Option<PrivateKey>) {
+    fn client_cert_and_key(&self) -> (Option<X509>, Option<PrivateKey>) {
         let certificate_store = trace_read_lock_unwrap!(self.certificate_store);
         if let Ok((cert, key)) = certificate_store.read_own_cert_and_pkey() {
             (Some(cert), Some(key))
@@ -334,7 +341,7 @@ impl Client {
     {
         let server_url = server_url.into();
         let preferred_locales = Vec::new();
-        let (client_certificate, client_pkey) = self.get_client_cert_and_key();
+        let (client_certificate, client_pkey) = self.client_cert_and_key();
 
         // Most of these fields mean nothing when getting endpoints
         let endpoint = EndpointDescription::from(server_url.as_ref());
@@ -564,7 +571,7 @@ impl Client {
                 } else if let Some(user_identity_token) = self.client_identity_token(client_endpoint.user_token_id.clone()) {
                     info!("Creating a session for endpoint {}, {:?} / {:?}", endpoint_url, security_policy, security_mode);
                     let preferred_locales = self.config.preferred_locales.clone();
-                    let (client_certificate, client_pkey) = self.get_client_cert_and_key();
+                    let (client_certificate, client_pkey) = self.client_cert_and_key();
                     Ok(SessionInfo {
                         endpoint: endpoint.unwrap().clone(),
                         user_identity_token,
