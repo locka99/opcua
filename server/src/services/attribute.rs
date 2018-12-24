@@ -6,7 +6,7 @@ use opcua_types::service_types::*;
 
 use crate::{
     services::Service,
-    address_space::{AccessLevel, AddressSpace, node::NodeType}
+    address_space::{AccessLevel, AddressSpace, node::NodeType},
 };
 
 /// The attribute service. Allows attributes to be read and written from the address space.

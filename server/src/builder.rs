@@ -5,7 +5,7 @@ use opcua_core::config::Config;
 use crate::{
     constants,
     config::{ServerConfig, ServerEndpoint, ServerUserToken, ANONYMOUS_USER_TOKEN_ID},
-    server::Server
+    server::Server,
 };
 
 const DEFAULT_ENDPOINT_PATH: &str = "/";

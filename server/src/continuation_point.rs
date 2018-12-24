@@ -2,7 +2,7 @@
 
 use std::sync::{Arc, Mutex};
 
-use opcua_types::{ByteString};
+use opcua_types::ByteString;
 use opcua_types::service_types::ReferenceDescription;
 
 use crate::DateTimeUtc;
@@ -15,7 +15,7 @@ pub struct BrowseContinuationPoint {
     pub address_space_last_modified: DateTimeUtc,
     pub max_references_per_node: usize,
     pub starting_index: usize,
-    pub reference_descriptions: Arc<Mutex<Vec<ReferenceDescription>>>
+    pub reference_descriptions: Arc<Mutex<Vec<ReferenceDescription>>>,
 }
 
 impl BrowseContinuationPoint {

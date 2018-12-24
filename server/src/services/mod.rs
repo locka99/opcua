@@ -1,4 +1,4 @@
-use opcua_types::{SupportedMessage};
+use opcua_types::SupportedMessage;
 use opcua_types::service_types::{RequestHeader, ServiceFault};
 use opcua_types::status_code::StatusCode;
 
