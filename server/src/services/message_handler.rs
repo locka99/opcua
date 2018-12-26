@@ -69,7 +69,7 @@ impl MessageHandler {
     /// CreateSession or the request is invalid. An invalid token can cause the session to close.
     fn validate_request(&self, session: &mut Session, request_header: &RequestHeader) -> Result<(), SupportedMessage> {
         // TODO if session's token is null, it might be possible to retrieve session state from a
-        // previously closed session and reassociate it if the authentication token is recognized
+        //  previously closed session and reassociate it if the authentication token is recognized
         if session.authentication_token != request_header.authentication_token {
             // Session should terminate
             session.terminate_session = true;

@@ -191,7 +191,7 @@ impl Variable {
     /// Sets the variable's value
     pub fn set_value<V>(&mut self, value: V) where V: Into<DataValue> {
         // TODO if the value is an array or multi-dimensional array, should we
-        // set array dimensions / value rank?
+        //  set array dimensions / value rank?
         let _ = self.base.set_attribute(AttributeId::Value, value.into());
     }
 

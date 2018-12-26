@@ -301,7 +301,7 @@ fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: 
                 let _ = tx_client_response.send(ClientResponse::Starting);
 
                 // TODO this should be inside a catch_unwind but putting the rx_ inside triggers
-                // a compiler error because the tx_ sits on the other side
+                //  a compiler error because the tx_ sits on the other side
 
                 client_test(rx_client_command, client);
                 true

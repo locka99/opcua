@@ -295,8 +295,8 @@ impl ViewService {
             let reference_descriptions_slice = reference_descriptions[starting_index..ending_index].to_vec();
 
             // TODO it is wasteful to create a new reference_descriptions vec if the caller to this fn
-            // already has a ref counted reference_descriptions. We could clone the Arc if the fn could
-            // be factored to allow for that
+            //  already has a ref counted reference_descriptions. We could clone the Arc if the fn could
+            //  be factored to allow for that
 
             // Create a continuation point for the remainder of the result. The point will hold the entire result
             let continuation_point = ByteString::random(6);

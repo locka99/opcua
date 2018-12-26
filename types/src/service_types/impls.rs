@@ -436,8 +436,8 @@ impl UserNameIdentityToken {
                 }
             } else {
                 // TODO See 7.36.3. UserTokenPolicy and SecurityPolicy should be used to provide
-                // a means to encrypt a password and not send it plain text. Sending a plaintext
-                // password over unsecured network is a bad thing!!!
+                //  a means to encrypt a password and not send it plain text. Sending a plaintext
+                //  password over unsecured network is a bad thing!!!
                 error!("Authentication error: Unsupported encryption algorithm {}", self.encryption_algorithm.as_ref());
                 false
             }

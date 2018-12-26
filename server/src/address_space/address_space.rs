@@ -721,7 +721,7 @@ impl AddressSpace {
                 handler(self, server_state, session, request)
             } else {
                 // TODO we could do a secondary search on a (NodeId::null(), method_id) here
-                // so that method handler is reusable for multiple objects
+                //  so that method handler is reusable for multiple objects
                 error!("Method call to {:?} on {:?} has no handler, treating as invalid", method_id, object_id);
                 Err(StatusCode::BadMethodInvalid)
             }
