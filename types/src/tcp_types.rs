@@ -3,9 +3,11 @@
 use std::io::{Read, Write, Cursor, Result, Error, ErrorKind};
 
 use crate::{
+    service_types::EndpointDescription,
     status_codes::StatusCode,
     string::UAString,
     encoding::*,
+    url::url_matches_except_host,
 };
 
 pub const HELLO_MESSAGE: &[u8] = b"HEL";
@@ -223,13 +225,32 @@ impl HelloMessage {
         msg
     }
 
-    pub fn is_endpoint_url_valid(&self) -> bool {
-        // TODO check server's endpoints
+    pub fn is_endpoint_url_valid(&self, endpoints: &[EndpointDescription]) -> bool {
+        if self.is_endpoint_valid_length() {
+            self.matches_endpoint(endpoints)
+        } else {
+            // Length > 4096
+            error!("Supplied endpoint url exceeds maximum length");
+            false
+        }
+    }
+
+    pub fn is_endpoint_valid_length(&self) -> bool {
         if let Some(ref endpoint_url) = self.endpoint_url.value {
             endpoint_url.len() <= HelloMessage::MAX_URL_LEN
         } else {
-            true
+            error!("Hello message contains no endpoint url");
+            false
         }
+    }
+
+    pub fn matches_endpoint(&self, endpoints: &[EndpointDescription]) -> bool {
+        // check server's endpoints to find one that matches the hello
+        endpoints.iter().find(|e| {
+            // Server might have different hostname than that supplied by client, so
+            // ignore that bit.
+            url_matches_except_host(e.endpoint_url.as_ref(), self.endpoint_url.as_ref())
+        }).is_some()
     }
 
     pub fn is_valid_buffer_sizes(&self) -> bool {

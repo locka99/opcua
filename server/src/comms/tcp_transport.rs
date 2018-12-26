@@ -658,9 +658,14 @@ impl TcpTransport {
 
     fn process_hello(&mut self, hello: HelloMessage, sender: &mut UnboundedSender<(u32, SupportedMessage)>) -> std::result::Result<(), StatusCode> {
         let server_protocol_version = 0;
+        let endpoints = {
+            let server_state = trace_read_lock_unwrap!(self.server_state);
+            server_state.endpoints(&None)
+        }.unwrap();
 
         trace!("Server received HELLO {:?}", hello);
-        if !hello.is_endpoint_url_valid() {
+        if !hello.is_endpoint_url_valid(&endpoints) {
+            error!("HELLO endpoint url is invalid");
             return Err(StatusCode::BadTcpEndpointUrlInvalid);
         }
         if !hello.is_valid_buffer_sizes() {

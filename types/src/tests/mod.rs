@@ -3,6 +3,7 @@ mod date_time;
 mod parse;
 mod serialize;
 mod variant;
+mod hello;
 
 use std::fmt::Debug;
 use std::cmp::PartialEq;
