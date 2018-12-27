@@ -17,6 +17,8 @@ const DEFAULT_REQUEST_TIMEOUT: u32 = 10 * 1000;
 const SEND_BUFFER_SIZE: usize = 65536;
 const RECEIVE_BUFFER_SIZE: usize = 65536;
 const MAX_BUFFER_SIZE: usize = 65536;
+const FIRST_REQUEST_HANDLE: u32 = 1;
+const FIRST_MONITORED_ITEM_HANDLE: u32 = 1000;
 
 /// Used for synchronous polling
 const SYNC_POLLING_PERIOD: u64 = 50;
@@ -106,10 +108,10 @@ impl SessionState {
             send_buffer_size: SEND_BUFFER_SIZE,
             receive_buffer_size: RECEIVE_BUFFER_SIZE,
             max_message_size: MAX_BUFFER_SIZE,
-            request_handle: Handle::new(1),
+            request_handle: Handle::new(FIRST_REQUEST_HANDLE),
             session_id: NodeId::null(),
             authentication_token: NodeId::null(),
-            monitored_item_handle: Handle::new(1000),
+            monitored_item_handle: Handle::new(FIRST_MONITORED_ITEM_HANDLE),
             message_queue,
             subscription_acknowledgements: Vec::new(),
             wait_for_publish_response: false,

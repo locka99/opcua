@@ -195,7 +195,7 @@ impl Client {
         let endpoint = endpoint.into();
 
         // TODO this code should fetch endpoints if possible from the endpoint, and attempt
-        // to match the identity token and endpoint as closely as it can
+        //  to match the identity token and endpoint as closely as it can
 
         let session = self.new_session_from_info((endpoint, user_identity_token)).unwrap();
 
