@@ -4,12 +4,16 @@ use std::sync::{Arc, RwLock};
 
 use chrono;
 
-use opcua_core::comms::secure_channel::SecureChannel;
-use opcua_core::crypto::SecurityPolicy;
+use opcua_core::{
+    comms::secure_channel::SecureChannel,
+    crypto::SecurityPolicy,
+};
 
-use opcua_types::*;
-use opcua_types::service_types::*;
-use opcua_types::status_code::StatusCode;
+use opcua_types::{
+    *,
+    service_types::*,
+    status_code::StatusCode,
+};
 
 use crate::{message_queue::MessageQueue, callbacks::OnSessionClosed};
 
@@ -50,6 +54,19 @@ impl Handle {
         }
         next
     }
+}
+
+#[test]
+fn handle_test() {
+    let mut h = Handle::new(0);
+    assert_eq!(h.next(), 0);
+
+    let mut h = Handle::new(100);
+    assert_eq!(h.next(), 100);
+
+    let mut h = Handle::new(u32::MAX);
+    assert_eq!(h.next(), u32::MAX);
+    assert_eq!(h.next(), u32::MAX);
 }
 
 /// Session's state indicates connection status, negotiated times and sizes,
