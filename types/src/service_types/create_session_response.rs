@@ -3,17 +3,19 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::service_types::impls::MessageInfo;
-use crate::node_ids::ObjectId;
-use crate::service_types::impls::ResponseHeader;
-use crate::node_id::NodeId;
-use crate::byte_string::ByteString;
-use crate::service_types::EndpointDescription;
-use crate::service_types::SignedSoftwareCertificate;
-use crate::service_types::SignatureData;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    service_types::impls::MessageInfo,
+    node_ids::ObjectId,
+    service_types::impls::ResponseHeader,
+    node_id::NodeId,
+    byte_string::ByteString,
+    service_types::EndpointDescription,
+    service_types::SignedSoftwareCertificate,
+    service_types::SignatureData,
+};
 
 /// Creates a new session with the server.
 #[derive(Debug, Clone, PartialEq)]

@@ -3,14 +3,16 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::service_types::impls::MessageInfo;
-use crate::node_ids::ObjectId;
-use crate::string::UAString;
-use crate::node_id::NodeId;
-use crate::basic_types::LocalizedText;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    service_types::impls::MessageInfo,
+    node_ids::ObjectId,
+    string::UAString,
+    node_id::NodeId,
+    basic_types::LocalizedText,
+};
 
 /// An argument for a method.
 #[derive(Debug, Clone, PartialEq)]

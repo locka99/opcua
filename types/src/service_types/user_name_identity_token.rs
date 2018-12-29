@@ -3,11 +3,13 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::string::UAString;
-use crate::byte_string::ByteString;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    string::UAString,
+    byte_string::ByteString,
+};
 
 /// A token representing a user identified by a user name and password.
 #[derive(Debug, Clone, PartialEq)]

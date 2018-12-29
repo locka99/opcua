@@ -3,13 +3,15 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::service_types::impls::MessageInfo;
-use crate::node_ids::ObjectId;
-use crate::node_id::NodeId;
-use crate::service_types::enums::BrowseDirection;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    service_types::impls::MessageInfo,
+    node_ids::ObjectId,
+    node_id::NodeId,
+    service_types::enums::BrowseDirection,
+};
 
 /// A request to browse the the references from a node.
 #[derive(Debug, Clone, PartialEq)]

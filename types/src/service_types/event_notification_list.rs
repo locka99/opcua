@@ -3,10 +3,12 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::service_types::EventFieldList;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    service_types::EventFieldList,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct EventNotificationList {

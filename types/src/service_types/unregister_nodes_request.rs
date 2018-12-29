@@ -3,13 +3,15 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::service_types::impls::MessageInfo;
-use crate::node_ids::ObjectId;
-use crate::service_types::impls::RequestHeader;
-use crate::node_id::NodeId;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    service_types::impls::MessageInfo,
+    node_ids::ObjectId,
+    service_types::impls::RequestHeader,
+    node_id::NodeId,
+};
 
 /// Unregisters one or more previously registered nodes.
 #[derive(Debug, Clone, PartialEq)]

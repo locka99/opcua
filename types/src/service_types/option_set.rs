@@ -3,12 +3,14 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::service_types::impls::MessageInfo;
-use crate::node_ids::ObjectId;
-use crate::byte_string::ByteString;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    service_types::impls::MessageInfo,
+    node_ids::ObjectId,
+    byte_string::ByteString,
+};
 
 /// This abstract Structured DataType is the base DataType for all DataTypes representing a bit mask.
 #[derive(Debug, Clone, PartialEq)]

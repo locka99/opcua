@@ -3,11 +3,13 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::date_time::DateTime;
-use crate::service_types::EventFilter;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    date_time::DateTime,
+    service_types::EventFilter,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReadEventDetails {

@@ -3,11 +3,13 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::service_types::SimpleAttributeOperand;
-use crate::service_types::ContentFilter;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    service_types::SimpleAttributeOperand,
+    service_types::ContentFilter,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct EventFilter {

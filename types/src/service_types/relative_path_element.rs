@@ -3,13 +3,15 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::service_types::impls::MessageInfo;
-use crate::node_ids::ObjectId;
-use crate::node_id::NodeId;
-use crate::basic_types::QualifiedName;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    service_types::impls::MessageInfo,
+    node_ids::ObjectId,
+    node_id::NodeId,
+    basic_types::QualifiedName,
+};
 
 /// An element in a relative path.
 #[derive(Debug, Clone, PartialEq)]

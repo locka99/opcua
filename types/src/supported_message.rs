@@ -99,10 +99,10 @@ impl SupportedMessage {
             SupportedMessage::CreateSessionResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::CloseSessionRequest(ref r) => r.request_header.request_handle,
             SupportedMessage::CloseSessionResponse(ref r) => r.response_header.request_handle,
-            SupportedMessage::ActivateSessionRequest(ref r) => r.request_header.request_handle,
-            SupportedMessage::ActivateSessionResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::CancelRequest(ref r) => r.request_header.request_handle,
             SupportedMessage::CancelResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::ActivateSessionRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::ActivateSessionResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::CreateMonitoredItemsRequest(ref r) => r.request_header.request_handle,
             SupportedMessage::CreateMonitoredItemsResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::ModifyMonitoredItemsRequest(ref r) => r.request_header.request_handle,
@@ -184,17 +184,17 @@ impl SupportedMessage {
             ObjectId::CloseSessionResponse_Encoding_DefaultBinary => {
                 CloseSessionResponse::decode(stream, decoding_limits)?.into()
             }
-            ObjectId::ActivateSessionRequest_Encoding_DefaultBinary => {
-                ActivateSessionRequest::decode(stream, decoding_limits)?.into()
-            }
-            ObjectId::ActivateSessionResponse_Encoding_DefaultBinary => {
-                ActivateSessionResponse::decode(stream, decoding_limits)?.into()
-            }
             ObjectId::CancelRequest_Encoding_DefaultBinary => {
                 CancelRequest::decode(stream, decoding_limits)?.into()
             }
             ObjectId::CancelResponse_Encoding_DefaultBinary => {
                 CancelResponse::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::ActivateSessionRequest_Encoding_DefaultBinary => {
+                ActivateSessionRequest::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::ActivateSessionResponse_Encoding_DefaultBinary => {
+                ActivateSessionResponse::decode(stream, decoding_limits)?.into()
             }
             ObjectId::CreateMonitoredItemsRequest_Encoding_DefaultBinary => {
                 CreateMonitoredItemsRequest::decode(stream, decoding_limits)?.into()
@@ -286,6 +286,7 @@ impl SupportedMessage {
             ObjectId::CallResponse_Encoding_DefaultBinary => {
                 CallResponse::decode(stream, decoding_limits)?.into()
             }
+
             _ => {
                 debug!("decoding unsupported for object id {:?}", object_id);
                 SupportedMessage::Invalid(object_id)
@@ -302,8 +303,6 @@ supported_messages_enum![
     OpenSecureChannelResponse,
     CloseSecureChannelRequest,
     CloseSecureChannelResponse,
-    CancelRequest,
-    CancelResponse,
     GetEndpointsRequest,
     GetEndpointsResponse,
     FindServersRequest,
@@ -314,6 +313,8 @@ supported_messages_enum![
     CreateSessionResponse,
     CloseSessionRequest,
     CloseSessionResponse,
+    CancelRequest,
+    CancelResponse,
     ActivateSessionRequest,
     ActivateSessionResponse,
     CreateMonitoredItemsRequest,

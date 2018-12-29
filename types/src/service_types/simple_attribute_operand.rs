@@ -3,12 +3,14 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::node_id::NodeId;
-use crate::basic_types::QualifiedName;
-use crate::string::UAString;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    node_id::NodeId,
+    basic_types::QualifiedName,
+    string::UAString,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SimpleAttributeOperand {

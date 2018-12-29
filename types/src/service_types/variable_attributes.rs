@@ -3,12 +3,14 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::basic_types::LocalizedText;
-use crate::variant::Variant;
-use crate::node_id::NodeId;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    basic_types::LocalizedText,
+    variant::Variant,
+    node_id::NodeId,
+};
 
 /// The attributes for a variable node.
 #[derive(Debug, Clone, PartialEq)]

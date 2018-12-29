@@ -3,12 +3,14 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::service_types::impls::MessageInfo;
-use crate::node_ids::ObjectId;
-use crate::data_value::DataValue;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    service_types::impls::MessageInfo,
+    node_ids::ObjectId,
+    data_value::DataValue,
+};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MonitoredItemNotification {

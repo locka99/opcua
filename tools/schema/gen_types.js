@@ -199,9 +199,6 @@ use crate::{
 `;
     }
 
-    imports += `};
-`;
-
     // Basic types are any which are hand written
     let basic_types_to_import = {};
 
@@ -233,7 +230,7 @@ use crate::{
     let basic_type_imports = "";
     _.each(basic_types_to_import, function (types, module) {
         _.each(types, function (type) {
-            basic_type_imports += `use crate::${module}::${type};
+            basic_type_imports += `    ${module}::${type},
 `
         });
     });
@@ -242,10 +239,12 @@ use crate::{
     // Service type imports
     let service_type_imports = "";
     _.each(service_types_used, function (value, key) {
-        service_type_imports += `use crate::service_types::${key};
+        service_type_imports += `    service_types::${key},
 `;
     });
     imports += service_type_imports;
+    imports += `};
+`;
 
     return imports;
 }

@@ -3,13 +3,15 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::service_types::impls::MessageInfo;
-use crate::node_ids::ObjectId;
-use crate::string::UAString;
-use crate::byte_string::ByteString;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    service_types::impls::MessageInfo,
+    node_ids::ObjectId,
+    string::UAString,
+    byte_string::ByteString,
+};
 
 /// A digital signature.
 #[derive(Debug, Clone, PartialEq)]

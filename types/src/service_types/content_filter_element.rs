@@ -3,13 +3,15 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::service_types::impls::MessageInfo;
-use crate::node_ids::ObjectId;
-use crate::service_types::enums::FilterOperator;
-use crate::extension_object::ExtensionObject;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    service_types::impls::MessageInfo,
+    node_ids::ObjectId,
+    service_types::enums::FilterOperator,
+    extension_object::ExtensionObject,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ContentFilterElement {

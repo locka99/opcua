@@ -1,16 +1,16 @@
-var _ = require("lodash");
-var fs = require("fs");
-var xml2js = require("xml2js");
+let _ = require("lodash");
+let fs = require("fs");
+let xml2js = require("xml2js");
 
-var settings = require("./settings");
+let settings = require("./settings");
 
 const MAX_NODES_PER_FILE = 100;
 
-var trace = false;
+let trace = false;
 
 // THIS file will generate the address space
 
-var node_set =
+let node_set =
     [
         {
             name: "Opc.Ua.NodeSet2.Part3.xml", module: "nodeset_3"
@@ -99,7 +99,7 @@ function generate_node_set(ns) {
     // Gather up all the nodes in the nodeset
     let nodeset = ns.data["UANodeSet"];
 
-    var nodes = [];
+    let nodes = [];
     if (_.has(nodeset, "UAObject")) {
         _.each(nodeset["UAObject"], function (node) {
             nodes.push(["Object", node]);
@@ -326,7 +326,7 @@ function insert_node(fn_name, node_type, node) {
                             console.log("ArrayDimensions is not read - setting dimensions to 0 which means variable length");
                             array_dimensions = "Some(vec![0])"
                         }
-                        // var description = argument["Description"][0];
+                        // let description = argument["Description"][0];
                         var_arguments.push({
                             node_id: node_id,
                             name: name,
@@ -421,15 +421,15 @@ function insert_node(fn_name, node_type, node) {
 }
 
 function insert_references(indent, reference_element, node_references) {
-    var contents = "";
+    let contents = "";
     if (_.has(reference_element, "Reference")) {
         _.each(reference_element["Reference"], function (reference) {
             // Test if the reference is forward or reverse
-            var is_forward = !_.has(reference["$"], "IsForward") || reference["$"]["IsForward"] === "true";
+            let is_forward = !_.has(reference["$"], "IsForward") || reference["$"]["IsForward"] === "true";
 
-            var node_other = node_id_ctor(reference["_"]);
-            var reference_type = reference["$"]["ReferenceType"];
-            var reference_direction = is_forward ? "ReferenceDirection::Forward" : "ReferenceDirection::Inverse";
+            let node_other = node_id_ctor(reference["_"]);
+            let reference_type = reference["$"]["ReferenceType"];
+            let reference_direction = is_forward ? "ReferenceDirection::Forward" : "ReferenceDirection::Inverse";
 
             if (reference_type.startsWith("i=")) {
                 // TODO

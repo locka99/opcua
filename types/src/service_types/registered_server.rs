@@ -3,14 +3,16 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::service_types::impls::MessageInfo;
-use crate::node_ids::ObjectId;
-use crate::string::UAString;
-use crate::basic_types::LocalizedText;
-use crate::service_types::enums::ApplicationType;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    service_types::impls::MessageInfo,
+    node_ids::ObjectId,
+    string::UAString,
+    basic_types::LocalizedText,
+    service_types::enums::ApplicationType,
+};
 
 /// The information required to register a server with a discovery server.
 #[derive(Debug, Clone, PartialEq)]

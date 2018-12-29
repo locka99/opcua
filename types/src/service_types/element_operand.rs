@@ -3,9 +3,11 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
+use crate::{
+    encoding::*,
+    basic_types::*,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ElementOperand {

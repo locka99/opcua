@@ -14,11 +14,13 @@ function generate_supported_message(message_types) {
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
-use crate::node_id::NodeId;
-use crate::service_types::*;
-use crate::node_ids::ObjectId;
-use crate::tcp_types::AcknowledgeMessage;
+use crate::{
+    encoding::*,
+    node_id::NodeId,
+    service_types::*,
+    node_ids::ObjectId,
+    tcp_types::AcknowledgeMessage,
+};
 
 /// This macro helps avoid tedious repetition as new messages are added
 /// The first form just handles the trailing comma after the last entry to save some pointless
@@ -31,9 +33,9 @@ macro_rules! supported_messages_enum {
             /// An invalid request / response of some form
             Invalid(ObjectId),
             /// Acknowledge message
-            AcknowledgeMessage(AcknowledgeMessage),
+            AcknowledgeMessage(Box<AcknowledgeMessage>),
             /// Other messages
-            $( $x($x), )*
+            $( $x(Box<$x>), )*
         }
 
         impl BinaryEncoder <SupportedMessage> for SupportedMessage {
@@ -62,10 +64,14 @@ macro_rules! supported_messages_enum {
                 panic!("Cannot decode a stream to a supported message type");
             }
         }
-        
+
+        impl Into<SupportedMessage> for AcknowledgeMessage{
+            fn into(self) -> SupportedMessage { SupportedMessage::AcknowledgeMessage(Box::new(self)) }
+        }
+
         $(
         impl Into<SupportedMessage> for $x {
-            fn into(self) -> SupportedMessage { SupportedMessage::$x(self) }
+            fn into(self) -> SupportedMessage { SupportedMessage::$x(Box::new(self)) }
         }
         )*
 
@@ -112,7 +118,7 @@ impl SupportedMessage {
 
     _.each(message_types, function (message_type) {
         contents += `            ObjectId::${message_type}_Encoding_DefaultBinary => {
-                SupportedMessage::${message_type}(${message_type}::decode(stream, decoding_limits)?)
+                ${message_type}::decode(stream, decoding_limits)?.into()
             }
 `;
     });
@@ -158,6 +164,7 @@ generate_supported_message([
     // Session service
     "CreateSessionRequest", "CreateSessionResponse",
     "CloseSessionRequest", "CloseSessionResponse",
+    "CancelRequest", "CancelResponse",
     "ActivateSessionRequest", "ActivateSessionResponse",
     // MonitoredItem service
     "CreateMonitoredItemsRequest", "CreateMonitoredItemsResponse",

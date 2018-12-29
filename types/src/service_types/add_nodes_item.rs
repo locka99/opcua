@@ -3,16 +3,18 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::service_types::impls::MessageInfo;
-use crate::node_ids::ObjectId;
-use crate::node_id::ExpandedNodeId;
-use crate::node_id::NodeId;
-use crate::basic_types::QualifiedName;
-use crate::service_types::enums::NodeClass;
-use crate::extension_object::ExtensionObject;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    service_types::impls::MessageInfo,
+    node_ids::ObjectId,
+    node_id::ExpandedNodeId,
+    node_id::NodeId,
+    basic_types::QualifiedName,
+    service_types::enums::NodeClass,
+    extension_object::ExtensionObject,
+};
 
 /// A request to add a node to the server address space.
 #[derive(Debug, Clone, PartialEq)]

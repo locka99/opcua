@@ -3,15 +3,17 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::service_types::impls::MessageInfo;
-use crate::node_ids::ObjectId;
-use crate::service_types::impls::RequestHeader;
-use crate::string::UAString;
-use crate::byte_string::ByteString;
-use crate::service_types::ApplicationDescription;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    service_types::impls::MessageInfo,
+    node_ids::ObjectId,
+    service_types::impls::RequestHeader,
+    string::UAString,
+    byte_string::ByteString,
+    service_types::ApplicationDescription,
+};
 
 /// Creates a new session with the server.
 #[derive(Debug, Clone, PartialEq)]

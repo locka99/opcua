@@ -1,14 +1,14 @@
-var _ = require("lodash");
-var csv = require("csv-parser");
-var fs = require("fs");
+let _ = require("lodash");
+let csv = require("csv-parser");
+let fs = require("fs");
 
-var settings = require("./settings");
+let settings = require("./settings");
 
-var status_code_csv = `${settings.schema_dir}/Opc.Ua.StatusCodes.csv`;
+let status_code_csv = `${settings.schema_dir}/Opc.Ua.StatusCodes.csv`;
 
-var rs_out = fs.createWriteStream(`${settings.rs_status_codes_dir}/status_codes.rs`);
+let rs_out = fs.createWriteStream(`${settings.rs_status_codes_dir}/status_codes.rs`);
 
-var status_codes = [
+let status_codes = [
     {
         var_name: "Good",
         str_code: "Good",

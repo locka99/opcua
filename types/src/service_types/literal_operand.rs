@@ -3,10 +3,12 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::variant::Variant;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    variant::Variant,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LiteralOperand {

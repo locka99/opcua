@@ -3,14 +3,16 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::service_types::impls::MessageInfo;
-use crate::node_ids::ObjectId;
-use crate::status_codes::StatusCode;
-use crate::byte_string::ByteString;
-use crate::service_types::ReferenceDescription;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    service_types::impls::MessageInfo,
+    node_ids::ObjectId,
+    status_codes::StatusCode,
+    byte_string::ByteString,
+    service_types::ReferenceDescription,
+};
 
 /// The result of a browse operation.
 #[derive(Debug, Clone, PartialEq)]

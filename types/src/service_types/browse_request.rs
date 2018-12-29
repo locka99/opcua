@@ -3,14 +3,16 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::service_types::impls::MessageInfo;
-use crate::node_ids::ObjectId;
-use crate::service_types::impls::RequestHeader;
-use crate::service_types::ViewDescription;
-use crate::service_types::BrowseDescription;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    service_types::impls::MessageInfo,
+    node_ids::ObjectId,
+    service_types::impls::RequestHeader,
+    service_types::ViewDescription,
+    service_types::BrowseDescription,
+};
 
 /// Browse the references for one or more nodes from the server address space.
 #[derive(Debug, Clone, PartialEq)]

@@ -3,14 +3,16 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::service_types::impls::MessageInfo;
-use crate::node_ids::ObjectId;
-use crate::service_types::impls::ResponseHeader;
-use crate::status_codes::StatusCode;
-use crate::diagnostic_info::DiagnosticInfo;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    service_types::impls::MessageInfo,
+    node_ids::ObjectId,
+    service_types::impls::ResponseHeader,
+    status_codes::StatusCode,
+    diagnostic_info::DiagnosticInfo,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeleteMonitoredItemsResponse {

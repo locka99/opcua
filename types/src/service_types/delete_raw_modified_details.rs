@@ -3,11 +3,13 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::node_id::NodeId;
-use crate::date_time::DateTime;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    node_id::NodeId,
+    date_time::DateTime,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct DeleteRawModifiedDetails {

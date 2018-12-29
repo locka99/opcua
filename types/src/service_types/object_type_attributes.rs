@@ -3,10 +3,12 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::basic_types::LocalizedText;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    basic_types::LocalizedText,
+};
 
 /// The attributes for an object type node.
 #[derive(Debug, Clone, PartialEq)]

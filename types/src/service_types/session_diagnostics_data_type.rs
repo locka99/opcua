@@ -3,16 +3,18 @@
 
 use std::io::{Read, Write};
 
-use crate::encoding::*;
 #[allow(unused_imports)]
-use crate::basic_types::*;
-use crate::service_types::impls::MessageInfo;
-use crate::node_ids::ObjectId;
-use crate::node_id::NodeId;
-use crate::string::UAString;
-use crate::date_time::DateTime;
-use crate::service_types::ApplicationDescription;
-use crate::service_types::ServiceCounterDataType;
+use crate::{
+    encoding::*,
+    basic_types::*,
+    service_types::impls::MessageInfo,
+    node_ids::ObjectId,
+    node_id::NodeId,
+    string::UAString,
+    date_time::DateTime,
+    service_types::ApplicationDescription,
+    service_types::ServiceCounterDataType,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SessionDiagnosticsDataType {
