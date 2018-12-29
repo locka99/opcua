@@ -1,7 +1,8 @@
 //! Contains the implementation of `UAString`.
 
-use std::io::{Read, Write};
-use std::fmt;
+use std::{
+    fmt, io::{Read, Write},
+};
 
 use crate::{
     encoding::{write_i32, BinaryEncoder, EncodingResult, DecodingLimits, process_encode_io_result, process_decode_io_result},

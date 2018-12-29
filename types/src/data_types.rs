@@ -4,16 +4,16 @@ use std::fmt;
 use crate::{
     encoding::*,
     date_time::*,
-    status_codes::StatusCode
+    status_codes::StatusCode,
 };
 
 /// This primitive data type is a UInt32 that is used as an identifier, such as a handle.
 /// All values, except for 0, are valid. IntegerId = 288,
 pub type IntegerId = u32;
 
-pub const MESSAGE_SECURITY_MODE_NONE: &str = "None";
-pub const MESSAGE_SECURITY_MODE_SIGN: &str = "Sign";
-pub const MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT: &str = "SignAndEncrypt";
+const MESSAGE_SECURITY_MODE_NONE: &str = "None";
+const MESSAGE_SECURITY_MODE_SIGN: &str = "Sign";
+const MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT: &str = "SignAndEncrypt";
 
 /// The MessageSecurityMode is an enumeration that specifies what security should be applied to messages exchanges during a Session.
 #[derive(Debug, Clone, PartialEq, PartialOrd, Copy)]

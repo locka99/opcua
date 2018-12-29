@@ -1,8 +1,10 @@
 //! Contains the implementation of `Guid`.
 
-use std::fmt;
-use std::str::FromStr;
-use std::io::{Read, Write};
+use std::{
+    fmt,
+    str::FromStr,
+    io::{Read, Write},
+};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use uuid::Uuid;

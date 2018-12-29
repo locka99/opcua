@@ -10,12 +10,13 @@ use crate::{
     url::url_matches_except_host,
 };
 
-pub const HELLO_MESSAGE: &[u8] = b"HEL";
-pub const ACKNOWLEDGE_MESSAGE: &[u8] = b"ACK";
-pub const ERROR_MESSAGE: &[u8] = b"ERR";
 pub const CHUNK_MESSAGE: &[u8] = b"MSG";
 pub const OPEN_SECURE_CHANNEL_MESSAGE: &[u8] = b"OPN";
 pub const CLOSE_SECURE_CHANNEL_MESSAGE: &[u8] = b"CLO";
+
+const HELLO_MESSAGE: &[u8] = b"HEL";
+const ACKNOWLEDGE_MESSAGE: &[u8] = b"ACK";
+const ERROR_MESSAGE: &[u8] = b"ERR";
 
 pub const CHUNK_FINAL: u8 = b'F';
 pub const CHUNK_INTERMEDIATE: u8 = b'C';
@@ -27,6 +28,9 @@ pub const MAX_CHUNK_COUNT: usize = 1;
 /// Minimum size in bytes than any single message chunk can be
 pub const MIN_CHUNK_SIZE: usize = 8196;
 
+/// Size in bytes of an OPC UA message header
+pub const MESSAGE_HEADER_LEN: usize = 8;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum MessageType {
     Invalid,
@@ -35,8 +39,6 @@ pub enum MessageType {
     Chunk,
     Error,
 }
-
-pub const MESSAGE_HEADER_LEN: usize = 8;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MessageHeader {

@@ -1,12 +1,11 @@
 //! Contains the implementation of `NodeId` and `ExpandedNodeId`.
 
-use std;
-use std::u32;
-use std::u16;
-use std::io::{Read, Write};
-use std::str::FromStr;
-use std::fmt;
-use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
+use std::{
+    self, u16, u32,
+    fmt,
+    io::{Read, Write}, str::FromStr,
+    sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering},
+};
 
 use crate::{
     byte_string::ByteString,

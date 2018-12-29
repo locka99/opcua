@@ -17,16 +17,6 @@ use opcua_types::{
 
 use crate::{message_queue::MessageQueue, callbacks::OnSessionClosed};
 
-const DEFAULT_REQUEST_TIMEOUT: u32 = 10 * 1000;
-const SEND_BUFFER_SIZE: usize = 65536;
-const RECEIVE_BUFFER_SIZE: usize = 65536;
-const MAX_BUFFER_SIZE: usize = 65536;
-const FIRST_REQUEST_HANDLE: u32 = 1;
-const FIRST_MONITORED_ITEM_HANDLE: u32 = 1000;
-
-/// Used for synchronous polling
-const SYNC_POLLING_PERIOD: u64 = 50;
-
 /// A simple handle factory for incrementing sequences of numbers.
 struct Handle {
     next: u32,
@@ -58,15 +48,21 @@ impl Handle {
 
 #[test]
 fn handle_test() {
+    // Expect sequential handles
     let mut h = Handle::new(0);
     assert_eq!(h.next(), 0);
-
+    assert_eq!(h.next(), 1);
+    assert_eq!(h.next(), 2);
     let mut h = Handle::new(100);
     assert_eq!(h.next(), 100);
+    assert_eq!(h.next(), 101);
 
-    let mut h = Handle::new(u32::MAX);
+    // Simulate wrapping around
+    let mut h = Handle::new(u32::MAX - 2);
+    assert_eq!(h.next(), u32::MAX - 2);
+    assert_eq!(h.next(), u32::MAX - 1);
     assert_eq!(h.next(), u32::MAX);
-    assert_eq!(h.next(), u32::MAX);
+    assert_eq!(h.next(), u32::MAX - 2);
 }
 
 /// Session's state indicates connection status, negotiated times and sizes,
@@ -118,17 +114,28 @@ impl Drop for SessionState {
 }
 
 impl SessionState {
+    const FIRST_REQUEST_HANDLE: u32 = 1;
+    const FIRST_MONITORED_ITEM_HANDLE: u32 = 1000;
+
+    const DEFAULT_REQUEST_TIMEOUT: u32 = 10 * 1000;
+    const SEND_BUFFER_SIZE: usize = 65536;
+    const RECEIVE_BUFFER_SIZE: usize = 65536;
+    const MAX_BUFFER_SIZE: usize = 65536;
+
+    /// Used for synchronous polling
+    const SYNC_POLLING_PERIOD: u64 = 50;
+
     pub fn new(secure_channel: Arc<RwLock<SecureChannel>>, message_queue: Arc<RwLock<MessageQueue>>) -> SessionState {
         SessionState {
             secure_channel,
-            request_timeout: DEFAULT_REQUEST_TIMEOUT,
-            send_buffer_size: SEND_BUFFER_SIZE,
-            receive_buffer_size: RECEIVE_BUFFER_SIZE,
-            max_message_size: MAX_BUFFER_SIZE,
-            request_handle: Handle::new(FIRST_REQUEST_HANDLE),
+            request_timeout: Self::DEFAULT_REQUEST_TIMEOUT,
+            send_buffer_size: Self::SEND_BUFFER_SIZE,
+            receive_buffer_size: Self::RECEIVE_BUFFER_SIZE,
+            max_message_size: Self::MAX_BUFFER_SIZE,
+            request_handle: Handle::new(Self::FIRST_REQUEST_HANDLE),
             session_id: NodeId::null(),
             authentication_token: NodeId::null(),
-            monitored_item_handle: Handle::new(FIRST_MONITORED_ITEM_HANDLE),
+            monitored_item_handle: Handle::new(Self::FIRST_MONITORED_ITEM_HANDLE),
             message_queue,
             subscription_acknowledgements: Vec::new(),
             wait_for_publish_response: false,
@@ -275,7 +282,7 @@ impl SessionState {
                     return Err(StatusCode::BadTimeout);
                 }
                 // Sleep before trying again
-                std::thread::sleep(std::time::Duration::from_millis(SYNC_POLLING_PERIOD));
+                std::thread::sleep(std::time::Duration::from_millis(Self::SYNC_POLLING_PERIOD));
             }
         }
     }

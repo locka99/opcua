@@ -1,9 +1,11 @@
-use std::io;
-use std::fmt;
-use std::fmt::Formatter;
+use std::{
+    io, fmt, fmt::Formatter,
+};
 
-use serde::{Serialize, Serializer, Deserialize, Deserializer};
-use serde::de::{self, Visitor};
+use serde::{
+    Serialize, Serializer, Deserialize, Deserializer,
+    de::{self, Visitor},
+};
 
 pub use crate::status_codes::StatusCode;
 
