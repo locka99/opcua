@@ -51,10 +51,14 @@ const SEND_BUFFER_SIZE: usize = 1024 * 64;
 const MAX_MESSAGE_SIZE: usize = 1024 * 64;
 
 macro_rules! connection_finished_test {
-    ( $connection:expr ) => {
+    ( $id: expr, $connection:expr ) => {
         {
+            trace!("{}", $id);
             let connection = trace_read_lock_unwrap!($connection);
             let finished = connection.is_finished();
+            if finished {
+                info!("{} connection finished", $id);
+            }
             future::ok(!finished)
         }
     }
@@ -284,24 +288,20 @@ impl TcpTransport {
             (request_id, response, connection.clone())
         }).take_while(move |(_, response, _)| {
             trace!("write_looping_task.take_while");
+            let mut transport = trace_write_lock_unwrap!(transport);
             let take = if let SupportedMessage::Invalid(_) = response {
-                error!("Writer is terminating because it received an invalid message");
-                let mut transport = trace_write_lock_unwrap!(transport);
+                error!("Writer terminating - received an invalid message");
                 transport.finish(StatusCode::BadCommunicationError);
                 false
+            } else if transport.is_server_abort() {
+                info!("Writer terminating - communication error (abort)");
+                transport.finish(StatusCode::BadCommunicationError);
+                false
+            } else if transport.is_finished() {
+                info!("Writer terminating - transport is finished");
+                false
             } else {
-                let mut transport = trace_write_lock_unwrap!(transport);
-                if transport.is_server_abort() {
-                    info!("Writer communication error (abort)");
-                    transport.finish(StatusCode::BadCommunicationError);
-
-                    false
-                } else if transport.is_finished() {
-                    info!("Writer, transport is finished so terminating");
-                    false
-                } else {
-                    true
-                }
+                true
             };
             future::ok(take)
         }).for_each(move |(request_id, response, connection)| {
@@ -330,7 +330,11 @@ impl TcpTransport {
                 } else {
                     Ok(connection)
                 }
-            }).map(|_| ())
+            }).map(|_| {
+                trace!("Write bytes task finished");
+            }).map_err(|_| {
+                error!("Write bytes task is in error");
+            })
         }).map(move |_| {
             info!("Writer is finished");
             deregister_runtime_component!(id_for_map);
@@ -347,6 +351,8 @@ impl TcpTransport {
         let id_for_map = id.clone();
         let id_for_map_err = id.clone();
         register_runtime_component!(id);
+
+        let transport_for_take_while = transport.clone();
 
         // Connection state is maintained for looping through each task
         let connection = Arc::new(RwLock::new(ReadState {
@@ -365,51 +371,55 @@ impl TcpTransport {
 
         // The reader reads frames from the codec, which are messages
         let framed_reader = FramedRead::new(reader, TcpCodec::new(finished_flag, decoding_limits));
-        let looping_task = framed_reader.for_each(move |message| {
-            let connection = trace_read_lock_unwrap!(connection);
-            let transport_state = {
-                let transport = trace_read_lock_unwrap!(connection.transport);
-                transport.transport_state.clone()
-            };
+        let looping_task = framed_reader
+            .take_while(move |_| {
+                connection_finished_test!("framed reader.take_while", transport_for_take_while)
+            }).
+            for_each(move |message| {
+                let connection = trace_read_lock_unwrap!(connection);
+                let transport_state = {
+                    let transport = trace_read_lock_unwrap!(connection.transport);
+                    transport.transport_state.clone()
+                };
 
-            let mut session_status_code = StatusCode::Good;
-            match transport_state {
-                TransportState::WaitingHello => {
-                    if let Message::Hello(hello) = message {
-                        let mut transport = trace_write_lock_unwrap!(connection.transport);
-                        let mut sender = trace_write_lock_unwrap!(connection.sender);
-                        let result = transport.process_hello(hello, &mut sender);
-                        if result.is_err() {
-                            session_status_code = result.unwrap_err();
+                let mut session_status_code = StatusCode::Good;
+                match transport_state {
+                    TransportState::WaitingHello => {
+                        if let Message::Hello(hello) = message {
+                            let mut transport = trace_write_lock_unwrap!(connection.transport);
+                            let mut sender = trace_write_lock_unwrap!(connection.sender);
+                            let result = transport.process_hello(hello, &mut sender);
+                            if result.is_err() {
+                                session_status_code = result.unwrap_err();
+                            }
+                        } else {
+                            session_status_code = StatusCode::BadCommunicationError;
                         }
-                    } else {
-                        session_status_code = StatusCode::BadCommunicationError;
+                    }
+                    TransportState::ProcessMessages => {
+                        if let Message::Chunk(chunk) = message {
+                            let mut transport = trace_write_lock_unwrap!(connection.transport);
+                            let mut sender = trace_write_lock_unwrap!(connection.sender);
+                            let result = transport.process_chunk(chunk, &mut sender);
+                            if result.is_err() {
+                                session_status_code = result.unwrap_err();
+                            }
+                        } else {
+                            session_status_code = StatusCode::BadCommunicationError;
+                        }
+                    }
+                    _ => {
+                        error!("Unknown session state, aborting");
+                        session_status_code = StatusCode::BadUnexpectedError;
                     }
                 }
-                TransportState::ProcessMessages => {
-                    if let Message::Chunk(chunk) = message {
-                        let mut transport = trace_write_lock_unwrap!(connection.transport);
-                        let mut sender = trace_write_lock_unwrap!(connection.sender);
-                        let result = transport.process_chunk(chunk, &mut sender);
-                        if result.is_err() {
-                            session_status_code = result.unwrap_err();
-                        }
-                    } else {
-                        session_status_code = StatusCode::BadCommunicationError;
-                    }
+                // Update the session status
+                if session_status_code.is_bad() {
+                    let mut transport = trace_write_lock_unwrap!(connection.transport);
+                    transport.finish(session_status_code);
                 }
-                _ => {
-                    error!("Unknown session state, aborting");
-                    session_status_code = StatusCode::BadUnexpectedError;
-                }
-            }
-            // Update the session status
-            if session_status_code.is_bad() {
-                let mut transport = trace_write_lock_unwrap!(connection.transport);
-                transport.finish(session_status_code);
-            }
-            Ok(())
-        }).map_err(move |e| {
+                Ok(())
+            }).map_err(move |e| {
             error!("Read loop error {:?}", e);
         }).and_then(move |_| {
             let connection = trace_write_lock_unwrap!(connection_for_terminate);
@@ -559,8 +569,7 @@ impl TcpTransport {
             let interval_duration = Duration::from_millis(constants::SUBSCRIPTION_TIMER_RATE_MS);
             let task = Interval::new(Instant::now(), interval_duration)
                 .take_while(move |_| {
-                    trace!("subscriptions_task.take_while");
-                    connection_finished_test!(transport_for_take_while)
+                    connection_finished_test!("subscriptions_task.take_while", transport_for_take_while)
                 })
                 .for_each(move |_| {
                     let transport = trace_read_lock_unwrap!(state.transport);
@@ -622,8 +631,7 @@ impl TcpTransport {
 
             tokio::spawn(subscription_rx
                 .take_while(move |_| {
-                    trace!("receiving_task.take_while");
-                    connection_finished_test!(transport_for_take_while)
+                    connection_finished_test!("receiving_task.take_while", transport_for_take_while)
                 })
                 .for_each(move |subscription_event| {
                     // Process publish response events

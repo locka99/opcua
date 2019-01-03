@@ -169,15 +169,13 @@ impl Server {
     /// Runs the supplied server reference counted server. The function will block until the server
     /// terminates, i.e. all running tokio tasks finish.
     pub fn run_server(server: Arc<RwLock<Server>>) {
-        // Debug endpoints
-        {
-            let server = trace_read_lock_unwrap!(server);
-            server.log_endpoint_info();
-        }
-
         // Get the address and discovery url
         let (sock_addr, discovery_server_url) = {
             let server = trace_read_lock_unwrap!(server);
+
+            // Debug endpoints
+            server.log_endpoint_info();
+
             let sock_addr = server.get_socket_address();
             let server_state = trace_read_lock_unwrap!(server.server_state);
             let config = trace_read_lock_unwrap!(server_state.config);

@@ -329,16 +329,16 @@ fn variant() {
     let v = Variant::Double(99.123f64);
     serialize_test(v);
     // DateTime
-    let v = Variant::DateTime(DateTime::now());
+    let v = Variant::from(DateTime::now());
     serialize_test(v);
     // UAString
-    let v = Variant::String(UAString::from("Hello Everybody"));
+    let v = Variant::from(UAString::from("Hello Everybody"));
     serialize_test(v);
     // ByteString
-    let v = Variant::ByteString(ByteString::from(b"Everything or nothing"));
+    let v = Variant::from(ByteString::from(b"Everything or nothing"));
     serialize_test(v);
     // XmlElement
-    let v = Variant::XmlElement(XmlElement::from("The world wonders"));
+    let v = Variant::from(XmlElement::from("The world wonders"));
     serialize_test(v);
     // NodeId(NodeId),
     let v: NodeId = ObjectId::AddNodesItem_Encoding_DefaultBinary.into();

@@ -179,10 +179,10 @@ impl AddressSpace {
         {
             let server_state = trace_read_lock_unwrap!(server_state);
             if let Some(ref mut v) = self.find_variable_mut(Server_NamespaceArray) {
-                v.set_value_direct(Variant::from_string_array(&server_state.namespaces), &now, &now);
+                v.set_value_direct(Variant::from(&server_state.namespaces), &now, &now);
             }
             if let Some(ref mut v) = self.find_variable_mut(Server_ServerArray) {
-                v.set_value_direct(Variant::from_string_array(&server_state.servers), &now, &now);
+                v.set_value_direct(Variant::from(&server_state.servers), &now, &now);
             }
         }
 
@@ -226,7 +226,7 @@ impl AddressSpace {
                 //  View Minimum Continuation Point 01
                 //  View RegisterNodes
                 //  View TranslateBrowsePath
-                "http://opcfoundation.org/UA-Profile/Server/Behaviour".to_string(),
+                "http://opcfoundation.org/UA-Profile/Server/Behaviour",
                 // Embedded UA server
                 //  Micro Embedded Device Server Profile
                 //  SecurityPolicy - Basic128Rsa15
@@ -236,9 +236,9 @@ impl AddressSpace {
                 //  -Base Info PLaceholder Modelling Rules
                 //  -Base Info Type System
                 //  Security Default ApplicationInstanceCertificate
-                "http://opcfoundation.org/UA-Profile/Server/EmbeddedUA".to_string(),
+                "http://opcfoundation.org/UA-Profile/Server/EmbeddedUA",
             ];
-            v.set_value_direct(Variant::from_string_array(&server_profiles), &now, &now);
+            v.set_value_direct(Variant::from(&server_profiles[..]), &now, &now);
         }
 
         // Server_ServerCapabilities_LocaleIdArray

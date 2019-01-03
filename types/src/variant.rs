@@ -151,13 +151,13 @@ impl From<UAString> for Variant {
 
 impl From<DateTime> for Variant {
     fn from(v: DateTime) -> Self {
-        Variant::DateTime(v)
+        Variant::DateTime(Box::new(v))
     }
 }
 
 impl From<Guid> for Variant {
     fn from(v: Guid) -> Self {
-        Variant::Guid(v)
+        Variant::Guid(Box::new(v))
     }
 }
 
@@ -209,8 +209,50 @@ impl From<DataValue> for Variant {
     }
 }
 
+impl<'a, 'b> From<&'a [&'b str]> for Variant {
+    fn from(v: &'a [&'b str]) -> Self {
+        let array: Vec<Variant> = v.iter().map(|v| Variant::from(*v)).collect();
+        Variant::Array(array)
+    }
+}
+
+impl<'a> From<&'a Vec<String>> for Variant {
+    fn from(v: &'a Vec<String>) -> Self {
+        Variant::from(&v[..])
+    }
+}
+
+impl<'a> From<&'a [String]> for Variant {
+    fn from(v: &'a [String]) -> Self {
+        let values = v.iter().map(|v| {
+            let s: &str = v.as_ref();
+            Variant::from(s)
+        }).collect();
+        Variant::Array(values)
+    }
+}
+
 impl From<Vec<u32>> for Variant {
     fn from(v: Vec<u32>) -> Self {
+        Variant::from(&v[..])
+    }
+}
+
+impl<'a> From<&'a [u32]> for Variant {
+    fn from(v: &'a [u32]) -> Self {
+        let array: Vec<Variant> = v.iter().map(|v| Variant::from(*v)).collect();
+        Variant::Array(array)
+    }
+}
+
+impl From<Vec<i32>> for Variant {
+    fn from(v: Vec<i32>) -> Self {
+        Variant::from(&v[..])
+    }
+}
+
+impl<'a> From<&'a [i32]> for Variant {
+    fn from(v: &'a [i32]) -> Self {
         let array: Vec<Variant> = v.iter().map(|v| Variant::from(*v)).collect();
         Variant::Array(array)
     }
@@ -263,9 +305,9 @@ pub enum Variant {
     /// String
     String(UAString),
     /// DateTime
-    DateTime(DateTime),
+    DateTime(Box<DateTime>),
     /// Guid
-    Guid(Guid),
+    Guid(Box<Guid>),
     /// StatusCode
     StatusCode(StatusCode),
     /// ByteString
@@ -674,6 +716,7 @@ impl Variant {
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::ByteString) {
             Self::from(ByteString::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::XmlElement) {
+            // Force the type to be XmlElement since its typedef'd to UAString
             Variant::XmlElement(XmlElement::decode(stream, decoding_limits)?)
         } else if Self::test_encoding_flag(encoding_mask, DataTypeId::NodeId) {
             Self::from(NodeId::decode(stream, decoding_limits)?)
@@ -806,21 +849,6 @@ impl Variant {
                 None
             }
         }
-    }
-
-    pub fn from_i32_array(in_values: &[i32]) -> Variant {
-        let values = in_values.iter().map(|v| Variant::from(*v)).collect();
-        Variant::Array(values)
-    }
-
-    pub fn from_u32_array(in_values: &[u32]) -> Variant {
-        let values = in_values.iter().map(|v| Variant::from(*v)).collect();
-        Variant::Array(values)
-    }
-
-    pub fn from_string_array(in_values: &[String]) -> Variant {
-        let values = in_values.iter().map(|v| Variant::from(v.as_ref())).collect();
-        Variant::Array(values)
     }
 
     /// Returns an array of UInt32s

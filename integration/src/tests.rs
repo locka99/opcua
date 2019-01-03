@@ -1,19 +1,22 @@
-use std::sync::{Arc, Mutex, RwLock};
-use std::sync::mpsc;
-use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
-use std::sync::mpsc::channel;
-use std::thread;
-use std::time;
+use std::{
+    sync::{
+        Arc, Mutex, RwLock, mpsc, mpsc::channel,
+        atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT},
+    },
+    thread, time,
+};
 
 use chrono::Utc;
 
 // Integration tests are asynchronous so futures will be used
 use opcua_core;
-use opcua_server;
 use opcua_types::*;
-use opcua_server::config::ServerEndpoint;
-use opcua_server::builder::ServerBuilder;
-use opcua_server::prelude::*;
+use opcua_server::{
+    self,
+    config::ServerEndpoint,
+    builder::ServerBuilder,
+    prelude::*,
+};
 use opcua_client::prelude::*;
 use opcua_console_logging;
 
@@ -25,10 +28,12 @@ const ENDPOINT_ID_BASIC256_SIGN: &str = "sample_basic256_sign";
 const ENDPOINT_ID_BASIC256SHA256_SIGN_ENCRYPT: &str = "sample_basic256sha256_signencrypt";
 const ENDPOINT_ID_BASIC256SHA256_SIGN: &str = "sample_basic256sha256_sign";
 
+const TEST_TIMEOUT: i64 = 30000;
+
+/// This is the most basic integration test starting the server on a thread, setting an abort flag
+/// and expecting the test to complete before it times out.
 #[test]
-fn abort() {
-    // This is a simple test that runs the server on a thread, sets a flag for it to abort and expects it to
-    // actually do so.
+fn server_abort() {
     opcua_console_logging::init();
 
     let server = Arc::new(RwLock::new(new_server(0)));
@@ -60,65 +65,77 @@ fn abort() {
         let now = Utc::now();
         let elapsed = now.signed_duration_since(start_time.clone());
         if elapsed.num_milliseconds() > timeout {
-            error!("Abort test timed out");
             panic!("Abort test timed out after {} ms", elapsed.num_milliseconds());
         }
     }
 }
 
-
+/// Start a server, send a HELLO message but then wait for the server
+/// to timeout and drop the connection.
 #[test]
 fn hello_timeout() {
     // For this test we want to set the hello timeout to a low value for the sake of speed.
+
+    // TODO
 }
 
+/// Start a server, fetch a list of endpoints, verify they are correct
 #[test]
 fn get_endpoints() {
     // Connect to server and get a list of endpoints
+    // TODO
 }
 
+/// Connect to the server using no encryption, anonymous
 #[test]
 fn connect_none() {
     // Connect a session using None security policy and anonymous token.
     connect_with(next_port_offset(), ENDPOINT_ID_NONE);
 }
 
+/// Connect to the server using no encryption, user/pass
 #[test]
 fn connect_none_username_password() {
     // Connect a session using None security policy and username/password token
     // connect_with(ENDPOINT_ID_);
 }
 
+/// Connect to the server using Basic128Rsa15 + Sign
 #[test]
 fn connect_basic128rsa15_sign() {
     // Connect a session with Basic128Rsa and Sign
     connect_with(next_port_offset(), ENDPOINT_ID_BASIC128RSA15_SIGN);
 }
 
+/// Connect to the server using Basic128Rsa15 + SignEncrypt
 #[test]
 fn connect_basic128rsa15_sign_and_encrypt() {
     // Connect a session with Basic128Rsa and SignAndEncrypt
     connect_with(next_port_offset(), ENDPOINT_ID_BASIC128RSA15_SIGN_ENCRYPT);
 }
 
+/// Connect to the server using Basic256 + Sign
 #[test]
 fn connect_basic256_sign() {
     // Connect a session with Basic256 and Sign
     connect_with(next_port_offset(), ENDPOINT_ID_BASIC256_SIGN);
 }
 
+/// Connect to the server using Basic256 + SignEncrypt
 #[test]
 fn connect_basic256_sign_and_encrypt() {
     // Connect a session with Basic256 and SignAndEncrypt
     connect_with(next_port_offset(), ENDPOINT_ID_BASIC256_SIGN_ENCRYPT);
 }
 
+/// Connect to the server using Basic256Sha256 + Sign
 #[test]
 fn connect_basic256sha256_sign() {
     // Connect a session with Basic256Sha256 and Sign
     connect_with(next_port_offset(), ENDPOINT_ID_BASIC256SHA256_SIGN);
 }
 
+/// Connect to the server using Basic256Sha256 + SignEncrypt
 #[test]
 fn connect_basic256sha256_sign_and_encrypt() {
     // Connect a session with Basic256Sha256 and SignAndEncrypt
@@ -309,6 +326,7 @@ fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: 
                 trace!("No client test");
                 true
             };
+            info!("Client test has completed, sending ClientResponse::Finished({:?})", result);
             let _ = tx_client_response.send(ClientResponse::Finished(result));
             info!("Client thread has finished");
         });
@@ -327,7 +345,10 @@ fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: 
             let _ = tx_server_response.send(ServerResponse::Ready);
             // TODO catch_unwind
             server_test(rx_server_command, server);
-            let _ = tx_server_response.send(ServerResponse::Finished(true));
+
+            let result = true;
+            info!("Server test has completed, sending ServerResponse::Finished({:?})", result);
+            let _ = tx_server_response.send(ServerResponse::Finished(result));
             info!("Server thread has finished");
         });
         (server_thread, tx_server_command, rx_server_response)
@@ -335,7 +356,7 @@ fn perform_test<CT, ST>(port_offset: u16, client_test: Option<CT>, server_test: 
 
     let start_time = Utc::now();
 
-    let timeout = 30000;
+    let timeout = TEST_TIMEOUT;
 
     let mut client_has_finished = false;
     let mut client_success = false;
@@ -414,10 +435,10 @@ fn connect_with(port_offset: u16, endpoint_id: &str) {
         // Connect to the server
         info!("Client will try to connect to endpoint {}", endpoint_id);
         let session = client.connect_to_endpoint_id(Some(&endpoint_id)).unwrap();
+        let mut session = session.write().unwrap();
 
         // Read the variable
         let mut values = {
-            let mut session = session.write().unwrap();
             let read_nodes = vec![ReadValueId::from(v1_node_id())];
             session.read_nodes(&read_nodes).unwrap().unwrap()
         };
@@ -425,6 +446,8 @@ fn connect_with(port_offset: u16, endpoint_id: &str) {
 
         let value = values.remove(0).value;
         assert_eq!(value, Some(Variant::from(100)));
+
+        session.disconnect();
     };
 
     let server_test = |rx_server_command: mpsc::Receiver<ServerCommand>, server: Server| {
@@ -447,13 +470,13 @@ fn connect_with(port_offset: u16, endpoint_id: &str) {
                     ServerCommand::Quit => {
                         // Tell the server to quit
                         {
-                            info!("Server test received quit");
+                            info!("1. ------------------------ Server test received quit");
                             let mut server = server2.write().unwrap();
                             server.abort();
                         }
                         // wait for server thread to quit
                         let _ = t.join();
-                        info!("Server has terminated quit");
+                        info!("2. ------------------------ Server has now terminated after quit");
                         break;
                     }
                 }

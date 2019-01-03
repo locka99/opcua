@@ -20,7 +20,7 @@ type UtcDateTime = chrono::DateTime<Utc>;
 /// for obtaining ticks in OPC UA measurements, endtimes, epoch etc.
 #[derive(PartialEq, Debug, Clone)]
 pub struct DateTime {
-    pub date_time: UtcDateTime,
+    date_time: UtcDateTime,
 }
 
 impl Serialize for DateTime {

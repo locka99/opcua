@@ -334,8 +334,12 @@ impl TcpTransport {
         io::write_all(writer, bytes_to_write).map_err(move |err| {
             error!("Write IO error {:?}", err);
         }).map(move |(writer, _)| {
+            trace!("Write bytes task finished");
+            // Reinstate writer
             let mut connection = trace_lock_unwrap!(connection);
             connection.writer = Some(writer);
+        }).map_err(|_| {
+            error!("Write bytes task error");
         })
     }
 
@@ -380,7 +384,6 @@ impl TcpTransport {
 
         let connection = Arc::new(RwLock::new(connection));
         let connection_for_terminate = connection.clone();
-
 
         // The reader reads frames from the codec, which are messages
         let framed_reader = FramedRead::new(reader, TcpCodec::new(finished_flag, decoding_limits));

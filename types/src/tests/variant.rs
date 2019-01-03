@@ -18,37 +18,47 @@ fn is_numeric() {
 }
 
 #[test]
+fn size() {
+    // Test that the variant is boxing enough data to keep the stack size down to some manageable
+    // amount.
+    use std::mem;
+    let vsize = mem::size_of::<Variant>();
+    println!("Variant size = {}", vsize);
+    assert!(vsize <= 32);
+}
+
+#[test]
 fn variant_type_id() {
     use crate::{UAString, DateTime, ByteString, XmlElement, NodeId, ExpandedNodeId, QualifiedName, LocalizedText, ExtensionObject, DataValue, Guid};
     use crate::status_codes::StatusCode;
 
     let types = [
         (Variant::Empty, VariantTypeId::Empty),
-        (Variant::Boolean(true), VariantTypeId::Boolean),
-        (Variant::SByte(0i8), VariantTypeId::SByte),
-        (Variant::Byte(0u8), VariantTypeId::Byte),
-        (Variant::Int16(0i16), VariantTypeId::Int16),
-        (Variant::UInt16(0u16), VariantTypeId::UInt16),
-        (Variant::Int32(0i32), VariantTypeId::Int32),
-        (Variant::UInt32(0u32), VariantTypeId::UInt32),
-        (Variant::Int64(0i64), VariantTypeId::Int64),
-        (Variant::UInt64(0u64), VariantTypeId::UInt64),
-        (Variant::Float(0f32), VariantTypeId::Float),
-        (Variant::Double(0f64), VariantTypeId::Double),
-        (Variant::String(UAString::null()), VariantTypeId::String),
-        (Variant::DateTime(DateTime::now()), VariantTypeId::DateTime),
-        (Variant::Guid(Guid::new()), VariantTypeId::Guid),
-        (Variant::ByteString(ByteString::null()), VariantTypeId::ByteString),
+        (Variant::from(true), VariantTypeId::Boolean),
+        (Variant::from(0i8), VariantTypeId::SByte),
+        (Variant::from(0u8), VariantTypeId::Byte),
+        (Variant::from(0i16), VariantTypeId::Int16),
+        (Variant::from(0u16), VariantTypeId::UInt16),
+        (Variant::from(0i32), VariantTypeId::Int32),
+        (Variant::from(0u32), VariantTypeId::UInt32),
+        (Variant::from(0i64), VariantTypeId::Int64),
+        (Variant::from(0u64), VariantTypeId::UInt64),
+        (Variant::from(0f32), VariantTypeId::Float),
+        (Variant::from(0f64), VariantTypeId::Double),
+        (Variant::from(UAString::null()), VariantTypeId::String),
+        (Variant::from(ByteString::null()), VariantTypeId::ByteString),
         (Variant::XmlElement(XmlElement::null()), VariantTypeId::XmlElement),
-        (Variant::NodeId(Box::new(NodeId::null())), VariantTypeId::NodeId),
-        (Variant::ExpandedNodeId(Box::new(ExpandedNodeId::null())), VariantTypeId::ExpandedNodeId),
-        (Variant::StatusCode(StatusCode::Good), VariantTypeId::StatusCode),
-        (Variant::QualifiedName(Box::new(QualifiedName::null())), VariantTypeId::QualifiedName),
-        (Variant::LocalizedText(Box::new(LocalizedText::null())), VariantTypeId::LocalizedText),
-        (Variant::ExtensionObject(Box::new(ExtensionObject::null())), VariantTypeId::ExtensionObject),
-        (Variant::DataValue(Box::new(DataValue::null())), VariantTypeId::DataValue),
-        (Variant::Array(vec![]), VariantTypeId::Array),
-        (Variant::MultiDimensionArray(Box::new(MultiDimensionArray::new(vec![], vec![1]))), VariantTypeId::MultiDimensionArray),
+        (Variant::from(StatusCode::Good), VariantTypeId::StatusCode),
+        (Variant::from(DateTime::now()), VariantTypeId::DateTime),
+        (Variant::from(Guid::new()), VariantTypeId::Guid),
+        (Variant::from(NodeId::null()), VariantTypeId::NodeId),
+        (Variant::from(ExpandedNodeId::null()), VariantTypeId::ExpandedNodeId),
+        (Variant::from(QualifiedName::null()), VariantTypeId::QualifiedName),
+        (Variant::from(LocalizedText::null()), VariantTypeId::LocalizedText),
+        (Variant::from(ExtensionObject::null()), VariantTypeId::ExtensionObject),
+        (Variant::from(DataValue::null()), VariantTypeId::DataValue),
+        (Variant::from(vec![1]), VariantTypeId::Array),
+        (Variant::from(MultiDimensionArray::new(vec![], vec![1])), VariantTypeId::MultiDimensionArray),
     ];
     for t in &types {
         assert_eq!(t.0.type_id(), t.1);
@@ -57,7 +67,8 @@ fn variant_type_id() {
 
 #[test]
 fn variant_u32_array() {
-    let v = Variant::from_u32_array(&[1, 2, 3]);
+    let vars = [1u32, 2u32, 3u32];
+    let v = Variant::from(&vars[..]);
     assert!(v.is_array());
     assert!(v.is_numeric_array());
     assert!(v.is_valid());
@@ -83,7 +94,8 @@ fn variant_u32_array() {
 
 #[test]
 fn variant_i32_array() {
-    let v = Variant::from_i32_array(&[1, 2, 3]);
+    let vars = [1, 2, 3];
+    let v = Variant::from(&vars[..]);
     assert!(v.is_array());
     assert!(v.is_numeric_array());
     assert!(v.is_valid());

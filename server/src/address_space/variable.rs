@@ -87,7 +87,7 @@ impl VariableBuilder {
     }
 
     pub fn array_dimensions(mut self, array_dimensions: &[u32]) -> Self {
-        let _ = self.node.set_attribute(AttributeId::ArrayDimensions, Variant::from_u32_array(array_dimensions).into());
+        let _ = self.node.set_attribute(AttributeId::ArrayDimensions, Variant::from(array_dimensions).into());
         self
     }
 
