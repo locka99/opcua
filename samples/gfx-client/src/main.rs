@@ -164,7 +164,7 @@ fn subscription_loop(nodes_to_monitor: Vec<ReadValueId>, session: Arc<RwLock<Ses
                 MonitoredItemCreateRequest::new(read_node, MonitoringMode::Reporting, MonitoringParameters::default())
             }).collect()
         };
-        let result = session.create_monitored_items(subscription_id, &items_to_create)?;
+        let result = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create)?;
         println!("Created monitored items {:?}", result);
     }
 

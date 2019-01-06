@@ -225,7 +225,7 @@ impl Session {
                                         },
                                     }
                                 }).collect::<Vec<MonitoredItemCreateRequest>>();
-                                let _ = self.create_monitored_items(subscription_id, &items_to_create);
+                                let _ = self.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create);
                             }
                         });
                     }
@@ -297,7 +297,7 @@ impl Session {
         session_state.issue_or_renew_secure_channel(SecurityTokenRequestType::Issue)
     }
 
-    /// Sends an [`CloseSecureChannelRequest`] to the server which will cause the server to drop
+    /// Sends a [`CloseSecureChannelRequest`] to the server which will cause the server to drop
     /// the connection.
     ///
     /// # Returns
@@ -316,7 +316,7 @@ impl Session {
         Ok(())
     }
 
-    /// Sends an [`CreateSessionRequest`] to the server, returning the session id of the created
+    /// Sends a [`CreateSessionRequest`] to the server, returning the session id of the created
     /// session. Internally, the session will store the authentication token which is used for requests
     /// subsequent to this call.
     ///
@@ -484,7 +484,7 @@ impl Session {
         }
     }
 
-    /// Sends an [`CancelRequest`] to the server to cancel an outstanding service request.
+    /// Sends a [`CancelRequest`] to the server to cancel an outstanding service request.
     ///
     /// # Arguments
     ///
@@ -979,8 +979,23 @@ impl Session {
         }
     }
 
-    /// Create monitored items request
-    pub fn create_monitored_items(&mut self, subscription_id: u32, items_to_create: &[MonitoredItemCreateRequest]) -> Result<Vec<MonitoredItemCreateResult>, StatusCode> {
+    /// Creates monitored items on a subscription by sending a [`CreateMonitoredItemsRequest`] to the server.
+    ///
+    /// # Arguments
+    ///
+    /// * `subscription_id` - The Server-assigned identifier for the Subscription that will report Notifications for this MonitoredItem
+    /// * `timestamps_to_return` - An enumeration that specifies the timestamp Attributes to be transmitted for each MonitoredItem.
+    /// * `items_to_create` - A list of MonitoredItems to be created and assigned to the specified Subscription.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Vec<MonitoredItemCreateResult>)` - List of results for the MonitoredItems to create.
+    ///    The size and order of the list matches the size and order of the `items_to_create` request parameter.
+    /// * `Err(StatusCode)` - Status code reason for failure
+    ///
+    /// [`CreateMonitoredItemsRequest`]: ./struct.CreateMonitoredItemsRequest.html
+    ///
+    pub fn create_monitored_items(&mut self, subscription_id: u32, timestamps_to_return: TimestampsToReturn, items_to_create: &[MonitoredItemCreateRequest]) -> Result<Vec<MonitoredItemCreateResult>, StatusCode> {
         debug!("create_monitored_items, for subscription {}, {} items", subscription_id, items_to_create.len());
         if subscription_id == 0 {
             error!("create_monitored_items, subscription id 0 is invalid");
@@ -1004,7 +1019,7 @@ impl Session {
             let request = CreateMonitoredItemsRequest {
                 request_header: self.make_request_header(),
                 subscription_id,
-                timestamps_to_return: TimestampsToReturn::Both,
+                timestamps_to_return,
                 items_to_create: Some(items_to_create.clone()),
             };
             let response = self.send_request(request)?;
@@ -1042,8 +1057,23 @@ impl Session {
         }
     }
 
-    /// Modifies monitored items in the subscription
-    pub fn modify_monitored_items(&mut self, subscription_id: u32, items_to_modify: &[MonitoredItemModifyRequest]) -> Result<Vec<MonitoredItemModifyResult>, StatusCode> {
+    /// Modifies monitored items on a subscription by sending a [`ModifyMonitoredItemsRequest`] to the server.
+    ///
+    /// # Arguments
+    ///
+    /// * `subscription_id` - The Server-assigned identifier for the Subscription that will report Notifications for this MonitoredItem.
+    /// * `timestamps_to_return` - An enumeration that specifies the timestamp Attributes to be transmitted for each MonitoredItem.
+    /// * `items_to_modify` - The list of MonitoredItems to modify.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Vec<MonitoredItemModifyResult>)` - List of results for the MonitoredItems to modify.
+    ///    The size and order of the list matches the size and order of the `items_to_modify` request parameter.
+    /// * `Err(StatusCode)` - Status code reason for failure.
+    ///
+    /// [`ModifyMonitoredItemsRequest`]: ./struct.ModifyMonitoredItemsRequest.html
+    ///
+    pub fn modify_monitored_items(&mut self, subscription_id: u32, timestamps_to_return: TimestampsToReturn, items_to_modify: &[MonitoredItemModifyRequest]) -> Result<Vec<MonitoredItemModifyResult>, StatusCode> {
         debug!("modify_monitored_items, for subscription {}, {} items", subscription_id, items_to_modify.len());
         if subscription_id == 0 {
             error!("modify_monitored_items, subscription id 0 is invalid");
@@ -1093,7 +1123,21 @@ impl Session {
         }
     }
 
-    /// Deletes monitored items from the subscription
+    /// Deletes monitored items from a subscription by sending a [`DeleteMonitoredItemsRequest`] to the server.
+    ///
+    /// # Arguments
+    ///
+    /// * `subscription_id` - The Server-assigned identifier for the Subscription that will report Notifications for this MonitoredItem.
+    /// * `items_to_delete` - List of Server-assigned ids for the MonitoredItems to be deleted..
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Vec<StatusCode>)` - List of StatusCodes for the MonitoredItems to delete. The size and
+    ///   order of the list matches the size and order of the `items_to_delete` request parameter.
+    /// * `Err(StatusCode)` - Status code reason for failure.
+    ///
+    /// [`DeleteMonitoredItemsRequest`]: ./struct.DeleteMonitoredItemsRequest.html
+    ///
     pub fn delete_monitored_items(&mut self, subscription_id: u32, items_to_delete: &[u32]) -> Result<Vec<StatusCode>, StatusCode> {
         debug!("delete_monitored_items, subscription {} for {} items", subscription_id, items_to_delete.len());
         if subscription_id == 0 {
@@ -1127,7 +1171,23 @@ impl Session {
         }
     }
 
-    /// Calls a single method on an object on the server via a call method request.
+    /// Calls a single method on an object on the server by sending a [`CallRequest`] to the server.
+    ///
+    /// # Arguments
+    ///
+    /// * `method` - The method to call. Note this function takes anything that can be turned into
+    ///   a [`CallMethodRequest`] which includes a (`NodeId`, `NodeId`, `Option<Vec<Variant>>`)
+    ///   which refers to the object id, method id, and input arguments respectively.
+    /// * `items_to_delete` - List of Server-assigned ids for the MonitoredItems to be deleted..
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(CallMethodResult)` - Result for the Method call.
+    /// * `Err(StatusCode)` - Status code reason for failure.
+    ///
+    /// [`CallRequest`]: ./struct.CallRequest.html
+    /// [`CallMethodRequest`]: ./struct.CallMethodRequest.html
+    ///
     pub fn call_method<T>(&mut self, method: T) -> Result<CallMethodResult, StatusCode> where T: Into<CallMethodRequest> {
         debug!("call_method");
         let methods_to_call = Some(vec![method.into()]);
@@ -1153,7 +1213,17 @@ impl Session {
         }
     }
 
-    /// Calls GetMonitoredItems via call_method(), putting a sane interface on the input / output
+    /// Calls GetMonitoredItems via call_method(), putting a sane interface on the input / output.
+    ///
+    /// # Arguments
+    ///
+    /// * `subscription_id` - Server allocated identifier for the subscription to return monitored items for.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok((Vec<u32>, Vec<u32>))` - Result for call, consisting a list of (monitored_item_id, client_handle)
+    /// * `Err(StatusCode)` - Status code reason for failure.
+    ///
     pub fn call_get_monitored_items(&mut self, subscription_id: u32) -> Result<(Vec<u32>, Vec<u32>), StatusCode> {
         let args = Some(vec![Variant::from(subscription_id)]);
         let object_id: NodeId = ObjectId::Server.into();
