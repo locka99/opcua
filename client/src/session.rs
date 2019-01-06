@@ -282,15 +282,31 @@ impl Session {
         self.transport.is_connected()
     }
 
-    /// Sends an OpenSecureChannel request to the server
+    /// Sends an [`OpenSecureChannelRequest`] to the server
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Success
+    /// * `Err(StatusCode)` - Request failed, status code is the reason for failure
+    ///
+    /// [`OpenSecureChannelRequest`]: ./struct.OpenSecureChannelRequest.html
+    ///
     pub fn open_secure_channel(&mut self) -> Result<(), StatusCode> {
         debug!("open_secure_channel");
         let mut session_state = trace_write_lock_unwrap!(self.session_state);
         session_state.issue_or_renew_secure_channel(SecurityTokenRequestType::Issue)
     }
 
-    /// Sends a CloseSecureChannel request to the server which will cause the server to drop
+    /// Sends an [`CloseSecureChannelRequest`] to the server which will cause the server to drop
     /// the connection.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Success
+    /// * `Err(StatusCode)` - Request failed, status code is the reason for failure
+    ///
+    /// [`CloseSecureChannelRequest`]: ./struct.CloseSecureChannelRequest.html
+    ///
     pub fn close_secure_channel(&mut self) -> Result<(), StatusCode> {
         let request = CloseSecureChannelRequest {
             request_header: self.make_request_header(),
@@ -300,9 +316,17 @@ impl Session {
         Ok(())
     }
 
-    /// Sends a CreateSession request to the server. Returns the session id of the created session.
-    /// Internally, the session will store the authentication token which is used for requests
-    /// subsequent to this create session call.
+    /// Sends an [`CreateSessionRequest`] to the server, returning the session id of the created
+    /// session. Internally, the session will store the authentication token which is used for requests
+    /// subsequent to this call.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(NodeId)` - Success, session id
+    /// * `Err(StatusCode)` - Request failed, status code is the reason for failure
+    ///
+    /// [`CreateSessionRequest`]: ./struct.CreateSessionRequest.html
+    ///
     pub fn create_session(&mut self) -> Result<NodeId, StatusCode> {
         // Get some state stuff
         let endpoint_url = UAString::from(self.session_info.endpoint.endpoint_url.clone());
@@ -393,7 +417,15 @@ impl Session {
         secure_channel.security_policy()
     }
 
-    /// Sends an ActivateSession request to the server
+    /// Sends an [`ActivateSessionRequest`] to the server to activate this session
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Success
+    /// * `Err(StatusCode)` - Request failed, status code is the reason for failure
+    ///
+    /// [`ActivateSessionRequest`]: ./struct.ActivateSessionRequest.html
+    ///
     pub fn activate_session(&mut self) -> Result<(), StatusCode> {
         let user_identity_token = self.user_identity_token()?;
         let locale_ids = if self.session_info.preferred_locales.is_empty() {
@@ -452,7 +484,19 @@ impl Session {
         }
     }
 
-    /// Cancels a request
+    /// Sends an [`CancelRequest`] to the server to cancel an outstanding service request.
+    ///
+    /// # Arguments
+    ///
+    /// * `request_handle` - Handle to the outstanding request to be cancelled.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(u32)` - Success, number of cancelled requests
+    /// * `Err(StatusCode)` - Request failed, status code is the reason for failure
+    ///
+    /// [`CancelRequest`]: ./struct.CancelRequest.html
+    ///
     pub fn cancel(&mut self, request_handle: IntegerId) -> Result<u32, StatusCode> {
         let request = CancelRequest {
             request_header: self.make_request_header(),
@@ -467,7 +511,19 @@ impl Session {
         }
     }
 
-    /// Find a bunch of servers
+    /// Sends a [`FindServersRequest`] to the server denoted by the discovery url
+    ///
+    /// # Arguments
+    ///
+    /// * `discovery_url` - The discovery url address that the Client used to access the DiscoeryEndpoint
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Vec<ApplicationDescription>)` - Success, list of Servers that meet criteria specified in the request.
+    /// * `Err(StatusCode)` - Request failed, status code is the reason for failure
+    ///
+    /// [`FindServersRequest`]: ./struct.FindServersRequest.html
+    ///
     pub fn find_servers<T>(&mut self, discovery_url: T) -> Result<Vec<ApplicationDescription>, StatusCode> where T: Into<String> {
         let request = FindServersRequest {
             request_header: self.make_request_header(),
