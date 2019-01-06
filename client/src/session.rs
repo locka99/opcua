@@ -515,7 +515,7 @@ impl Session {
     ///
     /// # Arguments
     ///
-    /// * `discovery_url` - The discovery url address that the Client used to access the DiscoeryEndpoint
+    /// * `endpoint_url` - The network address that the Client used to access the Discovery Endpoint.
     ///
     /// # Returns
     ///
@@ -524,10 +524,10 @@ impl Session {
     ///
     /// [`FindServersRequest`]: ./struct.FindServersRequest.html
     ///
-    pub fn find_servers<T>(&mut self, discovery_url: T) -> Result<Vec<ApplicationDescription>, StatusCode> where T: Into<String> {
+    pub fn find_servers<T>(&mut self, endpoint_url: T) -> Result<Vec<ApplicationDescription>, StatusCode> where T: Into<UAString> {
         let request = FindServersRequest {
             request_header: self.make_request_header(),
-            endpoint_url: UAString::from(discovery_url.into()),
+            endpoint_url: endpoint_url.into(),
             locale_ids: None,
             server_uris: None,
         };
@@ -545,6 +545,22 @@ impl Session {
         }
     }
 
+    /// Sends a [`RegisterServerRequest`] to the discovery server to register a server. Although
+    /// this function appears in the client API, it is for the benefit of servers that wish to
+    /// register with a discovery server. Servers are expected to re-register themselves periodically
+    /// with the discovery server, with a maximum of 10 minute intervals.
+    ///
+    /// # Arguments
+    ///
+    /// * `server` - The server to register
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Success
+    /// * `Err(StatusCode)` - Request failed, status code is the reason for failure
+    ///
+    /// [`RegisterServerRequest`]: ./struct.FindServersRequest.html
+    ///
     pub fn register_server(&mut self, server: RegisteredServer) -> Result<(), StatusCode> {
         let request = RegisterServerRequest {
             request_header: self.make_request_header(),
