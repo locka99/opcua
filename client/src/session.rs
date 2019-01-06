@@ -199,17 +199,17 @@ impl Session {
                     let subscription_state = self.subscription_state.clone();
                     {
                         let mut subscription_state = trace_write_lock_unwrap!(subscription_state);
-                        let mut subscriptions = subscription_state.subscriptions();
+                        let mut subscriptions = subscription_state.drain_subscriptions();
                         subscriptions.drain().for_each(|(_, sub)| {
                             // Attempt to replicate the subscription
                             if let Ok(subscription_id) = self.create_subscription_inner(
-                                sub.publishing_interval,
-                                sub.lifetime_count,
-                                sub.max_keep_alive_count,
-                                sub.max_notifications_per_publish,
-                                sub.priority,
-                                sub.publishing_enabled,
-                                sub.data_change_callback.clone()) {
+                                sub.publishing_interval(),
+                                sub.lifetime_count(),
+                                sub.max_keep_alive_count(),
+                                sub.max_notifications_per_publish(),
+                                sub.priority(),
+                                sub.publishing_enabled(),
+                                sub.data_change_callback()) {
 
                                 // For each monitored item
                                 let items_to_create = sub.monitored_items().iter().map(|(_, item)| {
@@ -503,6 +503,11 @@ impl Session {
         }
     }
 
+    /// Returns the subscription state object
+    pub fn subscription_state(&self) -> Arc<RwLock<SubscriptionState>> {
+        self.subscription_state.clone()
+    }
+
     /// Sends a GetEndpoints request to the server
     pub fn get_endpoints(&mut self) -> Result<Vec<EndpointDescription>, StatusCode> {
         debug!("get_endpoints");
@@ -630,8 +635,47 @@ impl Session {
         }
     }
 
-    /// Sends a CreateSubscriptionRequest request to the server. The `publishing_interval` is
-    /// in milliseconds.
+    /// Create a subscription by sending a [`CreateSubscriptionRequest`] to the server.
+    ///
+    /// # Arguments
+    ///
+    /// * `publishing_interval` - The requested publishing interval defines the cyclic rate that
+    ///   the Subscription is being requested to return Notifications to the Client. This interval
+    ///   is expressed in milliseconds. This interval is represented by the publishing timer in the
+    ///   Subscription state table. The negotiated value for this parameter returned in the
+    ///   response is used as the default sampling interval for MonitoredItems assigned to this
+    ///   Subscription. If the requested value is 0 or negative, the server shall revise with the
+    ///   fastest supported publishing interval in milliseconds.
+    /// * `lifetime_count` - Requested lifetime count. The lifetime count shall be a minimum of
+    ///   three times the keep keep-alive count. When the publishing timer has expired this
+    ///   number of times without a Publish request being available to send a NotificationMessage,
+    ///   then the Subscription shall be deleted by the Server.
+    /// * `max_keep_alive_count` - Requested maximum keep-alive count. When the publishing timer has
+    ///   expired this number of times without requiring any NotificationMessage to be sent, the
+    ///   Subscription sends a keep-alive Message to the Client. The negotiated value for this
+    ///   parameter is returned in the response. If the requested value is 0, the server shall
+    ///   revise with the smallest supported keep-alive count.
+    /// * `max_notifications_per_publish` - The maximum number of notifications that the Client
+    ///   wishes to receive in a single Publish response. A value of zero indicates that there is
+    ///   no limit. The number of notifications per Publish is the sum of monitoredItems in
+    ///   the DataChangeNotification and events in the EventNotificationList.
+    /// * `priority` - Indicates the relative priority of the Subscription. When more than one
+    ///   Subscription needs to send Notifications, the Server should de-queue a Publish request
+    ///   to the Subscription with the highest priority number. For Subscriptions with equal
+    ///   priority the Server should de-queue Publish requests in a round-robin fashion.
+    ///   A Client that does not require special priority settings should set this value to zero.
+    /// * `publishing_enabled` - A boolean parameter with the following values - `true` publishing
+    ///   is enabled for the Subscription, `false`, publishing is disabled for the Subscription.
+    ///   The value of this parameter does not affect the value of the monitoring mode Attribute of
+    ///   MonitoredItems.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(u32)` - identifier for new subscription
+    /// * `Err(StatusCode)` - Status code reason for failure
+    ///
+    /// [`CreateSubscriptionRequest`]: ./struct.CreateSubscriptionRequest.html
+    ///
     pub fn create_subscription<CB>(&mut self, publishing_interval: f64, lifetime_count: u32, max_keep_alive_count: u32, max_notifications_per_publish: u32, priority: u8, publishing_enabled: bool, callback: CB)
                                    -> Result<u32, StatusCode>
         where CB: OnDataChange + Send + Sync + 'static {
@@ -682,7 +726,21 @@ impl Session {
         }
     }
 
-    // modify subscription
+    /// Modifies a subscription by sending a [`ModifySubscriptionRequest`] to the server.
+    ///
+    /// # Arguments
+    ///
+    /// * `subscription_id` - subscription identifier returned from `create_subscription`.
+    ///
+    /// See `create_subscription` for description of other parameters
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Success
+    /// * `Err(StatusCode)` - Request failed, status code is the reason for failure
+    ///
+    /// [`ModifySubscriptionRequest`]: ./struct.ModifySubscriptionRequest.html
+    ///
     pub fn modify_subscription(&mut self, subscription_id: u32, publishing_interval: f64, lifetime_count: u32, max_keep_alive_count: u32, max_notifications_per_publish: u32, priority: u8) -> Result<(), StatusCode> {
         if subscription_id == 0 {
             error!("modify_subscription, subscription id must be non-zero, or the subscription is considered invalid");
@@ -719,7 +777,19 @@ impl Session {
         }
     }
 
-    /// Removes a subscription using its subscription id
+    /// Deletes a subscription by sending a [`DeleteSubscriptionsRequest`] to the server.
+    ///
+    /// # Arguments
+    ///
+    /// * `subscription_id` - subscription identifier returned from `create_subscription`.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(StatusCode)` - Service return code for the delete action, `Good` or `BadSubscriptionIdInvalid`
+    /// * `Err(StatusCode)` - Status code reason for failure
+    ///
+    /// [`DeleteSubscriptionsRequest`]: ./struct.DeleteSubscriptionsRequest.html
+    ///
     pub fn delete_subscription(&mut self, subscription_id: u32) -> Result<StatusCode, StatusCode> {
         if subscription_id == 0 {
             error!("delete_subscription, subscription id 0 is invalid");
@@ -748,7 +818,19 @@ impl Session {
         }
     }
 
-    /// Removes all subscriptions, assuming there are any to remove
+    /// Deletes all subscriptions by sending a [`DeleteSubscriptionsRequest`] to the server with
+    /// ids for all subscriptions.
+    ///
+    /// TODO, this function should return `Vec<(u32, StatusCode)>` as it is not obvious which service
+    ///  result code corresponds to which subscription id.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Vec<StatusCode>)` - Service return code for the delete action for each id, `Good` or `BadSubscriptionIdInvalid`
+    /// * `Err(StatusCode)` - Status code reason for failure
+    ///
+    /// [`DeleteSubscriptionsRequest`]: ./struct.DeleteSubscriptionsRequest.html
+    ///
     pub fn delete_all_subscriptions(&mut self) -> Result<Vec<StatusCode>, StatusCode> {
         let subscription_ids = {
             let subscription_state = trace_read_lock_unwrap!(self.subscription_state);
@@ -781,7 +863,21 @@ impl Session {
         }
     }
 
-    /// Sets the publishing mode for one or more subscriptions
+    /// Changes the publishing mode of subscriptiongs by sending a [`SetPublishingModeRequest`] to the server.
+    ///
+    /// # Arguments
+    ///
+    /// * `subscription_ids` - one or more subscription identifiers.
+    /// * `publishing_enabled` - A boolean parameter with the following values - `true` publishing
+    ///   is enabled for the Subscriptions, `false`, publishing is disabled for the Subscriptions.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Vec<StatusCode>)` - Service return code for the  action for each id, `Good` or `BadSubscriptionIdInvalid`
+    /// * `Err(StatusCode)` - Status code reason for failure
+    ///
+    /// [`SetPublishingModeRequest`]: ./struct.SetPublishingModeRequest.html
+    ///
     pub fn set_publishing_mode(&mut self, subscription_ids: &[u32], publishing_enabled: bool) -> Result<Vec<StatusCode>, StatusCode> {
         debug!("set_publishing_mode, for subscriptions {:?}, publishing enabled {}", subscription_ids, publishing_enabled);
         if subscription_ids.is_empty() {
