@@ -55,10 +55,6 @@ impl SubscriptionState {
         self.subscriptions.remove(&subscription_id);
     }
 
-    pub(crate) fn delete_all_subscriptions(&mut self) {
-        self.subscriptions.clear();
-    }
-
     pub(crate) fn set_publishing_mode(&mut self, subscription_ids: &[u32], publishing_enabled: bool) {
         subscription_ids.iter().for_each(|subscription_id| {
             if let Some(ref mut subscription) = self.subscriptions.get_mut(subscription_id) {

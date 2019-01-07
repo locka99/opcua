@@ -91,58 +91,60 @@ impl ViewService {
     pub fn translate_browse_paths_to_node_ids(&self, address_space: &AddressSpace, request: &TranslateBrowsePathsToNodeIdsRequest) -> Result<SupportedMessage, StatusCode> {
         trace!("TranslateBrowsePathsToNodeIdsRequest = {:?}", &request);
 
-        if request.browse_paths.is_none() {
-            return Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo));
-        }
-        let browse_paths = request.browse_paths.as_ref().unwrap();
-        if browse_paths.is_empty() {
-            return Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo));
-        }
-
-        let results = browse_paths.iter().map(|browse_path| {
-            let node_id = browse_path.starting_node.clone();
-            if browse_path.relative_path.elements.is_none() {
-                BrowsePathResult {
-                    status_code: StatusCode::BadNothingToDo,
-                    targets: None,
-                }
+        if let Some(ref browse_paths) = request.browse_paths {
+            if browse_paths.is_empty() {
+                Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
             } else {
-                // Starting from the node_id, find paths
-                let result = address_space.find_nodes_relative_path(&node_id, &browse_path.relative_path);
-                if result.is_err() {
-                    BrowsePathResult {
-                        status_code: result.unwrap_err(),
-                        targets: None,
-                    }
-                } else {
-                    let result = result.unwrap();
-                    let targets = if !result.is_empty() {
-                        use std::u32;
-                        let targets = result.iter().map(|node_id| {
-                            BrowsePathTarget {
-                                target_id: ExpandedNodeId::new(node_id.clone()),
-                                remaining_path_index: u32::MAX,
-                            }
-                        }).collect();
-                        Some(targets)
+                let results = browse_paths.iter().map(|browse_path| {
+                    let node_id = browse_path.starting_node.clone();
+                    if browse_path.relative_path.elements.is_none() {
+                        BrowsePathResult {
+                            status_code: StatusCode::BadNothingToDo,
+                            targets: None,
+                        }
                     } else {
-                        None
-                    };
-                    BrowsePathResult {
-                        status_code: StatusCode::Good,
-                        targets,
+                        // Starting from the node_id, find paths
+                        match address_space.find_nodes_relative_path(&node_id, &browse_path.relative_path) {
+                            Err(err) => {
+                                BrowsePathResult {
+                                    status_code: err,
+                                    targets: None,
+
+                                }
+                            }
+                            Ok(result) => {
+                                let targets = if !result.is_empty() {
+                                    use std::u32;
+                                    let targets = result.iter().map(|node_id| {
+                                        BrowsePathTarget {
+                                            target_id: ExpandedNodeId::new(node_id.clone()),
+                                            remaining_path_index: u32::MAX,
+                                        }
+                                    }).collect();
+                                    Some(targets)
+                                } else {
+                                    None
+                                };
+                                BrowsePathResult {
+                                    status_code: StatusCode::Good,
+                                    targets,
+                                }
+                            }
+                        }
                     }
-                }
+                }).collect();
+
+                let response = TranslateBrowsePathsToNodeIdsResponse {
+                    response_header: ResponseHeader::new_good(&request.request_header),
+                    results: Some(results),
+                    diagnostic_infos: None,
+                };
+
+                Ok(response.into())
             }
-        }).collect();
-
-        let response = TranslateBrowsePathsToNodeIdsResponse {
-            response_header: ResponseHeader::new_good(&request.request_header),
-            results: Some(results),
-            diagnostic_infos: None,
-        };
-
-        Ok(response.into())
+        } else {
+            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+        }
     }
 
     fn browse_nodes(session: &mut Session, address_space: &AddressSpace, nodes_to_browse: &[BrowseDescription], max_references_per_node: usize) -> Vec<BrowseResult> {

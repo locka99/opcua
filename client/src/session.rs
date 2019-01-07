@@ -870,21 +870,49 @@ impl Session {
             error!("delete_subscription, subscription id {} does not exist", subscription_id);
             Err(StatusCode::BadInvalidArgument)
         } else {
+            let result = self.delete_subscriptions(&[subscription_id][..])?;
+            Ok(result[0])
+        }
+    }
+
+    /// Deletes subscriptions by sending a [`DeleteSubscriptionsRequest`] to the server with the list
+    /// of subscriptions to delete.
+    ///
+    /// # Arguments
+    ///
+    /// * `subscription_ids` - List of subscription identifiers to delete.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Vec<StatusCode>)` - List of result for delete action on each id, `Good` or `BadSubscriptionIdInvalid`
+    ///   The size and order of the list matches the size and order of the input.
+    /// * `Err(StatusCode)` - Status code reason for failure
+    ///
+    /// [`DeleteSubscriptionsRequest`]: ./struct.DeleteSubscriptionsRequest.html
+    ///
+    pub fn delete_subscriptions(&mut self, subscription_ids: &[u32]) -> Result<Vec<StatusCode>, StatusCode> {
+        if subscription_ids.is_empty() {
+            // No subscriptions
+            trace!("delete_subscriptions with no subscriptions");
+            Err(StatusCode::BadNothingToDo)
+        } else {
+            // Send a delete request holding all the subscription ides that we wish to delete
             let request = DeleteSubscriptionsRequest {
                 request_header: self.make_request_header(),
-                subscription_ids: Some(vec![subscription_id]),
+                subscription_ids: Some(subscription_ids.to_vec()),
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::DeleteSubscriptionsResponse(response) = response {
                 crate::process_service_result(&response.response_header)?;
                 {
+                    // Clear out deleted subscriptions, assuming the delete worked
                     let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
-                    subscription_state.delete_subscription(subscription_id);
+                    subscription_ids.iter().for_each(|id| subscription_state.delete_subscription(*id));
                 }
-                debug!("delete_subscription success for {}", subscription_id);
-                Ok(response.results.as_ref().unwrap()[0])
+                debug!("delete_subscriptions success");
+                Ok(response.results.unwrap())
             } else {
-                error!("delete_subscription failed {:?}", response);
+                error!("delete_subscriptions failed {:?}", response);
                 Err(crate::process_unexpected_response(response))
             }
         }
@@ -893,45 +921,26 @@ impl Session {
     /// Deletes all subscriptions by sending a [`DeleteSubscriptionsRequest`] to the server with
     /// ids for all subscriptions.
     ///
-    /// TODO, this function should return `Vec<(u32, StatusCode)>` as it is not obvious which service
-    ///  result code corresponds to which subscription id.
-    ///
     /// # Returns
     ///
-    /// * `Ok(Vec<StatusCode>)` - Service return code for the delete action for each id, `Good` or `BadSubscriptionIdInvalid`
+    /// * `Ok(Vec<(u32, StatusCode)>)` - List of (id, status code) result for delete action on each id, `Good` or `BadSubscriptionIdInvalid`
     /// * `Err(StatusCode)` - Status code reason for failure
     ///
     /// [`DeleteSubscriptionsRequest`]: ./struct.DeleteSubscriptionsRequest.html
     ///
-    pub fn delete_all_subscriptions(&mut self) -> Result<Vec<StatusCode>, StatusCode> {
+    pub fn delete_all_subscriptions(&mut self) -> Result<Vec<(u32, StatusCode)>, StatusCode> {
         let subscription_ids = {
             let subscription_state = trace_read_lock_unwrap!(self.subscription_state);
             subscription_state.subscription_ids()
         };
-        if subscription_ids.is_none() {
+        if let Some(ref subscription_ids) = subscription_ids {
+            let status_codes = self.delete_subscriptions(&subscription_ids[..])?;
+            // Return a list of (id, status_code) for each subscription
+            Ok(subscription_ids.iter().zip(status_codes).map(|(id, status_code)| (*id, status_code)).collect())
+        } else {
             // No subscriptions
             trace!("delete_all_subscriptions, called when there are no subscriptions");
             Err(StatusCode::BadNothingToDo)
-        } else {
-            // Send a delete request holding all the subscription ides that we wish to delete
-            let request = DeleteSubscriptionsRequest {
-                request_header: self.make_request_header(),
-                subscription_ids,
-            };
-            let response = self.send_request(request)?;
-            if let SupportedMessage::DeleteSubscriptionsResponse(response) = response {
-                crate::process_service_result(&response.response_header)?;
-                {
-                    // Clear out all subscriptions, assuming the delete worked
-                    let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
-                    subscription_state.delete_all_subscriptions();
-                }
-                debug!("delete_all_subscriptions success");
-                Ok(response.results.unwrap())
-            } else {
-                error!("delete_all_subscriptions failed {:?}", response);
-                Err(crate::process_unexpected_response(response))
-            }
         }
     }
 
@@ -1091,7 +1100,7 @@ impl Session {
             let request = ModifyMonitoredItemsRequest {
                 request_header: self.make_request_header(),
                 subscription_id,
-                timestamps_to_return: TimestampsToReturn::Both,
+                timestamps_to_return,
                 items_to_modify: Some(items_to_modify.to_vec()),
             };
             let response = self.send_request(request)?;

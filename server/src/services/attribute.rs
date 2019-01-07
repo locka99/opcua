@@ -56,6 +56,32 @@ impl AttributeService {
         Ok(response.into())
     }
 
+    /// Spec:
+    ///
+    /// This Service is used to write values to one or more Attributes of one or more Nodes. For
+    /// constructed Attribute values whose elements are indexed, such as an array, this Service
+    /// allows Clients to write the entire set of indexed values as a composite, to write individual
+    /// elements or to write ranges of elements of the composite.
+    pub fn write(&self, address_space: &mut AddressSpace, request: &WriteRequest) -> Result<SupportedMessage, StatusCode> {
+        let results = if let Some(ref nodes_to_write) = request.nodes_to_write {
+            let results = nodes_to_write.iter().map(|node_to_write| {
+                Self::write_node_value(address_space, node_to_write)
+            }).collect();
+            Some(results)
+        } else {
+            return Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo));
+        };
+
+        let diagnostic_infos = None;
+        let response = WriteResponse {
+            response_header: ResponseHeader::new_good(&request.request_header),
+            results,
+            diagnostic_infos,
+        };
+
+        Ok(response.into())
+    }
+
     fn read_node_value(address_space: &AddressSpace, node_to_read: &ReadValueId, timestamps_to_return: TimestampsToReturn) -> DataValue {
         let mut result_value = DataValue {
             value: None,
@@ -121,32 +147,6 @@ impl AttributeService {
             }
         }
         true
-    }
-
-    /// Spec:
-    ///
-    /// This Service is used to write values to one or more Attributes of one or more Nodes. For
-    /// constructed Attribute values whose elements are indexed, such as an array, this Service
-    /// allows Clients to write the entire set of indexed values as a composite, to write individual
-    /// elements or to write ranges of elements of the composite.
-    pub fn write(&self, address_space: &mut AddressSpace, request: &WriteRequest) -> Result<SupportedMessage, StatusCode> {
-        let results = if let Some(ref nodes_to_write) = request.nodes_to_write {
-            let results = nodes_to_write.iter().map(|node_to_write| {
-                Self::write_node_value(address_space, node_to_write)
-            }).collect();
-            Some(results)
-        } else {
-            return Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo));
-        };
-
-        let diagnostic_infos = None;
-        let response = WriteResponse {
-            response_header: ResponseHeader::new_good(&request.request_header),
-            results,
-            diagnostic_infos,
-        };
-
-        Ok(response.into())
     }
 
     fn write_node_value(address_space: &mut AddressSpace, node_to_write: &WriteValue) -> StatusCode {

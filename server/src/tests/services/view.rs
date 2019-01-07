@@ -24,7 +24,7 @@ fn make_browse_request(nodes: &[NodeId], max_references_per_node: usize, browse_
             view_version: 0,
         },
         requested_max_references_per_node: max_references_per_node as u32,
-        nodes_to_browse: Some(nodes_to_browse)
+        nodes_to_browse: Some(nodes_to_browse),
     }
 }
 
@@ -215,46 +215,45 @@ fn browse_next() {
 fn translate_browse_paths_to_node_ids() {
     let st = ServiceTest::new();
 
-    // This is a very basic test of this service. It just creates a relative path from root to the
-    // Objects folder and tests that it comes back in the result
-    {
-        let mut browse_paths = Vec::new();
-        let mut path_elements = Vec::new();
-        path_elements.push(RelativePathElement {
-            reference_type_id: ReferenceTypeId::HasChild.into(),
-            is_inverse: false,
-            include_subtypes: true,
-            target_name: QualifiedName::new(0, "Objects"),
-        });
+    // This is a very basic test of this service. It wants to find the relative path from root to the
+    // Objects folder and ensure that it comes back in the result
 
-        browse_paths.push(BrowsePath {
+    let browse_paths = vec![
+        BrowsePath {
             starting_node: ObjectId::RootFolder.into(),
             relative_path: RelativePath {
-                elements: Some(path_elements),
-            }
-        });
+                elements: Some(vec![
+                    RelativePathElement {
+                        reference_type_id: ReferenceTypeId::HasChild.into(),
+                        is_inverse: false,
+                        include_subtypes: true,
+                        target_name: QualifiedName::new(0, "Objects"),
+                    }
+                ]),
+            },
+        }
+    ];
 
-        let request = TranslateBrowsePathsToNodeIdsRequest {
-            request_header: make_request_header(),
-            browse_paths: Some(browse_paths)
-        };
+    let request = TranslateBrowsePathsToNodeIdsRequest {
+        request_header: make_request_header(),
+        browse_paths: Some(browse_paths),
+    };
 
-        let vs = ViewService::new();
-        let address_space = st.address_space.read().unwrap();
-        let result = vs.translate_browse_paths_to_node_ids(&address_space, &request);
-        assert!(result.is_ok());
-        let result: TranslateBrowsePathsToNodeIdsResponse = supported_message_as!(result.unwrap(), TranslateBrowsePathsToNodeIdsResponse);
+    let vs = ViewService::new();
+    let address_space = st.address_space.read().unwrap();
+    let result = vs.translate_browse_paths_to_node_ids(&address_space, &request);
+    assert!(result.is_ok());
+    let result: TranslateBrowsePathsToNodeIdsResponse = supported_message_as!(result.unwrap(), TranslateBrowsePathsToNodeIdsResponse);
 
-        debug!("result = {:#?}", result);
+    debug!("result = {:#?}", result);
 
-        let results = result.results.unwrap();
-        assert_eq!(results.len(), 1);
-        let _r1 = &results[0];
-        /*
-        let targets = r1.targets.as_ref().unwrap();
-        assert_eq!(targets.len(), 1);
-        let t1 = &targets[0];
-        assert_eq!(&t1.target_id.node_id, &AddressSpace::objects_folder_id());
-        */
-    }
+    let results = result.results.unwrap();
+    assert_eq!(results.len(), 1);
+    let r1 = &results[0];
+
+    // TODO broken
+/*    let targets = r1.targets.as_ref().unwrap();
+    assert_eq!(targets.len(), 1);
+    let t1 = &targets[0];
+    assert_eq!(&t1.target_id.node_id, &AddressSpace::objects_folder_id()); */
 }
