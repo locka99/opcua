@@ -1,0 +1,32 @@
+[package]
+name = "opcua-recorder"
+version = "0.6.0" # OPCUARustVersion
+description = "OPC UA recorder"
+authors = ["Adam Lock <locka99@gmail.com>"]
+homepage = "https://github.com/locka99/opcua"
+license = "MPL-2.0"
+keywords = ["opcua","opc","ua"]
+categories = ["embedded","network-programming"]
+edition = "2018"
+
+[dependencies]
+clap = "2.27"
+serde = "1.0"
+serde_derive = "1.0"
+serde_json = "1.0"
+
+[dependencies.opcua-types]
+path = "../../types"
+version = "0.6.0" # OPCUARustVersion
+
+[dependencies.opcua-core]
+path = "../../core"
+version = "0.6.0" # OPCUARustVersion
+
+[dependencies.opcua-server]
+path = "../../server"
+version = "0.6.0" # OPCUARustVersion
+
+[dependencies.opcua-client]
+path = "../../client"
+version = "0.6.0" # OPCUARustVersion

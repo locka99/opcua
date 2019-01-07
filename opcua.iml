@@ -66,6 +66,10 @@
       <sourceFolder url="file://$MODULE_DIR$/samples/web-client/examples" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/samples/web-client/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/samples/web-client/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/tools/recorder/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/tools/recorder/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/tools/recorder/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/tools/recorder/benches" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/client/target" />
       <excludeFolder url="file://$MODULE_DIR$/console-logging/target" />
       <excludeFolder url="file://$MODULE_DIR$/core/target" />
@@ -81,6 +85,7 @@
       <excludeFolder url="file://$MODULE_DIR$/server/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/tools/certificate-creator/target" />
+      <excludeFolder url="file://$MODULE_DIR$/tools/recorder/target" />
       <excludeFolder url="file://$MODULE_DIR$/types/target" />
     </content>
     <orderEntry type="inheritedJdk" />
