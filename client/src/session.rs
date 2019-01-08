@@ -70,12 +70,13 @@ impl Into<SessionInfo> for (EndpointDescription, client::IdentityToken) {
 }
 
 /// A session of the client. The session is associated with an endpoint and maintains a state
-/// when it is active. The session struct provides functions for all the supported
-/// request types in the API. Note that not all servers may support all client side requests and
-/// calling an unsupported API may cause the connection to be dropped.
+/// when it is active. The `Session` struct provides functions for all the supported
+/// request types in the API.
 ///
-/// Clients are currently expected to know what they are calling. Potentially the server's implemented
-/// profile could be used to abort unsupported requests.
+/// Note that not all servers may support all client side requests and calling an unsupported API
+/// may cause the connection to be dropped. Your client is expected to know the capabilities of
+/// the server it is calling to avoid this.
+///
 pub struct Session {
     /// The client application's name
     application_description: ApplicationDescription,
@@ -119,6 +120,13 @@ enum SubscriptionTimerCommand {
 impl Session {
     /// Create a new session from the supplied application description, certificate store and session
     /// information.
+    ///
+    /// # Arguments
+    ///
+    /// * `application_description` - information about the client that will be provided to the server
+    /// * `certificate_store` - certificate management on disk
+    /// * `session_info` - information required to establish a new session.
+    ///
     pub(crate) fn new(application_description: ApplicationDescription, certificate_store: Arc<RwLock<CertificateStore>>, session_info: SessionInfo) -> Session {
 
         // TODO take these from the client config
@@ -155,13 +163,14 @@ impl Session {
         Ok(())
     }
 
+    /// Register a callback to be notified when the session has been closed.
     pub fn set_session_closed_callback<CB>(&mut self, session_closed_callback: CB) where CB: OnSessionClosed + Send + Sync + 'static {
         let mut session_state = trace_write_lock_unwrap!(self.session_state);
         session_state.set_session_closed_callback(session_closed_callback);
     }
 
-    /// Registers a connection status callback with the session. This will be called if
-    /// connection status changes from connected to disconnected or vice versa.
+    /// Registers a callback to be notified when the session connection status has changed.
+    /// This will be called if connection status changes from connected to disconnected or vice versa.
     pub fn set_connection_status_callback<CB>(&mut self, callback: CB) where CB: OnConnectionStatusChange + Send + Sync + 'static {
         self.connection_status_callback = Some(Box::new(callback));
     }
@@ -192,6 +201,8 @@ impl Session {
 
                 // 2) activate session
                 self.activate_session()?;
+
+                // TODO transfer subscription
 
                 // 3) reconstruct all subscriptions and monitored items from their client side cached values
                 {

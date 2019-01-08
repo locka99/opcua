@@ -90,11 +90,17 @@ impl ViewService {
 
     pub fn translate_browse_paths_to_node_ids(&self, address_space: &AddressSpace, request: &TranslateBrowsePathsToNodeIdsRequest) -> Result<SupportedMessage, StatusCode> {
         trace!("TranslateBrowsePathsToNodeIdsRequest = {:?}", &request);
+        // TODO this should be a server constant
+        let max_nodes_per_operation = 0;
 
         if let Some(ref browse_paths) = request.browse_paths {
             if browse_paths.is_empty() {
                 Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
-            } else {
+            }
+            else if max_nodes_per_operation > 0 && browse_paths.len() > max_nodes_per_operation {
+                Ok(self.service_fault(&request.request_header, StatusCode::BadTooManyOperations))
+            }
+            else {
                 let results = browse_paths.iter().map(|browse_path| {
                     let node_id = browse_path.starting_node.clone();
                     if browse_path.relative_path.elements.is_none() {

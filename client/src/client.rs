@@ -126,8 +126,7 @@ impl Client {
         }
     }
 
-    /// Returns a filled OPC UA [`ApplicationDescription`]
-    /// struct using information from the config
+    /// Returns a filled OPC UA [`ApplicationDescription`] using information from the config
     ///
     /// [`ApplicationDescription`]: ../../opcua_types/service_types/application_description/struct.ApplicationDescription.html
     ///
@@ -317,8 +316,9 @@ impl Client {
     }
 
     /// Connects to the specified server_url with a None/None connection and asks for a list of
-    /// [`EndpointDescription`] that it hosts. If there is an error, the function will
-    /// return an error.
+    /// [`EndpointDescription`] that it hosts.
+    ///
+    /// # Example
     ///
     /// ```rust,no_run
     /// use opcua_client::prelude::*;
@@ -408,9 +408,10 @@ impl Client {
     /// The implementation of this function looks for the strongest endpoint of the discovery server
     /// to register itself on. That makes it possible that the discovery server may reject the
     /// connection if it does not trust the client. In that instance, it is up to the user to do
-    /// whatever is required to make the discovery server trust the registering server. For example
-    /// the standard OPC foundation discovery server will drop the server's cert in a rejected/
-    /// folder and this cert has to be moved to a trusted/certs/ folder.
+    /// whatever is required to make the discovery server trust the registering server.
+    ///
+    /// For example the standard OPC foundation discovery server will drop the server's cert in a
+    /// `rejected/` folder on the filesystem and this cert has to be moved to a `trusted/certs/` folder.
     pub fn register_server<T>(&mut self, discovery_endpoint_url: T,
                               server: RegisteredServer) -> Result<(), StatusCode>
         where T: Into<String> {
@@ -454,6 +455,8 @@ impl Client {
     /// Finds a matching endpoint, one that most closely matches the host, path, security policy
     /// and security mode used as inputs. The function will fallback to omit the host in its
     /// comparison if no exact match is found.
+    ///
+    /// # Example
     ///
     /// ```rust,no_run
     /// use opcua_client::prelude::*;

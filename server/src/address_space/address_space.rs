@@ -446,39 +446,43 @@ impl AddressSpace {
         self.node_map.contains_key(node_id)
     }
 
-    pub fn find_nodes_relative_path(&self, node_id: &NodeId, relative_path: &RelativePath) -> Result<Vec<NodeId>, StatusCode> {
+    /// Used by TranslateBrowsePathToNodeIds, e.g. it could be used from a starting node id pointing
+    /// to a type definition to find instances of that type.
+    pub(crate) fn find_nodes_relative_path(&self, node_id: &NodeId, relative_path: &RelativePath) -> Result<Vec<NodeId>, StatusCode> {
+        // TODO THIS CODE IS PROBABLY BROKEN - need test examples for TranslateBrowsePathToNodeIds
         if self.find_node(node_id).is_none() {
-            return Err(StatusCode::BadNodeIdUnknown);
+            Err(StatusCode::BadNodeIdUnknown)
         }
+        else {
+            let relative_path_elements = relative_path.elements.as_ref().unwrap();
+            if relative_path_elements.is_empty() {
+                Err(StatusCode::BadNothingToDo)
+            } else {
+                let mut matching_nodes = vec![node_id.clone()];
+                let mut next_matching_nodes = Vec::with_capacity(100);
 
-        let relative_path_elements = relative_path.elements.as_ref().unwrap();
-        if relative_path_elements.is_empty() {
-            return Err(StatusCode::BadNothingToDo);
-        }
+                // Traverse the relative path elements
+                for relative_path_element in relative_path_elements.iter() {
+                    next_matching_nodes.clear();
 
-        let mut matching_nodes = vec![node_id.clone()];
-        let mut next_matching_nodes = Vec::with_capacity(100);
+                    if matching_nodes.is_empty() {
+                        break;
+                    }
 
-        // Traverse the relative path elements
-        for relative_path_element in relative_path_elements.iter() {
-            next_matching_nodes.clear();
+                    for node_id in &matching_nodes {
+                        // Iterate current set of nodes and put the results into next
+                        if let Some(mut result) = self.follow_relative_path(&node_id, relative_path_element) {
+                            next_matching_nodes.append(&mut result);
+                        }
+                    }
 
-            if matching_nodes.is_empty() {
-                break;
-            }
-
-            for node_id in &matching_nodes {
-                // Iterate current set of nodes and put the results into next
-                if let Some(mut result) = self.follow_relative_path(&node_id, relative_path_element) {
-                    next_matching_nodes.append(&mut result);
+                    matching_nodes.clear();
+                    matching_nodes.append(&mut next_matching_nodes);
                 }
+
+                Ok(matching_nodes)
             }
-
-            matching_nodes.clear();
-            matching_nodes.append(&mut next_matching_nodes);
         }
-
-        Ok(matching_nodes)
     }
 
     fn follow_relative_path(&self, node_id: &NodeId, relative_path: &RelativePathElement) -> Option<Vec<NodeId>> {
