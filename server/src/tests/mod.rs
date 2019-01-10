@@ -5,21 +5,30 @@ use std::path::PathBuf;
 use chrono;
 use time;
 
-use opcua_types::*;
-use opcua_types::node_ids::{ObjectId, ObjectTypeId, DataTypeId, ReferenceTypeId, VariableId};
-use opcua_types::status_code::StatusCode;
-use opcua_types::service_types::*;
+use opcua_types::{
+    *,
+    node_ids::{ObjectId, ObjectTypeId, DataTypeId, ReferenceTypeId, VariableId},
+    status_code::StatusCode,
+    service_types::*,
+};
 
-use opcua_core::config::Config;
-use opcua_core::crypto::*;
-use opcua_core::comms::secure_channel::SecureChannel;
+use opcua_core::{
+    config::Config,
+    crypto::*,
+    comms::secure_channel::SecureChannel,
+};
 
-use crate::address_space::address_space::*;
-use crate::address_space::variable::*;
-use crate::session::*;
-use crate::subscriptions::*;
-use crate::config::ServerConfig;
-use crate::builder::ServerBuilder;
+use crate::{
+    address_space::{
+        address_space::*,
+        relative_path,
+        variable::*,
+    },
+    session::*,
+    subscriptions::*,
+    config::ServerConfig,
+    builder::ServerBuilder,
+};
 
 mod address_space;
 mod services;
@@ -47,7 +56,6 @@ fn add_sample_vars_to_address_space(address_space: &mut AddressSpace) {
         Variable::new(&NodeId::new(2, 300), "v2", "v2", "", true),
         Variable::new(&NodeId::new(1, "v3"), "v3", "v3", "", UAString::from("Hello world")),
         Variable::new(&NodeId::new(1, "v4"), "v4", "v4", "", 100.123f64),
-
     ];
     let _ = address_space.add_variables(vars, &sample_folder_id);
 }

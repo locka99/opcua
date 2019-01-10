@@ -252,8 +252,83 @@ fn translate_browse_paths_to_node_ids() {
     let r1 = &results[0];
 
     // TODO broken
-/*    let targets = r1.targets.as_ref().unwrap();
-    assert_eq!(targets.len(), 1);
-    let t1 = &targets[0];
-    assert_eq!(&t1.target_id.node_id, &AddressSpace::objects_folder_id()); */
+    /*    let targets = r1.targets.as_ref().unwrap();
+        assert_eq!(targets.len(), 1);
+        let t1 = &targets[0];
+        assert_eq!(&t1.target_id.node_id, &AddressSpace::objects_folder_id()); */
 }
+
+///
+/// * `/` - The forward slash character indicates that the Server is to follow any subtype of HierarchicalReferences.
+/// * `.` - The period (dot) character indicates that the Server is to follow any subtype of a Aggregates ReferenceType.
+/// * `<[#!ns:]ReferenceType>` - A string delimited by the ‘<’ and ‘>’ symbols specifies the BrowseName of a ReferenceType to follow.
+///   By default, any References of the subtypes the ReferenceType are followed as well. A ‘#’ placed in front of the BrowseName indicates
+///   that subtypes should not be followed.
+///   A ‘!’ in front of the BrowseName is used to indicate that the inverse Reference should be followed.
+///   The BrowseName may be qualified with a namespace index (indicated by a numeric prefix followed by a colon).
+///   This namespace index is used specify the namespace component of the BrowseName for the ReferenceType. If the namespace prefix is omitted then namespace index 0 is used.
+/// * `[ns:]BrowseName` - A string that follows a ‘/’, ‘.’ or ‘>’ symbol specifies the BrowseName of a target
+///   Node to return or follow. This BrowseName may be prefixed by its namespace index. If the namespace prefix
+///   is omitted then namespace index 0 is used.
+///   Omitting the final BrowseName from a path is equivalent to a wildcard operation that matches all
+///   Nodes which are the target of the Reference specified by the path.
+/// * `&` - The & sign character is the escape character. It is used to specify reserved characters
+///   that appear within a BrowseName. A reserved character is escaped by inserting the ‘&’ in front of it.
+const xxxx: u32 = 0;
+
+/*
+
+https://github.com/node-opcua/node-opcua/blob/68b1b57dec23a45148468fbea89ab71a39f9042f/test/end_to_end/u_test_e2e_translateBrowsePath.js
+
+// find nodeId of Root.Objects.server.status.buildInfo
+                var browsePath = [
+                    makeBrowsePath("RootFolder","/Objects/Server"),
+                    makeBrowsePath("RootFolder","/Objects/Server.ServerStatus"),
+                    makeBrowsePath("RootFolder","/Objects/Server.ServerStatus.BuildInfo"),
+                    makeBrowsePath("RootFolder","/Objects/Server.ServerStatus.BuildInfo.ProductName"),
+                    makeBrowsePath("RootFolder","/Objects/Server.ServerStatus.BuildInfo."), // missing TargetName !
+                    makeBrowsePath("RootFolder","/Objects.Server"), // intentional error usign . instead of /
+                    makeBrowsePath("RootFolder","/Objects/2:MatrikonOPC Simulation Server (DA)") // va
+                ];
+
+                //xx console.log("browsePath ", browsePath[0].toString({addressSpace: server.engine.addressSpace}));
+
+                session.translateBrowsePath(browsePath, function (err, results) {
+
+                    if (!err) {
+                        results.length.should.eql(browsePath.length);
+                        //xx console.log(results[0].toString());
+
+                        results[0].statusCode.should.eql(StatusCodes.Good);
+                        results[0].targets.length.should.eql(1);
+                        results[0].targets[0].targetId.toString().should.eql("ns=0;i=2253");
+                        results[0].targets[0].targetId.value.should.eql(opcua.ObjectIds.Server);
+
+                        //xx console.log(results[1].toString());
+                        results[1].statusCode.should.eql(StatusCodes.Good);
+                        results[1].targets.length.should.eql(1);
+                        results[1].targets[0].targetId.toString().should.eql("ns=0;i=2256");
+                        results[1].targets[0].targetId.value.should.eql(opcua.VariableIds.Server_ServerStatus);
+
+                        //xx console.log(results[2].toString());
+                        results[2].statusCode.should.eql(StatusCodes.Good);
+                        results[2].targets.length.should.eql(1);
+                        results[2].targets[0].targetId.toString().should.eql("ns=0;i=2260");
+                        results[2].targets[0].targetId.value.should.eql(opcua.VariableIds.Server_ServerStatus_BuildInfo);
+
+                        //xx console.log(results[3].toString());
+                        results[3].statusCode.should.eql(StatusCodes.Good);
+                        results[3].targets.length.should.eql(1);
+                        results[3].targets[0].targetId.toString().should.eql("ns=0;i=2261");
+                        results[3].targets[0].targetId.value.should.eql(opcua.VariableIds.Server_ServerStatus_BuildInfo_ProductName);
+
+                        // missing browseName on last element of the relativepath => ERROR
+                        results[4].statusCode.should.eql(StatusCodes.BadBrowseNameInvalid);
+
+                        results[5].statusCode.should.eql(StatusCodes.BadNoMatch);
+
+                        results[6].statusCode.should.eql(StatusCodes.BadNoMatch);
+
+}
+*/
+

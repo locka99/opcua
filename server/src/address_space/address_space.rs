@@ -84,7 +84,6 @@ macro_rules! server_diagnostics_summary {
     }
 }
 
-
 /// The `NodeId` is the target node. The reference is held in a list by the source node.
 /// The target node does not need to exist.
 #[derive(Debug, Clone)]
@@ -264,6 +263,19 @@ impl AddressSpace {
             server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedRequestsCount, security_rejected_requests_count);
             server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount, rejected_requests_count);
         }
+
+        // Server_ServerCapabilities_OperationLimits_MaxNodesPerRead = 11705,
+        // Server_ServerCapabilities_OperationLimits_MaxNodesPerWrite = 11707,
+        // Server_ServerCapabilities_OperationLimits_MaxNodesPerMethodCall = 11709,
+        // Server_ServerCapabilities_OperationLimits_MaxNodesPerBrowse = 11710,
+        // Server_ServerCapabilities_OperationLimits_MaxNodesPerRegisterNodes = 11711,
+        // Server_ServerCapabilities_OperationLimits_MaxNodesPerTranslateBrowsePathsToNodeIds = 11712,
+        // Server_ServerCapabilities_OperationLimits_MaxNodesPerNodeManagement = 11713,
+        // Server_ServerCapabilities_OperationLimits_MaxMonitoredItemsPerCall = 11714,
+        // Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadData = 12165,
+        // Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadEvents = 12166,
+        // Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateData = 12167,
+        // Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateEvents = 12168,
 
         // ServiceLevel - 0-255 worst to best quality of service
         self.set_variable_value(Server_ServiceLevel, 255u8, &now, &now);
@@ -452,8 +464,7 @@ impl AddressSpace {
         // TODO THIS CODE IS PROBABLY BROKEN - need test examples for TranslateBrowsePathToNodeIds
         if self.find_node(node_id).is_none() {
             Err(StatusCode::BadNodeIdUnknown)
-        }
-        else {
+        } else {
             let relative_path_elements = relative_path.elements.as_ref().unwrap();
             if relative_path_elements.is_empty() {
                 Err(StatusCode::BadNothingToDo)
@@ -611,6 +622,7 @@ impl AddressSpace {
             None
         }
     }
+
     /// Set a variable value from its NodeId. The function will return false if the variable does
     /// not exist, or the node is not a variable.
     pub fn set_variable_value<N, V>(&mut self, node_id: N, value: V, source_timestamp: &DateTime, server_timestamp: &DateTime) -> bool

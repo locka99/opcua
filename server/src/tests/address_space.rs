@@ -248,3 +248,77 @@ fn variable_builder() {
     assert_eq!(v.historizing(), true);
     assert_eq!(v.value().value.unwrap(), Variant::from(999));
 }
+
+#[test]
+fn escape_browse_name() {
+    // Test that escaping of browse names works as expected in each direction
+    [
+        ("", ""),
+        ("Hello World", "Hello World"),
+        ("Hello &World", "Hello &&World"),
+        ("Hello &&World", "Hello &&&&World"),
+        ("Block.Output", "Block&.Output"),
+        ("/Name_1", "&/Name_1"),
+        (".Name_2", "&.Name_2"),
+        (":Name_3", "&:Name_3"),
+        ("&Name_4", "&&Name_4"),
+    ].iter().for_each(|n| {
+        let original = n.0.to_string();
+        let escaped = n.1.to_string();
+        assert_eq!(escaped, relative_path::escape_browse_name(&original));
+        assert_eq!(relative_path::unescape_browse_name(&escaped), original);
+    });
+}
+
+#[test]
+fn relative_path_reference_type() {
+    let address_space = AddressSpace::new();
+
+    // Test that given a path to a reference type, that the reference type can be found or
+    // vice versa.
+
+    [
+        (RelativePathElement {
+            reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
+            is_inverse: false,
+            include_subtypes: false,
+            target_name: QualifiedName::new(0, "foo"),
+        }, "/foo"),
+        (RelativePathElement {
+            reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
+            is_inverse: false,
+            include_subtypes: false,
+            target_name: QualifiedName::new(0, ".foo"),
+        }, "/&.foo"),
+        (RelativePathElement {
+            reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
+            is_inverse: true,
+            include_subtypes: true,
+            target_name: QualifiedName::new(0, "foo"),
+        }, "<!HierarchicalReferences>foo"),
+        (RelativePathElement {
+            reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
+            is_inverse: true,
+            include_subtypes: false,
+            target_name: QualifiedName::new(0, "foo"),
+        }, "<#!HierarchicalReferences>foo"),
+        (RelativePathElement {
+            reference_type_id: ReferenceTypeId::Aggregates.into(),
+            is_inverse: false,
+            include_subtypes: false,
+            target_name: QualifiedName::new(0, "foo"),
+        }, ".foo"),
+        (RelativePathElement {
+            reference_type_id: ReferenceTypeId::HasHistoricalConfiguration.into(),
+            is_inverse: false,
+            include_subtypes: true,
+            target_name: QualifiedName::new(0, "bar"),
+        }, "<HasHistoricalConfiguration>bar"),
+    ].iter().for_each(|n| {
+        let element = &n.0;
+        let expected = n.1.to_string();
+        let actual = relative_path::from_relative_path_element(&address_space, element).unwrap();
+        assert_eq!(expected, actual);
+        // TODO convert path string back to relative path element, expect it to equal element
+    });
+}
