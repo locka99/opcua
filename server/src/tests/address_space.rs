@@ -249,9 +249,9 @@ fn variable_builder() {
     assert_eq!(v.value().value.unwrap(), Variant::from(999));
 }
 
+/// Test that escaping of browse names works as expected in each direction
 #[test]
 fn escape_browse_name() {
-    // Test that escaping of browse names works as expected in each direction
     [
         ("", ""),
         ("Hello World", "Hello World"),
@@ -270,12 +270,11 @@ fn escape_browse_name() {
     });
 }
 
+/// Test that given a relative path element that it can be converted to/from a string
+/// and a RelativePathElement type
 #[test]
-fn relative_path_reference_type() {
+fn relative_path_element() {
     let address_space = AddressSpace::new();
-
-    // Test that given a path to a reference type, that the reference type can be found or
-    // vice versa.
 
     [
         (RelativePathElement {
@@ -283,42 +282,85 @@ fn relative_path_reference_type() {
             is_inverse: false,
             include_subtypes: false,
             target_name: QualifiedName::new(0, "foo"),
-        }, "/foo"),
+        }, "/0:foo"),
         (RelativePathElement {
             reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
             is_inverse: false,
             include_subtypes: false,
             target_name: QualifiedName::new(0, ".foo"),
-        }, "/&.foo"),
+        }, "/0:&.foo"),
         (RelativePathElement {
             reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
             is_inverse: true,
             include_subtypes: true,
-            target_name: QualifiedName::new(0, "foo"),
-        }, "<!HierarchicalReferences>foo"),
+            target_name: QualifiedName::new(2, "foo"),
+        }, "<!HierarchicalReferences>2:foo"),
         (RelativePathElement {
             reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
             is_inverse: true,
             include_subtypes: false,
             target_name: QualifiedName::new(0, "foo"),
-        }, "<#!HierarchicalReferences>foo"),
+        }, "<#!HierarchicalReferences>0:foo"),
         (RelativePathElement {
             reference_type_id: ReferenceTypeId::Aggregates.into(),
             is_inverse: false,
             include_subtypes: false,
             target_name: QualifiedName::new(0, "foo"),
-        }, ".foo"),
+        }, ".0:foo"),
         (RelativePathElement {
             reference_type_id: ReferenceTypeId::HasHistoricalConfiguration.into(),
             is_inverse: false,
             include_subtypes: true,
             target_name: QualifiedName::new(0, "bar"),
-        }, "<HasHistoricalConfiguration>bar"),
+        }, "<HasHistoricalConfiguration>0:bar"),
     ].iter().for_each(|n| {
         let element = &n.0;
         let expected = n.1.to_string();
         let actual = relative_path::from_relative_path_element(&address_space, element).unwrap();
         assert_eq!(expected, actual);
         // TODO convert path string back to relative path element, expect it to equal element
+    });
+}
+
+/// Test that the given entire relative path, that it can be converted to/from a string
+/// and a RelativePath type.
+#[test]
+fn relative_path() {
+    let address_space = AddressSpace::new();
+
+    // Samples are from OPC UA Part 4 Appendix A
+    let mut tests = vec![
+        (vec![
+            RelativePathElement {
+                reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
+                is_inverse: false,
+                include_subtypes: false,
+                target_name: QualifiedName::new(2, "Block.Output"),
+            }
+        ], "/2:Block&.Output"),
+        (vec![
+            RelativePathElement {
+                reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
+                is_inverse: false,
+                include_subtypes: false,
+                target_name: QualifiedName::new(3, "Truck"),
+            },
+            RelativePathElement {
+                reference_type_id: ReferenceTypeId::Aggregates.into(),
+                is_inverse: false,
+                include_subtypes: false,
+                target_name: QualifiedName::new(0, "NodeVersion"),
+            }],
+         "/3:Truck.0:NodeVersion"),
+    ];
+
+    tests.drain(..).for_each(|n| {
+        let relative_path = RelativePath {
+            elements: Some(n.0)
+        };
+        let expected = n.1.to_string();
+        let actual = relative_path::from_relative_path(&address_space, &relative_path).unwrap();
+        assert_eq!(expected, actual);
+        // TODO convert path string back to relative path, expect it to equal element
     });
 }

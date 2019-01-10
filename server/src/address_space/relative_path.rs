@@ -66,14 +66,9 @@ pub(crate) fn relative_path_reference_type(address_space: &AddressSpace, e: &Rel
 
 pub(crate) fn from_relative_path_element(address_space: &AddressSpace, element: &RelativePathElement) -> Result<String, ()>
 {
-    let mut result = String::with_capacity(1024);
-    result.push_str(relative_path_reference_type(address_space, element)?.as_ref());
     let target_browse_name = escape_browse_name(element.target_name.name.as_ref());
-    if element.target_name.namespace_index != 0 {
-        result.push_str(&format!("{}:{}", element.target_name.namespace_index, target_browse_name))
-    } else {
-        result.push_str(&target_browse_name);
-    }
+    let mut result = relative_path_reference_type(address_space, element)?;
+    result.push_str(&format!("{}:{}", element.target_name.namespace_index, target_browse_name));
     Ok(result)
 }
 
