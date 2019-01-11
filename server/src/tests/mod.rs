@@ -21,7 +21,6 @@ use opcua_core::{
 use crate::{
     address_space::{
         address_space::*,
-        relative_path,
         variable::*,
     },
     session::*,

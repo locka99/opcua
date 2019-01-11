@@ -144,6 +144,7 @@ pub mod argument;
 pub mod tcp_types;
 pub mod service_types;
 pub mod status_code;
+pub mod relative_path;
 
 pub use crate::{
     encoding::*,

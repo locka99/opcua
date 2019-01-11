@@ -129,7 +129,6 @@ pub mod object_type;
 pub mod variable_type;
 pub mod data_type;
 pub mod view;
-pub mod relative_path;
 
 mod method_impls;
 
