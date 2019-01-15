@@ -77,7 +77,7 @@ fn subscription_loop(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
     // Create a subscription
     println!("Creating subscription");
 
-    // This scope is important - we don't want to session to be locked when the code hits the
+    // This scope is important - we don't want the session to be locked when the code hits the
     // loop below
     {
         let mut session = session.write().unwrap();
