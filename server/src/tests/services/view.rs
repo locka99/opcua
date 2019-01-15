@@ -258,24 +258,6 @@ fn translate_browse_paths_to_node_ids() {
         assert_eq!(&t1.target_id.node_id, &AddressSpace::objects_folder_id()); */
 }
 
-///
-/// * `/` - The forward slash character indicates that the Server is to follow any subtype of HierarchicalReferences.
-/// * `.` - The period (dot) character indicates that the Server is to follow any subtype of a Aggregates ReferenceType.
-/// * `<[#!ns:]ReferenceType>` - A string delimited by the ‘<’ and ‘>’ symbols specifies the BrowseName of a ReferenceType to follow.
-///   By default, any References of the subtypes the ReferenceType are followed as well. A ‘#’ placed in front of the BrowseName indicates
-///   that subtypes should not be followed.
-///   A ‘!’ in front of the BrowseName is used to indicate that the inverse Reference should be followed.
-///   The BrowseName may be qualified with a namespace index (indicated by a numeric prefix followed by a colon).
-///   This namespace index is used specify the namespace component of the BrowseName for the ReferenceType. If the namespace prefix is omitted then namespace index 0 is used.
-/// * `[ns:]BrowseName` - A string that follows a ‘/’, ‘.’ or ‘>’ symbol specifies the BrowseName of a target
-///   Node to return or follow. This BrowseName may be prefixed by its namespace index. If the namespace prefix
-///   is omitted then namespace index 0 is used.
-///   Omitting the final BrowseName from a path is equivalent to a wildcard operation that matches all
-///   Nodes which are the target of the Reference specified by the path.
-/// * `&` - The & sign character is the escape character. It is used to specify reserved characters
-///   that appear within a BrowseName. A reserved character is escaped by inserting the ‘&’ in front of it.
-const xxxx: u32 = 0;
-
 /*
 
 https://github.com/node-opcua/node-opcua/blob/68b1b57dec23a45148468fbea89ab71a39f9042f/test/end_to_end/u_test_e2e_translateBrowsePath.js
