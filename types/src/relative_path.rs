@@ -97,7 +97,7 @@ impl RelativePathElement {
     pub fn from_str<CB>(path: &str, node_resolver: &CB) -> Result<RelativePathElement, ()>
         where CB: Fn(u16, &str) -> Option<NodeId> {
         lazy_static! {
-            static ref RE: Regex = Regex::new(r"(?P<reftype>\/|\.|\<(?P<flags>#|!|#!)?((?P<nsidx>[0-9+]):)?(?P<name>.*)\>)(?P<target>.+)").unwrap();
+            static ref RE: Regex = Regex::new(r"(?P<reftype>/|\.|(<(?P<flags>#|!|#!)?((?P<nsidx>[0-9]+):)?(?P<name>[^#!].*)>))(?P<target>.+)").unwrap();
         }
 
         if let Some(captures) = RE.captures(&path) {
@@ -111,7 +111,7 @@ impl RelativePathElement {
                     let (include_subtypes, is_inverse) = if let Some(flags) = captures.name("flags") {
                         match flags.as_str() {
                             "#" => (false, false),
-                            "!" => (false, true),
+                            "!" => (true, true),
                             "#!" => (false, true),
                             _ => panic!("Error in regular expression for flags")
                         }
@@ -163,7 +163,7 @@ impl RelativePathElement {
         let browse_name = reference_type_browse_name(&self.reference_type_id);
         let mut result = String::with_capacity(1024);
         // Common references will come out as '/' or '.'
-        if !self.include_subtypes && !self.is_inverse {
+        if self.include_subtypes && !self.is_inverse {
             if self.reference_type_id == ReferenceTypeId::HierarchicalReferences.into() {
                 result.push('/');
             } else if self.reference_type_id == ReferenceTypeId::Aggregates.into() {
@@ -388,45 +388,50 @@ fn test_relative_path_element() {
         (RelativePathElement {
             reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
             is_inverse: false,
-            include_subtypes: false,
-            target_name: QualifiedName::new(0, "foo"),
-        }, "/0:foo"),
+            include_subtypes: true,
+            target_name: QualifiedName::new(0, "foo1"),
+        }, "/0:foo1"),
         (RelativePathElement {
             reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
             is_inverse: false,
-            include_subtypes: false,
-            target_name: QualifiedName::new(0, ".foo"),
-        }, "/0:&.foo"),
+            include_subtypes: true,
+            target_name: QualifiedName::new(0, ".foo2"),
+        }, "/0:&.foo2"),
         (RelativePathElement {
             reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
             is_inverse: true,
             include_subtypes: true,
-            target_name: QualifiedName::new(2, "foo"),
-        }, "<!HierarchicalReferences>2:foo"),
+            target_name: QualifiedName::new(2, "foo3"),
+        }, "<!HierarchicalReferences>2:foo3"),
         (RelativePathElement {
             reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
             is_inverse: true,
             include_subtypes: false,
-            target_name: QualifiedName::new(0, "foo"),
-        }, "<#!HierarchicalReferences>0:foo"),
+            target_name: QualifiedName::new(0, "foo4"),
+        }, "<#!HierarchicalReferences>0:foo4"),
         (RelativePathElement {
             reference_type_id: ReferenceTypeId::Aggregates.into(),
             is_inverse: false,
-            include_subtypes: false,
-            target_name: QualifiedName::new(0, "foo"),
-        }, ".0:foo"),
+            include_subtypes: true,
+            target_name: QualifiedName::new(0, "foo5"),
+        }, ".0:foo5"),
         (RelativePathElement {
             reference_type_id: ReferenceTypeId::HasHistoricalConfiguration.into(),
             is_inverse: false,
             include_subtypes: true,
-            target_name: QualifiedName::new(0, "bar"),
-        }, "<HasHistoricalConfiguration>0:bar"),
+            target_name: QualifiedName::new(0, "foo6"),
+        }, "<HasHistoricalConfiguration>0:foo6"),
     ].iter().for_each(|n| {
         let element = &n.0;
         let expected = n.1.to_string();
+
+        // Compare string to expected
         let actual = String::from(element);
         assert_eq!(expected, actual);
-        // TODO convert path string back to relative path element, expect it to equal element
+
+        // Turn string back to element, compare to original element
+        let actual = RelativePathElement::from_str(&actual, &RelativePathElement::default_node_resolver).unwrap();
+        assert_eq!(*element, actual);
     });
 }
 
@@ -442,7 +447,7 @@ fn test_relative_path() {
             RelativePathElement {
                 reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
                 is_inverse: false,
-                include_subtypes: false,
+                include_subtypes: true,
                 target_name: QualifiedName::new(2, "Block.Output"),
             }
         ], "/2:Block&.Output"),
@@ -450,16 +455,48 @@ fn test_relative_path() {
             RelativePathElement {
                 reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
                 is_inverse: false,
-                include_subtypes: false,
+                include_subtypes: true,
                 target_name: QualifiedName::new(3, "Truck"),
             },
             RelativePathElement {
                 reference_type_id: ReferenceTypeId::Aggregates.into(),
                 is_inverse: false,
-                include_subtypes: false,
+                include_subtypes: true,
                 target_name: QualifiedName::new(0, "NodeVersion"),
             }],
          "/3:Truck.0:NodeVersion"),
+        (vec![
+            RelativePathElement {
+                reference_type_id: NodeId::new(1, "ConnectedTo"),
+                is_inverse: false,
+                include_subtypes: true,
+                target_name: QualifiedName::new(1, "Boiler"),
+            },
+            RelativePathElement {
+                reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
+                is_inverse: false,
+                include_subtypes: true,
+                target_name: QualifiedName::new(1, "HeatSensor"),
+            }],
+         "<1:ConnectedTo>1:Boiler/1:HeatSensor"),
+        // TODO "<1:ConnectedTo>1:Boiler/" (note the / on the end followed by no target name)
+        (vec![
+            RelativePathElement {
+                reference_type_id: ReferenceTypeId::HasChild.into(),
+                is_inverse: false,
+                include_subtypes: true,
+                target_name: QualifiedName::new(2, "Wheel"),
+            },
+        ], "<HasChild>2:Wheel"),
+        (vec![
+            RelativePathElement {
+                reference_type_id: ReferenceTypeId::HasChild.into(),
+                is_inverse: true,
+                include_subtypes: true,
+                target_name: QualifiedName::new(0, "Truck"),
+            },
+        ], "<!HasChild>0:Truck")
+        // TODO "<0:HasChild>" note no target name
     ];
 
     tests.drain(..).for_each(|n| {
@@ -467,9 +504,13 @@ fn test_relative_path() {
             elements: Some(n.0)
         };
         let expected = n.1.to_string();
+
+        // Convert path to string, compare to expected
         let actual = String::from(&relative_path);
         assert_eq!(expected, actual);
-        // TODO convert path string back to relative path, expect it to equal element
+
+        // Turn string back to element, compare to original path
+        let actual = RelativePath::from_str(&actual, &RelativePathElement::default_node_resolver).unwrap();
+        assert_eq!(relative_path, actual);
     });
 }
-
