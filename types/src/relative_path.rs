@@ -15,13 +15,15 @@ use crate::{
 
 impl<'a> From<&'a RelativePathElement> for String {
     fn from(element: &'a RelativePathElement) -> String {
-        let always_use_namespace = true;
-        let target_browse_name = escape_browse_name(element.target_name.name.as_ref());
         let mut result = element.relative_path_reference_type();
-        if always_use_namespace || element.target_name.namespace_index > 0 {
-            result.push_str(&format!("{}:{}", element.target_name.namespace_index, target_browse_name));
-        } else {
-            result.push_str(&target_browse_name);
+        if !element.target_name.name.is_null() {
+            let always_use_namespace = true;
+            let target_browse_name = escape_browse_name(element.target_name.name.as_ref());
+            if always_use_namespace || element.target_name.namespace_index > 0 {
+                result.push_str(&format!("{}:{}", element.target_name.namespace_index, target_browse_name));
+            } else {
+                result.push_str(&target_browse_name);
+            }
         }
         result
     }
@@ -97,7 +99,7 @@ impl RelativePathElement {
     pub fn from_str<CB>(path: &str, node_resolver: &CB) -> Result<RelativePathElement, ()>
         where CB: Fn(u16, &str) -> Option<NodeId> {
         lazy_static! {
-            static ref RE: Regex = Regex::new(r"(?P<reftype>/|\.|(<(?P<flags>#|!|#!)?((?P<nsidx>[0-9]+):)?(?P<name>[^#!].*)>))(?P<target>.+)").unwrap();
+            static ref RE: Regex = Regex::new(r"(?P<reftype>/|\.|(<(?P<flags>#|!|#!)?((?P<nsidx>[0-9]+):)?(?P<name>[^#!].*)>))(?P<target>.*)").unwrap();
         }
 
         if let Some(captures) = RE.captures(&path) {
@@ -334,7 +336,6 @@ fn target_name(target_name: &str) -> Result<QualifiedName, ()> {
     lazy_static! {
         static ref RE: Regex = Regex::new(r"((?P<nsidx>[0-9+]):)?(?P<name>.*)").unwrap();
     }
-
     if let Some(captures) = RE.captures(&target_name) {
         let namespace = if let Some(namespace) = captures.name("nsidx") {
             if let Ok(namespace) = namespace.as_str().parse::<u16>() {
@@ -347,13 +348,18 @@ fn target_name(target_name: &str) -> Result<QualifiedName, ()> {
             0
         };
         let name = if let Some(name) = captures.name("name") {
-            unescape_browse_name(name.as_str())
+            let name = name.as_str();
+            if name.is_empty() {
+                UAString::null()
+            } else {
+                UAString::from(unescape_browse_name(name))
+            }
         } else {
-            String::new()
+            UAString::null()
         };
-        Ok(QualifiedName::new(namespace, &name))
+        Ok(QualifiedName::new(namespace, name))
     } else {
-        Ok(QualifiedName::new(0, target_name))
+        Ok(QualifiedName::null())
     }
 }
 
@@ -479,7 +485,20 @@ fn test_relative_path() {
                 target_name: QualifiedName::new(1, "HeatSensor"),
             }],
          "<1:ConnectedTo>1:Boiler/1:HeatSensor"),
-        // TODO "<1:ConnectedTo>1:Boiler/" (note the / on the end followed by no target name)
+        (vec![
+            RelativePathElement {
+                reference_type_id: NodeId::new(1, "ConnectedTo"),
+                is_inverse: false,
+                include_subtypes: true,
+                target_name: QualifiedName::new(1, "Boiler"),
+            },
+            RelativePathElement {
+                reference_type_id: ReferenceTypeId::HierarchicalReferences.into(),
+                is_inverse: false,
+                include_subtypes: true,
+                target_name: QualifiedName::null(),
+            }],
+         "<1:ConnectedTo>1:Boiler/"),
         (vec![
             RelativePathElement {
                 reference_type_id: ReferenceTypeId::HasChild.into(),
@@ -495,8 +514,15 @@ fn test_relative_path() {
                 include_subtypes: true,
                 target_name: QualifiedName::new(0, "Truck"),
             },
-        ], "<!HasChild>0:Truck")
-        // TODO "<0:HasChild>" note no target name
+        ], "<!HasChild>0:Truck"),
+        (vec![
+            RelativePathElement {
+                reference_type_id: ReferenceTypeId::HasChild.into(),
+                is_inverse: false,
+                include_subtypes: true,
+                target_name: QualifiedName::null(),
+            },
+        ], "<HasChild>"),
     ];
 
     tests.drain(..).for_each(|n| {

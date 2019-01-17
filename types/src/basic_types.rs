@@ -227,10 +227,10 @@ impl BinaryEncoder<QualifiedName> for QualifiedName {
 }
 
 impl QualifiedName {
-    pub fn new(namespace_index: u16, name: &str) -> QualifiedName {
+    pub fn new<T>(namespace_index: u16, name: T) -> QualifiedName where T: Into<UAString> {
         QualifiedName {
             namespace_index,
-            name: UAString::from(name),
+            name: name.into(),
         }
     }
 
