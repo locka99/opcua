@@ -120,6 +120,7 @@ macro_rules! find_attribute_value_optional {
 pub mod generated;
 pub mod address_space;
 pub mod base;
+pub mod relative_path;
 pub mod object;
 pub mod variable;
 pub mod method;

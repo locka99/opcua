@@ -184,4 +184,11 @@ impl ServerBuilder {
         self.config.max_byte_string_length = max_byte_string_length;
         self
     }
+
+    /// Sets the server to automatically trust client certs. This subverts the
+    /// authentication during handshake, so only do this if you understand the risks.
+    pub fn trust_client_certs(mut self) -> Self {
+        self.config.trust_client_certs = true;
+        self
+    }
 }

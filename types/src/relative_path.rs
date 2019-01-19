@@ -13,9 +13,56 @@ use crate::{
     string::UAString,
 };
 
+impl RelativePath {
+    pub fn from_str<CB>(path: &str, node_resolver: &CB) -> Result<RelativePath, ()>
+        where CB: Fn(u16, &str) -> Option<NodeId> {
+        let mut elements: Vec<RelativePathElement> = Vec::new();
+
+        // This loop will break the string up into path segments. For each segment it will
+        // then parse it into a relative path element. When the string is successfully parsed,
+        // the elements will be returned.
+        let mut escaped_char = false;
+        let mut token = String::with_capacity(path.len());
+        for c in path.chars() {
+            if escaped_char {
+                token.push(c);
+                escaped_char = false;
+            } else {
+                // Parse the
+                match c {
+                    '&' => {
+                        // The next character is escaped and part of the token
+                        escaped_char = true;
+                    }
+                    '/' | '.' | '<' => {
+                        // We have reached the start of a token and need to process the previous one
+                        if !token.is_empty() {
+                            elements.push(RelativePathElement::from_str(&token, node_resolver)?);
+                            token.clear();
+                        }
+                    }
+                    _ => {}
+                }
+                token.push(c);
+            }
+            if token.len() > 256 {
+                error!("Path segment seems unusually long and has been rejected");
+                return Err(());
+            }
+        }
+        if !token.is_empty() {
+            elements.push(RelativePathElement::from_str(&token, node_resolver)?);
+        }
+
+        Ok(RelativePath {
+            elements: Some(elements)
+        })
+    }
+}
+
 impl<'a> From<&'a RelativePathElement> for String {
     fn from(element: &'a RelativePathElement) -> String {
-        let mut result = element.relative_path_reference_type();
+        let mut result = element.relative_path_reference_type(&RelativePathElement::default_browse_name_resolver);
         if !element.target_name.name.is_null() {
             let always_use_namespace = true;
             let target_browse_name = escape_browse_name(element.target_name.name.as_ref());
@@ -34,8 +81,8 @@ impl RelativePathElement {
     /// reference type id. The default implementation resides in the types module so it
     /// doesn't have access to the address space.
     ///
-    /// It makes a best guess by testing the browse name against the standard reference
-    /// types and fails over to producing a node id from the namespace and browse name.
+    /// Therefore it makes a best guess by testing the browse name against the standard reference
+    /// types and if fails to match it will produce a node id from the namespace and browse name.
     pub fn default_node_resolver(namespace: u16, browse_name: &str) -> Option<NodeId> {
         let node_id = if namespace == 0 {
             match browse_name {
@@ -76,25 +123,72 @@ impl RelativePathElement {
         Some(node_id)
     }
 
+
+    pub fn default_browse_name_resolver(node_id: &NodeId) -> Option<String> {
+        Some(match &node_id.identifier {
+            Identifier::String(browse_name) => browse_name.as_ref(),
+            Identifier::Numeric(id) => {
+                if node_id.namespace == 0 {
+                    let id = *id;
+                    // This syntax for matching a number to an enum is just the worst
+                    let browse_name = match id {
+                        id if id == ReferenceTypeId::References as u32 => "References",
+                        id if id == ReferenceTypeId::NonHierarchicalReferences as u32 => "NonHierarchicalReferences",
+                        id if id == ReferenceTypeId::HierarchicalReferences as u32 => "HierarchicalReferences",
+                        id if id == ReferenceTypeId::HasChild as u32 => "HasChild",
+                        id if id == ReferenceTypeId::Organizes as u32 => "Organizes",
+                        id if id == ReferenceTypeId::HasEventSource as u32 => "HasEventSource",
+                        id if id == ReferenceTypeId::HasModellingRule as u32 => "HasModellingRule",
+                        id if id == ReferenceTypeId::HasEncoding as u32 => "HasEncoding",
+                        id if id == ReferenceTypeId::HasDescription as u32 => "HasDescription",
+                        id if id == ReferenceTypeId::HasTypeDefinition as u32 => "HasTypeDefinition",
+                        id if id == ReferenceTypeId::GeneratesEvent as u32 => "GeneratesEvent",
+                        id if id == ReferenceTypeId::Aggregates as u32 => "Aggregates",
+                        id if id == ReferenceTypeId::HasSubtype as u32 => "HasSubtype",
+                        id if id == ReferenceTypeId::HasProperty as u32 => "HasProperty",
+                        id if id == ReferenceTypeId::HasComponent as u32 => "HasComponent",
+                        id if id == ReferenceTypeId::HasNotifier as u32 => "HasNotifier",
+                        id if id == ReferenceTypeId::HasOrderedComponent as u32 => "HasOrderedComponent",
+                        id if id == ReferenceTypeId::FromState as u32 => "FromState",
+                        id if id == ReferenceTypeId::ToState as u32 => "ToState",
+                        id if id == ReferenceTypeId::HasCause as u32 => "HasCause",
+                        id if id == ReferenceTypeId::HasEffect as u32 => "HasEffect",
+                        id if id == ReferenceTypeId::HasHistoricalConfiguration as u32 => "HasHistoricalConfiguration",
+                        id if id == ReferenceTypeId::HasSubStateMachine as u32 => "HasSubStateMachine",
+                        id if id == ReferenceTypeId::AlwaysGeneratesEvent as u32 => "AlwaysGeneratesEvent",
+                        id if id == ReferenceTypeId::HasTrueSubState as u32 => "HasTrueSubState",
+                        id if id == ReferenceTypeId::HasFalseSubState as u32 => "HasFalseSubState",
+                        id if id == ReferenceTypeId::HasCondition as u32 => "HasCondition",
+                        _ => return None
+                    };
+                    browse_name
+                } else {
+                    return None;
+                }
+            }
+            _ => return None
+        }.to_string())
+    }
+
     /// Parse a relative path element according to the OPC UA Part 4 Appendix A BNF
     ///
-    /// <relative-path> ::= <reference-type> <browse-name> [relative-path]
-    /// <reference-type> ::= '/' | '.' | '<' ['#'] ['!'] <browse-name> '>'
-    /// <browse-name> ::= [<namespace-index> ':'] <name>
-    /// <namespace-index> ::= <digit> [<digit>]
-    /// <digit> ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
-    /// <name> ::= (<name-char> | '&' <reserved-char>) [<name>]
-    /// <reserved-char> ::= '/' | '.' | '<' | '>' | ':' | '#' | '!' | '&'
-    /// <name-char> ::= All valid characters for a String (see Part 3) excluding reserved-chars.
+    /// `<relative-path> ::= <reference-type> <browse-name> [relative-path]`
+    /// `<reference-type> ::= '/' | '.' | '<' ['#'] ['!'] <browse-name> '>'`
+    /// `<browse-name> ::= [<namespace-index> ':'] <name>`
+    /// `<namespace-index> ::= <digit> [<digit>]`
+    /// `<digit> ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'`
+    /// `<name> ::= (<name-char> | '&' <reserved-char>) [<name>]`
+    /// `<reserved-char> ::= '/' | '.' | '<' | '>' | ':' | '#' | '!' | '&'`
+    /// `<name-char> ::= All valid characters for a String (see Part 3) excluding reserved-chars.`
     ///
     /// # Examples
     ///
-    /// * /foo
-    /// * /0:foo
-    /// * .bar
-    /// * <0:HasEncoding>bar
-    /// * <!NonHierarchicalReferences>foo
-    /// * <#!2:MyReftype>2:blah
+    /// * `/foo`
+    /// * `/0:foo`
+    /// * `.bar`
+    /// * `<0:HasEncoding>bar`
+    /// * `<!NonHierarchicalReferences>foo`
+    /// * `<#!2:MyReftype>2:blah`
     ///
     pub fn from_str<CB>(path: &str, node_resolver: &CB) -> Result<RelativePathElement, ()>
         where CB: Fn(u16, &str) -> Option<NodeId> {
@@ -153,7 +247,7 @@ impl RelativePathElement {
                 target_name,
             })
         } else {
-            error!("Path does not match a relative path");
+            error!("Path {} does not match a relative path", path);
             Err(())
         }
     }
@@ -161,8 +255,9 @@ impl RelativePathElement {
     /// Constructs a string representation of the reference type in the relative path.
     /// This code assumes that the reference type's node id has a string identifier and that
     /// the string identifier is the same as the browse name.
-    pub(crate) fn relative_path_reference_type(&self) -> String {
-        let browse_name = reference_type_browse_name(&self.reference_type_id);
+    pub(crate) fn relative_path_reference_type<CB>(&self, browse_name_resolver: &CB) -> String
+        where CB: Fn(&NodeId) -> Option<String> {
+        let browse_name = browse_name_resolver(&self.reference_type_id).unwrap();
         let mut result = String::with_capacity(1024);
         // Common references will come out as '/' or '.'
         if self.include_subtypes && !self.is_inverse {
@@ -210,53 +305,6 @@ impl<'a> From<&'a RelativePath> for String {
     }
 }
 
-impl RelativePath {
-    pub fn from_str<CB>(path: &str, node_resolver: &CB) -> Result<RelativePath, ()>
-        where CB: Fn(u16, &str) -> Option<NodeId> {
-        let mut elements: Vec<RelativePathElement> = Vec::new();
-
-        // This loop will break the string up into path segments. For each segment it will
-        // then parse it into a relative path element. When the string is successfully parsed,
-        // the elements will be returned.
-        let mut escaped_char = false;
-        let mut token = String::with_capacity(path.len());
-        for c in path.chars() {
-            if escaped_char {
-                token.push(c);
-                escaped_char = false;
-            } else {
-                // Parse the
-                match c {
-                    '&' => {
-                        // The next character is escaped and part of the token
-                        escaped_char = true;
-                    }
-                    '/' | '.' | '<' => {
-                        // We have reached the start of a token and need to process the previous one
-                        if !token.is_empty() {
-                            elements.push(RelativePathElement::from_str(&token, node_resolver)?);
-                            token.clear();
-                        }
-                    }
-                    _ => {}
-                }
-                token.push(c);
-            }
-            if token.len() > 256 {
-                error!("Path segment seems unusually long and has been rejected");
-                return Err(());
-            }
-        }
-        if !token.is_empty() {
-            elements.push(RelativePathElement::from_str(&token, node_resolver)?);
-        }
-
-        Ok(RelativePath {
-            elements: Some(elements)
-        })
-    }
-}
-
 /// Reserved characters in the browse name which must be escaped with a &
 const BROWSE_NAME_RESERVED_CHARS: &str = "&/.<>:#!";
 
@@ -276,52 +324,6 @@ fn unescape_browse_name(name: &str) -> String {
         result = result.replace(&format!("&{}", c), &c.to_string());
     });
     result
-}
-
-fn reference_type_browse_name(node_id: &NodeId) -> String {
-    match &node_id.identifier {
-        Identifier::String(browse_name) => browse_name.as_ref(),
-        Identifier::Numeric(id) => {
-            if node_id.namespace == 0 {
-                let id = *id;
-                // This syntax for matching a number to an enum is just the worst
-                let browse_name = match id {
-                    id if id == ReferenceTypeId::References as u32 => "References",
-                    id if id == ReferenceTypeId::NonHierarchicalReferences as u32 => "NonHierarchicalReferences",
-                    id if id == ReferenceTypeId::HierarchicalReferences as u32 => "HierarchicalReferences",
-                    id if id == ReferenceTypeId::HasChild as u32 => "HasChild",
-                    id if id == ReferenceTypeId::Organizes as u32 => "Organizes",
-                    id if id == ReferenceTypeId::HasEventSource as u32 => "HasEventSource",
-                    id if id == ReferenceTypeId::HasModellingRule as u32 => "HasModellingRule",
-                    id if id == ReferenceTypeId::HasEncoding as u32 => "HasEncoding",
-                    id if id == ReferenceTypeId::HasDescription as u32 => "HasDescription",
-                    id if id == ReferenceTypeId::HasTypeDefinition as u32 => "HasTypeDefinition",
-                    id if id == ReferenceTypeId::GeneratesEvent as u32 => "GeneratesEvent",
-                    id if id == ReferenceTypeId::Aggregates as u32 => "Aggregates",
-                    id if id == ReferenceTypeId::HasSubtype as u32 => "HasSubtype",
-                    id if id == ReferenceTypeId::HasProperty as u32 => "HasProperty",
-                    id if id == ReferenceTypeId::HasComponent as u32 => "HasComponent",
-                    id if id == ReferenceTypeId::HasNotifier as u32 => "HasNotifier",
-                    id if id == ReferenceTypeId::HasOrderedComponent as u32 => "HasOrderedComponent",
-                    id if id == ReferenceTypeId::FromState as u32 => "FromState",
-                    id if id == ReferenceTypeId::ToState as u32 => "ToState",
-                    id if id == ReferenceTypeId::HasCause as u32 => "HasCause",
-                    id if id == ReferenceTypeId::HasEffect as u32 => "HasEffect",
-                    id if id == ReferenceTypeId::HasHistoricalConfiguration as u32 => "HasHistoricalConfiguration",
-                    id if id == ReferenceTypeId::HasSubStateMachine as u32 => "HasSubStateMachine",
-                    id if id == ReferenceTypeId::AlwaysGeneratesEvent as u32 => "AlwaysGeneratesEvent",
-                    id if id == ReferenceTypeId::HasTrueSubState as u32 => "HasTrueSubState",
-                    id if id == ReferenceTypeId::HasFalseSubState as u32 => "HasFalseSubState",
-                    id if id == ReferenceTypeId::HasCondition as u32 => "HasCondition",
-                    _ => "unsupported"
-                };
-                browse_name
-            } else {
-                "unsupported"
-            }
-        }
-        _ => "unsupported"
-    }.to_string()
 }
 
 /// Parse a target name into a qualified name. The name is either `nsidx:name` or just

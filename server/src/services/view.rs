@@ -7,7 +7,7 @@ use opcua_types::node_ids::ReferenceTypeId;
 use opcua_types::service_types::*;
 
 use crate::{
-    address_space::AddressSpace,
+    address_space::{AddressSpace, relative_path},
     session::Session,
     services::Service,
     continuation_point::BrowseContinuationPoint,
@@ -96,11 +96,9 @@ impl ViewService {
         if let Some(ref browse_paths) = request.browse_paths {
             if browse_paths.is_empty() {
                 Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
-            }
-            else if max_nodes_per_operation > 0 && browse_paths.len() > max_nodes_per_operation {
+            } else if max_nodes_per_operation > 0 && browse_paths.len() > max_nodes_per_operation {
                 Ok(self.service_fault(&request.request_header, StatusCode::BadTooManyOperations))
-            }
-            else {
+            } else {
                 let results = browse_paths.iter().map(|browse_path| {
                     let node_id = browse_path.starting_node.clone();
                     if browse_path.relative_path.elements.is_none() {
@@ -110,7 +108,7 @@ impl ViewService {
                         }
                     } else {
                         // Starting from the node_id, find paths
-                        match address_space.find_nodes_relative_path(&node_id, &browse_path.relative_path) {
+                        match relative_path::find_nodes_relative_path(address_space, &node_id, &browse_path.relative_path) {
                             Err(err) => {
                                 BrowsePathResult {
                                     status_code: err,

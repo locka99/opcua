@@ -98,10 +98,18 @@ impl Server {
 
         // Security, pki auto create cert
         let application_description = if config.create_sample_keypair { Some(config.application_description()) } else { None };
-        let (certificate_store, server_certificate, server_pkey) = CertificateStore::new_with_keypair(&config.pki_dir, application_description);
+        let (mut certificate_store, server_certificate, server_pkey) = CertificateStore::new_with_keypair(&config.pki_dir, application_description);
         if server_certificate.is_none() || server_pkey.is_none() {
             error!("Server is missing its application instance certificate and/or its private key. Encrypted endpoints will not function correctly.")
         }
+
+        // Servers may choose to auto trust clients to save some messing around with rejected certs.
+        // This is strongly not advised in production.
+        if config.trust_client_certs {
+            info!("Server has chosen to auto trust client certificates. You do not want to do this in production code.");
+            certificate_store.trust_unknown_certs = true;
+        }
+
         let config = Arc::new(RwLock::new(config.clone()));
 
         let server_state = ServerState {

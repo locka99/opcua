@@ -199,6 +199,9 @@ pub struct ServerConfig {
     /// Autocreates public / private keypair if they don't exist. For testing/samples only
     /// since you do not have control of the values
     pub create_sample_keypair: bool,
+    /// Auto trusts client certificates. For testing/samples only unless you're sure what you're
+    /// doing.
+    pub trust_client_certs: bool,
     /// Url to a discovery server - adding this string causes the server to assume you wish to
     /// register the server with a discovery server.
     pub discovery_server_url: Option<String>,
@@ -269,6 +272,7 @@ impl Default for ServerConfig {
             product_uri: String::new(),
             pki_dir,
             create_sample_keypair: false,
+            trust_client_certs: false,
             discovery_server_url: None,
             tcp_config: TcpConfig {
                 host: "127.0.0.1".to_string(),
@@ -304,6 +308,7 @@ impl ServerConfig {
             product_uri,
             pki_dir,
             create_sample_keypair: false,
+            trust_client_certs: false,
             discovery_server_url,
             tcp_config: TcpConfig {
                 host,
