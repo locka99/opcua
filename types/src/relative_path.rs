@@ -14,6 +14,8 @@ use crate::{
 };
 
 impl RelativePath {
+    /// Converts a string into a relative path. Caller must supply a `node_resolver` which will
+    /// be used to look up nodes from their browse name.
     pub fn from_str<CB>(path: &str, node_resolver: &CB) -> Result<RelativePath, ()>
         where CB: Fn(u16, &str) -> Option<NodeId> {
         let mut elements: Vec<RelativePathElement> = Vec::new();

@@ -3,12 +3,16 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::sync::{Arc, Mutex};
 
-use opcua_types::*;
-use opcua_types::status_code::StatusCode;
-use opcua_types::service_types::*;
+use opcua_types::{
+    *,
+    status_code::StatusCode,
+    service_types::*,
+};
 
-use crate::address_space::{AttributeGetter, AttributeSetter};
-use crate::address_space::node::Node;
+use crate::address_space::{
+    {AttributeGetter, AttributeSetter},
+    node::Node,
+};
 
 // This should match size of AttributeId
 const NUM_ATTRIBUTES: usize = 22;

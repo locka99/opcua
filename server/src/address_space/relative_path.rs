@@ -8,22 +8,21 @@ use crate::{
     address_space::AddressSpace
 };
 
-/// Used by TranslateBrowsePathToNodeIds, e.g. it could be used from a starting node id pointing
-/// to a type definition to find instances of that type.
+/// Given a `RelativePath`, find all the nodes that match against it.
 pub(crate) fn find_nodes_relative_path(address_space: &AddressSpace, node_id: &NodeId, relative_path: &RelativePath) -> Result<Vec<NodeId>, StatusCode> {
     // TODO THIS CODE IS PROBABLY BROKEN - need test examples for TranslateBrowsePathToNodeIds
     if address_space.find_node(node_id).is_none() {
         Err(StatusCode::BadNodeIdUnknown)
     } else {
-        let relative_path_elements = relative_path.elements.as_ref().unwrap();
-        if relative_path_elements.is_empty() {
+        let elements = relative_path.elements.as_ref().unwrap();
+        if elements.is_empty() {
             Err(StatusCode::BadNothingToDo)
         } else {
             let mut matching_nodes = vec![node_id.clone()];
             let mut next_matching_nodes = Vec::with_capacity(100);
 
             // Traverse the relative path elements
-            for relative_path_element in relative_path_elements.iter() {
+            for relative_path_element in elements.iter() {
                 next_matching_nodes.clear();
 
                 if matching_nodes.is_empty() {

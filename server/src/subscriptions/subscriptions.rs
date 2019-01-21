@@ -2,9 +2,11 @@ use std::collections::{BTreeMap, VecDeque};
 
 use time;
 
-use opcua_types::*;
-use opcua_types::service_types::{NotificationMessage, PublishRequest, PublishResponse, ResponseHeader, ServiceFault};
-use opcua_types::status_code::StatusCode;
+use opcua_types::{
+    *,
+    service_types::{NotificationMessage, PublishRequest, PublishResponse, ResponseHeader, ServiceFault},
+    status_code::StatusCode,
+};
 
 use crate::{
     address_space::types::AddressSpace,
