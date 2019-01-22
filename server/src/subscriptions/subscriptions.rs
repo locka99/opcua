@@ -44,7 +44,6 @@ pub struct Subscriptions {
     retransmission_queue: BTreeMap<(u32, u32), NotificationMessage>,
 }
 
-
 impl Subscriptions {
     pub fn new(max_subscriptions: usize, publish_request_timeout: i64) -> Subscriptions {
         let max_publish_requests = if max_subscriptions > 0 { 2 * max_subscriptions } else { 100 };

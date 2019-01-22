@@ -1,5 +1,6 @@
 use crate::prelude::*;
 use crate::services::view::ViewService;
+
 use super::*;
 
 // View service tests
@@ -243,74 +244,113 @@ fn translate_browse_paths_to_node_ids() {
     let address_space = st.address_space.read().unwrap();
     let result = vs.translate_browse_paths_to_node_ids(&address_space, &request);
     assert!(result.is_ok());
-    let result: TranslateBrowsePathsToNodeIdsResponse = supported_message_as!(result.unwrap(), TranslateBrowsePathsToNodeIdsResponse);
+    let response: TranslateBrowsePathsToNodeIdsResponse = supported_message_as!(result.unwrap(), TranslateBrowsePathsToNodeIdsResponse);
 
-    debug!("result = {:#?}", result);
+    debug!("result = {:#?}", response);
 
-    let results = result.results.unwrap();
+    let results = response.results.unwrap();
     assert_eq!(results.len(), 1);
     let r1 = &results[0];
+/* TODO
+    let targets = r1.targets.as_ref().unwrap();
+    assert_eq!(targets.len(), 1);
+    let t1 = &targets[0];
+    assert_eq!(&t1.target_id.node_id, &AddressSpace::objects_folder_id());
+    */
+}
 
-    // TODO broken
-    /*    let targets = r1.targets.as_ref().unwrap();
+#[test]
+fn translate_browse_paths_to_node_ids2() {
+
+    // Inputs and outputs taken from this testcase in Node OPCUA
+    //
+    // https://github.com/node-opcua/node-opcua/blob/68b1b57dec23a45148468fbea89ab71a39f9042f/test/end_to_end/u_test_e2e_translateBrowsePath.js
+
+    let starting_node: NodeId = ObjectId::RootFolder.into();
+    let st = ServiceTest::new();
+
+    let browse_paths = [
+        "/Objects/Server",
+        "/Objects/Server.ServerStatus",
+        "/Objects/Server.ServerStatus.BuildInfo",
+        "/Objects/Server.ServerStatus.BuildInfo.ProductName",
+        "/Objects/Server.ServerStatus.BuildInfo.",
+        "/Objects.Server",
+        "/Objects/2:MatrikonOPC Simulation Server (DA)",
+    ].iter().map(|path|
+        BrowsePath {
+            starting_node: starting_node.clone(),
+            relative_path: RelativePath::from_str(path, &RelativePathElement::default_node_resolver).unwrap()
+        }
+    ).collect::<Vec<_>>();
+
+    let request = TranslateBrowsePathsToNodeIdsRequest {
+        request_header: make_request_header(),
+        browse_paths: Some(browse_paths),
+    };
+
+    let browse_paths_len = request.browse_paths.as_ref().unwrap().len();
+
+    let vs = ViewService::new();
+    let address_space = st.address_space.read().unwrap();
+    let result = vs.translate_browse_paths_to_node_ids(&address_space, &request);
+    assert!(result.is_ok());
+    let response: TranslateBrowsePathsToNodeIdsResponse = supported_message_as!(result.unwrap(), TranslateBrowsePathsToNodeIdsResponse);
+
+    let results = response.results.unwrap();
+    assert_eq!(results.len(), browse_paths_len);
+
+    // results[0]
+    {
+        let r = &results[0];
+        assert!(r.status_code.is_good());
+        let targets = r.targets.as_ref().unwrap();
         assert_eq!(targets.len(), 1);
-        let t1 = &targets[0];
-        assert_eq!(&t1.target_id.node_id, &AddressSpace::objects_folder_id()); */
+        assert_eq!(&targets[0].target_id, &ObjectId::Server.into());
+    }
+
+    // results[1]
+    {
+        let r = &results[1];
+        assert!(r.status_code.is_good());
+        let targets = r.targets.as_ref().unwrap();
+//        assert_eq!(targets.len(), 1);
+//        assert_eq!(&targets[0].target_id, &VariableId::Server_ServerStatus.into());
+    }
+
+    // results[2]
+    {
+        let r = &results[2];
+        assert!(r.status_code.is_good());
+        let targets = r.targets.as_ref().unwrap();
+//        assert_eq!(targets.len(), 1);
+//        assert_eq!(&targets[0].target_id, &VariableId::Server_ServerStatus_BuildInfo.into());
+        // results[2].statusCode.should.eql(StatusCodes.Good);
+        // results[2].targets.length.should.eql(1);
+        // results[2].targets[0].targetId.toString().should.eql("ns=0;i=2260");
+        // results[2].targets[0].targetId.value.should.eql(opcua.VariableIds.Server_ServerStatus_BuildInfo);
+    }
+
+    // results[3]
+    {
+        // results[3].statusCode.should.eql(StatusCodes.Good);
+        // results[3].targets.length.should.eql(1);
+        // results[3].targets[0].targetId.toString().should.eql("ns=0;i=2261");
+        // results[3].targets[0].targetId.value.should.eql(opcua.VariableIds.Server_ServerStatus_BuildInfo_ProductName);
+    }
+
+    // results[4]
+    {
+        // results[4].statusCode.should.eql(StatusCodes.BadBrowseNameInvalid);
+    }
+
+    // results[5]
+    {
+        // results[5].statusCode.should.eql(StatusCodes.BadNoMatch);
+    }
+
+    // results[6]
+    {
+        // results[6].statusCode.should.eql(StatusCodes.BadNoMatch);
+    }
 }
-
-/*
-
-https://github.com/node-opcua/node-opcua/blob/68b1b57dec23a45148468fbea89ab71a39f9042f/test/end_to_end/u_test_e2e_translateBrowsePath.js
-
-// find nodeId of Root.Objects.server.status.buildInfo
-                var browsePath = [
-                    makeBrowsePath("RootFolder","/Objects/Server"),
-                    makeBrowsePath("RootFolder","/Objects/Server.ServerStatus"),
-                    makeBrowsePath("RootFolder","/Objects/Server.ServerStatus.BuildInfo"),
-                    makeBrowsePath("RootFolder","/Objects/Server.ServerStatus.BuildInfo.ProductName"),
-                    makeBrowsePath("RootFolder","/Objects/Server.ServerStatus.BuildInfo."), // missing TargetName !
-                    makeBrowsePath("RootFolder","/Objects.Server"), // intentional error usign . instead of /
-                    makeBrowsePath("RootFolder","/Objects/2:MatrikonOPC Simulation Server (DA)") // va
-                ];
-
-                //xx console.log("browsePath ", browsePath[0].toString({addressSpace: server.engine.addressSpace}));
-
-                session.translateBrowsePath(browsePath, function (err, results) {
-
-                    if (!err) {
-                        results.length.should.eql(browsePath.length);
-                        //xx console.log(results[0].toString());
-
-                        results[0].statusCode.should.eql(StatusCodes.Good);
-                        results[0].targets.length.should.eql(1);
-                        results[0].targets[0].targetId.toString().should.eql("ns=0;i=2253");
-                        results[0].targets[0].targetId.value.should.eql(opcua.ObjectIds.Server);
-
-                        //xx console.log(results[1].toString());
-                        results[1].statusCode.should.eql(StatusCodes.Good);
-                        results[1].targets.length.should.eql(1);
-                        results[1].targets[0].targetId.toString().should.eql("ns=0;i=2256");
-                        results[1].targets[0].targetId.value.should.eql(opcua.VariableIds.Server_ServerStatus);
-
-                        //xx console.log(results[2].toString());
-                        results[2].statusCode.should.eql(StatusCodes.Good);
-                        results[2].targets.length.should.eql(1);
-                        results[2].targets[0].targetId.toString().should.eql("ns=0;i=2260");
-                        results[2].targets[0].targetId.value.should.eql(opcua.VariableIds.Server_ServerStatus_BuildInfo);
-
-                        //xx console.log(results[3].toString());
-                        results[3].statusCode.should.eql(StatusCodes.Good);
-                        results[3].targets.length.should.eql(1);
-                        results[3].targets[0].targetId.toString().should.eql("ns=0;i=2261");
-                        results[3].targets[0].targetId.value.should.eql(opcua.VariableIds.Server_ServerStatus_BuildInfo_ProductName);
-
-                        // missing browseName on last element of the relativepath => ERROR
-                        results[4].statusCode.should.eql(StatusCodes.BadBrowseNameInvalid);
-
-                        results[5].statusCode.should.eql(StatusCodes.BadNoMatch);
-
-                        results[6].statusCode.should.eql(StatusCodes.BadNoMatch);
-
-}
-*/
-
