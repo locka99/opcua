@@ -46,3 +46,7 @@ version = "0.6.0" # OPCUARustVersion
 [dependencies.opcua-client]
 path = "../client"
 version = "0.6.0" # OPCUARustVersion
+
+[dev-dependencies.opcua-console-logging]
+path = "../console-logging"
+version = "0.6.0" # OPCUARustVersion

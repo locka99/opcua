@@ -1,3 +1,5 @@
+use opcua_console_logging;
+
 use crate::prelude::*;
 use crate::services::view::ViewService;
 
@@ -251,16 +253,17 @@ fn translate_browse_paths_to_node_ids() {
     let results = response.results.unwrap();
     assert_eq!(results.len(), 1);
     let r1 = &results[0];
-/* TODO
-    let targets = r1.targets.as_ref().unwrap();
-    assert_eq!(targets.len(), 1);
-    let t1 = &targets[0];
-    assert_eq!(&t1.target_id.node_id, &AddressSpace::objects_folder_id());
-    */
+    /* TODO
+        let targets = r1.targets.as_ref().unwrap();
+        assert_eq!(targets.len(), 1);
+        let t1 = &targets[0];
+        assert_eq!(&t1.target_id.node_id, &AddressSpace::objects_folder_id());
+        */
 }
 
 #[test]
 fn translate_browse_paths_to_node_ids2() {
+    opcua_console_logging::init();
 
     // Inputs and outputs taken from this testcase in Node OPCUA
     //
@@ -277,10 +280,11 @@ fn translate_browse_paths_to_node_ids2() {
         "/Objects/Server.ServerStatus.BuildInfo.",
         "/Objects.Server",
         "/Objects/2:MatrikonOPC Simulation Server (DA)",
+        // TODO tests that test inverse and no subtypes
     ].iter().map(|path|
         BrowsePath {
             starting_node: starting_node.clone(),
-            relative_path: RelativePath::from_str(path, &RelativePathElement::default_node_resolver).unwrap()
+            relative_path: RelativePath::from_str(path, &RelativePathElement::default_node_resolver).unwrap(),
         }
     ).collect::<Vec<_>>();
 
@@ -300,27 +304,31 @@ fn translate_browse_paths_to_node_ids2() {
     let results = response.results.unwrap();
     assert_eq!(results.len(), browse_paths_len);
 
+    let mut idx = 0;
+
     // results[0]
     {
-        let r = &results[0];
+        let r = &results[idx];
         assert!(r.status_code.is_good());
         let targets = r.targets.as_ref().unwrap();
         assert_eq!(targets.len(), 1);
         assert_eq!(&targets[0].target_id, &ObjectId::Server.into());
+        idx += 1;
     }
 
     // results[1]
     {
-        let r = &results[1];
+        let r = &results[idx];
         assert!(r.status_code.is_good());
         let targets = r.targets.as_ref().unwrap();
 //        assert_eq!(targets.len(), 1);
 //        assert_eq!(&targets[0].target_id, &VariableId::Server_ServerStatus.into());
+        idx += 1;
     }
 
     // results[2]
     {
-        let r = &results[2];
+        let r = &results[idx];
         assert!(r.status_code.is_good());
         let targets = r.targets.as_ref().unwrap();
 //        assert_eq!(targets.len(), 1);
@@ -329,6 +337,7 @@ fn translate_browse_paths_to_node_ids2() {
         // results[2].targets.length.should.eql(1);
         // results[2].targets[0].targetId.toString().should.eql("ns=0;i=2260");
         // results[2].targets[0].targetId.value.should.eql(opcua.VariableIds.Server_ServerStatus_BuildInfo);
+        idx += 1;
     }
 
     // results[3]
@@ -337,20 +346,24 @@ fn translate_browse_paths_to_node_ids2() {
         // results[3].targets.length.should.eql(1);
         // results[3].targets[0].targetId.toString().should.eql("ns=0;i=2261");
         // results[3].targets[0].targetId.value.should.eql(opcua.VariableIds.Server_ServerStatus_BuildInfo_ProductName);
+        idx += 1;
     }
 
     // results[4]
     {
         // results[4].statusCode.should.eql(StatusCodes.BadBrowseNameInvalid);
+        idx += 1;
     }
 
     // results[5]
     {
         // results[5].statusCode.should.eql(StatusCodes.BadNoMatch);
+        idx += 1;
     }
 
     // results[6]
     {
         // results[6].statusCode.should.eql(StatusCodes.BadNoMatch);
+        idx += 1;
     }
 }

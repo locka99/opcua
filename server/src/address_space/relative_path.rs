@@ -10,37 +10,50 @@ use crate::{
 
 /// Given a `RelativePath`, find all the nodes that match against it.
 pub(crate) fn find_nodes_relative_path(address_space: &AddressSpace, node_id: &NodeId, relative_path: &RelativePath) -> Result<Vec<NodeId>, StatusCode> {
-    // TODO THIS CODE IS PROBABLY BROKEN - need test examples for TranslateBrowsePathToNodeIds
-    if address_space.find_node(node_id).is_none() {
-        Err(StatusCode::BadNodeIdUnknown)
-    } else {
-        let elements = relative_path.elements.as_ref().unwrap();
-        if elements.is_empty() {
-            Err(StatusCode::BadNothingToDo)
-        } else {
-            let mut matching_nodes = vec![node_id.clone()];
-            let mut next_matching_nodes = Vec::with_capacity(100);
+    match address_space.find_node(node_id) {
+        None => {
+            trace!("find_nodes_relative_path cannot find node {:?}", node_id);
+            Err(StatusCode::BadNodeIdUnknown)
+        }
+        Some(_) => {
+            let elements = relative_path.elements.as_ref().unwrap();
+            if elements.is_empty() {
+                warn!("find_nodes_relative_path elements are empty");
+                Err(StatusCode::BadNothingToDo)
+            } else {
+                let mut matching_nodes = vec![node_id.clone()];
+                let mut next_matching_nodes = Vec::with_capacity(100);
 
-            // Traverse the relative path elements
-            for relative_path_element in elements.iter() {
-                next_matching_nodes.clear();
+                // Traverse the relative path elements. Each time around, we will find the matching
+                // elements at that level using the next element
+                for element in elements.iter() {
+                    if element.target_name.is_null() {
+                        warn!("find_nodes_relative_path browse name is invalid (null)");
+                        return Err(StatusCode::BadBrowseNameInvalid);
+                    }
 
-                if matching_nodes.is_empty() {
-                    break;
-                }
+                    next_matching_nodes.clear();
 
-                for node_id in &matching_nodes {
-                    // Iterate current set of nodes and put the results into next
-                    if let Some(mut result) = follow_relative_path(address_space, &node_id, relative_path_element) {
-                        next_matching_nodes.append(&mut result);
+                    matching_nodes.drain(..).for_each(|node_id| {
+                        // Iterate current set of nodes and put the results into next
+                        if let Some(mut result) = follow_relative_path(address_space, &node_id, element) {
+                            next_matching_nodes.append(&mut result);
+                        }
+                    });
+                    if next_matching_nodes.is_empty() {
+                        break;
+                    } else {
+                        matching_nodes.append(&mut next_matching_nodes);
                     }
                 }
 
-                matching_nodes.clear();
-                matching_nodes.append(&mut next_matching_nodes);
+                if matching_nodes.is_empty() {
+                    warn!("find_nodes_relative_path bad no match");
+                    Err(StatusCode::BadNoMatch)
+                } else {
+                    Ok(matching_nodes)
+                }
             }
-
-            Ok(matching_nodes)
         }
     }
 }

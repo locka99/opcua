@@ -95,11 +95,14 @@ impl ViewService {
 
         if let Some(ref browse_paths) = request.browse_paths {
             if browse_paths.is_empty() {
+                trace!("Browse paths is empty");
                 Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
             } else if max_nodes_per_operation > 0 && browse_paths.len() > max_nodes_per_operation {
+                trace!("Browse paths size {} exceeds max nodes {}", browse_paths.len(), max_nodes_per_operation);
                 Ok(self.service_fault(&request.request_header, StatusCode::BadTooManyOperations))
             } else {
-                let results = browse_paths.iter().map(|browse_path| {
+                let results = browse_paths.iter().enumerate().map(|(i, browse_path)| {
+                    trace!("Processing browse path {}", i);
                     let node_id = browse_path.starting_node.clone();
                     if browse_path.relative_path.elements.is_none() {
                         BrowsePathResult {
@@ -110,6 +113,7 @@ impl ViewService {
                         // Starting from the node_id, find paths
                         match relative_path::find_nodes_relative_path(address_space, &node_id, &browse_path.relative_path) {
                             Err(err) => {
+                                trace!("Browse path result for find nodes returned in error {}", err.name());
                                 BrowsePathResult {
                                     status_code: err,
                                     targets: None,
@@ -153,12 +157,10 @@ impl ViewService {
 
     fn browse_nodes(session: &mut Session, address_space: &AddressSpace, nodes_to_browse: &[BrowseDescription], max_references_per_node: usize) -> Vec<BrowseResult> {
         nodes_to_browse.iter().map(|node_to_browse| {
-            let browse_result = Self::browse_node(session, &address_space, 0, node_to_browse, max_references_per_node);
-            if let Ok(browse_result) = browse_result {
-                browse_result
-            } else {
-                BrowseResult {
-                    status_code: browse_result.unwrap_err(),
+            match Self::browse_node(session, &address_space, 0, node_to_browse, max_references_per_node) {
+                Ok(browse_result) => browse_result,
+                Err(status_code) => BrowseResult {
+                    status_code,
                     continuation_point: ByteString::null(),
                     references: None,
                 }

@@ -3,11 +3,11 @@ lto = true
 
 [workspace]
 members = [
+    "console-logging",
     "types",
     "core",
     "client",
     "server",
-    "console-logging",
     "integration",
     "samples/demo-server",
     "samples/simple-client",
