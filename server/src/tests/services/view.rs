@@ -311,6 +311,7 @@ fn translate_browse_paths_to_node_ids2() {
         let r = &results[idx];
         assert!(r.status_code.is_good());
         let targets = r.targets.as_ref().unwrap();
+        trace!("targets for {} = {:#?}", idx, targets);
         assert_eq!(targets.len(), 1);
         assert_eq!(&targets[0].target_id, &ObjectId::Server.into());
         idx += 1;
@@ -321,8 +322,9 @@ fn translate_browse_paths_to_node_ids2() {
         let r = &results[idx];
         assert!(r.status_code.is_good());
         let targets = r.targets.as_ref().unwrap();
-//        assert_eq!(targets.len(), 1);
-//        assert_eq!(&targets[0].target_id, &VariableId::Server_ServerStatus.into());
+        trace!("targets for {} = {:#?}", idx, targets);
+        assert_eq!(targets.len(), 1);
+        assert_eq!(&targets[0].target_id, &VariableId::Server_ServerStatus.into());
         idx += 1;
     }
 
@@ -331,39 +333,40 @@ fn translate_browse_paths_to_node_ids2() {
         let r = &results[idx];
         assert!(r.status_code.is_good());
         let targets = r.targets.as_ref().unwrap();
-//        assert_eq!(targets.len(), 1);
-//        assert_eq!(&targets[0].target_id, &VariableId::Server_ServerStatus_BuildInfo.into());
-        // results[2].statusCode.should.eql(StatusCodes.Good);
-        // results[2].targets.length.should.eql(1);
-        // results[2].targets[0].targetId.toString().should.eql("ns=0;i=2260");
-        // results[2].targets[0].targetId.value.should.eql(opcua.VariableIds.Server_ServerStatus_BuildInfo);
+        trace!("targets for {} = {:#?}", idx, targets);
+        assert_eq!(targets.len(), 1);
+        assert_eq!(&targets[0].target_id, &VariableId::Server_ServerStatus_BuildInfo.into());
         idx += 1;
     }
 
     // results[3]
     {
-        // results[3].statusCode.should.eql(StatusCodes.Good);
-        // results[3].targets.length.should.eql(1);
-        // results[3].targets[0].targetId.toString().should.eql("ns=0;i=2261");
-        // results[3].targets[0].targetId.value.should.eql(opcua.VariableIds.Server_ServerStatus_BuildInfo_ProductName);
+        let r = &results[idx];
+        assert!(r.status_code.is_good());
+        let targets = r.targets.as_ref().unwrap();
+        trace!("targets for {} = {:#?}", idx, targets);
+        assert_eq!(&targets[0].target_id, &VariableId::Server_ServerStatus_BuildInfo_ProductName.into());
         idx += 1;
     }
 
     // results[4]
     {
-        // results[4].statusCode.should.eql(StatusCodes.BadBrowseNameInvalid);
+        let r = &results[idx];
+        assert_eq!(r.status_code, StatusCode::BadBrowseNameInvalid);
         idx += 1;
     }
 
     // results[5]
     {
-        // results[5].statusCode.should.eql(StatusCodes.BadNoMatch);
+        let r = &results[idx];
+        assert_eq!(r.status_code, StatusCode::BadNoMatch);
         idx += 1;
     }
 
     // results[6]
     {
-        // results[6].statusCode.should.eql(StatusCodes.BadNoMatch);
+        let r = &results[idx];
+        assert_eq!(r.status_code, StatusCode::BadNoMatch);
         idx += 1;
     }
 }

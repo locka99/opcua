@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use opcua_types::{
     status_code::StatusCode,
     node_id::NodeId,
@@ -35,9 +37,13 @@ pub(crate) fn find_nodes_relative_path(address_space: &AddressSpace, node_id: &N
                     next_matching_nodes.clear();
 
                     matching_nodes.drain(..).for_each(|node_id| {
+                        trace!("Following relative path on node {:?}", node_id);
                         // Iterate current set of nodes and put the results into next
                         if let Some(mut result) = follow_relative_path(address_space, &node_id, element) {
+                            trace!("  Found matching nodes {:#?}", result);
                             next_matching_nodes.append(&mut result);
+                        } else {
+                            trace!("  Found no matching nodes");
                         }
                     });
                     if next_matching_nodes.is_empty() {
@@ -77,7 +83,9 @@ fn follow_relative_path(address_space: &AddressSpace, node_id: &NodeId, relative
                 }
             }
         }
-        Some(result)
+        // Vector may contain duplicates, so reduce those to a unique set
+        let mut result: HashSet<NodeId> = result.drain(..).collect();
+        Some(result.drain().collect())
     } else {
         None
     }
