@@ -383,6 +383,7 @@ impl TcpTransport {
         };
 
         let connection = Arc::new(RwLock::new(connection));
+        let connection_for_error = connection.clone();
         let connection_for_terminate = connection.clone();
 
         // The reader reads frames from the codec, which are messages
@@ -435,6 +436,8 @@ impl TcpTransport {
             Ok(())
         }).map_err(move |e| {
             error!("Read loop error {:?}", e);
+            let connection = trace_read_lock_unwrap!(connection_for_error);
+            set_connection_state!(connection.state, ConnectionState::Finished(StatusCode::BadCommunicationError));
         }).and_then(move |_| {
             let connection = trace_read_lock_unwrap!(connection_for_terminate);
             let state = connection_state!(connection.state);
@@ -447,14 +450,15 @@ impl TcpTransport {
             }
         }).map(|_| {
             info!("Read loop finished");
-        }).map_err(|err| {
-            error!("Read loop ended with an error {:?}", err);
+        }).map_err(|_| {
+            error!("Read loop ended with an error");
         });
         tokio::spawn(looping_task);
     }
 
     fn spawn_writing_task(receiver: UnboundedReceiver<SupportedMessage>, connection: WriteState) {
         let connection = Arc::new(Mutex::new(connection));
+        let connection_for_error = connection.clone();
 
         // In writing, we wait on outgoing requests, encoding each and writing them out
         let looping_task = receiver
@@ -511,6 +515,8 @@ impl TcpTransport {
             })
             .map_err(move |err| {
                 error!("Write loop is finished with an error {:?}", err);
+                let connection = trace_lock_unwrap!(connection_for_error);
+                set_connection_state!(connection.state, ConnectionState::Finished(StatusCode::BadCommunicationError));
             });
 
         tokio::spawn(looping_task);

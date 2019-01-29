@@ -1,12 +1,16 @@
-use opcua_types::status_code::StatusCode;
-use opcua_types::service_types::{CallRequest, CallResponse, CallMethodRequest, CallMethodResult};
-use opcua_types::node_ids::{ObjectId, MethodId};
+use opcua_types::{
+    status_code::StatusCode,
+    service_types::{CallRequest, CallResponse, CallMethodRequest, CallMethodResult},
+    node_ids::{ObjectId, MethodId},
+};
 
 use super::*;
 
-use crate::services::method::MethodService;
-use crate::services::subscription::SubscriptionService;
-use crate::services::monitored_item::MonitoredItemService;
+use crate::services::{
+    method::MethodService,
+    subscription::SubscriptionService,
+    monitored_item::MonitoredItemService,
+};
 
 fn new_call_method_request<S, T>(object_id: S, method_id: T, input_arguments: Option<Vec<Variant>>) -> CallMethodRequest
     where S: Into<NodeId>, T: Into<NodeId> {
@@ -162,7 +166,6 @@ fn call_getmonitoreditems() {
         }
     }
 }
-
 
 
 #[test]

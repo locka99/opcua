@@ -4,8 +4,8 @@ This is the in-depth documentation about the OPC UA implementation in Rust.
 
 ## Windows
 
-The preferred way to build OPC UA is with MSYS2 but you can use Microsoft Visual Studio 201x if you manually install 
-OpenSSL.
+Rust supports two compiler backends - gcc or MSVC. The preferred way to build OPC UA is with gcc and MSYS2 but you can
+also use Microsoft Visual Studio 201x if you manually install OpenSSL.
 
 ### MSYS2
 
@@ -28,7 +28,7 @@ MinGW64 binaries are on your `PATH` but once that's done you're good to go.
 
 Ensure that `%OPENSSL_DIR%\bin` is on your `PATH`.
 
-Note this is a 64-bit build. I haven't tried building 32-bits but it may work by adjusting 64 to 32 as required.
+Note this is a 64-bit build. I haven't tried creating 32-bit builds but it may work by adjusting 64 to 32 as required.
 
 ## Linux
 

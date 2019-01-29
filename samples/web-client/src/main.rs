@@ -156,12 +156,11 @@ fn subscription_loop(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
     loop {
         let mut session = session.write().unwrap();
         // Break the loop if connection goes down
-        if !session.is_connected() {
+        if let Err(_) = session.poll() {
+            // Break the loop if connection goes down
             println!("Connection to server broke, so terminating");
             break;
         }
-        // Main thread has nothing to do - just wait for publish events to roll in
-        session.poll();
     }
 
     Ok(())

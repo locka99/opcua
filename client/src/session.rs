@@ -1283,10 +1283,10 @@ impl Session {
         session_state.async_send_request(request, is_async)
     }
 
-    /// Asks the session to poll, which basically dispatchies any pending
+    /// Asks the session to poll, which basically dispatches any pending
     /// async responses, attempts to reconnect if the client is disconnected from the client.
     /// Returns `true` if it did something, `false` if it caused the thread to sleep for a bit.
-    pub fn poll(&mut self) -> bool {
+    pub fn poll(&mut self) -> Result<bool, ()> {
         let did_something = if self.is_connected() {
             let handled_responses = self.handle_publish_responses();
             if !handled_responses {
@@ -1299,12 +1299,13 @@ impl Session {
             match self.session_retry_policy.should_retry_connect(Utc::now()) {
                 Answer::GiveUp => {
                     // TODO for the first GiveUp, we should log the message
-                    false
+                    info!("Session has given up trying to reconnect to the server");
+                    return Err(());
                 }
                 Answer::Retry => {
                     info!("Retrying to reconnect to server...");
                     if let Ok(_) = self.reconnect_and_activate() {
-                        info!("Retry to connect was successfull");
+                        info!("Retry to connect was successful");
                         self.session_retry_policy.reset_retry_count();
                     } else {
                         self.session_retry_policy.increment_retry_count();
@@ -1321,7 +1322,7 @@ impl Session {
             // Sleep for a bit, save CPU
             thread::sleep(Duration::from_millis(50))
         }
-        did_something
+        Ok(did_something)
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

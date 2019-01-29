@@ -227,7 +227,7 @@ fn translate_browse_paths_to_node_ids() {
             relative_path: RelativePath {
                 elements: Some(vec![
                     RelativePathElement {
-                        reference_type_id: ReferenceTypeId::HasChild.into(),
+                        reference_type_id: ReferenceTypeId::Organizes.into(),
                         is_inverse: false,
                         include_subtypes: true,
                         target_name: QualifiedName::new(0, "Objects"),
@@ -253,12 +253,10 @@ fn translate_browse_paths_to_node_ids() {
     let results = response.results.unwrap();
     assert_eq!(results.len(), 1);
     let r1 = &results[0];
-    /* TODO
-        let targets = r1.targets.as_ref().unwrap();
-        assert_eq!(targets.len(), 1);
-        let t1 = &targets[0];
-        assert_eq!(&t1.target_id.node_id, &AddressSpace::objects_folder_id());
-        */
+    let targets = r1.targets.as_ref().unwrap();
+    assert_eq!(targets.len(), 1);
+    let t1 = &targets[0];
+    assert_eq!(&t1.target_id.node_id, &AddressSpace::objects_folder_id());
 }
 
 #[test]
@@ -280,7 +278,6 @@ fn translate_browse_paths_to_node_ids2() {
         "/Objects/Server.ServerStatus.BuildInfo.",
         "/Objects.Server",
         "/Objects/2:MatrikonOPC Simulation Server (DA)",
-        // TODO tests that test inverse and no subtypes
     ].iter().map(|path|
         BrowsePath {
             starting_node: starting_node.clone(),
@@ -367,6 +364,6 @@ fn translate_browse_paths_to_node_ids2() {
     {
         let r = &results[idx];
         assert_eq!(r.status_code, StatusCode::BadNoMatch);
-        idx += 1;
+        // idx += 1;
     }
 }

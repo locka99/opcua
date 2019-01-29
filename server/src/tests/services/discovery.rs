@@ -27,8 +27,6 @@ fn get_endpoints() {
         assert!(!endpoints.is_empty());
 
         debug!("Endpoints = {:#?}", endpoints);
-
-//        panic!("error");
     }
 }
 

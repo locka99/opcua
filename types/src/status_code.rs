@@ -28,7 +28,7 @@ impl fmt::Display for StatusCode {
 
 impl From<StatusCode> for io::Error {
     fn from(e: StatusCode) -> io::Error {
-        io::Error::new(io::ErrorKind::Other, format!("StatusCode {:?}", e))
+        io::Error::new(io::ErrorKind::Other, format!("StatusCode {}", e))
     }
 }
 
