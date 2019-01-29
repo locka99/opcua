@@ -235,7 +235,7 @@ impl TcpTransport {
                         session_state.session_closed(status_code);
                     }
                     _ => {
-                        panic!("Should not be able to terminate the connect task without it being in a finished state");
+                        error!("Connect task is not in a finished state, state = {:?}", connection_state);
                     }
                 }
             }));
@@ -247,11 +247,11 @@ impl TcpTransport {
             match connection_state!(self.connection_state) {
                 ConnectionState::Processing => {
                     debug!("Connected");
-                    break;
+                    return Ok(());
                 }
-                ConnectionState::Finished(_) => {
-                    debug!("Disconnected");
-                    break;
+                ConnectionState::Finished(status_code) => {
+                    error!("Connected failed with status {}", status_code);
+                    return Err(StatusCode::BadConnectionClosed);
                 }
                 _ => {
                     // Still waiting for something to happen
@@ -259,8 +259,6 @@ impl TcpTransport {
             }
             thread::sleep(Duration::from_millis(WAIT_POLLING_TIMEOUT))
         }
-
-        Ok(())
     }
 
     /// Disconnects the stream from the server (if it is connected)

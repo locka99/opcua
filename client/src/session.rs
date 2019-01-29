@@ -193,6 +193,8 @@ impl Session {
         } else {
             self.connect()?;
             if let Err(error) = self.activate_session() {
+                info!("Activating session failed, so fallback to transfer subscription");
+
                 // Perhaps the server went down and lost all its state?
                 // In that instance, the fall back here should be:
 
@@ -244,6 +246,7 @@ impl Session {
 
                 Err(error)
             } else {
+                info!("Activating session failed, so fallback to transfer subscription");
                 Ok(())
             }
         }
@@ -1304,6 +1307,7 @@ impl Session {
                 }
                 Answer::Retry => {
                     info!("Retrying to reconnect to server...");
+                    self.session_retry_policy.set_last_attempt(Utc::now());
                     if let Ok(_) = self.reconnect_and_activate() {
                         info!("Retry to connect was successful");
                         self.session_retry_policy.reset_retry_count();

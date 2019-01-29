@@ -39,7 +39,7 @@ impl SessionRetryPolicy {
     /// The default retry policy will attempt to reconnect up to this many times.
     pub const DEFAULT_RETRY_LIMIT: u32 = 10;
     /// The default retry policy will wait this duration between reconnect attempts.
-    pub const DEFAULT_RETRY_INTERVAL_MS: i64 = 10000;
+    pub const DEFAULT_RETRY_INTERVAL_MS: i64 = 2000;
 
     pub fn increment_retry_count(&mut self) {
         self.retry_count += 1;
@@ -56,7 +56,7 @@ impl SessionRetryPolicy {
     /// Asks the policy, given the last retry attempt, should we try to connect again, wait a period of time
     /// or give up entirely.
     pub fn should_retry_connect(&self, now: DateTime<Utc>) -> Answer {
-        if self.retry_limit > 0 && self.retry_count > self.retry_limit {
+        if self.retry_limit > 0 && self.retry_count >= self.retry_limit {
             // Number of retries have been exceeded
             Answer::GiveUp
         } else {
@@ -66,7 +66,7 @@ impl SessionRetryPolicy {
                 // Wait a bit
                 Answer::WaitFor(self.retry_interval - elapsed)
             } else {
-                //
+                info!("Retry retriggered by policy");
                 Answer::Retry
             }
         }
@@ -85,9 +85,9 @@ fn session_retry() {
 
     session_retry.set_last_attempt(last_attempt_expired);
     assert_eq!(session_retry.should_retry_connect(now), Answer::Retry);
-    session_retry.retry_count = SessionRetryPolicy::DEFAULT_RETRY_LIMIT;
+    session_retry.retry_count = SessionRetryPolicy::DEFAULT_RETRY_LIMIT - 1;
     assert_eq!(session_retry.should_retry_connect(now), Answer::Retry);
-    session_retry.retry_count = SessionRetryPolicy::DEFAULT_RETRY_LIMIT + 1;
+    session_retry.retry_count = SessionRetryPolicy::DEFAULT_RETRY_LIMIT;
     assert_eq!(session_retry.should_retry_connect(now), Answer::GiveUp);
 
     session_retry.set_last_attempt(last_attempt_wait);
