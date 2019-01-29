@@ -958,6 +958,47 @@ impl Session {
         }
     }
 
+    /// Transfers Subscriptions and their MonitoredItems from one Session to another. For example,
+    /// a Client may need to reopen a Session and then transfer its Subscriptions to that Session.
+    /// It may also be used by one Client to take over a Subscription from another Client by
+    /// transferring the Subscription to its Session.
+    ///
+    /// * `subscription_ids` - one or more subscription identifiers.
+    /// * `send_initial_values` - A boolean parameter with the following values - `true` the first
+    ///   publish response shall contain the current values of all monitored items in the subscription,
+    ///   `false`, the first publish response shall contain only the value changes since the last
+    ///   publish response was sent.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Vec<TransferResult>)` - Service return code for each transfer subscription.
+    /// * `Err(StatusCode)` - Status code reason for failure
+    ///
+    /// [`TransferSubscriptionsRequest`]: ./struct.TransferSubscriptionsRequest.html
+    ///
+    pub fn transfer_subscriptions(&mut self, subscription_ids: &[u32], send_initial_values: bool) -> Result<Vec<TransferResult>, StatusCode> {
+        if subscription_ids.is_empty() {
+            // No subscriptions
+            error!("set_publishing_mode, no subscription ids were provided");
+            Err(StatusCode::BadNothingToDo)
+        } else {
+            let request = TransferSubscriptionsRequest {
+                request_header: self.make_request_header(),
+                subscription_ids: Some(subscription_ids.to_vec()),
+                send_initial_values,
+            };
+            let response = self.send_request(request)?;
+            if let SupportedMessage::TransferSubscriptionsResponse(response) = response {
+                crate::process_service_result(&response.response_header)?;
+                debug!("transfer_subscriptions success");
+                Ok(response.results.unwrap())
+            } else {
+                error!("transfer_subscriptions failed {:?}", response);
+                Err(crate::process_unexpected_response(response))
+            }
+        }
+    }
+
     /// Changes the publishing mode of subscriptiongs by sending a [`SetPublishingModeRequest`] to the server.
     ///
     /// # Arguments

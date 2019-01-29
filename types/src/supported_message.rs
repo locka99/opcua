@@ -115,6 +115,8 @@ impl SupportedMessage {
             SupportedMessage::ModifySubscriptionResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::DeleteSubscriptionsRequest(ref r) => r.request_header.request_handle,
             SupportedMessage::DeleteSubscriptionsResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::TransferSubscriptionsRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::TransferSubscriptionsResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::SetPublishingModeRequest(ref r) => r.request_header.request_handle,
             SupportedMessage::SetPublishingModeResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::BrowseRequest(ref r) => r.request_header.request_handle,
@@ -232,6 +234,12 @@ impl SupportedMessage {
             ObjectId::DeleteSubscriptionsResponse_Encoding_DefaultBinary => {
                 DeleteSubscriptionsResponse::decode(stream, decoding_limits)?.into()
             }
+            ObjectId::TransferSubscriptionsRequest_Encoding_DefaultBinary => {
+                TransferSubscriptionsRequest::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::TransferSubscriptionsResponse_Encoding_DefaultBinary => {
+                TransferSubscriptionsResponse::decode(stream, decoding_limits)?.into()
+            }
             ObjectId::SetPublishingModeRequest_Encoding_DefaultBinary => {
                 SetPublishingModeRequest::decode(stream, decoding_limits)?.into()
             }
@@ -329,6 +337,8 @@ supported_messages_enum![
     ModifySubscriptionResponse,
     DeleteSubscriptionsRequest,
     DeleteSubscriptionsResponse,
+    TransferSubscriptionsRequest,
+    TransferSubscriptionsResponse,
     SetPublishingModeRequest,
     SetPublishingModeResponse,
     BrowseRequest,
