@@ -178,40 +178,38 @@ impl Session {
     /// Reconnects to the server and tries to activate the existing session. If there
     /// is a failure, it will be communicated by the status code in the result.
     pub fn reconnect_and_activate(&mut self) -> Result<(), StatusCode> {
-        let have_authentication_token = {
-            let session_state = trace_read_lock_unwrap!(self.session_state);
-            !session_state.authentication_token().is_null()
-        };
+        let have_authentication_token = {};
         // Do nothing if already connected / activated
         if self.is_connected() {
             error!("Reconnect is going to do nothing because already connected");
             Err(StatusCode::BadUnexpectedError)
-        } else if !have_authentication_token {
-            // Cannot activate a session without an authentication token
-            error!("No session was previously created.");
-            Err(StatusCode::BadUnexpectedError)
         } else {
+            // Clear the existing session state
+            {
+                let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                session_state.set_authentication_token(NodeId::null());
+
+                let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+                secure_channel.clear_security_token();
+            }
+
+            // Connect to server (again)
             self.connect()?;
-            if let Err(error) = self.activate_session() {
-                info!("Activating session failed, so fallback to transfer subscription");
+            self.create_session()?;
+            self.activate_session()?;
 
-                // Perhaps the server went down and lost all its state?
-                // In that instance, the fall back here should be:
+            // Transfer subscriptions from the old session to the new one
+            {
+                let subscription_state = self.subscription_state.clone();
+                let mut subscription_state = trace_write_lock_unwrap!(subscription_state);
 
-                // 1) create a new session
-                self.create_session()?;
+                if let Some(subscription_ids) = subscription_state.subscription_ids() {
+                    if let Ok(transfer_results) = self.transfer_subscriptions(&subscription_ids, true) {
+                        // TODO check all the transfer results for success code
+                    } else {
+                        // Fallback: reconstruct all subscriptions and monitored items from their client side cached values
+                        // clone to avoid some borrowing issues on self
 
-                // 2) activate session
-                self.activate_session()?;
-
-                // TODO transfer subscription
-
-                // 3) reconstruct all subscriptions and monitored items from their client side cached values
-                {
-                    // clone to avoid some borrowing issues on self
-                    let subscription_state = self.subscription_state.clone();
-                    {
-                        let mut subscription_state = trace_write_lock_unwrap!(subscription_state);
                         let mut subscriptions = subscription_state.drain_subscriptions();
                         subscriptions.drain().for_each(|(_, sub)| {
                             // Attempt to replicate the subscription
@@ -243,12 +241,8 @@ impl Session {
                         });
                     }
                 }
-
-                Err(error)
-            } else {
-                info!("Activating session failed, so fallback to transfer subscription");
-                Ok(())
             }
+            Ok(())
         }
     }
 
@@ -1370,7 +1364,7 @@ impl Session {
         Ok(did_something)
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////
 
     fn user_identity_token(&self) -> Result<ExtensionObject, StatusCode> {
         let user_token_type = match self.session_info.user_identity_token {
