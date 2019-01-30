@@ -204,9 +204,10 @@ impl Session {
                 let mut subscription_state = trace_write_lock_unwrap!(subscription_state);
 
                 if let Some(subscription_ids) = subscription_state.subscription_ids() {
-                    if let Ok(transfer_results) = self.transfer_subscriptions(&subscription_ids, true) {
-                        // TODO check all the transfer results for success code
-                    } else {
+//                    if let Ok(transfer_results) = self.transfer_subscriptions(&subscription_ids, true) {
+//                        debug!("transfer_results = {:?}", transfer_results);
+//                    } else {
+                    {
                         // Fallback: reconstruct all subscriptions and monitored items from their client side cached values
                         // clone to avoid some borrowing issues on self
 
