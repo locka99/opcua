@@ -44,6 +44,11 @@ impl Handle {
         }
         next
     }
+
+    /// Resets the handle to its initial state
+    pub fn reset(&mut self) {
+        self.next = self.first;
+    }
 }
 
 #[test]
@@ -235,6 +240,13 @@ impl SessionState {
         // Wait for the response
         let request_timeout = self.request_timeout();
         self.wait_for_sync_response(request_handle, request_timeout)
+    }
+
+    pub(crate) fn reset(&mut self) {
+        self.session_id();
+        self.authentication_token = NodeId::null();
+        self.request_handle.reset();
+        self.monitored_item_handle.reset();
     }
 
     /// Asynchronously sends a request. The return value is the request handle of the request

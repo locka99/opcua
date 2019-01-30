@@ -187,7 +187,7 @@ impl Session {
             // Clear the existing session state
             {
                 let mut session_state = trace_write_lock_unwrap!(self.session_state);
-                session_state.set_authentication_token(NodeId::null());
+                session_state.reset();
 
                 let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
                 secure_channel.clear_security_token();
@@ -204,13 +204,11 @@ impl Session {
                 let mut subscription_state = trace_write_lock_unwrap!(subscription_state);
 
                 if let Some(subscription_ids) = subscription_state.subscription_ids() {
-//                    if let Ok(transfer_results) = self.transfer_subscriptions(&subscription_ids, true) {
-//                        debug!("transfer_results = {:?}", transfer_results);
-//                    } else {
-                    {
+                    if let Ok(transfer_results) = self.transfer_subscriptions(&subscription_ids, true) {
+                        debug!("transfer_results = {:?}", transfer_results);
+                    } else {
                         // Fallback: reconstruct all subscriptions and monitored items from their client side cached values
                         // clone to avoid some borrowing issues on self
-
                         let mut subscriptions = subscription_state.drain_subscriptions();
                         subscriptions.drain().for_each(|(_, sub)| {
                             // Attempt to replicate the subscription
@@ -240,6 +238,11 @@ impl Session {
                                 let _ = self.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create);
                             }
                         });
+                    }
+
+                    // Start publish timers
+                    for subscription_id in &subscription_ids {
+                        let _ = self.timer_command_queue.unbounded_send(SubscriptionTimerCommand::CreateTimer(*subscription_id));
                     }
                 }
             }
@@ -1436,6 +1439,10 @@ impl Session {
                     _ => {}
                 }
                 future::ok(())
+            }).map(|_| {
+                info!("Timer receiver has terminated");
+            }).map_err(|_| {
+                error!("Timer receiver has terminated with an error");
             });
             tokio::run(timer_task);
         });
