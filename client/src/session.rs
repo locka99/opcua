@@ -202,9 +202,18 @@ impl Session {
                         let mut session_state = trace_write_lock_unwrap!(self.session_state);
                         session_state.reset();
                     }
+                    {
+                        let mut message_queue = trace_write_lock_unwrap!(self.message_queue);
+                        message_queue.clear();
+                    };
+
+                    debug!("create_session");
                     self.create_session()?;
+                    debug!("activate_session");
                     self.activate_session()?;
+                    debug!("transfer_subscriptions_from_old_session");
                     self.transfer_subscriptions_from_old_session()?;
+                    debug!("reconnect should be complete");
                 }
                 Ok(_) => {
                     info!("Activation succeeded so need to recreate anything");
@@ -218,10 +227,14 @@ impl Session {
     /// either transfer them to this session, or construct them from scratch.
     fn transfer_subscriptions_from_old_session(&mut self) -> Result<(), StatusCode> {
         let subscription_state = self.subscription_state.clone();
-        let mut subscription_state = trace_write_lock_unwrap!(subscription_state);
+
+        let subscription_ids = {
+            let subscription_state = trace_read_lock_unwrap!(subscription_state);
+            subscription_state.subscription_ids()
+        };
 
         // Start by getting the subscription ids
-        if let Some(subscription_ids) = subscription_state.subscription_ids() {
+        if let Some(subscription_ids) = subscription_ids {
             // Try to use TransferSubscriptions to move subscriptions_ids over. If this
             // works then there is nothing else to do.
             let mut subscription_ids_to_recreate = subscription_ids.iter().map(|s| *s).collect::<HashSet<u32>>();
@@ -244,20 +257,25 @@ impl Session {
             subscription_ids_to_recreate.iter().for_each(|subscription_id| {
                 info!("Recreating subscription {}", subscription_id);
                 // Remove the subscription data, create it again from scratch
-                if let Some(sub) = subscription_state.delete_subscription(*subscription_id) {
+                let deleted_subscription = {
+                    let mut subscription_state = trace_write_lock_unwrap!(subscription_state);
+                    subscription_state.delete_subscription(*subscription_id)
+                };
+
+                if let Some(subscription) = deleted_subscription {
                     // Attempt to replicate the subscription (subscription id will be new)
                     if let Ok(subscription_id) = self.create_subscription_inner(
-                        sub.publishing_interval(),
-                        sub.lifetime_count(),
-                        sub.max_keep_alive_count(),
-                        sub.max_notifications_per_publish(),
-                        sub.priority(),
-                        sub.publishing_enabled(),
-                        sub.data_change_callback()) {
+                        subscription.publishing_interval(),
+                        subscription.lifetime_count(),
+                        subscription.max_keep_alive_count(),
+                        subscription.max_notifications_per_publish(),
+                        subscription.priority(),
+                        subscription.publishing_enabled(),
+                        subscription.data_change_callback()) {
                         info!("New subscription created with id {}", subscription_id);
 
                         // For each monitored item
-                        let items_to_create = sub.monitored_items().iter().map(|(_, item)| {
+                        let items_to_create = subscription.monitored_items().iter().map(|(_, item)| {
                             MonitoredItemCreateRequest {
                                 item_to_monitor: item.item_to_monitor(),
                                 monitoring_mode: item.monitoring_mode(),
@@ -281,7 +299,10 @@ impl Session {
 
             // Now all the subscriptions should have been recreated, it should be possible
             // to kick off the publish timers.
-            let subscription_ids = subscription_state.subscription_ids().unwrap();
+            let subscription_ids = {
+                let subscription_state = trace_read_lock_unwrap!(subscription_state);
+                subscription_state.subscription_ids().unwrap()
+            };
             for subscription_id in &subscription_ids {
                 let _ = self.timer_command_queue.unbounded_send(SubscriptionTimerCommand::CreateTimer(*subscription_id));
             }
@@ -840,8 +861,6 @@ impl Session {
                 let _ = self.timer_command_queue.unbounded_send(SubscriptionTimerCommand::CreateTimer(subscription_id));
             }
             debug!("create_subscription, created a subscription with id {}", response.subscription_id);
-
-
             Ok(response.subscription_id)
         } else {
             error!("create_subscription failed {:?}", response);

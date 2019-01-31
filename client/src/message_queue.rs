@@ -24,6 +24,11 @@ impl MessageQueue {
         }
     }
 
+    pub(crate) fn clear(&mut self) {
+        self.inflight_requests.clear();
+        self.responses.clear();
+    }
+
     // Creates the transmission queue that outgoing requests will be sent over
     pub(crate) fn make_request_channel(&mut self) -> UnboundedReceiver<SupportedMessage> {
         let (tx, rx) = mpsc::unbounded::<SupportedMessage>();
