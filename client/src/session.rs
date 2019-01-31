@@ -4,6 +4,7 @@
 //! The session also has async functionality but that is reserved for publish requests on subscriptions
 //! and events.
 use std::result::Result;
+use std::collections::HashSet;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Instant, Duration};
@@ -178,76 +179,114 @@ impl Session {
     /// Reconnects to the server and tries to activate the existing session. If there
     /// is a failure, it will be communicated by the status code in the result.
     pub fn reconnect_and_activate(&mut self) -> Result<(), StatusCode> {
-        let have_authentication_token = {};
         // Do nothing if already connected / activated
         if self.is_connected() {
             error!("Reconnect is going to do nothing because already connected");
             Err(StatusCode::BadUnexpectedError)
         } else {
-            // Clear the existing session state
+            // Clear the existing secure channel state
             {
-                let mut session_state = trace_write_lock_unwrap!(self.session_state);
-                session_state.reset();
-
                 let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
                 secure_channel.clear_security_token();
             }
 
             // Connect to server (again)
             self.connect()?;
-            self.create_session()?;
-            self.activate_session()?;
 
-            // Transfer subscriptions from the old session to the new one
-            {
-                let subscription_state = self.subscription_state.clone();
-                let mut subscription_state = trace_write_lock_unwrap!(subscription_state);
-
-                if let Some(subscription_ids) = subscription_state.subscription_ids() {
-                    if let Ok(transfer_results) = self.transfer_subscriptions(&subscription_ids, true) {
-                        debug!("transfer_results = {:?}", transfer_results);
-                    } else {
-                        // Fallback: reconstruct all subscriptions and monitored items from their client side cached values
-                        // clone to avoid some borrowing issues on self
-                        let mut subscriptions = subscription_state.drain_subscriptions();
-                        subscriptions.drain().for_each(|(_, sub)| {
-                            // Attempt to replicate the subscription
-                            if let Ok(subscription_id) = self.create_subscription_inner(
-                                sub.publishing_interval(),
-                                sub.lifetime_count(),
-                                sub.max_keep_alive_count(),
-                                sub.max_notifications_per_publish(),
-                                sub.priority(),
-                                sub.publishing_enabled(),
-                                sub.data_change_callback()) {
-
-                                // For each monitored item
-                                let items_to_create = sub.monitored_items().iter().map(|(_, item)| {
-                                    MonitoredItemCreateRequest {
-                                        item_to_monitor: item.item_to_monitor(),
-                                        monitoring_mode: item.monitoring_mode(),
-                                        requested_parameters: MonitoringParameters {
-                                            client_handle: item.client_handle(),
-                                            sampling_interval: item.sampling_interval(),
-                                            filter: ExtensionObject::null(),
-                                            queue_size: item.queue_size(),
-                                            discard_oldest: true,
-                                        },
-                                    }
-                                }).collect::<Vec<MonitoredItemCreateRequest>>();
-                                let _ = self.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create);
-                            }
-                        });
+            // Attempt to reactivate the existing session
+            match self.activate_session() {
+                Err(status_code) => {
+                    // Activation didn't work, so create a new session
+                    info!("Session activation failed on reconnect, error = {}, so creating a new session", status_code);
+                    {
+                        let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                        session_state.reset();
                     }
-
-                    // Start publish timers
-                    for subscription_id in &subscription_ids {
-                        let _ = self.timer_command_queue.unbounded_send(SubscriptionTimerCommand::CreateTimer(*subscription_id));
-                    }
+                    self.create_session()?;
+                    self.activate_session()?;
+                    self.transfer_subscriptions_from_old_session()?;
+                }
+                Ok(_) => {
+                    info!("Activation succeeded so need to recreate anything");
                 }
             }
             Ok(())
         }
+    }
+
+    /// This code attempts to take the existing subscriptions created by a previous session and
+    /// either transfer them to this session, or construct them from scratch.
+    fn transfer_subscriptions_from_old_session(&mut self) -> Result<(), StatusCode> {
+        let subscription_state = self.subscription_state.clone();
+        let mut subscription_state = trace_write_lock_unwrap!(subscription_state);
+
+        // Start by getting the subscription ids
+        if let Some(subscription_ids) = subscription_state.subscription_ids() {
+            // Try to use TransferSubscriptions to move subscriptions_ids over. If this
+            // works then there is nothing else to do.
+            let mut subscription_ids_to_recreate = subscription_ids.iter().map(|s| *s).collect::<HashSet<u32>>();
+            if let Ok(transfer_results) = self.transfer_subscriptions(&subscription_ids, true) {
+                debug!("transfer_results = {:?}", transfer_results);
+                transfer_results.iter().enumerate().for_each(|(i, r)| {
+                    if r.status_code.is_good() {
+                        // Subscription was transferred so it does not need to be recreated
+                        subscription_ids_to_recreate.remove(&subscription_ids[i]);
+                    }
+                });
+            }
+
+            // But if it didn't work, then some or all subscriptions have to be remade.
+            if !subscription_ids_to_recreate.is_empty() {
+                warn!("Some or all of the existing subscriptions could not be transferred and must be created manually");
+            }
+
+            // Now create any subscriptions that could not be transferred
+            subscription_ids_to_recreate.iter().for_each(|subscription_id| {
+                info!("Recreating subscription {}", subscription_id);
+                // Remove the subscription data, create it again from scratch
+                if let Some(sub) = subscription_state.delete_subscription(*subscription_id) {
+                    // Attempt to replicate the subscription (subscription id will be new)
+                    if let Ok(subscription_id) = self.create_subscription_inner(
+                        sub.publishing_interval(),
+                        sub.lifetime_count(),
+                        sub.max_keep_alive_count(),
+                        sub.max_notifications_per_publish(),
+                        sub.priority(),
+                        sub.publishing_enabled(),
+                        sub.data_change_callback()) {
+                        info!("New subscription created with id {}", subscription_id);
+
+                        // For each monitored item
+                        let items_to_create = sub.monitored_items().iter().map(|(_, item)| {
+                            MonitoredItemCreateRequest {
+                                item_to_monitor: item.item_to_monitor(),
+                                monitoring_mode: item.monitoring_mode(),
+                                requested_parameters: MonitoringParameters {
+                                    client_handle: item.client_handle(),
+                                    sampling_interval: item.sampling_interval(),
+                                    filter: ExtensionObject::null(),
+                                    queue_size: item.queue_size(),
+                                    discard_oldest: true,
+                                },
+                            }
+                        }).collect::<Vec<MonitoredItemCreateRequest>>();
+                        let _ = self.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create);
+                    } else {
+                        warn!("Could not create a subscription from the existing subscription {}", subscription_id);
+                    }
+                } else {
+                    panic!("Subscription {}, doesn't exist although it should");
+                }
+            });
+
+            // Now all the subscriptions should have been recreated, it should be possible
+            // to kick off the publish timers.
+            let subscription_ids = subscription_state.subscription_ids().unwrap();
+            for subscription_id in &subscription_ids {
+                let _ = self.timer_command_queue.unbounded_send(SubscriptionTimerCommand::CreateTimer(*subscription_id));
+            }
+        }
+        Ok(())
     }
 
     /// Connects to the server (if possible) using the configured session arguments. If there
@@ -919,7 +958,9 @@ impl Session {
                 {
                     // Clear out deleted subscriptions, assuming the delete worked
                     let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
-                    subscription_ids.iter().for_each(|id| subscription_state.delete_subscription(*id));
+                    subscription_ids.iter().for_each(|id| {
+                        let _ = subscription_state.delete_subscription(*id);
+                    });
                 }
                 debug!("delete_subscriptions success");
                 Ok(response.results.unwrap())

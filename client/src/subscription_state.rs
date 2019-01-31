@@ -51,8 +51,8 @@ impl SubscriptionState {
         }
     }
 
-    pub(crate) fn delete_subscription(&mut self, subscription_id: u32) {
-        self.subscriptions.remove(&subscription_id);
+    pub(crate) fn delete_subscription(&mut self, subscription_id: u32) -> Option<Subscription> {
+        self.subscriptions.remove(&subscription_id)
     }
 
     pub(crate) fn set_publishing_mode(&mut self, subscription_ids: &[u32], publishing_enabled: bool) {
