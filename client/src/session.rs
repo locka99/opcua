@@ -339,7 +339,8 @@ impl Session {
     }
 
     /// Disconnect from the server. Disconnect is an explicit command to drop the socket and throw
-    /// away all state information. If you disconnect you cannot reconnect later.
+    /// away all state information. If you disconnect you cannot reconnect to your existing session
+    /// or retrieve any existing subscriptions.
     pub fn disconnect(&mut self) {
         let _ = self.delete_all_subscriptions();
         let _ = self.close_secure_channel();
@@ -352,6 +353,21 @@ impl Session {
     /// Test if the session is in a connected state
     pub fn is_connected(&self) -> bool {
         self.transport.is_connected()
+    }
+
+    /// Runs a polling loop for this session to perform periodic activity such as processing subscriptions,
+    /// as well as recovering from connection errors. The run command will break if the session is disconnected
+    /// and cannot be reestablished.
+    pub fn run(session: Arc<RwLock<Session>>) {
+        loop {
+            // Main thread has nothing to do - just wait for publish events to roll in
+            let mut session = session.write().unwrap();
+            if let Err(_) = session.poll() {
+                // Break the loop if connection goes down
+                info!("Connection to server broke, so terminating");
+                break;
+            }
+        }
     }
 
     /// Sends an [`OpenSecureChannelRequest`] to the server

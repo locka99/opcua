@@ -100,15 +100,7 @@ fn subscription_loop(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
     }
 
     // Loops forever. The publish thread will call the callback with changes on the variables
-    loop {
-        // Main thread has nothing to do - just wait for publish events to roll in
-        let mut session = session.write().unwrap();
-        if let Err(_) = session.poll() {
-            // Break the loop if connection goes down
-            println!("Connection to server broke, so terminating");
-            break;
-        }
-    }
+    Session::run(session);
 
     Ok(())
 }
