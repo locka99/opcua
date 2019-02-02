@@ -14,9 +14,10 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the fut
     some of the improvements in the language. e.g. many `extern crate` declarations have been removed. Your own code
     can be Rust 2015 but you must build with Rust 1.31 or later.
   - Client API has been simplified for ad hoc connections and has more documentation.
-  - Session restore after disconnect in client, i.e. attempt to reconnect and resume session first and if that
-    fails manually reconstruct the session - subscriptions and monitored items.
-  - New `web-client` code which demonstrates an OPCUA client that serves streaming data over a websocket.
+  - Client has code to reconnect and restore subscriptions after a disconnect from a server, i.e. attempt to reconnect 
+    and resume session first and if that fails manually reconstruct the session - subscriptions and monitored items.
+  - New `web-client` code which demonstrates an OPCUA client that serves streaming data over a websocket. Reconnection
+    policy allows number of tries and try interval to be configured.
   - Fixes for TranslateBrowsePathsToNodeIds 
   - (WIP) Session restore after disconnect in server. The server has to stash sessions that were abnormally disconnected
     so the session state can be restored if a new connection provides the token.
