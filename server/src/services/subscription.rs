@@ -98,21 +98,47 @@ impl SubscriptionService {
         } else {
             let results = {
                 let subscription_ids = request.subscription_ids.as_ref().unwrap();
-                let mut results = Vec::with_capacity(subscription_ids.len());
-
                 let subscriptions = &mut session.subscriptions;
-                for subscription_id in subscription_ids {
+                // Attempt to remove each subscription
+                let results = subscription_ids.iter().map(|subscription_id| {
                     let subscription = subscriptions.remove(*subscription_id);
                     if subscription.is_some() {
-                        results.push(StatusCode::Good);
+                        StatusCode::Good
                     } else {
-                        results.push(StatusCode::BadSubscriptionIdInvalid);
+                        StatusCode::BadSubscriptionIdInvalid
                     }
-                }
+                }).collect::<Vec<StatusCode>>();
                 Some(results)
             };
             let diagnostic_infos = None;
             let response = DeleteSubscriptionsResponse {
+                response_header: ResponseHeader::new_good(&request.request_header),
+                results,
+                diagnostic_infos,
+            };
+            Ok(response.into())
+        }
+    }
+
+    /// Handles a TransferSubscriptionsRequest
+    pub fn transfer_subscriptions(&self, _session: &mut Session, request: &TransferSubscriptionsRequest) -> Result<SupportedMessage, StatusCode> {
+        if request.subscription_ids.is_none() {
+            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+        } else {
+            let results = {
+                // TODO this is a stub. The real thing should look up subscriptions belonging to
+                //  other sessions and transfer them across to this one.
+                let subscription_ids = request.subscription_ids.as_ref().unwrap();
+                let results = subscription_ids.iter().map(|_subscription_id| {
+                    TransferResult {
+                        status_code: StatusCode::BadSubscriptionIdInvalid,
+                        available_sequence_numbers: None,
+                    }
+                }).collect::<Vec<TransferResult>>();
+                Some(results)
+            };
+            let diagnostic_infos = None;
+            let response = TransferSubscriptionsResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
                 results,
                 diagnostic_infos,

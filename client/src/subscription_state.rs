@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use opcua_types::service_types::DataChangeNotification;
 
@@ -8,17 +8,16 @@ use crate::subscription::*;
 pub struct SubscriptionState {
     /// Subscriptions (key = subscription_id)
     subscriptions: HashMap<u32, Subscription>,
+    /// Subscriptions with active timers - the things that send publish requests
+    subscription_id_timers: HashSet<u32>,
 }
 
 impl SubscriptionState {
     pub fn new() -> SubscriptionState {
         SubscriptionState {
             subscriptions: HashMap::new(),
+            subscription_id_timers: HashSet::new(),
         }
-    }
-
-    pub(crate) fn drain_subscriptions(&mut self) -> HashMap<u32, Subscription> {
-        self.subscriptions.drain().collect()
     }
 
     pub fn subscription_ids(&self) -> Option<Vec<u32>> {

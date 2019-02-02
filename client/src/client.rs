@@ -489,7 +489,7 @@ impl Client {
                 url_matches(e.endpoint_url.as_ref(), &endpoint_url)
         }).map(|e| e.clone());
 
-        // If something was found, return it, otherwise try a fuzzier match, that ignores the hostname.
+        // If something was found, return it, otherwise try a fuzzier match that ignores the hostname.
         if result.is_some() {
             result
         } else {

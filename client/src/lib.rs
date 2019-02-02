@@ -26,6 +26,7 @@ extern crate opcua_core;
 mod comms;
 mod subscription;
 mod subscription_state;
+mod subscription_timer;
 mod session_state;
 mod message_queue;
 

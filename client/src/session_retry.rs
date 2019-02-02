@@ -41,6 +41,10 @@ impl SessionRetryPolicy {
     /// The default retry policy will wait this duration between reconnect attempts.
     pub const DEFAULT_RETRY_INTERVAL_MS: i64 = 2000;
 
+    pub fn retry_count(&self) -> u32 {
+        self.retry_count
+    }
+
     pub fn increment_retry_count(&mut self) {
         self.retry_count += 1;
     }

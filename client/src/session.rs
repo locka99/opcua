@@ -3,18 +3,17 @@
 //!
 //! The session also has async functionality but that is reserved for publish requests on subscriptions
 //! and events.
-use std::result::Result;
-use std::collections::HashSet;
-use std::str::FromStr;
-use std::sync::{Arc, Mutex, RwLock};
-use std::time::{Instant, Duration};
-use std::thread;
-
-use tokio;
-use tokio_timer::Interval;
-use futures::{Future, Stream};
-use futures::future;
-use futures::sync::mpsc::{unbounded, UnboundedSender};
+use std::{
+    result::Result,
+    collections::HashSet,
+    str::FromStr,
+    sync::{Arc, Mutex, RwLock},
+    time::Duration,
+    thread,
+};
+use futures::{
+    sync::mpsc::UnboundedSender,
+};
 
 use opcua_core::comms::secure_channel::{Role, SecureChannel};
 use opcua_core::crypto;
@@ -32,6 +31,7 @@ use crate::{
     subscription,
     subscription::Subscription,
     subscription_state::SubscriptionState,
+    subscription_timer::{SubscriptionTimer, SubscriptionTimerCommand},
     session_state::SessionState,
     callbacks::{OnDataChange, OnConnectionStatusChange, OnSessionClosed},
 };
@@ -112,12 +112,6 @@ impl Drop for Session {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
-enum SubscriptionTimerCommand {
-    CreateTimer(u32),
-    Quit,
-}
-
 impl Session {
     /// Create a new session from the supplied application description, certificate store and session
     /// information.
@@ -138,7 +132,7 @@ impl Session {
         let session_state = Arc::new(RwLock::new(SessionState::new(secure_channel.clone(), message_queue.clone())));
         let transport = TcpTransport::new(secure_channel.clone(), session_state.clone(), message_queue.clone());
         let subscription_state = Arc::new(RwLock::new(SubscriptionState::new()));
-        let timer_command_queue = Self::make_timer_command_queue(session_state.clone(), subscription_state.clone());
+        let timer_command_queue = SubscriptionTimer::make_timer_command_queue(session_state.clone(), subscription_state.clone());
         Session {
             application_description,
             session_info,
@@ -191,7 +185,7 @@ impl Session {
             }
 
             // Connect to server (again)
-            self.connect()?;
+            self.connect_no_retry()?;
 
             // Attempt to reactivate the existing session
             match self.activate_session() {
@@ -310,9 +304,45 @@ impl Session {
         Ok(())
     }
 
+    /// Connects to the server using the retry policy to repeat connecting until such time as it
+    /// succeeds or the policy says to give up. If there is a failure, it will be
+    /// communicated by the status code in the result.
+    pub fn connect(&mut self) -> Result<(), StatusCode> {
+        loop {
+            match self.connect_no_retry() {
+                Ok(_) => {
+                    info!("Connect was successful");
+                    self.session_retry_policy.reset_retry_count();
+                    return Ok(());
+                }
+                Err(status_code) => {
+                    self.session_retry_policy.increment_retry_count();
+                    warn!("Connect was unsuccessful, error = {}, retries = {}", status_code, self.session_retry_policy.retry_count());
+
+                    use chrono::Utc;
+                    match self.session_retry_policy.should_retry_connect(Utc::now()) {
+                        Answer::GiveUp => {
+                            error!("Session has given up trying to connect to the server after {} retries", self.session_retry_policy.retry_count());
+                            return Err(StatusCode::BadNotConnected);
+                        }
+                        Answer::Retry => {
+                            info!("Retrying to connect to server...");
+                            self.session_retry_policy.set_last_attempt(Utc::now());
+                        }
+                        Answer::WaitFor(sleep_for) => {
+                            // Sleep for the instructed interval before looping around and trying
+                            // once more.
+                            thread::sleep(Duration::from_millis(sleep_for.num_milliseconds() as u64));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /// Connects to the server (if possible) using the configured session arguments. If there
     /// is a failure, it will be communicated by the status code in the result.
-    pub fn connect(&mut self) -> Result<(), StatusCode> {
+    pub fn connect_no_retry(&mut self) -> Result<(), StatusCode> {
         let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
         info!("Connect");
         let security_policy = SecurityPolicy::from_str(self.session_info.endpoint.security_policy_uri.as_ref()).unwrap();
@@ -358,16 +388,65 @@ impl Session {
     /// Runs a polling loop for this session to perform periodic activity such as processing subscriptions,
     /// as well as recovering from connection errors. The run command will break if the session is disconnected
     /// and cannot be reestablished.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(bool)` - returns `true` if an action was performed, `false` if no action was performed
+    ///                but polling slept for a little bit.
+    /// * `Err(StatusCode)` - Request failed, status code is the reason for failure
+    ///
     pub fn run(session: Arc<RwLock<Session>>) {
+        const POLL_SLEEP_INTERVAL: u64 = 50;
         loop {
             // Main thread has nothing to do - just wait for publish events to roll in
             let mut session = session.write().unwrap();
-            if let Err(_) = session.poll() {
+            if let Err(_) = session.poll(POLL_SLEEP_INTERVAL) {
                 // Break the loop if connection goes down
                 info!("Connection to server broke, so terminating");
                 break;
             }
         }
+    }
+
+    /// Polls on the session which basically dispatches any pending
+    /// async responses, attempts to reconnect if the client is disconnected from the client and
+    /// sleeps a little bit if nothing needed to be done.
+    ///
+    /// Returns `true` if it did something, `false` if it caused the thread to sleep for a bit.
+    pub fn poll(&mut self, sleep_for: u64) -> Result<bool, ()> {
+        let did_something = if self.is_connected() {
+            self.handle_publish_responses()
+        } else {
+            use chrono::Utc;
+            match self.session_retry_policy.should_retry_connect(Utc::now()) {
+                Answer::GiveUp => {
+                    error!("Session has given up trying to reconnect to the server after {} retries", self.session_retry_policy.retry_count());
+                    return Err(());
+                }
+                Answer::Retry => {
+                    info!("Retrying to reconnect to server...");
+                    self.session_retry_policy.set_last_attempt(Utc::now());
+                    if let Ok(_) = self.reconnect_and_activate() {
+                        info!("Retry to connect was successful");
+                        self.session_retry_policy.reset_retry_count();
+                    } else {
+                        self.session_retry_policy.increment_retry_count();
+                        warn!("Reconnect was unsuccessful, retries = {}", self.session_retry_policy.retry_count());
+                    }
+                    true
+                }
+                Answer::WaitFor(_) => {
+                    // Note we could sleep for the interval in the WaitFor(), but the poll() sleeps
+                    // anyway so it probably makes no odds.
+                    false
+                }
+            }
+        };
+        if !did_something {
+            // Sleep for a bit, save CPU
+            thread::sleep(Duration::from_millis(sleep_for))
+        }
+        Ok(did_something)
     }
 
     /// Sends an [`OpenSecureChannelRequest`] to the server
@@ -1401,51 +1480,6 @@ impl Session {
         session_state.async_send_request(request, is_async)
     }
 
-    /// Asks the session to poll, which basically dispatches any pending
-    /// async responses, attempts to reconnect if the client is disconnected from the client.
-    /// Returns `true` if it did something, `false` if it caused the thread to sleep for a bit.
-    pub fn poll(&mut self) -> Result<bool, ()> {
-        let did_something = if self.is_connected() {
-            let handled_responses = self.handle_publish_responses();
-            if !handled_responses {
-                // Stops client calling this repeatedly
-                thread::sleep(Duration::from_millis(50))
-            }
-            handled_responses
-        } else {
-            use chrono::Utc;
-            match self.session_retry_policy.should_retry_connect(Utc::now()) {
-                Answer::GiveUp => {
-                    // TODO for the first GiveUp, we should log the message
-                    info!("Session has given up trying to reconnect to the server");
-                    return Err(());
-                }
-                Answer::Retry => {
-                    info!("Retrying to reconnect to server...");
-                    self.session_retry_policy.set_last_attempt(Utc::now());
-                    if let Ok(_) = self.reconnect_and_activate() {
-                        info!("Retry to connect was successful");
-                        self.session_retry_policy.reset_retry_count();
-                    } else {
-                        self.session_retry_policy.increment_retry_count();
-                    }
-                    true
-                }
-                Answer::WaitFor(_) => {
-                    //  Do nothing for now...
-                    false
-                }
-            }
-        };
-        if !did_something {
-            // Sleep for a bit, save CPU
-            thread::sleep(Duration::from_millis(50))
-        }
-        Ok(did_something)
-    }
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-
     fn user_identity_token(&self) -> Result<ExtensionObject, StatusCode> {
         let user_token_type = match self.session_info.user_identity_token {
             client::IdentityToken::Anonymous => {
@@ -1490,106 +1524,6 @@ impl Session {
     fn make_request_header(&mut self) -> RequestHeader {
         let mut session_state = trace_write_lock_unwrap!(self.session_state);
         session_state.make_request_header()
-    }
-
-    /// Spawn a thread that waits on a queue for commands to create new subscription timers, or
-    /// to quit.
-    ///
-    /// Each subscription timer spawned by the thread runs as a timer task associated with a
-    /// subscription. The subscription timer is responsible for publish requests to the server.
-    fn make_timer_command_queue(session_state: Arc<RwLock<SessionState>>, subscription_state: Arc<RwLock<SubscriptionState>>) -> UnboundedSender<SubscriptionTimerCommand> {
-        let (timer_command_queue, timer_receiver) = unbounded::<SubscriptionTimerCommand>();
-        let _ = thread::spawn(move || {
-            // This listens for timer actions to spawn
-            let timer_task = timer_receiver.take_while(|cmd| {
-                let take = *cmd != SubscriptionTimerCommand::Quit;
-                future::ok(take)
-            }).map(move |cmd| {
-                (cmd, session_state.clone(), subscription_state.clone())
-            }).for_each(|(cmd, session_state, subscription_state)| {
-                match cmd {
-                    SubscriptionTimerCommand::CreateTimer(subscription_id) => {
-                        let timer_task = Self::make_subscription_timer(subscription_id, session_state, subscription_state);
-                        tokio::spawn(timer_task);
-                    }
-                    _ => {}
-                }
-                future::ok(())
-            }).map(|_| {
-                info!("Timer receiver has terminated");
-            }).map_err(|_| {
-                error!("Timer receiver has terminated with an error");
-            });
-            tokio::run(timer_task);
-        });
-        timer_command_queue
-    }
-
-    /// Makes a future that publishes requests for the subscription. This code doesn't return "impl Future"
-    /// due to recursive behaviour in the take_while, so instead it returns a boxed future.
-    fn make_subscription_timer(subscription_id: u32, session_state: Arc<RwLock<SessionState>>, subscription_state: Arc<RwLock<SubscriptionState>>) -> Box<dyn Future<Item=(), Error=()> + Send> {
-        let publishing_interval = {
-            let ss = trace_read_lock_unwrap!(subscription_state);
-            if let Some(subscription) = ss.get(subscription_id) {
-                subscription.publishing_interval()
-            } else {
-                error!("Cannot start timer for subscription id {}, doesn't exist", subscription_id);
-                100.0
-            }
-        };
-
-        let session_state_for_take = session_state.clone();
-
-        debug!("Publishing interval {}", publishing_interval);
-        Box::new(Interval::new(Instant::now(), Duration::from_millis(publishing_interval as u64))
-            .take_while(move |_| {
-                trace!("publishing_interval.take_while");
-                let (take, respawn) = {
-                    let subscription_state = trace_read_lock_unwrap!(subscription_state);
-                    if let Some(ref subscription) = subscription_state.get(subscription_id) {
-                        if publishing_interval != subscription.publishing_interval() {
-                            // Interval has changed, so don't take the timer, and instead
-                            // spawn a new timer
-                            debug!("Subscription timer for subscription {} is respawning at a new interval {}", subscription_id, subscription.publishing_interval());
-                            (false, true)
-                        } else {
-                            // Take the timer
-                            (true, false)
-                        }
-                    } else {
-                        // Subscription has gone and so should the timer
-                        debug!("Subscription timer for subscription {} is being dropped", subscription_id);
-                        (false, false)
-                    }
-                };
-                if respawn {
-                    tokio::spawn(Self::make_subscription_timer(subscription_id, session_state_for_take.clone(), subscription_state.clone()));
-                }
-                future::ok(take)
-            })
-            .for_each(move |_| {
-                // Server may have throttled publish requests
-                let wait_for_publish_response = {
-                    let session_state = trace_read_lock_unwrap!(session_state);
-                    session_state.wait_for_publish_response()
-                };
-                if !wait_for_publish_response {
-                    // We could not send the publish request if subscription is not reporting, or
-                    // contains no monitored items but it probably makes no odds.
-                    debug!("Subscription timer for {} is sending a publish", subscription_id);
-                    let mut session_state = trace_write_lock_unwrap!(session_state);
-                    // Send a publish request with any acknowledgements
-                    let subscription_acknowledgements = session_state.subscription_acknowledgements();
-                    let _ = session_state.async_publish(&subscription_acknowledgements);
-                }
-                Ok(())
-            })
-            .map(|_| {
-                info!("Subscription timer task is finished");
-            })
-            .map_err(|e| {
-                error!("Subscription timer task is finished with an error {:?}", e);
-            }))
     }
 
     // Process any async messages we expect to receive

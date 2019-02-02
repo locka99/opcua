@@ -97,6 +97,7 @@ The following services are supported:
   * CreateSubscription
   * ModifySubscription
   * DeleteSubscriptions
+  * TransferSubscriptions (stub)
   * Publish
   * Republish
   * SetPublishingMode

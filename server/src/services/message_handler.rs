@@ -136,6 +136,13 @@ impl MessageHandler {
                     Some(self.subscription_service.delete_subscriptions(&mut session, &request)?)
                 }
             }
+            SupportedMessage::TransferSubscriptionsRequest(request) => {
+                if let Err(response) = self.validate_request(&mut session, &request.request_header) {
+                    Some(response)
+                } else {
+                    Some(self.subscription_service.transfer_subscriptions(&mut session, &request)?)
+                }
+            }
             SupportedMessage::SetPublishingModeRequest(request) => {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)
