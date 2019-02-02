@@ -11,29 +11,30 @@ use std::{
     time::Duration,
     thread,
 };
-use futures::{
-    sync::mpsc::UnboundedSender,
+use futures::sync::mpsc::UnboundedSender;
+
+use opcua_core::{
+    comms::secure_channel::{Role, SecureChannel},
+    crypto::{self, CertificateStore, PrivateKey, SecurityPolicy, X509},
 };
 
-use opcua_core::comms::secure_channel::{Role, SecureChannel};
-use opcua_core::crypto;
-use opcua_core::crypto::{CertificateStore, PrivateKey, SecurityPolicy, X509};
-use opcua_types::*;
-use opcua_types::node_ids::{ObjectId, MethodId};
-use opcua_types::service_types::*;
-use opcua_types::status_code::StatusCode;
+use opcua_types::{
+    *,
+    node_ids::{ObjectId, MethodId},
+    service_types::*,
+    status_code::StatusCode,
+};
 
 use crate::{
+    callbacks::{OnDataChange, OnConnectionStatusChange, OnSessionClosed},
     client,
     comms::tcp_transport::TcpTransport,
     message_queue::MessageQueue,
     session_retry::{SessionRetryPolicy, Answer},
-    subscription,
-    subscription::Subscription,
+    session_state::SessionState,
+    subscription::{self, Subscription},
     subscription_state::SubscriptionState,
     subscription_timer::{SubscriptionTimer, SubscriptionTimerCommand},
-    session_state::SessionState,
-    callbacks::{OnDataChange, OnConnectionStatusChange, OnSessionClosed},
 };
 
 /// Information about the server endpoint, security policy, security mode and user identity that the session will
@@ -123,7 +124,6 @@ impl Session {
     /// * `session_info` - information required to establish a new session.
     ///
     pub(crate) fn new(application_description: ApplicationDescription, certificate_store: Arc<RwLock<CertificateStore>>, session_info: SessionInfo) -> Session {
-
         // TODO take these from the client config
         let decoding_limits = DecodingLimits::default();
 
@@ -133,6 +133,7 @@ impl Session {
         let transport = TcpTransport::new(secure_channel.clone(), session_state.clone(), message_queue.clone());
         let subscription_state = Arc::new(RwLock::new(SubscriptionState::new()));
         let timer_command_queue = SubscriptionTimer::make_timer_command_queue(session_state.clone(), subscription_state.clone());
+        let session_retry_policy = SessionRetryPolicy::default();
         Session {
             application_description,
             session_info,
@@ -144,7 +145,7 @@ impl Session {
             secure_channel,
             message_queue,
             connection_status_callback: None,
-            session_retry_policy: SessionRetryPolicy::default(),
+            session_retry_policy,
         }
     }
 
@@ -156,6 +157,11 @@ impl Session {
         self.create_session()?;
         self.activate_session()?;
         Ok(())
+    }
+
+    /// Sets the session retry policy
+    pub fn set_session_retry_policy(&mut self, session_retry_policy: SessionRetryPolicy) {
+        self.session_retry_policy = session_retry_policy;
     }
 
     /// Register a callback to be notified when the session has been closed.
