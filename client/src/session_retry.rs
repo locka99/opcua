@@ -3,24 +3,27 @@ use time::Duration;
 
 #[derive(PartialEq, Debug)]
 pub enum Answer {
+    /// Retry immediately
     Retry,
-    WaitFor(Duration),
+    /// Wait for this many milliseconds
+    WaitFor(u32),
+    /// Give up reconnecting
     GiveUp,
 }
 
 /// The session retry policy determines what the session will do if the connection drops, or it
 /// suffers from connectivity issues. The policy allows a session to attempt to reconnect a number
 /// of times and to control its retry interval.
-#[derive(PartialEq, Debug, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct SessionRetryPolicy {
+    /// The maximum retry limit. A value of 0 means no retries, i.e. give up on first fail, None means no limit, i.e. infinity
+    retry_limit: Option<u32>,
+    /// Interval between retries in milliseconds
+    retry_interval: u32,
     /// The number of attempts so far
     retry_count: u32,
     /// The last retry attempt
     last_attempt: DateTime<Utc>,
-    /// The maximum retry limit. A value of 0 means no retries, i.e. give up on first fail, None means no limit, i.e. infinity
-    retry_limit: Option<u32>,
-    /// Interval between retries
-    retry_interval: Duration,
 }
 
 impl Default for SessionRetryPolicy {
@@ -30,7 +33,7 @@ impl Default for SessionRetryPolicy {
             retry_count: 0,
             last_attempt: Self::last_attempt_default(),
             retry_limit: Some(Self::DEFAULT_RETRY_LIMIT),
-            retry_interval: Duration::milliseconds(Self::DEFAULT_RETRY_INTERVAL_MS),
+            retry_interval: Self::DEFAULT_RETRY_INTERVAL_MS,
         }
     }
 }
@@ -39,10 +42,10 @@ impl SessionRetryPolicy {
     /// The default retry policy will attempt to reconnect up to this many times.
     pub const DEFAULT_RETRY_LIMIT: u32 = 10;
     /// The default retry policy will wait this duration between reconnect attempts.
-    pub const DEFAULT_RETRY_INTERVAL_MS: i64 = 2000;
+    pub const DEFAULT_RETRY_INTERVAL_MS: u32 = 2000;
 
     /// Create a `SessionRetryPolicy` that tries forever at the specified interval
-    pub fn infinity(retry_interval: Duration) -> SessionRetryPolicy {
+    pub fn infinity(retry_interval: u32) -> SessionRetryPolicy {
         SessionRetryPolicy {
             retry_count: 0,
             last_attempt: Self::last_attempt_default(),
@@ -57,7 +60,7 @@ impl SessionRetryPolicy {
             retry_count: 0,
             last_attempt: Self::last_attempt_default(),
             retry_limit: Some(0),
-            retry_interval: Duration::milliseconds(0),
+            retry_interval: 0,
         }
     }
 
@@ -92,9 +95,10 @@ impl SessionRetryPolicy {
         }
         // Look at how much time has elapsed since the last attempt
         let elapsed = now - self.last_attempt;
-        if self.retry_interval > elapsed {
+        let retry_interval = Duration::milliseconds(self.retry_interval as i64);
+        if retry_interval > elapsed {
             // Wait a bit
-            Answer::WaitFor(self.retry_interval - elapsed)
+            Answer::WaitFor((retry_interval - elapsed).num_milliseconds() as u32)
         } else {
             info!("Retry retriggered by policy");
             Answer::Retry
@@ -108,7 +112,7 @@ fn session_retry() {
 
     let now = Utc::now();
 
-    let retry_interval = Duration::milliseconds(SessionRetryPolicy::DEFAULT_RETRY_INTERVAL_MS);
+    let retry_interval = Duration::milliseconds(SessionRetryPolicy::DEFAULT_RETRY_INTERVAL_MS as i64);
     let last_attempt_expired = now - retry_interval - Duration::nanoseconds(1);
     let last_attempt_wait = now - retry_interval + Duration::seconds(1);
 
@@ -121,12 +125,12 @@ fn session_retry() {
 
     session_retry.set_last_attempt(last_attempt_wait);
     session_retry.retry_count = 0;
-    assert_eq!(session_retry.should_retry_connect(now), Answer::WaitFor(Duration::seconds(1)));
+    assert_eq!(session_retry.should_retry_connect(now), Answer::WaitFor(1000));
 }
 
 #[test]
 fn session_retry_infinity() {
-    let mut session_retry = SessionRetryPolicy::infinity(Duration::milliseconds(1000));
+    let mut session_retry = SessionRetryPolicy::infinity(1000);
     let now = Utc::now();
     assert_eq!(session_retry.should_retry_connect(now), Answer::Retry);
 }

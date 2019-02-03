@@ -338,7 +338,7 @@ impl Session {
                         Answer::WaitFor(sleep_for) => {
                             // Sleep for the instructed interval before looping around and trying
                             // once more.
-                            thread::sleep(Duration::from_millis(sleep_for.num_milliseconds() as u64));
+                            thread::sleep(Duration::from_millis(sleep_for as u64));
                         }
                     }
                 }
