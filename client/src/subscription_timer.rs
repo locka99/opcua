@@ -50,10 +50,13 @@ impl SubscriptionTimer {
                         let timer = Arc::new(RwLock::new(SubscriptionTimer {
                             subscription_id,
                             session_state,
-                            subscription_state,
+                            subscription_state: subscription_state.clone(),
                             cancel: false,
                         }));
-
+                        {
+                            let mut subscription_state = trace_write_lock_unwrap!(subscription_state);
+                            subscription_state.add_subscription_timer(timer.clone());
+                        }
                         let timer_task = Self::make_subscription_timer(timer);
                         tokio::spawn(timer_task);
                     }
@@ -102,8 +105,7 @@ impl SubscriptionTimer {
                     if cancel {
                         debug!("Subscription timer for subscription id {} is being dropped because it was cancelled", subscription_id);
                         (false, false)
-                    }
-                    else {
+                    } else {
                         let subscription_state = trace_read_lock_unwrap!(subscription_state);
                         if let Some(ref subscription) = subscription_state.get(subscription_id) {
                             if publishing_interval != subscription.publishing_interval() {
@@ -155,5 +157,13 @@ impl SubscriptionTimer {
             .map_err(|e| {
                 error!("Subscription timer task is finished with an error {:?}", e);
             }))
+    }
+
+    pub fn subscription_id(&self) -> u32 {
+        self.subscription_id
+    }
+
+    pub fn cancel(&mut self) {
+        self.cancel = true;
     }
 }

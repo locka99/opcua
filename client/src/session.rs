@@ -190,6 +190,12 @@ impl Session {
                 secure_channel.clear_security_token();
             }
 
+            // Cancel any subscription timers
+            {
+                let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
+                subscription_state.cancel_subscription_timers();
+            }
+
             // Connect to server (again)
             self.connect_no_retry()?;
 

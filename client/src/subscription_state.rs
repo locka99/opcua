@@ -1,23 +1,41 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
 
 use opcua_types::service_types::DataChangeNotification;
 
-use crate::subscription::*;
+use crate::{
+    subscription::*,
+    subscription_timer::SubscriptionTimer,
+};
 
 /// Holds the live subscription state
 pub struct SubscriptionState {
     /// Subscriptions (key = subscription_id)
     subscriptions: HashMap<u32, Subscription>,
     /// Subscriptions with active timers - the things that send publish requests
-    subscription_id_timers: HashSet<u32>,
+    subscription_timers: Vec<Arc<RwLock<SubscriptionTimer>>>,
 }
 
 impl SubscriptionState {
     pub fn new() -> SubscriptionState {
         SubscriptionState {
             subscriptions: HashMap::new(),
-            subscription_id_timers: HashSet::new(),
+            subscription_timers: Vec::new(),
         }
+    }
+
+    pub(crate) fn add_subscription_timer(&mut self, timer: Arc<RwLock<SubscriptionTimer>>) {
+        self.subscription_timers.push(timer);
+    }
+
+    /// Put subscription timers into a cancelled state and remove them from the subscription state
+    pub(crate) fn cancel_subscription_timers(&mut self) {
+        debug!("Cancelling subscription timers");
+        self.subscription_timers.drain(..).for_each(|timer| {
+            let mut timer = trace_write_lock_unwrap!(timer);
+            debug!("Cancelling subscription timer for subscription {}", timer.subscription_id());
+            timer.cancel();
+        })
     }
 
     pub fn subscription_ids(&self) -> Option<Vec<u32>> {
