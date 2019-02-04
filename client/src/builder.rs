@@ -156,4 +156,19 @@ impl ClientBuilder {
         self.config.user_tokens.insert(user_token_id, user_token);
         self
     }
+
+    /// Sets the session retry limit
+    pub fn session_retry_limit(mut self, session_retry_limit: i32) -> Self {
+        if session_retry_limit < 0 && session_retry_limit != -1 {
+            panic!("Session retry limit must be -1, 0 or a positive number");
+        }
+        self.config.session_retry_limit = session_retry_limit;
+        self
+    }
+
+    /// Sets the session retry limit
+    pub fn session_retry_interval(mut self, session_retry_interval: u32) -> Self {
+        self.config.session_retry_interval = session_retry_interval;
+        self
+    }
 }

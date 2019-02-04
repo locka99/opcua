@@ -123,7 +123,7 @@ impl Session {
     /// * `certificate_store` - certificate management on disk
     /// * `session_info` - information required to establish a new session.
     ///
-    pub(crate) fn new(application_description: ApplicationDescription, certificate_store: Arc<RwLock<CertificateStore>>, session_info: SessionInfo) -> Session {
+    pub(crate) fn new(application_description: ApplicationDescription, certificate_store: Arc<RwLock<CertificateStore>>, session_info: SessionInfo, session_retry_policy: SessionRetryPolicy) -> Session {
         // TODO take these from the client config
         let decoding_limits = DecodingLimits::default();
 
@@ -133,7 +133,6 @@ impl Session {
         let transport = TcpTransport::new(secure_channel.clone(), session_state.clone(), message_queue.clone());
         let subscription_state = Arc::new(RwLock::new(SubscriptionState::new()));
         let timer_command_queue = SubscriptionTimer::make_timer_command_queue(session_state.clone(), subscription_state.clone());
-        let session_retry_policy = SessionRetryPolicy::default();
         Session {
             application_description,
             session_info,
@@ -208,10 +207,6 @@ impl Session {
                         let mut session_state = trace_write_lock_unwrap!(self.session_state);
                         session_state.reset();
                     }
-                    {
-                        let mut message_queue = trace_write_lock_unwrap!(self.message_queue);
-                        message_queue.clear();
-                    };
 
                     debug!("create_session");
                     self.create_session()?;

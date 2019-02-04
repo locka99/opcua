@@ -9,6 +9,8 @@ use opcua_types::{MessageSecurityMode, UAString};
 use opcua_core::config::Config;
 use opcua_core::crypto::SecurityPolicy;
 
+use crate::session_retry::SessionRetryPolicy;
+
 pub const ANONYMOUS_USER_TOKEN_ID: &str = "ANONYMOUS";
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -88,6 +90,10 @@ pub struct ClientConfig {
     pub user_tokens: BTreeMap<String, ClientUserToken>,
     /// List of end points
     pub endpoints: BTreeMap<String, ClientEndpoint>,
+    /// Max retry limit -1, 0 or number
+    pub session_retry_limit: i32,
+    /// Retry interval in milliseconds
+    pub session_retry_interval: u32,
 }
 
 impl Config for ClientConfig {
@@ -136,7 +142,10 @@ impl Config for ClientConfig {
                 }
             }
         }
-
+        if self.session_retry_limit < 0 && self.session_retry_limit != -1 {
+            error!("Session retry limit of {} is invalid - must be -1 (infinite), 0 (never) or a positive value", self.session_retry_limit);
+            valid = false;
+        }
         valid
     }
 
@@ -149,27 +158,16 @@ impl Config for ClientConfig {
 
 impl Default for ClientConfig {
     fn default() -> Self {
-        let mut pki_dir = std::env::current_dir().unwrap();
-        pki_dir.push("pki");
-        ClientConfig {
-            application_name: String::new(),
-            application_uri: String::new(),
-            create_sample_keypair: false,
-            trust_server_certs: false,
-            product_uri: String::new(),
-            pki_dir,
-            preferred_locales: Vec::new(),
-            default_endpoint: String::new(),
-            user_tokens: BTreeMap::new(),
-            endpoints: BTreeMap::new(),
-        }
+        Self::new("", "")
     }
 }
 
 impl ClientConfig {
+    pub const PKI_DIR: &'static str = "pki";
+
     pub fn new<T>(application_name: T, application_uri: T) -> Self where T: Into<String> {
         let mut pki_dir = std::env::current_dir().unwrap();
-        pki_dir.push("pki");
+        pki_dir.push(Self::PKI_DIR);
         ClientConfig {
             application_name: application_name.into(),
             application_uri: application_uri.into(),
@@ -181,6 +179,8 @@ impl ClientConfig {
             default_endpoint: String::new(),
             user_tokens: BTreeMap::new(),
             endpoints: BTreeMap::new(),
+            session_retry_limit: SessionRetryPolicy::DEFAULT_RETRY_LIMIT as i32,
+            session_retry_interval: SessionRetryPolicy::DEFAULT_RETRY_INTERVAL_MS,
         }
     }
 }

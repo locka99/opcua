@@ -23,6 +23,7 @@ use opcua_core::{
 use crate::{
     config::{ANONYMOUS_USER_TOKEN_ID, ClientConfig, ClientEndpoint},
     session::{Session, SessionInfo},
+    session_retry::SessionRetryPolicy,
 };
 
 #[derive(Debug)]
@@ -60,6 +61,8 @@ pub struct Client {
     sessions: Vec<SessionEntry>,
     /// Certificate store is where certificates go.
     certificate_store: Arc<RwLock<CertificateStore>>,
+    /// The session retry policy for new sessions
+    session_retry_policy: SessionRetryPolicy,
 }
 
 impl Drop for Client {
@@ -119,9 +122,21 @@ impl Client {
             certificate_store.trust_unknown_certs = true;
         }
 
+        // The session retry policy dictates how many times to retry if connection to the server goes down
+        // and on what interval
+        let session_retry_policy = match config.session_retry_limit {
+            // Try forever
+            -1 => SessionRetryPolicy::infinity(config.session_retry_interval),
+            // Never try
+            0 => SessionRetryPolicy::never(),
+            // Try this many times
+            session_retry_limit => SessionRetryPolicy::new(session_retry_limit as u32, config.session_retry_interval)
+        };
+
         Client {
             config,
             sessions: Vec::new(),
+            session_retry_policy,
             certificate_store: Arc::new(RwLock::new(certificate_store)),
         }
     }
@@ -277,7 +292,7 @@ impl Client {
         if !is_opc_ua_binary_url(session_info.endpoint.endpoint_url.as_ref()) {
             Err(format!("Endpoint url {}, is not a valid / supported url", session_info.endpoint.endpoint_url))
         } else {
-            let session = Arc::new(RwLock::new(Session::new(self.application_description(), self.certificate_store.clone(), session_info)));
+            let session = Arc::new(RwLock::new(Session::new(self.application_description(), self.certificate_store.clone(), session_info, self.session_retry_policy.clone())));
             self.sessions.push(SessionEntry {
                 session: session.clone(),
             });
@@ -352,7 +367,7 @@ impl Client {
             client_pkey,
             client_certificate,
         };
-        let mut session = Session::new(self.application_description(), self.certificate_store.clone(), session_info);
+        let mut session = Session::new(self.application_description(), self.certificate_store.clone(), session_info, self.session_retry_policy.clone());
         let _ = session.connect()?;
         let result = session.get_endpoints()?;
         let _ = session.disconnect();

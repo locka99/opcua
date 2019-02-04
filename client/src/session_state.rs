@@ -243,10 +243,17 @@ impl SessionState {
     }
 
     pub(crate) fn reset(&mut self) {
-        self.session_id();
+        // Clear tokens, ids etc.
+        self.session_id = NodeId::null();
         self.authentication_token = NodeId::null();
         self.request_handle.reset();
         self.monitored_item_handle.reset();
+
+        // Clear the message queue
+        {
+            let mut message_queue = trace_write_lock_unwrap!(self.message_queue);
+            message_queue.clear();
+        };
     }
 
     /// Asynchronously sends a request. The return value is the request handle of the request

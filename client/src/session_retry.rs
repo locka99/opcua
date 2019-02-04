@@ -28,13 +28,7 @@ pub struct SessionRetryPolicy {
 
 impl Default for SessionRetryPolicy {
     fn default() -> Self {
-        // Default retry policy
-        SessionRetryPolicy {
-            retry_count: 0,
-            last_attempt: Self::last_attempt_default(),
-            retry_limit: Some(Self::DEFAULT_RETRY_LIMIT),
-            retry_interval: Self::DEFAULT_RETRY_INTERVAL_MS,
-        }
+        Self::new(Self::DEFAULT_RETRY_LIMIT, Self::DEFAULT_RETRY_INTERVAL_MS)
     }
 }
 
@@ -42,10 +36,24 @@ impl SessionRetryPolicy {
     /// The default retry policy will attempt to reconnect up to this many times.
     pub const DEFAULT_RETRY_LIMIT: u32 = 10;
     /// The default retry policy will wait this duration between reconnect attempts.
-    pub const DEFAULT_RETRY_INTERVAL_MS: u32 = 2000;
+    pub const DEFAULT_RETRY_INTERVAL_MS: u32 = 10000;
+    /// The minimum retry interval
+    pub const MIN_RETRY_INTERVAL_MS: u32 = 500;
+
+    /// Create a `SessionRetryPolicy` with a limit and interval
+    pub fn new(retry_limit: u32, retry_interval: u32) -> Self {
+        let retry_interval = if retry_interval < Self::MIN_RETRY_INTERVAL_MS { Self::MIN_RETRY_INTERVAL_MS } else { retry_interval };
+        SessionRetryPolicy {
+            retry_count: 0,
+            last_attempt: Self::last_attempt_default(),
+            retry_limit: Some(retry_limit),
+            retry_interval,
+        }
+    }
 
     /// Create a `SessionRetryPolicy` that tries forever at the specified interval
-    pub fn infinity(retry_interval: u32) -> SessionRetryPolicy {
+    pub fn infinity(retry_interval: u32) -> Self {
+        let retry_interval = if retry_interval < Self::MIN_RETRY_INTERVAL_MS { Self::MIN_RETRY_INTERVAL_MS } else { retry_interval };
         SessionRetryPolicy {
             retry_count: 0,
             last_attempt: Self::last_attempt_default(),
@@ -55,13 +63,8 @@ impl SessionRetryPolicy {
     }
 
     /// Create a `SessionRetryPolicy` that never tries again.
-    pub fn never() -> SessionRetryPolicy {
-        SessionRetryPolicy {
-            retry_count: 0,
-            last_attempt: Self::last_attempt_default(),
-            retry_limit: Some(0),
-            retry_interval: 0,
-        }
+    pub fn never() -> Self {
+        Self::new(0, 0)
     }
 
     fn last_attempt_default() -> DateTime<Utc> {
@@ -93,6 +96,12 @@ impl SessionRetryPolicy {
                 return Answer::GiveUp;
             }
         }
+
+        if self.retry_interval < Self::MIN_RETRY_INTERVAL_MS {
+            // The constructors don't allow for this
+            panic!("Retry interval is less than the minimum permitted.");
+        }
+
         // Look at how much time has elapsed since the last attempt
         let elapsed = now - self.last_attempt;
         let retry_interval = Duration::milliseconds(self.retry_interval as i64);
