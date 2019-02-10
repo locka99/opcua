@@ -24,9 +24,11 @@ pub trait OnConnectionStatusChange {
 pub trait OnSessionClosed {
     /// Called when the connection closed (in addition to a status change event). The status
     /// code should be checked to see if the closure was a graceful terminate (`Good`), or the result
-    /// of a network or protocol error. The implementation might choose to reconnect in response
-    /// to a bad status code, however it should be aware of retrying too quickly or indefinitely in case
-    /// the error is permanent.
+    /// of a network or protocol error.
+    ///
+    /// If no session retry policy has been created for the client session, the server implementation
+    /// might choose to reconnect in response to a bad status code by itself, however it should
+    /// avoid retrying too quickly or indefinitely in case the error is permanent.
     fn session_closed(&mut self, status_code: StatusCode);
 }
 

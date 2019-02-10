@@ -11,18 +11,26 @@ pub enum Answer {
     GiveUp,
 }
 
-/// The session retry policy determines what the session will do if the connection drops, or it
-/// suffers from connectivity issues. The policy allows a session to attempt to reconnect a number
-/// of times and to control its retry interval.
+/// The session retry policy determines what to if the connection fails. In these circumstances,
+/// the client needs to re-establish a connection and the policy says how many times to try between
+/// failure and at what interval.
+///
+/// The retry policy may choose a `retry_limit` of `None` for infinite retries. It may define
+/// a `retry_interval` for the period of time in MS between each retry. Note that the policy retains
+/// its own minimum retry interval and will not retry any faster than that.
+///
+/// Once a connection succeeds, the retry limit is reset.
 #[derive(Debug, PartialEq, Clone)]
 pub struct SessionRetryPolicy {
-    /// The maximum retry limit. A value of 0 means no retries, i.e. give up on first fail, None means no limit, i.e. infinity
+    /// The maximum number of times to retry between failures before giving up. A value of 0 means
+    /// no retries, i.e. give up on first fail, None means no limit, i.e. infinity
     retry_limit: Option<u32>,
     /// Interval between retries in milliseconds
     retry_interval: u32,
-    /// The number of attempts so far
+    /// The number of failed attempts so far since the last connection. When the connection succeeds
+    /// this value is reset.
     retry_count: u32,
-    /// The last retry attempt
+    /// The last retry attempt timestamp.
     last_attempt: DateTime<Utc>,
 }
 
