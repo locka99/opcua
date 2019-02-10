@@ -83,8 +83,8 @@ fn add_example_variables(server: &mut Server) {
     }
 
     // 2) Push. This code will use a timer to set the values on variable v1 & v2 on an interval.
-    //    Note you could use your timer callbacks you like for this but calling create_polling_action
-    //    means you get the internal implementation.
+    //    Note you can use any kind of timer callback that you like for this. The library
+    //    contains a simple add_polling_action for your convenience.
     {
         // Store a counter and a flag in a tuple
         let data = Arc::new(Mutex::new((0, true)));
