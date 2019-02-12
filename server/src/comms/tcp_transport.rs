@@ -180,7 +180,7 @@ impl TcpTransport {
         Self::spawn_looping_task(connection, socket);
     }
 
-    fn write_bytes_task(connection: Arc<Mutex<WriteState>>) -> impl Future<Item=Arc<Mutex<WriteState>>, Error=()> {
+    fn write_bytes_task(connection: Arc<Mutex<WriteState>>) -> impl Future<Item=Arc<Mutex<WriteState>>, Error=Arc<Mutex<WriteState>>> {
         let (writer, bytes_to_write, transport) = {
             let mut connection = trace_lock_unwrap!(connection);
             let writer = connection.writer.take();
@@ -191,6 +191,7 @@ impl TcpTransport {
             let transport = connection.transport.clone();
             (writer, bytes_to_write, transport)
         };
+        let connection_for_err = connection.clone();
         io::write_all(writer.unwrap(), bytes_to_write).map_err(move |err| {
             error!("Write IO error {:?}", err);
             let mut transport = trace_write_lock_unwrap!(transport);
@@ -202,6 +203,8 @@ impl TcpTransport {
                 connection.writer = Some(writer);
             }
             connection
+        }).map_err(move |_| {
+            connection_for_err
         })
     }
 
@@ -326,14 +329,22 @@ impl TcpTransport {
                 };
                 if finished {
                     info!("Writer session status is bad is terminating");
-                    Err(())
+                    Err(connection)
                 } else {
                     Ok(connection)
                 }
             }).map(|_| {
                 trace!("Write bytes task finished");
-            }).map_err(|_| {
-                error!("Write bytes task is in error");
+            }).map_err(|connection| {
+                // Mark as finished just in case something else didn't
+                let connection = trace_lock_unwrap!(connection);
+                let mut transport = trace_write_lock_unwrap!(connection.transport);
+                if !transport.is_finished() {
+                    error!("Write bytes task is in error and is finishing the transport");
+                    transport.finish(StatusCode::BadCommunicationError);
+                } else {
+                    error!("Write bytes task is in error");
+                };
             })
         }).map(move |_| {
             info!("Writer is finished");
@@ -353,6 +364,7 @@ impl TcpTransport {
         register_runtime_component!(id);
 
         let transport_for_take_while = transport.clone();
+        let transport_for_err = transport.clone();
 
         // Connection state is maintained for looping through each task
         let connection = Arc::new(RwLock::new(ReadState {
@@ -371,11 +383,11 @@ impl TcpTransport {
 
         // The reader reads frames from the codec, which are messages
         let framed_reader = FramedRead::new(reader, TcpCodec::new(finished_flag, decoding_limits));
-        let looping_task = framed_reader
+        let framed_reader_task = framed_reader
             .take_while(move |_| {
                 connection_finished_test!("framed reader.take_while", transport_for_take_while)
-            }).
-            for_each(move |message| {
+            })
+            .for_each(move |message| {
                 let connection = trace_read_lock_unwrap!(connection);
                 let transport_state = {
                     let transport = trace_read_lock_unwrap!(connection.transport);
@@ -419,39 +431,52 @@ impl TcpTransport {
                     transport.finish(session_status_code);
                 }
                 Ok(())
-            }).map_err(move |e| {
-            error!("Read loop error {:?}", e);
-        }).and_then(move |_| {
-            let connection = trace_write_lock_unwrap!(connection_for_terminate);
-            // Some handlers might wish to send their message and terminate, in which case this is
-            // done here.
-            let finished = {
-                // Terminate may have been set somewhere
-                let mut transport = trace_write_lock_unwrap!(connection.transport);
-                let terminate = {
-                    let session = trace_read_lock_unwrap!(transport.session);
-                    session.terminate_session
-                };
-                if terminate {
-                    transport.finish(StatusCode::BadConnectionClosed);
+            })
+            .map_err(move |err| {
+                // Mark as finished just in case something else didn't
+                let mut transport = trace_write_lock_unwrap!(transport_for_err);
+                if !transport.is_finished() {
+                    error!("Reader is in error and is finishing the transport. {:?}", err);
+                    transport.finish(StatusCode::BadCommunicationError);
+                } else {
+                    error!("Reader error {:?}", err);
                 }
-                // Other session status
-                transport.is_finished()
-            };
+            });
 
-            // Abort the session?
-            if finished {
-                Err(())
-            } else {
-                Ok(())
-            }
-        }).map(move |_| {
-            info!("Read loop is finished");
-            deregister_runtime_component!(id_for_map);
-        }).map_err(move |err| {
-            error!("Read loop is finished with an error {:?}", err);
-            deregister_runtime_component!(id_for_map_err);
-        });
+        let looping_task = framed_reader_task
+            .and_then(move |_| {
+                let connection = trace_write_lock_unwrap!(connection_for_terminate);
+                // Some handlers might wish to send their message and terminate, in which case this is
+                // done here.
+                let finished = {
+                    // Terminate may have been set somewhere
+                    let mut transport = trace_write_lock_unwrap!(connection.transport);
+                    let terminate = {
+                        let session = trace_read_lock_unwrap!(transport.session);
+                        session.terminate_session
+                    };
+                    if terminate {
+                        transport.finish(StatusCode::BadConnectionClosed);
+                    }
+                    // Other session status
+                    transport.is_finished()
+                };
+
+                // Abort the session?
+                if finished {
+                    Err(())
+                } else {
+                    Ok(())
+                }
+            })
+            .map(move |_| {
+                info!("Read loop is finished");
+                deregister_runtime_component!(id_for_map);
+            })
+            .map_err(move |err| {
+                error!("Read loop is finished with an error {:?}", err);
+                deregister_runtime_component!(id_for_map_err);
+            });
 
         tokio::spawn(looping_task);
     }
