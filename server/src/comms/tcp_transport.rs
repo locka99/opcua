@@ -227,10 +227,11 @@ impl TcpTransport {
             transport.secure_channel.clone()
         };
 
+        // This is set to true when the session is finished.
         let finished_flag = Arc::new(RwLock::new(false));
 
-        // Spawn reading task
-        // Spawn the subscription processing task
+        // Spawn all the tasks that monitor the session - the subscriptions, finished state,
+        // reading and writing.
         Self::spawn_subscriptions_task(transport.clone(), tx.clone());
         Self::spawn_finished_monitor_task(transport.clone(), finished_flag.clone());
         Self::spawn_reading_loop_task(reader, finished_flag.clone(), tx, transport.clone(), receive_buffer_size);
@@ -242,6 +243,9 @@ impl TcpTransport {
         format!("{}/{}", transport.session_id, component)
     }
 
+    /// Spawns the finished monitor task. This checks for the session to be in a finished
+    /// state and ensures the session is placed into a finished state once the transport
+    /// aborts or finishes.
     fn spawn_finished_monitor_task(transport: Arc<RwLock<TcpTransport>>, finished_flag: Arc<RwLock<bool>>) {
         let id = Self::make_session_id("finished_monitor_task", transport.clone());
         let id_for_map = id.clone();
@@ -273,6 +277,8 @@ impl TcpTransport {
         tokio::spawn(finished_monitor_task);
     }
 
+    /// Spawns the writing loop task. The writing loop takes messages to send off of a queue
+    /// and sends them to the stream.
     fn spawn_writing_loop_task(writer: WriteHalf<TcpStream>, receiver: UnboundedReceiver<(u32, SupportedMessage)>, secure_channel: Arc<RwLock<SecureChannel>>, transport: Arc<RwLock<TcpTransport>>, send_buffer: Arc<Mutex<MessageWriter>>) {
         let id = Self::make_session_id("writing_loop_task", transport.clone());
         let id_for_map = id.clone();
@@ -357,23 +363,14 @@ impl TcpTransport {
         tokio::spawn(looping_task);
     }
 
-    fn spawn_reading_loop_task(reader: ReadHalf<TcpStream>, finished_flag: Arc<RwLock<bool>>, sender: UnboundedSender<(u32, SupportedMessage)>, transport: Arc<RwLock<TcpTransport>>, receive_buffer_size: usize) {
-        let id = Self::make_session_id("reading_loop_task", transport.clone());
-        let id_for_map = id.clone();
-        let id_for_map_err = id.clone();
-        register_runtime_component!(id);
-
-        let transport_for_take_while = transport.clone();
-        let transport_for_err = transport.clone();
-
-        // Connection state is maintained for looping through each task
-        let connection = Arc::new(RwLock::new(ReadState {
-            transport: transport.clone(),
-            bytes_read: 0,
-            in_buf: vec![0u8; receive_buffer_size],
-            sender: Arc::new(RwLock::new(sender)),
-        }));
-        let connection_for_terminate = connection.clone();
+    /// Creates the framed read task / future. This will read chunks from the
+    /// reader and process them.
+    fn framed_read_task(reader: ReadHalf<TcpStream>, finished_flag: Arc<RwLock<bool>>, connection: Arc<RwLock<ReadState>>) -> impl Future<Item=(), Error=()>
+    {
+        let transport = {
+            let connection = trace_read_lock_unwrap!(connection);
+            connection.transport.clone()
+        };
 
         let decoding_limits = {
             let transport = trace_read_lock_unwrap!(transport);
@@ -382,8 +379,12 @@ impl TcpTransport {
         };
 
         // The reader reads frames from the codec, which are messages
-        let framed_reader = FramedRead::new(reader, TcpCodec::new(finished_flag, decoding_limits));
-        let framed_reader_task = framed_reader
+        let framed_read = FramedRead::new(reader, TcpCodec::new(finished_flag, decoding_limits));
+
+        let transport_for_take_while = transport.clone();
+        let transport_for_err = transport.clone();
+
+        framed_read
             .take_while(move |_| {
                 connection_finished_test!("framed reader.take_while", transport_for_take_while)
             })
@@ -441,11 +442,29 @@ impl TcpTransport {
                 } else {
                     error!("Reader error {:?}", err);
                 }
-            });
+            })
+    }
+
+    /// Spawns the reading loop where a reader task continuously reads messages, chunks from the
+    /// input and process them. The reading task will terminate upon error.
+    fn spawn_reading_loop_task(reader: ReadHalf<TcpStream>, finished_flag: Arc<RwLock<bool>>, sender: UnboundedSender<(u32, SupportedMessage)>, transport: Arc<RwLock<TcpTransport>>, receive_buffer_size: usize) {
+        // Connection state is maintained for looping through each task
+        let connection = Arc::new(RwLock::new(ReadState {
+            transport: transport.clone(),
+            bytes_read: 0,
+            in_buf: vec![0u8; receive_buffer_size],
+            sender: Arc::new(RwLock::new(sender)),
+        }));
+        let framed_read_task = Self::framed_read_task(reader, finished_flag, connection.clone());
+
+        let id = Self::make_session_id("reading_loop_task", transport.clone());
+        let id_for_map = id.clone();
+        let id_for_map_err = id.clone();
+        register_runtime_component!(id);
 
         let looping_task = framed_reader_task
             .and_then(move |_| {
-                let connection = trace_write_lock_unwrap!(connection_for_terminate);
+                let connection = trace_write_lock_unwrap!(connection);
                 // Some handlers might wish to send their message and terminate, in which case this is
                 // done here.
                 let finished = {
