@@ -462,7 +462,7 @@ impl TcpTransport {
         let id_for_map_err = id.clone();
         register_runtime_component!(id);
 
-        let looping_task = framed_reader_task
+        let looping_task = framed_read_task
             .and_then(move |_| {
                 let connection = trace_write_lock_unwrap!(connection);
                 // Some handlers might wish to send their message and terminate, in which case this is
