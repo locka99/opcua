@@ -212,14 +212,14 @@ impl Session {
                     self.create_session()?;
                     debug!("activate_session");
                     self.activate_session()?;
-                    debug!("transfer_subscriptions_from_old_session");
-                    self.transfer_subscriptions_from_old_session()?;
                     debug!("reconnect should be complete");
                 }
                 Ok(_) => {
-                    info!("Activation succeeded so need to recreate anything");
+                    info!("Activation succeeded");
                 }
             }
+            debug!("transfer_subscriptions_from_old_session");
+            self.transfer_subscriptions_from_old_session()?;
             Ok(())
         }
     }
