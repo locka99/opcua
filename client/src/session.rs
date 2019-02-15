@@ -1456,8 +1456,8 @@ impl Session {
         let response = self.call_method(request)?;
         if let Some(mut result) = response.output_arguments {
             if result.len() == 2 {
-                let server_handles = result.remove(0).into_u32_array()?;
-                let client_handles = result.remove(0).into_u32_array()?;
+                let server_handles = result.remove(0).as_u32_array().map_err(|_| StatusCode::BadUnexpectedError)?;
+                let client_handles = result.remove(0).as_u32_array().map_err(|_| StatusCode::BadUnexpectedError)?;
                 Ok((server_handles, client_handles))
             } else {
                 error!("Expected a result with 2 args and didn't get it.");

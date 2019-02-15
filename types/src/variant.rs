@@ -851,8 +851,10 @@ impl Variant {
         }
     }
 
-    /// Returns an array of UInt32s
-    pub fn into_u32_array(&self) -> Result<Vec<u32>, StatusCode> {
+    /// Assuming the variant to be an array of numeric values, this function will return
+    /// an array of u32 values. Note that data loss is possible for some numeric types.
+    /// If the variant is not a numeric array, the function returns an error.
+    pub fn as_u32_array(&self) -> Result<Vec<u32>, ()> {
         if self.is_numeric_array() {
             match *self {
                 Variant::Array(ref values) => {
@@ -880,7 +882,7 @@ impl Variant {
             }
         } else {
             error!("Variant is either not an array or does not hold numeric values");
-            Err(StatusCode::BadUnexpectedError)
+            Err(())
         }
     }
 
