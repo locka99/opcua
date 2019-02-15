@@ -31,9 +31,9 @@ fn make_create_request(sampling_interval: Duration, queue_size: u32) -> Monitore
         monitoring_mode: MonitoringMode::Reporting,
         requested_parameters: MonitoringParameters {
             client_handle: 999,
-            sampling_interval: sampling_interval,
-            filter: filter,
-            queue_size: queue_size,
+            sampling_interval,
+            filter,
+            queue_size,
             discard_oldest: true,
         },
     }
@@ -206,14 +206,14 @@ fn populate_monitored_item(discard_oldest: bool) -> MonitoredItem {
     monitored_item.discard_oldest = discard_oldest;
     for i in 0..5 {
         monitored_item.enqueue_notification_message(MonitoredItemNotification {
-            client_handle: client_handle,
+            client_handle,
             value: DataValue::new(i as i32),
         });
         assert!(!monitored_item.queue_overflow);
     }
 
     monitored_item.enqueue_notification_message(MonitoredItemNotification {
-        client_handle: client_handle,
+        client_handle,
         value: DataValue::new(10 as i32),
     });
     assert!(monitored_item.queue_overflow);
