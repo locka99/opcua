@@ -1,22 +1,24 @@
 # Cross-compiling OPC UA for Rust
 
-IMPORTANT - These notes cut and pasted from the sources below. They have not been extensively tested but are known to 
-work with the Windows 10 Linux subsystem.
+## Credit
 
-The [bug](https://github.com/locka99/opcua/issues/24) was raised asking how to 
-cross-compile OPC UA for Rust and someone kindly answered with references to the following
-links:
-
-Raspberry Pi is the target architecture.
+These notes are derived from the following sources 
 
 1. Install cross-compile utilities as shown [here](https://github.com/sodiumoxide/sodiumoxide)
 2. Follow malbarbo's answer [here](https://stackoverflow.com/questions/37375712/cross-compile-rust-openssl-for-raspberry-pi-2)
 
-Below is the pertinent information extracted from these links:
+## Intro
+
+The [bug](https://github.com/locka99/opcua/issues/24) was raised asking how to 
+cross-compile OPC UA for Rust and someone kindly answered with references. The links above were
+derived into a known working solution.
+
+Raspberry Pi is the target architecture and I used Linux Subsystem for Windows with Debian to work
+through the steps.
 
 ## Cross-Compiling for armv7-unknown-linux-gnueabihf
 
-Adapted from from sodiumoxide readme:
+These steps are derived from from sodiumoxide [readme](https://github.com/sodiumoxide/sodiumoxide):
 
 1. Install dependencies and toolchain:
 
@@ -42,7 +44,7 @@ cargo build --release --target armv7-unknown-linux-gnueabihf
 
 ## Download and build OpenSSL
 
-Take from stackoverflow answer and adapted to opcua:
+Derived from stackoverflow [answer](https://stackoverflow.com/questions/37375712/cross-compile-rust-openssl-for-raspberry-pi-2) and adapted to opcua:
 
 ```
 cd /tmp
@@ -54,8 +56,6 @@ export ARCH=arm
 export CC=arm-linux-gnueabihf-gcc
 cd openssl-1.0.1t && ./config shared && make && cd -
 
-export OPENSSL_LIB_DIR=/tmp/openssl-1.0.1t/
-export OPENSSL_INCLUDE_DIR=/tmp/openssl-1.0.1t/include
 cd /my/path/to/opcua
 mkdir .cargo
 cat > .cargo/config << EOF
@@ -63,5 +63,20 @@ cat > .cargo/config << EOF
 linker = "arm-linux-gnueabihf-gcc"
 EOF
 
+export OPENSSL_LIB_DIR=/tmp/openssl-1.0.1t/
+export OPENSSL_INCLUDE_DIR=/tmp/openssl-1.0.1t/include
+export OPENSSL_STATIC=1
+
 cargo build --target armv7-unknown-linux-gnueabihf
+```
+
+Note `OPENSSL_STATIC=1`, causes rust-openssl to be statically linked to it which saves you having to copy the 
+shared lib. 
+
+And then:
+
+```
+export QEMU_LD_PREFIX=/usr/arm-linux-gnueabihf
+cd samples/simple-client
+qemu-arm-static ../../target/armv7-unknown-linux-gnueabihf/debug/opcua-simple-client
 ```
