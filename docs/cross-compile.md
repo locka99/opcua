@@ -51,9 +51,15 @@ cd /tmp
 
 wget https://www.openssl.org/source/openssl-1.0.1t.tar.gz
 tar xzf openssl-1.0.1t.tar.gz
+
+cat > .opcuaARMenv << EOF
 export MACHINE=armv7
 export ARCH=arm
 export CC=arm-linux-gnueabihf-gcc
+EOF
+
+source .opcuaARMenv
+
 cd openssl-1.0.1t && ./config shared && make && cd -
 
 cd /my/path/to/opcua
@@ -63,9 +69,13 @@ cat > .cargo/config << EOF
 linker = "arm-linux-gnueabihf-gcc"
 EOF
 
+cat > .opcuaSSLenv << EOF
 export OPENSSL_LIB_DIR=/tmp/openssl-1.0.1t/
 export OPENSSL_INCLUDE_DIR=/tmp/openssl-1.0.1t/include
 export OPENSSL_STATIC=1
+EOF
+
+source .opcuaSSLenv
 
 cargo build --target armv7-unknown-linux-gnueabihf
 ```
@@ -76,7 +86,17 @@ shared lib.
 And then:
 
 ```
+source .opcuaSSLenv
 export QEMU_LD_PREFIX=/usr/arm-linux-gnueabihf
 cd samples/simple-client
 qemu-arm-static ../../target/armv7-unknown-linux-gnueabihf/debug/opcua-simple-client
+```
+
+or
+
+```
+source .opcuaSSLenv
+export QEMU_LD_PREFIX=/usr/arm-linux-gnueabihf
+cd samples/demo-server
+qemu-arm-static ../../target/armv7-unknown-linux-gnueabihf/debug/opcua-demo-server
 ```
