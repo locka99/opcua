@@ -2,16 +2,12 @@
 
 ## Credit
 
-These notes are derived from the following sources 
+The [bug](https://github.com/locka99/opcua/issues/24) was raised asking how to 
+cross-compile OPC UA for Rust and someone kindly answered with references. The links below were
+used to produce a working solution:
 
 1. Install cross-compile utilities as shown [here](https://github.com/sodiumoxide/sodiumoxide)
 2. Follow malbarbo's answer [here](https://stackoverflow.com/questions/37375712/cross-compile-rust-openssl-for-raspberry-pi-2)
-
-## Intro
-
-The [bug](https://github.com/locka99/opcua/issues/24) was raised asking how to 
-cross-compile OPC UA for Rust and someone kindly answered with references. The links above were
-derived into a known working solution.
 
 Raspberry Pi is the target architecture and I used Linux Subsystem for Windows with Debian to work
 through the steps.
