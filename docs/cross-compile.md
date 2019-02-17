@@ -116,7 +116,6 @@ or
 
 ```
 source .opcuaSSLenv
-export QEMU_LD_PREFIX=/usr/arm-linux-gnueabihf
 cd samples/demo-server
 qemu-arm-static ../../target/armv7-unknown-linux-gnueabihf/debug/opcua-demo-server
 ```
