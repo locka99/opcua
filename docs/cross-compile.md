@@ -38,9 +38,15 @@ cd /tmp
 
 wget https://www.openssl.org/source/openssl-1.0.1t.tar.gz
 tar xzf openssl-1.0.1t.tar.gz
+
+cat > .opcuaARMenv << EOF
 export MACHINE=armv7
 export ARCH=arm
 export CC=arm-linux-gnueabihf-gcc
+EOF
+
+source .opcuaARMenv
+
 cd openssl-1.0.1t && ./config shared && make && cd -
 ```
 
@@ -80,24 +86,37 @@ Building is straightforward and just requires we specify where OpenSSL was built
 correct build target.
 
 ```
+cat > .opcuaSSLenv << EOF
 export OPENSSL_LIB_DIR=/tmp/openssl-1.0.1t/
 export OPENSSL_INCLUDE_DIR=/tmp/openssl-1.0.1t/include
 export OPENSSL_STATIC=1
+export QEMU_LD_PREFIX=/usr/arm-linux-gnueabihf
+EOF
+
+source .opcuaSSLenv
 cargo build --target armv7-unknown-linux-gnueabihf
 ```
 
 Note `OPENSSL_STATIC=1`, causes `rust-openssl` to link to OpenSSL's static library which saves a
 little effort in the next step. Alternatively you can copy the `libcrypto.so`, `libcrypto.so.1.0.0`, `libssl.so` and 
-`libssl.so.1.0.0` from `$OPENSSL_LIB_DIR` into `$QEMU_LD_PREFIX/lib` below.
+`libssl.so.1.0.0` from `$OPENSSL_LIB_DIR` into `$QEMU_LD_PREFIX/lib` before running.
 
 ## Run
 
 Qemu can run Arm binaries from your host environment with a `qemu-arm-static` command - convenient! 
-So now we can test if our build has worked:
-
+So now we can test if the build works:
 
 ```
-export QEMU_LD_PREFIX=/usr/arm-linux-gnueabihf
+source .opcuaSSLenv
 cd samples/simple-client
 qemu-arm-static ../../target/armv7-unknown-linux-gnueabihf/debug/opcua-simple-client
+```
+
+or
+
+```
+source .opcuaSSLenv
+export QEMU_LD_PREFIX=/usr/arm-linux-gnueabihf
+cd samples/demo-server
+qemu-arm-static ../../target/armv7-unknown-linux-gnueabihf/debug/opcua-demo-server
 ```
