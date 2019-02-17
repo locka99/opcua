@@ -194,6 +194,9 @@ fn validate_chunks_sequence_number() {
     let mut chunks = Chunker::encode(sequence_number, request_id, 0, MIN_CHUNK_SIZE, &secure_channel, &response).unwrap();
     assert!(chunks.len() > 1);
 
+    // Test sequence number cannot be < starting sequence number
+    assert_eq!(Chunker::validate_chunks(sequence_number + 5000, &secure_channel, &chunks).unwrap_err(), StatusCode::BadSequenceNumberInvalid);
+
     // Test sequence number is returned properly
     let result = Chunker::validate_chunks(sequence_number, &secure_channel, &chunks).unwrap();
     assert_eq!(sequence_number + chunks.len() as u32 - 1, result);
