@@ -2,7 +2,7 @@
 
 ## Credit
 
-The [bug](https://github.com/locka99/opcua/issues/24) was raised asking how to 
+A [bug](https://github.com/locka99/opcua/issues/24) was raised asking how to 
 cross-compile OPC UA for Rust and someone kindly answered with references. The links below were
 used to produce a working solution:
 
