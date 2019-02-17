@@ -24,8 +24,11 @@ pub fn register_with_discovery_server(discovery_server_url: &str, server_state: 
             match client.register_server(discovery_server_url, registered_server) {
                 Ok(_) => {}
                 Err(err) => {
-                    error!("Cannot register server with discovery server {}. Error {} may indicate the reason why.", discovery_server_url, err);
-                    error!("One solution you may try is to ensure your server's cert is trusted by the discovery server.");
+                    error!(r#"Cannot register server with discovery server {}.
+The errors immediately preceding this message may be caused by this issue.
+Check if the error "{}" indicates the reason why that the registration could not happen.
+The first thing you should ensure is that your server can connect to the discovery server and your
+server's cert is trusted by the discovery server and vice versa."#, discovery_server_url, err);
                 }
             }
         }
