@@ -96,11 +96,7 @@ impl Node for Base {
     }
 
     fn user_write_mask(&self) -> Option<WriteMask> {
-        if let Some(write_mask) = find_attribute_value_optional!(self, UserWriteMask, UInt32) {
-            Some(WriteMask::from_bits_truncate(write_mask))
-        } else {
-            None
-        }
+        find_attribute_value_optional!(self, UserWriteMask, UInt32).map(|write_mask| WriteMask::from_bits_truncate(write_mask))
     }
 
     fn set_user_write_mask(&mut self, write_mask: WriteMask) {

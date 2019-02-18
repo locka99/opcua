@@ -227,11 +227,7 @@ impl Subscription {
     }
 
     fn monitored_item_id_from_handle(&self, client_handle: u32) -> Option<u32> {
-        if let Some(monitored_item_id) = self.client_handles.get(&client_handle) {
-            Some(*monitored_item_id)
-        } else {
-            None
-        }
+        self.client_handles.get(&client_handle).map(|monitored_item_id| *monitored_item_id)
     }
 
     pub(crate) fn data_change(&mut self, data_change_notifications: &[DataChangeNotification]) {

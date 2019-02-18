@@ -1,13 +1,15 @@
-use std::collections::VecDeque;
-use std::sync::{Arc, RwLock, Mutex};
-
+use std::{
+    collections::VecDeque,
+    sync::{Arc, RwLock, Mutex},
+};
 use chrono;
 
-use opcua_core::comms::secure_channel::{Role, SecureChannel};
-use opcua_core::crypto::X509;
-use opcua_types::*;
-use opcua_types::service_types::PublishRequest;
-use opcua_types::status_code::StatusCode;
+use opcua_core::{
+    comms::secure_channel::{Role, SecureChannel}, crypto::X509,
+};
+use opcua_types::{
+    *, service_types::PublishRequest, status_code::StatusCode,
+};
 
 use crate::{
     address_space::AddressSpace,
@@ -204,11 +206,8 @@ impl Session {
         let continuation_point = self.browse_continuation_points.iter().find(|continuation_point| {
             continuation_point.id.eq(id)
         });
-        if let Some(continuation_point) = continuation_point {
-            Some(continuation_point.clone())
-        } else {
-            None
-        }
+
+        continuation_point.map(|continuation_point| continuation_point.clone())
     }
 
     pub fn remove_expired_browse_continuation_points(&mut self, address_space: &AddressSpace) {
