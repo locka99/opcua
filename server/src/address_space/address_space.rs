@@ -583,11 +583,9 @@ impl AddressSpace {
     /// Gets a variable value with the supplied NodeId. The function will return Err if the
     /// NodeId does not exist or is not a variable.
     pub fn get_variable_value<N>(&self, node_id: N) -> Result<DataValue, ()> where N: Into<NodeId> {
-        if let Some(ref variable) = self.find_variable(node_id) {
-            Ok(variable.value())
-        } else {
-            Err(())
-        }
+        self.find_variable(node_id)
+            .map(|variable| variable.value())
+            .ok_or_else(|| ())
     }
 
     /// Registers a method callback on the specified object id and method id

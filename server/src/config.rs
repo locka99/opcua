@@ -359,10 +359,6 @@ impl ServerConfig {
                 false
             }
         });
-        if let Some(endpoint) = endpoint {
-            Some(endpoint.1)
-        } else {
-            None
-        }
+        endpoint.map(|endpoint| endpoint.1)
     }
 }
