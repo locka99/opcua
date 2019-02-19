@@ -31,13 +31,9 @@ impl<'de> Deserialize<'de> for Guid {
         let result = String::deserialize(deserializer);
         match result {
             Ok(uuid) => {
-                if let Ok(uuid) = Uuid::parse_str(&uuid) {
-                    Ok(Guid {
-                        uuid,
-                    })
-                } else {
-                    Err(D::Error::custom("Invalid uuid"))
-                }
+                Uuid::parse_str(&uuid)
+                    .map(|uuid| Guid { uuid })
+                    .map_err(|_|D::Error::custom("Invalid uuid"))
             }
             Err(err) => {
                 Err(err)

@@ -75,18 +75,10 @@ impl BinaryEncoder<ExtensionObject> for ExtensionObject {
                 ExtensionObjectEncoding::None
             }
             0x1 => {
-                let value = ByteString::decode(stream, decoding_limits);
-                if value.is_err() {
-                    return Err(value.unwrap_err());
-                }
-                ExtensionObjectEncoding::ByteString(value.unwrap())
+                ExtensionObjectEncoding::ByteString(ByteString::decode(stream, decoding_limits)?)
             }
             0x2 => {
-                let value = XmlElement::decode(stream, decoding_limits);
-                if value.is_err() {
-                    return Err(value.unwrap_err());
-                }
-                ExtensionObjectEncoding::XmlElement(value.unwrap())
+                ExtensionObjectEncoding::XmlElement(XmlElement::decode(stream, decoding_limits)?)
             }
             _ => {
                 error!("Invalid encoding type {} in stream", encoding_type);

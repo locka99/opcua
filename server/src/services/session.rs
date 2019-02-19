@@ -56,11 +56,7 @@ impl SessionService {
             let endpoints = endpoints.unwrap();
 
             // Extract the client certificate if one is supplied
-            let client_certificate = if let Ok(client_certificate) = crypto::X509::from_byte_string(&request.client_certificate) {
-                Some(client_certificate)
-            } else {
-                None
-            };
+            let client_certificate = crypto::X509::from_byte_string(&request.client_certificate).ok();
 
             // Check the client's certificate for validity and acceptance
             let security_policy = {

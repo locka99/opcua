@@ -483,11 +483,8 @@ impl SecurityPolicy {
     /// buffer must be large enough to hold encrypted bytes including any padding.
     pub fn asymmetric_encrypt(&self, encryption_key: &PublicKey, src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
         let padding = self.padding();
-        if let Ok(encrypted_size) = encryption_key.public_encrypt(src, dst, padding) {
-            Ok(encrypted_size)
-        } else {
-            Err(StatusCode::BadUnexpectedError)
-        }
+        encryption_key.public_encrypt(src, dst, padding)
+            .map_err(|_| StatusCode::BadUnexpectedError)
     }
 
     /// Decrypts a message whose thumbprint matches the x509 cert and private key pair.
@@ -495,12 +492,11 @@ impl SecurityPolicy {
     /// Returns the number of decrypted bytes
     pub fn asymmetric_decrypt(&self, decryption_key: &PrivateKey, src: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
         let padding = self.padding();
-        if let Ok(decrypted_size) = decryption_key.private_decrypt(src, dst, padding) {
-            Ok(decrypted_size)
-        } else {
-            error!("Asymmetric decryption failed");
-            Err(StatusCode::BadSecurityChecksFailed)
-        }
+        decryption_key.private_decrypt(src, dst, padding)
+            .map_err(|_| {
+                error!("Asymmetric decryption failed");
+                StatusCode::BadSecurityChecksFailed
+            })
     }
 
     /// Produce a signature of some data using the supplied symmetric key. Signing algorithm is determined
