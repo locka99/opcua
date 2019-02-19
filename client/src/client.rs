@@ -392,14 +392,11 @@ impl Client {
             let connected = session.connect();
             if let Ok(_) = connected {
                 // Find me some some servers
-                let servers = session.find_servers(discovery_endpoint_url.clone());
-                let result = if let Ok(servers) = servers {
-                    Ok(servers)
-                } else {
-                    let result = servers.unwrap_err();
-                    error!("Cannot find servers on discovery server {} - check this error - {:?}", discovery_endpoint_url, result);
-                    Err(result)
-                };
+                let result = session.find_servers(discovery_endpoint_url.clone())
+                    .map_err(|err| {
+                        error!("Cannot find servers on discovery server {} - check this error - {:?}", discovery_endpoint_url, err);
+                        err
+                    });
                 let _ = session.disconnect();
                 result
             } else {
