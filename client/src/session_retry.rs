@@ -147,7 +147,7 @@ fn session_retry() {
 
 #[test]
 fn session_retry_infinity() {
-    let mut session_retry = SessionRetryPolicy::infinity(1000);
+    let session_retry = SessionRetryPolicy::infinity(1000);
     let now = Utc::now();
     assert_eq!(session_retry.should_retry_connect(now), Answer::Retry);
 }
