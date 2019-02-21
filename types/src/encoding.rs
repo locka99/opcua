@@ -15,11 +15,11 @@ pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
 #[derive(Clone, Copy, Debug)]
 pub struct DecodingLimits {
     /// Maximum length in bytes (not chars!) of a string. 0 actually means 0, i.e. no string permitted
-    pub max_string_length: u32,
+    pub max_string_length: usize,
     /// Maximum length in bytes of a byte string. 0 actually means 0, i.e. no byte string permitted
-    pub max_byte_string_length: u32,
+    pub max_byte_string_length: usize,
     /// Maximum number of array elements. 0 actually means 0, i.e. no array permitted
-    pub max_array_length: u32,
+    pub max_array_length: usize,
 }
 
 impl Default for DecodingLimits {
@@ -116,7 +116,7 @@ pub fn read_array<S: Read, T: BinaryEncoder<T>>(stream: &mut S, decoding_limits:
     } else if len < -1 {
         error!("Array length is negative value and invalid");
         Err(StatusCode::BadDecodingError)
-    } else if len as u32 > decoding_limits.max_array_length {
+    } else if len as usize > decoding_limits.max_array_length {
         error!("Array length {} exceeds decoding limit {}", len, decoding_limits.max_array_length);
         Err(StatusCode::BadDecodingError)
     } else {

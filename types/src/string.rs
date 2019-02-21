@@ -59,7 +59,7 @@ impl BinaryEncoder<UAString> for UAString {
         } else if len < -1 {
             error!("String buf length is a negative number {}", len);
             Err(StatusCode::BadDecodingError)
-        } else if len as u32 > decoding_limits.max_string_length {
+        } else if len as usize > decoding_limits.max_string_length {
             error!("String buf length {} exceeds decoding limit {}", len, decoding_limits.max_string_length);
             Err(StatusCode::BadDecodingError)
         } else {

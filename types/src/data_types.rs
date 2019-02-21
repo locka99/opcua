@@ -18,11 +18,10 @@ const MESSAGE_SECURITY_MODE_SIGN_AND_ENCRYPT: &str = "SignAndEncrypt";
 /// The MessageSecurityMode is an enumeration that specifies what security should be applied to messages exchanges during a Session.
 #[derive(Debug, Clone, PartialEq, PartialOrd, Copy)]
 pub enum MessageSecurityMode {
-    /// The MessageSecurityMode is invalid.
-    /// This value is the default value to avoid an accidental choice of no security is applied.
-    /// This choice will always be rejected.
+    /// The MessageSecurityMode is invalid. This value is the default value to ensure that unless
+    /// explicitly set, a connection will be rejected.
     Invalid = 0,
-    /// No security is applied.
+    /// No security is applied. This assumes a plaintext security policy.
     None = 1,
     /// All messages are signed but not encrypted.
     Sign = 2,

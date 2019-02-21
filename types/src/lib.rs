@@ -41,11 +41,11 @@ pub mod constants {
     /// implicitly in opc.tcp:// urls and elsewhere.
     pub const DEFAULT_OPC_UA_SERVER_PORT: u16 = 4840;
     /// Maximum number of elements in an array
-    pub const MAX_ARRAY_LENGTH: u32 = 1000;
+    pub const MAX_ARRAY_LENGTH: usize = 1000;
     /// Maximum size of a string in chars
-    pub const MAX_STRING_LENGTH: u32 = 65536;
+    pub const MAX_STRING_LENGTH: usize = 65536;
     /// Maximum size of a byte string in bytes
-    pub const MAX_BYTE_STRING_LENGTH: u32 = 65536;
+    pub const MAX_BYTE_STRING_LENGTH: usize = 65536;
     /// Maximum size of a certificate to send
     pub const MAX_CERTIFICATE_LENGTH: u32 = 32768;
 

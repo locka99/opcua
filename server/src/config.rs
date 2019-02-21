@@ -282,9 +282,9 @@ impl Default for ServerConfig {
             user_tokens: BTreeMap::new(),
             discovery_url: String::new(),
             endpoints: BTreeMap::new(),
-            max_array_length: opcua_types_constants::MAX_ARRAY_LENGTH,
-            max_string_length: opcua_types_constants::MAX_STRING_LENGTH,
-            max_byte_string_length: opcua_types_constants::MAX_BYTE_STRING_LENGTH,
+            max_array_length: opcua_types_constants::MAX_ARRAY_LENGTH as u32,
+            max_string_length: opcua_types_constants::MAX_STRING_LENGTH as u32,
+            max_byte_string_length: opcua_types_constants::MAX_BYTE_STRING_LENGTH as u32,
             max_subscriptions: constants::DEFAULT_MAX_SUBSCRIPTIONS,
         }
     }
@@ -318,18 +318,18 @@ impl ServerConfig {
             user_tokens,
             discovery_url,
             endpoints,
-            max_array_length: opcua_types_constants::MAX_ARRAY_LENGTH,
-            max_string_length: opcua_types_constants::MAX_STRING_LENGTH,
-            max_byte_string_length: opcua_types_constants::MAX_BYTE_STRING_LENGTH,
+            max_array_length: opcua_types_constants::MAX_ARRAY_LENGTH as u32,
+            max_string_length: opcua_types_constants::MAX_STRING_LENGTH as u32,
+            max_byte_string_length: opcua_types_constants::MAX_BYTE_STRING_LENGTH as u32,
             max_subscriptions: constants::DEFAULT_MAX_SUBSCRIPTIONS,
         }
     }
 
     pub fn decoding_limits(&self) -> DecodingLimits {
         DecodingLimits {
-            max_string_length: self.max_string_length,
-            max_byte_string_length: self.max_byte_string_length,
-            max_array_length: self.max_array_length,
+            max_string_length: self.max_string_length as usize,
+            max_byte_string_length: self.max_byte_string_length as usize,
+            max_array_length: self.max_array_length as usize,
         }
     }
 
