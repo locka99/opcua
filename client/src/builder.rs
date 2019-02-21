@@ -177,7 +177,7 @@ impl ClientBuilder {
 fn client_builder() {
     use std::str::FromStr;
 
-    // This test is
+    // The builder should produce a config that reflects the values that are explicitly set upon it.
     let b = ClientBuilder::new()
         .application_name("appname")
         .application_uri("http://appname")
