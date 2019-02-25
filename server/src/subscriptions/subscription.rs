@@ -21,7 +21,7 @@ use crate::{
 
 /// The state of the subscription
 #[derive(Debug, Copy, Clone, PartialEq, Serialize)]
-pub enum SubscriptionState {
+pub(crate) enum SubscriptionState {
     Closed,
     Creating,
     Normal,
@@ -30,7 +30,7 @@ pub enum SubscriptionState {
 }
 
 #[derive(Debug)]
-pub struct SubscriptionStateParams {
+pub(crate) struct SubscriptionStateParams {
     pub notifications_available: bool,
     pub more_notifications: bool,
     pub publishing_req_queued: bool,
@@ -49,7 +49,7 @@ pub enum UpdateStateAction {
 /// Values correspond to state table in OPC UA Part 4 5.13.1.2
 ///
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum HandledState {
+pub(crate) enum HandledState {
     None0 = 0,
     Closed1 = 1,
     // Create2 = 2,
@@ -73,7 +73,7 @@ pub enum HandledState {
 
 /// This is for debugging purposes. It allows the caller to validate the output state if required.
 #[derive(Debug)]
-pub struct UpdateStateResult {
+pub(crate) struct UpdateStateResult {
     pub handled_state: HandledState,
     pub update_state_action: UpdateStateAction,
 }
@@ -88,7 +88,7 @@ impl UpdateStateResult {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum TickReason {
+pub(crate) enum TickReason {
     ReceivedPublishRequest,
     TickTimerFired,
 }
@@ -96,34 +96,34 @@ pub enum TickReason {
 #[derive(Debug, Clone, Serialize)]
 pub struct Subscription {
     /// Subscription id
-    pub subscription_id: u32,
+    subscription_id: u32,
     /// Publishing interval in milliseconds
-    pub publishing_interval: Duration,
+    publishing_interval: Duration,
     /// The lifetime count reset value
-    pub max_lifetime_count: u32,
+    max_lifetime_count: u32,
     /// Keep alive count reset value
-    pub max_keep_alive_count: u32,
+    max_keep_alive_count: u32,
     /// Relative priority of the subscription. When more than one subscriptio
     ///  needs to send notifications the highest priority subscription should
     /// be sent first.
-    pub priority: u8,
+    priority: u8,
     /// Map of monitored items
-    pub monitored_items: HashMap<u32, MonitoredItem>,
+    monitored_items: HashMap<u32, MonitoredItem>,
     /// State of the subscription
-    pub state: SubscriptionState,
+    state: SubscriptionState,
     /// A value that contains the number of consecutive publishing timer expirations without Client
     /// activity before the Subscription is terminated.
-    pub current_lifetime_count: u32,
+    current_lifetime_count: u32,
     /// Keep alive counter decrements when there are no notifications to publish and when it expires
     /// requests to send an empty notification as a keep alive event
-    pub current_keep_alive_count: u32,
+    current_keep_alive_count: u32,
     /// boolean value that is set to true to mean that either a NotificationMessage or a keep-alive
     /// Message has been sent on the Subscription. It is a flag that is used to ensure that either
     /// a NotificationMessage or a keep-alive Message is sent out the first time the publishing timer
     /// expires.
-    pub message_sent: bool,
+    message_sent: bool,
     /// The parameter that requests publishing to be enabled or disabled.
-    pub publishing_enabled: bool,
+    publishing_enabled: bool,
     /// A flag that tells the subscription to send the latest value of every monitored item on the
     /// next publish request.
     resend_data: bool,
@@ -138,7 +138,7 @@ pub struct Subscription {
     diagnostics: Arc<RwLock<ServerDiagnostics>>,
     /// Stops the subscription calling diagnostics on drop
     #[serde(skip)]
-    pub diagnostics_on_drop: bool,
+    diagnostics_on_drop: bool,
 }
 
 impl Drop for Subscription {
@@ -191,8 +191,8 @@ impl Subscription {
             match MonitoredItem::new(monitored_item_id, timestamps_to_return, item_to_create) {
                 Ok(monitored_item) => {
                     // Register the item with the subscription
-                    let revised_sampling_interval = monitored_item.sampling_interval;
-                    let revised_queue_size = monitored_item.queue_size as u32;
+                    let revised_sampling_interval = monitored_item.sampling_interval();
+                    let revised_queue_size = monitored_item.queue_size() as u32;
                     self.monitored_items.insert(monitored_item_id, monitored_item);
                     self.next_monitored_item_id += 1;
                     MonitoredItemCreateResult {
@@ -227,8 +227,8 @@ impl Subscription {
                     match modify_result {
                         Ok(filter_result) => MonitoredItemModifyResult {
                             status_code: StatusCode::Good,
-                            revised_sampling_interval: monitored_item.sampling_interval,
-                            revised_queue_size: monitored_item.queue_size as u32,
+                            revised_sampling_interval: monitored_item.sampling_interval(),
+                            revised_queue_size: monitored_item.queue_size() as u32,
                             filter_result,
                         },
                         Err(err) => MonitoredItemModifyResult {
@@ -264,8 +264,8 @@ impl Subscription {
     // Returns two vecs representing the server and client handles for each monitored item.
     // Called from the GetMonitoredItems impl
     pub fn get_handles(&self) -> (Vec<u32>, Vec<u32>) {
-        let server_handles = self.monitored_items.values().map(|i| i.monitored_item_id).collect();
-        let client_handles = self.monitored_items.values().map(|i| i.client_handle).collect();
+        let server_handles = self.monitored_items.values().map(|i| i.monitored_item_id()).collect();
+        let client_handles = self.monitored_items.values().map(|i| i.client_handle()).collect();
         (server_handles, client_handles)
     }
 
@@ -277,7 +277,7 @@ impl Subscription {
 
     /// Checks the subscription and monitored items for state change, messages. If the tick does
     /// nothing, the function returns None. Otherwise it returns one or more messages in an Vec.
-    pub fn tick(&mut self, address_space: &AddressSpace, tick_reason: TickReason, publishing_req_queued: bool, now: &DateTimeUtc) -> Option<NotificationMessage> {
+    pub(crate) fn tick(&mut self, address_space: &AddressSpace, tick_reason: TickReason, publishing_req_queued: bool, now: &DateTimeUtc) -> Option<NotificationMessage> {
         // Check if the publishing interval has elapsed. Only checks on the tick timer.
         let publishing_interval_elapsed = match tick_reason {
             TickReason::ReceivedPublishRequest => false,
@@ -420,7 +420,7 @@ impl Subscription {
     // * Update state action - none, return notifications, return keep alive
     // * Publishing request action - nothing, dequeue
     //
-    pub fn update_state(&mut self, tick_reason: TickReason, p: SubscriptionStateParams) -> UpdateStateResult {
+    pub(crate) fn update_state(&mut self, tick_reason: TickReason, p: SubscriptionStateParams) -> UpdateStateResult {
         // This function is called when a publish request is received OR the timer expired, so getting
         // both is invalid code somewhere
         if tick_reason == TickReason::ReceivedPublishRequest && p.publishing_interval_elapsed {
@@ -579,7 +579,6 @@ impl Subscription {
         UpdateStateResult::new(HandledState::None0, UpdateStateAction::None)
     }
 
-
     /// Reset the keep-alive counter to the maximum keep-alive count of the Subscription.
     /// The maximum keep-alive count is set by the Client when the Subscription is created
     /// and may be modified using the ModifySubscription Service
@@ -596,5 +595,81 @@ impl Subscription {
     /// Start or restart the publishing timer and decrement the LifetimeCounter Variable.
     pub fn start_publishing_timer(&mut self) {
         self.current_lifetime_count -= 1;
+    }
+
+    pub fn subscription_id(&self) -> u32 {
+        self.subscription_id
+    }
+
+    pub fn current_lifetime_count(&self) -> u32 {
+        self.current_lifetime_count
+    }
+
+    pub(crate) fn set_current_lifetime_count(&mut self, current_lifetime_count: u32) {
+        self.current_lifetime_count = current_lifetime_count;
+    }
+
+    pub fn current_keep_alive_count(&self) -> u32 {
+        self.current_keep_alive_count
+    }
+
+    pub(crate) fn set_current_keep_alive_count(&mut self, current_keep_alive_count: u32) {
+        self.current_keep_alive_count = current_keep_alive_count;
+    }
+
+    pub(crate) fn state(&self) -> SubscriptionState {
+        self.state
+    }
+
+    pub(crate) fn set_state(&mut self, state: SubscriptionState) {
+        self.state = state;
+    }
+
+    pub fn message_sent(&self) -> bool {
+        self.message_sent
+    }
+
+    pub(crate) fn set_message_sent(&mut self, message_sent: bool) {
+        self.message_sent = message_sent;
+    }
+
+    pub fn publishing_interval(&self) -> Duration {
+        self.publishing_interval
+    }
+
+    pub(crate) fn set_publishing_interval(&mut self, publishing_interval: Duration) {
+        self.publishing_interval = publishing_interval;
+    }
+
+    pub fn max_keep_alive_count(&self) -> u32 {
+        self.max_keep_alive_count
+    }
+
+    pub(crate) fn set_max_keep_alive_count(&mut self, max_keep_alive_count: u32) {
+        self.max_keep_alive_count = max_keep_alive_count;
+    }
+
+    pub fn max_lifetime_count(&self) -> u32 {
+        self.max_lifetime_count
+    }
+
+    pub(crate) fn set_max_lifetime_count(&mut self, max_lifetime_count: u32) {
+        self.max_lifetime_count = max_lifetime_count;
+    }
+
+    pub fn priority(&self) -> u8 {
+        self.priority
+    }
+
+    pub(crate) fn set_priority(&mut self, priority: u8) {
+        self.priority = priority;
+    }
+
+    pub(crate) fn set_publishing_enabled(&mut self, publishing_enabled: bool) {
+        self.publishing_enabled = publishing_enabled;
+    }
+
+    pub(crate) fn set_diagnostics_on_drop(&mut self, diagnostics_on_drop: bool) {
+        self.diagnostics_on_drop = diagnostics_on_drop;
     }
 }

@@ -103,8 +103,6 @@ pub mod prelude {
         builder::*,
         address_space::types::*,
         subscriptions::*,
-        subscriptions::subscription::*,
-        subscriptions::monitored_item::*,
         util::*,
     };
 }

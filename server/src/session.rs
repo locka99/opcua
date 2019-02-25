@@ -41,7 +41,7 @@ fn next_session_id() -> NodeId {
 /// The Session is any state maintained between the client and server
 pub struct Session {
     /// Subscriptions associated with the session
-    pub subscriptions: Subscriptions,
+    pub(crate) subscriptions: Subscriptions,
     /// The session identifier
     pub session_id: NodeId,
     /// Flag to indicate session should be terminated
@@ -170,17 +170,17 @@ impl Session {
         self.terminated_at = chrono::Utc::now();
     }
 
-    pub fn enqueue_publish_request(&mut self, address_space: &AddressSpace, request_id: u32, request: PublishRequest) -> Result<(), StatusCode> {
+    pub(crate) fn enqueue_publish_request(&mut self, address_space: &AddressSpace, request_id: u32, request: PublishRequest) -> Result<(), StatusCode> {
         self.subscriptions.enqueue_publish_request(address_space, request_id, request)
     }
 
-    pub fn tick_subscriptions(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, reason: TickReason) -> Result<(), StatusCode> {
+    pub(crate) fn tick_subscriptions(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, reason: TickReason) -> Result<(), StatusCode> {
         self.subscriptions.tick(now, address_space, reason)
     }
 
     /// Reset the lifetime counter on the subscription, e.g. because a service references the
     /// subscription.
-    pub fn reset_subscription_lifetime_counter(&mut self, subscription_id: u32) {
+    pub(crate) fn reset_subscription_lifetime_counter(&mut self, subscription_id: u32) {
         if let Some(subscription) = self.subscriptions.get_mut(subscription_id) {
             subscription.reset_lifetime_counter();
         }
@@ -188,11 +188,11 @@ impl Session {
 
     /// Iterates through the existing queued publish requests and creates a timeout
     /// publish response any that have expired.
-    pub fn expire_stale_publish_requests(&mut self, now: &DateTimeUtc) {
+    pub(crate) fn expire_stale_publish_requests(&mut self, now: &DateTimeUtc) {
         self.subscriptions.expire_stale_publish_requests(now);
     }
 
-    pub fn add_browse_continuation_point(&mut self, continuation_point: BrowseContinuationPoint) {
+    pub(crate) fn add_browse_continuation_point(&mut self, continuation_point: BrowseContinuationPoint) {
         // Remove excess browse continuation points
         while self.browse_continuation_points.len() >= self.max_browse_continuation_points {
             let _ = self.browse_continuation_points.pop_front();
@@ -202,7 +202,7 @@ impl Session {
 
     /// Find a continuation point by id. If the continuation point is out of date is removed and None
     /// is returned.
-    pub fn find_browse_continuation_point(&self, id: &ByteString) -> Option<BrowseContinuationPoint> {
+    pub(crate) fn find_browse_continuation_point(&self, id: &ByteString) -> Option<BrowseContinuationPoint> {
         let continuation_point = self.browse_continuation_points.iter().find(|continuation_point| {
             continuation_point.id.eq(id)
         });
@@ -210,20 +210,20 @@ impl Session {
         continuation_point.map(|continuation_point| continuation_point.clone())
     }
 
-    pub fn remove_expired_browse_continuation_points(&mut self, address_space: &AddressSpace) {
+    pub(crate) fn remove_expired_browse_continuation_points(&mut self, address_space: &AddressSpace) {
         self.browse_continuation_points.retain(|continuation_point| {
             continuation_point.is_valid_browse_continuation_point(address_space)
         });
     }
 
-    pub fn remove_browse_continuation_point(&mut self, continuation_point_id: &ByteString) {
+    pub(crate) fn remove_browse_continuation_point(&mut self, continuation_point_id: &ByteString) {
         self.browse_continuation_points.retain(|continuation_point| {
             !continuation_point.id.eq(continuation_point_id)
         });
     }
 
     /// Remove all the specified continuation points by id
-    pub fn remove_browse_continuation_points(&mut self, continuation_points: &[ByteString]) {
+    pub(crate) fn remove_browse_continuation_points(&mut self, continuation_points: &[ByteString]) {
         use std::collections::HashSet;
         // Turn the supplied slice into a set
         let continuation_points_set: HashSet<ByteString> = continuation_points.iter().cloned().collect();

@@ -72,10 +72,10 @@ impl SubscriptionService {
             let (revised_publishing_interval, revised_max_keep_alive_count, revised_lifetime_count) =
                 SubscriptionService::revise_subscription_values(server_state, request.requested_publishing_interval, request.requested_max_keep_alive_count, request.requested_lifetime_count);
 
-            subscription.publishing_interval = revised_publishing_interval;
-            subscription.max_keep_alive_count = revised_max_keep_alive_count;
-            subscription.max_lifetime_count = revised_lifetime_count;
-            subscription.priority = request.priority;
+            subscription.set_publishing_interval(revised_publishing_interval);
+            subscription.set_max_keep_alive_count(revised_max_keep_alive_count);
+            subscription.set_max_lifetime_count(revised_lifetime_count);
+            subscription.set_priority(request.priority);
             subscription.reset_lifetime_counter();
             subscription.reset_keep_alive_counter();
             // ...max_notifications_per_publish??
@@ -159,7 +159,7 @@ impl SubscriptionService {
                 let subscriptions = &mut session.subscriptions;
                 for subscription_id in subscription_ids {
                     if let Some(subscription) = subscriptions.get_mut(*subscription_id) {
-                        subscription.publishing_enabled = publishing_enabled;
+                        subscription.set_publishing_enabled(publishing_enabled);
                         subscription.reset_lifetime_counter();
                         results.push(StatusCode::Good);
                     } else {

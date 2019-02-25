@@ -26,13 +26,13 @@ use crate::{
 /// tick produces notifications which are ready to publish via a transmission queue. Once a
 /// notification is published, it is held in a retransmission queue until it is acknowledged by the
 /// client, or purged.
-pub struct Subscriptions {
+pub(crate) struct Subscriptions {
     /// Maximum number of subscriptions supported by server
     max_subscriptions: usize,
     /// The publish request queue (requests by the client on the session)
-    pub publish_request_queue: VecDeque<PublishRequestEntry>,
+    pub(crate) publish_request_queue: VecDeque<PublishRequestEntry>,
     /// The publish response queue arranged oldest to latest
-    pub publish_response_queue: VecDeque<PublishResponseEntry>,
+    pub(crate) publish_response_queue: VecDeque<PublishResponseEntry>,
     // Timeout period for requests in ms
     publish_request_timeout: i64,
     /// Subscriptions associated with the session
@@ -149,10 +149,10 @@ impl Subscriptions {
     /// on each in order of priority. In each case this could generate data change notifications. Data change
     /// notifications will be attached to the next available publish response and queued for sending
     /// to the client.
-    pub fn tick(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, tick_reason: TickReason) -> Result<(), StatusCode> {
+    pub(crate) fn tick(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, tick_reason: TickReason) -> Result<(), StatusCode> {
         let subscription_ids = {
             // Sort subscriptions by priority
-            let mut subscription_priority: Vec<(u32, u8)> = self.subscriptions.values().map(|v| (v.subscription_id, v.priority)).collect();
+            let mut subscription_priority: Vec<(u32, u8)> = self.subscriptions.values().map(|v| (v.subscription_id(), v.priority())).collect();
             subscription_priority.sort_by(|s1, s2| s1.1.cmp(&s2.1));
             subscription_priority.iter().map(|s| s.0).collect::<Vec<u32>>()
         };
@@ -164,7 +164,7 @@ impl Subscriptions {
         for subscription_id in subscription_ids {
             let subscription_state = {
                 let subscription = self.subscriptions.get(&subscription_id).unwrap();
-                subscription.state
+                subscription.state()
             };
             if subscription_state == SubscriptionState::Closed {
                 // Subscription is dead so remove it

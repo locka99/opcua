@@ -1,8 +1,7 @@
 use std::sync::{Arc, RwLock};
 
 use crate::{
-    prelude::*,
-    subscriptions::subscription::SubscriptionStateParams,
+    subscriptions::subscription::{Subscription, SubscriptionState, SubscriptionStateParams, TickReason, HandledState, UpdateStateAction},
     diagnostics::ServerDiagnostics,
 };
 
@@ -12,14 +11,14 @@ const DEFAULT_KEEPALIVE_COUNT: u32 = 100;
 fn make_subscription(state: SubscriptionState) -> Subscription {
     let subscription_interval = 1000f64;
     let mut result = Subscription::new(Arc::new(RwLock::new(ServerDiagnostics::default())), 0, true, subscription_interval, DEFAULT_LIFETIME_COUNT, DEFAULT_KEEPALIVE_COUNT, 0);
-    result.state = state;
+    result.set_state(state);
     result
 }
 
 #[test]
 fn basic_subscription() {
     let s = Subscription::new(Arc::new(RwLock::new(ServerDiagnostics::default())), 0, true, 1000f64, DEFAULT_LIFETIME_COUNT, DEFAULT_KEEPALIVE_COUNT, 0);
-    assert_eq!(s.state, SubscriptionState::Creating);
+    assert_eq!(s.state(), SubscriptionState::Creating);
 }
 
 // The update_state_ tests below test with a set of inputs and expect a set of outputs that
@@ -42,8 +41,8 @@ fn update_state_3() {
 
     assert_eq!(update_state_result.handled_state, HandledState::Create3);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
-    assert_eq!(s.state, SubscriptionState::Normal);
-    assert_eq!(s.message_sent, false);
+    assert_eq!(s.state(), SubscriptionState::Normal);
+    assert_eq!(s.message_sent(), false);
 }
 
 #[test]
@@ -70,7 +69,7 @@ fn update_state_4() {
         publishing_interval_elapsed: false,
     };
 
-    s.publishing_enabled = false;
+    s.set_publishing_enabled(false);
 
     let update_state_result = s.update_state(tick_reason, p);
 
@@ -103,16 +102,16 @@ fn update_state_5() {
         publishing_interval_elapsed: false,
     };
 
-    s.publishing_enabled = true;
-    s.current_lifetime_count = 1;
+    s.set_publishing_enabled(true);
+    s.set_current_lifetime_count(1);
 
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::Normal5);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnNotifications);
-    assert_eq!(s.state, SubscriptionState::Normal);
-    assert_eq!(s.current_lifetime_count, s.max_lifetime_count);
-    assert_eq!(s.message_sent, true);
+    assert_eq!(s.state(), SubscriptionState::Normal);
+    assert_eq!(s.current_lifetime_count(), s.max_lifetime_count());
+    assert_eq!(s.message_sent(), true);
 
     // TODO ensure deleted acknowledged notification msgs
 }
@@ -400,6 +399,6 @@ fn update_state_17() {
 
     assert_eq!(update_state_result.handled_state, HandledState::KeepAlive17);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
-    assert_eq!(s.state, SubscriptionState::Late);
-    assert_eq!(s.current_keep_alive_count, 1);
+    assert_eq!(s.state(), SubscriptionState::Late);
+    assert_eq!(s.current_keep_alive_count(), 1);
 }

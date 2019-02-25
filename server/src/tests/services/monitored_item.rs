@@ -1,6 +1,8 @@
 use chrono;
 
 use crate::prelude::*;
+use crate::subscriptions::monitored_item::*;
+
 use super::*;
 
 fn test_var_node_id() -> NodeId {
@@ -173,17 +175,17 @@ fn monitored_item_data_change_filter() {
 
     let now = chrono::Utc::now();
 
-    assert_eq!(monitored_item.notification_queue.len(), 0);
+    assert_eq!(monitored_item.notification_queue().len(), 0);
 
     // Expect first call to always succeed
     assert_eq!(monitored_item.tick(&address_space, &now, false, false), true);
 
     // Expect one item in its queue
-    assert_eq!(monitored_item.notification_queue.len(), 1);
+    assert_eq!(monitored_item.notification_queue().len(), 1);
 
     // Expect false on next tick, with the same value because no subscription timer has fired
     assert_eq!(monitored_item.tick(&address_space, &now, false, false), false);
-    assert_eq!(monitored_item.notification_queue.len(), 1);
+    assert_eq!(monitored_item.notification_queue().len(), 1);
 
     // adjust variable value
     if let &mut NodeType::Variable(ref mut node) = address_space.find_node_mut(&test_var_node_id()).unwrap() {
@@ -197,26 +199,26 @@ fn monitored_item_data_change_filter() {
     // Expect change but only when subscription timer elapsed
     assert_eq!(monitored_item.tick(&address_space, &now, false, false), false);
     assert_eq!(monitored_item.tick(&address_space, &now, true, false), true);
-    assert_eq!(monitored_item.notification_queue.len(), 2);
+    assert_eq!(monitored_item.notification_queue().len(), 2);
 }
 
 fn populate_monitored_item(discard_oldest: bool) -> MonitoredItem {
     let client_handle = 999;
     let mut monitored_item = MonitoredItem::new(1, TimestampsToReturn::Both, &make_create_request(-1f64, 5)).unwrap();
-    monitored_item.discard_oldest = discard_oldest;
+    monitored_item.set_discard_oldest(discard_oldest);
     for i in 0..5 {
         monitored_item.enqueue_notification_message(MonitoredItemNotification {
             client_handle,
             value: DataValue::new(i as i32),
         });
-        assert!(!monitored_item.queue_overflow);
+        assert!(!monitored_item.queue_overflow());
     }
 
     monitored_item.enqueue_notification_message(MonitoredItemNotification {
         client_handle,
         value: DataValue::new(10 as i32),
     });
-    assert!(monitored_item.queue_overflow);
+    assert!(monitored_item.queue_overflow());
     monitored_item
 }
 

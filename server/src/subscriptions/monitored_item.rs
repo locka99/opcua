@@ -15,7 +15,7 @@ use opcua_types::{
 use crate::{constants, DateTimeUtc, address_space::AddressSpace};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub enum FilterType {
+pub(crate) enum FilterType {
     None,
     DataChangeFilter(DataChangeFilter),
 }
@@ -38,19 +38,19 @@ impl FilterType {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct MonitoredItem {
-    pub monitored_item_id: u32,
-    pub item_to_monitor: ReadValueId,
-    pub monitoring_mode: MonitoringMode,
-    pub client_handle: u32,
-    pub sampling_interval: Duration,
-    pub filter: FilterType,
-    pub discard_oldest: bool,
-    pub queue_size: usize,
+pub(crate) struct MonitoredItem {
+    monitored_item_id: u32,
+    item_to_monitor: ReadValueId,
+    monitoring_mode: MonitoringMode,
+    client_handle: u32,
+    sampling_interval: Duration,
+    filter: FilterType,
+    discard_oldest: bool,
+    queue_size: usize,
     /// The notification queue is arranged from oldest to newest, i.e. pop front gets the oldest
     /// message, pop back gets the most recent.
-    pub notification_queue: VecDeque<MonitoredItemNotification>,
-    pub queue_overflow: bool,
+    notification_queue: VecDeque<MonitoredItemNotification>,
+    queue_overflow: bool,
     timestamps_to_return: TimestampsToReturn,
     last_sample_time: DateTimeUtc,
     last_data_value: Option<DataValue>,
@@ -321,5 +321,37 @@ impl MonitoredItem {
         } else {
             requested_queue_size
         }
+    }
+
+    pub fn monitored_item_id(&self) -> u32 {
+        self.monitored_item_id
+    }
+
+    pub fn client_handle(&self) -> u32 {
+        self.client_handle
+    }
+
+    pub fn sampling_interval(&self) -> Duration {
+        self.sampling_interval
+    }
+
+    pub fn queue_size(&self) -> usize {
+        self.queue_size
+    }
+
+    pub fn queue_overflow(&self) -> bool {
+        self.queue_overflow
+    }
+
+    pub fn notification_queue(&self) -> &VecDeque<MonitoredItemNotification> {
+        &self.notification_queue
+    }
+
+    pub fn discard_oldest(&self) -> bool {
+        self.discard_oldest
+    }
+
+    pub(crate) fn set_discard_oldest(&mut self, discard_oldest: bool) {
+        self.discard_oldest = discard_oldest;
     }
 }

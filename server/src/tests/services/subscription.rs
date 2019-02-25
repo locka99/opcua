@@ -8,6 +8,7 @@ use crate::{
     address_space::AddressSpace,
     services::subscription::SubscriptionService,
     services::monitored_item::MonitoredItemService,
+    subscriptions::subscription::*,
 };
 
 use super::*;
@@ -150,7 +151,7 @@ fn publish_response_subscription() {
         create_monitored_item(subscription_id, VariableId::Server_ServerStatus_CurrentTime, session, &mis);
 
         // Put the subscription into normal state
-        session.subscriptions.get_mut(subscription_id).unwrap().state = SubscriptionState::Normal;
+        session.subscriptions.get_mut(subscription_id).unwrap().set_state(SubscriptionState::Normal);
 
         // Send a publish and expect a publish response containing the subscription
         let notification_message = {
@@ -316,8 +317,8 @@ fn publish_keep_alive() {
         // Disable publishing to force a keep-alive
         {
             let subscription = session.subscriptions.get_mut(subscription_id).unwrap();
-            subscription.state = SubscriptionState::Normal;
-            subscription.publishing_enabled = false;
+            subscription.set_state(SubscriptionState::Normal);
+            subscription.set_publishing_enabled(false);
         }
 
         // Send a publish and expect a keep-alive response
