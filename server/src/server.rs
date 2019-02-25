@@ -6,11 +6,8 @@ use std::marker::Sync;
 use std::time::{Instant, Duration};
 use std::thread;
 
-use futures::{Future, Stream};
-use futures::future;
-use futures::sync::mpsc::{unbounded, UnboundedSender};
-use tokio;
-use tokio::net::{TcpListener, TcpStream};
+use futures::{Future, Stream, future, sync::mpsc::{unbounded, UnboundedSender}};
+use tokio::{self, net::{TcpListener, TcpStream}};
 use tokio_timer::Interval;
 
 use opcua_types::service_types::ServerState as ServerStateType;
