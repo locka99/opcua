@@ -528,7 +528,7 @@ impl Session {
             session_name,
             client_nonce,
             client_certificate,
-            requested_session_timeout: 0f64,
+            requested_session_timeout: std::f64::MAX,
             max_response_message_size: 0,
         };
 
