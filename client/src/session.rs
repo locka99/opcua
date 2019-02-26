@@ -520,6 +520,10 @@ impl Session {
             ByteString::null()
         };
 
+        // TODO this should come from a configurable setting.
+        // Requested session timeout should be larger than your expected subscription rate.
+        let requested_session_timeout = std::f64::MAX;
+
         let request = CreateSessionRequest {
             request_header: self.make_request_header(),
             client_description: self.application_description.clone(),
@@ -528,7 +532,7 @@ impl Session {
             session_name,
             client_nonce,
             client_certificate,
-            requested_session_timeout: std::f64::MAX,
+            requested_session_timeout,
             max_response_message_size: 0,
         };
 
@@ -548,7 +552,9 @@ impl Session {
                 let _ = secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce);
                 let _ = secure_channel.set_remote_cert_from_byte_string(&response.server_certificate);
             }
-            debug!("server nonce is {:?}", response.server_nonce);
+
+            debug!("Server nonce is {:?}", response.server_nonce);
+            debug!("Revised session timeout is {}", response.revised_session_timeout);
 
             // The server certificate is validated if the policy requires it
             let security_policy = self.security_policy();
