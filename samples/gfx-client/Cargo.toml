@@ -8,16 +8,8 @@ edition = "2018"
 clap = "2.27"
 conrod = { version = "0.61", features = ["winit", "glium"] }
 
-[dependencies.opcua-types]
-path = "../../types"
-version = "0.6.0" # OPCUARustVersion
-
 [dependencies.opcua-client]
 path = "../../client"
-version = "0.6.0" # OPCUARustVersion
-
-[dependencies.opcua-core]
-path = "../../core"
 version = "0.6.0" # OPCUARustVersion
 
 [dependencies.opcua-console-logging]

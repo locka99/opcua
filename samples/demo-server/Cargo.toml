@@ -4,19 +4,15 @@ version = "0.6.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2018"
 
+[features]
+default = []
+vendored-openssl = ["opcua-server/vendored-openssl"]
+
 [dependencies]
 chrono = "0.4"
 log = "0.4"
 rand = "0.5"
 log4rs = "0.8"
-
-[dependencies.opcua-types]
-path = "../../types"
-version = "0.6.0" # OPCUARustVersion
-
-[dependencies.opcua-core]
-path = "../../core"
-version = "0.6.0" # OPCUARustVersion
 
 [dependencies.opcua-server]
 path = "../../server"

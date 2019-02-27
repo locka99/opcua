@@ -11,6 +11,10 @@ readme = "../README.md"
 documentation = "https://docs.rs/opcua-core/"
 edition = "2018"
 
+[features]
+default = []
+vendored-openssl = ["openssl/vendored"]
+
 [dependencies]
 log = "0.4"
 chrono = "0.4"

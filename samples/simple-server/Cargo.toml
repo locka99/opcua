@@ -8,14 +8,6 @@ edition = "2018"
 chrono = "0.4"
 log = "0.4"
 
-[dependencies.opcua-types]
-path = "../../types"
-version = "0.6.0" # OPCUARustVersion
-
-[dependencies.opcua-core]
-path = "../../core"
-version = "0.6.0" # OPCUARustVersion
-
 [dependencies.opcua-server]
 path = "../../server"
 version = "0.6.0" # OPCUARustVersion

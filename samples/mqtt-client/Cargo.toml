@@ -9,16 +9,8 @@ clap = "2.27"
 # This is a completely arbitrary snapshot of rumqtt that happens to work
 rumqtt = { git = "https://github.com/AtherEnergy/rumqtt.git", rev = "83b4694525061e2ccef617c0ac867db2044cc4e7" }
 
-[dependencies.opcua-types]
-path = "../../types"
-version = "0.6.0" # OPCUARustVersion
-
 [dependencies.opcua-client]
 path = "../../client"
-version = "0.6.0" # OPCUARustVersion
-
-[dependencies.opcua-core]
-path = "../../core"
 version = "0.6.0" # OPCUARustVersion
 
 [dependencies.opcua-console-logging]

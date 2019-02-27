@@ -1277,9 +1277,7 @@ dependencies = [
 name = "opcua-chess-server"
 version = "0.6.0"
 dependencies = [
- "opcua-core 0.6.0",
  "opcua-server 0.6.0",
- "opcua-types 0.6.0",
  "uci 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1339,9 +1337,7 @@ dependencies = [
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "log4rs 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-console-logging 0.6.0",
- "opcua-core 0.6.0",
  "opcua-server 0.6.0",
- "opcua-types 0.6.0",
  "rand 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1364,8 +1360,6 @@ dependencies = [
  "conrod 0.61.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-client 0.6.0",
  "opcua-console-logging 0.6.0",
- "opcua-core 0.6.0",
- "opcua-types 0.6.0",
 ]
 
 [[package]]
@@ -1389,8 +1383,6 @@ dependencies = [
  "clap 2.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-client 0.6.0",
  "opcua-console-logging 0.6.0",
- "opcua-core 0.6.0",
- "opcua-types 0.6.0",
  "rumqtt 0.30.0 (git+https://github.com/AtherEnergy/rumqtt.git?rev=83b4694525061e2ccef617c0ac867db2044cc4e7)",
 ]
 
@@ -1426,8 +1418,6 @@ dependencies = [
  "clap 2.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-client 0.6.0",
  "opcua-console-logging 0.6.0",
- "opcua-core 0.6.0",
- "opcua-types 0.6.0",
 ]
 
 [[package]]
@@ -1437,9 +1427,7 @@ dependencies = [
  "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-console-logging 0.6.0",
- "opcua-core 0.6.0",
  "opcua-server 0.6.0",
- "opcua-types 0.6.0",
 ]
 
 [[package]]
@@ -1470,8 +1458,6 @@ dependencies = [
  "actix-web 0.7.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-client 0.6.0",
  "opcua-console-logging 0.6.0",
- "opcua-core 0.6.0",
- "opcua-types 0.6.0",
  "serde 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.88 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.38 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1496,12 +1482,21 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "openssl-src"
+version = "111.1.0+1.1.1a"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "cc 1.0.29 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "openssl-sys"
 version = "0.9.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cc 1.0.29 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.48 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl-src 111.1.0+1.1.1a (registry+https://github.com/rust-lang/crates.io-index)",
  "pkg-config 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "vcpkg 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -3105,6 +3100,7 @@ dependencies = [
 "checksum objc 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)" = "9833ab0efe5361b1e2122a0544a5d3359576911a42cb098c2e59be8650807367"
 "checksum openssl 0.10.16 (registry+https://github.com/rust-lang/crates.io-index)" = "ec7bd7ca4cce6dbdc77e7c1230682740d307d1218a87fb0349a571272be749f9"
 "checksum openssl-probe 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "77af24da69f9d9341038eba93a073b1fdaaa1b788221b00a69bce9e762cb32de"
+"checksum openssl-src 111.1.0+1.1.1a (registry+https://github.com/rust-lang/crates.io-index)" = "26bb632127731bf4ac49bf86a5dde12d2ca0918c2234fc39d79d4da2ccbc6da7"
 "checksum openssl-sys 0.9.40 (registry+https://github.com/rust-lang/crates.io-index)" = "1bb974e77de925ef426b6bc82fce15fd45bdcbeb5728bffcfc7cdeeb7ce1c2d6"
 "checksum ordered-float 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7eb5259643245d3f292c7a146b2df53bba24d7eab159410e648eb73dc164669d"
 "checksum ordered-float 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "2f0015e9e8e28ee20c581cfbfe47c650cedeb9ed0721090e0b7ebb10b9cdbcc2"

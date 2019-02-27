@@ -39,6 +39,29 @@ How you do this depends on your dist, either through `apt-get` or `dnf`.
 
 Adjust your package names as appropriate for other versions of Linux.
 
+## Vendored OpenSSL
+
+The `openssl` crate can fetch, build and statically link to a copy of OpenSSL without it being in your environment. 
+See the crate's [documentation](https://docs.rs/openssl/0.10.18/openssl/) for further information but essentially
+it has a `vendored` feature that can be set to enable this behaviour.
+
+You need to have a C compiler, Perl and Make installed to enable this feature.
+
+This might be useful in some situations such as cross-compilation so OPC UA for Rust exposes the feature 
+through its own called `vendored-openssl` which is exposed on the `opcua-core`, `opcua-server` and `opcua-client`
+crates. i.e. when you specify `vendored-openssl` while building OPC UA, it will specify `vendored` through
+to the `openssl` crate. 
+
+The `demo-server` demonstrates how to use it:
+
+```
+cd samples/demo-server
+cargo build "--features=vendored-openssl"
+```
+
+Note that Rust OPC UA is just passing through this feature so refer to the openssl documentation for any issues 
+encountered while using it.
+
 ## Workspace Layout
 
 OPC UA for Rust follows the normal Rust conventions. There is a Cargo.toml per module that you may use to build the module

@@ -21,6 +21,7 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the fut
   - Fixes for TranslateBrowsePathsToNodeIds 
   - (WIP) Session restore after disconnect in server. The server has to stash sessions that were abnormally disconnected
     so the session state can be restored if a new connection provides the token.
+  - `vendored-openssl` feature to support static linking to OpenSSL (see [setup](./docs/setup.md) documentation.
 
 ## 0.5
   - Tokio codec - use a codec and frame reader to read message chunks.
