@@ -520,9 +520,8 @@ impl Session {
             ByteString::null()
         };
 
-        // TODO this should come from a configurable setting.
         // Requested session timeout should be larger than your expected subscription rate.
-        let requested_session_timeout = std::f64::MAX;
+        let requested_session_timeout = self.session_retry_policy.session_timeout();
 
         let request = CreateSessionRequest {
             request_header: self.make_request_header(),
@@ -552,6 +551,8 @@ impl Session {
                 let _ = secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce);
                 let _ = secure_channel.set_remote_cert_from_byte_string(&response.server_certificate);
             }
+
+            self.session_retry_policy.set_session_timeout(response.revised_session_timeout);
 
             debug!("Server nonce is {:?}", response.server_nonce);
             debug!("Revised session timeout is {}", response.revised_session_timeout);

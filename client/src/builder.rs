@@ -171,6 +171,12 @@ impl ClientBuilder {
         self.config.session_retry_interval = session_retry_interval;
         self
     }
+
+    /// Sets the session timeout period
+    pub fn session_timeout(mut self, session_timeout: u32) -> Self {
+        self.config.session_timeout = session_timeout;
+        self
+    }
 }
 
 #[test]
@@ -189,6 +195,7 @@ fn client_builder() {
         .default_endpoint("http://default")
         .session_retry_interval(1234)
         .session_retry_limit(999)
+        .session_timeout(777)
         // TODO user tokens, endpoints
         ;
 
@@ -204,4 +211,5 @@ fn client_builder() {
     assert_eq!(c.default_endpoint, "http://default");
     assert_eq!(c.session_retry_interval, 1234);
     assert_eq!(c.session_retry_limit, 999);
+    assert_eq!(c.session_timeout, 777);
 }

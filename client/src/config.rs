@@ -94,6 +94,8 @@ pub struct ClientConfig {
     pub session_retry_limit: i32,
     /// Retry interval in milliseconds
     pub session_retry_interval: u32,
+    /// Session timeout period in milliseconds
+    pub session_timeout: u32,
 }
 
 impl Config for ClientConfig {
@@ -181,6 +183,7 @@ impl ClientConfig {
             endpoints: BTreeMap::new(),
             session_retry_limit: SessionRetryPolicy::DEFAULT_RETRY_LIMIT as i32,
             session_retry_interval: SessionRetryPolicy::DEFAULT_RETRY_INTERVAL_MS,
+            session_timeout: 0,
         }
     }
 }

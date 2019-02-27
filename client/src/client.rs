@@ -122,15 +122,17 @@ impl Client {
             certificate_store.trust_unknown_certs = true;
         }
 
+        let session_timeout = config.session_timeout as f64;
+
         // The session retry policy dictates how many times to retry if connection to the server goes down
         // and on what interval
         let session_retry_policy = match config.session_retry_limit {
             // Try forever
-            -1 => SessionRetryPolicy::infinity(config.session_retry_interval),
+            -1 => SessionRetryPolicy::infinity(session_timeout, config.session_retry_interval),
             // Never try
-            0 => SessionRetryPolicy::never(),
+            0 => SessionRetryPolicy::never(session_timeout),
             // Try this many times
-            session_retry_limit => SessionRetryPolicy::new(session_retry_limit as u32, config.session_retry_interval)
+            session_retry_limit => SessionRetryPolicy::new(session_timeout, session_retry_limit as u32, config.session_retry_interval)
         };
 
         Client {
