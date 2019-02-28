@@ -19,16 +19,22 @@ use tokio_io::io::{self, ReadHalf, WriteHalf};
 use tokio_codec::FramedRead;
 use tokio_timer::Interval;
 
-use opcua_types::url::OPC_TCP_SCHEME;
-use opcua_types::status_code::StatusCode;
-use opcua_types::tcp_types::HelloMessage;
+use opcua_types::{
+    url::OPC_TCP_SCHEME,
+    status_code::StatusCode,
+    tcp_types::HelloMessage,
+};
 
-use opcua_core::prelude::*;
-use opcua_core::comms::tcp_codec::{Message, TcpCodec};
-use opcua_core::comms::message_writer::MessageWriter;
+use opcua_core::{
+    prelude::*,
+    comms::{
+        tcp_codec::{Message, TcpCodec},
+        message_writer::MessageWriter,
+    },
+};
 
 use crate::{
-    session_state::SessionState,
+    session_state::{SessionState, ConnectionState},
     message_queue::MessageQueue,
     callbacks::OnSessionClosed,
 };
@@ -38,21 +44,6 @@ macro_rules! set_connection_state {( $s:expr, $v:expr ) => { *trace_write_lock_u
 
 const WAIT_POLLING_TIMEOUT: u64 = 100;
 
-#[derive(Copy, Clone, PartialEq, Debug)]
-enum ConnectionState {
-    /// No connect has been made yet
-    NotStarted,
-    /// Connecting
-    Connecting,
-    /// Connection success
-    Connected,
-    // Waiting for ACK from the server
-    WaitingForAck,
-    // Connection is running
-    Processing,
-    // Connection is finished, possibly after an error
-    Finished(StatusCode),
-}
 
 struct ReadState {
     pub state: Arc<RwLock<ConnectionState>>,
@@ -164,10 +155,14 @@ impl Drop for TcpTransport {
 impl TcpTransport {
     /// Create a new TCP transport layer for the session
     pub fn new(secure_channel: Arc<RwLock<SecureChannel>>, session_state: Arc<RwLock<SessionState>>, message_queue: Arc<RwLock<MessageQueue>>) -> TcpTransport {
+        let connection_state = {
+            let session_state = trace_read_lock_unwrap!(session_state);
+            session_state.connection_state()
+        };
         TcpTransport {
             session_state,
             secure_channel,
-            connection_state: Arc::new(RwLock::new(ConnectionState::NotStarted)),
+            connection_state,
             message_queue,
         }
     }

@@ -8,10 +8,17 @@ use std::{
     collections::HashSet,
     str::FromStr,
     sync::{Arc, Mutex, RwLock},
-    time::Duration,
+    time::{Instant, Duration},
     thread,
 };
-use futures::sync::mpsc::UnboundedSender;
+use futures::{
+    future,
+    Future,
+    sync::mpsc::UnboundedSender,
+    stream::Stream,
+};
+use tokio;
+use tokio_timer::Interval;
 
 use opcua_core::{
     comms::secure_channel::{Role, SecureChannel},
@@ -31,7 +38,7 @@ use crate::{
     comms::tcp_transport::TcpTransport,
     message_queue::MessageQueue,
     session_retry::{SessionRetryPolicy, Answer},
-    session_state::SessionState,
+    session_state::{SessionState, ConnectionState},
     subscription::{self, Subscription},
     subscription_state::SubscriptionState,
     subscription_timer::{SubscriptionTimer, SubscriptionTimerCommand},
@@ -552,10 +559,10 @@ impl Session {
                 let _ = secure_channel.set_remote_cert_from_byte_string(&response.server_certificate);
             }
 
-            self.session_retry_policy.set_session_timeout(response.revised_session_timeout);
-
             debug!("Server nonce is {:?}", response.server_nonce);
+
             debug!("Revised session timeout is {}", response.revised_session_timeout);
+            // self.spawn_session_activity_task(response.revised_session_timeout);
 
             // The server certificate is validated if the policy requires it
             let security_policy = self.security_policy();
@@ -591,6 +598,54 @@ impl Session {
         } else {
             Err(crate::process_unexpected_response(response))
         }
+    }
+
+
+    /// Starts a task that will periodically "ping" the server to keep the session alive even without
+    /// activity by other means. The ping rate will be 3/4 the session timeout rate.
+
+    /// NOTE: This code assumes that the session_timeout period never changes, e.g. if you
+    /// connected to a server, negotiate a timeout period and then for whatever reason need to
+    /// reconnect to that same server, you will receive the same timeout. If you get a different
+    /// timeout then this code will not care and will continue to ping at the original rate.
+    fn spawn_session_activity_task(&mut self, session_timeout: f64) {
+        let connection_state = {
+            let session_state = trace_read_lock_unwrap!(self.session_state);
+            session_state.connection_state()
+        };
+
+        let session_state = self.session_state.clone();
+        let connection_state_take_while = connection_state.clone();
+        let connection_state_for_each = connection_state.clone();
+
+        let interval = (session_timeout as u64 * 3) / 4;
+        let task = Interval::new(Instant::now(), Duration::from_millis(interval))
+            .take_while(move |_| {
+                let connection_state = trace_read_lock_unwrap!(connection_state_take_while);
+                let terminated = match *connection_state {
+                    ConnectionState::Finished(_) => true,
+                    _ => false
+                };
+                future::ok(!terminated)
+            })
+            .for_each(move |_| {
+                let connection_state = trace_read_lock_unwrap!(connection_state_for_each);
+                match *connection_state {
+                    ConnectionState::Processing => {
+                        // TODO session.async_send_request(ReadRequest) here
+                    }
+                    _ => {}
+                };
+                Ok(())
+            })
+            .map(|_| {
+                info!("Session activity timer task is finished");
+            })
+            .map_err(|err| {
+                error!("Session activity timer task error = {:?}", err);
+            });
+
+        let _ = tokio::spawn(task);
     }
 
     fn security_policy(&self) -> SecurityPolicy {

@@ -70,11 +70,29 @@ fn handle_test() {
     assert_eq!(h.next(), u32::MAX - 2);
 }
 
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum ConnectionState {
+    /// No connect has been made yet
+    NotStarted,
+    /// Connecting
+    Connecting,
+    /// Connection success
+    Connected,
+    // Waiting for ACK from the server
+    WaitingForAck,
+    // Connection is running
+    Processing,
+    // Connection is finished, possibly after an error
+    Finished(StatusCode),
+}
+
 /// Session's state indicates connection status, negotiated times and sizes,
 /// and security tokens.
 pub struct SessionState {
     /// Secure channel information
     secure_channel: Arc<RwLock<SecureChannel>>,
+    /// Connection state - what the session's connection is currently doing
+    connection_state: Arc<RwLock<ConnectionState>>,
     /// The request timeout is how long the session will wait from sending a request expecting a response
     /// if no response is received the rclient will terminate.
     request_timeout: u32,
@@ -133,6 +151,7 @@ impl SessionState {
     pub fn new(secure_channel: Arc<RwLock<SecureChannel>>, message_queue: Arc<RwLock<MessageQueue>>) -> SessionState {
         SessionState {
             secure_channel,
+            connection_state: Arc::new(RwLock::new(ConnectionState::NotStarted)),
             request_timeout: Self::DEFAULT_REQUEST_TIMEOUT,
             send_buffer_size: Self::SEND_BUFFER_SIZE,
             receive_buffer_size: Self::RECEIVE_BUFFER_SIZE,
@@ -190,6 +209,10 @@ impl SessionState {
 
     pub fn set_session_closed_callback<CB>(&mut self, session_closed_callback: CB) where CB: OnSessionClosed + Send + Sync + 'static {
         self.session_closed_callback = Some(Box::new(session_closed_callback));
+    }
+
+    pub(crate) fn connection_state(&self) -> Arc<RwLock<ConnectionState>> {
+        self.connection_state.clone()
     }
 
     pub fn wait_for_publish_response(&self) -> bool {

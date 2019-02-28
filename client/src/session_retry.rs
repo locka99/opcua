@@ -92,10 +92,6 @@ impl SessionRetryPolicy {
         self.session_timeout
     }
 
-    pub fn set_session_timeout(&mut self, session_timeout: f64) {
-        self.session_timeout = session_timeout;
-    }
-
     pub fn retry_count(&self) -> u32 {
         self.retry_count
     }
