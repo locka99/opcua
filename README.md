@@ -37,6 +37,8 @@ platforms.
 
 Read the [change log](./CHANGELOG.md) for changes per version as well as aspirational / upcoming work.
 
+Read the [compatibility](./docs/compatibility.md) page for how the implementation conforms with the OPC UA spec.
+
 The API documentation is generated from the latest published crates which may be some way behind current development. 
 
 <table>
