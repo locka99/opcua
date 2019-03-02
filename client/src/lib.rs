@@ -29,6 +29,7 @@ mod subscription_state;
 mod subscription_timer;
 mod session_state;
 mod message_queue;
+mod handle;
 
 // Use through prelude
 mod config;
@@ -38,9 +39,7 @@ mod callbacks;
 mod builder;
 mod session_retry;
 
-use opcua_types::SupportedMessage;
-use opcua_types::service_types::ResponseHeader;
-use opcua_types::status_code::StatusCode;
+use opcua_types::{SupportedMessage, service_types::ResponseHeader, status_code::StatusCode};
 
 /// Process the service result, i.e. where the request "succeeded" but the response
 /// contains a failure status code.
@@ -67,8 +66,7 @@ pub(crate) fn process_unexpected_response(response: SupportedMessage) -> StatusC
 }
 
 pub mod prelude {
-    pub use opcua_types::status_code::StatusCode;
-    pub use opcua_types::service_types::*;
+    pub use opcua_types::{status_code::StatusCode, service_types::*};
     pub use opcua_core::prelude::*;
     pub use crate::{
         client::*,

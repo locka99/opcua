@@ -15,60 +15,7 @@ use opcua_types::{
     status_code::StatusCode,
 };
 
-use crate::{message_queue::MessageQueue, callbacks::OnSessionClosed};
-
-/// A simple handle factory for incrementing sequences of numbers.
-struct Handle {
-    next: u32,
-    first: u32,
-}
-
-impl Handle {
-    /// Creates a new handle factory, that starts with the supplied number
-    pub fn new(first: u32) -> Handle {
-        Handle {
-            next: first,
-            first,
-        }
-    }
-
-    /// Returns the next handle to be issued, internally incrementing each time so the handle
-    /// is always different until it wraps back to the start.
-    pub fn next(&mut self) -> u32 {
-        let next = self.next;
-        // Increment next
-        if self.next == u32::MAX {
-            self.next = self.first;
-        } else {
-            self.next += 1;
-        }
-        next
-    }
-
-    /// Resets the handle to its initial state
-    pub fn reset(&mut self) {
-        self.next = self.first;
-    }
-}
-
-#[test]
-fn handle_test() {
-    // Expect sequential handles
-    let mut h = Handle::new(0);
-    assert_eq!(h.next(), 0);
-    assert_eq!(h.next(), 1);
-    assert_eq!(h.next(), 2);
-    let mut h = Handle::new(100);
-    assert_eq!(h.next(), 100);
-    assert_eq!(h.next(), 101);
-
-    // Simulate wrapping around
-    let mut h = Handle::new(u32::MAX - 2);
-    assert_eq!(h.next(), u32::MAX - 2);
-    assert_eq!(h.next(), u32::MAX - 1);
-    assert_eq!(h.next(), u32::MAX);
-    assert_eq!(h.next(), u32::MAX - 2);
-}
+use crate::{message_queue::MessageQueue, callbacks::OnSessionClosed, handle::Handle};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum ConnectionState {

@@ -605,6 +605,7 @@ impl Subscription {
         self.current_lifetime_count
     }
 
+    #[cfg(test)]
     pub(crate) fn set_current_lifetime_count(&mut self, current_lifetime_count: u32) {
         self.current_lifetime_count = current_lifetime_count;
     }
@@ -613,6 +614,7 @@ impl Subscription {
         self.current_keep_alive_count
     }
 
+    #[cfg(test)]
     pub(crate) fn set_current_keep_alive_count(&mut self, current_keep_alive_count: u32) {
         self.current_keep_alive_count = current_keep_alive_count;
     }
@@ -621,6 +623,7 @@ impl Subscription {
         self.state
     }
 
+    #[cfg(test)]
     pub(crate) fn set_state(&mut self, state: SubscriptionState) {
         self.state = state;
     }
@@ -629,6 +632,7 @@ impl Subscription {
         self.message_sent
     }
 
+    #[cfg(test)]
     pub(crate) fn set_message_sent(&mut self, message_sent: bool) {
         self.message_sent = message_sent;
     }

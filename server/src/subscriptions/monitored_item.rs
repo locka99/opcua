@@ -260,6 +260,7 @@ impl MonitoredItem {
     }
 
     /// Gets the oldest notification message from the notification queue
+    #[cfg(test)]
     pub fn oldest_notification_message(&mut self) -> Option<MonitoredItemNotification> {
         if self.notification_queue.is_empty() {
             None
@@ -271,6 +272,7 @@ impl MonitoredItem {
 
     /// Gets the last notification (and discards the remainder to prevent out of sequence events) from
     /// the notification queue.
+    #[cfg(test)]
     pub fn latest_notification_message(&mut self) -> Option<MonitoredItemNotification> {
         let result = self.notification_queue.pop_back();
         if result.is_some() {
@@ -339,18 +341,22 @@ impl MonitoredItem {
         self.queue_size
     }
 
+    #[cfg(test)]
     pub fn queue_overflow(&self) -> bool {
         self.queue_overflow
     }
 
+    #[cfg(test)]
     pub fn notification_queue(&self) -> &VecDeque<MonitoredItemNotification> {
         &self.notification_queue
     }
 
+    #[cfg(test)]
     pub fn discard_oldest(&self) -> bool {
         self.discard_oldest
     }
 
+    #[cfg(test)]
     pub(crate) fn set_discard_oldest(&mut self, discard_oldest: bool) {
         self.discard_oldest = discard_oldest;
     }

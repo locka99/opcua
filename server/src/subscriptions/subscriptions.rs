@@ -77,6 +77,7 @@ impl Subscriptions {
     }
 
     /// Returns the maximum number of subscriptions supported
+    #[cfg(test)]
     pub fn max_subscriptions(&self) -> usize {
         self.max_subscriptions
     }
