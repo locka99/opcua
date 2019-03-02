@@ -548,21 +548,24 @@ impl Session {
         if let SupportedMessage::CreateSessionResponse(response) = response {
             crate::process_service_result(&response.response_header)?;
 
-            let session_state = self.session_state.clone();
-            let mut session_state = trace_write_lock_unwrap!(session_state);
+            let session_id = {
+                let mut session_state = trace_write_lock_unwrap!(self.session_state);
+                session_state.set_session_id(response.session_id.clone());
+                session_state.set_authentication_token(response.authentication_token.clone());
+                {
+                    let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+                    let _ = secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce);
+                    let _ = secure_channel.set_remote_cert_from_byte_string(&response.server_certificate);
+                }
+                session_state.session_id()
+            };
 
-            session_state.set_session_id(response.session_id.clone());
-            session_state.set_authentication_token(response.authentication_token.clone());
-            {
-                let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
-                let _ = secure_channel.set_remote_nonce_from_byte_string(&response.server_nonce);
-                let _ = secure_channel.set_remote_cert_from_byte_string(&response.server_certificate);
-            }
+            // debug!("Server nonce is {:?}", response.server_nonce);
 
-            debug!("Server nonce is {:?}", response.server_nonce);
-
+            // Spawn a task to ping the server to keep the connection alive before the session
+            // timeout period.
             debug!("Revised session timeout is {}", response.revised_session_timeout);
-            // self.spawn_session_activity_task(response.revised_session_timeout);
+            self.spawn_session_activity_task(response.revised_session_timeout);
 
             // The server certificate is validated if the policy requires it
             let security_policy = self.security_policy();
@@ -593,22 +596,25 @@ impl Session {
             } else {
                 // TODO Verify signature using server's public key (from endpoint) comparing with data made from client certificate and nonce.
                 // crypto::verify_signature_data(verification_key, security_policy, server_certificate, client_certificate, client_nonce);
-                Ok(session_state.session_id())
+                Ok(session_id)
             }
         } else {
             Err(crate::process_unexpected_response(response))
         }
     }
 
-
-    /// Starts a task that will periodically "ping" the server to keep the session alive even without
+    /// Start a task that will periodically "ping" the server to keep the session alive even other
     /// activity by other means. The ping rate will be 3/4 the session timeout rate.
-
+    ///
     /// NOTE: This code assumes that the session_timeout period never changes, e.g. if you
     /// connected to a server, negotiate a timeout period and then for whatever reason need to
     /// reconnect to that same server, you will receive the same timeout. If you get a different
     /// timeout then this code will not care and will continue to ping at the original rate.
     fn spawn_session_activity_task(&mut self, session_timeout: f64) {
+        use std::{cmp, thread};
+
+        debug!("spawn_session_activity_task({})", session_timeout);
+
         let connection_state = {
             let session_state = trace_read_lock_unwrap!(self.session_state);
             session_state.connection_state()
@@ -618,8 +624,17 @@ impl Session {
         let connection_state_take_while = connection_state.clone();
         let connection_state_for_each = connection_state.clone();
 
-        let interval = (session_timeout as u64 * 3) / 4;
-        let task = Interval::new(Instant::now(), Duration::from_millis(interval))
+        // Session activity will happen every 3/4 of the timeout period
+        let session_activity = cmp::max((session_timeout as u64 * 3) / 4, 1000);
+        debug!("session timeout is {}, activity timer is {}", session_timeout, session_activity);
+
+        let last_timeout = Arc::new(Mutex::new(Instant::now()));
+
+        // The timer runs at a higher frequency take_while() to terminate as soon after the session
+        // state has terminated. Each time it runs it will test if the interval has elapsed or not.
+
+        let session_activity_interval = Duration::from_millis(session_activity);
+        let task = Interval::new(Instant::now(), Duration::from_millis(1000))
             .take_while(move |_| {
                 let connection_state = trace_read_lock_unwrap!(connection_state_take_while);
                 let terminated = match *connection_state {
@@ -629,13 +644,36 @@ impl Session {
                 future::ok(!terminated)
             })
             .for_each(move |_| {
-                let connection_state = trace_read_lock_unwrap!(connection_state_for_each);
-                match *connection_state {
-                    ConnectionState::Processing => {
-                        // TODO session.async_send_request(ReadRequest) here
-                    }
-                    _ => {}
-                };
+                // Get the time now
+                let now = Instant::now();
+                let mut last_timeout = last_timeout.lock().unwrap();
+
+                // Calculate to interval since last check
+                let interval = now - *last_timeout;
+                if interval > session_activity_interval {
+                    let connection_state = {
+                        let connection_state = trace_read_lock_unwrap!(connection_state_for_each);
+                        *connection_state
+                    };
+                    match connection_state {
+                        ConnectionState::Processing => {
+                            info!("Session activity keep-alive request");
+                            let mut session_state = trace_write_lock_unwrap!(session_state);
+                            let request_header = session_state.make_request_header();
+                            let request = ReadRequest {
+                                request_header,
+                                max_age: 1f64,
+                                timestamps_to_return: TimestampsToReturn::Server,
+                                nodes_to_read: Some(vec![]),
+                            };
+                            let _ = session_state.async_send_request(request, true);
+                        }
+                        connection_state => {
+                            info!("Session activity keep-alive is doing nothing - connection state = {:?}", connection_state);
+                        }
+                    };
+                    *last_timeout = now;
+                }
                 Ok(())
             })
             .map(|_| {
@@ -645,7 +683,9 @@ impl Session {
                 error!("Session activity timer task error = {:?}", err);
             });
 
-        let _ = tokio::spawn(task);
+        let _ = thread::spawn(move || {
+            let _ = tokio::run(task);
+        });
     }
 
     fn security_policy(&self) -> SecurityPolicy {
@@ -895,7 +935,7 @@ impl Session {
     }
 
     /// Sends a ReadRequest to the server
-    pub fn read_nodes(&mut self, nodes_to_read: &[ReadValueId]) -> Result<Option<Vec<DataValue>>, StatusCode> {
+    pub fn read(&mut self, nodes_to_read: &[ReadValueId]) -> Result<Option<Vec<DataValue>>, StatusCode> {
         if nodes_to_read.is_empty() {
             // No subscriptions
             error!("read_nodes, was not supplied with any nodes to read");
@@ -1659,7 +1699,7 @@ impl Session {
                 }
             }
             _ => {
-                panic!("Should not be handling non publish responses from here")
+                info!("Unhandled response")
             }
         }
 

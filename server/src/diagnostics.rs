@@ -123,6 +123,7 @@ impl ServerDiagnostics {
 
     // --- These are not yet called by anything
 
+    /*
     /// Increment the number of server-created views in the server.
     pub(crate) fn on_server_view(&mut self, _session: &Session) {
         self.server_diagnostics_summary.server_view_count += 1;
@@ -156,5 +157,6 @@ impl ServerDiagnostics {
         self.server_diagnostics_summary.rejected_requests_count += 1;
         unimplemented!()
     }
+    */
 }
 
