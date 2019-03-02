@@ -4,12 +4,12 @@
 //! The session also has async functionality but that is reserved for publish requests on subscriptions
 //! and events.
 use std::{
+    cmp, thread,
     result::Result,
     collections::HashSet,
     str::FromStr,
     sync::{Arc, Mutex, RwLock},
     time::{Instant, Duration},
-    thread,
 };
 use futures::{
     future,
@@ -562,11 +562,6 @@ impl Session {
 
             // debug!("Server nonce is {:?}", response.server_nonce);
 
-            // Spawn a task to ping the server to keep the connection alive before the session
-            // timeout period.
-            debug!("Revised session timeout is {}", response.revised_session_timeout);
-            self.spawn_session_activity_task(response.revised_session_timeout);
-
             // The server certificate is validated if the policy requires it
             let security_policy = self.security_policy();
             let cert_status_code = if security_policy != SecurityPolicy::None {
@@ -594,6 +589,11 @@ impl Session {
                 error!("Server's certificate was rejected");
                 Err(cert_status_code)
             } else {
+                // Spawn a task to ping the server to keep the connection alive before the session
+                // timeout period.
+                debug!("Revised session timeout is {}", response.revised_session_timeout);
+                self.spawn_session_activity_task(response.revised_session_timeout);
+
                 // TODO Verify signature using server's public key (from endpoint) comparing with data made from client certificate and nonce.
                 // crypto::verify_signature_data(verification_key, security_policy, server_certificate, client_certificate, client_nonce);
                 Ok(session_id)
@@ -603,16 +603,14 @@ impl Session {
         }
     }
 
-    /// Start a task that will periodically "ping" the server to keep the session alive even other
-    /// activity by other means. The ping rate will be 3/4 the session timeout rate.
+    /// Start a task that will periodically "ping" the server to keep the session alive. The ping rate
+    /// will be 3/4 the session timeout rate.
     ///
     /// NOTE: This code assumes that the session_timeout period never changes, e.g. if you
     /// connected to a server, negotiate a timeout period and then for whatever reason need to
     /// reconnect to that same server, you will receive the same timeout. If you get a different
     /// timeout then this code will not care and will continue to ping at the original rate.
     fn spawn_session_activity_task(&mut self, session_timeout: f64) {
-        use std::{cmp, thread};
-
         debug!("spawn_session_activity_task({})", session_timeout);
 
         let connection_state = {
@@ -625,7 +623,8 @@ impl Session {
         let connection_state_for_each = connection_state.clone();
 
         // Session activity will happen every 3/4 of the timeout period
-        let session_activity = cmp::max((session_timeout as u64 * 3) / 4, 1000);
+        const MIN_SESSION_ACTIVITY_MS: u64 = 1000;
+        let session_activity = cmp::max((session_timeout as u64 * 3) / 4, MIN_SESSION_ACTIVITY_MS);
         debug!("session timeout is {}, activity timer is {}", session_timeout, session_activity);
 
         let last_timeout = Arc::new(Mutex::new(Instant::now()));
@@ -634,7 +633,7 @@ impl Session {
         // state has terminated. Each time it runs it will test if the interval has elapsed or not.
 
         let session_activity_interval = Duration::from_millis(session_activity);
-        let task = Interval::new(Instant::now(), Duration::from_millis(1000))
+        let task = Interval::new(Instant::now(), Duration::from_millis(MIN_SESSION_ACTIVITY_MS))
             .take_while(move |_| {
                 let connection_state = trace_read_lock_unwrap!(connection_state_take_while);
                 let terminated = match *connection_state {
