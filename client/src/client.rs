@@ -32,10 +32,6 @@ pub enum IdentityToken {
     UserName(String, String),
 }
 
-struct SessionEntry {
-    session: Arc<RwLock<Session>>,
-}
-
 /// The `Client` defines a connection that can be used to to get end points or establish
 /// one or more sessions with an OPC UA server. It is configured using a [`ClientConfig`] which
 /// defines the server it talks to and other details such as the location of the certificate store.
@@ -56,9 +52,6 @@ struct SessionEntry {
 pub struct Client {
     /// Client configuration
     config: ClientConfig,
-    /// A list of sessions made by the client. They are protected since a session may or may not be
-    /// running on an independent thread.
-    sessions: Vec<SessionEntry>,
     /// Certificate store is where certificates go.
     certificate_store: Arc<RwLock<CertificateStore>>,
     /// The session retry policy for new sessions
@@ -137,7 +130,6 @@ impl Client {
 
         Client {
             config,
-            sessions: Vec::new(),
             session_retry_policy,
             certificate_store: Arc::new(RwLock::new(certificate_store)),
         }
@@ -295,9 +287,6 @@ impl Client {
             Err(format!("Endpoint url {}, is not a valid / supported url", session_info.endpoint.endpoint_url))
         } else {
             let session = Arc::new(RwLock::new(Session::new(self.application_description(), self.certificate_store.clone(), session_info, self.session_retry_policy.clone())));
-            self.sessions.push(SessionEntry {
-                session: session.clone(),
-            });
             Ok(session)
         }
     }

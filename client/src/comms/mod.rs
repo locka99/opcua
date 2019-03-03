@@ -1,3 +1,5 @@
 //! Client side communications
 
-pub mod tcp_transport;
+mod transport;
+
+pub(crate) mod tcp_transport;

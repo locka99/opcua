@@ -4,7 +4,7 @@ use futures::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
 use opcua_types::*;
 
-pub struct MessageQueue {
+pub(crate) struct MessageQueue {
     /// The requests that are in-flight, defined by their request handle and an async flag. Basically,
     /// the sent requests reside here  until the response returns at which point the entry is removed.
     /// If a response is received for which there is no entry, the response will be discarded.

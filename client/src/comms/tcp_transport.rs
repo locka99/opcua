@@ -37,13 +37,11 @@ use crate::{
     session_state::{SessionState, ConnectionState},
     message_queue::MessageQueue,
     callbacks::OnSessionClosed,
+    comms::transport::Transport,
 };
 
 macro_rules! connection_state {( $s:expr ) => { *trace_read_lock_unwrap!($s) } }
 macro_rules! set_connection_state {( $s:expr, $v:expr ) => { *trace_write_lock_unwrap!($s) = $v } }
-
-const WAIT_POLLING_TIMEOUT: u64 = 100;
-
 
 struct ReadState {
     pub state: Arc<RwLock<ConnectionState>>,
@@ -135,7 +133,7 @@ impl WriteState {
 /// server. Requests are taken from the session state, responses are given to the session state.
 ///
 /// Reading and writing are split so they are independent of each other.
-pub struct TcpTransport {
+pub(crate) struct TcpTransport {
     /// Session state
     session_state: Arc<RwLock<SessionState>>,
     /// Secure channel information
@@ -152,7 +150,11 @@ impl Drop for TcpTransport {
     }
 }
 
+impl Transport for TcpTransport {}
+
 impl TcpTransport {
+    const WAIT_POLLING_TIMEOUT: u64 = 100;
+
     /// Create a new TCP transport layer for the session
     pub fn new(secure_channel: Arc<RwLock<SecureChannel>>, session_state: Arc<RwLock<SessionState>>, message_queue: Arc<RwLock<MessageQueue>>) -> TcpTransport {
         let connection_state = {
@@ -252,7 +254,7 @@ impl TcpTransport {
                     // Still waiting for something to happen
                 }
             }
-            thread::sleep(Duration::from_millis(WAIT_POLLING_TIMEOUT))
+            thread::sleep(Duration::from_millis(Self::WAIT_POLLING_TIMEOUT))
         }
     }
 
@@ -267,7 +269,7 @@ impl TcpTransport {
                 }
                 _ => {}
             }
-            thread::sleep(Duration::from_millis(WAIT_POLLING_TIMEOUT))
+            thread::sleep(Duration::from_millis(Self::WAIT_POLLING_TIMEOUT))
         }
     }
 
@@ -335,7 +337,6 @@ impl TcpTransport {
             error!("Write bytes task error");
         })
     }
-
 
     fn spawn_finished_monitor_task(state: Arc<RwLock<ConnectionState>>, finished_flag: Arc<RwLock<bool>>) {
         // This task just spins around waiting for the connection to become finished. When it

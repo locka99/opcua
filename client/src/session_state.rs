@@ -35,7 +35,7 @@ pub enum ConnectionState {
 
 /// Session's state indicates connection status, negotiated times and sizes,
 /// and security tokens.
-pub struct SessionState {
+pub(crate) struct SessionState {
     /// Secure channel information
     secure_channel: Arc<RwLock<SecureChannel>>,
     /// Connection state - what the session's connection is currently doing

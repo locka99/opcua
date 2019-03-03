@@ -1,5 +1,5 @@
 use std::{
-    collections::VecDeque,
+    collections::{VecDeque, HashSet},
     sync::{Arc, RwLock, Mutex},
 };
 use chrono;
@@ -216,15 +216,8 @@ impl Session {
         });
     }
 
-    pub(crate) fn remove_browse_continuation_point(&mut self, continuation_point_id: &ByteString) {
-        self.browse_continuation_points.retain(|continuation_point| {
-            !continuation_point.id.eq(continuation_point_id)
-        });
-    }
-
     /// Remove all the specified continuation points by id
     pub(crate) fn remove_browse_continuation_points(&mut self, continuation_points: &[ByteString]) {
-        use std::collections::HashSet;
         // Turn the supplied slice into a set
         let continuation_points_set: HashSet<ByteString> = continuation_points.iter().cloned().collect();
         // Now remove any continuation points that are part of that set

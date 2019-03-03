@@ -170,7 +170,7 @@ fn session_retry_infinity() {
 
 #[test]
 fn session_retry_never() {
-    let mut session_retry = SessionRetryPolicy::never(987.123);
+    let session_retry = SessionRetryPolicy::never(987.123);
     let now = Utc::now();
     assert_eq!(session_retry.should_retry_connect(now), Answer::GiveUp);
     assert_eq!(session_retry.session_timeout(), 987.123);
