@@ -11,7 +11,7 @@ use crate::{
         message_chunk::{MessageIsFinalType, MessageChunk, MessageChunkType},
         secure_channel::SecureChannel,
     },
-    crypto::SecurityPolicy
+    crypto::SecurityPolicy,
 };
 
 /// The Chunker is responsible for turning messages to chunks and chunks into messages.
@@ -39,39 +39,39 @@ impl Chunker {
         };
         if first_sequence_number < starting_sequence_number {
             error!("First sequence number of {} is less than last value {}", first_sequence_number, starting_sequence_number);
-            return Err(StatusCode::BadSequenceNumberInvalid);
+            Err(StatusCode::BadSequenceNumberInvalid)
+        } else {
+            let secure_channel_id = secure_channel.secure_channel_id();
+
+            // Validate that all chunks have incrementing sequence numbers and valid chunk types
+            let mut expected_request_id: u32 = 0;
+            for (i, chunk) in chunks.iter().enumerate() {
+                let chunk_info = chunk.chunk_info(secure_channel)?;
+
+                // Check the channel id of each chunk
+                if secure_channel_id != 0 && chunk_info.message_header.secure_channel_id != secure_channel_id {
+                    error!("Secure channel id {} does not match expected id {}", chunk_info.message_header.secure_channel_id, secure_channel_id);
+                    return Err(StatusCode::BadSecureChannelIdInvalid);
+                }
+
+                // Check the sequence id - should be larger than the last one decoded
+                let sequence_number = chunk_info.sequence_header.sequence_number;
+                let expected_sequence_number = first_sequence_number + i as u32;
+                if sequence_number != expected_sequence_number {
+                    error!("Chunk sequence number of {} is not the expected value of {}, idx {}", sequence_number, expected_sequence_number, i);
+                    return Err(StatusCode::BadSecurityChecksFailed);
+                }
+
+                // Check the request id against the first chunk's request id
+                if i == 0 {
+                    expected_request_id = chunk_info.sequence_header.request_id;
+                } else if chunk_info.sequence_header.request_id != expected_request_id {
+                    error!("Chunk sequence number of {} has a request id {} which is not the expected value of {}, idx {}", sequence_number, chunk_info.sequence_header.request_id, expected_request_id, i);
+                    return Err(StatusCode::BadSecurityChecksFailed);
+                }
+            }
+            Ok(first_sequence_number + chunks.len() as u32 - 1)
         }
-
-        let secure_channel_id = secure_channel.secure_channel_id();
-
-        // Validate that all chunks have incrementing sequence numbers and valid chunk types
-        let mut expected_request_id: u32 = 0;
-        for (i, chunk) in chunks.iter().enumerate() {
-            let chunk_info = chunk.chunk_info(secure_channel)?;
-
-            // Check the channel id of each chunk
-            if secure_channel_id != 0 && chunk_info.message_header.secure_channel_id != secure_channel_id {
-                error!("Secure channel id {} does not match expected id {}", chunk_info.message_header.secure_channel_id, secure_channel_id);
-                return Err(StatusCode::BadSecureChannelIdInvalid);
-            }
-
-            // Check the sequence id - should be larger than the last one decoded
-            let sequence_number = chunk_info.sequence_header.sequence_number;
-            let expected_sequence_number = first_sequence_number + i as u32;
-            if sequence_number != expected_sequence_number {
-                error!("Chunk sequence number of {} is not the expected value of {}, idx {}", sequence_number, expected_sequence_number, i);
-                return Err(StatusCode::BadSecurityChecksFailed);
-            }
-
-            // Check the request id against the first chunk's request id
-            if i == 0 {
-                expected_request_id = chunk_info.sequence_header.request_id;
-            } else if chunk_info.sequence_header.request_id != expected_request_id {
-                error!("Chunk sequence number of {} has a request id {} which is not the expected value of {}, idx {}", sequence_number, chunk_info.sequence_header.request_id, expected_request_id, i);
-                return Err(StatusCode::BadSecurityChecksFailed);
-            }
-        }
-        Ok(first_sequence_number + chunks.len() as u32 - 1)
     }
 
     /// Encodes a message using the supplied sequence number and secure channel info and emits the corresponding chunks
@@ -91,48 +91,47 @@ impl Chunker {
         if max_message_size > 0 && message_size > max_message_size {
             warn!("Max message size is {} and message {} exceeds that", max_message_size, message_size);
             // Client stack should report a BadRequestTooLarge, server BadResponseTooLarge
-            return Err(if secure_channel.is_client_role() { StatusCode::BadRequestTooLarge } else { StatusCode::BadResponseTooLarge });
-        }
-
-        let node_id = supported_message.node_id();
-        message_size += node_id.byte_len();
-
-        let message_type = Chunker::message_type(supported_message);
-        let mut stream = Cursor::new(vec![0u8; message_size]);
-
-        trace!("Encoding node id {:?}", node_id);
-        let _ = node_id.encode(&mut stream);
-        let _ = supported_message.encode(&mut stream)?;
-        let data = stream.into_inner();
-
-        let result = if max_chunk_size > 0 {
-            let max_body_per_chunk = MessageChunk::body_size_from_message_size(message_type, secure_channel, max_chunk_size);
-            // Multiple chunks means breaking the data up into sections. Fortunately
-            // Rust has a nice function to do just that.
-            let data_chunks = data.chunks(max_body_per_chunk);
-            let data_chunks_len = data_chunks.len();
-            let mut chunks = Vec::with_capacity(data_chunks_len);
-            for (i, data_chunk) in data_chunks.enumerate() {
-                let is_final = if i == data_chunks_len - 1 {
-                    MessageIsFinalType::Final
-                } else {
-                    MessageIsFinalType::Intermediate
-                };
-                let chunk = MessageChunk::new(sequence_number + i as u32, request_id, message_type, is_final, secure_channel, data_chunk)?;
-                chunks.push(chunk);
-            }
-            chunks
+            Err(if secure_channel.is_client_role() { StatusCode::BadRequestTooLarge } else { StatusCode::BadResponseTooLarge })
         } else {
-            let chunk = MessageChunk::new(sequence_number, request_id, message_type, MessageIsFinalType::Final, secure_channel, &data)?;
-            vec![chunk]
-        };
-        Ok(result)
+            let node_id = supported_message.node_id();
+            message_size += node_id.byte_len();
+
+            let message_type = Chunker::message_type(supported_message);
+            let mut stream = Cursor::new(vec![0u8; message_size]);
+
+            trace!("Encoding node id {:?}", node_id);
+            let _ = node_id.encode(&mut stream);
+            let _ = supported_message.encode(&mut stream)?;
+            let data = stream.into_inner();
+
+            let result = if max_chunk_size > 0 {
+                let max_body_per_chunk = MessageChunk::body_size_from_message_size(message_type, secure_channel, max_chunk_size);
+                // Multiple chunks means breaking the data up into sections. Fortunately
+                // Rust has a nice function to do just that.
+                let data_chunks = data.chunks(max_body_per_chunk);
+                let data_chunks_len = data_chunks.len();
+                let mut chunks = Vec::with_capacity(data_chunks_len);
+                for (i, data_chunk) in data_chunks.enumerate() {
+                    let is_final = if i == data_chunks_len - 1 {
+                        MessageIsFinalType::Final
+                    } else {
+                        MessageIsFinalType::Intermediate
+                    };
+                    let chunk = MessageChunk::new(sequence_number + i as u32, request_id, message_type, is_final, secure_channel, data_chunk)?;
+                    chunks.push(chunk);
+                }
+                chunks
+            } else {
+                let chunk = MessageChunk::new(sequence_number, request_id, message_type, MessageIsFinalType::Final, secure_channel, &data)?;
+                vec![chunk]
+            };
+            Ok(result)
+        }
     }
 
     /// Decodes a series of chunks to create a message. The message must be of a `SupportedMessage`
     /// type otherwise an error will occur.
     pub fn decode(chunks: &Vec<MessageChunk>, secure_channel: &SecureChannel, expected_node_id: Option<NodeId>) -> std::result::Result<SupportedMessage, StatusCode> {
-
         // Calculate the size of data held in all chunks
         let mut data_size: usize = 0;
         for (i, chunk) in chunks.iter().enumerate() {

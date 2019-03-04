@@ -287,10 +287,12 @@ impl SecureChannel {
             if let Some(ref remote_nonce) = remote_nonce.value {
                 if remote_nonce.len() != self.security_policy.symmetric_key_size() {
                     error!("Remote nonce is invalid length {}, expecting {}. {:?}", remote_nonce.len(), self.security_policy.symmetric_key_size(), remote_nonce);
-                    return Err(StatusCode::BadNonceInvalid);
+                    Err(StatusCode::BadNonceInvalid)
                 }
-                self.remote_nonce = remote_nonce.to_vec();
-                Ok(())
+                else {
+                    self.remote_nonce = remote_nonce.to_vec();
+                    Ok(())
+                }
             } else {
                 error!("Remote nonce is invalid {:?}", remote_nonce);
                 Err(StatusCode::BadNonceInvalid)

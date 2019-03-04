@@ -13,7 +13,6 @@ pub mod prelude {
     pub use super::chunker::*;
     pub use super::tcp_codec::*;
     pub use super::message_chunk::*;
-    pub use super::message_chunk_info::*;
     pub use super::secure_channel::*;
     pub use super::security_header::*;
 }
