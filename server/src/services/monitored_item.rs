@@ -81,4 +81,10 @@ impl MonitoredItemService {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         }
     }
+
+    pub fn set_triggering(&self, session: &mut Session, request: &SetTriggeringRequest) -> Result<SupportedMessage, StatusCode> {
+        let subscription_id = request.subscription_id;
+        if let Some(subscription) = session.subscriptions.get_mut(subscription_id) {}
+        Ok(self.service_fault(&request.request_header, StatusCode::BadNotImplemented))
+    }
 }

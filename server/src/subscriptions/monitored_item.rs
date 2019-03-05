@@ -1,5 +1,5 @@
 use std::result::Result;
-use std::collections::VecDeque;
+use std::collections::{VecDeque, BTreeSet};
 
 use chrono;
 
@@ -42,6 +42,9 @@ pub(crate) struct MonitoredItem {
     monitored_item_id: u32,
     item_to_monitor: ReadValueId,
     monitoring_mode: MonitoringMode,
+    // Triggered items are other monitored items in the same subscription which are reported if this
+    // monitored item changes.
+    triggered_items: BTreeSet<u32>,
     client_handle: u32,
     sampling_interval: Duration,
     filter: FilterType,
@@ -65,6 +68,7 @@ impl MonitoredItem {
             monitored_item_id,
             item_to_monitor: request.item_to_monitor.clone(),
             monitoring_mode: request.monitoring_mode,
+            triggered_items: BTreeSet::new(),
             client_handle: request.requested_parameters.client_handle,
             sampling_interval,
             filter,
@@ -107,6 +111,13 @@ impl MonitoredItem {
         let filter_result = ExtensionObject::null();
 
         Ok(filter_result)
+    }
+
+    /// Adds or removes other monitored items which will be triggered when this monitored item changes
+    pub fn set_triggering(&mut self, items_to_add: &[u32], items_to_remove: &[u32]) {
+        // Spec says to process items_to_remove first
+        items_to_remove.iter().for_each(|i| { self.triggered_items.remove(i); });
+        items_to_add.iter().for_each(|i| { self.triggered_items.insert(*i); });
     }
 
     /// Called repeatedly on the monitored item.

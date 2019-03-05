@@ -227,15 +227,60 @@ impl AddressSpace {
                 //  View TranslateBrowsePath
                 "http://opcfoundation.org/UA-Profile/Server/Behaviour",
                 // Embedded UA server
-                //  Micro Embedded Device Server Profile
-                //  SecurityPolicy - Basic128Rsa15
-                //  Standard DataChange Subscription Server Facet
-                //  User Token - X509 Certificate Server Facet
-                //  -Base Info Engineering Units
-                //  -Base Info PLaceholder Modelling Rules
-                //  -Base Info Type System
-                //  Security Default ApplicationInstanceCertificate
+                //   SecurityPolicy - Basic128Rsa15
+                //     Security
+                //       - Security Certificate Validation
+                //       - Security Basic 128Rsa15
+                //       - Security Encryption Required
+                //       - Security Signing Required
+                //   Standard DataChange Subscription Server Facet
+                //     Base Information
+                //       - Base Info GetMonitoredItems Method
+                //     Monitored Item Services
+                //       - Monitored Items Deadband Filter
+                //       - Monitor Items 10
+                //       - Monitor Items 100
+                //       - Monitor MinQueueSize_02
+                //       - Monitor Triggering
+                //     Subscription Services
+                //       - Subscription Minimum 02
+                //       - Subscription Publish Min 05
+                //     Method Services
+                //       - Method call
+                //   User Token - X509 Certificate Server Facet
+                //       - Security User X509 - Server supports public / private key pair for user identity
+                //   Micro Embedded Device Server Profile
+                // Base Information
+                //   - Base Info Type System - Exposes a Type system with DataTypes, ReferenceTypes, ObjectTypes and VariableTypes
+                //     including all of OPC UA namespace (namespace 0) types that are used by the Server as defined in Part 6.
+                //   - Base Info Placeholder Modelling Rules - The server supports defining cusom Object or Variables that include the use of OptionalPlaceholder
+                //     or MandatoryPlaceholder modelling rules
+                //   - Base Info Engineering Units - The server supports defining Variables that include the Engineering Units property
+                // Security
+                //  Security Default ApplicationInstanceCertificate - has a default ApplicationInstanceCertificate that is valid
                 "http://opcfoundation.org/UA-Profile/Server/EmbeddedUA",
+
+                // TODO server profile
+                // Standard UA Server Profile
+                //   Enhanced DataChange Subscription Server Facet
+                //     Monitored Item Services
+                //       - Monitor Items 500 - Support at least 500 MonitoredItems per Subscription
+                //       - Monitor MinQueueSize_05 - Support at least 5 queue entries
+                //     Subscription Services
+                //       - Subscription Minimum 05 - Support at least 5 subscriptions per Session
+                //       - Subscription Publish Min 10 - Support at least Publish service requests per session
+                //   Embedded UA Server Profile
+                // Base Information
+                //   - Base Info Diagnostics
+                // Discovery Services
+                //   - Discovery Register (be able to call RegisterServer)
+                //   - Discovery Register2 (be able to call RegisterServer2)
+                // Session Services
+                //   - Session Change User - Support use of ActivateSession to change the Session user
+                //   - Session Cancel - Support the Cancel Service to cancel outstanding requests
+                //   - Session Minimum 50 Parallel - Support minimum 50 parallel Sessions
+                //
+                // "http://opcfoundation.org/UA-Profile/Server/StandardUA",
             ];
             v.set_value_direct(Variant::from(&server_profiles[..]), &now, &now);
         }

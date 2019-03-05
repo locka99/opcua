@@ -223,6 +223,13 @@ impl MessageHandler {
                     Some(self.monitored_item_service.delete_monitored_items(&mut session, &request)?)
                 }
             }
+            SupportedMessage::SetTriggeringRequest(request) => {
+                if let Err(response) = self.validate_request(&mut session, &request.request_header) {
+                    Some(response)
+                } else {
+                    Some(self.monitored_item_service.set_triggering(&mut session, &request)?)
+                }
+            }
             SupportedMessage::CallRequest(request) => {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)

@@ -297,6 +297,8 @@ impl Session {
                             }
                         }).collect::<Vec<MonitoredItemCreateRequest>>();
                         let _ = self.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create);
+
+                        // TODO SetTriggering
                     } else {
                         warn!("Could not create a subscription from the existing subscription {}", subscription_id);
                     }
@@ -1495,6 +1497,51 @@ impl Session {
             }
         }
     }
+
+    /// Sets a monitored item so it becomes the trigger that causes other monitored items to send
+    /// change events in the same update. Note that `items_to_remove` is applied before `items_to_add`.
+    ///
+    /// # Arguments
+    ///
+    /// * `subscription_id` - the subscription identifier containing the monitored item to be used as the trigger.
+    /// * `monitored_item_id` - the monitored item identifier
+    /// * `links_to_add` - zero or more items to be added to the monitored item's trigger list
+    /// * `items_to_remove` - zero or more items to be removed from the monitored item's trigger list
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(StatusCode)` - Result for the SetTriggering call.
+    /// * `Err(StatusCode)` - Status code reason for failure.
+    ///
+    /// [`SetTriggeringRequest`]: ./struct.SetTriggeringRequest.html
+    ///
+    pub fn set_triggering(&mut self, subscription_id: u32, triggering_item_id: u32, links_to_add: &[u32], links_to_remove: &[u32]) -> Result<StatusCode, StatusCode> {
+        if links_to_add.is_empty() && links_to_remove.is_empty() {
+            error!("set_triggering, called with nothing to add or remove");
+            Err(StatusCode::BadNothingToDo)
+        } else {
+            let links_to_add = if links_to_add.is_empty() { None } else { Some(links_to_add.to_vec()) };
+            let links_to_remove = if links_to_remove.is_empty() { None } else { Some(links_to_remove.to_vec()) };
+
+            let request = SetTriggeringRequest {
+                request_header: self.make_request_header(),
+                subscription_id,
+                triggering_item_id,
+                links_to_add,
+                links_to_remove,
+            };
+            let response = self.send_request(request)?;
+            if let SupportedMessage::SetTriggeringResponse(response) = response {
+                // TODO set the triggers on the client side mirror
+                // TODO we could look through every single add / remove and pick the worst result here
+                Ok(StatusCode::Good)
+            } else {
+                error!("set_triggering failed {:?}", response);
+                Err(crate::process_unexpected_response(response))
+            }
+        }
+    }
+
 
     /// Calls a single method on an object on the server by sending a [`CallRequest`] to the server.
     ///
