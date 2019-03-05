@@ -299,7 +299,7 @@ impl Session {
                         let _ = self.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create);
 
                         // Recreate any triggers for the monitored item
-                        subscription.monitored_items().iter().map(|(_, item)| {
+                        subscription.monitored_items().iter().for_each(|(_, item)| {
                             let triggered_items = item.triggered_items();
                             if !triggered_items.is_empty() {
                                 let links_to_add = triggered_items.iter().map(|i| *i).collect::<Vec<u32>>();
