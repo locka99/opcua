@@ -8,7 +8,7 @@
 //! None of this is for public consumption. The client is expected to recreate state automatically
 //! on a reconnect if necessary.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, BTreeSet};
 use std::sync::{Arc, Mutex};
 use std::marker::Sync;
 
@@ -51,6 +51,8 @@ pub struct MonitoredItem {
     sampling_interval: f64,
     /// Last value of the item
     value: DataValue,
+    /// Triggered items
+    triggered_items: BTreeSet<u32>,
 }
 
 impl MonitoredItem {
@@ -69,6 +71,7 @@ impl MonitoredItem {
             discard_oldest: false,
             value: DataValue::null(),
             client_handle,
+            triggered_items: BTreeSet::new(),
         }
     }
 
@@ -114,6 +117,15 @@ impl MonitoredItem {
 
     pub(crate) fn set_discard_oldest(&mut self, discard_oldest: bool) {
         self.discard_oldest = discard_oldest;
+    }
+
+    pub(crate) fn set_triggering(&mut self, links_to_add: &[u32], links_to_remove: &[u32]) {
+        links_to_remove.iter().for_each(|i| { self.triggered_items.remove(i); });
+        links_to_add.iter().for_each(|i| { self.triggered_items.insert(*i); });
+    }
+
+    pub(crate) fn triggered_items(&self) -> &BTreeSet<u32> {
+        &self.triggered_items
     }
 }
 
@@ -224,6 +236,12 @@ impl Subscription {
                 let _ = self.client_handles.remove(&monitored_item.client_handle());
             }
         })
+    }
+
+    pub(crate) fn set_triggering(&mut self, triggering_item_id: u32, links_to_add: &[u32], links_to_remove: &[u32]) {
+        if let Some(ref mut monitored_item) = self.monitored_items.get_mut(&triggering_item_id) {
+            monitored_item.set_triggering(links_to_add, links_to_remove);
+        }
     }
 
     fn monitored_item_id_from_handle(&self, client_handle: u32) -> Option<u32> {

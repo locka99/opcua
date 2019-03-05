@@ -298,7 +298,14 @@ impl Session {
                         }).collect::<Vec<MonitoredItemCreateRequest>>();
                         let _ = self.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create);
 
-                        // TODO SetTriggering
+                        // Recreate any triggers for the monitored item
+                        subscription.monitored_items().iter().map(|(_, item)| {
+                            let triggered_items = item.triggered_items();
+                            if !triggered_items.is_empty() {
+                                let links_to_add = triggered_items.iter().map(|i| *i).collect::<Vec<u32>>();
+                                self.set_triggering(subscription_id, item.id(), &links_to_add[..], &[]);
+                            }
+                        });
                     } else {
                         warn!("Could not create a subscription from the existing subscription {}", subscription_id);
                     }
@@ -1520,20 +1527,25 @@ impl Session {
             error!("set_triggering, called with nothing to add or remove");
             Err(StatusCode::BadNothingToDo)
         } else {
-            let links_to_add = if links_to_add.is_empty() { None } else { Some(links_to_add.to_vec()) };
-            let links_to_remove = if links_to_remove.is_empty() { None } else { Some(links_to_remove.to_vec()) };
-
-            let request = SetTriggeringRequest {
-                request_header: self.make_request_header(),
-                subscription_id,
-                triggering_item_id,
-                links_to_add,
-                links_to_remove,
+            let request = {
+                let links_to_add = if links_to_add.is_empty() { None } else { Some(links_to_add.to_vec()) };
+                let links_to_remove = if links_to_remove.is_empty() { None } else { Some(links_to_remove.to_vec()) };
+                SetTriggeringRequest {
+                    request_header: self.make_request_header(),
+                    subscription_id,
+                    triggering_item_id,
+                    links_to_add,
+                    links_to_remove,
+                }
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::SetTriggeringResponse(response) = response {
-                // TODO set the triggers on the client side mirror
                 // TODO we could look through every single add / remove and pick the worst result here
+
+                // Update client side state
+                let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
+                subscription_state.set_triggering(subscription_id, triggering_item_id, links_to_add, links_to_remove);
+
                 Ok(StatusCode::Good)
             } else {
                 error!("set_triggering failed {:?}", response);
