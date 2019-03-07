@@ -6,7 +6,6 @@ use std::str::FromStr;
 
 use crate::encoding::*;
 
-#[allow(non_upper_case_globals)]
 bitflags! {
     pub struct StatusCode: u32 {
         // The UPPERCASE values are bitflags. The PascalCase values are OPC UA Status codes.
