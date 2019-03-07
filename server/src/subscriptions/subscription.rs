@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeSet};
 use std::sync::{Arc, RwLock};
 
 use chrono;
@@ -14,7 +14,7 @@ use opcua_types::{
 use crate::{
     constants,
     DateTimeUtc,
-    subscriptions::monitored_item::MonitoredItem,
+    subscriptions::monitored_item::{MonitoredItem, TickResult},
     address_space::AddressSpace,
     diagnostics::ServerDiagnostics,
 };
@@ -367,19 +367,97 @@ impl Subscription {
     }
 
     /// Iterate through the monitored items belonging to the subscription, calling tick on each in turn.
-    /// The function returns notifications and a more_notifications boolean.
+    ///
+    /// Items that are in a reporting state, or triggered to report will be have their pending notifications
+    /// collected together when the publish interval elapsed flag is `true`.
+    ///
+    /// The function returns a `notifications` and a `more_notifications` boolean to indicate if the notifications
+    /// are available.
     fn tick_monitored_items(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, publishing_interval_elapsed: bool, resend_data: bool) -> (Option<NotificationMessage>, bool) {
+        let mut triggered_items: BTreeSet<u32> = BTreeSet::new();
         let mut notification_messages = Vec::new();
+
         for (_, monitored_item) in &mut self.monitored_items {
             // If this returns true then the monitored item wants to report its notification
-            let _ = monitored_item.tick(address_space, now, publishing_interval_elapsed, resend_data);
-            if publishing_interval_elapsed {
-                // Take some / all of the monitored item's pending notifications
-                if let Some(mut item_notification_messages) = monitored_item.all_notification_messages() {
-                    notification_messages.append(&mut item_notification_messages);
+            let monitoring_mode = monitored_item.monitoring_mode();
+            match monitored_item.tick(address_space, now, publishing_interval_elapsed, resend_data) {
+                TickResult::ReportValueChanged => {
+                    // If this monitored item has triggered items, then they need to be handled
+                    match monitoring_mode {
+                        MonitoringMode::Reporting => {
+                            // From triggering docs
+                            // If the monitoring mode of the triggering item is REPORTING, then it is reported when the
+                            // triggering item triggers the items to report.
+                            monitored_item.triggered_items().iter().for_each(|i| {
+                                triggered_items.insert(*i);
+                            })
+                        }
+                        _ => {
+                            // Sampling should have gone in the other branch. Disabled shouldn't do anything.
+                            panic!("How can there be changes to report when monitored item is in this monitoring mode {:?}", monitoring_mode);
+                        }
+                    }
+                    if publishing_interval_elapsed {
+                        // Take some / all of the monitored item's pending notifications
+                        if let Some(mut item_notification_messages) = monitored_item.all_notification_messages() {
+                            notification_messages.append(&mut item_notification_messages);
+                        }
+                    }
+                }
+                TickResult::ValueChanged => {
+                    // The monitored item doesn't have changes to report but its value did change so it
+                    // is still necessary to check its triggered items.
+                    match monitoring_mode {
+                        MonitoringMode::Sampling => {
+                            // If the monitoring mode of the triggering item is SAMPLING, then it is not reported when the
+                            // triggering item triggers the items to report.
+                            monitored_item.triggered_items().iter().for_each(|i| {
+                                triggered_items.insert(*i);
+                            })
+                        }
+                        _ => {
+                            // Reporting should have gone in the other branch. Disabled shouldn't do anything.
+                            panic!("How can there be a value change when the mode is not sampling?");
+                        }
+                    }
+                }
+                TickResult::NoChange => {
+                    // Ignore
                 }
             }
         }
+
+        // Are there any triggered items to force a change on?
+        triggered_items.iter().for_each(|i| {
+            if let Some(ref mut monitored_item) = self.monitored_items.get_mut(i) {
+                // Check the monitoring mode of the item to report
+                match monitored_item.monitoring_mode() {
+                    MonitoringMode::Sampling => {
+                        // If the monitoring mode of the item to report is SAMPLING, then it is reported when the
+                        // triggering item triggers the i tems to report.
+                        //
+                        // Call with the resend_data flag as true to force the monitored item to
+                        monitored_item.check_value(address_space, now, true);
+                        if let Some(mut item_notification_messages) = monitored_item.all_notification_messages() {
+                            notification_messages.append(&mut item_notification_messages);
+                        }
+                    }
+                    MonitoringMode::Reporting => {
+                        // If the monitoring mode of the item to report is REPORTING, this effectively causes the
+                        // triggering item to be ignored. All notifications of the items to report are sent after the
+                        // publishing interval expires.
+                        //
+                        // DO NOTHING
+                    }
+                    MonitoringMode::Disabled => {
+                        // DO NOTHING
+                    }
+                }
+            } else {
+                // It is possible that a monitored item contains a triggered id which has been deleted, so silently
+                // ignore that case.
+            }
+        });
 
         if !notification_messages.is_empty() {
             use std;
@@ -675,5 +753,36 @@ impl Subscription {
 
     pub(crate) fn set_diagnostics_on_drop(&mut self, diagnostics_on_drop: bool) {
         self.diagnostics_on_drop = diagnostics_on_drop;
+    }
+
+    fn validate_triggered_items(&self, monitored_item_id: u32, items: &[u32]) -> (Vec<StatusCode>, Vec<u32>) {
+        // Monitored items can only trigger on other items in the subscription that exist
+        let is_good_monitored_item = |i| { self.monitored_items.contains_key(i) && *i != monitored_item_id };
+        let is_good_monitored_item_result = |i| { if is_good_monitored_item(i) { StatusCode::Good } else { StatusCode::BadMonitoredItemIdInvalid } };
+
+        // Find monitored items that do or do not exist
+        let results: Vec<StatusCode> = items.iter().map(is_good_monitored_item_result).collect();
+        let items: Vec<u32> = items.iter().filter(|i| is_good_monitored_item(i)).map(|i| *i).collect();
+
+        (results, items)
+    }
+
+    /// Sets the triggering monitored items on a subscription. This function will validate that
+    /// the items to add / remove actually exist and will only pass through existing monitored items
+    /// onto the monitored item itself.
+    pub(crate) fn set_triggering(&mut self, monitored_item_id: u32, items_to_add: &[u32], items_to_remove: &[u32]) -> Result<(Vec<StatusCode>, Vec<StatusCode>), StatusCode> {
+        // Find monitored items that do or do not exist
+        let (add_results, items_to_add) = self.validate_triggered_items(monitored_item_id, items_to_add);
+        let (remove_results, items_to_remove) = self.validate_triggered_items(monitored_item_id, items_to_remove);
+
+        if let Some(ref mut monitored_item) = self.monitored_items.get_mut(&monitored_item_id) {
+            // Set the triggering monitored items
+            monitored_item.set_triggering(&items_to_add[..], &items_to_remove[..]);
+
+            Ok((add_results, remove_results))
+        } else {
+            // This monitored item is unrecognized
+            Err(StatusCode::BadMonitoredItemIdInvalid)
+        }
     }
 }

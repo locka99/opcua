@@ -178,13 +178,13 @@ fn monitored_item_data_change_filter() {
     assert_eq!(monitored_item.notification_queue().len(), 0);
 
     // Expect first call to always succeed
-    assert_eq!(monitored_item.tick(&address_space, &now, false, false), true);
+    assert_eq!(monitored_item.tick(&address_space, &now, false, false), TickResult::ReportValueChanged);
 
     // Expect one item in its queue
     assert_eq!(monitored_item.notification_queue().len(), 1);
 
     // Expect false on next tick, with the same value because no subscription timer has fired
-    assert_eq!(monitored_item.tick(&address_space, &now, false, false), false);
+    assert_eq!(monitored_item.tick(&address_space, &now, false, false), TickResult::NoChange);
     assert_eq!(monitored_item.notification_queue().len(), 1);
 
     // adjust variable value
@@ -197,9 +197,41 @@ fn monitored_item_data_change_filter() {
     }
 
     // Expect change but only when subscription timer elapsed
-    assert_eq!(monitored_item.tick(&address_space, &now, false, false), false);
-    assert_eq!(monitored_item.tick(&address_space, &now, true, false), true);
+    assert_eq!(monitored_item.tick(&address_space, &now, false, false), TickResult::NoChange);
+    assert_eq!(monitored_item.tick(&address_space, &now, true, false), TickResult::ReportValueChanged);
     assert_eq!(monitored_item.notification_queue().len(), 2);
+}
+
+#[test]
+fn monitored_item_triggers() {
+    // create an address space
+    let mut address_space = make_address_space();
+
+    // TODO create subscription
+
+    // TODO create 4 monitored items
+
+    // TODO set 3 monitored items to be reporting, sampling, disabled respectively
+
+    // TODO set 1 monitored item to trigger other 3 plus itself
+
+    // TODO expect all adds to succeed except the one to itself
+
+    // TODO do a tick on the monitored item, expect 1+1 other data change corresponding to sampling  triggered item
+
+    // TODO set monitoring mode of all 3 to reporting
+
+    // TODO do a tick on the monitored item, expect 0 other data changes
+
+    // TODO rever to 3 items to be reporting, sampling, disabled
+
+    // TODO change monitoring mode of triggering item to sampling
+
+    // TODO do a tick on the monitored item, expect only 1 other data change corresponding to sampling  triggered item
+
+    // TODO change monitoring mode of triggering item to disable
+
+    // TODO do a tick on the monitored item, expect 0 data changes
 }
 
 fn populate_monitored_item(discard_oldest: bool) -> MonitoredItem {

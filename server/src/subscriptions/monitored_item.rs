@@ -59,6 +59,16 @@ pub(crate) struct MonitoredItem {
     last_data_value: Option<DataValue>,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum TickResult {
+    /// The value changed and it should be reported
+    ReportValueChanged,
+    /// The value changed and it should not be reported (sampling)
+    ValueChanged,
+    /// The value did not change
+    NoChange,
+}
+
 impl MonitoredItem {
     pub fn new(monitored_item_id: u32, timestamps_to_return: TimestampsToReturn, request: &MonitoredItemCreateRequest) -> Result<MonitoredItem, StatusCode> {
         let filter = FilterType::from_filter(&request.requested_parameters.filter)?;
@@ -115,9 +125,17 @@ impl MonitoredItem {
 
     /// Adds or removes other monitored items which will be triggered when this monitored item changes
     pub fn set_triggering(&mut self, items_to_add: &[u32], items_to_remove: &[u32]) {
-        // Spec says to process items_to_remove first
+        // Spec says to process remove items before adding new ones.
         items_to_remove.iter().for_each(|i| { self.triggered_items.remove(i); });
         items_to_add.iter().for_each(|i| { self.triggered_items.insert(*i); });
+    }
+
+    pub fn triggered_items(&self) -> &BTreeSet<u32> {
+        &self.triggered_items
+    }
+
+    pub fn monitoring_mode(&self) -> MonitoringMode {
+        self.monitoring_mode
     }
 
     /// Called repeatedly on the monitored item.
@@ -126,10 +144,11 @@ impl MonitoredItem {
     /// the value is tested immediately. Otherwise, the monitored items sampling interval is enforced
     /// the subscriptions and controls the rate.
     ///
-    /// Function returns true if a notification message was created and should be reported.
-    pub fn tick(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, publishing_interval_elapsed: bool, resend_data: bool) -> bool {
+    /// Function returns a `TickResult` denoting if the value changed or not, and whether it should
+    /// be reported.
+    pub fn tick(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, publishing_interval_elapsed: bool, resend_data: bool) -> TickResult {
         if self.monitoring_mode == MonitoringMode::Disabled {
-            false
+            TickResult::NoChange
         } else {
             let check_value = if resend_data || self.last_data_value.is_none() {
                 // Always check on the first tick
@@ -148,14 +167,21 @@ impl MonitoredItem {
                 let elapsed = now.signed_duration_since(self.last_sample_time);
                 elapsed >= sampling_interval
             };
+
             // Test the value (or don't)
             if check_value {
                 // Indicate a change if reporting is enabled
-                let value_has_changed = self.check_value(address_space, now, resend_data) && self.monitoring_mode == MonitoringMode::Reporting;
-                // println!("Monitored item using its own interval changed = {}", value_has_changed);
-                value_has_changed
+                if self.check_value(address_space, now, resend_data) {
+                    if self.monitoring_mode == MonitoringMode::Reporting {
+                        TickResult::ReportValueChanged
+                    } else {
+                        TickResult::ValueChanged
+                    }
+                } else {
+                    TickResult::NoChange
+                }
             } else {
-                false
+                TickResult::NoChange
             }
         }
     }
@@ -165,7 +191,7 @@ impl MonitoredItem {
     /// check, the latest value and its timestamps will be stored in the monitored item.
     ///
     /// The function will return true if the value was changed, false otherwise.
-    fn check_value(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, resend_data: bool) -> bool {
+    pub fn check_value(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, resend_data: bool) -> bool {
         self.last_sample_time = *now;
         if let Some(node) = address_space.find_node(&self.item_to_monitor.node_id) {
             let node = node.as_node();

@@ -298,12 +298,13 @@ impl Session {
                         }).collect::<Vec<MonitoredItemCreateRequest>>();
                         let _ = self.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create);
 
-                        // Recreate any triggers for the monitored item
+                        // Recreate any triggers for the monitored item. This code assumes monitored item
+                        // ids are the same value as they were in the previous subscription.
                         subscription.monitored_items().iter().for_each(|(_, item)| {
                             let triggered_items = item.triggered_items();
                             if !triggered_items.is_empty() {
                                 let links_to_add = triggered_items.iter().map(|i| *i).collect::<Vec<u32>>();
-                                self.set_triggering(subscription_id, item.id(), &links_to_add[..], &[]);
+                                let _ = self.set_triggering(subscription_id, item.id(), &links_to_add[..], &[]);
                             }
                         });
                     } else {
@@ -1517,12 +1518,12 @@ impl Session {
     ///
     /// # Returns
     ///
-    /// * `Ok(StatusCode)` - Result for the SetTriggering call.
+    /// * `Ok((Option<Vec<StatusCode>>, Option<Vec<StatusCode>>))` - Individual result for each item added / removed for the SetTriggering call.
     /// * `Err(StatusCode)` - Status code reason for failure.
     ///
     /// [`SetTriggeringRequest`]: ./struct.SetTriggeringRequest.html
     ///
-    pub fn set_triggering(&mut self, subscription_id: u32, triggering_item_id: u32, links_to_add: &[u32], links_to_remove: &[u32]) -> Result<StatusCode, StatusCode> {
+    pub fn set_triggering(&mut self, subscription_id: u32, triggering_item_id: u32, links_to_add: &[u32], links_to_remove: &[u32]) -> Result<(Option<Vec<StatusCode>>, Option<Vec<StatusCode>>), StatusCode> {
         if links_to_add.is_empty() && links_to_remove.is_empty() {
             error!("set_triggering, called with nothing to add or remove");
             Err(StatusCode::BadNothingToDo)
@@ -1540,13 +1541,10 @@ impl Session {
             };
             let response = self.send_request(request)?;
             if let SupportedMessage::SetTriggeringResponse(response) = response {
-                // TODO we could look through every single add / remove and pick the worst result here
-
                 // Update client side state
                 let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                 subscription_state.set_triggering(subscription_id, triggering_item_id, links_to_add, links_to_remove);
-
-                Ok(StatusCode::Good)
+                Ok((response.add_results, response.remove_results))
             } else {
                 error!("set_triggering failed {:?}", response);
                 Err(crate::process_unexpected_response(response))

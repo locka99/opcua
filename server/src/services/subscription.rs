@@ -147,37 +147,6 @@ impl SubscriptionService {
         }
     }
 
-    /// Handles a SerPublishingModeRequest
-    pub fn set_publishing_mode(&self, session: &mut Session, request: &SetPublishingModeRequest) -> Result<SupportedMessage, StatusCode> {
-        if request.subscription_ids.is_none() {
-            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
-        } else {
-            let results = {
-                let publishing_enabled = request.publishing_enabled;
-                let subscription_ids = request.subscription_ids.as_ref().unwrap();
-                let mut results = Vec::with_capacity(subscription_ids.len());
-                let subscriptions = &mut session.subscriptions;
-                for subscription_id in subscription_ids {
-                    if let Some(subscription) = subscriptions.get_mut(*subscription_id) {
-                        subscription.set_publishing_enabled(publishing_enabled);
-                        subscription.reset_lifetime_counter();
-                        results.push(StatusCode::Good);
-                    } else {
-                        results.push(StatusCode::BadSubscriptionIdInvalid);
-                    }
-                }
-                Some(results)
-            };
-            let diagnostic_infos = None;
-            let response = SetPublishingModeResponse {
-                response_header: ResponseHeader::new_good(&request.request_header),
-                results,
-                diagnostic_infos,
-            };
-            Ok(response.into())
-        }
-    }
-
     /// Handles a PublishRequest. This is asynchronous, so the response will be sent later on.
     pub fn async_publish(&self, session: &mut Session, request_id: u32, address_space: &AddressSpace, request: &PublishRequest) -> Result<Option<SupportedMessage>, StatusCode> {
         trace!("--> Receive a PublishRequest {:?}", request);
