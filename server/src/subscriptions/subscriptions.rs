@@ -27,8 +27,6 @@ use crate::{
 /// notification is published, it is held in a retransmission queue until it is acknowledged by the
 /// client, or purged.
 pub(crate) struct Subscriptions {
-    /// Maximum number of subscriptions supported by server
-    max_subscriptions: usize,
     /// The publish request queue (requests by the client on the session)
     pub(crate) publish_request_queue: VecDeque<PublishRequestEntry>,
     /// The publish response queue arranged oldest to latest
@@ -48,7 +46,6 @@ impl Subscriptions {
     pub fn new(max_subscriptions: usize, publish_request_timeout: i64) -> Subscriptions {
         let max_publish_requests = if max_subscriptions > 0 { 2 * max_subscriptions } else { 100 };
         Subscriptions {
-            max_subscriptions,
             publish_request_queue: VecDeque::with_capacity(max_publish_requests),
             publish_response_queue: VecDeque::with_capacity(max_publish_requests),
             publish_request_timeout,
@@ -74,12 +71,6 @@ impl Subscriptions {
             publish_responses.append(&mut self.publish_response_queue);
             Some(publish_responses)
         }
-    }
-
-    /// Returns the maximum number of subscriptions supported
-    #[cfg(test)]
-    pub fn max_subscriptions(&self) -> usize {
-        self.max_subscriptions
     }
 
     /// Returns the number of maxmimum publish requests allowable for the current number of subscriptions
