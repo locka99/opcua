@@ -2,8 +2,10 @@ use chrono;
 
 use crate::prelude::*;
 use crate::subscriptions::monitored_item::*;
+use crate::services::subscription::SubscriptionService;
 
 use super::*;
+use crate::services::monitored_item::MonitoredItemService;
 
 fn test_var_node_id() -> NodeId {
     NodeId::new(1, 1)
@@ -11,7 +13,11 @@ fn test_var_node_id() -> NodeId {
 
 fn make_address_space() -> AddressSpace {
     let mut address_space = AddressSpace::new();
-    let _ = address_space.add_variable(Variable::new(&NodeId::new(1, 1), "test", "test", "", 0u32), &AddressSpace::objects_folder_id());
+    let _ = address_space.add_variable(Variable::new(&NodeId::new(1, 1), "test1", "test1", "", 0u32), &AddressSpace::objects_folder_id());
+    let _ = address_space.add_variable(Variable::new(&NodeId::new(1, 2), "test2", "test2", "", 0u32), &AddressSpace::objects_folder_id());
+    let _ = address_space.add_variable(Variable::new(&NodeId::new(1, 3), "test3", "test3", "", 0u32), &AddressSpace::objects_folder_id());
+    let _ = address_space.add_variable(Variable::new(&NodeId::new(1, 4), "test4", "test4", "", 0u32), &AddressSpace::objects_folder_id());
+    let _ = address_space.add_variable(Variable::new(&NodeId::new(1, 5), "test5", "test5 ", "", 0u32), &AddressSpace::objects_folder_id());
     address_space
 }
 
@@ -202,36 +208,88 @@ fn monitored_item_data_change_filter() {
     assert_eq!(monitored_item.notification_queue().len(), 2);
 }
 
+
+fn set_monitoring_mode(session: &mut Session, subscription_id: u32, monitored_item_id: u32, monitoring_mode: MonitoringMode, mis: &MonitoredItemService) {
+    let request = SetMonitoringModeRequest {
+        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+        subscription_id,
+        monitoring_mode,
+        monitored_item_ids: Some(vec![monitored_item_id]),
+    };
+    let response: SetMonitoringModeResponse = supported_message_as!(mis.set_monitoring_mode(session, &request).unwrap(), SetMonitoringModeResponse);
+    let results = response.results.unwrap();
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0], StatusCode::Good);
+}
+
+fn set_triggering(session: &mut Session, subscription_id: u32, monitored_item_id: u32, links_to_add: &[u32], links_to_remove: &[u32], mis: &MonitoredItemService) -> (Option<Vec<StatusCode>>, Option<Vec<StatusCode>>) {
+    let request = SetTriggeringRequest {
+        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+        subscription_id,
+        triggering_item_id: monitored_item_id,
+        links_to_add: if links_to_add.is_empty() { None } else { Some(links_to_add.to_vec()) },
+        links_to_remove: if links_to_remove.is_empty() { None } else { Some(links_to_remove.to_vec()) },
+    };
+    let response: SetTriggeringResponse = supported_message_as!(mis.set_triggering(session, &request).unwrap(), SetTriggeringResponse);
+    (response.add_results, response.remove_results)
+}
+
 #[test]
 fn monitored_item_triggers() {
-    // create an address space
-    let mut address_space = make_address_space();
+    do_subscription_service_test(|server_state, session, _, ss: SubscriptionService, mis: MonitoredItemService| {
+        // Create subscription
+        let subscription_id = {
+            let request = create_subscription_request(0, 0);
+            let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state, session, &request).unwrap(), CreateSubscriptionResponse);
+            response.subscription_id
+        };
 
-    // TODO create subscription
+        let max_monitored_items: usize = 4;
 
-    // TODO create 4 monitored items
+        // create 4 monitored items
+        let request = create_monitored_items_request(subscription_id, vec![
+            NodeId::new(1, 1),
+            NodeId::new(1, 2),
+            NodeId::new(1, 3),
+            NodeId::new(1, 4),
+        ]);
+        let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(session, &request).unwrap(), CreateMonitoredItemsResponse);
 
-    // TODO set 3 monitored items to be reporting, sampling, disabled respectively
+        // The first monitored item will be the triggering item, the other 3 will be triggered items
+        let monitored_item_ids: Vec<u32> = response.results.unwrap().iter().map(|mir| {
+            assert_eq!(mir.status_code, StatusCode::Good);
+            mir.monitored_item_id
+        }).collect();
+        assert_eq!(monitored_item_ids.len(), max_monitored_items);
 
-    // TODO set 1 monitored item to trigger other 3 plus itself
+        let triggered_items = &monitored_item_ids[1..];
 
-    // TODO expect all adds to succeed except the one to itself
+        // set 3 monitored items to be reporting, sampling, disabled respectively
+        set_monitoring_mode(session, subscription_id, triggered_items[0], MonitoringMode::Reporting, &mis);
+        set_monitoring_mode(session, subscription_id, triggered_items[1], MonitoringMode::Sampling, &mis);
+        set_monitoring_mode(session, subscription_id, triggered_items[2], MonitoringMode::Disabled, &mis);
 
-    // TODO do a tick on the monitored item, expect 1+1 other data change corresponding to sampling  triggered item
+        // set 1 monitored item to trigger other 3 plus itself
+        set_triggering(session, subscription_id, monitored_item_ids[0], &[monitored_item_ids[0], monitored_item_ids[1], monitored_item_ids[2], monitored_item_ids[3]], &[], &mis);
 
-    // TODO set monitoring mode of all 3 to reporting
+        // TODO expect all adds to succeed except the one to itself
 
-    // TODO do a tick on the monitored item, expect 0 other data changes
+        // TODO do a tick on the monitored item, expect 1+1 other data change corresponding to sampling  triggered item
 
-    // TODO rever to 3 items to be reporting, sampling, disabled
+        // TODO set monitoring mode of all 3 to reporting
 
-    // TODO change monitoring mode of triggering item to sampling
+        // TODO do a tick on the monitored item, expect 0 other data changes
 
-    // TODO do a tick on the monitored item, expect only 1 other data change corresponding to sampling  triggered item
+        // TODO revert to 3 items to be reporting, sampling, disabled
 
-    // TODO change monitoring mode of triggering item to disable
+        // TODO change monitoring mode of triggering item to sampling
 
-    // TODO do a tick on the monitored item, expect 0 data changes
+        // TODO do a tick on the monitored item, expect only 1 other data change corresponding to sampling  triggered item
+
+        // TODO change monitoring mode of triggering item to disable
+
+        // TODO do a tick on the monitored item, expect 0 data changes
+    });
 }
 
 fn populate_monitored_item(discard_oldest: bool) -> MonitoredItem {

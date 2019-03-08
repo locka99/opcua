@@ -109,6 +109,8 @@ impl SupportedMessage {
             SupportedMessage::ModifyMonitoredItemsResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::DeleteMonitoredItemsRequest(ref r) => r.request_header.request_handle,
             SupportedMessage::DeleteMonitoredItemsResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::SetMonitoringModeRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::SetMonitoringModeResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::SetTriggeringRequest(ref r) => r.request_header.request_handle,
             SupportedMessage::SetTriggeringResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::CreateSubscriptionRequest(ref r) => r.request_header.request_handle,
@@ -217,6 +219,12 @@ impl SupportedMessage {
             }
             ObjectId::DeleteMonitoredItemsResponse_Encoding_DefaultBinary => {
                 DeleteMonitoredItemsResponse::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::SetMonitoringModeRequest_Encoding_DefaultBinary => {
+                SetMonitoringModeRequest::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::SetMonitoringModeResponse_Encoding_DefaultBinary => {
+                SetMonitoringModeResponse::decode(stream, decoding_limits)?.into()
             }
             ObjectId::SetTriggeringRequest_Encoding_DefaultBinary => {
                 SetTriggeringRequest::decode(stream, decoding_limits)?.into()
@@ -339,6 +347,8 @@ supported_messages_enum![
     ModifyMonitoredItemsResponse,
     DeleteMonitoredItemsRequest,
     DeleteMonitoredItemsResponse,
+    SetMonitoringModeRequest,
+    SetMonitoringModeResponse,
     SetTriggeringRequest,
     SetTriggeringResponse,
     CreateSubscriptionRequest,

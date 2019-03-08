@@ -1,26 +1,25 @@
 # Changelog
 
-ASPIRATIONAL - a short list of things that would be nice to implement in the future
+Planned future work is listed at the bottom.
 
-  - Replace more OpenSSL with `ring` equivalent functions. Ring doesn't do X509 so code is still
-    dependent on OpenSSL until a drop-in replacement appears - need something which can generate, read and write X509
-    certs, private keys and their corresponding .der, .pem file formats.
-  - Tokio codec - use a codec and frame writer to write message chunks
-  - Tokio/Futures/`async`/`await` - Rust 2018 will gain new async functionality soon and at some point the code will have to update
-    to use it.
+## Known issues
 
-## 0.6 (work in progress)
+  - Integration tests are broken and need to be fixed
+  - Subscriptions / monitored items generates spurious errors on some clients
+
+## 0.6
   - Rust 2018. All `Cargo.toml` files now contain `edition = "2018"` and the code has been cleaned up to benefit from 
     some of the improvements in the language. e.g. many `extern crate` declarations have been removed. Your own code
     can be Rust 2015 but you must build with Rust 1.31 or later.
-  - Client API has been simplified for ad hoc connections and has more documentation.
-  - Client has code to reconnect and restore subscriptions after a disconnect from a server, i.e. attempt to reconnect 
-    and resume session first and if that fails manually reconstruct the session - subscriptions and monitored items.
+  - Client API has been simplified for ad hoc connections and now has more documentation.
+  - Client API will reconnect and restore subscriptions after a disconnect from a server. Reconnection is 
+    controlled by a session retry policy.
+  - TranslateBrowsePathsToNodeIds service has been fixed
+  - SetTriggering and SetMonitoringMode services have been added to the Monitored Item Service Set
+  - TransferSubscriptions service is implemented as a stub. Most clients will see the error response and failover
+    to manually reconstructing their subscription state.
   - New `web-client` code which demonstrates an OPCUA client that serves streaming data over a websocket. Reconnection
     policy allows number of tries and try interval to be configured.
-  - Fixes for TranslateBrowsePathsToNodeIds 
-  - (WIP) Session restore after disconnect in server. The server has to stash sessions that were abnormally disconnected
-    so the session state can be restored if a new connection provides the token.
   - `vendored-openssl` feature to support static linking to OpenSSL (see [setup](./docs/setup.md) documentation.
 
 ## 0.5
@@ -124,3 +123,24 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the fut
 ## 0.1 initial release 
   - Nano implementation
 
+
+# Future work
+
+## Short term
+  
+  - Session restore after disconnect in server. The server has to stash sessions that were 
+    abnormally disconnected so the session state can be restored if a new connection provides the token.
+  - X509 certs as user authentication tokens 
+  - Integration tests are broken and need to be fixed
+  - More control over limits on the server - number of subscriptions, monitored items, sessions
+  
+## Longer term
+  
+ASPIRATIONAL - a short list of things that would be nice to implement in the future
+
+  - Replace more OpenSSL with `ring` equivalent functions. Ring doesn't do X509 so code is still
+    dependent on OpenSSL until a drop-in replacement appears - need something which can generate, read and write X509
+    certs, private keys and their corresponding .der, .pem file formats.
+  - Tokio codec - use a codec and frame writer to write message chunks
+  - Tokio/Futures/`async`/`await` - Rust 2018 will gain new async functionality soon and at some point the code will have to update
+    to use it.

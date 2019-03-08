@@ -130,14 +130,6 @@ impl MonitoredItem {
         items_to_add.iter().for_each(|i| { self.triggered_items.insert(*i); });
     }
 
-    pub fn triggered_items(&self) -> &BTreeSet<u32> {
-        &self.triggered_items
-    }
-
-    pub fn monitoring_mode(&self) -> MonitoringMode {
-        self.monitoring_mode
-    }
-
     /// Called repeatedly on the monitored item.
     ///
     /// If the monitored item has a negative interval and subscription interval has elapsed,
@@ -372,6 +364,18 @@ impl MonitoredItem {
 
     pub fn sampling_interval(&self) -> Duration {
         self.sampling_interval
+    }
+
+    pub fn triggered_items(&self) -> &BTreeSet<u32> {
+        &self.triggered_items
+    }
+
+    pub fn set_monitoring_mode(&mut self, monitoring_mode: MonitoringMode) {
+        self.monitoring_mode = monitoring_mode;
+    }
+
+    pub fn monitoring_mode(&self) -> MonitoringMode {
+        self.monitoring_mode
     }
 
     pub fn queue_size(&self) -> usize {

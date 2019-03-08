@@ -182,9 +182,9 @@ impl MessageHandler {
                     self.monitored_item_service.modify_monitored_items(&mut session, &request)
                 })
             }
-            SupportedMessage::SetPublishingModeRequest(request) => {
+            SupportedMessage::SetMonitoringModeRequest(request) => {
                 validated_request!(self, &request, &mut session, {
-                    self.monitored_item_service.set_publishing_mode(&mut session, &request)
+                    self.monitored_item_service.set_monitoring_mode(&mut session, &request)
                 })
             }
             SupportedMessage::SetTriggeringRequest(request) => {
@@ -208,6 +208,11 @@ impl MessageHandler {
             SupportedMessage::ModifySubscriptionRequest(request) => {
                 validated_request!(self, &request, &mut session, {
                     self.subscription_service.modify_subscription(&mut server_state, &mut session, &request)
+                })
+            }
+            SupportedMessage::SetPublishingModeRequest(request) => {
+                validated_request!(self, &request, &mut session, {
+                    self.subscription_service.set_publishing_mode(&mut session, &request)
                 })
             }
             SupportedMessage::DeleteSubscriptionsRequest(request) => {

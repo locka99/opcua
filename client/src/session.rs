@@ -1506,6 +1506,45 @@ impl Session {
         }
     }
 
+    /// Sets the monitoring mode on one or more monitored items.
+    ///
+    /// # Arguments
+    ///
+    /// * `subscription_id` - the subscription identifier containing the monitored items to be modified.
+    /// * `monitoring_mode` - the monitored mode to apply to the monitored items
+    /// * `monitored_item_ids` - the monitored items to be modified
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Vec<StatusCode>)` - Individual result for each monitored item
+    /// * `Err(StatusCode)` - Status code reason for failure.
+    ///
+    /// [`SetMonitoringModeRequest`]: ./struct.SetMonitoringModeRequest.html
+    ///
+    pub fn set_monitoring_mode(&mut self, subscription_id: u32, monitoring_mode: MonitoringMode, monitored_item_ids: &[u32]) -> Result<Vec<StatusCode>, StatusCode> {
+        if monitored_item_ids.is_empty() {
+            error!("set_monitoring_mode, called with nothing to do");
+            Err(StatusCode::BadNothingToDo)
+        } else {
+            let request = {
+                let monitored_item_ids = Some(monitored_item_ids.to_vec());
+                SetMonitoringModeRequest {
+                    request_header: self.make_request_header(),
+                    subscription_id,
+                    monitoring_mode,
+                    monitored_item_ids,
+                }
+            };
+            let response = self.send_request(request)?;
+            if let SupportedMessage::SetMonitoringModeResponse(response) = response {
+                Ok(response.results.unwrap())
+            } else {
+                error!("set_monitoring_mode failed {:?}", response);
+                Err(crate::process_unexpected_response(response))
+            }
+        }
+    }
+
     /// Sets a monitored item so it becomes the trigger that causes other monitored items to send
     /// change events in the same update. Note that `items_to_remove` is applied before `items_to_add`.
     ///

@@ -61,34 +61,28 @@ impl MonitoredItemService {
         }
     }
 
-    /// Implementation of SetPublishingModeRequest service. See OPC Unified Architecture, Part 4 5.12.4
-    pub fn set_publishing_mode(&self, session: &mut Session, request: &SetPublishingModeRequest) -> Result<SupportedMessage, StatusCode> {
-        if request.subscription_ids.is_none() {
+    /// Implementation of SetMonitoringMode service. See OPC Unified Architecture, Part 4 5.12.4
+    pub fn set_monitoring_mode(&self, session: &mut Session, request: &SetMonitoringModeRequest) -> Result<SupportedMessage, StatusCode> {
+        if request.monitored_item_ids.is_none() {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else {
-            let results = {
-                let publishing_enabled = request.publishing_enabled;
-                let subscription_ids = request.subscription_ids.as_ref().unwrap();
-                let mut results = Vec::with_capacity(subscription_ids.len());
-                let subscriptions = &mut session.subscriptions;
-                for subscription_id in subscription_ids {
-                    if let Some(subscription) = subscriptions.get_mut(*subscription_id) {
-                        subscription.set_publishing_enabled(publishing_enabled);
-                        subscription.reset_lifetime_counter();
-                        results.push(StatusCode::Good);
-                    } else {
-                        results.push(StatusCode::BadSubscriptionIdInvalid);
-                    }
-                }
-                Some(results)
-            };
-            let diagnostic_infos = None;
-            let response = SetPublishingModeResponse {
-                response_header: ResponseHeader::new_good(&request.request_header),
-                results,
-                diagnostic_infos,
-            };
-            Ok(response.into())
+            let subscription_id = request.subscription_id;
+            if let Some(subscription) = session.subscriptions.get_mut(subscription_id) {
+                let monitoring_mode = request.monitoring_mode;
+                let monitored_item_ids = request.monitored_item_ids.as_ref().unwrap();
+                let results = monitored_item_ids.iter().map(|i| {
+                    subscription.set_monitoring_mode(*i, monitoring_mode)
+                }).collect();
+
+                let response = SetMonitoringModeResponse {
+                    response_header: ResponseHeader::new_good(&request.request_header),
+                    results: Some(results),
+                    diagnostic_infos: None,
+                };
+                Ok(response.into())
+            } else {
+                Ok(self.service_fault(&request.request_header, StatusCode::BadSubscriptionIdInvalid))
+            }
         }
     }
 

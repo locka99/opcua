@@ -5,68 +5,12 @@ use chrono::Utc;
 use crate::{
     prelude::*,
     state::ServerState,
-    address_space::AddressSpace,
     services::subscription::SubscriptionService,
     services::monitored_item::MonitoredItemService,
     subscriptions::subscription::*,
 };
 
 use super::*;
-
-/// A helper that sets up a subscription service test
-fn do_service_test<T>(f: T)
-    where T: FnOnce(&mut ServerState, &mut Session, &AddressSpace, SubscriptionService, MonitoredItemService)
-{
-    let st = ServiceTest::new();
-    let mut server_state = trace_write_lock_unwrap!(st.server_state);
-    let mut session = trace_write_lock_unwrap!(st.session);
-
-    {
-        let mut address_space = trace_write_lock_unwrap!(st.address_space);
-        add_many_vars_to_address_space(&mut address_space, 100);
-    }
-
-    let address_space = trace_read_lock_unwrap!(st.address_space);
-    f(&mut server_state, &mut session, &address_space, SubscriptionService::new(), MonitoredItemService::new());
-}
-
-fn create_subscription_request(max_keep_alive_count: u32, lifetime_count: u32) -> CreateSubscriptionRequest {
-    CreateSubscriptionRequest {
-        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
-        requested_publishing_interval: 100f64,
-        requested_lifetime_count: lifetime_count,
-        requested_max_keep_alive_count: max_keep_alive_count,
-        max_notifications_per_publish: 5,
-        publishing_enabled: true,
-        priority: 0,
-    }
-}
-
-fn create_monitored_items_request<T>(subscription_id: u32, mut node_id: Vec<T>) -> CreateMonitoredItemsRequest
-    where T: Into<NodeId> {
-    let items_to_create = Some(node_id.drain(..)
-        .map(|i| {
-            let node_id: NodeId = i.into();
-            MonitoredItemCreateRequest {
-                item_to_monitor: node_id.into(),
-                monitoring_mode: MonitoringMode::Reporting,
-                requested_parameters: MonitoringParameters {
-                    client_handle: 1,
-                    sampling_interval: 0.1,
-                    filter: ExtensionObject::null(),
-                    queue_size: 1,
-                    discard_oldest: true,
-                },
-            }
-        })
-        .collect::<Vec<_>>());
-    CreateMonitoredItemsRequest {
-        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
-        subscription_id,
-        timestamps_to_return: TimestampsToReturn::Both,
-        items_to_create,
-    }
-}
 
 fn create_subscription(server_state: &mut ServerState, session: &mut Session, ss: &SubscriptionService) -> u32 {
     let request = create_subscription_request(0, 0);
@@ -93,7 +37,7 @@ fn create_modify_destroy_subscription() {
 /// Creates a subscription with the specified keep alive and lifetime values and compares
 /// the revised values to the expected values.
 fn keepalive_test(keep_alive: u32, lifetime: u32, expected_keep_alive: u32, expected_lifetime: u32) {
-    do_service_test(|server_state, session, _, ss, _| {
+    do_subscription_service_test(|server_state, session, _, ss, _| {
         // Create subscription
         let request = create_subscription_request(keep_alive, lifetime);
         let response: CreateSubscriptionResponse = supported_message_as!(ss.create_subscription(server_state, session, &request).unwrap(), CreateSubscriptionResponse);
@@ -128,7 +72,7 @@ fn test_revised_keep_alive_lifetime_counts() {
 
 #[test]
 fn publish_with_no_subscriptions() {
-    do_service_test(|_, session, address_space, ss, _| {
+    do_subscription_service_test(|_, session, address_space, ss, _| {
         let request = PublishRequest {
             request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
             subscription_acknowledgements: None, // Option<Vec<SubscriptionAcknowledgement>>,
@@ -143,7 +87,7 @@ fn publish_with_no_subscriptions() {
 
 #[test]
 fn publish_response_subscription() {
-    do_service_test(|server_state, session, address_space, ss, mis| {
+    do_subscription_service_test(|server_state, session, address_space, ss, mis| {
         // Create subscription
         let subscription_id = create_subscription(server_state, session, &ss);
 
@@ -218,7 +162,7 @@ fn publish_response_subscription() {
 fn resend_data() {
     // The call to ResendData is not via the subscription service, but the flag that it sets
     // should trigger a full response for the subscription on the next publish request
-    do_service_test(|server_state, session, address_space, ss, mis| {
+    do_subscription_service_test(|server_state, session, address_space, ss, mis| {
         // Create subscription
         let subscription_id = create_subscription(server_state, session, &ss);
 
@@ -298,7 +242,7 @@ fn resend_data() {
 
 #[test]
 fn publish_keep_alive() {
-    do_service_test(|server_state, session, address_space, ss, mis| {
+    do_subscription_service_test(|server_state, session, address_space, ss, mis| {
         // Create subscription
         let subscription_id = create_subscription(server_state, session, &ss);
 
@@ -379,7 +323,7 @@ fn acknowledge_unknown_sequence_nr() {
 
 #[test]
 fn republish() {
-    do_service_test(|server_state, session, _, ss, _| {
+    do_subscription_service_test(|server_state, session, _, ss, _| {
         // Create subscription
         let subscription_id = create_subscription(server_state, session, &ss);
 

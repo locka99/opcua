@@ -28,7 +28,7 @@ The following services are supported:
   * CreateSession
   * ActivateSession
   * CloseSession
-  * Cancel (stub)
+  * Cancel - stub implementation
 
 * View service set
   * Browse
@@ -38,8 +38,9 @@ The following services are supported:
 * MonitoredItem service set
   * CreateMonitoredItems - Data change filter including dead band filtering. 
   * ModifyMonitoredItems
-  * DeleteMonitoredItems
   * SetMonitoringMode
+  * SetTriggering
+  * DeleteMonitoredItems
 
 * Subscription service set
   * CreateSubscription

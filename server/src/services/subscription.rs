@@ -91,6 +91,37 @@ impl SubscriptionService {
         Ok(response.into())
     }
 
+    /// Implementation of SetPublishingModeRequest service. See OPC Unified Architecture, Part 4 5.13.4
+    pub fn set_publishing_mode(&self, session: &mut Session, request: &SetPublishingModeRequest) -> Result<SupportedMessage, StatusCode> {
+        if request.subscription_ids.is_none() {
+            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+        } else {
+            let results = {
+                let publishing_enabled = request.publishing_enabled;
+                let subscription_ids = request.subscription_ids.as_ref().unwrap();
+                let mut results = Vec::with_capacity(subscription_ids.len());
+                let subscriptions = &mut session.subscriptions;
+                for subscription_id in subscription_ids {
+                    if let Some(subscription) = subscriptions.get_mut(*subscription_id) {
+                        subscription.set_publishing_enabled(publishing_enabled);
+                        subscription.reset_lifetime_counter();
+                        results.push(StatusCode::Good);
+                    } else {
+                        results.push(StatusCode::BadSubscriptionIdInvalid);
+                    }
+                }
+                Some(results)
+            };
+            let diagnostic_infos = None;
+            let response = SetPublishingModeResponse {
+                response_header: ResponseHeader::new_good(&request.request_header),
+                results,
+                diagnostic_infos,
+            };
+            Ok(response.into())
+        }
+    }
+
     /// Handles a DeleteSubscriptionsRequest
     pub fn delete_subscriptions(&self, session: &mut Session, request: &DeleteSubscriptionsRequest) -> Result<SupportedMessage, StatusCode> {
         if request.subscription_ids.is_none() {

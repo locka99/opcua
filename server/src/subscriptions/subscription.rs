@@ -250,6 +250,16 @@ impl Subscription {
         }).collect()
     }
 
+    /// Sets the monitoring mode on one monitored item
+    pub fn set_monitoring_mode(&mut self, monitored_item_id: u32, monitoring_mode: MonitoringMode) -> StatusCode {
+        if let Some(monitored_item) = self.monitored_items.get_mut(&monitored_item_id) {
+            monitored_item.set_monitoring_mode(monitoring_mode);
+            StatusCode::Good
+        } else {
+            StatusCode::BadMonitoredItemIdInvalid
+        }
+    }
+
     /// Delete the specified monitored items (by item id), returning a status code for each
     pub fn delete_monitored_items(&mut self, items_to_delete: &[u32]) -> Vec<StatusCode> {
         self.reset_lifetime_counter();
