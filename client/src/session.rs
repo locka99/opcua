@@ -364,8 +364,9 @@ impl Session {
         }
     }
 
-    /// Connects to the server (if possible) using the configured session arguments. If there
-    /// is a failure, it will be communicated by the status code in the result.
+    /// Connects to the server using the configured session arguments. No attempt is made to retry
+    /// the connection if the attempt fails. If there is a failure, it will be communicated by the
+    /// status code in the result.
     pub fn connect_no_retry(&mut self) -> Result<(), StatusCode> {
         let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
         info!("Connect");
@@ -1463,7 +1464,7 @@ impl Session {
     /// # Arguments
     ///
     /// * `subscription_id` - The Server-assigned identifier for the Subscription that will report Notifications for this MonitoredItem.
-    /// * `items_to_delete` - List of Server-assigned ids for the MonitoredItems to be deleted..
+    /// * `items_to_delete` - List of Server-assigned ids for the MonitoredItems to be deleted.
     ///
     /// # Returns
     ///
@@ -1506,7 +1507,8 @@ impl Session {
         }
     }
 
-    /// Sets the monitoring mode on one or more monitored items.
+    /// Sets the monitoring mode on one or more monitored items by sending a [`SetMonitoringModeRequest`]
+    /// to the server.
     ///
     /// # Arguments
     ///
@@ -1516,7 +1518,7 @@ impl Session {
     ///
     /// # Returns
     ///
-    /// * `Ok(Vec<StatusCode>)` - Individual result for each monitored item
+    /// * `Ok(Vec<StatusCode>)` - Individual result for each monitored item.
     /// * `Err(StatusCode)` - Status code reason for failure.
     ///
     /// [`SetMonitoringModeRequest`]: ./struct.SetMonitoringModeRequest.html
@@ -1546,14 +1548,15 @@ impl Session {
     }
 
     /// Sets a monitored item so it becomes the trigger that causes other monitored items to send
-    /// change events in the same update. Note that `items_to_remove` is applied before `items_to_add`.
+    /// change events in the same update. Sends a [`SetTriggeringRequest`] to the server.
+    /// Note that `items_to_remove` is applied before `items_to_add`.
     ///
     /// # Arguments
     ///
     /// * `subscription_id` - the subscription identifier containing the monitored item to be used as the trigger.
-    /// * `monitored_item_id` - the monitored item identifier
-    /// * `links_to_add` - zero or more items to be added to the monitored item's trigger list
-    /// * `items_to_remove` - zero or more items to be removed from the monitored item's trigger list
+    /// * `monitored_item_id` - the monitored item that is the trigger.
+    /// * `links_to_add` - zero or more items to be added to the monitored item's triggering list.
+    /// * `items_to_remove` - zero or more items to be removed from the monitored item's triggering list.
     ///
     /// # Returns
     ///
@@ -1599,7 +1602,7 @@ impl Session {
     /// * `method` - The method to call. Note this function takes anything that can be turned into
     ///   a [`CallMethodRequest`] which includes a (`NodeId`, `NodeId`, `Option<Vec<Variant>>`)
     ///   which refers to the object id, method id, and input arguments respectively.
-    /// * `items_to_delete` - List of Server-assigned ids for the MonitoredItems to be deleted..
+    /// * `items_to_delete` - List of Server-assigned ids for the MonitoredItems to be deleted.
     ///
     /// # Returns
     ///

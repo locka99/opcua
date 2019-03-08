@@ -2,7 +2,9 @@
 //! authenticate itself, send messages, receive responses, get values, browse the address space and
 //! provide callbacks for things to be propagated to the client.
 //!
-//! Clients start off by creating a [`ClientBuilder`] and constructing a [`Client`] from that.
+//! Clients start off by creating a [`ClientBuilder`] and constructing a [`Client`]. From the client
+//! they can connect to a server to create a [`Session`] and call functions that allow interactions with the server
+//! via the session.
 //!
 //! It is also possible to create a `Client` from a [`ClientConfig`] that can be defined on disk, or
 //! in code.
