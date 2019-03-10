@@ -47,6 +47,55 @@ fn make_create_request(sampling_interval: Duration, queue_size: u32) -> Monitore
     }
 }
 
+fn set_monitoring_mode(session: &mut Session, subscription_id: u32, monitored_item_id: u32, monitoring_mode: MonitoringMode, mis: &MonitoredItemService) {
+    let request = SetMonitoringModeRequest {
+        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+        subscription_id,
+        monitoring_mode,
+        monitored_item_ids: Some(vec![monitored_item_id]),
+    };
+    let response: SetMonitoringModeResponse = supported_message_as!(mis.set_monitoring_mode(session, &request).unwrap(), SetMonitoringModeResponse);
+    let results = response.results.unwrap();
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0], StatusCode::Good);
+}
+
+fn set_triggering(session: &mut Session, subscription_id: u32, monitored_item_id: u32, links_to_add: &[u32], links_to_remove: &[u32], mis: &MonitoredItemService) -> (Option<Vec<StatusCode>>, Option<Vec<StatusCode>>) {
+    let request = SetTriggeringRequest {
+        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+        subscription_id,
+        triggering_item_id: monitored_item_id,
+        links_to_add: if links_to_add.is_empty() { None } else { Some(links_to_add.to_vec()) },
+        links_to_remove: if links_to_remove.is_empty() { None } else { Some(links_to_remove.to_vec()) },
+    };
+    let response: SetTriggeringResponse = supported_message_as!(mis.set_triggering(session, &request).unwrap(), SetTriggeringResponse);
+    (response.add_results, response.remove_results)
+}
+
+fn populate_monitored_item(discard_oldest: bool) -> MonitoredItem {
+    let client_handle = 999;
+    let mut monitored_item = MonitoredItem::new(1, TimestampsToReturn::Both, &make_create_request(-1f64, 5)).unwrap();
+    monitored_item.set_discard_oldest(discard_oldest);
+    for i in 0..5 {
+        monitored_item.enqueue_notification_message(MonitoredItemNotification {
+            client_handle,
+            value: DataValue::new(i as i32),
+        });
+        assert!(!monitored_item.queue_overflow());
+    }
+
+    monitored_item.enqueue_notification_message(MonitoredItemNotification {
+        client_handle,
+        value: DataValue::new(10 as i32),
+    });
+    assert!(monitored_item.queue_overflow());
+    monitored_item
+}
+
+fn assert_first_notification_is_i32(monitored_item: &mut MonitoredItem, value: i32) {
+    assert_eq!(monitored_item.oldest_notification_message().unwrap().value.value.unwrap(), Variant::Int32(value));
+}
+
 #[test]
 fn data_change_filter_test() {
     let mut filter = DataChangeFilter {
@@ -208,32 +257,6 @@ fn monitored_item_data_change_filter() {
     assert_eq!(monitored_item.notification_queue().len(), 2);
 }
 
-
-fn set_monitoring_mode(session: &mut Session, subscription_id: u32, monitored_item_id: u32, monitoring_mode: MonitoringMode, mis: &MonitoredItemService) {
-    let request = SetMonitoringModeRequest {
-        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
-        subscription_id,
-        monitoring_mode,
-        monitored_item_ids: Some(vec![monitored_item_id]),
-    };
-    let response: SetMonitoringModeResponse = supported_message_as!(mis.set_monitoring_mode(session, &request).unwrap(), SetMonitoringModeResponse);
-    let results = response.results.unwrap();
-    assert_eq!(results.len(), 1);
-    assert_eq!(results[0], StatusCode::Good);
-}
-
-fn set_triggering(session: &mut Session, subscription_id: u32, monitored_item_id: u32, links_to_add: &[u32], links_to_remove: &[u32], mis: &MonitoredItemService) -> (Option<Vec<StatusCode>>, Option<Vec<StatusCode>>) {
-    let request = SetTriggeringRequest {
-        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
-        subscription_id,
-        triggering_item_id: monitored_item_id,
-        links_to_add: if links_to_add.is_empty() { None } else { Some(links_to_add.to_vec()) },
-        links_to_remove: if links_to_remove.is_empty() { None } else { Some(links_to_remove.to_vec()) },
-    };
-    let response: SetTriggeringResponse = supported_message_as!(mis.set_triggering(session, &request).unwrap(), SetTriggeringResponse);
-    (response.add_results, response.remove_results)
-}
-
 #[test]
 fn monitored_item_triggers() {
     do_subscription_service_test(|server_state, session, _, ss: SubscriptionService, mis: MonitoredItemService| {
@@ -262,58 +285,49 @@ fn monitored_item_triggers() {
         }).collect();
         assert_eq!(monitored_item_ids.len(), max_monitored_items);
 
-        let triggered_items = &monitored_item_ids[1..];
+        let triggering_item_id = monitored_item_ids[0];
+        let triggered_item_ids = &monitored_item_ids[1..];
 
         // set 3 monitored items to be reporting, sampling, disabled respectively
-        set_monitoring_mode(session, subscription_id, triggered_items[0], MonitoringMode::Reporting, &mis);
-        set_monitoring_mode(session, subscription_id, triggered_items[1], MonitoringMode::Sampling, &mis);
-        set_monitoring_mode(session, subscription_id, triggered_items[2], MonitoringMode::Disabled, &mis);
+        set_monitoring_mode(session, subscription_id, triggered_item_ids[0], MonitoringMode::Reporting, &mis);
+        set_monitoring_mode(session, subscription_id, triggered_item_ids[1], MonitoringMode::Sampling, &mis);
+        set_monitoring_mode(session, subscription_id, triggered_item_ids[2], MonitoringMode::Disabled, &mis);
 
         // set 1 monitored item to trigger other 3 plus itself
-        set_triggering(session, subscription_id, monitored_item_ids[0], &[monitored_item_ids[0], monitored_item_ids[1], monitored_item_ids[2], monitored_item_ids[3]], &[], &mis);
+        let (add_results, remove_results) = set_triggering(session, subscription_id, monitored_item_ids[0], &[monitored_item_ids[0], monitored_item_ids[1], monitored_item_ids[2], monitored_item_ids[3]], &[], &mis);
 
-        // TODO expect all adds to succeed except the one to itself
+        // expect all adds to succeed except the one to itself
+        assert!(remove_results.is_none());
+        let add_results = add_results.unwrap();
+        assert_eq!(add_results[0], StatusCode::BadMonitoredItemIdInvalid);
+        assert_eq!(add_results[1], StatusCode::Good);
+        assert_eq!(add_results[2], StatusCode::Good);
+        assert_eq!(add_results[3], StatusCode::Good);
 
-        // TODO do a tick on the monitored item, expect 1+1 other data change corresponding to sampling  triggered item
+        // TODO do a publish on the monitored item, expect 1+1 other data change corresponding to sampling  triggered item
 
-        // TODO set monitoring mode of all 3 to reporting
+        // set monitoring mode of all 3 to reporting
+        set_monitoring_mode(session, subscription_id, triggered_item_ids[0], MonitoringMode::Reporting, &mis);
+        set_monitoring_mode(session, subscription_id, triggered_item_ids[1], MonitoringMode::Reporting, &mis);
+        set_monitoring_mode(session, subscription_id, triggered_item_ids[2], MonitoringMode::Reporting, &mis);
 
-        // TODO do a tick on the monitored item, expect 0 other data changes
+        // TODO do a publish on the monitored item, expect 0 other data changes
 
-        // TODO revert to 3 items to be reporting, sampling, disabled
+        // revert to 3 items to be reporting, sampling, disabled
+        set_monitoring_mode(session, subscription_id, triggered_item_ids[0], MonitoringMode::Reporting, &mis);
+        set_monitoring_mode(session, subscription_id, triggered_item_ids[1], MonitoringMode::Sampling, &mis);
+        set_monitoring_mode(session, subscription_id, triggered_item_ids[2], MonitoringMode::Disabled, &mis);
 
-        // TODO change monitoring mode of triggering item to sampling
+        // change monitoring mode of triggering item to sampling
+        set_monitoring_mode(session, subscription_id, triggering_item_id, MonitoringMode::Sampling, &mis);
 
-        // TODO do a tick on the monitored item, expect only 1 other data change corresponding to sampling  triggered item
+        // TODO do a publish on the monitored item, expect only 1 other data change corresponding to sampling  triggered item
 
-        // TODO change monitoring mode of triggering item to disable
+        // change monitoring mode of triggering item to disable
+        set_monitoring_mode(session, subscription_id, triggering_item_id, MonitoringMode::Disabled, &mis);
 
-        // TODO do a tick on the monitored item, expect 0 data changes
+        // TODO do a publish on the monitored item, expect 0 data changes
     });
-}
-
-fn populate_monitored_item(discard_oldest: bool) -> MonitoredItem {
-    let client_handle = 999;
-    let mut monitored_item = MonitoredItem::new(1, TimestampsToReturn::Both, &make_create_request(-1f64, 5)).unwrap();
-    monitored_item.set_discard_oldest(discard_oldest);
-    for i in 0..5 {
-        monitored_item.enqueue_notification_message(MonitoredItemNotification {
-            client_handle,
-            value: DataValue::new(i as i32),
-        });
-        assert!(!monitored_item.queue_overflow());
-    }
-
-    monitored_item.enqueue_notification_message(MonitoredItemNotification {
-        client_handle,
-        value: DataValue::new(10 as i32),
-    });
-    assert!(monitored_item.queue_overflow());
-    monitored_item
-}
-
-fn assert_first_notification_is_i32(monitored_item: &mut MonitoredItem, value: i32) {
-    assert_eq!(monitored_item.oldest_notification_message().unwrap().value.value.unwrap(), Variant::Int32(value));
 }
 
 #[test]
