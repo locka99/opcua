@@ -425,15 +425,15 @@ impl CertificateStore {
         use std;
         if path.exists() {
             if !path.is_dir() {
-                return Err(format!("{} is not a directory ", path.display()));
+                Err(format!("{} is not a directory ", path.display()))
+            } else {
+                Ok(())
             }
         } else {
-            let result = std::fs::create_dir_all(path);
-            if result.is_err() {
-                return Err(format!("Cannot make directories for {}", path.display()));
-            }
+            std::fs::create_dir_all(path).map_err(|_| {
+                format!("Cannot make directories for {}", path.display())
+            })
         }
-        Ok(())
     }
 
     /// Get path to application instance certificate
