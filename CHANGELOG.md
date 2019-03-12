@@ -130,7 +130,8 @@ Planned future work is listed at the bottom.
   
   - Session restore after disconnect in server. The server has to stash sessions that were 
     abnormally disconnected so the session state can be restored if a new connection provides the token.
-  - X509 certs as user authentication tokens 
+  - UserNameIdentityToken wit encrypted password support. Plaintext password is already supported
+  - X509IdentityToken support 
   - Integration tests are broken and need to be fixed
   - More control over limits on the server - number of subscriptions, monitored items, sessions
   
@@ -138,6 +139,7 @@ Planned future work is listed at the bottom.
   
 ASPIRATIONAL - a short list of things that would be nice to implement in the future
 
+  - User-level permission model, i.e. ability to limit access to address space based on identity
   - Replace more OpenSSL with `ring` equivalent functions. Ring doesn't do X509 so code is still
     dependent on OpenSSL until a drop-in replacement appears - need something which can generate, read and write X509
     certs, private keys and their corresponding .der, .pem file formats.
