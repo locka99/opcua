@@ -72,14 +72,14 @@ fn test_revised_keep_alive_lifetime_counts() {
 
 #[test]
 fn publish_with_no_subscriptions() {
-    do_subscription_service_test(|_, session, address_space, ss, _| {
+    do_subscription_service_test(|_, session, _, ss, _| {
         let request = PublishRequest {
             request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
             subscription_acknowledgements: None, // Option<Vec<SubscriptionAcknowledgement>>,
         };
         // Publish and expect a service fault BadNoSubscription
         let request_id = 1001;
-        let response = ss.async_publish(session, request_id, &address_space, &request).unwrap().unwrap();
+        let response = ss.async_publish(session, request_id, &request).unwrap().unwrap();
         let response: ServiceFault = supported_message_as!(response, ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadNoSubscription);
     })
@@ -107,7 +107,7 @@ fn publish_response_subscription() {
             debug!("PublishRequest {:#?}", request);
 
             // Don't expect a response right away
-            let response = ss.async_publish(session, request_id, &address_space, &request).unwrap();
+            let response = ss.async_publish(session, request_id, &request).unwrap();
             assert!(response.is_none());
 
             assert!(!session.subscriptions.publish_request_queue.is_empty());
@@ -178,7 +178,7 @@ fn resend_data() {
             debug!("PublishRequest {:#?}", request);
 
             // Don't expect a response right away
-            let _response = ss.async_publish(session, 1001, &address_space, &request).unwrap();
+            let _response = ss.async_publish(session, 1001, &request).unwrap();
 
             // Tick subscriptions to trigger a change
             let now = Utc::now().add(chrono::Duration::seconds(2));
@@ -210,7 +210,7 @@ fn resend_data() {
             debug!("PublishRequest {:#?}", request);
 
             // Don't expect a response right away
-            let _response = ss.async_publish(session, 1002, &address_space, &request).unwrap();
+            let _response = ss.async_publish(session, 1002, &request).unwrap();
 
             // Tick subscriptions to trigger a change
             let now = Utc::now().add(chrono::Duration::seconds(2));
@@ -275,7 +275,7 @@ fn publish_keep_alive() {
             debug!("PublishRequest {:#?}", request);
 
             // Don't expect a response right away
-            let response = ss.async_publish(session, request_id, &address_space, &request).unwrap();
+            let response = ss.async_publish(session, request_id, &request).unwrap();
             assert!(response.is_none());
 
             assert!(!session.subscriptions.publish_request_queue.is_empty());

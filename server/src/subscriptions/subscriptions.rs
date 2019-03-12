@@ -83,7 +83,7 @@ impl Subscriptions {
     ///
     /// If the queue is full this call will pop the oldest and generate a service fault
     /// for that before pushing the new one.
-    pub fn enqueue_publish_request(&mut self, _: &AddressSpace, request_id: u32, request: PublishRequest) -> Result<(), StatusCode> {
+    pub fn enqueue_publish_request(&mut self, request_id: u32, request: PublishRequest) -> Result<(), StatusCode> {
         // Check if we have too many requests already
         let max_publish_requests = self.max_publish_requests();
         if self.publish_request_queue.len() >= max_publish_requests {

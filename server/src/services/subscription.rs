@@ -9,7 +9,6 @@ use crate::{
     state::ServerState,
     session::Session,
     services::Service,
-    address_space::AddressSpace,
 };
 
 /// The subscription service. Allows the client to create, modify and delete subscriptions of monitored items
@@ -179,13 +178,13 @@ impl SubscriptionService {
     }
 
     /// Handles a PublishRequest. This is asynchronous, so the response will be sent later on.
-    pub fn async_publish(&self, session: &mut Session, request_id: u32, address_space: &AddressSpace, request: &PublishRequest) -> Result<Option<SupportedMessage>, StatusCode> {
+    pub fn async_publish(&self, session: &mut Session, request_id: u32, request: &PublishRequest) -> Result<Option<SupportedMessage>, StatusCode> {
         trace!("--> Receive a PublishRequest {:?}", request);
         if session.subscriptions.is_empty() {
             Ok(Some(self.service_fault(&request.request_header, StatusCode::BadNoSubscription)))
         } else {
             let request_header = request.request_header.clone();
-            let result = session.enqueue_publish_request(address_space, request_id, request.clone());
+            let result = session.enqueue_publish_request(request_id, request.clone());
             if let Err(error) = result {
                 Ok(Some(self.service_fault(&request_header, error)))
             } else {
