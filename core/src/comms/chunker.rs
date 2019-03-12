@@ -3,8 +3,13 @@
 use std;
 use std::io::Cursor;
 
-use opcua_types::*;
-use opcua_types::status_code::StatusCode;
+use opcua_types::{
+    encoding::BinaryEncoder,
+    node_id::NodeId,
+    node_ids::ObjectId,
+    status_code::StatusCode,
+    supported_message::SupportedMessage,
+};
 
 use crate::{
     comms::{
@@ -174,47 +179,51 @@ impl Chunker {
 
         // Read node id from stream
         let node_id = NodeId::decode(&mut data, &decoding_limits)?;
-        let object_id = {
-            let valid_node_id = if node_id.namespace != 0 || !node_id.is_numeric() {
-                // Must be ns 0 and numeric
-                error!("Expecting chunk to contain a OPC UA request or response");
-                false
-            } else if let Some(expected_node_id) = expected_node_id {
-                let matches_expected = expected_node_id == node_id;
-                if !matches_expected {
-                    error!("Chunk node id {:?} does not match expected {:?}", node_id, expected_node_id);
-                }
-                matches_expected
-            } else {
-                true
-            };
-            if !valid_node_id {
-                error!("The node id read from the stream was not accepted in this context {:?}", node_id);
-                return Err(StatusCode::BadUnexpectedError);
-            }
-            let object_id = node_id.as_object_id();
-            if object_id.is_err() {
-                error!("The node {:?} was not an object id", node_id);
-                return Err(StatusCode::BadUnexpectedError);
-            }
-            let object_id = object_id.unwrap();
-            trace!("Decoded node id / object id of {:?}", object_id);
-            object_id
-        };
+        let object_id = Self::object_id_from_node_id(node_id, expected_node_id)?;
 
         // Now decode the payload using the node id.
-        let decoded_message = SupportedMessage::decode_by_object_id(&mut data, object_id, &decoding_limits);
-        if decoded_message.is_err() {
-            debug!("Can't decode message {:?}", object_id);
-            return Err(StatusCode::BadServiceUnsupported);
+        match SupportedMessage::decode_by_object_id(&mut data, object_id, &decoding_limits) {
+            Ok(decoded_message) => {
+                if let SupportedMessage::Invalid(_) = decoded_message {
+                    debug!("Message {:?} is unsupported", object_id);
+                    Err(StatusCode::BadServiceUnsupported)
+                } else {
+                    // debug!("Returning decoded msg {:?}", decoded_message);
+                    Ok(decoded_message)
+                }
+            }
+            Err(err) => {
+                debug!("Can't decode message {:?}, err = {:?}", object_id, err);
+                Err(StatusCode::BadServiceUnsupported)
+            }
         }
-        let decoded_message = decoded_message.unwrap();
-        if let SupportedMessage::Invalid(_) = decoded_message {
-            debug!("Message {:?} is unsupported", object_id);
-            return Err(StatusCode::BadServiceUnsupported);
-        }
+    }
 
-        // debug!("Returning decoded msg {:?}", decoded_message);
-        Ok(decoded_message)
+    fn object_id_from_node_id(node_id: NodeId, expected_node_id: Option<NodeId>) -> Result<ObjectId, StatusCode> {
+        let valid_node_id = if node_id.namespace != 0 || !node_id.is_numeric() {
+            // Must be ns 0 and numeric
+            error!("Expecting chunk to contain a OPC UA request or response");
+            false
+        } else if let Some(expected_node_id) = expected_node_id {
+            let matches_expected = expected_node_id == node_id;
+            if !matches_expected {
+                error!("Chunk node id {:?} does not match expected {:?}", node_id, expected_node_id);
+            }
+            matches_expected
+        } else {
+            true
+        };
+        if !valid_node_id {
+            error!("The node id read from the stream was not accepted in this context {:?}", node_id);
+            Err(StatusCode::BadUnexpectedError)
+        } else {
+            node_id.as_object_id().map_err(|_| {
+                error!("The node {:?} was not an object id", node_id);
+                StatusCode::BadUnexpectedError
+            }).map(|object_id| {
+                trace!("Decoded node id / object id of {:?}", object_id);
+                object_id
+            })
+        }
     }
 }
