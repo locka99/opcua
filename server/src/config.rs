@@ -1,5 +1,5 @@
 //! Provides configuration settings for the server including serialization and deserialization from file.
-use std::path::PathBuf;
+use std::path::{PathBuf};
 use std::str::FromStr;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -26,15 +26,23 @@ pub struct TcpConfig {
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct ServerUserToken {
+    /// User name
     pub user: String,
+    /// Password
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub pass: Option<String>,
+    // X509 file path
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub x509: Option<PathBuf>,
 }
+
 
 impl ServerUserToken {
     pub fn new_user_pass<T>(user: T, pass: T) -> Self where T: Into<String> {
         ServerUserToken {
             user: user.into(),
             pass: Some(pass.into()),
+            x509: None,
         }
     }
 
@@ -47,6 +55,16 @@ impl ServerUserToken {
         if self.user.is_empty() {
             error!("User token {} has an empty user name", id);
             valid = false;
+        }
+        if self.pass.is_some() && self.x509.is_some() {
+            error!("User token {} has a password and a path to an x509 cert", id);
+            valid = false;
+        }
+        if let Some(ref path) = self.x509 {
+            if !path.exists() || !path.is_file() {
+                error!("User token {} x509 cert does not exist", id);
+                valid = false;
+            }
         }
         valid
     }

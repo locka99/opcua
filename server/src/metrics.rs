@@ -67,6 +67,7 @@ impl ServerMetrics {
         config.user_tokens.insert(String::new(), config::ServerUserToken {
             user: String::from("User identity tokens have been removed"),
             pass: None,
+            x509: None,
         });
         self.config = Some(config.clone());
     }

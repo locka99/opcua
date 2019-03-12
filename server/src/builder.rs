@@ -50,10 +50,12 @@ impl ServerBuilder {
             .user_token("sample_user", ServerUserToken {
                 user: "sample".to_string(),
                 pass: Some("sample1".to_string()),
+                x509: None,
             })
             .user_token("unused_user", ServerUserToken {
                 user: "unused".to_string(),
                 pass: Some("unused1".to_string()),
+                x509: None,
             })
             .endpoints(vec![
                 ("none", ServerEndpoint::new_none(path, &user_token_ids)),
