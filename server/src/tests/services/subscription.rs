@@ -151,7 +151,7 @@ fn publish_response_subscription() {
         // We expect the notification to be about handle 1
 
         let monitored_item_notification = &monitored_items[0];
-        assert_eq!(monitored_item_notification.client_handle, 1);
+        assert_eq!(monitored_item_notification.client_handle, 0);
 
         // We expect the queue to be empty, because we got an immediate response
         assert!(session.subscriptions.publish_response_queue.is_empty());

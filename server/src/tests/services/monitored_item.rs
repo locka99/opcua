@@ -1,4 +1,5 @@
 use std::ops::Add;
+use std::collections::HashSet;
 
 use chrono::{self, Utc};
 
@@ -85,16 +86,25 @@ fn publish_request(session: &mut Session, ss: &SubscriptionService) {
         request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
         subscription_acknowledgements: None,
     };
-//    assert!(session.subscriptions.publish_request_queue.is_empty());
+
+    session.subscriptions.publish_request_queue.clear();
     let response = ss.async_publish(session, request_id, &request).unwrap();
-//    assert!(response.is_none());
-//    assert!(!session.subscriptions.publish_request_queue.is_empty());
+    assert!(response.is_none());
+    assert!(!session.subscriptions.publish_request_queue.is_empty());
 }
 
 fn publish_response(session: &mut Session) -> PublishResponse {
     let response = session.subscriptions.publish_response_queue.pop_back().unwrap().response;
     let response: PublishResponse = supported_message_as!(response, PublishResponse);
     response
+}
+
+fn publish_tick_no_response(session: &mut Session, ss: &SubscriptionService, address_space: &AddressSpace, now: DateTimeUtc, duration: chrono::Duration) -> DateTimeUtc {
+    publish_request(session, ss);
+    let now = now.add(duration);
+    let _ = session.tick_subscriptions(&now, address_space, TickReason::TickTimerFired);
+    assert_eq!(session.subscriptions.publish_response_queue.len(), 0);
+    now
 }
 
 /// Does a publish, ticks by a duration and then calls the function to handle the response. The
@@ -105,9 +115,9 @@ fn publish_tick_response<T>(session: &mut Session, ss: &SubscriptionService, add
     publish_request(session, ss);
     let now = now.add(duration);
     let _ = session.tick_subscriptions(&now, address_space, TickReason::TickTimerFired);
-//    assert_eq!(session.subscriptions.publish_response_queue.len(), 1);
-//    let response = publish_response(session);
-//    handler(response);
+    assert_eq!(session.subscriptions.publish_response_queue.len(), 1);
+    let response = publish_response(session);
+    handler(response);
     now
 }
 
@@ -309,12 +319,13 @@ fn monitored_item_triggers() {
 
         let max_monitored_items: usize = 4;
 
+        let triggering_node = NodeId::new(1, var_name(0));
         // create 4 monitored items
         let request = create_monitored_items_request(subscription_id, vec![
-            NodeId::new(1, 1),
-            NodeId::new(1, 2),
-            NodeId::new(1, 3),
-            NodeId::new(1, 4),
+            triggering_node.clone(),
+            NodeId::new(1, var_name(1)),
+            NodeId::new(1, var_name(2)),
+            NodeId::new(1, var_name(3)),
         ]);
         let response: CreateMonitoredItemsResponse = supported_message_as!(mis.create_monitored_items(session, &request).unwrap(), CreateMonitoredItemsResponse);
 
@@ -349,19 +360,39 @@ fn monitored_item_triggers() {
         // publish on the monitored item
         let now = publish_tick_response(session, &ss, address_space, now, chrono::Duration::seconds(2), |response| {
             let notifications = response.notification_message.data_change_notifications(&DecodingLimits::default());
-            // assert_eq!(notifications.len(), 2);
-            // TODO expect a notification to be for triggering item
-            // TODO expect a notification to be for triggered idx 1 (sampling)
+            assert_eq!(notifications.len(), 1);
+            let monitored_items = notifications[0].monitored_items.as_ref().unwrap();
+            assert_eq!(monitored_items.len(), 3);
+            let client_handles: HashSet<u32> = monitored_items.iter().map(|min| min.client_handle).collect();
+            // expect a notification to be for triggering item
+            assert!(client_handles.contains(&0));
+            // expect a notification to be for triggered[0] (reporting) because it's reporting
+            assert!(client_handles.contains(&1));
+            // expect a notification to be for triggered[1] (sampling)
+            assert!(client_handles.contains(&2));
         });
 
-        // set monitoring mode of all 3 to reporting
+        // do a publish on the monitored item, expect no notification because nothing has changed
+        let now = publish_tick_no_response(session, &ss, address_space, now, chrono::Duration::seconds(2));
+
+        // set monitoring mode of all 3 to reporting.
         set_monitoring_mode(session, subscription_id, triggered_item_ids[0], MonitoringMode::Reporting, &mis);
         set_monitoring_mode(session, subscription_id, triggered_item_ids[1], MonitoringMode::Reporting, &mis);
         set_monitoring_mode(session, subscription_id, triggered_item_ids[2], MonitoringMode::Reporting, &mis);
 
-        // do a publish on the monitored item,
+        // Change the triggering item's value
+        let _ = address_space.set_variable_value(triggering_node.clone(), 1, &DateTime::now(), &DateTime::now());
+
+        // In this case, the triggering item changes, but triggered items are all reporting so are ignored unless they themselves
+        // need to report. Only 3 will fire because it was disabled previously
         let now = publish_tick_response(session, &ss, address_space, now, chrono::Duration::seconds(2), |response| {
-            // TODO expect 0 other data changes
+            let notifications = response.notification_message.data_change_notifications(&DecodingLimits::default());
+            assert_eq!(notifications.len(), 1);
+            let monitored_items = notifications[0].monitored_items.as_ref().unwrap();
+            let client_handles: HashSet<u32> = monitored_items.iter().map(|min| min.client_handle).collect();
+            assert_eq!(monitored_items.len(), 2);
+            assert!(client_handles.contains(&0));
+            assert!(client_handles.contains(&3));
         });
 
         // revert to 3 items to be reporting, sampling, disabled
@@ -369,21 +400,27 @@ fn monitored_item_triggers() {
         set_monitoring_mode(session, subscription_id, triggered_item_ids[1], MonitoringMode::Sampling, &mis);
         set_monitoring_mode(session, subscription_id, triggered_item_ids[2], MonitoringMode::Disabled, &mis);
 
-        // change monitoring mode of triggering item to sampling
+        // change monitoring mode of triggering item to sampling and change value
         set_monitoring_mode(session, subscription_id, triggering_item_id, MonitoringMode::Sampling, &mis);
+        let _ = address_space.set_variable_value(triggering_node.clone(), 2, &DateTime::now(), &DateTime::now());
 
         // do a publish on the monitored item,
         let now = publish_tick_response(session, &ss, address_space, now, chrono::Duration::seconds(2), |response| {
-            // TODO expect only 1 other data change corresponding to sampling  triggered item
+            // expect only 1 data change corresponding to sampling triggered item
+            let notifications = response.notification_message.data_change_notifications(&DecodingLimits::default());
+            assert_eq!(notifications.len(), 1);
+            let monitored_items = notifications[0].monitored_items.as_ref().unwrap();
+            let client_handles: HashSet<u32> = monitored_items.iter().map(|min| min.client_handle).collect();
+            assert_eq!(monitored_items.len(), 1);
+            assert!(client_handles.contains(&2));
         });
 
         // change monitoring mode of triggering item to disable
         set_monitoring_mode(session, subscription_id, triggering_item_id, MonitoringMode::Disabled, &mis);
+        let _ = address_space.set_variable_value(triggering_node.clone(), 3, &DateTime::now(), &DateTime::now());
 
         // do a publish on the monitored item, expect 0 data changes
-        let now = publish_tick_response(session, &ss, address_space, now, chrono::Duration::seconds(2), |response| {
-            // TODO expect 0 data changes
-        });
+        let _ = publish_tick_no_response(session, &ss, address_space, now, chrono::Duration::seconds(2));
     });
 }
 

@@ -75,7 +75,7 @@ fn add_many_vars_to_address_space(address_space: &mut AddressSpace, vars_to_add:
 
 /// A helper that sets up a subscription service test
 fn do_subscription_service_test<T>(f: T)
-    where T: FnOnce(&mut ServerState, &mut Session, &AddressSpace, SubscriptionService, MonitoredItemService)
+    where T: FnOnce(&mut ServerState, &mut Session, &mut AddressSpace, SubscriptionService, MonitoredItemService)
 {
     let st = ServiceTest::new();
     let mut server_state = trace_write_lock_unwrap!(st.server_state);
@@ -86,8 +86,8 @@ fn do_subscription_service_test<T>(f: T)
         add_many_vars_to_address_space(&mut address_space, 100);
     }
 
-    let address_space = trace_read_lock_unwrap!(st.address_space);
-    f(&mut server_state, &mut session, &address_space, SubscriptionService::new(), MonitoredItemService::new());
+    let mut address_space = trace_write_lock_unwrap!(st.address_space);
+    f(&mut server_state, &mut session, &mut address_space, SubscriptionService::new(), MonitoredItemService::new());
 }
 
 /// Creates a blank subscription request
@@ -107,13 +107,14 @@ fn create_subscription_request(max_keep_alive_count: u32, lifetime_count: u32) -
 fn create_monitored_items_request<T>(subscription_id: u32, mut node_id: Vec<T>) -> CreateMonitoredItemsRequest
     where T: Into<NodeId> {
     let items_to_create = Some(node_id.drain(..)
+        .enumerate()
         .map(|i| {
-            let node_id: NodeId = i.into();
+            let node_id: NodeId = i.1.into();
             MonitoredItemCreateRequest {
                 item_to_monitor: node_id.into(),
                 monitoring_mode: MonitoringMode::Reporting,
                 requested_parameters: MonitoringParameters {
-                    client_handle: 1,
+                    client_handle: i.0 as u32,
                     sampling_interval: 0.1,
                     filter: ExtensionObject::null(),
                     queue_size: 1,
