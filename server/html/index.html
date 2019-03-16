@@ -150,7 +150,7 @@
     }
 
     function dump_connection(connection) {
-        `<h2>Client${connection["id"]}</h2>
+        return `<h2>Client "${connection["id"]}"</h2>
 <table class="side_headings">
 <tr><th>Client address</th><td>${connection["client_address"]}</td></tr>
 <tr><th>Transport state</th><td>${connection["transport_state"]}</td></tr>
