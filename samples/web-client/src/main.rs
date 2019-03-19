@@ -6,9 +6,12 @@ use std::sync::{Arc, RwLock};
 
 use serde_json;
 
-use actix::{StreamHandler, Actor, ActorContext, Message};
-use actix_web::server::HttpServer;
-use actix_web::{fs, http, ws, App, Error, HttpRequest, HttpResponse};
+use actix_web::{
+    fs, http, ws,
+    App, Error, HttpRequest, HttpResponse,
+    actix::{StreamHandler, Actor, ActorContext, Message},
+    server::HttpServer,
+};
 
 use opcua_client::prelude::*;
 

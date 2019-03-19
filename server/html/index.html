@@ -27,11 +27,15 @@
 </style>
 <script>
     function requestMetrics() {
-        // JQuery request to "/metrics"
-        $.getJSON(
-            "/metrics"
-        ).done(function (json) {
+        // JQuery request to "/server/metrics"
+        $.getJSON("/server/metrics").done(function (json) {
             fillMetrics(json);
+        });
+    }
+
+    function abortServer() {
+        $.get("/server/abort").done(function (json) {
+            alert("Server will be aborted (debug build only)")
         });
     }
 
@@ -90,17 +94,13 @@
         const identifier = node_id.identifier;
         if (identifier["String"]) {
             return `ns=${node_id.namespace};s=${identifier["String"].value}`;
-        }
-        else if (identifier["Numeric"]) {
+        } else if (identifier["Numeric"]) {
             return `ns=${node_id.namespace};i=${identifier["Numeric"]}`;
-        }
-        else if (identifier["Guid"]) {
+        } else if (identifier["Guid"]) {
             return `ns=${node_id.namespace};g=${identifier["Guid"].value}`;
-        }
-        else if (identifier["ByteString"]) {
+        } else if (identifier["ByteString"]) {
             return `ns=${node_id.namespace};b=......`;
-        }
-        else {
+        } else {
             return `Invalid node id`
         }
     }
@@ -118,8 +118,7 @@
         html += "<h1 class='connections'>Client connections</h1>";
         if (connections.length === 0) {
             html += "<p>No connections</p>";
-        }
-        else {
+        } else {
             connections.forEach(function (connection) {
                     html += dump_connection(connection);
 
@@ -127,8 +126,7 @@
                     const subscriptions = connection["subscriptions"];
                     if (subscriptions.length === 0) {
                         html += `<p>No subscriptions</p>`;
-                    }
-                    else {
+                    } else {
                         subscriptions.forEach(function (subscription) {
                             html += dump_subscription(subscription);
                         });
@@ -139,13 +137,28 @@
         $("#metrics").html(html);
     }
 
+    function msToTime(duration) {
+        var milliseconds = parseInt((duration % 1000) / 100);
+        var seconds = Math.floor((duration / 1000) % 60);
+        var minutes = Math.floor((duration / (1000 * 60)) % 60);
+        var hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+
+        hours = (hours < 10) ? "0" + hours : hours;
+        minutes = (minutes < 10) ? "0" + minutes : minutes;
+        seconds = (seconds < 10) ? "0" + seconds : seconds;
+
+        return hours + ":" + minutes + ":" + seconds + "." + milliseconds;
+    }
+
     function dump_server(config, server) {
         return `<table class="side_headings">
 <tr><th>Server name</th><td>${config["application_name"]}</td></tr>
 <tr><th>Server URI</th><td>${config["application_uri"]}</td></tr>
 <tr><th>Start Time</th><td>${new Date(server["start_time"]).toString()}</td></tr>
-<tr><th>Uptime (MS)</th><td>${server["uptime_ms"]}</td></tr>
+<tr><th>Uptime</th><td>${msToTime(server["uptime_ms"])}</td></tr>
+<tr><th>Actions</th><td><button onclick="abortServer()">Terminate Server</button>&nbsp;Debug Builds Only</td></tr>
 </table>
+
 `;
     }
 
@@ -172,8 +185,7 @@
         var monitored_items = subscription.monitored_items;
         if (monitored_items.length === 0) {
             html += "<p>No monitored items</p>";
-        }
-        else {
+        } else {
             html += dump_monitored_items(monitored_items);
         }
         return html;
