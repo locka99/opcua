@@ -440,7 +440,7 @@ fn connect_with(port_offset: u16, endpoint_id: &str) {
         // Read the variable
         let mut values = {
             let read_nodes = vec![ReadValueId::from(v1_node_id())];
-            session.read_nodes(&read_nodes).unwrap().unwrap()
+            session.read(&read_nodes).unwrap().unwrap()
         };
         assert_eq!(values.len(), 1);
 
