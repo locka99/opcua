@@ -153,7 +153,7 @@ function generate_node_set(ns) {
 }
 
 function generate_node_set_files(xml_name, rs_name, part_nr, nodes) {
-    let module_name = part_nr > 0 ? `${rs_name}_${part_nr}` : `${rs_name}`
+    let module_name = part_nr > 0 ? `${rs_name}_${part_nr}` : `${rs_name}`;
     let file_name = `${module_name}.rs`;
 
     // Process all the nodes

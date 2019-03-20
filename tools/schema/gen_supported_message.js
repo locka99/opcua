@@ -186,4 +186,4 @@ generate_supported_message([
     "WriteRequest", "WriteResponse",
     // Method service
     "CallRequest", "CallResponse",
-])
+]);
