@@ -7,5 +7,10 @@ intended to be as basic as `simple-server` and will grow over time to:
 * Http access to diagnostics and other info
 * More sophisticated logging and data capture
 
-There is an http server showing metrics running on localhost:8585, however `cargo run` must be issued from `opcua/samples/demo-server`
-because it is serving content from a relative path `../../server/html`. 
+The demo-server enables the `http` feature in `opcua-server` so it can display metrics
+from `http://localhost:8585`, however you must start it from the correct directory for the content to resolve. 
+
+```
+cd opcua/samples/demo-server
+cargo run
+```
