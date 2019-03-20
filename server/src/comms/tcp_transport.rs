@@ -118,14 +118,6 @@ impl Transport for TcpTransport {
         self.transport_state
     }
 
-    fn session(&self) -> Arc<RwLock<Session>> {
-        self.session.clone()
-    }
-
-    fn client_address(&self) -> Option<SocketAddr> {
-        self.client_address
-    }
-
     // Terminates the connection and the session
     fn finish(&mut self, status_code: StatusCode) {
         if !self.is_finished() {
@@ -133,6 +125,14 @@ impl Transport for TcpTransport {
             let mut session = trace_write_lock_unwrap!(self.session);
             session.set_terminated();
         }
+    }
+
+    fn session(&self) -> Arc<RwLock<Session>> {
+        self.session.clone()
+    }
+
+    fn client_address(&self) -> Option<SocketAddr> {
+        self.client_address
     }
 
     /// Test if the connection is terminated
