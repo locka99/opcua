@@ -6,47 +6,58 @@ use std::result::Result;
 use opcua_types::{NodeId, AttributeId, DataValue};
 use opcua_types::status_code::StatusCode;
 
-/// An attribute getter trait is used to obtain the datavalue associated with the particular attribute id
+/// An attribute getter trait is used to obtain the data value associated with the particular attribute id
 /// This allows server implementations to supply a value on demand, usually in response to a polling action
 /// such as a monitored item in a subscription.
+///
+/// `node_id` is the node to which the node belongs
+/// `attribute_id` is the attribute of the node to fetch a value for
+///
+/// Use `max_age` according to the OPC UA Part 4, Table 52 specification to determine how to return
+/// a value:
+///
+/// * 0 = a new value
+/// * time in ms for a value less than the specified age
+/// * i32::max() or higher to fetch a cached value.
+///
 pub trait AttributeGetter {
     /// Returns some datavalue or none
-    fn get(&mut self, node_id: NodeId, attribute_id: AttributeId) -> Result<Option<DataValue>, StatusCode>;
+    fn get(&mut self, node_id: &NodeId, attribute_id: AttributeId, max_age: f64) -> Result<Option<DataValue>, StatusCode>;
 }
 
 /// An implementation of attribute getter that can be easily constructed from a mutable function
-pub struct AttrFnGetter<F> where F: FnMut(NodeId, AttributeId) -> Result<Option<DataValue>, StatusCode> + Send {
+pub struct AttrFnGetter<F> where F: FnMut(&NodeId, AttributeId, f64) -> Result<Option<DataValue>, StatusCode> + Send {
     getter: F
 }
 
-impl<F> AttributeGetter for AttrFnGetter<F> where F: FnMut(NodeId, AttributeId) -> Result<Option<DataValue>, StatusCode> + Send {
-    fn get(&mut self, node_id: NodeId, attribute_id: AttributeId) -> Result<Option<DataValue>, StatusCode> {
-        (self.getter)(node_id, attribute_id)
+impl<F> AttributeGetter for AttrFnGetter<F> where F: FnMut(&NodeId, AttributeId, f64) -> Result<Option<DataValue>, StatusCode> + Send {
+    fn get(&mut self, node_id: &NodeId, attribute_id: AttributeId, max_age: f64) -> Result<Option<DataValue>, StatusCode> {
+        (self.getter)(node_id, attribute_id, max_age)
     }
 }
 
-impl<F> AttrFnGetter<F> where F: FnMut(NodeId, AttributeId) -> Result<Option<DataValue>, StatusCode> + Send {
+impl<F> AttrFnGetter<F> where F: FnMut(&NodeId, AttributeId, f64) -> Result<Option<DataValue>, StatusCode> + Send {
     pub fn new(getter: F) -> AttrFnGetter<F> { AttrFnGetter { getter } }
 }
 
 // An attribute setter. Sets the value on the specified attribute
 pub trait AttributeSetter {
     /// Sets the attribute on the specified node
-    fn set(&mut self, node_id: NodeId, attribute_id: AttributeId, data_value: DataValue) -> Result<(), StatusCode>;
+    fn set(&mut self, node_id: &NodeId, attribute_id: AttributeId, data_value: DataValue) -> Result<(), StatusCode>;
 }
 
 /// An implementation of attribute setter that can be easily constructed using a mutable function
-pub struct AttrFnSetter<F> where F: FnMut(NodeId, AttributeId, DataValue) -> Result<(), StatusCode> + Send {
+pub struct AttrFnSetter<F> where F: FnMut(&NodeId, AttributeId, DataValue) -> Result<(), StatusCode> + Send {
     setter: F
 }
 
-impl<F> AttributeSetter for AttrFnSetter<F> where F: FnMut(NodeId, AttributeId, DataValue) -> Result<(), StatusCode> + Send {
-    fn set(&mut self, node_id: NodeId, attribute_id: AttributeId, data_value: DataValue) -> Result<(), StatusCode> {
+impl<F> AttributeSetter for AttrFnSetter<F> where F: FnMut(&NodeId, AttributeId, DataValue) -> Result<(), StatusCode> + Send {
+    fn set(&mut self, node_id: &NodeId, attribute_id: AttributeId, data_value: DataValue) -> Result<(), StatusCode> {
         (self.setter)(node_id, attribute_id, data_value)
     }
 }
 
-impl<F> AttrFnSetter<F> where F: FnMut(NodeId, AttributeId, DataValue) -> Result<(), StatusCode> + Send {
+impl<F> AttrFnSetter<F> where F: FnMut(&NodeId, AttributeId, DataValue) -> Result<(), StatusCode> + Send {
     pub fn new(setter: F) -> AttrFnSetter<F> { AttrFnSetter { setter } }
 }
 
@@ -69,7 +80,7 @@ macro_rules! node_impl {
             fn set_write_mask(&mut self, write_mask: WriteMask) { self.base.set_write_mask(write_mask) }
             fn user_write_mask(&self) -> Option<WriteMask> { self.base.user_write_mask() }
             fn set_user_write_mask(&mut self, write_mask: WriteMask) { self.base.set_user_write_mask(write_mask) }
-            fn find_attribute(&self, attribute_id: AttributeId) -> Option<DataValue> { self.base.find_attribute(attribute_id) }
+            fn find_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> { self.base.find_attribute(attribute_id, max_age) }
             fn set_attribute(&mut self, attribute_id: AttributeId, value: DataValue) -> Result<(), StatusCode> { self.base.set_attribute(attribute_id, value) }
         }
 
@@ -100,7 +111,7 @@ macro_rules! find_attribute_value_optional {
     ( $sel:expr, $attribute_id: ident, $variant_type: ident ) => {
         {
             use opcua_types::AttributeId;
-            if let Some(data_value) = $sel.find_attribute(AttributeId::$attribute_id) {
+            if let Some(data_value) = $sel.find_attribute(AttributeId::$attribute_id, 0.0) {
                 if let Some(value) = data_value.value {
                     if let Variant::$variant_type(value) = value {
                         Some(value)

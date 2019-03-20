@@ -185,7 +185,7 @@ impl Variable {
     }
 
     pub fn value(&self) -> DataValue {
-        self.base.find_attribute(AttributeId::Value).unwrap()
+        self.base.find_attribute(AttributeId::Value, 0.0).unwrap()
     }
 
     /// Sets the variable's value

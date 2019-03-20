@@ -31,14 +31,16 @@ impl AttributeService {
         // Read nodes and their attributes
         let timestamps_to_return = request.timestamps_to_return;
 
-        if request.max_age < 0f64 {
+        // Negative values are invalid for max_age
+        let max_age = request.max_age;
+        if max_age < 0f64 {
             warn!("ReadRequest max age is invalid");
             return Ok(self.service_fault(&request.request_header, StatusCode::BadMaxAgeInvalid));
         }
 
         let results = if let Some(ref nodes_to_read) = request.nodes_to_read {
             let results = nodes_to_read.iter().map(|node_to_read| {
-                Self::read_node_value(&address_space, node_to_read, timestamps_to_return)
+                Self::read_node_value(&address_space, node_to_read, max_age, timestamps_to_return)
             }).collect();
             Some(results)
         } else {
@@ -82,7 +84,7 @@ impl AttributeService {
         Ok(response.into())
     }
 
-    fn read_node_value(address_space: &AddressSpace, node_to_read: &ReadValueId, timestamps_to_return: TimestampsToReturn) -> DataValue {
+    fn read_node_value(address_space: &AddressSpace, node_to_read: &ReadValueId, max_age: f64, timestamps_to_return: TimestampsToReturn) -> DataValue {
         let mut result_value = DataValue {
             value: None,
             status: None,
@@ -94,7 +96,7 @@ impl AttributeService {
         // Node node found
         if let Some(node) = address_space.find_node(&node_to_read.node_id) {
             if let Ok(attribute_id) = AttributeId::from_u32(node_to_read.attribute_id) {
-                if let Some(attribute) = node.as_node().find_attribute(attribute_id) {
+                if let Some(attribute) = node.as_node().find_attribute(attribute_id, max_age) {
                     let is_readable = Self::is_readable(&node);
                     if !is_readable {
                         result_value.status = Some(StatusCode::BadNotReadable.bits())
@@ -104,6 +106,7 @@ impl AttributeService {
                     } else {
                         // Result value is clone from the attribute
                         result_value.value = attribute.value.clone();
+
                         result_value.status = attribute.status;
                         match timestamps_to_return {
                             TimestampsToReturn::Source => {

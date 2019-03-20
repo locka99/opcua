@@ -1,10 +1,12 @@
 use opcua_types::{
-    {NodeId, QualifiedName, LocalizedText, AttributeId, DataValue, WriteMask},
+    NodeId, QualifiedName, LocalizedText, AttributeId, DataValue, WriteMask,
     service_types::NodeClass,
     status_code::StatusCode,
 };
 
-use crate::address_space::types::{Object, ObjectType, ReferenceType, Variable, VariableType, View, DataType, Method};
+use crate::{
+    address_space::types::{Object, ObjectType, ReferenceType, Variable, VariableType, View, DataType, Method}
+};
 
 #[derive(Debug)]
 pub enum NodeType {
@@ -68,6 +70,16 @@ pub trait Node {
     fn set_write_mask(&mut self, write_mask: WriteMask);
     fn user_write_mask(&self) -> Option<WriteMask>;
     fn set_user_write_mask(&mut self, write_mask: WriteMask);
-    fn find_attribute(&self, attribute_id: AttributeId) -> Option<DataValue>;
+
+    /// Finds the attribute and value. The param `max_age` is a hint in milliseconds:
+    ///
+    /// * value 0, server shall attempt to read a new value from the data source
+    /// * value >= i32::max(), sever shall attempt to get a cached value
+    ///
+    /// If there is a getter registered with the node, then the getter will interpret
+    /// `max_age` how it sees fit.
+    fn find_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue>;
+
+    /// Sets the attribute with the new value
     fn set_attribute(&mut self, attribute_id: AttributeId, value: DataValue) -> Result<(), StatusCode>;
 }

@@ -99,12 +99,11 @@ impl Node for Base {
         let _ = self.set_attribute(AttributeId::UserWriteMask, DataValue::new(write_mask.bits()));
     }
 
-    fn find_attribute(&self, attribute_id: AttributeId) -> Option<DataValue> {
+    fn find_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
         if let Some(ref attribute_getters) = self.attribute_getters {
             if let Some(getter) = attribute_getters.get(&attribute_id) {
                 let mut getter = getter.lock().unwrap();
-                let value = getter.get(self.node_id(), attribute_id);
-
+                let value = getter.get(&self.node_id(), attribute_id, max_age);
                 return if value.is_ok() {
                     value.unwrap()
                 } else {
@@ -183,7 +182,7 @@ impl Node for Base {
             if let Some(ref attribute_setters) = self.attribute_setters {
                 if let Some(setter) = attribute_setters.get(&attribute_id) {
                     let mut setter = setter.lock().unwrap();
-                    setter.set(self.node_id(), attribute_id, value)?;
+                    setter.set(&self.node_id(), attribute_id, value)?;
                     return Ok(());
                 }
             }

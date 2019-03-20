@@ -193,7 +193,7 @@ impl MonitoredItem {
                 return false;
             }
             let attribute_id = attribute_id.unwrap();
-            let data_value = node.find_attribute(attribute_id);
+            let data_value = node.find_attribute(attribute_id, 0.0);
             if let Some(mut data_value) = data_value {
                 // Test for data change
                 let data_change = if resend_data {
