@@ -37,7 +37,7 @@ impl Chunker {
     ///
     /// The function returns the last sequence number in the series for success, or
     /// `BadSequenceNumberInvalid` or `BadSecureChannelIdInvalid` for failure.
-    pub fn validate_chunks(starting_sequence_number: u32, secure_channel: &SecureChannel, chunks: &Vec<MessageChunk>) -> Result<u32, StatusCode> {
+    pub fn validate_chunks(starting_sequence_number: u32, secure_channel: &SecureChannel, chunks: &[MessageChunk]) -> Result<u32, StatusCode> {
         let first_sequence_number = {
             let chunk_info = chunks[0].chunk_info(secure_channel)?;
             chunk_info.sequence_header.sequence_number
@@ -136,7 +136,7 @@ impl Chunker {
 
     /// Decodes a series of chunks to create a message. The message must be of a `SupportedMessage`
     /// type otherwise an error will occur.
-    pub fn decode(chunks: &Vec<MessageChunk>, secure_channel: &SecureChannel, expected_node_id: Option<NodeId>) -> std::result::Result<SupportedMessage, StatusCode> {
+    pub fn decode(chunks: &[MessageChunk], secure_channel: &SecureChannel, expected_node_id: Option<NodeId>) -> std::result::Result<SupportedMessage, StatusCode> {
         // Calculate the size of data held in all chunks
         let mut data_size: usize = 0;
         for (i, chunk) in chunks.iter().enumerate() {

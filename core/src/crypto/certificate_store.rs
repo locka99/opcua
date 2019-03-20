@@ -70,21 +70,19 @@ impl CertificateStore {
             let result = certificate_store.read_own_cert_and_pkey();
             if let Ok((cert, pkey)) = result {
                 (Some(cert), Some(pkey))
-            } else {
-                if let Some(application_description) = application_description {
-                    info!("Creating sample application instance certificate and private key");
-                    let result = certificate_store.create_and_store_application_instance_cert(&X509Data::from(application_description), false);
-                    if let Err(err) = result {
-                        error!("Certificate creation failed, error = {}", err);
-                        (None, None)
-                    } else {
-                        let (cert, pkey) = result.unwrap();
-                        (Some(cert), Some(pkey))
-                    }
-                } else {
-                    error!("Application instance certificate and private key could not be read - {}", result.unwrap_err());
+            } else if let Some(application_description) = application_description {
+                info!("Creating sample application instance certificate and private key");
+                let result = certificate_store.create_and_store_application_instance_cert(&X509Data::from(application_description), false);
+                if let Err(err) = result {
+                    error!("Certificate creation failed, error = {}", err);
                     (None, None)
+                } else {
+                    let (cert, pkey) = result.unwrap();
+                    (Some(cert), Some(pkey))
                 }
+            } else {
+                error!("Application instance certificate and private key could not be read - {}", result.unwrap_err());
+                (None, None)
             }
         };
         (certificate_store, cert, pkey)
@@ -171,7 +169,7 @@ impl CertificateStore {
                     }
                     subject_alternative_name.build(&builder.x509v3_context(None, None)).unwrap()
                 };
-                let _ = builder.append_extension(subject_alternative_name).unwrap();
+                builder.append_extension(subject_alternative_name).unwrap();
             }
 
             // Self-sign

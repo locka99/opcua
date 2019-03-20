@@ -288,8 +288,7 @@ impl SecureChannel {
                 if remote_nonce.len() != self.security_policy.symmetric_key_size() {
                     error!("Remote nonce is invalid length {}, expecting {}. {:?}", remote_nonce.len(), self.security_policy.symmetric_key_size(), remote_nonce);
                     Err(StatusCode::BadNonceInvalid)
-                }
-                else {
+                } else {
                     self.remote_nonce = remote_nonce.to_vec();
                     Ok(())
                 }
@@ -350,7 +349,7 @@ impl SecureChannel {
         let now: chrono::DateTime<chrono::Utc> = DateTime::now().into();
         let token_created_at: chrono::DateTime<chrono::Utc> = self.token_created_at.clone().into();
         let token_expires = token_created_at + chrono::Duration::seconds(self.token_lifetime as i64);
-        if now.ge(&token_expires) { true } else { false }
+        now.ge(&token_expires)
     }
 
     /// Calculates the signature size for a message depending on the supplied security header

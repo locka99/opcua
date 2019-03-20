@@ -311,7 +311,7 @@ impl Session {
                         warn!("Could not create a subscription from the existing subscription {}", subscription_id);
                     }
                 } else {
-                    panic!("Subscription {}, doesn't exist although it should");
+                    panic!("Subscription {}, doesn't exist although it should", subscription_id);
                 }
             });
 
@@ -425,7 +425,7 @@ impl Session {
         loop {
             // Main thread has nothing to do - just wait for publish events to roll in
             let mut session = session.write().unwrap();
-            if let Err(_) = session.poll(POLL_SLEEP_INTERVAL) {
+            if session.poll(POLL_SLEEP_INTERVAL).is_err() {
                 // Break the loop if connection goes down
                 info!("Connection to server broke, so terminating");
                 break;
@@ -451,7 +451,7 @@ impl Session {
                 Answer::Retry => {
                     info!("Retrying to reconnect to server...");
                     self.session_retry_policy.set_last_attempt(Utc::now());
-                    if let Ok(_) = self.reconnect_and_activate() {
+                    if self.reconnect_and_activate().is_ok() {
                         info!("Retry to connect was successful");
                         self.session_retry_policy.reset_retry_count();
                     } else {
@@ -521,7 +521,7 @@ impl Session {
     ///
     pub fn create_session(&mut self) -> Result<NodeId, StatusCode> {
         // Get some state stuff
-        let endpoint_url = UAString::from(self.session_info.endpoint.endpoint_url.clone());
+        let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
 
         let client_nonce = {
             let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
@@ -694,7 +694,7 @@ impl Session {
             });
 
         let _ = thread::spawn(move || {
-            let _ = tokio::run(task);
+            tokio::run(task);
         });
     }
 
@@ -1494,7 +1494,7 @@ impl Session {
             let response = self.send_request(request)?;
             if let SupportedMessage::DeleteMonitoredItemsResponse(response) = response {
                 crate::process_service_result(&response.response_header)?;
-                if let Some(_) = response.results {
+                if response.results.is_some() {
                     let mut subscription_state = trace_write_lock_unwrap!(self.subscription_state);
                     subscription_state.delete_monitored_items(subscription_id, items_to_delete);
                 }

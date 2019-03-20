@@ -45,22 +45,19 @@ impl SubscriptionTimer {
             }).map(move |cmd| {
                 (cmd, session_state.clone(), subscription_state.clone())
             }).for_each(|(cmd, session_state, subscription_state)| {
-                match cmd {
-                    SubscriptionTimerCommand::CreateTimer(subscription_id) => {
-                        let timer = Arc::new(RwLock::new(SubscriptionTimer {
-                            subscription_id,
-                            session_state,
-                            subscription_state: subscription_state.clone(),
-                            cancel: false,
-                        }));
-                        {
-                            let mut subscription_state = trace_write_lock_unwrap!(subscription_state);
-                            subscription_state.add_subscription_timer(timer.clone());
-                        }
-                        let timer_task = Self::make_subscription_timer(timer);
-                        tokio::spawn(timer_task);
+                if let SubscriptionTimerCommand::CreateTimer(subscription_id) = cmd {
+                    let timer = Arc::new(RwLock::new(SubscriptionTimer {
+                        subscription_id,
+                        session_state,
+                        subscription_state: subscription_state.clone(),
+                        cancel: false,
+                    }));
+                    {
+                        let mut subscription_state = trace_write_lock_unwrap!(subscription_state);
+                        subscription_state.add_subscription_timer(timer.clone());
                     }
-                    _ => {}
+                    let timer_task = Self::make_subscription_timer(timer);
+                    tokio::spawn(timer_task);
                 }
                 future::ok(())
             }).map(|_| {

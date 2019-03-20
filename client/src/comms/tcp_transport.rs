@@ -58,7 +58,7 @@ impl Drop for ReadState {
 }
 
 impl ReadState {
-    fn turn_received_chunks_into_message(&mut self, chunks: &Vec<MessageChunk>) -> Result<SupportedMessage, StatusCode> {
+    fn turn_received_chunks_into_message(&mut self, chunks: &[MessageChunk]) -> Result<SupportedMessage, StatusCode> {
         // Validate that all chunks have incrementing sequence numbers and valid chunk types
         let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
         self.last_received_sequence_number = Chunker::validate_chunks(self.last_received_sequence_number + 1, &secure_channel, chunks)?;
@@ -118,7 +118,7 @@ impl WriteState {
             ConnectionState::Processing => {
                 let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
                 let request_id = self.send_buffer.next_request_id();
-                self.send_buffer.write(request_id, request, &mut secure_channel)
+                self.send_buffer.write(request_id, request, &secure_channel)
             }
             _ => {
                 panic!("Should not be calling this unless in the processing state");

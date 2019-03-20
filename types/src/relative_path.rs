@@ -125,51 +125,52 @@ impl RelativePathElement {
         Some(node_id)
     }
 
-
-    pub fn default_browse_name_resolver(node_id: &NodeId) -> Option<String> {
-        Some(match &node_id.identifier {
-            Identifier::String(browse_name) => browse_name.as_ref(),
-            Identifier::Numeric(id) => {
-                if node_id.namespace == 0 {
-                    let id = *id;
-                    // This syntax for matching a number to an enum is just the worst
-                    let browse_name = match id {
-                        id if id == ReferenceTypeId::References as u32 => "References",
-                        id if id == ReferenceTypeId::NonHierarchicalReferences as u32 => "NonHierarchicalReferences",
-                        id if id == ReferenceTypeId::HierarchicalReferences as u32 => "HierarchicalReferences",
-                        id if id == ReferenceTypeId::HasChild as u32 => "HasChild",
-                        id if id == ReferenceTypeId::Organizes as u32 => "Organizes",
-                        id if id == ReferenceTypeId::HasEventSource as u32 => "HasEventSource",
-                        id if id == ReferenceTypeId::HasModellingRule as u32 => "HasModellingRule",
-                        id if id == ReferenceTypeId::HasEncoding as u32 => "HasEncoding",
-                        id if id == ReferenceTypeId::HasDescription as u32 => "HasDescription",
-                        id if id == ReferenceTypeId::HasTypeDefinition as u32 => "HasTypeDefinition",
-                        id if id == ReferenceTypeId::GeneratesEvent as u32 => "GeneratesEvent",
-                        id if id == ReferenceTypeId::Aggregates as u32 => "Aggregates",
-                        id if id == ReferenceTypeId::HasSubtype as u32 => "HasSubtype",
-                        id if id == ReferenceTypeId::HasProperty as u32 => "HasProperty",
-                        id if id == ReferenceTypeId::HasComponent as u32 => "HasComponent",
-                        id if id == ReferenceTypeId::HasNotifier as u32 => "HasNotifier",
-                        id if id == ReferenceTypeId::HasOrderedComponent as u32 => "HasOrderedComponent",
-                        id if id == ReferenceTypeId::FromState as u32 => "FromState",
-                        id if id == ReferenceTypeId::ToState as u32 => "ToState",
-                        id if id == ReferenceTypeId::HasCause as u32 => "HasCause",
-                        id if id == ReferenceTypeId::HasEffect as u32 => "HasEffect",
-                        id if id == ReferenceTypeId::HasHistoricalConfiguration as u32 => "HasHistoricalConfiguration",
-                        id if id == ReferenceTypeId::HasSubStateMachine as u32 => "HasSubStateMachine",
-                        id if id == ReferenceTypeId::AlwaysGeneratesEvent as u32 => "AlwaysGeneratesEvent",
-                        id if id == ReferenceTypeId::HasTrueSubState as u32 => "HasTrueSubState",
-                        id if id == ReferenceTypeId::HasFalseSubState as u32 => "HasFalseSubState",
-                        id if id == ReferenceTypeId::HasCondition as u32 => "HasCondition",
-                        _ => return None
-                    };
-                    browse_name
-                } else {
-                    return None;
-                }
-            }
+    fn id_from_reference_type(id: u32) -> Option<String> {
+        // This syntax is horrible - it casts the u32 into an enum if it can
+        Some(match id {
+            id if id == ReferenceTypeId::References as u32 => "References",
+            id if id == ReferenceTypeId::NonHierarchicalReferences as u32 => "NonHierarchicalReferences",
+            id if id == ReferenceTypeId::HierarchicalReferences as u32 => "HierarchicalReferences",
+            id if id == ReferenceTypeId::HasChild as u32 => "HasChild",
+            id if id == ReferenceTypeId::Organizes as u32 => "Organizes",
+            id if id == ReferenceTypeId::HasEventSource as u32 => "HasEventSource",
+            id if id == ReferenceTypeId::HasModellingRule as u32 => "HasModellingRule",
+            id if id == ReferenceTypeId::HasEncoding as u32 => "HasEncoding",
+            id if id == ReferenceTypeId::HasDescription as u32 => "HasDescription",
+            id if id == ReferenceTypeId::HasTypeDefinition as u32 => "HasTypeDefinition",
+            id if id == ReferenceTypeId::GeneratesEvent as u32 => "GeneratesEvent",
+            id if id == ReferenceTypeId::Aggregates as u32 => "Aggregates",
+            id if id == ReferenceTypeId::HasSubtype as u32 => "HasSubtype",
+            id if id == ReferenceTypeId::HasProperty as u32 => "HasProperty",
+            id if id == ReferenceTypeId::HasComponent as u32 => "HasComponent",
+            id if id == ReferenceTypeId::HasNotifier as u32 => "HasNotifier",
+            id if id == ReferenceTypeId::HasOrderedComponent as u32 => "HasOrderedComponent",
+            id if id == ReferenceTypeId::FromState as u32 => "FromState",
+            id if id == ReferenceTypeId::ToState as u32 => "ToState",
+            id if id == ReferenceTypeId::HasCause as u32 => "HasCause",
+            id if id == ReferenceTypeId::HasEffect as u32 => "HasEffect",
+            id if id == ReferenceTypeId::HasHistoricalConfiguration as u32 => "HasHistoricalConfiguration",
+            id if id == ReferenceTypeId::HasSubStateMachine as u32 => "HasSubStateMachine",
+            id if id == ReferenceTypeId::AlwaysGeneratesEvent as u32 => "AlwaysGeneratesEvent",
+            id if id == ReferenceTypeId::HasTrueSubState as u32 => "HasTrueSubState",
+            id if id == ReferenceTypeId::HasFalseSubState as u32 => "HasFalseSubState",
+            id if id == ReferenceTypeId::HasCondition as u32 => "HasCondition",
             _ => return None
         }.to_string())
+    }
+
+    pub fn default_browse_name_resolver(node_id: &NodeId) -> Option<String> {
+        match &node_id.identifier {
+            Identifier::String(browse_name) => Some(browse_name.as_ref().to_string()),
+            Identifier::Numeric(id) => {
+                if node_id.namespace == 0 {
+                    Self::id_from_reference_type(*id)
+                } else {
+                    None
+                }
+            }
+            _ => None
+        }
     }
 
     /// Parse a relative path element according to the OPC UA Part 4 Appendix A BNF
@@ -224,13 +225,11 @@ impl RelativePathElement {
                         let namespace = namespace.as_str();
                         if namespace == "0" || namespace == "" {
                             node_resolver(0, browse_name)
+                        } else if let Ok(namespace) = namespace.parse::<u16>() {
+                            node_resolver(namespace, browse_name)
                         } else {
-                            if let Ok(namespace) = namespace.parse::<u16>() {
-                                node_resolver(namespace, browse_name)
-                            } else {
-                                error!("Namespace {} is out of range", namespace);
-                                return Err(());
-                            }
+                            error!("Namespace {} is out of range", namespace);
+                            return Err(());
                         }
                     } else {
                         node_resolver(0, browse_name)
@@ -294,7 +293,7 @@ impl RelativePathElement {
 
 impl<'a> From<&'a RelativePath> for String {
     fn from(path: &'a RelativePath) -> String {
-        let result = if let Some(ref elements) = path.elements {
+        if let Some(ref elements) = path.elements {
             let mut result = String::with_capacity(1024);
             for e in elements.iter() {
                 result.push_str(String::from(e).as_ref());
@@ -302,8 +301,7 @@ impl<'a> From<&'a RelativePath> for String {
             result
         } else {
             String::new()
-        };
-        result
+        }
     }
 }
 

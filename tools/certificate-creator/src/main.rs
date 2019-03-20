@@ -24,7 +24,7 @@ fn main() {
         }
 
         let cert_store = CertificateStore::new(&path);
-        if let Err(_) = cert_store.create_and_store_application_instance_cert(&args, overwrite) {
+        if cert_store.create_and_store_application_instance_cert(&args, overwrite).is_err() {
             eprintln!("Certificate creation failed, check above for errors");
         } else {
             println!("Certificate and private key have been written to {} and {}",

@@ -178,7 +178,7 @@ impl SessionState {
     /// Construct a request header for the session. All requests after create session are expected
     /// to supply an authentication token.
     pub fn make_request_header(&mut self) -> RequestHeader {
-        let request_header = RequestHeader {
+        RequestHeader {
             authentication_token: self.authentication_token.clone(),
             timestamp: DateTime::now(),
             request_handle: self.request_handle.next(),
@@ -186,8 +186,7 @@ impl SessionState {
             audit_entry_id: UAString::null(),
             timeout_hint: self.request_timeout,
             additional_header: ExtensionObject::null(),
-        };
-        request_header
+        }
     }
 
     /// Sends a publish request containing acknowledgements for previous notifications.

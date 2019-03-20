@@ -56,8 +56,7 @@ pub trait KeySize {
         } else {
             (data_size / plain_text_block_size) + 1
         };
-        let cipher_text_size = block_count * self.cipher_text_block_size();
-        cipher_text_size
+        block_count * self.cipher_text_block_size()
     }
 
     fn plain_text_block_size(&self, padding: RsaPadding) -> usize {

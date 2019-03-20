@@ -221,7 +221,7 @@ impl Subscription {
     }
 
     pub(crate) fn modify_monitored_items(&mut self, items_to_modify: &[ModifyMonitoredItem]) {
-        items_to_modify.into_iter().for_each(|i| {
+        items_to_modify.iter().for_each(|i| {
             if let Some(ref mut monitored_item) = self.monitored_items.get_mut(&i.id) {
                 monitored_item.set_sampling_interval(i.sampling_interval);
                 monitored_item.set_queue_size(i.queue_size);
@@ -260,7 +260,6 @@ impl Subscription {
                         }
                         *monitored_item_id.as_ref().unwrap()
                     };
-
                     let monitored_item = self.monitored_items.get_mut(&monitored_item_id).unwrap();
                     monitored_item.value = i.value.clone();
                     monitored_item_ids.insert(monitored_item_id);

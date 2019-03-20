@@ -248,11 +248,11 @@ impl HelloMessage {
 
     pub fn matches_endpoint(&self, endpoints: &[EndpointDescription]) -> bool {
         // check server's endpoints to find one that matches the hello
-        endpoints.iter().find(|e| {
+        endpoints.iter().any(|e| {
             // Server might have different hostname than that supplied by client, so
             // ignore that bit.
             url_matches_except_host(e.endpoint_url.as_ref(), self.endpoint_url.as_ref())
-        }).is_some()
+        })
     }
 
     pub fn is_valid_buffer_sizes(&self) -> bool {

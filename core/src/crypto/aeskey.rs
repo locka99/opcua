@@ -63,7 +63,7 @@ impl AesKey {
     fn do_cipher(&self, mode: Mode, src: &[u8], iv: &[u8], dst: &mut [u8]) -> Result<usize, StatusCode> {
         let cipher = self.cipher();
 
-        let _ = Self::validate_aes_args(&cipher, src, iv, dst)?;
+        Self::validate_aes_args(&cipher, src, iv, dst)?;
 
         trace!("Encrypting block of size {}", src.len());
 

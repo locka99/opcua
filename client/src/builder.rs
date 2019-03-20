@@ -40,12 +40,18 @@ pub struct ClientBuilder {
     config: ClientConfig,
 }
 
-impl ClientBuilder {
-    /// Creates a `ClientBuilder`
-    pub fn new() -> ClientBuilder {
+impl Default for ClientBuilder {
+    fn default() -> Self {
         ClientBuilder {
             config: ClientConfig::default()
         }
+    }
+}
+
+impl ClientBuilder {
+    /// Creates a `ClientBuilder`
+    pub fn new() -> ClientBuilder {
+        ClientBuilder::default()
     }
 
     /// Creates a `ClientBuilder` using a configuration file as the initial state.

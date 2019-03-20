@@ -226,7 +226,7 @@ impl Client {
     pub fn default_endpoint(&self) -> Result<ClientEndpoint, String> {
         let default_endpoint_id = self.config.default_endpoint.clone();
         if default_endpoint_id.is_empty() {
-            Err(format!("No default endpoint has been specified"))
+            Err("No default endpoint has been specified".to_string())
         } else if let Some(endpoint) = self.config.endpoints.get(&default_endpoint_id) {
             Ok(endpoint.clone())
         } else {
@@ -359,9 +359,9 @@ impl Client {
             client_certificate,
         };
         let mut session = Session::new(self.application_description(), self.certificate_store.clone(), session_info, self.session_retry_policy.clone());
-        let _ = session.connect()?;
+        session.connect()?;
         let result = session.get_endpoints()?;
-        let _ = session.disconnect();
+        session.disconnect();
         Ok(result)
     }
 
@@ -381,14 +381,14 @@ impl Client {
             let mut session = trace_write_lock_unwrap!(session);
             // Connect & activate the session.
             let connected = session.connect();
-            if let Ok(_) = connected {
+            if connected.is_ok() {
                 // Find me some some servers
                 let result = session.find_servers(discovery_endpoint_url.clone())
                     .map_err(|err| {
                         error!("Cannot find servers on discovery server {} - check this error - {:?}", discovery_endpoint_url, err);
                         err
                     });
-                let _ = session.disconnect();
+                session.disconnect();
                 result
             } else {
                 let result = connected.unwrap_err();
@@ -434,10 +434,10 @@ impl Client {
                 if let Ok(session) = session {
                     let mut session = trace_write_lock_unwrap!(session);
                     let connected = session.connect();
-                    if let Ok(_) = connected {
+                    if connected.is_ok() {
                         // Register with the server
                         let result = session.register_server(server);
-                        let _ = session.disconnect();
+                        session.disconnect();
                         result
                     } else {
                         let result = connected.unwrap_err();

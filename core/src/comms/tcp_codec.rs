@@ -32,7 +32,7 @@ pub enum Message {
 /// messages so there is still some buffers within message chunks, but not at the raw socket level.
 pub struct TcpCodec {
     decoding_limits: DecodingLimits,
-    abort: Arc<RwLock<bool>>
+    abort: Arc<RwLock<bool>>,
 }
 
 impl Decoder for TcpCodec {
@@ -51,7 +51,7 @@ impl Decoder for TcpCodec {
             // Get the message header
             let message_header = {
                 let mut buf = io::Cursor::new(&buf[0..MESSAGE_HEADER_LEN]);
-                MessageHeader::decode(&mut buf, &self.decoding_limits).map_err(|e| io::Error::from(e))?
+                MessageHeader::decode(&mut buf, &self.decoding_limits)?
             };
 
             // Once we have the header we can infer the message size required to read the rest of
