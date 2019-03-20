@@ -62,7 +62,7 @@ _.each(node_set, function (ns) {
         modules.push(...node_set_modules)
     });
 });
-console.log(`modules = ${modules}`)
+console.log(`modules = ${modules}`);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Create the mod.rs

@@ -60,7 +60,7 @@ function post_initialize() {
         // emulate variable1 changing every 500 ms
         setInterval(function () {
             v1 += 1;
-            v2 = v2 ? false : true;
+            v2 = !v2;
         }, 250);
 
 

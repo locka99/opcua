@@ -19,15 +19,15 @@
         ws.onopen = function (e) {
             status("Connected");
             ws.send("subscribe");
-        }
+        };
 
         ws.onmessage = function (e) {
 
-        }
+        };
 
         ws.onerror = function (e) {
             status("Error");
-        }
+        };
     }
 
     function disconnect() {
