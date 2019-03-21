@@ -42,7 +42,7 @@ impl SubscriptionState {
         if self.subscriptions.is_empty() {
             None
         } else {
-            Some(self.subscriptions.keys().map(|k| *k).collect())
+            Some(self.subscriptions.keys().cloned().collect())
         }
     }
 

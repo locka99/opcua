@@ -490,7 +490,7 @@ impl Client {
             e.security_mode == security_mode &&
                 e.security_policy_uri.as_ref() == security_policy_uri &&
                 url_matches(e.endpoint_url.as_ref(), &endpoint_url)
-        }).map(|e| e.clone());
+        }).cloned();
 
         // If something was found, return it, otherwise try a fuzzier match that ignores the hostname.
         if result.is_some() {
@@ -500,7 +500,7 @@ impl Client {
                 e.security_mode == security_mode &&
                     e.security_policy_uri.as_ref() == security_policy_uri &&
                     url_matches_except_host(e.endpoint_url.as_ref(), &endpoint_url)
-            }).map(|e| e.clone())
+            }).cloned()
         }
     }
 
@@ -543,7 +543,7 @@ impl Client {
             security_mode == e.security_mode &&
                 security_policy == SecurityPolicy::from_uri(e.security_policy_uri.as_ref()) &&
                 url_matches_except_host(endpoint_url, e.endpoint_url.as_ref())
-        }).map(|e| e.clone());
+        }).cloned();
 
         // Issue #16, #17 - the server may advertise an endpoint whose hostname is inaccessible
         // to the client so substitute the advertised hostname with the one the client supplied.

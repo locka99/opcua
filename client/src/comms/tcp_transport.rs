@@ -116,7 +116,7 @@ impl WriteState {
     fn send_request(&mut self, request: SupportedMessage) -> Result<u32, StatusCode> {
         match connection_state!(self.state) {
             ConnectionState::Processing => {
-                let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+                let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
                 let request_id = self.send_buffer.next_request_id();
                 self.send_buffer.write(request_id, request, &secure_channel)
             }
