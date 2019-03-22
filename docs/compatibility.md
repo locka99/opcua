@@ -29,6 +29,12 @@ The following services are supported:
   * ActivateSession
   * CloseSession
   * Cancel - stub implementation
+  
+* Node Management service set
+  * AddNodes
+  * AddReferences
+  * DeleteNodes
+  * DeleteReferences
 
 * View service set
   * Browse

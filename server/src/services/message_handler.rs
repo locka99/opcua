@@ -19,8 +19,9 @@ use crate::{
     },
     session::Session,
 };
+use crate::services::node_management::NodeManagementService;
 
-macro_rules!  validated_request{
+macro_rules! validated_request {
     ($validator: expr, $request: expr, $session: expr, $action: block) => {
         if let Err(response) = $validator.validate_request($session, &$request.request_header) {
             Some(response)
@@ -44,6 +45,8 @@ pub struct MessageHandler {
     attribute_service: AttributeService,
     /// Discovery service
     discovery_service: DiscoveryService,
+    /// Node Management service
+    node_management_service: NodeManagementService,
     /// Method service
     method_service: MethodService,
     /// MonitoredItem service
@@ -67,6 +70,7 @@ impl MessageHandler {
             discovery_service: DiscoveryService::new(),
             method_service: MethodService::new(),
             monitored_item_service: MonitoredItemService::new(),
+            node_management_service: NodeManagementService::new(),
             session_service: SessionService::new(),
             view_service: ViewService::new(),
             subscription_service: SubscriptionService::new(),
@@ -130,6 +134,30 @@ impl MessageHandler {
             }
 
             // NodeManagement Service Set, OPC UA Part 4, Section 5.7
+
+            SupportedMessage::AddNodesRequest(request) => {
+                validated_request!(self, &request, &mut session, {
+                    self.node_management_service.add_nodes(&mut address_space, &request)
+                })
+            }
+
+            SupportedMessage::AddReferencesRequest(request) => {
+                validated_request!(self, &request, &mut session, {
+                    self.node_management_service.add_references(&mut address_space, &request)
+                })
+            }
+
+            SupportedMessage::DeleteNodesRequest(request) => {
+                validated_request!(self, &request, &mut session, {
+                    self.node_management_service.delete_nodes(&mut address_space, &request)
+                })
+            }
+
+            SupportedMessage::DeleteReferencesRequest(request) => {
+                validated_request!(self, &request, &mut session, {
+                    self.node_management_service.delete_references(&mut address_space, &request)
+                })
+            }
 
             // View Service Set, OPC UA Part 4, Section 5.8
 

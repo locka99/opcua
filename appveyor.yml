@@ -51,4 +51,4 @@ notifications:
   on_build_success: false
 
 # disable automatic builds
-build: false
+build: off

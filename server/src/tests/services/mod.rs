@@ -134,8 +134,9 @@ fn create_monitored_items_request<T>(subscription_id: u32, mut node_id: Vec<T>) 
 
 pub mod attribute;
 pub mod discovery;
-pub mod session;
+pub mod method;
 pub mod monitored_item;
+pub mod node_management;
+pub mod session;
 pub mod subscription;
 pub mod view;
-pub mod method;

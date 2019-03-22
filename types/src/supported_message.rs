@@ -103,6 +103,14 @@ impl SupportedMessage {
             SupportedMessage::CancelResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::ActivateSessionRequest(ref r) => r.request_header.request_handle,
             SupportedMessage::ActivateSessionResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::AddNodesRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::AddNodesResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::AddReferencesRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::AddReferencesResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::DeleteNodesRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::DeleteNodesResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::DeleteReferencesRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::DeleteReferencesResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::CreateMonitoredItemsRequest(ref r) => r.request_header.request_handle,
             SupportedMessage::CreateMonitoredItemsResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::ModifyMonitoredItemsRequest(ref r) => r.request_header.request_handle,
@@ -201,6 +209,30 @@ impl SupportedMessage {
             }
             ObjectId::ActivateSessionResponse_Encoding_DefaultBinary => {
                 ActivateSessionResponse::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::AddNodesRequest_Encoding_DefaultBinary => {
+                AddNodesRequest::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::AddNodesResponse_Encoding_DefaultBinary => {
+                AddNodesResponse::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::AddReferencesRequest_Encoding_DefaultBinary => {
+                AddReferencesRequest::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::AddReferencesResponse_Encoding_DefaultBinary => {
+                AddReferencesResponse::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::DeleteNodesRequest_Encoding_DefaultBinary => {
+                DeleteNodesRequest::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::DeleteNodesResponse_Encoding_DefaultBinary => {
+                DeleteNodesResponse::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::DeleteReferencesRequest_Encoding_DefaultBinary => {
+                DeleteReferencesRequest::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::DeleteReferencesResponse_Encoding_DefaultBinary => {
+                DeleteReferencesResponse::decode(stream, decoding_limits)?.into()
             }
             ObjectId::CreateMonitoredItemsRequest_Encoding_DefaultBinary => {
                 CreateMonitoredItemsRequest::decode(stream, decoding_limits)?.into()
@@ -310,7 +342,6 @@ impl SupportedMessage {
             ObjectId::CallResponse_Encoding_DefaultBinary => {
                 CallResponse::decode(stream, decoding_limits)?.into()
             }
-
             _ => {
                 debug!("decoding unsupported for object id {:?}", object_id);
                 SupportedMessage::Invalid(object_id)
@@ -341,6 +372,14 @@ supported_messages_enum![
     CancelResponse,
     ActivateSessionRequest,
     ActivateSessionResponse,
+    AddNodesRequest,
+    AddNodesResponse,
+    AddReferencesRequest,
+    AddReferencesResponse,
+    DeleteNodesRequest,
+    DeleteNodesResponse,
+    DeleteReferencesRequest,
+    DeleteReferencesResponse,
     CreateMonitoredItemsRequest,
     CreateMonitoredItemsResponse,
     ModifyMonitoredItemsRequest,
