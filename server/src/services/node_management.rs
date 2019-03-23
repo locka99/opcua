@@ -22,80 +22,6 @@ impl NodeManagementService {
         NodeManagementService {}
     }
 
-    fn create_node(node_id: &NodeId, browse_name: QualifiedName, node_attributes: &ExtensionObject) -> Result<NodeType, StatusCode> {
-        let object_id = node_attributes.node_id.as_object_id().map_err(|_| StatusCode::BadNodeAttributesInvalid)?;
-
-        let decoding_limits = DecodingLimits::default();
-        match object_id {
-            ObjectId::ObjectAttributes_Encoding_DefaultBinary => {
-                let attributes = node_attributes.decode_inner::<ObjectAttributes>(&decoding_limits)?;
-                Ok(Object::from_attributes(node_id, browse_name, attributes).into())
-            }
-            ObjectId::VariableAttributes_Encoding_DefaultBinary => {
-                let attributes = node_attributes.decode_inner::<VariableAttributes>(&decoding_limits)?;
-                Ok(Variable::from_attributes(node_id, browse_name, attributes).into())
-            }
-            ObjectId::MethodAttributes_Encoding_DefaultBinary => {
-                let attributes = node_attributes.decode_inner::<MethodAttributes>(&decoding_limits)?;
-                Ok(Method::from_attributes(node_id, browse_name, attributes).into())
-            }
-            ObjectId::ObjectTypeAttributes_Encoding_DefaultBinary => {
-                let attributes = node_attributes.decode_inner::<ObjectTypeAttributes>(&decoding_limits)?;
-                Ok(ObjectType::from_attributes(node_id, browse_name, attributes).into())
-            }
-            ObjectId::VariableTypeAttributes_Encoding_DefaultBinary => {
-                let attributes = node_attributes.decode_inner::<VariableTypeAttributes>(&decoding_limits)?;
-                Ok(VariableType::from_attributes(node_id, browse_name, attributes).into())
-            }
-            ObjectId::ReferenceTypeAttributes_Encoding_DefaultBinary => {
-                let attributes = node_attributes.decode_inner::<ReferenceTypeAttributes>(&decoding_limits)?;
-                Ok(ReferenceType::from_attributes(node_id, browse_name, attributes).into())
-            }
-            ObjectId::DataTypeAttributes_Encoding_DefaultBinary => {
-                let attributes = node_attributes.decode_inner::<DataTypeAttributes>(&decoding_limits)?;
-                Ok(DataType::from_attributes(node_id, browse_name, attributes).into())
-            }
-            ObjectId::ViewAttributes_Encoding_DefaultBinary => {
-                let attributes = node_attributes.decode_inner::<ViewAttributes>(&decoding_limits)?;
-                Ok(View::from_attributes(node_id, browse_name, attributes).into())
-            }
-            _ => {
-                Err(StatusCode::BadNodeAttributesInvalid)
-            }
-        }
-    }
-
-    fn add_node(address_space: &mut AddressSpace, node_to_add: &AddNodesItem) -> (StatusCode, NodeId) {
-        let requested_new_node_id = &node_to_add.requested_new_node_id;
-        if requested_new_node_id.server_index != 0 {
-            (StatusCode::BadNodeIdRejected, NodeId::null())
-        } else {
-            let requested_new_node_id = &requested_new_node_id.node_id;
-            if !requested_new_node_id.is_null() && address_space.node_exists(&requested_new_node_id) {
-                (StatusCode::BadNodeIdExists, NodeId::null())
-            } else if let Ok(reference_type_id) = node_to_add.reference_type_id.as_reference_type_id() {
-                // Node Id was either supplied or will be generated
-                let requested_new_node_id = if requested_new_node_id.is_null() {
-                    NodeId::next_numeric()
-                } else {
-                    requested_new_node_id.clone()
-                };
-                // Create a node
-                if let Ok(node) = Self::create_node(&requested_new_node_id, node_to_add.browse_name.clone(), &node_to_add.node_attributes) {
-                    // Add the node to the address space
-                    address_space.insert(node, Some(&[
-                        (&node_to_add.parent_node_id.node_id, reference_type_id, ReferenceDirection::Forward),
-                    ]));
-                    (StatusCode::Good, requested_new_node_id)
-                } else {
-                    (StatusCode::BadNodeAttributesInvalid, NodeId::null())
-                }
-            } else {
-                (StatusCode::BadReferenceTypeIdInvalid, NodeId::null())
-            }
-        }
-    }
-
     pub fn add_nodes(&self, address_space: &mut AddressSpace, request: &AddNodesRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref nodes_to_add) = request.nodes_to_add {
             if !nodes_to_add.is_empty() {
@@ -135,7 +61,16 @@ impl NodeManagementService {
     pub fn delete_nodes(&self, _address_space: &mut AddressSpace, request: &DeleteNodesRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref nodes_to_delete) = request.nodes_to_delete {
             if !nodes_to_delete.is_empty() {
-                Ok(self.service_fault(&request.request_header, StatusCode::BadNotImplemented))
+                let results = nodes_to_delete.iter().map(|node_to_delete| {
+                    // TODO fixme
+                    StatusCode::Good
+                }).collect();
+                let response = DeleteNodesResponse {
+                    response_header: ResponseHeader::new_good(&request.request_header),
+                    results: Some(results),
+                    diagnostic_infos: None,
+                };
+                Ok(response.into())
             } else {
                 Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
             }
@@ -153,6 +88,131 @@ impl NodeManagementService {
             }
         } else {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+        }
+    }
+
+    fn create_node(node_id: &NodeId, node_class: NodeClass, browse_name: QualifiedName, node_attributes: &ExtensionObject) -> Result<NodeType, StatusCode> {
+        let object_id = node_attributes.node_id.as_object_id().map_err(|_| StatusCode::BadNodeAttributesInvalid)?;
+
+        // Note we are expecting the node_class and the object id for the attributes to be for the same
+        // thing. If they are different, it is an error.
+
+        let decoding_limits = DecodingLimits::default();
+        match object_id {
+            ObjectId::ObjectAttributes_Encoding_DefaultBinary => {
+                if node_class == NodeClass::Object {
+                    let attributes = node_attributes.decode_inner::<ObjectAttributes>(&decoding_limits)?;
+                    Ok(Object::from_attributes(node_id, browse_name, attributes).into())
+                } else {
+                    Err(StatusCode::BadNodeAttributesInvalid)
+                }
+            }
+            ObjectId::VariableAttributes_Encoding_DefaultBinary => {
+                if node_class == NodeClass::Variable {
+                    let attributes = node_attributes.decode_inner::<VariableAttributes>(&decoding_limits)?;
+                    Ok(Variable::from_attributes(node_id, browse_name, attributes).into())
+                } else {
+                    Err(StatusCode::BadNodeAttributesInvalid)
+                }
+            }
+            ObjectId::MethodAttributes_Encoding_DefaultBinary => {
+                if node_class == NodeClass::Method {
+                    let attributes = node_attributes.decode_inner::<MethodAttributes>(&decoding_limits)?;
+                    Ok(Method::from_attributes(node_id, browse_name, attributes).into())
+                } else {
+                    Err(StatusCode::BadNodeAttributesInvalid)
+                }
+            }
+            ObjectId::ObjectTypeAttributes_Encoding_DefaultBinary => {
+                if node_class == NodeClass::ObjectType {
+                    let attributes = node_attributes.decode_inner::<ObjectTypeAttributes>(&decoding_limits)?;
+                    Ok(ObjectType::from_attributes(node_id, browse_name, attributes).into())
+                } else {
+                    Err(StatusCode::BadNodeAttributesInvalid)
+                }
+            }
+            ObjectId::VariableTypeAttributes_Encoding_DefaultBinary => {
+                if node_class == NodeClass::VariableType {
+                    let attributes = node_attributes.decode_inner::<VariableTypeAttributes>(&decoding_limits)?;
+                    Ok(VariableType::from_attributes(node_id, browse_name, attributes).into())
+                } else {
+                    Err(StatusCode::BadNodeAttributesInvalid)
+                }
+            }
+            ObjectId::ReferenceTypeAttributes_Encoding_DefaultBinary => {
+                if node_class == NodeClass::ReferenceType {
+                    let attributes = node_attributes.decode_inner::<ReferenceTypeAttributes>(&decoding_limits)?;
+                    Ok(ReferenceType::from_attributes(node_id, browse_name, attributes).into())
+                } else {
+                    Err(StatusCode::BadNodeAttributesInvalid)
+                }
+            }
+            ObjectId::DataTypeAttributes_Encoding_DefaultBinary => {
+                if node_class == NodeClass::DataType {
+                    let attributes = node_attributes.decode_inner::<DataTypeAttributes>(&decoding_limits)?;
+                    Ok(DataType::from_attributes(node_id, browse_name, attributes).into())
+                } else {
+                    Err(StatusCode::BadNodeAttributesInvalid)
+                }
+            }
+            ObjectId::ViewAttributes_Encoding_DefaultBinary => {
+                if node_class == NodeClass::View {
+                    let attributes = node_attributes.decode_inner::<ViewAttributes>(&decoding_limits)?;
+                    Ok(View::from_attributes(node_id, browse_name, attributes).into())
+                } else {
+                    Err(StatusCode::BadNodeAttributesInvalid)
+                }
+            }
+            _ => {
+                Err(StatusCode::BadNodeAttributesInvalid)
+            }
+        }
+    }
+
+    fn add_node(address_space: &mut AddressSpace, node_to_add: &AddNodesItem) -> (StatusCode, NodeId) {
+        let requested_new_node_id = &node_to_add.requested_new_node_id;
+        if requested_new_node_id.server_index != 0 {
+            (StatusCode::BadNodeIdRejected, NodeId::null())
+        } else if !requested_new_node_id.is_null() && address_space.node_exists(&requested_new_node_id.node_id) {
+            (StatusCode::BadNodeIdExists, NodeId::null())
+        } else if let Ok(reference_type_id) = node_to_add.reference_type_id.as_reference_type_id() {
+            // Node Id was either supplied or will be generated
+            let new_node_id = if requested_new_node_id.is_null() {
+                NodeId::next_numeric()
+            } else {
+                requested_new_node_id.node_id.clone()
+            };
+
+            // Check the type definition is valid
+            let valid_type_definition = match node_to_add.node_class {
+                NodeClass::Object | NodeClass::Variable => {
+                    // TODO should we check if the type definition points to an object or variable type?
+                    !node_to_add.type_definition.is_null()
+                }
+                _ => {
+                    // Other node classes must NOT supply a type definition
+                    node_to_add.type_definition.is_null()
+                }
+            };
+            // Create a node
+            if !valid_type_definition {
+                (StatusCode::BadTypeDefinitionInvalid, NodeId::null())
+            } else if let Ok(node) = Self::create_node(&new_node_id, node_to_add.node_class, node_to_add.browse_name.clone(), &node_to_add.node_attributes) {
+                // Add the node to the address space
+                address_space.insert(node, Some(&[
+                    (&node_to_add.parent_node_id.node_id, reference_type_id, ReferenceDirection::Forward),
+                ]));
+                // Object / Variable types must add a reference to the type
+                if node_to_add.node_class == NodeClass::Object || node_to_add.node_class == NodeClass::Variable {
+                    address_space.set_node_type(&new_node_id, node_to_add.type_definition.node_id.clone());
+                }
+                (StatusCode::Good, new_node_id)
+            } else {
+                // Create node failed, so assume a problem with the node attributes
+                (StatusCode::BadNodeAttributesInvalid, NodeId::null())
+            }
+        } else {
+            (StatusCode::BadReferenceTypeIdInvalid, NodeId::null())
         }
     }
 }

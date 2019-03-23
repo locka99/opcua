@@ -463,16 +463,8 @@ impl AddressSpace {
         self.insert_references(&[(node_id_from, node_id_to, reference_type_id)]);
     }
 
-    pub fn set_object_type(&mut self, node_id: &NodeId, object_type: ObjectTypeId) {
-        self.insert_reference(node_id, &object_type.into(), ReferenceTypeId::HasTypeDefinition);
-    }
-
-    pub fn set_variable_type(&mut self, node_id: &NodeId, variable_type: VariableTypeId) {
-        self.insert_reference(node_id, &variable_type.into(), ReferenceTypeId::HasTypeDefinition);
-    }
-
-    pub fn set_variable_as_property_type(&mut self, node_id: &NodeId) {
-        self.set_variable_type(node_id, VariableTypeId::PropertyType);
+    pub fn set_node_type<T>(&mut self, node_id: &NodeId, node_type: T) where T: Into<NodeId> {
+        self.insert_reference(node_id, &node_type.into(), ReferenceTypeId::HasTypeDefinition);
     }
 
     pub fn add_has_component(&mut self, node_id_from: &NodeId, node_id_to: &NodeId) {

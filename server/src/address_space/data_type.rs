@@ -23,7 +23,9 @@ impl DataType {
         }
     }
 
-    pub fn from_attributes<S>(node_id: &NodeId, browse_name: S, attributes: DataTypeAttributes) -> Self where S: Into<QualifiedName> {
+    pub fn from_attributes<S>(node_id: &NodeId, browse_name: S, attributes: DataTypeAttributes) -> Self
+        where S: Into<QualifiedName>
+    {
         let mut node = Self::new(node_id, browse_name, "", "", false);
         let mask = AttributesMask::from_bits_truncate(attributes.specified_attributes);
         if mask.contains(AttributesMask::DISPLAY_NAME) {
