@@ -9,6 +9,7 @@ use crate::address_space::{
     base::Base,
     node::Node,
 };
+use opcua_types::service_types::VariableAttributes;
 
 /// This is a builder object for constructing variable nodes programmatically.
 pub struct VariableBuilder {
@@ -24,18 +25,18 @@ macro_rules! node_builder_impl {
                 self
             }
 
-            pub fn display_name(mut self, display_name: &str) -> Self {
-                let _ = self.node.base.set_display_name(LocalizedText::new("", display_name));
+            pub fn browse_name<V>(mut self, browse_name: V) -> Self where V: Into<QualifiedName> {
+                let _ = self.node.base.set_browse_name(browse_name);
                 self
             }
 
-            pub fn browse_name(mut self, browse_name: &str) -> Self {
-                let _ = self.node.base.set_browse_name(QualifiedName::new(0, browse_name));
+            pub fn display_name<V>(mut self, display_name: V) -> Self where V: Into<LocalizedText> {
+                let _ = self.node.base.set_display_name(display_name);
                 self
             }
 
-            pub fn description(mut self, description: &str) -> Self {
-                let _ = self.node.base.set_description(LocalizedText::new("", description));
+            pub fn description<V>(mut self, description: V) -> Self where V: Into<LocalizedText>{
+                let _ = self.node.base.set_description(description);
                 self
             }
         }
@@ -91,8 +92,8 @@ impl VariableBuilder {
         self
     }
 
-    pub fn minimum_sampling_interval(mut self, minimum_sampling_interval: i32) -> Self {
-        let _ = self.node.set_attribute(AttributeId::MinimumSamplingInterval, Variant::Int32(minimum_sampling_interval).into());
+    pub fn minimum_sampling_interval(mut self, minimum_sampling_interval: f64) -> Self {
+        let _ = self.node.set_attribute(AttributeId::MinimumSamplingInterval, Variant::Double(minimum_sampling_interval).into());
         self
     }
 
@@ -130,7 +131,12 @@ impl Default for Variable {
 }
 
 impl Variable {
-    pub fn new<V>(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, value: V) -> Variable where V: Into<Variant> {
+    pub fn new<R, S, T, V>(node_id: &NodeId, browse_name: R, display_name: S, description: T, value: V) -> Variable
+        where R: Into<QualifiedName>,
+              S: Into<LocalizedText>,
+              T: Into<LocalizedText>,
+              V: Into<Variant>
+    {
         let value = DataValue::new(value);
         let data_type = value.value.as_ref().unwrap().data_type();
         if let Some(data_type) = data_type {
@@ -140,12 +146,57 @@ impl Variable {
         }
     }
 
+    pub fn from_attributes(node_id: &NodeId, browse_name: &QualifiedName, attributes: VariableAttributes) -> Self {
+        let mut node = Self::new(node_id, browse_name.name.as_ref(), "", "", 0);
+        let mask = AttributesMask::from_bits_truncate(attributes.specified_attributes);
+        if mask.contains(AttributesMask::DISPLAY_NAME) {
+            node.base.set_display_name(attributes.display_name);
+        }
+        if mask.contains(AttributesMask::DESCRIPTION) {
+            node.base.set_description(attributes.description);
+        }
+        if mask.contains(AttributesMask::WRITE_MASK) {
+            node.base.set_write_mask(WriteMask::from_bits_truncate(attributes.write_mask));
+        }
+        if mask.contains(AttributesMask::USER_WRITE_MASK) {
+            node.base.set_user_write_mask(WriteMask::from_bits_truncate(attributes.user_write_mask));
+        }
+        if mask.contains(AttributesMask::VALUE) {
+            node.set_value(attributes.value);
+        }
+        if mask.contains(AttributesMask::DATA_TYPE) {
+            let _ = node.set_attribute(AttributeId::DataType, Variant::from(attributes.data_type).into());
+        }
+        if mask.contains(AttributesMask::VALUE_RANK) {
+            let _ = node.set_attribute(AttributeId::ValueRank, Variant::from(attributes.value_rank).into());
+        }
+        if mask.contains(AttributesMask::ARRAY_DIMENSIONS) {
+            let _ = node.set_attribute(AttributeId::ValueRank, Variant::from(attributes.array_dimensions.unwrap()).into());
+        }
+        if mask.contains(AttributesMask::ACCESS_LEVEL) {
+            let _ = node.set_attribute(AttributeId::AccessLevel, Variant::Byte(attributes.access_level).into());
+        }
+        if mask.contains(AttributesMask::USER_ACCESS_LEVEL) {
+            let _ = node.set_attribute(AttributeId::UserAccessLevel, Variant::Byte(attributes.user_access_level).into());
+        }
+        if mask.contains(AttributesMask::MINIMUM_SAMPLING_INTERVAL) {
+            let _ = node.set_attribute(AttributeId::MinimumSamplingInterval, Variant::Double(attributes.minimum_sampling_interval).into());
+        }
+        if mask.contains(AttributesMask::HISTORIZING) {
+            let _ = node.set_attribute(AttributeId::Historizing, Variant::Boolean(attributes.historizing).into());
+        }
+        node
+    }
+
     pub fn new_with_data_type<V>(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: V) -> Variable where V: Into<Variant> {
         Variable::new_data_value(node_id, browse_name, display_name, description, data_type, DataValue::new(value))
     }
 
     /// Constructs a new variable with the specified id, name, type and value
-    pub fn new_data_value(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, data_type: DataTypeId, value: DataValue) -> Variable {
+    pub fn new_data_value<S, R, T>(node_id: &NodeId, browse_name: R, display_name: S, description: T, data_type: DataTypeId, value: DataValue) -> Variable
+        where R: Into<QualifiedName>,
+              S: Into<LocalizedText>,
+              T: Into<LocalizedText>, {
         let array_dimensions = if let Some(ref value) = value.value {
             // Get the
             match value {
@@ -214,8 +265,8 @@ impl Variable {
     }
 
     /// Gets the minimum sampling interval, if the attribute was set
-    pub fn minimum_sampling_interval(&self) -> Option<i32> {
-        find_attribute_value_optional!(&self.base, MinimumSamplingInterval, Int32)
+    pub fn minimum_sampling_interval(&self) -> Option<f64> {
+        find_attribute_value_optional!(&self.base, MinimumSamplingInterval, Double)
     }
 
     /// Sets the minimum sampling interval
@@ -223,9 +274,9 @@ impl Variable {
     /// Specifies in milliseconds how fast the server can reasonably sample the value for changes
     ///
     /// The value 0 means server is to monitor the value continuously. The value -1 means indeterminate.
-    pub fn set_minimum_sampling_interval(&mut self, minimum_sampling_interval: i32) {
+    pub fn set_minimum_sampling_interval(&mut self, minimum_sampling_interval: f64) {
         let now = DateTime::now();
-        let _ = self.base.set_attribute_value(AttributeId::MinimumSamplingInterval, Variant::Int32(minimum_sampling_interval), &now, &now);
+        let _ = self.base.set_attribute_value(AttributeId::MinimumSamplingInterval, Variant::Double(minimum_sampling_interval), &now, &now);
     }
 
     pub fn is_readable(&self) -> bool {

@@ -8,7 +8,11 @@ pub struct View {
 node_impl!(View);
 
 impl View {
-    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, event_notifier: bool, contains_no_loops: bool) -> View {
+    pub fn new<R, S, T>(node_id: &NodeId, browse_name: R, display_name: S, description: T, event_notifier: bool, contains_no_loops: bool) -> View
+        where R: Into<QualifiedName>,
+              S: Into<LocalizedText>,
+              T: Into<LocalizedText>,
+    {
         // Mandatory
         let attributes = vec![
             (AttributeId::EventNotifier, Variant::Boolean(event_notifier)),

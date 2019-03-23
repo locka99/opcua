@@ -68,13 +68,57 @@ pub mod constants {
     pub const SECURITY_POLICY_BASIC_256_SHA_256: &str = "Basic256Sha256";
 }
 
-/// Write mask bits
+/// Attributes mask bits
+bitflags! {
+    pub struct AttributesMask: u32 {
+        /// Indicates if the AccessLevel Attribute is set.
+        const ACCESS_LEVEL = 1;
+        /// Indicates if the ArrayDimensions Attribute is set.
+        const ARRAY_DIMENSIONS = 1 << 1;
+        /// Indicates if the ContainsNoLoops Attribute is set.
+        const CONTAINS_NO_LOOPS = 1 << 3;
+        /// Indicates if the DataType Attribute is set.
+        const DATA_TYPE = 1 << 4;
+        /// Indicates if the Description Attribute is set.
+        const DESCRIPTION = 1 << 5;
+        /// Indicates if the DisplayName Attribute is set.
+        const DISPLAY_NAME = 1 << 6;
+        /// Indicates if the EventNotifier Attribute is set.
+        const EVENT_NOTIFIER = 1 << 7;
+        /// Indicates if the Executable Attribute is set.
+        const EXECUTABLE = 1 << 8;
+        /// Indicates if the Historizing Attribute is set.
+        const HISTORIZING = 1 << 9;
+        /// Indicates if the InverseName Attribute is set.
+        const INVERSE_NAME = 1 << 10;
+        /// Indicates if the IsAbstract Attribute is set.
+        const IS_ABSTRACT = 1 << 11;
+        /// Indicates if the MinimumSamplingInterval Attribute is set.
+        const MINIMUM_SAMPLING_INTERVAL = 1 << 12;
+        /// Indicates if the Symmetric Attribute is set.
+        const SYMMETRIC = 1 << 15;
+        /// Indicates if the UserAccessLevel Attribute is set.
+        const USER_ACCESS_LEVEL = 1 << 16;
+        /// Indicates if the UserExecutable Attribute is set.
+        const USER_EXECUTABLE = 1 << 17;
+        /// Indicates if the UserWriteMask Attribute is set.
+        const USER_WRITE_MASK = 1 << 18;
+        /// Indicates if the ValueRank Attribute is set.
+        const VALUE_RANK = 1 << 19;
+        /// Indicates if the WriteMask Attribute is set.
+        const WRITE_MASK = 1 << 20;
+        /// Indicates if the Value Attribute is set
+        const VALUE = 1 << 21;
+    }
+}
+
+/// Write mask bits (similar but different to AttributesMask)
 bitflags! {
     pub struct WriteMask: u32 {
         /// Indicates if the AccessLevel Attribute is writable.
         const ACCESS_LEVEL = 1;
         /// Indicates if the ArrayDimensions Attribute is writable.
-        const ARRAY_DIMENSTIONS = 1 << 1;
+        const ARRAY_DIMENSIONS = 1 << 1;
         ///Indicates if the BrowseName Attribute is writable.
         const BROWSE_NAME = 1 << 2;
         /// Indicates if the ContainsNoLoops Attribute is writable.

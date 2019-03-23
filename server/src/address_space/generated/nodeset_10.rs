@@ -1230,7 +1230,7 @@ fn add_method_75(address_space: &mut AddressSpace) {
     let name = "Start";
     let description = "Causes the Program to transition from the Ready state to the Running state.";
     let node_id = NodeId::new(0, 2426);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2391), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1243,7 +1243,7 @@ fn add_method_76(address_space: &mut AddressSpace) {
     let name = "Suspend";
     let description = "Causes the Program to transition from the Running state to the Suspended state.";
     let node_id = NodeId::new(0, 2427);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2391), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1256,7 +1256,7 @@ fn add_method_77(address_space: &mut AddressSpace) {
     let name = "Resume";
     let description = "Causes the Program to transition from the Suspended state to the Running state.";
     let node_id = NodeId::new(0, 2428);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2391), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1269,7 +1269,7 @@ fn add_method_78(address_space: &mut AddressSpace) {
     let name = "Halt";
     let description = "Causes the Program to transition from the Ready, Running or Suspended state to the Halted state.";
     let node_id = NodeId::new(0, 2429);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2391), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1282,7 +1282,7 @@ fn add_method_79(address_space: &mut AddressSpace) {
     let name = "Reset";
     let description = "Causes the Program to transition from the Halted state to the Ready state.";
     let node_id = NodeId::new(0, 2430);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2391), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),

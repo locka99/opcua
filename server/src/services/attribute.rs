@@ -207,7 +207,7 @@ impl AttributeService {
                 AttributeId::EventNotifier => write_mask.contains(WriteMask::EVENT_NOTIFIER),
                 AttributeId::DataType => write_mask.contains(WriteMask::DATA_TYPE),
                 AttributeId::ValueRank => write_mask.contains(WriteMask::VALUE_RANK),
-                AttributeId::ArrayDimensions => write_mask.contains(WriteMask::ARRAY_DIMENSTIONS),
+                AttributeId::ArrayDimensions => write_mask.contains(WriteMask::ARRAY_DIMENSIONS),
                 AttributeId::AccessLevel => write_mask.contains(WriteMask::ACCESS_LEVEL),
                 AttributeId::UserAccessLevel => write_mask.contains(WriteMask::USER_ACCESS_LEVEL),
                 AttributeId::MinimumSamplingInterval => write_mask.contains(WriteMask::MINIMUM_SAMPLING_INTERVAL),

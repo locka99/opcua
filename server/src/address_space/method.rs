@@ -1,4 +1,5 @@
 use crate::address_space::{base::Base, node::Node};
+use opcua_types::service_types::MethodAttributes;
 
 #[derive(Debug)]
 pub struct Method {
@@ -8,10 +9,13 @@ pub struct Method {
 node_impl!(Method);
 
 impl Method {
-    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, is_abstract: bool, executable: bool, user_executable: bool) -> Method {
+    pub fn new<R, S, T>(node_id: &NodeId, browse_name: R, display_name: S, description: T, executable: bool, user_executable: bool) -> Method
+        where R: Into<QualifiedName>,
+              S: Into<LocalizedText>,
+              T: Into<LocalizedText>,
+    {
         // Mandatory
         let attributes = vec![
-            (AttributeId::IsAbstract, Variant::Boolean(is_abstract)),
             (AttributeId::Executable, Variant::Boolean(executable)),
             (AttributeId::UserExecutable, Variant::Boolean(user_executable)),
         ];
@@ -34,8 +38,28 @@ impl Method {
         }
     }
 
-    pub fn is_abstract(&self) -> bool {
-        find_attribute_value_mandatory!(&self.base, IsAbstract, Boolean)
+    pub fn from_attributes(node_id: &NodeId, browse_name: &QualifiedName, attributes: MethodAttributes) -> Self {
+        let mut node = Self::new(node_id, browse_name.name.as_ref(), "", "", false, false);
+        let mask = AttributesMask::from_bits_truncate(attributes.specified_attributes);
+        if mask.contains(AttributesMask::DISPLAY_NAME) {
+            node.base.set_display_name(attributes.display_name);
+        }
+        if mask.contains(AttributesMask::DESCRIPTION) {
+            node.base.set_description(attributes.description);
+        }
+        if mask.contains(AttributesMask::WRITE_MASK) {
+            node.base.set_write_mask(WriteMask::from_bits_truncate(attributes.write_mask));
+        }
+        if mask.contains(AttributesMask::USER_WRITE_MASK) {
+            node.base.set_user_write_mask(WriteMask::from_bits_truncate(attributes.user_write_mask));
+        }
+        if mask.contains(AttributesMask::EXECUTABLE) {
+            let _ = node.set_attribute(AttributeId::Executable, Variant::Boolean(attributes.executable).into());
+        }
+        if mask.contains(AttributesMask::USER_EXECUTABLE) {
+            let _ = node.set_attribute(AttributeId::UserExecutable, Variant::Boolean(attributes.user_executable).into());
+        }
+        node
     }
 
     pub fn executable(&self) -> bool {

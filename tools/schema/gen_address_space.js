@@ -366,10 +366,9 @@ function insert_node(fn_name, node_type, node) {
         let value_rank = _.has(node["$"], "ValueRank") ? node["$"]["ValueRank"] : -1;
         node_ctor = `VariableType::new(&node_id, ${browse_name_var}, ${display_name_var}, description, ${is_abstract}, ${value_rank})`;
     } else if (node_type === "Method") {
-        let is_abstract = _.has(node["$"], "IsAbstract") && node["$"]["IsAbstract"] === "true";
-        let executable = false; // TODO
-        let user_executable = false; // TODO
-        node_ctor = `Method::new(&node_id, ${browse_name_var}, ${display_name_var}, description, ${is_abstract}, ${executable}, ${user_executable})`;
+        let executable = true; // TODO
+        let user_executable = true; // TODO
+        node_ctor = `Method::new(&node_id, ${browse_name_var}, ${display_name_var}, description, ${executable}, ${user_executable})`;
     }
 
     let node_id = node["$"]["NodeId"];

@@ -1187,7 +1187,7 @@ fn add_method_72(address_space: &mut AddressSpace) {
     let name = "GetMonitoredItems";
     let description = "";
     let node_id = NodeId::new(0, 11489);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2004), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11490), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1202,7 +1202,7 @@ fn add_method_73(address_space: &mut AddressSpace) {
     let name = "ResendData";
     let description = "";
     let node_id = NodeId::new(0, 12871);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2004), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 12872), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1216,7 +1216,7 @@ fn add_method_74(address_space: &mut AddressSpace) {
     let name = "SetSubscriptionDurable";
     let description = "";
     let node_id = NodeId::new(0, 12746);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2004), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 12747), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1231,7 +1231,7 @@ fn add_method_75(address_space: &mut AddressSpace) {
     let name = "RequestServerStateChange";
     let description = "";
     let node_id = NodeId::new(0, 12883);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2004), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 12884), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1245,7 +1245,7 @@ fn add_method_76(address_space: &mut AddressSpace) {
     let name = "Open";
     let description = "";
     let node_id = NodeId::new(0, 11580);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11575), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11581), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1260,7 +1260,7 @@ fn add_method_77(address_space: &mut AddressSpace) {
     let name = "Close";
     let description = "";
     let node_id = NodeId::new(0, 11583);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11575), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11584), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1274,7 +1274,7 @@ fn add_method_78(address_space: &mut AddressSpace) {
     let name = "Read";
     let description = "";
     let node_id = NodeId::new(0, 11585);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11575), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11586), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1289,7 +1289,7 @@ fn add_method_79(address_space: &mut AddressSpace) {
     let name = "Write";
     let description = "";
     let node_id = NodeId::new(0, 11588);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11575), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11589), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1303,7 +1303,7 @@ fn add_method_80(address_space: &mut AddressSpace) {
     let name = "GetPosition";
     let description = "";
     let node_id = NodeId::new(0, 11590);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11575), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11591), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1318,7 +1318,7 @@ fn add_method_81(address_space: &mut AddressSpace) {
     let name = "SetPosition";
     let description = "";
     let node_id = NodeId::new(0, 11593);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11575), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11594), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1332,7 +1332,7 @@ fn add_method_82(address_space: &mut AddressSpace) {
     let name = "CreateDirectory";
     let description = "";
     let node_id = NodeId::new(0, 13355);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13354), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13356), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1347,7 +1347,7 @@ fn add_method_83(address_space: &mut AddressSpace) {
     let name = "CreateFile";
     let description = "";
     let node_id = NodeId::new(0, 13358);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13354), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13359), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1362,7 +1362,7 @@ fn add_method_84(address_space: &mut AddressSpace) {
     let name = "Delete";
     let description = "";
     let node_id = NodeId::new(0, 13361);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13354), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13362), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1376,7 +1376,7 @@ fn add_method_85(address_space: &mut AddressSpace) {
     let name = "MoveOrCopy";
     let description = "";
     let node_id = NodeId::new(0, 13363);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13354), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13364), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1391,7 +1391,7 @@ fn add_method_86(address_space: &mut AddressSpace) {
     let name = "Open";
     let description = "";
     let node_id = NodeId::new(0, 13372);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13366), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13373), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1406,7 +1406,7 @@ fn add_method_87(address_space: &mut AddressSpace) {
     let name = "Close";
     let description = "";
     let node_id = NodeId::new(0, 13375);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13366), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13376), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1420,7 +1420,7 @@ fn add_method_88(address_space: &mut AddressSpace) {
     let name = "Read";
     let description = "";
     let node_id = NodeId::new(0, 13377);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13366), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13378), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1435,7 +1435,7 @@ fn add_method_89(address_space: &mut AddressSpace) {
     let name = "Write";
     let description = "";
     let node_id = NodeId::new(0, 13380);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13366), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13381), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1449,7 +1449,7 @@ fn add_method_90(address_space: &mut AddressSpace) {
     let name = "GetPosition";
     let description = "";
     let node_id = NodeId::new(0, 13382);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13366), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13383), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1464,7 +1464,7 @@ fn add_method_91(address_space: &mut AddressSpace) {
     let name = "SetPosition";
     let description = "";
     let node_id = NodeId::new(0, 13385);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13366), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13386), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1478,7 +1478,7 @@ fn add_method_92(address_space: &mut AddressSpace) {
     let name = "CreateDirectory";
     let description = "";
     let node_id = NodeId::new(0, 13387);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13353), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13388), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1493,7 +1493,7 @@ fn add_method_93(address_space: &mut AddressSpace) {
     let name = "CreateFile";
     let description = "";
     let node_id = NodeId::new(0, 13390);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13353), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13391), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1508,7 +1508,7 @@ fn add_method_94(address_space: &mut AddressSpace) {
     let name = "Delete";
     let description = "";
     let node_id = NodeId::new(0, 13393);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13353), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13394), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1522,7 +1522,7 @@ fn add_method_95(address_space: &mut AddressSpace) {
     let name = "MoveOrCopy";
     let description = "";
     let node_id = NodeId::new(0, 13395);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 13353), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 13396), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1537,7 +1537,7 @@ fn add_method_96(address_space: &mut AddressSpace) {
     let name = "ExportNamespace";
     let description = "Updates the file by exporting the server namespace.";
     let node_id = NodeId::new(0, 11615);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11595), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 80), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1550,7 +1550,7 @@ fn add_method_97(address_space: &mut AddressSpace) {
     let name = "Open";
     let description = "";
     let node_id = NodeId::new(0, 11629);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11624), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11630), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1565,7 +1565,7 @@ fn add_method_98(address_space: &mut AddressSpace) {
     let name = "Close";
     let description = "";
     let node_id = NodeId::new(0, 11632);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11624), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11633), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1579,7 +1579,7 @@ fn add_method_99(address_space: &mut AddressSpace) {
     let name = "Read";
     let description = "";
     let node_id = NodeId::new(0, 11634);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11624), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11635), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1594,7 +1594,7 @@ fn add_method_100(address_space: &mut AddressSpace) {
     let name = "Write";
     let description = "";
     let node_id = NodeId::new(0, 11637);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 11624), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 11638), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),

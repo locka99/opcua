@@ -186,7 +186,7 @@ fn array_as_variable() {
 
     // Get the variable node back from the address space, ensure that the ValueRank and ArrayDimensions are correct
     let node_id = NodeId::new(2, 1);
-    let v = Variable::new(&node_id, "x", "x", &"x value", values);
+    let v = Variable::new(&node_id, "x", "x", "x value", values);
 
     let value_rank = v.value_rank();
     assert_eq!(value_rank, 1);
@@ -206,7 +206,7 @@ fn multi_dimension_array_as_variable() {
 
     // Get the variable node back from the address space, ensure that the ValueRank and ArrayDimensions are correct
     let node_id = NodeId::new(2, 1);
-    let v = Variable::new(&node_id, "x", "x", &"x value", mda);
+    let v = Variable::new(&node_id, "x", "x", "x value", mda);
 
     let value_rank = v.value_rank();
     assert_eq!(value_rank, 2);
@@ -236,7 +236,7 @@ fn variable_builder() {
         .array_dimensions(&[1, 2, 3])
         .historizing(true)
         .value(Variant::from(999))
-        .minimum_sampling_interval(123)
+        .minimum_sampling_interval(123.0)
         .build();
 
     assert_eq!(v.node_id(), NodeId::new(1, "Hello"));

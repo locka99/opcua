@@ -63,7 +63,7 @@ fn add_many_vars_to_address_space(address_space: &mut AddressSpace, vars_to_add:
     let vars: Vec<Variable> = (0..vars_to_add).map(|i| {
         let var_name = var_name(i);
         let node_id = NodeId::new(1, var_name.clone());
-        Variable::new(&node_id, &var_name, &var_name, "", i as i32)
+        Variable::new(&node_id, var_name, "", "", i as i32)
     }).collect();
 
     let node_ids = vars.iter().map(|v| v.node_id().clone()).collect();

@@ -228,7 +228,7 @@ fn add_static_scalar_variables(server: &mut Server, static_folder_id: &NodeId) {
         let node_id = sn.node_id(false, false);
         let name = sn.name();
         let default_value = sn.default_value();
-        let _ = address_space.add_variable(Variable::new(&node_id, name, name, &format!("{} value", name), default_value), &folder_id);
+        let _ = address_space.add_variable(Variable::new(&node_id, name, name, format!("{} value", name), default_value), &folder_id);
     }
 }
 
@@ -246,7 +246,7 @@ fn add_static_array_variables(server: &mut Server, static_folder_id: &NodeId) {
         let node_id = sn.node_id(false, true);
         let name = sn.name();
         let values = (0..100).map(|_| sn.default_value()).collect::<Vec<Variant>>();
-        let _ = address_space.add_variable(Variable::new(&node_id, name, name, &format!("{} value", name), values), &folder_id);
+        let _ = address_space.add_variable(Variable::new(&node_id, name, name, format!("{} value", name), values), &folder_id);
     });
 }
 
@@ -264,7 +264,7 @@ fn add_dynamic_scalar_variables(server: &mut Server, dynamic_folder_id: &NodeId)
         let node_id = sn.node_id(true, false);
         let name = sn.name();
         let default_value = sn.default_value();
-        let _ = address_space.add_variable(Variable::new(&node_id, name, name, &format!("{} value", name), default_value), &folder_id);
+        let _ = address_space.add_variable(Variable::new(&node_id, name, name, format!("{} value", name), default_value), &folder_id);
     });
 }
 
@@ -282,7 +282,7 @@ fn add_dynamic_array_variables(server: &mut Server, dynamic_folder_id: &NodeId) 
         let node_id = sn.node_id(true, true);
         let name = sn.name();
         let values = (0..10).map(|_| sn.default_value()).collect::<Vec<Variant>>();
-        let _ = address_space.add_variable(Variable::new(&node_id, name, name, &format!("{} value", name), values), &folder_id);
+        let _ = address_space.add_variable(Variable::new(&node_id, name, name, format!("{} value", name), values), &folder_id);
     });
 }
 
@@ -317,8 +317,9 @@ fn add_stress_scalar_variables(server: &mut Server) -> Vec<NodeId> {
 
     node_ids.iter().enumerate().for_each(|(i, node_id)| {
         let name = format!("v{:04}", i);
+        let description = format!("{} value", name);
         let default_value = Variant::Int32(0);
-        let _ = address_space.add_variable(Variable::new(node_id, &name, &name, &format!("{} value", name), default_value), &folder_id);
+        let _ = address_space.add_variable(Variable::new(node_id, name, "", description, default_value), &folder_id);
     });
 
     node_ids

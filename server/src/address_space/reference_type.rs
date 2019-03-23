@@ -8,7 +8,11 @@ pub struct ReferenceType {
 node_impl!(ReferenceType);
 
 impl ReferenceType {
-    pub fn new(node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, inverse_name: Option<LocalizedText>, symmetric: bool, is_abstract: bool) -> ReferenceType {
+    pub fn new<R, S, T>(node_id: &NodeId, browse_name: R, display_name: S, description: T, inverse_name: Option<LocalizedText>, symmetric: bool, is_abstract: bool) -> ReferenceType
+        where R: Into<QualifiedName>,
+              S: Into<LocalizedText>,
+              T: Into<LocalizedText>,
+    {
         // Mandatory
         let mut attributes = vec![
             (AttributeId::Symmetric, Variant::Boolean(symmetric)),

@@ -200,6 +200,24 @@ pub struct QualifiedName {
     pub name: UAString,
 }
 
+impl<'a> From<&'a str> for QualifiedName {
+    fn from(value: &'a str) -> Self {
+        Self {
+            namespace_index: 0,
+            name: UAString::from(value),
+        }
+    }
+}
+
+impl From<String> for QualifiedName {
+    fn from(value: String) -> Self {
+        Self {
+            namespace_index: 0,
+            name: UAString::from(value),
+        }
+    }
+}
+
 impl BinaryEncoder<QualifiedName> for QualifiedName {
     fn byte_len(&self) -> usize {
         let mut size: usize = 0;
@@ -253,6 +271,24 @@ pub struct LocalizedText {
     pub locale: UAString,
     /// The text in the specified locale. Omitted frmo stream if null or empty.
     pub text: UAString,
+}
+
+impl<'a> From<&'a str> for LocalizedText {
+    fn from(value: &'a str) -> Self {
+        Self {
+            locale: UAString::from(""),
+            text: UAString::from(value),
+        }
+    }
+}
+
+impl From<String> for LocalizedText {
+    fn from(value: String) -> Self {
+        Self {
+            locale: UAString::from(""),
+            text: UAString::from(value),
+        }
+    }
 }
 
 impl fmt::Display for LocalizedText {

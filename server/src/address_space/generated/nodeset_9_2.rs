@@ -1476,7 +1476,7 @@ fn add_method_86(address_space: &mut AddressSpace) {
     let name = "Disable";
     let description = "";
     let node_id = NodeId::new(0, 9028);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2782), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1489,7 +1489,7 @@ fn add_method_87(address_space: &mut AddressSpace) {
     let name = "Enable";
     let description = "";
     let node_id = NodeId::new(0, 9027);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2782), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1502,7 +1502,7 @@ fn add_method_88(address_space: &mut AddressSpace) {
     let name = "AddComment";
     let description = "";
     let node_id = NodeId::new(0, 9029);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2782), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 9030), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1516,7 +1516,7 @@ fn add_method_89(address_space: &mut AddressSpace) {
     let name = "ConditionRefresh";
     let description = "";
     let node_id = NodeId::new(0, 3875);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2782), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 3876), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1529,7 +1529,7 @@ fn add_method_90(address_space: &mut AddressSpace) {
     let name = "ConditionRefresh2";
     let description = "";
     let node_id = NodeId::new(0, 12912);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2782), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 12913), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1542,7 +1542,7 @@ fn add_method_91(address_space: &mut AddressSpace) {
     let name = "Respond";
     let description = "";
     let node_id = NodeId::new(0, 9069);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2830), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 9070), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1556,7 +1556,7 @@ fn add_method_92(address_space: &mut AddressSpace) {
     let name = "Acknowledge";
     let description = "";
     let node_id = NodeId::new(0, 9111);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2881), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 9112), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1570,7 +1570,7 @@ fn add_method_93(address_space: &mut AddressSpace) {
     let name = "Confirm";
     let description = "";
     let node_id = NodeId::new(0, 9113);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2881), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 9114), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1584,7 +1584,7 @@ fn add_method_94(address_space: &mut AddressSpace) {
     let name = "Unshelve";
     let description = "";
     let node_id = NodeId::new(0, 9211);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 9178), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1597,7 +1597,7 @@ fn add_method_95(address_space: &mut AddressSpace) {
     let name = "OneShotShelve";
     let description = "";
     let node_id = NodeId::new(0, 9212);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 9178), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1610,7 +1610,7 @@ fn add_method_96(address_space: &mut AddressSpace) {
     let name = "TimedShelve";
     let description = "";
     let node_id = NodeId::new(0, 9213);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 9178), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 9214), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),
@@ -1624,7 +1624,7 @@ fn add_method_97(address_space: &mut AddressSpace) {
     let name = "Unshelve";
     let description = "";
     let node_id = NodeId::new(0, 2947);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2929), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1637,7 +1637,7 @@ fn add_method_98(address_space: &mut AddressSpace) {
     let name = "OneShotShelve";
     let description = "";
     let node_id = NodeId::new(0, 2948);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2929), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 78), ReferenceTypeId::HasModellingRule, ReferenceDirection::Forward),
@@ -1650,7 +1650,7 @@ fn add_method_99(address_space: &mut AddressSpace) {
     let name = "TimedShelve";
     let description = "";
     let node_id = NodeId::new(0, 2949);
-    let node = Method::new(&node_id, name, name, description, false, false, false);
+    let node = Method::new(&node_id, name, name, description, true, true);
     address_space.insert(node, Some(&[
         (&NodeId::new(0, 2929), ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
         (&NodeId::new(0, 2991), ReferenceTypeId::HasProperty, ReferenceDirection::Forward),

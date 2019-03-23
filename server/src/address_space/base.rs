@@ -193,14 +193,18 @@ impl Node for Base {
 }
 
 impl Base {
-    pub fn new(node_class: NodeClass, node_id: &NodeId, browse_name: &str, display_name: &str, description: &str, mut attributes: Vec<(AttributeId, Variant)>) -> Base {
+    pub fn new<R, S, T>(node_class: NodeClass, node_id: &NodeId, browse_name: R, display_name: S, description: T, mut attributes: Vec<(AttributeId, Variant)>) -> Base
+        where R: Into<QualifiedName>,
+              S: Into<LocalizedText>,
+              T: Into<LocalizedText>
+    {
         // Mandatory attributes
         let mut attributes_to_add = vec![
             (AttributeId::NodeClass, Variant::Int32(node_class as i32)),
             (AttributeId::NodeId, Variant::from(node_id.clone())),
-            (AttributeId::DisplayName, Variant::from(LocalizedText::new("", display_name))),
-            (AttributeId::BrowseName, Variant::from(QualifiedName::new(0, browse_name))),
-            (AttributeId::Description, Variant::from(LocalizedText::new("", description))),
+            (AttributeId::BrowseName, Variant::from(browse_name.into())),
+            (AttributeId::DisplayName, Variant::from(display_name.into())),
+            (AttributeId::Description, Variant::from(description.into())),
             (AttributeId::WriteMask, Variant::UInt32(0)),
             (AttributeId::UserWriteMask, Variant::UInt32(0)),
         ];
