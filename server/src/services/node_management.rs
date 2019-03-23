@@ -104,6 +104,7 @@ impl NodeManagementService {
                     let attributes = node_attributes.decode_inner::<ObjectAttributes>(&decoding_limits)?;
                     Ok(Object::from_attributes(node_id, browse_name, attributes).into())
                 } else {
+                    error!("node class and object node attributes are not compatible");
                     Err(StatusCode::BadNodeAttributesInvalid)
                 }
             }
@@ -112,6 +113,7 @@ impl NodeManagementService {
                     let attributes = node_attributes.decode_inner::<VariableAttributes>(&decoding_limits)?;
                     Ok(Variable::from_attributes(node_id, browse_name, attributes).into())
                 } else {
+                    error!("node class and variable node attributes are not compatible");
                     Err(StatusCode::BadNodeAttributesInvalid)
                 }
             }
@@ -120,6 +122,7 @@ impl NodeManagementService {
                     let attributes = node_attributes.decode_inner::<MethodAttributes>(&decoding_limits)?;
                     Ok(Method::from_attributes(node_id, browse_name, attributes).into())
                 } else {
+                    error!("node class and method node attributes are not compatible");
                     Err(StatusCode::BadNodeAttributesInvalid)
                 }
             }
@@ -128,6 +131,7 @@ impl NodeManagementService {
                     let attributes = node_attributes.decode_inner::<ObjectTypeAttributes>(&decoding_limits)?;
                     Ok(ObjectType::from_attributes(node_id, browse_name, attributes).into())
                 } else {
+                    error!("node class and object type node attributes are not compatible");
                     Err(StatusCode::BadNodeAttributesInvalid)
                 }
             }
@@ -136,6 +140,7 @@ impl NodeManagementService {
                     let attributes = node_attributes.decode_inner::<VariableTypeAttributes>(&decoding_limits)?;
                     Ok(VariableType::from_attributes(node_id, browse_name, attributes).into())
                 } else {
+                    error!("node class and variable type node attributes are not compatible");
                     Err(StatusCode::BadNodeAttributesInvalid)
                 }
             }
@@ -144,6 +149,7 @@ impl NodeManagementService {
                     let attributes = node_attributes.decode_inner::<ReferenceTypeAttributes>(&decoding_limits)?;
                     Ok(ReferenceType::from_attributes(node_id, browse_name, attributes).into())
                 } else {
+                    error!("node class and reference type node attributes are not compatible");
                     Err(StatusCode::BadNodeAttributesInvalid)
                 }
             }
@@ -152,6 +158,7 @@ impl NodeManagementService {
                     let attributes = node_attributes.decode_inner::<DataTypeAttributes>(&decoding_limits)?;
                     Ok(DataType::from_attributes(node_id, browse_name, attributes).into())
                 } else {
+                    error!("node class and data type node attributes are not compatible");
                     Err(StatusCode::BadNodeAttributesInvalid)
                 }
             }
@@ -160,10 +167,12 @@ impl NodeManagementService {
                     let attributes = node_attributes.decode_inner::<ViewAttributes>(&decoding_limits)?;
                     Ok(View::from_attributes(node_id, browse_name, attributes).into())
                 } else {
+                    error!("node class and view node attributes are not compatible");
                     Err(StatusCode::BadNodeAttributesInvalid)
                 }
             }
             _ => {
+                warn!("create_node was called with an object id which does not match a supported type");
                 Err(StatusCode::BadNodeAttributesInvalid)
             }
         }
@@ -172,8 +181,12 @@ impl NodeManagementService {
     fn add_node(address_space: &mut AddressSpace, node_to_add: &AddNodesItem) -> (StatusCode, NodeId) {
         let requested_new_node_id = &node_to_add.requested_new_node_id;
         if requested_new_node_id.server_index != 0 {
+            // Server index is supposed to be 0
+            error!("node cannot be created because server index is not 0");
             (StatusCode::BadNodeIdRejected, NodeId::null())
         } else if !requested_new_node_id.is_null() && address_space.node_exists(&requested_new_node_id.node_id) {
+            // If a node id is supplied, it should not already exist
+            error!("node cannot be created because node id already exists");
             (StatusCode::BadNodeIdExists, NodeId::null())
         } else if let Ok(reference_type_id) = node_to_add.reference_type_id.as_reference_type_id() {
             // Node Id was either supplied or will be generated
@@ -196,6 +209,8 @@ impl NodeManagementService {
             };
             // Create a node
             if !valid_type_definition {
+                // Type definition was either invalid or supplied when it should not have been supplied
+                error!("node cannot be created because type definition is not valid");
                 (StatusCode::BadTypeDefinitionInvalid, NodeId::null())
             } else if let Ok(node) = Self::create_node(&new_node_id, node_to_add.node_class, node_to_add.browse_name.clone(), &node_to_add.node_attributes) {
                 // Add the node to the address space
@@ -209,9 +224,11 @@ impl NodeManagementService {
                 (StatusCode::Good, new_node_id)
             } else {
                 // Create node failed, so assume a problem with the node attributes
+                error!("node cannot be created because attributes / not class are not valid");
                 (StatusCode::BadNodeAttributesInvalid, NodeId::null())
             }
         } else {
+            error!("node cannot be created because reference type is invalid");
             (StatusCode::BadReferenceTypeIdInvalid, NodeId::null())
         }
     }
