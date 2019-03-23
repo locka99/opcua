@@ -1,5 +1,6 @@
-use crate::address_space::{base::Base, node::Node};
 use opcua_types::service_types::MethodAttributes;
+
+use crate::address_space::{base::Base, node::Node};
 
 #[derive(Debug)]
 pub struct Method {
@@ -38,8 +39,8 @@ impl Method {
         }
     }
 
-    pub fn from_attributes(node_id: &NodeId, browse_name: &QualifiedName, attributes: MethodAttributes) -> Self {
-        let mut node = Self::new(node_id, browse_name.name.as_ref(), "", "", false, false);
+    pub fn from_attributes<S>(node_id: &NodeId, browse_name: S, attributes: MethodAttributes) -> Self where S: Into<QualifiedName> {
+        let mut node = Self::new(node_id, browse_name, "", "", false, false);
         let mask = AttributesMask::from_bits_truncate(attributes.specified_attributes);
         if mask.contains(AttributesMask::DISPLAY_NAME) {
             node.base.set_display_name(attributes.display_name);

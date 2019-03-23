@@ -11,9 +11,7 @@ use crate::{
     },
     services::Service,
 };
-use opcua_types::node_ids::{
-    ObjectId,
-};
+use opcua_types::node_ids::ObjectId;
 
 pub(crate) struct NodeManagementService;
 
@@ -24,7 +22,7 @@ impl NodeManagementService {
         NodeManagementService {}
     }
 
-    fn create_node(node_id: &NodeId, browse_name: &QualifiedName, node_attributes: &ExtensionObject) -> Result<NodeType, StatusCode> {
+    fn create_node(node_id: &NodeId, browse_name: QualifiedName, node_attributes: &ExtensionObject) -> Result<NodeType, StatusCode> {
         let object_id = node_attributes.node_id.as_object_id().map_err(|_| StatusCode::BadNodeAttributesInvalid)?;
 
         let decoding_limits = DecodingLimits::default();
@@ -49,19 +47,18 @@ impl NodeManagementService {
                 let attributes = node_attributes.decode_inner::<VariableTypeAttributes>(&decoding_limits)?;
                 Ok(VariableType::from_attributes(node_id, browse_name, attributes).into())
             }
-            /*
             ObjectId::ReferenceTypeAttributes_Encoding_DefaultBinary => {
                 let attributes = node_attributes.decode_inner::<ReferenceTypeAttributes>(&decoding_limits)?;
-                Ok(())
+                Ok(ReferenceType::from_attributes(node_id, browse_name, attributes).into())
             }
             ObjectId::DataTypeAttributes_Encoding_DefaultBinary => {
                 let attributes = node_attributes.decode_inner::<DataTypeAttributes>(&decoding_limits)?;
-                Ok(())
+                Ok(DataType::from_attributes(node_id, browse_name, attributes).into())
             }
             ObjectId::ViewAttributes_Encoding_DefaultBinary => {
                 let attributes = node_attributes.decode_inner::<ViewAttributes>(&decoding_limits)?;
-                Ok(())
-            } */
+                Ok(View::from_attributes(node_id, browse_name, attributes).into())
+            }
             _ => {
                 Err(StatusCode::BadNodeAttributesInvalid)
             }
@@ -84,7 +81,7 @@ impl NodeManagementService {
                     requested_new_node_id.clone()
                 };
                 // Create a node
-                if let Ok(node) = Self::create_node(&requested_new_node_id, &node_to_add.browse_name, &node_to_add.node_attributes) {
+                if let Ok(node) = Self::create_node(&requested_new_node_id, node_to_add.browse_name.clone(), &node_to_add.node_attributes) {
                     // Add the node to the address space
                     address_space.insert(node, Some(&[
                         (&node_to_add.parent_node_id.node_id, reference_type_id, ReferenceDirection::Forward),

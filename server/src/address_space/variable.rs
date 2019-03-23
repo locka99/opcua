@@ -146,8 +146,9 @@ impl Variable {
         }
     }
 
-    pub fn from_attributes(node_id: &NodeId, browse_name: &QualifiedName, attributes: VariableAttributes) -> Self {
-        let mut node = Self::new(node_id, browse_name.name.as_ref(), "", "", 0);
+    pub fn from_attributes<S>(node_id: &NodeId, browse_name: S, attributes: VariableAttributes) -> Self
+        where S: Into<QualifiedName> {
+        let mut node = Self::new(node_id, browse_name, "", "", 0);
         let mask = AttributesMask::from_bits_truncate(attributes.specified_attributes);
         if mask.contains(AttributesMask::DISPLAY_NAME) {
             node.base.set_display_name(attributes.display_name);
