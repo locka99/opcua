@@ -184,6 +184,8 @@ impl NodeManagementService {
             // Server index is supposed to be 0
             error!("node cannot be created because server index is not 0");
             (StatusCode::BadNodeIdRejected, NodeId::null())
+        } else if node_to_add.node_class == NodeClass::Unspecified {
+            (StatusCode::BadNodeClassInvalid, NodeId::null())
         } else if !requested_new_node_id.is_null() && address_space.node_exists(&requested_new_node_id.node_id) {
             // If a node id is supplied, it should not already exist
             error!("node cannot be created because node id already exists");
@@ -199,8 +201,12 @@ impl NodeManagementService {
             // Check the type definition is valid
             let valid_type_definition = match node_to_add.node_class {
                 NodeClass::Object | NodeClass::Variable => {
-                    // TODO should we check if the type definition points to an object or variable type?
-                    !node_to_add.type_definition.is_null()
+                    if node_to_add.type_definition.is_null() {
+                        false
+                    } else {
+                        // TODO should we check if the type definition points to an object or variable type?
+                        true
+                    }
                 }
                 _ => {
                     // Other node classes must NOT supply a type definition
