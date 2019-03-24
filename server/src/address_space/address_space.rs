@@ -89,14 +89,14 @@ macro_rules! server_diagnostics_summary {
 #[derive(Debug, Clone)]
 pub struct Reference {
     pub reference_type_id: ReferenceTypeId,
-    pub node_id: NodeId,
+    pub target_node_id: NodeId,
 }
 
 impl Reference {
-    pub fn new(reference_type_id: ReferenceTypeId, node_id: &NodeId) -> Reference {
+    pub fn new(reference_type_id: ReferenceTypeId, target_node_id: &NodeId) -> Reference {
         Reference {
             reference_type_id,
-            node_id: node_id.clone(),
+            target_node_id: target_node_id.clone(),
         }
     }
 }
@@ -495,7 +495,6 @@ impl AddressSpace {
         self.node_map.contains_key(node_id)
     }
 
-
     /// Adds a node as a child (organized by) another node. The type id says what kind of node the object
     /// should be, e.g. folder node or something else.
     pub fn add_organized_node(&mut self, node_id: &NodeId, browse_name: &str, display_name: &str, parent_node_id: &NodeId, node_type_id: ObjectTypeId) -> Result<NodeId, ()> {
@@ -544,6 +543,17 @@ impl AddressSpace {
         }
     }
 
+    /// Deletes a node and optionally any references to / from it in the address space
+    pub fn delete_node(&mut self, node_id: &NodeId, delete_target_references: bool) -> bool {
+        let removed_node = self.node_map.remove(&node_id);
+        let removed_target_references = if delete_target_references {
+            self.delete_references_to_node(node_id)
+        } else {
+            false
+        };
+        removed_node.is_some() || removed_target_references
+    }
+
     /// Adds a reference between one node and a target
     fn add_reference(reference_map: &mut HashMap<NodeId, Vec<Reference>>, node_id: &NodeId, reference: Reference) {
         if reference_map.contains_key(node_id) {
@@ -555,6 +565,25 @@ impl AddressSpace {
             let mut references = Vec::with_capacity(8);
             references.push(reference);
             reference_map.insert(node_id.clone(), references);
+        }
+    }
+
+    /// Deletes all references to this node
+    pub fn delete_references_to_node(&mut self, node_id: &NodeId) -> bool {
+        // Look in the inverse map for the node id that is being deleted
+        if let Some(node_references) = self.inverse_references.remove(node_id) {
+            // Each reference target node in the inverse reference must be fixed to remove references to
+            // the node
+            node_references.iter().for_each(|r| {
+                if let Some(forward_references) = self.references.get_mut(&r.target_node_id) {
+                    forward_references.retain(|r| {
+                        r.target_node_id != *node_id
+                    })
+                }
+            });
+            true
+        } else {
+            false
         }
     }
 
@@ -645,7 +674,7 @@ impl AddressSpace {
             if let Some(reference) = references.iter().find(|r| {
                 r.reference_type_id == ReferenceTypeId::HasTypeDefinition
             }) {
-                Some(reference.node_id.clone())
+                Some(reference.target_node_id.clone())
             } else {
                 None
             }
@@ -658,7 +687,7 @@ impl AddressSpace {
     fn has_reference(&self, from_node_id: &NodeId, reference_type: ReferenceTypeId, to_node_id: &NodeId) -> bool {
         if let Some(references) = self.references.get(&from_node_id) {
             references.iter().find(|r| {
-                r.reference_type_id == reference_type && r.node_id == *to_node_id
+                r.reference_type_id == reference_type && r.target_node_id == *to_node_id
             }).is_some()
         } else {
             false

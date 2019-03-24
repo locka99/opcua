@@ -135,7 +135,7 @@ fn find_references_from() {
     assert!(references.is_some());
     let references = references.as_ref().unwrap();
     for r in references {
-        println!("Filtered type = {:?}, to = {:?}", r.reference_type_id, r.node_id);
+        println!("Filtered type = {:?}, to = {:?}", r.reference_type_id, r.target_node_id);
     }
     assert_eq!(references.len(), 3);
 
@@ -143,7 +143,7 @@ fn find_references_from() {
     assert!(references.is_some());
     let references = references.as_ref().unwrap();
     for r in references.iter() {
-        println!("Refs from Root type = {:?}, to = {:?}", r.reference_type_id, r.node_id);
+        println!("Refs from Root type = {:?}, to = {:?}", r.reference_type_id, r.target_node_id);
     }
     assert_eq!(references.len(), 4);
 
@@ -151,13 +151,13 @@ fn find_references_from() {
     assert!(references.is_some());
     let references = references.unwrap();
     for r in references.iter() {
-        println!("Refs from Objects type = {:?}, to = {:?}", r.reference_type_id, r.node_id);
+        println!("Refs from Objects type = {:?}, to = {:?}", r.reference_type_id, r.target_node_id);
     }
     assert_eq!(references.len(), 2);
 
     let r1 = &references[0];
     assert_eq!(r1.reference_type_id, ReferenceTypeId::Organizes);
-    let child_node_id = r1.node_id.clone();
+    let child_node_id = r1.target_node_id.clone();
 
     let child = address_space.find_node(&child_node_id);
     assert!(child.is_some());

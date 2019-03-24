@@ -76,10 +76,10 @@ fn follow_relative_path(address_space: &AddressSpace, node_id: &NodeId, relative
         let compare_target_name = !relative_path.target_name.is_null();
         let mut result = Vec::with_capacity(references.len());
         for reference in &references {
-            if let Some(node) = address_space.find_node(&reference.node_id) {
+            if let Some(node) = address_space.find_node(&reference.target_node_id) {
                 let node = node.as_node();
                 if !compare_target_name || node.browse_name() == relative_path.target_name {
-                    result.push(reference.node_id.clone());
+                    result.push(reference.target_node_id.clone());
                 }
             }
         }

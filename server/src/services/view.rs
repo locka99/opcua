@@ -198,7 +198,7 @@ impl ViewService {
             if idx < starting_index {
                 continue;
             }
-            let target_node_id = reference.node_id.clone();
+            let target_node_id = reference.target_node_id.clone();
             if target_node_id.is_null() {
                 continue;
             }
@@ -250,7 +250,7 @@ impl ViewService {
                     NodeClass::Object | NodeClass::Variable => {
                         let type_defs = address_space.find_references_from(&target_node.node_id(), Some((ReferenceTypeId::HasTypeDefinition, false)));
                         if let Some(type_defs) = type_defs {
-                            ExpandedNodeId::new(type_defs[0].node_id.clone())
+                            ExpandedNodeId::new(type_defs[0].target_node_id.clone())
                         } else {
                             ExpandedNodeId::null()
                         }

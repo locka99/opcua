@@ -58,12 +58,15 @@ impl NodeManagementService {
         }
     }
 
-    pub fn delete_nodes(&self, _address_space: &mut AddressSpace, request: &DeleteNodesRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn delete_nodes(&self, address_space: &mut AddressSpace, request: &DeleteNodesRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref nodes_to_delete) = request.nodes_to_delete {
             if !nodes_to_delete.is_empty() {
                 let results = nodes_to_delete.iter().map(|node_to_delete| {
-                    // TODO fixme
-                    StatusCode::Good
+                    if address_space.delete_node(&node_to_delete.node_id, node_to_delete.delete_target_references) {
+                        StatusCode::Good
+                    } else {
+                        StatusCode::BadNodeIdUnknown
+                    }
                 }).collect();
                 let response = DeleteNodesResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
