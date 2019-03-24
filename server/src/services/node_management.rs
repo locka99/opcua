@@ -96,7 +96,6 @@ impl NodeManagementService {
 
     fn create_node(node_id: &NodeId, node_class: NodeClass, browse_name: QualifiedName, node_attributes: &ExtensionObject) -> Result<NodeType, StatusCode> {
         let object_id = node_attributes.node_id.as_object_id().map_err(|_| StatusCode::BadNodeAttributesInvalid)?;
-
         // Note we are expecting the node_class and the object id for the attributes to be for the same
         // thing. If they are different, it is an error.
 
@@ -216,11 +215,17 @@ impl NodeManagementService {
                     node_to_add.type_definition.is_null()
                 }
             };
+
+            // Check that the parent node exists
+            let valid_parent_node = address_space.node_exists(&node_to_add.parent_node_id.node_id);
+
             // Create a node
             if !valid_type_definition {
                 // Type definition was either invalid or supplied when it should not have been supplied
                 error!("node cannot be created because type definition is not valid");
                 (StatusCode::BadTypeDefinitionInvalid, NodeId::null())
+            } else if !valid_parent_node {
+                (StatusCode::BadParentNodeIdInvalid, NodeId::null())
             } else if let Ok(node) = Self::create_node(&new_node_id, node_to_add.node_class, node_to_add.browse_name.clone(), &node_to_add.node_attributes) {
                 // Add the node to the address space
                 address_space.insert(node, Some(&[

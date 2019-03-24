@@ -53,7 +53,7 @@ fn object_attributes() -> ExtensionObject {
 }
 
 #[test]
-fn add_nodes_test1() {
+fn add_nodes_empty() {
     // Empty request
     do_node_management_service_test(|_, _, address_space, nms: NodeManagementService| {
         let response = nms.add_nodes(address_space, &AddNodesRequest {
@@ -70,7 +70,10 @@ fn add_nodes_test1() {
         let response: ServiceFault = supported_message_as!(response.unwrap(), ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
     });
+}
 
+#[test]
+fn add_nodes_null_node_id() {
     // Add a node with a null requested node id
     do_node_management_service_test(|_, _, address_space, nms| {
         let response = nms.add_nodes(address_space, &add_nodes_request(vec![
@@ -90,7 +93,10 @@ fn add_nodes_test1() {
         assert_eq!(results[0].status_code, StatusCode::BadReferenceTypeIdInvalid);
         assert_eq!(results[0].added_node_id, NodeId::null());
     });
+}
 
+#[test]
+fn add_nodes_invalid_class() {
     // Invalid class
     do_node_management_service_test(|_, _, address_space, nms| {
         let response = nms.add_nodes(address_space, &add_nodes_request(vec![
@@ -110,42 +116,66 @@ fn add_nodes_test1() {
         assert_eq!(results[0].status_code, StatusCode::BadReferenceTypeIdInvalid);
         assert_eq!(results[0].added_node_id, NodeId::null());
     });
+}
 
+fn add_nodes_invalid_parent_id() {
     // Add a node with an invalid parent id
     do_node_management_service_test(|_, _, address_space, nms| {
-        // TODO
+        let response = nms.add_nodes(address_space, &add_nodes_request(vec![
+            AddNodesItem {
+                parent_node_id: NodeId::new(100, "blahblah").into(),
+                reference_type_id: NodeId::null(),
+                requested_new_node_id: ExpandedNodeId::null(),
+                browse_name: QualifiedName::from(""),
+                node_class: NodeClass::Object,
+                node_attributes: ExtensionObject::null(),
+                type_definition: ExpandedNodeId::null(),
+            }
+        ]));
+        let response: AddNodesResponse = supported_message_as!(response.unwrap(), AddNodesResponse);
+        let results = response.results.unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].status_code, StatusCode::BadParentNodeIdInvalid);
+        assert_eq!(results[0].added_node_id, NodeId::null());
     });
+}
 
+fn add_nodes_missing_type() {
     // Add a node with a missing type
     do_node_management_service_test(|_, _, address_space, nms| {
         // TODO
     });
+}
 
+fn add_nodes_invalid_type_not_required() {
     // Add a node with a type when a type is not required
     do_node_management_service_test(|_, _, address_space, nms| {
         // TODO
     });
+}
 
+fn add_nodes_invalid_unrecognized_type() {
     // Add a node with an unrecognized type
     do_node_management_service_test(|_, _, address_space, nms| {
         // TODO
     });
+}
 
+fn add_nodes_invalid_node_id_exists() {
     // Add a node where node id already exists
     do_node_management_service_test(|_, _, address_space, nms| {
         // TODO
     });
+}
 
-    // Add a node without specifying a node id
-    do_node_management_service_test(|_, _, address_space, nms| {
-        // TODO
-    });
-
+fn add_nodes_valid() {
     // Add a node which is valid
     do_node_management_service_test(|_, _, address_space, nms| {
         // TODO
     });
+}
 
+fn add_nodes_invalid_no_permission() {
     // Add a node which is valid without permission
     do_node_management_service_test(|_, _, address_space, nms| {
         // TODO
