@@ -50,7 +50,9 @@ impl NodeManagementService {
         if let Some(ref references_to_add) = request.references_to_add {
             if !references_to_add.is_empty() {
                 let results = references_to_add.iter().map(|r| {
-                    if r.target_node_id.server_index != 0 {
+                    if !r.target_server_uri.is_null() {
+                        StatusCode::BadServerUriInvalid
+                    } else if r.target_node_id.server_index != 0 {
                         StatusCode::BadReferenceLocalOnly
                     } else if !address_space.node_exists(&r.source_node_id) {
                         StatusCode::BadSourceNodeIdInvalid
@@ -58,19 +60,18 @@ impl NodeManagementService {
                         StatusCode::BadTargetNodeIdInvalid
                     } else {
                         if let Ok(reference_type_id) = r.reference_type_id.as_reference_type_id() {
-
-                            // TODO test for duplicate reference
-                            // BadDuplicateReferenceNotAllowed
-
-                            // TODO test data model constraint
-                            // BadReferenceNotAllowed
-
-                            if r.is_forward {
-                                address_space.insert_reference(&r.source_node_id, &r.target_node_id.node_id, reference_type_id);
+                            if !address_space.has_reference(&r.source_node_id, &r.target_node_id.node_id, reference_type_id) {
+                                // TODO test data model constraint
+                                // BadReferenceNotAllowed
+                                if r.is_forward {
+                                    address_space.insert_reference(&r.source_node_id, &r.target_node_id.node_id, reference_type_id);
+                                } else {
+                                    address_space.insert_reference(&r.target_node_id.node_id, &r.source_node_id, reference_type_id);
+                                }
+                                StatusCode::Good
                             } else {
-                                address_space.insert_reference(&r.target_node_id.node_id, &r.source_node_id, reference_type_id);
+                                StatusCode::BadDuplicateReferenceNotAllowed
                             }
-                            StatusCode::Good
                         } else {
                             StatusCode::BadReferenceTypeIdInvalid
                         }
@@ -113,10 +114,37 @@ impl NodeManagementService {
         }
     }
 
-    pub fn delete_references(&self, _address_space: &mut AddressSpace, request: &DeleteReferencesRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn delete_references(&self, address_space: &mut AddressSpace, request: &DeleteReferencesRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref references_to_delete) = request.references_to_delete {
             if !references_to_delete.is_empty() {
-                Ok(self.service_fault(&request.request_header, StatusCode::BadNotImplemented))
+                let results = references_to_delete.iter().map(|r| {
+                    if r.target_node_id.server_index != 0 {
+                        StatusCode::BadReferenceLocalOnly
+                    } else if !address_space.node_exists(&r.source_node_id) {
+                        StatusCode::BadSourceNodeIdInvalid
+                    } else if !address_space.node_exists(&r.target_node_id.node_id) {
+                        StatusCode::BadTargetNodeIdInvalid
+                    } else {
+                        if let Ok(reference_type_id) = r.reference_type_id.as_reference_type_id() {
+                            if r.delete_bidirectional {
+                                address_space.delete_reference(&r.source_node_id, &r.target_node_id.node_id, reference_type_id);
+                                address_space.delete_reference(&r.target_node_id.node_id, &r.source_node_id, reference_type_id);
+                            } else if r.is_forward {
+                                address_space.delete_reference(&r.source_node_id, &r.target_node_id.node_id, reference_type_id);
+                            } else {
+                                address_space.delete_reference(&r.target_node_id.node_id, &r.source_node_id, reference_type_id);
+                            }
+                            StatusCode::Good
+                        } else {
+                            StatusCode::BadReferenceTypeIdInvalid
+                        }
+                    }
+                }).collect();
+                Ok(DeleteReferencesResponse {
+                    response_header: ResponseHeader::new_good(&request.request_header),
+                    results: Some(results),
+                    diagnostic_infos: None,
+                }.into())
             } else {
                 Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
             }

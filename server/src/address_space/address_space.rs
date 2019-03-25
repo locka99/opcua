@@ -568,6 +568,32 @@ impl AddressSpace {
         }
     }
 
+    /// Finds the matching reference and deletes it
+    pub fn delete_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) -> bool {
+        let mut deleted = false;
+        if let Some(references) = self.references.get_mut(node_id_from) {
+            references.retain(|r| {
+                if r.reference_type_id == reference_type_id && r.target_node_id == *node_id_to {
+                    deleted = true;
+                    false
+                } else {
+                    true
+                }
+            });
+        }
+        if let Some(references) = self.inverse_references.get_mut(node_id_to) {
+            references.retain(|r| {
+                if r.reference_type_id == reference_type_id && r.target_node_id == *node_id_from {
+                    deleted = true;
+                    false
+                } else {
+                    true
+                }
+            })
+        }
+        deleted
+    }
+
     /// Deletes all references to this node
     pub fn delete_references_to_node(&mut self, node_id: &NodeId) -> bool {
         // Look in the inverse map for the node id that is being deleted
@@ -684,7 +710,7 @@ impl AddressSpace {
     }
 
     /// Test if a reference relationship exists between one node and another node
-    fn has_reference(&self, from_node_id: &NodeId, reference_type: ReferenceTypeId, to_node_id: &NodeId) -> bool {
+    pub fn has_reference(&self, from_node_id: &NodeId, to_node_id: &NodeId, reference_type: ReferenceTypeId) -> bool {
         if let Some(references) = self.references.get(&from_node_id) {
             references.iter().find(|r| {
                 r.reference_type_id == reference_type && r.target_node_id == *to_node_id
@@ -698,10 +724,10 @@ impl AddressSpace {
     /// a HasComponent of the object itself, or a HasComponent of the object type
     fn method_exists_on_object(&self, object_id: &NodeId, method_id: &NodeId) -> bool {
         // Look for the method first on the object id, else on the object's type
-        if self.has_reference(object_id, ReferenceTypeId::HasComponent, method_id) {
+        if self.has_reference(object_id, method_id, ReferenceTypeId::HasComponent) {
             true
         } else if let Some(object_type_id) = self.get_type_id(object_id) {
-            self.has_reference(&object_type_id, ReferenceTypeId::HasComponent, method_id)
+            self.has_reference(&object_type_id, method_id, ReferenceTypeId::HasComponent)
         } else {
             error!("Method call to {:?} on {:?} but the method id is not on the object or its object type!", method_id, object_id);
             false
