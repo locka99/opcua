@@ -218,7 +218,7 @@ impl<'a, 'b> From<&'a [&'b str]> for Variant {
 
 impl<'a> From<&'a Vec<String>> for Variant {
     fn from(v: &'a Vec<String>) -> Self {
-        Variant::from(&v[..])
+        Variant::from(v.as_slice())
     }
 }
 
@@ -234,7 +234,7 @@ impl<'a> From<&'a [String]> for Variant {
 
 impl From<Vec<u32>> for Variant {
     fn from(v: Vec<u32>) -> Self {
-        Variant::from(&v[..])
+        Variant::from(v.as_slice())
     }
 }
 
@@ -247,7 +247,7 @@ impl<'a> From<&'a [u32]> for Variant {
 
 impl From<Vec<i32>> for Variant {
     fn from(v: Vec<i32>) -> Self {
-        Variant::from(&v[..])
+        Variant::from(v.as_slice())
     }
 }
 

@@ -99,6 +99,15 @@ function generate_node_set(ns) {
     // Gather up all the nodes in the nodeset
     let nodeset = ns.data["UANodeSet"];
 
+    let alias_map = {};
+    if (_.has(nodeset, "Aliases")) {
+        _.each(nodeset["Aliases"], function (node) {
+            _.each(node["Alias"], function (alias) {
+                alias_map[alias["$"]["Alias"]] = alias["_"];
+            });
+        });
+    }
+
     let nodes = [];
     if (_.has(nodeset, "UAObject")) {
         _.each(nodeset["UAObject"], function (node) {
@@ -139,20 +148,20 @@ function generate_node_set(ns) {
     // Generate source files for the nodeset, ensuring no more than MAX_NODES_PER_FILE
     let modules = [];
     if (nodes.length <= MAX_NODES_PER_FILE) {
-        modules.push(generate_node_set_files(ns.name, ns.module, 0, nodes));
+        modules.push(generate_node_set_files(ns.name, ns.module, 0, nodes, alias_map));
     } else {
         let part_nr = 1;
         let node_start = 0;
         while (node_start < nodes.length) {
             let node_slice = nodes.slice(node_start, node_start + MAX_NODES_PER_FILE);
-            modules.push(generate_node_set_files(ns.name, ns.module, part_nr++, node_slice));
+            modules.push(generate_node_set_files(ns.name, ns.module, part_nr++, node_slice, alias_map));
             node_start += MAX_NODES_PER_FILE;
         }
     }
     return modules;
 }
 
-function generate_node_set_files(xml_name, rs_name, part_nr, nodes) {
+function generate_node_set_files(xml_name, rs_name, part_nr, nodes, alias_map) {
     let module_name = part_nr > 0 ? `${rs_name}_${part_nr}` : `${rs_name}`;
     let file_name = `${module_name}.rs`;
 
@@ -204,7 +213,7 @@ use crate::address_space::types::*;
     _.each(nodes, function (tuple) {
         let node_type = tuple[0];
         let node = tuple[1];
-        contents += insert_node(fn_names[idx++], node_type, node);
+        contents += insert_node(fn_names[idx++], node_type, node, alias_map);
     });
 
     settings.write_to_file(`${settings.rs_address_space_dir}/${file_name}`, contents);
@@ -220,7 +229,15 @@ function node_id_ctor(snippet) {
     return `NodeId::new(0, ${snippet.substr(2)})`;
 }
 
-function insert_node(fn_name, node_type, node) {
+function data_type_node_id(alias_map, data_type) {
+    if (_.has(alias_map, data_type)) {
+        return node_id_ctor(alias_map[data_type]);
+    } else {
+        return node_id_ctor(data_type);
+    }
+}
+
+function insert_node(fn_name, node_type, node, alias_map) {
     let contents = `fn ${fn_name}(address_space: &mut AddressSpace) {\n`;
     let indent = "    ";
 
@@ -236,32 +253,28 @@ function insert_node(fn_name, node_type, node) {
         contents += `${indent}let name = "${browse_name}";\n`;
         browse_name_var = "name";
         display_name_var = "name";
-    }
-    else {
+    } else {
         contents += `${indent}let browse_name = "${browse_name}";\n`;
         contents += `${indent}let display_name = "${display_name}";\n`;
         browse_name_var = "browse_name";
         display_name_var = "display_name";
     }
 
-    let description = _.has(node, "Description") ? node["Description"][0] : "";
-    contents += `${indent}let description = "${description}";\n`;
-
     // Process values
     let node_ctor = "";
     if (node_type === "Object") {
-        node_ctor = `Object::new(&node_id, ${browse_name_var}, ${display_name_var}, description)`;
+        node_ctor = `Object::new(&node_id, ${browse_name_var}, ${display_name_var}, 0)`;
     } else if (node_type === "ObjectType") {
         let is_abstract = _.has(node["$"], "IsAbstract") && node["$"]["IsAbstract"] === "true";
-        node_ctor = `ObjectType::new(&node_id, ${browse_name_var}, ${display_name_var}, description, ${is_abstract})`;
+        node_ctor = `ObjectType::new(&node_id, ${browse_name_var}, ${display_name_var}, ${is_abstract})`;
     } else if (node_type === "DataType") {
         let is_abstract = _.has(node["$"], "IsAbstract") && node["$"]["IsAbstract"] === "true";
-        node_ctor = `DataType::new(&node_id, ${browse_name_var}, ${display_name_var}, description, ${is_abstract})`;
+        node_ctor = `DataType::new(&node_id, ${browse_name_var}, ${display_name_var}, ${is_abstract})`;
     } else if (node_type === "ReferenceType") {
         let is_abstract = _.has(node["$"], "IsAbstract") && node["$"]["IsAbstract"] === "true";
         let inverse_name = _.has(node, "InverseName") ? `Some(LocalizedText::new("", "${node["InverseName"][0]}"))` : "None";
         let symmetric = _.has(node["$"], "Symmetric") && node["$"]["Symmetric"] === "true";
-        node_ctor = `ReferenceType::new(&node_id, ${browse_name_var}, ${display_name_var}, description, ${inverse_name}, ${symmetric}, ${is_abstract})`
+        node_ctor = `ReferenceType::new(&node_id, ${browse_name_var}, ${display_name_var}, ${inverse_name}, ${symmetric}, ${is_abstract})`
     } else if (node_type === "Variable") {
         let data_type = "DataTypeId::Boolean";
         if (_.has(node["$"], "DataType")) {
@@ -326,7 +339,6 @@ function insert_node(fn_name, node_type, node) {
                             console.log("ArrayDimensions is not read - setting dimensions to 0 which means variable length");
                             array_dimensions = "Some(vec![0])"
                         }
-                        // let description = argument["Description"][0];
                         var_arguments.push({
                             node_id: node_id,
                             name: name,
@@ -360,15 +372,16 @@ function insert_node(fn_name, node_type, node) {
         if (!data_value_is_set) {
             contents += `${indent}let data_value = DataValue::null();\n`
         }
-        node_ctor = `Variable::new_data_value(&node_id, ${browse_name_var}, ${display_name_var}, description, ${data_type}, data_value)`;
+        node_ctor = `Variable::new_data_value(&node_id, ${browse_name_var}, ${display_name_var}, ${data_type}, data_value)`;
     } else if (node_type === "VariableType") {
+        let data_type = _.has(node["$"], "DataType") ? data_type_node_id(alias_map, node["$"]["DataType"]) : "NodeId::null()";
         let is_abstract = _.has(node["$"], "IsAbstract") && node["$"]["IsAbstract"] === "true";
         let value_rank = _.has(node["$"], "ValueRank") ? node["$"]["ValueRank"] : -1;
-        node_ctor = `VariableType::new(&node_id, ${browse_name_var}, ${display_name_var}, description, ${is_abstract}, ${value_rank})`;
+        node_ctor = `VariableType::new(&node_id, ${browse_name_var}, ${display_name_var}, ${data_type}, ${is_abstract}, ${value_rank})`;
     } else if (node_type === "Method") {
         let executable = true; // TODO
         let user_executable = true; // TODO
-        node_ctor = `Method::new(&node_id, ${browse_name_var}, ${display_name_var}, description, ${executable}, ${user_executable})`;
+        node_ctor = `Method::new(&node_id, ${browse_name_var}, ${display_name_var}, ${executable}, ${user_executable})`;
     }
 
     let node_id = node["$"]["NodeId"];
@@ -378,7 +391,13 @@ function insert_node(fn_name, node_type, node) {
         contents += `${indent}trace!("Inserting node id ${node_id}of type ${node_type}");\n`;
     }
 
-    contents += `${indent}let node = ${node_ctor};\n`;
+    let description = _.has(node, "Description") ? node["Description"][0] : "";
+    if (description.length > 0) {
+        contents += `${indent}let mut node = ${node_ctor};\n`;
+        contents += `${indent}node.set_description(LocalizedText::from("${description}"));\n`;
+    } else {
+        contents += `${indent}let node = ${node_ctor};\n`;
+    }
     contents += `${indent}address_space.insert(node, `;
 
     let node_references = [];

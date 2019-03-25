@@ -461,7 +461,7 @@ impl SecurityPolicy {
             if let Some(their_key) = their_private_key {
                 // Calculate the signature using their key, see what we were expecting versus theirs
                 let mut their_signature = vec![0u8; their_key.size()];
-                self.asymmetric_sign(&their_key, data, &mut their_signature[..])?;
+                self.asymmetric_sign(&their_key, data, their_signature.as_mut_slice())?;
                 trace!("Using their_key, signature should be {:?}", &their_signature);
             }
 

@@ -1,5 +1,5 @@
 use opcua_types::{
-    NodeId, QualifiedName, LocalizedText, AttributeId, DataValue, WriteMask,
+    NodeId, QualifiedName, LocalizedText, AttributeId, DataValue, WriteMask, Variant,
     service_types::NodeClass,
     status_code::StatusCode,
 };
@@ -61,15 +61,58 @@ impl NodeType {
 /// Implemented by Base and all derived Node types. Functions that return a result in an Option
 /// do so because the attribute is optional and not necessarily there.
 pub trait Node {
-    fn node_class(&self) -> NodeClass;
-    fn node_id(&self) -> NodeId;
-    fn browse_name(&self) -> QualifiedName;
-    fn display_name(&self) -> LocalizedText;
-    fn description(&self) -> Option<LocalizedText>;
-    fn write_mask(&self) -> Option<WriteMask>;
-    fn set_write_mask(&mut self, write_mask: WriteMask);
-    fn user_write_mask(&self) -> Option<WriteMask>;
-    fn set_user_write_mask(&mut self, write_mask: WriteMask);
+    fn node_class(&self) -> NodeClass {
+        let result = find_attribute_value_mandatory!(self, NodeClass, Int32);
+        NodeClass::from_i32(result).unwrap()
+    }
+
+    fn node_id(&self) -> NodeId {
+        let result = find_attribute_value_mandatory!(self, NodeId, NodeId);
+        result.as_ref().clone()
+    }
+
+    fn browse_name(&self) -> QualifiedName {
+        let result = find_attribute_value_mandatory!(self, BrowseName, QualifiedName);
+        result.as_ref().clone()
+    }
+
+    fn display_name(&self) -> LocalizedText {
+        let result = find_attribute_value_mandatory!(self, DisplayName, LocalizedText);
+        result.as_ref().clone()
+    }
+
+    fn set_display_name(&mut self, display_name: LocalizedText) {
+        let _ = self.set_attribute(AttributeId::DisplayName, Variant::from(display_name).into());
+    }
+
+    fn description(&self) -> Option<LocalizedText> {
+        let result = find_attribute_value_optional!(self, Description, LocalizedText);
+        if result.is_none() {
+            None
+        } else {
+            Some(result.unwrap().as_ref().clone())
+        }
+    }
+
+    fn set_description(&mut self, description: LocalizedText) {
+        let _ = self.set_attribute(AttributeId::Description, Variant::from(description).into());
+    }
+
+    fn write_mask(&self) -> Option<WriteMask> {
+        find_attribute_value_optional!(self, WriteMask, UInt32).map(|write_mask| WriteMask::from_bits_truncate(write_mask))
+    }
+
+    fn set_write_mask(&mut self, write_mask: WriteMask) {
+        let _ = self.set_attribute(AttributeId::WriteMask, DataValue::new(write_mask.bits()));
+    }
+
+    fn user_write_mask(&self) -> Option<WriteMask> {
+        find_attribute_value_optional!(self, UserWriteMask, UInt32).map(|write_mask| WriteMask::from_bits_truncate(write_mask))
+    }
+
+    fn set_user_write_mask(&mut self, write_mask: WriteMask) {
+        let _ = self.set_attribute(AttributeId::UserWriteMask, DataValue::new(write_mask.bits()));
+    }
 
     /// Finds the attribute and value. The param `max_age` is a hint in milliseconds:
     ///

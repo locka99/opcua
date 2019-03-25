@@ -49,7 +49,20 @@ impl NodeManagementService {
     pub fn add_references(&self, _address_space: &mut AddressSpace, request: &AddReferencesRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref references_to_add) = request.references_to_add {
             if !references_to_add.is_empty() {
-                Ok(self.service_fault(&request.request_header, StatusCode::BadNotImplemented))
+                let results = request.references_to_add.iter().map(|r| {
+                    // TODO
+                    // Source node id
+                    // Reference type id
+                    // is forward
+                    // target server uri
+                    // target node class
+                    StatusCode::Good
+                }).collect();
+                Ok(AddReferencesResponse {
+                    response_header: ResponseHeader::new_good(&request.request_header),
+                    results: Some(results),
+                    diagnostic_infos: None,
+                }.into())
             } else {
                 Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
             }
@@ -104,80 +117,80 @@ impl NodeManagementService {
             ObjectId::ObjectAttributes_Encoding_DefaultBinary => {
                 if node_class == NodeClass::Object {
                     let attributes = node_attributes.decode_inner::<ObjectAttributes>(&decoding_limits)?;
-                    Ok(Object::from_attributes(node_id, browse_name, attributes).into())
+                    Object::from_attributes(node_id, browse_name, attributes).map(|n| n.into())
                 } else {
                     error!("node class and object node attributes are not compatible");
-                    Err(StatusCode::BadNodeAttributesInvalid)
+                    Err(())
                 }
             }
             ObjectId::VariableAttributes_Encoding_DefaultBinary => {
                 if node_class == NodeClass::Variable {
                     let attributes = node_attributes.decode_inner::<VariableAttributes>(&decoding_limits)?;
-                    Ok(Variable::from_attributes(node_id, browse_name, attributes).into())
+                    Variable::from_attributes(node_id, browse_name, attributes).map(|n| n.into())
                 } else {
                     error!("node class and variable node attributes are not compatible");
-                    Err(StatusCode::BadNodeAttributesInvalid)
+                    Err(())
                 }
             }
             ObjectId::MethodAttributes_Encoding_DefaultBinary => {
                 if node_class == NodeClass::Method {
                     let attributes = node_attributes.decode_inner::<MethodAttributes>(&decoding_limits)?;
-                    Ok(Method::from_attributes(node_id, browse_name, attributes).into())
+                    Method::from_attributes(node_id, browse_name, attributes).map(|n| n.into())
                 } else {
                     error!("node class and method node attributes are not compatible");
-                    Err(StatusCode::BadNodeAttributesInvalid)
+                    Err(())
                 }
             }
             ObjectId::ObjectTypeAttributes_Encoding_DefaultBinary => {
                 if node_class == NodeClass::ObjectType {
                     let attributes = node_attributes.decode_inner::<ObjectTypeAttributes>(&decoding_limits)?;
-                    Ok(ObjectType::from_attributes(node_id, browse_name, attributes).into())
+                    ObjectType::from_attributes(node_id, browse_name, attributes).map(|n| n.into())
                 } else {
                     error!("node class and object type node attributes are not compatible");
-                    Err(StatusCode::BadNodeAttributesInvalid)
+                    Err(())
                 }
             }
             ObjectId::VariableTypeAttributes_Encoding_DefaultBinary => {
                 if node_class == NodeClass::VariableType {
                     let attributes = node_attributes.decode_inner::<VariableTypeAttributes>(&decoding_limits)?;
-                    Ok(VariableType::from_attributes(node_id, browse_name, attributes).into())
+                    VariableType::from_attributes(node_id, browse_name, attributes).map(|n| n.into())
                 } else {
                     error!("node class and variable type node attributes are not compatible");
-                    Err(StatusCode::BadNodeAttributesInvalid)
+                    Err(())
                 }
             }
             ObjectId::ReferenceTypeAttributes_Encoding_DefaultBinary => {
                 if node_class == NodeClass::ReferenceType {
                     let attributes = node_attributes.decode_inner::<ReferenceTypeAttributes>(&decoding_limits)?;
-                    Ok(ReferenceType::from_attributes(node_id, browse_name, attributes).into())
+                    ReferenceType::from_attributes(node_id, browse_name, attributes).map(|n| n.into())
                 } else {
                     error!("node class and reference type node attributes are not compatible");
-                    Err(StatusCode::BadNodeAttributesInvalid)
+                    Err(())
                 }
             }
             ObjectId::DataTypeAttributes_Encoding_DefaultBinary => {
                 if node_class == NodeClass::DataType {
                     let attributes = node_attributes.decode_inner::<DataTypeAttributes>(&decoding_limits)?;
-                    Ok(DataType::from_attributes(node_id, browse_name, attributes).into())
+                    DataType::from_attributes(node_id, browse_name, attributes).map(|n| n.into())
                 } else {
                     error!("node class and data type node attributes are not compatible");
-                    Err(StatusCode::BadNodeAttributesInvalid)
+                    Err(())
                 }
             }
             ObjectId::ViewAttributes_Encoding_DefaultBinary => {
                 if node_class == NodeClass::View {
                     let attributes = node_attributes.decode_inner::<ViewAttributes>(&decoding_limits)?;
-                    Ok(View::from_attributes(node_id, browse_name, attributes).into())
+                    View::from_attributes(node_id, browse_name, attributes).map(|n| n.into())
                 } else {
                     error!("node class and view node attributes are not compatible");
-                    Err(StatusCode::BadNodeAttributesInvalid)
+                    Err(())
                 }
             }
             _ => {
-                warn!("create_node was called with an object id which does not match a supported type");
-                Err(StatusCode::BadNodeAttributesInvalid)
+                error!("create_node was called with an object id which does not match a supported type");
+                Err(())
             }
-        }
+        }.map_err(|_| StatusCode::BadNodeAttributesInvalid)
     }
 
     fn add_node(address_space: &mut AddressSpace, node_to_add: &AddNodesItem) -> (StatusCode, NodeId) {

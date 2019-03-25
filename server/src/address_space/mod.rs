@@ -71,15 +71,6 @@ macro_rules! node_impl {
         use crate::address_space::node::NodeType;
 
         impl Node for $node_struct {
-            fn node_class(&self) -> NodeClass { self.base.node_class() }
-            fn node_id(&self) -> NodeId { self.base.node_id() }
-            fn browse_name(&self) -> QualifiedName { self.base.browse_name() }
-            fn display_name(&self) -> LocalizedText { self.base.display_name() }
-            fn description(&self) -> Option<LocalizedText> { self.base.description() }
-            fn write_mask(&self) -> Option<WriteMask> { self.base.write_mask() }
-            fn set_write_mask(&mut self, write_mask: WriteMask) { self.base.set_write_mask(write_mask) }
-            fn user_write_mask(&self) -> Option<WriteMask> { self.base.user_write_mask() }
-            fn set_user_write_mask(&mut self, write_mask: WriteMask) { self.base.set_user_write_mask(write_mask) }
             fn find_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> { self.base.find_attribute(attribute_id, max_age) }
             fn set_attribute(&mut self, attribute_id: AttributeId, value: DataValue) -> Result<(), StatusCode> { self.base.set_attribute(attribute_id, value) }
         }
@@ -110,7 +101,7 @@ macro_rules! find_attribute_value_mandatory {
 macro_rules! find_attribute_value_optional {
     ( $sel:expr, $attribute_id: ident, $variant_type: ident ) => {
         {
-            use opcua_types::AttributeId;
+            use opcua_types::{AttributeId, Variant};
             if let Some(data_value) = $sel.find_attribute(AttributeId::$attribute_id, 0.0) {
                 if let Some(value) = data_value.value {
                     if let Variant::$variant_type(value) = value {

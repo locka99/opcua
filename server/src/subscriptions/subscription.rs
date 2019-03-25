@@ -787,7 +787,7 @@ impl Subscription {
 
         if let Some(ref mut monitored_item) = self.monitored_items.get_mut(&monitored_item_id) {
             // Set the triggering monitored items
-            monitored_item.set_triggering(&items_to_add[..], &items_to_remove[..]);
+            monitored_item.set_triggering(items_to_add.as_slice(), items_to_remove.as_slice());
 
             Ok((add_results, remove_results))
         } else {

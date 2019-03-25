@@ -1,9 +1,4 @@
-use std::ops::Add;
-use std::collections::HashSet;
-
-use chrono::{self, Utc};
-
-use opcua_types::node_ids::{ObjectId, ObjectTypeId};
+use opcua_types::node_ids::{ObjectId, ObjectTypeId, ReferenceTypeId};
 
 use crate::{
     services::node_management::NodeManagementService,
@@ -35,7 +30,7 @@ fn add_nodes_request(nodes_to_add: Vec<AddNodesItem>) -> AddNodesRequest {
     }
 }
 
-fn object_attributes() -> ExtensionObject {
+fn object_attributes<T>(display_name: T) -> ExtensionObject where T: Into<LocalizedText> {
     let specified_attributes = AttributesMask::DISPLAY_NAME |
         AttributesMask::DESCRIPTION |
         AttributesMask::WRITE_MASK |
@@ -44,7 +39,7 @@ fn object_attributes() -> ExtensionObject {
 
     ExtensionObject::from_encodable(ObjectId::ObjectAttributes_Encoding_DefaultBinary, &ObjectAttributes {
         specified_attributes: specified_attributes.bits(),
-        display_name: LocalizedText::new("", "displayName"),
+        display_name: display_name.into(),
         description: LocalizedText::new("", "description"),
         write_mask: 0,
         user_write_mask: 0,
@@ -83,7 +78,7 @@ fn add_nodes_null_node_id() {
                 requested_new_node_id: ExpandedNodeId::null(),
                 browse_name: QualifiedName::from(""),
                 node_class: NodeClass::Object,
-                node_attributes: object_attributes(),
+                node_attributes: object_attributes("foo"),
                 type_definition: ObjectTypeId::BaseObjectType.into(),
             }
         ]));
@@ -106,7 +101,7 @@ fn add_nodes_invalid_class() {
                 requested_new_node_id: ExpandedNodeId::null(),
                 browse_name: QualifiedName::from(""),
                 node_class: NodeClass::Object,
-                node_attributes: ExtensionObject::null(),
+                node_attributes: object_attributes("foo"),
                 type_definition: ExpandedNodeId::null(),
             }
         ]));
@@ -118,18 +113,19 @@ fn add_nodes_invalid_class() {
     });
 }
 
+#[test]
 fn add_nodes_invalid_parent_id() {
     // Add a node with an invalid parent id
     do_node_management_service_test(|_, _, address_space, nms| {
         let response = nms.add_nodes(address_space, &add_nodes_request(vec![
             AddNodesItem {
                 parent_node_id: NodeId::new(100, "blahblah").into(),
-                reference_type_id: NodeId::null(),
+                reference_type_id: ReferenceTypeId::Organizes.into(),
                 requested_new_node_id: ExpandedNodeId::null(),
                 browse_name: QualifiedName::from(""),
                 node_class: NodeClass::Object,
-                node_attributes: ExtensionObject::null(),
-                type_definition: ExpandedNodeId::null(),
+                node_attributes: object_attributes("foo"),
+                type_definition: ObjectTypeId::BaseObjectType.into(),
             }
         ]));
         let response: AddNodesResponse = supported_message_as!(response.unwrap(), AddNodesResponse);
@@ -140,6 +136,7 @@ fn add_nodes_invalid_parent_id() {
     });
 }
 
+#[test]
 fn add_nodes_missing_type() {
     // Add a node with a missing type
     do_node_management_service_test(|_, _, address_space, nms| {
@@ -147,6 +144,7 @@ fn add_nodes_missing_type() {
     });
 }
 
+#[test]
 fn add_nodes_invalid_type_not_required() {
     // Add a node with a type when a type is not required
     do_node_management_service_test(|_, _, address_space, nms| {
@@ -154,6 +152,7 @@ fn add_nodes_invalid_type_not_required() {
     });
 }
 
+#[test]
 fn add_nodes_invalid_unrecognized_type() {
     // Add a node with an unrecognized type
     do_node_management_service_test(|_, _, address_space, nms| {
@@ -161,6 +160,7 @@ fn add_nodes_invalid_unrecognized_type() {
     });
 }
 
+#[test]
 fn add_nodes_invalid_node_id_exists() {
     // Add a node where node id already exists
     do_node_management_service_test(|_, _, address_space, nms| {
@@ -168,6 +168,7 @@ fn add_nodes_invalid_node_id_exists() {
     });
 }
 
+#[test]
 fn add_nodes_valid() {
     // Add a node which is valid
     do_node_management_service_test(|_, _, address_space, nms| {
@@ -175,6 +176,7 @@ fn add_nodes_valid() {
     });
 }
 
+#[test]
 fn add_nodes_invalid_no_permission() {
     // Add a node which is valid without permission
     do_node_management_service_test(|_, _, address_space, nms| {

@@ -49,10 +49,10 @@ fn main() {
         for &square in BOARD_SQUARES.iter() {
             let browse_name = square;
             let node_id = NodeId::new(2, square);
-            let _ = address_space.add_variable(Variable::new(&node_id, browse_name, browse_name, "", 0u8), &board_node_id);
+            let _ = address_space.add_variable(Variable::new(&node_id, browse_name, browse_name, 0u8), &board_node_id);
             let browse_name = format!("{}.highlight", square);
             let node_id = NodeId::new(2, browse_name.clone());
-            let _ = address_space.add_variable(Variable::new(&node_id, browse_name, "", "", false), &board_node_id);
+            let _ = address_space.add_variable(Variable::new(&node_id, browse_name, "", false), &board_node_id);
         }
 
         let game = game.lock().unwrap();

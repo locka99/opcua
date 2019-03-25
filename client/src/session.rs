@@ -304,7 +304,7 @@ impl Session {
                             let triggered_items = item.triggered_items();
                             if !triggered_items.is_empty() {
                                 let links_to_add = triggered_items.iter().map(|i| *i).collect::<Vec<u32>>();
-                                let _ = self.set_triggering(subscription_id, item.id(), &links_to_add[..], &[]);
+                                let _ = self.set_triggering(subscription_id, item.id(), links_to_add.as_slice(), &[]);
                             }
                         });
                     } else {
@@ -1220,7 +1220,7 @@ impl Session {
             subscription_state.subscription_ids()
         };
         if let Some(ref subscription_ids) = subscription_ids {
-            let status_codes = self.delete_subscriptions(&subscription_ids[..])?;
+            let status_codes = self.delete_subscriptions(subscription_ids.as_slice())?;
             // Return a list of (id, status_code) for each subscription
             Ok(subscription_ids.iter().zip(status_codes).map(|(id, status_code)| (*id, status_code)).collect())
         } else {

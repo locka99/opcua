@@ -502,7 +502,7 @@ impl AddressSpace {
             panic!("Node {:?} already exists", node_id);
         } else {
             // Add a relationship to the parent
-            self.insert(Object::new(&node_id, browse_name, display_name, ""), Some(&[
+            self.insert(Object::new(&node_id, browse_name, display_name, 0), Some(&[
                 (&parent_node_id, ReferenceTypeId::Organizes, ReferenceDirection::Inverse),
                 (&node_type_id.into(), ReferenceTypeId::HasTypeDefinition, ReferenceDirection::Forward),
             ]));

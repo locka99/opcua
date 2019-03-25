@@ -10,10 +10,9 @@ pub struct Method {
 node_impl!(Method);
 
 impl Method {
-    pub fn new<R, S, T>(node_id: &NodeId, browse_name: R, display_name: S, description: T, executable: bool, user_executable: bool) -> Method
+    pub fn new<R, S>(node_id: &NodeId, browse_name: R, display_name: S, executable: bool, user_executable: bool) -> Method
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,
-              T: Into<LocalizedText>,
     {
         // Mandatory
         let attributes = vec![
@@ -35,38 +34,38 @@ impl Method {
         // no input arguments or output arguments for the method.
 
         Method {
-            base: Base::new(NodeClass::Method, node_id, browse_name, display_name, description, attributes),
+            base: Base::new(NodeClass::Method, node_id, browse_name, display_name, attributes),
         }
     }
 
-    pub fn from_attributes<S>(node_id: &NodeId, browse_name: S, attributes: MethodAttributes) -> Self
+    pub fn from_attributes<S>(node_id: &NodeId, browse_name: S, attributes: MethodAttributes) -> Result<Self, ()>
         where S: Into<QualifiedName>
     {
-        let mut node = Self::new(node_id, browse_name, "", "", false, false);
-        let mask = AttributesMask::from_bits_truncate(attributes.specified_attributes);
-        if mask.contains(AttributesMask::DISPLAY_NAME) {
-            node.base.set_display_name(attributes.display_name);
+        let mask = AttributesMask::from_bits(attributes.specified_attributes).ok_or(())?;
+        if mask.contains(AttributesMask::DISPLAY_NAME | AttributesMask::EXECUTABLE | AttributesMask::USER_EXECUTABLE) {
+            let mut node = Self::new(node_id, browse_name, attributes.display_name, attributes.executable, attributes.user_executable);
+            if mask.contains(AttributesMask::DESCRIPTION) {
+                node.set_description(attributes.description);
+            }
+            if mask.contains(AttributesMask::WRITE_MASK) {
+                node.set_write_mask(WriteMask::from_bits_truncate(attributes.write_mask));
+            }
+            if mask.contains(AttributesMask::USER_WRITE_MASK) {
+                node.set_user_write_mask(WriteMask::from_bits_truncate(attributes.user_write_mask));
+            }
+            Ok(node)
+        } else {
+            error!("Method cannot be created from attributes - missing mandatory values");
+            Err(())
         }
-        if mask.contains(AttributesMask::DESCRIPTION) {
-            node.base.set_description(attributes.description);
-        }
-        if mask.contains(AttributesMask::WRITE_MASK) {
-            node.base.set_write_mask(WriteMask::from_bits_truncate(attributes.write_mask));
-        }
-        if mask.contains(AttributesMask::USER_WRITE_MASK) {
-            node.base.set_user_write_mask(WriteMask::from_bits_truncate(attributes.user_write_mask));
-        }
-        if mask.contains(AttributesMask::EXECUTABLE) {
-            let _ = node.set_attribute(AttributeId::Executable, Variant::Boolean(attributes.executable).into());
-        }
-        if mask.contains(AttributesMask::USER_EXECUTABLE) {
-            let _ = node.set_attribute(AttributeId::UserExecutable, Variant::Boolean(attributes.user_executable).into());
-        }
-        node
     }
 
     pub fn executable(&self) -> bool {
         find_attribute_value_mandatory!(&self.base, Executable, Boolean)
+    }
+
+    pub fn set_executable(&mut self, executable: bool) {
+        let _ = self.set_attribute(AttributeId::Executable, Variant::Boolean(executable).into());
     }
 
     pub fn user_executable(&self) -> bool {
@@ -78,5 +77,9 @@ impl Method {
         } else {
             false
         }
+    }
+
+    pub fn set_user_executable(&mut self, user_executable: bool) {
+        let _ = self.set_attribute(AttributeId::UserExecutable, Variant::Boolean(user_executable).into());
     }
 }

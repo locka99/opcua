@@ -53,52 +53,6 @@ impl Debug for Base {
 }
 
 impl Node for Base {
-    /// Returns the node class
-    fn node_class(&self) -> NodeClass {
-        let result = find_attribute_value_mandatory!(self, NodeClass, Int32);
-        NodeClass::from_i32(result).unwrap()
-    }
-
-    fn node_id(&self) -> NodeId {
-        let result = find_attribute_value_mandatory!(self, NodeId, NodeId);
-        result.as_ref().clone()
-    }
-
-    fn browse_name(&self) -> QualifiedName {
-        let result = find_attribute_value_mandatory!(self, BrowseName, QualifiedName);
-        result.as_ref().clone()
-    }
-
-    fn display_name(&self) -> LocalizedText {
-        let result = find_attribute_value_mandatory!(self, DisplayName, LocalizedText);
-        result.as_ref().clone()
-    }
-
-    fn description(&self) -> Option<LocalizedText> {
-        let result = find_attribute_value_optional!(self, Description, LocalizedText);
-        if result.is_none() {
-            None
-        } else {
-            Some(result.unwrap().as_ref().clone())
-        }
-    }
-
-    fn write_mask(&self) -> Option<WriteMask> {
-        find_attribute_value_optional!(self, WriteMask, UInt32).map(|write_mask| WriteMask::from_bits_truncate(write_mask))
-    }
-
-    fn set_write_mask(&mut self, write_mask: WriteMask) {
-        let _ = self.set_attribute(AttributeId::WriteMask, DataValue::new(write_mask.bits()));
-    }
-
-    fn user_write_mask(&self) -> Option<WriteMask> {
-        find_attribute_value_optional!(self, UserWriteMask, UInt32).map(|write_mask| WriteMask::from_bits_truncate(write_mask))
-    }
-
-    fn set_user_write_mask(&mut self, write_mask: WriteMask) {
-        let _ = self.set_attribute(AttributeId::UserWriteMask, DataValue::new(write_mask.bits()));
-    }
-
     fn find_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
         if let Some(ref attribute_getters) = self.attribute_getters {
             if let Some(getter) = attribute_getters.get(&attribute_id) {
@@ -193,10 +147,9 @@ impl Node for Base {
 }
 
 impl Base {
-    pub fn new<R, S, T>(node_class: NodeClass, node_id: &NodeId, browse_name: R, display_name: S, description: T, mut attributes: Vec<(AttributeId, Variant)>) -> Base
+    pub fn new<R, S>(node_class: NodeClass, node_id: &NodeId, browse_name: R, display_name: S, mut attributes: Vec<(AttributeId, Variant)>) -> Base
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,
-              T: Into<LocalizedText>
     {
         // Mandatory attributes
         let mut attributes_to_add = vec![
@@ -204,7 +157,6 @@ impl Base {
             (AttributeId::NodeId, Variant::from(node_id.clone())),
             (AttributeId::BrowseName, Variant::from(browse_name.into())),
             (AttributeId::DisplayName, Variant::from(display_name.into())),
-            (AttributeId::Description, Variant::from(description.into())),
             (AttributeId::WriteMask, Variant::UInt32(0)),
             (AttributeId::UserWriteMask, Variant::UInt32(0)),
         ];

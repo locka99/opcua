@@ -10,44 +10,47 @@ pub struct Object {
 node_impl!(Object);
 
 impl Object {
-    pub fn new<R, S, T>(node_id: &NodeId, browse_name: R, display_name: S, description: T) -> Object
+    pub fn new<R, S>(node_id: &NodeId, browse_name: R, display_name: S, event_notifier: u8) -> Object
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,
-              T: Into<LocalizedText>,
     {
         // Mandatory
         let attributes = vec![
-            (AttributeId::EventNotifier, Variant::Byte(0))
+            (AttributeId::EventNotifier, Variant::Byte(event_notifier))
         ];
         Object {
-            base: Base::new(NodeClass::Object, node_id, browse_name, display_name, description, attributes),
+            base: Base::new(NodeClass::Object, node_id, browse_name, display_name, attributes),
         }
     }
 
-    pub fn event_notifier(&self) -> bool {
-        find_attribute_value_mandatory!(&self.base, EventNotifier, Boolean)
-    }
-
-    pub fn from_attributes<S>(node_id: &NodeId, browse_name: S, attributes: ObjectAttributes) -> Self
+    pub fn from_attributes<S>(node_id: &NodeId, browse_name: S, attributes: ObjectAttributes) -> Result<Self, ()>
         where S: Into<QualifiedName>
     {
-        let mut node = Self::new(node_id, browse_name, "", "");
-        let mask = AttributesMask::from_bits_truncate(attributes.specified_attributes);
-        if mask.contains(AttributesMask::DISPLAY_NAME) {
-            node.base.set_display_name(attributes.display_name);
+        let mask = AttributesMask::from_bits(attributes.specified_attributes).ok_or(())?;
+        if mask.contains(AttributesMask::DISPLAY_NAME | AttributesMask::EVENT_NOTIFIER) {
+            let mut node = Self::new(node_id, browse_name, attributes.display_name, attributes.event_notifier);
+            if mask.contains(AttributesMask::DESCRIPTION) {
+                node.set_description(attributes.description);
+            }
+            if mask.contains(AttributesMask::WRITE_MASK) {
+                node.set_write_mask(WriteMask::from_bits_truncate(attributes.write_mask));
+            }
+            if mask.contains(AttributesMask::USER_WRITE_MASK) {
+                node.set_user_write_mask(WriteMask::from_bits_truncate(attributes.user_write_mask));
+            }
+            Ok(node)
+        } else {
+            error!("Object cannot be created from attributes - missing mandatory values");
+            Err(())
         }
-        if mask.contains(AttributesMask::DESCRIPTION) {
-            node.base.set_description(attributes.description);
-        }
-        if mask.contains(AttributesMask::WRITE_MASK) {
-            node.base.set_write_mask(WriteMask::from_bits_truncate(attributes.write_mask));
-        }
-        if mask.contains(AttributesMask::USER_WRITE_MASK) {
-            node.base.set_user_write_mask(WriteMask::from_bits_truncate(attributes.user_write_mask));
-        }
-        if mask.contains(AttributesMask::EVENT_NOTIFIER) {
-            let _ = node.set_attribute(AttributeId::EventNotifier, Variant::Byte(attributes.event_notifier).into());
-        }
-        node
+    }
+
+    pub fn event_notifier(&self) -> u8 {
+        find_attribute_value_mandatory!(&self.base, EventNotifier, Byte)
+    }
+
+    pub fn set_event_notifier(&mut self, event_notifier: u8) {
+        let _ = self.set_attribute(AttributeId::EventNotifier, Variant::Byte(event_notifier).into());
     }
 }
+
