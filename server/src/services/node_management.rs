@@ -46,17 +46,35 @@ impl NodeManagementService {
         }
     }
 
-    pub fn add_references(&self, _address_space: &mut AddressSpace, request: &AddReferencesRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn add_references(&self, address_space: &mut AddressSpace, request: &AddReferencesRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref references_to_add) = request.references_to_add {
             if !references_to_add.is_empty() {
-                let results = request.references_to_add.iter().map(|r| {
-                    // TODO
-                    // Source node id
-                    // Reference type id
-                    // is forward
-                    // target server uri
-                    // target node class
-                    StatusCode::Good
+                let results = references_to_add.iter().map(|r| {
+                    if r.target_node_id.server_index != 0 {
+                        StatusCode::BadReferenceLocalOnly
+                    } else if !address_space.node_exists(&r.source_node_id) {
+                        StatusCode::BadSourceNodeIdInvalid
+                    } else if !address_space.node_exists(&r.target_node_id.node_id) {
+                        StatusCode::BadTargetNodeIdInvalid
+                    } else {
+                        if let Ok(reference_type_id) = r.reference_type_id.as_reference_type_id() {
+
+                            // TODO test for duplicate reference
+                            // BadDuplicateReferenceNotAllowed
+
+                            // TODO test data model constraint
+                            // BadReferenceNotAllowed
+
+                            if r.is_forward {
+                                address_space.insert_reference(&r.source_node_id, &r.target_node_id.node_id, reference_type_id);
+                            } else {
+                                address_space.insert_reference(&r.target_node_id.node_id, &r.source_node_id, reference_type_id);
+                            }
+                            StatusCode::Good
+                        } else {
+                            StatusCode::BadReferenceTypeIdInvalid
+                        }
+                    }
                 }).collect();
                 Ok(AddReferencesResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
@@ -212,6 +230,12 @@ impl NodeManagementService {
             } else {
                 requested_new_node_id.node_id.clone()
             };
+
+            // TODO test data model constraint
+            // BadReferenceNotAllowed
+
+            // TODO test duplicate browse name to same parent
+            // BadBrowseNameDuplicated
 
             // Check the type definition is valid
             let valid_type_definition = match node_to_add.node_class {
