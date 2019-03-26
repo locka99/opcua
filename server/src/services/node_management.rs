@@ -7,6 +7,7 @@ use opcua_types::service_types::*;
 use crate::{
     address_space::{
         AddressSpace,
+        relative_path,
         types::*,
     },
     services::Service,
@@ -22,6 +23,7 @@ impl NodeManagementService {
         NodeManagementService {}
     }
 
+    /// Implements the AddNodes service
     pub fn add_nodes(&self, address_space: &mut AddressSpace, request: &AddNodesRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref nodes_to_add) = request.nodes_to_add {
             if !nodes_to_add.is_empty() {
@@ -46,36 +48,12 @@ impl NodeManagementService {
         }
     }
 
+    /// Implements the AddReferences service
     pub fn add_references(&self, address_space: &mut AddressSpace, request: &AddReferencesRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref references_to_add) = request.references_to_add {
             if !references_to_add.is_empty() {
                 let results = references_to_add.iter().map(|r| {
-                    if !r.target_server_uri.is_null() {
-                        StatusCode::BadServerUriInvalid
-                    } else if r.target_node_id.server_index != 0 {
-                        StatusCode::BadReferenceLocalOnly
-                    } else if !address_space.node_exists(&r.source_node_id) {
-                        StatusCode::BadSourceNodeIdInvalid
-                    } else if !address_space.node_exists(&r.target_node_id.node_id) {
-                        StatusCode::BadTargetNodeIdInvalid
-                    } else {
-                        if let Ok(reference_type_id) = r.reference_type_id.as_reference_type_id() {
-                            if !address_space.has_reference(&r.source_node_id, &r.target_node_id.node_id, reference_type_id) {
-                                // TODO test data model constraint
-                                // BadReferenceNotAllowed
-                                if r.is_forward {
-                                    address_space.insert_reference(&r.source_node_id, &r.target_node_id.node_id, reference_type_id);
-                                } else {
-                                    address_space.insert_reference(&r.target_node_id.node_id, &r.source_node_id, reference_type_id);
-                                }
-                                StatusCode::Good
-                            } else {
-                                StatusCode::BadDuplicateReferenceNotAllowed
-                            }
-                        } else {
-                            StatusCode::BadReferenceTypeIdInvalid
-                        }
-                    }
+                    Self::add_reference(address_space, r)
                 }).collect();
                 Ok(AddReferencesResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
@@ -90,15 +68,12 @@ impl NodeManagementService {
         }
     }
 
+    /// Implements the DeleteNodes service
     pub fn delete_nodes(&self, address_space: &mut AddressSpace, request: &DeleteNodesRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref nodes_to_delete) = request.nodes_to_delete {
             if !nodes_to_delete.is_empty() {
                 let results = nodes_to_delete.iter().map(|node_to_delete| {
-                    if address_space.delete_node(&node_to_delete.node_id, node_to_delete.delete_target_references) {
-                        StatusCode::Good
-                    } else {
-                        StatusCode::BadNodeIdUnknown
-                    }
+                    Self::delete_node(address_space, node_to_delete)
                 }).collect();
                 let response = DeleteNodesResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
@@ -114,31 +89,12 @@ impl NodeManagementService {
         }
     }
 
+    /// Implements the DeleteReferences service
     pub fn delete_references(&self, address_space: &mut AddressSpace, request: &DeleteReferencesRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref references_to_delete) = request.references_to_delete {
             if !references_to_delete.is_empty() {
                 let results = references_to_delete.iter().map(|r| {
-                    if r.target_node_id.server_index != 0 {
-                        StatusCode::BadReferenceLocalOnly
-                    } else if !address_space.node_exists(&r.source_node_id) {
-                        StatusCode::BadSourceNodeIdInvalid
-                    } else if !address_space.node_exists(&r.target_node_id.node_id) {
-                        StatusCode::BadTargetNodeIdInvalid
-                    } else {
-                        if let Ok(reference_type_id) = r.reference_type_id.as_reference_type_id() {
-                            if r.delete_bidirectional {
-                                address_space.delete_reference(&r.source_node_id, &r.target_node_id.node_id, reference_type_id);
-                                address_space.delete_reference(&r.target_node_id.node_id, &r.source_node_id, reference_type_id);
-                            } else if r.is_forward {
-                                address_space.delete_reference(&r.source_node_id, &r.target_node_id.node_id, reference_type_id);
-                            } else {
-                                address_space.delete_reference(&r.target_node_id.node_id, &r.source_node_id, reference_type_id);
-                            }
-                            StatusCode::Good
-                        } else {
-                            StatusCode::BadReferenceTypeIdInvalid
-                        }
-                    }
+                    Self::delete_reference(address_space, r)
                 }).collect();
                 Ok(DeleteReferencesResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
@@ -239,19 +195,50 @@ impl NodeManagementService {
         }.map_err(|_| StatusCode::BadNodeAttributesInvalid)
     }
 
-    fn add_node(address_space: &mut AddressSpace, node_to_add: &AddNodesItem) -> (StatusCode, NodeId) {
-        let requested_new_node_id = &node_to_add.requested_new_node_id;
+    fn add_node(address_space: &mut AddressSpace, item: &AddNodesItem) -> (StatusCode, NodeId) {
+        // TODO check permission
+
+        let requested_new_node_id = &item.requested_new_node_id;
         if requested_new_node_id.server_index != 0 {
             // Server index is supposed to be 0
             error!("node cannot be created because server index is not 0");
-            (StatusCode::BadNodeIdRejected, NodeId::null())
-        } else if node_to_add.node_class == NodeClass::Unspecified {
-            (StatusCode::BadNodeClassInvalid, NodeId::null())
-        } else if !requested_new_node_id.is_null() && address_space.node_exists(&requested_new_node_id.node_id) {
-            // If a node id is supplied, it should not already exist
-            error!("node cannot be created because node id already exists");
-            (StatusCode::BadNodeIdExists, NodeId::null())
-        } else if let Ok(reference_type_id) = node_to_add.reference_type_id.as_reference_type_id() {
+            return (StatusCode::BadNodeIdRejected, NodeId::null());
+        }
+
+        if item.node_class == NodeClass::Unspecified {
+            error!("node cannot be created because node class is unspecified");
+            return (StatusCode::BadNodeClassInvalid, NodeId::null());
+        }
+
+        if !requested_new_node_id.is_null() {
+            if address_space.node_exists(&requested_new_node_id.node_id) {
+                // If a node id is supplied, it should not already exist
+                error!("node cannot be created because node id already exists");
+                return (StatusCode::BadNodeIdExists, NodeId::null());
+            }
+        }
+
+        // Test for invalid browse name
+        if item.browse_name.is_null() || item.browse_name.name.as_ref().is_empty() {
+            error!("node cannot be created because the browse name is invalid");
+            return (StatusCode::BadBrowseNameInvalid, NodeId::null());
+        }
+
+        // Test duplicate browse name to same parent
+        let browse_name = if item.browse_name.namespace_index != 0 {
+            format!("{}:{}", item.browse_name.namespace_index, item.browse_name.name.as_ref())
+        } else {
+            format!("/{}", item.browse_name.name.as_ref())
+        };
+        let relative_path = RelativePath::from_str(&browse_name, &RelativePathElement::default_node_resolver).unwrap();
+        if let Ok(nodes) = relative_path::find_nodes_relative_path(address_space, &item.parent_node_id.node_id, &relative_path) {
+            if !nodes.is_empty() {
+                error!("node cannot be created because the browse name is a duplicate");
+                return (StatusCode::BadBrowseNameDuplicated, NodeId::null());
+            }
+        }
+
+        if let Ok(reference_type_id) = item.reference_type_id.as_reference_type_id() {
             // Node Id was either supplied or will be generated
             let new_node_id = if requested_new_node_id.is_null() {
                 NodeId::next_numeric()
@@ -262,43 +249,28 @@ impl NodeManagementService {
             // TODO test data model constraint
             // BadReferenceNotAllowed
 
-            // TODO test duplicate browse name to same parent
-            // BadBrowseNameDuplicated
-
             // Check the type definition is valid
-            let valid_type_definition = match node_to_add.node_class {
-                NodeClass::Object | NodeClass::Variable => {
-                    if node_to_add.type_definition.is_null() {
-                        false
-                    } else {
-                        // TODO should we check if the type definition points to an object or variable type?
-                        true
-                    }
-                }
-                _ => {
-                    // Other node classes must NOT supply a type definition
-                    node_to_add.type_definition.is_null()
-                }
-            };
-
-            // Check that the parent node exists
-            let valid_parent_node = address_space.node_exists(&node_to_add.parent_node_id.node_id);
-
-            // Create a node
-            if !valid_type_definition {
+            if !address_space.is_valid_type_definition(item.node_class, &item.type_definition.node_id) {
                 // Type definition was either invalid or supplied when it should not have been supplied
                 error!("node cannot be created because type definition is not valid");
-                (StatusCode::BadTypeDefinitionInvalid, NodeId::null())
-            } else if !valid_parent_node {
-                (StatusCode::BadParentNodeIdInvalid, NodeId::null())
-            } else if let Ok(node) = Self::create_node(&new_node_id, node_to_add.node_class, node_to_add.browse_name.clone(), &node_to_add.node_attributes) {
+                return (StatusCode::BadTypeDefinitionInvalid, NodeId::null());
+            }
+
+            // Check that the parent node exists
+            if !item.parent_node_id.server_index == 0 || !address_space.node_exists(&item.parent_node_id.node_id) {
+                error!("node cannot be created because parent node id is invalid or does not exist");
+                return (StatusCode::BadParentNodeIdInvalid, NodeId::null());
+            }
+
+            // Create a node
+            if let Ok(node) = Self::create_node(&new_node_id, item.node_class, item.browse_name.clone(), &item.node_attributes) {
                 // Add the node to the address space
                 address_space.insert(node, Some(&[
-                    (&node_to_add.parent_node_id.node_id, reference_type_id, ReferenceDirection::Forward),
+                    (&item.parent_node_id.node_id, reference_type_id, ReferenceDirection::Forward),
                 ]));
                 // Object / Variable types must add a reference to the type
-                if node_to_add.node_class == NodeClass::Object || node_to_add.node_class == NodeClass::Variable {
-                    address_space.set_node_type(&new_node_id, node_to_add.type_definition.node_id.clone());
+                if item.node_class == NodeClass::Object || item.node_class == NodeClass::Variable {
+                    address_space.set_node_type(&new_node_id, item.type_definition.node_id.clone());
                 }
                 (StatusCode::Good, new_node_id)
             } else {
@@ -309,6 +281,83 @@ impl NodeManagementService {
         } else {
             error!("node cannot be created because reference type is invalid");
             (StatusCode::BadReferenceTypeIdInvalid, NodeId::null())
+        }
+    }
+
+    fn add_reference(address_space: &mut AddressSpace, item: &AddReferencesItem) -> StatusCode {
+        // TODO check permission
+
+        if !item.target_server_uri.is_null() {
+            StatusCode::BadServerUriInvalid
+        } else if item.target_node_id.server_index != 0 {
+            StatusCode::BadReferenceLocalOnly
+        } else if !address_space.node_exists(&item.source_node_id) {
+            StatusCode::BadSourceNodeIdInvalid
+        } else if !address_space.node_exists(&item.target_node_id.node_id) {
+            StatusCode::BadTargetNodeIdInvalid
+        } else {
+            if let Ok(reference_type_id) = item.reference_type_id.as_reference_type_id() {
+                if !address_space.has_reference(&item.source_node_id, &item.target_node_id.node_id, reference_type_id) {
+                    // TODO test data model constraint
+                    // BadReferenceNotAllowed
+                    if item.is_forward {
+                        address_space.insert_reference(&item.source_node_id, &item.target_node_id.node_id, reference_type_id);
+                    } else {
+                        address_space.insert_reference(&item.target_node_id.node_id, &item.source_node_id, reference_type_id);
+                    }
+                    StatusCode::Good
+                } else {
+                    error!("reference cannot be added because reference is a duplicate");
+                    StatusCode::BadDuplicateReferenceNotAllowed
+                }
+            } else {
+                error!("reference cannot be added because reference type id is invalid");
+                StatusCode::BadReferenceTypeIdInvalid
+            }
+        }
+    }
+
+    fn delete_node(address_space: &mut AddressSpace, item: &DeleteNodesItem) -> StatusCode {
+        // TODO check permission
+
+        if address_space.delete_node(&item.node_id, item.delete_target_references) {
+            StatusCode::Good
+        } else {
+            error!("node cannot be deleted");
+            StatusCode::BadNodeIdUnknown
+        }
+    }
+
+    fn delete_reference(address_space: &mut AddressSpace, item: &DeleteReferencesItem) -> StatusCode {
+        // TODO check permission
+
+        let node_id = &item.source_node_id;
+        let target_node_id = &item.target_node_id.node_id;
+
+        if item.target_node_id.server_index != 0 {
+            error!("reference cannot be added because only local references are supported");
+            StatusCode::BadReferenceLocalOnly
+        } else if !address_space.node_exists(&node_id) {
+            error!("reference cannot be added because source node id is invalid");
+            StatusCode::BadSourceNodeIdInvalid
+        } else if !address_space.node_exists(&target_node_id) {
+            error!("reference cannot be added because target node id is invalid");
+            StatusCode::BadTargetNodeIdInvalid
+        } else {
+            if let Ok(reference_type_id) = item.reference_type_id.as_reference_type_id() {
+                if item.delete_bidirectional {
+                    address_space.delete_reference(&node_id, &target_node_id, reference_type_id);
+                    address_space.delete_reference(&target_node_id, &node_id, reference_type_id);
+                } else if item.is_forward {
+                    address_space.delete_reference(&node_id, &target_node_id, reference_type_id);
+                } else {
+                    address_space.delete_reference(&target_node_id, &node_id, reference_type_id);
+                }
+                StatusCode::Good
+            } else {
+                error!("reference cannot be added because reference type id is invalid");
+                StatusCode::BadReferenceTypeIdInvalid
+            }
         }
     }
 }

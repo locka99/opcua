@@ -7,7 +7,7 @@ use opcua_types::{
     *,
     node_ids::*,
     status_code::StatusCode,
-    service_types::{CallMethodRequest, CallMethodResult, BrowseDirection},
+    service_types::{CallMethodRequest, CallMethodResult, BrowseDirection, NodeClass},
 };
 
 use crate::{
@@ -497,7 +497,9 @@ impl AddressSpace {
 
     /// Adds a node as a child (organized by) another node. The type id says what kind of node the object
     /// should be, e.g. folder node or something else.
-    pub fn add_organized_node(&mut self, node_id: &NodeId, browse_name: &str, display_name: &str, parent_node_id: &NodeId, node_type_id: ObjectTypeId) -> Result<NodeId, ()> {
+    pub fn add_organized_node<R, S>(&mut self, node_id: &NodeId, browse_name: R, display_name: S, parent_node_id: &NodeId, node_type_id: ObjectTypeId) -> Result<NodeId, ()>
+        where R: Into<QualifiedName>, S: Into<LocalizedText>
+    {
         if self.node_exists(&node_id) {
             panic!("Node {:?} already exists", node_id);
         } else {
@@ -511,12 +513,16 @@ impl AddressSpace {
     }
 
     /// Adds a folder with a specified id
-    pub fn add_folder_with_id(&mut self, node_id: &NodeId, browse_name: &str, display_name: &str, parent_node_id: &NodeId) -> Result<NodeId, ()> {
+    pub fn add_folder_with_id<R, S>(&mut self, node_id: &NodeId, browse_name: R, display_name: S, parent_node_id: &NodeId) -> Result<NodeId, ()>
+        where R: Into<QualifiedName>, S: Into<LocalizedText>
+    {
         self.add_organized_node(node_id, browse_name, display_name, parent_node_id, ObjectTypeId::FolderType)
     }
 
     /// Adds a folder using a generated node id
-    pub fn add_folder(&mut self, browse_name: &str, display_name: &str, parent_node_id: &NodeId) -> Result<NodeId, ()> {
+    pub fn add_folder<R, S>(&mut self, browse_name: R, display_name: S, parent_node_id: &NodeId) -> Result<NodeId, ()>
+        where R: Into<QualifiedName>, S: Into<LocalizedText>
+    {
         self.add_folder_with_id(&NodeId::next_numeric(), browse_name, display_name, parent_node_id)
     }
 
@@ -691,6 +697,40 @@ impl AddressSpace {
         let key = MethodKey { object_id, method_id };
         if let Some(_) = self.method_handlers.insert(key, handler) {
             trace!("Registration replaced a previous callback");
+        }
+    }
+
+    /// Test if the type definition is defined and valid for a class of the specified type.
+    /// i.e. if we have a Variable or Object class that the type is a VariableType or ObjectType
+    /// respectively.
+    pub fn is_valid_type_definition(&self, node_class: NodeClass, type_definition: &NodeId) -> bool {
+        match node_class {
+            NodeClass::Object => {
+                if type_definition.is_null() {
+                    false
+                } else {
+                    if let Some(NodeType::ObjectType(_)) = self.find_node(type_definition) {
+                        true
+                    } else {
+                        false
+                    }
+                }
+            }
+            NodeClass::Variable => {
+                if type_definition.is_null() {
+                    false
+                } else {
+                    if let Some(NodeType::VariableType(_)) = self.find_node(type_definition) {
+                        true
+                    } else {
+                        false
+                    }
+                }
+            }
+            _ => {
+                // Other node classes must NOT supply a type definition
+                type_definition.is_null()
+            }
         }
     }
 

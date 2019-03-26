@@ -10,6 +10,8 @@ use super::*;
 fn do_node_management_service_test<T>(f: T)
     where T: FnOnce(&mut ServerState, &mut Session, &mut AddressSpace, NodeManagementService)
 {
+    opcua_console_logging::init();
+
     let st = ServiceTest::new();
     let mut server_state = trace_write_lock_unwrap!(st.server_state);
     let mut session = trace_write_lock_unwrap!(st.session);
@@ -53,6 +55,9 @@ fn do_add_references_test(item: AddReferencesItem, expected_status_code: StatusC
         let results = response.results.unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(results[0], expected_status_code);
+        if expected_status_code.is_good() {
+            // TODO expect the reference to exist
+        }
     });
 }
 
@@ -295,16 +300,29 @@ fn add_nodes_valid() {
 // TODO a test which tries adding nodes with no permission to do so
 
 #[test]
-fn add_references_test1() {
-    // TODO
-    do_add_references_test(AddReferencesItem{
-        source_node_id: NodeId::null(),
+fn add_references_invalid_source_node_id() {
+    // Add a reference where the node id is invalid
+    do_add_references_test(AddReferencesItem {
+        source_node_id: NodeId::null(), // !!!
         reference_type_id: ReferenceTypeId::HasChild.into(),
         is_forward: true,
         target_server_uri: UAString::null(),
         target_node_id: ObjectId::ServerConfiguration.into(),
-        target_node_class: NodeClass::Object
+        target_node_class: NodeClass::Object,
     }, StatusCode::BadSourceNodeIdInvalid);
+}
+
+#[test]
+fn add_references_invalid_target_node_id() {
+    // Add a reference where the node id is invalid
+    do_add_references_test(AddReferencesItem {
+        source_node_id: ObjectId::RootFolder.into(),
+        reference_type_id: ReferenceTypeId::HasChild.into(),
+        is_forward: true,
+        target_server_uri: UAString::null(),
+        target_node_id: ExpandedNodeId::null(), // !!!
+        target_node_class: NodeClass::Object,
+    }, StatusCode::BadTargetNodeIdInvalid);
 }
 
 #[test]
