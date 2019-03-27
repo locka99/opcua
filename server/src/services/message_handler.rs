@@ -137,25 +137,25 @@ impl MessageHandler {
 
             SupportedMessage::AddNodesRequest(request) => {
                 validated_request!(self, &request, &mut session, {
-                    self.node_management_service.add_nodes(&mut address_space, &request)
+                    self.node_management_service.add_nodes(&session, &mut address_space, &request)
                 })
             }
 
             SupportedMessage::AddReferencesRequest(request) => {
                 validated_request!(self, &request, &mut session, {
-                    self.node_management_service.add_references(&mut address_space, &request)
+                    self.node_management_service.add_references(&session, &mut address_space, &request)
                 })
             }
 
             SupportedMessage::DeleteNodesRequest(request) => {
                 validated_request!(self, &request, &mut session, {
-                    self.node_management_service.delete_nodes(&mut address_space, &request)
+                    self.node_management_service.delete_nodes(&session, &mut address_space, &request)
                 })
             }
 
             SupportedMessage::DeleteReferencesRequest(request) => {
                 validated_request!(self, &request, &mut session, {
-                    self.node_management_service.delete_references(&mut address_space, &request)
+                    self.node_management_service.delete_references(&session, &mut address_space, &request)
                 })
             }
 

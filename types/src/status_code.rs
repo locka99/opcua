@@ -24,6 +24,20 @@ impl fmt::Display for StatusCode {
     }
 }
 
+/*
+impl fmt::Debug for StatusCode {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        // Displays the StatusCode as it's name, or its name+bitflags
+        let bits = *self & StatusCode::BIT_MASK;
+        if bits.is_empty() {
+            write!(f, "{}", self.name())
+        } else {
+            write!(f, "{}+{:?}", self.name(), bits)
+        }
+    }
+}
+*/
+
 // Serialize / Deserialize are manually implemented because bitflags! doesn't do it.
 
 impl From<StatusCode> for io::Error {

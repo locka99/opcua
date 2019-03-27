@@ -78,6 +78,9 @@ pub struct Session {
     terminated_at: DateTimeUtc,
     /// Flag indicating session is actually terminated
     terminated: bool,
+    /// Flag indicating broadly if this session may modify the address space by adding or removing
+    /// nodes or references to nodes.
+    can_modify_address_space: bool,
 }
 
 impl Drop for Session {
@@ -111,6 +114,7 @@ impl Session {
             endpoint_url: UAString::null(),
             max_browse_continuation_points,
             browse_continuation_points: VecDeque::with_capacity(max_browse_continuation_points),
+            can_modify_address_space: true,
             diagnostics: Arc::new(RwLock::new(ServerDiagnostics::default())),
         };
         {
@@ -151,6 +155,7 @@ impl Session {
             endpoint_url: UAString::null(),
             max_browse_continuation_points,
             browse_continuation_points: VecDeque::with_capacity(max_browse_continuation_points),
+            can_modify_address_space: true,
             diagnostics,
         };
         {
@@ -224,5 +229,9 @@ impl Session {
         self.browse_continuation_points.retain(|continuation_point| {
             !continuation_points_set.contains(&continuation_point.id)
         });
+    }
+
+    pub(crate) fn can_modify_address_space(&self) -> bool {
+        self.can_modify_address_space
     }
 }

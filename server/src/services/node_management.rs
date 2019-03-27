@@ -1,8 +1,11 @@
 use std::result::Result;
 
-use opcua_types::*;
-use opcua_types::status_code::StatusCode;
-use opcua_types::service_types::*;
+use opcua_types::{
+    *,
+    status_code::StatusCode,
+    service_types::*,
+    node_ids::ObjectId,
+};
 
 use crate::{
     address_space::{
@@ -10,9 +13,9 @@ use crate::{
         relative_path,
         types::*,
     },
+    session::Session,
     services::Service,
 };
-use opcua_types::node_ids::ObjectId;
 
 pub(crate) struct NodeManagementService;
 
@@ -24,11 +27,11 @@ impl NodeManagementService {
     }
 
     /// Implements the AddNodes service
-    pub fn add_nodes(&self, address_space: &mut AddressSpace, request: &AddNodesRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn add_nodes(&self, session: &Session, address_space: &mut AddressSpace, request: &AddNodesRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref nodes_to_add) = request.nodes_to_add {
             if !nodes_to_add.is_empty() {
                 let results = nodes_to_add.iter().map(|node_to_add| {
-                    let (status_code, added_node_id) = Self::add_node(address_space, node_to_add);
+                    let (status_code, added_node_id) = Self::add_node(session, address_space, node_to_add);
                     AddNodesResult {
                         status_code,
                         added_node_id,
@@ -49,11 +52,11 @@ impl NodeManagementService {
     }
 
     /// Implements the AddReferences service
-    pub fn add_references(&self, address_space: &mut AddressSpace, request: &AddReferencesRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn add_references(&self, session: &Session, address_space: &mut AddressSpace, request: &AddReferencesRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref references_to_add) = request.references_to_add {
             if !references_to_add.is_empty() {
                 let results = references_to_add.iter().map(|r| {
-                    Self::add_reference(address_space, r)
+                    Self::add_reference(session, address_space, r)
                 }).collect();
                 Ok(AddReferencesResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
@@ -69,11 +72,11 @@ impl NodeManagementService {
     }
 
     /// Implements the DeleteNodes service
-    pub fn delete_nodes(&self, address_space: &mut AddressSpace, request: &DeleteNodesRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn delete_nodes(&self, session: &Session, address_space: &mut AddressSpace, request: &DeleteNodesRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref nodes_to_delete) = request.nodes_to_delete {
             if !nodes_to_delete.is_empty() {
                 let results = nodes_to_delete.iter().map(|node_to_delete| {
-                    Self::delete_node(address_space, node_to_delete)
+                    Self::delete_node(session, address_space, node_to_delete)
                 }).collect();
                 let response = DeleteNodesResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
@@ -90,11 +93,11 @@ impl NodeManagementService {
     }
 
     /// Implements the DeleteReferences service
-    pub fn delete_references(&self, address_space: &mut AddressSpace, request: &DeleteReferencesRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn delete_references(&self, session: &Session, address_space: &mut AddressSpace, request: &DeleteReferencesRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref references_to_delete) = request.references_to_delete {
             if !references_to_delete.is_empty() {
                 let results = references_to_delete.iter().map(|r| {
-                    Self::delete_reference(address_space, r)
+                    Self::delete_reference(session, address_space, r)
                 }).collect();
                 Ok(DeleteReferencesResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
@@ -195,8 +198,11 @@ impl NodeManagementService {
         }.map_err(|_| StatusCode::BadNodeAttributesInvalid)
     }
 
-    fn add_node(address_space: &mut AddressSpace, item: &AddNodesItem) -> (StatusCode, NodeId) {
-        // TODO check permission
+    fn add_node(session: &Session, address_space: &mut AddressSpace, item: &AddNodesItem) -> (StatusCode, NodeId) {
+        if !session.can_modify_address_space() {
+            // No permission to modify address space
+            return (StatusCode::BadUserAccessDenied, NodeId::null());
+        }
 
         let requested_new_node_id = &item.requested_new_node_id;
         if requested_new_node_id.server_index != 0 {
@@ -284,10 +290,11 @@ impl NodeManagementService {
         }
     }
 
-    fn add_reference(address_space: &mut AddressSpace, item: &AddReferencesItem) -> StatusCode {
-        // TODO check permission
-
-        if !item.target_server_uri.is_null() {
+    fn add_reference(session: &Session, address_space: &mut AddressSpace, item: &AddReferencesItem) -> StatusCode {
+        if !session.can_modify_address_space() {
+            // No permission to modify address space
+            StatusCode::BadUserAccessDenied
+        } else if !item.target_server_uri.is_null() {
             StatusCode::BadServerUriInvalid
         } else if item.target_node_id.server_index != 0 {
             StatusCode::BadReferenceLocalOnly
@@ -295,7 +302,44 @@ impl NodeManagementService {
             StatusCode::BadSourceNodeIdInvalid
         } else if !address_space.node_exists(&item.target_node_id.node_id) {
             StatusCode::BadTargetNodeIdInvalid
+        } else if item.target_node_class == NodeClass::Unspecified {
+            StatusCode::BadNodeClassInvalid
         } else {
+            if let Some(node_type) = address_space.find_node(&item.target_node_id.node_id) {
+                // If the target node exists the class can be compared to the one supplied
+                let valid_node_class = match item.target_node_class {
+                    NodeClass::Object => {
+                        if let NodeType::Object(_) = *node_type { true } else { false }
+                    }
+                    NodeClass::Variable => {
+                        if let NodeType::Variable(_) = *node_type { true } else { false }
+                    }
+                    NodeClass::Method => {
+                        if let NodeType::Method(_) = *node_type { true } else { false }
+                    }
+                    NodeClass::ObjectType => {
+                        if let NodeType::ObjectType(_) = *node_type { true } else { false }
+                    }
+                    NodeClass::VariableType => {
+                        if let NodeType::VariableType(_) = *node_type { true } else { false }
+                    }
+                    NodeClass::ReferenceType => {
+                        if let NodeType::ReferenceType(_) = *node_type { true } else { false }
+                    }
+                    NodeClass::DataType => {
+                        if let NodeType::DataType(_) = *node_type { true } else { false }
+                    }
+                    NodeClass::View => {
+                        if let NodeType::View(_) = *node_type { true } else { false }
+                    }
+                    _ => false
+                };
+                if !valid_node_class {
+                    return StatusCode::BadNodeClassInvalid;
+                }
+            }
+
+
             if let Ok(reference_type_id) = item.reference_type_id.as_reference_type_id() {
                 if !address_space.has_reference(&item.source_node_id, &item.target_node_id.node_id, reference_type_id) {
                     // TODO test data model constraint
@@ -317,10 +361,11 @@ impl NodeManagementService {
         }
     }
 
-    fn delete_node(address_space: &mut AddressSpace, item: &DeleteNodesItem) -> StatusCode {
-        // TODO check permission
-
-        if address_space.delete_node(&item.node_id, item.delete_target_references) {
+    fn delete_node(session: &Session, address_space: &mut AddressSpace, item: &DeleteNodesItem) -> StatusCode {
+        if !session.can_modify_address_space() {
+            // No permission to modify address space
+            StatusCode::BadUserAccessDenied
+        } else if address_space.delete_node(&item.node_id, item.delete_target_references) {
             StatusCode::Good
         } else {
             error!("node cannot be deleted");
@@ -328,13 +373,14 @@ impl NodeManagementService {
         }
     }
 
-    fn delete_reference(address_space: &mut AddressSpace, item: &DeleteReferencesItem) -> StatusCode {
-        // TODO check permission
-
+    fn delete_reference(session: &Session, address_space: &mut AddressSpace, item: &DeleteReferencesItem) -> StatusCode {
         let node_id = &item.source_node_id;
         let target_node_id = &item.target_node_id.node_id;
 
-        if item.target_node_id.server_index != 0 {
+        if !session.can_modify_address_space() {
+            // No permission to modify address space
+            StatusCode::BadUserAccessDenied
+        } else if item.target_node_id.server_index != 0 {
             error!("reference cannot be added because only local references are supported");
             StatusCode::BadReferenceLocalOnly
         } else if !address_space.node_exists(&node_id) {
