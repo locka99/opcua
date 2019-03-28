@@ -130,6 +130,11 @@ impl Default for Variable {
 }
 
 impl Variable {
+    /// Creates a new variable. Note that data type, value rank and historizing are mandatory
+    /// attributes of the Variable but not required by the constructor. The data type and value rank
+    /// are inferred from the value. Historizing is not supported so is always false. If the
+    /// inferred types for data type or value rank are wrong, they may be explicitly set, or
+    /// call `new_data_value()` instead.
     pub fn new<R, S, V>(node_id: &NodeId, browse_name: R, display_name: S, value: V) -> Variable
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,

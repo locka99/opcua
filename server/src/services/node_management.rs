@@ -383,10 +383,10 @@ impl NodeManagementService {
         } else if item.target_node_id.server_index != 0 {
             error!("reference cannot be added because only local references are supported");
             StatusCode::BadReferenceLocalOnly
-        } else if !address_space.node_exists(&node_id) {
+        } else if node_id.is_null() || !address_space.node_exists(&node_id) {
             error!("reference cannot be added because source node id is invalid");
             StatusCode::BadSourceNodeIdInvalid
-        } else if !address_space.node_exists(&target_node_id) {
+        } else if target_node_id.is_null() || !address_space.node_exists(&target_node_id) {
             error!("reference cannot be added because target node id is invalid");
             StatusCode::BadTargetNodeIdInvalid
         } else {

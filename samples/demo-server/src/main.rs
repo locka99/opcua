@@ -318,7 +318,7 @@ fn add_stress_scalar_variables(server: &mut Server) -> Vec<NodeId> {
     node_ids.iter().enumerate().for_each(|(i, node_id)| {
         let name = format!("v{:04}", i);
         let default_value = Variant::Int32(0);
-        let _ = address_space.add_variable(Variable::new(node_id, name, "", default_value), &folder_id);
+        let _ = address_space.add_variable(Variable::new(node_id, name.clone(), name.clone(), default_value), &folder_id);
     });
 
     node_ids

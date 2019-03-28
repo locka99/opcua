@@ -132,6 +132,7 @@ pub mod object_type;
 pub mod variable_type;
 pub mod data_type;
 pub mod view;
+mod references;
 
 mod method_impls;
 
@@ -162,7 +163,8 @@ bitflags! {
 
 pub mod types {
     pub use super::{AttrFnGetter, AttrFnSetter};
-    pub use super::address_space::{AddressSpace, ReferenceDirection};
+    pub use super::address_space::AddressSpace;
+    pub use super::references::ReferenceDirection;
     pub use super::data_type::DataType;
     pub use super::object::Object;
     pub use super::variable::{VariableBuilder, Variable};

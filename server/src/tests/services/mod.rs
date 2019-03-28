@@ -51,9 +51,9 @@ fn make_request_header() -> RequestHeader {
     }
 }
 
-fn var_name(idx: usize) -> String {
-    format!("v{}", idx)
-}
+fn var_name(idx: usize) -> String { format!("v{}", idx) }
+
+fn var_node_id(idx: usize) -> NodeId { NodeId::new(1, var_name(idx)) }
 
 fn add_many_vars_to_address_space(address_space: &mut AddressSpace, vars_to_add: usize) -> (NodeId, Vec<NodeId>) {
     // Create a sample folder under objects folder
@@ -61,9 +61,7 @@ fn add_many_vars_to_address_space(address_space: &mut AddressSpace, vars_to_add:
 
     // Add as a bunch of sequential vars to the folder
     let vars: Vec<Variable> = (0..vars_to_add).map(|i| {
-        let var_name = var_name(i);
-        let node_id = NodeId::new(1, var_name.clone());
-        Variable::new(&node_id, var_name, "", i as i32)
+        Variable::new(&var_node_id(i), var_name(i), "", i as i32)
     }).collect();
 
     let node_ids = vars.iter().map(|v| v.node_id().clone()).collect();
@@ -71,7 +69,6 @@ fn add_many_vars_to_address_space(address_space: &mut AddressSpace, vars_to_add:
 
     (sample_folder_id, node_ids)
 }
-
 
 /// A helper that sets up a subscription service test
 fn do_subscription_service_test<T>(f: T)

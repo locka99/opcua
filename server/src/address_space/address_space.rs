@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
 
 use chrono::Utc;
@@ -17,6 +17,7 @@ use crate::{
         object::Object,
         variable::Variable,
         method_impls,
+        references::{References, Reference, ReferenceDirection},
     },
     diagnostics::ServerDiagnostics,
     state::ServerState,
@@ -84,29 +85,6 @@ macro_rules! server_diagnostics_summary {
     }
 }
 
-/// The `NodeId` is the target node. The reference is held in a list by the source node.
-/// The target node does not need to exist.
-#[derive(Debug, Clone)]
-pub struct Reference {
-    pub reference_type_id: ReferenceTypeId,
-    pub target_node_id: NodeId,
-}
-
-impl Reference {
-    pub fn new(reference_type_id: ReferenceTypeId, target_node_id: &NodeId) -> Reference {
-        Reference {
-            reference_type_id,
-            target_node_id: target_node_id.clone(),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum ReferenceDirection {
-    Forward,
-    Inverse,
-}
-
 type MethodCallback = Box<dyn Fn(&AddressSpace, &ServerState, &mut Session, &CallMethodRequest) -> Result<CallMethodResult, StatusCode> + Send + Sync + 'static>;
 
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
@@ -120,18 +98,14 @@ struct MethodKey {
 pub struct AddressSpace {
     /// A map of all the nodes that are part of the address space
     node_map: HashMap<NodeId, NodeType>,
-    /// A map of references between nodes
-    references: HashMap<NodeId, Vec<Reference>>,
-    /// A map of inverse references between nodes
-    inverse_references: HashMap<NodeId, Vec<Reference>>,
+    /// The references between nodes
+    references: References,
     /// This is the last time that nodes or references to nodes were added or removed from the address space.
     last_modified: DateTimeUtc,
     /// Method handlers
     method_handlers: HashMap<MethodKey, MethodCallback>,
     /// Access to server diagnostics
     server_diagnostics: Option<Arc<RwLock<ServerDiagnostics>>>,
-    /// A map of subtypes
-    reference_type_subtypes: HashSet<(ReferenceTypeId, ReferenceTypeId)>,
 }
 
 impl AddressSpace {
@@ -141,12 +115,10 @@ impl AddressSpace {
         // Construct the Root folder and the top level nodes
         let mut address_space = AddressSpace {
             node_map: HashMap::new(),
-            references: HashMap::new(),
-            inverse_references: HashMap::new(),
+            references: References::default(),
             last_modified: Utc::now(),
             method_handlers: HashMap::new(),
             server_diagnostics: None,
-            reference_type_subtypes: HashSet::new(),
         };
         address_space.add_default_nodes();
         address_space
@@ -400,8 +372,8 @@ impl AddressSpace {
         expect_and_find_object!(self, &AddressSpace::views_folder_id())
     }
 
-    /// Inserts a node into the address space node map and its references to other nodes.
-    /// The tuple of references is the node id, reference type id and a bool which is false for
+    /// Inserts a node into the address space node map and its references to other target nodes.
+    /// The tuple of references is the target node id, reference type id and a bool which is false for
     /// a forward reference and indicating inverse
     pub fn insert<T>(&mut self, node: T, references: Option<&[(&NodeId, ReferenceTypeId, ReferenceDirection)]>) where T: Into<NodeType> {
         let node_type = node.into();
@@ -413,16 +385,8 @@ impl AddressSpace {
 
         // If references are supplied, add them now
         if let Some(references) = references {
-            references.iter().for_each(|r| {
-                let (node_id_other, reference_type_id, reference_direction) = r;
-                self.insert_references(&[
-                    match reference_direction {
-                        ReferenceDirection::Forward => (&node_id, node_id_other, *reference_type_id),
-                        ReferenceDirection::Inverse => (node_id_other, &node_id, *reference_type_id),
-                    }]);
-            });
+            self.references.insert(&node_id, references);
         }
-
         self.update_last_modified();
     }
 
@@ -433,34 +397,25 @@ impl AddressSpace {
         // Reserve space in the maps. The default node set contains just under 2000 values for
         // nodes, references and inverse references.
         self.node_map.reserve(2000);
-        self.references.reserve(2000);
-        self.inverse_references.reserve(2000);
 
         // Run the generated code that will populate the address space with the default nodes
         super::generated::populate_address_space(self);
-        debug!("finished populating address space, number of nodes = {}, number of references = {}, number of reverse references = {}",
-               self.node_map.len(), self.references.len(), self.inverse_references.len());
+//        debug!("finished populating address space, number of nodes = {}, number of references = {}, number of reverse references = {}",
+//               self.node_map.len(), self.references.len(), self.inverse_references.len());
 
         // Build up the map of subtypes
-        self.build_reference_type_subtypes();
+        self.references.build_reference_type_subtypes();
     }
 
     // Inserts a bunch of references between two nodes into the address space
     pub fn insert_references(&mut self, references: &[(&NodeId, &NodeId, ReferenceTypeId)]) {
-        references.iter().for_each(|reference| {
-            let (node_id_from, node_id_to, reference_type_id) = *reference;
-            if node_id_from == node_id_to {
-                panic!("Node id from == node id to {:?}", node_id_from);
-            }
-            AddressSpace::add_reference(&mut self.references, node_id_from, Reference::new(reference_type_id, node_id_to));
-            AddressSpace::add_reference(&mut self.inverse_references, node_id_to, Reference::new(reference_type_id, node_id_from));
-        });
+        self.references.insert_references(references);
         self.update_last_modified();
     }
 
     /// Inserts a single reference between two nodes in the address space
-    pub fn insert_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) {
-        self.insert_references(&[(node_id_from, node_id_to, reference_type_id)]);
+    pub fn insert_reference(&mut self, node_id: &NodeId, target_node_id: &NodeId, reference_type_id: ReferenceTypeId) {
+        self.insert_references(&[(node_id, target_node_id, reference_type_id)]);
     }
 
     pub fn set_node_type<T>(&mut self, node_id: &NodeId, node_type: T) where T: Into<NodeId> {
@@ -553,70 +508,16 @@ impl AddressSpace {
     pub fn delete_node(&mut self, node_id: &NodeId, delete_target_references: bool) -> bool {
         let removed_node = self.node_map.remove(&node_id);
         let removed_target_references = if delete_target_references {
-            self.delete_references_to_node(node_id)
+            self.references.delete_references_to_node(node_id)
         } else {
             false
         };
         removed_node.is_some() || removed_target_references
     }
 
-    /// Adds a reference between one node and a target
-    fn add_reference(reference_map: &mut HashMap<NodeId, Vec<Reference>>, node_id: &NodeId, reference: Reference) {
-        if reference_map.contains_key(node_id) {
-            let references = reference_map.get_mut(node_id).unwrap();
-            references.push(reference);
-        } else {
-            // Some nodes will have more than one reference, so save some reallocs by reserving
-            // space for some more.
-            let mut references = Vec::with_capacity(8);
-            references.push(reference);
-            reference_map.insert(node_id.clone(), references);
-        }
-    }
-
     /// Finds the matching reference and deletes it
-    pub fn delete_reference(&mut self, node_id_from: &NodeId, node_id_to: &NodeId, reference_type_id: ReferenceTypeId) -> bool {
-        let mut deleted = false;
-        if let Some(references) = self.references.get_mut(node_id_from) {
-            references.retain(|r| {
-                if r.reference_type_id == reference_type_id && r.target_node_id == *node_id_to {
-                    deleted = true;
-                    false
-                } else {
-                    true
-                }
-            });
-        }
-        if let Some(references) = self.inverse_references.get_mut(node_id_to) {
-            references.retain(|r| {
-                if r.reference_type_id == reference_type_id && r.target_node_id == *node_id_from {
-                    deleted = true;
-                    false
-                } else {
-                    true
-                }
-            })
-        }
-        deleted
-    }
-
-    /// Deletes all references to this node
-    pub fn delete_references_to_node(&mut self, node_id: &NodeId) -> bool {
-        // Look in the inverse map for the node id that is being deleted
-        if let Some(node_references) = self.inverse_references.remove(node_id) {
-            // Each reference target node in the inverse reference must be fixed to remove references to
-            // the node
-            node_references.iter().for_each(|r| {
-                if let Some(forward_references) = self.references.get_mut(&r.target_node_id) {
-                    forward_references.retain(|r| {
-                        r.target_node_id != *node_id
-                    })
-                }
-            });
-            true
-        } else {
-            false
-        }
+    pub fn delete_reference(&mut self, node_id: &NodeId, target_node_id: &NodeId, reference_type_id: ReferenceTypeId) -> bool {
+        self.references.delete_reference(node_id, target_node_id, reference_type_id)
     }
 
     /// Find and return a variable with the specified node id or return None if it cannot be
@@ -736,28 +637,12 @@ impl AddressSpace {
 
     /// This finds the type definition (if any corresponding to the input object)
     fn get_type_id(&self, node_id: &NodeId) -> Option<NodeId> {
-        if let Some(references) = self.references.get(&node_id) {
-            if let Some(reference) = references.iter().find(|r| {
-                r.reference_type_id == ReferenceTypeId::HasTypeDefinition
-            }) {
-                Some(reference.target_node_id.clone())
-            } else {
-                None
-            }
-        } else {
-            None
-        }
+        self.references.get_type_id(node_id)
     }
 
     /// Test if a reference relationship exists between one node and another node
     pub fn has_reference(&self, from_node_id: &NodeId, to_node_id: &NodeId, reference_type: ReferenceTypeId) -> bool {
-        if let Some(references) = self.references.get(&from_node_id) {
-            references.iter().find(|r| {
-                r.reference_type_id == reference_type && r.target_node_id == *to_node_id
-            }).is_some()
-        } else {
-            false
-        }
+        self.references.has_reference(from_node_id, to_node_id, reference_type)
     }
 
     /// Tests if a method exists on a specific object. This will be true if the method id is
@@ -812,114 +697,20 @@ impl AddressSpace {
         }
     }
 
-    /// Builds a set of pairs which denote valid parent / subtypes
-    fn build_reference_type_subtypes(&mut self) {
-        // This is a hard coded hack but potentially it could be modified to build subtypes
-        // by walking the address space.
-
-        // TODO somehow work out subtypes
-
-        self.reference_type_subtypes = [
-            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasChild),
-            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasSubtype),
-            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::Organizes),
-            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::Aggregates),
-            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasProperty),
-            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasComponent),
-            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasOrderedComponent),
-            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasEventSource),
-            (ReferenceTypeId::HierarchicalReferences, ReferenceTypeId::HasNotifier),
-            (ReferenceTypeId::HasChild, ReferenceTypeId::Aggregates),
-            (ReferenceTypeId::HasChild, ReferenceTypeId::HasComponent),
-            (ReferenceTypeId::HasChild, ReferenceTypeId::HasHistoricalConfiguration),
-            (ReferenceTypeId::HasChild, ReferenceTypeId::HasProperty),
-            (ReferenceTypeId::HasChild, ReferenceTypeId::HasOrderedComponent),
-            (ReferenceTypeId::HasChild, ReferenceTypeId::HasSubtype),
-            (ReferenceTypeId::Aggregates, ReferenceTypeId::HasComponent),
-            (ReferenceTypeId::Aggregates, ReferenceTypeId::HasHistoricalConfiguration),
-            (ReferenceTypeId::Aggregates, ReferenceTypeId::HasProperty),
-            (ReferenceTypeId::Aggregates, ReferenceTypeId::HasOrderedComponent),
-            (ReferenceTypeId::HasComponent, ReferenceTypeId::HasOrderedComponent),
-            (ReferenceTypeId::HasEventSource, ReferenceTypeId::HasNotifier),
-        ].iter().map(|(r1, r2)| (*r1, *r2)).collect()
-    }
-
-    fn reference_type_matches(&self, r1: ReferenceTypeId, r2: ReferenceTypeId, include_subtypes: bool) -> bool {
-        if r1 == r2 {
-            true
-        } else if include_subtypes {
-            self.reference_type_subtypes.contains(&(r1, r2))
-        } else {
-            false
-        }
-    }
-
-    fn filter_references_by_type(&self, references: &Vec<Reference>, reference_filter: Option<(ReferenceTypeId, bool)>) -> Vec<Reference> {
-        if reference_filter.is_none() {
-            references.clone()
-        } else {
-            // Filter by type
-            let (reference_type_id, include_subtypes) = reference_filter.unwrap();
-            references.iter()
-                .filter(|r| self.reference_type_matches(reference_type_id, r.reference_type_id, include_subtypes))
-                .map(|r| r.clone())
-                .collect::<Vec<Reference>>()
-        }
-    }
-
-    /// Find and filter references that refer to the specified node.
-    fn find_references(&self, reference_map: &HashMap<NodeId, Vec<Reference>>, node_id: &NodeId, reference_filter: Option<(ReferenceTypeId, bool)>) -> Option<Vec<Reference>> {
-        if let Some(ref node_references) = reference_map.get(node_id) {
-            let result = self.filter_references_by_type(node_references, reference_filter);
-            if result.is_empty() {
-                None
-            } else {
-                Some(result)
-            }
-        } else {
-            None
-        }
-    }
-
     /// Finds forward references from the specified node
     pub fn find_references_from(&self, node_id: &NodeId, reference_filter: Option<(ReferenceTypeId, bool)>) -> Option<Vec<Reference>> {
-        self.find_references(&self.references, node_id, reference_filter)
+        self.references.find_references_from(node_id, reference_filter)
     }
 
     /// Finds inverse references, it those that point to the specified node
     pub fn find_references_to(&self, node_id: &NodeId, reference_filter: Option<(ReferenceTypeId, bool)>) -> Option<Vec<Reference>> {
-        self.find_references(&self.inverse_references, node_id, reference_filter)
+        self.references.find_references_to(node_id, reference_filter)
     }
 
     /// Finds references for optionally forwards, inverse or both and return the references. The usize
     /// represents the index in the collection where the inverse references start (if applicable)
     pub fn find_references_by_direction(&self, node_id: &NodeId, browse_direction: BrowseDirection, reference_filter: Option<(ReferenceTypeId, bool)>) -> (Vec<Reference>, usize) {
-        let mut references = Vec::new();
-        let inverse_ref_idx: usize;
-        match browse_direction {
-            BrowseDirection::Forward => {
-                if let Some(mut forward_references) = self.find_references_from(node_id, reference_filter) {
-                    references.append(&mut forward_references);
-                }
-                inverse_ref_idx = references.len();
-            }
-            BrowseDirection::Inverse => {
-                inverse_ref_idx = 0;
-                if let Some(mut inverse_references) = self.find_references_to(node_id, reference_filter) {
-                    references.append(&mut inverse_references);
-                }
-            }
-            BrowseDirection::Both => {
-                if let Some(mut forward_references) = self.find_references_from(node_id, reference_filter) {
-                    references.append(&mut forward_references);
-                }
-                inverse_ref_idx = references.len();
-                if let Some(mut inverse_references) = self.find_references_to(node_id, reference_filter) {
-                    references.append(&mut inverse_references);
-                }
-            }
-        }
-        (references, inverse_ref_idx)
+        self.references.find_references_by_direction(node_id, browse_direction, reference_filter)
     }
 
     fn update_last_modified(&mut self) {

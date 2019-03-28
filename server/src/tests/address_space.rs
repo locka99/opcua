@@ -156,7 +156,7 @@ fn find_references_from() {
     assert_eq!(references.len(), 2);
 
     let r1 = &references[0];
-    assert_eq!(r1.reference_type_id, ReferenceTypeId::Organizes);
+    assert_eq!(r1.reference_type_id, ReferenceTypeId::Organizes.into());
     let child_node_id = r1.target_node_id.clone();
 
     let child = address_space.find_node(&child_node_id);

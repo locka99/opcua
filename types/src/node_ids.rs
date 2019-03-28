@@ -661,6 +661,12 @@ pub enum ReferenceTypeId {
     HasCondition = 9006,
 }
 
+impl<'a> From<&'a ReferenceTypeId> for NodeId {
+    fn from(r: &'a ReferenceTypeId) -> Self {
+        NodeId::new(0, *r as u32)
+    }
+}
+
 impl Into<NodeId> for ReferenceTypeId {
     fn into(self) -> NodeId {
         NodeId::new(0, self as u32)

@@ -217,7 +217,7 @@ impl ViewService {
 
             // Prepare the values to put into the struct according to the result mask
             let reference_type_id = if result_mask.contains(BrowseDescriptionResultMask::RESULT_MASK_REFERENCE_TYPE) {
-                reference.reference_type_id.into()
+                reference.reference_type_id.clone()
             } else {
                 NodeId::null()
             };

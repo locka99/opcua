@@ -44,8 +44,7 @@ fn verify_references_to_many_vars(references: &[ReferenceDescription], expected_
     // Verify that the reference descriptions point at sequential vars
     assert_eq!(references.len(), expected_size);
     for (i, r) in references.iter().enumerate() {
-        let expected_node_id = NodeId::new(1, format!("v{}", i + start_idx));
-        assert_eq!(r.node_id.node_id, expected_node_id);
+        assert_eq!(r.node_id.node_id, var_node_id(i + start_idx));
     }
 }
 

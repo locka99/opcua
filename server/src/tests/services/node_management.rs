@@ -421,6 +421,7 @@ fn add_references_node_class_invalid() {
         target_node_class: NodeClass::Unspecified, // !!!
     }, StatusCode::BadNodeClassInvalid);
 
+    // This supplies a target class which is different type from the target node's class
     do_add_references_test(AddReferencesItem {
         source_node_id: ObjectId::RootFolder.into(),
         reference_type_id: ReferenceTypeId::Organizes.into(),
@@ -443,6 +444,34 @@ fn delete_nodes_test1() {
 }
 
 #[test]
-fn delete_references_test1() {
-    // TODO
+fn delete_references() {
+    do_delete_references_test(DeleteReferencesItem {
+        source_node_id: ObjectId::RootFolder.into(),
+        reference_type_id: ReferenceTypeId::Organizes.into(),
+        is_forward: true,
+        target_node_id: ObjectId::ObjectsFolder.into(),
+        delete_bidirectional: false
+    }, StatusCode::Good);
+}
+
+#[test]
+fn delete_references_source_node_id_invalid() {
+    do_delete_references_test(DeleteReferencesItem {
+        source_node_id: NodeId::null(), // !!!
+        reference_type_id: ReferenceTypeId::Organizes.into(),
+        is_forward: true,
+        target_node_id: ObjectId::ObjectsFolder.into(),
+        delete_bidirectional: false
+    }, StatusCode::BadSourceNodeIdInvalid);
+}
+
+#[test]
+fn delete_references_target_node_id_invalid() {
+    do_delete_references_test(DeleteReferencesItem {
+        source_node_id: ObjectId::ObjectsFolder.into(),
+        reference_type_id: ReferenceTypeId::Organizes.into(),
+        is_forward: true,
+        target_node_id: ExpandedNodeId::null(), // !!!
+        delete_bidirectional: false
+    }, StatusCode::BadTargetNodeIdInvalid);
 }
