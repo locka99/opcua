@@ -1,5 +1,9 @@
+# These settings are present to demonstrate minimal binary size in release mode. Don't forget to strip the executable
+# too.
 [profile.release]
+opt-level = 'z'
 lto = true
+panic = 'abort'
 
 [workspace]
 members = [

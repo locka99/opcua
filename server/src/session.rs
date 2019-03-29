@@ -131,9 +131,9 @@ impl Session {
         let server_state = trace_read_lock_unwrap!(server_state);
         let max_subscriptions = server_state.max_subscriptions;
         let diagnostics = server_state.diagnostics.clone();
-        let decoding_limits = {
+        let (decoding_limits, can_modify_address_space) = {
             let config = trace_read_lock_unwrap!(server_state.config);
-            config.decoding_limits()
+            (config.decoding_limits(), config.clients_can_modify_address_space)
         };
 
         let session = Session {
@@ -155,7 +155,7 @@ impl Session {
             endpoint_url: UAString::null(),
             max_browse_continuation_points,
             browse_continuation_points: VecDeque::with_capacity(max_browse_continuation_points),
-            can_modify_address_space: true,
+            can_modify_address_space,
             diagnostics,
         };
         {
@@ -233,5 +233,10 @@ impl Session {
 
     pub(crate) fn can_modify_address_space(&self) -> bool {
         self.can_modify_address_space
+    }
+
+    #[cfg(test)]
+    pub(crate) fn set_can_modify_address_space(&mut self, can_modify_address_space: bool) {
+        self.can_modify_address_space = can_modify_address_space;
     }
 }

@@ -1,6 +1,6 @@
 # Introduction
 
-An [OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) server / client API implementation for Rust.
+This is an [OPC UA](https://opcfoundation.org/about/opc-technologies/opc-ua/) server / client API implementation for Rust.
 
 <table>
   <tr>

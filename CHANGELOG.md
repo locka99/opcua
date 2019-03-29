@@ -15,7 +15,9 @@ Planned future work is listed at the bottom.
   - Client API will reconnect and restore subscriptions after a disconnect from a server. Reconnection is 
     controlled by a session retry policy.
   - TranslateBrowsePathsToNodeIds service has been fixed
-  - (in progress) AddNodes, AddReferences, DeleteNodes and DeleteReferences have been added from the Node Management service set.
+  - AddNodes, AddReferences, DeleteNodes and DeleteReferences have been added from the Node Management service set. Note
+    that the server config / builder must set clients_can_modify_address_space. Only minimal model constraint checking
+    is performed.
   - SetTriggering and SetMonitoringMode services have been added to the Monitored Item service set
   - TransferSubscriptions service is implemented as a stub. Most clients will see the error response and failover
     to manually reconstructing their subscription state.

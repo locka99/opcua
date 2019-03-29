@@ -16,7 +16,6 @@ use crate::{
         node::{Node, NodeType, HasNodeId},
         object::Object,
         variable::Variable,
-        method_impls,
         references::{References, Reference, ReferenceDirection},
     },
     diagnostics::ServerDiagnostics,
@@ -142,194 +141,198 @@ impl AddressSpace {
 
     /// Sets values for nodes representing the server.
     pub fn set_server_state(&mut self, server_state: Arc<RwLock<ServerState>>) {
-        use opcua_types::node_ids::VariableId::*;
+        // Server state requires the generated address space, otherwise nothing
+        #[cfg(feature = "generated-address-space")] {
+            use opcua_types::node_ids::VariableId::*;
 
-        let now = DateTime::now();
+            let now = DateTime::now();
 
-        // Server variables
-        {
-            let server_state = trace_read_lock_unwrap!(server_state);
-            if let Some(ref mut v) = self.find_variable_mut(Server_NamespaceArray) {
-                v.set_value_direct(Variant::from(&server_state.namespaces), &now, &now);
+            // Server variables
+            {
+                let server_state = trace_read_lock_unwrap!(server_state);
+                if let Some(ref mut v) = self.find_variable_mut(Server_NamespaceArray) {
+                    v.set_value_direct(Variant::from(&server_state.namespaces), &now, &now);
+                }
+                if let Some(ref mut v) = self.find_variable_mut(Server_ServerArray) {
+                    v.set_value_direct(Variant::from(&server_state.servers), &now, &now);
+                }
             }
-            if let Some(ref mut v) = self.find_variable_mut(Server_ServerArray) {
-                v.set_value_direct(Variant::from(&server_state.servers), &now, &now);
+
+            // ServerCapabilities
+            {
+                let server_state = trace_read_lock_unwrap!(server_state);
+                let server_config = trace_read_lock_unwrap!(server_state.config);
+                self.set_variable_value(Server_ServerCapabilities_MaxArrayLength, server_config.max_array_length as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_MaxStringLength, server_config.max_string_length as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_MaxByteStringLength, server_config.max_byte_string_length as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_MaxBrowseContinuationPoints, constants::MAX_BROWSE_CONTINUATION_POINTS as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_MaxHistoryContinuationPoints, constants::MAX_HISTORY_CONTINUATION_POINTS as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_MaxQueryContinuationPoints, constants::MAX_QUERY_CONTINUATION_POINTS as u32, &now, &now);
+                self.set_variable_value(Server_ServerCapabilities_MinSupportedSampleRate, constants::MIN_SAMPLING_INTERVAL as f64, &now, &now);
             }
+
+            // Server_ServerCapabilities_ServerProfileArray
+            if let Some(ref mut v) = self.find_variable_mut(Server_ServerCapabilities_ServerProfileArray) {
+                // Declares what the server implements. Subitems are implied by the profile. A subitem
+                // marked - is optional to the spec
+                let server_profiles = [
+                    // Base server behaviour
+                    //  SecurityPolicy - None
+                    //  User Token - User Name Password Server Facet
+                    //  Address Space Base
+                    //  AttributeRead
+                    //  -Attribute Write Index
+                    //  -Attribute Write Values
+                    //  Base Info Core Structure
+                    //  -Base Info OptionSet
+                    //  -Base Info Placeholder Modelling Rules
+                    //  -Base Info ValueAsText
+                    //  Discovery Find Servers Self
+                    //  Discovery Get Endpoints
+                    //  -Security - No Application Authentications
+                    //  -Security - Security Administration
+                    //   Session Base
+                    //  Session General Service Behaviour
+                    //  Session Minimum 1
+                    //  View Basic
+                    //  View Minimum Continuation Point 01
+                    //  View RegisterNodes
+                    //  View TranslateBrowsePath
+                    "http://opcfoundation.org/UA-Profile/Server/Behaviour",
+                    // Embedded UA server
+                    //   SecurityPolicy - Basic128Rsa15
+                    //     Security
+                    //       - Security Certificate Validation
+                    //       - Security Basic 128Rsa15
+                    //       - Security Encryption Required
+                    //       - Security Signing Required
+                    //   Standard DataChange Subscription Server Facet
+                    //     Base Information
+                    //       - Base Info GetMonitoredItems Method
+                    //     Monitored Item Services
+                    //       - Monitored Items Deadband Filter
+                    //       - Monitor Items 10
+                    //       - Monitor Items 100
+                    //       - Monitor MinQueueSize_02
+                    //       - Monitor Triggering
+                    //     Subscription Services
+                    //       - Subscription Minimum 02
+                    //       - Subscription Publish Min 05
+                    //     Method Services
+                    //       - Method call
+                    //   User Token - X509 Certificate Server Facet
+                    //       - Security User X509 - Server supports public / private key pair for user identity
+                    //   Micro Embedded Device Server Profile
+                    // Base Information
+                    //   - Base Info Type System - Exposes a Type system with DataTypes, ReferenceTypes, ObjectTypes and VariableTypes
+                    //     including all of OPC UA namespace (namespace 0) types that are used by the Server as defined in Part 6.
+                    //   - Base Info Placeholder Modelling Rules - The server supports defining cusom Object or Variables that include the use of OptionalPlaceholder
+                    //     or MandatoryPlaceholder modelling rules
+                    //   - Base Info Engineering Units - The server supports defining Variables that include the Engineering Units property
+                    // Security
+                    //  Security Default ApplicationInstanceCertificate - has a default ApplicationInstanceCertificate that is valid
+                    "http://opcfoundation.org/UA-Profile/Server/EmbeddedUA",
+
+                    // TODO server profile
+                    // Standard UA Server Profile
+                    //   Enhanced DataChange Subscription Server Facet
+                    //     Monitored Item Services
+                    //       - Monitor Items 500 - Support at least 500 MonitoredItems per Subscription
+                    //       - Monitor MinQueueSize_05 - Support at least 5 queue entries
+                    //     Subscription Services
+                    //       - Subscription Minimum 05 - Support at least 5 subscriptions per Session
+                    //       - Subscription Publish Min 10 - Support at least Publish service requests per session
+                    //   Embedded UA Server Profile
+                    // Base Information
+                    //   - Base Info Diagnostics
+                    // Discovery Services
+                    //   - Discovery Register (be able to call RegisterServer)
+                    //   - Discovery Register2 (be able to call RegisterServer2)
+                    // Session Services
+                    //   - Session Change User - Support use of ActivateSession to change the Session user
+                    //   - Session Cancel - Support the Cancel Service to cancel outstanding requests
+                    //   - Session Minimum 50 Parallel - Support minimum 50 parallel Sessions
+                    //
+                    // "http://opcfoundation.org/UA-Profile/Server/StandardUA",
+                ];
+                v.set_value_direct(Variant::from(&server_profiles[..]), &now, &now);
+            }
+
+            // Server_ServerCapabilities_LocaleIdArray
+            // Server_ServerCapabilities_MinSupportedSampleRate
+
+            // Server_ServerDiagnostics_ServerDiagnosticsSummary
+            // Server_ServerDiagnostics_SamplingIntervalDiagnosticsArray
+            // Server_ServerDiagnostics_SubscriptionDiagnosticsArray
+            // Server_ServerDiagnostics_EnabledFlag
+            {
+                let server_state = trace_read_lock_unwrap!(server_state);
+                self.server_diagnostics = Some(server_state.diagnostics.clone());
+                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_ServerViewCount, server_view_count);
+                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSessionCount, current_session_count);
+                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSessionCount, cumulated_session_count);
+                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedSessionCount, security_rejected_session_count);
+                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionTimeoutCount, session_timeout_count);
+                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionAbortCount, session_abort_count);
+                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedSessionCount, rejected_session_count);
+                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_PublishingIntervalCount, publishing_interval_count);
+                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSubscriptionCount, current_subscription_count);
+                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSubscriptionCount, cumulated_subscription_count);
+                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedRequestsCount, security_rejected_requests_count);
+                server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount, rejected_requests_count);
+            }
+
+            // Server_ServerCapabilities_OperationLimits_MaxNodesPerRead = 11705,
+            // Server_ServerCapabilities_OperationLimits_MaxNodesPerWrite = 11707,
+            // Server_ServerCapabilities_OperationLimits_MaxNodesPerMethodCall = 11709,
+            // Server_ServerCapabilities_OperationLimits_MaxNodesPerBrowse = 11710,
+            // Server_ServerCapabilities_OperationLimits_MaxNodesPerRegisterNodes = 11711,
+            // Server_ServerCapabilities_OperationLimits_MaxNodesPerTranslateBrowsePathsToNodeIds = 11712,
+            // Server_ServerCapabilities_OperationLimits_MaxNodesPerNodeManagement = 11713,
+            // Server_ServerCapabilities_OperationLimits_MaxMonitoredItemsPerCall = 11714,
+            // Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadData = 12165,
+            // Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadEvents = 12166,
+            // Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateData = 12167,
+            // Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateEvents = 12168,
+
+            // ServiceLevel - 0-255 worst to best quality of service
+            self.set_variable_value(Server_ServiceLevel, 255u8, &now, &now);
+
+            // Auditing - var
+            // ServerDiagnostics
+            // VendorServiceInfo
+            // ServerRedundancy
+
+            // Server_ServerStatus_StartTime
+            self.set_variable_value(Server_ServerStatus_StartTime, now.clone(), &now, &now);
+
+            // Server_ServerStatus_CurrentTime
+            self.set_variable_getter(Server_ServerStatus_CurrentTime, move |_, _, _| {
+                Ok(Some(DataValue::new(DateTime::now())))
+            });
+
+            // State OPC UA Part 5 12.6, Valid states are
+            //     State (Server_ServerStatus_State)
+            self.set_variable_getter(Server_ServerStatus_State, move |_, _, _| {
+                // let server_state =  trace_read_lock_unwrap!(server_state);
+                Ok(Some(DataValue::new(0 as i32)))
+            });
+
+            // ServerStatus_BuildInfo
+            {
+                //    BuildDate
+                //    BuildNumber
+                //    ManufacturerName
+                //    ProductName
+                //    ProductUri
+                //    SoftwareVersion
+            }
+
+            // Server method handlers
+            use crate::address_space::method_impls;
+            self.register_method_handler(ObjectId::Server, MethodId::Server_GetMonitoredItems, Box::new(method_impls::handle_get_monitored_items));
+            self.register_method_handler(ObjectId::Server, MethodId::Server_ResendData, Box::new(method_impls::handle_resend_data));
         }
-
-        // ServerCapabilities
-        {
-            let server_state = trace_read_lock_unwrap!(server_state);
-            let server_config = trace_read_lock_unwrap!(server_state.config);
-            self.set_variable_value(Server_ServerCapabilities_MaxArrayLength, server_config.max_array_length as u32, &now, &now);
-            self.set_variable_value(Server_ServerCapabilities_MaxStringLength, server_config.max_string_length as u32, &now, &now);
-            self.set_variable_value(Server_ServerCapabilities_MaxByteStringLength, server_config.max_byte_string_length as u32, &now, &now);
-            self.set_variable_value(Server_ServerCapabilities_MaxBrowseContinuationPoints, constants::MAX_BROWSE_CONTINUATION_POINTS as u32, &now, &now);
-            self.set_variable_value(Server_ServerCapabilities_MaxHistoryContinuationPoints, constants::MAX_HISTORY_CONTINUATION_POINTS as u32, &now, &now);
-            self.set_variable_value(Server_ServerCapabilities_MaxQueryContinuationPoints, constants::MAX_QUERY_CONTINUATION_POINTS as u32, &now, &now);
-            self.set_variable_value(Server_ServerCapabilities_MinSupportedSampleRate, constants::MIN_SAMPLING_INTERVAL as f64, &now, &now);
-        }
-
-        // Server_ServerCapabilities_ServerProfileArray
-        if let Some(ref mut v) = self.find_variable_mut(Server_ServerCapabilities_ServerProfileArray) {
-            // Declares what the server implements. Subitems are implied by the profile. A subitem
-            // marked - is optional to the spec
-            let server_profiles = [
-                // Base server behaviour
-                //  SecurityPolicy - None
-                //  User Token - User Name Password Server Facet
-                //  Address Space Base
-                //  AttributeRead
-                //  -Attribute Write Index
-                //  -Attribute Write Values
-                //  Base Info Core Structure
-                //  -Base Info OptionSet
-                //  -Base Info Placeholder Modelling Rules
-                //  -Base Info ValueAsText
-                //  Discovery Find Servers Self
-                //  Discovery Get Endpoints
-                //  -Security - No Application Authentications
-                //  -Security - Security Administration
-                //   Session Base
-                //  Session General Service Behaviour
-                //  Session Minimum 1
-                //  View Basic
-                //  View Minimum Continuation Point 01
-                //  View RegisterNodes
-                //  View TranslateBrowsePath
-                "http://opcfoundation.org/UA-Profile/Server/Behaviour",
-                // Embedded UA server
-                //   SecurityPolicy - Basic128Rsa15
-                //     Security
-                //       - Security Certificate Validation
-                //       - Security Basic 128Rsa15
-                //       - Security Encryption Required
-                //       - Security Signing Required
-                //   Standard DataChange Subscription Server Facet
-                //     Base Information
-                //       - Base Info GetMonitoredItems Method
-                //     Monitored Item Services
-                //       - Monitored Items Deadband Filter
-                //       - Monitor Items 10
-                //       - Monitor Items 100
-                //       - Monitor MinQueueSize_02
-                //       - Monitor Triggering
-                //     Subscription Services
-                //       - Subscription Minimum 02
-                //       - Subscription Publish Min 05
-                //     Method Services
-                //       - Method call
-                //   User Token - X509 Certificate Server Facet
-                //       - Security User X509 - Server supports public / private key pair for user identity
-                //   Micro Embedded Device Server Profile
-                // Base Information
-                //   - Base Info Type System - Exposes a Type system with DataTypes, ReferenceTypes, ObjectTypes and VariableTypes
-                //     including all of OPC UA namespace (namespace 0) types that are used by the Server as defined in Part 6.
-                //   - Base Info Placeholder Modelling Rules - The server supports defining cusom Object or Variables that include the use of OptionalPlaceholder
-                //     or MandatoryPlaceholder modelling rules
-                //   - Base Info Engineering Units - The server supports defining Variables that include the Engineering Units property
-                // Security
-                //  Security Default ApplicationInstanceCertificate - has a default ApplicationInstanceCertificate that is valid
-                "http://opcfoundation.org/UA-Profile/Server/EmbeddedUA",
-
-                // TODO server profile
-                // Standard UA Server Profile
-                //   Enhanced DataChange Subscription Server Facet
-                //     Monitored Item Services
-                //       - Monitor Items 500 - Support at least 500 MonitoredItems per Subscription
-                //       - Monitor MinQueueSize_05 - Support at least 5 queue entries
-                //     Subscription Services
-                //       - Subscription Minimum 05 - Support at least 5 subscriptions per Session
-                //       - Subscription Publish Min 10 - Support at least Publish service requests per session
-                //   Embedded UA Server Profile
-                // Base Information
-                //   - Base Info Diagnostics
-                // Discovery Services
-                //   - Discovery Register (be able to call RegisterServer)
-                //   - Discovery Register2 (be able to call RegisterServer2)
-                // Session Services
-                //   - Session Change User - Support use of ActivateSession to change the Session user
-                //   - Session Cancel - Support the Cancel Service to cancel outstanding requests
-                //   - Session Minimum 50 Parallel - Support minimum 50 parallel Sessions
-                //
-                // "http://opcfoundation.org/UA-Profile/Server/StandardUA",
-            ];
-            v.set_value_direct(Variant::from(&server_profiles[..]), &now, &now);
-        }
-
-        // Server_ServerCapabilities_LocaleIdArray
-        // Server_ServerCapabilities_MinSupportedSampleRate
-
-        // Server_ServerDiagnostics_ServerDiagnosticsSummary
-        // Server_ServerDiagnostics_SamplingIntervalDiagnosticsArray
-        // Server_ServerDiagnostics_SubscriptionDiagnosticsArray
-        // Server_ServerDiagnostics_EnabledFlag
-        {
-            let server_state = trace_read_lock_unwrap!(server_state);
-            self.server_diagnostics = Some(server_state.diagnostics.clone());
-            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_ServerViewCount, server_view_count);
-            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSessionCount, current_session_count);
-            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSessionCount, cumulated_session_count);
-            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedSessionCount, security_rejected_session_count);
-            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionTimeoutCount, session_timeout_count);
-            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SessionAbortCount, session_abort_count);
-            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedSessionCount, rejected_session_count);
-            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_PublishingIntervalCount, publishing_interval_count);
-            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CurrentSubscriptionCount, current_subscription_count);
-            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_CumulatedSubscriptionCount, cumulated_subscription_count);
-            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_SecurityRejectedRequestsCount, security_rejected_requests_count);
-            server_diagnostics_summary!(self, Server_ServerDiagnostics_ServerDiagnosticsSummary_RejectedRequestsCount, rejected_requests_count);
-        }
-
-        // Server_ServerCapabilities_OperationLimits_MaxNodesPerRead = 11705,
-        // Server_ServerCapabilities_OperationLimits_MaxNodesPerWrite = 11707,
-        // Server_ServerCapabilities_OperationLimits_MaxNodesPerMethodCall = 11709,
-        // Server_ServerCapabilities_OperationLimits_MaxNodesPerBrowse = 11710,
-        // Server_ServerCapabilities_OperationLimits_MaxNodesPerRegisterNodes = 11711,
-        // Server_ServerCapabilities_OperationLimits_MaxNodesPerTranslateBrowsePathsToNodeIds = 11712,
-        // Server_ServerCapabilities_OperationLimits_MaxNodesPerNodeManagement = 11713,
-        // Server_ServerCapabilities_OperationLimits_MaxMonitoredItemsPerCall = 11714,
-        // Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadData = 12165,
-        // Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryReadEvents = 12166,
-        // Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateData = 12167,
-        // Server_ServerCapabilities_OperationLimits_MaxNodesPerHistoryUpdateEvents = 12168,
-
-        // ServiceLevel - 0-255 worst to best quality of service
-        self.set_variable_value(Server_ServiceLevel, 255u8, &now, &now);
-
-        // Auditing - var
-        // ServerDiagnostics
-        // VendorServiceInfo
-        // ServerRedundancy
-
-        // Server_ServerStatus_StartTime
-        self.set_variable_value(Server_ServerStatus_StartTime, now.clone(), &now, &now);
-
-        // Server_ServerStatus_CurrentTime
-        self.set_variable_getter(Server_ServerStatus_CurrentTime, move |_, _, _| {
-            Ok(Some(DataValue::new(DateTime::now())))
-        });
-
-        // State OPC UA Part 5 12.6, Valid states are
-        //     State (Server_ServerStatus_State)
-        self.set_variable_getter(Server_ServerStatus_State, move |_, _, _| {
-            // let server_state =  trace_read_lock_unwrap!(server_state);
-            Ok(Some(DataValue::new(0 as i32)))
-        });
-
-        // ServerStatus_BuildInfo
-        {
-            //    BuildDate
-            //    BuildNumber
-            //    ManufacturerName
-            //    ProductName
-            //    ProductUri
-            //    SoftwareVersion
-        }
-
-        // Server method handlers
-        self.register_method_handler(ObjectId::Server, MethodId::Server_GetMonitoredItems, Box::new(method_impls::handle_get_monitored_items));
-        self.register_method_handler(ObjectId::Server, MethodId::Server_ResendData, Box::new(method_impls::handle_resend_data));
     }
 
     /// Returns the node id for the root folder
@@ -396,15 +399,18 @@ impl AddressSpace {
 
         // Reserve space in the maps. The default node set contains just under 2000 values for
         // nodes, references and inverse references.
-        self.node_map.reserve(2000);
+        #[cfg(feature = "generated-address-space")] {
+            self.node_map.reserve(2000);
 
-        // Run the generated code that will populate the address space with the default nodes
-        super::generated::populate_address_space(self);
+            // Run the generated code that will populate the address space with the default nodes
+            super::generated::populate_address_space(self);
+
 //        debug!("finished populating address space, number of nodes = {}, number of references = {}, number of reverse references = {}",
 //               self.node_map.len(), self.references.len(), self.inverse_references.len());
 
-        // Build up the map of subtypes
-        self.references.build_reference_type_subtypes();
+            // Build up the map of subtypes
+            self.references.build_reference_type_subtypes();
+        }
     }
 
     // Inserts a bunch of references between two nodes into the address space

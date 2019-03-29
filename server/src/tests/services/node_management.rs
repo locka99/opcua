@@ -16,6 +16,9 @@ fn do_node_management_service_test<T>(f: T)
     let mut server_state = trace_write_lock_unwrap!(st.server_state);
     let mut session = trace_write_lock_unwrap!(st.session);
 
+    // Enable client side modification of address space
+    session.set_can_modify_address_space(true);
+
     {
         let mut address_space = trace_write_lock_unwrap!(st.address_space);
         add_many_vars_to_address_space(&mut address_space, 100);

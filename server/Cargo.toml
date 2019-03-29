@@ -12,8 +12,12 @@ documentation = "https://docs.rs/opcua-server/"
 edition = "2018"
 
 [features]
-default = []
+default = ["generated-address-space"]
+# Populating the address space is a pretty substantial amount of code. Embedded systems may or may not require it
+generated-address-space = []
+# Servers might want to show a web server with metric / diagnostic info
 http = ["actix-web"]
+# OpenSSL can be compiled and statically linked to with this feature
 vendored-openssl = ["opcua-core/vendored-openssl", "opcua-client/vendored-openssl"]
 
 [dependencies]

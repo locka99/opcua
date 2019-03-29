@@ -193,4 +193,9 @@ impl ServerBuilder {
         self.config.trust_client_certs = true;
         self
     }
+
+    pub fn clients_can_modify_address_space(mut self) -> Self {
+        self.config.clients_can_modify_address_space = true;
+        self
+    }
 }

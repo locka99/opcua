@@ -119,7 +119,6 @@ macro_rules! find_attribute_value_optional {
     }
 }
 
-pub mod generated;
 pub mod address_space;
 pub mod base;
 pub mod relative_path;
@@ -134,7 +133,8 @@ pub mod data_type;
 pub mod view;
 mod references;
 
-mod method_impls;
+#[cfg(feature = "generated-address-space")] mod generated;
+#[cfg(feature = "generated-address-space")] mod method_impls;
 
 bitflags! {
     pub struct AccessLevel: u8 {

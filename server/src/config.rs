@@ -239,6 +239,10 @@ pub struct ServerConfig {
     pub max_string_length: u32,
     /// Max bytestring length in bytes
     pub max_byte_string_length: u32,
+    /// Indicates if clients are able to modify the address space through the node management service
+    /// set. This is a very broad flag and is likely to require more fine grained per user control
+    /// in a later revision. By default, this value is `false`
+    pub clients_can_modify_address_space: bool,
 }
 
 impl Config for ServerConfig {
@@ -304,6 +308,7 @@ impl Default for ServerConfig {
             max_string_length: opcua_types_constants::MAX_STRING_LENGTH as u32,
             max_byte_string_length: opcua_types_constants::MAX_BYTE_STRING_LENGTH as u32,
             max_subscriptions: constants::DEFAULT_MAX_SUBSCRIPTIONS,
+            clients_can_modify_address_space: false,
         }
     }
 }
@@ -340,6 +345,7 @@ impl ServerConfig {
             max_string_length: opcua_types_constants::MAX_STRING_LENGTH as u32,
             max_byte_string_length: opcua_types_constants::MAX_BYTE_STRING_LENGTH as u32,
             max_subscriptions: constants::DEFAULT_MAX_SUBSCRIPTIONS,
+            clients_can_modify_address_space: false,
         }
     }
 
