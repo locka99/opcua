@@ -13,7 +13,7 @@ edition = "2018"
 
 [features]
 default = ["generated-address-space"]
-# Populating the address space is a pretty substantial amount of code. Embedded systems may or may not require it
+# Populates the address space with the default node set. This is something that embedded systems may or may not require.
 generated-address-space = []
 # Servers might want to show a web server with metric / diagnostic info
 http = ["actix-web"]
