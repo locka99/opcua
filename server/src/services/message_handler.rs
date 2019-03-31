@@ -106,166 +106,166 @@ impl MessageHandler {
         let response = match message {
 
             // Discovery Service Set, OPC UA Part 4, Section 5.4
-            SupportedMessage::GetEndpointsRequest(request) => {
-                Some(self.discovery_service.get_endpoints(&server_state, &request)?)
+            SupportedMessage::GetEndpointsRequest(ref request) => {
+                Some(self.discovery_service.get_endpoints(&server_state, request)?)
             }
 
             // Session Service Set, OPC UA Part 4, Section 5.6
 
-            SupportedMessage::CreateSessionRequest(request) => {
+            SupportedMessage::CreateSessionRequest(ref request) => {
                 let certificate_store = trace_read_lock_unwrap!(self.certificate_store);
-                Some(self.session_service.create_session(&certificate_store, &mut server_state, &mut session, &request)?)
+                Some(self.session_service.create_session(&certificate_store, &mut server_state, &mut session, request)?)
             }
-            SupportedMessage::CloseSessionRequest(request) => {
-                Some(self.session_service.close_session(&mut session, &request)?)
+            SupportedMessage::CloseSessionRequest(ref request) => {
+                Some(self.session_service.close_session(&mut session, request)?)
             }
 
             // NOTE - ALL THE REQUESTS BEYOND THIS POINT MUST BE VALIDATED AGAINST THE SESSION
 
-            SupportedMessage::ActivateSessionRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.session_service.activate_session(&mut server_state, &mut session, &request)
+            SupportedMessage::ActivateSessionRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.session_service.activate_session(&mut server_state, &mut session, request)
                 })
             }
-            SupportedMessage::CancelRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.session_service.cancel(&mut server_state, &mut session, &request)
+            SupportedMessage::CancelRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.session_service.cancel(&mut server_state, &mut session, request)
                 })
             }
 
             // NodeManagement Service Set, OPC UA Part 4, Section 5.7
 
-            SupportedMessage::AddNodesRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.node_management_service.add_nodes(&session, &mut address_space, &request)
+            SupportedMessage::AddNodesRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.node_management_service.add_nodes(&session, &mut address_space, request)
                 })
             }
 
-            SupportedMessage::AddReferencesRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.node_management_service.add_references(&session, &mut address_space, &request)
+            SupportedMessage::AddReferencesRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.node_management_service.add_references(&session, &mut address_space, request)
                 })
             }
 
-            SupportedMessage::DeleteNodesRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.node_management_service.delete_nodes(&session, &mut address_space, &request)
+            SupportedMessage::DeleteNodesRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.node_management_service.delete_nodes(&session, &mut address_space, request)
                 })
             }
 
-            SupportedMessage::DeleteReferencesRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.node_management_service.delete_references(&session, &mut address_space, &request)
+            SupportedMessage::DeleteReferencesRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.node_management_service.delete_references(&session, &mut address_space, request)
                 })
             }
 
             // View Service Set, OPC UA Part 4, Section 5.8
 
-            SupportedMessage::BrowseRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.view_service.browse(&mut session, &address_space, &request)
+            SupportedMessage::BrowseRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.view_service.browse(&mut session, &address_space, request)
                 })
             }
-            SupportedMessage::BrowseNextRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.view_service.browse_next(&mut session, &address_space, &request)
+            SupportedMessage::BrowseNextRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.view_service.browse_next(&mut session, &address_space, request)
                 })
             }
-            SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.view_service.translate_browse_paths_to_node_ids(&address_space, &request)
+            SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.view_service.translate_browse_paths_to_node_ids(&address_space, request)
                 })
             }
 
             // Attribute Service Set, OPC UA Part 4, Section 5.10
 
-            SupportedMessage::ReadRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.attribute_service.read(&address_space, &request)
+            SupportedMessage::ReadRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.attribute_service.read(&address_space, request)
                 })
             }
-            SupportedMessage::WriteRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.attribute_service.write(&mut address_space, &request)
+            SupportedMessage::WriteRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.attribute_service.write(&mut address_space, request)
                 })
             }
 
             // Method Service Set, OPC UA Part 4, Section 5.11
 
-            SupportedMessage::CallRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.method_service.call(&address_space, &server_state, &mut session, &request)
+            SupportedMessage::CallRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.method_service.call(&address_space, &server_state, &mut session, request)
                 })
             }
 
             // Monitored Item Service Set, OPC UA Part 4, Section 5.12
 
-            SupportedMessage::CreateMonitoredItemsRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.monitored_item_service.create_monitored_items(&mut session, &request)
+            SupportedMessage::CreateMonitoredItemsRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.monitored_item_service.create_monitored_items(&mut session, request)
                 })
             }
-            SupportedMessage::ModifyMonitoredItemsRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.monitored_item_service.modify_monitored_items(&mut session, &request)
+            SupportedMessage::ModifyMonitoredItemsRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.monitored_item_service.modify_monitored_items(&mut session, request)
                 })
             }
-            SupportedMessage::SetMonitoringModeRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.monitored_item_service.set_monitoring_mode(&mut session, &request)
+            SupportedMessage::SetMonitoringModeRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.monitored_item_service.set_monitoring_mode(&mut session, request)
                 })
             }
-            SupportedMessage::SetTriggeringRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.monitored_item_service.set_triggering(&mut session, &request)
+            SupportedMessage::SetTriggeringRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.monitored_item_service.set_triggering(&mut session, request)
                 })
             }
-            SupportedMessage::DeleteMonitoredItemsRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.monitored_item_service.delete_monitored_items(&mut session, &request)
+            SupportedMessage::DeleteMonitoredItemsRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.monitored_item_service.delete_monitored_items(&mut session, request)
                 })
             }
 
             // Subscription Service Set, OPC UA Part 4, Section 5.13
 
-            SupportedMessage::CreateSubscriptionRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.subscription_service.create_subscription(&mut server_state, &mut session, &request)
+            SupportedMessage::CreateSubscriptionRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.subscription_service.create_subscription(&mut server_state, &mut session, request)
                 })
             }
-            SupportedMessage::ModifySubscriptionRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.subscription_service.modify_subscription(&mut server_state, &mut session, &request)
+            SupportedMessage::ModifySubscriptionRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.subscription_service.modify_subscription(&mut server_state, &mut session, request)
                 })
             }
-            SupportedMessage::SetPublishingModeRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.subscription_service.set_publishing_mode(&mut session, &request)
+            SupportedMessage::SetPublishingModeRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.subscription_service.set_publishing_mode(&mut session, request)
                 })
             }
-            SupportedMessage::DeleteSubscriptionsRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.subscription_service.delete_subscriptions(&mut session, &request)
+            SupportedMessage::DeleteSubscriptionsRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.subscription_service.delete_subscriptions(&mut session, request)
                 })
             }
-            SupportedMessage::TransferSubscriptionsRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.subscription_service.transfer_subscriptions(&mut session, &request)
+            SupportedMessage::TransferSubscriptionsRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.subscription_service.transfer_subscriptions(&mut session, request)
                 })
             }
-            SupportedMessage::PublishRequest(request) => {
+            SupportedMessage::PublishRequest(ref request) => {
                 if let Err(response) = self.validate_request(&mut session, &request.request_header) {
                     Some(response)
                 } else {
                     // Unlike other calls which return immediately, this one is asynchronous - the
                     // request is queued and the response will come back out of sequence some time in
                     // the future.
-                    self.subscription_service.async_publish(&mut session, request_id, &request)?
+                    self.subscription_service.async_publish(&mut session, request_id, request)?
                 }
             }
-            SupportedMessage::RepublishRequest(request) => {
-                validated_request!(self, &request, &mut session, {
-                    self.subscription_service.republish(&mut session, &request)
+            SupportedMessage::RepublishRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.subscription_service.republish(&mut session, request)
                 })
             }
 
