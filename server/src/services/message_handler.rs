@@ -1,6 +1,6 @@
 use std::sync::{Arc, RwLock};
 
-use opcua_core::crypto::CertificateStore;
+use opcua_core::crypto::{CertificateStore, SecurityPolicy};
 use opcua_types::*;
 use opcua_types::service_types::*;
 use opcua_types::status_code::StatusCode;
@@ -84,9 +84,16 @@ impl MessageHandler {
     fn validate_request(&self, session: &mut Session, request_header: &RequestHeader) -> Result<(), SupportedMessage> {
         // TODO if session's token is null, it might be possible to retrieve session state from a
         //  previously closed session and reassociate it if the authentication token is recognized
-        if session.authentication_token != request_header.authentication_token {
+
+        let is_secure_connection = {
+            let secure_channel = trace_read_lock_unwrap!(session.secure_channel);
+            secure_channel.security_policy() != SecurityPolicy::None
+        };
+
+        if is_secure_connection && session.authentication_token != request_header.authentication_token {
             // Session should terminate
             session.terminate_session = true;
+            error!("supplied authentication token {:?} does not match session's expected token {:?}", request_header.authentication_token, session.authentication_token);
             Err(ServiceFault::new_supported_message(request_header, StatusCode::BadIdentityTokenRejected))
         } else {
             Ok(())

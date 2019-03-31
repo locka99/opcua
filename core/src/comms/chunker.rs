@@ -94,7 +94,7 @@ impl Chunker {
         // here makes as good a place as any to do that.
         let mut message_size = supported_message.byte_len();
         if max_message_size > 0 && message_size > max_message_size {
-            warn!("Max message size is {} and message {} exceeds that", max_message_size, message_size);
+            error!("Max message size is {} and message {} exceeds that", max_message_size, message_size);
             // Client stack should report a BadRequestTooLarge, server BadResponseTooLarge
             Err(if secure_channel.is_client_role() { StatusCode::BadRequestTooLarge } else { StatusCode::BadResponseTooLarge })
         } else {

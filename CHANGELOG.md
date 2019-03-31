@@ -142,6 +142,7 @@ Planned future work is listed at the bottom.
   
 ASPIRATIONAL - a short list of things that would be nice to implement in the future
 
+  - Multiple chunks
   - User-level permission model, i.e. ability to limit access to address space based on identity
   - Replace more OpenSSL with `ring` equivalent functions. Ring doesn't do X509 so code is still
     dependent on OpenSSL until a drop-in replacement appears - need something which can generate, read and write X509
