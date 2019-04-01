@@ -151,6 +151,10 @@ pub mod constants {
     pub const MAX_QUERY_CONTINUATION_POINTS: usize = 0;
     /// Maximum method calls per request
     pub const MAX_METHOD_CALLS: usize = 10;
+    /// Maximum number of nodes in a TranslateBrowsePathsToNodeIdsRequest
+    pub const MAX_BROWSE_PATHS_PER_TRANSLATE: usize = 10;
+    /// Maximum number of nodes / references per node manaument operation
+    pub const MAX_NODES_PER_NODE_MANAGEMENT: usize = 100;
 }
 
 #[cfg(test)]

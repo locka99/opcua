@@ -111,6 +111,8 @@ pub struct TcpTransport {
     client_protocol_version: u32,
     /// Last decoded sequence number
     last_received_sequence_number: u32,
+    /// A message may consist of one or more chunks which are stored here until complete.
+    pending_chunks: Vec<MessageChunk>,
 }
 
 impl Transport for TcpTransport {
@@ -164,6 +166,7 @@ impl TcpTransport {
             secure_channel_service,
             client_protocol_version: 0,
             last_received_sequence_number: 0,
+            pending_chunks: Vec::with_capacity(2),
         }
     }
 
@@ -769,49 +772,52 @@ impl TcpTransport {
 
         let message_header = chunk.message_header(&decoding_limits)?;
 
-        if message_header.is_final == MessageIsFinalType::Intermediate {
-            panic!("We don't support intermediate chunks yet");
-        } else if message_header.is_final == MessageIsFinalType::FinalError {
-            info!("Discarding chunk marked in as final error");
-            return Ok(());
-        }
-
-        // Decrypt / verify chunk if necessary
-        let chunk = {
-            let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
-            secure_channel.verify_and_remove_security(&chunk.data)?
-        };
-
-        let in_chunks = vec![chunk];
-        let chunk_info = {
-            let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
-            in_chunks[0].chunk_info(&secure_channel)?
-        };
-
-        let request_id = chunk_info.sequence_header.request_id;
-        let request = self.turn_received_chunks_into_message(&in_chunks)?;
-
-        // Handle the request, and then send the response back to the caller
-        let response = match message_header.message_type {
-            MessageChunkType::OpenSecureChannel => {
+        if message_header.is_final == MessageIsFinalType::FinalError {
+            info!("Discarding chunks as after receiving one marked as final error");
+            self.pending_chunks.clear();
+        } else {
+            // Decrypt / verify chunk if necessary
+            let chunk = {
                 let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
-                self.secure_channel_service.open_secure_channel(&mut secure_channel, &chunk_info.security_header, self.client_protocol_version, &request)?
-            }
-            MessageChunkType::CloseSecureChannel => {
-                self.secure_channel_service.close_secure_channel(&request)?
-            }
-            MessageChunkType::Message => {
-                let response = self.message_handler.handle_message(request_id, request)?;
-                if response.is_none() {
-                    // No response for the message at this time
-                    return Ok(());
-                }
-                response.unwrap()
-            }
-        };
+                secure_channel.verify_and_remove_security(&chunk.data)?
+            };
 
-        // Send the response for transmission
-        let _ = sender.unbounded_send((request_id, response));
+            // Put the chunk on the list
+            self.pending_chunks.push(chunk);
+
+            // If this is the final chunk, then
+            if message_header.is_final == MessageIsFinalType::Final {
+                // Drain pending chunks and turn them into a message
+                let chunks: Vec<MessageChunk> = self.pending_chunks.drain(..).collect();
+                let chunk_info = {
+                    let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+                    chunks[0].chunk_info(&secure_channel)?
+                };
+
+                // Handle the request, and then send the response back to the caller
+                let request = self.turn_received_chunks_into_message(&chunks)?;
+                let request_id = chunk_info.sequence_header.request_id;
+                let response = match message_header.message_type {
+                    MessageChunkType::OpenSecureChannel => {
+                        let mut secure_channel = trace_write_lock_unwrap!(self.secure_channel);
+                        self.secure_channel_service.open_secure_channel(&mut secure_channel, &chunk_info.security_header, self.client_protocol_version, &request)?
+                    }
+                    MessageChunkType::CloseSecureChannel => {
+                        self.secure_channel_service.close_secure_channel(&request)?
+                    }
+                    MessageChunkType::Message => {
+                        let response = self.message_handler.handle_message(request_id, request)?;
+                        if response.is_none() {
+                            // No response for the message at this time
+                            return Ok(());
+                        }
+                        response.unwrap()
+                    }
+                };
+                // Send the response for transmission
+                let _ = sender.unbounded_send((request_id, response));
+            }
+        }
         Ok(())
     }
 }

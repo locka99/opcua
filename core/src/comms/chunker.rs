@@ -110,7 +110,9 @@ impl Chunker {
             let data = stream.into_inner();
 
             let result = if max_chunk_size > 0 {
-                let max_body_per_chunk = MessageChunk::body_size_from_message_size(message_type, secure_channel, max_chunk_size);
+                let max_body_per_chunk = MessageChunk::body_size_from_message_size(message_type, secure_channel, max_chunk_size)
+                    .map_err(|_| StatusCode::BadTcpInternalError)?;
+
                 // Multiple chunks means breaking the data up into sections. Fortunately
                 // Rust has a nice function to do just that.
                 let data_chunks = data.chunks(max_body_per_chunk);

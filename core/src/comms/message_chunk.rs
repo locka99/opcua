@@ -226,29 +226,32 @@ impl MessageChunk {
         Ok(MessageChunk { data: stream.into_inner() })
     }
 
+    const SMALLEST_MESSAGE_SIZE: usize = 8196;
+
     /// Calculates the body size that fit inside of a message chunk of a particular size.
     /// This requires calculating the size of the header, the signature, padding etc. and deducting it
     /// to reveal the message size
-    pub fn body_size_from_message_size(message_type: MessageChunkType, secure_channel: &SecureChannel, message_size: usize) -> usize {
-        if message_size < 8196 {
-            panic!("max chunk size cannot be less than minimum in the spec");
+    pub fn body_size_from_message_size(message_type: MessageChunkType, secure_channel: &SecureChannel, message_size: usize) -> Result<usize, ()> {
+        if message_size < Self::SMALLEST_MESSAGE_SIZE {
+            error!("message size {} is less than minimum allowed by the spec", message_size);
+            Err(())
+        } else {
+            let security_header = secure_channel.make_security_header(message_type);
+
+            let mut data_size = MESSAGE_CHUNK_HEADER_SIZE;
+            data_size += security_header.byte_len();
+            data_size += (SequenceHeader { sequence_number: 0, request_id: 0 }).byte_len();
+
+            // 1 byte == most padding
+            let signature_size = secure_channel.signature_size(&security_header);
+            data_size += secure_channel.padding_size(&security_header, 1, signature_size);
+
+            // signature length
+            data_size += signature_size;
+
+            // Message size is what's left
+            Ok(message_size - data_size)
         }
-
-        let security_header = secure_channel.make_security_header(message_type);
-
-        let mut data_size = MESSAGE_CHUNK_HEADER_SIZE;
-        data_size += security_header.byte_len();
-        data_size += (SequenceHeader { sequence_number: 0, request_id: 0 }).byte_len();
-
-        // 1 byte == most padding
-        let signature_size = secure_channel.signature_size(&security_header);
-        data_size += secure_channel.padding_size(&security_header, 1, signature_size);
-
-        // signature length
-        data_size += signature_size;
-
-        // Message size is what's left
-        message_size - data_size
     }
 
     pub fn message_header(&self, decoding_limits: &DecodingLimits) -> Result<MessageChunkHeader, StatusCode> {
