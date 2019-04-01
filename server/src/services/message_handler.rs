@@ -144,25 +144,25 @@ impl MessageHandler {
 
             SupportedMessage::AddNodesRequest(ref request) => {
                 validated_request!(self, request, &mut session, {
-                    self.node_management_service.add_nodes(&session, &mut address_space, request)
+                    self.node_management_service.add_nodes(&server_state, &session, &mut address_space, request)
                 })
             }
 
             SupportedMessage::AddReferencesRequest(ref request) => {
                 validated_request!(self, request, &mut session, {
-                    self.node_management_service.add_references(&session, &mut address_space, request)
+                    self.node_management_service.add_references(&server_state, &session, &mut address_space, request)
                 })
             }
 
             SupportedMessage::DeleteNodesRequest(ref request) => {
                 validated_request!(self, request, &mut session, {
-                    self.node_management_service.delete_nodes(&session, &mut address_space, request)
+                    self.node_management_service.delete_nodes(&server_state, &session, &mut address_space, request)
                 })
             }
 
             SupportedMessage::DeleteReferencesRequest(ref request) => {
                 validated_request!(self, request, &mut session, {
-                    self.node_management_service.delete_references(&session, &mut address_space, request)
+                    self.node_management_service.delete_references(&server_state, &session, &mut address_space, request)
                 })
             }
 
@@ -180,7 +180,7 @@ impl MessageHandler {
             }
             SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(ref request) => {
                 validated_request!(self, request, &mut session, {
-                    self.view_service.translate_browse_paths_to_node_ids(&address_space, request)
+                    self.view_service.translate_browse_paths_to_node_ids(&server_state, &address_space, request)
                 })
             }
 

@@ -9,6 +9,7 @@ use opcua_types::service_types::*;
 use crate::{
     address_space::{AddressSpace, relative_path},
     session::Session,
+    state::ServerState,
     services::Service,
     continuation_point::BrowseContinuationPoint,
 };
@@ -88,17 +89,16 @@ impl ViewService {
         }
     }
 
-    pub fn translate_browse_paths_to_node_ids(&self, address_space: &AddressSpace, request: &TranslateBrowsePathsToNodeIdsRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn translate_browse_paths_to_node_ids(&self, server_state: &ServerState, address_space: &AddressSpace, request: &TranslateBrowsePathsToNodeIdsRequest) -> Result<SupportedMessage, StatusCode> {
         trace!("TranslateBrowsePathsToNodeIdsRequest = {:?}", &request);
-        // TODO this should be a server constant
-        let max_nodes_per_operation = 0;
 
+        let max_browse_paths_per_translate = server_state.max_browse_paths_per_translate();
         if let Some(ref browse_paths) = request.browse_paths {
             if browse_paths.is_empty() {
                 trace!("Browse paths is empty");
                 Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
-            } else if max_nodes_per_operation > 0 && browse_paths.len() > max_nodes_per_operation {
-                trace!("Browse paths size {} exceeds max nodes {}", browse_paths.len(), max_nodes_per_operation);
+            } else if browse_paths.len() > max_browse_paths_per_translate {
+                trace!("Browse paths size {} exceeds max nodes {}", browse_paths.len(), max_browse_paths_per_translate);
                 Ok(self.service_fault(&request.request_header, StatusCode::BadTooManyOperations))
             } else {
                 let results = browse_paths.iter().enumerate().map(|(i, browse_path)| {

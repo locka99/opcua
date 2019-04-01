@@ -51,6 +51,12 @@ pub struct ServerState {
     pub max_keep_alive_count: u32,
     /// Maximum lifetime count (3 times as large as max keep alive)
     pub max_lifetime_count: u32,
+    /// Limits on method service
+    pub max_method_calls: usize,
+    /// Limits on node management service
+    pub max_nodes_per_node_management: usize,
+    /// Limits on view service
+    pub max_browse_paths_per_translate: usize,
     //// Current state
     pub state: ServerStateType,
     /// Sets the abort flag that terminates the associated server
@@ -190,6 +196,18 @@ impl ServerState {
     pub fn is_abort(&self) -> bool { self.abort }
 
     pub fn is_running(&self) -> bool { self.state == ServerStateType::Running }
+
+    pub fn max_method_calls(&self) -> usize {
+        self.max_method_calls
+    }
+
+    pub fn max_nodes_per_node_management(&self) -> usize {
+        self.max_nodes_per_node_management
+    }
+
+    pub fn max_browse_paths_per_translate(&self) -> usize {
+        self.max_browse_paths_per_translate
+    }
 
     pub fn server_certificate_as_byte_string(&self) -> ByteString {
         if let Some(ref server_certificate) = self.server_certificate {

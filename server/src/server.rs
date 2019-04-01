@@ -130,6 +130,9 @@ impl Server {
             default_keep_alive_count: constants::DEFAULT_KEEP_ALIVE_COUNT,
             max_keep_alive_count: constants::MAX_KEEP_ALIVE_COUNT,
             max_lifetime_count: constants::MAX_KEEP_ALIVE_COUNT * 3,
+            max_method_calls: constants::MAX_METHOD_CALLS,
+            max_nodes_per_node_management: constants::MAX_NODES_PER_NODE_MANAGEMENT,
+            max_browse_paths_per_translate: constants::MAX_BROWSE_PATHS_PER_TRANSLATE,
             diagnostics,
             abort: false,
         };

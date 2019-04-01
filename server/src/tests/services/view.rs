@@ -243,7 +243,8 @@ fn translate_browse_paths_to_node_ids() {
 
     let vs = ViewService::new();
     let address_space = st.address_space.read().unwrap();
-    let result = vs.translate_browse_paths_to_node_ids(&address_space, &request);
+    let server_state = st.server_state.read().unwrap();
+    let result = vs.translate_browse_paths_to_node_ids(&server_state, &address_space, &request);
     assert!(result.is_ok());
     let response: TranslateBrowsePathsToNodeIdsResponse = supported_message_as!(result.unwrap(), TranslateBrowsePathsToNodeIdsResponse);
 
@@ -293,7 +294,8 @@ fn translate_browse_paths_to_node_ids2() {
 
     let vs = ViewService::new();
     let address_space = st.address_space.read().unwrap();
-    let result = vs.translate_browse_paths_to_node_ids(&address_space, &request);
+    let server_state = st.server_state.read().unwrap();
+    let result = vs.translate_browse_paths_to_node_ids(&server_state, &address_space, &request);
     assert!(result.is_ok());
     let response: TranslateBrowsePathsToNodeIdsResponse = supported_message_as!(result.unwrap(), TranslateBrowsePathsToNodeIdsResponse);
 

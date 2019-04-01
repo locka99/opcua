@@ -15,6 +15,7 @@ use crate::{
     },
     session::Session,
     services::Service,
+    state::ServerState,
 };
 
 pub(crate) struct NodeManagementService;
@@ -27,22 +28,26 @@ impl NodeManagementService {
     }
 
     /// Implements the AddNodes service
-    pub fn add_nodes(&self, session: &Session, address_space: &mut AddressSpace, request: &AddNodesRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn add_nodes(&self, server_state: &ServerState, session: &Session, address_space: &mut AddressSpace, request: &AddNodesRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref nodes_to_add) = request.nodes_to_add {
             if !nodes_to_add.is_empty() {
-                let results = nodes_to_add.iter().map(|node_to_add| {
-                    let (status_code, added_node_id) = Self::add_node(session, address_space, node_to_add);
-                    AddNodesResult {
-                        status_code,
-                        added_node_id,
-                    }
-                }).collect();
-                let response = AddNodesResponse {
-                    response_header: ResponseHeader::new_good(&request.request_header),
-                    results: Some(results),
-                    diagnostic_infos: None,
-                };
-                Ok(response.into())
+                if nodes_to_add.len() <= server_state.max_nodes_per_node_management() {
+                    let results = nodes_to_add.iter().map(|node_to_add| {
+                        let (status_code, added_node_id) = Self::add_node(session, address_space, node_to_add);
+                        AddNodesResult {
+                            status_code,
+                            added_node_id,
+                        }
+                    }).collect();
+                    let response = AddNodesResponse {
+                        response_header: ResponseHeader::new_good(&request.request_header),
+                        results: Some(results),
+                        diagnostic_infos: None,
+                    };
+                    Ok(response.into())
+                } else {
+                    Ok(self.service_fault(&request.request_header, StatusCode::BadTooManyOperations))
+                }
             } else {
                 Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
             }
@@ -52,17 +57,21 @@ impl NodeManagementService {
     }
 
     /// Implements the AddReferences service
-    pub fn add_references(&self, session: &Session, address_space: &mut AddressSpace, request: &AddReferencesRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn add_references(&self, server_state: &ServerState, session: &Session, address_space: &mut AddressSpace, request: &AddReferencesRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref references_to_add) = request.references_to_add {
             if !references_to_add.is_empty() {
-                let results = references_to_add.iter().map(|r| {
-                    Self::add_reference(session, address_space, r)
-                }).collect();
-                Ok(AddReferencesResponse {
-                    response_header: ResponseHeader::new_good(&request.request_header),
-                    results: Some(results),
-                    diagnostic_infos: None,
-                }.into())
+                if references_to_add.len() <= server_state.max_nodes_per_node_management() {
+                    let results = references_to_add.iter().map(|r| {
+                        Self::add_reference(session, address_space, r)
+                    }).collect();
+                    Ok(AddReferencesResponse {
+                        response_header: ResponseHeader::new_good(&request.request_header),
+                        results: Some(results),
+                        diagnostic_infos: None,
+                    }.into())
+                } else {
+                    Ok(self.service_fault(&request.request_header, StatusCode::BadTooManyOperations))
+                }
             } else {
                 Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
             }
@@ -72,18 +81,22 @@ impl NodeManagementService {
     }
 
     /// Implements the DeleteNodes service
-    pub fn delete_nodes(&self, session: &Session, address_space: &mut AddressSpace, request: &DeleteNodesRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn delete_nodes(&self, server_state: &ServerState, session: &Session, address_space: &mut AddressSpace, request: &DeleteNodesRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref nodes_to_delete) = request.nodes_to_delete {
             if !nodes_to_delete.is_empty() {
-                let results = nodes_to_delete.iter().map(|node_to_delete| {
-                    Self::delete_node(session, address_space, node_to_delete)
-                }).collect();
-                let response = DeleteNodesResponse {
-                    response_header: ResponseHeader::new_good(&request.request_header),
-                    results: Some(results),
-                    diagnostic_infos: None,
-                };
-                Ok(response.into())
+                if nodes_to_delete.len() <= server_state.max_nodes_per_node_management() {
+                    let results = nodes_to_delete.iter().map(|node_to_delete| {
+                        Self::delete_node(session, address_space, node_to_delete)
+                    }).collect();
+                    let response = DeleteNodesResponse {
+                        response_header: ResponseHeader::new_good(&request.request_header),
+                        results: Some(results),
+                        diagnostic_infos: None,
+                    };
+                    Ok(response.into())
+                } else {
+                    Ok(self.service_fault(&request.request_header, StatusCode::BadTooManyOperations))
+                }
             } else {
                 Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
             }
@@ -93,17 +106,21 @@ impl NodeManagementService {
     }
 
     /// Implements the DeleteReferences service
-    pub fn delete_references(&self, session: &Session, address_space: &mut AddressSpace, request: &DeleteReferencesRequest) -> Result<SupportedMessage, StatusCode> {
+    pub fn delete_references(&self, server_state: &ServerState, session: &Session, address_space: &mut AddressSpace, request: &DeleteReferencesRequest) -> Result<SupportedMessage, StatusCode> {
         if let Some(ref references_to_delete) = request.references_to_delete {
             if !references_to_delete.is_empty() {
-                let results = references_to_delete.iter().map(|r| {
-                    Self::delete_reference(session, address_space, r)
-                }).collect();
-                Ok(DeleteReferencesResponse {
-                    response_header: ResponseHeader::new_good(&request.request_header),
-                    results: Some(results),
-                    diagnostic_infos: None,
-                }.into())
+                if references_to_delete.len() <= server_state.max_nodes_per_node_management() {
+                    let results = references_to_delete.iter().map(|r| {
+                        Self::delete_reference(session, address_space, r)
+                    }).collect();
+                    Ok(DeleteReferencesResponse {
+                        response_header: ResponseHeader::new_good(&request.request_header),
+                        results: Some(results),
+                        diagnostic_infos: None,
+                    }.into())
+                } else {
+                    Ok(self.service_fault(&request.request_header, StatusCode::BadTooManyOperations))
+                }
             } else {
                 Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
             }
