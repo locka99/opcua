@@ -11,6 +11,8 @@ use opcua_types::{
     },
 };
 
+use opcua_core::handle::Handle;
+
 use crate::{
     constants,
     DateTimeUtc,
@@ -34,7 +36,7 @@ pub(crate) struct SubscriptionStateParams {
     pub notifications_available: bool,
     pub more_notifications: bool,
     pub publishing_req_queued: bool,
-    pub publishing_interval_elapsed: bool,
+    pub publishing_timer_expired: bool,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -42,6 +44,7 @@ pub enum UpdateStateAction {
     None,
     ReturnKeepAlive,
     ReturnNotifications,
+    CloseExpiredSubscription,
 }
 
 /// This is for debugging purposes. It allows the caller to validate the output state if required.
@@ -51,8 +54,6 @@ pub enum UpdateStateAction {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum HandledState {
     None0 = 0,
-    Closed1 = 1,
-    // Create2 = 2,
     Create3 = 3,
     Normal4 = 4,
     Normal5 = 5,
@@ -68,7 +69,7 @@ pub(crate) enum HandledState {
     KeepAlive15 = 15,
     KeepAlive16 = 16,
     KeepAlive17 = 17,
-
+    Closed27 = 27,
 }
 
 /// This is for debugging purposes. It allows the caller to validate the output state if required.
@@ -100,9 +101,9 @@ pub struct Subscription {
     /// Publishing interval in milliseconds
     publishing_interval: Duration,
     /// The lifetime count reset value
-    max_lifetime_count: u32,
+    max_lifetime_counter: u32,
     /// Keep alive count reset value
-    max_keep_alive_count: u32,
+    max_keep_alive_counter: u32,
     /// Relative priority of the subscription. When more than one subscriptio
     ///  needs to send notifications the highest priority subscription should
     /// be sent first.
@@ -113,10 +114,10 @@ pub struct Subscription {
     state: SubscriptionState,
     /// A value that contains the number of consecutive publishing timer expirations without Client
     /// activity before the Subscription is terminated.
-    current_lifetime_count: u32,
+    lifetime_counter: u32,
     /// Keep alive counter decrements when there are no notifications to publish and when it expires
     /// requests to send an empty notification as a keep alive event
-    current_keep_alive_count: u32,
+    keep_alive_counter: u32,
     /// boolean value that is set to true to mean that either a NotificationMessage or a keep-alive
     /// Message has been sent on the Subscription. It is a flag that is used to ensure that either
     /// a NotificationMessage or a keep-alive Message is sent out the first time the publishing timer
@@ -128,7 +129,7 @@ pub struct Subscription {
     /// next publish request.
     resend_data: bool,
     /// The next sequence number to be sent
-    next_sequence_number: u32,
+    sequence_number: Handle,
     // The last monitored item id
     next_monitored_item_id: u32,
     // The time that the subscription interval last fired
@@ -151,23 +152,23 @@ impl Drop for Subscription {
 }
 
 impl Subscription {
-    pub fn new(diagnostics: Arc<RwLock<ServerDiagnostics>>, subscription_id: u32, publishing_enabled: bool, publishing_interval: Duration, lifetime_count: u32, keep_alive_count: u32, priority: u8) -> Subscription {
+    pub fn new(diagnostics: Arc<RwLock<ServerDiagnostics>>, subscription_id: u32, publishing_enabled: bool, publishing_interval: Duration, lifetime_counter: u32, keep_alive_counter: u32, priority: u8) -> Subscription {
         let subscription = Subscription {
             subscription_id,
             publishing_interval,
             priority,
             monitored_items: HashMap::with_capacity(constants::DEFAULT_MONITORED_ITEM_CAPACITY),
-            max_lifetime_count: lifetime_count,
-            max_keep_alive_count: keep_alive_count,
+            max_lifetime_counter: lifetime_counter,
+            max_keep_alive_counter: keep_alive_counter,
             // State variables
             state: SubscriptionState::Creating,
-            current_lifetime_count: lifetime_count,
-            current_keep_alive_count: keep_alive_count,
+            lifetime_counter,
+            keep_alive_counter,
             message_sent: false,
             publishing_enabled,
             resend_data: false,
             // Counters for new items
-            next_sequence_number: 1,
+            sequence_number: Handle::new(1),
             next_monitored_item_id: 1,
             last_timer_expired_time: chrono::Utc::now(),
             diagnostics,
@@ -329,7 +330,7 @@ impl Subscription {
                 publishing_req_queued,
                 notifications_available,
                 more_notifications,
-                publishing_interval_elapsed,
+                publishing_timer_expired: publishing_interval_elapsed,
             });
             trace!("subscription tick - update_state_result = {:?}", update_state_result);
 
@@ -339,7 +340,7 @@ impl Subscription {
                     if notifications_available {
                         // Reset the next sequence number to the discarded notification
                         let notification_sequence_number = notification_message.unwrap().sequence_number;
-                        self.next_sequence_number = notification_sequence_number;
+                        self.sequence_number.set_next(notification_sequence_number);
                         debug!("Notification message nr {} was being ignored for a do-nothing, update state was {:?}", notification_sequence_number, update_state_result);
                     }
                     // Send nothing
@@ -350,28 +351,28 @@ impl Subscription {
                     if notifications_available {
                         // Reset the next sequence number to the discarded notification
                         let notification_sequence_number = notification_message.unwrap().sequence_number;
-                        self.next_sequence_number = notification_sequence_number;
+                        self.sequence_number.set_next(notification_sequence_number);
                         debug!("Notification message nr {} was being ignored for a keep alive, update state was {:?}", notification_sequence_number, update_state_result);
                     }
                     // Send a keep alive
                     debug!("Sending keep alive response");
-                    Some(NotificationMessage::keep_alive(self.next_sequence_number, DateTime::from(now.clone())))
+                    Some(NotificationMessage::keep_alive(self.sequence_number.next(), DateTime::from(now.clone())))
                 }
                 UpdateStateAction::ReturnNotifications => {
                     // Send the notification message
                     debug!("Sending notification response");
                     notification_message
                 }
+                UpdateStateAction::CloseExpiredSubscription => {
+                    // Delete the monitored items, issue a status change for the subscription
+                    self.monitored_items.clear();
+                    debug!("Deleting monitored items and issuing subscription status change");
+                    Some(NotificationMessage::status_change(self.sequence_number.next(), DateTime::from(now.clone()), StatusCode::BadTimeout))
+                }
             }
         } else {
             None
         };
-
-        // Check if the subscription interval has been exceeded since last call
-        if self.current_lifetime_count == 1 {
-            info!("Subscription {} has expired and will be removed shortly", self.subscription_id);
-            self.state = SubscriptionState::Closed;
-        }
 
         result
     }
@@ -470,16 +471,11 @@ impl Subscription {
         });
 
         if !notification_messages.is_empty() {
-            use std;
-            debug!("Create notification for subscription {}, sequence number {}", self.subscription_id, self.next_sequence_number);
+            let next_sequence_number = self.sequence_number.next();
+            debug!("Create notification for subscription {}, sequence number {}", self.subscription_id, next_sequence_number);
             // Create a notification message and push it onto the queue
-            let notification = NotificationMessage::data_change(self.next_sequence_number, DateTime::now(), notification_messages);
+            let notification = NotificationMessage::data_change(next_sequence_number, DateTime::now(), notification_messages);
             // Advance next sequence number
-            self.next_sequence_number = if self.next_sequence_number == std::u32::MAX {
-                1
-            } else {
-                self.next_sequence_number + 1
-            };
             (Some(notification), false)
         } else {
             (None, false)
@@ -511,7 +507,7 @@ impl Subscription {
     pub(crate) fn update_state(&mut self, tick_reason: TickReason, p: SubscriptionStateParams) -> UpdateStateResult {
         // This function is called when a publish request is received OR the timer expired, so getting
         // both is invalid code somewhere
-        if tick_reason == TickReason::ReceivedPublishRequest && p.publishing_interval_elapsed {
+        if tick_reason == TickReason::ReceivedPublishRequest && p.publishing_timer_expired {
             panic!("Should not be possible for timer to have expired and received publish request at same time")
         }
 
@@ -527,8 +523,8 @@ impl Subscription {
     message_sent: {}"#,
                        self.subscription_id, self.state, tick_reason, p,
                        self.publishing_enabled,
-                       self.current_keep_alive_count,
-                       self.current_lifetime_count,
+                       self.keep_alive_counter,
+                       self.lifetime_counter,
                        self.message_sent);
             }
         }
@@ -541,15 +537,22 @@ impl Subscription {
         // uses what its given. Likewise, this function does not "send" notifications, rather
         // it returns them (if any) and it is up to the caller to send them
 
+
+        // more state tests that match on more than one state
         match self.state {
-            SubscriptionState::Closed => {
-                // State #1
-                // TODO
-                // if receive_create_subscription {
-                // self.state = Subscription::Creating;
-                // }
-                return UpdateStateResult::new(HandledState::Closed1, UpdateStateAction::None);
+            SubscriptionState::Normal | SubscriptionState::Late | SubscriptionState::KeepAlive => {
+                if self.lifetime_counter == 1 {
+                    // State #27
+                    self.state = SubscriptionState::Closed;
+                    return UpdateStateResult::new(HandledState::Closed27, UpdateStateAction::CloseExpiredSubscription);
+                }
             }
+            _ => {
+                // DO NOTHING
+            }
+        }
+
+        match self.state {
             SubscriptionState::Creating => {
                 // State #2
                 // CreateSubscription fails, return negative response
@@ -560,59 +563,53 @@ impl Subscription {
                 return UpdateStateResult::new(HandledState::Create3, UpdateStateAction::None);
             }
             SubscriptionState::Normal => {
-                if tick_reason == TickReason::ReceivedPublishRequest {
-                    if !self.publishing_enabled || (self.publishing_enabled && !p.more_notifications) {
-                        // State #4
-                        return UpdateStateResult::new(HandledState::Normal4, UpdateStateAction::None);
-                    } else if self.publishing_enabled && p.more_notifications {
-                        // State #5
-                        self.reset_lifetime_counter();
-                        self.message_sent = true;
-                        return UpdateStateResult::new(HandledState::Normal5, UpdateStateAction::ReturnNotifications);
-                    }
-                } else if p.publishing_interval_elapsed {
-                    if p.publishing_req_queued && self.publishing_enabled && p.notifications_available {
-                        // State #6
-                        self.reset_lifetime_counter();
-                        self.start_publishing_timer();
-                        self.message_sent = true;
-                        return UpdateStateResult::new(HandledState::IntervalElapsed6, UpdateStateAction::ReturnNotifications);
-                    } else if p.publishing_req_queued && !self.message_sent && (!self.publishing_enabled || (self.publishing_enabled && !p.notifications_available)) {
-                        // State #7
-                        self.reset_lifetime_counter();
-                        self.start_publishing_timer();
-                        self.message_sent = true;
-                        return UpdateStateResult::new(HandledState::IntervalElapsed7, UpdateStateAction::ReturnKeepAlive);
-                    } else if !p.publishing_req_queued && (!self.message_sent || (self.publishing_enabled && p.notifications_available)) {
-                        // State #8
-                        self.start_publishing_timer();
-                        self.state = SubscriptionState::Late;
-                        return UpdateStateResult::new(HandledState::IntervalElapsed8, UpdateStateAction::None);
-                    } else if self.message_sent && (!self.publishing_enabled || (self.publishing_enabled && !p.notifications_available)) {
-                        // State #9
-                        self.start_publishing_timer();
-                        self.reset_keep_alive_counter();
-                        self.state = SubscriptionState::KeepAlive;
-                        return UpdateStateResult::new(HandledState::IntervalElapsed9, UpdateStateAction::None);
-                    }
+                if tick_reason == TickReason::ReceivedPublishRequest && (!self.publishing_enabled || (self.publishing_enabled && !p.more_notifications)) {
+                    // State #4
+                    return UpdateStateResult::new(HandledState::Normal4, UpdateStateAction::None);
+                } else if tick_reason == TickReason::ReceivedPublishRequest && self.publishing_enabled && p.more_notifications {
+                    // State #5
+                    self.reset_lifetime_counter();
+                    self.message_sent = true;
+                    return UpdateStateResult::new(HandledState::Normal5, UpdateStateAction::ReturnNotifications);
+                } else if p.publishing_timer_expired && p.publishing_req_queued && self.publishing_enabled && p.notifications_available {
+                    // State #6
+                    self.reset_lifetime_counter();
+                    self.start_publishing_timer();
+                    self.message_sent = true;
+                    return UpdateStateResult::new(HandledState::IntervalElapsed6, UpdateStateAction::ReturnNotifications);
+                } else if p.publishing_timer_expired && p.publishing_req_queued && !self.message_sent && (!self.publishing_enabled || (self.publishing_enabled && !p.notifications_available)) {
+                    // State #7
+                    self.reset_lifetime_counter();
+                    self.start_publishing_timer();
+                    self.message_sent = true;
+                    return UpdateStateResult::new(HandledState::IntervalElapsed7, UpdateStateAction::ReturnKeepAlive);
+                } else if p.publishing_timer_expired && !p.publishing_req_queued && (!self.message_sent || (self.publishing_enabled && p.notifications_available)) {
+                    // State #8
+                    self.start_publishing_timer();
+                    self.state = SubscriptionState::Late;
+                    return UpdateStateResult::new(HandledState::IntervalElapsed8, UpdateStateAction::None);
+                } else if p.publishing_timer_expired && self.message_sent && (!self.publishing_enabled || (self.publishing_enabled && !p.notifications_available)) {
+                    // State #9
+                    self.start_publishing_timer();
+                    self.reset_keep_alive_counter();
+                    self.state = SubscriptionState::KeepAlive;
+                    return UpdateStateResult::new(HandledState::IntervalElapsed9, UpdateStateAction::None);
                 }
             }
             SubscriptionState::Late => {
-                if tick_reason == TickReason::ReceivedPublishRequest {
-                    if self.publishing_enabled && (p.notifications_available || p.more_notifications) {
-                        // State #10
-                        self.reset_lifetime_counter();
-                        self.state = SubscriptionState::Normal;
-                        self.message_sent = true;
-                        return UpdateStateResult::new(HandledState::Late10, UpdateStateAction::ReturnNotifications);
-                    } else if !self.publishing_enabled || (self.publishing_enabled && !p.notifications_available && !p.more_notifications) {
-                        // State #11
-                        self.reset_lifetime_counter();
-                        self.state = SubscriptionState::KeepAlive;
-                        self.message_sent = true;
-                        return UpdateStateResult::new(HandledState::Late11, UpdateStateAction::ReturnKeepAlive);
-                    }
-                } else if p.publishing_interval_elapsed {
+                if tick_reason == TickReason::ReceivedPublishRequest && self.publishing_enabled && (p.notifications_available || p.more_notifications) {
+                    // State #10
+                    self.reset_lifetime_counter();
+                    self.state = SubscriptionState::Normal;
+                    self.message_sent = true;
+                    return UpdateStateResult::new(HandledState::Late10, UpdateStateAction::ReturnNotifications);
+                } else if tick_reason == TickReason::ReceivedPublishRequest && (!self.publishing_enabled || (self.publishing_enabled && !p.notifications_available && !p.more_notifications)) {
+                    // State #11
+                    self.reset_lifetime_counter();
+                    self.state = SubscriptionState::KeepAlive;
+                    self.message_sent = true;
+                    return UpdateStateResult::new(HandledState::Late11, UpdateStateAction::ReturnKeepAlive);
+                } else if p.publishing_timer_expired {
                     // State #12
                     self.start_publishing_timer();
                     return UpdateStateResult::new(HandledState::Late12, UpdateStateAction::None);
@@ -622,40 +619,26 @@ impl Subscription {
                 if tick_reason == TickReason::ReceivedPublishRequest {
                     // State #13
                     return UpdateStateResult::new(HandledState::KeepAlive13, UpdateStateAction::None);
-                } else if p.publishing_interval_elapsed {
-                    if self.publishing_enabled && p.notifications_available && p.publishing_req_queued {
-                        // State #14
-                        self.message_sent = true;
-                        self.state = SubscriptionState::Normal;
-                        return UpdateStateResult::new(HandledState::KeepAlive14, UpdateStateAction::ReturnNotifications);
-                    } else if p.publishing_req_queued && self.current_keep_alive_count == 1 && (!self.publishing_enabled || (self.publishing_enabled && p.notifications_available)) {
-                        // State #15
-                        self.start_publishing_timer();
-                        self.reset_keep_alive_counter();
-                        return UpdateStateResult::new(HandledState::KeepAlive15, UpdateStateAction::ReturnKeepAlive);
-                    } else if self.current_keep_alive_count > 1 && (!self.publishing_enabled || (self.publishing_enabled && !p.notifications_available)) {
-                        // State #16
-                        self.start_publishing_timer();
-                        self.current_keep_alive_count -= 1;
-                        return UpdateStateResult::new(HandledState::KeepAlive16, UpdateStateAction::None);
-                    } else if !p.publishing_req_queued && (self.current_keep_alive_count == 1 || (self.current_keep_alive_count > 1 && self.publishing_enabled && p.notifications_available)) {
-                        // State #17
-                        self.start_publishing_timer();
-                        self.state = SubscriptionState::Late;
-                        return UpdateStateResult::new(HandledState::KeepAlive17, UpdateStateAction::None);
-                    }
-                }
-            }
-        }
-
-        // Some more state tests that match on more than one state
-        match self.state {
-            SubscriptionState::Normal | SubscriptionState::Late | SubscriptionState::KeepAlive => {
-                if self.current_lifetime_count == 1 {
-                    // State #27
-                    // TODO
-                    // delete monitored items
-                    // issue_status_change_notification
+                } else if p.publishing_timer_expired && self.publishing_enabled && p.notifications_available && p.publishing_req_queued {
+                    // State #14
+                    self.message_sent = true;
+                    self.state = SubscriptionState::Normal;
+                    return UpdateStateResult::new(HandledState::KeepAlive14, UpdateStateAction::ReturnNotifications);
+                } else if p.publishing_timer_expired && p.publishing_req_queued && self.keep_alive_counter == 1 && (!self.publishing_enabled || (self.publishing_enabled && p.notifications_available)) {
+                    // State #15
+                    self.start_publishing_timer();
+                    self.reset_keep_alive_counter();
+                    return UpdateStateResult::new(HandledState::KeepAlive15, UpdateStateAction::ReturnKeepAlive);
+                } else if p.publishing_timer_expired && self.keep_alive_counter > 1 && (!self.publishing_enabled || (self.publishing_enabled && !p.notifications_available)) {
+                    // State #16
+                    self.start_publishing_timer();
+                    self.keep_alive_counter -= 1;
+                    return UpdateStateResult::new(HandledState::KeepAlive16, UpdateStateAction::None);
+                } else if p.publishing_timer_expired && !p.publishing_req_queued && (self.keep_alive_counter == 1 || (self.keep_alive_counter > 1 && self.publishing_enabled && p.notifications_available)) {
+                    // State #17
+                    self.start_publishing_timer();
+                    self.state = SubscriptionState::Late;
+                    return UpdateStateResult::new(HandledState::KeepAlive17, UpdateStateAction::None);
                 }
             }
             _ => {
@@ -671,40 +654,41 @@ impl Subscription {
     /// The maximum keep-alive count is set by the Client when the Subscription is created
     /// and may be modified using the ModifySubscription Service
     pub fn reset_keep_alive_counter(&mut self) {
-        self.current_keep_alive_count = self.max_keep_alive_count;
+        self.keep_alive_counter = self.max_keep_alive_counter;
     }
 
     /// Reset the lifetime counter to the value specified for the life time of the subscription
     /// in the create subscription service
     pub fn reset_lifetime_counter(&mut self) {
-        self.current_lifetime_count = self.max_lifetime_count;
+        self.lifetime_counter = self.max_lifetime_counter;
     }
 
     /// Start or restart the publishing timer and decrement the LifetimeCounter Variable.
     pub fn start_publishing_timer(&mut self) {
-        self.current_lifetime_count -= 1;
+        self.lifetime_counter -= 1;
+        debug!("Decrementing life time counter {}", self.lifetime_counter);
     }
 
     pub fn subscription_id(&self) -> u32 {
         self.subscription_id
     }
 
-    pub fn current_lifetime_count(&self) -> u32 {
-        self.current_lifetime_count
+    pub fn lifetime_counter(&self) -> u32 {
+        self.lifetime_counter
     }
 
     #[cfg(test)]
     pub(crate) fn set_current_lifetime_count(&mut self, current_lifetime_count: u32) {
-        self.current_lifetime_count = current_lifetime_count;
+        self.lifetime_counter = current_lifetime_count;
     }
 
-    pub fn current_keep_alive_count(&self) -> u32 {
-        self.current_keep_alive_count
+    pub fn keep_alive_counter(&self) -> u32 {
+        self.keep_alive_counter
     }
 
     #[cfg(test)]
-    pub(crate) fn set_current_keep_alive_count(&mut self, current_keep_alive_count: u32) {
-        self.current_keep_alive_count = current_keep_alive_count;
+    pub(crate) fn set_keep_alive_counter(&mut self, keep_alive_counter: u32) {
+        self.keep_alive_counter = keep_alive_counter;
     }
 
     pub(crate) fn state(&self) -> SubscriptionState {
@@ -731,22 +715,23 @@ impl Subscription {
 
     pub(crate) fn set_publishing_interval(&mut self, publishing_interval: Duration) {
         self.publishing_interval = publishing_interval;
+        self.reset_lifetime_counter();
     }
 
     pub fn max_keep_alive_count(&self) -> u32 {
-        self.max_keep_alive_count
+        self.max_keep_alive_counter
     }
 
     pub(crate) fn set_max_keep_alive_count(&mut self, max_keep_alive_count: u32) {
-        self.max_keep_alive_count = max_keep_alive_count;
+        self.max_keep_alive_counter = max_keep_alive_count;
     }
 
     pub fn max_lifetime_count(&self) -> u32 {
-        self.max_lifetime_count
+        self.max_lifetime_counter
     }
 
     pub(crate) fn set_max_lifetime_count(&mut self, max_lifetime_count: u32) {
-        self.max_lifetime_count = max_lifetime_count;
+        self.max_lifetime_counter = max_lifetime_count;
     }
 
     pub fn priority(&self) -> u8 {
@@ -759,6 +744,7 @@ impl Subscription {
 
     pub(crate) fn set_publishing_enabled(&mut self, publishing_enabled: bool) {
         self.publishing_enabled = publishing_enabled;
+        self.reset_lifetime_counter();
     }
 
     pub(crate) fn set_diagnostics_on_drop(&mut self, diagnostics_on_drop: bool) {

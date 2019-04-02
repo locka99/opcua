@@ -34,7 +34,7 @@ fn update_state_3() {
         notifications_available: true,
         more_notifications: false,
         publishing_req_queued: true,
-        publishing_interval_elapsed: false,
+        publishing_timer_expired: false,
     };
 
     let update_state_result = s.update_state(tick_reason, p);
@@ -66,7 +66,7 @@ fn update_state_4() {
         notifications_available: true,
         more_notifications: false,
         publishing_req_queued: true,
-        publishing_interval_elapsed: false,
+        publishing_timer_expired: false,
     };
 
     s.set_publishing_enabled(false);
@@ -99,18 +99,18 @@ fn update_state_5() {
         notifications_available: true,
         more_notifications: true,
         publishing_req_queued: true,
-        publishing_interval_elapsed: false,
+        publishing_timer_expired: false,
     };
 
     s.set_publishing_enabled(true);
-    s.set_current_lifetime_count(1);
+    s.set_current_lifetime_count(10);
 
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::Normal5);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnNotifications);
     assert_eq!(s.state(), SubscriptionState::Normal);
-    assert_eq!(s.current_lifetime_count(), s.max_lifetime_count());
+    assert_eq!(s.lifetime_counter(), s.max_lifetime_count());
     assert_eq!(s.message_sent(), true);
 
     // TODO ensure deleted acknowledged notification msgs
@@ -130,7 +130,7 @@ fn update_state_6() {
         notifications_available: true,
         more_notifications: false,
         publishing_req_queued: true,
-        publishing_interval_elapsed: true,
+        publishing_timer_expired: true,
     };
 
     s.set_publishing_enabled(true);
@@ -142,7 +142,7 @@ fn update_state_6() {
     assert_eq!(update_state_result.handled_state, HandledState::IntervalElapsed6);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnNotifications);
     assert_eq!(s.state(), SubscriptionState::Normal);
-    assert_eq!(s.current_lifetime_count(), 299);
+    assert_eq!(s.lifetime_counter(), 299);
     assert_eq!(s.message_sent(), true);
 }
 
@@ -160,7 +160,7 @@ fn update_state_7() {
         notifications_available: true,
         more_notifications: false,
         publishing_req_queued: true,
-        publishing_interval_elapsed: true,
+        publishing_timer_expired: true,
     };
 
     s.set_message_sent(false);
@@ -171,7 +171,7 @@ fn update_state_7() {
     assert_eq!(update_state_result.handled_state, HandledState::IntervalElapsed7);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnKeepAlive);
     assert_eq!(s.state(), SubscriptionState::Normal);
-    assert_eq!(s.current_lifetime_count(), 299);
+    assert_eq!(s.lifetime_counter(), 299);
     assert_eq!(s.message_sent(), true);
 
     // TODO Repeat with publishing enabled true and notifications available false
@@ -190,7 +190,7 @@ fn update_state_8() {
         notifications_available: true,
         more_notifications: false,
         publishing_req_queued: false,
-        publishing_interval_elapsed: true,
+        publishing_timer_expired: true,
     };
     s.set_message_sent(false);
 
@@ -215,19 +215,19 @@ fn update_state_9() {
         notifications_available: true,
         more_notifications: false,
         publishing_req_queued: false,
-        publishing_interval_elapsed: true,
+        publishing_timer_expired: true,
     };
 
     s.set_message_sent(true);
     s.set_publishing_enabled(false);
-    s.set_current_keep_alive_count(3);
+    s.set_keep_alive_counter(3);
 
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::IntervalElapsed9);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
     assert_eq!(s.state(), SubscriptionState::KeepAlive);
-    assert_eq!(s.current_keep_alive_count(), s.max_keep_alive_count());
+    assert_eq!(s.keep_alive_counter(), s.max_keep_alive_count());
 }
 
 #[test]
@@ -239,7 +239,7 @@ fn update_state_10() {
         notifications_available: true,
         more_notifications: false,
         publishing_req_queued: true,
-        publishing_interval_elapsed: false,
+        publishing_timer_expired: false,
     };
 
     s.set_publishing_enabled(true);
@@ -261,7 +261,7 @@ fn update_state_11() {
         notifications_available: false,
         more_notifications: false,
         publishing_req_queued: true,
-        publishing_interval_elapsed: false,
+        publishing_timer_expired: false,
     };
 
     s.set_publishing_enabled(true);
@@ -283,7 +283,7 @@ fn update_state_12() {
         notifications_available: false,
         more_notifications: false,
         publishing_req_queued: false,
-        publishing_interval_elapsed: true,
+        publishing_timer_expired: true,
     };
 
     s.set_publishing_enabled(true);
@@ -304,7 +304,7 @@ fn update_state_13() {
         notifications_available: false,
         more_notifications: false,
         publishing_req_queued: true,
-        publishing_interval_elapsed: false,
+        publishing_timer_expired: false,
     };
 
     let update_state_result = s.update_state(tick_reason, p);
@@ -323,7 +323,7 @@ fn update_state_14() {
         notifications_available: true,
         more_notifications: false,
         publishing_req_queued: true,
-        publishing_interval_elapsed: true,
+        publishing_timer_expired: true,
     };
 
     s.set_publishing_enabled(true);
@@ -344,10 +344,10 @@ fn update_state_15() {
         notifications_available: true,
         more_notifications: false,
         publishing_req_queued: true,
-        publishing_interval_elapsed: true,
+        publishing_timer_expired: true,
     };
 
-    s.set_current_keep_alive_count(1);
+    s.set_keep_alive_counter(1);
     s.set_publishing_enabled(false);
 
     let update_state_result = s.update_state(tick_reason, p);
@@ -355,14 +355,14 @@ fn update_state_15() {
     assert_eq!(update_state_result.handled_state, HandledState::KeepAlive15);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::ReturnKeepAlive);
     assert_eq!(s.state(), SubscriptionState::KeepAlive);
-    assert_eq!(s.current_keep_alive_count(), s.max_keep_alive_count());
+    assert_eq!(s.keep_alive_counter(), s.max_keep_alive_count());
 }
 
 #[test]
 fn update_state_16() {
     let mut s = make_subscription(SubscriptionState::KeepAlive);
 
-    s.set_current_keep_alive_count(5);
+    s.set_keep_alive_counter(5);
     s.set_publishing_enabled(false);
 
     let tick_reason = TickReason::TickTimerFired;
@@ -370,7 +370,7 @@ fn update_state_16() {
         notifications_available: true,
         more_notifications: false,
         publishing_req_queued: true,
-        publishing_interval_elapsed: true,
+        publishing_timer_expired: true,
     };
 
     let update_state_result = s.update_state(tick_reason, p);
@@ -378,7 +378,7 @@ fn update_state_16() {
     assert_eq!(update_state_result.handled_state, HandledState::KeepAlive16);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
     assert_eq!(s.state(), SubscriptionState::KeepAlive);
-    assert_eq!(s.current_keep_alive_count(), 4);
+    assert_eq!(s.keep_alive_counter(), 4);
 }
 
 #[test]
@@ -390,15 +390,48 @@ fn update_state_17() {
         notifications_available: true,
         more_notifications: false,
         publishing_req_queued: false,
-        publishing_interval_elapsed: true,
+        publishing_timer_expired: true,
     };
 
-    s.set_current_keep_alive_count(1);
+    s.set_keep_alive_counter(1);
 
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::KeepAlive17);
     assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
     assert_eq!(s.state(), SubscriptionState::Late);
-    assert_eq!(s.current_keep_alive_count(), 1);
+    assert_eq!(s.keep_alive_counter(), 1);
+}
+
+#[test]
+fn update_state_27() {
+    // Test #27
+    // Queue a publish request, publishing on, more notifications, lifetime of 1
+
+    // Ensure subscription is closed, update action to close expired subscription
+
+    let mut s = make_subscription(SubscriptionState::Normal);
+
+    // queue publish request
+    // set publish enabled true
+    // set more notifications true
+
+    let tick_reason = TickReason::ReceivedPublishRequest;
+    let p = SubscriptionStateParams {
+        notifications_available: true,
+        more_notifications: true,
+        publishing_req_queued: true,
+        publishing_timer_expired: false,
+    };
+
+    s.set_publishing_enabled(true);
+    s.set_current_lifetime_count(1);
+
+    let update_state_result = s.update_state(tick_reason, p);
+
+    assert_eq!(update_state_result.handled_state, HandledState::Closed27);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::CloseExpiredSubscription);
+    assert_eq!(s.state(), SubscriptionState::Closed);
+    assert_eq!(s.lifetime_counter(), 1);
+    assert_eq!(s.message_sent(), false);
 }

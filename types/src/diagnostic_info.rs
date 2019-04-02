@@ -184,6 +184,10 @@ impl Default for DiagnosticInfo {
 }
 
 impl DiagnosticInfo {
+    pub fn null() -> DiagnosticInfo {
+        DiagnosticInfo::default()
+    }
+
     pub fn encoding_mask(&self) -> DiagnosticInfoMask {
         let mut encoding_mask = DiagnosticInfoMask::empty();
         if self.symbolic_id.is_some() {

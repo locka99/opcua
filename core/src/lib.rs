@@ -5,9 +5,12 @@
 extern crate log;
 #[cfg(test)]
 extern crate tempdir;
+#[macro_use]
+extern crate serde_derive;
 
 pub mod comms;
 pub mod crypto;
+pub mod handle;
 
 // A convenience macro for deadlocks.
 

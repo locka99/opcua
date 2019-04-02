@@ -9,7 +9,6 @@ use crate::{
     services::Service,
     session::Session,
     state::ServerState,
-    constants,
 };
 
 /// The method service. Allows a client to call a method on the server.

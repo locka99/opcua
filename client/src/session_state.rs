@@ -7,6 +7,7 @@ use chrono;
 use opcua_core::{
     comms::secure_channel::SecureChannel,
     crypto::SecurityPolicy,
+    handle::Handle,
 };
 
 use opcua_types::{
@@ -15,7 +16,7 @@ use opcua_types::{
     status_code::StatusCode,
 };
 
-use crate::{message_queue::MessageQueue, callbacks::OnSessionClosed, handle::Handle};
+use crate::{message_queue::MessageQueue, callbacks::OnSessionClosed};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum ConnectionState {

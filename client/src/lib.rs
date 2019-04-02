@@ -31,7 +31,6 @@ mod subscription_state;
 mod subscription_timer;
 mod session_state;
 mod message_queue;
-mod handle;
 
 // Use through prelude
 mod config;
