@@ -110,18 +110,18 @@ fn publish_response_subscription() {
             let response = ss.async_publish(session, request_id, &request).unwrap();
             assert!(response.is_none());
 
-            assert!(!session.subscriptions.publish_request_queue.is_empty());
+            assert!(!session.subscriptions.publish_request_queue().is_empty());
 
             // Tick subscriptions to trigger a change
             let now = Utc::now().add(chrono::Duration::seconds(2));
             let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
 
             // Ensure publish request was processed into a publish response
-            assert_eq!(session.subscriptions.publish_request_queue.len(), 0);
-            assert_eq!(session.subscriptions.publish_response_queue.len(), 1);
+            assert_eq!(session.subscriptions.publish_request_queue().len(), 0);
+            assert_eq!(session.subscriptions.publish_response_queue().len(), 1);
 
             // Get the response from the queue
-            let response = session.subscriptions.publish_response_queue.pop_back().unwrap().response;
+            let response = session.subscriptions.publish_response_queue().pop_back().unwrap().response;
             let response: PublishResponse = supported_message_as!(response, PublishResponse);
             debug!("PublishResponse {:#?}", response);
 
@@ -154,7 +154,7 @@ fn publish_response_subscription() {
         assert_eq!(monitored_item_notification.client_handle, 0);
 
         // We expect the queue to be empty, because we got an immediate response
-        assert!(session.subscriptions.publish_response_queue.is_empty());
+        assert!(session.subscriptions.publish_response_queue().is_empty());
     })
 }
 
@@ -185,11 +185,11 @@ fn resend_data() {
             let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
 
             // Ensure publish request was processed into a publish response
-            assert_eq!(session.subscriptions.publish_request_queue.len(), 0);
-            assert_eq!(session.subscriptions.publish_response_queue.len(), 1);
+            assert_eq!(session.subscriptions.publish_request_queue().len(), 0);
+            assert_eq!(session.subscriptions.publish_response_queue().len(), 1);
 
             // Get the response from the queue
-            let response = session.subscriptions.publish_response_queue.pop_back().unwrap().response;
+            let response = session.subscriptions.publish_response_queue().pop_back().unwrap().response;
             let response: PublishResponse = supported_message_as!(response, PublishResponse);
             debug!("PublishResponse {:#?}", response);
 
@@ -217,11 +217,11 @@ fn resend_data() {
             let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
 
             // Ensure publish request was processed into a publish response
-            assert_eq!(session.subscriptions.publish_request_queue.len(), 0);
-            assert_eq!(session.subscriptions.publish_response_queue.len(), 1);
+            assert_eq!(session.subscriptions.publish_request_queue().len(), 0);
+            assert_eq!(session.subscriptions.publish_response_queue().len(), 1);
 
             // Get the response from the queue
-            let response = session.subscriptions.publish_response_queue.pop_back().unwrap().response;
+            let response = session.subscriptions.publish_response_queue().pop_back().unwrap().response;
             let response: PublishResponse = supported_message_as!(response, PublishResponse);
             debug!("PublishResponse {:#?}", response);
 
@@ -278,18 +278,18 @@ fn publish_keep_alive() {
             let response = ss.async_publish(session, request_id, &request).unwrap();
             assert!(response.is_none());
 
-            assert!(!session.subscriptions.publish_request_queue.is_empty());
+            assert!(!session.subscriptions.publish_request_queue().is_empty());
 
             // Tick subscriptions to trigger a change
             let now = Utc::now().add(chrono::Duration::seconds(2));
             let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
 
             // Ensure publish request was processed into a publish response
-            assert_eq!(session.subscriptions.publish_request_queue.len(), 0);
-            assert_eq!(session.subscriptions.publish_response_queue.len(), 1);
+            assert_eq!(session.subscriptions.publish_request_queue().len(), 0);
+            assert_eq!(session.subscriptions.publish_response_queue().len(), 1);
 
             // Get the response from the queue
-            let response = session.subscriptions.publish_response_queue.pop_back().unwrap().response;
+            let response = session.subscriptions.publish_response_queue().pop_back().unwrap().response;
             let response: PublishResponse = supported_message_as!(response, PublishResponse);
             debug!("PublishResponse {:#?}", response);
 

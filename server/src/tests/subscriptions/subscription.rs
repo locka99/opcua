@@ -40,7 +40,7 @@ fn update_state_3() {
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::Create3);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::SubscriptionCreated);
     assert_eq!(s.state(), SubscriptionState::Normal);
     assert_eq!(s.message_sent(), false);
 }
@@ -430,7 +430,7 @@ fn update_state_27() {
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::Closed27);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::CloseExpiredSubscription);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::SubscriptionExpired);
     assert_eq!(s.state(), SubscriptionState::Closed);
     assert_eq!(s.lifetime_counter(), 1);
     assert_eq!(s.message_sent(), false);

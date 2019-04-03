@@ -87,14 +87,14 @@ fn publish_request(session: &mut Session, ss: &SubscriptionService) {
         subscription_acknowledgements: None,
     };
 
-    session.subscriptions.publish_request_queue.clear();
+    session.subscriptions.publish_request_queue().clear();
     let response = ss.async_publish(session, request_id, &request).unwrap();
     assert!(response.is_none());
-    assert!(!session.subscriptions.publish_request_queue.is_empty());
+    assert!(!session.subscriptions.publish_request_queue().is_empty());
 }
 
 fn publish_response(session: &mut Session) -> PublishResponse {
-    let response = session.subscriptions.publish_response_queue.pop_back().unwrap().response;
+    let response = session.subscriptions.publish_response_queue().pop_back().unwrap().response;
     let response: PublishResponse = supported_message_as!(response, PublishResponse);
     response
 }
@@ -103,7 +103,7 @@ fn publish_tick_no_response(session: &mut Session, ss: &SubscriptionService, add
     publish_request(session, ss);
     let now = now.add(duration);
     let _ = session.tick_subscriptions(&now, address_space, TickReason::TickTimerFired);
-    assert_eq!(session.subscriptions.publish_response_queue.len(), 0);
+    assert_eq!(session.subscriptions.publish_response_queue().len(), 0);
     now
 }
 
@@ -115,7 +115,7 @@ fn publish_tick_response<T>(session: &mut Session, ss: &SubscriptionService, add
     publish_request(session, ss);
     let now = now.add(duration);
     let _ = session.tick_subscriptions(&now, address_space, TickReason::TickTimerFired);
-    assert_eq!(session.subscriptions.publish_response_queue.len(), 1);
+    assert_eq!(session.subscriptions.publish_response_queue().len(), 1);
     let response = publish_response(session);
     handler(response);
     now
