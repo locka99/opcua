@@ -110,6 +110,7 @@ pub fn expired_publish_requests() {
             request_header: RequestHeader::new(&NodeId::null(), &now, 1000),
             subscription_acknowledgements: None,
         },
+        results: None,
     };
     pr1.request.request_header.timeout_hint = 5001;
 
@@ -119,6 +120,7 @@ pub fn expired_publish_requests() {
             request_header: RequestHeader::new(&NodeId::null(), &now, 2000),
             subscription_acknowledgements: None,
         },
+        results: None,
     };
     pr2.request.request_header.timeout_hint = 3000;
 
@@ -160,6 +162,4 @@ pub fn expired_publish_requests() {
             panic!("Expected service faults for timed out publish requests")
         }
     }
-
-
 }

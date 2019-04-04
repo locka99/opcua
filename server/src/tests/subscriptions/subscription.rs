@@ -61,7 +61,7 @@ fn update_state_4() {
     //            (PublishingEnabled == TRUE
     //                && MoreNotifications == FALSE)
     //    )
-    let tick_reason = TickReason::ReceivedPublishRequest;
+    let tick_reason = TickReason::ReceivePublishRequest;
     let p = SubscriptionStateParams {
         notifications_available: true,
         more_notifications: false,
@@ -94,7 +94,7 @@ fn update_state_5() {
     // set publish enabled true
     // set more notifications true
 
-    let tick_reason = TickReason::ReceivedPublishRequest;
+    let tick_reason = TickReason::ReceivePublishRequest;
     let p = SubscriptionStateParams {
         notifications_available: true,
         more_notifications: true,
@@ -234,7 +234,7 @@ fn update_state_9() {
 fn update_state_10() {
     let mut s = make_subscription(SubscriptionState::Late);
 
-    let tick_reason = TickReason::ReceivedPublishRequest;
+    let tick_reason = TickReason::ReceivePublishRequest;
     let p = SubscriptionStateParams {
         notifications_available: true,
         more_notifications: false,
@@ -256,7 +256,7 @@ fn update_state_10() {
 fn update_state_11() {
     let mut s = make_subscription(SubscriptionState::Late);
 
-    let tick_reason = TickReason::ReceivedPublishRequest;
+    let tick_reason = TickReason::ReceivePublishRequest;
     let p = SubscriptionStateParams {
         notifications_available: false,
         more_notifications: false,
@@ -299,7 +299,7 @@ fn update_state_12() {
 fn update_state_13() {
     let mut s = make_subscription(SubscriptionState::KeepAlive);
 
-    let tick_reason = TickReason::ReceivedPublishRequest;
+    let tick_reason = TickReason::ReceivePublishRequest;
     let p = SubscriptionStateParams {
         notifications_available: false,
         more_notifications: false,
@@ -416,7 +416,7 @@ fn update_state_27() {
     // set publish enabled true
     // set more notifications true
 
-    let tick_reason = TickReason::ReceivedPublishRequest;
+    let tick_reason = TickReason::ReceivePublishRequest;
     let p = SubscriptionStateParams {
         notifications_available: true,
         more_notifications: true,

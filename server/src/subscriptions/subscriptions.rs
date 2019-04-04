@@ -106,13 +106,15 @@ impl Subscriptions {
             }
             Err(StatusCode::BadTooManyPublishRequests)
         } else {
-
-
+            // Clear all acknowledged items here
+            // Acknowledge results
+            let results = self.process_subscription_acknowledgements(&request);
 
             // Add to the front of the queue - older items are popped from the back
             self.publish_request_queue.push_front(PublishRequestEntry {
                 request_id,
                 request,
+                results
             });
             Ok(())
         }
@@ -217,9 +219,7 @@ impl Subscriptions {
             self.retransmission_queue.insert((subscription_id, notification_message.sequence_number), notification_message.clone());
 
             // Acknowledge results
-            let results = self.process_subscription_acknowledgements(&publish_request.request);
-
-            let response = self.make_publish_response(&publish_request, subscription_id, now, notification_message, more_notifications, available_sequence_numbers, results);
+            let response = self.make_publish_response(publish_request, subscription_id, now, notification_message, more_notifications, available_sequence_numbers);
             self.publish_response_queue.push_back(response);
         }
 
@@ -329,7 +329,7 @@ impl Subscriptions {
         }
     }
 
-    fn make_publish_response(&self, publish_request: &PublishRequestEntry, subscription_id: u32, now: &DateTimeUtc, notification_message: NotificationMessage, more_notifications: bool, available_sequence_numbers: Option<Vec<u32>>, results: Option<Vec<StatusCode>>) -> PublishResponseEntry {
+    fn make_publish_response(&self, publish_request: PublishRequestEntry, subscription_id: u32, now: &DateTimeUtc, notification_message: NotificationMessage, more_notifications: bool, available_sequence_numbers: Option<Vec<u32>>) -> PublishResponseEntry {
         let now = DateTime::from(now.clone());
         PublishResponseEntry {
             request_id: publish_request.request_id,
@@ -339,7 +339,7 @@ impl Subscriptions {
                 available_sequence_numbers,
                 more_notifications,
                 notification_message,
-                results,
+                results: publish_request.results,
                 diagnostic_infos: None,
             }.into(),
         }

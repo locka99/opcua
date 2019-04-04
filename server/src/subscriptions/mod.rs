@@ -1,5 +1,8 @@
-use opcua_types::SupportedMessage;
-use opcua_types::service_types::PublishRequest;
+use opcua_types::{
+    SupportedMessage,
+    status_code::StatusCode,
+    service_types::PublishRequest,
+};
 
 /// The publish request entry preserves the request_id which is part of the chunk layer but clients
 /// are fickle about receiving responses from the same as the request. Normally this is easy because
@@ -7,8 +10,12 @@ use opcua_types::service_types::PublishRequest;
 /// so that later we can send out responses that have the proper req id
 #[derive(Clone)]
 pub struct PublishRequestEntry {
+    // The request id
     pub request_id: u32,
+    // The request itself
     pub request: PublishRequest,
+    // The result of clearing acknowledgments when the request was received.
+    pub results: Option<Vec<StatusCode>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
