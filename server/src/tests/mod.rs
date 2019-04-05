@@ -1,5 +1,4 @@
 use std;
-use std::collections::VecDeque;
 use std::path::PathBuf;
 
 use chrono;
@@ -111,6 +110,7 @@ pub fn expired_publish_requests() {
             request_header: RequestHeader::new(&NodeId::null(), &now, 1000),
             subscription_acknowledgements: None,
         },
+        results: None,
     };
     pr1.request.request_header.timeout_hint = 5001;
 
@@ -120,14 +120,17 @@ pub fn expired_publish_requests() {
             request_header: RequestHeader::new(&NodeId::null(), &now, 2000),
             subscription_acknowledgements: None,
         },
+        results: None,
     };
     pr2.request.request_header.timeout_hint = 3000;
 
     // Create session with publish requests
     let secure_channel: SecureChannel = (SecurityPolicy::None, MessageSecurityMode::None).into();
     let mut session = Session::new_no_certificate_store(secure_channel);
-    session.subscriptions.publish_request_queue = {
-        let mut publish_request_queue = VecDeque::with_capacity(2);
+
+    {
+        let publish_request_queue = session.subscriptions.publish_request_queue();
+        publish_request_queue.clear();
         publish_request_queue.push_back(pr1);
         publish_request_queue.push_back(pr2);
         publish_request_queue
@@ -135,18 +138,28 @@ pub fn expired_publish_requests() {
 
     // Expire requests, see which expire
     session.expire_stale_publish_requests(&now_plus_5s);
-    let expired_responses = &session.subscriptions.publish_response_queue;
+
 
     // The > 30s timeout hint request should be expired and the other should remain
-    assert_eq!(expired_responses.len(), 1);
-    assert_eq!(session.subscriptions.publish_request_queue.len(), 1);
-    assert_eq!(session.subscriptions.publish_request_queue[0].request.request_header.request_handle, 1000);
 
-    let r1 = &expired_responses[0];
-    if let SupportedMessage::ServiceFault(ref response_header) = r1.response {
-        assert_eq!(response_header.response_header.request_handle, 2000);
-        assert_eq!(response_header.response_header.service_result, StatusCode::BadTimeout);
-    } else {
-        panic!("Expected service faults for timed out publish requests")
+    // Remain
+    {
+        let publish_request_queue = session.subscriptions.publish_request_queue();
+        assert_eq!(publish_request_queue.len(), 1);
+        assert_eq!(publish_request_queue[0].request.request_header.request_handle, 1000);
+    }
+
+    // Expire
+    {
+        let publish_response_queue = session.subscriptions.publish_response_queue();
+        assert_eq!(publish_response_queue.len(), 1);
+
+        let r1 = &publish_response_queue[0];
+        if let SupportedMessage::ServiceFault(ref response_header) = r1.response {
+            assert_eq!(response_header.response_header.request_handle, 2000);
+            assert_eq!(response_header.response_header.service_result, StatusCode::BadTimeout);
+        } else {
+            panic!("Expected service faults for timed out publish requests")
+        }
     }
 }
