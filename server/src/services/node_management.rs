@@ -20,7 +20,9 @@ use crate::{
 
 pub(crate) struct NodeManagementService;
 
-impl Service for NodeManagementService {}
+impl Service for NodeManagementService {
+    fn name(&self) -> String { String::from("NodeManagementService") }
+}
 
 impl NodeManagementService {
     pub fn new() -> NodeManagementService {

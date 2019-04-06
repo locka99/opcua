@@ -9,7 +9,9 @@ use crate::{state::ServerState, services::Service};
 /// The discovery service. Allows a server to return the endpoints that it supports.
 pub(crate) struct DiscoveryService;
 
-impl Service for DiscoveryService {}
+impl Service for DiscoveryService {
+    fn name(&self) -> String { String::from("DiscoveryService") }
+}
 
 impl DiscoveryService {
     pub fn new() -> DiscoveryService {

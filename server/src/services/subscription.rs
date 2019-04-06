@@ -15,7 +15,9 @@ use crate::{
 /// on the server and to request publish of notifications.
 pub(crate) struct SubscriptionService;
 
-impl Service for SubscriptionService {}
+impl Service for SubscriptionService {
+    fn name(&self) -> String { String::from("SubscriptionService") }
+}
 
 impl SubscriptionService {
     pub fn new() -> SubscriptionService {

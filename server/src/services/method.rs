@@ -14,7 +14,9 @@ use crate::{
 /// The method service. Allows a client to call a method on the server.
 pub(crate) struct MethodService;
 
-impl Service for MethodService {}
+impl Service for MethodService {
+    fn name(&self) -> String { String::from("MethodService") }
+}
 
 impl MethodService {
     pub fn new() -> MethodService {

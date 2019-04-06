@@ -18,7 +18,9 @@ use crate::{
 /// The session service. Allows the client to create, activate and close an authenticated session with the server.
 pub(crate) struct SessionService;
 
-impl Service for SessionService {}
+impl Service for SessionService {
+    fn name(&self) -> String { String::from("SessionService") }
+}
 
 impl SessionService {
     pub fn new() -> SessionService {

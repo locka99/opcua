@@ -9,7 +9,9 @@ use crate::{session::Session, services::Service};
 /// The monitored item service. Allows client to create, modify and delete monitored items on a subscription.
 pub(crate) struct MonitoredItemService;
 
-impl Service for MonitoredItemService {}
+impl Service for MonitoredItemService {
+    fn name(&self) -> String { String::from("MonitoredItemService") }
+}
 
 impl MonitoredItemService {
     pub fn new() -> MonitoredItemService {

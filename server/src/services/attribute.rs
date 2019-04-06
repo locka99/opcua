@@ -12,7 +12,9 @@ use crate::{
 /// The attribute service. Allows attributes to be read and written from the address space.
 pub(crate) struct AttributeService;
 
-impl Service for AttributeService {}
+impl Service for AttributeService {
+    fn name(&self) -> String { String::from("AttributeService") }
+}
 
 impl AttributeService {
     pub fn new() -> AttributeService {

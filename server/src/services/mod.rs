@@ -4,9 +4,12 @@ use opcua_types::status_code::StatusCode;
 
 pub mod message_handler;
 
+/// The implementation of a service, or a set of services will implement this trait
 trait Service {
+    fn name(&self) -> String;
+
     fn service_fault(&self, request_header: &RequestHeader, service_result: StatusCode) -> SupportedMessage {
-        warn!("Service fault with status code {} is being created", service_result);
+        warn!("Service {}, request {} generated a service fault with status code {}", self.name(), request_header.request_handle, service_result);
         ServiceFault::new_supported_message(request_header, service_result)
     }
 }
