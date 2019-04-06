@@ -8,18 +8,20 @@ include_directories(
         ./libopen62541
 )
 
-add_executable(open62541-client
-        ./client.cpp
-        )
-
-set(PLATFORM_LIBS)
 if (WIN32)
     set(PLATFORM_LIBS ws2_32)
+else ()
+    set(PLATFORM_LIBS)
 endif ()
 
+add_executable(open62541-client ./client.cpp)
 target_link_libraries(open62541-client
         libopen62541
         ${PLATFORM_LIBS}
         )
 
-# add_executable(open62541-server)
+add_executable(open62541-server ./server.cpp)
+target_link_libraries(open62541-server
+        libopen62541
+        ${PLATFORM_LIBS}
+        )

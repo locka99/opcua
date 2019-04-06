@@ -25,14 +25,12 @@ static void stopHandler(int sign) {
 }
 
 static void
-handler_currentTimeChanged(UA_Client *client, UA_UInt32 subId, void *subContext,
+handler_valueChanged(UA_Client *client, UA_UInt32 subId, void *subContext,
                            UA_UInt32 monId, void *monContext, UA_DataValue *value) {
-    UA_LOG_INFO(logger, UA_LOGCATEGORY_USERLAND, "currentTime has changed!");
-    if (UA_Variant_hasScalarType(&value->value, &UA_TYPES[UA_TYPES_DATETIME])) {
-        UA_DateTime raw_date = *(UA_DateTime *) value->value.data;
-        UA_DateTimeStruct dts = UA_DateTime_toStruct(raw_date);
-        UA_LOG_INFO(logger, UA_LOGCATEGORY_USERLAND, "date is: %02u-%02u-%04u %02u:%02u:%02u.%03u",
-                    dts.day, dts.month, dts.year, dts.hour, dts.min, dts.sec, dts.milliSec);
+    UA_LOG_INFO(logger, UA_LOGCATEGORY_USERLAND, "value has changed!");
+    if (UA_Variant_hasScalarType(&value->value, &UA_TYPES[UA_TYPES_INT32])) {
+        UA_Int32 rawValue = *(UA_Int32 *) value->value.data;
+        UA_LOG_INFO(logger, UA_LOGCATEGORY_USERLAND, "value is %d", rawValue);
     }
 }
 
@@ -83,7 +81,7 @@ stateCallback(UA_Client *client, UA_ClientState clientState) {
             UA_MonitoredItemCreateResult monResponse =
                     UA_Client_MonitoredItems_createDataChange(client, response.subscriptionId,
                                                               UA_TIMESTAMPSTORETURN_BOTH,
-                                                              monRequest, NULL, handler_currentTimeChanged, NULL);
+                                                              monRequest, NULL, handler_valueChanged, NULL);
             if (monResponse.statusCode == UA_STATUSCODE_GOOD)
                 UA_LOG_INFO(logger, UA_LOGCATEGORY_USERLAND,
                             "Monitoring ns=2;s=v1', id %u", monResponse.monitoredItemId);
