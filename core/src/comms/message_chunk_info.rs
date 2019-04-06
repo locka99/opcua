@@ -46,7 +46,7 @@ impl ChunkInfo {
         let security_header = if chunk.is_open_secure_channel(&decoding_limits) {
             let result = AsymmetricSecurityHeader::decode(&mut stream, &decoding_limits);
             if result.is_err() {
-                error!("chunk_info() can't decode asymmetric security_header, {}", result.unwrap_err());
+                error!("chunk_info() cannot decode asymmetric security_header, {}", result.unwrap_err());
                 return Err(StatusCode::BadCommunicationError);
             }
             let security_header = result.unwrap();
@@ -67,7 +67,7 @@ impl ChunkInfo {
         } else {
             let result = SymmetricSecurityHeader::decode(&mut stream, &decoding_limits);
             if result.is_err() {
-                error!("chunk_info() can't decode symmetric security_header, {}", result.unwrap_err());
+                error!("chunk_info() cannot decode symmetric security_header, {}", result.unwrap_err());
                 return Err(StatusCode::BadCommunicationError);
             }
             SecurityHeader::Symmetric(result.unwrap())

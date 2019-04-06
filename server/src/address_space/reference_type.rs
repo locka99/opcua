@@ -31,8 +31,9 @@ impl ReferenceType {
     pub fn from_attributes<S>(node_id: &NodeId, browse_name: S, attributes: ReferenceTypeAttributes) -> Result<Self, ()>
         where S: Into<QualifiedName>
     {
+        let mandatory_attributes = AttributesMask::DISPLAY_NAME | AttributesMask::IS_ABSTRACT | AttributesMask::SYMMETRIC;
         let mask = AttributesMask::from_bits(attributes.specified_attributes).ok_or(())?;
-        if mask.contains(AttributesMask::DISPLAY_NAME | AttributesMask::IS_ABSTRACT | AttributesMask::SYMMETRIC) {
+        if mask.contains(mandatory_attributes) {
             let mut node = Self::new(node_id, browse_name, attributes.display_name, None, false, false);
             if mask.contains(AttributesMask::DESCRIPTION) {
                 node.set_description(attributes.description);

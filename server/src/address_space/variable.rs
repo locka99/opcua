@@ -152,9 +152,10 @@ impl Variable {
     pub fn from_attributes<S>(node_id: &NodeId, browse_name: S, attributes: VariableAttributes) -> Result<Self, ()>
         where S: Into<QualifiedName>
     {
+        let mandatory_attributes = AttributesMask::DISPLAY_NAME | AttributesMask::ACCESS_LEVEL | AttributesMask::USER_ACCESS_LEVEL |
+            AttributesMask::DATA_TYPE | AttributesMask::HISTORIZING | AttributesMask::VALUE | AttributesMask::VALUE_RANK;
         let mask = AttributesMask::from_bits(attributes.specified_attributes).ok_or(())?;
-        if mask.contains(AttributesMask::DISPLAY_NAME | AttributesMask::ACCESS_LEVEL | AttributesMask::USER_ACCESS_LEVEL |
-            AttributesMask::DATA_TYPE | AttributesMask::HISTORIZING | AttributesMask::VALUE | AttributesMask::VALUE_RANK) {
+        if mask.contains(mandatory_attributes) {
             let mut node = Self::new_data_value(node_id, browse_name, attributes.display_name, attributes.data_type, attributes.value.into());
             node.set_value_rank(attributes.value_rank);
             node.set_historizing(attributes.historizing);

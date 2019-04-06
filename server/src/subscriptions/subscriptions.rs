@@ -218,7 +218,7 @@ impl Subscriptions {
             // The notification to be sent is now put into the retransmission queue
             self.retransmission_queue.insert((subscription_id, notification_message.sequence_number), notification_message.clone());
 
-            // Acknowledge results
+            // Enqueue a publish response
             let response = self.make_publish_response(publish_request, subscription_id, now, notification_message, more_notifications, available_sequence_numbers);
             self.publish_response_queue.push_back(response);
         }
@@ -289,11 +289,11 @@ impl Subscriptions {
                             debug!("Removing subscription {} sequence number {} from retransmission queue", subscription_id, sequence_number);
                             StatusCode::Good
                         } else {
-                            error!("Can't find acknowledged notification with sequence number {}", sequence_number);
+                            error!("Cannot find acknowledged notification with sequence number {}", sequence_number);
                             StatusCode::BadSequenceNumberUnknown
                         }
                     } else {
-                        error!("Can't find acknowledged notification subscription id {}", subscription_id);
+                        error!("Cannot find acknowledged notification subscription id {}", subscription_id);
                         StatusCode::BadSubscriptionIdInvalid
                     }
                 })

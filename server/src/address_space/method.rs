@@ -41,8 +41,9 @@ impl Method {
     pub fn from_attributes<S>(node_id: &NodeId, browse_name: S, attributes: MethodAttributes) -> Result<Self, ()>
         where S: Into<QualifiedName>
     {
+        let mandatory_attributes = AttributesMask::DISPLAY_NAME | AttributesMask::EXECUTABLE | AttributesMask::USER_EXECUTABLE;
         let mask = AttributesMask::from_bits(attributes.specified_attributes).ok_or(())?;
-        if mask.contains(AttributesMask::DISPLAY_NAME | AttributesMask::EXECUTABLE | AttributesMask::USER_EXECUTABLE) {
+        if mask.contains(mandatory_attributes) {
             let mut node = Self::new(node_id, browse_name, attributes.display_name, attributes.executable, attributes.user_executable);
             if mask.contains(AttributesMask::DESCRIPTION) {
                 node.set_description(attributes.description);
