@@ -27,27 +27,24 @@ impl View {
     pub fn from_attributes<S>(node_id: &NodeId, browse_name: S, attributes: ViewAttributes) -> Result<Self, ()>
         where S: Into<QualifiedName>
     {
-        let mut node = Self::new(node_id, browse_name, "", 0u8, false);
+        let mandatory_attributes = AttributesMask::DISPLAY_NAME | AttributesMask::EVENT_NOTIFIER | AttributesMask::CONTAINS_NO_LOOPS;
         let mask = AttributesMask::from_bits_truncate(attributes.specified_attributes);
-        if mask.contains(AttributesMask::DISPLAY_NAME) {
-            node.set_display_name(attributes.display_name);
+        if mask.contains(mandatory_attributes) {
+            let mut node = Self::new(node_id, browse_name, attributes.display_name, attributes.event_notifier, attributes.contains_no_loops);
+            if mask.contains(AttributesMask::DESCRIPTION) {
+                node.set_description(attributes.description);
+            }
+            if mask.contains(AttributesMask::WRITE_MASK) {
+                node.set_write_mask(WriteMask::from_bits_truncate(attributes.write_mask));
+            }
+            if mask.contains(AttributesMask::USER_WRITE_MASK) {
+                node.set_user_write_mask(WriteMask::from_bits_truncate(attributes.user_write_mask));
+            }
+            Ok(node)
+        } else {
+            error!("View cannot be created from attributes - missing mandatory values");
+            Err(())
         }
-        if mask.contains(AttributesMask::DESCRIPTION) {
-            node.set_description(attributes.description);
-        }
-        if mask.contains(AttributesMask::WRITE_MASK) {
-            node.set_write_mask(WriteMask::from_bits_truncate(attributes.write_mask));
-        }
-        if mask.contains(AttributesMask::USER_WRITE_MASK) {
-            node.set_user_write_mask(WriteMask::from_bits_truncate(attributes.user_write_mask));
-        }
-        if mask.contains(AttributesMask::EVENT_NOTIFIER) {
-            node.set_event_notifier(attributes.event_notifier);
-        }
-        if mask.contains(AttributesMask::CONTAINS_NO_LOOPS) {
-            node.set_contains_no_loops(attributes.contains_no_loops);
-        }
-        Ok(node)
     }
 
     pub fn event_notifier(&self) -> bool {

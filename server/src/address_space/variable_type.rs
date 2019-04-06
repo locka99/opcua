@@ -32,9 +32,10 @@ impl VariableType {
     pub fn from_attributes<S>(node_id: &NodeId, browse_name: S, attributes: VariableTypeAttributes) -> Result<Self, ()>
         where S: Into<QualifiedName>
     {
+        let mandatory_attributes = AttributesMask::DISPLAY_NAME | AttributesMask::IS_ABSTRACT |
+            AttributesMask::DATA_TYPE | AttributesMask::VALUE_RANK;
         let mask = AttributesMask::from_bits(attributes.specified_attributes).ok_or(())?;
-        if mask.contains(AttributesMask::DISPLAY_NAME | AttributesMask::IS_ABSTRACT |
-            AttributesMask::DATA_TYPE | AttributesMask::VALUE_RANK) {
+        if mask.contains(mandatory_attributes) {
             let mut node = Self::new(node_id, browse_name, attributes.display_name,
                                      attributes.data_type, attributes.is_abstract, attributes.value_rank);
             if mask.contains(AttributesMask::DESCRIPTION) {

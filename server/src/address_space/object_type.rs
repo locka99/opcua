@@ -26,8 +26,9 @@ impl ObjectType {
     pub fn from_attributes<S>(node_id: &NodeId, browse_name: S, attributes: ObjectTypeAttributes) -> Result<Self, ()>
         where S: Into<QualifiedName>
     {
+        let mandatory_attributes = AttributesMask::DISPLAY_NAME | AttributesMask::IS_ABSTRACT;
         let mask = AttributesMask::from_bits(attributes.specified_attributes).ok_or(())?;
-        if mask.contains(AttributesMask::DISPLAY_NAME | AttributesMask::IS_ABSTRACT) {
+        if mask.contains(mandatory_attributes) {
             let mut node = Self::new(node_id, browse_name, attributes.display_name, attributes.is_abstract);
             if mask.contains(AttributesMask::DESCRIPTION) {
                 node.set_description(attributes.description);
