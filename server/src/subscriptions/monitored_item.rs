@@ -255,7 +255,7 @@ impl MonitoredItem {
                 false
             }
         } else {
-            trace!("Can't find item to monitor, node {:?}", self.item_to_monitor.node_id);
+            trace!("Cannot find item to monitor, node {:?}", self.item_to_monitor.node_id);
             false
         }
     }

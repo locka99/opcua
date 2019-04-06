@@ -912,7 +912,7 @@ impl Variant {
             Variant::DataValue(_) => Some(DataTypeId::DataValue),
             Variant::Array(ref values) => {
                 if values.is_empty() {
-                    error!("Can't get the data type of an empty array");
+                    error!("Cannot get the data type of an empty array");
                     None
                 } else {
                     values[0].data_type()
@@ -920,7 +920,7 @@ impl Variant {
             }
             Variant::MultiDimensionArray(ref mda) => {
                 if mda.values.is_empty() {
-                    error!("Can't get the data type of an empty array");
+                    error!("Cannot get the data type of an empty array");
                     None
                 } else {
                     mda.values[0].data_type()

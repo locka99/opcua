@@ -637,7 +637,7 @@ impl TcpTransport {
                     if let Some(publish_responses) = session.subscriptions.take_publish_responses() {
                         match subscription_tx.unbounded_send(SubscriptionEvent::PublishResponses(publish_responses)) {
                             Err(error) => {
-                                error!("Can't send publish responses, err = {}", error);
+                                error!("Cannot send publish responses, err = {}", error);
                             }
                             Ok(_) => {
                                 trace!("Sent publish responses to session task");

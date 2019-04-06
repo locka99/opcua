@@ -160,7 +160,7 @@ impl Client {
         // Ask the server associated with the default endpoint for its list of endpoints
         let endpoints = match self.get_server_endpoints() {
             Result::Err(status_code) => {
-                error!("Can't get endpoints for server, error - {}", status_code);
+                error!("Cannot get endpoints for server, error - {}", status_code);
                 return Err(status_code);
             }
             Result::Ok(endpoints) => endpoints
@@ -449,7 +449,7 @@ impl Client {
                     Err(StatusCode::BadUnexpectedError)
                 }
             } else {
-                error!("Can't find an endpoint that we call register server on");
+                error!("Cannot find an endpoint that we call register server on");
                 Err(StatusCode::BadUnexpectedError)
             }
         }
@@ -535,7 +535,7 @@ impl Client {
                                   security_mode: MessageSecurityMode) -> Option<EndpointDescription>
     {
         if security_policy == SecurityPolicy::Unknown {
-            panic!("Can't match against unknown security policy");
+            panic!("Cannot match against unknown security policy");
         }
 
         let matching_endpoint = endpoints.iter().find(|e| {

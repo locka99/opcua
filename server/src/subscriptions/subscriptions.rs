@@ -282,11 +282,11 @@ impl Subscriptions {
                             debug!("Removing subscription {} sequence number {} from retransmission queue", subscription_id, sequence_number);
                             StatusCode::Good
                         } else {
-                            error!("Can't find acknowledged notification with sequence number {}", sequence_number);
+                            error!("Cannot find acknowledged notification with sequence number {}", sequence_number);
                             StatusCode::BadSequenceNumberUnknown
                         }
                     } else {
-                        error!("Can't find acknowledged notification subscription id {}", subscription_id);
+                        error!("Cannot find acknowledged notification subscription id {}", subscription_id);
                         StatusCode::BadSubscriptionIdInvalid
                     }
                 })
