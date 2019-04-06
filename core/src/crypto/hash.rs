@@ -79,13 +79,17 @@ pub fn hmac_sha1(key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), St
 
 /// Verify that the HMAC for the data block matches the supplied signature
 pub fn verify_hmac_sha1(key: &[u8], data: &[u8], signature: &[u8]) -> bool {
-    let mut tmp_signature = vec![0u8; SHA1_SIZE];
-    if hmac_sha1(key, data, &mut tmp_signature).is_err() {
+    if signature.len() != SHA1_SIZE {
         false
     } else {
-        trace!("Original signature = {:?}", signature);
-        trace!("Calculated signature = {:?}", tmp_signature);
-        signature == &tmp_signature[..]
+        let mut tmp_signature = [0u8; SHA1_SIZE];
+        if hmac_sha1(key, data, &mut tmp_signature).is_err() {
+            false
+        } else {
+            trace!("Original signature = {:?}", signature);
+            trace!("Calculated signature = {:?}", tmp_signature);
+            signature == &tmp_signature[..]
+        }
     }
 }
 
@@ -103,10 +107,14 @@ pub fn hmac_sha256(key: &[u8], data: &[u8], signature: &mut [u8]) -> Result<(), 
 
 /// Verify that the HMAC for the data block matches the supplied signature
 pub fn verify_hmac_sha256(key: &[u8], data: &[u8], signature: &[u8]) -> bool {
-    let mut tmp_signature = vec![0u8; SHA256_SIZE];
-    if hmac_sha256(key, data, &mut tmp_signature).is_err() {
+    if signature.len() != SHA256_SIZE {
         false
     } else {
-        signature == &tmp_signature[..]
+        let mut tmp_signature = [0u8; SHA256_SIZE];
+        if hmac_sha256(key, data, &mut tmp_signature).is_err() {
+            false
+        } else {
+            signature == &tmp_signature[..]
+        }
     }
 }

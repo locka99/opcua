@@ -334,7 +334,7 @@ impl SecurityPolicy {
             SecurityPolicy::Basic256 |
             SecurityPolicy::Basic256Sha256 => ByteString::random(self.symmetric_key_size()),
             _ => {
-                panic!("Can't make a nonce because key size is unknown");
+                panic!("Cannot make a nonce because key size is unknown");
             }
         }
     }

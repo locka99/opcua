@@ -76,7 +76,6 @@ pub trait KeySize {
     }
 }
 
-
 impl KeySize for PrivateKey {
     /// Length in bits
     fn bit_length(&self) -> usize {
@@ -99,21 +98,18 @@ impl PrivateKey {
     }
 
     pub fn from_pem(pem: &[u8]) -> Result<PrivateKey, ()> {
-        if let Ok(value) = pkey::PKey::private_key_from_pem(pem) {
-            Ok(PKey { value })
-        } else {
-            error!("Cannot produce a private key from the data supplied");
-            Err(())
-        }
+        pkey::PKey::private_key_from_pem(pem)
+            .map(|value| PKey { value })
+            .map_err(|_| {
+                error!("Cannot produce a private key from the data supplied");
+            })
     }
 
     pub fn private_key_to_pem(&self) -> Result<Vec<u8>, ()> {
-        if let Ok(pem) = self.value.private_key_to_pem_pkcs8() {
-            Ok(pem)
-        } else {
-            error!("Cannot turn private key to PEM");
-            Err(())
-        }
+        self.value.private_key_to_pem_pkcs8()
+            .map_err(|_| {
+                error!("Cannot turn private key to PEM");
+            })
     }
 
     /// Creates a message digest from the specified block of data and then signs it to return a signature
@@ -128,7 +124,7 @@ impl PrivateKey {
                     signature.copy_from_slice(&result);
                     return Ok(result.len());
                 } else {
-                    debug!("Can't sign data - error = {:?}", result.unwrap_err());
+                    debug!("Cannot sign data - error = {:?}", result.unwrap_err());
                 }
             }
         }
@@ -195,7 +191,7 @@ impl PublicKey {
                     trace!("Key verified = {:?}", result);
                     return Ok(result);
                 } else {
-                    debug!("Can't verify key - error = {:?}", result.unwrap_err());
+                    debug!("Cannot verify key - error = {:?}", result.unwrap_err());
                 }
             }
         }

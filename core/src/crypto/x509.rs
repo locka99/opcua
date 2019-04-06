@@ -98,7 +98,6 @@ impl X509Data {
     }
 }
 
-
 /// This is a wrapper around the `OpenSSL` `X509` cert
 #[derive(Clone)]
 pub struct X509 {
@@ -118,28 +117,29 @@ unsafe impl Send for X509 {}
 
 unsafe impl std::marker::Sync for X509 {}
 
-impl X509 {
-    pub fn wrap(value: x509::X509) -> X509 {
-        X509 { value }
+impl From<x509::X509> for X509 {
+    fn from(value: x509::X509) -> Self {
+        Self { value }
     }
+}
 
+impl X509 {
     pub fn from_der(der: &[u8]) -> Result<Self, ()> {
-        if let Ok(value) = x509::X509::from_der(der) {
-            Ok(X509 { value })
-        } else {
-            error!("Cannot produce an x509 cert from the data supplied");
-            Err(())
-        }
+        x509::X509::from_der(der)
+            .map(|value| X509::from(value))
+            .map_err(|_| {
+                error!("Cannot produce an x509 cert from the data supplied");
+            })
     }
 
     pub fn from_byte_string(data: &ByteString) -> Result<X509, StatusCode> {
         if data.is_null() {
-            error!("Can't make certificate from null bytestring");
+            error!("Cannot make certificate from null bytestring");
             Err(StatusCode::BadCertificateInvalid)
         } else if let Ok(cert) = x509::X509::from_der(&data.value.as_ref().unwrap()) {
-            Ok(X509::wrap(cert))
+            Ok(X509::from(cert))
         } else {
-            error!("Can't make certificate, does bytestring contain .der?");
+            error!("Cannot make certificate, does bytestring contain .der?");
             Err(StatusCode::BadCertificateInvalid)
         }
     }
@@ -151,13 +151,12 @@ impl X509 {
     }
 
     pub fn public_key(&self) -> Result<PublicKey, StatusCode> {
-        if let Ok(pkey) = self.value.public_key() {
-            let pkey = PublicKey::wrap_public_key(pkey);
-            Ok(pkey)
-        } else {
-            error!("Can't obtain public key from certificate");
-            Err(StatusCode::BadCertificateInvalid)
-        }
+        self.value.public_key()
+            .map(|pkey| PublicKey::wrap_public_key(pkey))
+            .map_err(|_| {
+                error!("Cannot obtain public key from certificate");
+                StatusCode::BadCertificateInvalid
+            })
     }
 
     fn get_subject_entry(&self, nid: Nid) -> Result<String, ()> {
@@ -298,12 +297,9 @@ impl X509 {
     }
 
     pub fn to_der(&self) -> Result<Vec<u8>, ()> {
-        if let Ok(der) = self.value.to_der() {
-            Ok(der)
-        } else {
-            error!("Cannot turn X509 cert to DER");
-            Err(())
-        }
+        self.value.to_der().map_err(|e| {
+            error!("Cannot turn X509 cert to DER, err = {:?}", e);
+        })
     }
 
     fn parse_asn1_date(date: &str) -> Result<DateTime<Utc>, ()> {
@@ -315,13 +311,9 @@ impl X509 {
         } else {
             &date
         };
-        let result = Utc.datetime_from_str(date, "%b %d %H:%M:%S %Y");
-        if result.is_err() {
-            error!("Error = {:?}", result.unwrap_err());
-            Err(())
-        } else {
-            Ok(result.unwrap())
-        }
+        Utc.datetime_from_str(date, "%b %d %H:%M:%S %Y").map_err(|e| {
+            error!("Cannot parse ASN1 date, err = {:?}", e);
+        })
     }
 }
 

@@ -178,7 +178,7 @@ impl CertificateStore {
             builder.build()
         };
 
-        Ok((X509::wrap(cert), PrivateKey::wrap_private_key(pkey)))
+        Ok((X509::from(cert), PrivateKey::wrap_private_key(pkey)))
     }
 
     /// Reads a private key from a path on disk.
@@ -265,12 +265,12 @@ impl CertificateStore {
     /// or the test is assumed to fail.
     fn ensure_cert_and_file_are_the_same(cert: &X509, cert_path: &Path) -> bool {
         if !cert_path.exists() {
-            trace!("Can't find cert on disk");
+            trace!("Cannot find cert on disk");
             false
         } else {
             let cert2 = CertificateStore::read_cert(cert_path);
             if cert2.is_err() {
-                trace!("Can't read cert from disk {:?} - {}", cert_path, cert2.unwrap_err());
+                trace!("Cannot read cert from disk {:?} - {}", cert_path, cert2.unwrap_err());
                 // No cert2 to compare to
                 false
             } else {
@@ -544,7 +544,7 @@ impl CertificateStore {
             return Err(format!("Could not read cert from cert file {}", path.display()));
         }
 
-        Ok(X509::wrap(cert.unwrap()))
+        Ok(X509::from(cert.unwrap()))
     }
 
     /// Makes a path
@@ -560,7 +560,7 @@ impl CertificateStore {
         Ok(path)
     }
 
-    /// Writes to file or prints an error for the reason why it can't.
+    /// Writes to file or prints an error for the reason why it cannot.
     ///
     /// # Errors
     ///

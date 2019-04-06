@@ -24,7 +24,7 @@ impl Thumbprint {
         if digest.len() != Thumbprint::THUMBPRINT_SIZE {
             panic!("Thumbprint is not the right length");
         }
-        let mut value: [u8; Thumbprint::THUMBPRINT_SIZE] = Default::default();
+        let mut value = [0u8; Thumbprint::THUMBPRINT_SIZE];
         value.clone_from_slice(digest);
         Thumbprint { value }
     }

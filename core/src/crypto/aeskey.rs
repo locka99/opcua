@@ -72,14 +72,15 @@ impl AesKey {
             crypter.pad(false);
             let result = crypter.update(src, dst);
             if let Ok(count) = result {
-                let result = crypter.finalize(&mut dst[count..]);
-                if let Ok(rest) = result {
-                    trace!("do cipher size {}", count + rest);
-                    Ok(count + rest)
-                } else {
-                    error!("Encryption error during finalize {:?}", result.unwrap_err());
-                    Err(StatusCode::BadUnexpectedError)
-                }
+                crypter.finalize(&mut dst[count..])
+                    .map(|rest| {
+                        trace!("do cipher size {}", count + rest);
+                        count + rest
+                    })
+                    .map_err(|e| {
+                        error!("Encryption error during finalize {:?}", e);
+                        StatusCode::BadUnexpectedError
+                    })
             } else {
                 error!("Encryption error during update {:?}", result.unwrap_err());
                 Err(StatusCode::BadUnexpectedError)
