@@ -416,6 +416,9 @@ impl Session {
     /// as well as recovering from connection errors. The run command will break if the session is disconnected
     /// and cannot be reestablished.
     ///
+    /// The `run()` function returns a `Sender` that can be used to send a `()` message to the session
+    /// to cause it to terminate.
+    ///
     /// # Returns
     ///
     /// * `mpsc::Sender<()>` - A sender that allows the caller to send a single unity message to the
@@ -427,8 +430,17 @@ impl Session {
         tx
     }
 
-    /// Runs the server asynchronously by spawning a thread for it to run on, allowing the calling
-    /// thread to proceed to do other things.
+    /// Runs the server asynchronously on a new thread, allowing the calling
+    /// thread to continue do other things.
+    ///
+    /// The `run()` function returns a `Sender` that can be used to send a `()` message to the session
+    /// to cause it to terminate.
+    ///
+    /// # Returns
+    ///
+    /// * `mpsc::Sender<()>` - A sender that allows the caller to send a single unity message to the
+    ///                        run loop to cause it to abort.
+    ///
     pub fn run_async(session: Arc<RwLock<Session>>) -> mpsc::Sender<()> {
         let (tx, rx) = mpsc::channel();
         thread::spawn(move || {
@@ -437,8 +449,9 @@ impl Session {
         tx
     }
 
-    /// Main running loop for a session
-    pub fn run_loop(session: Arc<RwLock<Session>>, sleep_interval: u64, rx: mpsc::Receiver<()>) {
+    /// The main running loop for a session. This is used by `run()` and `run_async()` to run
+    /// continuously until a signal is received to terminate.
+    fn run_loop(session: Arc<RwLock<Session>>, sleep_interval: u64, rx: mpsc::Receiver<()>) {
         loop {
             // Main thread has nothing to do - just wait for publish events to roll in
             let mut session = session.write().unwrap();
@@ -1198,7 +1211,8 @@ impl Session {
     }
 
     /// This is the internal handler for create subscription that receives the callback wrapped up and reference counted.
-    fn create_subscription_inner(&mut self, publishing_interval: f64, lifetime_count: u32, max_keep_alive_count: u32, max_notifications_per_publish: u32, priority: u8, publishing_enabled: bool,
+    fn create_subscription_inner(&mut self, publishing_interval: f64, lifetime_count: u32, max_keep_alive_count: u32, max_notifications_per_publish: u32,
+                                 priority: u8, publishing_enabled: bool,
                                  callback: Arc<Mutex<dyn OnDataChange + Send + Sync + 'static>>)
                                  -> Result<u32, StatusCode>
     {
