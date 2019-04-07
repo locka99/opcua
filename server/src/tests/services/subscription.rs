@@ -72,14 +72,14 @@ fn test_revised_keep_alive_lifetime_counts() {
 
 #[test]
 fn publish_with_no_subscriptions() {
-    do_subscription_service_test(|_, session, _, ss, _| {
+    do_subscription_service_test(|_, session, address_space, ss, _| {
         let request = PublishRequest {
             request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
             subscription_acknowledgements: None, // Option<Vec<SubscriptionAcknowledgement>>,
         };
         // Publish and expect a service fault BadNoSubscription
         let request_id = 1001;
-        let response = ss.async_publish(session, request_id, &request).unwrap().unwrap();
+        let response = ss.async_publish(&Utc::now(), session, address_space, request_id, &request).unwrap().unwrap();
         let response: ServiceFault = supported_message_as!(response, ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadNoSubscription);
     })
@@ -106,14 +106,16 @@ fn publish_response_subscription() {
             };
             debug!("PublishRequest {:#?}", request);
 
+            let now = Utc::now();
+
             // Don't expect a response right away
-            let response = ss.async_publish(session, request_id, &request).unwrap();
+            let response = ss.async_publish(&now, session, address_space, request_id, &request).unwrap();
             assert!(response.is_none());
 
             assert!(!session.subscriptions.publish_request_queue().is_empty());
 
             // Tick subscriptions to trigger a change
-            let now = Utc::now().add(chrono::Duration::seconds(2));
+            let now = now.add(chrono::Duration::seconds(2));
             let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
 
             // Ensure publish request was processed into a publish response
@@ -177,11 +179,13 @@ fn resend_data() {
             };
             debug!("PublishRequest {:#?}", request);
 
+            let now = Utc::now();
+
             // Don't expect a response right away
-            let _response = ss.async_publish(session, 1001, &request).unwrap();
+            let _response = ss.async_publish(&now, session, address_space, 1001, &request).unwrap();
 
             // Tick subscriptions to trigger a change
-            let now = Utc::now().add(chrono::Duration::seconds(2));
+            let now = now.add(chrono::Duration::seconds(2));
             let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
 
             // Ensure publish request was processed into a publish response
@@ -209,11 +213,13 @@ fn resend_data() {
             };
             debug!("PublishRequest {:#?}", request);
 
+            let now = Utc::now();
+
             // Don't expect a response right away
-            let _response = ss.async_publish(session, 1002, &request).unwrap();
+            let _response = ss.async_publish(&now, session, address_space, 1002, &request).unwrap();
 
             // Tick subscriptions to trigger a change
-            let now = Utc::now().add(chrono::Duration::seconds(2));
+            let now = now.add(chrono::Duration::seconds(2));
             let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
 
             // Ensure publish request was processed into a publish response
@@ -274,14 +280,16 @@ fn publish_keep_alive() {
             };
             debug!("PublishRequest {:#?}", request);
 
+            let now = Utc::now();
+
             // Don't expect a response right away
-            let response = ss.async_publish(session, request_id, &request).unwrap();
+            let response = ss.async_publish(&now, session, address_space, request_id, &request).unwrap();
             assert!(response.is_none());
 
             assert!(!session.subscriptions.publish_request_queue().is_empty());
 
             // Tick subscriptions to trigger a change
-            let now = Utc::now().add(chrono::Duration::seconds(2));
+            let now = now.add(chrono::Duration::seconds(2));
             let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
 
             // Ensure publish request was processed into a publish response

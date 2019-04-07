@@ -1,4 +1,4 @@
-use opcua_client::prelude::{Client, ClientConfig, ClientBuilder};
+use opcua_client::prelude::ClientBuilder;
 
 use crate::state::ServerState;
 
@@ -8,7 +8,7 @@ pub fn register_with_discovery_server(discovery_server_url: &str, server_state: 
     let server_config = trace_read_lock_unwrap!(server_state.config);
 
     // Create a client, ensuring to retry only once
-    let mut client = ClientBuilder::new()
+    let client = ClientBuilder::new()
         .application_name("DiscoveryClient")
         .application_uri("urn:DiscoveryClient")
         .pki_dir(server_config.pki_dir.clone())

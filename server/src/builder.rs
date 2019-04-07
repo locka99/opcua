@@ -32,6 +32,9 @@ impl ServerBuilder {
         ServerBuilder::new()
             .application_name(application_name)
             .endpoint("none", ServerEndpoint::new_none(DEFAULT_ENDPOINT_PATH, &user_token_ids))
+            .discovery_urls(vec![
+                DEFAULT_ENDPOINT_PATH.into()
+            ])
     }
 
     /// Sample mode turns on everything including a hard coded user/pass
@@ -67,6 +70,9 @@ impl ServerBuilder {
                 ("basic256sha256_sign_encrypt", ServerEndpoint::new_basic256sha256_sign_encrypt(path, &user_token_ids)),
                 ("no_access", ServerEndpoint::new_none("/noaccess", &[]))
             ])
+            .discovery_urls(vec![
+                DEFAULT_ENDPOINT_PATH.into()
+            ])
     }
 
     /// Yields a [`Client`] from the values set by the builder. If the builder is not in a valid state
@@ -75,7 +81,7 @@ impl ServerBuilder {
     /// [`Server`]: ../server/struct.Server.html
     pub fn server(self) -> Option<Server> {
         if self.is_valid() {
-            Some(Server::new(self.config))
+            Some(Server::new(self.config()))
         } else {
             None
         }
@@ -157,9 +163,18 @@ impl ServerBuilder {
         self
     }
 
-    /// Discovery endpoint url - the url of this server used by clients to get endpoints.
-    pub fn discovery_url<T>(mut self, discovery_url: T) -> Self where T: Into<String> {
-        self.config.discovery_url = discovery_url.into();
+    /// Discovery endpoint urls - the urls of this server used by clients to get endpoints.
+    /// If the url is relative, e.g. "/" then the code will make a url for you using the port/host
+    /// settings as they are at the time this function is executed.
+    pub fn discovery_urls(mut self, discovery_urls: Vec<String>) -> Self {
+        self.config.discovery_urls = discovery_urls.iter().map(|discovery_url| {
+            if discovery_url.starts_with("/") {
+                // Turn into an opc url
+                format!("opc.tcp://{}:{}/", self.config.tcp_config.host, self.config.tcp_config.port)
+            } else {
+                discovery_url.clone()
+            }
+        }).collect();
         self
     }
 

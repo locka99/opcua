@@ -96,17 +96,9 @@ impl UpdateStateResult {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum TickReason {
     ReceivePublishRequest,
-//    PublishingTimerExpires,
+    //    PublishingTimerExpires,
     TickTimerFired,
 }
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) enum StateEvent
-{
-    ReceivePublishRequest,
-    PublishingTimerExpires,
-}
-
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Subscription {
@@ -144,6 +136,10 @@ pub struct Subscription {
     resend_data: bool,
     /// The next sequence number to be sent
     sequence_number: Handle,
+    /// Last notification's sequence number. This is a sanity check since sequence numbers should start from
+    /// 1 and be sequential - it that doesn't happen the server will panic because something went
+    /// wrong somewhere.
+    last_sequence_number: u32,
     // The last monitored item id
     next_monitored_item_id: u32,
     // The time that the subscription interval last fired
@@ -186,6 +182,7 @@ impl Subscription {
             resend_data: false,
             // Counters for new items
             sequence_number: Handle::new(1),
+            last_sequence_number: 0,
             next_monitored_item_id: 1,
             last_timer_expired_time: chrono::Utc::now(),
             notifications: VecDeque::with_capacity(100),
@@ -211,7 +208,8 @@ impl Subscription {
         items_to_create.iter().map(|item_to_create| {
             // Create a monitored item, if possible
             let monitored_item_id = self.next_monitored_item_id;
-            match MonitoredItem::new(monitored_item_id, timestamps_to_return, item_to_create) {
+            let now = chrono::Utc::now();
+            match MonitoredItem::new(&now, monitored_item_id, timestamps_to_return, item_to_create) {
                 Ok(monitored_item) => {
                     // Register the item with the subscription
                     let revised_sampling_interval = monitored_item.sampling_interval();
@@ -310,7 +308,7 @@ impl Subscription {
 
     /// Checks the subscription and monitored items for state change, messages. Returns `true`
     /// if there are zero or more notifications waiting to be processed.
-    pub(crate) fn tick(&mut self, address_space: &AddressSpace, tick_reason: TickReason, publishing_req_queued: bool, now: &DateTimeUtc) {
+    pub(crate) fn tick(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, tick_reason: TickReason, publishing_req_queued: bool) {
         // Check if the publishing interval has elapsed. Only checks on the tick timer.
         let publishing_interval_elapsed = match tick_reason {
             TickReason::ReceivePublishRequest => false,
@@ -322,7 +320,9 @@ impl Subscription {
                 // Look at the last expiration time compared to now and see if it matches
                 // or exceeds the publishing interval
                 let publishing_interval = super::duration_from_ms(self.publishing_interval);
-                if now.signed_duration_since(self.last_timer_expired_time) >= publishing_interval {
+                let elapsed = now.signed_duration_since(self.last_timer_expired_time);
+                println!("Now = {:?}, Last expired = {:?}, interval = {:?}, elapsed = {:?}, expired = {:?}", now, self.last_timer_expired_time, publishing_interval, elapsed, elapsed >= publishing_interval);
+                if elapsed >= publishing_interval {
                     self.last_timer_expired_time = *now;
                     true
                 } else {
@@ -339,7 +339,7 @@ impl Subscription {
             SubscriptionState::Closed | SubscriptionState::Creating => (None, false),
             _ => {
                 let resend_data = self.resend_data;
-                self.tick_monitored_items(address_space, now, publishing_interval_elapsed, resend_data)
+                self.tick_monitored_items(now, address_space, publishing_interval_elapsed, resend_data)
             }
         };
         self.resend_data = false;
@@ -359,6 +359,18 @@ impl Subscription {
             trace!("subscription tick - update_state_result = {:?}", update_state_result);
             self.handle_state_result(update_state_result, notification, now);
         }
+    }
+
+    fn enqueue_notification(&mut self, notification: NotificationMessage) {
+        use std::u32;
+        // For sanity, check the sequence number is the expected sequence number.
+        let expected_sequence_number = if self.last_sequence_number == u32::MAX { 1 } else { self.last_sequence_number + 1 };
+        if notification.sequence_number != expected_sequence_number {
+            panic!("Notification's sequence number is not sequential, expecting {}, got {}", expected_sequence_number, notification.sequence_number);
+        }
+        debug!("Enqueuing notification {:?}", notification);
+        self.last_sequence_number = notification.sequence_number;
+        self.notifications.push_back(notification);
     }
 
     fn handle_state_result(&mut self, update_state_result: UpdateStateResult, notification: Option<NotificationMessage>, now: &DateTimeUtc) {
@@ -383,23 +395,32 @@ impl Subscription {
                 }
                 // Send a keep alive
                 debug!("Sending keep alive response");
-                self.notifications.push_back(NotificationMessage::keep_alive(self.sequence_number.next(), DateTime::from(now.clone())));
+                let notification = NotificationMessage::keep_alive(self.sequence_number.next(), DateTime::from(now.clone()));
+                self.enqueue_notification(notification);
             }
             UpdateStateAction::ReturnNotifications => {
                 // Add the notification message to the queue
                 if let Some(notification) = notification {
-                    self.notifications.push_back(notification);
+                    self.enqueue_notification(notification);
                 }
             }
             UpdateStateAction::SubscriptionCreated => {
+                if notification.is_some() {
+                    panic!("SubscriptionCreated got a notification");
+                }
                 // Subscription was created successfully
-                self.notifications.push_back(NotificationMessage::status_change(self.sequence_number.next(), DateTime::from(now.clone()), StatusCode::Good))
+//                let notification = NotificationMessage::status_change(self.sequence_number.next(), DateTime::from(now.clone()), StatusCode::Good);
+//                self.enqueue_notification(notification);
             }
             UpdateStateAction::SubscriptionExpired => {
+                if notification.is_some() {
+                    panic!("SubscriptionExpired got a notification");
+                }
                 // Delete the monitored items, issue a status change for the subscription
                 debug!("Subscription status change to closed / timeout");
                 self.monitored_items.clear();
-                self.notifications.push_back(NotificationMessage::status_change(self.sequence_number.next(), DateTime::from(now.clone()), StatusCode::BadTimeout))
+                let notification = NotificationMessage::status_change(self.sequence_number.next(), DateTime::from(now.clone()), StatusCode::BadTimeout);
+                self.enqueue_notification(notification);
             }
         }
     }
@@ -583,14 +604,14 @@ impl Subscription {
     ///
     /// The function returns a `notifications` and a `more_notifications` boolean to indicate if the notifications
     /// are available.
-    fn tick_monitored_items(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, publishing_interval_elapsed: bool, resend_data: bool) -> (Option<NotificationMessage>, bool) {
+    fn tick_monitored_items(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, publishing_interval_elapsed: bool, resend_data: bool) -> (Option<NotificationMessage>, bool) {
         let mut triggered_items: BTreeSet<u32> = BTreeSet::new();
         let mut notification_messages = Vec::new();
 
         for (_, monitored_item) in &mut self.monitored_items {
             // If this returns true then the monitored item wants to report its notification
             let monitoring_mode = monitored_item.monitoring_mode();
-            match monitored_item.tick(address_space, now, publishing_interval_elapsed, resend_data) {
+            match monitored_item.tick(now, address_space, publishing_interval_elapsed, resend_data) {
                 TickResult::ReportValueChanged => {
                     // If this monitored item has triggered items, then they need to be handled
                     match monitoring_mode {

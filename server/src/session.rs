@@ -175,8 +175,8 @@ impl Session {
         self.terminated_at = chrono::Utc::now();
     }
 
-    pub(crate) fn enqueue_publish_request(&mut self, request_id: u32, request: PublishRequest) -> Result<(), StatusCode> {
-        self.subscriptions.enqueue_publish_request(request_id, request)
+    pub(crate) fn enqueue_publish_request(&mut self, now: &DateTimeUtc, request_id: u32, request: PublishRequest, address_space: &AddressSpace) -> Result<(), StatusCode> {
+        self.subscriptions.enqueue_publish_request(now, request_id, request, address_space)
     }
 
     pub(crate) fn tick_subscriptions(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, reason: TickReason) -> Result<(), StatusCode> {

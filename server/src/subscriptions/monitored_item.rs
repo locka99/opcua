@@ -70,7 +70,7 @@ pub(crate) enum TickResult {
 }
 
 impl MonitoredItem {
-    pub fn new(monitored_item_id: u32, timestamps_to_return: TimestampsToReturn, request: &MonitoredItemCreateRequest) -> Result<MonitoredItem, StatusCode> {
+    pub fn new(now: &DateTimeUtc, monitored_item_id: u32, timestamps_to_return: TimestampsToReturn, request: &MonitoredItemCreateRequest) -> Result<MonitoredItem, StatusCode> {
         let filter = FilterType::from_filter(&request.requested_parameters.filter)?;
         let sampling_interval = Self::sanitize_sampling_interval(request.requested_parameters.sampling_interval);
         let queue_size = Self::sanitize_queue_size(request.requested_parameters.queue_size as usize);
@@ -84,7 +84,7 @@ impl MonitoredItem {
             filter,
             discard_oldest: request.requested_parameters.discard_oldest,
             timestamps_to_return,
-            last_sample_time: chrono::Utc::now(),
+            last_sample_time: now.clone(),
             last_data_value: None,
             queue_size,
             notification_queue: VecDeque::with_capacity(queue_size),
@@ -138,7 +138,7 @@ impl MonitoredItem {
     ///
     /// Function returns a `TickResult` denoting if the value changed or not, and whether it should
     /// be reported.
-    pub fn tick(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, publishing_interval_elapsed: bool, resend_data: bool) -> TickResult {
+    pub fn tick(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, publishing_interval_elapsed: bool, resend_data: bool) -> TickResult {
         if self.monitoring_mode == MonitoringMode::Disabled {
             TickResult::NoChange
         } else {
@@ -390,11 +390,6 @@ impl MonitoredItem {
     #[cfg(test)]
     pub fn notification_queue(&self) -> &VecDeque<MonitoredItemNotification> {
         &self.notification_queue
-    }
-
-    #[cfg(test)]
-    pub fn discard_oldest(&self) -> bool {
-        self.discard_oldest
     }
 
     #[cfg(test)]

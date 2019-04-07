@@ -93,7 +93,7 @@ impl Subscriptions {
     ///
     /// If the queue is full this call will pop the oldest and generate a service fault
     /// for that before pushing the new one.
-    pub fn enqueue_publish_request(&mut self, request_id: u32, request: PublishRequest) -> Result<(), StatusCode> {
+    pub(crate) fn enqueue_publish_request(&mut self, now: &DateTimeUtc, request_id: u32, request: PublishRequest, address_space: &AddressSpace) -> Result<(), StatusCode> {
         // Check if we have too many requests already
         let max_publish_requests = self.max_publish_requests();
         if self.publish_request_queue.len() >= max_publish_requests {
@@ -114,9 +114,11 @@ impl Subscriptions {
             self.publish_request_queue.push_front(PublishRequestEntry {
                 request_id,
                 request,
-                results
+                results,
             });
-            Ok(())
+
+            // Tick to trigger publish
+            self.tick(now, address_space, TickReason::ReceivePublishRequest)
         }
     }
 
@@ -180,7 +182,7 @@ impl Subscriptions {
             // Now tick the subscription to see if it has any notifications. If there are
             // notifications then the publish response will be associated with his subscription
             // and ready to go.
-            subscription.tick(address_space, tick_reason, publishing_req_queued, now);
+            subscription.tick(now, address_space, tick_reason, publishing_req_queued);
 
             // Process any notifications
             loop {
