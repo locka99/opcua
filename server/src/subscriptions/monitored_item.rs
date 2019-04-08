@@ -184,6 +184,9 @@ impl MonitoredItem {
     ///
     /// The function will return true if the value was changed, false otherwise.
     pub fn check_value(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, resend_data: bool) -> bool {
+        if self.monitoring_mode == MonitoringMode::Disabled {
+            panic!("Should not check value while monitoring mode is disabled");
+        }
         self.last_sample_time = *now;
         if let Some(node) = address_space.find_node(&self.item_to_monitor.node_id) {
             let node = node.as_node();
