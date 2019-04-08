@@ -15,6 +15,7 @@ Planned future work is listed at the bottom.
   - Client API will reconnect and restore subscriptions after a disconnect from a server. Reconnection is 
     controlled by a session retry policy.
   - TranslateBrowsePathsToNodeIds service has been fixed
+  - Subscription / monitored item bugfixes in server
   - AddNodes, AddReferences, DeleteNodes and DeleteReferences have been added from the Node Management service set. Note
     that the server config / builder must set clients_can_modify_address_space. Only minimal model constraint checking
     is performed.
