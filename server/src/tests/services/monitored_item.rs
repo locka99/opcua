@@ -309,7 +309,7 @@ fn monitored_item_data_change_filter() {
     assert_eq!(monitored_item.notification_queue().len(), 2);
 }
 
-//#[test]
+#[test]
 fn monitored_item_triggers() {
     do_subscription_service_test(|server_state, session, address_space, ss: SubscriptionService, mis: MonitoredItemService| {
         // Create subscription

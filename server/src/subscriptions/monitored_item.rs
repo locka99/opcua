@@ -159,18 +159,18 @@ impl MonitoredItem {
             };
 
             // Test the value (or don't)
-            if check_value {
+            let value_changed = check_value && {
                 // Indicate a change if reporting is enabled
                 let first_tick = self.last_data_value.is_none();
                 let value_changed = self.check_value(address_space, now, resend_data);
-                if first_tick || value_changed {
-                    if self.monitoring_mode == MonitoringMode::Reporting {
-                        TickResult::ReportValueChanged
-                    } else {
-                        TickResult::ValueChanged
-                    }
+                first_tick || value_changed || !self.notification_queue.is_empty()
+            };
+
+            if value_changed {
+                if self.monitoring_mode == MonitoringMode::Reporting {
+                    TickResult::ReportValueChanged
                 } else {
-                    TickResult::NoChange
+                    TickResult::ValueChanged
                 }
             } else {
                 TickResult::NoChange
