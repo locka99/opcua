@@ -170,10 +170,10 @@ impl ServerState {
 
     pub fn discovery_urls(&self) -> Option<Vec<UAString>> {
         let config = trace_read_lock_unwrap!(self.config);
-        if config.discovery_url.is_empty() {
+        if config.discovery_urls.is_empty() {
             None
         } else {
-            Some(vec![UAString::from(config.discovery_url.as_ref())])
+            Some(config.discovery_urls.iter().map(|url| UAString::from(url.as_ref())).collect())
         }
     }
 

@@ -1,5 +1,5 @@
 //! Provides configuration settings for the server including serialization and deserialization from file.
-use std::path::{PathBuf};
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -228,7 +228,7 @@ pub struct ServerConfig {
     /// User tokens
     pub user_tokens: BTreeMap<String, ServerUserToken>,
     /// discovery endpoint url which may or may not be the same as the service endpoints below.
-    pub discovery_url: String,
+    pub discovery_urls: Vec<String>,
     /// Endpoints supported by the server
     pub endpoints: BTreeMap<String, ServerEndpoint>,
     /// Maximum number of subscriptions in a session
@@ -263,15 +263,19 @@ impl Config for ServerConfig {
             }
         }
         if self.max_array_length == 0 {
-            error!("Server configuration is invalid.  Max array length is invalid");
+            error!("Server configuration is invalid. Max array length is invalid");
             valid = false;
         }
         if self.max_string_length == 0 {
-            error!("Server configuration is invalid.  Max string length is invalid");
+            error!("Server configuration is invalid. Max string length is invalid");
             valid = false;
         }
         if self.max_byte_string_length == 0 {
-            error!("Server configuration is invalid.  Max byte string length is invalid");
+            error!("Server configuration is invalid. Max byte string length is invalid");
+            valid = false;
+        }
+        if self.discovery_urls.is_empty() {
+            error!("Server configuration is invalid. Discovery urls not set");
             valid = false;
         }
         valid
@@ -302,7 +306,7 @@ impl Default for ServerConfig {
                 hello_timeout: constants::DEFAULT_HELLO_TIMEOUT_SECONDS,
             },
             user_tokens: BTreeMap::new(),
-            discovery_url: String::new(),
+            discovery_urls: Vec::new(),
             endpoints: BTreeMap::new(),
             max_array_length: opcua_types_constants::MAX_ARRAY_LENGTH as u32,
             max_string_length: opcua_types_constants::MAX_STRING_LENGTH as u32,
@@ -323,7 +327,7 @@ impl ServerConfig {
         let product_uri = format!("urn:{}", application_name);
         let pki_dir = PathBuf::from("./pki");
         let discovery_server_url = Some(constants::DEFAULT_DISCOVERY_SERVER_URL.to_string());
-        let discovery_url = format!("opc.tcp://{}:{}/", host, port);
+        let discovery_urls = vec![format!("opc.tcp://{}:{}/", host, port)];
 
         ServerConfig {
             application_name,
@@ -339,7 +343,7 @@ impl ServerConfig {
                 hello_timeout: constants::DEFAULT_HELLO_TIMEOUT_SECONDS,
             },
             user_tokens,
-            discovery_url,
+            discovery_urls,
             endpoints,
             max_array_length: opcua_types_constants::MAX_ARRAY_LENGTH as u32,
             max_string_length: opcua_types_constants::MAX_STRING_LENGTH as u32,

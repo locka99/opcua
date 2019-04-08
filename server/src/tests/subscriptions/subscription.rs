@@ -40,7 +40,7 @@ fn update_state_3() {
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::Create3);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::None);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::SubscriptionCreated);
     assert_eq!(s.state(), SubscriptionState::Normal);
     assert_eq!(s.message_sent(), false);
 }
@@ -61,7 +61,7 @@ fn update_state_4() {
     //            (PublishingEnabled == TRUE
     //                && MoreNotifications == FALSE)
     //    )
-    let tick_reason = TickReason::ReceivedPublishRequest;
+    let tick_reason = TickReason::ReceivePublishRequest;
     let p = SubscriptionStateParams {
         notifications_available: true,
         more_notifications: false,
@@ -94,7 +94,7 @@ fn update_state_5() {
     // set publish enabled true
     // set more notifications true
 
-    let tick_reason = TickReason::ReceivedPublishRequest;
+    let tick_reason = TickReason::ReceivePublishRequest;
     let p = SubscriptionStateParams {
         notifications_available: true,
         more_notifications: true,
@@ -234,7 +234,7 @@ fn update_state_9() {
 fn update_state_10() {
     let mut s = make_subscription(SubscriptionState::Late);
 
-    let tick_reason = TickReason::ReceivedPublishRequest;
+    let tick_reason = TickReason::ReceivePublishRequest;
     let p = SubscriptionStateParams {
         notifications_available: true,
         more_notifications: false,
@@ -256,7 +256,7 @@ fn update_state_10() {
 fn update_state_11() {
     let mut s = make_subscription(SubscriptionState::Late);
 
-    let tick_reason = TickReason::ReceivedPublishRequest;
+    let tick_reason = TickReason::ReceivePublishRequest;
     let p = SubscriptionStateParams {
         notifications_available: false,
         more_notifications: false,
@@ -299,7 +299,7 @@ fn update_state_12() {
 fn update_state_13() {
     let mut s = make_subscription(SubscriptionState::KeepAlive);
 
-    let tick_reason = TickReason::ReceivedPublishRequest;
+    let tick_reason = TickReason::ReceivePublishRequest;
     let p = SubscriptionStateParams {
         notifications_available: false,
         more_notifications: false,
@@ -416,7 +416,7 @@ fn update_state_27() {
     // set publish enabled true
     // set more notifications true
 
-    let tick_reason = TickReason::ReceivedPublishRequest;
+    let tick_reason = TickReason::ReceivePublishRequest;
     let p = SubscriptionStateParams {
         notifications_available: true,
         more_notifications: true,
@@ -430,7 +430,7 @@ fn update_state_27() {
     let update_state_result = s.update_state(tick_reason, p);
 
     assert_eq!(update_state_result.handled_state, HandledState::Closed27);
-    assert_eq!(update_state_result.update_state_action, UpdateStateAction::CloseExpiredSubscription);
+    assert_eq!(update_state_result.update_state_action, UpdateStateAction::SubscriptionExpired);
     assert_eq!(s.state(), SubscriptionState::Closed);
     assert_eq!(s.lifetime_counter(), 1);
     assert_eq!(s.message_sent(), false);

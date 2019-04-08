@@ -10,10 +10,9 @@ use opcua_types::{
 
 use crate::{
     address_space::types::AddressSpace,
-    DateTimeUtc,
     subscriptions::{
         PublishRequestEntry, PublishResponseEntry,
-        subscription::{Subscription, SubscriptionState, TickReason},
+        subscription::{Subscription, TickReason},
     },
 };
 
@@ -28,9 +27,9 @@ use crate::{
 /// client, or purged.
 pub(crate) struct Subscriptions {
     /// The publish request queue (requests by the client on the session)
-    pub(crate) publish_request_queue: VecDeque<PublishRequestEntry>,
+    publish_request_queue: VecDeque<PublishRequestEntry>,
     /// The publish response queue arranged oldest to latest
-    pub(crate) publish_response_queue: VecDeque<PublishResponseEntry>,
+    publish_response_queue: VecDeque<PublishResponseEntry>,
     // Timeout period for requests in ms
     publish_request_timeout: i64,
     /// Subscriptions associated with the session
@@ -93,7 +92,7 @@ impl Subscriptions {
     ///
     /// If the queue is full this call will pop the oldest and generate a service fault
     /// for that before pushing the new one.
-    pub fn enqueue_publish_request(&mut self, request_id: u32, request: PublishRequest) -> Result<(), StatusCode> {
+    pub(crate) fn enqueue_publish_request(&mut self, now: &DateTimeUtc, request_id: u32, request: PublishRequest, address_space: &AddressSpace) -> Result<(), StatusCode> {
         // Check if we have too many requests already
         let max_publish_requests = self.max_publish_requests();
         if self.publish_request_queue.len() >= max_publish_requests {
@@ -114,9 +113,11 @@ impl Subscriptions {
             self.publish_request_queue.push_front(PublishRequestEntry {
                 request_id,
                 request,
-                results
+                results,
             });
-            Ok(())
+
+            // Tick to trigger publish
+            self.tick(now, address_space, TickReason::ReceivePublishRequest)
         }
     }
 
@@ -169,30 +170,32 @@ impl Subscriptions {
 
         // Now tick over the subscriptions
         for subscription_id in subscription_ids {
-            let subscription_state = {
-                let subscription = self.subscriptions.get(&subscription_id).unwrap();
-                subscription.state()
-            };
-            if subscription_state == SubscriptionState::Closed {
-                // Subscription is dead so remove it
-                self.subscriptions.remove(&subscription_id);
-            } else {
-                let notification_message = {
-                    let publishing_req_queued = !self.publish_request_queue.is_empty();
-                    let subscription = self.subscriptions.get_mut(&subscription_id).unwrap();
-                    // Now tick the subscription to see if it has any notifications. If there are
-                    // notifications then the publish response will be associated with his subscription
-                    // and ready to go.
-                    subscription.tick(address_space, tick_reason, publishing_req_queued, now)
-                };
-                if let Some(notification_message) = notification_message {
-                    if self.publish_request_queue.is_empty() {
-                        panic!("Should not be returning a notification message if there are no publish request to fill");
+            let publishing_req_queued = !self.publish_request_queue.is_empty();
+            let subscription = self.subscriptions.get_mut(&subscription_id).unwrap();
+
+            // Now tick the subscription to see if it has any notifications. If there are
+            // notifications then the publish response will be associated with his subscription
+            // and ready to go.
+            subscription.tick(now, address_space, tick_reason, publishing_req_queued);
+
+            // Process any notifications
+            loop {
+                if !self.publish_request_queue.is_empty() {
+                    if let Some(notification_message) = subscription.take_notification() {
+                        let publish_request = self.publish_request_queue.pop_back().unwrap();
+                        // Consume the publish request and queue the notification onto the transmission queue
+                        self.transmission_queue.push_front((subscription_id, publish_request, notification_message));
+                    } else {
+                        break;
                     }
-                    // Consume the publish request and queue the notification onto the transmission queue
-                    let publish_request = self.publish_request_queue.pop_back().unwrap();
-                    self.transmission_queue.push_front((subscription_id, publish_request, notification_message));
+                } else {
+                    break;
                 }
+            }
+
+            // Remove the subscription if it is done
+            if subscription.ready_to_remove() {
+                self.subscriptions.remove(&subscription_id);
             }
         }
 

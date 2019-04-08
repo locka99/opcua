@@ -6,6 +6,7 @@ use opcua_types::service_types::*;
 
 use crate::{
     subscriptions::subscription::Subscription,
+    address_space::AddressSpace,
     state::ServerState,
     session::Session,
     services::Service,
@@ -180,13 +181,13 @@ impl SubscriptionService {
     }
 
     /// Handles a PublishRequest. This is asynchronous, so the response will be sent later on.
-    pub fn async_publish(&self, session: &mut Session, request_id: u32, request: &PublishRequest) -> Result<Option<SupportedMessage>, StatusCode> {
+    pub fn async_publish(&self, now: &DateTimeUtc, session: &mut Session, address_space: &AddressSpace, request_id: u32, request: &PublishRequest) -> Result<Option<SupportedMessage>, StatusCode> {
         trace!("--> Receive a PublishRequest {:?}", request);
         if session.subscriptions.is_empty() {
             Ok(Some(self.service_fault(&request.request_header, StatusCode::BadNoSubscription)))
         } else {
             let request_header = request.request_header.clone();
-            let result = session.enqueue_publish_request(request_id, request.clone());
+            let result = session.enqueue_publish_request(now, request_id, request.clone(), address_space);
             if let Err(error) = result {
                 Ok(Some(self.service_fault(&request_header, error)))
             } else {

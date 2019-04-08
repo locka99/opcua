@@ -1,8 +1,6 @@
 use std::result::Result;
 use std::collections::{VecDeque, BTreeSet};
 
-use chrono;
-
 use opcua_types::{
     *,
     status_code::StatusCode,
@@ -12,7 +10,7 @@ use opcua_types::{
     },
 };
 
-use crate::{constants, DateTimeUtc, address_space::AddressSpace};
+use crate::{constants, address_space::AddressSpace};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub(crate) enum FilterType {
@@ -70,7 +68,7 @@ pub(crate) enum TickResult {
 }
 
 impl MonitoredItem {
-    pub fn new(monitored_item_id: u32, timestamps_to_return: TimestampsToReturn, request: &MonitoredItemCreateRequest) -> Result<MonitoredItem, StatusCode> {
+    pub fn new(now: &DateTimeUtc, monitored_item_id: u32, timestamps_to_return: TimestampsToReturn, request: &MonitoredItemCreateRequest) -> Result<MonitoredItem, StatusCode> {
         let filter = FilterType::from_filter(&request.requested_parameters.filter)?;
         let sampling_interval = Self::sanitize_sampling_interval(request.requested_parameters.sampling_interval);
         let queue_size = Self::sanitize_queue_size(request.requested_parameters.queue_size as usize);
@@ -84,7 +82,7 @@ impl MonitoredItem {
             filter,
             discard_oldest: request.requested_parameters.discard_oldest,
             timestamps_to_return,
-            last_sample_time: chrono::Utc::now(),
+            last_sample_time: now.clone(),
             last_data_value: None,
             queue_size,
             notification_queue: VecDeque::with_capacity(queue_size),
@@ -138,12 +136,12 @@ impl MonitoredItem {
     ///
     /// Function returns a `TickResult` denoting if the value changed or not, and whether it should
     /// be reported.
-    pub fn tick(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, publishing_interval_elapsed: bool, resend_data: bool) -> TickResult {
+    pub fn tick(&mut self, now: &DateTimeUtc, address_space: &AddressSpace, publishing_interval_elapsed: bool, resend_data: bool) -> TickResult {
         if self.monitoring_mode == MonitoringMode::Disabled {
             TickResult::NoChange
         } else {
-            let check_value = if resend_data || self.last_data_value.is_none() {
-                // Always check on the first tick
+            let check_value = if resend_data {
+                // Always check for resend_data flag
                 true
             } else if self.sampling_interval < 0f64 {
                 // -1 means use the subscription publishing interval so if the publishing interval elapsed,
@@ -161,16 +159,18 @@ impl MonitoredItem {
             };
 
             // Test the value (or don't)
-            if check_value {
+            let value_changed = check_value && {
                 // Indicate a change if reporting is enabled
-                if self.check_value(address_space, now, resend_data) {
-                    if self.monitoring_mode == MonitoringMode::Reporting {
-                        TickResult::ReportValueChanged
-                    } else {
-                        TickResult::ValueChanged
-                    }
+                let first_tick = self.last_data_value.is_none();
+                let value_changed = self.check_value(address_space, now, resend_data);
+                first_tick || value_changed || !self.notification_queue.is_empty()
+            };
+
+            if value_changed {
+                if self.monitoring_mode == MonitoringMode::Reporting {
+                    TickResult::ReportValueChanged
                 } else {
-                    TickResult::NoChange
+                    TickResult::ValueChanged
                 }
             } else {
                 TickResult::NoChange
@@ -184,6 +184,9 @@ impl MonitoredItem {
     ///
     /// The function will return true if the value was changed, false otherwise.
     pub fn check_value(&mut self, address_space: &AddressSpace, now: &DateTimeUtc, resend_data: bool) -> bool {
+        if self.monitoring_mode == MonitoringMode::Disabled {
+            panic!("Should not check value while monitoring mode is disabled");
+        }
         self.last_sample_time = *now;
         if let Some(node) = address_space.find_node(&self.item_to_monitor.node_id) {
             let node = node.as_node();
@@ -299,20 +302,8 @@ impl MonitoredItem {
         }
     }
 
-    /// Gets the last notification (and discards the remainder to prevent out of sequence events) from
-    /// the notification queue.
-    #[cfg(test)]
-    pub fn latest_notification_message(&mut self) -> Option<MonitoredItemNotification> {
-        let result = self.notification_queue.pop_back();
-        if result.is_some() {
-            self.queue_overflow = false;
-            self.notification_queue.clear();
-        }
-        result
-    }
-
     /// Retrieves all the notification messages from the queue, oldest to newest
-    pub fn all_notification_messages(&mut self) -> Option<Vec<MonitoredItemNotification>> {
+    pub fn all_notifications(&mut self) -> Option<Vec<MonitoredItemNotification>> {
         if self.notification_queue.is_empty() {
             None
         } else {
@@ -390,11 +381,6 @@ impl MonitoredItem {
     #[cfg(test)]
     pub fn notification_queue(&self) -> &VecDeque<MonitoredItemNotification> {
         &self.notification_queue
-    }
-
-    #[cfg(test)]
-    pub fn discard_oldest(&self) -> bool {
-        self.discard_oldest
     }
 
     #[cfg(test)]

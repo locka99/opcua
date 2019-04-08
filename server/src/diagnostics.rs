@@ -34,7 +34,7 @@ impl Runtime {
         let mut running_components = trace_lock_unwrap!(self.running_components);
         let key = name.into();
         if running_components.contains(&key) {
-            error!("Shouldn't be registering component {} more than once", key);
+            trace!("Shouldn't be registering component {} more than once", key);
         }
         running_components.insert(key);
     }
@@ -43,7 +43,7 @@ impl Runtime {
         let mut running_components = trace_lock_unwrap!(self.running_components);
         let key = name.into();
         if !running_components.contains(&key) {
-            error!("Shouldn't be deregistering component {} which doesn't exist", key);
+            trace!("Shouldn't be deregistering component {} which doesn't exist", key);
         }
         running_components.remove(&key);
     }

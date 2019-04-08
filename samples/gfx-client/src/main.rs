@@ -169,7 +169,7 @@ fn subscription_loop(nodes_to_monitor: Vec<ReadValueId>, session: Arc<RwLock<Ses
     }
 
     // Loops forever. The publish thread will call the callback with changes on the variables
-    Session::run(session);
+    let _ = Session::run(session);
 
     Ok(())
 }

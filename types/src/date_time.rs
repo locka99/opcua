@@ -14,13 +14,13 @@ const TICKS_PER_SECOND: i64 = NANOS_PER_SECOND / NANOS_PER_TICK;
 const MIN_YEAR: u16 = 1601;
 const MAX_YEAR: u16 = 9999;
 
-type UtcDateTime = chrono::DateTime<Utc>;
+pub type DateTimeUtc = chrono::DateTime<Utc>;
 
 /// A date/time value. This is a wrapper around the chrono type with extra functionality
 /// for obtaining ticks in OPC UA measurements, endtimes, epoch etc.
 #[derive(PartialEq, Debug, Clone)]
 pub struct DateTime {
-    date_time: UtcDateTime,
+    date_time: DateTimeUtc,
 }
 
 impl Serialize for DateTime {
@@ -103,8 +103,8 @@ impl From<(u16, u16, u16, u16, u16, u16, u32)> for DateTime {
     }
 }
 
-impl From<UtcDateTime> for DateTime {
-    fn from(date_time: UtcDateTime) -> Self {
+impl From<DateTimeUtc> for DateTime {
+    fn from(date_time: DateTimeUtc) -> Self {
         // OPC UA date time is more granular with nanos, so the value supplied is made granular too
         let year = date_time.year();
         let month = date_time.month();
@@ -139,8 +139,8 @@ impl Into<i64> for DateTime {
     }
 }
 
-impl Into<UtcDateTime> for DateTime {
-    fn into(self) -> UtcDateTime {
+impl Into<DateTimeUtc> for DateTime {
+    fn into(self) -> DateTimeUtc {
         self.as_chrono()
     }
 }
@@ -212,18 +212,18 @@ impl DateTime {
     }
 
     /// Time as chrono
-    pub fn as_chrono(&self) -> UtcDateTime {
+    pub fn as_chrono(&self) -> DateTimeUtc {
         self.date_time
     }
 
     /// The OPC UA epoch - Jan 1 1601 00:00:00
-    fn epoch_chrono() -> UtcDateTime {
+    fn epoch_chrono() -> DateTimeUtc {
         Utc.ymd(MIN_YEAR as i32, 1, 1).and_hms(0, 0, 0)
     }
 
     /// The OPC UA endtimes - Dec 31 9999 23:59:59 i.e. the date after which dates are returned as MAX_INT64 ticks
     /// Spec doesn't say what happens in the last second before midnight...
-    fn endtimes_chrono() -> UtcDateTime {
+    fn endtimes_chrono() -> DateTimeUtc {
         Utc.ymd(MAX_YEAR as i32, 12, 31).and_hms(23, 59, 59)
     }
 

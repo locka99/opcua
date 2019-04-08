@@ -28,10 +28,6 @@ struct HttpState {
     server_metrics: Arc<RwLock<ServerMetrics>>,
 }
 
-fn index(_: &HttpRequest<HttpState>) -> impl Responder {
-    fs::NamedFile::open("html/index.html")
-}
-
 #[cfg(debug_assertions)]
 fn abort(req: &HttpRequest<HttpState>) -> impl Responder {
     let state = req.state();

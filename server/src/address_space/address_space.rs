@@ -22,7 +22,6 @@ use crate::{
     state::ServerState,
     session::Session,
     constants,
-    DateTimeUtc,
 };
 
 /// Searches for the specified node by type, expecting it to exist

@@ -72,14 +72,14 @@ fn test_revised_keep_alive_lifetime_counts() {
 
 #[test]
 fn publish_with_no_subscriptions() {
-    do_subscription_service_test(|_, session, _, ss, _| {
+    do_subscription_service_test(|_, session, address_space, ss, _| {
         let request = PublishRequest {
             request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
             subscription_acknowledgements: None, // Option<Vec<SubscriptionAcknowledgement>>,
         };
         // Publish and expect a service fault BadNoSubscription
         let request_id = 1001;
-        let response = ss.async_publish(session, request_id, &request).unwrap().unwrap();
+        let response = ss.async_publish(&Utc::now(), session, address_space, request_id, &request).unwrap().unwrap();
         let response: ServiceFault = supported_message_as!(response, ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadNoSubscription);
     })
@@ -91,8 +91,10 @@ fn publish_response_subscription() {
         // Create subscription
         let subscription_id = create_subscription(server_state, session, &ss);
 
+        let now = Utc::now();
+
         // Create a monitored item
-        create_monitored_item(subscription_id, VariableId::Server_ServerStatus_CurrentTime, session, &mis);
+        create_monitored_item(subscription_id, VariableId::Server_ServerStatus_StartTime, session, &mis);
 
         // Put the subscription into normal state
         session.subscriptions.get_mut(subscription_id).unwrap().set_state(SubscriptionState::Normal);
@@ -106,22 +108,17 @@ fn publish_response_subscription() {
             };
             debug!("PublishRequest {:#?}", request);
 
-            // Don't expect a response right away
-            let response = ss.async_publish(session, request_id, &request).unwrap();
-            assert!(response.is_none());
-
-            assert!(!session.subscriptions.publish_request_queue.is_empty());
-
             // Tick subscriptions to trigger a change
-            let now = Utc::now().add(chrono::Duration::seconds(2));
+            let _ = ss.async_publish(&now, session, address_space, request_id, &request).unwrap();
+            let now = now.add(chrono::Duration::seconds(2));
             let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
 
             // Ensure publish request was processed into a publish response
-            assert_eq!(session.subscriptions.publish_request_queue.len(), 0);
-            assert_eq!(session.subscriptions.publish_response_queue.len(), 1);
+            assert_eq!(session.subscriptions.publish_request_queue().len(), 0);
+            assert_eq!(session.subscriptions.publish_response_queue().len(), 1);
 
             // Get the response from the queue
-            let response = session.subscriptions.publish_response_queue.pop_back().unwrap().response;
+            let response = session.subscriptions.publish_response_queue().pop_back().unwrap().response;
             let response: PublishResponse = supported_message_as!(response, PublishResponse);
             debug!("PublishResponse {:#?}", response);
 
@@ -154,7 +151,7 @@ fn publish_response_subscription() {
         assert_eq!(monitored_item_notification.client_handle, 0);
 
         // We expect the queue to be empty, because we got an immediate response
-        assert!(session.subscriptions.publish_response_queue.is_empty());
+        assert!(session.subscriptions.publish_response_queue().is_empty());
     })
 }
 
@@ -177,19 +174,21 @@ fn resend_data() {
             };
             debug!("PublishRequest {:#?}", request);
 
+            let now = Utc::now();
+
             // Don't expect a response right away
-            let _response = ss.async_publish(session, 1001, &request).unwrap();
+            let _response = ss.async_publish(&now, session, address_space, 1001, &request).unwrap();
 
             // Tick subscriptions to trigger a change
-            let now = Utc::now().add(chrono::Duration::seconds(2));
+            let now = now.add(chrono::Duration::seconds(2));
             let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
 
             // Ensure publish request was processed into a publish response
-            assert_eq!(session.subscriptions.publish_request_queue.len(), 0);
-            assert_eq!(session.subscriptions.publish_response_queue.len(), 1);
+            assert_eq!(session.subscriptions.publish_request_queue().len(), 0);
+            assert_eq!(session.subscriptions.publish_response_queue().len(), 1);
 
             // Get the response from the queue
-            let response = session.subscriptions.publish_response_queue.pop_back().unwrap().response;
+            let response = session.subscriptions.publish_response_queue().pop_back().unwrap().response;
             let response: PublishResponse = supported_message_as!(response, PublishResponse);
             debug!("PublishResponse {:#?}", response);
 
@@ -209,19 +208,21 @@ fn resend_data() {
             };
             debug!("PublishRequest {:#?}", request);
 
+            let now = Utc::now();
+
             // Don't expect a response right away
-            let _response = ss.async_publish(session, 1002, &request).unwrap();
+            let _response = ss.async_publish(&now, session, address_space, 1002, &request).unwrap();
 
             // Tick subscriptions to trigger a change
-            let now = Utc::now().add(chrono::Duration::seconds(2));
+            let now = now.add(chrono::Duration::seconds(2));
             let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
 
             // Ensure publish request was processed into a publish response
-            assert_eq!(session.subscriptions.publish_request_queue.len(), 0);
-            assert_eq!(session.subscriptions.publish_response_queue.len(), 1);
+            assert_eq!(session.subscriptions.publish_request_queue().len(), 0);
+            assert_eq!(session.subscriptions.publish_response_queue().len(), 1);
 
             // Get the response from the queue
-            let response = session.subscriptions.publish_response_queue.pop_back().unwrap().response;
+            let response = session.subscriptions.publish_response_queue().pop_back().unwrap().response;
             let response: PublishResponse = supported_message_as!(response, PublishResponse);
             debug!("PublishResponse {:#?}", response);
 
@@ -274,22 +275,24 @@ fn publish_keep_alive() {
             };
             debug!("PublishRequest {:#?}", request);
 
+            let now = Utc::now();
+
             // Don't expect a response right away
-            let response = ss.async_publish(session, request_id, &request).unwrap();
+            let response = ss.async_publish(&now, session, address_space, request_id, &request).unwrap();
             assert!(response.is_none());
 
-            assert!(!session.subscriptions.publish_request_queue.is_empty());
+            assert!(!session.subscriptions.publish_request_queue().is_empty());
 
             // Tick subscriptions to trigger a change
-            let now = Utc::now().add(chrono::Duration::seconds(2));
+            let now = now.add(chrono::Duration::seconds(2));
             let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
 
             // Ensure publish request was processed into a publish response
-            assert_eq!(session.subscriptions.publish_request_queue.len(), 0);
-            assert_eq!(session.subscriptions.publish_response_queue.len(), 1);
+            assert_eq!(session.subscriptions.publish_request_queue().len(), 0);
+            assert_eq!(session.subscriptions.publish_response_queue().len(), 1);
 
             // Get the response from the queue
-            let response = session.subscriptions.publish_response_queue.pop_back().unwrap().response;
+            let response = session.subscriptions.publish_response_queue().pop_back().unwrap().response;
             let response: PublishResponse = supported_message_as!(response, PublishResponse);
             debug!("PublishResponse {:#?}", response);
 

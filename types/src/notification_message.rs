@@ -1,4 +1,5 @@
 ///! Helpers for NotificationMessage types
+
 use crate::{
     date_time::DateTime,
     encoding::DecodingLimits,

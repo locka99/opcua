@@ -72,7 +72,7 @@ fn subscription_loop(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
     }
 
     // Loops forever. The publish thread will call the callback with changes on the variables
-    Session::run(session);
+    let _ = Session::run(session);
 
     Ok(())
 }

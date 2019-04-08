@@ -23,7 +23,8 @@ impl MonitoredItemService {
         if let Some(ref items_to_create) = request.items_to_create {
             // Find subscription and add items to it
             if let Some(subscription) = session.subscriptions.get_mut(request.subscription_id) {
-                let results = Some(subscription.create_monitored_items(request.timestamps_to_return, items_to_create));
+                let now = chrono::Utc::now();
+                let results = Some(subscription.create_monitored_items(&now, request.timestamps_to_return, items_to_create));
                 let response = CreateMonitoredItemsResponse {
                     response_header: ResponseHeader::new_good(&request.request_header),
                     results,

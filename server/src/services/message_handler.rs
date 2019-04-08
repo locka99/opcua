@@ -1,5 +1,7 @@
 use std::sync::{Arc, RwLock};
 
+use chrono::Utc;
+
 use opcua_core::crypto::{CertificateStore, SecurityPolicy};
 use opcua_types::*;
 use opcua_types::service_types::*;
@@ -267,7 +269,7 @@ impl MessageHandler {
                     // Unlike other calls which return immediately, this one is asynchronous - the
                     // request is queued and the response will come back out of sequence some time in
                     // the future.
-                    self.subscription_service.async_publish(&mut session, request_id, request)?
+                    self.subscription_service.async_publish(&Utc::now(), &mut session, &address_space, request_id, &request)?
                 }
             }
             SupportedMessage::RepublishRequest(ref request) => {

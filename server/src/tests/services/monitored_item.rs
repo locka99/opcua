@@ -11,7 +11,6 @@ use crate::{
         subscription::SubscriptionService,
         monitored_item::MonitoredItemService,
     },
-    DateTimeUtc,
 };
 use super::*;
 
@@ -80,30 +79,30 @@ fn set_triggering(session: &mut Session, subscription_id: u32, monitored_item_id
     (response.add_results, response.remove_results)
 }
 
-fn publish_request(session: &mut Session, ss: &SubscriptionService) {
+fn publish_request(now: &DateTimeUtc, session: &mut Session, address_space: &AddressSpace, ss: &SubscriptionService) {
     let request_id = 1001;
     let request = PublishRequest {
         request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
         subscription_acknowledgements: None,
     };
 
-    session.subscriptions.publish_request_queue.clear();
-    let response = ss.async_publish(session, request_id, &request).unwrap();
+    session.subscriptions.publish_request_queue().clear();
+    let response = ss.async_publish(now, session, address_space, request_id, &request).unwrap();
     assert!(response.is_none());
-    assert!(!session.subscriptions.publish_request_queue.is_empty());
+    assert!(!session.subscriptions.publish_request_queue().is_empty());
 }
 
 fn publish_response(session: &mut Session) -> PublishResponse {
-    let response = session.subscriptions.publish_response_queue.pop_back().unwrap().response;
+    let response = session.subscriptions.publish_response_queue().pop_back().unwrap().response;
     let response: PublishResponse = supported_message_as!(response, PublishResponse);
     response
 }
 
 fn publish_tick_no_response(session: &mut Session, ss: &SubscriptionService, address_space: &AddressSpace, now: DateTimeUtc, duration: chrono::Duration) -> DateTimeUtc {
-    publish_request(session, ss);
+    publish_request(&now, session, address_space, ss);
     let now = now.add(duration);
     let _ = session.tick_subscriptions(&now, address_space, TickReason::TickTimerFired);
-    assert_eq!(session.subscriptions.publish_response_queue.len(), 0);
+    assert_eq!(session.subscriptions.publish_response_queue().len(), 0);
     now
 }
 
@@ -112,10 +111,10 @@ fn publish_tick_no_response(session: &mut Session, ss: &SubscriptionService, add
 fn publish_tick_response<T>(session: &mut Session, ss: &SubscriptionService, address_space: &AddressSpace, now: DateTimeUtc, duration: chrono::Duration, handler: T) -> DateTimeUtc
     where T: FnOnce(PublishResponse)
 {
-    publish_request(session, ss);
+    publish_request(&now, session, address_space, ss);
     let now = now.add(duration);
     let _ = session.tick_subscriptions(&now, address_space, TickReason::TickTimerFired);
-    assert_eq!(session.subscriptions.publish_response_queue.len(), 1);
+    assert_eq!(session.subscriptions.publish_response_queue().len(), 1);
     let response = publish_response(session);
     handler(response);
     now
@@ -123,7 +122,7 @@ fn publish_tick_response<T>(session: &mut Session, ss: &SubscriptionService, add
 
 fn populate_monitored_item(discard_oldest: bool) -> MonitoredItem {
     let client_handle = 999;
-    let mut monitored_item = MonitoredItem::new(1, TimestampsToReturn::Both, &make_create_request(-1f64, 5)).unwrap();
+    let mut monitored_item = MonitoredItem::new(&chrono::Utc::now(), 1, TimestampsToReturn::Both, &make_create_request(-1f64, 5)).unwrap();
     monitored_item.set_discard_oldest(discard_oldest);
     for i in 0..5 {
         monitored_item.enqueue_notification_message(MonitoredItemNotification {
@@ -275,20 +274,24 @@ fn monitored_item_data_change_filter() {
 
     // Create request should monitor attribute of variable, e.g. value
     // Sample interval is negative so it will always test on repeated calls
-    let mut monitored_item = MonitoredItem::new(1, TimestampsToReturn::Both, &make_create_request(-1f64, 5)).unwrap();
+    let mut monitored_item = MonitoredItem::new(&chrono::Utc::now(), 1, TimestampsToReturn::Both, &make_create_request(-1f64, 5)).unwrap();
 
     let now = Utc::now();
 
     assert_eq!(monitored_item.notification_queue().len(), 0);
 
     // Expect first call to always succeed
-    assert_eq!(monitored_item.tick(&address_space, &now, false, false), TickResult::ReportValueChanged);
+    assert_eq!(monitored_item.tick(&now, &address_space, true, false), TickResult::ReportValueChanged);
 
     // Expect one item in its queue
     assert_eq!(monitored_item.notification_queue().len(), 1);
 
     // Expect false on next tick, with the same value because no subscription timer has fired
-    assert_eq!(monitored_item.tick(&address_space, &now, false, false), TickResult::NoChange);
+    assert_eq!(monitored_item.tick(&now, &address_space, false, false), TickResult::NoChange);
+    assert_eq!(monitored_item.notification_queue().len(), 1);
+
+    // Expect false because publish timer elapses but value has not changed changed
+    assert_eq!(monitored_item.tick(&now, &address_space, false, false), TickResult::NoChange);
     assert_eq!(monitored_item.notification_queue().len(), 1);
 
     // adjust variable value
@@ -301,8 +304,8 @@ fn monitored_item_data_change_filter() {
     }
 
     // Expect change but only when subscription timer elapsed
-    assert_eq!(monitored_item.tick(&address_space, &now, false, false), TickResult::NoChange);
-    assert_eq!(monitored_item.tick(&address_space, &now, true, false), TickResult::ReportValueChanged);
+    assert_eq!(monitored_item.tick(&now, &address_space, false, false), TickResult::NoChange);
+    assert_eq!(monitored_item.tick(&now, &address_space, true, false), TickResult::ReportValueChanged);
     assert_eq!(monitored_item.notification_queue().len(), 2);
 }
 
@@ -381,7 +384,7 @@ fn monitored_item_triggers() {
         set_monitoring_mode(session, subscription_id, triggered_item_ids[2], MonitoringMode::Reporting, &mis);
 
         // Change the triggering item's value
-        let _ = address_space.set_variable_value(triggering_node.clone(), 1, &DateTime::now(), &DateTime::now());
+        let _ = address_space.set_variable_value(triggering_node.clone(), 1, &DateTime::from(now.clone()), &DateTime::from(now.clone()));
 
         // In this case, the triggering item changes, but triggered items are all reporting so are ignored unless they themselves
         // need to report. Only 3 will fire because it was disabled previously
@@ -402,7 +405,7 @@ fn monitored_item_triggers() {
 
         // change monitoring mode of triggering item to sampling and change value
         set_monitoring_mode(session, subscription_id, triggering_item_id, MonitoringMode::Sampling, &mis);
-        let _ = address_space.set_variable_value(triggering_node.clone(), 2, &DateTime::now(), &DateTime::now());
+        let _ = address_space.set_variable_value(triggering_node.clone(), 2, &DateTime::from(now.clone()), &DateTime::from(now.clone()));
 
         // do a publish on the monitored item,
         let now = publish_tick_response(session, &ss, address_space, now, chrono::Duration::seconds(2), |response| {
@@ -417,7 +420,7 @@ fn monitored_item_triggers() {
 
         // change monitoring mode of triggering item to disable
         set_monitoring_mode(session, subscription_id, triggering_item_id, MonitoringMode::Disabled, &mis);
-        let _ = address_space.set_variable_value(triggering_node.clone(), 3, &DateTime::now(), &DateTime::now());
+        let _ = address_space.set_variable_value(triggering_node.clone(), 3, &DateTime::from(now.clone()), &DateTime::from(now.clone()));
 
         // do a publish on the monitored item, expect 0 data changes
         let _ = publish_tick_no_response(session, &ss, address_space, now, chrono::Duration::seconds(2));
