@@ -11,7 +11,6 @@ use crate::{
         subscription::SubscriptionService,
         monitored_item::MonitoredItemService,
     },
-    DateTimeUtc,
 };
 use super::*;
 
@@ -80,17 +79,15 @@ fn set_triggering(session: &mut Session, subscription_id: u32, monitored_item_id
     (response.add_results, response.remove_results)
 }
 
-fn publish_request(session: &mut Session, address_space: &AddressSpace, ss: &SubscriptionService) {
+fn publish_request(now: &DateTimeUtc, session: &mut Session, address_space: &AddressSpace, ss: &SubscriptionService) {
     let request_id = 1001;
     let request = PublishRequest {
         request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
         subscription_acknowledgements: None,
     };
 
-    let now = Utc::now();
-
     session.subscriptions.publish_request_queue().clear();
-    let response = ss.async_publish(&now, session, address_space, request_id, &request).unwrap();
+    let response = ss.async_publish(now, session, address_space, request_id, &request).unwrap();
     assert!(response.is_none());
     assert!(!session.subscriptions.publish_request_queue().is_empty());
 }
@@ -102,7 +99,7 @@ fn publish_response(session: &mut Session) -> PublishResponse {
 }
 
 fn publish_tick_no_response(session: &mut Session, ss: &SubscriptionService, address_space: &AddressSpace, now: DateTimeUtc, duration: chrono::Duration) -> DateTimeUtc {
-    publish_request(session, address_space, ss);
+    publish_request(&now, session, address_space, ss);
     let now = now.add(duration);
     let _ = session.tick_subscriptions(&now, address_space, TickReason::TickTimerFired);
     assert_eq!(session.subscriptions.publish_response_queue().len(), 0);
@@ -114,7 +111,7 @@ fn publish_tick_no_response(session: &mut Session, ss: &SubscriptionService, add
 fn publish_tick_response<T>(session: &mut Session, ss: &SubscriptionService, address_space: &AddressSpace, now: DateTimeUtc, duration: chrono::Duration, handler: T) -> DateTimeUtc
     where T: FnOnce(PublishResponse)
 {
-    publish_request(session, address_space, ss);
+    publish_request(&now, session, address_space, ss);
     let now = now.add(duration);
     let _ = session.tick_subscriptions(&now, address_space, TickReason::TickTimerFired);
     assert_eq!(session.subscriptions.publish_response_queue().len(), 1);
@@ -284,12 +281,16 @@ fn monitored_item_data_change_filter() {
     assert_eq!(monitored_item.notification_queue().len(), 0);
 
     // Expect first call to always succeed
-    assert_eq!(monitored_item.tick(&now, &address_space, false, false), TickResult::ReportValueChanged);
+    assert_eq!(monitored_item.tick(&now, &address_space, true, false), TickResult::ReportValueChanged);
 
     // Expect one item in its queue
     assert_eq!(monitored_item.notification_queue().len(), 1);
 
     // Expect false on next tick, with the same value because no subscription timer has fired
+    assert_eq!(monitored_item.tick(&now, &address_space, false, false), TickResult::NoChange);
+    assert_eq!(monitored_item.notification_queue().len(), 1);
+
+    // Expect false because publish timer elapses but value has not changed changed
     assert_eq!(monitored_item.tick(&now, &address_space, false, false), TickResult::NoChange);
     assert_eq!(monitored_item.notification_queue().len(), 1);
 

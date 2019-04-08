@@ -35,8 +35,6 @@ extern crate serde_derive;
 #[macro_use]
 extern crate opcua_core;
 
-type DateTimeUtc = chrono::DateTime<chrono::Utc>;
-
 lazy_static! {
     static ref RUNTIME: diagnostics::Runtime = diagnostics::Runtime::default();
 }

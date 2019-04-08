@@ -167,7 +167,7 @@ impl Client {
         };
 
         info!("Server has these endpoints:");
-        endpoints.iter().for_each(|e| println!("  {} - {:?} / {:?}", e.endpoint_url,
+        endpoints.iter().for_each(|e| info!("  {} - {:?} / {:?}", e.endpoint_url,
                                                SecurityPolicy::from_str(e.security_policy_uri.as_ref()).unwrap(),
                                                e.security_mode));
 

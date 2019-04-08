@@ -5,7 +5,6 @@ use opcua_types::status_code::StatusCode;
 use opcua_types::service_types::*;
 
 use crate::{
-    DateTimeUtc,
     subscriptions::subscription::Subscription,
     address_space::AddressSpace,
     state::ServerState,

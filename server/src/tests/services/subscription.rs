@@ -91,8 +91,10 @@ fn publish_response_subscription() {
         // Create subscription
         let subscription_id = create_subscription(server_state, session, &ss);
 
+        let now = Utc::now();
+
         // Create a monitored item
-        create_monitored_item(subscription_id, VariableId::Server_ServerStatus_CurrentTime, session, &mis);
+        create_monitored_item(subscription_id, VariableId::Server_ServerStatus_StartTime, session, &mis);
 
         // Put the subscription into normal state
         session.subscriptions.get_mut(subscription_id).unwrap().set_state(SubscriptionState::Normal);
@@ -106,15 +108,8 @@ fn publish_response_subscription() {
             };
             debug!("PublishRequest {:#?}", request);
 
-            let now = Utc::now();
-
-            // Don't expect a response right away
-            let response = ss.async_publish(&now, session, address_space, request_id, &request).unwrap();
-            assert!(response.is_none());
-
-            assert!(!session.subscriptions.publish_request_queue().is_empty());
-
             // Tick subscriptions to trigger a change
+            let _ = ss.async_publish(&now, session, address_space, request_id, &request).unwrap();
             let now = now.add(chrono::Duration::seconds(2));
             let _ = session.tick_subscriptions(&now, &address_space, TickReason::TickTimerFired);
 

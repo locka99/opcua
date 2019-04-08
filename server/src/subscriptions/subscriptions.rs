@@ -10,7 +10,6 @@ use opcua_types::{
 
 use crate::{
     address_space::types::AddressSpace,
-    DateTimeUtc,
     subscriptions::{
         PublishRequestEntry, PublishResponseEntry,
         subscription::{Subscription, TickReason},
@@ -171,11 +170,6 @@ impl Subscriptions {
 
         // Now tick over the subscriptions
         for subscription_id in subscription_ids {
-            let subscription_state = {
-                let subscription = self.subscriptions.get(&subscription_id).unwrap();
-                subscription.state()
-            };
-
             let publishing_req_queued = !self.publish_request_queue.is_empty();
             let subscription = self.subscriptions.get_mut(&subscription_id).unwrap();
 

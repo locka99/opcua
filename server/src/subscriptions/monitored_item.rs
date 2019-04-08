@@ -1,8 +1,6 @@
 use std::result::Result;
 use std::collections::{VecDeque, BTreeSet};
 
-use chrono;
-
 use opcua_types::{
     *,
     status_code::StatusCode,
@@ -12,7 +10,7 @@ use opcua_types::{
     },
 };
 
-use crate::{constants, DateTimeUtc, address_space::AddressSpace};
+use crate::{constants, address_space::AddressSpace};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub(crate) enum FilterType {
@@ -142,8 +140,8 @@ impl MonitoredItem {
         if self.monitoring_mode == MonitoringMode::Disabled {
             TickResult::NoChange
         } else {
-            let check_value = if resend_data || self.last_data_value.is_none() {
-                // Always check on the first tick
+            let check_value = if resend_data {
+                // Always check for resend_data flag
                 true
             } else if self.sampling_interval < 0f64 {
                 // -1 means use the subscription publishing interval so if the publishing interval elapsed,
@@ -163,7 +161,9 @@ impl MonitoredItem {
             // Test the value (or don't)
             if check_value {
                 // Indicate a change if reporting is enabled
-                if self.check_value(address_space, now, resend_data) {
+                let first_tick = self.last_data_value.is_none();
+                let value_changed = self.check_value(address_space, now, resend_data);
+                if first_tick || value_changed {
                     if self.monitoring_mode == MonitoringMode::Reporting {
                         TickResult::ReportValueChanged
                     } else {
@@ -299,20 +299,8 @@ impl MonitoredItem {
         }
     }
 
-    /// Gets the last notification (and discards the remainder to prevent out of sequence events) from
-    /// the notification queue.
-    #[cfg(test)]
-    pub fn latest_notification_message(&mut self) -> Option<MonitoredItemNotification> {
-        let result = self.notification_queue.pop_back();
-        if result.is_some() {
-            self.queue_overflow = false;
-            self.notification_queue.clear();
-        }
-        result
-    }
-
     /// Retrieves all the notification messages from the queue, oldest to newest
-    pub fn all_notification_messages(&mut self) -> Option<Vec<MonitoredItemNotification>> {
+    pub fn all_notifications(&mut self) -> Option<Vec<MonitoredItemNotification>> {
         if self.notification_queue.is_empty() {
             None
         } else {
