@@ -181,6 +181,8 @@
 <tr><th>Publishing enabled</th><td>${subscription.publishing_enabled}</td></tr>
 <tr><th>Publishing interval</th><td>${subscription.publishing_interval}ms</td></tr>
 <tr><th>Last Timer Expiration</th><td>${subscription.last_timer_expired_time}</td></tr>
+<tr><th>Lifetime Counter</th><td>${subscription.lifetime_counter} / ${subscription.max_lifetime_counter}</td></tr>
+<tr><th>Keep-Alive Counter</th><td>${subscription.keep_alive_counter} / ${subscription.max_keep_alive_counter}</td></tr>
 </table>`;
         var monitored_items = subscription.monitored_items;
         if (monitored_items.length === 0) {
