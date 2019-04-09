@@ -3,14 +3,21 @@
 use std::sync::{Arc, RwLock};
 
 use opcua_core::prelude::*;
-use opcua_types::node_ids::ObjectId;
-use opcua_types::profiles;
-use opcua_types::service_types::{ApplicationDescription, RegisteredServer, ApplicationType, EndpointDescription, UserNameIdentityToken, UserTokenPolicy, UserTokenType, X509IdentityToken};
-use opcua_types::service_types::ServerState as ServerStateType;
-use opcua_types::status_code::StatusCode;
+
+use opcua_types::{
+    node_ids::ObjectId,
+    profiles,
+    service_types::{
+        ApplicationDescription, RegisteredServer, ApplicationType, EndpointDescription,
+        UserNameIdentityToken, UserTokenPolicy, UserTokenType, X509IdentityToken,
+        ServerState as ServerStateType,
+    },
+    status_code::StatusCode,
+};
 
 use crate::config::{ServerConfig, ServerEndpoint};
 use crate::diagnostics::ServerDiagnostics;
+use crate::callbacks::*;
 
 const TOKEN_POLICY_ANONYMOUS: &str = "anonymous";
 const TOKEN_POLICY_USER_PASS_PLAINTEXT: &str = "userpass_plaintext";
@@ -63,6 +70,11 @@ pub struct ServerState {
     pub abort: bool,
     /// Diagnostic information
     pub diagnostics: Arc<RwLock<ServerDiagnostics>>,
+    /// Callback for register nodes
+    pub(crate) on_register_nodes_callback: Option<Box<OnRegisterNodes + Send + Sync>>,
+    /// Callback for unregister nodes
+    pub(crate) on_unregister_nodes_callback: Option<Box<OnUnregisterNodes + Send + Sync>>,
+
 }
 
 impl ServerState {
@@ -303,6 +315,11 @@ impl ServerState {
             error!("Cannot find endpoint that matches path \"{}\", security policy {:?}, and security mode {:?}", endpoint_url, security_policy, security_mode);
             StatusCode::BadTcpEndpointUrlInvalid
         }
+    }
+
+    pub fn set_register_nodes_callbacks(&mut self, register_nodes_callback: Box<OnRegisterNodes + Send + Sync>, unregister_nodes_callback: Box<OnUnregisterNodes + Send + Sync>) {
+        self.on_register_nodes_callback = Some(register_nodes_callback);
+        self.on_unregister_nodes_callback = Some(unregister_nodes_callback);
     }
 
     /// Authenticates an anonymous token, i.e. does the endpoint support anonymous access or not

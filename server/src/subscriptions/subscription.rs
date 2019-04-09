@@ -95,7 +95,6 @@ impl UpdateStateResult {
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum TickReason {
     ReceivePublishRequest,
-    //    PublishingTimerExpires,
     TickTimerFired,
 }
 

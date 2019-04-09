@@ -191,7 +191,6 @@ impl SessionState {
     }
 
     /// Sends a publish request containing acknowledgements for previous notifications.
-    /// TODO this function needs to be refactored as an asynchronous operation.
     pub fn async_publish(&mut self, subscription_acknowledgements: &[SubscriptionAcknowledgement]) -> Result<u32, StatusCode> {
         debug!("async_publish with {} subscription acknowledgements", subscription_acknowledgements.len());
         let request = PublishRequest {

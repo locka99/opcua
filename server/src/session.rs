@@ -123,6 +123,7 @@ impl Session {
         session
     }
 
+    /// Create a `Session` from a `Server`
     pub fn new(server: &Server) -> Session {
         let max_browse_continuation_points = super::constants::MAX_BROWSE_CONTINUATION_POINTS;
 

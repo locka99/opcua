@@ -46,8 +46,8 @@ impl OnDataChange for DataChangeCallback {
 
 impl DataChangeCallback {
     /// Constructs a callback from the supplied function
-    pub fn new<CB>(cb: CB) -> DataChangeCallback where CB: Fn(Vec<&MonitoredItem>) + Send + Sync + 'static {
-        DataChangeCallback {
+    pub fn new<CB>(cb: CB) -> Self where CB: Fn(Vec<&MonitoredItem>) + Send + Sync + 'static {
+        Self {
             cb: Box::new(cb)
         }
     }
@@ -77,8 +77,8 @@ impl OnConnectionStatusChange for ConnectionStatusCallback {
 
 impl ConnectionStatusCallback {
     // Constructor
-    pub fn new<CB>(cb: CB) -> ConnectionStatusCallback where CB: FnMut(bool) + Send + Sync + 'static {
-        ConnectionStatusCallback {
+    pub fn new<CB>(cb: CB) -> Self where CB: FnMut(bool) + Send + Sync + 'static {
+        Self {
             cb: Box::new(cb)
         }
     }
@@ -96,8 +96,8 @@ impl OnSessionClosed for SessionClosedCallback {
 
 impl SessionClosedCallback {
     // Constructor
-    pub fn new<CB>(cb: CB) -> SessionClosedCallback where CB: FnMut(StatusCode) + Send + Sync + 'static {
-        SessionClosedCallback {
+    pub fn new<CB>(cb: CB) -> Self where CB: FnMut(StatusCode) + Send + Sync + 'static {
+        Self {
             cb: Box::new(cb)
         }
     }

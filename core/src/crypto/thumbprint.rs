@@ -22,7 +22,7 @@ impl Thumbprint {
     /// Constructs a thumbprint from a message digest which is expected to be the proper length
     pub fn new(digest: &[u8]) -> Thumbprint {
         if digest.len() != Thumbprint::THUMBPRINT_SIZE {
-            panic!("Thumbprint is not the right length");
+            panic!("Thumbprint is the wrong length, {}", digest.len());
         }
         let mut value = [0u8; Thumbprint::THUMBPRINT_SIZE];
         value.clone_from_slice(digest);

@@ -10,7 +10,7 @@ categories = ["embedded","network-programming"]
 edition = "2018"
 
 [dependencies]
-clap = "2.27"
+clap = "2.33"
 
 [dependencies.opcua-types]
 path = "../../types"

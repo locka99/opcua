@@ -21,7 +21,7 @@ macro_rules! supported_message_as {
         if let SupportedMessage::$i(value) = $v {
             *value
         } else {
-            panic!("Failed to get a supported message of type {}", stringify!($i));
+            panic!();
         }
     }
 }

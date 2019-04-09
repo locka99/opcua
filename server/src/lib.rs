@@ -88,6 +88,7 @@ pub mod util;
 pub mod continuation_point;
 #[cfg(feature = "http")]
 pub mod http;
+pub mod callbacks;
 
 pub mod prelude {
     //! Provides a way to use most types and functions commonly used by server implementations from a
@@ -96,10 +97,11 @@ pub mod prelude {
     pub use opcua_types::service_types::*;
     pub use opcua_core::prelude::*;
     pub use crate::{
+        address_space::types::*,
+        builder::*,
+        callbacks::*,
         config::*,
         server::*,
-        builder::*,
-        address_space::types::*,
         subscriptions::*,
         util::*,
     };
