@@ -185,6 +185,16 @@ impl MessageHandler {
                     self.view_service.translate_browse_paths_to_node_ids(&server_state, &address_space, request)
                 })
             }
+            SupportedMessage::RegisterNodesRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.view_service.register_nodes(&mut server_state, self.session.clone(), request)
+                })
+            }
+            SupportedMessage::UnregisterNodesRequest(ref request) => {
+                validated_request!(self, request, &mut session, {
+                    self.view_service.unregister_nodes(&mut server_state, self.session.clone(), request)
+                })
+            }
 
             // Attribute Service Set, OPC UA Part 4, Section 5.10
 

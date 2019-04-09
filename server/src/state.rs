@@ -71,9 +71,9 @@ pub struct ServerState {
     /// Diagnostic information
     pub diagnostics: Arc<RwLock<ServerDiagnostics>>,
     /// Callback for register nodes
-    pub(crate) on_register_nodes_callback: Option<Box<OnRegisterNodes + Send + Sync>>,
+    pub(crate) register_nodes_callback: Option<Box<OnRegisterNodes + Send + Sync>>,
     /// Callback for unregister nodes
-    pub(crate) on_unregister_nodes_callback: Option<Box<OnUnregisterNodes + Send + Sync>>,
+    pub(crate) unregister_nodes_callback: Option<Box<OnUnregisterNodes + Send + Sync>>,
 
 }
 
@@ -318,8 +318,8 @@ impl ServerState {
     }
 
     pub fn set_register_nodes_callbacks(&mut self, register_nodes_callback: Box<OnRegisterNodes + Send + Sync>, unregister_nodes_callback: Box<OnUnregisterNodes + Send + Sync>) {
-        self.on_register_nodes_callback = Some(register_nodes_callback);
-        self.on_unregister_nodes_callback = Some(unregister_nodes_callback);
+        self.register_nodes_callback = Some(register_nodes_callback);
+        self.unregister_nodes_callback = Some(unregister_nodes_callback);
     }
 
     /// Authenticates an anonymous token, i.e. does the endpoint support anonymous access or not

@@ -135,8 +135,8 @@ impl Server {
             max_browse_paths_per_translate: constants::MAX_BROWSE_PATHS_PER_TRANSLATE,
             diagnostics,
             abort: false,
-            on_register_nodes_callback: None,
-            on_unregister_nodes_callback: None,
+            register_nodes_callback: None,
+            unregister_nodes_callback: None,
         };
         let server_state = Arc::new(RwLock::new(server_state));
 

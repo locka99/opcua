@@ -16,10 +16,12 @@ Planned future work is listed at the bottom.
     controlled by a session retry policy.
   - TranslateBrowsePathsToNodeIds service has been fixed
   - Subscription / monitored item bugfixes in server
-  - AddNodes, AddReferences, DeleteNodes and DeleteReferences have been added from the Node Management service set. Note
-    that the server config / builder must set clients_can_modify_address_space. Only minimal model constraint checking
-    is performed.
-  - SetTriggering and SetMonitoringMode services have been added to the Monitored Item service set
+  - AddNodes, AddReferences, DeleteNodes and DeleteReferences added to the Node Management service set. Note
+    that the server config / builder must set `clients_can_modify_address_space` to be true or these will return an 
+    error. Only minimal model constraint checking is performed.
+  - RegisterNodes and UnregisterNodes added to View service set. Servers must register callbacks for these
+    to do anything.
+  - SetTriggering and SetMonitoringMode added to the Monitored Item service set
   - TransferSubscriptions service is implemented as a stub. Most clients will see the error response and failover
     to manually reconstructing their subscription state.
   - New `web-client` code which demonstrates an OPCUA client that serves streaming data over a websocket. Reconnection

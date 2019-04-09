@@ -1,5 +1,5 @@
 use std::result::Result;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 
 use opcua_types::*;
 use opcua_types::status_code::StatusCode;
@@ -151,6 +151,49 @@ impl ViewService {
                 };
 
                 Ok(response.into())
+            }
+        } else {
+            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+        }
+    }
+
+    pub fn register_nodes(&mut self, server_state: &mut ServerState, session: Arc<RwLock<Session>>, request: &RegisterNodesRequest) -> Result<SupportedMessage, StatusCode> {
+        if let Some(ref nodes_to_register) = request.nodes_to_register {
+            if let Some(ref mut callback) = server_state.register_nodes_callback {
+                let result = callback.on_register_nodes(session, &nodes_to_register[..]);
+                if let Ok(registered_node_ids) = result {
+                    let response = RegisterNodesResponse {
+                        response_header: ResponseHeader::new_good(&request.request_header),
+                        registered_node_ids: Some(registered_node_ids),
+                    };
+                    Ok(response.into())
+                } else {
+                    Ok(self.service_fault(&request.request_header, result.unwrap_err()))
+                }
+            } else {
+                Ok(self.service_fault(&request.request_header, StatusCode::BadNodeIdInvalid))
+            }
+        } else {
+            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+        }
+    }
+
+    pub fn unregister_nodes(&mut self, server_state: &mut ServerState, session: Arc<RwLock<Session>>, request: &UnregisterNodesRequest) -> Result<SupportedMessage, StatusCode> {
+        if let Some(ref nodes_to_unregister) = request.nodes_to_unregister {
+            if let Some(ref mut callback) = server_state.unregister_nodes_callback {
+                let result = callback.on_unregister_nodes(session, &nodes_to_unregister[..]);
+                if let Ok(_) = result {
+                    let response = UnregisterNodesResponse {
+                        response_header: ResponseHeader::new_good(&request.request_header),
+                    };
+                    Ok(response.into())
+                } else {
+                    Ok(self.service_fault(&request.request_header, result.unwrap_err()))
+                }
+            } else {
+                Ok(UnregisterNodesResponse {
+                    response_header: ResponseHeader::new_good(&request.request_header),
+                }.into())
             }
         } else {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))

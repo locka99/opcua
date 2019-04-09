@@ -141,6 +141,10 @@ impl SupportedMessage {
             SupportedMessage::RepublishResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::TranslateBrowsePathsToNodeIdsRequest(ref r) => r.request_header.request_handle,
             SupportedMessage::TranslateBrowsePathsToNodeIdsResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::RegisterNodesRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::RegisterNodesResponse(ref r) => r.response_header.request_handle,
+            SupportedMessage::UnregisterNodesRequest(ref r) => r.request_header.request_handle,
+            SupportedMessage::UnregisterNodesResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::ReadRequest(ref r) => r.request_header.request_handle,
             SupportedMessage::ReadResponse(ref r) => r.response_header.request_handle,
             SupportedMessage::WriteRequest(ref r) => r.request_header.request_handle,
@@ -324,6 +328,18 @@ impl SupportedMessage {
             ObjectId::TranslateBrowsePathsToNodeIdsResponse_Encoding_DefaultBinary => {
                 TranslateBrowsePathsToNodeIdsResponse::decode(stream, decoding_limits)?.into()
             }
+            ObjectId::RegisterNodesRequest_Encoding_DefaultBinary => {
+                RegisterNodesRequest::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::RegisterNodesResponse_Encoding_DefaultBinary => {
+                RegisterNodesResponse::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::UnregisterNodesRequest_Encoding_DefaultBinary => {
+                UnregisterNodesRequest::decode(stream, decoding_limits)?.into()
+            }
+            ObjectId::UnregisterNodesResponse_Encoding_DefaultBinary => {
+                UnregisterNodesResponse::decode(stream, decoding_limits)?.into()
+            }
             ObjectId::ReadRequest_Encoding_DefaultBinary => {
                 ReadRequest::decode(stream, decoding_limits)?.into()
             }
@@ -410,6 +426,10 @@ supported_messages_enum![
     RepublishResponse,
     TranslateBrowsePathsToNodeIdsRequest,
     TranslateBrowsePathsToNodeIdsResponse,
+    RegisterNodesRequest,
+    RegisterNodesResponse,
+    UnregisterNodesRequest,
+    UnregisterNodesResponse,
     ReadRequest,
     ReadResponse,
     WriteRequest,
