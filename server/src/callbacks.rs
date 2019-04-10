@@ -26,6 +26,10 @@ pub trait OnRegisterNodes {
 /// Called by UnregisterNodes service
 pub trait OnUnregisterNodes {
     /// Called when a client calls the UnregisterNodes service. See `OnRegisterNodes` trait for more
-    /// information.
+    /// information. A client may not call this function, e.g. if connection breaks so do not
+    /// count on receiving this to perform any housekeeping.
+    ///
+    /// The function should not validate the nodes in the request and should just ignore any
+    /// unregistered nodes.
     fn on_unregister_nodes(&mut self, session: Arc<RwLock<Session>>, nodes_to_unregister: &[NodeId]) -> Result<(), StatusCode>;
 }

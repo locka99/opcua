@@ -580,6 +580,9 @@ impl Session {
         Ok(did_something)
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // Discovery Service set
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /// Sends a [`FindServersRequest`] to the server denoted by the discovery url.
     ///
@@ -687,6 +690,10 @@ impl Session {
         }
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // SecureChannel Service set
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
     /// Sends an [`OpenSecureChannelRequest`] to the server
     ///
     ///
@@ -724,6 +731,10 @@ impl Session {
         let _ = self.async_send_request(request, false);
         Ok(())
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // Session Service set
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /// Sends a [`CreateSessionRequest`] to the server, returning the session id of the created
     /// session. Internally, the session will store the authentication token which is used for requests
@@ -917,12 +928,6 @@ impl Session {
         });
     }
 
-    /// Returns the security policy
-    fn security_policy(&self) -> SecurityPolicy {
-        let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
-        secure_channel.security_policy()
-    }
-
     /// Sends an [`ActivateSessionRequest`] to the server to activate this session
     ///
     /// See OPC UA Part 4 - Services 5.6.3 for complete description of the service and error responses.
@@ -1020,6 +1025,10 @@ impl Session {
             Err(crate::process_unexpected_response(response))
         }
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // NodeManagement Service set
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /// Add nodes by sending a [`AddNodesRequest`] to the server.
     ///
@@ -1158,6 +1167,10 @@ impl Session {
         }
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // View Service set
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
     /// Discover the references to the specified nodes by sending a [`BrowseRequest`] to the server.
     ///
     /// See OPC UA Part 4 - Services 5.8.2 for complete description of the service and error responses.
@@ -1245,6 +1258,88 @@ impl Session {
         }
     }
 
+    /// Register nodes on the server by sending a [`RegisterNodesRequest`]. The purpose of this
+    /// call is server-dependent but allows a client to ask a server to create nodes which are
+    /// otherwise expensive to set up or maintain, e.g. nodes attached to hardware.
+    ///
+    /// See OPC UA Part 4 - Services 5.8.5 for complete description of the service and error responses.
+    ///
+    /// # Arguments
+    ///
+    /// * `nodes_to_register` - A list of [`NodeId`] nodes for the server to register
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Vec<NodeId>)` - A list of [`NodeId`] corresponding to size and order of the input. The
+    ///                       server may return an alias for the input `NodeId`
+    /// * `Err(StatusCode)` - Request failed, status code is the reason for failure
+    ///
+    /// [`RegisterNodesRequest`]: ./struct.RegisterNodesRequest.html
+    /// [`NodeId`]: ./struct.NodeId.html
+    pub fn register_nodes(&mut self, nodes_to_register: &[NodeId]) -> Result<Vec<NodeId>, StatusCode> {
+        if nodes_to_register.is_empty() {
+            error!("register_nodes, was not supplied with any nodes to register");
+            Err(StatusCode::BadNothingToDo)
+        } else {
+            let request = RegisterNodesRequest {
+                request_header: self.make_request_header(),
+                nodes_to_register: Some(nodes_to_register.to_vec()),
+            };
+            let response = self.send_request(request)?;
+            if let SupportedMessage::RegisterNodesResponse(response) = response {
+                debug!("register_nodes, success");
+                crate::process_service_result(&response.response_header)?;
+                Ok(response.registered_node_ids.unwrap())
+            } else {
+                error!("register_nodes failed {:?}", response);
+                Err(crate::process_unexpected_response(response))
+            }
+        }
+    }
+
+    /// Unregister nodes on the server by sending a [`UnregisterNodesRequest`]. This indicates to
+    /// the server that the client relinquishes any need for these nodes. The server will ignore
+    /// unregistered nodes.
+    ///
+    /// See OPC UA Part 4 - Services 5.8.5 for complete description of the service and error responses.
+    ///
+    /// # Arguments
+    ///
+    /// * `nodes_to_unregister` - A list of [`NodeId`] nodes for the server to unregister
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Request succeeded, server ignores invalid nodes
+    /// * `Err(StatusCode)` - Request failed, status code is the reason for failure
+    ///
+    /// [`UnregisterNodesRequest`]: ./struct.UnregisterNodesRequest.html
+    /// [`NodeId`]: ./struct.NodeId.html
+    ///
+    pub fn unregister_nodes(&mut self, nodes_to_unregister: &[NodeId]) -> Result<(), StatusCode> {
+        if nodes_to_unregister.is_empty() {
+            error!("unregister_nodes, was not supplied with any nodes to unregister");
+            Err(StatusCode::BadNothingToDo)
+        } else {
+            let request = UnregisterNodesRequest {
+                request_header: self.make_request_header(),
+                nodes_to_unregister: Some(nodes_to_unregister.to_vec()),
+            };
+            let response = self.send_request(request)?;
+            if let SupportedMessage::UnregisterNodesResponse(response) = response {
+                debug!("unregister_nodes, success");
+                crate::process_service_result(&response.response_header)?;
+                Ok(())
+            } else {
+                error!("unregister_nodes failed {:?}", response);
+                Err(crate::process_unexpected_response(response))
+            }
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // Attribute Service set
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
     /// Reads the value of nodes by sending a [`ReadRequest`] to the server.
     ///
     /// See OPC UA Part 4 - Services 5.10.2 for complete description of the service and error responses.
@@ -1303,7 +1398,7 @@ impl Session {
     /// [`WriteRequest`]: ./struct.WriteRequest.html
     /// [`WriteValue`]: ./struct.WriteValue.html
     ///
-    pub fn write_value(&mut self, nodes_to_write: &[WriteValue]) -> Result<Option<Vec<StatusCode>>, StatusCode> {
+    pub fn write(&mut self, nodes_to_write: &[WriteValue]) -> Result<Option<Vec<StatusCode>>, StatusCode> {
         if nodes_to_write.is_empty() {
             // No subscriptions
             error!("write_value() was not supplied with any nodes to write");
@@ -1324,6 +1419,10 @@ impl Session {
             }
         }
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // Method Service set
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /// Calls a single method on an object on the server by sending a [`CallRequest`] to the server.
     ///
@@ -1401,6 +1500,10 @@ impl Session {
             Err(StatusCode::BadUnexpectedError)
         }
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // MonitoredItem Service set
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /// Creates monitored items on a subscription by sending a [`CreateMonitoredItemsRequest`] to the server.
     ///
@@ -1694,6 +1797,10 @@ impl Session {
             }
         }
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // Subscription Service set
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /// Create a subscription by sending a [`CreateSubscriptionRequest`] to the server.
     ///
@@ -2034,6 +2141,12 @@ impl Session {
     /// Returns the subscription state object
     pub fn subscription_state(&self) -> Arc<RwLock<SubscriptionState>> {
         self.subscription_state.clone()
+    }
+
+    /// Returns the security policy
+    fn security_policy(&self) -> SecurityPolicy {
+        let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+        secure_channel.security_policy()
     }
 
     // Test if the subscription by id exists
