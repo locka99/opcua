@@ -145,6 +145,7 @@ Planned future work is listed at the bottom.
   
 ASPIRATIONAL - a short list of things that would be nice to implement in the future
 
+  - Code that generates Option<Vec<Foo>> should probably return Vec<Foo> instead to simplify access to the list
   - Multiple chunks
   - User-level permission model, i.e. ability to limit access to address space based on identity
   - Replace more OpenSSL with `ring` equivalent functions. Ring doesn't do X509 so code is still

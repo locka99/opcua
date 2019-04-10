@@ -30,34 +30,29 @@ impl AttributeService {
     /// values available to Clients using this Service, although the historical values themselves
     /// are not visible in the AddressSpace.
     pub fn read(&self, address_space: &AddressSpace, request: &ReadRequest) -> Result<SupportedMessage, StatusCode> {
-        // Read nodes and their attributes
-        let timestamps_to_return = request.timestamps_to_return;
-
-        // Negative values are invalid for max_age
-        let max_age = request.max_age;
-        if max_age < 0f64 {
+        if is_empty_option_vec!(request.nodes_to_read) {
+            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+        } else if request.max_age < 0f64 {
+            // Negative values are invalid for max_age
             warn!("ReadRequest max age is invalid");
-            return Ok(self.service_fault(&request.request_header, StatusCode::BadMaxAgeInvalid));
-        }
-
-        let results = if let Some(ref nodes_to_read) = request.nodes_to_read {
-            let results = nodes_to_read.iter().map(|node_to_read| {
-                Self::read_node_value(&address_space, node_to_read, max_age, timestamps_to_return)
-            }).collect();
-            Some(results)
+            Ok(self.service_fault(&request.request_header, StatusCode::BadMaxAgeInvalid))
         } else {
-            warn!("ReadRequest nothing to do");
-            return Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo));
-        };
+            let nodes_to_read = request.nodes_to_read.as_ref().unwrap();
 
-        let diagnostic_infos = None;
-        let response = ReadResponse {
-            response_header: ResponseHeader::new_good(&request.request_header),
-            results,
-            diagnostic_infos,
-        };
+            // Read nodes and their attributes
+            let timestamps_to_return = request.timestamps_to_return;
+            let results = nodes_to_read.iter().map(|node_to_read| {
+                Self::read_node_value(&address_space, node_to_read, request.max_age, timestamps_to_return)
+            }).collect();
 
-        Ok(response.into())
+            let diagnostic_infos = None;
+            let response = ReadResponse {
+                response_header: ResponseHeader::new_good(&request.request_header),
+                results: Some(results),
+                diagnostic_infos,
+            };
+            Ok(response.into())
+        }
     }
 
     /// Spec:
@@ -67,23 +62,22 @@ impl AttributeService {
     /// allows Clients to write the entire set of indexed values as a composite, to write individual
     /// elements or to write ranges of elements of the composite.
     pub fn write(&self, address_space: &mut AddressSpace, request: &WriteRequest) -> Result<SupportedMessage, StatusCode> {
-        let results = if let Some(ref nodes_to_write) = request.nodes_to_write {
+        if is_empty_option_vec!(request.nodes_to_write) {
+            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+        } else {
+            let nodes_to_write = request.nodes_to_write.as_ref().unwrap();
             let results = nodes_to_write.iter().map(|node_to_write| {
                 Self::write_node_value(address_space, node_to_write)
             }).collect();
-            Some(results)
-        } else {
-            return Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo));
-        };
 
-        let diagnostic_infos = None;
-        let response = WriteResponse {
-            response_header: ResponseHeader::new_good(&request.request_header),
-            results,
-            diagnostic_infos,
-        };
-
-        Ok(response.into())
+            let diagnostic_infos = None;
+            let response = WriteResponse {
+                response_header: ResponseHeader::new_good(&request.request_header),
+                results: Some(results),
+                diagnostic_infos,
+            };
+            Ok(response.into())
+        }
     }
 
     fn read_node_value(address_space: &AddressSpace, node_to_read: &ReadValueId, max_age: f64, timestamps_to_return: TimestampsToReturn) -> DataValue {

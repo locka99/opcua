@@ -95,12 +95,12 @@ impl SubscriptionService {
 
     /// Implementation of SetPublishingModeRequest service. See OPC Unified Architecture, Part 4 5.13.4
     pub fn set_publishing_mode(&self, session: &mut Session, request: &SetPublishingModeRequest) -> Result<SupportedMessage, StatusCode> {
-        if request.subscription_ids.is_none() {
+        if is_empty_option_vec!(request.subscription_ids) {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else {
+            let subscription_ids = request.subscription_ids.as_ref().unwrap();
             let results = {
                 let publishing_enabled = request.publishing_enabled;
-                let subscription_ids = request.subscription_ids.as_ref().unwrap();
                 let mut results = Vec::with_capacity(subscription_ids.len());
                 let subscriptions = &mut session.subscriptions;
                 for subscription_id in subscription_ids {
@@ -124,13 +124,40 @@ impl SubscriptionService {
         }
     }
 
-    /// Handles a DeleteSubscriptionsRequest
-    pub fn delete_subscriptions(&self, session: &mut Session, request: &DeleteSubscriptionsRequest) -> Result<SupportedMessage, StatusCode> {
-        if request.subscription_ids.is_none() {
+    /// Handles a TransferSubscriptionsRequest
+    pub fn transfer_subscriptions(&self, _session: &mut Session, request: &TransferSubscriptionsRequest) -> Result<SupportedMessage, StatusCode> {
+        if is_empty_option_vec!(request.subscription_ids) {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else {
+            let subscription_ids = request.subscription_ids.as_ref().unwrap();
             let results = {
-                let subscription_ids = request.subscription_ids.as_ref().unwrap();
+                // TODO this is a stub. The real thing should look up subscriptions belonging to
+                //  other sessions and transfer them across to this one.
+                let results = subscription_ids.iter().map(|_subscription_id| {
+                    TransferResult {
+                        status_code: StatusCode::BadSubscriptionIdInvalid,
+                        available_sequence_numbers: None,
+                    }
+                }).collect::<Vec<TransferResult>>();
+                Some(results)
+            };
+            let diagnostic_infos = None;
+            let response = TransferSubscriptionsResponse {
+                response_header: ResponseHeader::new_good(&request.request_header),
+                results,
+                diagnostic_infos,
+            };
+            Ok(response.into())
+        }
+    }
+
+    /// Handles a DeleteSubscriptionsRequest
+    pub fn delete_subscriptions(&self, session: &mut Session, request: &DeleteSubscriptionsRequest) -> Result<SupportedMessage, StatusCode> {
+        if is_empty_option_vec!(request.subscription_ids) {
+            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
+        } else {
+            let subscription_ids = request.subscription_ids.as_ref().unwrap();
+            let results = {
                 let subscriptions = &mut session.subscriptions;
                 // Attempt to remove each subscription
                 let results = subscription_ids.iter().map(|subscription_id| {
@@ -145,33 +172,6 @@ impl SubscriptionService {
             };
             let diagnostic_infos = None;
             let response = DeleteSubscriptionsResponse {
-                response_header: ResponseHeader::new_good(&request.request_header),
-                results,
-                diagnostic_infos,
-            };
-            Ok(response.into())
-        }
-    }
-
-    /// Handles a TransferSubscriptionsRequest
-    pub fn transfer_subscriptions(&self, _session: &mut Session, request: &TransferSubscriptionsRequest) -> Result<SupportedMessage, StatusCode> {
-        if request.subscription_ids.is_none() {
-            Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
-        } else {
-            let results = {
-                // TODO this is a stub. The real thing should look up subscriptions belonging to
-                //  other sessions and transfer them across to this one.
-                let subscription_ids = request.subscription_ids.as_ref().unwrap();
-                let results = subscription_ids.iter().map(|_subscription_id| {
-                    TransferResult {
-                        status_code: StatusCode::BadSubscriptionIdInvalid,
-                        available_sequence_numbers: None,
-                    }
-                }).collect::<Vec<TransferResult>>();
-                Some(results)
-            };
-            let diagnostic_infos = None;
-            let response = TransferSubscriptionsResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
                 results,
                 diagnostic_infos,

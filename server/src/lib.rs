@@ -70,6 +70,15 @@ macro_rules! deregister_runtime_component {
     }
 }
 
+/// Returns true of the Option<Vec<Foo>> is None or the vec inside is empty. This is particularly
+/// used by services where the spec says "All Services with arrays of operations in the request
+/// shall return a bad code in the serviceResult if the array is empty."
+macro_rules! is_empty_option_vec {
+    ( $v: expr ) => {
+        $v.is_none() || $v.as_ref().unwrap().is_empty()
+    }
+}
+
 mod services;
 mod session;
 mod discovery;
