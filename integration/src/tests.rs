@@ -175,7 +175,7 @@ fn new_server(port_offset: u16) -> Server {
     let server = ServerBuilder::new()
         .application_name("integration_server")
         .application_uri("urn:integration_server")
-        .discovery_url(endpoint_url(port_offset))
+        .discovery_urls(vec![endpoint_url(port_offset)])
         .create_sample_keypair(true)
         .pki_dir("./pki-server")
         .discovery_server_url(None)
@@ -215,7 +215,7 @@ fn new_server(port_offset: u16) -> Server {
 
         // Add variables
         let _ = address_space.add_variables(
-            vec![Variable::new(&v1_node, "v1", "v1", "v1 variable", 0 as i32)],
+            vec![Variable::new(&v1_node, "v1", "v1", 0 as i32)],
             &sample_folder_id);
 
         // Register a getter for the variable
