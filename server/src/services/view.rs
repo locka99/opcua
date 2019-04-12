@@ -153,17 +153,19 @@ impl ViewService {
         if is_empty_option_vec!(request.nodes_to_register) {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else {
-            let nodes_to_register = request.nodes_to_register.as_ref().unwrap();
             if let Some(ref mut callback) = server_state.register_nodes_callback {
-                let result = callback.on_register_nodes(session, &nodes_to_register[..]);
-                if let Ok(registered_node_ids) = result {
-                    let response = RegisterNodesResponse {
-                        response_header: ResponseHeader::new_good(&request.request_header),
-                        registered_node_ids: Some(registered_node_ids),
-                    };
-                    Ok(response.into())
-                } else {
-                    Ok(self.service_fault(&request.request_header, result.unwrap_err()))
+                let nodes_to_register = request.nodes_to_register.as_ref().unwrap();
+                match callback.register_nodes(session, &nodes_to_register[..]) {
+                    Ok(registered_node_ids) => {
+                        let response = RegisterNodesResponse {
+                            response_header: ResponseHeader::new_good(&request.request_header),
+                            registered_node_ids: Some(registered_node_ids),
+                        };
+                        Ok(response.into())
+                    }
+                    Err(err) => {
+                        Ok(self.service_fault(&request.request_header, err))
+                    }
                 }
             } else {
                 Ok(self.service_fault(&request.request_header, StatusCode::BadNodeIdInvalid))
@@ -175,16 +177,18 @@ impl ViewService {
         if is_empty_option_vec!(request.nodes_to_unregister) {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else {
-            let nodes_to_unregister = request.nodes_to_unregister.as_ref().unwrap();
             if let Some(ref mut callback) = server_state.unregister_nodes_callback {
-                let result = callback.on_unregister_nodes(session, &nodes_to_unregister[..]);
-                if let Ok(_) = result {
-                    let response = UnregisterNodesResponse {
-                        response_header: ResponseHeader::new_good(&request.request_header),
-                    };
-                    Ok(response.into())
-                } else {
-                    Ok(self.service_fault(&request.request_header, result.unwrap_err()))
+                let nodes_to_unregister = request.nodes_to_unregister.as_ref().unwrap();
+                match callback.unregister_nodes(session, &nodes_to_unregister[..]) {
+                    Ok(_) => {
+                        let response = UnregisterNodesResponse {
+                            response_header: ResponseHeader::new_good(&request.request_header),
+                        };
+                        Ok(response.into())
+                    }
+                    Err(err) => {
+                        Ok(self.service_fault(&request.request_header, err))
+                    }
                 }
             } else {
                 Ok(UnregisterNodesResponse {

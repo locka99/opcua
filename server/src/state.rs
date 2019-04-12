@@ -17,7 +17,7 @@ use opcua_types::{
 
 use crate::config::{ServerConfig, ServerEndpoint};
 use crate::diagnostics::ServerDiagnostics;
-use crate::callbacks::*;
+use crate::callbacks::{RegisterNodes, UnregisterNodes};
 
 const TOKEN_POLICY_ANONYMOUS: &str = "anonymous";
 const TOKEN_POLICY_USER_PASS_PLAINTEXT: &str = "userpass_plaintext";
@@ -71,9 +71,9 @@ pub struct ServerState {
     /// Diagnostic information
     pub diagnostics: Arc<RwLock<ServerDiagnostics>>,
     /// Callback for register nodes
-    pub(crate) register_nodes_callback: Option<Box<OnRegisterNodes + Send + Sync>>,
+    pub(crate) register_nodes_callback: Option<Box<RegisterNodes + Send + Sync>>,
     /// Callback for unregister nodes
-    pub(crate) unregister_nodes_callback: Option<Box<OnUnregisterNodes + Send + Sync>>,
+    pub(crate) unregister_nodes_callback: Option<Box<UnregisterNodes + Send + Sync>>,
 
 }
 
@@ -317,7 +317,7 @@ impl ServerState {
         }
     }
 
-    pub fn set_register_nodes_callbacks(&mut self, register_nodes_callback: Box<OnRegisterNodes + Send + Sync>, unregister_nodes_callback: Box<OnUnregisterNodes + Send + Sync>) {
+    pub fn set_register_nodes_callbacks(&mut self, register_nodes_callback: Box<RegisterNodes + Send + Sync>, unregister_nodes_callback: Box<UnregisterNodes + Send + Sync>) {
         self.register_nodes_callback = Some(register_nodes_callback);
         self.unregister_nodes_callback = Some(unregister_nodes_callback);
     }

@@ -213,7 +213,7 @@ impl MessageHandler {
 
             SupportedMessage::CallRequest(ref request) => {
                 validated_request!(self, request, &mut session, {
-                    self.method_service.call(&address_space, &server_state, &mut session, request)
+                    self.method_service.call(&mut address_space, &server_state, &mut session, request)
                 })
             }
 

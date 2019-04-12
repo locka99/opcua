@@ -371,8 +371,8 @@ struct RegisterNodesImpl {
     pub session: Weak<RwLock<Session>>
 }
 
-impl OnRegisterNodes for RegisterNodesImpl {
-    fn on_register_nodes(&mut self, session: Arc<RwLock<Session>>, nodes_to_register: &[NodeId]) -> Result<Vec<NodeId>, StatusCode> {
+impl RegisterNodes for RegisterNodesImpl {
+    fn register_nodes(&mut self, session: Arc<RwLock<Session>>, nodes_to_register: &[NodeId]) -> Result<Vec<NodeId>, StatusCode> {
         let bad_node = ObjectId::ObjectsFolder.into();
         let good_node = NodeId::new(1, 100);
         let alias_node = NodeId::new(1, 200);
@@ -399,8 +399,8 @@ impl OnRegisterNodes for RegisterNodesImpl {
 
 struct UnregisterNodesImpl;
 
-impl OnUnregisterNodes for UnregisterNodesImpl {
-    fn on_unregister_nodes(&mut self, _session: Arc<RwLock<Session>>, _nodes_to_unregister: &[NodeId]) -> Result<(), StatusCode>
+impl UnregisterNodes for UnregisterNodesImpl {
+    fn unregister_nodes(&mut self, _session: Arc<RwLock<Session>>, _nodes_to_unregister: &[NodeId]) -> Result<(), StatusCode>
     {
         Ok(())
     }

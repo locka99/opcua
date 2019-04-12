@@ -21,6 +21,7 @@ use crate::{
     diagnostics::ServerDiagnostics,
     state::ServerState,
     session::Session,
+    callbacks,
     constants,
 };
 
@@ -83,7 +84,7 @@ macro_rules! server_diagnostics_summary {
     }
 }
 
-type MethodCallback = Box<dyn Fn(&AddressSpace, &ServerState, &mut Session, &CallMethodRequest) -> Result<CallMethodResult, StatusCode> + Send + Sync + 'static>;
+type MethodCallback = Box<callbacks::Method + Send + Sync>;
 
 #[derive(PartialEq, Eq, Clone, Debug, Hash)]
 struct MethodKey {
@@ -329,8 +330,8 @@ impl AddressSpace {
 
             // Server method handlers
             use crate::address_space::method_impls;
-            self.register_method_handler(ObjectId::Server, MethodId::Server_GetMonitoredItems, Box::new(method_impls::handle_get_monitored_items));
-            self.register_method_handler(ObjectId::Server, MethodId::Server_ResendData, Box::new(method_impls::handle_resend_data));
+            self.register_method_handler(ObjectId::Server, MethodId::Server_ResendData, Box::new(method_impls::ServerResendDataMethod));
+            self.register_method_handler(ObjectId::Server, MethodId::Server_GetMonitoredItems, Box::new(method_impls::ServerGetMonitoredItemsMethod));
         }
     }
 
@@ -668,7 +669,7 @@ impl AddressSpace {
     ///
     /// Calls require a registered handler to handle the method. If there is no handler, or if
     /// the request refers to a non existent object / method, the function will return an error.
-    pub fn call_method(&self, server_state: &ServerState, session: &mut Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
+    pub fn call_method(&mut self, _server_state: &ServerState, session: &mut Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
         let (object_id, method_id) = (&request.object_id, &request.method_id);
 
         // Handle the call
@@ -689,10 +690,10 @@ impl AddressSpace {
                 object_id: object_id.clone(),
                 method_id: method_id.clone(),
             };
-            if let Some(handler) = self.method_handlers.get(&key) {
+            if let Some(handler) = self.method_handlers.get_mut(&key) {
                 // Call the handler
                 trace!("Method call to {:?} on {:?} being handled by a registered handler", method_id, object_id);
-                handler(self, server_state, session, request)
+                handler.call(session, request)
             } else {
                 // TODO we could do a secondary search on a (NodeId::null(), method_id) here
                 //  so that method handler is reusable for multiple objects

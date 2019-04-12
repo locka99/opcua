@@ -1444,7 +1444,7 @@ impl Session {
     /// [`CallMethodRequest`]: ./struct.CallMethodRequest.html
     /// [`CallMethodResult`]: ./struct.CallMethodResult.html
     ///
-    pub fn call_method<T>(&mut self, method: T) -> Result<CallMethodResult, StatusCode> where T: Into<CallMethodRequest> {
+    pub fn call<T>(&mut self, method: T) -> Result<CallMethodResult, StatusCode> where T: Into<CallMethodRequest> {
         debug!("call_method");
         let methods_to_call = Some(vec![method.into()]);
         let request = CallRequest {
@@ -1485,7 +1485,7 @@ impl Session {
         let object_id: NodeId = ObjectId::Server.into();
         let method_id: NodeId = MethodId::Server_GetMonitoredItems.into();
         let request: CallMethodRequest = (object_id, method_id, args).into();
-        let response = self.call_method(request)?;
+        let response = self.call(request)?;
         if let Some(mut result) = response.output_arguments {
             if result.len() == 2 {
                 let server_handles = result.remove(0).as_u32_array().map_err(|_| StatusCode::BadUnexpectedError)?;

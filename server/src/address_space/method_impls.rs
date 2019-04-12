@@ -3,9 +3,8 @@ use opcua_types::status_code::StatusCode;
 use opcua_types::service_types::{CallMethodRequest, CallMethodResult};
 
 use crate::{
-    address_space::AddressSpace,
-    state::ServerState,
-    session::Session
+    session::Session,
+    callbacks::Method,
 };
 
 /// Count the number of provided input arguments, comparing them to the expected number.
@@ -47,70 +46,78 @@ macro_rules! get_input_argument {
 }
 
 /// This is the handler for Server.ResendData method call.
-pub fn handle_resend_data(_: &AddressSpace, _: &ServerState, session: &mut Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
-    debug!("Method handler for ResendData");
+pub struct ServerResendDataMethod;
 
-    // OPC UA part 5 - ResendData([in] UInt32 subscriptionId);
-    //
-    // subscriptionId - Identifier of the subscription to refresh
-    //
-    // Return codes
-    //
-    // BadSubscriptionIdInvalid
-    // BadUserAccessDenied
+impl Method for ServerResendDataMethod {
+    fn call(&mut self, session: &mut Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
+        debug!("Method handler for ResendData");
 
-    ensure_input_argument_count(request, 1)?;
+        // OPC UA part 5 - ResendData([in] UInt32 subscriptionId);
+        //
+        // subscriptionId - Identifier of the subscription to refresh
+        //
+        // Return codes
+        //
+        // BadSubscriptionIdInvalid
+        // BadUserAccessDenied
 
-    let subscription_id = get_input_argument!(request, 0, UInt32)?;
+        ensure_input_argument_count(request, 1)?;
 
-    if let Some(subscription) = session.subscriptions.get_mut(*subscription_id) {
-        subscription.set_resend_data();
-        Ok(CallMethodResult {
-            status_code: StatusCode::Good,
-            input_argument_results: Some(vec![StatusCode::Good]),
-            input_argument_diagnostic_infos: None,
-            output_arguments: None,
-        })
-    } else {
-        // Subscription id does not exist
-        // Note we could check other sessions for a matching id and return BadUserAccessDenied in that case
-        Err(StatusCode::BadSubscriptionIdInvalid)
+        let subscription_id = get_input_argument!(request, 0, UInt32)?;
+
+        if let Some(subscription) = session.subscriptions.get_mut(*subscription_id) {
+            subscription.set_resend_data();
+            Ok(CallMethodResult {
+                status_code: StatusCode::Good,
+                input_argument_results: Some(vec![StatusCode::Good]),
+                input_argument_diagnostic_infos: None,
+                output_arguments: None,
+            })
+        } else {
+            // Subscription id does not exist
+            // Note we could check other sessions for a matching id and return BadUserAccessDenied in that case
+            Err(StatusCode::BadSubscriptionIdInvalid)
+        }
     }
 }
 
 /// This is the handler for the Server.GetMonitoredItems method call.
-pub fn handle_get_monitored_items(_: &AddressSpace, _: &ServerState, session: &mut Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
-    debug!("Method handler for GetMonitoredItems");
+pub struct ServerGetMonitoredItemsMethod;
 
-    // OPC UA part 5 - GetMonitoredItems([in] UInt32 subscriptionId, [out] UInt32[] serverHandles, [out] UInt32[] clientHandles);
-    //
-    // subscriptionId - Identifier of the subscription
-    // serverHandles - Array of serverHandles for all MonitoredItems of the Subscription identified by subscriptionId
-    // clientHandles - Array of clientHandles for all MonitoredItems of the Subscription identified by subscriptionId
-    //
-    // Return codes
-    //
-    // BadSubscriptionIdInvalid
-    // BadUserAccessDenied
+impl Method for ServerGetMonitoredItemsMethod {
+    fn call(&mut self, session: &mut Session, request: &CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
+        debug!("Method handler for GetMonitoredItems");
 
-    ensure_input_argument_count(request, 1)?;
+        // OPC UA part 5 - GetMonitoredItems([in] UInt32 subscriptionId, [out] UInt32[] serverHandles, [out] UInt32[] clientHandles);
+        //
+        // subscriptionId - Identifier of the subscription
+        // serverHandles - Array of serverHandles for all MonitoredItems of the Subscription identified by subscriptionId
+        // clientHandles - Array of clientHandles for all MonitoredItems of the Subscription identified by subscriptionId
+        //
+        // Return codes
+        //
+        // BadSubscriptionIdInvalid
+        // BadUserAccessDenied
 
-    let subscription_id = get_input_argument!(request, 0, UInt32)?;
+        ensure_input_argument_count(request, 1)?;
 
-    if let Some(subscription) = session.subscriptions.subscriptions().get(&subscription_id) {
-        // Response
-        //   serverHandles: Vec<u32>
-        //   clientHandles: Vec<u32>
-        let (server_handles, client_handles) = subscription.get_handles();
-        Ok(CallMethodResult {
-            status_code: StatusCode::Good,
-            input_argument_results: Some(vec![StatusCode::Good]),
-            input_argument_diagnostic_infos: None,
-            output_arguments: Some(vec![server_handles.into(), client_handles.into()]),
-        })
-    } else {
-        // Subscription id does not exist
-        // Note we could check other sessions for a matching id and return BadUserAccessDenied in that case
-        Err(StatusCode::BadSubscriptionIdInvalid)
+        let subscription_id = get_input_argument!(request, 0, UInt32)?;
+
+        if let Some(subscription) = session.subscriptions.subscriptions().get(&subscription_id) {
+            // Response
+            //   serverHandles: Vec<u32>
+            //   clientHandles: Vec<u32>
+            let (server_handles, client_handles) = subscription.get_handles();
+            Ok(CallMethodResult {
+                status_code: StatusCode::Good,
+                input_argument_results: Some(vec![StatusCode::Good]),
+                input_argument_diagnostic_infos: None,
+                output_arguments: Some(vec![server_handles.into(), client_handles.into()]),
+            })
+        } else {
+            // Subscription id does not exist
+            // Note we could check other sessions for a matching id and return BadUserAccessDenied in that case
+            Err(StatusCode::BadSubscriptionIdInvalid)
+        }
     }
 }
