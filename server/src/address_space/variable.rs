@@ -3,11 +3,13 @@ use std::convert::Into;
 
 use opcua_types::node_ids::DataTypeId;
 
-use crate::address_space::{
-    AttributeGetter, AttributeSetter,
-    AccessLevel, UserAccessLevel,
-    base::Base,
-    node::Node,
+use crate::{
+    callbacks::{AttributeGetter, AttributeSetter},
+    address_space::{
+        AccessLevel, UserAccessLevel,
+        base::Base,
+        node::Node,
+    },
 };
 use opcua_types::service_types::VariableAttributes;
 

@@ -6,24 +6,7 @@ use std::result::Result;
 use opcua_types::{NodeId, AttributeId, DataValue};
 use opcua_types::status_code::StatusCode;
 
-/// An attribute getter trait is used to obtain the data value associated with the particular attribute id
-/// This allows server implementations to supply a value on demand, usually in response to a polling action
-/// such as a monitored item in a subscription.
-///
-/// `node_id` is the node to which the node belongs
-/// `attribute_id` is the attribute of the node to fetch a value for
-///
-/// Use `max_age` according to the OPC UA Part 4, Table 52 specification to determine how to return
-/// a value:
-///
-/// * 0 = a new value
-/// * time in ms for a value less than the specified age
-/// * i32::max() or higher to fetch a cached value.
-///
-pub trait AttributeGetter {
-    /// Returns some datavalue or none
-    fn get(&mut self, node_id: &NodeId, attribute_id: AttributeId, max_age: f64) -> Result<Option<DataValue>, StatusCode>;
-}
+use crate::callbacks::{AttributeGetter, AttributeSetter};
 
 /// An implementation of attribute getter that can be easily constructed from a mutable function
 pub struct AttrFnGetter<F> where F: FnMut(&NodeId, AttributeId, f64) -> Result<Option<DataValue>, StatusCode> + Send {
@@ -38,12 +21,6 @@ impl<F> AttributeGetter for AttrFnGetter<F> where F: FnMut(&NodeId, AttributeId,
 
 impl<F> AttrFnGetter<F> where F: FnMut(&NodeId, AttributeId, f64) -> Result<Option<DataValue>, StatusCode> + Send {
     pub fn new(getter: F) -> AttrFnGetter<F> { AttrFnGetter { getter } }
-}
-
-// An attribute setter. Sets the value on the specified attribute
-pub trait AttributeSetter {
-    /// Sets the attribute on the specified node
-    fn set(&mut self, node_id: &NodeId, attribute_id: AttributeId, data_value: DataValue) -> Result<(), StatusCode>;
 }
 
 /// An implementation of attribute setter that can be easily constructed using a mutable function
@@ -133,8 +110,10 @@ pub mod data_type;
 pub mod view;
 mod references;
 
-#[cfg(feature = "generated-address-space")] mod generated;
-#[cfg(feature = "generated-address-space")] mod method_impls;
+#[cfg(feature = "generated-address-space")]
+mod generated;
+#[cfg(feature = "generated-address-space")]
+mod method_impls;
 
 bitflags! {
     pub struct AccessLevel: u8 {

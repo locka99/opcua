@@ -4,11 +4,38 @@ use std::sync::{Arc, RwLock};
 
 use opcua_types::{
     NodeId,
+    DataValue,
+    AttributeId,
     status_code::StatusCode,
     service_types::{CallMethodRequest, CallMethodResult},
 };
 
 use crate::session::Session;
+
+/// An attribute getter trait is used to obtain the data value associated with the particular attribute id
+/// This allows server implementations to supply a value on demand, usually in response to a polling action
+/// such as a monitored item in a subscription.
+///
+/// `node_id` is the node to which the node belongs
+/// `attribute_id` is the attribute of the node to fetch a value for
+///
+/// Use `max_age` according to the OPC UA Part 4, Table 52 specification to determine how to return
+/// a value:
+///
+/// * 0 = a new value
+/// * time in ms for a value less than the specified age
+/// * i32::max() or higher to fetch a cached value.
+///
+pub trait AttributeGetter {
+    /// Returns some datavalue or none
+    fn get(&mut self, node_id: &NodeId, attribute_id: AttributeId, max_age: f64) -> Result<Option<DataValue>, StatusCode>;
+}
+
+// An attribute setter. Sets the value on the specified attribute
+pub trait AttributeSetter {
+    /// Sets the attribute on the specified node
+    fn set(&mut self, node_id: &NodeId, attribute_id: AttributeId, data_value: DataValue) -> Result<(), StatusCode>;
+}
 
 /// Called by RegisterNodes service
 pub trait RegisterNodes {

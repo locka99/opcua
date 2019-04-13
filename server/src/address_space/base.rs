@@ -9,9 +9,9 @@ use opcua_types::{
     service_types::*,
 };
 
-use crate::address_space::{
-    {AttributeGetter, AttributeSetter},
-    node::Node,
+use crate::{
+    callbacks::{AttributeGetter, AttributeSetter},
+    address_space::node::Node,
 };
 
 // This should match size of AttributeId
