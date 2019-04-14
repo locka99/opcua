@@ -208,7 +208,7 @@ impl TcpTransport {
             }
         };
         assert_eq!(addr.port(), port);
-        assert!(addr.is_ipv4());
+
         // The connection will be serviced on its own thread. When the thread terminates, the connection
         // has also terminated.
 
