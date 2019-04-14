@@ -1,8 +1,9 @@
 #[macro_use]
 extern crate serde_derive;
 
-use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
+
+use clap;
 
 use serde_json;
 
@@ -64,6 +65,19 @@ fn ws_index(r: &HttpRequest<State>) -> Result<HttpResponse, Error> {
 }
 
 fn main() {
+    // Read command line arguments
+    let opcua_url = {
+        let m = clap::App::new("Web Client")
+            .arg(clap::Arg::with_name("url")
+                .long("url")
+                .help("Specify the OPC UA endpoint to connect to")
+                .takes_value(true)
+                .default_value("opc.tcp://localhost:4855")
+                .required(false))
+            .get_matches();
+        m.value_of("url").unwrap().to_string()
+    };
+
     // Optional - enable OPC UA logging
     opcua_console_logging::init();
 
@@ -73,7 +87,7 @@ fn main() {
     // Run opcua server (on this thread). Theoretically, every single web socket could have its own
     // client which might make more sense (possibly). This way allows them to share the connection,
     // and subscript their interest to it.
-    opcua_run();
+    opcua_run(opcua_url);
 }
 
 fn http_spawn() {
@@ -98,12 +112,15 @@ fn http_spawn() {
     });
 }
 
-fn opcua_run() {
-    // Use the sample client config to set up a client. The sample config has a number of named
-    // endpoints one of which is marked as the default.
-    let config_file = "../client.conf";
-    let mut client = Client::new(ClientConfig::load(&PathBuf::from(config_file)).unwrap());
-    if let Ok(session) = client.connect_to_endpoint_id(None) {
+fn opcua_run(opcua_url: String) {
+    // Make a client config
+    let mut client = ClientBuilder::new()
+        .application_name("WebSocketClient")
+        .application_uri("urn:WebSocketClient")
+        .trust_server_certs(true)
+        .client().unwrap();
+
+    if let Ok(session) = client.connect_to_endpoint((opcua_url.as_ref(), SecurityPolicy::None.to_str(), MessageSecurityMode::None, UserTokenPolicy::anonymous()), IdentityToken::Anonymous) {
         let result = subscription_loop(session);
         if let Err(result) = result {
             println!("ERROR: Got an error while performing action - {}", result);

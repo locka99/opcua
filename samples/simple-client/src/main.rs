@@ -28,8 +28,7 @@ fn main() {
     // Optional - enable OPC UA logging
     opcua_console_logging::init();
 
-    // Use the sample client config to set up a client. The sample config has a number of named
-    // endpoints one of which is marked as the default.
+    // Make the client configuration
     let mut client = ClientBuilder::new()
         .application_name("Simple Client")
         .application_uri("urn:SimpleClient")
