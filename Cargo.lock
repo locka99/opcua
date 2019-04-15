@@ -1443,6 +1443,7 @@ dependencies = [
 name = "opcua-web-client"
 version = "0.6.0"
 dependencies = [
+ "actix 0.7.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix-web 0.7.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-client 0.6.0",

@@ -5,41 +5,156 @@
     <title>Web Socket client</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 </head>
-<body>
+<body onload="open_websocket()">
+<style>
+    body {
+        font-family: "sans-serif;
+    }
+
+    form {
+        margin-bottom: 12px;
+    }
+
+    table {
+        border-collapse: collapse;
+    }
+
+    td, th {
+        border: 1px solid black;
+        padding: 0.5rem;
+    }
+
+    table.side_headings td, table.side_headings th {
+        text-align: left;
+    }
+
+    th {
+        background: lightblue;
+        font-weight: bold;
+    }
+</style>
 <script>
     // Open a web socket to the server
     var ws;
+    var change_map = {};
+
+    function open_websocket() {
+        ws = new WebSocket("ws://localhost:8686/ws/");
+        ws.onopen = function (e) {
+            //
+        };
+        ws.onmessage = function (e) {
+            handle_event(e.data);
+        };
+        ws.onerror = function (e) {
+            status("Error opening websocket");
+            $("#disconnect_btn").prop("disabled", true);
+            $("#subscribe_btn").prop("disabled", true);
+            $("#connect_btn").prop("disabled", true);
+        };
+    }
 
     function status(text) {
         $("#status").text(text);
     }
 
-    function connect() {
-        ws = new WebSocket("ws://localhost:8686/ws/");
-        ws.onopen = function (e) {
+    function connection_status_change(connected) {
+        if (connected) {
             status("Connected");
-            ws.send("subscribe");
-        };
+            $("#disconnect_btn").prop("disabled", false);
+            $("#subscribe_btn").prop("disabled", false);
+            $("#connect_btn").prop("disabled", true);
+        } else {
+            status("Disconnected");
+            $("#connect_btn").prop("disabled", false);
+            $("#disconnect_btn").prop("disabled", true);
+            $("#subscribe_btn").prop("disabled", true);
+        }
+    }
 
-        ws.onmessage = function (e) {
-
-        };
-
-        ws.onerror = function (e) {
-            status("Error");
-        };
+    function connect(opcua_url) {
+        ws.send(`connect ${opcua_url}`);
+        // TODO this should be notified by the websocket
+        connection_status_change(true);
     }
 
     function disconnect() {
-        ws.close();
-        status("Disconnected");
+        ws.send("disconnect");
+        // TODO this should be notified by the websocket
+        connection_status_change(false);
+    }
+
+    function subscribe(values) {
+        ws.send(`subscribe ${values}`);
+    }
+
+    function handle_event(e) {
+        let data = JSON.parse(e);
+        if (Array.isArray(data)) {
+            data.forEach(function (element) {
+                let value_obj = element.value.value;
+                let value = "";
+                if ("Int32" in value_obj) {
+                    value = value_obj.Int32;
+                } else if ("String" in value_obj) {
+                    value = value_obj.String.value;
+                } else if ("Double" in value_obj) {
+                    value = value_obj.Double;
+                } else if ("Boolean" in value_obj) {
+                    value = value_obj.Boolean;
+                }
+                change_map[element.node_id] = value;
+            });
+        }
+        $("#events").empty();
+
+        $("#events").append("<table id='values'><tr><th>Node Id</th><th>Value</th></tr></table>")
+        Object.entries(change_map).forEach(function (entry) {
+            let node_id = entry[0];
+            let value = entry[1];
+            $('#values > tbody:last-child').append(`<tr><td>${node_id}</td><td>${value}</td></tr>`);
+        });
+
     }
 </script>
 
-<button id="connect" onclick="connect()">Connect</button>
-<button id="disconnect" onclick="disconnect()">Disconnect</button>
+<h1>Connection</h1>
 
-<h2 id="status">Click to connect</h2>
+<p>Connect or disconnect from a url</p>
+
+<table>
+    <tr>
+        <td rowspan="2">
+            <form action="javascript:void(0);">
+                OPC UA Url:<br/>
+                <input id="opcua_url" value="opc.tcp://localhost:4855"/><br/>
+                Actions:<br/>
+                <button id="connect_btn" onclick="connect($('#opcua_url').val())">Connect</button>
+                <button id="disconnect_btn" disabled="disabled" onclick="disconnect()">Disconnect</button>
+            </form>
+        </td>
+        <th>Connection Status</th>
+    </tr>
+    <tr>
+        <td id="status">Click "Connect"</td>
+    </tr>
+</table>
+
+<h1>Subscriptions</h1>
+
+<p>You must be connected to subscribe to values</p>
+
+<form action="javascript:void(0);">
+    Node Ids:<br/>
+    <input id="subscribe_values" value="ns=2;s=v1,ns=2;s=v2,ns=2;s=v3,ns=2;s=v4"/><br/>
+    Actions:<br/>
+    <button id="subscribe_btn" disabled="disabled" onclick="subscribe($('#subscribe_values').val())">Subscribe to values
+    </button>
+</form>
+
+<div id="events">
+    <!-- Events are appended here -->
+</div>
 
 </body>
 </html>

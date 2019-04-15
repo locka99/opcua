@@ -1,56 +1,130 @@
 #[macro_use]
 extern crate serde_derive;
 
-use std::sync::{Arc, RwLock};
+use std::{
+    sync::{mpsc, Arc, RwLock},
+    time::{Duration, Instant},
+    str::FromStr,
+};
 
-use clap;
-
+use clap::{self, value_t_or_exit};
 use serde_json;
 
 use actix_web::{
     fs, http, ws,
     App, Error, HttpRequest, HttpResponse,
-    actix::{StreamHandler, Actor, ActorContext, Message},
+    actix::{StreamHandler, Actor, ActorContext, Message, Running, AsyncContext, Handler},
     server::HttpServer,
 };
 
 use opcua_client::prelude::*;
 
-struct State {
-    // TODO listeners are callbacks that will be told about data change notifications
-    pub listeners: Vec<DataChangeCallback>,
+fn main() {
+    // Read command line arguments
+    let matches = clap::App::new("Web Client")
+        .arg(clap::Arg::with_name("http-port")
+            .long("http-port")
+            .help("The port number that this web server will run from")
+            .default_value("8686")
+            .takes_value(true)
+            .required(false))
+        .get_matches();
+    let http_port = value_t_or_exit!(matches, "http-port", u16);
+
+    // Optional - enable OPC UA logging
+    opcua_console_logging::init();
+
+    // Run the http server
+    run_server(format!("127.0.0.1:{}", http_port));
 }
 
 #[derive(Serialize)]
-struct ChangeMessage {
-    pub id: ReadValueId,
+struct DataChangeEvent {
+    pub node_id: String,
+    pub attribute_id: u32,
     pub value: DataValue,
 }
 
-impl Message for ChangeMessage {
+impl Message for DataChangeEvent {
     type Result = ();
 }
 
-struct SubscriptionSession;
+#[derive(Message)]
+enum Event {
+    DataChangeEvent(Vec<DataChangeEvent>)
+}
 
-impl Actor for SubscriptionSession {
-    type Context = ws::WebsocketContext<Self, State>;
+const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
+const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// This is an Actix actor. The fields are the state maintained by the actor
+struct OPCUASession {
+    /// Last ping received from client
+    hb: Instant,
+    /// The OPC UA client
+    client: Client,
+    /// The OPC UA session
+    session: Option<Arc<RwLock<Session>>>,
+    /// A sender that the session can use to terminate the corresponding OPC UA session
+    session_tx: Option<mpsc::Sender<SessionCommand>>,
+}
+
+impl Actor for OPCUASession {
+    type Context = ws::WebsocketContext<Self, HttpServerState>;
 
     /// Method is called on actor start. We start the heartbeat process here.
-    fn started(&mut self, _ctx: &mut Self::Context) {}
+    fn started(&mut self, ctx: &mut Self::Context) {
+        // Heartbeat
+        self.hb(ctx);
+    }
+
+    fn stopping(&mut self, ctx: &mut Self::Context) -> Running {
+        // Stop the OPC UA session
+        self.disconnect(ctx);
+        Running::Stop
+    }
+}
+
+/// Handle messages from chat server, we simply send it to peer websocket
+impl Handler<Event> for OPCUASession {
+    type Result = ();
+
+    fn handle(&mut self, msg: Event, ctx: &mut Self::Context) {
+        // This is where we receive OPC UA events. It is here they are turned into JSON
+        // and sent to the attached web socket.
+        match msg {
+            Event::DataChangeEvent(ref changes) => {
+                ctx.text(serde_json::to_string(changes).unwrap())
+            }
+        }
+    }
 }
 
 /// Handler for `ws::Message`
-impl StreamHandler<ws::Message, ws::ProtocolError> for SubscriptionSession {
+impl StreamHandler<ws::Message, ws::ProtocolError> for OPCUASession {
     fn handle(&mut self, msg: ws::Message, ctx: &mut Self::Context) {
         // process websocket messages
         println!("WS: {:?}", msg);
         match msg {
             ws::Message::Ping(msg) => {
+                self.hb = Instant::now();
                 ctx.pong(&msg);
             }
-            ws::Message::Pong(_) => {}
-            ws::Message::Text(text) => ctx.text(text),
+            ws::Message::Pong(_) => {
+                self.hb = Instant::now();
+            }
+            ws::Message::Text(msg) => {
+                let msg = msg.trim();
+                if msg.starts_with("connect ") {
+                    self.connect(ctx, &msg[8..]);
+                } else if msg.eq("disconnect") {
+                    self.disconnect(ctx);
+                } else if msg.starts_with("subscribe ") {
+                    // Node ids are comma separated
+                    let node_ids: Vec<String> = msg[10..].split(",").map(|s| s.to_string()).collect();
+                    self.subscribe(ctx, node_ids);
+                }
+            }
             ws::Message::Binary(bin) => ctx.binary(bin),
             ws::Message::Close(_) => {
                 ctx.stop();
@@ -59,121 +133,128 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for SubscriptionSession {
     }
 }
 
-fn ws_index(r: &HttpRequest<State>) -> Result<HttpResponse, Error> {
-    // TODO new websocket needs a clone of
-    ws::start(r, SubscriptionSession {})
+impl OPCUASession {
+    fn hb(&self, ctx: &mut <Self as Actor>::Context) {
+        // Run a ping-pong timer
+        ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
+            if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
+                ctx.stop();
+            } else {
+                ctx.ping("");
+            }
+        });
+    }
+
+    fn connect(&mut self, ctx: &mut <Self as Actor>::Context, opcua_url: &str) {
+        self.disconnect(ctx);
+        match self.client.connect_to_endpoint((opcua_url, SecurityPolicy::None.to_str(), MessageSecurityMode::None, UserTokenPolicy::anonymous()), IdentityToken::Anonymous) {
+            Ok(session) => {
+                self.session = Some(session);
+            }
+            Err(err) => {
+                println!("ERROR: Got an error while trying to connect to session - {}", err);
+            }
+        }
+    }
+
+    fn disconnect(&mut self, _ctx: &mut <Self as Actor>::Context) {
+        if let Some(ref mut session) = self.session {
+            let mut session = session.write().unwrap();
+            if session.is_connected() {
+                session.disconnect();
+            }
+        }
+        if let Some(ref tx) = self.session_tx {
+            let _ = tx.send(SessionCommand::Stop);
+        }
+        self.session = None;
+        self.session_tx = None;
+    }
+
+    fn subscribe(&mut self, ctx: &mut <Self as Actor>::Context, node_ids: Vec<String>) {
+        if let Some(ref mut session) = self.session {
+            // Create a subscription
+            println!("Creating subscription");
+
+            // This scope is important - we don't want to session to be locked when the code hits the
+            // loop below
+            {
+                let mut session = session.write().unwrap();
+
+                // Print out changes to connection status
+                session.set_connection_status_callback(ConnectionStatusCallback::new(|connected| {
+                    println!("Connection status has changed to {}", if connected { "connected" } else { "disconnected" });
+                }));
+
+                session.set_session_closed_callback(SessionClosedCallback::new(|status| {
+                    println!("Session has been closed, status = {}", status);
+                }));
+
+                // Creates our subscription
+                let addr = ctx.address();
+                let subscription_id = session.create_subscription(500.0, 10, 30, 0, 0, true, DataChangeCallback::new(move |items| {
+                    // Changes will be turned into a list of change events that sent to corresponding
+                    // web socket to be sent to the client.
+                    let changes = items.iter().map(|item| {
+                        let item_to_monitor = item.item_to_monitor();
+                        DataChangeEvent {
+                            node_id: item_to_monitor.node_id.clone().into(),
+                            attribute_id: item_to_monitor.attribute_id,
+                            value: item.value().clone(),
+                        }
+                    }).collect::<Vec<_>>();
+
+                    // Send the changes to the websocket session
+                    addr.do_send(Event::DataChangeEvent(changes));
+                })).unwrap();
+                println!("Created a subscription with id = {}", subscription_id);
+                // Create some monitored items
+                let items_to_create: Vec<MonitoredItemCreateRequest> = node_ids.iter().map(|node_id| {
+                    let node_id = NodeId::from_str(node_id).unwrap(); // Trust client to not break this
+                    MonitoredItemCreateRequest::new(node_id.into(), MonitoringMode::Reporting, MonitoringParameters::default())
+                }).collect();
+                let _results = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create);
+            }
+        }
+
+        if self.session_tx.is_none() {
+            // Runs the session asynchronously.
+            self.session_tx = Some(Session::run_async(self.session.as_ref().unwrap().clone()));
+        }
+    }
 }
 
-fn main() {
-    // Read command line arguments
-    let opcua_url = {
-        let m = clap::App::new("Web Client")
-            .arg(clap::Arg::with_name("url")
-                .long("url")
-                .help("Specify the OPC UA endpoint to connect to")
-                .takes_value(true)
-                .default_value("opc.tcp://localhost:4855")
-                .required(false))
-            .get_matches();
-        m.value_of("url").unwrap().to_string()
-    };
-
-    // Optional - enable OPC UA logging
-    opcua_console_logging::init();
-
-    // Kick off http server on a separate thread
-    http_spawn();
-
-    // Run opcua server (on this thread). Theoretically, every single web socket could have its own
-    // client which might make more sense (possibly). This way allows them to share the connection,
-    // and subscript their interest to it.
-    opcua_run(opcua_url);
-}
-
-fn http_spawn() {
-    use std::thread;
-
-    let _ = thread::spawn(|| {
-        let base_path = "./html";
-        let address = "127.0.0.1:8686";
-        HttpServer::new(move || {
-            let state = State {
-                listeners: Vec::new(),
-            };
-            App::with_state(state)
-                // Websocket
-                .resource("/ws/", |r| r.method(http::Method::GET).f(ws_index))
-                // Static content
-                .handler("/", fs::StaticFiles::new(base_path.clone()).unwrap()
-                    .index_file("index.html"))
-        }).bind(address)
-            .unwrap()
-            .run();
-    });
-}
-
-fn opcua_run(opcua_url: String) {
-    // Make a client config
-    let mut client = ClientBuilder::new()
+/// Handler for creating a new websocket
+fn ws_create_request(r: &HttpRequest<HttpServerState>) -> Result<HttpResponse, Error> {
+    let client = ClientBuilder::new()
         .application_name("WebSocketClient")
         .application_uri("urn:WebSocketClient")
         .trust_server_certs(true)
         .client().unwrap();
 
-    if let Ok(session) = client.connect_to_endpoint((opcua_url.as_ref(), SecurityPolicy::None.to_str(), MessageSecurityMode::None, UserTokenPolicy::anonymous()), IdentityToken::Anonymous) {
-        let result = subscription_loop(session);
-        if let Err(result) = result {
-            println!("ERROR: Got an error while performing action - {}", result);
-        }
-    }
+    ws::start(r, OPCUASession {
+        hb: Instant::now(),
+        client,
+        session: None,
+        session_tx: None,
+    })
 }
 
-fn nodes_to_monitor() -> Vec<ReadValueId> {
-    vec![
-        ReadValueId::from(NodeId::new(2, "v1")),
-        ReadValueId::from(NodeId::new(2, "v2")),
-        ReadValueId::from(NodeId::new(2, "v3")),
-        ReadValueId::from(NodeId::new(2, "v4")),
-    ]
-}
+#[derive(Clone)]
+struct HttpServerState {}
 
-fn publish_changes(changes: Vec<ChangeMessage>) {
-    let changes = serde_json::to_string(&changes).unwrap();
-    // TODO here we go through every open web socket, publishing a change event
-    println!("publish_value: {}", changes);
-}
+fn run_server(address: String) {
+    let base_path = "./html";
 
-fn subscription_loop(session: Arc<RwLock<Session>>) -> Result<(), StatusCode> {
-    // Create a subscription
-    println!("Creating subscription");
-
-    // This scope is important - we don't want to session to be locked when the code hits the
-    // loop below
-    {
-        let mut session = session.write().unwrap();
-
-        // Creates our subscription
-        let subscription_id = session.create_subscription(2000.0, 10, 30, 0, 0, true, DataChangeCallback::new(|items| {
-            println!("Data change from server:");
-            publish_changes(items.iter().map(|item| {
-                ChangeMessage {
-                    id: item.item_to_monitor().clone(),
-                    value: item.value().clone(),
-                }
-            }).collect::<Vec<_>>());
-        }))?;
-        println!("Created a subscription with id = {}", subscription_id);
-
-        // Create some monitored items
-        let read_nodes = nodes_to_monitor();
-        let items_to_create: Vec<MonitoredItemCreateRequest> = read_nodes.into_iter().map(|read_node| {
-            MonitoredItemCreateRequest::new(read_node, MonitoringMode::Reporting, MonitoringParameters::default())
-        }).collect();
-        let _ = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create)?;
-    }
-
-    // Loops forever. The publish thread will call the callback with changes on the variables
-    let _ = Session::run(session);
-
-    Ok(())
+    HttpServer::new(move || {
+        let state = HttpServerState {};
+        App::with_state(state)
+            // Websocket
+            .resource("/ws/", |r| r.method(http::Method::GET).f(ws_create_request))
+            // Static content
+            .handler("/", fs::StaticFiles::new(base_path.clone()).unwrap()
+                .index_file("index.html"))
+    }).bind(address)
+        .unwrap()
+        .run();
 }

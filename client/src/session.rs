@@ -78,6 +78,12 @@ impl Into<SessionInfo> for (EndpointDescription, client::IdentityToken) {
     }
 }
 
+/// A `Session` runs in a loop, which can be terminated by sending it a `SessionCommand`.
+pub enum SessionCommand {
+    /// Stop running as soon as possible
+    Stop
+}
+
 /// A session of the client. The session is associated with an endpoint and maintains a state
 /// when it is active. The `Session` struct provides functions for all the supported
 /// request types in the API.
@@ -467,7 +473,7 @@ impl Session {
     /// connection errors. The run command will break if the session is disconnected
     /// and cannot be reestablished.
     ///
-    /// The `run()` function returns a `Sender` that can be used to send a `()` message to the session
+    /// The `run()` function returns a `Sender` that can be used to send a message to the session
     /// to cause it to terminate.
     ///
     /// # Arguments
@@ -476,10 +482,10 @@ impl Session {
     ///
     /// # Returns
     ///
-    /// * `mpsc::Sender<()>` - A sender that allows the caller to send a single unity message to the
-    ///                        run loop to cause it to abort.
+    /// * `mpsc::Sender<ClientCommand>` - A sender that allows the caller to send a message to the
+    ///                        run loop to cause it to stop.
     ///
-    pub fn run(session: Arc<RwLock<Session>>) -> mpsc::Sender<()> {
+    pub fn run(session: Arc<RwLock<Session>>) -> mpsc::Sender<SessionCommand> {
         let (tx, rx) = mpsc::channel();
         Self::run_loop(session, Self::POLL_SLEEP_INTERVAL, rx);
         tx
@@ -492,7 +498,7 @@ impl Session {
     ///
     /// The session runs on a separate thread so the call will return immediately.
     ///
-    /// The `run()` function returns a `Sender` that can be used to send a `()` message to the session
+    /// The `run()` function returns a `Sender` that can be used to send a message to the session
     /// to cause it to terminate.
     ///
     /// # Arguments
@@ -501,10 +507,10 @@ impl Session {
     ///
     /// # Returns
     ///
-    /// * `mpsc::Sender<()>` - A sender that allows the caller to send a single unity message to the
-    ///                        run loop to cause it to abort.
+    /// * `mpsc::Sender<ClientCommand>` - A sender that allows the caller to send a message to the
+    ///                        run loop to cause it to stop.
     ///
-    pub fn run_async(session: Arc<RwLock<Session>>) -> mpsc::Sender<()> {
+    pub fn run_async(session: Arc<RwLock<Session>>) -> mpsc::Sender<SessionCommand> {
         let (tx, rx) = mpsc::channel();
         thread::spawn(move || {
             Self::run_loop(session, Self::POLL_SLEEP_INTERVAL, rx)
@@ -514,7 +520,7 @@ impl Session {
 
     /// The main running loop for a session. This is used by `run()` and `run_async()` to run
     /// continuously until a signal is received to terminate.
-    fn run_loop(session: Arc<RwLock<Session>>, sleep_interval: u64, rx: mpsc::Receiver<()>) {
+    fn run_loop(session: Arc<RwLock<Session>>, sleep_interval: u64, rx: mpsc::Receiver<SessionCommand>) {
         loop {
             // Main thread has nothing to do - just wait for publish events to roll in
             let mut session = session.write().unwrap();
