@@ -8,7 +8,7 @@
 <body onload="open_websocket()">
 <style>
     body {
-        font-family: "sans-serif;
+        font-family: sans-serif;
     }
 
     form {
@@ -89,31 +89,36 @@
     }
 
     function handle_event(e) {
-        let data = JSON.parse(e);
-        if (Array.isArray(data)) {
-            data.forEach(function (element) {
-                let value_obj = element.value.value;
-                let value = "";
-                if ("Int32" in value_obj) {
-                    value = value_obj.Int32;
-                } else if ("String" in value_obj) {
-                    value = value_obj.String.value;
-                } else if ("Double" in value_obj) {
-                    value = value_obj.Double;
-                } else if ("Boolean" in value_obj) {
-                    value = value_obj.Boolean;
-                }
-                change_map[element.node_id] = value;
-            });
-        }
-        $("#events").empty();
+        let msg = JSON.parse(e);
+        if ("DataChangeEvent" in msg) {
+            let data = msg.DataChangeEvent;
+            if (Array.isArray(data)) {
+                data.forEach(function (element) {
+                    let value_obj = element.value.value;
+                    let value = "";
+                    if ("Int32" in value_obj) {
+                        value = value_obj.Int32;
+                    } else if ("String" in value_obj) {
+                        value = value_obj.String.value;
+                    } else if ("Double" in value_obj) {
+                        value = value_obj.Double;
+                    } else if ("Boolean" in value_obj) {
+                        value = value_obj.Boolean;
+                    }
+                    change_map[element.node_id] = value;
+                });
+            }
+            $("#events").empty();
 
-        $("#events").append("<table id='values'><tr><th>Node Id</th><th>Value</th></tr></table>")
-        Object.entries(change_map).forEach(function (entry) {
-            let node_id = entry[0];
-            let value = entry[1];
-            $('#values > tbody:last-child').append(`<tr><td>${node_id}</td><td>${value}</td></tr>`);
-        });
+            $("#events").append("<table id='values'><tr><th>Node Id</th><th>Value</th></tr></table>")
+            Object.entries(change_map).forEach(function (entry) {
+                let node_id = entry[0];
+                let value = entry[1];
+                $('#values > tbody:last-child').append(`<tr><td>${node_id}</td><td>${value}</td></tr>`);
+            });
+        } else if ("ConnectionStatusChangeEvent" in msg) {
+            connection_status_change(e.ConnectionStatusChangeEvent);
+        }
 
     }
 </script>

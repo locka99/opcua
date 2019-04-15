@@ -49,9 +49,10 @@ impl Message for DataChangeEvent {
     type Result = ();
 }
 
-#[derive(Message)]
+#[derive(Serialize, Message)]
 enum Event {
-    DataChangeEvent(Vec<DataChangeEvent>)
+    ConnectionStatusChangeEvent(bool),
+    DataChangeEvent(Vec<DataChangeEvent>),
 }
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
@@ -92,11 +93,7 @@ impl Handler<Event> for OPCUASession {
     fn handle(&mut self, msg: Event, ctx: &mut Self::Context) {
         // This is where we receive OPC UA events. It is here they are turned into JSON
         // and sent to the attached web socket.
-        match msg {
-            Event::DataChangeEvent(ref changes) => {
-                ctx.text(serde_json::to_string(changes).unwrap())
-            }
-        }
+        ctx.text(serde_json::to_string(&msg).unwrap())
     }
 }
 
@@ -182,8 +179,10 @@ impl OPCUASession {
                 let mut session = session.write().unwrap();
 
                 // Print out changes to connection status
-                session.set_connection_status_callback(ConnectionStatusCallback::new(|connected| {
+                let addr_for_connection_status_change = ctx.address();
+                session.set_connection_status_callback(ConnectionStatusCallback::new(move |connected| {
                     println!("Connection status has changed to {}", if connected { "connected" } else { "disconnected" });
+                    addr_for_connection_status_change.do_send(Event::ConnectionStatusChangeEvent(connected));
                 }));
 
                 session.set_session_closed_callback(SessionClosedCallback::new(|status| {
@@ -191,7 +190,7 @@ impl OPCUASession {
                 }));
 
                 // Creates our subscription
-                let addr = ctx.address();
+                let addr_for_datachange = ctx.address();
                 let subscription_id = session.create_subscription(500.0, 10, 30, 0, 0, true, DataChangeCallback::new(move |items| {
                     // Changes will be turned into a list of change events that sent to corresponding
                     // web socket to be sent to the client.
@@ -205,7 +204,7 @@ impl OPCUASession {
                     }).collect::<Vec<_>>();
 
                     // Send the changes to the websocket session
-                    addr.do_send(Event::DataChangeEvent(changes));
+                    addr_for_datachange.do_send(Event::DataChangeEvent(changes));
                 })).unwrap();
                 println!("Created a subscription with id = {}", subscription_id);
                 // Create some monitored items
