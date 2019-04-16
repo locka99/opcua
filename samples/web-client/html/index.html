@@ -47,7 +47,7 @@
             handle_event(e.data);
         };
         ws.onerror = function (e) {
-            status("Error opening websocket");
+            status("Websocket Error");
             $("#disconnect_btn").prop("disabled", true);
             $("#subscribe_btn").prop("disabled", true);
             $("#connect_btn").prop("disabled", true);
@@ -73,15 +73,12 @@
     }
 
     function connect(opcua_url) {
+        $("#connect_btn").prop("disabled", true);
         ws.send(`connect ${opcua_url}`);
-        // TODO this should be notified by the websocket
-        connection_status_change(true);
     }
 
     function disconnect() {
         ws.send("disconnect");
-        // TODO this should be notified by the websocket
-        connection_status_change(false);
     }
 
     function subscribe(values) {
@@ -117,7 +114,7 @@
                 $('#values > tbody:last-child').append(`<tr><td>${node_id}</td><td>${value}</td></tr>`);
             });
         } else if ("ConnectionStatusChangeEvent" in msg) {
-            connection_status_change(e.ConnectionStatusChangeEvent);
+            connection_status_change(msg.ConnectionStatusChangeEvent);
         }
 
     }

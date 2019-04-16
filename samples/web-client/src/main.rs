@@ -93,6 +93,10 @@ impl Handler<Event> for OPCUASession {
     fn handle(&mut self, msg: Event, ctx: &mut Self::Context) {
         // This is where we receive OPC UA events. It is here they are turned into JSON
         // and sent to the attached web socket.
+        println!("Received event {}", match &msg {
+            Event::ConnectionStatusChangeEvent(ref connected) => format!("ConnectionStatusChangeEvent({})", connected),
+            Event::DataChangeEvent(_) => "DataChangeEvent".to_string()
+        });
         ctx.text(serde_json::to_string(&msg).unwrap())
     }
 }
@@ -144,14 +148,30 @@ impl OPCUASession {
 
     fn connect(&mut self, ctx: &mut <Self as Actor>::Context, opcua_url: &str) {
         self.disconnect(ctx);
-        match self.client.connect_to_endpoint((opcua_url, SecurityPolicy::None.to_str(), MessageSecurityMode::None, UserTokenPolicy::anonymous()), IdentityToken::Anonymous) {
+
+        let addr = ctx.address();
+        let connected = match self.client.connect_to_endpoint((opcua_url, SecurityPolicy::None.to_str(), MessageSecurityMode::None, UserTokenPolicy::anonymous()), IdentityToken::Anonymous) {
             Ok(session) => {
+                {
+                    let mut session = session.write().unwrap();
+                    let addr_for_connection_status_change = addr.clone();
+                    session.set_connection_status_callback(ConnectionStatusCallback::new(move |connected| {
+                        println!("Connection status has changed to {}", if connected { "connected" } else { "disconnected" });
+                        addr_for_connection_status_change.do_send(Event::ConnectionStatusChangeEvent(connected));
+                    }));
+                    session.set_session_closed_callback(SessionClosedCallback::new(|status| {
+                        println!("Session has been closed, status = {}", status);
+                    }));
+                }
                 self.session = Some(session);
+                true
             }
             Err(err) => {
                 println!("ERROR: Got an error while trying to connect to session - {}", err);
+                false
             }
-        }
+        };
+        addr.do_send(Event::ConnectionStatusChangeEvent(connected));
     }
 
     fn disconnect(&mut self, _ctx: &mut <Self as Actor>::Context) {
@@ -177,17 +197,6 @@ impl OPCUASession {
             // loop below
             {
                 let mut session = session.write().unwrap();
-
-                // Print out changes to connection status
-                let addr_for_connection_status_change = ctx.address();
-                session.set_connection_status_callback(ConnectionStatusCallback::new(move |connected| {
-                    println!("Connection status has changed to {}", if connected { "connected" } else { "disconnected" });
-                    addr_for_connection_status_change.do_send(Event::ConnectionStatusChangeEvent(connected));
-                }));
-
-                session.set_session_closed_callback(SessionClosedCallback::new(|status| {
-                    println!("Session has been closed, status = {}", status);
-                }));
 
                 // Creates our subscription
                 let addr_for_datachange = ctx.address();
@@ -229,6 +238,7 @@ fn ws_create_request(r: &HttpRequest<HttpServerState>) -> Result<HttpResponse, E
         .application_name("WebSocketClient")
         .application_uri("urn:WebSocketClient")
         .trust_server_certs(true)
+        .create_sample_keypair(true)
         .client().unwrap();
 
     ws::start(r, OPCUASession {
