@@ -41,6 +41,15 @@ pub(crate) struct Subscriptions {
     retransmission_queue: BTreeMap<(u32, u32), NotificationMessage>,
 }
 
+#[derive(Serialize)]
+pub struct Metrics {
+    pub subscriptions: Vec<Subscription>,
+    pub publish_request_queue_len: usize,
+    pub publish_response_queue_len: usize,
+    pub transmission_queue_len: usize,
+    pub retransmission_queue_len: usize,
+}
+
 impl Subscriptions {
     pub fn new(max_subscriptions: usize, publish_request_timeout: i64) -> Subscriptions {
         let max_publish_requests = if max_subscriptions > 0 { 2 * max_subscriptions } else { 100 };
@@ -51,6 +60,22 @@ impl Subscriptions {
             subscriptions: BTreeMap::new(),
             transmission_queue: VecDeque::with_capacity(max_publish_requests),
             retransmission_queue: BTreeMap::new(),
+        }
+    }
+
+    pub(crate) fn metrics(&self) -> Metrics {
+        // Subscriptions
+        let subscriptions = self.subscriptions().iter().map(|subscription_pair| {
+            let mut subscription = subscription_pair.1.clone();
+            subscription.set_diagnostics_on_drop(false);
+            subscription
+        }).collect();
+        Metrics {
+            subscriptions,
+            publish_request_queue_len: self.publish_request_queue.len(),
+            publish_response_queue_len: self.publish_response_queue.len(),
+            transmission_queue_len: self.transmission_queue.len(),
+            retransmission_queue_len: self.retransmission_queue.len(),
         }
     }
 

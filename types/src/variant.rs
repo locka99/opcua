@@ -326,20 +326,18 @@ pub enum Variant {
     ExtensionObject(Box<ExtensionObject>),
     /// DataValue (boxed because a DataValue itself holds a Variant)
     DataValue(Box<DataValue>),
-    /// Single dimension array
-    /// A variant can be an array of other kinds (all of which must be the same type), second argument is the dimensions of the
-    /// array which should match the array length, otherwise BadDecodingError
+    /// Single dimension array which can contain any scalar type, all the same type. Nested
+    /// arrays will be rejected.
     Array(Vec<Variant>),
-    /// Multi dimension array
-    /// A variant can be an array of other kinds (all of which must be the same type), second argument is the dimensions of the
-    /// array which should match the array length, otherwise BadDecodingError
-    /// Higher rank dimensions are serialized first. For example an array with dimensions [2,2,2] is written in this order:
-    /// [0,0,0], [0,0,1], [0,1,0], [0,1,1], [1,0,0], [1,0,1], [1,1,0], [1,1,1]
+    /// Multi dimension array which can contain any scalar type, all the same type. Nested
+    /// arrays are rejected. Higher rank dimensions are serialized first. For example an array
+    /// with dimensions [2,2,2] is written in this order - [0,0,0], [0,0,1], [0,1,0], [0,1,1],
+    /// [1,0,0], [1,0,1], [1,1,0], [1,1,1].
     MultiDimensionArray(Box<MultiDimensionArray>),
 }
 
 /// Tests that the variants in the slice all have the same variant type
-fn array_is_same_type(values: &[Variant], numeric_only: bool) -> bool {
+fn array_is_valid(values: &[Variant], numeric_only: bool) -> bool {
     if values.is_empty() {
         true
     } else {
@@ -370,7 +368,7 @@ fn array_is_same_type(values: &[Variant], numeric_only: bool) -> bool {
 
 /// A multi dimensional array is a vector of values, followed by a vector of sizes of each dimension.
 /// It is expected that the multi-dimensional array is valid, or it might not be encoded or decoded
-/// properly.
+/// properly. The dimensions should match the number of values, or the array is invalid.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MultiDimensionArray {
     pub values: Vec<Variant>,
@@ -387,7 +385,7 @@ impl MultiDimensionArray {
     }
 
     pub fn is_valid(&self) -> bool {
-        self.is_valid_dimensions() && array_is_same_type(&self.values, false)
+        self.is_valid_dimensions() && array_is_valid(&self.values, false)
     }
 
     fn is_valid_dimensions(&self) -> bool {
@@ -798,10 +796,10 @@ impl Variant {
         // A non-numeric value in the array means it is not numeric
         match *self {
             Variant::Array(ref values) => {
-                array_is_same_type(values, true)
+                array_is_valid(values, true)
             }
             Variant::MultiDimensionArray(ref mda) => {
-                array_is_same_type(&mda.values, true)
+                array_is_valid(&mda.values, true)
             }
             _ => {
                 false
@@ -815,7 +813,7 @@ impl Variant {
     pub fn is_valid(&self) -> bool {
         match *self {
             Variant::Array(ref values) => {
-                array_is_same_type(values, false)
+                array_is_valid(values, false)
             }
             Variant::MultiDimensionArray(ref mda) => {
                 mda.is_valid()

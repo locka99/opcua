@@ -7,10 +7,10 @@ use opcua_types::DateTime;
 use crate::{
     comms::transport::Transport,
     config,
-    server,
-    subscriptions::subscription::Subscription,
     diagnostics::ServerDiagnostics,
+    server,
     state::ServerState,
+    subscriptions::subscriptions::{self},
 };
 
 #[derive(Serialize)]
@@ -38,7 +38,7 @@ pub struct Connection {
     pub session_activated: bool,
     pub session_terminated: bool,
     pub session_terminated_at: String,
-    pub subscriptions: Vec<Subscription>,
+    pub subscriptions: subscriptions::Metrics,
 }
 
 impl ServerMetrics {
@@ -99,13 +99,6 @@ impl ServerMetrics {
             let session = connection.session();
             let session = trace_read_lock_unwrap!(session);
 
-            // Subscriptions
-            let subscriptions = session.subscriptions.subscriptions().iter().map(|subscription_pair| {
-                let mut subscription = subscription_pair.1.clone();
-                subscription.set_diagnostics_on_drop(false);
-                subscription
-            }).collect();
-
             // session.subscriptions.iterate ...
             let session_id = session.session_id.to_string();
             Connection {
@@ -125,7 +118,7 @@ impl ServerMetrics {
                 } else {
                     String::new()
                 },
-                subscriptions,
+                subscriptions: session.subscriptions.metrics(),
             }
         }).collect();
     }

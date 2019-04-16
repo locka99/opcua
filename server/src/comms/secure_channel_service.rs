@@ -11,9 +11,9 @@ use opcua_core::crypto::SecurityPolicy;
 
 struct SecureChannelState {
     // Issued flag
-    pub issued: bool,
+    issued: bool,
     // Renew count, debugging
-    pub renew_count: usize,
+    renew_count: usize,
     // Last secure channel id
     last_secure_channel_id: u32,
     /// Last token id number

@@ -14,19 +14,21 @@ Planned future work is listed at the bottom.
   - Client API has been simplified for ad hoc connections and now has more documentation.
   - Client API will reconnect and restore subscriptions after a disconnect from a server. Reconnection is 
     controlled by a session retry policy.
+  - Improved subscription & monitored item behaviour in server, e.g. notifications are acknowledged upon
+    receiving a publish request (per spec) instead of later so clients complaining about available
+    notifications they've already acknowledged. 
   - TranslateBrowsePathsToNodeIds service has been fixed
-  - Subscription / monitored item bugfixes in server
   - AddNodes, AddReferences, DeleteNodes and DeleteReferences added to the Node Management service set. Note
     that the server config / builder must set `clients_can_modify_address_space` to be true or these will return an 
     error. Only minimal model constraint checking is performed.
-  - RegisterNodes and UnregisterNodes added to View service set. Servers must register callbacks for these
+  - RegisterNodes and UnregisterNodes added to View service set. Servers must implement callbacks for these
     to do anything.
   - SetTriggering and SetMonitoringMode added to the Monitored Item service set
   - TransferSubscriptions service is implemented as a stub. Most clients will see the error response and failover
     to manually reconstructing their subscription state.
-  - New `web-client` code which demonstrates an OPCUA client that serves streaming data over a websocket. Reconnection
-    policy allows number of tries and try interval to be configured.
-  - `vendored-openssl` feature to support static linking to OpenSSL (see [setup](./docs/setup.md) documentation.
+  - New `web-client` sample is a OPCUA client that provides a simple websocket connect/disconnect/subscribe interface that
+    streams notifications to a browser.
+  - Support `vendored-openssl` feature of OpenSSL (see [setup](./docs/setup.md) documentation.
 
 ## 0.5
   - Tokio codec - use a codec and frame reader to read message chunks.
@@ -136,10 +138,11 @@ Planned future work is listed at the bottom.
   
   - Session restore after disconnect in server. The server has to stash sessions that were 
     abnormally disconnected so the session state can be restored if a new connection provides the token.
-  - UserNameIdentityToken wit encrypted password support. Plaintext password is already supported
+  - UserNameIdentityToken with encrypted password support. Plaintext password is already supported
   - X509IdentityToken support 
   - Integration tests are broken and need to be fixed
   - More control over limits on the server - number of subscriptions, monitored items, sessions
+  - Multiple chunk support
   
 ## Longer term
   
@@ -152,5 +155,5 @@ ASPIRATIONAL - a short list of things that would be nice to implement in the fut
     dependent on OpenSSL until a drop-in replacement appears - need something which can generate, read and write X509
     certs, private keys and their corresponding .der, .pem file formats.
   - Tokio codec - use a codec and frame writer to write message chunks
-  - Tokio/Futures/`async`/`await` - Rust 2018 will gain new async functionality soon and at some point the code will have to update
-    to use it.
+  - Tokio/Futures/`async`/`await` - Rust 2018 will implement new async functionality over time
+    and this project will reflect best practice.
