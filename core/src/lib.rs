@@ -7,10 +7,8 @@ extern crate log;
 extern crate tempdir;
 #[macro_use]
 extern crate serde_derive;
-
-pub mod comms;
-pub mod crypto;
-pub mod handle;
+#[macro_use]
+extern crate lazy_static;
 
 // A convenience macro for deadlocks.
 
@@ -53,6 +51,43 @@ macro_rules! trace_write_lock_unwrap {
 //            trace!("Thread {:?}, {} write lock completed", thread::current().id(), stringify!($x));
             v
         }
+    }
+}
+
+
+#[macro_export]
+lazy_static! {
+    pub static ref RUNTIME: crate::runtime::Runtime = crate::runtime::Runtime::default();
+}
+
+/// Returns a vector of all currently existing runtime components as a vector of strings.
+#[macro_export]
+macro_rules! runtime_components {
+    () => {
+        {
+            use opcua_core::RUNTIME;
+            RUNTIME.components()
+        }
+    }
+}
+
+/// This macro is for debugging purposes - code register a running component (e.g. tokio task) when it starts
+/// and calls the corresponding deregister macro when it finishes. This enables the code to print
+/// out a list of components in existence at any time to ensure they were properly cleaned up.
+#[macro_export]
+macro_rules! register_runtime_component {
+    ( $component_name:expr ) => {
+        use opcua_core::RUNTIME;
+        RUNTIME.register_component($component_name);
+    }
+}
+
+/// See `register_runtime_component`
+#[macro_export]
+macro_rules! deregister_runtime_component {
+    ( $component_name:expr ) => {
+        use opcua_core::RUNTIME;
+        RUNTIME.deregister_component($component_name);
     }
 }
 
@@ -99,7 +134,11 @@ pub mod debug {
 #[cfg(test)]
 mod tests;
 
+pub mod comms;
 pub mod config;
+pub mod crypto;
+pub mod handle;
+pub mod runtime;
 
 /// Contains most of the things that are typically required from a client / server.
 pub mod prelude {

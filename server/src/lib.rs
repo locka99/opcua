@@ -35,41 +35,6 @@ extern crate serde_derive;
 #[macro_use]
 extern crate opcua_core;
 
-lazy_static! {
-    static ref RUNTIME: diagnostics::Runtime = diagnostics::Runtime::default();
-}
-
-/// Returns a vector of all currently existing runtime components as a vector of strings.
-#[macro_export]
-macro_rules! runtime_components {
-    () => {
-        {
-            use crate::RUNTIME;
-            RUNTIME.components()
-        }
-    }
-}
-
-/// This macro is for debugging purposes - code register a running component (e.g. tokio task) when it starts
-/// and calls the corresponding deregister macro when it finishes. This enables the code to print
-/// out a list of components in existence at any time to ensure they were properly cleaned up.
-#[macro_export]
-macro_rules! register_runtime_component {
-    ( $component_name:expr ) => {
-        use crate::RUNTIME;
-        RUNTIME.register_component($component_name);
-    }
-}
-
-/// See `register_runtime_component`
-#[macro_export]
-macro_rules! deregister_runtime_component {
-    ( $component_name:expr ) => {
-        use crate::RUNTIME;
-        RUNTIME.deregister_component($component_name);
-    }
-}
-
 /// Returns true of the Option<Vec<Foo>> is None or the vec inside is empty. This is particularly
 /// used by services where the spec says "All Services with arrays of operations in the request
 /// shall return a bad code in the serviceResult if the array is empty."
