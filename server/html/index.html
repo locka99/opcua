@@ -4,37 +4,38 @@
     <meta charset="UTF-8">
     <title>Server Diagnostics</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+
+        td, th {
+            border: 1px solid black;
+            padding: 0.5rem;
+        }
+
+        table.side_headings td, table.side_headings th {
+            text-align: left;
+        }
+
+        th {
+            background: lightblue;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body onload="requestMetrics()">
-<style>
-    table {
-        border-collapse: collapse;
-    }
 
-    td, th {
-        border: 1px solid black;
-        padding: 0.5rem;
-    }
-
-    table.side_headings td, table.side_headings th {
-        text-align: left;
-    }
-
-    th {
-        background: lightblue;
-        font-weight: bold;
-    }
-</style>
 <script>
     function requestMetrics() {
         // JQuery request to "/server/metrics"
-        $.getJSON("/server/metrics").done(function (json) {
+        $.getJSON("/server/metrics").done(json => {
             fillMetrics(json);
         });
     }
 
     function abortServer() {
-        $.get("/server/abort").done(function (json) {
+        $.get("/server/abort").done(json => {
             alert("Server will be aborted (debug build only)")
         });
     }
@@ -113,44 +114,27 @@
         // diagnostic summary
         html += dump_diagnostics(json["diagnostics"]);
 
+        // runtime components
+        html += dump_runtime_components(json["runtime_components"]);
+
         // Sessions
         const connections = json["connections"];
         html += "<h1 class='connections'>Client connections</h1>";
         if (connections.length === 0) {
             html += "<p>No connections</p>";
         } else {
-            connections.forEach(function (connection) {
-                    html += dump_connection(connection);
-
-                    // Subscriptions
-                    const subscription_metrics = connection["subscriptions"];
-                    html += `<h2 class='subscriptions'>Subscriptions</h2>
-<table>
-    <tr><th>Publish Requests</th><td>${subscription_metrics.publish_request_queue_len}</td></tr>
-    <tr><th>Publish Responses</th><td>${subscription_metrics.publish_response_queue_len}</td></tr>
-    <tr><th>Transmission Queue</th><td>${subscription_metrics.transmission_queue_len}</td></tr>
-    <tr><th>Retransmission Queue</th><td>${subscription_metrics.retransmission_queue_len}</td></tr>
-</table>`
-
-                    const subscriptions = subscription_metrics["subscriptions"];
-                    if (subscriptions.length === 0) {
-                        html += `<p>No subscriptions</p>`;
-                    } else {
-                        subscriptions.forEach(function (subscription) {
-                            html += dump_subscription(subscription);
-                        });
-                    }
-                }
-            );
+            connections.forEach(connection => {
+                html += dump_connection(connection);
+            });
         }
         $("#metrics").html(html);
     }
 
     function msToTime(duration) {
-        var milliseconds = parseInt((duration % 1000) / 100);
-        var seconds = Math.floor((duration / 1000) % 60);
-        var minutes = Math.floor((duration / (1000 * 60)) % 60);
-        var hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+        let milliseconds = parseInt("" + (duration % 1000) / 100);
+        let seconds = Math.floor((duration / 1000) % 60);
+        let minutes = Math.floor((duration / (1000 * 60)) % 60);
+        let hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
 
         hours = (hours < 10) ? "0" + hours : hours;
         minutes = (minutes < 10) ? "0" + minutes : minutes;
@@ -172,14 +156,34 @@
     }
 
     function dump_connection(connection) {
-        return `<h2>Client "${connection["id"]}"</h2>
+        let html = `<h2>Client "${connection["id"]}"</h2>
 <table class="side_headings">
 <tr><th>Client address</th><td>${connection["client_address"]}</td></tr>
 <tr><th>Transport state</th><td>${connection["transport_state"]}</td></tr>
 <tr><th>Session activated</th><td>${connection["session_activated"]}</td></tr>
-<tr><th>Session terminated</th><td>${connection["session_terminated"]}</td></tr>
+<tr><th>Session terminated</th><td>${connection["session_terminated"]}</td></tr>function
 <tr><th>Session terminated at</th><td>${connection["session_terminated_at"]}</td></tr>
 </table>`;
+
+        // Subscriptions
+        const subscription_metrics = connection["subscriptions"];
+        html += `<h2 class='subscriptions'>Subscriptions</h2>
+<table>
+    <tr><th>Publish Requests</th><td>${subscription_metrics.publish_request_queue_len}</td></tr>
+    <tr><th>Publish Responses</th><td>${subscription_metrics.publish_response_queue_len}</td></tr>
+    <tr><th>Transmission Queue</th><td>${subscription_metrics.transmission_queue_len}</td></tr>
+    <tr><th>Retransmission Queue</th><td>${subscription_metrics.retransmission_queue_len}</td></tr>
+</table>`
+
+        const subscriptions = subscription_metrics["subscriptions"];
+        if (subscriptions.length === 0) {
+            html += `<p>No subscriptions</p>`;
+        } else {
+            subscriptions.forEach(subscription => {
+                html += dump_subscription(subscription);
+            });
+        }
+        return html;
     }
 
     function dump_subscription(subscription) {
@@ -220,7 +224,7 @@
 </tr>
 </thead>
 <tbody>`;
-        Object.keys(monitored_items).forEach(function (key) {
+        Object.keys(monitored_items).forEach(key => {
             const item = monitored_items[key];
             html += dump_monitored_item(item);
         });
@@ -252,12 +256,23 @@
 `;
     }
 
+    function dump_runtime_components(runtime_components) {
+        let html = `<h2 class='runtime_components_summary'>Runtime Summary</h2>
+<p>Represents tasks that are running.</p>
+`;
+        html += `<table>`;
+        runtime_components.forEach(component => {
+            html += `<tr><td>${component}</td></tr>`;
+        });
+        html += `</table>`;
+        return html;
+    }
+
     function dump_diagnostics(diagnostics) {
         const diagnostics_summary = diagnostics["server_diagnostics_summary"];
         return `<h2 class='diagnostic_summary'>Diagnostic Summary</h2>
 <table>
     <thead>
-        <tr></tr>
         <tr>
             <th colspan="6">Sessions</th>
             <th colspan="3">Subscriptions</th>
@@ -278,10 +293,10 @@
             <!-- Requests -->
             <th>Security Rejected</th>
             <th>Rejected</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
             <td>${diagnostics_summary["current_session_count"]}</td>
             <td>${diagnostics_summary["cumulated_session_count"]}</td>
             <td>${diagnostics_summary["security_rejected_session_count"]}</td>
@@ -293,10 +308,11 @@
             <td>${diagnostics_summary["publishing_interval_count"]}</td>
             <td>${diagnostics_summary["security_rejected_requests_count"]}</td>
             <td>${diagnostics_summary["rejected_requests_count"]}</td>
-        </tr>
-    </tbody>
-</table>
-            `;
+            </tr>
+            </tbody>
+            </table>
+            `
+            ;
     }
 
 </script>
