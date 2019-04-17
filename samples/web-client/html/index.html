@@ -90,7 +90,7 @@
         if ("DataChangeEvent" in msg) {
             let data = msg.DataChangeEvent;
             if (Array.isArray(data)) {
-                data.forEach(function (element) {
+                data.forEach(element => {
                     let value_obj = element.value.value;
                     let value = "";
                     if ("Int32" in value_obj) {
@@ -108,7 +108,7 @@
             $("#events").empty();
 
             $("#events").append("<table id='values'><tr><th>Node Id</th><th>Value</th></tr></table>")
-            Object.entries(change_map).forEach(function (entry) {
+            Object.entries(change_map).forEach(entry => {
                 let node_id = entry[0];
                 let value = entry[1];
                 $('#values > tbody:last-child').append(`<tr><td>${node_id}</td><td>${value}</td></tr>`);
