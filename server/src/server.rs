@@ -189,7 +189,19 @@ impl Server {
             let sock_addr = server.get_socket_address();
             let server_state = trace_read_lock_unwrap!(server.server_state);
             let config = trace_read_lock_unwrap!(server_state.config);
-            (sock_addr, config.discovery_server_url.clone())
+
+            // Discovery url must be present and valid
+            let discovery_server_url = if let Some(ref discovery_server_url) = config.discovery_server_url {
+                if is_valid_opc_ua_url(discovery_server_url) {
+                    Some(discovery_server_url.clone())
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
+            (sock_addr, discovery_server_url)
         };
 
         if sock_addr.is_none() {
@@ -402,7 +414,7 @@ impl Server {
                 .take_while(move |_| {
                     trace!("discovery_server_register.take_while");
                     let server_state = trace_read_lock_unwrap!(server_state_for_take);
-                    future::ok(!server_state.is_abort())
+                    future::ok(server_state.is_running() && !server_state.is_abort())
                 })
                 .for_each(move |_| {
                     // Test if registration needs to happen, i.e. if this is first time around,
@@ -410,12 +422,7 @@ impl Server {
                     trace!("discovery_server_register.for_each");
                     let now = Instant::now();
                     let mut last_registered = trace_lock_unwrap!(last_registered);
-                    let register_server = if now.duration_since(*last_registered) >= register_duration {
-                        true
-                    } else {
-                        false
-                    };
-                    if register_server {
+                    if now.duration_since(*last_registered) >= register_duration {
                         *last_registered = now;
                         // Even though the client uses tokio internally, the client's API is synchronous
                         // so the registration will happen on its own thread. The expectation is that

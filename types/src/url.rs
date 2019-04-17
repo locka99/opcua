@@ -80,6 +80,10 @@ pub fn server_url_from_endpoint_url(endpoint_url: &str) -> std::result::Result<S
     }
 }
 
+pub fn is_valid_opc_ua_url(url: &str) -> bool {
+    is_opc_ua_binary_url(url)
+}
+
 pub fn is_opc_ua_binary_url(url: &str) -> bool {
     if let Ok(url) = opc_url_from_str(url) {
         url.scheme() == OPC_TCP_SCHEME

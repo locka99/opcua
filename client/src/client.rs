@@ -10,7 +10,7 @@ use opcua_types::{
     },
     status_code::StatusCode,
     url::{
-        is_opc_ua_binary_url, server_url_from_endpoint_url, url_matches, url_matches_except_host,
+        is_valid_opc_ua_url, is_opc_ua_binary_url, server_url_from_endpoint_url, url_matches, url_matches_except_host,
         hostname_from_url, url_with_replaced_hostname,
     },
 };
@@ -168,8 +168,8 @@ impl Client {
 
         info!("Server has these endpoints:");
         endpoints.iter().for_each(|e| info!("  {} - {:?} / {:?}", e.endpoint_url,
-                                               SecurityPolicy::from_str(e.security_policy_uri.as_ref()).unwrap(),
-                                               e.security_mode));
+                                            SecurityPolicy::from_str(e.security_policy_uri.as_ref()).unwrap(),
+                                            e.security_mode));
 
         // Create a session to an endpoint. If an endpoint id is specified use that
         let session = if let Some(endpoint_id) = endpoint_id {
@@ -418,39 +418,47 @@ impl Client {
     pub fn register_server<T>(&mut self, discovery_endpoint_url: T,
                               server: RegisteredServer) -> Result<(), StatusCode>
         where T: Into<String> {
+
         let discovery_endpoint_url = discovery_endpoint_url.into();
-        // Get a list of endpoints from the discovery server
-        debug!("register_server({}, {:?}", discovery_endpoint_url, server);
-        let endpoints = self.get_server_endpoints_from_url(discovery_endpoint_url.clone())?;
-        if endpoints.is_empty() {
-            Err(StatusCode::BadUnexpectedError)
-        } else {
-            // Now choose the strongest endpoint to register through
-            if let Some(endpoint) = endpoints.iter()
-                .filter(|e| self.is_supported_endpoint(*e))
-                .max_by(|a, b| a.security_level.cmp(&b.security_level)) {
-                debug!("Registering this server via discovery endpoint {:?}", endpoint);
-                let session = self.new_session_from_info(endpoint.clone());
-                if let Ok(session) = session {
-                    let mut session = trace_write_lock_unwrap!(session);
-                    let connected = session.connect();
-                    if connected.is_ok() {
-                        // Register with the server
-                        let result = session.register_server(server);
-                        session.disconnect();
-                        result
+        if !is_valid_opc_ua_url(&discovery_endpoint_url) {
+            error!("Discovery endpoint url \"{}\" is not a valid OPC UA url", discovery_endpoint_url);
+            Err(StatusCode::BadTcpEndpointUrlInvalid)
+        }
+        else {
+            // Get a list of endpoints from the discovery server
+            debug!("register_server({}, {:?}", discovery_endpoint_url, server);
+            let endpoints = self.get_server_endpoints_from_url(discovery_endpoint_url.clone())?;
+            if endpoints.is_empty() {
+                Err(StatusCode::BadUnexpectedError)
+            } else {
+                // Now choose the strongest endpoint to register through
+                if let Some(endpoint) = endpoints.iter()
+                    .filter(|e| self.is_supported_endpoint(*e))
+                    .max_by(|a, b| a.security_level.cmp(&b.security_level)) {
+                    debug!("Registering this server via discovery endpoint {:?}", endpoint);
+                    let session = self.new_session_from_info(endpoint.clone());
+                    if let Ok(session) = session {
+                        let mut session = trace_write_lock_unwrap!(session);
+                        match session.connect() {
+                            Ok(_) => {
+                                // Register with the server
+                                let result = session.register_server(server);
+                                session.disconnect();
+                                result
+                            }
+                            Err(result) => {
+                                error!("Cannot connect to {} - check this error - {:?}", discovery_endpoint_url, result);
+                                Err(result)
+                            }
+                        }
                     } else {
-                        let result = connected.unwrap_err();
-                        error!("Cannot connect to {} - check this error - {:?}", discovery_endpoint_url, result);
-                        Err(result)
+                        error!("Cannot create a sesion to {} - check if url is malformed", discovery_endpoint_url);
+                        Err(StatusCode::BadUnexpectedError)
                     }
                 } else {
-                    error!("Cannot create a sesion to {} - check if url is malformed", discovery_endpoint_url);
+                    error!("Cannot find an endpoint that we call register server on");
                     Err(StatusCode::BadUnexpectedError)
                 }
-            } else {
-                error!("Cannot find an endpoint that we call register server on");
-                Err(StatusCode::BadUnexpectedError)
             }
         }
     }

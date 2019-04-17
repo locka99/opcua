@@ -85,8 +85,12 @@ impl SessionService {
             let response = if service_result.is_bad() {
                 self.service_fault(&request.request_header, service_result)
             } else {
-                let authentication_token = NodeId::new(0, ByteString::random(32));
-                let session_timeout = constants::SESSION_TIMEOUT;
+                let session_timeout = if request.requested_session_timeout > constants::MAX_SESSION_TIMEOUT {
+                    constants::MAX_SESSION_TIMEOUT
+                } else {
+                    request.requested_session_timeout
+                };
+
                 let max_request_message_size = constants::MAX_REQUEST_MESSAGE_SIZE;
 
                 // Calculate a signature (assuming there is a pkey)
@@ -95,8 +99,7 @@ impl SessionService {
                 } else {
                     SignatureData::null()
                 };
-
-                // Crypto
+                let authentication_token = NodeId::new(0, ByteString::random(32));
                 let server_nonce = security_policy.random_nonce();
                 let server_certificate = server_state.server_certificate_as_byte_string();
                 let server_endpoints = Some(endpoints);
