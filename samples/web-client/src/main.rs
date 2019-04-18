@@ -239,6 +239,7 @@ fn ws_create_request(r: &HttpRequest<HttpServerState>) -> Result<HttpResponse, E
         .application_uri("urn:WebSocketClient")
         .trust_server_certs(true)
         .create_sample_keypair(true)
+        .session_retry_limit(3)
         .client().unwrap();
 
     ws::start(r, OPCUASession {
