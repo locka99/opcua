@@ -4,7 +4,7 @@ use std::{
     self, u16, u32,
     fmt,
     io::{Read, Write}, str::FromStr,
-    sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering},
+    sync::atomic::{AtomicUsize, Ordering},
 };
 
 use crate::{
@@ -341,7 +341,7 @@ impl From<(u16, ByteString)> for NodeId {
     }
 }
 
-static NEXT_NODE_ID_NUMERIC: AtomicUsize = ATOMIC_USIZE_INIT;
+static NEXT_NODE_ID_NUMERIC: AtomicUsize = AtomicUsize::new(0);
 
 impl Default for NodeId {
     fn default() -> Self {

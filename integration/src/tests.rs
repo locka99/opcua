@@ -1,7 +1,7 @@
 use std::{
     sync::{
         Arc, Mutex, RwLock, mpsc, mpsc::channel,
-        atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT},
+        atomic::{AtomicUsize, Ordering},
     },
     thread, time,
 };
@@ -142,7 +142,7 @@ fn connect_basic256sha256_sign_and_encrypt() {
     connect_with(next_port_offset(), ENDPOINT_ID_BASIC256SHA256_SIGN_ENCRYPT);
 }
 
-static NEXT_PORT_OFFSET: AtomicUsize = ATOMIC_USIZE_INIT;
+static NEXT_PORT_OFFSET: AtomicUsize = AtomicUsize::new(0);
 
 fn next_port_offset() -> u16 {
     // hand out an incrementing port so tests can be run in parallel without interfering with each other

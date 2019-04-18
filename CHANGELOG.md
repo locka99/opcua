@@ -11,7 +11,7 @@ Planned future work is listed at the bottom.
   - Rust 2018. All `Cargo.toml` files now contain `edition = "2018"` and the code has been cleaned up to benefit from 
     some of the improvements in the language. e.g. many `extern crate` declarations have been removed. Your own code
     can be Rust 2015 but you must build with Rust 1.31 or later.
-  - Client API has been simplified for ad hoc connections and now has more documentation.
+  - Client API has been simplified for ad hoc connections and with better documentation.
   - Client API will reconnect and restore subscriptions after a disconnect from a server. Reconnection is 
     controlled by a session retry policy.
   - Improved subscription & monitored item behaviour in server, e.g. notifications are acknowledged upon
