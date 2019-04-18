@@ -53,9 +53,9 @@ let node_set =
 let parser = new xml2js.Parser();
 
 let modules = [];
-_.each(node_set, function (ns) {
+_.each(node_set, ns => {
     let data = fs.readFileSync(`${settings.schema_dir}/${ns.name}`);
-    parser.parseString(data, function (err, result) {
+    parser.parseString(data, (err, result) => {
         ns.data = result;
         console.log(`Generating code for module ${ns.module}`);
         let node_set_modules = generate_node_set(ns);
@@ -75,7 +75,7 @@ use crate::address_space::types::AddressSpace;
 `;
 
 // use each part
-_.each(modules, function (module) {
+_.each(modules, module => {
     mod_contents += `mod ${module};\n`
 });
 mod_contents += `\n`;
@@ -84,7 +84,7 @@ mod_contents += `\n`;
 mod_contents += `/// Populates the address space with all defined node sets
 pub fn populate_address_space(address_space: &mut AddressSpace) {\n`;
 
-_.each(modules, function (module) {
+_.each(modules, module => {
     mod_contents += `    ${module}::populate_address_space(address_space);\n`
 });
 
@@ -101,8 +101,8 @@ function generate_node_set(ns) {
 
     let alias_map = {};
     if (_.has(nodeset, "Aliases")) {
-        _.each(nodeset["Aliases"], function (node) {
-            _.each(node["Alias"], function (alias) {
+        _.each(nodeset["Aliases"], node => {
+            _.each(node["Alias"], alias => {
                 alias_map[alias["$"]["Alias"]] = alias["_"];
             });
         });
@@ -110,37 +110,37 @@ function generate_node_set(ns) {
 
     let nodes = [];
     if (_.has(nodeset, "UAObject")) {
-        _.each(nodeset["UAObject"], function (node) {
+        _.each(nodeset["UAObject"], node => {
             nodes.push(["Object", node]);
         });
     }
     if (_.has(nodeset, "UAObjectType")) {
-        _.each(nodeset["UAObjectType"], function (node) {
+        _.each(nodeset["UAObjectType"], node => {
             nodes.push(["ObjectType", node]);
         });
     }
     if (_.has(nodeset, "UADataType")) {
-        _.each(nodeset["UADataType"], function (node) {
+        _.each(nodeset["UADataType"], node => {
             nodes.push(["DataType", node]);
         });
     }
     if (_.has(nodeset, "UAReferenceType")) {
-        _.each(nodeset["UAReferenceType"], function (node) {
+        _.each(nodeset["UAReferenceType"], node => {
             nodes.push(["ReferenceType", node]);
         });
     }
     if (_.has(nodeset, "UAVariable")) {
-        _.each(nodeset["UAVariable"], function (node) {
+        _.each(nodeset["UAVariable"], node => {
             nodes.push(["Variable", node]);
         });
     }
     if (_.has(nodeset, "UAVariableType")) {
-        _.each(nodeset["UAVariableType"], function (node) {
+        _.each(nodeset["UAVariableType"], node => {
             nodes.push(["VariableType", node]);
         });
     }
     if (_.has(nodeset, "UAMethod")) {
-        _.each(nodeset["UAMethod"], function (node) {
+        _.each(nodeset["UAMethod"], node => {
             nodes.push(["Method", node]);
         });
     }
@@ -192,7 +192,7 @@ use crate::address_space::types::*;
 
     let fn_names = [];
     let idx = 1;
-    _.each(nodes, function (tuple) {
+    _.each(nodes, tuple => {
         let node_type = tuple[0];
         let node = tuple[1];
         let fn_name = insert_node_fn_name(idx++, node_type);
@@ -204,13 +204,13 @@ use crate::address_space::types::*;
     if (trace) {
         contents += `    trace!("Populating address space with node set ${ns.name}");\n`
     }
-    _.each(fn_names, function (fn_name) {
+    _.each(fn_names, fn_name => {
         contents += `    ${fn_name}(address_space);\n`;
     });
     contents += `}\n\n`;
 
     idx = 0;
-    _.each(nodes, function (tuple) {
+    _.each(nodes, tuple => {
         let node_type = tuple[0];
         let node = tuple[1];
         contents += insert_node(fn_names[idx++], node_type, node, alias_map);
@@ -300,7 +300,7 @@ function insert_node(fn_name, node_type, node, alias_map) {
                 let list = value["ListOfExtensionObject"][0];
 
                 let var_arguments = [];
-                _.each(list["ExtensionObject"], function (extension_object) {
+                _.each(list["ExtensionObject"], extension_object => {
                     // Create a value consisting an array of extension objects
                     let node_id = (extension_object["TypeId"][0])["Identifier"][0];
                     let body = extension_object["Body"][0];
@@ -352,7 +352,7 @@ function insert_node(fn_name, node_type, node, alias_map) {
 
                 if (var_arguments.length > 0) {
                     contents += `${indent}let data_value = DataValue::new(vec![\n`;
-                    _.each(var_arguments, function (a) {
+                    _.each(var_arguments, a => {
                         contents += `${indent}    Variant::from(ExtensionObject::from_encodable(\n`;
                         contents += `${indent}        ${node_id_ctor(a.node_id)}, &Argument {\n`;
                         contents += `${indent}            name: UAString::from("${a.name}"),\n`;
@@ -418,7 +418,7 @@ function insert_node(fn_name, node_type, node, alias_map) {
 
     if (node_references.length > 0) {
         contents += "Some(&[\n";
-        _.each(node_references, function (r) {
+        _.each(node_references, r => {
             contents += `${indent}    (&${r.node_other}, ${r.reference_type}, ${r.reference_direction}),\n`;
         });
         contents += `${indent}]));\n`;
@@ -441,7 +441,7 @@ function insert_node(fn_name, node_type, node, alias_map) {
 function insert_references(indent, reference_element, node_references) {
     let contents = "";
     if (_.has(reference_element, "Reference")) {
-        _.each(reference_element["Reference"], function (reference) {
+        _.each(reference_element["Reference"], reference => {
             // Test if the reference is forward or reverse
             let is_forward = !_.has(reference["$"], "IsForward") || reference["$"]["IsForward"] === "true";
 

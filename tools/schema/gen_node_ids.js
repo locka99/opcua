@@ -25,27 +25,26 @@ function interested_in_node(node) {
 
 fs.createReadStream(status_code_csv)
     .pipe(csv(['name', 'id', 'type']))
-    .on('data', function (data) {
+    .on('data', data => {
         let node = {
             name: data.name,
             id: data.id
         };
         if (_.has(node_ids, data.type)) {
             node_ids[data.type].push(node);
-        }
-        else {
+        } else {
             node_ids[data.type] = [node];
         }
     })
-    .on('end', function () {
-        _.each(node_ids, function (value, key) {
+    .on('end', () => {
+        _.each(node_ids, (value, key) => {
             rs_out.write(
                 `
 #[allow(non_camel_case_types)]
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 pub enum ${key}Id {
 `);
-            _.each(value, function (node) {
+            _.each(value, node => {
                 // Skip Xml junk
                 if (interested_in_node(node)) {
                     rs_out.write(`    ${node.name} = ${node.id},\n`);
@@ -54,6 +53,12 @@ pub enum ${key}Id {
             rs_out.write(`}\n`);
 
             rs_out.write(`
+impl<'a> From<&'a ${key}Id> for NodeId {
+    fn from(r: &'a ${key}Id) -> Self {
+        NodeId::new(0, *r as u32)
+    }
+}
+
 impl Into<NodeId> for ${key}Id {
     fn into(self) -> NodeId {
         NodeId::new(0, self as u32)
@@ -74,7 +79,7 @@ impl ${key}Id {
     pub fn from_u32(value: u32) -> Result<${key}Id, ()> {
         match value {
 `);
-            _.each(value, function (node) {
+            _.each(value, node => {
                 if (interested_in_node(node)) {
                     rs_out.write(`            ${node.id} => Ok(${key}Id::${node.name}),\n`);
                 }

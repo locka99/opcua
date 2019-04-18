@@ -20,11 +20,11 @@ let status_codes = [
 
 fs.createReadStream(status_code_csv)
     .pipe(csv(['str_code', 'hex_code', 'description']))
-    .on('data', function (data) {
+    .on('data', data => {
         data.var_name = data.str_code;
         status_codes.push(data);
     })
-    .on('end', function () {
+    .on('end', () => {
         // Sort status
         status_codes = _.sortBy(status_codes, ['hex_code']);
 
@@ -73,7 +73,7 @@ bitflags! {
     
         // Actual status codes follow here
 `);
-        _.each(status_codes, function (data) {
+        _.each(status_codes, data => {
             rs_out.write(`        const ${data.var_name} = ${hexcode("" + data.hex_code)};\n`);
         });
         rs_out.write(
@@ -116,7 +116,7 @@ impl StatusCode {
     pub fn name(self) -> &'static str {
         match self & StatusCode::STATUS_MASK {
 `);
-        _.each(status_codes, function (data) {
+        _.each(status_codes, data => {
             rs_out.write(`            StatusCode::${data.var_name} => "${data.str_code}",\n`);
         });
         rs_out.write(`            _ => "Unrecognized status code",
@@ -129,7 +129,7 @@ impl StatusCode {
     pub fn description(self) -> &'static str {
         match self & StatusCode::STATUS_MASK {
 `);
-        _.each(status_codes, function (data) {
+        _.each(status_codes, data => {
             rs_out.write(`            StatusCode::${data.var_name} => "${data.description}",\n`);
         });
         rs_out.write(`            _ => "Unrecognized status code",
@@ -154,7 +154,7 @@ impl FromStr for StatusCode {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
 `);
-        _.each(status_codes, function (data) {
+        _.each(status_codes, data => {
             rs_out.write(`            "${data.str_code}" => Ok(StatusCode::${data.var_name}),\n`);
         });
         rs_out.write(`            _ => Err(())
@@ -172,8 +172,7 @@ function hexcode(v) {
     if (v.length == 10) {
         // Hexcode is 0xNNNNNNNN, returned as 0xNNNN_NNNN
         return v.slice(0, 6) + "_" + v.slice(6);
-    }
-    else {
+    } else {
         return v;
     }
 }

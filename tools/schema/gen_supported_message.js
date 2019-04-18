@@ -97,12 +97,11 @@ impl SupportedMessage {
             SupportedMessage::Invalid(_) | SupportedMessage::AcknowledgeMessage(_) => 0,
 `;
 
-    _.each(message_types, function (message_type) {
+    _.each(message_types, message_type => {
         if (message_type.endsWith("Request")) {
             contents += `            SupportedMessage::${message_type}(ref r) => r.request_header.request_handle,
 `;
-        }
-        else if (message_type.endsWith("Response") || message_type === "ServiceFault") {
+        } else if (message_type.endsWith("Response") || message_type === "ServiceFault") {
             contents += `            SupportedMessage::${message_type}(ref r) => r.response_header.request_handle,
 `;
         }
@@ -116,7 +115,7 @@ impl SupportedMessage {
         let decoded_message = match object_id {
 `;
 
-    _.each(message_types, function (message_type) {
+    _.each(message_types, message_type => {
         contents += `            ObjectId::${message_type}_Encoding_DefaultBinary => {
                 ${message_type}::decode(stream, decoding_limits)?.into()
             }
@@ -137,7 +136,7 @@ impl SupportedMessage {
 supported_messages_enum![
 `;
 
-    _.each(message_types, function (message_type) {
+    _.each(message_types, message_type => {
         contents += `    ${message_type},
 `;
     });
@@ -147,7 +146,6 @@ supported_messages_enum![
 
     settings.write_to_file(file_path, contents);
 }
-
 
 
 // These types are messages which means they implement Into<SupportedMessage> and are processed by supported message
@@ -166,14 +164,22 @@ generate_supported_message([
     "CloseSessionRequest", "CloseSessionResponse",
     "CancelRequest", "CancelResponse",
     "ActivateSessionRequest", "ActivateSessionResponse",
+    // Node management service
+    "AddNodesRequest", "AddNodesResponse",
+    "AddReferencesRequest", "AddReferencesResponse",
+    "DeleteNodesRequest", "DeleteNodesResponse",
+    "DeleteReferencesRequest", "DeleteReferencesResponse",
     // MonitoredItem service
     "CreateMonitoredItemsRequest", "CreateMonitoredItemsResponse",
     "ModifyMonitoredItemsRequest", "ModifyMonitoredItemsResponse",
     "DeleteMonitoredItemsRequest", "DeleteMonitoredItemsResponse",
+    "SetMonitoringModeRequest", "SetMonitoringModeResponse",
+    "SetTriggeringRequest", "SetTriggeringResponse",
     // Subscription service
     "CreateSubscriptionRequest", "CreateSubscriptionResponse",
     "ModifySubscriptionRequest", "ModifySubscriptionResponse",
     "DeleteSubscriptionsRequest", "DeleteSubscriptionsResponse",
+    "TransferSubscriptionsRequest", "TransferSubscriptionsResponse",
     "SetPublishingModeRequest", "SetPublishingModeResponse",
     // View service
     "BrowseRequest", "BrowseResponse",
@@ -181,6 +187,8 @@ generate_supported_message([
     "PublishRequest", "PublishResponse",
     "RepublishRequest", "RepublishResponse",
     "TranslateBrowsePathsToNodeIdsRequest", "TranslateBrowsePathsToNodeIdsResponse",
+    "RegisterNodesRequest", "RegisterNodesResponse",
+    "UnregisterNodesRequest", "UnregisterNodesResponse",
     // Attribute service
     "ReadRequest", "ReadResponse",
     "WriteRequest", "WriteResponse",

@@ -308,6 +308,12 @@ pub enum DataTypeId {
     MdnsDiscoveryConfiguration = 12891,
 }
 
+impl<'a> From<&'a DataTypeId> for NodeId {
+    fn from(r: &'a DataTypeId) -> Self {
+        NodeId::new(0, *r as u32)
+    }
+}
+
 impl Into<NodeId> for DataTypeId {
     fn into(self) -> NodeId {
         NodeId::new(0, self as u32)
@@ -844,6 +850,12 @@ pub enum ObjectTypeId {
     CertificateGroupFolderType = 13813,
 }
 
+impl<'a> From<&'a ObjectTypeId> for NodeId {
+    fn from(r: &'a ObjectTypeId) -> Self {
+        NodeId::new(0, *r as u32)
+    }
+}
+
 impl Into<NodeId> for ObjectTypeId {
     fn into(self) -> NodeId {
         NodeId::new(0, self as u32)
@@ -1029,6 +1041,12 @@ pub enum VariableTypeId {
     ImageItemType = 12047,
     CubeItemType = 12057,
     NDimensionArrayItemType = 12068,
+}
+
+impl<'a> From<&'a VariableTypeId> for NodeId {
+    fn from(r: &'a VariableTypeId) -> Self {
+        NodeId::new(0, *r as u32)
+    }
 }
 
 impl Into<NodeId> for VariableTypeId {
@@ -1487,6 +1505,12 @@ pub enum ObjectId {
     ServerConfiguration_CertificateGroups_DefaultApplicationGroup = 14156,
     Server_Namespaces_OPCUANamespaceUri = 15182,
     Server_Namespaces_OPCUANamespaceUri_NamespaceFile = 15190,
+}
+
+impl<'a> From<&'a ObjectId> for NodeId {
+    fn from(r: &'a ObjectId) -> Self {
+        NodeId::new(0, *r as u32)
+    }
 }
 
 impl Into<NodeId> for ObjectId {
@@ -5971,6 +5995,12 @@ pub enum VariableId {
     Server_Namespaces_OPCUANamespaceUri_NamespaceFile_GetPosition_InputArguments = 15207,
     Server_Namespaces_OPCUANamespaceUri_NamespaceFile_GetPosition_OutputArguments = 15208,
     Server_Namespaces_OPCUANamespaceUri_NamespaceFile_SetPosition_InputArguments = 15210,
+}
+
+impl<'a> From<&'a VariableId> for NodeId {
+    fn from(r: &'a VariableId) -> Self {
+        NodeId::new(0, *r as u32)
+    }
 }
 
 impl Into<NodeId> for VariableId {
@@ -10470,6 +10500,12 @@ pub enum MethodId {
     Server_Namespaces_OPCUANamespaceUri_NamespaceFile_GetPosition = 15206,
     Server_Namespaces_OPCUANamespaceUri_NamespaceFile_SetPosition = 15209,
     Server_Namespaces_OPCUANamespaceUri_NamespaceFile_ExportNamespace = 15211,
+}
+
+impl<'a> From<&'a MethodId> for NodeId {
+    fn from(r: &'a MethodId) -> Self {
+        NodeId::new(0, *r as u32)
+    }
 }
 
 impl Into<NodeId> for MethodId {

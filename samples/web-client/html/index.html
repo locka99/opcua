@@ -4,39 +4,39 @@
     <meta charset="UTF-8">
     <title>Web Socket client</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+
+        form {
+            margin-bottom: 12px;
+        }
+
+        table {
+            border-collapse: collapse;
+        }
+
+        td, th {
+            border: 1px solid black;
+            padding: 0.5rem;
+        }
+
+        table.side_headings td, table.side_headings th {
+            text-align: left;
+        }
+
+        th {
+            background: lightblue;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body onload="open_websocket()">
-<style>
-    body {
-        font-family: sans-serif;
-    }
-
-    form {
-        margin-bottom: 12px;
-    }
-
-    table {
-        border-collapse: collapse;
-    }
-
-    td, th {
-        border: 1px solid black;
-        padding: 0.5rem;
-    }
-
-    table.side_headings td, table.side_headings th {
-        text-align: left;
-    }
-
-    th {
-        background: lightblue;
-        font-weight: bold;
-    }
-</style>
 <script>
     // Open a web socket to the server
-    var ws;
-    var change_map = {};
+    let ws;
+    let change_map = {};
 
     function open_websocket() {
         ws = new WebSocket("ws://localhost:8686/ws/");
@@ -105,9 +105,10 @@
                     change_map[element.node_id] = value;
                 });
             }
-            $("#events").empty();
 
-            $("#events").append("<table id='values'><tr><th>Node Id</th><th>Value</th></tr></table>")
+            $("#events")
+                .empty()
+                .append("<table id='values'><tr><th>Node Id</th><th>Value</th></tr></table>");
             Object.entries(change_map).forEach(entry => {
                 let node_id = entry[0];
                 let value = entry[1];
@@ -128,7 +129,7 @@
     <tr>
         <td rowspan="2">
             <form action="javascript:void(0);">
-                OPC UA Url:<br/>
+                <label for="opcua_url">OPC UA Url:</label><br/>
                 <input id="opcua_url" value="opc.tcp://localhost:4855"/><br/>
                 Actions:<br/>
                 <button id="connect_btn" onclick="connect($('#opcua_url').val())">Connect</button>
@@ -147,7 +148,7 @@
 <p>You must be connected to subscribe to values</p>
 
 <form action="javascript:void(0);">
-    Node Ids:<br/>
+    <label for="subscribe_values">Node Ids:</label><br/>
     <input id="subscribe_values" value="ns=2;s=v1,ns=2;s=v2,ns=2;s=v3,ns=2;s=v4"/><br/>
     Actions:<br/>
     <button id="subscribe_btn" disabled="disabled" onclick="subscribe($('#subscribe_values').val())">Subscribe to values

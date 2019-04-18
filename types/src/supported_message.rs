@@ -358,6 +358,7 @@ impl SupportedMessage {
             ObjectId::CallResponse_Encoding_DefaultBinary => {
                 CallResponse::decode(stream, decoding_limits)?.into()
             }
+
             _ => {
                 debug!("decoding unsupported for object id {:?}", object_id);
                 SupportedMessage::Invalid(object_id)
