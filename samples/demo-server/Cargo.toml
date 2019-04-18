@@ -1,6 +1,6 @@
 [package]
 name = "opcua-demo-server"
-version = "0.6.0" # OPCUARustVersion
+version = "0.7.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2018"
 
@@ -16,9 +16,9 @@ log4rs = "0.8"
 
 [dependencies.opcua-server]
 path = "../../server"
-version = "0.6.0" # OPCUARustVersion
+version = "0.7.0" # OPCUARustVersion
 features = ["http"]
 
 [dependencies.opcua-console-logging]
 path = "../../console-logging"
-version = "0.6.0" # OPCUARustVersion
+version = "0.7.0" # OPCUARustVersion
