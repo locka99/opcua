@@ -17,6 +17,7 @@ var server = new opcua.OPCUAServer({
 
 function post_initialize() {
     console.log("initialized");
+
     function construct_my_address_space(server) {
 
         var addressSpace = server.engine.addressSpace;
@@ -36,9 +37,7 @@ function post_initialize() {
             browseName: "v1",
             dataType: "Int32",
             value: {
-                get: function () {
-                    return new opcua.Variant({dataType: opcua.DataType.Int32, value: v1});
-                }
+                get: () => new opcua.Variant({dataType: opcua.DataType.Int32, value: v1})
             }
         });
 
@@ -50,15 +49,13 @@ function post_initialize() {
             browseName: "v2",
             dataType: "Boolean",
             value: {
-                get: function () {
-                    return new opcua.Variant({dataType: opcua.DataType.Boolean, value: v2});
-                }
+                get: () => new opcua.Variant({dataType: opcua.DataType.Boolean, value: v2})
             }
         });
 
 
         // emulate variable1 changing every 500 ms
-        setInterval(function () {
+        setInterval(() => {
             v1 += 1;
             v2 = !v2;
         }, 250);
@@ -71,9 +68,7 @@ function post_initialize() {
             browseName: "v3",
             dataType: "String",
             value: {
-                get: function () {
-                    return new opcua.Variant({dataType: opcua.DataType.String, value: v3});
-                }
+                get: () => new opcua.Variant({dataType: opcua.DataType.String, value: v3})
             }
         });
 
@@ -84,14 +79,12 @@ function post_initialize() {
             browseName: "v4",
             dataType: "Double",
             value: {
-                get: function () {
-                    return new opcua.Variant({dataType: opcua.DataType.Double, value: v4});
-                }
+                get: () => new opcua.Variant({dataType: opcua.DataType.Double, value: v4})
             }
         });
         // emulate variable1 changing every 500 ms
         var slowCounter = 1;
-        setInterval(function () {
+        setInterval(() => {
             slowCounter += 1;
             v3 = "Hello world times " + slowCounter;
             v4 = Math.sin((slowCounter % 360) * Math.PI / 180.0);
@@ -99,11 +92,12 @@ function post_initialize() {
     }
 
     construct_my_address_space(server);
-    server.start(function () {
+    server.start(() => {
         console.log("Server is now listening on these endpoints... ( press CTRL+C to stop)");
-        server.endpoints[0].endpointDescriptions().forEach(function (endpoint) {
+        server.endpoints[0].endpointDescriptions().forEach(endpoint => {
             console.log(endpoint.endpointUrl, endpoint.securityMode.toString(), endpoint.securityPolicyUri.toString());
         });
     });
 }
+
 server.initialize(post_initialize);

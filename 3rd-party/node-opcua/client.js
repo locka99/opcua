@@ -13,8 +13,8 @@ var node_id = "ns=2;s=v1";
 
 async.series([
         // step 1 : connect to
-        function (callback) {
-            client.connect(endpointUrl, function (err) {
+        callback => {
+            client.connect(endpointUrl, err => {
                 if (err) {
                     console.log(" cannot connect to endpoint :", endpointUrl);
                 } else {
@@ -25,8 +25,8 @@ async.series([
         },
 
         // step 2 : createSession
-        function (callback) {
-            client.createSession(function (err, session) {
+        callback => {
+            client.createSession((err, session) => {
                 if (!err) {
                     the_session = session;
                 }
@@ -35,10 +35,10 @@ async.series([
         },
 
         // step 3 : browse
-        function (callback) {
-            the_session.browse("RootFolder", function (err, browse_result) {
+        callback => {
+            the_session.browse("RootFolder", (err, browse_result) => {
                 if (!err) {
-                    browse_result[0].references.forEach(function (reference) {
+                    browse_result[0].references.forEach(reference => {
                         console.log(reference.browseName.toString());
                     });
                 }
@@ -47,8 +47,8 @@ async.series([
         },
 
         // step 4 : read a variable with readVariableValue
-        function (callback) {
-            the_session.readVariableValue(node_id, function (err, dataValue) {
+        callback => {
+            the_session.readVariableValue(node_id, (err, dataValue) => {
                 if (!err) {
                     console.log(" free mem % = ", dataValue.toString());
                 }
@@ -59,12 +59,12 @@ async.series([
         },
 
         // step 4' : read a variable with read
-        function (callback) {
+        callback => {
             var max_age = 0;
             var nodes_to_read = [
                 {nodeId: node_id, attributeId: opcua.AttributeIds.Value}
             ];
-            the_session.read(nodes_to_read, max_age, function (err, nodes_to_read, dataValues) {
+            the_session.read(nodes_to_read, max_age, (err, nodes_to_read, dataValues) => {
                 if (!err) {
                     console.log(" free mem % = ", dataValues[0]);
                 }
@@ -73,7 +73,7 @@ async.series([
         },
 
         // step 5: install a subscription and install a monitored item for 10 seconds
-        function (callback) {
+        callback => {
             the_subscription = new opcua.ClientSubscription(the_session, {
                 requestedPublishingInterval: 1000,
                 requestedLifetimeCount: 10,
@@ -83,15 +83,15 @@ async.series([
                 priority: 10
             });
 
-            the_subscription.on("started", function () {
+            the_subscription.on("started", () => {
                 console.log("subscription started for 2 seconds - subscriptionId=", the_subscription.subscriptionId);
-            }).on("keepalive", function () {
+            }).on("keepalive", () => {
                 console.log("keepalive");
-            }).on("terminated", function () {
+            }).on("terminated", () => {
                 callback();
             });
 
-            setTimeout(function () {
+            setTimeout(() => {
                 the_subscription.terminate();
             }, 10000);
 
@@ -109,14 +109,14 @@ async.series([
             );
             console.log("-------------------------------------");
 
-            monitoredItem.on("changed", function (dataValue) {
+            monitoredItem.on("changed", dataValue => {
                 console.log(" % free mem = ", dataValue.value.value);
             });
         },
 
         // close session
-        function (callback) {
-            the_session.close(function (err) {
+        callback => {
+            the_session.close(err => {
                 if (err) {
                     console.log("session closed failed ?");
                 }
@@ -125,12 +125,12 @@ async.series([
         }
 
     ],
-    function (err) {
+    err => {
         if (err) {
             console.log(" failure ", err);
         } else {
             console.log("done!");
         }
-        client.disconnect(function () {
+        client.disconnect(() => {
         });
     });
