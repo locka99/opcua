@@ -4,33 +4,22 @@ version = "0.7.0" # OPCUARustVersion
 authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2018"
 
-[features]
-default = []
-
-# Integration is not built by default
-integration = []
-
-[dependencies]
-futures = "0.1"
+[dev-dependencies]
 log = "0.4"
 chrono = "0.4"
 
-[dependencies.opcua-types]
-path = "../types"
-version = "0.7.0" # OPCUARustVersion
-
-[dependencies.opcua-core]
-path = "../core"
-version = "0.7.0" # OPCUARustVersion
-
-[dependencies.opcua-server]
+[dev-dependencies.opcua-server]
 path = "../server"
 version = "0.7.0" # OPCUARustVersion
 
-[dependencies.opcua-client]
+[dev-dependencies.opcua-client]
 path = "../client"
 version = "0.7.0" # OPCUARustVersion
 
-[dependencies.opcua-console-logging]
+[dev-dependencies.opcua-core]
+path = "../core"
+version = "0.7.0" # OPCUARustVersion
+
+[dev-dependencies.opcua-console-logging]
 path = "../console-logging"
 version = "0.7.0" # OPCUARustVersion

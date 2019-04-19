@@ -6,11 +6,11 @@ use std::{
     thread, time,
 };
 
+use log::{info, trace};
 use chrono::Utc;
 
 // Integration tests are asynchronous so futures will be used
 use opcua_core;
-use opcua_types::*;
 use opcua_server::{
     self,
     config::ServerEndpoint,
@@ -33,6 +33,7 @@ const TEST_TIMEOUT: i64 = 30000;
 /// This is the most basic integration test starting the server on a thread, setting an abort flag
 /// and expecting the test to complete before it times out.
 #[test]
+#[ignore]
 fn server_abort() {
     opcua_console_logging::init();
 
@@ -73,6 +74,7 @@ fn server_abort() {
 /// Start a server, send a HELLO message but then wait for the server
 /// to timeout and drop the connection.
 #[test]
+#[ignore]
 fn hello_timeout() {
     // For this test we want to set the hello timeout to a low value for the sake of speed.
 
@@ -81,6 +83,7 @@ fn hello_timeout() {
 
 /// Start a server, fetch a list of endpoints, verify they are correct
 #[test]
+#[ignore]
 fn get_endpoints() {
     // Connect to server and get a list of endpoints
     // TODO
@@ -88,6 +91,7 @@ fn get_endpoints() {
 
 /// Connect to the server using no encryption, anonymous
 #[test]
+#[ignore]
 fn connect_none() {
     // Connect a session using None security policy and anonymous token.
     connect_with(next_port_offset(), ENDPOINT_ID_NONE);
@@ -95,6 +99,7 @@ fn connect_none() {
 
 /// Connect to the server using no encryption, user/pass
 #[test]
+#[ignore]
 fn connect_none_username_password() {
     // Connect a session using None security policy and username/password token
     // connect_with(ENDPOINT_ID_);
@@ -102,6 +107,7 @@ fn connect_none_username_password() {
 
 /// Connect to the server using Basic128Rsa15 + Sign
 #[test]
+#[ignore]
 fn connect_basic128rsa15_sign() {
     // Connect a session with Basic128Rsa and Sign
     connect_with(next_port_offset(), ENDPOINT_ID_BASIC128RSA15_SIGN);
@@ -109,6 +115,7 @@ fn connect_basic128rsa15_sign() {
 
 /// Connect to the server using Basic128Rsa15 + SignEncrypt
 #[test]
+#[ignore]
 fn connect_basic128rsa15_sign_and_encrypt() {
     // Connect a session with Basic128Rsa and SignAndEncrypt
     connect_with(next_port_offset(), ENDPOINT_ID_BASIC128RSA15_SIGN_ENCRYPT);
@@ -116,6 +123,7 @@ fn connect_basic128rsa15_sign_and_encrypt() {
 
 /// Connect to the server using Basic256 + Sign
 #[test]
+#[ignore]
 fn connect_basic256_sign() {
     // Connect a session with Basic256 and Sign
     connect_with(next_port_offset(), ENDPOINT_ID_BASIC256_SIGN);
@@ -123,6 +131,7 @@ fn connect_basic256_sign() {
 
 /// Connect to the server using Basic256 + SignEncrypt
 #[test]
+#[ignore]
 fn connect_basic256_sign_and_encrypt() {
     // Connect a session with Basic256 and SignAndEncrypt
     connect_with(next_port_offset(), ENDPOINT_ID_BASIC256_SIGN_ENCRYPT);
@@ -130,6 +139,7 @@ fn connect_basic256_sign_and_encrypt() {
 
 /// Connect to the server using Basic256Sha256 + Sign
 #[test]
+#[ignore]
 fn connect_basic256sha256_sign() {
     // Connect a session with Basic256Sha256 and Sign
     connect_with(next_port_offset(), ENDPOINT_ID_BASIC256SHA256_SIGN);
@@ -137,6 +147,7 @@ fn connect_basic256sha256_sign() {
 
 /// Connect to the server using Basic256Sha256 + SignEncrypt
 #[test]
+#[ignore]
 fn connect_basic256sha256_sign_and_encrypt() {
     // Connect a session with Basic256Sha256 and SignAndEncrypt
     connect_with(next_port_offset(), ENDPOINT_ID_BASIC256SHA256_SIGN_ENCRYPT);

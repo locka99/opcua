@@ -1355,13 +1355,11 @@ name = "opcua-integration"
 version = "0.7.0"
 dependencies = [
  "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures 0.1.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-client 0.7.0",
  "opcua-console-logging 0.7.0",
  "opcua-core 0.7.0",
  "opcua-server 0.7.0",
- "opcua-types 0.7.0",
 ]
 
 [[package]]

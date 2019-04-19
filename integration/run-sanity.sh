@@ -1,1 +1,1 @@
-cargo test --features integration -- --test-threads=1 connect_none
+cargo test -- --test-threads=1 --ignored connect_none
