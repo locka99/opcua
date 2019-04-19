@@ -584,7 +584,7 @@ impl TcpTransport {
     /// Start the subscription timer to service subscriptions
     fn spawn_subscriptions_task(transport: Arc<RwLock<TcpTransport>>, sender: UnboundedSender<(u32, SupportedMessage)>) {
         /// Subscription events are passed sent from the monitor task to the receiver
-        #[derive(Clone, Debug, PartialEq)]
+        #[derive(Clone, Debug)]
         enum SubscriptionEvent {
             PublishResponses(VecDeque<PublishResponseEntry>),
         }

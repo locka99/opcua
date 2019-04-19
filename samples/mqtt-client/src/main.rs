@@ -104,23 +104,16 @@ fn subscription_loop(session: Arc<RwLock<Session>>, tx: mpsc::Sender<(NodeId, Da
             println!("Data change from server:");
             let tx = tx.lock().unwrap();
             items.iter().for_each(|item| {
-                let node_id = item.item_to_monitor().node_id;
-                let value = item.value();
+                let node_id = item.item_to_monitor().node_id.clone();
+                let value = item.value().clone();
                 let _ = tx.send((node_id, value));
             });
         }))?;
         println!("Created a subscription with id = {}", subscription_id);
 
         // Create some monitored items
-        let read_nodes = vec![
-            ReadValueId::from(NodeId::new(2, "v1")),
-            ReadValueId::from(NodeId::new(2, "v2")),
-            ReadValueId::from(NodeId::new(2, "v3")),
-            ReadValueId::from(NodeId::new(2, "v4")),
-        ];
-        let items_to_create: Vec<MonitoredItemCreateRequest> = read_nodes.into_iter().map(|read_node| {
-            MonitoredItemCreateRequest::new(read_node, MonitoringMode::Reporting, MonitoringParameters::default())
-        }).collect();
+        let items_to_create: Vec<MonitoredItemCreateRequest> = ["v1", "v2", "v3", "v4"].iter()
+            .map(|v| NodeId::new(2, *v).into()).collect();
         let _ = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create)?;
     }
 

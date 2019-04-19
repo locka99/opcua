@@ -219,7 +219,7 @@ impl OPCUASession {
                 // Create some monitored items
                 let items_to_create: Vec<MonitoredItemCreateRequest> = node_ids.iter().map(|node_id| {
                     let node_id = NodeId::from_str(node_id).unwrap(); // Trust client to not break this
-                    MonitoredItemCreateRequest::new(node_id.into(), MonitoringMode::Reporting, MonitoringParameters::default())
+                    node_id.into()
                 }).collect();
                 let _results = session.create_monitored_items(subscription_id, TimestampsToReturn::Both, &items_to_create);
             }

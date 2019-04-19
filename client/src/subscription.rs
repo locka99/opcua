@@ -39,7 +39,7 @@ pub struct MonitoredItem {
     id: u32,
     /// Monitored item's handle. Used internally - not modifiable
     client_handle: u32,
-    // Item to monitor
+    // The thing that is actually being monitored - the node id, attribute, index, encoding.
     item_to_monitor: ReadValueId,
     /// Queue size
     queue_size: u32,
@@ -81,14 +81,14 @@ impl MonitoredItem {
         self.client_handle
     }
 
-    pub fn item_to_monitor(&self) -> ReadValueId { self.item_to_monitor.clone() }
+    pub fn item_to_monitor(&self) -> &ReadValueId { &self.item_to_monitor }
 
     pub fn sampling_interval(&self) -> f64 { self.sampling_interval }
 
     pub fn queue_size(&self) -> u32 { self.queue_size }
 
-    pub fn value(&self) -> DataValue {
-        self.value.clone()
+    pub fn value(&self) -> &DataValue {
+        &self.value
     }
 
     pub fn monitoring_mode(&self) -> MonitoringMode { self.monitoring_mode }
@@ -146,7 +146,7 @@ pub struct Subscription {
     priority: u8,
     /// The change callback will be what is called if any monitored item changes within a cycle.
     /// The monitored item is referenced by its id
-    data_change_callback: Arc<Mutex<OnDataChange + Send + Sync + 'static>>,
+    data_change_callback: Arc<Mutex<OnDataChange + Send + Sync>>,
     /// A map of monitored items associated with the subscription (key = monitored_item_id)
     monitored_items: HashMap<u32, MonitoredItem>,
     /// A map of client handle to monitored item id
@@ -156,7 +156,7 @@ pub struct Subscription {
 impl Subscription {
     /// Creates a new subscription using the supplied parameters and the supplied data change callback.
     pub fn new(subscription_id: u32, publishing_interval: f64, lifetime_count: u32, max_keep_alive_count: u32, max_notifications_per_publish: u32,
-               publishing_enabled: bool, priority: u8, data_change_callback: Arc<Mutex<dyn OnDataChange + Send + Sync + 'static>>)
+               publishing_enabled: bool, priority: u8, data_change_callback: Arc<Mutex<dyn OnDataChange + Send + Sync>>)
                -> Subscription
     {
         Subscription {
@@ -189,7 +189,7 @@ impl Subscription {
 
     pub fn priority(&self) -> u8 { self.priority }
 
-    pub fn data_change_callback(&self) -> Arc<Mutex<dyn OnDataChange + Send + Sync + 'static>> { self.data_change_callback.clone() }
+    pub fn data_change_callback(&self) -> Arc<Mutex<dyn OnDataChange + Send + Sync>> { self.data_change_callback.clone() }
 
     pub(crate) fn set_publishing_interval(&mut self, publishing_interval: f64) { self.publishing_interval = publishing_interval; }
 

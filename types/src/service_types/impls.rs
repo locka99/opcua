@@ -493,6 +493,12 @@ impl SignatureData {
     }
 }
 
+impl Into<MonitoredItemCreateRequest> for NodeId {
+    fn into(self) -> MonitoredItemCreateRequest {
+        MonitoredItemCreateRequest::new(self.into(), MonitoringMode::Reporting, MonitoringParameters::default())
+    }
+}
+
 impl MonitoredItemCreateRequest {
     /// Adds an item to monitor to the subscription
     pub fn new(item_to_monitor: ReadValueId, monitoring_mode: MonitoringMode, requested_parameters: MonitoringParameters) -> MonitoredItemCreateRequest {

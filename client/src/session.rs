@@ -328,7 +328,7 @@ impl Session {
                         // For each monitored item
                         let items_to_create = subscription.monitored_items().iter().map(|(_, item)| {
                             MonitoredItemCreateRequest {
-                                item_to_monitor: item.item_to_monitor(),
+                                item_to_monitor: item.item_to_monitor().clone(),
                                 monitoring_mode: item.monitoring_mode(),
                                 requested_parameters: MonitoringParameters {
                                     client_handle: item.client_handle(),

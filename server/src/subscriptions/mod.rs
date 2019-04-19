@@ -18,7 +18,7 @@ pub struct PublishRequestEntry {
     pub results: Option<Vec<StatusCode>>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct PublishResponseEntry {
     pub request_id: u32,
     pub response: SupportedMessage,
