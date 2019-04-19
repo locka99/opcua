@@ -2,6 +2,10 @@ This is the in-depth documentation about the OPC UA implementation in Rust.
 
 # Setup
 
+OPC UA for Rust generally requires the most recent stable version of Rust to compile. 
+The recommendation is to install [rustup](https://rustup.rs/) to manage your toolchain and keep it 
+up to date.
+
 ## Windows
 
 Rust supports two compiler backends - gcc or MSVC. The preferred way to build OPC UA is with gcc and MSYS2 but you can
@@ -13,8 +17,8 @@ MSYS2 is a Unix style build environment for Windows.
 
 1. Install [MSYS2 64-bit](http://www.msys2.org/)
 2. Update all the packages `pacman -Syuu`
-3. `rustup toolchain install stable-x86_64-pc-windows-gnu`
-4. `pacman -S gcc mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb mingw-w64-x86_64-pkg-config openssl openssl-devel pkg-config`
+3. `pacman -S gcc mingw-w64-x86_64-gcc mingw-w64-x86_64-gdb mingw-w64-x86_64-pkg-config openssl openssl-devel pkg-config`
+4. Use rustup to install the `stable-x86_64-pc-windows-gnu` toolchain during setup or by typing `rustup toolchain install stable-x86_64-pc-windows-gnu` from the command line.
 
 You should use the MSYS2/MingW64 Shell. You may have to tweak your .bashrc to ensure that both Rust and 
 MinGW64 binaries are on your `PATH` but once that's done you're good to go. 
@@ -22,20 +26,20 @@ MinGW64 binaries are on your `PATH` but once that's done you're good to go.
 ### Visual Studio
 
 1. Install [Microsoft Visual Studio](https://visualstudio.microsoft.com/). You must install C++ and 64-bit platform support.
-2. `rustup toolchain install stable-x86_64-pc-windows-msvc`
+2. Use rustup to install the `install stable-x86_64-pc-windows-msvc` during setup or by typing `rustup toolchain install stable-x86_64-pc-windows-msvc` from the command line.
 3. Download and install http://slproweb.com/download/Win64OpenSSL-1_1_0i.exe
 4. Set an environment variable `OPENSSL_DIR` to point to the installation location, e.g. `C:\OpenSSL-Win64`
 
 Ensure that `%OPENSSL_DIR%\bin` is on your `PATH`.
 
-Note this is a 64-bit build. I haven't tried creating 32-bit builds but it may work by adjusting 64 to 32 as required.
+Note this is a 64-bit build configuration. 32-bit builds should also work by replacing 64 with 32 as required.
 
 ## Linux
 
 How you do this depends on your dist, either through `apt-get` or `dnf`. 
 
-1. Install latest stable rust, e.g. via `rustup`
-2. Install gcc and OpenSSL development libs & headers, e.g. `sudo apt-get gcc libssl-dev`
+1. Install gcc and OpenSSL development libs & headers, e.g. `sudo apt-get gcc libssl-dev` for Debian based systems.
+2. Use rustup to install the latest stable rust during setup.
 
 Adjust your package names as appropriate for other versions of Linux.
 
@@ -65,7 +69,14 @@ encountered while using it.
 ## Workspace Layout
 
 OPC UA for Rust follows the normal Rust conventions. There is a Cargo.toml per module that you may use to build the module
-and all dependencies. You may also build the entire workspace from the top like so:
+and all dependencies. e.g.
+
+```bash
+cd opcua/samples/demo-server
+cargo build
+```
+
+There is also a workspace Cargo.toml from the root directory. You may also build the entire workspace like so:
 
 ```bash
 cd opcua

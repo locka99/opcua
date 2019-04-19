@@ -7,6 +7,22 @@ Planned future work is listed at the bottom.
   - Integration tests are broken and need to be fixed
   - Subscriptions / monitored items generates spurious errors on some clients
 
+## 0.7 (in progress)
+  - TODO address space nodes are not very memory efficient and could be made more so, e.g. not using DataValue 
+    except for the value and boxing it. And not holding all 22 attribute id slots open for each node type 
+    has less mandatory / optional ids than that. Could probably halve the space.
+  - TODO address space. Add a create on demand callback
+  - TODO gen_types.js. Refactor so it could be used to generate code for any model
+  - TODO support events 
+  - TODO More control over limits on the server - number of subscriptions, monitored items, sessions
+  - TODO UserNameIdentityToken with encrypted password support. Plaintext password is already supported
+  - TODO X509IdentityToken support 
+  - TODO Integration tests are broken and need to be fixed. Integration tests should also become part
+    of normal build to prevent breakages with tests tagged with `#[ignore]`
+  - TODO Multiple chunk support in client and server, sending and receiving
+  - TODO Session restore after disconnect in server. The server has to stash sessions that were 
+    abnormally disconnected so the session state can be restored if a new connection provides the token.
+
 ## 0.6
   - Rust 2018. All `Cargo.toml` files now contain `edition = "2018"` and the code has been cleaned up to benefit from 
     some of the improvements in the language. e.g. many `extern crate` declarations have been removed. Your own code
@@ -136,14 +152,7 @@ Planned future work is listed at the bottom.
 
 ## Short term
   
-  - Session restore after disconnect in server. The server has to stash sessions that were 
-    abnormally disconnected so the session state can be restored if a new connection provides the token.
-  - UserNameIdentityToken with encrypted password support. Plaintext password is already supported
-  - X509IdentityToken support 
-  - Integration tests are broken and need to be fixed
-  - More control over limits on the server - number of subscriptions, monitored items, sessions
-  - Multiple chunk support
-  
+
 ## Longer term
   
 ASPIRATIONAL - a short list of things that would be nice to implement in the future
