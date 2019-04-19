@@ -4,6 +4,7 @@ mod parse;
 mod serialize;
 mod variant;
 mod hello;
+mod supported_message;
 
 use std::fmt::Debug;
 use std::cmp::PartialEq;
