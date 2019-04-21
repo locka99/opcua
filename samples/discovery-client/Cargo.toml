@@ -7,16 +7,8 @@ edition = "2018"
 [dependencies]
 clap = "2.33"
 
-[dependencies.opcua-types]
-path = "../../types"
-version = "0.7.0" # OPCUARustVersion
-
 [dependencies.opcua-client]
 path = "../../client"
-version = "0.7.0" # OPCUARustVersion
-
-[dependencies.opcua-core]
-path = "../../core"
 version = "0.7.0" # OPCUARustVersion
 
 [dependencies.opcua-console-logging]

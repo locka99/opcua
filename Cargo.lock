@@ -1336,8 +1336,6 @@ dependencies = [
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "opcua-client 0.7.0",
  "opcua-console-logging 0.7.0",
- "opcua-core 0.7.0",
- "opcua-types 0.7.0",
 ]
 
 [[package]]
