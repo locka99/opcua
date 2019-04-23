@@ -1,6 +1,6 @@
 use super::*;
 
-use opcua_types::WriteMask;
+use opcua_types::{WriteMask, Variant};
 
 use crate::{
     services::attribute::AttributeService,
@@ -33,7 +33,7 @@ fn read_test() {
             let (_, node_ids) = add_many_vars_to_address_space(address_space, 10);
             // Remove read access to [3] for a test below
             let node = address_space.find_node_mut(&node_ids[3]).unwrap();
-            let r = node.as_mut_node().set_attribute(AttributeId::AccessLevel, DataValue::new(0u8));
+            let r = node.as_mut_node().set_attribute(AttributeId::AccessLevel, Variant::from(0u8));
             assert!(r.is_ok());
             node_ids
         };
@@ -121,14 +121,14 @@ fn write_test() {
                     }
                     2 => {
                         // No write access
-                        let _ = node.as_mut_node().set_attribute(AttributeId::AccessLevel, DataValue::new(0u8)).unwrap();
+                        let _ = node.as_mut_node().set_attribute(AttributeId::AccessLevel, Variant::from(0u8)).unwrap();
                     }
                     6 => {
                         node.as_mut_node().set_write_mask(WriteMask::ACCESS_LEVEL);
                     }
                     _ => {
                         // Write access
-                        let _ = node.as_mut_node().set_attribute(AttributeId::AccessLevel, DataValue::new(AccessLevel::CURRENT_WRITE.bits())).unwrap();
+                        let _ = node.as_mut_node().set_attribute(AttributeId::AccessLevel, Variant::from(AccessLevel::CURRENT_WRITE.bits())).unwrap();
                     }
                 }
             }

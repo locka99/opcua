@@ -2,7 +2,6 @@
 extern crate criterion;
 
 use criterion::Criterion;
-use criterion::black_box;
 
 use opcua_server::address_space::AddressSpace;
 

@@ -1,25 +1,52 @@
 use opcua_types::service_types::ObjectAttributes;
 
-use crate::address_space::{base::Base, node::Node};
+use crate::address_space::{base::Base, node::Node, node::NodeAttributes};
 
 #[derive(Debug)]
 pub struct Object {
     base: Base,
+    event_notifier: u8,
 }
 
 node_impl!(Object);
+
+impl NodeAttributes for Object {
+    fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
+        self.base.get_attribute(attribute_id, max_age).or_else(|| {
+            match attribute_id {
+                AttributeId::EventNotifier => Some(Variant::from(self.event_notifier)),
+                _ => None
+            }.map(|v| v.into())
+        })
+    }
+
+    fn set_attribute(&mut self, attribute_id: AttributeId, value: Variant) -> Result<(), StatusCode> {
+        if let Some(value) = self.base.set_attribute(attribute_id, value)? {
+            match attribute_id {
+                AttributeId::EventNotifier => {
+                    if let Variant::Byte(v) = value {
+                        self.event_notifier = v;
+                        Ok(())
+                    } else {
+                        Err(StatusCode::BadTypeMismatch)
+                    }
+                }
+                _ => Err(StatusCode::BadAttributeIdInvalid)
+            }
+        } else {
+            Ok(())
+        }
+    }
+}
 
 impl Object {
     pub fn new<R, S>(node_id: &NodeId, browse_name: R, display_name: S, event_notifier: u8) -> Object
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,
     {
-        // Mandatory
-        let attributes = vec![
-            (AttributeId::EventNotifier, Variant::Byte(event_notifier))
-        ];
         Object {
-            base: Base::new(NodeClass::Object, node_id, browse_name, display_name, attributes),
+            base: Base::new(NodeClass::Object, node_id, browse_name, display_name),
+            event_notifier,
         }
     }
 
@@ -48,11 +75,11 @@ impl Object {
     }
 
     pub fn event_notifier(&self) -> u8 {
-        find_attribute_value_mandatory!(&self.base, EventNotifier, Byte)
+        self.event_notifier
     }
 
     pub fn set_event_notifier(&mut self, event_notifier: u8) {
-        let _ = self.set_attribute(AttributeId::EventNotifier, Variant::Byte(event_notifier).into());
+        self.event_notifier = event_notifier;
     }
 }
 

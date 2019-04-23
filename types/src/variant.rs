@@ -232,6 +232,12 @@ impl<'a> From<&'a [String]> for Variant {
     }
 }
 
+impl<'a> From<&'a Vec<u32>> for Variant {
+    fn from(v: &'a Vec<u32>) -> Self {
+        Variant::from(v.as_slice())
+    }
+}
+
 impl From<Vec<u32>> for Variant {
     fn from(v: Vec<u32>) -> Self {
         Variant::from(v.as_slice())
@@ -354,6 +360,32 @@ fn array_is_valid(values: &[Variant], numeric_only: bool) -> bool {
             values[1..].iter().find(|v| {
                 if v.type_id() != expected_type_id {
                     error!("Variant array's type is expected to be {:?} but found another type {:?} in it too", expected_type_id, v.type_id());
+                    true
+                } else {
+                    false
+                }
+            }).is_none()
+        } else {
+            // Only contains 1 element
+            true
+        }
+    }
+}
+
+
+/// Tests that the variants in the slice all have the same variant type
+fn array_is_of_type(values: &[Variant], variant_type: VariantTypeId) -> bool {
+    if values.is_empty() {
+        true
+    } else {
+        let first_elem_type = values[0].type_id();
+        if variant_type != first_elem_type {
+            false
+        } else if values.len() > 1 {
+            // Ensure all remaining elements are the same type as the first element
+            values[1..].iter().find(|v| {
+                if v.type_id() != variant_type {
+                    error!("Variant array's type is expected to be {:?} but found another type {:?} in it too", variant_type, v.type_id());
                     true
                 } else {
                     false
@@ -807,9 +839,21 @@ impl Variant {
         }
     }
 
+    pub fn is_array_of_type(&self, variant_type: VariantTypeId) -> bool {
+        // A non-numeric value in the array means it is not numeric
+        match *self {
+            Variant::Array(ref values) => {
+                array_is_of_type(values, variant_type)
+            }
+            _ => {
+                false
+            }
+        }
+    }
+
     /// Tests that the variant is in a valid state. In particular for arrays ensuring that the
-    /// values are all acceptable and for a multi dimensional array that the dimensions equal
-    /// the actual values.
+/// values are all acceptable and for a multi dimensional array that the dimensions equal
+/// the actual values.
     pub fn is_valid(&self) -> bool {
         match *self {
             Variant::Array(ref values) => {

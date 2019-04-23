@@ -1,40 +1,64 @@
 use opcua_types::service_types::MethodAttributes;
 
-use crate::address_space::{base::Base, node::Node};
+use crate::address_space::{base::Base, node::Node, node::NodeAttributes};
 
 #[derive(Debug)]
 pub struct Method {
     base: Base,
+    executable: bool,
+    user_executable: bool,
 }
 
 node_impl!(Method);
+
+impl NodeAttributes for Method {
+    fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
+        self.base.get_attribute(attribute_id, max_age).or_else(|| {
+            match attribute_id {
+                AttributeId::Executable => Some(Variant::from(self.executable)),
+                AttributeId::UserExecutable => Some(Variant::from(self.user_executable)),
+                _ => None
+            }.map(|v| v.into())
+        })
+    }
+
+    fn set_attribute(&mut self, attribute_id: AttributeId, value: Variant) -> Result<(), StatusCode> {
+        if let Some(value) = self.base.set_attribute(attribute_id, value)? {
+            match attribute_id {
+                AttributeId::Executable => {
+                    if let Variant::Boolean(v) = value {
+                        self.executable = v;
+                        Ok(())
+                    } else {
+                        Err(StatusCode::BadTypeMismatch)
+                    }
+                }
+                AttributeId::UserExecutable => {
+                    if let Variant::Boolean(v) = value {
+                        self.user_executable = v;
+                        Ok(())
+                    } else {
+                        Err(StatusCode::BadTypeMismatch)
+                    }
+                }
+                _ => Err(StatusCode::BadAttributeIdInvalid)
+            }
+        } else {
+            Ok(())
+        }
+    }
+}
+
 
 impl Method {
     pub fn new<R, S>(node_id: &NodeId, browse_name: R, display_name: S, executable: bool, user_executable: bool) -> Method
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,
     {
-        // Mandatory
-        let attributes = vec![
-            (AttributeId::Executable, Variant::Boolean(executable)),
-            (AttributeId::UserExecutable, Variant::Boolean(user_executable)),
-        ];
-
-        // Optional attributes
-        //
-        // NodeVersion - String
-        //
-        // InputArguments - Argument[]
-        // OutputArguments - Argument[]
-        //
-        // Properties may be defined for methods using HasProperty references.
-        // The InputArguments and OutputArguments both contain an array
-        // of the DataType argument as defined in 8.6. An empty array
-        // or a property that is not provided indicates there are
-        // no input arguments or output arguments for the method.
-
         Method {
-            base: Base::new(NodeClass::Method, node_id, browse_name, display_name, attributes),
+            base: Base::new(NodeClass::Method, node_id, browse_name, display_name),
+            executable,
+            user_executable,
         }
     }
 
@@ -62,25 +86,21 @@ impl Method {
     }
 
     pub fn executable(&self) -> bool {
-        find_attribute_value_mandatory!(&self.base, Executable, Boolean)
+        self.executable
     }
 
     pub fn set_executable(&mut self, executable: bool) {
-        let _ = self.set_attribute(AttributeId::Executable, Variant::Boolean(executable).into());
+        self.executable = executable;
     }
 
     pub fn user_executable(&self) -> bool {
         // User executable cannot be true unless executable is true
-        if self.executable() {
-            // TODO this should check the current session state to determine if the user
-            //  has permissions to execute this method
-            find_attribute_value_mandatory!(&self.base, UserExecutable, Boolean)
-        } else {
-            false
-        }
+        self.executable && self.user_executable
+        // TODO this should check the current session state to determine if the user
+        //  has permissions to execute this method
     }
 
     pub fn set_user_executable(&mut self, user_executable: bool) {
-        let _ = self.set_attribute(AttributeId::UserExecutable, Variant::Boolean(user_executable).into());
+        self.user_executable = user_executable;
     }
 }

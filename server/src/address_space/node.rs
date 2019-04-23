@@ -5,7 +5,7 @@ use opcua_types::{
 };
 
 use crate::{
-    address_space::types::{Object, ObjectType, ReferenceType, Variable, VariableType, View, DataType, Method}
+    address_space::types::{Base, Object, ObjectType, ReferenceType, Variable, VariableType, View, DataType, Method}
 };
 
 #[derive(Debug)]
@@ -31,7 +31,7 @@ impl HasNodeId for NodeType {
 }
 
 impl NodeType {
-    pub fn as_node(&self) -> &dyn Node {
+    pub fn as_node(&self) -> &dyn NodeAttributes {
         match *self {
             NodeType::Object(ref value) => value,
             NodeType::ObjectType(ref value) => value,
@@ -44,7 +44,7 @@ impl NodeType {
         }
     }
 
-    pub fn as_mut_node(&mut self) -> &mut dyn Node {
+    pub fn as_mut_node(&mut self) -> &mut dyn NodeAttributes {
         match *self {
             NodeType::Object(ref mut value) => value,
             NodeType::ObjectType(ref mut value) => value,
@@ -61,59 +61,36 @@ impl NodeType {
 /// Implemented by Base and all derived Node types. Functions that return a result in an Option
 /// do so because the attribute is optional and not necessarily there.
 pub trait Node {
-    fn node_class(&self) -> NodeClass {
-        let result = find_attribute_value_mandatory!(self, NodeClass, Int32);
-        NodeClass::from_i32(result).unwrap()
-    }
+    fn base(&self) -> &Base;
 
-    fn node_id(&self) -> NodeId {
-        let result = find_attribute_value_mandatory!(self, NodeId, NodeId);
-        result.as_ref().clone()
-    }
+    fn base_mut(&mut self) -> &mut Base;
 
-    fn browse_name(&self) -> QualifiedName {
-        let result = find_attribute_value_mandatory!(self, BrowseName, QualifiedName);
-        result.as_ref().clone()
-    }
+    fn node_class(&self) -> NodeClass;
 
-    fn display_name(&self) -> LocalizedText {
-        let result = find_attribute_value_mandatory!(self, DisplayName, LocalizedText);
-        result.as_ref().clone()
-    }
+    fn node_id(&self) -> NodeId;
 
-    fn set_display_name(&mut self, display_name: LocalizedText) {
-        let _ = self.set_attribute(AttributeId::DisplayName, Variant::from(display_name).into());
-    }
+    fn browse_name(&self) -> QualifiedName;
 
-    fn description(&self) -> Option<LocalizedText> {
-        let result = find_attribute_value_optional!(self, Description, LocalizedText);
-        if result.is_none() {
-            None
-        } else {
-            Some(result.unwrap().as_ref().clone())
-        }
-    }
+    fn display_name(&self) -> LocalizedText;
 
-    fn set_description(&mut self, description: LocalizedText) {
-        let _ = self.set_attribute(AttributeId::Description, Variant::from(description).into());
-    }
+    fn set_display_name(&mut self, display_name: LocalizedText);
 
-    fn write_mask(&self) -> Option<WriteMask> {
-        find_attribute_value_optional!(self, WriteMask, UInt32).map(|write_mask| WriteMask::from_bits_truncate(write_mask))
-    }
+    fn description(&self) -> Option<LocalizedText>;
 
-    fn set_write_mask(&mut self, write_mask: WriteMask) {
-        let _ = self.set_attribute(AttributeId::WriteMask, DataValue::new(write_mask.bits()));
-    }
+    fn set_description(&mut self, description: LocalizedText);
 
-    fn user_write_mask(&self) -> Option<WriteMask> {
-        find_attribute_value_optional!(self, UserWriteMask, UInt32).map(|write_mask| WriteMask::from_bits_truncate(write_mask))
-    }
+    fn write_mask(&self) -> Option<WriteMask>;
 
-    fn set_user_write_mask(&mut self, write_mask: WriteMask) {
-        let _ = self.set_attribute(AttributeId::UserWriteMask, DataValue::new(write_mask.bits()));
-    }
+    fn set_write_mask(&mut self, write_mask: WriteMask);
 
+    fn user_write_mask(&self) -> Option<WriteMask>;
+
+    fn set_user_write_mask(&mut self, write_mask: WriteMask);
+}
+
+/// This trait is for the benefit of the Attributes service set - Read and Write. Internal
+/// callers should just call the setter / getter on the node itself if they have access to them.
+pub trait NodeAttributes : Node {
     /// Finds the attribute and value. The param `max_age` is a hint in milliseconds:
     ///
     /// * value 0, server shall attempt to read a new value from the data source
@@ -121,8 +98,8 @@ pub trait Node {
     ///
     /// If there is a getter registered with the node, then the getter will interpret
     /// `max_age` how it sees fit.
-    fn find_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue>;
+    fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue>;
 
     /// Sets the attribute with the new value
-    fn set_attribute(&mut self, attribute_id: AttributeId, value: DataValue) -> Result<(), StatusCode>;
+    fn set_attribute(&mut self, attribute_id: AttributeId, value: Variant) -> Result<(), StatusCode>;
 }

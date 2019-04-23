@@ -1,31 +1,78 @@
 use opcua_types::service_types::VariableTypeAttributes;
 
-use crate::address_space::{base::Base, node::Node};
+use crate::address_space::{base::Base, node::Node, node::NodeAttributes};
 
 #[derive(Debug)]
 pub struct VariableType {
-    pub base: Base,
+    base: Base,
+    data_type: NodeId,
+    is_abstract: bool,
+    value_rank: i32,
+    value: Option<DataValue>,
+    array_dimensions: Option<Vec<u32>>,
 }
 
 node_impl!(VariableType);
+
+impl NodeAttributes for VariableType {
+    fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
+        self.base.get_attribute(attribute_id, max_age).or_else(|| {
+            match attribute_id {
+                AttributeId::DataType => Some(Variant::from(self.data_type.clone())),
+                AttributeId::IsAbstract => Some(Variant::from(self.is_abstract)),
+                AttributeId::ValueRank => Some(Variant::from(self.value_rank)),
+                _ => None
+            }.map(|v| v.into())
+        })
+    }
+
+    fn set_attribute(&mut self, attribute_id: AttributeId, value: Variant) -> Result<(), StatusCode> {
+        if let Some(value) = self.base.set_attribute(attribute_id, value)? {
+            match attribute_id {
+                AttributeId::DataType => {
+                    if let Variant::NodeId(v) = value {
+                        self.data_type = *v;
+                        Ok(())
+                    } else {
+                        Err(StatusCode::BadTypeMismatch)
+                    }
+                }
+                AttributeId::IsAbstract => {
+                    if let Variant::Boolean(v) = value {
+                        self.is_abstract = v;
+                        Ok(())
+                    } else {
+                        Err(StatusCode::BadTypeMismatch)
+                    }
+                }
+                AttributeId::ValueRank => {
+                    if let Variant::Int32(v) = value {
+                        self.value_rank = v;
+                        Ok(())
+                    } else {
+                        Err(StatusCode::BadTypeMismatch)
+                    }
+                }
+                _ => Err(StatusCode::BadAttributeIdInvalid)
+            }
+        } else {
+            Ok(())
+        }
+    }
+}
 
 impl VariableType {
     pub fn new<R, S>(node_id: &NodeId, browse_name: R, display_name: S, data_type: NodeId, is_abstract: bool, value_rank: i32) -> VariableType
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,
     {
-        // Mandatory
-        let attributes = vec![
-            (AttributeId::DataType, Variant::from(data_type)),
-            (AttributeId::IsAbstract, Variant::Boolean(is_abstract)),
-            (AttributeId::ValueRank, Variant::Int32(value_rank)),
-        ];
-        // Optional
-        // Attribute::Value(value),
-        // Attribute::ArrayDimensions(value),
-
         VariableType {
-            base: Base::new(NodeClass::VariableType, node_id, browse_name, display_name, attributes),
+            base: Base::new(NodeClass::VariableType, node_id, browse_name, display_name),
+            data_type,
+            is_abstract,
+            value_rank,
+            value: None,
+            array_dimensions: None,
         }
     }
 
@@ -60,32 +107,31 @@ impl VariableType {
         }
     }
 
+    pub fn set_data_type<T>(&mut self, data_type: T) where T: Into<NodeId> {
+        self.data_type = data_type.into();
+    }
+
     pub fn is_abstract(&self) -> bool {
-        find_attribute_value_mandatory!(&self.base, IsAbstract, Boolean)
+        self.is_abstract
     }
 
     pub fn set_is_abstract(&mut self, is_abstract: bool) {
-        let _ = self.set_attribute(AttributeId::IsAbstract, Variant::Boolean(is_abstract).into());
+        self.is_abstract = is_abstract;
     }
 
     pub fn value_rank(&self) -> i32 {
-        find_attribute_value_mandatory!(&self.base, ValueRank, Int32)
+        self.value_rank
     }
 
     pub fn set_value_rank(&mut self, value_rank: i32) {
-        let _ = self.set_attribute(AttributeId::ValueRank, Variant::from(value_rank).into());
+        self.value_rank = value_rank;
     }
 
     pub fn set_array_dimensions(&mut self, array_dimensions: &[u32]) {
-        let _ = self.set_attribute(AttributeId::ArrayDimensions, Variant::from(array_dimensions).into());
-    }
-
-    pub fn set_data_type<T>(&mut self, data_type: T) where T: Into<NodeId> {
-        let node_id: NodeId = data_type.into();
-        let _ = self.set_attribute(AttributeId::DataType, Variant::from(node_id).into());
+        self.array_dimensions = Some(array_dimensions.to_vec());
     }
 
     pub fn set_value<V>(&mut self, value: V) where V: Into<DataValue> {
-        let _ = self.set_attribute(AttributeId::Value, value.into());
+        self.value = Some(value.into());
     }
 }

@@ -33,6 +33,8 @@ extern crate bitflags;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
+extern crate derivative;
+#[macro_use]
 extern crate opcua_core;
 
 /// Returns true of the Option<Vec<Foo>> is None or the vec inside is empty. This is particularly

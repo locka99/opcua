@@ -1,26 +1,63 @@
 use opcua_types::service_types::ViewAttributes;
 
-use crate::address_space::{base::Base, node::Node};
+use crate::address_space::{base::Base, node::Node, node::NodeAttributes};
 
 #[derive(Debug)]
 pub struct View {
     base: Base,
+    event_notifier: u8,
+    contains_no_loops: bool,
 }
 
 node_impl!(View);
+
+impl NodeAttributes for View {
+    fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
+        self.base.get_attribute(attribute_id, max_age).or_else(|| {
+            match attribute_id {
+                AttributeId::EventNotifier => Some(Variant::from(self.event_notifier)),
+                AttributeId::ContainsNoLoops => Some(Variant::from(self.contains_no_loops)),
+                _ => None
+            }.map(|v| v.into())
+        })
+    }
+
+    fn set_attribute(&mut self, attribute_id: AttributeId, value: Variant) -> Result<(), StatusCode> {
+        if let Some(value) = self.base.set_attribute(attribute_id, value)? {
+            match attribute_id {
+                AttributeId::EventNotifier => {
+                    if let Variant::Byte(v) = value {
+                        self.event_notifier = v;
+                        Ok(())
+                    } else {
+                        Err(StatusCode::BadTypeMismatch)
+                    }
+                }
+                AttributeId::ContainsNoLoops => {
+                    if let Variant::Boolean(v) = value {
+                        self.contains_no_loops = v;
+                        Ok(())
+                    } else {
+                        Err(StatusCode::BadTypeMismatch)
+                    }
+                }
+                _ => Err(StatusCode::BadAttributeIdInvalid)
+            }
+        } else {
+            Ok(())
+        }
+    }
+}
 
 impl View {
     pub fn new<R, S>(node_id: &NodeId, browse_name: R, display_name: S, event_notifier: u8, contains_no_loops: bool) -> View
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,
     {
-        // Mandatory
-        let attributes = vec![
-            (AttributeId::EventNotifier, Variant::Byte(event_notifier)),
-            (AttributeId::ContainsNoLoops, Variant::Boolean(contains_no_loops)),
-        ];
         View {
-            base: Base::new(NodeClass::View, node_id, browse_name, display_name, attributes),
+            base: Base::new(NodeClass::View, node_id, browse_name, display_name),
+            event_notifier,
+            contains_no_loops,
         }
     }
 
@@ -47,19 +84,19 @@ impl View {
         }
     }
 
-    pub fn event_notifier(&self) -> bool {
-        find_attribute_value_mandatory!(&self.base, EventNotifier, Boolean)
+    pub fn event_notifier(&self) -> u8 {
+        self.event_notifier
     }
 
     pub fn set_event_notifier(&mut self, event_notifier: u8) {
-        let _ = self.set_attribute(AttributeId::EventNotifier, Variant::Byte(event_notifier).into());
+        self.event_notifier = event_notifier;
     }
 
     pub fn contains_no_loops(&self) -> bool {
-        find_attribute_value_mandatory!(&self.base, ContainsNoLoops, Boolean)
+        self.contains_no_loops
     }
 
     pub fn set_contains_no_loops(&mut self, contains_no_loops: bool) {
-        let _ = self.set_attribute(AttributeId::ContainsNoLoops, Variant::Boolean(contains_no_loops).into());
+        self.contains_no_loops = contains_no_loops
     }
 }

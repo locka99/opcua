@@ -1,30 +1,80 @@
 use opcua_types::service_types::ReferenceTypeAttributes;
 
-use crate::address_space::{base::Base, node::Node};
+use crate::address_space::{base::Base, node::Node, node::NodeAttributes};
 
 #[derive(Debug)]
 pub struct ReferenceType {
-    pub base: Base,
+    base: Base,
+    symmetric: bool,
+    is_abstract: bool,
+    inverse_name: Option<LocalizedText>,
 }
 
 node_impl!(ReferenceType);
+
+impl NodeAttributes for ReferenceType {
+    fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
+        self.base.get_attribute(attribute_id, max_age).or_else(|| {
+            match attribute_id {
+                AttributeId::Symmetric => Some(Variant::from(self.symmetric)),
+                AttributeId::IsAbstract => Some(Variant::from(self.is_abstract)),
+                AttributeId::InverseName => {
+                    if let Some(ref v) = self.inverse_name {
+                        Some(Variant::from(v.clone()))
+                    } else {
+                        None
+                    }
+                }
+                _ => None
+            }.map(|v| v.into())
+        })
+    }
+
+    fn set_attribute(&mut self, attribute_id: AttributeId, value: Variant) -> Result<(), StatusCode> {
+        if let Some(value) = self.base.set_attribute(attribute_id, value)? {
+            match attribute_id {
+                AttributeId::Symmetric => {
+                    if let Variant::Boolean(v) = value {
+                        self.symmetric = v;
+                        Ok(())
+                    } else {
+                        Err(StatusCode::BadTypeMismatch)
+                    }
+                }
+                AttributeId::IsAbstract => {
+                    if let Variant::Boolean(v) = value {
+                        self.is_abstract = v;
+                        Ok(())
+                    } else {
+                        Err(StatusCode::BadTypeMismatch)
+                    }
+                }
+                AttributeId::InverseName => {
+                    if let Variant::LocalizedText(v) = value {
+                        self.inverse_name = Some(*v);
+                        Ok(())
+                    } else {
+                        Err(StatusCode::BadTypeMismatch)
+                    }
+                }
+                _ => Err(StatusCode::BadAttributeIdInvalid)
+            }
+        } else {
+            Ok(())
+        }
+    }
+}
 
 impl ReferenceType {
     pub fn new<R, S>(node_id: &NodeId, browse_name: R, display_name: S, inverse_name: Option<LocalizedText>, symmetric: bool, is_abstract: bool) -> ReferenceType
         where R: Into<QualifiedName>,
               S: Into<LocalizedText>,
     {
-        // Mandatory
-        let mut attributes = vec![
-            (AttributeId::Symmetric, Variant::Boolean(symmetric)),
-            (AttributeId::IsAbstract, Variant::Boolean(is_abstract)),
-        ];
-        // Optional
-        if let Some(inverse_name) = inverse_name {
-            attributes.push((AttributeId::InverseName, Variant::from(inverse_name)));
-        }
         ReferenceType {
-            base: Base::new(NodeClass::ReferenceType, node_id, browse_name, display_name, attributes),
+            base: Base::new(NodeClass::ReferenceType, node_id, browse_name, display_name),
+            symmetric,
+            is_abstract,
+            inverse_name,
         }
     }
 
@@ -61,31 +111,26 @@ impl ReferenceType {
     }
 
     pub fn symmetric(&self) -> bool {
-        find_attribute_value_mandatory!(&self.base, Symmetric, Boolean)
+        self.symmetric
     }
 
     pub fn set_symmetric(&mut self, symmetric: bool) {
-        let _ = self.set_attribute(AttributeId::Symmetric, Variant::Boolean(symmetric).into());
+        self.symmetric = symmetric;
     }
 
     pub fn is_abstract(&self) -> bool {
-        find_attribute_value_mandatory!(&self.base, IsAbstract, Boolean)
+        self.is_abstract
     }
 
     pub fn set_is_abstract(&mut self, is_abstract: bool) {
-        let _ = self.set_attribute(AttributeId::IsAbstract, Variant::Boolean(is_abstract).into());
+        self.is_abstract = is_abstract;
     }
 
     pub fn inverse_name(&self) -> Option<LocalizedText> {
-        let result = find_attribute_value_optional!(&self.base, InverseName, LocalizedText);
-        if result.is_none() {
-            None
-        } else {
-            Some(result.unwrap().as_ref().clone())
-        }
+        self.inverse_name.clone()
     }
 
     pub fn set_inverse_name(&mut self, inverse_name: LocalizedText) {
-        let _ = self.set_attribute(AttributeId::InverseName, Variant::from(inverse_name).into());
+        self.inverse_name = Some(inverse_name);
     }
 }

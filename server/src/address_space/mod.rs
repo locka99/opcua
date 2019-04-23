@@ -47,50 +47,61 @@ macro_rules! node_impl {
         use opcua_types::service_types::NodeClass;
         use crate::address_space::node::NodeType;
 
-        impl Node for $node_struct {
-            fn find_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> { self.base.find_attribute(attribute_id, max_age) }
-            fn set_attribute(&mut self, attribute_id: AttributeId, value: DataValue) -> Result<(), StatusCode> { self.base.set_attribute(attribute_id, value) }
-        }
-
         impl Into<NodeType> for $node_struct {
             fn into(self) -> NodeType { NodeType::$node_struct(self) }
         }
-    }
-}
 
-/// Macro that finds an attribute that is mandatory for the node type and returns its entry.
-/// This macro will trigger a panic if an expected attribute isn't there.
-macro_rules! find_attribute_value_mandatory {
-    ( $sel:expr, $attribute_id: ident, $variant_type: ident ) => {
-        {
-            if let Some(result) = find_attribute_value_optional!($sel, $attribute_id, $variant_type) {
-                result
+        impl Node for $node_struct {
+            fn base(&self) -> &Base {
+                &self.base
             }
-            else {
-                panic!("Mandatory attribute {:?} is missing", AttributeId::$attribute_id);
-            }
-        }
-    }
-}
 
-/// Macro that finds an optional attribute returning the attribute in a `Some`, or
-/// `None` if the attribute does not exist.
-macro_rules! find_attribute_value_optional {
-    ( $sel:expr, $attribute_id: ident, $variant_type: ident ) => {
-        {
-            use opcua_types::{AttributeId, Variant};
-            if let Some(data_value) = $sel.find_attribute(AttributeId::$attribute_id, 0.0) {
-                if let Some(value) = data_value.value {
-                    if let Variant::$variant_type(value) = value {
-                        Some(value)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            } else {
-                None
+            fn base_mut(&mut self) -> &mut Base {
+                &mut self.base
+            }
+
+            fn node_class(&self) -> NodeClass {
+                self.base().node_class()
+            }
+
+            fn node_id(&self) -> NodeId {
+                self.base().node_id()
+            }
+
+            fn browse_name(&self) -> QualifiedName {
+                self.base().browse_name()
+            }
+
+            fn display_name(&self) -> LocalizedText {
+                self.base().display_name()
+            }
+
+            fn set_display_name(&mut self, display_name: LocalizedText) {
+                self.base_mut().set_display_name(display_name);
+            }
+
+            fn description(&self) -> Option<LocalizedText> {
+                self.base().description()
+            }
+
+            fn set_description(&mut self, description: LocalizedText) {
+                self.base_mut().set_description(description);
+            }
+
+            fn write_mask(&self) -> Option<WriteMask> {
+                self.base().write_mask()
+            }
+
+            fn set_write_mask(&mut self, write_mask: WriteMask) {
+                self.base_mut().set_write_mask(write_mask);
+            }
+
+            fn user_write_mask(&self) -> Option<WriteMask> {
+                self.base().user_write_mask()
+            }
+
+            fn set_user_write_mask(&mut self, user_write_mask: WriteMask) {
+                self.base_mut().set_user_write_mask(user_write_mask)
             }
         }
     }
@@ -141,6 +152,7 @@ bitflags! {
 }
 
 pub mod types {
+    pub use super::base::Base;
     pub use super::{AttrFnGetter, AttrFnSetter};
     pub use super::address_space::AddressSpace;
     pub use super::references::ReferenceDirection;

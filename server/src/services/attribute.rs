@@ -65,8 +65,7 @@ impl AttributeService {
         if is_empty_option_vec!(request.nodes_to_write) {
             Ok(self.service_fault(&request.request_header, StatusCode::BadNothingToDo))
         } else {
-            let nodes_to_write = request.nodes_to_write.as_ref().unwrap();
-            let results = nodes_to_write.iter().map(|node_to_write| {
+            let results = request.nodes_to_write.as_ref().unwrap().iter().map(|node_to_write| {
                 Self::write_node_value(address_space, node_to_write)
             }).collect();
 
@@ -92,7 +91,7 @@ impl AttributeService {
         // Node node found
         if let Some(node) = address_space.find_node(&node_to_read.node_id) {
             if let Ok(attribute_id) = AttributeId::from_u32(node_to_read.attribute_id) {
-                if let Some(attribute) = node.as_node().find_attribute(attribute_id, max_age) {
+                if let Some(attribute) = node.as_node().get_attribute(attribute_id, max_age) {
                     let is_readable = Self::is_readable(&node);
                     if !is_readable {
                         result_value.status = Some(StatusCode::BadNotReadable.bits())
@@ -156,15 +155,22 @@ impl AttributeService {
                     StatusCode::BadNotWritable
                 } else if !node_to_write.index_range.is_null() {
                     // Index ranges are not supported
+                    error!("Server does not support indexes in write");
                     StatusCode::BadWriteNotSupported
-                } else {
+//                } else if node_to_write.value.server_timestamp.is_some() || node_to_write.value.server_picoseconds.is_some() ||
+//                    node_to_write.value.source_timestamp.is_some() || node_to_write.value.source_picoseconds.is_some() {
+//                    error!("Server does not support timestamps in write");
+//                    StatusCode::BadWriteNotSupported
+                } else if let Some(ref value) = node_to_write.value.value {
                     let node = node.as_mut_node();
-                    let result = node.set_attribute(attribute_id, node_to_write.value.clone());
-                    if result.is_err() {
-                        result.unwrap_err()
+                    if let Err(err) = node.set_attribute(attribute_id, value.clone()) {
+                        err
                     } else {
                         StatusCode::Good
                     }
+                } else {
+                    error!("Server does not support missing value in write");
+                    StatusCode::BadWriteNotSupported
                 }
             } else {
                 warn!("Attribute id {} is invalid", node_to_write.attribute_id);
