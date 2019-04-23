@@ -108,6 +108,8 @@ impl VariableBuilder {
     }
 }
 
+// Note we use derivative builder macro so we can skip over those value getter / setter
+
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct Variable {
@@ -151,6 +153,7 @@ impl NodeAttributes for Variable {
     fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
         self.base.get_attribute(attribute_id, max_age).or_else(|| {
             match attribute_id {
+                // Mandatory attributes
                 AttributeId::DataType => Some(Variant::from(self.data_type.clone()).into()),
                 AttributeId::Historizing => Some(Variant::from(self.historizing).into()),
                 AttributeId::ValueRank => Some(Variant::from(self.value_rank).into()),
@@ -162,6 +165,7 @@ impl NodeAttributes for Variable {
                 },
                 AttributeId::AccessLevel => Some(Variant::from(self.access_level).into()),
                 AttributeId::UserAccessLevel => Some(Variant::from(self.user_access_level).into()),
+                // Optional attributes
                 AttributeId::ArrayDimensions => {
                     if let Some(ref array_dimensions) = self.array_dimensions {
                         Some(Variant::from(array_dimensions).into())
@@ -203,6 +207,7 @@ impl NodeAttributes for Variable {
                     Err(StatusCode::BadTypeMismatch)
                 },
                 AttributeId::Value => {
+                    // The value can be provided by a value getter
                     if let Some(ref value_setter) = self.value_setter {
                         let mut value_setter = value_setter.lock().unwrap();
                         let _ = value_setter.set(&self.node_id(), AttributeId::Value, value.into());
@@ -224,6 +229,7 @@ impl NodeAttributes for Variable {
                 } else {
                     Err(StatusCode::BadTypeMismatch)
                 },
+                // TODO
                 /* AttributeId::ArrayDimensions => if let Variant::Array(v) = value {
                     v.into_vec::<i32>();
                     self.array_dimensions = Some(v);
