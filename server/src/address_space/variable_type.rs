@@ -17,12 +17,24 @@ node_impl!(VariableType);
 impl NodeAttributes for VariableType {
     fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
         self.base.get_attribute(attribute_id, max_age).or_else(|| {
-            match attribute_id {
-                AttributeId::DataType => Some(Variant::from(self.data_type.clone())),
-                AttributeId::IsAbstract => Some(Variant::from(self.is_abstract)),
-                AttributeId::ValueRank => Some(Variant::from(self.value_rank)),
-                _ => None
-            }.map(|v| v.into())
+            if attribute_id == AttributeId::Value {
+                self.value()
+            } else {
+                match attribute_id {
+                    AttributeId::DataType => Some(Variant::from(self.data_type())),
+                    AttributeId::IsAbstract => Some(Variant::from(self.is_abstract())),
+                    AttributeId::ValueRank => Some(Variant::from(self.value_rank())),
+                    // Optional attributes
+                    AttributeId::ArrayDimensions => {
+                        if let Some(array_dimensions) = self.array_dimensions() {
+                            Some(Variant::from(array_dimensions))
+                        } else {
+                            None
+                        }
+                    }
+                    _ => None
+                }.map(|v| v.into())
+            }
         })
     }
 
@@ -31,7 +43,7 @@ impl NodeAttributes for VariableType {
             match attribute_id {
                 AttributeId::DataType => {
                     if let Variant::NodeId(v) = value {
-                        self.data_type = *v;
+                        self.set_data_type(*v);
                         Ok(())
                     } else {
                         Err(StatusCode::BadTypeMismatch)
@@ -39,7 +51,7 @@ impl NodeAttributes for VariableType {
                 }
                 AttributeId::IsAbstract => {
                     if let Variant::Boolean(v) = value {
-                        self.is_abstract = v;
+                        self.set_is_abstract(v);
                         Ok(())
                     } else {
                         Err(StatusCode::BadTypeMismatch)
@@ -47,12 +59,24 @@ impl NodeAttributes for VariableType {
                 }
                 AttributeId::ValueRank => {
                     if let Variant::Int32(v) = value {
-                        self.value_rank = v;
+                        self.set_value_rank(v);
                         Ok(())
                     } else {
                         Err(StatusCode::BadTypeMismatch)
                     }
                 }
+                AttributeId::Value => {
+                    self.set_value(value);
+                    Ok(())
+                }
+                // TODO
+                /* AttributeId::ArrayDimensions => if let Variant::Array(v) = value {
+                    v.into_vec::<i32>();
+                    self.array_dimensions = Some(v);
+                    Ok(())
+                } else {
+                    Err(StatusCode::BadTypeMismatch)
+                }, */
                 _ => Err(StatusCode::BadAttributeIdInvalid)
             }
         } else {
@@ -107,6 +131,10 @@ impl VariableType {
         }
     }
 
+    pub fn data_type(&self) -> NodeId {
+        self.data_type.clone()
+    }
+
     pub fn set_data_type<T>(&mut self, data_type: T) where T: Into<NodeId> {
         self.data_type = data_type.into();
     }
@@ -127,11 +155,28 @@ impl VariableType {
         self.value_rank = value_rank;
     }
 
+    pub fn array_dimensions(&self) -> Option<Vec<u32>> {
+        self.array_dimensions.clone()
+    }
+
     pub fn set_array_dimensions(&mut self, array_dimensions: &[u32]) {
         self.array_dimensions = Some(array_dimensions.to_vec());
     }
 
-    pub fn set_value<V>(&mut self, value: V) where V: Into<DataValue> {
-        self.value = Some(value.into());
+    pub fn value(&self) -> Option<DataValue> {
+        self.value.clone()
+    }
+
+    pub fn set_value<V>(&mut self, value: V) where V: Into<Variant> {
+        let value = value.into();
+        let value = if let Variant::DataValue(v) = value {
+            // A variant containing a datavalue is treated as though that should be
+            // the datavalue to set.
+            *v
+        } else {
+            // Otherwise wrap the variant in a datavalue
+            value.into()
+        };
+        self.value = Some(value);
     }
 }

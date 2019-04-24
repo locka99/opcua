@@ -14,7 +14,7 @@ impl NodeAttributes for Object {
     fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
         self.base.get_attribute(attribute_id, max_age).or_else(|| {
             match attribute_id {
-                AttributeId::EventNotifier => Some(Variant::from(self.event_notifier)),
+                AttributeId::EventNotifier => Some(Variant::from(self.event_notifier())),
                 _ => None
             }.map(|v| v.into())
         })
@@ -25,7 +25,7 @@ impl NodeAttributes for Object {
             match attribute_id {
                 AttributeId::EventNotifier => {
                     if let Variant::Byte(v) = value {
-                        self.event_notifier = v;
+                        self.set_event_notifier(v);
                         Ok(())
                     } else {
                         Err(StatusCode::BadTypeMismatch)

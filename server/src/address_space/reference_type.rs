@@ -16,11 +16,11 @@ impl NodeAttributes for ReferenceType {
     fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
         self.base.get_attribute(attribute_id, max_age).or_else(|| {
             match attribute_id {
-                AttributeId::Symmetric => Some(Variant::from(self.symmetric)),
-                AttributeId::IsAbstract => Some(Variant::from(self.is_abstract)),
+                AttributeId::Symmetric => Some(Variant::from(self.symmetric())),
+                AttributeId::IsAbstract => Some(Variant::from(self.is_abstract())),
                 AttributeId::InverseName => {
-                    if let Some(ref v) = self.inverse_name {
-                        Some(Variant::from(v.clone()))
+                    if let Some(v) = self.inverse_name() {
+                        Some(Variant::from(v))
                     } else {
                         None
                     }

@@ -15,8 +15,8 @@ impl NodeAttributes for Method {
     fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
         self.base.get_attribute(attribute_id, max_age).or_else(|| {
             match attribute_id {
-                AttributeId::Executable => Some(Variant::from(self.executable)),
-                AttributeId::UserExecutable => Some(Variant::from(self.user_executable)),
+                AttributeId::Executable => Some(Variant::from(self.executable())),
+                AttributeId::UserExecutable => Some(Variant::from(self.user_executable())),
                 _ => None
             }.map(|v| v.into())
         })
@@ -27,7 +27,7 @@ impl NodeAttributes for Method {
             match attribute_id {
                 AttributeId::Executable => {
                     if let Variant::Boolean(v) = value {
-                        self.executable = v;
+                        self.set_executable(v);
                         Ok(())
                     } else {
                         Err(StatusCode::BadTypeMismatch)
@@ -35,7 +35,7 @@ impl NodeAttributes for Method {
                 }
                 AttributeId::UserExecutable => {
                     if let Variant::Boolean(v) = value {
-                        self.user_executable = v;
+                        self.set_user_executable(v);
                         Ok(())
                     } else {
                         Err(StatusCode::BadTypeMismatch)

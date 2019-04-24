@@ -14,7 +14,7 @@ impl NodeAttributes for ObjectType {
     fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
         self.base.get_attribute(attribute_id, max_age).or_else(|| {
             match attribute_id {
-                AttributeId::IsAbstract => Some(Variant::from(self.is_abstract)),
+                AttributeId::IsAbstract => Some(Variant::from(self.is_abstract())),
                 _ => None
             }.map(|v| v.into())
         })
@@ -25,7 +25,7 @@ impl NodeAttributes for ObjectType {
             match attribute_id {
                 AttributeId::IsAbstract => {
                     if let Variant::Boolean(v) = value {
-                        self.is_abstract = v;
+                        self.set_is_abstract(v);
                         Ok(())
                     } else {
                         Err(StatusCode::BadTypeMismatch)

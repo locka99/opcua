@@ -15,8 +15,8 @@ impl NodeAttributes for View {
     fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
         self.base.get_attribute(attribute_id, max_age).or_else(|| {
             match attribute_id {
-                AttributeId::EventNotifier => Some(Variant::from(self.event_notifier)),
-                AttributeId::ContainsNoLoops => Some(Variant::from(self.contains_no_loops)),
+                AttributeId::EventNotifier => Some(Variant::from(self.event_notifier())),
+                AttributeId::ContainsNoLoops => Some(Variant::from(self.contains_no_loops())),
                 _ => None
             }.map(|v| v.into())
         })
@@ -27,7 +27,7 @@ impl NodeAttributes for View {
             match attribute_id {
                 AttributeId::EventNotifier => {
                     if let Variant::Byte(v) = value {
-                        self.event_notifier = v;
+                        self.set_event_notifier(v);
                         Ok(())
                     } else {
                         Err(StatusCode::BadTypeMismatch)
@@ -35,7 +35,7 @@ impl NodeAttributes for View {
                 }
                 AttributeId::ContainsNoLoops => {
                     if let Variant::Boolean(v) = value {
-                        self.contains_no_loops = v;
+                        self.set_contains_no_loops(v);
                         Ok(())
                     } else {
                         Err(StatusCode::BadTypeMismatch)

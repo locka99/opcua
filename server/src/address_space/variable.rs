@@ -108,7 +108,7 @@ impl VariableBuilder {
     }
 }
 
-// Note we use derivative builder macro so we can skip over those value getter / setter
+// Note we use derivative builder macro so we can skip over the value getter / setter
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -152,35 +152,33 @@ impl Default for Variable {
 impl NodeAttributes for Variable {
     fn get_attribute(&self, attribute_id: AttributeId, max_age: f64) -> Option<DataValue> {
         self.base.get_attribute(attribute_id, max_age).or_else(|| {
-            match attribute_id {
-                // Mandatory attributes
-                AttributeId::DataType => Some(Variant::from(self.data_type.clone()).into()),
-                AttributeId::Historizing => Some(Variant::from(self.historizing).into()),
-                AttributeId::ValueRank => Some(Variant::from(self.value_rank).into()),
-                AttributeId::Value => if let Some(ref value_getter) = self.value_getter {
-                    let mut value_getter = value_getter.lock().unwrap();
-                    value_getter.get(&self.node_id(), AttributeId::Value, max_age).unwrap()
-                } else {
-                    Some(self.value.clone())
-                },
-                AttributeId::AccessLevel => Some(Variant::from(self.access_level).into()),
-                AttributeId::UserAccessLevel => Some(Variant::from(self.user_access_level).into()),
-                // Optional attributes
-                AttributeId::ArrayDimensions => {
-                    if let Some(ref array_dimensions) = self.array_dimensions {
-                        Some(Variant::from(array_dimensions).into())
-                    } else {
-                        None
+            if attribute_id == AttributeId::Value {
+                Some(self.value())
+            } else {
+                match attribute_id {
+                    // Mandatory attributes
+                    AttributeId::DataType => Some(Variant::from(self.data_type())),
+                    AttributeId::Historizing => Some(Variant::from(self.historizing())),
+                    AttributeId::ValueRank => Some(Variant::from(self.value_rank())),
+                    AttributeId::AccessLevel => Some(Variant::from(self.access_level().bits())),
+                    AttributeId::UserAccessLevel => Some(Variant::from(self.user_access_level().bits())),
+                    // Optional attributes
+                    AttributeId::ArrayDimensions => {
+                        if let Some(ref array_dimensions) = self.array_dimensions() {
+                            Some(Variant::from(array_dimensions))
+                        } else {
+                            None
+                        }
                     }
-                }
-                AttributeId::MinimumSamplingInterval => {
-                    if let Some(minimum_sampling_interval) = self.minimum_sampling_interval {
-                        Some(Variant::from(minimum_sampling_interval).into())
-                    } else {
-                        None
+                    AttributeId::MinimumSamplingInterval => {
+                        if let Some(minimum_sampling_interval) = self.minimum_sampling_interval() {
+                            Some(Variant::from(minimum_sampling_interval))
+                        } else {
+                            None
+                        }
                     }
-                }
-                _ => None
+                    _ => None
+                }.map(|v| v.into())
             }
         })
     }
@@ -189,42 +187,35 @@ impl NodeAttributes for Variable {
         if let Some(value) = self.base.set_attribute(attribute_id, value)? {
             match attribute_id {
                 AttributeId::DataType => if let Variant::NodeId(v) = value {
-                    self.data_type = *v;
+                    self.set_data_type(*v);
                     Ok(())
                 } else {
                     Err(StatusCode::BadTypeMismatch)
                 },
                 AttributeId::Historizing => if let Variant::Boolean(v) = value {
-                    self.historizing = v;
+                    self.set_historizing(v);
                     Ok(())
                 } else {
                     Err(StatusCode::BadTypeMismatch)
                 },
                 AttributeId::ValueRank => if let Variant::Int32(v) = value {
-                    self.value_rank = v;
+                    self.set_value_rank(v);
                     Ok(())
                 } else {
                     Err(StatusCode::BadTypeMismatch)
                 },
                 AttributeId::Value => {
-                    // The value can be provided by a value getter
-                    if let Some(ref value_setter) = self.value_setter {
-                        let mut value_setter = value_setter.lock().unwrap();
-                        let _ = value_setter.set(&self.node_id(), AttributeId::Value, value.into());
-                    }
-                    else {
-                        self.value.value = Some(value);
-                    }
+                    self.set_value(value);
                     Ok(())
                 }
                 AttributeId::AccessLevel => if let Variant::Byte(v) = value {
-                    self.access_level = v;
+                    self.set_access_level(AccessLevel::from_bits_truncate(v));
                     Ok(())
                 } else {
                     Err(StatusCode::BadTypeMismatch)
                 },
                 AttributeId::UserAccessLevel => if let Variant::Byte(v) = value {
-                    self.user_access_level = v;
+                    self.set_user_access_level(UserAccessLevel::from_bits_truncate(v));
                     Ok(())
                 } else {
                     Err(StatusCode::BadTypeMismatch)
@@ -238,7 +229,7 @@ impl NodeAttributes for Variable {
                     Err(StatusCode::BadTypeMismatch)
                 }, */
                 AttributeId::MinimumSamplingInterval => if let Variant::Double(v) = value {
-                    self.minimum_sampling_interval = Some(v);
+                    self.set_minimum_sampling_interval(v);
                     Ok(())
                 } else {
                     Err(StatusCode::BadTypeMismatch)
@@ -351,15 +342,38 @@ impl Variable {
     }
 
     pub fn value(&self) -> DataValue {
-        self.value.clone()
+        if let Some(ref value_getter) = self.value_getter {
+            let mut value_getter = value_getter.lock().unwrap();
+            value_getter.get(&self.node_id(), AttributeId::Value, 0f64).unwrap().unwrap()
+        } else {
+            self.value.clone().into()
+        }
     }
 
     /// Sets the variable's `Variant` value. The timestamps for the change are updated to now.
     pub fn set_value<V>(&mut self, value: V) where V: Into<Variant> {
-        // TODO if the value is an array or multi-dimensional array, should we
-        //  set array dimensions / value rank?
-        let now = DateTime::now();
-        self.set_value_direct(value, &now, &now);
+        let value = value.into();
+        // The value set to the value getter
+        if let Some(ref value_setter) = self.value_setter {
+            let mut value_setter = value_setter.lock().unwrap();
+            let value = value.into();
+            let data_value = if let Variant::DataValue(value) = value {
+                // A variant containing a datavalue is treated as though that should be
+                // the datavalue to set.
+                *value
+            } else {
+                value.into()
+            };
+            let _ = value_setter.set(&self.node_id(), AttributeId::Value, data_value);
+        } else {
+            let now = DateTime::now();
+            let value = if let Variant::DataValue(value) = value {
+                value.value.unwrap_or(Variant::Empty)
+            } else {
+                value
+            };
+            self.set_value_direct(value, &now, &now);
+        }
     }
 
     /// Sets the variable's `DataValue`
@@ -369,7 +383,9 @@ impl Variable {
         self.value.source_timestamp = Some(source_timestamp.clone());
     }
 
-    /// Sets a getter function that will be called to get the value of this variable.
+    /// Sets a getter function that will be called to get the value of this variable. Note
+    /// you most likely want to set the corresponding setter too otherwise you will never get back
+    /// the values you set otherwise.
     pub fn set_value_getter(&mut self, value_getter: Arc<Mutex<dyn AttributeGetter + Send>>) {
         self.value_getter = Some(value_getter);
     }
@@ -459,6 +475,10 @@ impl Variable {
 
     pub fn set_array_dimensions(&mut self, array_dimensions: &[u32]) {
         self.array_dimensions = Some(array_dimensions.to_vec());
+    }
+
+    pub fn data_type(&self) -> NodeId {
+        self.data_type.clone()
     }
 
     pub fn set_data_type<T>(&mut self, data_type: T) where T: Into<NodeId> {

@@ -171,8 +171,8 @@ fn write_test() {
 
         // 1. a variable value
         assert_eq!(results[0], StatusCode::Good);
-        // 2. a variable with another attribute
-        assert_eq!(results[1], StatusCode::Good);
+        // 2. a variable with invalid attribute
+        assert_eq!(results[1], StatusCode::BadAttributeIdInvalid);
         // 3. a variable value which has no write access
         assert_eq!(results[2], StatusCode::BadNotWritable);
         // 4. a node of some kind other than variable
