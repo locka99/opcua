@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use opcua_types::service_types::VariableTypeAttributes;
 
 use crate::address_space::{base::Base, node::Node, node::NodeAttributes};
@@ -69,14 +71,15 @@ impl NodeAttributes for VariableType {
                     self.set_value(value);
                     Ok(())
                 }
-                // TODO
-                /* AttributeId::ArrayDimensions => if let Variant::Array(v) = value {
-                    v.into_vec::<i32>();
-                    self.array_dimensions = Some(v);
-                    Ok(())
-                } else {
-                    Err(StatusCode::BadTypeMismatch)
-                }, */
+                AttributeId::ArrayDimensions => {
+                    let array_dimensions: Result<Vec<u32>, ()> = value.try_into();
+                    if let Ok(array_dimensions) = array_dimensions {
+                        self.set_array_dimensions(&array_dimensions);
+                        Ok(())
+                    } else {
+                        Err(StatusCode::BadTypeMismatch)
+                    }
+                }
                 _ => Err(StatusCode::BadAttributeIdInvalid)
             }
         } else {

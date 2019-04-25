@@ -16,6 +16,7 @@ use crate::{
     status_codes::StatusCode,
     string::{UAString, XmlElement},
 };
+use std::convert::{TryFrom, TryInto};
 
 const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
 const ARRAY_VALUES_BIT: u8 = 1 << 7;
@@ -273,6 +274,28 @@ impl From<Vec<Variant>> for Variant {
 impl From<MultiDimensionArray> for Variant {
     fn from(v: MultiDimensionArray) -> Self {
         Variant::MultiDimensionArray(Box::new(v))
+    }
+}
+
+impl TryInto<Vec<u32>> for Variant {
+    type Error = ();
+    fn try_into(self) -> Result<Vec<u32>, Self::Error> {
+        match self {
+            Variant::Array(values) => {
+                if !array_is_of_type(&values, VariantTypeId::UInt32) {
+                    Err(())
+                } else {
+                    Ok(values.iter().map(|v| {
+                        if let Variant::UInt32(v) = v {
+                            *v
+                        } else {
+                            panic!()
+                        }
+                    }).collect())
+                }
+            }
+            _ => Err(())
+        }
     }
 }
 
@@ -823,27 +846,14 @@ impl Variant {
         }
     }
 
-    /// Tests and returns true if the variant is an array containing numeric values
-    pub fn is_numeric_array(&self) -> bool {
-        // A non-numeric value in the array means it is not numeric
-        match *self {
-            Variant::Array(ref values) => {
-                array_is_valid(values, true)
-            }
-            Variant::MultiDimensionArray(ref mda) => {
-                array_is_valid(&mda.values, true)
-            }
-            _ => {
-                false
-            }
-        }
-    }
-
     pub fn is_array_of_type(&self, variant_type: VariantTypeId) -> bool {
         // A non-numeric value in the array means it is not numeric
         match *self {
             Variant::Array(ref values) => {
                 array_is_of_type(values, variant_type)
+            }
+            Variant::MultiDimensionArray(ref mda) => {
+                array_is_of_type(&mda.values, variant_type)
             }
             _ => {
                 false
@@ -852,8 +862,8 @@ impl Variant {
     }
 
     /// Tests that the variant is in a valid state. In particular for arrays ensuring that the
-/// values are all acceptable and for a multi dimensional array that the dimensions equal
-/// the actual values.
+    /// values are all acceptable and for a multi dimensional array that the dimensions equal
+    /// the actual values.
     pub fn is_valid(&self) -> bool {
         match *self {
             Variant::Array(ref values) => {
@@ -890,41 +900,6 @@ impl Variant {
             _ => {
                 None
             }
-        }
-    }
-
-    /// Assuming the variant to be an array of numeric values, this function will return
-    /// an array of u32 values. Note that data loss is possible for some numeric types.
-    /// If the variant is not a numeric array, the function returns an error.
-    pub fn as_u32_array(&self) -> Result<Vec<u32>, ()> {
-        if self.is_numeric_array() {
-            match *self {
-                Variant::Array(ref values) => {
-                    Ok(values.iter().map(|v| {
-                        match *v {
-                            Variant::UInt32(ref value) => *value,
-                            Variant::SByte(ref value) => *value as u32,
-                            Variant::Byte(ref value) => *value as u32,
-                            Variant::Int16(ref value) => *value as u32,
-                            Variant::UInt16(ref value) => *value as u32,
-                            Variant::Int32(ref value) => *value as u32,
-                            Variant::Int64(ref value) => *value as u32,
-                            Variant::UInt64(ref value) => *value as u32,
-                            Variant::Float(ref value) => *value as u32,
-                            Variant::Double(ref value) => *value as u32,
-                            _ => {
-                                panic!("Expecting a numeric value in the numeric array");
-                            }
-                        }
-                    }).collect::<Vec<u32>>())
-                }
-                _ => {
-                    panic!("Not a numeric array");
-                }
-            }
-        } else {
-            error!("Variant is either not an array or does not hold numeric values");
-            Err(())
         }
     }
 
