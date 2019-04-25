@@ -120,7 +120,7 @@ fn write_test() {
                         node.as_mut_node().set_write_mask(WriteMask::IS_ABSTRACT);
                     }
                     2 => {
-                        // No write access
+                        // Remove write access to the value by setting access level to 0
                         let _ = node.as_mut_node().set_attribute(AttributeId::AccessLevel, Variant::from(0u8)).unwrap();
                     }
                     6 => {

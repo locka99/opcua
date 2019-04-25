@@ -150,8 +150,7 @@ impl AttributeService {
     fn write_node_value(address_space: &mut AddressSpace, node_to_write: &WriteValue) -> StatusCode {
         if let Some(node) = address_space.find_node_mut(&node_to_write.node_id) {
             if let Ok(attribute_id) = AttributeId::from_u32(node_to_write.attribute_id) {
-                let is_writable = Self::is_writable(&node, attribute_id);
-                if !is_writable {
+                if !Self::is_writable(&node, attribute_id) {
                     StatusCode::BadNotWritable
                 } else if !node_to_write.index_range.is_null() {
                     // Index ranges are not supported
@@ -185,15 +184,19 @@ impl AttributeService {
     fn is_writable(node: &NodeType, attribute_id: AttributeId) -> bool {
         use opcua_types::WriteMask;
 
+        // For a variable, the access level controls access to the variable
+        if let NodeType::Variable(ref node) = node {
+            if attribute_id == AttributeId::Value {
+                return node.access_level().contains(AccessLevel::CURRENT_WRITE);
+            }
+        }
+
         if let Some(write_mask) = node.as_node().write_mask() {
             match attribute_id {
-                AttributeId::Value => {
-                    // Variable types test writability using the access level
-                    if let NodeType::Variable(ref node) = *node {
-                        node.access_level().contains(AccessLevel::CURRENT_WRITE)
-                    } else {
-                        write_mask.contains(WriteMask::VALUE_FOR_VARIABLE_TYPE)
-                    }
+                AttributeId::Value => if let NodeType::VariableType(_) = node {
+                    write_mask.contains(WriteMask::VALUE_FOR_VARIABLE_TYPE)
+                } else {
+                    false
                 }
                 AttributeId::NodeId => write_mask.contains(WriteMask::NODE_ID),
                 AttributeId::NodeClass => write_mask.contains(WriteMask::NODE_CLASS),
@@ -218,7 +221,7 @@ impl AttributeService {
                 AttributeId::UserExecutable => write_mask.contains(WriteMask::USER_EXECUTABLE),
             }
         } else {
-            true
+            false
         }
     }
 }
