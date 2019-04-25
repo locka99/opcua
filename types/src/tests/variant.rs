@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use crate::variant::{Variant, VariantTypeId, MultiDimensionArray};
 
 #[test]
@@ -90,6 +92,18 @@ fn variant_u32_array() {
         }
         _ => panic!("Not an array")
     }
+}
+
+#[test]
+fn variant_try_into_u32_array() {
+    let vars = [1u32, 2u32, 3u32];
+    let v = Variant::from(&vars[..]);
+    assert!(v.is_array());
+    assert!(v.is_array_of_type(VariantTypeId::UInt32));
+    assert!(v.is_valid());
+
+    let result: Vec<u32> = v.try_into().unwrap();
+    assert_eq!(result.len(), 3);
 }
 
 #[test]

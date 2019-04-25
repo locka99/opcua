@@ -8,9 +8,8 @@ Planned future work is listed at the bottom.
   - Subscriptions / monitored items generates spurious errors on some clients
 
 ## 0.7 (in progress)
-  - TODO address space nodes are not very memory efficient and could be made more so, e.g. not using DataValue 
-    except for the value and boxing it. And not holding all 22 attribute id slots open for each node type 
-    has less mandatory / optional ids than that. Could probably halve the space.
+  - Address space nodes have been made more memory efficient, saving about 3MB of runtime space with
+    the standard node set.
   - TODO address space. Add a create on demand callback
   - TODO gen_types.js. Refactor so it could be used to generate code for any model
   - TODO support events 
