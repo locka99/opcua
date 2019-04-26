@@ -16,8 +16,7 @@ Planned future work is listed at the bottom.
   - TODO More control over limits on the server - number of subscriptions, monitored items, sessions
   - TODO UserNameIdentityToken with encrypted password support. Plaintext password is already supported
   - TODO X509IdentityToken support 
-  - TODO Integration tests are broken and need to be fixed. Integration tests should also become part
-    of normal build to prevent breakages with tests tagged with `#[ignore]`
+  - TODO Integration tests are broken and need to be fixed.
   - TODO Multiple chunk support in client and server, sending and receiving
   - TODO Session restore after disconnect in server. The server has to stash sessions that were 
     abnormally disconnected so the session state can be restored if a new connection provides the token.
