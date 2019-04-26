@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::convert::TryFrom;
 
 use opcua_types::service_types::VariableTypeAttributes;
 
@@ -72,7 +72,7 @@ impl NodeAttributes for VariableType {
                     Ok(())
                 }
                 AttributeId::ArrayDimensions => {
-                    let array_dimensions: Result<Vec<u32>, ()> = value.try_into();
+                    let array_dimensions = <Vec<u32>>::try_from(&value);
                     if let Ok(array_dimensions) = array_dimensions {
                         self.set_array_dimensions(&array_dimensions);
                         Ok(())

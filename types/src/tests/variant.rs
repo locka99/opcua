@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::convert::TryFrom;
 
 use crate::variant::{Variant, VariantTypeId, MultiDimensionArray};
 
@@ -102,7 +102,7 @@ fn variant_try_into_u32_array() {
     assert!(v.is_array_of_type(VariantTypeId::UInt32));
     assert!(v.is_valid());
 
-    let result: Vec<u32> = v.try_into().unwrap();
+    let result = <Vec<u32>>::try_from(&v).unwrap();
     assert_eq!(result.len(), 3);
 }
 

@@ -1,6 +1,7 @@
 //! Contains the implementation of `Variant`.
 
 use std::io::{Read, Write};
+use std::convert::TryFrom;
 
 use crate::{
     basic_types::*,
@@ -16,7 +17,72 @@ use crate::{
     status_codes::StatusCode,
     string::{UAString, XmlElement},
 };
-use std::convert::{TryFrom, TryInto};
+
+/// A `Variant` holds all other OPC UA types, including single and multi dimensional arrays,
+/// data values and extension objects.
+///
+/// As variants may be passed around a lot on the stack, Boxes are used for more complex types to
+/// keep the size of this type down a bit, especially when used in arrays.
+///
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
+pub enum Variant {
+    /// Empty type has no value
+    Empty,
+    /// Boolean
+    Boolean(bool),
+    /// Signed byte
+    SByte(i8),
+    /// Unsigned byte
+    Byte(u8),
+    /// Signed 16-bit int
+    Int16(i16),
+    /// Unsigned 16-bit int
+    UInt16(u16),
+    /// Signed 32-bit int
+    Int32(i32),
+    /// Unsigned 32-bit int
+    UInt32(u32),
+    /// Signed 64-bit int
+    Int64(i64),
+    /// Unsigned 64-bit int
+    UInt64(u64),
+    /// Float
+    Float(f32),
+    /// Double
+    Double(f64),
+    /// String
+    String(UAString),
+    /// DateTime
+    DateTime(Box<DateTime>),
+    /// Guid
+    Guid(Box<Guid>),
+    /// StatusCode
+    StatusCode(StatusCode),
+    /// ByteString
+    ByteString(ByteString),
+    /// XmlElement
+    XmlElement(XmlElement),
+    /// QualifiedName
+    QualifiedName(Box<QualifiedName>),
+    /// LocalizedText
+    LocalizedText(Box<LocalizedText>),
+    /// NodeId
+    NodeId(Box<NodeId>),
+    /// ExpandedNodeId
+    ExpandedNodeId(Box<ExpandedNodeId>),
+    /// ExtensionObject
+    ExtensionObject(Box<ExtensionObject>),
+    /// DataValue (boxed because a DataValue itself holds a Variant)
+    DataValue(Box<DataValue>),
+    /// Single dimension array which can contain any scalar type, all the same type. Nested
+    /// arrays will be rejected.
+    Array(Vec<Variant>),
+    /// Multi dimension array which can contain any scalar type, all the same type. Nested
+    /// arrays are rejected. Higher rank dimensions are serialized first. For example an array
+    /// with dimensions [2,2,2] is written in this order - [0,0,0], [0,0,1], [0,1,0], [0,1,1],
+    /// [1,0,0], [1,0,1], [1,1,0], [1,1,1].
+    MultiDimensionArray(Box<MultiDimensionArray>),
+}
 
 const ARRAY_DIMENSIONS_BIT: u8 = 1 << 6;
 const ARRAY_VALUES_BIT: u8 = 1 << 7;
@@ -217,57 +283,26 @@ impl<'a, 'b> From<&'a [&'b str]> for Variant {
     }
 }
 
-impl<'a> From<&'a Vec<String>> for Variant {
-    fn from(v: &'a Vec<String>) -> Self {
-        Variant::from(v.as_slice())
-    }
-}
+macro_rules! from_array_to_variant_impl {
+    ($rtype: ident) => {
+        impl<'a> From<&'a Vec<$rtype>> for Variant {
+            fn from(v: &'a Vec<$rtype>) -> Self {
+                Variant::from(v.as_slice())
+            }
+        }
 
-impl<'a> From<&'a [String]> for Variant {
-    fn from(v: &'a [String]) -> Self {
-        let values = v.iter().map(|v| {
-            let s: &str = v.as_ref();
-            Variant::from(s)
-        }).collect();
-        Variant::Array(values)
-    }
-}
+        impl From<Vec<$rtype>> for Variant {
+            fn from(v: Vec<$rtype>) -> Self {
+                Variant::from(v.as_slice())
+            }
+        }
 
-impl<'a> From<&'a Vec<u32>> for Variant {
-    fn from(v: &'a Vec<u32>) -> Self {
-        Variant::from(v.as_slice())
-    }
-}
-
-impl From<Vec<u32>> for Variant {
-    fn from(v: Vec<u32>) -> Self {
-        Variant::from(v.as_slice())
-    }
-}
-
-impl<'a> From<&'a [u32]> for Variant {
-    fn from(v: &'a [u32]) -> Self {
-        let array: Vec<Variant> = v.iter().map(|v| Variant::from(*v)).collect();
-        Variant::Array(array)
-    }
-}
-
-impl From<Vec<i32>> for Variant {
-    fn from(v: Vec<i32>) -> Self {
-        Variant::from(v.as_slice())
-    }
-}
-
-impl<'a> From<&'a [i32]> for Variant {
-    fn from(v: &'a [i32]) -> Self {
-        let array: Vec<Variant> = v.iter().map(|v| Variant::from(*v)).collect();
-        Variant::Array(array)
-    }
-}
-
-impl From<Vec<Variant>> for Variant {
-    fn from(v: Vec<Variant>) -> Self {
-        Variant::Array(v)
+        impl<'a> From<&'a [$rtype]> for Variant {
+            fn from(v: &'a [$rtype]) -> Self {
+                let array: Vec<Variant> = v.iter().map(|v| Variant::from(v.clone())).collect();
+                Variant::Array(array)
+            }
+        }
     }
 }
 
@@ -277,104 +312,69 @@ impl From<MultiDimensionArray> for Variant {
     }
 }
 
-impl TryInto<Vec<u32>> for Variant {
-    type Error = ();
-    fn try_into(self) -> Result<Vec<u32>, Self::Error> {
-        match self {
-            Variant::Array(values) => {
-                if !array_is_of_type(&values, VariantTypeId::UInt32) {
-                    Err(())
-                } else {
-                    Ok(values.iter().map(|v| {
-                        if let Variant::UInt32(v) = v {
-                            *v
+from_array_to_variant_impl!(String);
+from_array_to_variant_impl!(bool);
+from_array_to_variant_impl!(i8);
+from_array_to_variant_impl!(u8);
+from_array_to_variant_impl!(i16);
+from_array_to_variant_impl!(u16);
+from_array_to_variant_impl!(i32);
+from_array_to_variant_impl!(u32);
+from_array_to_variant_impl!(f32);
+from_array_to_variant_impl!(f64);
+from_array_to_variant_impl!(Variant);
+
+/// This macro tries to return a `Vec<foo>` from a `Variant::Array<Variant::Foo>>`, e.g.
+/// If the Variant holds
+macro_rules! try_from_variant_to_array_impl {
+    ($rtype: ident, $vtype: ident) => {
+
+        impl TryFrom<&Variant> for Vec<$rtype> {
+            type Error = ();
+
+            fn try_from(value: &Variant) -> Result<Self, Self::Error> {
+                match value {
+                    Variant::Array(ref values) => {
+                        if !array_is_of_type(values, VariantTypeId::$vtype) {
+                            Err(())
                         } else {
-                            panic!()
+                            Ok(values.iter().map(|v| {
+                                if let Variant::$vtype(v) = v {
+                                    *v
+                                } else {
+                                    panic!()
+                                }
+                            }).collect())
                         }
-                    }).collect())
+                    }
+                    _ => Err(())
                 }
             }
-            _ => Err(())
         }
     }
 }
 
-/// A `Variant` holds all other OPC UA types, including single and multi dimensional arrays,
-/// data values and extension objects.
-///
-/// As variants may be passed around a lot on the stack, Boxes are used for more complex types to
-/// keep the size of this type down a bit, especially when used in arrays.
-///
-#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
-pub enum Variant {
-    /// Empty type has no value
-    Empty,
-    /// Boolean
-    Boolean(bool),
-    /// Signed byte
-    SByte(i8),
-    /// Unsigned byte
-    Byte(u8),
-    /// Signed 16-bit int
-    Int16(i16),
-    /// Unsigned 16-bit int
-    UInt16(u16),
-    /// Signed 32-bit int
-    Int32(i32),
-    /// Unsigned 32-bit int
-    UInt32(u32),
-    /// Signed 64-bit int
-    Int64(i64),
-    /// Unsigned 64-bit int
-    UInt64(u64),
-    /// Float
-    Float(f32),
-    /// Double
-    Double(f64),
-    /// String
-    String(UAString),
-    /// DateTime
-    DateTime(Box<DateTime>),
-    /// Guid
-    Guid(Box<Guid>),
-    /// StatusCode
-    StatusCode(StatusCode),
-    /// ByteString
-    ByteString(ByteString),
-    /// XmlElement
-    XmlElement(XmlElement),
-    /// QualifiedName
-    QualifiedName(Box<QualifiedName>),
-    /// LocalizedText
-    LocalizedText(Box<LocalizedText>),
-    /// NodeId
-    NodeId(Box<NodeId>),
-    /// ExpandedNodeId
-    ExpandedNodeId(Box<ExpandedNodeId>),
-    /// ExtensionObject
-    ExtensionObject(Box<ExtensionObject>),
-    /// DataValue (boxed because a DataValue itself holds a Variant)
-    DataValue(Box<DataValue>),
-    /// Single dimension array which can contain any scalar type, all the same type. Nested
-    /// arrays will be rejected.
-    Array(Vec<Variant>),
-    /// Multi dimension array which can contain any scalar type, all the same type. Nested
-    /// arrays are rejected. Higher rank dimensions are serialized first. For example an array
-    /// with dimensions [2,2,2] is written in this order - [0,0,0], [0,0,1], [0,1,0], [0,1,1],
-    /// [1,0,0], [1,0,1], [1,1,0], [1,1,1].
-    MultiDimensionArray(Box<MultiDimensionArray>),
-}
+// These are implementations of TryFrom which will attempt to transform a single dimension array
+// in a Variant to the respective Vec<T> defined in the macro. All the variants must be of the correct
+// type or the impl will return with an error.
+
+try_from_variant_to_array_impl!(bool, Boolean);
+try_from_variant_to_array_impl!(i8, SByte);
+try_from_variant_to_array_impl!(u8, Byte);
+try_from_variant_to_array_impl!(i16, Int16);
+try_from_variant_to_array_impl!(u16, UInt16);
+try_from_variant_to_array_impl!(i32, Int32);
+try_from_variant_to_array_impl!(u32, UInt32);
+try_from_variant_to_array_impl!(f32, Float);
+try_from_variant_to_array_impl!(f64, Double);
 
 /// Tests that the variants in the slice all have the same variant type
-fn array_is_valid(values: &[Variant], numeric_only: bool) -> bool {
+fn array_is_valid(values: &[Variant]) -> bool {
     if values.is_empty() {
         true
     } else {
         let expected_type_id = values[0].type_id();
-        if numeric_only && !expected_type_id.is_numeric() {
-            // Type isn't numeric, despite being expected to be numeric
-            false
-        } else if expected_type_id == VariantTypeId::Array || expected_type_id == VariantTypeId::MultiDimensionArray {
+        if expected_type_id == VariantTypeId::Array || expected_type_id == VariantTypeId::MultiDimensionArray {
             // Nested arrays are explicitly NOT allowed
             error!("Variant array contains nested array {:?}", expected_type_id);
             false
@@ -440,7 +440,7 @@ impl MultiDimensionArray {
     }
 
     pub fn is_valid(&self) -> bool {
-        self.is_valid_dimensions() && array_is_valid(&self.values, false)
+        self.is_valid_dimensions() && array_is_valid(&self.values)
     }
 
     fn is_valid_dimensions(&self) -> bool {
@@ -867,7 +867,7 @@ impl Variant {
     pub fn is_valid(&self) -> bool {
         match *self {
             Variant::Array(ref values) => {
-                array_is_valid(values, false)
+                array_is_valid(values)
             }
             Variant::MultiDimensionArray(ref mda) => {
                 mda.is_valid()

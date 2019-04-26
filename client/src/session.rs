@@ -5,7 +5,7 @@
 //! and events.
 use std::{
     cmp, thread,
-    convert::TryInto,
+    convert::TryFrom,
     result::Result,
     collections::HashSet,
     str::FromStr,
@@ -1495,8 +1495,8 @@ impl Session {
         let response = self.call(request)?;
         if let Some(mut result) = response.output_arguments {
             if result.len() == 2 {
-                let server_handles: Vec<u32> = result.remove(0).try_into().map_err(|_| StatusCode::BadUnexpectedError)?;
-                let client_handles: Vec<u32> = result.remove(0).try_into().map_err(|_| StatusCode::BadUnexpectedError)?;
+                let server_handles = <Vec<u32>>::try_from(&result.remove(0)).map_err(|_| StatusCode::BadUnexpectedError)?;
+                let client_handles = <Vec<u32>>::try_from(&result.remove(0)).map_err(|_| StatusCode::BadUnexpectedError)?;
                 Ok((server_handles, client_handles))
             } else {
                 error!("Expected a result with 2 args and didn't get it.");

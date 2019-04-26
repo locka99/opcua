@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use std::convert::{Into, TryInto};
+use std::convert::{Into, TryFrom};
 
 use opcua_types::node_ids::DataTypeId;
 
@@ -221,14 +221,14 @@ impl NodeAttributes for Variable {
                     Err(StatusCode::BadTypeMismatch)
                 },
                 AttributeId::ArrayDimensions => {
-                    let array_dimensions: Result<Vec<u32>, ()> = value.try_into();
+                    let array_dimensions = <Vec<u32>>::try_from(&value);
                     if let Ok(array_dimensions) = array_dimensions {
                         self.set_array_dimensions(&array_dimensions);
                         Ok(())
                     } else {
                         Err(StatusCode::BadTypeMismatch)
                     }
-                },
+                }
                 AttributeId::MinimumSamplingInterval => if let Variant::Double(v) = value {
                     self.set_minimum_sampling_interval(v);
                     Ok(())

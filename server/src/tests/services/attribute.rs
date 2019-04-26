@@ -144,7 +144,7 @@ fn write_test() {
         let nodes_to_write = vec![
             // 1. a variable value
             write_value(&node_ids[0], AttributeId::Value, DataValue::new(100 as i32)),
-            // 2. a variable with another attribute
+            // 2. a variable with a bad attribute (IsAbstract doesn't exist on a var)
             write_value(&node_ids[1], AttributeId::IsAbstract, DataValue::new(true)),
             // 3. a variable value which has no write access
             write_value(&node_ids[2], AttributeId::Value, DataValue::new(200 as i32)),
