@@ -18,14 +18,21 @@ pub struct ClientUserToken {
     /// Username
     pub user: String,
     /// Password
-    pub password: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub password: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cert_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub private_key_path: Option<String>,
 }
 
 impl ClientUserToken {
     pub fn new<S, T>(user: S, password: T) -> Self where S: Into<String>, T: Into<String> {
         ClientUserToken {
             user: user.into(),
-            password: password.into(),
+            password: Some(password.into()),
+            cert_path: None,
+            private_key_path: None,
         }
     }
 }

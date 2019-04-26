@@ -2182,6 +2182,10 @@ impl Session {
             client::IdentityToken::UserName(_, _) => {
                 UserTokenType::Username
             }
+            client::IdentityToken::X509(_, _) => {
+                // TODO
+                panic!();
+            }
         };
 
         let endpoint = &self.session_info.endpoint;
@@ -2208,6 +2212,10 @@ impl Session {
                         encryption_algorithm: UAString::null(),
                     };
                     Ok(ExtensionObject::from_encodable(ObjectId::UserNameIdentityToken_Encoding_DefaultBinary, &token))
+                }
+                client::IdentityToken::X509(_, _) => {
+                    // TODO
+                    panic!();
                 }
             }
         }

@@ -2,6 +2,7 @@
 
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
+use std::path::PathBuf;
 
 use opcua_types::{
     MessageSecurityMode,
@@ -28,8 +29,12 @@ use crate::{
 
 #[derive(Debug)]
 pub enum IdentityToken {
+    /// Anonymous identity token
     Anonymous,
+    /// User name and a password
     UserName(String, String),
+    /// X5090 cert - a path to the cert.der, and private.pem
+    X509(PathBuf, PathBuf),
 }
 
 /// The `Client` defines a connection that can be used to to get end points or establish
@@ -418,13 +423,11 @@ impl Client {
     pub fn register_server<T>(&mut self, discovery_endpoint_url: T,
                               server: RegisteredServer) -> Result<(), StatusCode>
         where T: Into<String> {
-
         let discovery_endpoint_url = discovery_endpoint_url.into();
         if !is_valid_opc_ua_url(&discovery_endpoint_url) {
             error!("Discovery endpoint url \"{}\" is not a valid OPC UA url", discovery_endpoint_url);
             Err(StatusCode::BadTcpEndpointUrlInvalid)
-        }
-        else {
+        } else {
             // Get a list of endpoints from the discovery server
             debug!("register_server({}, {:?}", discovery_endpoint_url, server);
             let endpoints = self.get_server_endpoints_from_url(discovery_endpoint_url.clone())?;
@@ -531,7 +534,17 @@ impl Client {
         if user_token_id == ANONYMOUS_USER_TOKEN_ID {
             Some(IdentityToken::Anonymous)
         } else if let Some(token) = self.config.user_tokens.get(&user_token_id) {
-            Some(IdentityToken::UserName(token.user.clone(), token.password.clone()))
+            if let Some(ref password) = token.password {
+                Some(IdentityToken::UserName(token.user.clone(), password.clone()))
+            } else if let Some(ref cert_path) = token.cert_path {
+                if let Some(ref private_key_path) = token.private_key_path {
+                    Some(IdentityToken::X509(PathBuf::from(cert_path), PathBuf::from(private_key_path)))
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
         } else {
             None
         }

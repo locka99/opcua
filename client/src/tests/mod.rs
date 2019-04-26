@@ -130,7 +130,9 @@ fn client_anonymous_user_tokens_id() {
         String::from("ANONYMOUS"),
         ClientUserToken {
             user: String::new(),
-            password: String::new(),
+            password: Some(String::new()),
+            cert_path: None,
+            private_key_path: None,
         });
     assert!(!config.is_valid());
 }
