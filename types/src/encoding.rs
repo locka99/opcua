@@ -67,22 +67,18 @@ pub trait BinaryEncoder<T> {
 
 /// Converts an IO encoding error (and logs when in error) into an EncodingResult
 pub fn process_encode_io_result(result: Result<usize>) -> EncodingResult<usize> {
-    if result.is_err() {
-        trace!("Encoding error - {:?}", result.unwrap_err());
-        Err(StatusCode::BadEncodingError)
-    } else {
-        Ok(result.unwrap())
-    }
+    result.map_err(|err| {
+        trace!("Encoding error - {:?}", err);
+        StatusCode::BadEncodingError
+    })
 }
 
 /// Converts an IO encoding error (and logs when in error) into an EncodingResult
 pub fn process_decode_io_result<T>(result: Result<T>) -> EncodingResult<T> where T: Debug {
-    if result.is_err() {
-        trace!("Decoding error - {:?}", result.unwrap_err());
-        Err(StatusCode::BadDecodingError)
-    } else {
-        Ok(result.unwrap())
-    }
+    result.map_err(|err| {
+        trace!("Decoding error - {:?}", err);
+        StatusCode::BadDecodingError
+    })
 }
 
 /// Calculates the length in bytes of an array of encoded type

@@ -2,6 +2,10 @@
 //! trust between a client and server via certificate exchange and validation. It also used for
 //! encrypting / decrypting messages and signing messages.
 
+use opcua_types::{UAString, ByteString};
+use opcua_types::service_types::SignatureData;
+use opcua_types::status_code::StatusCode;
+
 pub mod x509;
 pub mod aeskey;
 pub mod pkey;
@@ -9,6 +13,7 @@ pub mod thumbprint;
 pub mod certificate_store;
 pub mod hash;
 pub mod security_policy;
+pub mod user_identity;
 
 pub use self::x509::*;
 pub use self::aeskey::*;
@@ -17,10 +22,7 @@ pub use self::thumbprint::*;
 pub use self::certificate_store::*;
 pub use self::hash::*;
 pub use self::security_policy::*;
-
-use opcua_types::{UAString, ByteString};
-use opcua_types::service_types::SignatureData;
-use opcua_types::status_code::StatusCode;
+pub use self::user_identity::*;
 
 // Size of a SHA1 hash value in bytes
 pub const SHA1_SIZE: usize = 20;

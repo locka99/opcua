@@ -3,13 +3,19 @@ extern crate rustc_serialize as serialize;
 use std::fs::File;
 use std::io::Write;
 
-use opcua_types::status_code::StatusCode;
+use opcua_types::{
+    ByteString,
+    status_code::StatusCode,
+};
 
-use crate::crypto::{SecurityPolicy, SHA1_SIZE, SHA256_SIZE};
-use crate::crypto::certificate_store::*;
-use crate::crypto::x509::{X509, X509Data};
-use crate::crypto::pkey::{PrivateKey, KeySize, RsaPadding};
-use crate::crypto::aeskey::AesKey;
+use crate::crypto::{
+    SecurityPolicy, SHA1_SIZE, SHA256_SIZE,
+    certificate_store::*,
+    x509::{X509, X509Data},
+    pkey::{PrivateKey, KeySize, RsaPadding},
+    aeskey::AesKey,
+    user_identity::{legacy_password_encrypt, legacy_password_decrypt},
+};
 
 use crate::tests::{make_certificate_store, make_test_cert_1024, make_test_cert_2048, APPLICATION_URI, APPLICATION_HOSTNAME};
 
@@ -463,4 +469,19 @@ fn certificate_with_application_uri_mismatch() {
     // Compare the certificate to the correct application uri in the description, expect success
     let result = cert.is_application_uri_valid(APPLICATION_URI);
     assert_eq!(result, StatusCode::Good);
+}
+
+
+#[test]
+fn encrypt_decrypt_password() {
+    let password = String::from("abcdef123456");
+    let nonce = ByteString::random(20);
+
+    let (cert, pkey) = make_test_cert_1024();
+
+    let padding = RsaPadding::OAEP;
+    let secret = legacy_password_encrypt(&password, nonce.as_ref(), &cert, padding).unwrap();
+    let password2 = legacy_password_decrypt(secret, nonce.as_ref(), &pkey, padding).unwrap();
+
+    assert_eq!(password, password2);
 }
