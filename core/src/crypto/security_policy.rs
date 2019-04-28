@@ -232,6 +232,17 @@ impl SecurityPolicy {
         }
     }
 
+    pub fn asymmetric_encryption_algorithm(&self) -> &'static str {
+        match *self {
+            SecurityPolicy::Basic128Rsa15 => basic128rsa15::ASYMMETRIC_ENCRYPTION_ALGORITHM,
+            SecurityPolicy::Basic256 => basic256::ASYMMETRIC_ENCRYPTION_ALGORITHM,
+            SecurityPolicy::Basic256Sha256 => basic256sha256::ASYMMETRIC_ENCRYPTION_ALGORITHM,
+            _ => {
+                panic!("Invalid policy");
+            }
+        }
+    }
+
     pub fn asymmetric_signature_algorithm(&self) -> &'static str {
         match *self {
             SecurityPolicy::Basic128Rsa15 => basic128rsa15::ASYMMETRIC_SIGNATURE_ALGORITHM,

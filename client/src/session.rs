@@ -23,7 +23,7 @@ use tokio_timer::Interval;
 
 use opcua_core::{
     comms::secure_channel::{Role, SecureChannel},
-    crypto::{self, CertificateStore, PrivateKey, SecurityPolicy, X509},
+    crypto::{self, CertificateStore, PrivateKey, SecurityPolicy, X509, user_identity::legacy_password_encrypt},
 };
 
 use opcua_types::{
@@ -2189,37 +2189,70 @@ impl Session {
         };
 
         let endpoint = &self.session_info.endpoint;
-        let policy_id = endpoint.find_policy_id(user_token_type);
+        let policy = endpoint.find_policy(user_token_type);
 
         // Return the result
-        if policy_id.is_none() {
-            error!("Cannot find user token type {:?} for this endpoint, cannot connect", user_token_type);
-            Err(StatusCode::BadSecurityPolicyRejected)
-        } else {
-            match self.session_info.user_identity_token {
-                client::IdentityToken::Anonymous => {
-                    let token = AnonymousIdentityToken {
-                        policy_id: policy_id.unwrap(),
-                    };
-                    Ok(ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary, &token))
-                }
-                client::IdentityToken::UserName(ref user, ref pass) => {
-                    // TODO Check that the security policy is something we can supply
-                    let token = UserNameIdentityToken {
-                        policy_id: policy_id.unwrap(),
-                        user_name: UAString::from(user.as_ref()),
-                        password: ByteString::from(pass.as_bytes()),
-                        encryption_algorithm: UAString::null(),
-                    };
-                    Ok(ExtensionObject::from_encodable(ObjectId::UserNameIdentityToken_Encoding_DefaultBinary, &token))
-                }
-                client::IdentityToken::X509(_, _) => {
-                    // TODO
-                    panic!();
+        match policy {
+            None => {
+                error!("Cannot find user token type {:?} for this endpoint, cannot connect", user_token_type);
+                Err(StatusCode::BadSecurityPolicyRejected)
+            }
+            Some(policy) => {
+                match self.session_info.user_identity_token {
+                    client::IdentityToken::Anonymous => {
+                        let token = AnonymousIdentityToken {
+                            policy_id: policy.policy_id.clone(),
+                        };
+                        Ok(ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary, &token))
+                    }
+                    client::IdentityToken::UserName(ref user, ref pass) => {
+                        let token = self.make_user_name_identity_token(policy, user, pass)?;
+                        Ok(ExtensionObject::from_encodable(ObjectId::UserNameIdentityToken_Encoding_DefaultBinary, &token))
+                    }
+                    client::IdentityToken::X509(_, _) => {
+                        // TODO
+                        panic!();
+                    }
                 }
             }
         }
     }
+
+    fn make_user_name_identity_token(&self, policy: &UserTokenPolicy, user: &str, pass: &str) -> Result<UserNameIdentityToken, StatusCode> {
+        let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+        let security_policy = if policy.security_policy_uri.is_empty() {
+            // Spec: The security policy for the secure channel is used if this value is null or empty
+            secure_channel.security_policy()
+        } else {
+            SecurityPolicy::from_str(policy.security_policy_uri.as_ref()).unwrap()
+        };
+
+        let (password, encryption_algorithm) = match security_policy {
+            SecurityPolicy::None => {
+                (ByteString::from(pass.as_bytes()), UAString::null())
+            }
+            SecurityPolicy::Unknown => {
+                error!("Don't know how to make the token for this server");
+                return Err(StatusCode::BadEncodingError);
+            }
+            security_policy => {
+                // Create a password which is encrypted using the secure channel info and the user token policy for the endpoint
+                let server_nonce = &secure_channel.remote_nonce();
+                let server_cert = secure_channel.remote_cert().unwrap();
+                let password = legacy_password_encrypt(pass, server_nonce, &server_cert, security_policy.padding())?;
+                let encryption_algorithm = UAString::from(security_policy.asymmetric_encryption_algorithm());
+                (password, encryption_algorithm)
+            }
+        };
+
+        Ok(UserNameIdentityToken {
+            policy_id: policy.policy_id.clone(),
+            user_name: UAString::from(user.as_ref()),
+            password,
+            encryption_algorithm,
+        })
+    }
+
 
     /// Construct a request header for the session. All requests after create session are expected
     /// to supply an authentication token.
