@@ -14,7 +14,8 @@ Planned future work is listed at the bottom.
   - TODO gen_types.js. Refactor so it could be used to generate code for any model
   - TODO support events 
   - TODO More control over limits on the server - number of subscriptions, monitored items, sessions
-  - TODO UserNameIdentityToken with encrypted password support. Plaintext password is already supported
+  - Client side UserNameIdentityToken with encrypted password support. Plaintext password is already supported
+  - TODO Server side UserNameIdentityToken with encrypted password support. 
   - TODO X509IdentityToken support 
   - TODO Integration tests are broken and need to be fixed.
   - TODO Multiple chunk support in client and server, sending and receiving

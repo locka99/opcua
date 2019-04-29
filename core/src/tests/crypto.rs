@@ -481,7 +481,7 @@ fn encrypt_decrypt_password() {
 
     let padding = RsaPadding::OAEP;
     let secret = legacy_password_encrypt(&password, nonce.as_ref(), &cert, padding).unwrap();
-    let password2 = legacy_password_decrypt(secret, nonce.as_ref(), &pkey, padding).unwrap();
+    let password2 = legacy_password_decrypt(&secret, nonce.as_ref(), &pkey, padding).unwrap();
 
     assert_eq!(password, password2);
 }

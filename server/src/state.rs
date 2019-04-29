@@ -3,6 +3,7 @@
 use std::sync::{Arc, RwLock};
 
 use opcua_core::prelude::*;
+use opcua_core::crypto::user_identity;
 
 use opcua_types::{
     node_ids::ObjectId,
@@ -335,16 +336,20 @@ impl ServerState {
 
     /// Authenticates the username identity token with the supplied endpoint
     fn authenticate_username_identity_token(&self, config: &ServerConfig, endpoint: &ServerEndpoint, token: &UserNameIdentityToken) -> StatusCode {
-        // TODO Server's user token policy should be checked here.
         // The policy_id should be used to determine the algorithm for encoding passwords etc.
-        if !token.encryption_algorithm.is_null() {
-            // Plaintext is the only supported algorithm at this time
-            error!("Only unencrypted passwords are supported, {:?}", token);
-            StatusCode::BadIdentityTokenInvalid
-        } else if token.user_name.is_null() {
+        if token.user_name.is_null() {
             error!("User identify token supplies no user name");
             StatusCode::BadIdentityTokenInvalid
-        } else {
+        }
+        else {
+            // TODO Server's user token policy should be checked here.
+            if !token.encryption_algorithm.is_null() {
+                // Plaintext is the only supported algorithm at this time
+                error!("Only unencrypted passwords are supported, {:?}", token);
+                return StatusCode::BadIdentityTokenInvalid;
+            }
+            // let password = user_identity::decrypt_user_identity_token_password(&token, nonce, key);
+
             // Iterate ids in endpoint
             for user_token_id in &endpoint.user_token_ids {
                 if let Some(server_user_token) = config.user_tokens.get(user_token_id) {
