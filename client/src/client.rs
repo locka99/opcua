@@ -91,7 +91,7 @@ impl Client {
     ///
     /// # Example
     ///
-    /// ```rust,no_run
+    /// ```no_run
     /// use opcua_client::prelude::*;
     /// use std::path::PathBuf;
     ///
@@ -331,7 +331,7 @@ impl Client {
     ///
     /// # Example
     ///
-    /// ```rust,no_run
+    /// ```no_run
     /// use opcua_client::prelude::*;
     /// use std::path::PathBuf;
     ///
@@ -472,7 +472,7 @@ impl Client {
     ///
     /// # Example
     ///
-    /// ```rust,no_run
+    /// ```no_run
     /// use opcua_client::prelude::*;
     /// let endpoints = [
     ///     EndpointDescription::from("opc.tcp://foo:123"),

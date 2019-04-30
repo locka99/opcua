@@ -36,7 +36,6 @@ pub struct ServerUserToken {
     pub x509: Option<PathBuf>,
 }
 
-
 impl ServerUserToken {
     pub fn new_user_pass<T>(user: T, pass: T) -> Self where T: Into<String> {
         ServerUserToken {
@@ -80,6 +79,8 @@ pub struct ServerEndpoint {
     pub security_mode: String,
     /// Security level, higher being more secure
     pub security_level: u8,
+    /// Password security policy when a client supplies a user name identity token
+    pub password_security_policy: Option<String>,
     /// User tokens
     pub user_token_ids: BTreeSet<String>,
 }
@@ -92,6 +93,7 @@ impl<'a> From<(&'a str, SecurityPolicy, MessageSecurityMode, &'a [&'a str])> for
             security_policy: v.1.to_string(),
             security_mode: v.2.to_string(),
             security_level: Self::security_level(v.1),
+            password_security_policy: None,
             user_token_ids: v.3.iter().map(|id| id.to_string()).collect(),
         }
     }
@@ -104,6 +106,7 @@ impl ServerEndpoint {
             security_policy: security_policy.to_string(),
             security_mode: security_mode.to_string(),
             security_level: Self::security_level(security_policy),
+            password_security_policy: None,
             user_token_ids: user_token_ids.iter().map(|id| id.clone()).collect(),
         }
     }
@@ -158,6 +161,14 @@ impl ServerEndpoint {
             }
             if !user_tokens.contains_key(id) {
                 error!("Cannot find user token with id {}", id);
+                valid = false;
+            }
+        }
+
+        if let Some(ref password_security_policy) = self.password_security_policy {
+            let password_security_policy = SecurityPolicy::from_str(password_security_policy).unwrap();
+            if password_security_policy == SecurityPolicy::Unknown {
+                error!("Endpoint {} is invalid. Password security policy \"{}\" is invalid. Valid values are None, Basic128Rsa15, Basic256, Basic256Sha256", id, password_security_policy);
                 valid = false;
             }
         }
@@ -287,7 +298,6 @@ impl Config for ServerConfig {
 
     fn product_uri(&self) -> UAString { UAString::from(self.product_uri.as_ref()) }
 }
-
 
 impl Default for ServerConfig {
     fn default() -> Self {

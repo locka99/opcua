@@ -154,15 +154,18 @@ impl SessionService {
             StatusCode::Good
         };
 
-        // Authenticate the user identity token
         if service_result.is_good() {
-            service_result = server_state.authenticate_endpoint(endpoint_url, security_policy, security_mode, &request.user_identity_token);
+            if let Err(err) = server_state.authenticate_endpoint(endpoint_url, security_policy, security_mode, &request.user_identity_token, &session.session_nonce) {
+                service_result = err;
+            }
         }
 
+        // Authenticate the user identity token
         let response = if service_result.is_good() {
             session.activated = true;
             session.session_nonce = server_nonce;
             let diagnostic_infos = None;
+
             ActivateSessionResponse {
                 response_header: ResponseHeader::new_good(&request.request_header),
                 server_nonce: session.session_nonce.clone(),

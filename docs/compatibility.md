@@ -112,12 +112,9 @@ The following security policies are supported - None, Basic128Rsa15, Basic256, B
 The server and client support the following user identities
 
 1. Anonymous - i.e. no identity
-2. UserName - plaintext password only, i.e. the encryption algorithm field supplied with the identity token must be a 
-   null string.
+2. UserName - encrypted and plaintext. User/pass identities are defined by configuration.
 
-User/pass identities are defined by configuration
-
-X509 and UserName with encrypted passwords are intended for a future release.
+X509 is intended for a future release.
 
 ## Crypto
 

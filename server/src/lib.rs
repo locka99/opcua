@@ -14,7 +14,7 @@
 //!
 //! This is a minimal server which runs with the default address space on the default port.
 //! 
-//!  ```rust,no_run
+//!  ```no_run
 //!  use opcua_server::prelude::*;
 //! 
 //!  fn main() {

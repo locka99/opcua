@@ -409,6 +409,15 @@ impl UserNameIdentityToken {
         !self.user_name.is_null() && !self.password.is_null()
     }
 
+    // Get the plaintext password as a string, if possible.
+    pub fn plaintext_password(&self) -> Result<String, StatusCode> {
+        if !self.encryption_algorithm.is_empty() {
+            // Should not be calling this function at all encryption is applied
+            panic!();
+        }
+        String::from_utf8(self.password.as_ref().to_vec()).map_err(|_| StatusCode::BadDecodingError)
+    }
+
     /// Authenticates the token against the supplied username and password.
     pub fn authenticate(&self, username: &str, password: &[u8]) -> Result<(), StatusCode> {
         // No comparison will be made unless user and pass are explicitly set to something in the token

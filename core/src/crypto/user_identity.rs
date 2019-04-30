@@ -86,7 +86,7 @@ pub fn make_user_name_identity_token(channel_security_policy: SecurityPolicy, us
 pub fn decrypt_user_identity_token_password(user_identity_token: &UserNameIdentityToken, server_nonce: &[u8], server_key: &PrivateKey) -> Result<String, StatusCode> {
     if user_identity_token.encryption_algorithm.is_empty() {
         // Assumed to be UTF-8 plain text
-        String::from_utf8(user_identity_token.password.as_ref().to_vec()).map_err(|_| StatusCode::BadDecodingError)
+        user_identity_token.plaintext_password()
     } else {
         // Determine the padding from the algorithm.
         let padding = match user_identity_token.encryption_algorithm.as_ref() {
