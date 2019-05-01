@@ -206,7 +206,7 @@ impl SessionService {
                     let secure_channel = trace_read_lock_unwrap!(session.secure_channel);
                     secure_channel.security_policy()
                 };
-                crypto::verify_signature_data(client_signature, security_policy, client_certificate, server_certificate, &session.session_nonce)
+                crypto::verify_signature_data(client_signature, security_policy, client_certificate, server_certificate, &session.session_nonce.as_ref())
             } else {
                 error!("Client signature verification failed, server has no server certificate");
                 StatusCode::BadUnexpectedError

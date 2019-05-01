@@ -14,6 +14,7 @@ use opcua_types::{
 };
 
 use super::{X509, PrivateKey, KeySize, SecurityPolicy, RsaPadding};
+use opcua_types::service_types::{X509IdentityToken, SignatureData};
 
 /// Create a filled in UserNameIdentityToken by using the supplied channel security policy, user token policy, nonce, cert, user name and password.
 pub fn make_user_name_identity_token(channel_security_policy: SecurityPolicy, user_token_policy: &UserTokenPolicy, nonce: &[u8], cert: Option<X509>, user: &str, pass: &str) -> Result<UserNameIdentityToken, StatusCode> {
@@ -100,7 +101,7 @@ pub fn decrypt_user_identity_token_password(user_identity_token: &UserNameIdenti
 
 /// Encrypt a client side user's password using the server nonce and cert. This is described in table 176
 /// OPC UA part 4. This function is prefixed "legacy" because 1.04 describes another way of encrypting passwords.
-pub fn legacy_password_encrypt(password: &str, server_nonce: &[u8], server_cert: &X509, padding: RsaPadding) -> Result<ByteString, StatusCode> {
+pub(crate) fn legacy_password_encrypt(password: &str, server_nonce: &[u8], server_cert: &X509, padding: RsaPadding) -> Result<ByteString, StatusCode> {
     // Message format is size, password, nonce
     let plaintext_size = 4 + password.len() + server_nonce.len();
     let mut src = Cursor::new(vec![0u8; plaintext_size]);
@@ -124,7 +125,7 @@ pub fn legacy_password_encrypt(password: &str, server_nonce: &[u8], server_cert:
 
 /// Decrypt the client's password using the server's nonce and private key. This function is prefixed
 /// "legacy" because 1.04 describes another way of encrypting passwords.
-pub fn legacy_password_decrypt(secret: &ByteString, server_nonce: &[u8], server_key: &PrivateKey, padding: RsaPadding) -> Result<String, StatusCode> {
+pub(crate) fn legacy_password_decrypt(secret: &ByteString, server_nonce: &[u8], server_key: &PrivateKey, padding: RsaPadding) -> Result<String, StatusCode> {
     if secret.is_null() {
         Err(StatusCode::BadDecodingError)
     } else {
@@ -152,5 +153,26 @@ pub fn legacy_password_decrypt(secret: &ByteString, server_nonce: &[u8], server_
                 Ok(password)
             }
         }
+    }
+}
+
+pub fn verify_x509_identity_token(token: &X509IdentityToken, user_token_signature: &SignatureData, security_policy: SecurityPolicy, server_cert: &X509, server_nonce: &[u8]) -> Result<(), StatusCode> {
+    // Since it is not obvious at all from the spec what the user token signature is supposed to be, I looked
+    // at the internet for answers
+    //
+    // https://stackoverflow.com/questions/46683342/securing-opensecurechannel-messages-and-x509identitytoken
+    // https://forum.prosysopc.com/forum/opc-ua/clarification-on-opensecurechannel-messages-and-x509identitytoken-specifications/
+    //
+    // These suggest that the signature is produced by appending the server nonce to the server certificate
+    // and signing with the user certificate's private key.
+    //
+    // More or less like the standard handshake between client and server but with the identity cert.
+
+    let signing_cert = super::x509::X509::from_byte_string(&token.certificate_data)?;
+    let result = super::verify_signature_data(user_token_signature, security_policy, &signing_cert, server_cert, server_nonce);
+    if result.is_good() {
+        Ok(())
+    } else {
+        Err(result)
     }
 }

@@ -11,7 +11,7 @@ use opcua_types::{
     profiles,
     service_types::{
         ApplicationDescription, RegisteredServer, ApplicationType, EndpointDescription,
-        UserNameIdentityToken, UserTokenPolicy, UserTokenType, X509IdentityToken,
+        UserNameIdentityToken, UserTokenPolicy, UserTokenType, X509IdentityToken, SignatureData,
         ServerState as ServerStateType,
     },
     status_code::StatusCode,
@@ -283,7 +283,7 @@ impl ServerState {
         let decoding_limits = config.decoding_limits();
         if let Some(endpoint) = config.find_endpoint(endpoint_url, security_policy, security_mode) {
             // Now validate the user identity token
-            if user_identity_token.is_null() || user_identity_token.is_empty() {
+            if user_identity_token.is_empty() {
                 // Empty tokens are treated as anonymous
                 Self::authenticate_anonymous_token(endpoint)
             } else if let Ok(object_id) = user_identity_token.node_id.as_object_id() {
@@ -295,9 +295,8 @@ impl ServerState {
                     }
                     ObjectId::UserNameIdentityToken_Encoding_DefaultBinary => {
                         // Username / password
-                        let result = user_identity_token.decode_inner::<UserNameIdentityToken>(&decoding_limits);
-                        if let Ok(token) = result {
-                            self.authenticate_username_identity_token(&config, endpoint, &token, server_nonce, &self.server_pkey)
+                        if let Ok(token) = user_identity_token.decode_inner::<UserNameIdentityToken>(&decoding_limits) {
+                            self.authenticate_username_identity_token(&config, endpoint, &token, &self.server_pkey, server_nonce)
                         } else {
                             // Garbage in the extension object
                             error!("User name identity token could not be decoded");
@@ -305,11 +304,14 @@ impl ServerState {
                         }
                     }
                     ObjectId::X509IdentityToken_Encoding_DefaultBinary => {
-                        // X509 certs could be recognized here
-                        let result = user_identity_token.decode_inner::<X509IdentityToken>(&decoding_limits);
-                        if let Ok(_) = result {
-                            error!("X509 identity token type is not supported");
-                            Err(StatusCode::BadIdentityTokenRejected)
+                        // X509 certs
+                        if let Ok(token) = user_identity_token.decode_inner::<X509IdentityToken>(&decoding_limits) {
+                            // TODO get this from activate session
+                            let user_token_signature = SignatureData {
+                                algorithm: UAString::null(),
+                                signature: ByteString::null()
+                            };
+                            self.authenticate_x509_identity_token(&token, &user_token_signature, &self.server_certificate, server_nonce)
                         } else {
                             // Garbage in the extension object
                             error!("X509 identity token could not be decoded");
@@ -347,8 +349,22 @@ impl ServerState {
         }
     }
 
+    fn authenticate_x509_identity_token(&self, token: &X509IdentityToken, user_token_signature: &SignatureData, server_certificate: &Option<X509>, server_nonce: &ByteString) -> Result<(), StatusCode> {
+        match server_certificate {
+            Some(ref server_certificate) => {
+                // TODO
+                let security_policy = SecurityPolicy::Basic128Rsa15;
+                user_identity::verify_x509_identity_token(token, user_token_signature, security_policy, server_certificate, server_nonce.as_ref())
+            }
+            None => {
+                Err(StatusCode::BadIdentityTokenInvalid)
+            }
+        }
+    }
+
+
     /// Authenticates the username identity token with the supplied endpoint
-    fn authenticate_username_identity_token(&self, config: &ServerConfig, endpoint: &ServerEndpoint, token: &UserNameIdentityToken, server_nonce: &ByteString, server_key: &Option<PrivateKey>) -> Result<(), StatusCode> {
+    fn authenticate_username_identity_token(&self, config: &ServerConfig, endpoint: &ServerEndpoint, token: &UserNameIdentityToken, server_key: &Option<PrivateKey>, server_nonce: &ByteString) -> Result<(), StatusCode> {
         // The policy_id should be used to determine the algorithm for encoding passwords etc.
         if token.user_name.is_null() {
             error!("User identify token supplies no user name");

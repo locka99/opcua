@@ -108,7 +108,7 @@ impl ExtensionObject {
 
     /// Tests for empty body.
     pub fn is_empty(&self) -> bool {
-        match self.body {
+        self.is_null() || match self.body {
             ExtensionObjectEncoding::None => true,
             _ => false
         }
