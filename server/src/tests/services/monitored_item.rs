@@ -56,7 +56,7 @@ fn make_create_request(sampling_interval: Duration, queue_size: u32) -> Monitore
 
 fn set_monitoring_mode(session: &mut Session, subscription_id: u32, monitored_item_id: u32, monitoring_mode: MonitoringMode, mis: &MonitoredItemService) {
     let request = SetMonitoringModeRequest {
-        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+        request_header: RequestHeader::dummy(),
         subscription_id,
         monitoring_mode,
         monitored_item_ids: Some(vec![monitored_item_id]),
@@ -69,7 +69,7 @@ fn set_monitoring_mode(session: &mut Session, subscription_id: u32, monitored_it
 
 fn set_triggering(session: &mut Session, subscription_id: u32, monitored_item_id: u32, links_to_add: &[u32], links_to_remove: &[u32], mis: &MonitoredItemService) -> (Option<Vec<StatusCode>>, Option<Vec<StatusCode>>) {
     let request = SetTriggeringRequest {
-        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+        request_header: RequestHeader::dummy(),
         subscription_id,
         triggering_item_id: monitored_item_id,
         links_to_add: if links_to_add.is_empty() { None } else { Some(links_to_add.to_vec()) },
@@ -82,7 +82,7 @@ fn set_triggering(session: &mut Session, subscription_id: u32, monitored_item_id
 fn publish_request(now: &DateTimeUtc, session: &mut Session, address_space: &AddressSpace, ss: &SubscriptionService) {
     let request_id = 1001;
     let request = PublishRequest {
-        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+        request_header: RequestHeader::dummy(),
         subscription_acknowledgements: None,
     };
 

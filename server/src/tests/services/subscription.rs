@@ -74,7 +74,7 @@ fn test_revised_keep_alive_lifetime_counts() {
 fn publish_with_no_subscriptions() {
     do_subscription_service_test(|_, session, address_space, ss, _| {
         let request = PublishRequest {
-            request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+            request_header: RequestHeader::dummy(),
             subscription_acknowledgements: None, // Option<Vec<SubscriptionAcknowledgement>>,
         };
         // Publish and expect a service fault BadNoSubscription
@@ -103,7 +103,7 @@ fn publish_response_subscription() {
         let notification_message = {
             let request_id = 1001;
             let request = PublishRequest {
-                request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+                request_header: RequestHeader::dummy(),
                 subscription_acknowledgements: None, // Option<Vec<SubscriptionAcknowledgement>>,
             };
             debug!("PublishRequest {:#?}", request);
@@ -184,7 +184,7 @@ fn publish_keep_alive() {
         let notification_message = {
             let request_id = 1001;
             let request = PublishRequest {
-                request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+                request_header: RequestHeader::dummy(),
                 subscription_acknowledgements: None, // Option<Vec<SubscriptionAcknowledgement>>,
             };
             debug!("PublishRequest {:#?}", request);
@@ -255,7 +255,7 @@ fn republish() {
 
         // try for a notification message known to exist
         let request = RepublishRequest {
-            request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+            request_header: RequestHeader::dummy(),
             subscription_id,
             retransmit_sequence_number: sequence_number,
         };
@@ -266,7 +266,7 @@ fn republish() {
 
         // try for a subscription id that does not exist, expect service fault
         let request = RepublishRequest {
-            request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+            request_header: RequestHeader::dummy(),
             subscription_id: subscription_id + 1,
             retransmit_sequence_number: sequence_number,
         };
@@ -275,7 +275,7 @@ fn republish() {
 
         // try for a sequence nr that does not exist
         let request = RepublishRequest {
-            request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+            request_header: RequestHeader::dummy(),
             subscription_id,
             retransmit_sequence_number: sequence_number + 1,
         };

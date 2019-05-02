@@ -155,7 +155,7 @@ impl SessionService {
         };
 
         if service_result.is_good() {
-            if let Err(err) = server_state.authenticate_endpoint(endpoint_url, security_policy, security_mode, &request.user_identity_token, &session.session_nonce) {
+            if let Err(err) = server_state.authenticate_endpoint(request, endpoint_url, security_policy, security_mode, &request.user_identity_token, &session.session_nonce) {
                 service_result = err;
             }
         }

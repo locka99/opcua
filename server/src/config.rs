@@ -67,6 +67,14 @@ impl ServerUserToken {
         }
         valid
     }
+
+    pub fn is_user_pass(&self) -> bool {
+        self.x509.is_none()
+    }
+
+    pub fn is_x509(&self) -> bool {
+        self.x509.is_some()
+    }
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]

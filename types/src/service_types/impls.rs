@@ -175,6 +175,10 @@ impl RequestHeader {
             additional_header: ExtensionObject::null(),
         }
     }
+
+    pub fn dummy() -> RequestHeader {
+        RequestHeader::new(&NodeId::null(), &DateTime::now(), 1)
+    }
 }
 
 //ResponseHeader = 392,
@@ -397,6 +401,15 @@ impl EndpointDescription {
     pub fn find_policy(&self, token_type: UserTokenType) -> Option<&UserTokenPolicy> {
         if let Some(ref policies) = self.user_identity_tokens {
             policies.iter().find(|t| t.token_type == token_type)
+        } else {
+            None
+        }
+    }
+
+    /// Returns a reference to a policy that matches the supplied policy id
+    pub fn find_policy_by_id(&self, policy_id: &str) -> Option<&UserTokenPolicy> {
+        if let Some(ref policies) = self.user_identity_tokens {
+            policies.iter().find(|t| t.policy_id.as_ref() == policy_id)
         } else {
             None
         }

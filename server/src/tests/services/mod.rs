@@ -90,7 +90,7 @@ fn do_subscription_service_test<T>(f: T)
 /// Creates a blank subscription request
 fn create_subscription_request(max_keep_alive_count: u32, lifetime_count: u32) -> CreateSubscriptionRequest {
     CreateSubscriptionRequest {
-        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+        request_header: RequestHeader::dummy(),
         requested_publishing_interval: 100f64,
         requested_lifetime_count: lifetime_count,
         requested_max_keep_alive_count: max_keep_alive_count,
@@ -121,7 +121,7 @@ fn create_monitored_items_request<T>(subscription_id: u32, mut node_id: Vec<T>) 
         })
         .collect::<Vec<_>>());
     CreateMonitoredItemsRequest {
-        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+        request_header: RequestHeader::dummy(),
         subscription_id,
         timestamps_to_return: TimestampsToReturn::Both,
         items_to_create,

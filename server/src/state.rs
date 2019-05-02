@@ -10,7 +10,7 @@ use opcua_types::{
     node_ids::ObjectId,
     profiles,
     service_types::{
-        ApplicationDescription, RegisteredServer, ApplicationType, EndpointDescription,
+        ActivateSessionRequest, ApplicationDescription, RegisteredServer, ApplicationType, EndpointDescription,
         UserNameIdentityToken, UserTokenPolicy, UserTokenType, X509IdentityToken, SignatureData,
         ServerState as ServerStateType,
     },
@@ -277,7 +277,7 @@ impl ServerState {
     /// It is possible that the endpoint does not exist, or that the token is invalid / unsupported
     /// or that the token cannot be used with the end point. The return codes reflect the responses
     /// that ActivateSession would expect from a service call.
-    pub fn authenticate_endpoint(&self, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode, user_identity_token: &ExtensionObject, server_nonce: &ByteString) -> Result<(), StatusCode> {
+    pub fn authenticate_endpoint(&self, request: &ActivateSessionRequest, endpoint_url: &str, security_policy: SecurityPolicy, security_mode: MessageSecurityMode, user_identity_token: &ExtensionObject, server_nonce: &ByteString) -> Result<(), StatusCode> {
         // Get security from endpoint url
         let config = trace_read_lock_unwrap!(self.config);
         let decoding_limits = config.decoding_limits();
@@ -306,12 +306,7 @@ impl ServerState {
                     ObjectId::X509IdentityToken_Encoding_DefaultBinary => {
                         // X509 certs
                         if let Ok(token) = user_identity_token.decode_inner::<X509IdentityToken>(&decoding_limits) {
-                            // TODO get this from activate session
-                            let user_token_signature = SignatureData {
-                                algorithm: UAString::null(),
-                                signature: ByteString::null()
-                            };
-                            self.authenticate_x509_identity_token(&token, &user_token_signature, &self.server_certificate, server_nonce)
+                            self.authenticate_x509_identity_token(&config, endpoint, &token, &request.user_token_signature, &self.server_certificate, server_nonce)
                         } else {
                             // Garbage in the extension object
                             error!("X509 identity token could not be decoded");
@@ -349,17 +344,36 @@ impl ServerState {
         }
     }
 
-    fn authenticate_x509_identity_token(&self, token: &X509IdentityToken, user_token_signature: &SignatureData, server_certificate: &Option<X509>, server_nonce: &ByteString) -> Result<(), StatusCode> {
-        match server_certificate {
+    fn authenticate_x509_identity_token(&self, config: &ServerConfig, endpoint: &ServerEndpoint, token: &X509IdentityToken, user_token_signature: &SignatureData, server_certificate: &Option<X509>, server_nonce: &ByteString) -> Result<(), StatusCode> {
+        let result = match server_certificate {
             Some(ref server_certificate) => {
-                // TODO
-                let security_policy = SecurityPolicy::Basic128Rsa15;
-                user_identity::verify_x509_identity_token(token, user_token_signature, security_policy, server_certificate, server_nonce.as_ref())
+                let security_policy = endpoint.security_policy();
+                // The security policy has to be something that can encrypt
+                match security_policy {
+                    SecurityPolicy::Unknown | SecurityPolicy::None => Err(StatusCode::BadIdentityTokenInvalid),
+                    security_policy => {
+                        // Verify token
+                        user_identity::verify_x509_identity_token(token, user_token_signature, security_policy, server_certificate, server_nonce.as_ref())
+                    }
+                }
             }
             None => {
                 Err(StatusCode::BadIdentityTokenInvalid)
             }
-        }
+        };
+
+        result.and_then(|_| {
+            let valid = true;
+            // Check the endpoint to see if this token is supported
+            for user_token_id in &endpoint.user_token_ids {
+                if let Some(server_user_token) = config.user_tokens.get(user_token_id) {
+                    if server_user_token.is_x509()  {
+                        // TODO verify there is a x509 on disk that matches the one supplied
+                    }
+                }
+            }
+            if valid { Ok(()) } else { Err(StatusCode::BadIdentityTokenInvalid) }
+        })
     }
 
 
@@ -384,7 +398,7 @@ impl ServerState {
             // Iterate ids in endpoint
             for user_token_id in &endpoint.user_token_ids {
                 if let Some(server_user_token) = config.user_tokens.get(user_token_id) {
-                    if &server_user_token.user == token.user_name.as_ref() {
+                    if server_user_token.is_user_pass() && &server_user_token.user == token.user_name.as_ref() {
                         // test for empty password
                         let valid = if server_user_token.pass.is_none() {
                             // Empty password for user

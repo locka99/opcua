@@ -36,7 +36,7 @@ fn new_call_method_request<S, T>(object_id: S, method_id: T, input_arguments: Op
 
 fn create_subscription_request() -> CreateSubscriptionRequest {
     CreateSubscriptionRequest {
-        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+        request_header: RequestHeader::dummy(),
         requested_publishing_interval: 100f64,
         requested_lifetime_count: 100,
         requested_max_keep_alive_count: 100,
@@ -48,7 +48,7 @@ fn create_subscription_request() -> CreateSubscriptionRequest {
 
 fn create_monitored_items_request<T>(subscription_id: u32, client_handle: u32, node_id: T) -> CreateMonitoredItemsRequest where T: 'static + Into<NodeId> {
     CreateMonitoredItemsRequest {
-        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+        request_header: RequestHeader::dummy(),
         subscription_id,
         timestamps_to_return: TimestampsToReturn::Both,
         items_to_create: Some(vec![MonitoredItemCreateRequest {
@@ -73,7 +73,7 @@ fn create_monitored_items_request<T>(subscription_id: u32, client_handle: u32, n
 /// This is a convenience for tests
 fn call_single(s: &MethodService, address_space: &mut AddressSpace, server_state: &ServerState, session: &mut Session, request: CallMethodRequest) -> Result<CallMethodResult, StatusCode> {
     let response = s.call(address_space, server_state, session, &CallRequest {
-        request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+        request_header: RequestHeader::dummy(),
         methods_to_call: Some(vec![request]),
     })?;
     let response: CallResponse = supported_message_as!(response, CallResponse);

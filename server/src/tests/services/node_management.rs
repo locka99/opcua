@@ -32,7 +32,7 @@ fn do_node_management_service_test<T>(can_modify_address_space: bool, f: T)
 fn do_add_node_test_with_expected_error(can_modify_address_space: bool, item: AddNodesItem, expected_status_code: StatusCode) {
     do_node_management_service_test(can_modify_address_space, |server_state, session, address_space, nms| {
         let response = nms.add_nodes(server_state, session, address_space, &AddNodesRequest {
-            request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+            request_header: RequestHeader::dummy(),
             nodes_to_add: Some(vec![item]),
         });
         let response: AddNodesResponse = supported_message_as!(response.unwrap(), AddNodesResponse);
@@ -51,7 +51,7 @@ fn do_add_node_test_with_expected_error(can_modify_address_space: bool, item: Ad
 fn do_add_references_test(can_modify_address_space: bool, item: AddReferencesItem, expected_status_code: StatusCode) {
     do_node_management_service_test(can_modify_address_space, |server_state, session, address_space, nms| {
         let response = nms.add_references(server_state, session, address_space, &AddReferencesRequest {
-            request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+            request_header: RequestHeader::dummy(),
             references_to_add: Some(vec![item]),
         });
         let response: AddReferencesResponse = supported_message_as!(response.unwrap(), AddReferencesResponse);
@@ -67,7 +67,7 @@ fn do_add_references_test(can_modify_address_space: bool, item: AddReferencesIte
 fn do_delete_nodes_test(can_modify_address_space: bool, item: DeleteNodesItem, expected_status_code: StatusCode) {
     do_node_management_service_test(can_modify_address_space, |server_state, session, address_space, nms| {
         let response = nms.delete_nodes(server_state, session, address_space, &DeleteNodesRequest {
-            request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+            request_header: RequestHeader::dummy(),
             nodes_to_delete: Some(vec![item]),
         });
         let response: DeleteNodesResponse = supported_message_as!(response.unwrap(), DeleteNodesResponse);
@@ -80,7 +80,7 @@ fn do_delete_nodes_test(can_modify_address_space: bool, item: DeleteNodesItem, e
 fn do_delete_references_test(can_modify_address_space: bool, item: DeleteReferencesItem, expected_status_code: StatusCode) {
     do_node_management_service_test(can_modify_address_space, |server_state, session, address_space, nms| {
         let response = nms.delete_references(server_state, session, address_space, &DeleteReferencesRequest {
-            request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+            request_header: RequestHeader::dummy(),
             references_to_delete: Some(vec![item]),
         });
         let response: DeleteReferencesResponse = supported_message_as!(response.unwrap(), DeleteReferencesResponse);
@@ -146,14 +146,14 @@ fn add_nodes_nothing_to_do() {
     // Empty request
     do_node_management_service_test(true, |server_state, session, address_space, nms: NodeManagementService| {
         let response = nms.add_nodes(server_state, session, address_space, &AddNodesRequest {
-            request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+            request_header: RequestHeader::dummy(),
             nodes_to_add: None,
         });
         let response: ServiceFault = supported_message_as!(response.unwrap(), ServiceFault);
         assert_eq!(response.response_header.service_result, StatusCode::BadNothingToDo);
 
         let response = nms.add_nodes(server_state, session, address_space, &AddNodesRequest {
-            request_header: RequestHeader::new(&NodeId::null(), &DateTime::now(), 1),
+            request_header: RequestHeader::dummy(),
             nodes_to_add: Some(vec![]),
         });
         let response: ServiceFault = supported_message_as!(response.unwrap(), ServiceFault);

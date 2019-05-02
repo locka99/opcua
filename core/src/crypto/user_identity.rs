@@ -156,9 +156,10 @@ pub(crate) fn legacy_password_decrypt(secret: &ByteString, server_nonce: &[u8], 
     }
 }
 
+/// Verify that the X509 identity token supplied to a server contains a valid signature.
 pub fn verify_x509_identity_token(token: &X509IdentityToken, user_token_signature: &SignatureData, security_policy: SecurityPolicy, server_cert: &X509, server_nonce: &[u8]) -> Result<(), StatusCode> {
     // Since it is not obvious at all from the spec what the user token signature is supposed to be, I looked
-    // at the internet for answers
+    // at the internet for clues:
     //
     // https://stackoverflow.com/questions/46683342/securing-opensecurechannel-messages-and-x509identitytoken
     // https://forum.prosysopc.com/forum/opc-ua/clarification-on-opensecurechannel-messages-and-x509identitytoken-specifications/
@@ -166,7 +167,8 @@ pub fn verify_x509_identity_token(token: &X509IdentityToken, user_token_signatur
     // These suggest that the signature is produced by appending the server nonce to the server certificate
     // and signing with the user certificate's private key.
     //
-    // More or less like the standard handshake between client and server but with the identity cert.
+    // This is the same as the standard handshake between client and server but using the identity cert. It would have been nice
+    // if the spec actually said this.
 
     let signing_cert = super::x509::X509::from_byte_string(&token.certificate_data)?;
     let result = super::verify_signature_data(user_token_signature, security_policy, &signing_cert, server_cert, server_nonce);
