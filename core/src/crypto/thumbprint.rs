@@ -4,6 +4,7 @@ use opcua_types::ByteString;
 /// The thumbprint holds a 20 byte representation of a certificate that can be used as a hash,
 /// handshake comparison, a filename hint or similar purpose where a shortened representation
 /// of a cert is required. Thumbprint size is dictated by the OPC UA spec
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Thumbprint {
     /// Thumbprint is relatively small and fixed size, so use array to hold value instead of a vec
     /// just to save heap

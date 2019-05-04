@@ -3,11 +3,13 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::collections::{BTreeMap, BTreeSet};
 
-use opcua_types::{MessageSecurityMode, UAString, DecodingLimits};
-use opcua_types::constants as opcua_types_constants;
-use opcua_types::url_matches_except_host;
+use opcua_types::{
+    MessageSecurityMode, UAString, DecodingLimits,
+    constants as opcua_types_constants,
+    url_matches_except_host
+};
 
-use opcua_core::crypto::SecurityPolicy;
+use opcua_core::crypto::{SecurityPolicy, Thumbprint, CertificateStore};
 use opcua_core::config::Config;
 
 use crate::constants;
@@ -34,6 +36,8 @@ pub struct ServerUserToken {
     // X509 file path (as a string)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub x509: Option<String>,
+    #[serde(skip)]
+    pub thumbprint: Option<Thumbprint>,
 }
 
 impl ServerUserToken {
@@ -42,13 +46,30 @@ impl ServerUserToken {
             user: user.into(),
             pass: Some(pass.into()),
             x509: None,
+            thumbprint: None,
         }
     }
 
+    /// Read an X509 user token's certificate from disk and then hold onto the thumbprint for it.
+    pub fn read_thumbprint(&mut self) {
+        if self.is_x509() && self.thumbprint.is_none() {
+            // As part of validation, we're going to try and load the x509 certificate from disk, and
+            // obtain its thumbprint. This will be used when a session is activated.
+            if let Some(ref x509_path) = self.x509 {
+                let path = PathBuf::from(x509_path);
+                if let Ok(x509) = CertificateStore::read_cert(&path) {
+                    self.thumbprint = Some(x509.thumbprint());
+                }
+            }
+        }
+    }
+
+    /// Test if the token is valid. This does not care for x509 tokens if the cert is present on
+    /// the disk or not.
     pub fn is_valid(&self, id: &str) -> bool {
         let mut valid = true;
         if id == ANONYMOUS_USER_TOKEN_ID {
-            error!("User token {} uses the reserved name \"anonymous\"", id);
+            error!("User token {} is invalid because id is a reserved value, use another value", id);
             valid = false;
         }
         if self.user.is_empty() {
@@ -62,6 +83,7 @@ impl ServerUserToken {
             error!("User token {} is neither a password or an x509 cert", id);
             valid = false;
         }
+
         valid
     }
 
@@ -348,6 +370,7 @@ impl Config for ServerConfig {
     fn application_uri(&self) -> UAString { UAString::from(self.application_uri.as_ref()) }
 
     fn product_uri(&self) -> UAString { UAString::from(self.product_uri.as_ref()) }
+
 }
 
 impl Default for ServerConfig {
@@ -424,6 +447,10 @@ impl ServerConfig {
 
     pub fn add_endpoint(&mut self, id: &str, endpoint: ServerEndpoint) {
         self.endpoints.insert(id.to_string(), endpoint);
+    }
+
+    pub fn read_x509_thumbprints(&mut self) {
+        self.user_tokens.iter_mut().for_each(|(_, token)| token.read_thumbprint() );
     }
 
     /// Returns a opc.tcp://server:port url that paths can be appended onto

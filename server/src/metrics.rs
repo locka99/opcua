@@ -68,6 +68,7 @@ impl ServerMetrics {
             user: String::from("User identity tokens have been removed"),
             pass: None,
             x509: None,
+            thumbprint: None,
         });
         self.config = Some(config.clone());
     }

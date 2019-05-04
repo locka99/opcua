@@ -76,7 +76,7 @@ impl Server {
     ///
     /// [`Server`]: ./struct.Server.html
     /// [`ServerConfig`]: ../config/struct.ServerConfig.html
-    pub fn new(config: ServerConfig) -> Server {
+    pub fn new(mut config: ServerConfig) -> Server {
         if !config.is_valid() {
             panic!("Cannot create a server using an invalid configuration.");
         }
@@ -99,6 +99,9 @@ impl Server {
         if server_certificate.is_none() || server_pkey.is_none() {
             error!("Server is missing its application instance certificate and/or its private key. Encrypted endpoints will not function correctly.")
         }
+
+        // Load thumbprints of every user token
+        config.read_x509_thumbprints();
 
         // Servers may choose to auto trust clients to save some messing around with rejected certs.
         // This is strongly not advised in production.

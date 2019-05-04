@@ -526,7 +526,7 @@ impl CertificateStore {
     ///
     /// A string description of any failure
     ///
-    fn read_cert(path: &Path) -> Result<X509, String> {
+    pub fn read_cert(path: &Path) -> Result<X509, String> {
         let file = File::open(path);
         if file.is_err() {
             return Err(format!("Could not open cert file {}", path.display()));

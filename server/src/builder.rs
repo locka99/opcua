@@ -55,16 +55,19 @@ impl ServerBuilder {
                 user: "sample".to_string(),
                 pass: Some("sample1".to_string()),
                 x509: None,
+                thumbprint: None,
             })
             .user_token("sample_x509_user", ServerUserToken {
                 user: "sample_x509".to_string(),
                 pass: None,
                 x509: Some("./users/sample-x509.der".to_string()),
+                thumbprint: None,
             })
             .user_token("unused_user", ServerUserToken {
                 user: "unused".to_string(),
                 pass: Some("unused1".to_string()),
                 x509: None,
+                thumbprint: None,
             })
             .endpoints(vec![
                 ("none", ServerEndpoint::new_none(path, &user_token_ids)),
