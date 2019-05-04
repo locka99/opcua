@@ -42,18 +42,24 @@ impl ServerBuilder {
         warn!("Sample configuration is for testing purposes only. Use a proper configuration in your production environment");
 
         let path = DEFAULT_ENDPOINT_PATH;
-        let sample_user_id = "sample_user";
-        let user_token_ids = vec![ANONYMOUS_USER_TOKEN_ID.to_string(), sample_user_id.to_string()];
+
+        let user_token_ids = ["sample_password_user", "sample_x509_user", ANONYMOUS_USER_TOKEN_ID]
+            .iter().map(|u| u.to_string()).collect::<Vec<String>>();
 
         ServerBuilder::new()
             .application_name("OPC UA Sample Server")
             .application_uri("urn:OPC UA Sample Server")
             .create_sample_keypair(true)
             .discovery_server_url(Some(constants::DEFAULT_DISCOVERY_SERVER_URL.to_string()))
-            .user_token("sample_user", ServerUserToken {
+            .user_token("sample_password_user", ServerUserToken {
                 user: "sample".to_string(),
                 pass: Some("sample1".to_string()),
                 x509: None,
+            })
+            .user_token("sample_x509_user", ServerUserToken {
+                user: "sample_x509".to_string(),
+                pass: None,
+                x509: Some("./users/sample-x509.der".to_string()),
             })
             .user_token("unused_user", ServerUserToken {
                 user: "unused".to_string(),

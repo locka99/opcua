@@ -22,7 +22,7 @@ fn anonymous_user_token() {
 
     // Makes an anonymous token and sticks it into an extension object
     let token = AnonymousIdentityToken {
-        policy_id: UAString::from(SecurityPolicy::None.to_uri())
+        policy_id: UAString::from("anonymous")
     };
     let token = ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary, &token);
 
@@ -45,7 +45,7 @@ fn anonymous_user_token() {
 
 fn make_user_name_identity_token(user: &str, pass: &[u8]) -> ExtensionObject {
     let token = UserNameIdentityToken {
-        policy_id: UAString::from(SecurityPolicy::None.to_uri()),
+        policy_id: UAString::from("userpass"),
         user_name: UAString::from(user),
         password: ByteString::from(pass),
         encryption_algorithm: UAString::null(),

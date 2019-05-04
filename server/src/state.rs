@@ -1,7 +1,6 @@
 //! Provides server state information, such as status, configuration, running servers and so on.
 
 use std::sync::{Arc, RwLock};
-use std::str::FromStr;
 
 use opcua_core::prelude::*;
 use opcua_core::crypto::user_identity;
@@ -11,7 +10,7 @@ use opcua_types::{
     profiles,
     service_types::{
         ActivateSessionRequest, ApplicationDescription, RegisteredServer, ApplicationType, EndpointDescription,
-        UserNameIdentityToken, UserTokenPolicy, UserTokenType, X509IdentityToken, SignatureData,
+        AnonymousIdentityToken, UserNameIdentityToken, UserTokenPolicy, UserTokenType, X509IdentityToken, SignatureData,
         ServerState as ServerStateType,
     },
     status_code::StatusCode,
@@ -21,8 +20,9 @@ use crate::config::{ServerConfig, ServerEndpoint};
 use crate::diagnostics::ServerDiagnostics;
 use crate::callbacks::{RegisterNodes, UnregisterNodes};
 
-const TOKEN_POLICY_ANONYMOUS: &str = "anonymous";
-const TOKEN_POLICY_USER_PASS_PLAINTEXT: &str = "userpass_plaintext";
+const POLICY_ID_ANONYMOUS: &str = "anonymous";
+const POLICY_ID_USER_PASS: &str = "userpass";
+const POLICY_ID_X509: &str = "x509";
 
 /// Server state is any state associated with the server as a whole that individual sessions might
 /// be interested in. That includes configuration info etc.
@@ -125,37 +125,41 @@ impl ServerState {
     fn new_endpoint_description(&self, config: &ServerConfig, endpoint: &ServerEndpoint, all_fields: bool) -> EndpointDescription {
         let base_endpoint_url = config.base_endpoint_url();
 
-        let mut user_identity_tokens = Vec::with_capacity(2);
+        let mut user_identity_tokens = Vec::with_capacity(3);
+
+        // Anonymous policy
         if endpoint.supports_anonymous() {
             user_identity_tokens.push(UserTokenPolicy {
-                policy_id: UAString::from(TOKEN_POLICY_ANONYMOUS),
+                policy_id: UAString::from(POLICY_ID_ANONYMOUS),
                 token_type: UserTokenType::Anonymous,
                 issued_token_type: UAString::null(),
                 issuer_endpoint_url: UAString::null(),
                 security_policy_uri: UAString::null(),
             });
         }
-        if !endpoint.user_token_ids.is_empty() {
+        // User pass policy
+        if endpoint.supports_user_pass(&config.user_tokens) {
             // The endpoint may set a password security policy
-            let password_security_policy = if let Some(ref security_policy) = endpoint.password_security_policy {
-                if let Ok(security_policy) = SecurityPolicy::from_str(security_policy) {
-                    if security_policy != SecurityPolicy::Unknown {
-                        UAString::from(security_policy.to_str())
-                    } else {
-                        UAString::null()
-                    }
-                } else {
-                    UAString::null()
-                }
-            } else {
-                UAString::null()
+            let security_policy_uri = match endpoint.password_security_policy() {
+                SecurityPolicy::None => UAString::null(),
+                security_policy => UAString::from(security_policy.to_str())
             };
             user_identity_tokens.push(UserTokenPolicy {
-                policy_id: UAString::from(TOKEN_POLICY_USER_PASS_PLAINTEXT),
+                policy_id: UAString::from(POLICY_ID_USER_PASS),
                 token_type: UserTokenType::Username,
                 issued_token_type: UAString::null(),
                 issuer_endpoint_url: UAString::null(),
-                security_policy_uri: password_security_policy,
+                security_policy_uri,
+            });
+        }
+        // X509 policy
+        if endpoint.supports_x509(&config.user_tokens) {
+            user_identity_tokens.push(UserTokenPolicy {
+                policy_id: UAString::from(POLICY_ID_X509),
+                token_type: UserTokenType::Certificate,
+                issued_token_type: UAString::null(),
+                issuer_endpoint_url: UAString::null(),
+                security_policy_uri: UAString::null(),
             });
         }
 
@@ -285,13 +289,21 @@ impl ServerState {
             // Now validate the user identity token
             if user_identity_token.is_empty() {
                 // Empty tokens are treated as anonymous
-                Self::authenticate_anonymous_token(endpoint)
+                Self::authenticate_anonymous_token(endpoint, &AnonymousIdentityToken {
+                    policy_id: UAString::from(POLICY_ID_ANONYMOUS)
+                })
             } else if let Ok(object_id) = user_identity_token.node_id.as_object_id() {
                 // Read the token out from the extension object
                 match object_id {
                     ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary => {
-                        // Anonymous
-                        Self::authenticate_anonymous_token(endpoint)
+                        if let Ok(token) = user_identity_token.decode_inner::<AnonymousIdentityToken>(&decoding_limits) {
+                            // Anonymous
+                            Self::authenticate_anonymous_token(endpoint, &token)
+                        } else {
+                            // Garbage in the extension object
+                            error!("Anonymous identity token could not be decoded");
+                            Err(StatusCode::BadIdentityTokenInvalid)
+                        }
                     }
                     ObjectId::UserNameIdentityToken_Encoding_DefaultBinary => {
                         // Username / password
@@ -314,7 +326,7 @@ impl ServerState {
                         }
                     }
                     _ => {
-                        error!("User identity token type {:?} is unrecognized", object_id);
+                        error!("User identity token type {:?} is unsupported", object_id);
                         Err(StatusCode::BadIdentityTokenInvalid)
                     }
                 }
@@ -334,53 +346,28 @@ impl ServerState {
     }
 
     /// Authenticates an anonymous token, i.e. does the endpoint support anonymous access or not
-    fn authenticate_anonymous_token(endpoint: &ServerEndpoint) -> Result<(), StatusCode> {
-        if endpoint.supports_anonymous() {
-            debug!("Anonymous identity is authenticated");
-            Ok(())
-        } else {
+    fn authenticate_anonymous_token(endpoint: &ServerEndpoint, token: &AnonymousIdentityToken) -> Result<(), StatusCode> {
+        if token.policy_id.as_ref() != POLICY_ID_ANONYMOUS {
+            error!("Token doesn't possess the correct policy id");
+            Err(StatusCode::BadIdentityTokenRejected)
+        } else if !endpoint.supports_anonymous() {
             error!("Endpoint \"{}\" does not support anonymous authentication", endpoint.path);
             Err(StatusCode::BadIdentityTokenRejected)
+        } else {
+            debug!("Anonymous identity is authenticated");
+            Ok(())
         }
     }
 
-    fn authenticate_x509_identity_token(&self, config: &ServerConfig, endpoint: &ServerEndpoint, token: &X509IdentityToken, user_token_signature: &SignatureData, server_certificate: &Option<X509>, server_nonce: &ByteString) -> Result<(), StatusCode> {
-        let result = match server_certificate {
-            Some(ref server_certificate) => {
-                let security_policy = endpoint.security_policy();
-                // The security policy has to be something that can encrypt
-                match security_policy {
-                    SecurityPolicy::Unknown | SecurityPolicy::None => Err(StatusCode::BadIdentityTokenInvalid),
-                    security_policy => {
-                        // Verify token
-                        user_identity::verify_x509_identity_token(token, user_token_signature, security_policy, server_certificate, server_nonce.as_ref())
-                    }
-                }
-            }
-            None => {
-                Err(StatusCode::BadIdentityTokenInvalid)
-            }
-        };
-
-        result.and_then(|_| {
-            let valid = true;
-            // Check the endpoint to see if this token is supported
-            for user_token_id in &endpoint.user_token_ids {
-                if let Some(server_user_token) = config.user_tokens.get(user_token_id) {
-                    if server_user_token.is_x509()  {
-                        // TODO verify there is a x509 on disk that matches the one supplied
-                    }
-                }
-            }
-            if valid { Ok(()) } else { Err(StatusCode::BadIdentityTokenInvalid) }
-        })
-    }
-
-
     /// Authenticates the username identity token with the supplied endpoint
     fn authenticate_username_identity_token(&self, config: &ServerConfig, endpoint: &ServerEndpoint, token: &UserNameIdentityToken, server_key: &Option<PrivateKey>, server_nonce: &ByteString) -> Result<(), StatusCode> {
-        // The policy_id should be used to determine the algorithm for encoding passwords etc.
-        if token.user_name.is_null() {
+        if !endpoint.supports_user_pass(&config.user_tokens) {
+            error!("Endpoint doesn't support username password tokens");
+            Err(StatusCode::BadIdentityTokenRejected)
+        } else if token.policy_id.as_ref() != POLICY_ID_USER_PASS {
+            error!("Token doesn't possess the correct policy id");
+            Err(StatusCode::BadIdentityTokenRejected)
+        } else if token.user_name.is_null() {
             error!("User identify token supplies no user name");
             Err(StatusCode::BadIdentityTokenInvalid)
         } else {
@@ -388,7 +375,7 @@ impl ServerState {
                 if let Some(ref server_key) = server_key {
                     user_identity::decrypt_user_identity_token_password(&token, server_nonce.as_ref(), server_key)?
                 } else {
-                    error!("Identity token password is encrypted and no server private key was supplied");
+                    error!("Identity token password is encrypted but no server private key was supplied");
                     return Err(StatusCode::BadIdentityTokenInvalid);
                 }
             } else {
@@ -419,6 +406,46 @@ impl ServerState {
             }
             error!("Cannot authenticate \"{}\", user not found for endpoint", token.user_name);
             Err(StatusCode::BadIdentityTokenRejected)
+        }
+    }
+
+    /// Authenticate the x509 token against the endpoint
+    fn authenticate_x509_identity_token(&self, config: &ServerConfig, endpoint: &ServerEndpoint, token: &X509IdentityToken, user_token_signature: &SignatureData, server_certificate: &Option<X509>, server_nonce: &ByteString) -> Result<(), StatusCode> {
+        if !endpoint.supports_x509(&config.user_tokens) {
+            error!("Endpoint doesn't support x509 tokens");
+            Err(StatusCode::BadIdentityTokenRejected)
+        } else if token.policy_id.as_ref() != POLICY_ID_X509 {
+            error!("Token doesn't possess the correct policy id");
+            Err(StatusCode::BadIdentityTokenRejected)
+        } else {
+            let result = match server_certificate {
+                Some(ref server_certificate) => {
+                    let security_policy = endpoint.security_policy();
+                    // The security policy has to be something that can encrypt
+                    match security_policy {
+                        SecurityPolicy::Unknown | SecurityPolicy::None => Err(StatusCode::BadIdentityTokenInvalid),
+                        security_policy => {
+                            // Verify token
+                            user_identity::verify_x509_identity_token(token, user_token_signature, security_policy, server_certificate, server_nonce.as_ref())
+                        }
+                    }
+                }
+                None => {
+                    Err(StatusCode::BadIdentityTokenInvalid)
+                }
+            };
+            result.and_then(|_| {
+                let valid = true;
+                // Check the endpoint to see if this token is supported
+                for user_token_id in &endpoint.user_token_ids {
+                    if let Some(server_user_token) = config.user_tokens.get(user_token_id) {
+                        if server_user_token.is_x509() {
+                            // TODO verify there is a x509 on disk that matches the one supplied
+                        }
+                    }
+                }
+                if valid { Ok(()) } else { Err(StatusCode::BadIdentityTokenInvalid) }
+            })
         }
     }
 }
