@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use opcua_types::{
     MessageSecurityMode, UAString, DecodingLimits,
     constants as opcua_types_constants,
-    url_matches_except_host
+    url_matches_except_host,
 };
 
 use opcua_core::crypto::{SecurityPolicy, Thumbprint, CertificateStore};
@@ -370,7 +370,6 @@ impl Config for ServerConfig {
     fn application_uri(&self) -> UAString { UAString::from(self.application_uri.as_ref()) }
 
     fn product_uri(&self) -> UAString { UAString::from(self.product_uri.as_ref()) }
-
 }
 
 impl Default for ServerConfig {
@@ -450,7 +449,7 @@ impl ServerConfig {
     }
 
     pub fn read_x509_thumbprints(&mut self) {
-        self.user_tokens.iter_mut().for_each(|(_, token)| token.read_thumbprint() );
+        self.user_tokens.iter_mut().for_each(|(_, token)| token.read_thumbprint());
     }
 
     /// Returns a opc.tcp://server:port url that paths can be appended onto

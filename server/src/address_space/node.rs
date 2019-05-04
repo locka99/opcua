@@ -90,7 +90,7 @@ pub trait Node {
 
 /// This trait is for the benefit of the Attributes service set - Read and Write. Internal
 /// callers should just call the setter / getter on the node itself if they have access to them.
-pub trait NodeAttributes : Node {
+pub trait NodeAttributes: Node {
     /// Finds the attribute and value. The param `max_age` is a hint in milliseconds:
     ///
     /// * value 0, server shall attempt to read a new value from the data source

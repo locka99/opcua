@@ -133,7 +133,7 @@
                 <input id="opcua_url" value="opc.tcp://localhost:4855"/><br/>
                 Actions:<br/>
                 <button id="connect_btn" onclick="connect($('#opcua_url').val())">Connect</button>
-                <button id="disconnect_btn" disabled="disabled" onclick="disconnect()">Disconnect</button>
+                <button disabled="disabled" id="disconnect_btn" onclick="disconnect()">Disconnect</button>
             </form>
         </td>
         <th>Connection Status</th>
@@ -151,7 +151,7 @@
     <label for="subscribe_values">Node Ids:</label><br/>
     <input id="subscribe_values" value="ns=2;s=v1,ns=2;s=v2,ns=2;s=v3,ns=2;s=v4"/><br/>
     Actions:<br/>
-    <button id="subscribe_btn" disabled="disabled" onclick="subscribe($('#subscribe_values').val())">Subscribe to values
+    <button disabled="disabled" id="subscribe_btn" onclick="subscribe($('#subscribe_values').val())">Subscribe to values
     </button>
 </form>
 

@@ -187,7 +187,7 @@ fn add_control_switches(server: &mut Server) {
             .add_folder("Control", "Control", &AddressSpace::objects_folder_id())
             .unwrap();
 
-        let mut variable = Variable::new(&abort_node_id, "Abort", "Abort",Variant::Boolean(false));
+        let mut variable = Variable::new(&abort_node_id, "Abort", "Abort", Variant::Boolean(false));
         variable.set_writable(true);
         let _ = address_space.add_variable(variable, &folder_id);
     }

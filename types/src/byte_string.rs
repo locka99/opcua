@@ -6,7 +6,7 @@ use base64;
 
 use crate::{
     encoding::{write_i32, BinaryEncoder, EncodingResult, DecodingLimits, process_encode_io_result, process_decode_io_result},
-    status_codes::StatusCode
+    status_codes::StatusCode,
 };
 
 /// A sequence of octets.

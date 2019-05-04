@@ -33,7 +33,7 @@ impl<'de> Deserialize<'de> for Guid {
             Ok(uuid) => {
                 Uuid::parse_str(&uuid)
                     .map(|uuid| Guid { uuid })
-                    .map_err(|_|D::Error::custom("Invalid uuid"))
+                    .map_err(|_| D::Error::custom("Invalid uuid"))
             }
             Err(err) => {
                 Err(err)

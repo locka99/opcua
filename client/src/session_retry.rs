@@ -10,7 +10,7 @@ pub enum Answer {
     /// Give up reconnecting
     GiveUp,
 }
- 
+
 /// The session retry policy determines what to if the connection fails. In these circumstances,
 /// the client needs to re-establish a connection and the policy says how many times to try between
 /// failure and at what interval.

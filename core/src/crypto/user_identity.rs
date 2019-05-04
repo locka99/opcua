@@ -7,14 +7,14 @@ use std::io::{Cursor, Write};
 use std::str::FromStr;
 
 use opcua_types::{
-    UAString, ByteString,
+    ByteString, encoding::{read_u32, write_u32},
+    service_types::{UserNameIdentityToken, UserTokenPolicy},
     status_code::StatusCode,
-    encoding::{write_u32, read_u32},
-    service_types::{UserTokenPolicy, UserNameIdentityToken},
+    UAString,
 };
+use opcua_types::service_types::{SignatureData, X509IdentityToken};
 
-use super::{X509, PrivateKey, KeySize, SecurityPolicy, RsaPadding};
-use opcua_types::service_types::{X509IdentityToken, SignatureData};
+use super::{KeySize, PrivateKey, RsaPadding, SecurityPolicy, X509};
 
 /// Create a filled in UserNameIdentityToken by using the supplied channel security policy, user token policy, nonce, cert, user name and password.
 pub fn make_user_name_identity_token(channel_security_policy: SecurityPolicy, user_token_policy: &UserTokenPolicy, nonce: &[u8], cert: Option<X509>, user: &str, pass: &str) -> Result<UserNameIdentityToken, StatusCode> {
