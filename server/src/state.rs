@@ -20,11 +20,11 @@ use crate::config::{ServerConfig, ServerEndpoint};
 use crate::diagnostics::ServerDiagnostics;
 use crate::callbacks::{RegisterNodes, UnregisterNodes};
 
-const POLICY_ID_ANONYMOUS: &str = "anonymous";
-const POLICY_ID_USER_PASS_NONE: &str = "userpass_none";
-const POLICY_ID_USER_PASS_RSA_15: &str = "userpass_rsa_15";
-const POLICY_ID_USER_PASS_RSA_OAEP: &str = "userpass_rsa_oaep";
-const POLICY_ID_X509: &str = "x509";
+pub(crate) const POLICY_ID_ANONYMOUS: &str = "anonymous";
+pub(crate) const POLICY_ID_USER_PASS_NONE: &str = "userpass_none";
+pub(crate) const POLICY_ID_USER_PASS_RSA_15: &str = "userpass_rsa_15";
+pub(crate) const POLICY_ID_USER_PASS_RSA_OAEP: &str = "userpass_rsa_oaep";
+pub(crate) const POLICY_ID_X509: &str = "x509";
 
 /// Server state is any state associated with the server as a whole that individual sessions might
 /// be interested in. That includes configuration info etc.

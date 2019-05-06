@@ -45,7 +45,7 @@ fn anonymous_user_token() {
 
 fn make_user_name_identity_token(user: &str, pass: &[u8]) -> ExtensionObject {
     let token = UserNameIdentityToken {
-        policy_id: UAString::from("userpass"),
+        policy_id: UAString::from(crate::state::POLICY_ID_USER_PASS_NONE),
         user_name: UAString::from(user),
         password: ByteString::from(pass),
         encryption_algorithm: UAString::null(),
