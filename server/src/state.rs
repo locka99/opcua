@@ -21,7 +21,9 @@ use crate::diagnostics::ServerDiagnostics;
 use crate::callbacks::{RegisterNodes, UnregisterNodes};
 
 const POLICY_ID_ANONYMOUS: &str = "anonymous";
-const POLICY_ID_USER_PASS: &str = "userpass";
+const POLICY_ID_USER_PASS_NONE: &str = "userpass_none";
+const POLICY_ID_USER_PASS_RSA_15: &str = "userpass_rsa_15";
+const POLICY_ID_USER_PASS_RSA_OAEP: &str = "userpass_rsa_oaep";
 const POLICY_ID_X509: &str = "x509";
 
 /// Server state is any state associated with the server as a whole that individual sessions might
@@ -121,6 +123,21 @@ impl ServerState {
         if endpoints.is_empty() { None } else { Some(endpoints) }
     }
 
+    fn user_pass_security_policy_id(endpoint: &ServerEndpoint) -> UAString {
+        match endpoint.password_security_policy() {
+            SecurityPolicy::None => POLICY_ID_USER_PASS_NONE,
+            SecurityPolicy::Basic128Rsa15 => POLICY_ID_USER_PASS_RSA_15,
+            SecurityPolicy::Basic256 | SecurityPolicy::Basic256Sha256 => POLICY_ID_USER_PASS_RSA_OAEP,
+            _ => { panic!() }
+        }.into()
+    }
+
+    fn user_pass_security_policy_uri(_endpoint: &ServerEndpoint) -> UAString {
+        // TODO we could force the security policy uri for passwords to be something other than the default
+        // here to ensure they're secure even when the endpoint's security policy is None.
+        UAString::null()
+    }
+
     /// Constructs a new endpoint description using the server's info and that in an Endpoint
     fn new_endpoint_description(&self, config: &ServerConfig, endpoint: &ServerEndpoint, all_fields: bool) -> EndpointDescription {
         let base_endpoint_url = config.base_endpoint_url();
@@ -140,16 +157,12 @@ impl ServerState {
         // User pass policy
         if endpoint.supports_user_pass(&config.user_tokens) {
             // The endpoint may set a password security policy
-            let security_policy_uri = match endpoint.password_security_policy() {
-                SecurityPolicy::None => UAString::null(),
-                security_policy => UAString::from(security_policy.to_str())
-            };
             user_identity_tokens.push(UserTokenPolicy {
-                policy_id: UAString::from(POLICY_ID_USER_PASS),
+                policy_id: Self::user_pass_security_policy_id(endpoint),
                 token_type: UserTokenType::Username,
                 issued_token_type: UAString::null(),
                 issuer_endpoint_url: UAString::null(),
-                security_policy_uri,
+                security_policy_uri: Self::user_pass_security_policy_uri(endpoint),
             });
         }
         // X509 policy
@@ -162,6 +175,8 @@ impl ServerState {
                 security_policy_uri: UAString::null(),
             });
         }
+
+        // user_identity_tokens.iter().for_each(|t| debug!("  {:?}", t));
 
         // CreateSession doesn't need all the endpoint description
         // and docs say not to bother sending the server and server
@@ -365,13 +380,14 @@ impl ServerState {
         if !endpoint.supports_user_pass(&config.user_tokens) {
             error!("Endpoint doesn't support username password tokens");
             Err(StatusCode::BadIdentityTokenRejected)
-        } else if token.policy_id.as_ref() != POLICY_ID_USER_PASS {
+        } else if token.policy_id != Self::user_pass_security_policy_id(endpoint) {
             error!("Token doesn't possess the correct policy id");
             Err(StatusCode::BadIdentityTokenRejected)
         } else if token.user_name.is_null() {
             error!("User identify token supplies no user name");
             Err(StatusCode::BadIdentityTokenInvalid)
         } else {
+            debug!("policy id = {}, encryption algorithm = {}", token.policy_id.as_ref(), token.encryption_algorithm.as_ref());
             let token_password = if !token.encryption_algorithm.is_null() {
                 if let Some(ref server_key) = server_key {
                     user_identity::decrypt_user_identity_token_password(&token, server_nonce.as_ref(), server_key)?

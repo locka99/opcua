@@ -135,7 +135,6 @@ pub(crate) fn legacy_password_decrypt(secret: &ByteString, server_nonce: &[u8], 
         let actual_size = server_key.private_decrypt(&src, &mut dst, padding).map_err(|_| StatusCode::BadEncodingError)?;
 
         let mut dst = Cursor::new(dst);
-
         let plaintext_size = read_u32(&mut dst)? as usize;
         if plaintext_size + 4 != actual_size {
             Err(StatusCode::BadDecodingError)

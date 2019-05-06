@@ -232,20 +232,21 @@ impl ServerEndpoint {
         format!("{}{}", base_endpoint, self.path)
     }
 
+    /// Returns the effective password security policy for the endpoint. This is the explicitly set password
+    /// security policy, or just the regular security policy.
     pub fn password_security_policy(&self) -> SecurityPolicy {
+        let mut password_security_policy = self.security_policy();
         if let Some(ref security_policy) = self.password_security_policy {
-            if let Ok(security_policy) = SecurityPolicy::from_str(security_policy) {
-                if security_policy != SecurityPolicy::Unknown {
-                    security_policy
-                } else {
-                    SecurityPolicy::None
+            match SecurityPolicy::from_str(security_policy).unwrap() {
+                SecurityPolicy::Unknown => {
+                    panic!("Password security policy {} is unrecognized", security_policy);
                 }
-            } else {
-                SecurityPolicy::None
+                security_policy => {
+                    password_security_policy = security_policy;
+                }
             }
-        } else {
-            SecurityPolicy::None
         }
+        password_security_policy
     }
 
     /// Test if the endpoint supports anonymous users
