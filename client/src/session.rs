@@ -2226,7 +2226,7 @@ impl Session {
         let channel_security_policy = secure_channel.security_policy();
         let nonce = secure_channel.remote_nonce();
         let cert = secure_channel.remote_cert();
-        make_user_name_identity_token(channel_security_policy, user_token_policy, nonce, cert, user, pass)
+        make_user_name_identity_token(channel_security_policy, user_token_policy, nonce, &cert, user, pass)
     }
 
     /// Construct a request header for the session. All requests after create session are expected

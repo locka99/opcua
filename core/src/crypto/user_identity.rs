@@ -17,7 +17,7 @@ use opcua_types::service_types::{SignatureData, X509IdentityToken};
 use super::{KeySize, PrivateKey, RsaPadding, SecurityPolicy, X509};
 
 /// Create a filled in UserNameIdentityToken by using the supplied channel security policy, user token policy, nonce, cert, user name and password.
-pub fn make_user_name_identity_token(channel_security_policy: SecurityPolicy, user_token_policy: &UserTokenPolicy, nonce: &[u8], cert: Option<X509>, user: &str, pass: &str) -> Result<UserNameIdentityToken, StatusCode> {
+pub fn make_user_name_identity_token(channel_security_policy: SecurityPolicy, user_token_policy: &UserTokenPolicy, nonce: &[u8], cert: &Option<X509>, user: &str, pass: &str) -> Result<UserNameIdentityToken, StatusCode> {
     // Create a user token security policy by looking at the uri it wants to use
     let token_security_policy = if user_token_policy.security_policy_uri.is_empty() {
         SecurityPolicy::None
@@ -69,7 +69,7 @@ pub fn make_user_name_identity_token(channel_security_policy: SecurityPolicy, us
         }
         security_policy => {
             // Create a password which is encrypted using the secure channel info and the user token policy for the endpoint
-            let password = legacy_password_encrypt(pass, nonce, &cert.unwrap(), security_policy.padding())?;
+            let password = legacy_password_encrypt(pass, nonce, cert.as_ref().unwrap(), security_policy.padding())?;
             let encryption_algorithm = UAString::from(security_policy.asymmetric_encryption_algorithm());
             (password, encryption_algorithm)
         }
