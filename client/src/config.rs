@@ -35,6 +35,27 @@ impl ClientUserToken {
             private_key_path: None,
         }
     }
+
+    pub fn is_valid(&self) -> bool {
+        let mut valid = true;
+        if self.user.is_empty() {
+            error!("User name is empty");
+            valid = false;
+        }
+        if self.password.is_some() && (self.cert_path.is_some() || self.private_key_path.is_some()) {
+            error!("User {} has both a password and x509 cert info - it can't be both", self.user);
+            valid = false;
+        }
+        if self.password.is_none() && self.cert_path.is_none() && self.private_key_path.is_none() {
+            error!("User {} has no password or x509 cert into", self.user);
+            valid = false;
+        }
+        if (self.cert_path.is_some() && self.private_key_path.is_none()) || (self.cert_path.is_none() && self.private_key_path.is_some()) {
+            error!("User {} needs to specify a cert path and a private key path", self.user);
+            valid = false;
+        }
+        valid
+    }
 }
 
 /// Describes an endpoint, it's url security policy, mode and user token
@@ -126,6 +147,11 @@ impl Config for ClientConfig {
             error!("User tokens contains an endpoint with an empty id");
             valid = false;
         }
+        self.user_tokens.iter().for_each(|(_, token)| {
+            if !token.is_valid() {
+                valid = false;
+            }
+        });
         if self.endpoints.is_empty() {
             warn!("Endpoint config contains no endpoints");
         } else {
@@ -139,7 +165,7 @@ impl Config for ClientConfig {
                 valid = false;
             }
             // Check for invalid security policy and modes in endpoints
-            for (id, e) in &self.endpoints {
+            self.endpoints.iter().for_each(|(id, e)| {
                 if SecurityPolicy::from_str(&e.security_policy).unwrap() != SecurityPolicy::Unknown {
                     if MessageSecurityMode::Invalid == MessageSecurityMode::from(e.security_mode.as_ref()) {
                         error!("Endpoint {} security mode {} is invalid", id, e.security_mode);
@@ -149,7 +175,7 @@ impl Config for ClientConfig {
                     error!("Endpoint {} security policy {} is invalid", id, e.security_policy);
                     valid = false;
                 }
-            }
+            });
         }
         if self.session_retry_limit < 0 && self.session_retry_limit != -1 {
             error!("Session retry limit of {} is invalid - must be -1 (infinite), 0 (never) or a positive value", self.session_retry_limit);
