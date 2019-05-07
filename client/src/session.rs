@@ -947,7 +947,11 @@ impl Session {
     /// [`ActivateSessionRequest`]: ./struct.ActivateSessionRequest.html
     ///
     pub fn activate_session(&mut self) -> Result<(), StatusCode> {
-        let user_identity_token = self.user_identity_token()?;
+        let (user_identity_token, user_token_signature) = {
+            let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+            self.user_identity_token(&secure_channel.remote_cert(), secure_channel.remote_nonce())?
+        };
+
         let locale_ids = if self.session_info.preferred_locales.is_empty() {
             None
         } else {
@@ -961,27 +965,30 @@ impl Session {
             SecurityPolicy::None => SignatureData::null(),
             _ => {
                 let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
-                let server_nonce = secure_channel.remote_nonce_as_byte_string();
-                let server_cert = secure_channel.remote_cert_as_byte_string();
+                let server_cert = secure_channel.remote_cert();
+                let server_nonce = secure_channel.remote_nonce();
+
                 // Create a signature data
                 // let session_state = self.session_state.lock().unwrap();
                 if self.session_info.client_pkey.is_none() {
                     error!("Cannot create client signature - no pkey!");
                     return Err(StatusCode::BadUnexpectedError);
-                } else if server_cert.is_null() {
+                } else if server_cert.is_none() {
                     error!("Cannot sign server certificate because server cert is null");
                     return Err(StatusCode::BadUnexpectedError);
-                } else if server_nonce.is_null() {
-                    error!("Cannot sign server certificate because server nonce is null");
+                } else if server_nonce.is_empty() {
+                    error!("Cannot sign server certificate because server nonce is empty");
                     return Err(StatusCode::BadUnexpectedError);
                 }
+
+                let server_cert = secure_channel.remote_cert().as_ref().unwrap().as_byte_string();
+                let server_nonce = ByteString::from(secure_channel.remote_nonce());
                 let signing_key = self.session_info.client_pkey.as_ref().unwrap();
                 crypto::create_signature_data(signing_key, security_policy, &server_cert, &server_nonce)?
             }
         };
 
         let client_software_certificates = None;
-        let user_token_signature = SignatureData::null();
 
         let request = ActivateSessionRequest {
             request_header: self.make_request_header(),
@@ -2174,17 +2181,19 @@ impl Session {
         session_state.async_send_request(request, is_async)
     }
 
-    fn user_identity_token(&self) -> Result<ExtensionObject, StatusCode> {
-        let user_token_type = match self.session_info.user_identity_token {
-            client::IdentityToken::Anonymous => {
+    // Creates a user identity token according to the endpoint, policy that the client is currently connected to the
+    // server with.
+    fn user_identity_token(&self, server_cert: &Option<X509>, server_nonce: &[u8]) -> Result<(ExtensionObject, SignatureData), StatusCode> {
+        let user_identity_token = &self.session_info.user_identity_token;
+        let user_token_type = match user_identity_token {
+            &client::IdentityToken::Anonymous => {
                 UserTokenType::Anonymous
             }
-            client::IdentityToken::UserName(_, _) => {
+            &client::IdentityToken::UserName(_, _) => {
                 UserTokenType::Username
             }
-            client::IdentityToken::X509(_, _) => {
-                // TODO
-                panic!();
+            &client::IdentityToken::X509(_, _) => {
+                UserTokenType::Certificate
             }
         };
 
@@ -2198,27 +2207,58 @@ impl Session {
                 Err(StatusCode::BadSecurityPolicyRejected)
             }
             Some(policy) => {
-                match self.session_info.user_identity_token {
-                    client::IdentityToken::Anonymous => {
-                        let token = AnonymousIdentityToken {
-                            policy_id: policy.policy_id.clone(),
-                        };
-                        Ok(ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary, &token))
-                    }
-                    client::IdentityToken::UserName(ref user, ref pass) => {
-                        let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
-                        let token = self.make_user_name_identity_token(&secure_channel, policy, user, pass)?;
-                        Ok(ExtensionObject::from_encodable(ObjectId::UserNameIdentityToken_Encoding_DefaultBinary, &token))
-                    }
-                    client::IdentityToken::X509(_, _) => {
-                        // TODO
-                        unimplemented!();
+                let security_policy = SecurityPolicy::from_uri(policy.security_policy_uri.as_ref());
+                if security_policy == SecurityPolicy::Unknown {
+                    error!("Can't support the security policy {}", policy.security_policy_uri);
+                    Err(StatusCode::BadSecurityPolicyRejected)
+                } else {
+                    match user_identity_token {
+                        &client::IdentityToken::Anonymous => {
+                            let identity_token = AnonymousIdentityToken {
+                                policy_id: policy.policy_id.clone(),
+                            };
+                            let identity_token = ExtensionObject::from_encodable(ObjectId::AnonymousIdentityToken_Encoding_DefaultBinary, &identity_token);
+                            Ok((identity_token, SignatureData::null()))
+                        }
+                        &client::IdentityToken::UserName(ref user, ref pass) => {
+                            let secure_channel = trace_read_lock_unwrap!(self.secure_channel);
+                            let identity_token = self.make_user_name_identity_token(&secure_channel, policy, user, pass)?;
+                            let identity_token = ExtensionObject::from_encodable(ObjectId::UserNameIdentityToken_Encoding_DefaultBinary, &identity_token);
+                            Ok((identity_token, SignatureData::null()))
+                        }
+                        &client::IdentityToken::X509(ref cert_path, ref private_key_path) => {
+                            if let Some(ref server_cert) = server_cert {
+                                // The cert will be supplied to the server along with a signature to prove we have the private key to go with the cert
+                                let certificate_data = CertificateStore::read_cert(cert_path).map_err(|e| {
+                                    error!("Certificate cannot be loaded from path {}, error = {}", cert_path.to_str().unwrap(), e);
+                                    StatusCode::BadSecurityPolicyRejected
+                                })?;
+                                let private_key = CertificateStore::read_pkey(private_key_path).map_err(|e| {
+                                    error!("Private key cannot be loaded from path {}, error = {}", private_key_path.to_str().unwrap(), e);
+                                    StatusCode::BadSecurityPolicyRejected
+                                })?;
+
+                                // Create a signature using the X509 private key to sign the server's cert and nonce
+                                let user_token_signature = crypto::create_signature_data(&private_key, security_policy, &server_cert.as_byte_string(), &ByteString::from(server_nonce))?;
+
+                                // Create identity token
+                                let identity_token = X509IdentityToken {
+                                    policy_id: policy.policy_id.clone(),
+                                    certificate_data: certificate_data.as_byte_string(),
+                                };
+                                let identity_token = ExtensionObject::from_encodable(ObjectId::X509IdentityToken_Encoding_DefaultBinary, &identity_token);
+
+                                Ok((identity_token, user_token_signature))
+                            } else {
+                                error!("Cannot create an X509IdentityToken because the remote server has no cert with which to create a signature");
+                                Err(StatusCode::BadCertificateInvalid)
+                            }
+                        }
                     }
                 }
             }
         }
     }
-
 
     /// Create a filled in UserNameIdentityToken by using the endpoint's token policy, the current
     /// secure channel information and the user name and password.

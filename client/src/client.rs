@@ -27,7 +27,7 @@ use crate::{
     session_retry::SessionRetryPolicy,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum IdentityToken {
     /// Anonymous identity token
     Anonymous,

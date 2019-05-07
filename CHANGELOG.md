@@ -11,11 +11,11 @@ Planned future work is listed at the bottom.
   - Address space nodes have been made more memory efficient, saving about 3MB of runtime space with
     the standard node set.
   - Client and server side support for encrypted passwords in user name identity tokens.
+  - Client and server side support for X509 identity tokens.
   - TODO address space. Add a create on demand callback
   - TODO gen_types.js. Refactor so it could be used to generate code for any model
   - TODO support events 
   - TODO More control over limits on the server - number of subscriptions, monitored items, sessions
-  - TODO X509IdentityToken support 
   - TODO Integration tests are broken and need to be fixed.
   - TODO Multiple chunk support in client and server, sending and receiving
   - TODO Session restore after disconnect in server. The server has to stash sessions that were 
