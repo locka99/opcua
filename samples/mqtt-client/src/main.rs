@@ -81,10 +81,9 @@ fn main() {
     let mut client = Client::new(ClientConfig::load(&PathBuf::from(config_file)).unwrap());
     let endpoint_id: Option<&str> = if !endpoint_id.is_empty() { Some(&endpoint_id) } else { None };
     if let Ok(session) = client.connect_to_endpoint_id(endpoint_id) {
-        let result = subscription_loop(session, tx);
-        if let Err(result) = result {
-            println!("ERROR: Got an error while performing action - {}", result);
-        }
+        let _ = subscription_loop(session, tx).map_err(|err| {
+            println!("ERROR: Got an error while performing action - {}", err);
+        });
     }
 }
 
