@@ -172,7 +172,7 @@ impl TcpTransport {
 
     /// This is the entry point for the session. This function is asynchronous - it spawns tokio
     /// tasks to handle the session execution loop so this function will returns immediately.
-    pub fn run(connection: Arc<RwLock<TcpTransport>>, socket: TcpStream) {
+    pub fn run(connection: Arc<RwLock<TcpTransport>>, socket: TcpStream, looping_interval_ms: f64) {
         // Store the address of the client
         {
             let mut connection = trace_write_lock_unwrap!(connection);
@@ -180,7 +180,7 @@ impl TcpTransport {
             connection.transport_state = TransportState::WaitingHello;
         }
         // Spawn the tasks we need to run
-        Self::spawn_looping_task(connection, socket);
+        Self::spawn_looping_task(connection, socket, looping_interval_ms);
     }
 
     fn write_bytes_task(connection: Arc<Mutex<WriteState>>) -> impl Future<Item=Arc<Mutex<WriteState>>, Error=Arc<Mutex<WriteState>>> {
@@ -211,7 +211,7 @@ impl TcpTransport {
         })
     }
 
-    fn spawn_looping_task(transport: Arc<RwLock<TcpTransport>>, socket: TcpStream) {
+    fn spawn_looping_task(transport: Arc<RwLock<TcpTransport>>, socket: TcpStream, looping_interval_ms: f64) {
         let session_start_time = Utc::now();
         info!("Session started {}", session_start_time);
 
@@ -235,7 +235,7 @@ impl TcpTransport {
 
         // Spawn all the tasks that monitor the session - the subscriptions, finished state,
         // reading and writing.
-        Self::spawn_subscriptions_task(transport.clone(), tx.clone());
+        Self::spawn_subscriptions_task(transport.clone(), tx.clone(), looping_interval_ms);
         Self::spawn_finished_monitor_task(transport.clone(), finished_flag.clone());
         Self::spawn_reading_loop_task(reader, finished_flag.clone(), tx, transport.clone(), receive_buffer_size);
         Self::spawn_writing_loop_task(writer, rx, secure_channel.clone(), transport.clone(), send_buffer);
@@ -582,7 +582,7 @@ impl TcpTransport {
     }
 
     /// Start the subscription timer to service subscriptions
-    fn spawn_subscriptions_task(transport: Arc<RwLock<TcpTransport>>, sender: UnboundedSender<(u32, SupportedMessage)>) {
+    fn spawn_subscriptions_task(transport: Arc<RwLock<TcpTransport>>, sender: UnboundedSender<(u32, SupportedMessage)>, looping_interval_ms: f64) {
         /// Subscription events are passed sent from the monitor task to the receiver
         #[derive(Clone, Debug)]
         enum SubscriptionEvent {
@@ -613,7 +613,7 @@ impl TcpTransport {
             let transport_for_take_while = state.transport.clone();
 
             // Creates a repeating interval future that checks subscriptions.
-            let interval_duration = Duration::from_millis(constants::SUBSCRIPTION_TIMER_RATE_MS);
+            let interval_duration = Duration::from_millis(looping_interval_ms as u64);
             let task = Interval::new(Instant::now(), interval_duration)
                 .take_while(move |_| {
                     connection_finished_test!("subscriptions_task.take_while", transport_for_take_while)

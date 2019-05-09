@@ -147,9 +147,9 @@ impl SessionState {
         self.subscription_acknowledgements.push(subscription_acknowledgement);
     }
 
-    pub fn authentication_token(&self) -> &NodeId {
-        &self.authentication_token
-    }
+    //pub fn authentication_token(&self) -> &NodeId {
+    //    &self.authentication_tokenPOL
+    //}
 
     pub fn set_authentication_token(&mut self, authentication_token: NodeId) {
         self.authentication_token = authentication_token;

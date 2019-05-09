@@ -513,7 +513,12 @@ impl Server {
             connections.push(connection.clone());
         }
 
+        let min_publishing_interval = {
+            let server_state = trace_read_lock_unwrap!(self.server_state);
+            server_state.min_publishing_interval
+        };
+
         // Run adds a session task to the tokio session
-        TcpTransport::run(connection, socket);
+        TcpTransport::run(connection, socket, min_publishing_interval);
     }
 }
