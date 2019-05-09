@@ -8,7 +8,7 @@ use opcua_types::ByteString;
 pub struct Thumbprint {
     /// Thumbprint is relatively small and fixed size, so use array to hold value instead of a vec
     /// just to save heap
-    pub value: [u8; Thumbprint::THUMBPRINT_SIZE],
+    value: [u8; Thumbprint::THUMBPRINT_SIZE],
 }
 
 impl Into<ByteString> for Thumbprint {
@@ -41,5 +41,10 @@ impl Thumbprint {
             hex_string.push_str(&format!("{:02x}", b))
         }
         hex_string
+    }
+
+    /// Returns the thumbprint
+    pub fn value(&self) -> &[u8] {
+        &self.value[..]
     }
 }

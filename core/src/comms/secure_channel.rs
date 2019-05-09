@@ -759,7 +759,7 @@ impl SecureChannel {
 
         let our_cert = self.cert.as_ref().unwrap();
         let our_thumbprint = our_cert.thumbprint();
-        if &our_thumbprint.value[..] != receiver_thumbprint.as_ref() {
+        if our_thumbprint.value() != receiver_thumbprint.as_ref() {
             error!("Supplied thumbprint does not match application certificate's thumbprint");
             Err(StatusCode::BadNoValidCertificates)
         } else {
