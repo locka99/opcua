@@ -270,7 +270,7 @@ impl ServerEndpoint {
     }
 
     /// Tests if this endpoint supports x509 tokens.  It does this by looking to see
-    //    /// if any of the users allowed to access this endpoint are x509 users.
+    /// if any of the users allowed to access this endpoint are x509 users.
     pub fn supports_x509(&self, server_tokens: &BTreeMap<String, ServerUserToken>) -> bool {
         for user_token_id in &self.user_token_ids {
             if user_token_id != ANONYMOUS_USER_TOKEN_ID {
@@ -328,6 +328,10 @@ pub struct ServerConfig {
     /// set. This is a very broad flag and is likely to require more fine grained per user control
     /// in a later revision. By default, this value is `false`
     pub clients_can_modify_address_space: bool,
+    /// Specifies the minimum sampling interval for this server in seconds.
+    pub min_sampling_interval: f64,
+    /// Specifies the minimum publishing interval for this server in seconds.
+    pub min_publishing_interval: f64,
 }
 
 impl Config for ServerConfig {
@@ -397,6 +401,8 @@ impl Default for ServerConfig {
             max_byte_string_length: opcua_types_constants::MAX_BYTE_STRING_LENGTH as u32,
             max_subscriptions: constants::DEFAULT_MAX_SUBSCRIPTIONS,
             clients_can_modify_address_space: false,
+            min_sampling_interval: constants::MIN_SAMPLING_INTERVAL,
+            min_publishing_interval: constants::MIN_PUBLISHING_INTERVAL,
         }
     }
 }
@@ -434,6 +440,8 @@ impl ServerConfig {
             max_byte_string_length: opcua_types_constants::MAX_BYTE_STRING_LENGTH as u32,
             max_subscriptions: constants::DEFAULT_MAX_SUBSCRIPTIONS,
             clients_can_modify_address_space: false,
+            min_sampling_interval: constants::MIN_SAMPLING_INTERVAL,
+            min_publishing_interval: constants::MIN_PUBLISHING_INTERVAL,
         }
     }
 

@@ -91,6 +91,9 @@ impl Server {
         let base_endpoint = format!("opc.tcp://{}:{}", config.tcp_config.host, config.tcp_config.port);
         let max_subscriptions = config.max_subscriptions as usize;
         let diagnostics = Arc::new(RwLock::new(ServerDiagnostics::default()));
+        let min_publishing_interval_ms = config.min_publishing_interval * 1000.0;
+        let min_sampling_interval_ms = config.min_sampling_interval * 1000.0;
+
         // TODO max string, byte string and array lengths
 
         // Security, pki auto create cert
@@ -129,7 +132,8 @@ impl Server {
             server_pkey,
             last_subscription_id: 0,
             max_subscriptions,
-            min_publishing_interval: constants::MIN_PUBLISHING_INTERVAL,
+            min_publishing_interval_ms,
+            min_sampling_interval_ms,
             default_keep_alive_count: constants::DEFAULT_KEEP_ALIVE_COUNT,
             max_keep_alive_count: constants::MAX_KEEP_ALIVE_COUNT,
             max_lifetime_count: constants::MAX_KEEP_ALIVE_COUNT * 3,
@@ -513,12 +517,14 @@ impl Server {
             connections.push(connection.clone());
         }
 
-        let min_publishing_interval = {
+        // Looping interval has to cope with whatever sampling rate server needs
+        let looping_interval_ms = {
             let server_state = trace_read_lock_unwrap!(self.server_state);
-            server_state.min_publishing_interval
+            // Get the minimum interval in ms
+            f64::min(server_state.min_publishing_interval_ms, server_state.min_sampling_interval_ms)
         };
 
         // Run adds a session task to the tokio session
-        TcpTransport::run(connection, socket, min_publishing_interval);
+        TcpTransport::run(connection, socket, looping_interval_ms);
     }
 }

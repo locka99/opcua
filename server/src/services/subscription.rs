@@ -216,11 +216,7 @@ impl SubscriptionService {
     /// This function takes the requested values passed in a create / modify and returns revised
     /// values that conform to the server's limits. For simplicity the return type is a tuple
     fn revise_subscription_values(server_state: &ServerState, requested_publishing_interval: Duration, requested_max_keep_alive_count: u32, requested_lifetime_count: u32) -> (Duration, u32, u32) {
-        let revised_publishing_interval = if requested_publishing_interval < server_state.min_publishing_interval {
-            server_state.min_publishing_interval
-        } else {
-            requested_publishing_interval
-        };
+        let revised_publishing_interval = f64::max(requested_publishing_interval, server_state.min_publishing_interval_ms);
         let revised_max_keep_alive_count = if requested_max_keep_alive_count > server_state.max_keep_alive_count {
             server_state.max_keep_alive_count
         } else if requested_max_keep_alive_count == 0 {

@@ -55,7 +55,9 @@ pub struct ServerState {
     /// Maximum number of subscriptions per session, 0 means no limit (danger)
     pub max_subscriptions: usize,
     /// Minimum publishing interval (in millis)
-    pub min_publishing_interval: Duration,
+    pub min_publishing_interval_ms: Duration,
+    /// Minimum sampling interval (in millis)
+    pub min_sampling_interval_ms: Duration,
     /// Default keep alive count
     pub default_keep_alive_count: u32,
     /// Maxmimum keep alive count
