@@ -181,14 +181,15 @@ let session = session.write().unwrap();
 
 ``` 
 
-#### Thread safety
+#### Avoiding deadlock
 
-Asynchronous callbacks will happen on different threads from your synchronous calls. Since this is Rust you don't have
-to care a great deal about this detail, but if you're wondering why certain objects are enclosed by `Arc<RwLock<>>` 
-or `Arc<Mutex<RwLock>>` then it is to allow multiple threads access to those objects.
+The client exposes the session as a `Arc<RwLock<Session>>`. that is to say you must obtain a 
+lock to call it and you are expected to release the lock when you are done.
 
-It is never a good idea to have any OPC UA object locked when you call the client API. This is most important to 
-remember when you enter the session run loop.
+You MUST release any lock before invoking `Session::run(session)` or the client will deadlock - the
+run loop will be waiting for the lock that will never release.
+
+Therefore avoid this code:
 
 ```rust
 let s = session.write().unwrap();
@@ -197,7 +198,7 @@ let s = session.write().unwrap();
 let _ = Session::run(session);
 ```
 
-Instead you need to scope limit your actions to release the lock:
+Use a scope or a function to release the lock before you hit `Session::run(session):
 
 ```rust
 {
@@ -206,7 +207,6 @@ Instead you need to scope limit your actions to release the lock:
 }
 let _ = Session::run(session);
 ```
-
 
 ## Calling the server
 
