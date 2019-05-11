@@ -116,7 +116,8 @@ pub(crate) fn legacy_password_encrypt(password: &str, server_nonce: &[u8], serve
 
     let cipher_size = public_key.calculate_cipher_text_size(plaintext_size, padding);
     let mut dst = vec![0u8; cipher_size];
-    let actual_size = public_key.public_encrypt(&src.into_inner(), &mut dst, padding).map_err(|_| StatusCode::BadEncodingError)?;
+    let actual_size = public_key.public_encrypt(&src.into_inner(), &mut dst, padding)
+        .map_err(|_| StatusCode::BadEncodingError)?;
 
     assert_eq!(actual_size, cipher_size);
 
@@ -132,7 +133,8 @@ pub(crate) fn legacy_password_decrypt(secret: &ByteString, server_nonce: &[u8], 
         // Decrypt the message
         let src = secret.value.as_ref().unwrap();
         let mut dst = vec![0u8; src.len()];
-        let actual_size = server_key.private_decrypt(&src, &mut dst, padding).map_err(|_| StatusCode::BadEncodingError)?;
+        let actual_size = server_key.private_decrypt(&src, &mut dst, padding)
+            .map_err(|_| StatusCode::BadEncodingError)?;
 
         let mut dst = Cursor::new(dst);
         let plaintext_size = read_u32(&mut dst)? as usize;
