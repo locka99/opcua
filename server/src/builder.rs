@@ -26,6 +26,11 @@ impl ServerBuilder {
         }
     }
 
+    /// Reads the config in as a starting point
+    pub fn from_config(config: ServerConfig) -> ServerBuilder {
+        ServerBuilder { config }
+    }
+
     /// Creates a simple endpoint that accepts anonymous connections
     pub fn new_anonymous<T>(application_name: T) -> Self where T: Into<String> {
         let user_token_ids = vec![ANONYMOUS_USER_TOKEN_ID.to_string()];
