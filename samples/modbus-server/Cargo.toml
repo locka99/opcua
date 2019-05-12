@@ -1,0 +1,19 @@
+[package]
+name = "opcua-modbus-server"
+version = "0.7.0" # OPCUARustVersion
+authors = ["Adam Lock <locka99@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+clap = "2.33"
+tokio-core = "0.1"
+tokio-modbus = { version = "*", default-features = false, features = ["tcp"] }
+futures = "0.1"
+
+[dependencies.opcua-server]
+path = "../../server"
+version = "0.7.0" # OPCUARustVersion
+
+[dependencies.opcua-console-logging]
+path = "../../console-logging"
+version = "0.7.0" # OPCUARustVersion

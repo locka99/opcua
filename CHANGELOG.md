@@ -12,6 +12,7 @@ Planned future work is listed at the bottom.
     the standard node set.
   - Client and server side support for encrypted passwords in user name identity tokens.
   - Client and server side support for X509 identity tokens.
+  - TODO modbus-server sample server which polls modbus for a value
   - TODO address space. Add a create on demand callback
   - TODO gen_types.js. Refactor so it could be used to generate code for any model
   - TODO support events 

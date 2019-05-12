@@ -19,6 +19,7 @@ members = [
     "samples/gfx-client",
     "samples/simple-server",
     "samples/chess-server",
+    "samples/modbus-server",
     "samples/discovery-client",
     "samples/web-client",
     "tools/certificate-creator"
