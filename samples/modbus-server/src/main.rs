@@ -1,82 +1,109 @@
-//! This is a OPC UA server that exposes a MODBUS
-use std::sync::mpsc;
-use std::sync::{Arc, Mutex};
+//! This is a OPC UA server that is a MODBUS master (i.e. the thing requesting information)
+//! from a defined slave.
+//!
+//! To make things easy, this code works
+use std::sync::{Arc, RwLock, Mutex};
+use std::time::{Instant, Duration};
+use std::thread;
 
-struct ModBusEvent {}
+use futures::{Future, stream::Stream};
+use tokio_core::reactor::Core;
+use tokio_modbus::{
+    prelude::*,
+    client,
+};
+use tokio_timer::Interval;
+
+use opcua_server::prelude::*;
+
+const SLAVE_ADDRESS: &str = "127.0.0.1:502";
+
+/// The address offset for the input registers we want to fetch
+const INPUT_REGISTERS_ADDRESS: u16 = 0x0000;
+/// The quantity of registers to fetch
+const INPUT_REGISTERS_QUANTITY: usize = 9;
 
 fn main() {
-
-    // Modbus is going to pump events for OPC UA to consume so we'll create a pipe for that
-
-    let (tx, rx) = mpsc::channel();
-
-    run_modbus(tx);
-    run_opcua_server(rx);
+    let input_registers = Arc::new(RwLock::new(vec![0u16; INPUT_REGISTERS_QUANTITY]));
+    run_modbus(input_registers.clone());
+    run_opcua_server(input_registers);
 }
 
-fn run_modbus(tx: mpsc::Sender<ModBusEvent>) {
-    use futures::Future;
-    use tokio_core::reactor::Core;
-    use tokio_modbus::prelude::*;
-
-    let mut core = Core::new().unwrap();
-    let handle = core.handle();
-    /*
-        let socket_addr = "192.168.0.222:502".parse().unwrap();
-        let task = tcp::connect(&handle, socket_addr)
-            .for_each(move |ctx| {
-                println!("Fetching the coupler ID");
-                ctx.read_input_registers(0x1000, 7).and_then(move |data| {
-                    let bytes: Vec<u8> = data.iter().fold(vec![], |mut x, elem| {
-                        x.push((elem & 0xff) as u8);
-                        x.push((elem >> 8) as u8);
-                        x
-                    });
-                    let id = String::from_utf8(bytes).unwrap();
-                    println!("The coupler ID is '{}'", id);
-                    let e = ModBusEvent {};
-                    tx.send(e);
+fn read_timer(ctx: client::Context, values: Arc<RwLock<Vec<u16>>>) -> impl Future {
+    Interval::new(Instant::now(), Duration::from_millis(1000))
+        .for_each(move |_| {
+            println!("Fetching the input registers");
+            let values = values.clone();
+            ctx.read_input_registers(INPUT_REGISTERS_ADDRESS, INPUT_REGISTERS_QUANTITY as u16)
+                .and_then(move |mut words| {
+                    let mut values = values.write().unwrap();
+                    values.clear();
+                    words.drain(..).for_each(|i| values.push(i));
                     Ok(())
-                })
-            });
-        core.run(task).unwrap();
-        */
+                });
+            Ok(())
+        })
 }
 
-fn run_opcua_server(rx: mpsc::Receiver<ModBusEvent>) {
-    use opcua_server::prelude::*;
-    use std::path::PathBuf;
-    use std::thread;
-
+fn run_modbus(values: Arc<RwLock<Vec<u16>>>) {
     thread::spawn(|| {
-        let config = ServerConfig::load(&PathBuf::from("../server.conf")).unwrap();
-        let mut server = ServerBuilder::from_config(config)
-            .server().unwrap();
+        let mut core = Core::new().unwrap();
+        let handle = core.handle();
+        let socket_addr = SLAVE_ADDRESS.parse().unwrap();
+        let task = tcp::connect(&handle, socket_addr)
+            .map(move |ctx| {
+                read_timer(ctx, values.clone())
+            });
 
-        let address_space = server.address_space();
-
-        {
-            let mut address_space = address_space.write().unwrap();
-
-            let coupler_id = NodeId::new(2, "coupler");
-
-            // Create a sample folder under objects folder
-            let modbus_folder_id = address_space
-                .add_folder("MODBUS", "MODBUS", &AddressSpace::objects_folder_id())
-                .unwrap();
-
-            let _ = address_space.add_variables(
-                vec![Variable::new(&coupler_id, "Coupler", "Coupler", 0 as i32)],
-                &modbus_folder_id);
-
-            if let Some(ref mut v) = address_space.find_variable_mut(coupler_id.clone()) {
-                // Register a pull handler
-                let getter = AttrFnGetter::new(move |_, _, _| -> Result<Option<DataValue>, StatusCode> {
-                    Ok(Some(DataValue::new(1)))
-                });
-                v.set_value_getter(Arc::new(Mutex::new(getter)));
-            }
-        }
-        server.run();
+        core.run(task).unwrap();
+        println!("MODBUS thread has finished");
     });
+}
+
+fn input_register_name(index: usize) -> String {
+    format!("Input Register {}", index)
+}
+
+fn input_register_node_id(index: usize) -> NodeId {
+    NodeId::from((2, input_register_name(index).as_ref()))
+}
+
+fn run_opcua_server(values: Arc<RwLock<Vec<u16>>>) {
+    use std::path::PathBuf;
+
+    let config = ServerConfig::load(&PathBuf::from("../server.conf")).unwrap();
+    let server = ServerBuilder::from_config(config)
+        .server().unwrap();
+
+    let address_space = server.address_space();
+
+    {
+        let mut address_space = address_space.write().unwrap();
+
+        // Create a folder under objects folder
+        let modbus_folder_id = address_space
+            .add_folder("MODBUS", "MODBUS", &AddressSpace::objects_folder_id())
+            .unwrap();
+
+        // Add variables to the folder
+        let variables = (0..INPUT_REGISTERS_QUANTITY).map(|i| {
+            let name = input_register_name(i);
+            Variable::new(&input_register_node_id(i), name.as_ref(), name.as_ref(), 0 as u16)
+        }).collect();
+        let _ = address_space.add_variables(variables, &modbus_folder_id);
+
+        // Register a getter for each variable
+        (0..INPUT_REGISTERS_QUANTITY).for_each(|i| {
+            let v = address_space.find_variable_mut(input_register_node_id(i)).unwrap();
+            let values = values.clone();
+            let getter = AttrFnGetter::new(move |_, _, _| -> Result<Option<DataValue>, StatusCode> {
+                let values = values.read().unwrap();
+                let value = *values.get(i).unwrap();
+                Ok(Some(DataValue::new(value)))
+            });
+            v.set_value_getter(Arc::new(Mutex::new(getter)));
+        });
+    }
+
+    server.run();
 }
