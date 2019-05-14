@@ -76,6 +76,9 @@ fn user_name_pass_token() {
 
     let server_nonce = ByteString::random(20);
 
+    let server_cert = server_state.server_certificate.clone();
+    assert!(server_cert.is_some());
+
     let request = dummy_activate_session_request();
 
     // Test that a good user authenticates in unencrypt and encrypted policies
@@ -83,7 +86,6 @@ fn user_name_pass_token() {
     let result = server_state.authenticate_endpoint(&request, "opc.tcp://localhost:4855/", SecurityPolicy::None, MessageSecurityMode::None, &token, &server_nonce);
     assert!(result.is_ok());
 
-    let server_cert = server_state.server_certificate.clone();
     let token = make_encrypted_user_name_identity_token(POLICY_ID_USER_PASS_RSA_15, SecurityPolicy::Basic128Rsa15, &server_nonce, &server_cert, "sample", "sample1");
     let result = server_state.authenticate_endpoint(&request, "opc.tcp://localhost:4855/", SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt, &token, &server_nonce);
     assert!(result.is_ok());

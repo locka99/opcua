@@ -43,7 +43,8 @@ let basic_types_import_map = {
     "status_codes": ["StatusCode"]
 };
 
-let serde_supported_types = ["ReadValueId", "DataChangeFilter", "MonitoredItemNotification", "ServerDiagnosticsSummaryDataType"];
+let serde_supported_types = ["ReadValueId", "DataChangeFilter", "EventFilter", "SimpleAttributeOperand", "ContentFilter",
+    "ContentFilterElement", "MonitoredItemNotification", "ServerDiagnosticsSummaryDataType"];
 
 // Contains a flattened reverse lookup of the import map
 let basic_types_reverse_import_map = {};

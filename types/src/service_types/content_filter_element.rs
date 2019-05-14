@@ -13,7 +13,7 @@ use crate::{
     extension_object::ExtensionObject,
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ContentFilterElement {
     pub filter_operator: FilterOperator,
     pub filter_operands: Option<Vec<ExtensionObject>>,

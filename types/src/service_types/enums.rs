@@ -197,7 +197,7 @@ impl BinaryEncoder<DataChangeTrigger> for DataChangeTrigger {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Serialize)]
 pub enum FilterOperator {
     Equals = 0,
     IsNull = 1,

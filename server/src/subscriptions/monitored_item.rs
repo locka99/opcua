@@ -6,7 +6,8 @@ use opcua_types::{
     status_code::StatusCode,
     node_ids::ObjectId,
     service_types::{
-        TimestampsToReturn, DataChangeFilter, ReadValueId, MonitoredItemCreateRequest, MonitoredItemModifyRequest, MonitoredItemNotification,
+        TimestampsToReturn, DataChangeFilter, EventFilter, ReadValueId,
+        MonitoredItemCreateRequest, MonitoredItemModifyRequest, MonitoredItemNotification,
     },
 };
 
@@ -16,6 +17,7 @@ use crate::{constants, address_space::AddressSpace};
 pub(crate) enum FilterType {
     None,
     DataChangeFilter(DataChangeFilter),
+    EventFilter(EventFilter),
 }
 
 impl FilterType {
@@ -25,11 +27,23 @@ impl FilterType {
         if filter_type_id.is_null() {
             // No data filter was passed, so just a dumb value comparison
             Ok(FilterType::None)
-        } else if filter_type_id == &ObjectId::DataChangeFilter_Encoding_DefaultBinary.into() {
-            let decoding_limits = DecodingLimits::minimal();
-            Ok(FilterType::DataChangeFilter(filter.decode_inner::<DataChangeFilter>(&decoding_limits)?))
+        } else if let Ok(filter_type_id) = filter_type_id.as_object_id() {
+            match filter_type_id {
+                ObjectId::DataChangeFilter_Encoding_DefaultBinary => {
+                    let decoding_limits = DecodingLimits::minimal();
+                    Ok(FilterType::DataChangeFilter(filter.decode_inner::<DataChangeFilter>(&decoding_limits)?))
+                }
+                ObjectId::EventFilter_Encoding_DefaultBinary => {
+                    let decoding_limits = DecodingLimits::default();
+                    Ok(FilterType::EventFilter(filter.decode_inner::<EventFilter>(&decoding_limits)?))
+                }
+                _ => {
+                    error!("Requested data filter type is not supported, {:?}", filter_type_id);
+                    Err(StatusCode::BadFilterNotAllowed)
+                }
+            }
         } else {
-            error!("Requested data filter type is not supported, {:?}", filter_type_id);
+            error!("Requested data filter type is not an object id, {:?}", filter_type_id);
             Err(StatusCode::BadFilterNotAllowed)
         }
     }
@@ -208,6 +222,8 @@ impl MonitoredItem {
                     if let FilterType::DataChangeFilter(ref filter) = self.filter {
                         !filter.compare(&data_value, last_data_value, None)
                     } else {
+                        // TODO EventFilter
+
                         data_value.value != last_data_value.value
                     }
                 } else {
