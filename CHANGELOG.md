@@ -12,11 +12,11 @@ Planned future work is listed at the bottom.
     the standard node set.
   - Client and server side support for encrypted passwords in user name identity tokens.
   - Client and server side support for X509 identity tokens.
-  - TODO modbus-server sample server which polls modbus for a value
+  - New `modbus-server` sample server which connects to a MODBUS device and presents values in OPC
   - TODO address space. Add a create on demand callback
   - TODO gen_types.js. Refactor so it could be used to generate code for any model
   - TODO support events 
-  - TODO More control over limits on the server - number of subscriptions, monitored items, sessions
+  - TODO More control over limits on the server - number of subscriptions, monitored items, sessions, min publishing interval
   - TODO Integration tests are broken and need to be fixed.
   - TODO Multiple chunk support in client and server, sending and receiving
   - TODO Session restore after disconnect in server. The server has to stash sessions that were 
