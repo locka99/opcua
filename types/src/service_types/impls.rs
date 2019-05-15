@@ -15,8 +15,8 @@ use crate::{
     diagnostic_info::{DiagnosticBits, DiagnosticInfo},
     profiles,
     service_types::{
-        AnonymousIdentityToken, ApplicationType, DataChangeFilter, DataChangeTrigger, EventFilter, EventFilterResult,
-        ContentFilterResult, EndpointDescription, ReadValueId, ServiceFault, SignatureData, UserNameIdentityToken, UserTokenType,
+        AnonymousIdentityToken, ApplicationType, DataChangeFilter, DataChangeTrigger,
+        EndpointDescription, ReadValueId, ServiceFault, SignatureData, UserNameIdentityToken, UserTokenType,
         MonitoredItemCreateRequest, MonitoringParameters, CallMethodRequest, ServerDiagnosticsSummaryDataType,
         ApplicationDescription, UserTokenPolicy,
     },
@@ -275,25 +275,6 @@ impl UserTokenPolicy {
             issued_token_type: UAString::null(),
             issuer_endpoint_url: UAString::null(),
             security_policy_uri: UAString::null(),
-        }
-    }
-}
-
-impl EventFilter {
-    pub fn validate(&self) -> EventFilterResult {
-        let select_clause_results = if let Some(ref select_clauses) = self.select_clauses {
-            Some(select_clauses.iter().map(|clause| StatusCode::BadNodeIdUnknown).collect())
-        } else {
-            None
-        };
-        // TODO
-        EventFilterResult {
-            select_clause_results,
-            select_clause_diagnostic_infos: None,
-            where_clause_result: ContentFilterResult {
-                element_results: None,
-                element_diagnostic_infos: None,
-            },
         }
     }
 }
