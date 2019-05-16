@@ -12,7 +12,7 @@ use opcua_types::{
 
 use crate::address_space::address_space::AddressSpace;
 
-enum Operand {
+pub enum Operand {
     ElementOperand(ElementOperand),
     LiteralOperand(LiteralOperand),
     AttributeOperand(AttributeOperand),
@@ -53,39 +53,24 @@ impl Operand {
     }
 
     pub fn is_element(&self) -> bool {
-        if let Operand::ElementOperand(_) = self {
-            true
-        } else {
-            false
-        }
+        self.operand_type() == OperandType::ElementOperand
     }
 
     pub fn is_literal(&self) -> bool {
-        if let Operand::LiteralOperand(_) = self {
-            true
-        } else {
-            false
-        }
+        self.operand_type() == OperandType::LiteralOperand
     }
 
     pub fn is_attribute(&self) -> bool {
-        if let Operand::AttributeOperand(_) = self {
-            true
-        } else {
-            false
-        }
+        self.operand_type() == OperandType::AttributeOperand
     }
 
     pub fn is_simple_attribute(&self) -> bool {
-        if let Operand::SimpleAttributeOperand(_) = self {
-            true
-        } else {
-            false
-        }
+        self.operand_type() == OperandType::SimpleAttributeOperand
     }
 }
 
-enum OperandType {
+#[derive(PartialEq)]
+pub enum OperandType {
     ElementOperand,
     LiteralOperand,
     AttributeOperand,
@@ -133,12 +118,14 @@ fn validate_where_class(where_clause: &ContentFilter, address_space: &AddressSpa
 
     let element_results = if let Some(ref elements) = where_clause.elements {
         let element_results = elements.iter().map(|e| {
-            let status_code = if e.filter_operands.is_none() {
+            let (status_code, operand_status_codes) = if e.filter_operands.is_none() {
                 // All operators need at least one operand
-                StatusCode::BadFilterOperandCountMismatch
+                (StatusCode::BadFilterOperandCountMismatch, None)
             } else {
                 let filter_operands = e.filter_operands.as_ref().unwrap();
-                // Check the number of operands which should must not be less than the expected amount
+
+                // The right number of operators? The spec implies its okay to pass
+                // >= than the required #, but less is an error.
                 let operand_count_mismatch = match e.filter_operator {
                     FilterOperator::Equals => filter_operands.len() < 2,
                     FilterOperator::IsNull => filter_operands.len() < 1,
@@ -156,21 +143,43 @@ fn validate_where_class(where_clause: &ContentFilter, address_space: &AddressSpa
                     FilterOperator::BitwiseAnd => filter_operands.len() < 2,
                     FilterOperator::BitwiseOr => filter_operands.len() < 2,
                 };
+
+                // Unsupported operators?
                 let unsupported_operator = match e.filter_operator {
                     FilterOperator::Like => false,
                     _ => true
                 };
-                if operand_count_mismatch {
+
+                // Check if the operands look okay
+                let operand_status_codes = filter_operands.iter().map(|e| {
+                    // Look to see if any operand cannot be parsed
+                    if <Operand>::try_from(e).is_err() {
+                        StatusCode::BadFilterOperandInvalid
+                    } else {
+                        StatusCode::Good
+                    }
+                }).collect::<Vec<StatusCode>>();
+
+                // Check if any operands were invalid
+                let operator_invalid = operand_status_codes.iter().find(|e| !e.is_good()).is_some();
+
+                // Check what error status to return
+                let status_code = if operand_count_mismatch {
                     StatusCode::BadFilterOperandCountMismatch
                 } else if unsupported_operator {
                     StatusCode::BadFilterOperatorUnsupported
+                } else if operator_invalid {
+                    StatusCode::BadFilterOperatorInvalid
                 } else {
                     StatusCode::Good
-                }
+                };
+
+                (status_code, Some(operand_status_codes))
             };
+
             ContentFilterElementResult {
                 status_code,
-                operand_status_codes: None,
+                operand_status_codes,
                 operand_diagnostic_infos: None,
             }
         }).collect();
@@ -179,16 +188,28 @@ fn validate_where_class(where_clause: &ContentFilter, address_space: &AddressSpa
         None
     };
 
-    // Bad_FilterOperandCountMismatch
-    // Bad_FilterOperatorInvalid
-    // Bad_FilterOperatorUnsupported
-
     // TODO Limit the Notifications to those Events that match the criteria defined by this ContentFilter. The ContentFilter structure is described in 7.4.
     //  The AttributeOperand structure may not be used in an EventFilter.
     ContentFilterResult {
         element_results,
         element_diagnostic_infos: None,
     }
+}
+
+#[test]
+fn validate_where_class_test() {
+    let address_space = AddressSpace::new();
+    let where_clause = ContentFilter       {
+        elements: None
+    };
+    let result = validate_where_class(&where_clause, &address_space);
+
+// TODO
+//
+// check for at least one filter operand
+// check for less than required number of operands
+// check for unsupported operators
+// check for operand invalid
 }
 
 pub fn validate_event_filter(event_filter: &EventFilter, address_space: &AddressSpace) -> EventFilterResult {
