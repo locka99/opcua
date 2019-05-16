@@ -51,6 +51,9 @@ mod session;
 mod discovery;
 mod completion_pact;
 
+#[cfg(feature = "http")]
+pub mod http;
+
 pub mod comms;
 pub mod metrics;
 pub mod server;
@@ -62,9 +65,8 @@ pub mod config;
 pub mod address_space;
 pub mod util;
 pub mod continuation_point;
-#[cfg(feature = "http")]
-pub mod http;
 pub mod callbacks;
+pub mod events;
 
 pub mod prelude {
     //! Provides a way to use most types and functions commonly used by server implementations from a

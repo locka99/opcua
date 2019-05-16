@@ -16,6 +16,7 @@ Planned future work is listed at the bottom.
   - TODO address space. Add a create on demand callback
   - TODO gen_types.js. Refactor so it could be used to generate code for any model
   - TODO support events 
+  - TODO prevent nested arrays from being deserialized
   - TODO More control over limits on the server - number of subscriptions, monitored items, sessions, min publishing interval
   - TODO Integration tests are broken and need to be fixed.
   - TODO Multiple chunk support in client and server, sending and receiving

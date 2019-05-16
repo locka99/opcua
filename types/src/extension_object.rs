@@ -6,6 +6,7 @@ use crate::{
     encoding::*,
     string::XmlElement,
     node_id::NodeId,
+    node_ids::ObjectId,
     byte_string::ByteString,
     status_codes::StatusCode,
 };
@@ -112,6 +113,12 @@ impl ExtensionObject {
             ExtensionObjectEncoding::None => true,
             _ => false
         }
+    }
+
+    /// Returns the object id of the thing this extension object contains, assuming the
+    /// object id can be recognised from the node id.
+    pub fn object_id(&self) -> Result<ObjectId, ()> {
+        self.node_id.as_object_id()
     }
 
     /// Creates an extension object with the specified node id and the encodable object as its payload.
