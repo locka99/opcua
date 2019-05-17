@@ -1,81 +1,16 @@
 use std::convert::TryFrom;
 
 use opcua_types::{
-    ExtensionObject, DecodingLimits,
     status_code::StatusCode,
-    node_ids::ObjectId,
+    operand::Operand,
     service_types::{
-        FilterOperator, EventFilter, EventFilterResult, ContentFilter, ContentFilterResult, ContentFilterElementResult, SimpleAttributeOperand,
-        ElementOperand, LiteralOperand, AttributeOperand,
+        FilterOperator, EventFilter, EventFilterResult, ContentFilter, ContentFilterElement,
+        ContentFilterResult, ContentFilterElementResult, SimpleAttributeOperand,
     },
 };
 
 use crate::address_space::address_space::AddressSpace;
-
-pub enum Operand {
-    ElementOperand(ElementOperand),
-    LiteralOperand(LiteralOperand),
-    AttributeOperand(AttributeOperand),
-    SimpleAttributeOperand(SimpleAttributeOperand),
-}
-
-impl TryFrom<&ExtensionObject> for Operand {
-    type Error = StatusCode;
-
-    fn try_from(v: &ExtensionObject) -> Result<Self, Self::Error> {
-        let object_id = v.object_id().map_err(|_| StatusCode::BadFilterOperandInvalid)?;
-        let decoding_limits = DecodingLimits::default();
-        let operand = match object_id {
-            ObjectId::ElementOperand_Encoding_DefaultBinary =>
-                Operand::ElementOperand(v.decode_inner::<ElementOperand>(&decoding_limits)?),
-            ObjectId::LiteralOperand_Encoding_DefaultBinary =>
-                Operand::LiteralOperand(v.decode_inner::<LiteralOperand>(&decoding_limits)?),
-            ObjectId::AttributeOperand_Encoding_DefaultBinary =>
-                Operand::AttributeOperand(v.decode_inner::<AttributeOperand>(&decoding_limits)?),
-            ObjectId::SimpleAttributeOperand_Encoding_DefaultBinary =>
-                Operand::SimpleAttributeOperand(v.decode_inner::<SimpleAttributeOperand>(&decoding_limits)?),
-            _ => {
-                return Err(StatusCode::BadFilterOperandInvalid);
-            }
-        };
-        Ok(operand)
-    }
-}
-
-impl Operand {
-    pub fn operand_type(&self) -> OperandType {
-        match self {
-            &Operand::ElementOperand(_) => OperandType::ElementOperand,
-            &Operand::LiteralOperand(_) => OperandType::LiteralOperand,
-            &Operand::AttributeOperand(_) => OperandType::AttributeOperand,
-            &Operand::SimpleAttributeOperand(_) => OperandType::SimpleAttributeOperand
-        }
-    }
-
-    pub fn is_element(&self) -> bool {
-        self.operand_type() == OperandType::ElementOperand
-    }
-
-    pub fn is_literal(&self) -> bool {
-        self.operand_type() == OperandType::LiteralOperand
-    }
-
-    pub fn is_attribute(&self) -> bool {
-        self.operand_type() == OperandType::AttributeOperand
-    }
-
-    pub fn is_simple_attribute(&self) -> bool {
-        self.operand_type() == OperandType::SimpleAttributeOperand
-    }
-}
-
-#[derive(PartialEq)]
-pub enum OperandType {
-    ElementOperand,
-    LiteralOperand,
-    AttributeOperand,
-    SimpleAttributeOperand,
-}
+use serde::private::de::Content;
 
 fn validate_select_clause(clause: &SimpleAttributeOperand, address_space: &AddressSpace) -> StatusCode {
 
@@ -102,8 +37,7 @@ fn validate_select_clause(clause: &SimpleAttributeOperand, address_space: &Addre
     StatusCode::BadNodeIdUnknown
 }
 
-fn validate_where_class(where_clause: &ContentFilter, address_space: &AddressSpace) -> ContentFilterResult {
-    //
+fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSpace) -> Result<ContentFilterResult, StatusCode> {
     // The ContentFilter structure defines a collection of elements that define filtering criteria.
     // Each element in the collection describes an operator and an array of operands to be used by
     // the operator. The operators that can be used in a ContentFilter are described in Table 119.
@@ -116,7 +50,7 @@ fn validate_where_class(where_clause: &ContentFilter, address_space: &AddressSpa
     // it is ignored. Extra operands for any operator shall result in an error. Annex B provides
     // examples using the ContentFilter structure.
 
-    let element_results = if let Some(ref elements) = where_clause.elements {
+    if let Some(ref elements) = where_clause.elements {
         let element_results = elements.iter().map(|e| {
             let (status_code, operand_status_codes) = if e.filter_operands.is_none() {
                 // All operators need at least one operand
@@ -146,8 +80,8 @@ fn validate_where_class(where_clause: &ContentFilter, address_space: &AddressSpa
 
                 // Unsupported operators?
                 let unsupported_operator = match e.filter_operator {
-                    FilterOperator::Like => false,
-                    _ => true
+                    FilterOperator::Like => true,
+                    _ => false
                 };
 
                 // Check if the operands look okay
@@ -182,37 +116,102 @@ fn validate_where_class(where_clause: &ContentFilter, address_space: &AddressSpa
                 operand_status_codes,
                 operand_diagnostic_infos: None,
             }
-        }).collect();
-        Some(element_results)
-    } else {
-        None
-    };
+        }).collect::<Vec<ContentFilterElementResult>>();
 
-    // TODO Limit the Notifications to those Events that match the criteria defined by this ContentFilter. The ContentFilter structure is described in 7.4.
-    //  The AttributeOperand structure may not be used in an EventFilter.
-    ContentFilterResult {
-        element_results,
-        element_diagnostic_infos: None,
+        if !element_results.is_empty() {
+            // TODO Limit the Notifications to those Events that match the criteria defined by this ContentFilter. The ContentFilter structure is described in 7.4.
+            //  The AttributeOperand structure may not be used in an EventFilter.
+            Ok(ContentFilterResult {
+                element_results: Some(element_results),
+                element_diagnostic_infos: None,
+            })
+        } else {
+            // The where clause has to contain something
+            Err(StatusCode::BadEventFilterInvalid)
+        }
+    } else {
+        // The where clause has to contain something
+        Err(StatusCode::BadEventFilterInvalid)
     }
 }
 
 #[test]
-fn validate_where_class_test() {
+fn validate_where_clause_test() {
     let address_space = AddressSpace::new();
-    let where_clause = ContentFilter       {
-        elements: None
-    };
-    let result = validate_where_class(&where_clause, &address_space);
 
-// TODO
-//
-// check for at least one filter operand
-// check for less than required number of operands
-// check for unsupported operators
-// check for operand invalid
+    {
+        let where_clause = ContentFilter {
+            elements: None
+        };
+        // check for at least one filter operand
+        let result = validate_where_clause(&where_clause, &address_space);
+        assert_eq!(result.unwrap_err(), StatusCode::BadEventFilterInvalid);
+    }
+
+    // Make a where clause where every single operator is included but each has the wrong number of operands.
+    // We should expect them all to be in error
+    {
+        let where_clause = ContentFilter {
+            elements: Some(vec![
+                ContentFilterElement::from((FilterOperator::Equals, vec![Operand::from(10)])),
+                ContentFilterElement::from((FilterOperator::IsNull, vec![])),
+                ContentFilterElement::from((FilterOperator::GreaterThan, vec![Operand::from(10)])),
+                ContentFilterElement::from((FilterOperator::LessThan, vec![Operand::from(10)])),
+                ContentFilterElement::from((FilterOperator::GreaterThanOrEqual, vec![Operand::from(10)])),
+                ContentFilterElement::from((FilterOperator::LessThanOrEqual, vec![Operand::from(10)])),
+                ContentFilterElement::from((FilterOperator::Like, vec![Operand::from(10)])),
+                ContentFilterElement::from((FilterOperator::Not, vec![])),
+                ContentFilterElement::from((FilterOperator::Between, vec![Operand::from(10), Operand::from(20)])),
+                ContentFilterElement::from((FilterOperator::InList, vec![Operand::from(10)])),
+                ContentFilterElement::from((FilterOperator::And, vec![Operand::from(10)])),
+                ContentFilterElement::from((FilterOperator::Or, vec![Operand::from(10)])),
+                ContentFilterElement::from((FilterOperator::Cast, vec![Operand::from(10)])),
+                ContentFilterElement::from((FilterOperator::BitwiseAnd, vec![Operand::from(10)])),
+                ContentFilterElement::from((FilterOperator::BitwiseOr, vec![Operand::from(10)])),
+            ])
+        };
+        // Check for less than required number of operands
+        let result = validate_where_clause(&where_clause, &address_space).unwrap();
+        result.element_results.unwrap().iter().for_each(|e| {
+            assert_eq!(e.status_code, StatusCode::BadFilterOperandCountMismatch)
+        });
+    }
+
+    // check for unsupported operators - Like is unsupported
+    {
+        let where_clause = ContentFilter {
+            elements: Some(vec![
+                ContentFilterElement::from((FilterOperator::Equals, vec![Operand::from(10), Operand::from(10)])),
+                ContentFilterElement::from((FilterOperator::Like, vec![Operand::from(10), Operand::from(10)])),
+            ])
+        };
+        let result = validate_where_clause(&where_clause, &address_space).unwrap();
+        let element_results = result.element_results.unwrap();
+        assert_eq!(element_results.len(), 2);
+        assert_eq!(element_results[0].status_code, StatusCode::Good);
+        assert_eq!(element_results[1].status_code, StatusCode::BadFilterOperatorUnsupported);
+    }
+
+    // check for filter operator invalid, by giving it a bogus extension object for an element
+    {
+        use opcua_types::{ExtensionObject, service_types::ContentFilterElement, node_ids::ObjectId};
+        let bad_operator = ExtensionObject::null();
+        let where_clause = ContentFilter {
+            elements: Some(vec![ContentFilterElement {
+                filter_operator: FilterOperator::IsNull,
+                filter_operands: Some(vec![bad_operator]),
+            }])
+        };
+        let result = validate_where_clause(&where_clause, &address_space).unwrap();
+        let element_results = result.element_results.unwrap();
+        assert_eq!(element_results.len(), 1);
+        assert_eq!(element_results[0].status_code, StatusCode::BadFilterOperatorInvalid);
+    }
+
+    // TODO check operands are compatible with operator
 }
 
-pub fn validate_event_filter(event_filter: &EventFilter, address_space: &AddressSpace) -> EventFilterResult {
+pub fn validate_event_filter(event_filter: &EventFilter, address_space: &AddressSpace) -> Result<EventFilterResult, StatusCode> {
     let select_clause_results = if let Some(ref select_clauses) = event_filter.select_clauses {
         Some(select_clauses.iter().map(|clause| {
             validate_select_clause(clause, address_space)
@@ -220,10 +219,11 @@ pub fn validate_event_filter(event_filter: &EventFilter, address_space: &Address
     } else {
         None
     };
-    let where_clause_result = validate_where_class(&event_filter.where_clause, address_space);
-    EventFilterResult {
+    let where_clause_result = validate_where_clause(&event_filter.where_clause, address_space)?;
+
+    Ok(EventFilterResult {
         select_clause_results,
         select_clause_diagnostic_infos: None,
         where_clause_result,
-    }
+    })
 }

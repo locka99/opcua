@@ -189,6 +189,7 @@ pub mod tcp_types;
 pub mod service_types;
 pub mod status_code;
 pub mod relative_path;
+pub mod operand;
 
 pub use crate::{
     encoding::*,
@@ -208,6 +209,7 @@ pub use crate::{
     numeric_range::*,
     url::*,
     argument::*,
+    operand::*,
 };
 
 #[cfg(test)]
