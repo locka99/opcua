@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 use crate::tests::*;
+use crate::address_space::relative_path::find_node_from_browse_path;
 
 #[test]
 fn address_space() {
@@ -212,6 +213,21 @@ fn multi_dimension_array_as_variable() {
     assert_eq!(value_rank, 2);
     let array_dimensions = v.array_dimensions().unwrap();
     assert_eq!(array_dimensions, vec![10u32, 10u32]);
+}
+
+#[test]
+fn browse_nodes() {
+    let address_space = make_sample_address_space();
+
+    // Test that a node can be found
+    let result = find_node_from_browse_path(&address_space, &vec!["Objects".into(), "Sample".into(), "v1".into()]);
+    let node = result.unwrap();
+    assert_eq!(node.as_node().browse_name(), QualifiedName::from("v1"));
+
+    // Test that a non existent node cannot be found
+    let result = find_node_from_browse_path(&address_space, &vec!["Objects".into(), "Sample".into(), "vxxx".into()]);
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err(), StatusCode::BadNotFound);
 }
 
 #[test]

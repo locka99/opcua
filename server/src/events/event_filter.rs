@@ -9,8 +9,10 @@ use opcua_types::{
     },
 };
 
-use crate::address_space::address_space::AddressSpace;
-use serde::private::de::Content;
+use crate::{
+    address_space::address_space::AddressSpace,
+    address_space::relative_path::*,
+};
 
 fn validate_select_clause(clause: &SimpleAttributeOperand, address_space: &AddressSpace) -> StatusCode {
 
@@ -31,6 +33,16 @@ fn validate_select_clause(clause: &SimpleAttributeOperand, address_space: &Addre
     // if an Event meets the criteria specified by the whereClause. A null value is returned in the correspeonding
     // event field in the publish response if the selected field is not part of the event or an
     // error was returned in the selectClauseResults of the EventFilterResult.
+
+    // TODO check for empty / none path
+
+    let browse_path = clause.browse_path.as_ref().unwrap();
+    if let Ok(node) = find_node_from_browse_path(&address_space, browse_path) {
+        // TODO check the node is an object or variable
+    }
+    else {
+        // TODO error
+    }
 
     // TODO List of the values to return with each Event in a Notification. At least one valid clause
     //  shall be specified. See 7.4.4.5 for the definition of SimpleAttributeOperand.
@@ -194,7 +206,7 @@ fn validate_where_clause_test() {
 
     // check for filter operator invalid, by giving it a bogus extension object for an element
     {
-        use opcua_types::{ExtensionObject, service_types::ContentFilterElement, node_ids::ObjectId};
+        use opcua_types::{ExtensionObject, service_types::ContentFilterElement};
         let bad_operator = ExtensionObject::null();
         let where_clause = ContentFilter {
             elements: Some(vec![ContentFilterElement {

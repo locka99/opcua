@@ -703,6 +703,15 @@ impl AddressSpace {
         }
     }
 
+    /// Finds hierarchical references of the parent node, i.e. children, organizes etc from the parent node to other nodes.
+    /// This function will return node ids even if the nodes themselves do not exist in the address space.
+    pub fn find_hierarchical_references(&self, parent_node_id: &NodeId) -> Option<Vec<NodeId>> {
+        let references = self.find_references_from(parent_node_id, Some((ReferenceTypeId::HierarchicalReferences, true)));
+        references.map(|references| {
+            references.iter().map(|r| r.target_node_id.clone()).collect()
+        })
+    }
+
     /// Finds forward references from the specified node
     pub fn find_references_from(&self, node_id: &NodeId, reference_filter: Option<(ReferenceTypeId, bool)>) -> Option<Vec<Reference>> {
         self.references.find_references_from(node_id, reference_filter)

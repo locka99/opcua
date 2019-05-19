@@ -1,14 +1,52 @@
 use std::collections::HashSet;
 
 use opcua_types::{
+    QualifiedName,
     status_code::StatusCode,
     node_id::NodeId,
     service_types::{RelativePath, RelativePathElement},
 };
 
 use crate::{
-    address_space::AddressSpace
+    address_space::{AddressSpace, node::NodeType}
 };
+
+
+/// Given a browse path consisting of browse names, walk nodes from the root until we find a single node (or not).
+/// This function is a simplified use case for event filters and such like where a browse path
+/// is defined as an array and doesn't need to be parsed out of a relative path.
+pub(crate) fn find_node_from_browse_path<'a>(address_space: &'a AddressSpace, browse_path: &[QualifiedName]) -> Result<&'a NodeType, StatusCode> {
+    find_node_from_browse_path_relative(address_space, AddressSpace::root_folder_id(), browse_path)
+}
+
+/// Given a browse path consisting of browse names, walk nodes from the supplied parent until we find a single node (or not)
+/// This function is a simplified use case for event filters and such like where a browse path
+/// is defined as an array and doesn't need to be parsed out of a relative path.
+pub(crate) fn find_node_from_browse_path_relative<'a>(address_space: &'a AddressSpace, mut parent_node_id: NodeId, browse_path: &[QualifiedName]) -> Result<&'a NodeType, StatusCode> {
+    if browse_path.is_empty() {
+        Err(StatusCode::BadNotFound)
+    } else {
+        for browse_name in browse_path {
+            if let Some(child_nodes) = address_space.find_hierarchical_references(&parent_node_id) {
+                let found_node_id = child_nodes.iter().find(|node_id| {
+                    if let Some(node) = address_space.find_node(&node_id) {
+                        node.as_node().browse_name() == *browse_name
+                    } else {
+                        false
+                    }
+                });
+                if let Some(found_node_id) = found_node_id {
+                    parent_node_id = found_node_id.clone();
+                } else {
+                    return Err(StatusCode::BadNotFound);
+                }
+            } else {
+                return Err(StatusCode::BadNotFound);
+            }
+        }
+        Ok(address_space.find_node(&parent_node_id).unwrap())
+    }
+}
 
 /// Given a `RelativePath`, find all the nodes that match against it.
 pub(crate) fn find_nodes_relative_path(address_space: &AddressSpace, node_id: &NodeId, relative_path: &RelativePath) -> Result<Vec<NodeId>, StatusCode> {
