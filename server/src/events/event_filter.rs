@@ -34,19 +34,20 @@ fn validate_select_clause(clause: &SimpleAttributeOperand, address_space: &Addre
     // event field in the publish response if the selected field is not part of the event or an
     // error was returned in the selectClauseResults of the EventFilterResult.
 
-    // TODO check for empty / none path
-
-    let browse_path = clause.browse_path.as_ref().unwrap();
-    if let Ok(node) = find_node_from_browse_path(&address_space, browse_path) {
-        // TODO check the node is an object or variable
-    }
-    else {
-        // TODO error
+    if let Some(ref browse_path) = clause.browse_path {
+        if let Ok(_) = find_node_from_browse_path(&address_space, browse_path) {
+            StatusCode::Good
+        } else {
+            error!("Invalid select clause node not found {:?}", clause);
+            StatusCode::BadNodeIdUnknown
+        }
+    } else {
+        error!("Invalid select clause with no browse path supplied");
+        StatusCode::BadNodeIdUnknown
     }
 
     // TODO List of the values to return with each Event in a Notification. At least one valid clause
     //  shall be specified. See 7.4.4.5 for the definition of SimpleAttributeOperand.
-    StatusCode::BadNodeIdUnknown
 }
 
 fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSpace) -> Result<ContentFilterResult, StatusCode> {

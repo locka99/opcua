@@ -14,14 +14,16 @@ use crate::{
 
 /// Given a browse path consisting of browse names, walk nodes from the root until we find a single node (or not).
 /// This function is a simplified use case for event filters and such like where a browse path
-/// is defined as an array and doesn't need to be parsed out of a relative path.
+/// is defined as an array and doesn't need to be parsed out of a relative path. All nodes in the
+/// path must be objects or variables.
 pub(crate) fn find_node_from_browse_path<'a>(address_space: &'a AddressSpace, browse_path: &[QualifiedName]) -> Result<&'a NodeType, StatusCode> {
     find_node_from_browse_path_relative(address_space, AddressSpace::root_folder_id(), browse_path)
 }
 
 /// Given a browse path consisting of browse names, walk nodes from the supplied parent until we find a single node (or not)
 /// This function is a simplified use case for event filters and such like where a browse path
-/// is defined as an array and doesn't need to be parsed out of a relative path.
+/// is defined as an array and doesn't need to be parsed out of a relative path. All nodes in the
+/// path must be objects or variables.
 pub(crate) fn find_node_from_browse_path_relative<'a>(address_space: &'a AddressSpace, mut parent_node_id: NodeId, browse_path: &[QualifiedName]) -> Result<&'a NodeType, StatusCode> {
     if browse_path.is_empty() {
         Err(StatusCode::BadNotFound)
@@ -30,7 +32,15 @@ pub(crate) fn find_node_from_browse_path_relative<'a>(address_space: &'a Address
             if let Some(child_nodes) = address_space.find_hierarchical_references(&parent_node_id) {
                 let found_node_id = child_nodes.iter().find(|node_id| {
                     if let Some(node) = address_space.find_node(&node_id) {
-                        node.as_node().browse_name() == *browse_name
+                        if node.as_node().browse_name() == *browse_name {
+                            // Check that the node is an Object or Variable
+                            match node {
+                                NodeType::Object(_) | NodeType::Variable(_) => true,
+                                _ => false,
+                            }
+                        } else {
+                            false
+                        }
                     } else {
                         false
                     }
