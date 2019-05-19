@@ -233,7 +233,6 @@ pub fn validate_event_filter(event_filter: &EventFilter, address_space: &Address
         None
     };
     let where_clause_result = validate_where_clause(&event_filter.where_clause, address_space)?;
-
     Ok(EventFilterResult {
         select_clause_results,
         select_clause_diagnostic_infos: None,
