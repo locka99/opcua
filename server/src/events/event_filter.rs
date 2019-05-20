@@ -50,6 +50,135 @@ fn validate_select_clause(clause: &SimpleAttributeOperand, address_space: &Addre
     //  shall be specified. See 7.4.4.5 for the definition of SimpleAttributeOperand.
 }
 
+/// Evaluates an operand
+fn evaluate(operator: FilterOperator, operands: &[Operand], address_space: &AddressSpace) -> Result<bool, StatusCode> {
+    Ok(false)
+}
+
+fn evaluate_eq(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
+
+fn evaluate_is_null(op1: &Operand) -> Result<bool, StatusCode> { Ok(false) }
+
+fn evaluate_gt(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
+
+fn evaluate_lt(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
+
+fn evaluate_gte(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
+
+fn evaluate_lte(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
+
+fn evaluate_like(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
+
+fn evaluate_not(op1: &Operand) -> Result<bool, StatusCode> { Ok(false) }
+
+fn evaluate_between(op1: &Operand, op2: &Operand, op3: &Operand) -> Result<bool, StatusCode> { Ok(false) }
+
+fn evaluate_in_list(op1: &Operand, op2: &[Operand]) -> Result<bool, StatusCode> { Ok(false) }
+
+fn evaluate_and(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
+
+fn evaluate_or(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
+
+fn evaluate_cast(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
+
+fn evaluate_bitwise_and(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
+
+fn evaluate_bitwise_or(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
+
+/// Evaluates a where clause which is a tree of conditionals
+fn evaluate_where_clause(where_clause: &ContentFilter, address_space: &AddressSpace) -> Result<bool, StatusCode> {
+    // Clause is meant to have been validated before now so this code is not as stringent and makes some expectations.
+    if let Some(ref elements) = where_clause.elements {
+        for e in elements {
+            if e.filter_operands.is_none() {
+                // All operators need at least one operand
+                return Err(StatusCode::BadFilterOperandCountMismatch);
+            } else {
+                let operands = e.filter_operands.as_ref().unwrap();
+
+                let result = match e.filter_operator {
+                    FilterOperator::Equals => {
+                        let op1 = Operand::try_from(&operands[0])?;
+                        let op2 = Operand::try_from(&operands[1])?;
+                        evaluate_eq(&op1, &op2)?
+                    }
+                    FilterOperator::IsNull => {
+                        let op1 = Operand::try_from(&operands[0])?;
+                        evaluate_is_null(&op1)?
+                    }
+                    FilterOperator::GreaterThan => {
+                        let op1 = Operand::try_from(&operands[0])?;
+                        let op2 = Operand::try_from(&operands[1])?;
+                        evaluate_gt(&op1, &op2)?
+                    }
+                    FilterOperator::LessThan => {
+                        let op1 = Operand::try_from(&operands[0])?;
+                        let op2 = Operand::try_from(&operands[1])?;
+                        evaluate_lt(&op1, &op2)?
+                    }
+                    FilterOperator::GreaterThanOrEqual => {
+                        let op1 = Operand::try_from(&operands[0])?;
+                        let op2 = Operand::try_from(&operands[1])?;
+                        evaluate_gte(&op1, &op2)?
+                    }
+                    FilterOperator::LessThanOrEqual => {
+                        let op1 = Operand::try_from(&operands[0])?;
+                        let op2 = Operand::try_from(&operands[1])?;
+                        evaluate_lte(&op1, &op2)?
+                    }
+                    FilterOperator::Like => {
+                        let op1 = Operand::try_from(&operands[0])?;
+                        let op2 = Operand::try_from(&operands[1])?;
+                        evaluate_like(&op1, &op2)?
+                    }
+                    FilterOperator::Not => {
+                        let op1 = Operand::try_from(&operands[0])?;
+                        evaluate_not(&op1)?
+                    }
+                    FilterOperator::Between => {
+                        let op1 = Operand::try_from(&operands[0])?;
+                        let op2 = Operand::try_from(&operands[1])?;
+                        let op3 = Operand::try_from(&operands[2])?;
+                        evaluate_between(&op1, &op2, &op3)?
+                    }
+                    FilterOperator::InList => {
+                        //let op1 = Operand::try_from(&operands[0])?;
+                        // let op2 = Operand::try_from(&operands[1])?;
+                        // evaluate_in_list(&op1, &op2)?
+                        false
+                    }
+                    FilterOperator::And => {
+                        let op1 = Operand::try_from(&operands[0])?;
+                        let op2 = Operand::try_from(&operands[1])?;
+                        evaluate_and(&op1, &op2)?
+                    }
+                    FilterOperator::Or => {
+                        let op1 = Operand::try_from(&operands[0])?;
+                        let op2 = Operand::try_from(&operands[1])?;
+                        evaluate_or(&op1, &op2)?
+                    }
+                    FilterOperator::Cast => {
+                        let op1 = Operand::try_from(&operands[0])?;
+                        let op2 = Operand::try_from(&operands[1])?;
+                        evaluate_cast(&op1, &op2)?
+                    }
+                    FilterOperator::BitwiseAnd => {
+                        let op1 = Operand::try_from(&operands[0])?;
+                        let op2 = Operand::try_from(&operands[1])?;
+                        evaluate_bitwise_and(&op1, &op2)?
+                    }
+                    FilterOperator::BitwiseOr => {
+                        let op1 = Operand::try_from(&operands[0])?;
+                        let op2 = Operand::try_from(&operands[1])?;
+                        evaluate_bitwise_or(&op1, &op2)?
+                    }
+                };
+            }
+        }
+    }
+    Ok(false)
+}
+
 fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSpace) -> Result<ContentFilterResult, StatusCode> {
     // The ContentFilter structure defines a collection of elements that define filtering criteria.
     // Each element in the collection describes an operator and an array of operands to be used by
