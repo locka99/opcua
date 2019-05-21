@@ -1,8 +1,9 @@
 use std::convert::TryFrom;
 
 use opcua_types::{
-    status_code::StatusCode,
+    AttributeId, Variant,
     operand::Operand,
+    status_code::StatusCode,
     service_types::{
         FilterOperator, EventFilter, EventFilterResult, ContentFilter, ContentFilterElement,
         ContentFilterResult, ContentFilterElementResult, SimpleAttributeOperand,
@@ -10,33 +11,53 @@ use opcua_types::{
 };
 
 use crate::{
-    address_space::address_space::AddressSpace,
-    address_space::relative_path::*,
+    address_space::{
+        address_space::AddressSpace,
+        node::NodeType,
+        relative_path::*,
+    },
+    events::operator,
 };
 
 fn validate_select_clause(clause: &SimpleAttributeOperand, address_space: &AddressSpace) -> StatusCode {
-
-    // Check that the event type is supported by the server
-
-    // Using the browse path obtain the instance declaration
-
-    // Each instance declaration in the path shall be an object or variable node. The final node in the
-    // path may be an object node; however, object nodes are only available for Events which are
-    // visible in the server's address space
-
-    // The SimpleAttributeOperand allows the client to specify any attribute; however the server
-    // is only required to support the value attribute for variable nodes and the NodeId attribute
-    // for object nodes. That said, profiles defined in Part 7 may make support for
-    // additional attributes mandatory.
-
     // The SimpleAttributeOperand structure is used in the selectClauses to select the value to return
-    // if an Event meets the criteria specified by the whereClause. A null value is returned in the correspeonding
+    // if an Event meets the criteria specified by the whereClause. A null value is returned in the corresponding
     // event field in the publish response if the selected field is not part of the event or an
     // error was returned in the selectClauseResults of the EventFilterResult.
 
-    if let Some(ref browse_path) = clause.browse_path {
-        if let Ok(_) = find_node_from_browse_path(&address_space, browse_path) {
-            StatusCode::Good
+    if !clause.index_range.is_empty() {
+        // TODO support index ranges
+        StatusCode::BadIndexRangeInvalid
+    } else if let Some(ref browse_path) = clause.browse_path {
+        if let Ok(node) = find_node_from_browse_path(&address_space, browse_path) {
+            // Validate the attribute id. Per spec:
+            //
+            //   The SimpleAttributeOperand allows the client to specify any attribute; however the server
+            //   is only required to support the value attribute for variable nodes and the NodeId attribute
+            //   for object nodes. That said, profiles defined in Part 7 may make support for
+            //   additional attributes mandatory.
+            //
+            // So code will implement the bare minimum for now.
+            let valid_attribute_id = match node {
+                NodeType::Object(node) => {
+                    // Only the node id
+                    clause.attribute_id == AttributeId::NodeId as u32
+                }
+                NodeType::Variable(node) => {
+                    // Only the value
+                    clause.attribute_id == AttributeId::Value as u32
+                }
+                _ => {
+                    // find_node_from_browse_path shouldn't have returned anything except an object
+                    // or variable node.
+                    panic!()
+                }
+            };
+            if !valid_attribute_id {
+                StatusCode::BadAttributeIdInvalid
+            } else {
+                StatusCode::Good
+            }
         } else {
             error!("Invalid select clause node not found {:?}", clause);
             StatusCode::BadNodeIdUnknown
@@ -45,138 +66,20 @@ fn validate_select_clause(clause: &SimpleAttributeOperand, address_space: &Addre
         error!("Invalid select clause with no browse path supplied");
         StatusCode::BadNodeIdUnknown
     }
-
-    // TODO List of the values to return with each Event in a Notification. At least one valid clause
-    //  shall be specified. See 7.4.4.5 for the definition of SimpleAttributeOperand.
 }
-
-/// Evaluates an operand
-fn evaluate(operator: FilterOperator, operands: &[Operand], address_space: &AddressSpace) -> Result<bool, StatusCode> {
-    Ok(false)
-}
-
-fn evaluate_eq(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
-
-fn evaluate_is_null(op1: &Operand) -> Result<bool, StatusCode> { Ok(false) }
-
-fn evaluate_gt(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
-
-fn evaluate_lt(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
-
-fn evaluate_gte(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
-
-fn evaluate_lte(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
-
-fn evaluate_like(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
-
-fn evaluate_not(op1: &Operand) -> Result<bool, StatusCode> { Ok(false) }
-
-fn evaluate_between(op1: &Operand, op2: &Operand, op3: &Operand) -> Result<bool, StatusCode> { Ok(false) }
-
-fn evaluate_in_list(op1: &Operand, op2: &[Operand]) -> Result<bool, StatusCode> { Ok(false) }
-
-fn evaluate_and(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
-
-fn evaluate_or(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
-
-fn evaluate_cast(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
-
-fn evaluate_bitwise_and(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
-
-fn evaluate_bitwise_or(op1: &Operand, op2: &Operand) -> Result<bool, StatusCode> { Ok(false) }
 
 /// Evaluates a where clause which is a tree of conditionals
-fn evaluate_where_clause(where_clause: &ContentFilter, address_space: &AddressSpace) -> Result<bool, StatusCode> {
+fn evaluate_where_clause(where_clause: &ContentFilter, address_space: &AddressSpace) -> Result<Variant, StatusCode> {
     // Clause is meant to have been validated before now so this code is not as stringent and makes some expectations.
     if let Some(ref elements) = where_clause.elements {
-        for e in elements {
-            if e.filter_operands.is_none() {
-                // All operators need at least one operand
-                return Err(StatusCode::BadFilterOperandCountMismatch);
-            } else {
-                let operands = e.filter_operands.as_ref().unwrap();
-
-                let result = match e.filter_operator {
-                    FilterOperator::Equals => {
-                        let op1 = Operand::try_from(&operands[0])?;
-                        let op2 = Operand::try_from(&operands[1])?;
-                        evaluate_eq(&op1, &op2)?
-                    }
-                    FilterOperator::IsNull => {
-                        let op1 = Operand::try_from(&operands[0])?;
-                        evaluate_is_null(&op1)?
-                    }
-                    FilterOperator::GreaterThan => {
-                        let op1 = Operand::try_from(&operands[0])?;
-                        let op2 = Operand::try_from(&operands[1])?;
-                        evaluate_gt(&op1, &op2)?
-                    }
-                    FilterOperator::LessThan => {
-                        let op1 = Operand::try_from(&operands[0])?;
-                        let op2 = Operand::try_from(&operands[1])?;
-                        evaluate_lt(&op1, &op2)?
-                    }
-                    FilterOperator::GreaterThanOrEqual => {
-                        let op1 = Operand::try_from(&operands[0])?;
-                        let op2 = Operand::try_from(&operands[1])?;
-                        evaluate_gte(&op1, &op2)?
-                    }
-                    FilterOperator::LessThanOrEqual => {
-                        let op1 = Operand::try_from(&operands[0])?;
-                        let op2 = Operand::try_from(&operands[1])?;
-                        evaluate_lte(&op1, &op2)?
-                    }
-                    FilterOperator::Like => {
-                        let op1 = Operand::try_from(&operands[0])?;
-                        let op2 = Operand::try_from(&operands[1])?;
-                        evaluate_like(&op1, &op2)?
-                    }
-                    FilterOperator::Not => {
-                        let op1 = Operand::try_from(&operands[0])?;
-                        evaluate_not(&op1)?
-                    }
-                    FilterOperator::Between => {
-                        let op1 = Operand::try_from(&operands[0])?;
-                        let op2 = Operand::try_from(&operands[1])?;
-                        let op3 = Operand::try_from(&operands[2])?;
-                        evaluate_between(&op1, &op2, &op3)?
-                    }
-                    FilterOperator::InList => {
-                        //let op1 = Operand::try_from(&operands[0])?;
-                        // let op2 = Operand::try_from(&operands[1])?;
-                        // evaluate_in_list(&op1, &op2)?
-                        false
-                    }
-                    FilterOperator::And => {
-                        let op1 = Operand::try_from(&operands[0])?;
-                        let op2 = Operand::try_from(&operands[1])?;
-                        evaluate_and(&op1, &op2)?
-                    }
-                    FilterOperator::Or => {
-                        let op1 = Operand::try_from(&operands[0])?;
-                        let op2 = Operand::try_from(&operands[1])?;
-                        evaluate_or(&op1, &op2)?
-                    }
-                    FilterOperator::Cast => {
-                        let op1 = Operand::try_from(&operands[0])?;
-                        let op2 = Operand::try_from(&operands[1])?;
-                        evaluate_cast(&op1, &op2)?
-                    }
-                    FilterOperator::BitwiseAnd => {
-                        let op1 = Operand::try_from(&operands[0])?;
-                        let op2 = Operand::try_from(&operands[1])?;
-                        evaluate_bitwise_and(&op1, &op2)?
-                    }
-                    FilterOperator::BitwiseOr => {
-                        let op1 = Operand::try_from(&operands[0])?;
-                        let op2 = Operand::try_from(&operands[1])?;
-                        evaluate_bitwise_or(&op1, &op2)?
-                    }
-                };
-            }
-        }
+        use std::collections::HashSet;
+        let mut used_elements = HashSet::new();
+        used_elements.insert(0);
+        let result = operator::evaluate(&elements[0], &mut used_elements, elements, address_space)?;
+        Ok(result)
+    } else {
+        Ok(false.into())
     }
-    Ok(false)
 }
 
 fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSpace) -> Result<ContentFilterResult, StatusCode> {
@@ -200,8 +103,8 @@ fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSp
             } else {
                 let filter_operands = e.filter_operands.as_ref().unwrap();
 
-                // The right number of operators? The spec implies its okay to pass
-                // >= than the required #, but less is an error.
+                // The right number of operators? The spec implies it is okay to pass
+                // more operands than the required #, but less is an error.
                 let operand_count_mismatch = match e.filter_operator {
                     FilterOperator::Equals => filter_operands.len() < 2,
                     FilterOperator::IsNull => filter_operands.len() < 1,
@@ -229,10 +132,30 @@ fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSp
                 // Check if the operands look okay
                 let operand_status_codes = filter_operands.iter().map(|e| {
                     // Look to see if any operand cannot be parsed
-                    if <Operand>::try_from(e).is_err() {
-                        StatusCode::BadFilterOperandInvalid
-                    } else {
-                        StatusCode::Good
+                    match <Operand>::try_from(e) {
+                        Ok(operand) => {
+                            match operand {
+                                Operand::AttributeOperand(_) => {
+                                    // AttributeOperand may not be used in an EventFilter where clause
+                                    error!("AttributeOperand is not permitted in EventFilter where clause");
+                                    StatusCode::BadFilterOperandInvalid
+                                }
+                                Operand::ElementOperand(ref o) => {
+                                    // Check that operands have to have an index <= number of elements
+                                    if o.index as usize >= elements.len() {
+                                        error!("Invalid element operand is out of range");
+                                        StatusCode::BadFilterOperandInvalid
+                                    } else {
+                                        StatusCode::Good
+                                    }
+                                }
+                                _ => StatusCode::Good
+                            }
+                        }
+                        Err(err) => {
+                            error!("Operand cannot be read from extension object, err = {}", err);
+                            StatusCode::BadFilterOperandInvalid
+                        }
                     }
                 }).collect::<Vec<StatusCode>>();
 
@@ -241,10 +164,13 @@ fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSp
 
                 // Check what error status to return
                 let status_code = if operand_count_mismatch {
+                    error!("Where clause has invalid filter operand count");
                     StatusCode::BadFilterOperandCountMismatch
                 } else if unsupported_operator {
+                    error!("Where clause has unsupported filter operator");
                     StatusCode::BadFilterOperatorUnsupported
                 } else if operator_invalid {
+                    error!("Where clause has invalid filter operator");
                     StatusCode::BadFilterOperatorInvalid
                 } else {
                     StatusCode::Good
@@ -261,8 +187,6 @@ fn validate_where_clause(where_clause: &ContentFilter, address_space: &AddressSp
         }).collect::<Vec<ContentFilterElementResult>>();
 
         if !element_results.is_empty() {
-            // TODO Limit the Notifications to those Events that match the criteria defined by this ContentFilter. The ContentFilter structure is described in 7.4.
-            //  The AttributeOperand structure may not be used in an EventFilter.
             Ok(ContentFilterResult {
                 element_results: Some(element_results),
                 element_diagnostic_infos: None,

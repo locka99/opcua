@@ -28,6 +28,9 @@ pub(crate) fn find_node_from_browse_path_relative<'a>(address_space: &'a Address
     if browse_path.is_empty() {
         Err(StatusCode::BadNotFound)
     } else {
+        // Each instance declaration in the path shall be an object or variable node. The final node in the
+        // path may be an object node; however, object nodes are only available for Events which are
+        // visible in the server's address space
         for browse_name in browse_path {
             if let Some(child_nodes) = address_space.find_hierarchical_references(&parent_node_id) {
                 let found_node_id = child_nodes.iter().find(|node_id| {
