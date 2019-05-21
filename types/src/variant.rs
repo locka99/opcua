@@ -791,6 +791,175 @@ impl Variant {
         Ok(result)
     }
 
+    /// Performs an IMPLICIT conversion from one type to another
+    pub fn convert(&self, target_type: VariantTypeId) -> Result<Variant, ()> {
+        if self.type_id() == target_type {
+            return Ok(self.clone());
+        }
+
+        // See OPC UA Part 4 table 118
+        match *self {
+            Variant::Boolean(v) => {
+                match target_type {
+                    VariantTypeId::Byte => Ok((v as u8).into()),
+                    VariantTypeId::Double => Ok(((v as u8) as f64).into()),
+                    VariantTypeId::Float => Ok(((v as u8) as f32).into()),
+                    VariantTypeId::Int16 => Ok((v as i16).into()),
+                    VariantTypeId::Int32 => Ok((v as i32).into()),
+                    VariantTypeId::Int64 => Ok((v as i64).into()),
+                    VariantTypeId::SByte => Ok((v as i8).into()),
+                    VariantTypeId::UInt16 => Ok((v as u16).into()),
+                    VariantTypeId::UInt32 => Ok((v as u32).into()),
+                    VariantTypeId::UInt64 => Ok((v as u64).into()),
+                    _ => Err(())
+                }
+            }
+            Variant::Byte(v) => {
+                match target_type {
+                    VariantTypeId::Double => Ok((v as f64).into()),
+                    VariantTypeId::Float => Ok((v as f32).into()),
+                    VariantTypeId::Int16 => Ok((v as i16).into()),
+                    VariantTypeId::Int32 => Ok((v as i32).into()),
+                    VariantTypeId::Int64 => Ok((v as i64).into()),
+                    VariantTypeId::SByte => Ok((v as i8).into()),
+                    VariantTypeId::UInt16 => Ok((v as u16).into()),
+                    VariantTypeId::UInt32 => Ok((v as u32).into()),
+                    VariantTypeId::UInt64 => Ok((v as u64).into()),
+                    _ => Err(())
+                }
+            }
+            // ByteString - everything is X or E except to itself
+            // DateTime - everything is X or E except to itself
+            // Double - everything is X or E except to itself
+            Variant::ExpandedNodeId(ref v) => {
+                // TODO to string
+                Err(())
+            }
+            Variant::Float(v) => {
+                // Everything is X or E except to Double
+                match target_type {
+                    VariantTypeId::Double => Ok((v as f64).into()),
+                    _ => Err(())
+                }
+            }
+            // Guid - everything is X or E except to itself
+            Variant::Int16(v) => {
+                // TODO negative number to unsigned type causes conversion error
+                match target_type {
+                    VariantTypeId::Double => Ok((v as f64).into()),
+                    VariantTypeId::Float => Ok((v as f32).into()),
+                    VariantTypeId::Int32 => Ok((v as i32).into()),
+                    VariantTypeId::Int64 => Ok((v as i64).into()),
+                    VariantTypeId::UInt32 => Ok((v as u32).into()),
+                    VariantTypeId::UInt64 => Ok((v as u64).into()),
+                    _ => Err(())
+                }
+            }
+            Variant::Int32(v) => {
+                // TODO negative number to unsigned type causes conversion error
+                match target_type {
+                    VariantTypeId::Double => Ok((v as f64).into()),
+                    VariantTypeId::Float => Ok((v as f32).into()),
+                    VariantTypeId::Int64 => Ok((v as i64).into()),
+                    VariantTypeId::UInt64 => Ok((v as u64).into()),
+                    _ => Err(())
+                }
+            }
+            Variant::Int64(v) => {
+                match target_type {
+                    VariantTypeId::Double => Ok((v as f64).into()),
+                    VariantTypeId::Float => Ok((v as f32).into()),
+                    _ => Err(())
+                }
+            }
+            Variant::NodeId(ref v) => {
+                match target_type {
+                    // VariantTypeId::ExpandedNodeId => Ok(ExpandedNodeId::from(v).into()),
+                    // VariantTypeId::String => Ok(UAString::from(String::from(v)).into()),
+                    _ => Err(())
+                }
+            }
+            Variant::SByte(v) => {
+                // TODO negative number to unsigned type causes conversion error
+                match target_type {
+                    VariantTypeId::Double => Ok((v as f64).into()),
+                    VariantTypeId::Float => Ok((v as f32).into()),
+                    VariantTypeId::Int16 => Ok((v as i16).into()),
+                    VariantTypeId::Int32 => Ok((v as i32).into()),
+                    VariantTypeId::Int64 => Ok((v as i64).into()),
+                    VariantTypeId::UInt16 => Ok((v as u16).into()),
+                    VariantTypeId::UInt32 => Ok((v as u32).into()),
+                    VariantTypeId::UInt64 => Ok((v as u64).into()),
+                    _ => Err(())
+                }
+            }
+            Variant::StatusCode(v) => {
+                match target_type {
+                    VariantTypeId::Int32 => Ok((v.bits() as i32).into()),
+                    VariantTypeId::Int64 => Ok((v.bits() as i64).into()),
+                    VariantTypeId::UInt32 => Ok((v.bits() as u32).into()),
+                    VariantTypeId::UInt64 => Ok((v.bits() as u64).into()),
+                    _ => Err(())
+                }
+            }
+            Variant::String(ref v) => {
+                // TODO to Boolean, Byte, Double, Float, Guid, Int16, Int32, Int64, NodeId, SByte
+                //  UInt16, UInt32, UInt64
+                Err(())
+            }
+            Variant::LocalizedText(_) => {
+                // TODO to String, drop the locale
+                Err(())
+            }
+            Variant::QualifiedName(_) => {
+                // TODO to String drop the namespace, LocalizedText
+                Err(())
+            }
+            Variant::UInt16(v) => {
+                match target_type {
+                    VariantTypeId::Double => Ok((v as f64).into()),
+                    VariantTypeId::Float => Ok((v as f32).into()),
+                    VariantTypeId::Int16 => Ok((v as i16).into()),
+                    VariantTypeId::Int32 => Ok((v as i32).into()),
+                    VariantTypeId::Int64 => Ok((v as i64).into()),
+                    VariantTypeId::StatusCode => Ok(StatusCode::from_bits_truncate(v as u32).into()),
+                    VariantTypeId::UInt32 => Ok((v as u32).into()),
+                    VariantTypeId::UInt64 => Ok((v as u64).into()),
+                    _ => Err(())
+                }
+            }
+            Variant::UInt32(v) => {
+                match target_type {
+                    VariantTypeId::Double => Ok((v as f64).into()),
+                    VariantTypeId::Float => Ok((v as f32).into()),
+                    VariantTypeId::Int32 => Ok((v as i32).into()),
+                    VariantTypeId::Int64 => Ok((v as i64).into()),
+                    VariantTypeId::StatusCode => Ok(StatusCode::from_bits_truncate(v).into()),
+                    VariantTypeId::UInt64 => Ok((v as u64).into()),
+                    _ => Err(())
+                }
+            }
+            Variant::UInt64(v) => {
+                match target_type {
+                    VariantTypeId::Double => Ok((v as f64).into()),
+                    VariantTypeId::Float => Ok((v as f32).into()),
+                    VariantTypeId::Int64 => Ok((v as i64).into()),
+                    _ => Err(())
+                }
+            }
+            Variant::Array(_) => {
+                // TODO Arrays including converting array of length 1 to scalar of same type
+                Err(())
+            }
+            Variant::MultiDimensionArray(_) => {
+                // TODO Arrays including converting array of length 1 to scalar of same type
+                Err(())
+            }
+            // XmlElement everything is X
+            _ => Err(())
+        }
+    }
+
     pub fn type_id(&self) -> VariantTypeId {
         match *self {
             Variant::Empty => VariantTypeId::Empty,

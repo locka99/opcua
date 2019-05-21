@@ -74,8 +74,21 @@ fn eq(operands: &[ExtensionObject], used_elements: &mut HashSet<u32>, elements: 
     // Table 118 conversion rules here.
     // Implicitly convertable types are converted before comparison
 
-    // TODO
-    Ok(false.into())
+    // TODO implicit conversion
+    Ok((v1 == v2).into())
+}
+
+#[test]
+fn test_eq() {
+    // Simple test, compare two values of the same kind
+    let operands = [
+        Operand::from(10), Operand::from(10)
+    ].iter().map(|v| v.into() ).collect::<Vec<ExtensionObject>>();
+    let mut used_elements = HashSet::new();
+    let mut elements = Vec::new();
+    let address_space = AddressSpace::new();
+    let result = eq(&operands[..], &mut used_elements, &elements, &address_space).unwrap();
+    assert_eq!(result, Variant::Boolean(true));
 }
 
 fn is_null(operands: &[ExtensionObject], used_elements: &mut HashSet<u32>, elements: &[ContentFilterElement], address_space: &AddressSpace) -> Result<Variant, StatusCode> {
@@ -128,6 +141,12 @@ fn like(operands: &[ExtensionObject], used_elements: &mut HashSet<u32>, elements
     // 0 and 1 are operands that resolve to a string
     //
     // Returns FALSE if no operand can be resolved to a string
+    //
+    // % Match zero or more chars
+    // _ Match any single character
+    // \ Escape character
+    // [] Match any single character in a list
+    // [^] Not matching any single character in a list
 
     // TODO
     Ok(false.into())

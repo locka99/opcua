@@ -119,6 +119,12 @@ impl From<&Operand> for ExtensionObject {
     }
 }
 
+impl From<Operand> for ExtensionObject {
+    fn from(v: Operand) -> Self {
+        Self::from(&v)
+    }
+}
+
 impl From<(FilterOperator, Vec<Operand>)> for ContentFilterElement {
     fn from(v: (FilterOperator, Vec<Operand>)) -> ContentFilterElement {
         ContentFilterElement {
